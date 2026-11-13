@@ -99,14 +99,13 @@ type CallbackOutput = {
 };
 
 /**
- * Returns whether a recorded interruption permits a subsequent attempt.
+ * Returns whether a recorded interruption permits a subsequent attempt. The
+ * recorded `retryable` flag decides: interruptions this function records are
+ * retryable only for `replay: 'safe'`, while recovery also records an
+ * abandoned tool attempt that provably never ran its tool as retryable.
  */
 function canRetry(attempt: EffectRecord): boolean {
-  return (
-    attempt.start.data.replay === 'safe' &&
-    attempt.output?.type === 'interrupted' &&
-    attempt.output.retryable
-  );
+  return attempt.output?.type === 'interrupted' && attempt.output.retryable;
 }
 
 /**

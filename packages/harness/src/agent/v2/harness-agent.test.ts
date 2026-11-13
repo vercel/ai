@@ -848,3 +848,312 @@ describe('HarnessAgent turns', () => {
     ).rejects.toThrow('call option `temperature` is not supported');
   });
 });
+
+describe('HarnessAgent crash recovery', () => {
+  /**
+   * Creates a HarnessV2 adapter that runs the latest prompt without a later
+   * `finish-turn` as a turn: one replay-safe model effect, whose callback is
+   * `model`, delivers the prompt, then the turn finishes with one step.
+   */
+  function createRecoverableHarness(options: {
+    model: (options: {
+      emit: (part: HarnessV2StreamPart) => void;
+    }) => Promise<string>;
+  }): HarnessV2 {
+    return {
+      specificationVersion: 'harness-v2',
+      harnessId: 'fake-v2',
+      builtinTools: {},
+      async drive({ context }) {
+        const { events } = await context.log.read();
+        let promptId: string | undefined;
+        for (const event of events) {
+          if (event.type === 'finish-turn') promptId = undefined;
+          if (event.type === 'submission' && event.data.type === 'prompt') {
+            promptId = event.id;
+          }
+        }
+        if (promptId == null) return;
+        const output = await context.effect({
+          key: `model:${promptId}`,
+          name: 'model',
+          replay: 'safe',
+          input: null,
+          deliveredSubmissionIds: [promptId],
+          fn: ({ emit }) => options.model({ emit }),
+        });
+        if (output.type !== 'result') return;
+        await context.finishStep({ stepNumber: 0, finishReason, usage });
+        await context.finishTurn({ finishReason, totalUsage: usage });
+      },
+    };
+  }
+
+  /**
+   * Creates a harness whose first model call emits partial text and then
+   * blocks until `release` resolves, and whose later calls emit `Recovered`.
+   */
+  function createBlockingHarness() {
+    const started = new DelayedPromise<void>();
+    const release = new DelayedPromise<string>();
+    let calls = 0;
+    const harness = createRecoverableHarness({
+      model: async ({ emit }) => {
+        calls++;
+        if (calls === 1) {
+          emit({ type: 'text-start', id: 'cut' });
+          emit({ type: 'text-delta', id: 'cut', delta: 'Cut off' });
+          started.resolve();
+          return release.promise;
+        }
+        emit({ type: 'text-start', id: 'retry' });
+        emit({ type: 'text-delta', id: 'retry', delta: 'Recovered' });
+        emit({ type: 'text-end', id: 'retry' });
+        return 'Recovered';
+      },
+    });
+    return { harness, started, release };
+  }
+
+  /**
+   * Copies the session's run into a new world, as seen by another process.
+   */
+  async function copyWorld(options: { world: InMemoryWorld; runId: string }) {
+    const copy = new InMemoryWorld();
+    await copy.seed({
+      runId: options.runId,
+      data: await options.world.export({ runId: options.runId }),
+    });
+    return copy;
+  }
+
+  test('recovers a turn whose drive crashed on request in a later drive', async () => {
+    const { harness, started, release } = createBlockingHarness();
+    const kill = vi.spyOn(process, 'kill').mockImplementation(() => true);
+    try {
+      const world = new InMemoryWorld();
+      const agent = new HarnessAgent({ harness, world, getSandboxSession });
+      const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+      await agent.stream({ prompt: 'hello', session });
+      await started.promise;
+
+      await agent.experimental_crash({ session });
+      await vi.waitFor(() =>
+        expect(kill).toHaveBeenCalledWith(process.pid, 'SIGKILL'),
+      );
+
+      const recoveryWorld = await copyWorld({ world, runId: session.runId });
+      const recoveryAgent = new HarnessAgent({
+        harness,
+        world: recoveryWorld,
+        getSandboxSession,
+      });
+      const restored = await recoveryAgent.createSession({
+        runId: session.runId,
+      });
+      const reading = await recoveryAgent.readStream({ session: restored });
+      await recoveryAgent.drive({ session: restored });
+
+      expect(await reading.text).toBe('Recovered');
+      const { events } = await createLog({
+        world: recoveryWorld,
+        runId: session.runId,
+      }).read({ types: ['drive-crash', 'effect-end', 'finish-turn'] });
+      expect(events.map(event => event.type)).toEqual([
+        'drive-crash',
+        'effect-end',
+        'effect-end',
+        'finish-turn',
+      ]);
+      expect(events[1].data).toMatchObject({
+        output: { type: 'interrupted', retryable: true },
+      });
+
+      const finished = await recoveryAgent.readStream({ session: restored });
+      const chunks: string[] = [];
+      for await (const chunk of finished.toUIMessageStream()) {
+        chunks.push(
+          chunk.type === 'text-delta'
+            ? `text-delta:${chunk.delta}`
+            : chunk.type,
+        );
+      }
+      expect(chunks).toEqual([
+        'start',
+        'start-step',
+        'text-start',
+        'text-delta:Cut off',
+        'reset-step',
+        'text-start',
+        'text-delta:Recovered',
+        'text-end',
+        'finish-step',
+        'finish',
+      ]);
+    } finally {
+      release.resolve('late');
+      kill.mockRestore();
+    }
+  });
+
+  test('leaves the session unchanged while the drive of unfinished attempts is not provably gone', async () => {
+    const { harness, started, release } = createBlockingHarness();
+    try {
+      const world = new InMemoryWorld();
+      const agent = new HarnessAgent({ harness, world, getSandboxSession });
+      const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+      await agent.stream({ prompt: 'hello', session });
+      await started.promise;
+
+      const otherWorld = await copyWorld({ world, runId: session.runId });
+      const otherAgent = new HarnessAgent({
+        harness,
+        world: otherWorld,
+        getSandboxSession,
+      });
+      const restored = await otherAgent.createSession({ runId: session.runId });
+      const log = createLog({ world: otherWorld, runId: session.runId });
+      const before = (await log.read()).events;
+
+      await otherAgent.drive({ session: restored });
+
+      expect((await log.read()).events).toEqual(before);
+    } finally {
+      release.resolve('late');
+    }
+  });
+
+  test('does nothing when a drive of the session runs in this process', async () => {
+    const { harness, started, release } = createBlockingHarness();
+    const world = new InMemoryWorld();
+    const agent = new HarnessAgent({ harness, world, getSandboxSession });
+    const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+    await agent.stream({ prompt: 'hello', session });
+    await started.promise;
+
+    await agent.drive({ session });
+
+    const { events } = await createLog({ world, runId: session.runId }).read({
+      types: ['drive-start'],
+    });
+    expect(events).toHaveLength(1);
+    release.resolve('done');
+  });
+
+  test('starts the turn of a prompt that has not started one', async () => {
+    const harness = createRecoverableHarness({ model: async () => 'done' });
+    const world = new InMemoryWorld();
+    const agent = new HarnessAgent({ harness, world, getSandboxSession });
+    const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+    const log = createLog({ world, runId: session.runId });
+    await log.append({
+      type: 'submission',
+      id: 'prompt',
+      data: {
+        type: 'prompt',
+        message: { role: 'user', content: 'hello' },
+        settings: { skills: [], tools: [] },
+      },
+    });
+
+    await agent.drive({ session });
+
+    expect(
+      (await log.read({ types: ['finish-turn'] })).events.map(
+        event => event.type === 'finish-turn' && event.data.turnId,
+      ),
+    ).toEqual(['prompt']);
+  });
+
+  test('drives nothing without a turn or a prompt to run', async () => {
+    const world = new InMemoryWorld();
+    const agent = new HarnessAgent({
+      harness: fakeHarness,
+      world,
+      getSandboxSession,
+    });
+    const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+
+    await agent.drive({ session });
+
+    expect(
+      (await createLog({ world, runId: session.runId }).read()).events,
+    ).toEqual([]);
+  });
+
+  test('reads a finished latest turn from the stream', async () => {
+    const world = new InMemoryWorld();
+    const agent = new HarnessAgent({
+      harness: fakeHarness,
+      world,
+      getSandboxSession,
+    });
+    const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+    await agent.generate({ prompt: 'first', session });
+    await agent.generate({ prompt: 'second', session });
+
+    const result = await agent.readStream({ session });
+
+    expect(await result.text).toBe('echo: second');
+  });
+
+  test('rejects reading a session without a turn', async () => {
+    const world = new InMemoryWorld();
+    const agent = new HarnessAgent({
+      harness: fakeHarness,
+      world,
+      getSandboxSession,
+    });
+    const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+
+    await expect(agent.readStream({ session })).rejects.toThrow(
+      'the session has no turn',
+    );
+  });
+
+  test('rejects a crash without a current drive', async () => {
+    const world = new InMemoryWorld();
+    const agent = new HarnessAgent({
+      harness: fakeHarness,
+      world,
+      getSandboxSession,
+    });
+    const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+
+    await expect(agent.experimental_crash({ session })).rejects.toThrow(
+      'there is no current drive to crash',
+    );
+    await agent.generate({ prompt: 'hello', session });
+    await expect(agent.experimental_crash({ session })).rejects.toThrow(
+      'there is no current drive to crash',
+    );
+    expect(
+      (
+        await createLog({ world, runId: session.runId }).read({
+          types: ['crash-request'],
+        })
+      ).events,
+    ).toEqual([]);
+  });
+
+  test('rejects a crash once the current drive crashed', async () => {
+    const { harness, started, release } = createBlockingHarness();
+    const kill = vi.spyOn(process, 'kill').mockImplementation(() => true);
+    try {
+      const world = new InMemoryWorld();
+      const agent = new HarnessAgent({ harness, world, getSandboxSession });
+      const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+      await agent.stream({ prompt: 'hello', session });
+      await started.promise;
+      await agent.experimental_crash({ session });
+      await vi.waitFor(() => expect(kill).toHaveBeenCalled());
+
+      await expect(agent.experimental_crash({ session })).rejects.toThrow(
+        'there is no current drive to crash',
+      );
+    } finally {
+      release.resolve('late');
+      kill.mockRestore();
+    }
+  });
+});

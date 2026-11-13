@@ -2,7 +2,10 @@ import { NoOutputGeneratedError } from 'ai';
 import { describe, expect, test } from 'vitest';
 import { HarnessStreamTextResult } from './harness-stream-text-result';
 import { HarnessAfterFinishError, HarnessBeforeStartError } from './errors';
-import type { HarnessAgentStreamPart } from './create-stream-writer';
+import type {
+  HarnessAgentStreamPart,
+  HarnessAgentStreamPartRecord,
+} from './create-stream-writer';
 
 const finishReason = { unified: 'stop' as const, raw: 'stop' };
 
@@ -30,16 +33,19 @@ const finishStepPart: HarnessAgentStreamPart = {
 };
 
 function createResult(options: {
-  parts: HarnessAgentStreamPart[];
+  parts?: HarnessAgentStreamPart[];
+  records?: HarnessAgentStreamPartRecord[];
   readError?: Error;
   aborted?: boolean;
 }) {
   const abortController = new AbortController();
   if (options.aborted) abortController.abort();
+  const records =
+    options.records ?? (options.parts ?? []).map(part => ({ part }));
   return new HarnessStreamTextResult({
-    parts: new ReadableStream({
+    records: new ReadableStream<HarnessAgentStreamPartRecord>({
       start(controller) {
-        for (const part of options.parts) controller.enqueue(part);
+        for (const record of records) controller.enqueue(record);
         if (options.readError == null) controller.close();
       },
       pull(controller) {
@@ -268,4 +274,125 @@ describe('HarnessStreamTextResult', () => {
       expect(body).not.toContain('weather backend timeout');
     },
   );
+
+  describe('withdrawals', () => {
+    const keptRecords: HarnessAgentStreamPartRecord[] = [
+      { part: { type: 'start' }, key: 'turn-start:turn' },
+      { part: { type: 'text-start', id: 'kept' }, startId: 'kept-attempt' },
+      {
+        part: { type: 'text-delta', id: 'kept', delta: 'Kept' },
+        startId: 'kept-attempt',
+      },
+      { part: { type: 'text-end', id: 'kept' }, startId: 'kept-attempt' },
+    ];
+    const withdrawnRecords: HarnessAgentStreamPartRecord[] = [
+      { part: { type: 'text-start', id: 'cut' }, startId: 'crashed-attempt' },
+      {
+        part: { type: 'text-delta', id: 'cut', delta: 'Cut off' },
+        startId: 'crashed-attempt',
+      },
+    ];
+    const finishRecords: HarnessAgentStreamPartRecord[] = [
+      { part: finishStepPart, key: 'finish-step:turn:0' },
+      {
+        part: { type: 'finish', finishReason, totalUsage: usage },
+        key: 'finish-turn:turn',
+      },
+    ];
+
+    function createWithdrawnResult() {
+      return createResult({
+        records: [
+          ...keptRecords,
+          ...withdrawnRecords,
+          { part: { type: 'withdraw', startIds: ['crashed-attempt'] } },
+          {
+            part: { type: 'text-delta', id: 'cut', delta: ' late' },
+            startId: 'crashed-attempt',
+          },
+          { part: { type: 'text-start', id: 'retry' }, startId: 'retry' },
+          {
+            part: { type: 'text-delta', id: 'retry', delta: ' Retried' },
+            startId: 'retry',
+          },
+          { part: { type: 'text-end', id: 'retry' }, startId: 'retry' },
+          ...finishRecords,
+        ],
+      });
+    }
+
+    test('excludes withdrawn output from the steps and drops later records of withdrawn attempts', async () => {
+      const result = createWithdrawnResult();
+
+      expect(await result.text).toBe('Kept Retried');
+      expect((await result.steps)[0].content).toEqual([
+        { type: 'text', text: 'Kept' },
+        { type: 'text', text: ' Retried' },
+      ]);
+    });
+
+    test('keeps already delivered parts in fullStream without adding the reset', async () => {
+      const result = createWithdrawnResult();
+
+      expect(await readPartTypes(result.fullStream)).toEqual([
+        'start',
+        'start-step',
+        'text-start',
+        'text-delta',
+        'text-end',
+        'text-start',
+        'text-delta',
+        'text-start',
+        'text-delta',
+        'text-end',
+        'finish-step',
+        'finish',
+      ]);
+    });
+
+    test('resets the step in the UI message stream and sends the surviving parts again', async () => {
+      const result = createWithdrawnResult();
+
+      const chunks: Array<{ type: string; delta?: string }> = [];
+      for await (const chunk of result.toUIMessageStream()) {
+        chunks.push(chunk as { type: string; delta?: string });
+      }
+
+      expect(
+        chunks.map(chunk =>
+          chunk.delta == null ? chunk.type : `${chunk.type}:${chunk.delta}`,
+        ),
+      ).toEqual([
+        'start',
+        'start-step',
+        'text-start',
+        'text-delta:Kept',
+        'text-end',
+        'text-start',
+        'text-delta:Cut off',
+        'reset-step',
+        'text-start',
+        'text-delta:Kept',
+        'text-end',
+        'text-start',
+        'text-delta: Retried',
+        'text-end',
+        'finish-step',
+        'finish',
+      ]);
+    });
+
+    test('drops records whose key was already received', async () => {
+      const result = createResult({
+        records: [
+          ...keptRecords,
+          ...finishRecords.slice(0, 1),
+          ...finishRecords.slice(0, 1),
+          ...finishRecords.slice(1),
+        ],
+      });
+
+      expect(await result.steps).toHaveLength(1);
+    });
+  });
 });

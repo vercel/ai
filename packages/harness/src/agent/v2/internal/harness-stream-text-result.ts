@@ -21,6 +21,7 @@ import {
   type StreamTextResult,
   type TextStreamPart,
   type UIMessage,
+  type UIMessageChunk,
   type UIMessageStreamOptions,
 } from 'ai';
 import {
@@ -37,7 +38,17 @@ import {
   translateStreamPart,
   type TranslatedToolCall,
 } from './translate-stream-part';
-import type { HarnessAgentStreamPart } from './create-stream-writer';
+import type {
+  HarnessAgentStreamPart,
+  HarnessAgentStreamPartRecord,
+} from './create-stream-writer';
+
+/**
+ * Kind of the `custom` part that marks, in the stream feeding
+ * `toUIMessageStream()`, where the UI message stream gets a `reset-step`
+ * chunk.
+ */
+const RESET_STEP_KIND = 'harness.reset-step';
 
 /**
  * How the turn read by a `HarnessStreamTextResult` ended.
@@ -94,6 +105,55 @@ type CollectedReasoningContent = {
   providerMetadata?: ProviderMetadata;
 };
 
+/*
+ * TODO: Replace `HarnessStreamEntry`, `StepPart` and `RESET_STEP_KIND` with a
+ * reset that `ai`'s `toUIMessageStream()` understands natively. Today
+ * `TextStreamPart` has no variant that maps to the UI `reset-step` chunk, so
+ * a withdrawal travels through the helper as a `custom` marker that is
+ * converted afterwards, followed by the step's surviving parts, all tagged
+ * `uiOnly` so `fullStream` stays free of them. This also means the messages
+ * that the helper builds for `onEnd` and `onStepEnd` still contain withdrawn
+ * parts. The more ideal change in `ai`:
+ * - add a `reset-step` (or more targeted withdrawal) `TextStreamPart` that
+ *   `toUIMessageStream()` maps to the UI `reset-step` chunk and applies in the
+ *   message it builds for its callbacks;
+ * - ideally let it withdraw individual parts of the current step (e.g. by
+ *   part ID), so surviving parts do not need to be sent again.
+ * Then this result could emit the reset into its regular stream and drop the
+ * UI-only entries.
+ */
+/**
+ * Entry of the result's internal stream.
+ */
+type HarnessStreamEntry<TOOLS extends ToolSet> = {
+  /**
+   * Translated part.
+   */
+  part: TextStreamPart<TOOLS>;
+
+  /**
+   * Whether the part is only for `toUIMessageStream()`: the reset marker and
+   * the surviving parts it is followed by after a withdrawal.
+   */
+  uiOnly?: true;
+};
+
+/**
+ * Translated part of the current step and the effect attempt that produced
+ * it.
+ */
+type StepPart<TOOLS extends ToolSet> = {
+  /**
+   * Translated part.
+   */
+  part: TextStreamPart<TOOLS>;
+
+  /**
+   * Effect attempt that emitted the part, if any.
+   */
+  startId?: string;
+};
+
 /**
  * Minimal `StreamTextResult` over one turn of a HarnessV2 session, read from the
  * session's stream.
@@ -107,9 +167,21 @@ type CollectedReasoningContent = {
  * (the call's own abort signal) is added before closing. A turn whose drive
  * yielded ends without either.
  *
- * Except after an abort, the result closes only once `parts` ended, which
- * happens only after the drive ended, so the session accepts the next prompt
- * as soon as the result is done.
+ * Records are tagged with the effect attempt that produced them (`startId`)
+ * and, for boundary parts, their log key (`key`). A record whose key this
+ * result already received is dropped. A `withdraw` part withdraws the output
+ * of the listed attempts: their later records are dropped, and if the current
+ * step contains parts of them, the step's collected content is rebuilt from
+ * the surviving parts, so `steps` and `text` exclude withdrawn output. The
+ * UI message stream then gets a `reset-step` chunk followed by the surviving
+ * parts again. `fullStream` cannot retract parts it already delivered, and
+ * the messages passed to `toUIMessageStream()`'s `onEnd` and `onStepEnd`
+ * callbacks, which the AI SDK builds before the reset is applied, still
+ * contain withdrawn parts and a `custom` part.
+ *
+ * Except after an abort, the result closes only once `records` ended, which
+ * for a `stream()` call happens only after the drive ended, so the session
+ * accepts the next prompt as soon as the result is done.
  *
  * Promises settle once the result closed. Without any finished step,
  * they reject with `NoOutputGeneratedError`. `responseMessages`, structured
@@ -130,7 +202,10 @@ export class HarnessStreamTextResult<
   private readonly providerName: string;
   private readonly callId: string;
   private modelId: string;
-  private baseStream: ReadableStream<TextStreamPart<TOOLS>>;
+  private baseStream: ReadableStream<HarnessStreamEntry<TOOLS>>;
+  private readonly controller: ReadableStreamDefaultController<
+    HarnessStreamEntry<TOOLS>
+  >;
 
   private readonly _steps = new DelayedPromise<
     Array<StepResult<TOOLS, RUNTIME_CONTEXT>>
@@ -144,6 +219,9 @@ export class HarnessStreamTextResult<
   private stepContent: Array<ContentPart<TOOLS>> = [];
   private stepTextContent = new Map<string, CollectedTextContent>();
   private stepReasoningContent = new Map<string, CollectedReasoningContent>();
+  private stepParts: Array<StepPart<TOOLS>> = [];
+  private readonly seenKeys = new Set<string>();
+  private readonly withdrawnStartIds = new Set<string>();
   private stepStarted = false;
   private yielded = false;
   private firstError: unknown;
@@ -160,13 +238,12 @@ export class HarnessStreamTextResult<
    */
   constructor(options: {
     /**
-     * Parts of the turn, read from the session's stream. Ends once the drive
-     * that runs the turn ended and every part it wrote was read.
+     * Records of the turn, read from the session's stream.
      */
-    parts: ReadableStream<HarnessAgentStreamPart>;
+    records: ReadableStream<HarnessAgentStreamPartRecord>;
 
     /**
-     * The call's abort signal, which ends `parts` early.
+     * The call's abort signal, which ends `records` early.
      */
     abortSignal?: AbortSignal;
 
@@ -190,21 +267,38 @@ export class HarnessStreamTextResult<
     this.modelId = options.harnessId;
     this.callId = options.callId;
 
-    let controller!: ReadableStreamDefaultController<TextStreamPart<TOOLS>>;
-    this.baseStream = new ReadableStream<TextStreamPart<TOOLS>>({
+    let controller!: ReadableStreamDefaultController<HarnessStreamEntry<TOOLS>>;
+    this.baseStream = new ReadableStream<HarnessStreamEntry<TOOLS>>({
       start(streamController) {
         controller = streamController;
       },
     });
+    this.controller = controller;
     this.turnEnd = this.pump({
-      parts: options.parts,
+      records: options.records,
       abortSignal: options.abortSignal,
-      controller,
     });
   }
 
   /**
-   * Reads the turn's parts, forwards them translated, and settles the
+   * Enqueues a translated part to the result's internal stream.
+   */
+  private enqueue(options: {
+    /**
+     * Translated part.
+     */
+    part: TextStreamPart<TOOLS>;
+
+    /**
+     * Whether the part is only for `toUIMessageStream()`.
+     */
+    uiOnly?: true;
+  }): void {
+    this.controller.enqueue(options);
+  }
+
+  /**
+   * Reads the turn's records, forwards their parts translated, and settles the
    * result's promises once the parts ended.
    *
    * How the turn ended:
@@ -212,43 +306,50 @@ export class HarnessStreamTextResult<
    * - `finished` if a `finish` part was read.
    * - `yielded` if a `yield` part was read: the drive ran out of time and the
    *   turn continues in a later drive.
-   * - `failed` if reading the parts failed; an `error` part is added. If the
+   * - `failed` if reading the records failed; an `error` part is added. If the
    *   drive failed before its turn started or after it finished, there was
    *   no turn to report the error in, and the part carries the original
    *   error (the `cause` of the `HarnessBeforeStartError` or
    *   `HarnessAfterFinishError`). Any other failure is wrapped in a
    *   `HarnessEffectError` with its message.
-   * - `incomplete` if the parts ended without any of the above; an `error`
+   * - `incomplete` if the records ended without any of the above; an `error`
    *   part is added.
    *
-   * Parts after a `finish` or `yield` part are dropped, but still read until
-   * `parts` ends, so the result closes only once the drive ended.
+   * Records with an already received key and records of withdrawn attempts
+   * are dropped. Parts after a `finish` or `yield` part are dropped, but
+   * still read until `records` ends, so the result closes only once the
+   * drive ended.
    */
   private async pump(options: {
     /**
-     * Parts of the turn.
+     * Records of the turn.
      */
-    parts: ReadableStream<HarnessAgentStreamPart>;
+    records: ReadableStream<HarnessAgentStreamPartRecord>;
 
     /**
      * The call's abort signal.
      */
     abortSignal?: AbortSignal;
-
-    /**
-     * Controller of the result's base stream.
-     */
-    controller: ReadableStreamDefaultController<TextStreamPart<TOOLS>>;
   }): Promise<HarnessStreamTextResultTurnEnd> {
-    const { parts, abortSignal, controller } = options;
-    const reader = parts.getReader();
+    const { records, abortSignal } = options;
+    const reader = records.getReader();
     let readError: unknown;
     try {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+        if (value.key != null) {
+          if (this.seenKeys.has(value.key)) continue;
+          this.seenKeys.add(value.key);
+        }
+        if (
+          value.startId != null &&
+          this.withdrawnStartIds.has(value.startId)
+        ) {
+          continue;
+        }
         if (this.finish == null && !this.yielded) {
-          await this.handlePart({ part: value, controller });
+          await this.handlePart({ part: value.part, startId: value.startId });
         }
       }
     } catch (error) {
@@ -282,11 +383,11 @@ export class HarnessStreamTextResult<
 
     if (failure != null) {
       this.firstError ??= failure;
-      controller.enqueue({ type: 'error', error: failure });
+      this.enqueue({ part: { type: 'error', error: failure } });
     } else if (reason === 'aborted') {
-      controller.enqueue({ type: 'abort' });
+      this.enqueue({ part: { type: 'abort' } });
     }
-    controller.close();
+    this.controller.close();
 
     this.settle();
     return { reason, error: this.firstError };
@@ -302,11 +403,11 @@ export class HarnessStreamTextResult<
     part: HarnessAgentStreamPart;
 
     /**
-     * Controller of the result's base stream.
+     * Effect attempt that emitted the part, if any.
      */
-    controller: ReadableStreamDefaultController<TextStreamPart<TOOLS>>;
+    startId?: string;
   }): Promise<void> {
-    const { part, controller } = options;
+    const { part, startId } = options;
     switch (part.type) {
       case 'stream-start':
         if (part.modelId != null) this.modelId = part.modelId;
@@ -314,14 +415,19 @@ export class HarnessStreamTextResult<
 
       case 'reset-step':
         this.resetStepContent();
+        this.stepParts = [];
         return;
 
       case 'yield':
         this.yielded = true;
         return;
 
+      case 'withdraw':
+        this.withdraw({ startIds: part.startIds });
+        return;
+
       case 'finish-step':
-        this.finishStep({ part, controller });
+        this.finishStep({ part });
         return;
 
       case 'finish': {
@@ -333,11 +439,13 @@ export class HarnessStreamTextResult<
           rawFinishReason: part.finishReason.raw,
           totalUsage,
         };
-        controller.enqueue({
-          type: 'finish',
-          finishReason: part.finishReason.unified,
-          rawFinishReason: part.finishReason.raw,
-          totalUsage,
+        this.enqueue({
+          part: {
+            type: 'finish',
+            finishReason: part.finishReason.unified,
+            rawFinishReason: part.finishReason.raw,
+            totalUsage,
+          },
         });
         return;
       }
@@ -355,29 +463,56 @@ export class HarnessStreamTextResult<
         translatedPart.type !== 'start' &&
         translatedPart.type !== 'raw'
       ) {
-        this.startStep({ controller });
+        this.startStep();
+        this.stepParts.push({ part: translatedPart, startId });
       }
-      controller.enqueue(translatedPart);
+      this.enqueue({ part: translatedPart });
       this.collectContent({ part: translatedPart });
+    }
+  }
+
+  /**
+   * Withdraws the output of the given effect attempts. Their later records
+   * are dropped. If the current step contains parts of them, its collected
+   * content is rebuilt from the surviving parts, and the UI message stream
+   * gets the reset marker followed by the surviving parts again. Parts of
+   * finished steps are not affected.
+   */
+  private withdraw(options: {
+    /**
+     * Start IDs of the attempts whose output is withdrawn.
+     */
+    startIds: readonly string[];
+  }): void {
+    for (const startId of options.startIds) {
+      this.withdrawnStartIds.add(startId);
+    }
+    const surviving = this.stepParts.filter(
+      stepPart =>
+        stepPart.startId == null ||
+        !this.withdrawnStartIds.has(stepPart.startId),
+    );
+    if (surviving.length === this.stepParts.length) return;
+
+    this.stepParts = surviving;
+    this.resetStepContent();
+    this.enqueue({
+      part: { type: 'custom', kind: RESET_STEP_KIND },
+      uiOnly: true,
+    });
+    for (const { part } of surviving) {
+      this.enqueue({ part, uiOnly: true });
+      this.collectContent({ part });
     }
   }
 
   /**
    * Enqueues `start-step` before the first part of a step.
    */
-  private startStep(options: {
-    /**
-     * Controller of the result's base stream.
-     */
-    controller: ReadableStreamDefaultController<TextStreamPart<TOOLS>>;
-  }): void {
+  private startStep(): void {
     if (this.stepStarted) return;
     this.stepStarted = true;
-    options.controller.enqueue({
-      type: 'start-step',
-      request: {},
-      warnings: [],
-    });
+    this.enqueue({ part: { type: 'start-step', request: {}, warnings: [] } });
   }
 
   /**
@@ -388,14 +523,9 @@ export class HarnessStreamTextResult<
      * Engine `finish-step` part.
      */
     part: Extract<HarnessAgentStreamPart, { type: 'finish-step' }>;
-
-    /**
-     * Controller of the result's base stream.
-     */
-    controller: ReadableStreamDefaultController<TextStreamPart<TOOLS>>;
   }): void {
-    const { part, controller } = options;
-    this.startStep({ controller });
+    const { part } = options;
+    this.startStep();
 
     const stepNumber = this.steps_.length;
     const usage = asLanguageModelUsage(part.usage as LanguageModelV4Usage);
@@ -427,17 +557,20 @@ export class HarnessStreamTextResult<
     });
     this.steps_.push(step);
 
-    controller.enqueue({
-      type: 'finish-step',
-      response: step.response,
-      usage,
-      performance,
-      finishReason: part.finishReason.unified,
-      rawFinishReason: part.finishReason.raw,
-      providerMetadata,
+    this.enqueue({
+      part: {
+        type: 'finish-step',
+        response: step.response,
+        usage,
+        performance,
+        finishReason: part.finishReason.unified,
+        rawFinishReason: part.finishReason.raw,
+        providerMetadata,
+      },
     });
 
     this.resetStepContent();
+    this.stepParts = [];
     this.stepStarted = false;
   }
 
@@ -750,12 +883,27 @@ export class HarnessStreamTextResult<
   }
 
   /**
-   * Splits off an independent copy of the base stream.
+   * Splits off an independent copy of the internal stream.
    */
-  private teeStream(): ReadableStream<TextStreamPart<TOOLS>> {
+  private teeEntries(): ReadableStream<HarnessStreamEntry<TOOLS>> {
     const [stream, remainingStream] = this.baseStream.tee();
     this.baseStream = remainingStream;
     return stream;
+  }
+
+  /**
+   * Splits off an independent copy of the translated parts, without the
+   * parts that are only for `toUIMessageStream()`.
+   */
+  private teeStream(): ReadableStream<TextStreamPart<TOOLS>> {
+    return this.teeEntries().pipeThrough(
+      new TransformStream<HarnessStreamEntry<TOOLS>, TextStreamPart<TOOLS>>({
+        // oxlint-disable-next-line ai-sdk/require-object-parameter -- `TransformStream` transformer signature.
+        transform(entry, controller) {
+          if (entry.uiOnly !== true) controller.enqueue(entry.part);
+        },
+      }),
+    );
   }
 
   /**
@@ -807,17 +955,42 @@ export class HarnessStreamTextResult<
   }
 
   /**
-   * Converts the stream of translated parts to a UI message stream.
+   * Converts the stream of translated parts to a UI message stream. After a
+   * withdrawal that affects the current step, the stream gets a `reset-step`
+   * chunk followed by the step's surviving parts again.
    */
   toUIMessageStream<UI_MESSAGE extends UIMessage>(
     options: UIMessageStreamOptions<UI_MESSAGE> = {},
   ): AsyncIterableStream<InferUIMessageChunk<UI_MESSAGE>> {
+    const parts = this.teeEntries().pipeThrough(
+      new TransformStream<HarnessStreamEntry<TOOLS>, TextStreamPart<TOOLS>>({
+        // oxlint-disable-next-line ai-sdk/require-object-parameter -- `TransformStream` transformer signature.
+        transform(entry, controller) {
+          controller.enqueue(entry.part);
+        },
+      }),
+    );
     return createAsyncIterableStream(
       toUIMessageStreamHelper<TOOLS, UI_MESSAGE>({
         ...options,
-        stream: this.stream,
+        stream: parts,
         tools: this.tools,
-      }),
+      }).pipeThrough(
+        new TransformStream<
+          InferUIMessageChunk<UI_MESSAGE>,
+          InferUIMessageChunk<UI_MESSAGE>
+        >({
+          // oxlint-disable-next-line ai-sdk/require-object-parameter -- `TransformStream` transformer signature.
+          transform(chunk, controller) {
+            const uiChunk = chunk as UIMessageChunk;
+            controller.enqueue(
+              (uiChunk.type === 'custom' && uiChunk.kind === RESET_STEP_KIND
+                ? { type: 'reset-step' }
+                : chunk) as InferUIMessageChunk<UI_MESSAGE>,
+            );
+          },
+        }),
+      ),
     ) as AsyncIterableStream<InferUIMessageChunk<UI_MESSAGE>>;
   }
 

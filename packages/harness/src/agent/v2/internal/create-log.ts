@@ -147,6 +147,113 @@ export type HarnessAgentLogEvent =
        * Independent of the event's committed log position.
        */
       readonly id: string;
+    }
+  | {
+      /**
+       * Records the start of a drive, visible only to the agent engine.
+       * Written under the ID `drive-start:${driveId}` before the drive
+       * changes anything else in the session. Recovery uses the latest one
+       * to decide whether the drive that left attempts unfinished is gone.
+       */
+      readonly type: 'drive-start';
+
+      /**
+       * Drive identity and the time by which its process is terminated.
+       */
+      readonly data: {
+        /**
+         * Identifier of the drive.
+         */
+        readonly driveId: string;
+
+        /**
+         * Runtime deadline of the drive's process in epoch milliseconds, if
+         * the World reports one. Once it passed, the drive is gone.
+         */
+        readonly deadline?: number;
+      };
+
+      /**
+       * Stable event identity within the session, used for deduplication.
+       * Independent of the event's committed log position.
+       */
+      readonly id: string;
+    }
+  | {
+      /**
+       * Asks the drive running the session's current turn to crash its
+       * process, visible only to the agent engine. Written by
+       * `experimental_crash()`. It applies to the latest `drive-start`
+       * before it.
+       */
+      readonly type: 'crash-request';
+
+      /**
+       * No data.
+       */
+      readonly data: Record<string, never>;
+
+      /**
+       * Stable event identity within the session, used for deduplication.
+       * Independent of the event's committed log position.
+       */
+      readonly id: string;
+    }
+  | {
+      /**
+       * Records that a drive is about to crash its process on request,
+       * visible only to the agent engine. Written under the ID
+       * `drive-crash:${driveId}` right before the process is killed, so it
+       * proves to recovery that the drive is gone.
+       */
+      readonly type: 'drive-crash';
+
+      /**
+       * Crashing drive and the request it follows.
+       */
+      readonly data: {
+        /**
+         * Identifier of the crashing drive.
+         */
+        readonly driveId: string;
+
+        /**
+         * ID of the `crash-request` event the drive follows.
+         */
+        readonly requestId: string;
+      };
+
+      /**
+       * Stable event identity within the session, used for deduplication.
+       * Independent of the event's committed log position.
+       */
+      readonly id: string;
+    }
+  | {
+      /**
+       * Records that a tool call attempt is about to run its tool, visible
+       * only to the agent engine. Written under the ID
+       * `tool-execution-start:${startId}` and committed right before the tool
+       * runs. An abandoned tool attempt without it provably never ran its
+       * tool, so recovery may retry it regardless of its replay policy.
+       */
+      readonly type: 'tool-execution-start';
+
+      /**
+       * Effect attempt of the tool call.
+       */
+      readonly data: {
+        /**
+         * ID of the corresponding `effect-start` event.
+         */
+        readonly startId: string;
+      };
+
+      /**
+       * Stable event identity within the session, used for deduplication.
+       * Independent of the event's committed log position.
+       */
+      readonly id: string;
     };
 
 /**

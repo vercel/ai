@@ -757,31 +757,7 @@ const result = agent.stream({ prompt, session });
 
 ## Glossary
 
-**Existing AI SDK concepts:**
-
-- **Harness:** The underlying agentic harness, broadly falling in one of two groups:
-  - In-process loop (e.g. Pi, fx)
-  - Closed runtime (e.g. Claude Code, Codex)
-- **Adapter:** Package that adapts a harness to the `HarnessV2` spec
-- **Turn:** A full harness turn, from user prompt until the harness sits idle and waits for the next user prompt.
-  - Steering is not a prompt in this context, but a message that gets injected mid-turn.
-  - A follow-up prompt may be queued and emitted as soon as the harness's final response has arrived. Technically there is no difference though, it still starts a fresh turn.
-- **Step:** A single model call request & response cycle, accompanied by its relevant tool executions.
-- **Built-in tools:** The tools that the harness itself executes. For closed runtime harnesses, the tool implementations are also fully owned by the harness.
-- **Host tools:** Any additional tools made available to the harness. These are run by the `HarnessAgent` engine, triggered by the harness. There are two groups:
-  - Regular host tools (can be executed in-process)
-  - Client-side tools (do not have in-process execution, run on the client, e.g. in the browser)
-
-**Durability / Workflow concepts:**
-
-- **World:** The backend for durable run, providing the infrastructure for each run's append-only event log, named streams, hooks and queue jobs
-- **Run:** A run in a workflow world, in this context equal to a harness session
-- **Effect:** Durable unit of work in the world's log, basically one workflow step; the term "Step" is not used for this because in AI SDK terminology it already refers to a harness step (one model inference call): an effect is closely related to a step, though each tool execution is its own effect, while for the harness it's part of another step which includes a model inference call
-- **Message:** Agent conversation message (from user, assistant, tool or system)
-- **Submission:** Payload sent to a session's inbox hook (e.g. of type `prompt`, `steer`, etc.); some of these eventually become user messages once received by the harness
-- **Recovery note:** Harness-written user message after a crash; only relevant for the closed CLI harnesses since they require a user message to continue
-- **Queue job:** Item on the world's queue that wakes a run
-- **Log event:** Entry in the world's append-only event log (e.g. of type `run_created`, `step_started`, `step_completed`)
+See [GLOSSARY.md](./GLOSSARY.md).
 
 ## Misc decisions
 

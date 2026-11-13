@@ -964,6 +964,58 @@ export class HarnessAgent<
   }
 
   /**
+   * Runs one drive of a HarnessV2 session without submitting a prompt,
+   * continuing its unfinished turn after recovering from a crash, or starting
+   * the turn of a prompt that has not started one. Only supported with
+   * HarnessV2.
+   */
+  async drive(options: { session: HarnessAgentV2Session }): Promise<void> {
+    if (this.harnessAgentV2 == null) {
+      throw new Error(
+        'HarnessAgent: drive() is only supported with HarnessV2.',
+      );
+    }
+    return this.harnessAgentV2.drive(options);
+  }
+
+  /**
+   * Reads the latest turn of a HarnessV2 session from its stream, across
+   * drives, without driving the session. Only supported with HarnessV2.
+   */
+  async readStream(options: {
+    session: HarnessAgentV2Session;
+    abortSignal?: AbortSignal;
+  }): Promise<
+    StreamTextResult<
+      HarnessAllTools<THarness, TUserTools>,
+      RUNTIME_CONTEXT,
+      OUTPUT
+    >
+  > {
+    if (this.harnessAgentV2 == null) {
+      throw new Error(
+        'HarnessAgent: readStream() is only supported with HarnessV2.',
+      );
+    }
+    return this.harnessAgentV2.readStream(options);
+  }
+
+  /**
+   * Crashes the process of the drive running a HarnessV2 session's current
+   * turn, for testing crash recovery. Only supported with HarnessV2.
+   */
+  async experimental_crash(options: {
+    session: HarnessAgentV2Session;
+  }): Promise<void> {
+    if (this.harnessAgentV2 == null) {
+      throw new Error(
+        'HarnessAgent: experimental_crash() is only supported with HarnessV2.',
+      );
+    }
+    return this.harnessAgentV2.experimental_crash(options);
+  }
+
+  /**
    * Continue the in-flight turn **without a new prompt**, draining it like
    * {@link generate}. Used after `createSession({ continueFrom })` to finish
    * consuming a turn that crossed a process boundary.

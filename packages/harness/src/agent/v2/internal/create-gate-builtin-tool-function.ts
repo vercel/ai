@@ -23,6 +23,7 @@ import type {
 import type { HarnessV2ToolResult } from '../../../v2/harness-v2-stream-part';
 import { isPlainJSONValue } from './utils';
 import type { HarnessAgentEffectFunction } from './create-effect-function';
+import type { HarnessAgentLog } from './create-log';
 
 /**
  * Gates one of the harness's built-in tools before the runtime runs it. Same
@@ -235,8 +236,9 @@ function emitToolResult(options: {
  * `tool.${toolName}`, with the built-in tool's `replay` policy (`'never'` when
  * omitted). Unlike host tools, the effect stays open across the runtime's
  * permission point and its report of the outcome: the call resolves
- * `approved` as soon as the attempt's start is committed, and the attempt
- * then waits for the adapter's `partial()`, `result()` or `error()` reports,
+ * `approved` as soon as the attempt's start and its `tool-execution-start`
+ * event are committed, and the attempt then waits for the adapter's
+ * `partial()`, `result()` or `error()` reports,
  * processed in order. Each report emits its `tool-result` part through the
  * attempt's `emit()` and is recorded as the attempt's progress or end, so
  * readers can withdraw the parts of an interrupted attempt and a replay emits
@@ -250,9 +252,10 @@ function emitToolResult(options: {
  * - the tool is not one of the harness's built-in tools: the call is recorded
  *   as an `error`, so a replay is denied the same way.
  *
- * A recorded retryable interruption (a `replay: 'safe'` tool) lets the effect
- * start a new attempt, so a call the runtime dispatches again is approved
- * again, the same as a host tool call.
+ * A recorded retryable interruption (a `replay: 'safe'` tool, or an attempt
+ * that a crashed drive left before its `tool-execution-start` committed) lets
+ * the effect start a new attempt, so a call the runtime dispatches again is
+ * approved again, the same as a host tool call.
  *
  * Input that is not a JSON value rejects without recording, since only an
  * adapter bug can produce it. Concurrent calls with the same `toolCallId`
@@ -261,6 +264,11 @@ function emitToolResult(options: {
  * it was approved; a failure nobody observes is not reported further.
  */
 export function createGateBuiltinToolFunction(options: {
+  /**
+   * Engine log of the session, used to record `tool-execution-start` events.
+   */
+  log: HarnessAgentLog;
+
   /**
    * The harness's built-in tools.
    */
@@ -276,7 +284,7 @@ export function createGateBuiltinToolFunction(options: {
    */
   abortSignal: AbortSignal;
 }): HarnessAgentGateBuiltinToolFunction {
-  const { builtinTools, effect, abortSignal } = options;
+  const { log, builtinTools, effect, abortSignal } = options;
 
   /**
    * Records a call to a tool that is not a built-in tool as an `error` effect
@@ -410,8 +418,9 @@ export function createGateBuiltinToolFunction(options: {
     }
 
     /**
-     * Runs the call's attempt: signals that the start is committed, then
-     * records and emits the adapter's reports in order until the call ended.
+     * Runs the call's attempt: commits its `tool-execution-start` event and
+     * signals that the call is approved, then records and emits the
+     * adapter's reports in order until the call ended.
      *
      * @yields Each partial value, then the final value. The effect commits
      * every yielded value before resuming, so a `partial()` call resolves
@@ -420,6 +429,18 @@ export function createGateBuiltinToolFunction(options: {
     async function* runAttempt(
       context: HarnessV2EffectContext,
     ): AsyncGenerator<SerializableValue> {
+      /*
+       * TODO: Revisit this marker. It commits before the gate approves the
+       * call, but the adapter may still crash after the approval and before
+       * its runtime starts the tool. Recovery then treats an attempt whose
+       * tool never ran as possibly executed, so a `replay: 'never'` tool is
+       * not retried.
+       */
+      await log.append({
+        type: 'tool-execution-start',
+        id: `tool-execution-start:${context.startId}`,
+        data: { startId: context.startId },
+      });
       markStarted();
       for (;;) {
         const report = await nextReport(context);
