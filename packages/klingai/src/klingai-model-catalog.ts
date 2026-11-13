@@ -221,3 +221,8 @@ export function getKlingAIVideoModelEntry(modelId: string) {
 export const klingAIModelCatalog = Object.fromEntries(
   videoModelIds.map(id => [id, getKlingAIVideoModelEntry(id)]),
 );
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type KlingAIModelIds = {
+  video: (typeof videoModelIds)[number];
+};

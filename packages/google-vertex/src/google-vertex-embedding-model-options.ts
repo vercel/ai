@@ -4,20 +4,11 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { GoogleVertexModelIds } from './google-vertex-model-catalog';
 
 // https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/text-embeddings-api
 export type GoogleVertexEmbeddingModelId =
-  | 'textembedding-gecko'
-  | 'textembedding-gecko@001'
-  | 'textembedding-gecko@003'
-  | 'textembedding-gecko-multilingual'
-  | 'textembedding-gecko-multilingual@001'
-  | 'text-multilingual-embedding-002'
-  | 'text-embedding-004'
-  | 'text-embedding-005'
-  | 'gemini-embedding-001'
-  | 'gemini-embedding-2'
-  | 'gemini-embedding-2-preview'
+  | GoogleVertexModelIds['embedding']
   | (string & {});
 
 export const googleVertexEmbeddingModelOptions = lazySchema(() =>

@@ -16,6 +16,7 @@ import {
 import type {
   ModelCallRawResult,
   ModelCallFinish,
+  ModelCallModelInfo,
   ParsedToolCall,
   ProviderExecutedToolResult,
 } from './model-call.js';
@@ -27,6 +28,7 @@ export async function buildModelStepResult(
   providerExecutedToolResults: Map<string, ProviderExecutedToolResult>,
   opts: {
     callId?: string;
+    model?: ModelCallModelInfo;
     tools?: ToolSet;
     requestMessages?: ModelMessage[];
     stepNumber: number;
@@ -287,7 +289,7 @@ export async function buildModelStepResult(
   return {
     callId: opts.callId ?? 'workflow-agent',
     stepNumber: opts.stepNumber,
-    model: {
+    model: opts.model ?? {
       provider: responseMetadata?.modelId?.split(':')[0] ?? 'unknown',
       modelId: responseMetadata?.modelId ?? 'unknown',
     },

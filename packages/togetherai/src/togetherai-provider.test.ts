@@ -52,6 +52,19 @@ vi.mock('./reranking/togetherai-reranking-model', () => ({
   TogetherAIRerankingModel: vi.fn(),
 }));
 
+const structuredOutputSupportCases = [
+  ['deepseek-ai/DeepSeek-V4-Flash-0731', true],
+  ['deepseek-ai/DeepSeek-V4.1-Flash', true],
+  ['deepseek-ai/DeepSeek-V4.1-Flash-1017', true],
+  ['openai/gpt-oss-120b', true],
+  ['zai-org/GLM-5.2', true],
+  ['zai-org/GLM-5.3-Flash', true],
+  ['moonshotai/Kimi-K3', true],
+  ['MiniMaxAI/MiniMax-M3.1-Flash', true],
+  ['zai-org/GLM-5.3', false],
+  ['custom-model-id', false],
+] as const;
+
 describe('TogetherAIProvider', () => {
   const originalEnv = { ...process.env };
 
@@ -208,10 +221,7 @@ describe('TogetherAIProvider', () => {
       expect(config.includeUsage).toBe(true);
     });
 
-    it.each([
-      ['deepseek-ai/DeepSeek-V4-Flash-0731', true],
-      ['custom-model-id', false],
-    ] as const)(
+    it.each(structuredOutputSupportCases)(
       'should set supportsStructuredOutputs for %s to %s',
       (modelId, expected) => {
         const provider = createTogetherAI();
@@ -308,10 +318,7 @@ describe('TogetherAIProvider', () => {
 });
 
 describe('getModelStructuredOutputSupport', () => {
-  it.each([
-    ['deepseek-ai/DeepSeek-V4-Flash-0731', true],
-    ['custom-model-id', false],
-  ] as const)(
+  it.each(structuredOutputSupportCases)(
     'returns structured output support for %s as %s',
     (modelId, expected) => {
       expect(getModelStructuredOutputSupport(modelId)).toBe(expected);
