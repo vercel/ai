@@ -849,6 +849,9 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
                 output: chunk.result,
                 providerExecuted: true,
                 dynamic: chunk.dynamic,
+                ...(chunk.preliminary != null
+                  ? { preliminary: chunk.preliminary }
+                  : {}),
                 ...(chunk.providerMetadata != null
                   ? { providerMetadata: chunk.providerMetadata }
                   : {}),

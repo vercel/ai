@@ -1198,6 +1198,68 @@ describe('streamLanguageModelCall', () => {
       `);
     });
 
+    it('should forward preliminary flag for provider-executed tool-result parts', async () => {
+      const result = await streamLanguageModelCallResult({
+        streamParts: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'web_search',
+            input: '{"query":"test"}',
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'web_search',
+            result: { preliminaryAnswer: 'partial' },
+            preliminary: true,
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'web_search',
+            result: { finalAnswer: 'done' },
+            preliminary: false,
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ],
+        tools: {
+          web_search: {
+            type: 'provider',
+            isProviderExecuted: true,
+            id: 'test.web_search',
+            inputSchema: z.object({ query: z.string() }),
+            outputSchema: z.unknown(),
+            args: {},
+          },
+        },
+      });
+
+      const toolResults = result.filter(part => part.type === 'tool-result');
+      expect(toolResults).toHaveLength(2);
+      expect(toolResults[0]).toMatchObject({
+        type: 'tool-result',
+        toolCallId: 'call-1',
+        toolName: 'web_search',
+        output: { preliminaryAnswer: 'partial' },
+        preliminary: true,
+        providerExecuted: true,
+      });
+      expect(toolResults[1]).toMatchObject({
+        type: 'tool-result',
+        toolCallId: 'call-1',
+        toolName: 'web_search',
+        output: { finalAnswer: 'done' },
+        preliminary: false,
+        providerExecuted: true,
+      });
+    });
+
     it('should measure time to first output from tool-call parts', async () => {
       const tools = {
         testTool: tool({
