@@ -1,0 +1,115 @@
+---
+title: DetailX
+description: Enhance existing videos with DetailX super-resolution and frame interpolation using AI SDK 7.
+---
+
+# DetailX
+
+[DetailX](https://www.detail-x.ai) enhances existing videos with super-resolution and optional frame interpolation. The community-maintained `@detailx/ai-sdk-provider` package implements the experimental AI SDK 7 V4 video interface. It requires Node.js 20.3 or later and does not support language models, text-to-video or image-to-video.
+
+## Setup
+
+<InstallPackages packages="@detailx/ai-sdk-provider" />
+
+Set `DETAILX_API_KEY` on your server. Obtain an API key from the [DetailX developer dashboard](https://www.detail-x.ai/integrations/api).
+
+## Provider Instance
+
+Create a provider with a persistent request store:
+
+```ts
+import { createDetailX } from '@detailx/ai-sdk-provider';
+
+const detailx = createDetailX({
+  stateDir: '/persistent/detailx',
+});
+```
+
+The default store uses local files. On hosts without persistent disk, such as Vercel Functions, inject a transactional `RequestStore` or run the client in a persistent job service. The package includes an optional PostgreSQL store through `@detailx/sdk/postgres`.
+
+## Video Enhancement
+
+Upload a video with the [DetailX SDK](https://github.com/wl-AILab/detailx-ai-sdk/tree/main/sdk-typescript), then pass the owned asset ID as `uploadId`:
+
+```ts
+import { experimental_generateVideo as generateVideo } from 'ai';
+import { createDetailX } from '@detailx/ai-sdk-provider';
+
+const detailx = createDetailX({ stateDir: '/persistent/detailx' });
+const result = await generateVideo({
+  model: detailx.video('video-upscale'),
+  prompt: '',
+  providerOptions: {
+    detailx: {
+      uploadId: 'OWNED_ASSET_ID',
+      requestId: 'order-100',
+      resolution: '4K',
+      maxPrechargeCredits: 100,
+    },
+  },
+  download: detailx.download,
+  poll: { intervalMs: 10000, timeoutMs: 1800000 },
+});
+
+console.log(result.video.mediaType);
+```
+
+Use one stable `requestId` for retries of the same business operation. The provider persists the quote, pricing revision and idempotency key before submission. `maxPrechargeCredits` limits the quoted precharge, not later settlement adjustments based on actual duration. The host application must authorize source ownership and spending before calling the provider.
+
+Only `n: 1` is supported; leave `maxVideosPerCall` unset. The prompt must be empty because the model enhances the input video rather than generating a scene.
+
+`download: detailx.download` refreshes result URLs and tries backup media if the primary download fails. `generateVideo` downloads the result into memory. For large videos or long-running jobs, use the asynchronous API instead.
+
+## Asynchronous Jobs
+
+Start a job and persist its operation reference. In another request or worker, check its status without keeping the original HTTP request alive:
+
+```ts
+import {
+  experimental_startVideo as startVideo,
+  experimental_getVideoStatus as getVideoStatus,
+} from 'ai';
+
+const started = await startVideo({
+  model: detailx.video('video-upscale'),
+  prompt: '',
+  providerOptions: {
+    detailx: {
+      uploadId: 'OWNED_ASSET_ID',
+      requestId: 'order-101',
+      resolution: '4K',
+      maxPrechargeCredits: 100,
+    },
+  },
+});
+
+const status = await getVideoStatus(detailx.video('video-upscale'), {
+  operation: started.operation,
+});
+```
+
+The status is `pending`, `completed` or `error`. Completed status contains video URL references without downloading the media. The operation reference contains no API key and must be used with the same credential scope. Local abort or polling timeout does not cancel the accepted remote job.
+
+## Sources and Options
+
+Use exactly one of `uploadId` or `sourceResultId`. The latter is a previous `results[].id`, not a generation ID. Arbitrary video URLs are not accepted by the upstream API. Video `inputReferences` require a trusted `prepareMedia` hook that downloads, probes and uploads the input, returning an owned source ID.
+
+| Option                               | Supported values                                              |
+| ------------------------------------ | ------------------------------------------------------------- |
+| `providerOptions.detailx.resolution` | `720p`, `1080p`, `2K`, `4K`                                   |
+| Standard `fps`                       | Omitted to preserve source FPS; `24`, `30`, `60`              |
+| `providerOptions.detailx.detail`     | String `1`, `2`, `3`                                          |
+| Optional boolean settings            | `lightCorrect`, `flowSmooth`, `keepColor`, `trajectorySmooth` |
+
+The standard resolution option maps common dimensions to a DetailX tier, preserving the source aspect ratio rather than cropping to an exact size. Seed, duration changes, audio synthesis, aspect-ratio changes and native webhooks are unsupported. Result URLs expire and should be refreshed through a generation query.
+
+| Model         | Video Enhancement | Text To Video | Image To Video | Webhook |
+| ------------- | ----------------- | ------------- | -------------- | ------- |
+| video-upscale | Yes               | No            | No             | No      |
+
+## Resources
+
+- [Provider source and examples](https://github.com/wl-AILab/detailx-ai-sdk/tree/main/ai-sdk-provider)
+- [npm package](https://www.npmjs.com/package/@detailx/ai-sdk-provider)
+- [Real-service verification](https://github.com/wl-AILab/detailx-ai-sdk/blob/main/ai-sdk-provider/VERIFICATION.md)
+- [DetailX public API schema](https://www.detail-x.ai/api/v1/developer/openapi.json)
