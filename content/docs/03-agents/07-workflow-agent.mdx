@@ -770,7 +770,7 @@ The callbacks also run at different times:
 - `output` is `undefined` unless you set an `output` specification. `ToolLoopAgent` defaults to the generated text.
 - If the structured output cannot be parsed, the `stream()` call rejects. In `ToolLoopAgent`, the call resolves and only `result.output` rejects.
 - If the model call throws, the `stream()` call rejects with that error. In `ToolLoopAgent`, the call resolves and the error is reported through the stream and `onError`.
-- Each step is a plain object. Its `request` is empty, its `model.provider` is derived from the model ID of the response and can differ from the provider name, and its `providerMetadata` is `{}` when the provider sends none. Steps from `generate()` match `ToolLoopAgent`.
+- Each step is a plain object. Its `request` is empty, and its `providerMetadata` is `{}` when the provider sends none. Steps from `generate()` match `ToolLoopAgent`.
 - A tool call for an unknown tool, or with input that does not match the schema, is missing from `content` and `toolCalls` of the step. The model still receives the error as a tool result and the loop continues. `generate()` and `ToolLoopAgent` keep the call in the step, marked `invalid`, with a `tool-error` part.
 
 `WorkflowAgent` does not log provider warnings. Read them from `warnings` on each step.
