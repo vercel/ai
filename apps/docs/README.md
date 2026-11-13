@@ -69,9 +69,11 @@ shape (`/og/docs?title=…&description=…`).
 The homepage and docs share `lib/geistdocs/og.tsx` and its local Geist Sans and
 Geist Mono fonts, copied from the Geistdocs 2.15.3 template (`1efeba6`). The
 1200×630 cards use a black background, Vercel triangle, white title, and a gray
-monospace description. The text uses the card's full padded width and wraps
-without line limits; longer titles use a smaller font. Keep our route's source
-lookup and cache headers when adopting future template updates. Bump the image
+monospace description. The text uses the card's full padded width and is centered
+between the logo and the bottom of the card. Satori measures the wrapped text
+with the bundled fonts; oversized text scales down and reflows automatically,
+without line limits or ellipses. Keep our route's source lookup and cache headers
+when adopting future template updates. Bump the image
 URL version in `lib/og.ts` when changing the design so immutable query-based
 cards refresh.
 
