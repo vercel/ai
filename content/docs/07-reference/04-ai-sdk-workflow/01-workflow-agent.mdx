@@ -882,6 +882,8 @@ for repair strategies.
 
 Creates a `TransformStream` that converts raw `ModelCallStreamPart` chunks (written by the agent to the `writable` stream) into `UIMessageChunk` objects suitable for client consumption.
 
+Custom `data-*` chunks written to the same stream with `getWritable()` are forwarded unchanged.
+
 ```ts
 import { createModelCallToUIChunkTransform } from '@ai-sdk/workflow';
 
