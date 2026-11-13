@@ -1,5 +1,11 @@
 # @ai-sdk/togetherai
 
+## 2.0.100
+
+### Patch Changes
+
+- 46f85b0: Backport: fix(togetherai): enable structured outputs for more Together AI chat models (release-v6.0)
+
 ## 2.0.99
 
 ### Patch Changes
