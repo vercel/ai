@@ -82,3 +82,8 @@ Object.assign(
     Object.keys(imageDescriptions).map(id => [id, getLumaImageModelEntry(id)]),
   ),
 );
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type LumaModelIds = {
+  image: (typeof imageModelIds)[number];
+};

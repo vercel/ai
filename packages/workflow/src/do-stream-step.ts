@@ -2,7 +2,6 @@ import type {
   LanguageModelV4Prompt,
   SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
-import { isAbortError } from '@ai-sdk/provider-utils';
 import {
   experimental_streamLanguageModelCall as streamModelCall,
   gateway,
@@ -204,7 +203,9 @@ async function streamModelStep(
     } catch (error) {
       timeouts.clear();
 
-      if (abortSignal?.aborted && isAbortError(error)) {
+      // An abort reason is an ordinary error, so the aborted signal decides
+      // whether the failure is an abort.
+      if (abortSignal?.aborted) {
         return undefined;
       }
 
@@ -372,10 +373,10 @@ async function streamModelStep(
             toolCallPart.toolCallId,
           );
           ongoingToolCallToolNames.delete(toolCallPart.toolCallId);
-          if (
-            lifecycleToolName != null &&
-            serializedTools?.[lifecycleToolName]?.hasOnInputAvailable
-          ) {
+          // A provider can send the tool call without streaming the input
+          // first, so the tool name does not always come from a start event.
+          const availableToolName = lifecycleToolName ?? toolCallPart.toolName;
+          if (serializedTools?.[availableToolName]?.hasOnInputAvailable) {
             toolInputLifecycleEvents.push([
               'available',
               toolCallPart.toolCallId,
@@ -491,7 +492,7 @@ async function streamModelStep(
       }
     }
   } catch (error) {
-    if (abortSignal?.aborted && isAbortError(error)) {
+    if (abortSignal?.aborted) {
       return { aborted: true };
     }
 
@@ -526,6 +527,7 @@ async function streamModelStep(
       performance,
       warnings,
     },
+    model: { provider: model.provider, modelId: model.modelId },
     providerExecutedToolResults,
     toolInputLifecycleEvents,
     repairedToolCallIds: [...repairedToolCallIds],
