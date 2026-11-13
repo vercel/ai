@@ -8,6 +8,7 @@ import {
   toUIMessageStream,
 } from 'ai';
 import { createMCPClient, auth } from '@ai-sdk/mcp';
+import { createGuardedFetch } from 'guarded-fetch';
 import { isLocalDevelopmentRequest } from '../../code-execution-files/is-local-development-request';
 import {
   createOAuthSession,
@@ -20,6 +21,11 @@ const responseHeaders = {
   'Cache-Control': 'no-store',
   'Referrer-Policy': 'no-referrer',
 };
+
+// On server runtimes, OAuth discovery requires a fetch with connect-time DNS
+// validation when the authorization server is on a different origin than the
+// MCP server. One instance is reused across requests for the process lifetime.
+const guardedFetch = createGuardedFetch();
 
 function response(message: string, status: number) {
   return new Response(message, { status, headers: responseHeaders });
@@ -81,6 +87,7 @@ export async function GET(req: Request) {
       authorizationCode: code,
       callbackState: state,
       callbackIssuer: url.searchParams.get('iss') ?? undefined,
+      fetchFn: guardedFetch,
     });
     if (result !== 'AUTHORIZED') return response('Authorization failed.', 400);
     return response(
@@ -126,6 +133,7 @@ export async function POST(req: Request) {
             provider.clearAuthorization();
             const result = await auth(provider, {
               serverUrl: provider.serverUrl,
+              fetchFn: guardedFetch,
             });
             if (result !== 'AUTHORIZED' && !provider.pendingAuthorization) {
               throw new Error('Authorization required');
@@ -147,6 +155,7 @@ export async function POST(req: Request) {
               type: 'http',
               url: provider.serverUrl.toString(),
               authProvider: provider,
+              fetch: guardedFetch,
             },
           });
           try {

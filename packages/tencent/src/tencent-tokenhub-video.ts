@@ -1,3 +1,4 @@
+import { getTencentVideoModelEntry } from './tencent-model-catalog';
 import type {
   Experimental_VideoModelV4CallOptions as VideoModelV4CallOptions,
   Experimental_VideoModelV4File as VideoModelV4File,
@@ -26,20 +27,6 @@ const KLING_RESOLUTION_TIERS: Record<number, string> = {
   1080: '1080p',
   2160: '4k',
 };
-
-/**
- * Models whose `settings` accept only resolution, aspect ratio and duration
- * (no `audio`, no `multi_shot`).
- *
- * @see https://www.tencentcloud.com/document/product/1300/83714
- */
-const KLING_MODELS_WITHOUT_AUDIO_OR_MULTI_SHOT = new Set([
-  'kling-video-v4',
-  'kling-video-v3-turbo',
-]);
-
-/** Standard models that also serve the omni endpoint for reference inputs. */
-const KLING_STANDARD_MODELS_WITH_OMNI = new Set(['kling-video-v4']);
 
 export type TokenHubKlingEndpoint =
   | 'text-to-video'
@@ -141,7 +128,7 @@ export function buildTokenHubKlingRequest({
   }
 
   const supportsAudioAndMultiShot =
-    !KLING_MODELS_WITHOUT_AUDIO_OR_MULTI_SHOT.has(modelId);
+    getTencentVideoModelEntry(modelId).requestConfig.video.audioAndMultiShot;
   const audio = resolveAudio({
     options,
     tencentOptions,
@@ -166,7 +153,7 @@ export function buildTokenHubKlingRequest({
 
   if (
     kind === 'omni' ||
-    (KLING_STANDARD_MODELS_WITH_OMNI.has(modelId) &&
+    (getTencentVideoModelEntry(modelId).requestConfig.video.omni &&
       (hasReferences || hasElementsWithoutFirstFrame))
   ) {
     const videoType =

@@ -1875,10 +1875,66 @@ await generateText({
 });
 ```
 
-`additionalTools` currently accepts function definitions with `type: 'function'`,
-`name`, `parameters`, and optional `description` and `strict`. An empty array emits
-no item. These are OpenAI-format definitions; keep their names and schemas aligned
-with the SDK tools used for local validation and execution.
+`additionalTools` accepts OpenAI-format tool definitions:
+
+- `type: 'function'` with `name`, `parameters`, and optional `description`, `strict`
+  and `defer_loading`
+- `type: 'custom'` with `name` and optional `description` and `format`
+- `type: 'namespace'` with `name`, `description`, and a non-empty `tools` list of
+  function definitions
+
+An empty array emits no item. Keep the names and schemas aligned with the SDK tools
+used for local validation and execution.
+
+##### Load tools at any point in the conversation
+
+To add tools somewhere other than after a tool result, add an empty system message
+with `providerOptions.openai.additionalTools` at that point. The Responses provider
+emits an `additional_tools` item in its place, so the earlier history and the
+top-level tool list stay unchanged. This requires `allowSystemInMessages: true`.
+
+```ts
+import {
+  openai,
+  type OpenAIResponsesSystemMessageOptions,
+} from '@ai-sdk/openai';
+
+messages.push(
+  {
+    role: 'system',
+    content: '',
+    providerOptions: {
+      openai: {
+        additionalTools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get the weather for a city.',
+            parameters: {
+              type: 'object',
+              properties: { city: { type: 'string' } },
+              required: ['city'],
+              additionalProperties: false,
+            },
+          },
+        ],
+      } satisfies OpenAIResponsesSystemMessageOptions,
+    },
+  },
+  { role: 'user', content: 'What is the weather in Rome?' },
+);
+
+await generateText({
+  model: openai.responses('gpt-5.4'),
+  tools, // includes get_weather with omitFromRequestTools: true
+  messages,
+  allowSystemInMessages: true,
+});
+```
+
+The control message must have empty content. It can be combined with
+`reasoningEffortUpdate` or `textFormatUpdate` on the same message, in which case
+the configuration update comes first.
 
 `omitFromRequestTools: true` omits only the function's top-level Responses tool
 definition. Keep the function in `tools` and, if you use `activeTools`, include it
@@ -3670,6 +3726,13 @@ const model = openai.image('gpt-image-2.5-sunburst');
 
 OpenAI's `gpt-image-*` models support powerful image editing capabilities. Pass input images via `prompt.images` to transform, combine, or edit existing images.
 
+<Note type="warning">
+  The provider downloads remote input images and masks before uploading them to
+  OpenAI, using the `fetch` option of `createOpenAI`. For untrusted URLs on
+  Node.js, pass a `guarded-fetch` transport there. See [Secure URL
+  Fetching](/docs/advanced/secure-url-fetching#opt-in-dns-protection-on-nodejs).
+</Note>
+
 #### Basic Image Editing
 
 Transform an existing image using text prompts:
@@ -4229,3 +4292,33 @@ Decision models can also be accessed through `customProvider` aliases or
 use Gateway by default, or an explicitly configured default provider with an
 `decisionModel` method. See
 [model aliases and registries](/docs/ai-sdk-core/decisions#model-aliases-and-registries).
+
+## Extraction Models
+
+Create an experimental extraction model with `openai.extractionModel(modelId)`.
+It wraps an OpenAI language model and uses the Responses API's structured output
+to extract typed fields in one call.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { experimental_extract } from 'ai';
+
+const { answers } = await experimental_extract({
+  model: openai.extractionModel('gpt-6.1-sol'),
+  referenceDate: '2026-11-11',
+  state: 'Invoice INV-2041. Total due $1,250.00 by March 3.',
+  fields: {
+    invoiceNumber: { type: 'text', instructions: 'The invoice number' },
+    total: { type: 'number', instructions: 'Total due', decimals: 2 },
+    dueDate: { type: 'date', instructions: 'Payment due date' },
+  },
+});
+```
+
+The adapter supports every field type and returns `null` when the state has no
+value for a field. It does not return `pNull`, `confidence`, `guess`, or
+`source`, since a prompted model cannot give calibrated estimates or exact
+offsets. Image and PDF files are passed to the language model, which must
+support them. The adapter requests `reasoning: 'none'` by default. Models that
+do not support `'none'` use their lowest reasoning effort and return a
+compatibility warning. The adapter forwards `providerOptions.openai`. See [Extractions](/docs/ai-sdk-core/extractions).

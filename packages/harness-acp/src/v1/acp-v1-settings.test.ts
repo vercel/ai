@@ -129,6 +129,23 @@ describe('validateACPV1Settings', () => {
       }),
     ).toThrow('cannot be configured in both credentialEnv and env');
   });
+
+  it('accepts relative write-protected paths', () => {
+    expect(
+      validate({
+        writeProtectedPaths: ['.github/hooks', '.mcp.json', '.cursor'],
+      }),
+    ).not.toThrow();
+  });
+
+  it.each(['', ' ', '/abs', '../x', 'a/../b', './a', 'a//b', 'a/', 'a\0b'])(
+    'rejects write-protected path %j',
+    entry => {
+      expect(validate({ writeProtectedPaths: [entry] })).toThrow(
+        'ACP writeProtectedPaths entries must be relative paths inside the working directory',
+      );
+    },
+  );
 });
 
 describe('resolveACPAgentEnvironment', () => {

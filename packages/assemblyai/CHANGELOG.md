@@ -1,5 +1,22 @@
 # @ai-sdk/assemblyai
 
+## 3.0.82
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+
+## 3.0.81
+
+### Patch Changes
+
+- 373b075: Add an AssemblyAI model catalog that drives transcription model ID suggestions, request policies, capability documentation, and provider option metadata.
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+
 ## 3.0.80
 
 ### Patch Changes

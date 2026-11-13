@@ -1,5 +1,22 @@
 # @ai-sdk/typesafe-ai
 
+## 3.0.40
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+
+## 3.0.39
+
+### Patch Changes
+
+- 05bf552: Add a TypeSafe AI decision model catalog for model ID suggestions, supported question types, image inputs, and call-level and file-part provider options.
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+
 ## 3.0.38
 
 ### Patch Changes

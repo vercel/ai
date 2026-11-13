@@ -679,9 +679,12 @@ function streamTextInternal<
       experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
 
       /**
-       * Custom download function to use for URLs.
+       * Custom download function to use for URLs in the prompt and for
+       * generated file URLs returned by the model.
        *
-       * By default, files are downloaded if the model does not support the URL for the given media type.
+       * By default, prompt files are downloaded if the model does not support
+       * the URL for the given media type. Generated file URLs are always
+       * downloaded; returning `null` for them is an error.
        */
       experimental_download?: DownloadFunction | undefined;
 
@@ -3879,6 +3882,7 @@ class DefaultStreamTextResult<
     sendStart,
     sendFinish,
     onError,
+    redactToolErrors,
   }: UIMessageStreamOptions<UI_MESSAGE> = {}): AsyncIterableStream<
     InferUIMessageChunk<UI_MESSAGE>
   > {
@@ -3896,6 +3900,7 @@ class DefaultStreamTextResult<
         sendStart,
         sendFinish,
         onError,
+        redactToolErrors,
       }),
     );
   }
@@ -3915,6 +3920,7 @@ class DefaultStreamTextResult<
       sendFinish,
       sendStart,
       onError,
+      redactToolErrors,
       ...init
     }: UIMessageStreamResponseInit & UIMessageStreamOptions<UI_MESSAGE> = {},
   ) {
@@ -3931,6 +3937,7 @@ class DefaultStreamTextResult<
         sendFinish,
         sendStart,
         onError,
+        redactToolErrors,
       }),
       ...init,
     });
@@ -3957,6 +3964,7 @@ class DefaultStreamTextResult<
     sendFinish,
     sendStart,
     onError,
+    redactToolErrors,
     ...init
   }: UIMessageStreamResponseInit &
     UIMessageStreamOptions<UI_MESSAGE> = {}): Response {
@@ -3972,6 +3980,7 @@ class DefaultStreamTextResult<
         sendFinish,
         sendStart,
         onError,
+        redactToolErrors,
       }),
       ...init,
     });

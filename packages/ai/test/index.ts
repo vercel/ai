@@ -11,6 +11,7 @@ export {
 export { MockEmbeddingModelV3 } from '../src/test/mock-embedding-model-v3';
 export { MockEmbeddingModelV4 } from '../src/test/mock-embedding-model-v4';
 export { DecisionMockModelV4 as Experimental_DecisionMockModelV4 } from '../src/test/decision-mock-model-v4';
+export { ExtractionMockModelV4 as Experimental_ExtractionMockModelV4 } from '../src/test/extraction-mock-model-v4';
 export { MockImageModelV3 } from '../src/test/mock-image-model-v3';
 export { MockImageModelV4 } from '../src/test/mock-image-model-v4';
 export { MockLanguageModelV3 } from '../src/test/mock-language-model-v3';

@@ -5,6 +5,7 @@ import type {
   ProviderOptionDefinition,
   ProviderOptionDefinitions,
 } from '@ai-sdk/provider';
+import type { PerplexityDecisionModelOptions } from './perplexity-decision-model-options';
 import type { PerplexityEmbeddingModelOptions } from './perplexity-embedding-model-options';
 import type { PerplexityLanguageModelOptions } from './perplexity-language-model-options';
 import type { PerplexityAgentPreset } from './perplexity-options';
@@ -45,8 +46,13 @@ export const perplexityProviderOptions = {
     keyof PerplexityEmbeddingModelOptions,
     ProviderOptionDefinition
   >,
-  // Decisions has no provider-specific options; the adapter warns and omits them.
-  decision: {},
+  decision: {
+    mode: { description: 'Ground decisions in web search results.' },
+    maxStaleness: { description: 'Maximum fetched-page age in seconds.' },
+  } satisfies Record<
+    keyof PerplexityDecisionModelOptions,
+    ProviderOptionDefinition
+  >,
 } as const satisfies ProviderOptionDefinitions;
 
 type LanguageCapabilities = NonNullable<ModelCapabilities['language']> & {
@@ -112,7 +118,9 @@ type PerplexityEmbeddingModelEntry = {
 
 type PerplexityDecisionModelEntry = {
   capabilities: { decision: DecisionCapabilities };
-  providerOptions: { decision: Record<string, never> };
+  providerOptions: {
+    decision: Record<keyof PerplexityDecisionModelOptions, ModelCapability>;
+  };
 };
 
 type PerplexityModelEntry = ModelEntry<{
@@ -127,7 +135,7 @@ type PerplexityModelEntry = ModelEntry<{
   providerOptions?: {
     language?: Record<keyof LanguageOptions, ModelCapability>;
     embedding?: Record<keyof PerplexityEmbeddingModelOptions, ModelCapability>;
-    decision?: Record<string, never>;
+    decision?: Record<keyof PerplexityDecisionModelOptions, ModelCapability>;
   };
 };
 
@@ -225,7 +233,13 @@ function createDecisionModelEntry(
         ...perplexityDecisionModelLimits,
       },
     },
-    providerOptions: { decision: {} },
+    providerOptions: {
+      decision: declareProviderOptions(
+        perplexityProviderOptions.decision,
+        support,
+        {},
+      ),
+    },
   };
 }
 
@@ -304,7 +318,15 @@ export function getPerplexityDecisionModelEntry(
   return entry?.capabilities.decision != null
     ? {
         capabilities: { decision: entry.capabilities.decision },
-        providerOptions: { decision: {} },
+        providerOptions: {
+          decision:
+            entry.providerOptions?.decision ??
+            declareProviderOptions(
+              perplexityProviderOptions.decision,
+              'unknown',
+              {},
+            ),
+        },
       }
     : createDecisionModelEntry(false);
 }

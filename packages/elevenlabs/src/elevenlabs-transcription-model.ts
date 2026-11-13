@@ -1,3 +1,4 @@
+import { getElevenLabsTranscriptionModelEntry } from './elevenlabs-model-catalog';
 import {
   InvalidArgumentError,
   UnsupportedFunctionalityError,
@@ -75,7 +76,8 @@ const elevenLabsLateFinalizationErrorTypes = new Set([
 const finalCommitGracePeriodMs = 250;
 
 function isRealtimeTranscriptionModelId(modelId: string): boolean {
-  return modelId === 'scribe_v2_realtime';
+  return getElevenLabsTranscriptionModelEntry(modelId).capabilities
+    .transcription.streaming;
 }
 
 interface ElevenLabsTranscriptionModelConfig extends ElevenLabsConfig {

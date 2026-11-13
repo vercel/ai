@@ -15,6 +15,7 @@ import { resolveDecisionModel } from '../model/resolve-model';
 import { logWarnings } from '../logger/log-warnings';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type { Callback } from '../util/callback';
+import type { DownloadFunction } from '../util/download/download-function';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
@@ -44,6 +45,7 @@ export async function decide<
   reasoning,
   maxRetries,
   abortSignal,
+  experimental_download: download,
   headers,
   providerOptions = {},
   telemetry,
@@ -63,6 +65,11 @@ export async function decide<
   /** Maximum retries for transient provider failures. Defaults to 2. */
   maxRetries?: number;
   abortSignal?: AbortSignal;
+  /**
+   * Download function required for URL-backed file state. Use createDownload({ fetch })
+   * with a DNS-protected transport for untrusted URLs. The model's fetch is not used.
+   */
+  experimental_download?: DownloadFunction;
   headers?: Record<string, string>;
   providerOptions?: ProviderOptions;
   /** Optional telemetry configuration. */
@@ -130,7 +137,11 @@ export async function decide<
       });
 
       try {
-        const preparedState = await prepareDecisionState(state, abortSignal);
+        const preparedState = await prepareDecisionState({
+          state,
+          abortSignal,
+          download,
+        });
         const modelCallEvent = {
           callId,
           operationId: 'ai.decide.doDecide' as const,
