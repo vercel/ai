@@ -691,7 +691,6 @@ TypeScript rejects these options on `WorkflowAgent`. If you pass them anyway, fo
 | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `toolApproval`                                                  | Set `needsApproval` on each tool. See [Tool Approval](#tool-approval).                                                                                                   |
 | `callOptionsSchema` and the `options` call parameter            | Not supported. Pass settings to `generate()` or `stream()` directly.                                                                                                     |
-| `experimental_refineToolInput`                                  | Not supported.                                                                                                                                                           |
 | `experimental_toolCallers`                                      | Not supported.                                                                                                                                                           |
 | `experimental_steering`                                         | Not supported. To add messages between steps, return `messages` from `prepareStep`.                                                                                      |
 | `experimental_transform`                                        | Not supported. Transform `run.readable` with `pipeThrough()` where you create the response.                                                                              |
@@ -776,6 +775,7 @@ The callbacks also run at different times:
 - Approval is configured with `needsApproval` on the tool. Approval request IDs have the form `approval-<toolCallId>`. `ToolLoopAgent` generates random IDs.
 - For a tool whose `execute` function is an async generator, the last yielded value is the tool result, as in `ToolLoopAgent`. `ToolLoopAgent` also reports the earlier values as preliminary results. `WorkflowAgent` does not send them to the `writable`.
 - Tool timeouts (`toolMs` and `tools` in the `timeout` object) are not supported.
+- `experimental_refineToolInput` functions run in the workflow context after the model step returns. The `tool-call` chunk that `stream()` writes to `writable` for a tool without its own runtime validator, and the input of provider-executed tool calls, keep the unrefined value.
 
 ### Requests
 

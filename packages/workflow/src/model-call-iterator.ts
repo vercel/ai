@@ -25,6 +25,7 @@ import {
   type Telemetry,
   type DurableTelemetryContext,
   type ToolCallRepairFunction,
+  type ToolInputRefinement,
   type ToolChoice,
   type ToolOrder,
   type ToolSet,
@@ -228,6 +229,7 @@ export async function* modelCallIterator({
   firstChunkTimeoutMs,
   chunkTimeoutMs,
   repairToolCall,
+  refineToolInput,
   download,
   responseFormat,
   experimental_sandbox: sandbox,
@@ -268,6 +270,7 @@ export async function* modelCallIterator({
   firstChunkTimeoutMs?: number;
   chunkTimeoutMs?: number;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
+  refineToolInput?: ToolInputRefinement<ToolSet>;
   download?: ModelCallOptions['download'];
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
   experimental_sandbox?: SandboxSession;
@@ -586,6 +589,7 @@ export async function* modelCallIterator({
         tools: effectiveTools,
         serializedTools,
         repairToolCall,
+        refineToolInput,
         repairedToolCallIds: new Set(repairedToolCallIds),
         instructions:
           conversationPrompt
@@ -854,6 +858,7 @@ async function validateToolCallInputs({
   tools,
   serializedTools,
   repairToolCall,
+  refineToolInput,
   repairedToolCallIds,
   instructions,
   messages,
@@ -863,6 +868,7 @@ async function validateToolCallInputs({
   tools: ToolSet;
   serializedTools: Record<string, SerializableToolDef>;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
+  refineToolInput?: ToolInputRefinement<ToolSet>;
   repairedToolCallIds: Set<string>;
   instructions?: Instructions;
   messages: ModelMessage[];
@@ -881,7 +887,35 @@ async function validateToolCallInputs({
 
       const inputSchema = asSchema(tool.inputSchema);
       if (inputSchema.validate == null) {
-        return toolCall;
+        // The input parsed inside the model step is final for a tool without
+        // a runtime validator, so only the refinement is left to apply.
+        const refine =
+          refineToolInput != null &&
+          Object.prototype.hasOwnProperty.call(
+            refineToolInput,
+            toolCall.toolName,
+          )
+            ? refineToolInput[toolCall.toolName]
+            : undefined;
+        if (refine == null) {
+          return toolCall;
+        }
+        try {
+          const input = await refine(toolCall.input as never);
+          return {
+            ...toolCall,
+            input,
+            // Keep the input from before the refinement. When an approved call
+            // is validated again, the refinement runs on this value, so a
+            // refinement that is not idempotent still gives the approved input.
+            ...(isDeepEqualData(toolCall.input, input)
+              ? {}
+              : { inputSchemaInput: toolCall.input }),
+          };
+        } catch (error) {
+          // Like parseToolCall, a refinement that throws makes the call invalid.
+          return { ...toolCall, dynamic: true, invalid: true, error };
+        }
       }
 
       let repairedInput: { value: unknown } | undefined;
@@ -928,6 +962,7 @@ async function validateToolCallInputs({
                 }
                 return repairedToolCall;
               },
+        refineToolInput,
         instructions,
         messages,
         abortSignal,
