@@ -1000,4 +1000,37 @@ console.log(text);`,
     websiteUrl: 'https://keenable.ai',
     npmUrl: 'https://www.npmjs.com/package/@keenable/ai-sdk',
   },
+  {
+    slug: 'webknox',
+    name: 'WebKnox',
+    description:
+      'WebKnox answers everyday questions with typed UI cards your app can show: weather, nutrition, recipes and recipe search, comparisons with photos, translations, maths, media and more. The model reads a short text, and the full card stays in the tool result for your UI.',
+    packageName: '@webknox/ai-sdk',
+    tags: ['generative-ui', 'cards', 'search', 'data'],
+    apiKeyEnvName: 'WEBKNOX_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @webknox/ai-sdk',
+      npm: 'npm install @webknox/ai-sdk',
+      yarn: 'yarn add @webknox/ai-sdk',
+      bun: 'bun add @webknox/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { askWebknox } from '@webknox/ai-sdk';
+
+const { text, steps } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'What is the weather in Dresden?',
+  tools: {
+    askWebknox: askWebknox(),
+  },
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);
+console.log(steps[0].staticToolResults[0]?.output.card);`,
+    docsUrl: 'https://webknox.com/docs/ai-sdk',
+    apiKeyUrl: 'https://webknox.com/console',
+    websiteUrl: 'https://webknox.com',
+    npmUrl: 'https://www.npmjs.com/package/@webknox/ai-sdk',
+  },
 ];
