@@ -316,3 +316,17 @@ added to the stable `ProviderV4` contract. Direct decision string IDs default
 to Gateway when no default provider is configured.
 See [Decisions](/docs/ai-sdk-core/decisions#model-aliases-and-registries)
 for runnable usage patterns.
+
+## Experimental extraction models
+
+The inferred return type also exposes `extractionModel('providerId:modelId')`,
+returning `Experimental_ExtractionModelV4`. The provider must expose an
+`extractionModel` factory. Custom separators and model ID inference work as they
+do for decision models, and middleware does not wrap extraction models. Use the
+inferred return type or `Experimental_ExtractionProviderRegistry`, which also
+includes decision access, to retain experimental extraction access.
+
+Unavailable extraction capabilities or models throw `NoSuchModelError` with
+`modelType: 'extractionModel'`; unknown registry providers throw
+`NoSuchProviderError`. See
+[Extractions](/docs/ai-sdk-core/extractions#model-aliases-and-registries).

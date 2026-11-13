@@ -10,6 +10,7 @@ export {
 export type { ProviderRegistryProvider } from './provider-registry';
 
 export type { DecisionProviderRegistry as Experimental_DecisionProviderRegistry } from './provider-registry';
+export type { ExtractionProviderRegistry as Experimental_ExtractionProviderRegistry } from './provider-registry';
 
 /** @deprecated Use `Experimental_DecisionProviderRegistry` instead. */
 export type Experimental_EvaluationProviderRegistry<

@@ -22,6 +22,7 @@ declare global {
    *
    * If not set, the default provider is the Vercel AI gateway provider.
    * An explicitly configured provider must support decision models to use experimental_decide.
+   * An explicitly configured provider must support extraction models to use experimental_extract.
    *
    * @see https://ai-sdk.dev/docs/ai-sdk-core/provider-management#global-provider-configuration
    */

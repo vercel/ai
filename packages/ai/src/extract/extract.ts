@@ -40,7 +40,7 @@ export async function extract<
   headers,
   providerOptions = {},
 }: {
-  /** An extraction model instance. */
+  /** An extraction model instance or an ID resolved by the configured default provider. */
   model: ExtractionModel;
   state: DecisionState;
   fields: FIELDS;
