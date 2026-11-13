@@ -236,7 +236,7 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
       parameters.durationSeconds = options.duration;
     }
 
-    if (options.seed) {
+    if (options.seed != null) {
       parameters.seed = options.seed;
     }
 
@@ -465,3 +465,4 @@ const googleVideoModelOptionsSchema = lazySchema(() =>
       .passthrough(),
   ),
 );
+

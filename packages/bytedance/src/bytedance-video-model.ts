@@ -322,7 +322,7 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV3 {
       body.duration = options.duration;
     }
 
-    if (options.seed) {
+    if (options.seed != null) {
       body.seed = options.seed;
     }
 
@@ -524,3 +524,4 @@ const byteDanceFailedResponseHandler = createJsonErrorResponseHandler({
   errorToMessage: data =>
     data.error?.message ?? data.message ?? 'Unknown error',
 });
+
