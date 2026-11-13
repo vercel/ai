@@ -47,6 +47,7 @@ import type {
   GoogleInteractionsNetworkConfig,
   GoogleInteractionsRequestBody,
   GoogleInteractionsResponseFormatEntry,
+  GoogleInteractionsThinkingLevel,
   GoogleInteractionsTool,
   GoogleInteractionsToolChoice,
 } from './google-interactions-prompt';
@@ -342,7 +343,8 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
             : undefined,
         max_output_tokens: options.maxOutputTokens ?? undefined,
         thinking_level: mapReasoningToProviderEffort<
-          NonNullable<GoogleInteractionsGenerationConfig['thinking_level']>
+          GoogleInteractionsThinkingLevel,
+          GoogleInteractionsThinkingLevel
         >({
           reasoning: options.reasoning,
           providerOptionsEffort: googleOptions?.thinkingLevel,
