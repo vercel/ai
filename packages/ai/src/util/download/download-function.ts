@@ -21,6 +21,8 @@ export type DownloadFunction = (
   options: Array<{
     url: URL;
     isUrlSupportedByModel: boolean;
+    /** Signal for cancellation and timeouts of the enclosing call. */
+    abortSignal?: AbortSignal;
   }>,
 ) => PromiseLike<
   Array<{
@@ -43,6 +45,9 @@ export const createDefaultDownloadFunction =
       requestedDownloads.map(async requestedDownload =>
         requestedDownload.isUrlSupportedByModel
           ? null
-          : await download({ ...requestedDownload, abortSignal }),
+          : await download({
+              ...requestedDownload,
+              abortSignal: abortSignal ?? requestedDownload.abortSignal,
+            }),
       ),
     );

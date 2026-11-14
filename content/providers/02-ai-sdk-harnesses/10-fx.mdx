@@ -181,16 +181,73 @@ The adapter does not expose the fx CLI's other built-in tools.
 
 Built-in tool filtering is supported through `activeTools` and `inactiveTools`.
 With `permissionMode: 'allow-reads'`, file edits and shell commands require
-approval. With `allow-edits`, only shell commands require approval.
+approval. With `allow-edits`, shell commands require approval, as do `write`
+and `edit` calls that touch `.agents/skills` or `.fx` in the session workdir.
+These paths hold configuration and skills that can run code or change the
+agent's behavior in later sessions. A path matches when it is a protected path,
+lies inside one, or is a parent of one. Symlinks are resolved in both
+directions: writes through an alias that points into a protected path match, as
+do writes to targets of symlinks inside protected directories. While a
+protected path exists, writes to hard-linked files also require approval.
 `allow-all` runs these tools without approval requests.
 
 ## Session Lifecycle
 
-The adapter stores its libfx checkpoint and unfinished-turn replay records in
-`$HOME/.ai-sdk-harness/.agent-runs/<encoded-sessionId>/fx/state.json`.
-Here, `$HOME` belongs to the sandbox, and the file is outside `sessionWorkDir`.
-A future process restores this state after the caller reattaches the sandbox
-and supplies the saved lifecycle state.
+The lifecycle state carries the fx session itself: the libfx checkpoint of the
+conversation and, for an unfinished turn, its replay records, including model
+responses, tool approvals and host tool results. Nothing about the session is
+stored in the sandbox, so code running in the sandbox cannot read or change it.
+A future process restores the session from the lifecycle state after the
+caller reattaches the sandbox.
+
+Suspending a turn, detaching and stopping produce a lifecycle state. A process
+that exits without one of them resumes from the last lifecycle state the caller
+saved.
+
+## Session Storage
+
+The libfx checkpoint can reach several MiB, and an unfinished turn adds its
+model responses, so the lifecycle state can become large. To keep it small,
+pass a `sessionStorage` that keeps the session in an append-only log somewhere
+else, such as an object store, a database table or a stream. When a session
+suspends a turn, detaches or stops, the harness appends one entry holding what
+changed since the previous entry, and the lifecycle state holds only `leafId`,
+the id of that entry. Restoring a session reads the log and continues from that
+entry. Each entry's `data` is opaque JSON; the harness checks each entry when
+it reads it.
+
+```ts
+import { createFx, type FxSessionStorage } from '@ai-sdk/harness-fx';
+
+const storage: FxSessionStorage = {
+  append: async ({ sessionId, entry }) => {
+    await db
+      .insert(fxSessionEntries)
+      .values({ sessionId, ...entry })
+      .onConflictDoNothing();
+  },
+  read: async ({ sessionId }) =>
+    db
+      .select()
+      .from(fxSessionEntries)
+      .where(eq(fxSessionEntries.sessionId, sessionId)),
+};
+
+const harness = createFx({ sessionStorage: storage });
+```
+
+Entries are never changed or deleted. Every entry points to the entry before
+it, its `parentEntryId`. A second turn resumed from the same state appends a new
+branch, and each lifecycle state's `leafId` selects its own branch. An entry
+whose `entryId` the log already holds is a retried append, so the example keeps
+`(sessionId, entryId)` unique and ignores the conflict. `read` may return every
+entry of the session, in any order, as above. To read less, return only the
+entries that lead to `leafId`: the entry whose `entryId` is `leafId`, then its
+`parentEntryId`, and so on.
+
+A lifecycle state recorded with a session storage holds a `leafId` and only
+restores with a `sessionStorage`. A lifecycle state recorded without one holds
+the whole session and only restores without a `sessionStorage`.
 
 ## Known Limitations
 

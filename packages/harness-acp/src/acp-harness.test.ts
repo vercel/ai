@@ -23,6 +23,8 @@ const webSocketMocks = vi.hoisted(() => {
   }> = [];
   class FakeWebSocket {
     private readonly listeners = new Map<string, Set<Listener>>();
+    readonly sent: string[] = [];
+    private challengeSent = false;
 
     constructor(url: string, options?: { headers?: Record<string, string> }) {
       calls.push({ url, headers: options?.headers });
@@ -55,7 +57,25 @@ const webSocketMocks = vi.hoisted(() => {
       return this;
     }
 
+    send(frame: string): void {
+      this.sent.push(frame);
+    }
+
     private emit(type: string, ...args: unknown[]): void {
+      if (
+        type === 'message' &&
+        !this.challengeSent &&
+        String(args[0]).includes('"bridge-hello"')
+      ) {
+        this.challengeSent = true;
+        this.emit(
+          'message',
+          JSON.stringify({
+            type: 'bridge-auth-challenge',
+            challenge: 'a'.repeat(64),
+          }),
+        );
+      }
       for (const listener of [...(this.listeners.get(type) ?? [])]) {
         listener(...args);
       }
@@ -544,6 +564,39 @@ describe('createACP', () => {
     expect(prepareSandbox).toHaveBeenCalledOnce();
     await resumed.doDestroy();
   });
+
+  it.each([
+    [60_000, '60000'],
+    [undefined, undefined],
+  ])(
+    'passes hostDisconnectTimeoutMs %s to the bridge',
+    async (hostDisconnectTimeoutMs, expected) => {
+      const spawns: Array<{
+        command: string;
+        env: Record<string, string | undefined>;
+      }> = [];
+      const session = await createACP({
+        harnessId: 'timeout-acp',
+        ...agentSettings,
+        hostDisconnectTimeoutMs,
+      }).doStart({
+        sessionId: 'session-timeout',
+        sandboxSession: fakeSandbox({
+          runs: [],
+          spawns,
+          stop: async () => {},
+        }),
+        sessionWorkDir: '/workspace/user-project',
+      });
+
+      expect(
+        spawns
+          .at(0)
+          ?.command.match(/--host-disconnect-timeout-ms '?(\d+)'?/)?.[1],
+      ).toBe(expected);
+      await session.doDestroy();
+    },
+  );
 
   it.each(['throw', 'reject'] as const)(
     'does not start a bridge when sandbox preparation fails through %s',
@@ -2290,8 +2343,8 @@ describe('createACP', () => {
       },
     });
     expect(spawns[0].env.CODEX_API_KEY).toBe('test-key');
-    expect(spawns[0].env.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
-    expect(spawns[0].env.BRIDGE_CHANNEL_TOKEN).not.toBe('test-key');
+    expect(spawns[0].env.BRIDGE_AUTH_PUBLIC_KEY).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(spawns[0].env).not.toHaveProperty('BRIDGE_CHANNEL_TOKEN');
     expect(spawns[0].env.AI_SDK_ACP_GATEWAY_API_KEY).toBeUndefined();
     expect(spawns[0].env.AI_SDK_ACP_CLIENT_APP_NAME).toBe('ai-sdk-harness-acp');
     expect(spawns[0].env.AI_SDK_ACP_CLIENT_APP_VERSION).toBe('0.0.0-test');
@@ -2299,6 +2352,35 @@ describe('createACP', () => {
 
     await session.doDestroy();
     expect(stop).not.toHaveBeenCalled();
+  });
+
+  it('passes write-protected paths to the bridge configuration', async () => {
+    const spawns: Array<{
+      command: string;
+      env: Record<string, string | undefined>;
+    }> = [];
+    const harness = createACP({
+      harnessId: 'codex-acp',
+      auth: 'direct',
+      ...agentSettings,
+      writeProtectedPaths: ['.example', '.example-config/hooks'],
+    });
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({ runs: [], spawns, stop: async () => {} }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+
+    await expect(
+      safeParseJSON({ text: spawns[0].env[ACP_BRIDGE_CONFIGURATION_ENV]! }),
+    ).resolves.toMatchObject({
+      success: true,
+      value: {
+        writeProtectedPaths: ['.example', '.example-config/hooks'],
+      },
+    });
+
+    await session.doDestroy();
   });
 
   it('requires explicit bridge settings for a basic sandbox session', async () => {
@@ -2357,7 +2439,7 @@ describe('createACP', () => {
     expect(resumeFrom.data).toMatchObject({
       bridge: {
         port: 4319,
-        token: expect.any(String),
+        privateKey: expect.any(String),
         lastSeenEventId: 0,
       },
     });
@@ -2366,37 +2448,51 @@ describe('createACP', () => {
     });
   });
 
-  it('requires a sandbox id for custom bridge token minting', async () => {
+  it('ignores a mintBridgeToken callback and warns once at creation', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const mintBridgeToken = vi.fn((sandboxId: string) => sandboxId);
     const networkSession = fakeSandbox({
       runs: [],
       spawns: [],
       stop: async () => {},
     });
 
-    await expect(
-      createACP({
+    try {
+      const harness = createACP({
         harnessId: 'codex-acp',
         ...agentSettings,
         port: 4319,
         portEndpoint: { url: 'ws://127.0.0.1:4319' },
-        mintBridgeToken: sandboxId => sandboxId,
-      }).doStart({
+        mintBridgeToken,
+      });
+      const session = await harness.doStart({
         sessionId: 'session-1',
         sandboxSession: networkSession.restricted(),
         sessionWorkDir: '/workspace/user-project',
-      }),
-    ).rejects.toThrow(/does not expose an id/);
+      });
+      await session.doDetach();
+
+      expect(mintBridgeToken).not.toHaveBeenCalled();
+      expect(
+        warn.mock.calls.filter(([message]) =>
+          String(message).includes('mintBridgeToken'),
+        ),
+      ).toEqual([
+        [
+          'The codex-acp harness ignores the deprecated `mintBridgeToken` setting. Sandbox bridge authentication now uses an adapter-generated key pair.',
+        ],
+      ]);
+    } finally {
+      warn.mockRestore();
+    }
   });
 
-  it('reuses a caller-minted token and passes endpoint headers when attaching', async () => {
+  it('keeps the bridge private key on the host and passes endpoint headers when attaching', async () => {
     harnessUtilsMocks.connectOnOpen = true;
     const spawns: Array<{
       command: string;
       env: Record<string, string | undefined>;
     }> = [];
-    const mintBridgeToken = vi.fn(
-      (sandboxId: string) => `token-for-${sandboxId}`,
-    );
     const portEndpoint = {
       url: 'wss://sandbox.example/bridge?existing=value',
       headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
@@ -2409,7 +2505,6 @@ describe('createACP', () => {
     const harness = createACP({
       harnessId: 'codex-acp',
       ...agentSettings,
-      mintBridgeToken,
       portEndpoint,
       reconnect,
     });
@@ -2425,13 +2520,14 @@ describe('createACP', () => {
       sessionWorkDir: '/workspace/user-project',
     });
 
-    expect(mintBridgeToken).toHaveBeenCalledExactlyOnceWith('sandbox-1');
-    expect(spawns[0].env.BRIDGE_CHANNEL_TOKEN).toBe('token-for-sandbox-1');
+    expect(spawns[0].env.BRIDGE_AUTH_PUBLIC_KEY).toMatch(/^[A-Za-z0-9_-]{43}$/);
 
     const resumeFrom = await session.doDetach();
-    expect(resumeFrom.data).toMatchObject({
-      bridge: { token: 'token-for-sandbox-1' },
-    });
+    const { privateKey } = (
+      resumeFrom.data as { bridge: { privateKey: string } }
+    ).bridge;
+    expect(privateKey).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(JSON.stringify(spawns)).not.toContain(privateKey);
 
     const attachedSession = await harness.doStart({
       sessionId: 'session-1',
@@ -2439,17 +2535,16 @@ describe('createACP', () => {
       sessionWorkDir: '/workspace/user-project',
       resumeFrom,
     });
-    expect(mintBridgeToken).toHaveBeenCalledTimes(1);
     expect(
       harnessUtilsMocks.channels.map(channel => channel.options.reconnect),
     ).toEqual([reconnect, reconnect]);
     expect(webSocketMocks.calls).toEqual([
       {
-        url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-sandbox-1',
+        url: 'wss://sandbox.example/bridge?existing=value',
         headers: portEndpoint.headers,
       },
       {
-        url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-sandbox-1',
+        url: 'wss://sandbox.example/bridge?existing=value',
         headers: portEndpoint.headers,
       },
     ]);
@@ -3078,7 +3173,7 @@ describe('createACP', () => {
       acpSessionId: 'acp-session-1',
       bridge: {
         port: 4319,
-        token: expect.stringMatching(/^[a-f0-9]{64}$/),
+        privateKey: expect.stringMatching(/^[A-Za-z0-9_-]+$/),
         lastSeenEventId: 17,
         sandboxId: 'sandbox-1',
       },
@@ -5024,7 +5119,7 @@ describe('createACP', () => {
     );
     expect(spawns[0].env.AI_SDK_ACP_CLIENT_APP_NAME).toBe('custom-client');
     expect(spawns[0].env.AI_SDK_ACP_CLIENT_APP_VERSION).toBe('1.2.3');
-    expect(spawns[0].env.BRIDGE_CHANNEL_TOKEN).not.toBe('gateway-key');
+    expect(spawns[0].env.BRIDGE_AUTH_PUBLIC_KEY).not.toBe('gateway-key');
     expect(spawns[0].env.CODEX_API_KEY).toBeUndefined();
 
     await session.doDestroy();
@@ -5230,5 +5325,19 @@ describe('createACP', () => {
     ).rejects.toThrow(
       'ACP lifecycle state is incompatible with the configured agent.',
     );
+  });
+
+  it('rejects lifecycle state with a legacy bridge token', async () => {
+    const harness = createACP({ harnessId: 'codex-acp', ...agentSettings });
+
+    const result = await safeValidateTypes({
+      value: {
+        agentIdentity: 'agent',
+        bridge: { port: 4319, token: 'legacy-token', lastSeenEventId: 0 },
+      },
+      schema: harness.lifecycleStateSchema!,
+    });
+
+    expect(result.success).toBe(false);
   });
 });

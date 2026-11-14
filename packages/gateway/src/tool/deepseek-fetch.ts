@@ -29,11 +29,10 @@ export type DeepSeekFetchOutput = DeepSeekFetchResponse | GatewayToolError;
 const deepseekFetchInputSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      url: z
-        .string()
-        .describe(
-          'URL to fetch, at most 8192 characters; HTTP(S) only, without a username or password.',
-        ),
+      url: z.describe(
+        z.string(),
+        'URL to fetch, at most 8192 characters; HTTP(S) only, without a username or password.',
+      ),
     }),
   ),
 );
@@ -41,12 +40,13 @@ const deepseekFetchInputSchema = lazySchema(() =>
 const deepseekFetchOutputSchema = lazySchema(() =>
   zodSchema(
     z.union([
-      z
-        .object({
-          title: z.string().nullish(),
+      z.catchall(
+        z.object({
+          title: z.nullish(z.string()),
           content: z.string(),
-        })
-        .passthrough(),
+        }),
+        z.unknown(),
+      ),
       gatewayToolErrorSchema(),
     ]),
   ),

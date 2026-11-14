@@ -1,5 +1,93 @@
 # @ai-sdk/gateway
 
+## 4.0.146
+
+### Patch Changes
+
+- 9baa2d0: chore(provider/gateway): update gateway model settings files
+
+## 4.0.145
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+
+## 4.0.144
+
+### Patch Changes
+
+- 640569d: chore(provider/gateway): update gateway model settings files
+- 4e43721: Add the `gemini-4-hydrogen` model ID and support Hydrogen's `xhigh` thinking level in Google Generate Content and Interactions provider options. Map portable `reasoning: 'xhigh'` to `xhigh` only for Hydrogen models.
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+
+## 4.0.143
+
+### Patch Changes
+
+- eaeb37e: chore(provider/gateway): update gateway model settings files
+
+## 4.0.142
+
+### Patch Changes
+
+- c160b74: Add support for the `gemini-4-carbon` model with the same capabilities as `gemini-4-argon`.
+- 4311fa1: Use Zod Mini for internal validation schemas to reduce bundle size while preserving the public message schemas' classic Zod methods, error messages, and compatibility with supported Zod 3 and Zod 4 versions.
+- 838dd53: fix(provider/gateway): restore `export_pricing.free_rows` on `takoSearch` results as a deprecated optional field, so code that reads it compiles again. Tako always sends 0 and will stop sending it.
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+
+## 4.0.141
+
+### Patch Changes
+
+- 5497ff7: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [88b9575]
+  - @ai-sdk/provider-utils@5.0.78
+
+## 4.0.140
+
+### Patch Changes
+
+- 8420810: feat(anthropic): add Claude Fable 5.2 support
+
+  - add the `claude-fable-5-2` model ID to `@ai-sdk/anthropic` and `@ai-sdk/google-vertex`, `anthropic.claude-fable-5-2`, `us.anthropic.claude-fable-5-2`, and `global.anthropic.claude-fable-5-2` to `@ai-sdk/amazon-bedrock`, and `anthropic/claude-fable-5.2` to `@ai-sdk/gateway`
+  - recognize `claude-fable-5-2` as a known model with the same capabilities as `claude-fable-5-1`: 128k max output tokens, always-on adaptive thinking, all five effort levels, no sampling parameters, and no forced tool use
+
+- 6d65092: Add `meta/muse-ember` to the available language model IDs.
+- 0e869b4: feat(provider/gateway): add developer-only `variableCost`, `maxVariableCostUsd` and `extraBody` options to `takoSearch`, and type Tako placeholder cards, `relevance_score`, premium and variable-cost pricing fields, and `usage.variable_cost`. Remove the deprecated `export_pricing.free_rows` from the published types and schema; Tako always sends 0 and will drop it. Code that reads it must be updated, though the value still passes through at runtime while Tako sends it.
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+
+## 4.0.139
+
+### Patch Changes
+
+- 44db225: feat(provider/gateway): type the headquarters provider option
+
+## 4.0.138
+
+### Patch Changes
+
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+
+## 4.0.137
+
+### Patch Changes
+
+- bace553: chore(provider/gateway): update gateway model settings files
+- 6737c77: docs(provider/gateway): document the OIDC auth fallback in `apiKey` JSDoc and README
+- bb4e2d0: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.136
 
 ### Patch Changes

@@ -74,8 +74,8 @@ function formatErrorCode(error: unknown): string {
  *
  * Redirects are followed manually so that every hop is checked against the
  * domain filter and the private-address guard before it is requested. On
- * Node.js, the default transport additionally validates and pins DNS results
- * at connect time. A custom fetch must provide equivalent validation.
+ * Node.js, inject guarded-fetch for additional connection-time DNS
+ * validation. The default transport uses the runtime's global fetch.
  */
 export async function fetchWebResource({
   url,
@@ -132,7 +132,7 @@ export async function fetchWebResource({
         throw error;
       }
 
-      // The DNS-pinned transport rejects hostnames that resolve to private
+      // An injected guarded transport rejects hostnames that resolve to private
       // addresses with a DownloadError cause.
       if (findCause(error, DownloadError.isInstance) !== undefined) {
         return {

@@ -1,3 +1,4 @@
+import { getByteDanceImageModelEntry } from './bytedance-model-catalog';
 import type {
   ImageModelV4,
   ImageModelV4CallOptions,
@@ -44,22 +45,21 @@ export class ByteDanceImageModel implements ImageModelV4 {
   // The API has no output-count parameter, so a single call returns one image;
   // `generateImage` fans `n` out into `n` calls. Batches of related images are
   // available via the `sequentialImageGeneration` provider option instead.
-  readonly maxImagesPerCall = 1;
+  get maxImagesPerCall(): number {
+    return getByteDanceImageModelEntry(this.modelId).capabilities.image
+      .maxImagesPerCall;
+  }
 
   get supportsFileInputs(): boolean | undefined {
-    return [
-      'dola-seedream-5-0-pro-260628',
-      'seedream-5-0-260128',
-      'seedream-5-0-lite-260128',
-      'seedream-4-5-251128',
-      'seedream-4-0-250828',
-    ].includes(this.modelId)
-      ? true
-      : undefined;
+    const support = getByteDanceImageModelEntry(this.modelId).capabilities.image
+      .fileInput;
+    return support === 'unknown' ? undefined : support;
   }
 
   get supportsMaskInputs(): boolean | undefined {
-    return this.supportsFileInputs === true ? false : undefined;
+    const support = getByteDanceImageModelEntry(this.modelId).capabilities.image
+      .maskInput;
+    return support === 'unknown' ? undefined : support;
   }
 
   get provider(): string {

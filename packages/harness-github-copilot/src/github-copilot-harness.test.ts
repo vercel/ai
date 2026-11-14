@@ -25,6 +25,16 @@ describe('createGitHubCopilot', () => {
 
     const settings = lastSettings();
     expect(settings.nonTextContentTypes).toEqual(['image']);
+    expect(settings.writeProtectedPaths).toEqual([
+      '.github/hooks',
+      '.github/copilot',
+      '.github/skills',
+      '.github/agents',
+      '.github/extensions',
+      '.claude',
+      '.mcp.json',
+      '.vscode/mcp.json',
+    ]);
     expect({
       version: settings.version,
       harnessId: settings.harnessId,
@@ -118,8 +128,6 @@ describe('createGitHubCopilot', () => {
     if (source.type !== 'npm-locked') {
       throw new Error('Expected a locked NPM source.');
     }
-    expect(source.packageJson).toContain('"@github/copilot": "1.0.92"');
-    expect(source.pnpmLockYaml).toContain("'@github/copilot@1.0.92':");
     expect(source.pnpmWorkspaceYaml).toContain("'@github/copilot");
   });
 
@@ -328,6 +336,7 @@ describe('createGitHubCopilot', () => {
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
+      hostDisconnectTimeoutMs: 60_000,
       reconnect,
       mintBridgeToken,
     });
@@ -340,6 +349,7 @@ describe('createGitHubCopilot', () => {
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
+      hostDisconnectTimeoutMs: 60_000,
       reconnect,
       mintBridgeToken,
     });

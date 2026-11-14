@@ -98,6 +98,48 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
     },
   );
 
+  describe('labels', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('basic');
+    });
+
+    it.each([
+      {},
+      { application: 'example', safety_identifier: 'opaque_user_123' },
+    ])('forwards labels %j as top-level request metadata', async labels => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: { google: { labels, store: false } },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        labels,
+        store: false,
+      });
+    });
+
+    it.each([undefined, null])('omits labels when set to %j', async labels => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: { google: { labels } },
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'labels',
+      );
+    });
+
+    it('rejects labels with non-string values before sending a request', async () => {
+      await expect(
+        model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: { google: { labels: { invalid: 42 } } },
+        }),
+      ).rejects.toThrow();
+      expect(server.calls).toHaveLength(0);
+    });
+  });
+
   describe('basic text', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('basic');
@@ -797,8 +839,9 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
     });
 
     it('emits thinking_level and thinking_summaries inside generation_config', async () => {
-      await model.doGenerate({
+      const result = await model.doGenerate({
         prompt: TEST_PROMPT,
+        reasoning: 'xhigh',
         providerOptions: {
           google: {
             thinkingLevel: 'high',
@@ -814,7 +857,57 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       };
       expect(body.generation_config?.thinking_level).toBe('high');
       expect(body.generation_config?.thinking_summaries).toBe('auto');
+      expect(result.warnings).toEqual([]);
     });
+
+    it('maps top-level reasoning to the Hydrogen thinking level', async () => {
+      const result = await provider
+        .interactions('gemini-4-hydrogen')
+        .doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'xhigh',
+        });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        generation_config: { thinking_level: 'xhigh' },
+      });
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('warns and falls back for unsupported reasoning levels', async () => {
+      const result = await provider.interactions('gemini-4-argon').doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'xhigh',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        generation_config: { thinking_level: 'high' },
+      });
+      expect(result.warnings).toEqual([
+        {
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "xhigh" is not directly supported by this model. mapped to effort "high".',
+        },
+      ]);
+    });
+
+    it.each(['gemini-4-hydrogen', 'gemini-4-hydrogen-eap'])(
+      'passes the xhigh thinking level for %s',
+      async modelId => {
+        const result = await provider.interactions(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: { google: { thinkingLevel: 'xhigh' } },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          model: modelId,
+          generation_config: { thinking_level: 'xhigh' },
+        });
+        expect(result.warnings).toEqual([]);
+      },
+    );
 
     it('forwards topK and warns for unsupported penalties', async () => {
       const result = await model.doGenerate({
@@ -1656,6 +1749,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
         topK: 10,
         frequencyPenalty: 0.5,
         presencePenalty: 0.5,
+        reasoning: 'high',
         providerOptions: {
           google: { thinkingLevel: 'high' },
         },
@@ -1673,6 +1767,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
           (w as { message?: string }).message?.includes('topK') &&
           (w as { message?: string }).message?.includes('frequencyPenalty') &&
           (w as { message?: string }).message?.includes('presencePenalty') &&
+          (w as { message?: string }).message?.includes('reasoning') &&
           (w as { message?: string }).message?.includes('thinkingLevel'),
       );
       expect(warning).toBeDefined();
@@ -2434,6 +2529,22 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
     };
   }
 
+  it('maps top-level reasoning on streaming requests', async () => {
+    prepareChunksFixtureResponse('basic');
+    const { stream } = await provider
+      .interactions('gemini-4-hydrogen')
+      .doStream({
+        prompt: TEST_PROMPT,
+        reasoning: 'xhigh',
+      });
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generation_config: { thinking_level: 'xhigh' },
+    });
+    expect(parts[0]).toEqual({ type: 'stream-start', warnings: [] });
+  });
+
   it.each(DISABLED_TOOL_CASES)(
     'omits $name when toolChoice is none',
     async ({ tools }) => {
@@ -2447,6 +2558,40 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
       const body = await server.calls[0].requestBodyJson;
       expect(body).not.toHaveProperty('tools');
       expect(body.generation_config?.tool_choice).toBeUndefined();
+    },
+  );
+
+  it.each([
+    {},
+    { application: 'example', safety_identifier: 'opaque_user_123' },
+  ])('forwards labels %j on streaming requests', async labels => {
+    prepareChunksFixtureResponse('basic');
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      providerOptions: { google: { labels, store: false } },
+    });
+    await convertReadableStreamToArray(stream);
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      labels,
+      store: false,
+      stream: true,
+    });
+  });
+
+  it.each([undefined, null])(
+    'omits labels set to %j on streaming requests',
+    async labels => {
+      prepareChunksFixtureResponse('basic');
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: { google: { labels } },
+      });
+      await convertReadableStreamToArray(stream);
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'labels',
+      );
     },
   );
 

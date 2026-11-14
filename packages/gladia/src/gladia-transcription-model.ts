@@ -1,5 +1,7 @@
+import { getGladiaTranscriptionModelEntry } from './gladia-model-catalog';
 import {
   AISDKError,
+  type JSONObject,
   type TranscriptionModelV4,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
@@ -36,6 +38,11 @@ interface GladiaTranscriptionModelConfig extends GladiaConfig {
     currentDate?: () => Date;
   };
 }
+
+// Async pre-recorded jobs can take several minutes for long audio files or
+// when audio intelligence add-ons are enabled, so the default is generous.
+const DEFAULT_POLL_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+const DEFAULT_POLL_INTERVAL_MS = 1000; // 1 second
 
 export class GladiaTranscriptionModel implements TranscriptionModelV4 {
   readonly specificationVersion = 'v4';
@@ -89,7 +96,10 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
     // Select the transcription model. `default` is the placeholder used when no
     // model id is passed to `gladia.transcription()`; in that case we omit the
     // field and let the Gladia API fall back to its own default (`solaria-1`).
-    if (this.modelId !== 'default') {
+    if (
+      !getGladiaTranscriptionModelEntry(this.modelId).requestConfig
+        .transcription.omitModel
+    ) {
       body.model = this.modelId;
     }
 
@@ -264,7 +274,10 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
       }
     }
 
-    if (this.modelId === 'solaria-3') {
+    if (
+      getGladiaTranscriptionModelEntry(this.modelId).requestConfig.transcription
+        .singleLanguage
+    ) {
       if (body.language_config?.languages?.length !== 1)
         warnings.push({
           type: 'other',
@@ -282,6 +295,8 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
     return {
       body,
       warnings,
+      pollIntervalMs: gladiaOptions?.pollIntervalMs ?? undefined,
+      pollTimeoutMs: gladiaOptions?.pollTimeoutMs ?? undefined,
     };
   }
 
@@ -289,7 +304,8 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
     options: Parameters<TranscriptionModelV4['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { body, warnings } = await this.getArgs(options);
+    const { body, warnings, pollIntervalMs, pollTimeoutMs } =
+      await this.getArgs(options);
 
     // Create form data with base fields
     const formData = new FormData();
@@ -351,15 +367,22 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
     const apiOrigin = this.config.url({ modelId: this.modelId, path: '' });
     let transcriptionResult;
     let transcriptionResultHeaders;
-    const timeoutMs = 60 * 1000; // 60 seconds timeout
+    const timeoutMs =
+      pollTimeoutMs ?? this.config.pollTimeoutMs ?? DEFAULT_POLL_TIMEOUT_MS;
+    const pollingInterval =
+      pollIntervalMs ?? this.config.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
     const startTime = Date.now();
-    const pollingInterval = 1000;
 
     while (true) {
+      // Stop before polling again when the caller aborted the request. Use
+      // `throwIfAborted` so a custom abort reason, such as the `TimeoutError`
+      // from `AbortSignal.timeout`, is preserved.
+      options.abortSignal?.throwIfAborted();
+
       // Check if we've exceeded the timeout
       if (Date.now() - startTime > timeoutMs) {
         throw new AISDKError({
-          message: 'Transcription job polling timed out',
+          message: `Transcription job polling timed out after ${timeoutMs} ms`,
           name: 'TranscriptionJobPollingTimedOut',
           cause: transcriptionResult,
         });
@@ -392,14 +415,26 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
 
       if (transcriptionResult.status === 'error') {
         throw new AISDKError({
-          message: 'Transcription job failed',
+          message:
+            transcriptionResult.error_code == null
+              ? 'Transcription job failed'
+              : `Transcription job failed with error code ${transcriptionResult.error_code}`,
           name: 'TranscriptionJobFailed',
           cause: transcriptionResult,
         });
       }
 
-      // Wait for the configured polling interval before checking again
-      await delay(pollingInterval);
+      // Wait for the configured polling interval before checking again. The
+      // wait is cancellable; prefer the caller's abort reason over the generic
+      // error that `delay` throws when the signal aborts.
+      try {
+        await delay(pollingInterval, { abortSignal: options.abortSignal });
+      } catch (error) {
+        if (options.abortSignal?.aborted) {
+          options.abortSignal.throwIfAborted();
+        }
+        throw error;
+      }
     }
 
     if (!transcriptionResult.result) {
@@ -428,7 +463,9 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
         headers: transcriptionResultHeaders,
       },
       providerMetadata: {
-        gladia: transcriptionResult,
+        // The result comes from parsed JSON; loose objects pass provider
+        // add-ons through without validating them.
+        gladia: transcriptionResult as JSONObject,
       },
       warnings,
     };
@@ -455,32 +492,25 @@ const gladiaTranscriptionResultResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       status: z.enum(['queued', 'processing', 'done', 'error']),
+      // HTTP status code of the failed request, reported for `status: 'error'`.
+      error_code: z.number().nullish(),
+      // Validate only the fields that `doGenerate` reads. The audio-intelligence
+      // add-ons (translation, summarization, named entity recognition, sentiment
+      // analysis, audio-to-LLM, sentences, subtitles, ...) are passed through as
+      // returned, so an unexpected add-on payload cannot fail the transcription.
       result: z
-        .object({
-          metadata: z.object({
+        .looseObject({
+          metadata: z.looseObject({
             audio_duration: z.number(),
           }),
-          transcription: z.object({
+          transcription: z.looseObject({
             full_transcript: z.string(),
             languages: z.array(z.string()),
             utterances: z.array(
-              z.object({
+              z.looseObject({
                 start: z.number(),
                 end: z.number(),
                 text: z.string(),
-                speaker: z.union([z.string(), z.number()]).nullish(),
-                confidence: z.number().nullish(),
-                language: z.string().nullish(),
-                words: z
-                  .array(
-                    z.object({
-                      word: z.string(),
-                      start: z.number(),
-                      end: z.number(),
-                      confidence: z.number().nullish(),
-                    }),
-                  )
-                  .nullish(),
               }),
             ),
           }),

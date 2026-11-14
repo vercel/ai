@@ -64,6 +64,7 @@ import {
 import { toOpenCodePromptParts } from './opencode-prompt';
 import {
   areOpenCodePermissionPathsTrusted,
+  areOpenCodePermissionPathsWriteProtected,
   type PermissionToolCall,
 } from './permission-paths';
 
@@ -196,6 +197,9 @@ procEnv.OPENCODE_DISABLE_PROJECT_CONFIG = '1';
 await runBridge<StartMessage>({
   bridgeType: 'opencode',
   bridgeStateDir,
+  ...(args.hostDisconnectTimeoutMs !== undefined
+    ? { hostDisconnectTimeoutMs: args.hostDisconnectTimeoutMs }
+    : {}),
   onStart: runTurn,
   onStop: () =>
     runtime.sessionId ? { openCodeSessionId: runtime.sessionId } : {},
@@ -474,6 +478,9 @@ function buildProviderConfig(
   if (procEnv.AI_GATEWAY_API_KEY && procEnv.AI_GATEWAY_BASE_URL) {
     return {
       [providerID]: {
+        ...(providerID === 'google' || providerID === 'mistral'
+          ? { npm: '@ai-sdk/openai-compatible' }
+          : {}),
         options: {
           apiKey: procEnv.AI_GATEWAY_API_KEY,
           baseURL: toOpenCodeGatewayBaseUrl(procEnv.AI_GATEWAY_BASE_URL),
@@ -1753,17 +1760,21 @@ async function selectPermissionReply({
     permissionMode === 'allow-edits'
       ? kind === 'readonly' || kind === 'edit'
       : kind === 'readonly';
+  const permissionPathOptions = {
+    action,
+    resources,
+    metadata,
+    toolCall,
+    workDir: workdir,
+    readableSkillRoots: context.readableSkillRoots,
+  };
   if (
     allowed &&
     (!filePermission ||
-      (await areOpenCodePermissionPathsTrusted({
-        action,
-        resources,
-        metadata,
-        toolCall,
-        workDir: workdir,
-        readableSkillRoots: context.readableSkillRoots,
-      })))
+      ((await areOpenCodePermissionPathsTrusted(permissionPathOptions)) &&
+        !(await areOpenCodePermissionPathsWriteProtected(
+          permissionPathOptions,
+        ))))
   )
     return { reply: 'once' };
 
@@ -2221,18 +2232,25 @@ function parseArgs(args: string[]): {
   bridgeStateDir?: string;
   bootstrapDir?: string;
   skillsDir?: string;
+  hostDisconnectTimeoutMs?: number;
 } {
   const out: {
     workdir?: string;
     bridgeStateDir?: string;
     bootstrapDir?: string;
     skillsDir?: string;
+    hostDisconnectTimeoutMs?: number;
   } = {};
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--workdir' && i + 1 < args.length) {
       out.workdir = args[++i];
     } else if (args[i] === '--bridge-state-dir' && i + 1 < args.length) {
       out.bridgeStateDir = args[++i];
+    } else if (
+      args[i] === '--host-disconnect-timeout-ms' &&
+      i + 1 < args.length
+    ) {
+      out.hostDisconnectTimeoutMs = Number(args[++i]);
     } else if (args[i] === '--bootstrap-dir' && i + 1 < args.length) {
       out.bootstrapDir = args[++i];
     } else if (args[i] === '--skills-dir' && i + 1 < args.length) {

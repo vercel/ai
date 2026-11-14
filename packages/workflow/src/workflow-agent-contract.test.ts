@@ -2,7 +2,7 @@ import type {
   LanguageModelV4GenerateResult,
   LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
-import { ToolLoopAgent, tool } from 'ai';
+import { ToolLoopAgent, tool, type ModelMessage } from 'ai';
 import { MockLanguageModelV4, convertArrayToReadableStream } from 'ai/test';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
@@ -86,6 +86,74 @@ describe('WorkflowAgent stream and core generate contracts', () => {
     expect(streamed.messages.slice(1)).toEqual(generated.responseMessages);
   });
 
+  it('aggregates stream usage like core, keeping token details', async () => {
+    const responses = [toolResponse(), textResponse('It is 18°C.')];
+    const core = await new ToolLoopAgent({
+      model: createAgentModel(responses),
+      tools: weatherTools(),
+    }).stream({ prompt });
+    await core.consumeStream();
+
+    let endUsage: unknown;
+    let endTotalUsage: unknown;
+    const streamed = await new WorkflowAgent({
+      model: createAgentModel(responses),
+      tools: weatherTools(),
+    }).stream({
+      prompt,
+      onEnd: event => {
+        endUsage = event.usage;
+        endTotalUsage = event.totalUsage;
+      },
+    });
+
+    expect(streamed.totalUsage).toEqual(await core.totalUsage);
+    expect(streamed.totalUsage).toEqual({
+      inputTokens: 6,
+      inputTokenDetails: {
+        noCacheTokens: 4,
+        cacheReadTokens: 2,
+        cacheWriteTokens: undefined,
+      },
+      outputTokens: 4,
+      outputTokenDetails: { textTokens: 4, reasoningTokens: undefined },
+      totalTokens: 10,
+    });
+    expect(endTotalUsage).toEqual(streamed.totalUsage);
+    expect(endUsage).toEqual(streamed.totalUsage);
+  });
+
+  it('keeps unknown stream usage counts undefined like core', async () => {
+    const response: LanguageModelV4GenerateResult = {
+      ...textResponse('Done.'),
+      usage: {
+        inputTokens: {
+          total: undefined,
+          noCache: undefined,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: undefined,
+          text: undefined,
+          reasoning: undefined,
+        },
+      },
+    };
+    const core = await new ToolLoopAgent({
+      model: createAgentModel([response]),
+    }).stream({ prompt });
+    await core.consumeStream();
+    const streamed = await new WorkflowAgent({
+      model: createAgentModel([response]),
+    }).stream({ prompt });
+
+    expect(streamed.totalUsage).toEqual(await core.totalUsage);
+    expect(streamed.totalUsage.inputTokens).toBeUndefined();
+    expect(streamed.totalUsage.outputTokens).toBeUndefined();
+    expect(streamed.totalUsage.totalTokens).toBeUndefined();
+  });
+
   it('returns unresolved client tool calls in both contracts', async () => {
     const tools = {
       weather: tool({ inputSchema: z.object({ city: z.string() }) }),
@@ -112,6 +180,53 @@ describe('WorkflowAgent stream and core generate contracts', () => {
     expect(generated.toolCalls).toMatchObject(streamed.toolCalls);
     expect(streamed.toolResults).toEqual([]);
     expect(generated.toolResults).toEqual([]);
+  });
+
+  it('passes the same conversation scope to tool execution as core', async () => {
+    const responses = () => [
+      toolResponse(),
+      {
+        ...toolResponse(),
+        content: toolResponse().content.map(part =>
+          part.type === 'tool-call'
+            ? { ...part, toolCallId: 'weather-call-2' }
+            : part,
+        ),
+      },
+      textResponse('It is 18°C.'),
+    ];
+    const seen: Record<string, Array<Array<ModelMessage['role']>>> = {};
+    const seenByCallback: typeof seen = {};
+    const settings = (label: string) => ({
+      model: createAgentModel(responses()),
+      instructions: 'You are a weather assistant.',
+      onToolExecutionStart: ({ messages }: { messages: ModelMessage[] }) => {
+        (seenByCallback[label] ??= []).push(
+          messages.map(message => message.role),
+        );
+      },
+      tools: {
+        weather: tool({
+          inputSchema: z.object({ city: z.string() }),
+          execute: async (_input, { messages }) => {
+            (seen[label] ??= []).push(messages.map(message => message.role));
+            return { temperature: 18 };
+          },
+        }),
+      },
+    });
+
+    await new ToolLoopAgent(settings('core')).generate({ prompt });
+    await new WorkflowAgent(settings('generate')).generate({ prompt });
+    await new WorkflowAgent(settings('stream')).stream({ prompt });
+
+    // No system prompt, and no assistant message with the current tool call.
+    expect(seen.core).toEqual([['user'], ['user', 'assistant', 'tool']]);
+    expect(seen.generate).toEqual(seen.core);
+    expect(seen.stream).toEqual(seen.core);
+    expect(seenByCallback.core).toEqual(seen.core);
+    expect(seenByCallback.generate).toEqual(seen.core);
+    expect(seenByCallback.stream).toEqual(seen.core);
   });
 
   it('distinguishes the core 20-step default from the unbounded Workflow stream default', async () => {
@@ -144,6 +259,116 @@ describe('WorkflowAgent stream and core generate contracts', () => {
     expect(streamed.steps.at(-1)?.text).toBe('Done.');
     // This comparison runs 42 model steps under the full monorepo CI load.
   }, 30_000);
+
+  it('applies prepareStep setting overrides to one step only, like core', async () => {
+    const responses = () => [toolResponse(), textResponse('It is 18°C.')];
+    const tools = () => ({
+      ...weatherTools(),
+      other: tool({
+        inputSchema: z.object({}),
+        execute: async () => 'unused',
+      }),
+    });
+    const firstStepOverrides = {
+      temperature: 0.9,
+      toolChoice: 'required' as const,
+      activeTools: ['weather' as const],
+      providerOptions: { mock: { firstStep: true } },
+    };
+    const summarize = (call: {
+      temperature?: number;
+      toolChoice?: unknown;
+      tools?: Array<{ name: string }>;
+      providerOptions?: unknown;
+    }) => ({
+      temperature: call.temperature,
+      toolChoice: call.toolChoice,
+      tools: call.tools?.map(modelTool => modelTool.name),
+      providerOptions: call.providerOptions,
+    });
+
+    const coreModel = createAgentModel(responses());
+    await new ToolLoopAgent({
+      model: coreModel,
+      tools: tools(),
+      temperature: 0.1,
+      prepareStep: ({ stepNumber }) =>
+        stepNumber === 0 ? firstStepOverrides : undefined,
+    }).generate({ prompt });
+
+    const generateModel = createAgentModel(responses());
+    await new WorkflowAgent({
+      model: generateModel,
+      tools: tools(),
+      temperature: 0.1,
+      prepareStep: ({ stepNumber }) =>
+        stepNumber === 0 ? firstStepOverrides : undefined,
+    }).generate({ prompt });
+
+    const streamModel = createAgentModel(responses());
+    await new WorkflowAgent({
+      model: streamModel,
+      tools: tools(),
+      temperature: 0.1,
+      prepareStep: ({ stepNumber }) =>
+        stepNumber === 0 ? firstStepOverrides : undefined,
+    }).stream({ prompt });
+
+    const expected = [
+      {
+        temperature: 0.9,
+        toolChoice: { type: 'required' },
+        tools: ['weather'],
+        providerOptions: { mock: { firstStep: true } },
+      },
+      {
+        temperature: 0.1,
+        toolChoice: { type: 'auto' },
+        tools: ['weather', 'other'],
+        providerOptions: undefined,
+      },
+    ];
+    expect(coreModel.doGenerateCalls.map(summarize)).toEqual(expected);
+    expect(generateModel.doGenerateCalls.map(summarize)).toEqual(expected);
+    expect(streamModel.doStreamCalls.map(summarize)).toEqual(expected);
+  });
+
+  it('uses a prepareStep model override for one step only, like core', async () => {
+    for (const run of [
+      (model: MockLanguageModelV4, firstStepModel: MockLanguageModelV4) =>
+        new ToolLoopAgent({
+          model,
+          tools: weatherTools(),
+          prepareStep: ({ stepNumber }) =>
+            stepNumber === 0 ? { model: firstStepModel } : undefined,
+        }).generate({ prompt }),
+      (model: MockLanguageModelV4, firstStepModel: MockLanguageModelV4) =>
+        new WorkflowAgent({
+          model,
+          tools: weatherTools(),
+          prepareStep: ({ stepNumber }) =>
+            stepNumber === 0 ? { model: firstStepModel } : undefined,
+        }).generate({ prompt }),
+      (model: MockLanguageModelV4, firstStepModel: MockLanguageModelV4) =>
+        new WorkflowAgent({
+          model,
+          tools: weatherTools(),
+          prepareStep: ({ stepNumber }) =>
+            stepNumber === 0 ? { model: firstStepModel } : undefined,
+        }).stream({ prompt }),
+    ]) {
+      const model = createAgentModel([textResponse('It is 18°C.')]);
+      const firstStepModel = createAgentModel([toolResponse()]);
+
+      await run(model, firstStepModel);
+
+      expect(
+        firstStepModel.doGenerateCalls.length +
+          firstStepModel.doStreamCalls.length,
+      ).toBe(1);
+      expect(model.doGenerateCalls.length + model.doStreamCalls.length).toBe(1);
+    }
+  });
 
   it('applies stream settings after prepareCall and constructor defaults', async () => {
     const model = createAgentModel([textResponse('Done.')]);
@@ -222,6 +447,104 @@ describe('WorkflowAgent stream and core generate contracts', () => {
       'constructor:end',
       'call:end',
     ]);
+  });
+});
+
+describe('WorkflowAgent error and abort callbacks', () => {
+  function failingModel() {
+    return new MockLanguageModelV4({
+      doGenerate: async () => {
+        throw new Error('model exploded');
+      },
+      doStream: async () => {
+        throw new Error('model exploded');
+      },
+    });
+  }
+
+  it('calls a constructor onError callback like ToolLoopAgent, before the call callback', async () => {
+    const calls: string[] = [];
+    const record =
+      (label: string) =>
+      ({ error }: { error: unknown }) => {
+        calls.push(`${label}: ${(error as Error).message}`);
+      };
+
+    const core = new ToolLoopAgent({
+      model: failingModel(),
+      maxRetries: 0,
+      onError: record('core constructor'),
+    });
+    await expect(core.generate({ prompt })).rejects.toThrow('model exploded');
+
+    const agent = new WorkflowAgent({
+      model: failingModel(),
+      maxRetries: 0,
+      onError: record('constructor'),
+    });
+    await expect(
+      agent.generate({ prompt, onError: record('generate call') }),
+    ).rejects.toThrow('model exploded');
+    await expect(
+      agent.stream({ prompt, onError: record('stream call') }),
+    ).rejects.toThrow('model exploded');
+
+    expect(calls).toEqual([
+      'core constructor: model exploded',
+      'constructor: model exploded',
+      'generate call: model exploded',
+      'constructor: model exploded',
+      'stream call: model exploded',
+    ]);
+  });
+
+  it('keeps the model error when onError throws, like ToolLoopAgent', async () => {
+    const onError = () => {
+      throw new Error('onError exploded');
+    };
+
+    await expect(
+      new ToolLoopAgent({
+        model: failingModel(),
+        maxRetries: 0,
+        onError,
+      }).generate({ prompt }),
+    ).rejects.toThrow('model exploded');
+
+    const agent = new WorkflowAgent({
+      model: failingModel(),
+      maxRetries: 0,
+      onError,
+    });
+    await expect(agent.generate({ prompt, onError })).rejects.toThrow(
+      'model exploded',
+    );
+    await expect(agent.stream({ prompt, onError })).rejects.toThrow(
+      'model exploded',
+    );
+  });
+
+  it('calls constructor and call onAbort callbacks and ignores errors they throw', async () => {
+    const calls: string[] = [];
+    const abortController = new AbortController();
+    abortController.abort();
+
+    const result = await new WorkflowAgent({
+      model: createAgentModel([textResponse('Unused.')]),
+      onAbort: ({ steps }) => {
+        calls.push(`constructor: ${steps.length} steps`);
+        throw new Error('onAbort exploded');
+      },
+    }).stream({
+      prompt,
+      abortSignal: abortController.signal,
+      onAbort: ({ steps }) => {
+        calls.push(`call: ${steps.length} steps`);
+      },
+    });
+
+    expect(calls).toEqual(['constructor: 0 steps', 'call: 0 steps']);
+    expect(result.steps).toEqual([]);
   });
 });
 

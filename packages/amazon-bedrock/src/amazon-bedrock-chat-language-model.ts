@@ -1,3 +1,4 @@
+import { getAmazonBedrockLanguageModelEntry } from './amazon-bedrock-model-catalog';
 import type {
   JSONObject,
   LanguageModelV4,
@@ -26,6 +27,7 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  resolveProviderOptions,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -163,17 +165,14 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
     // Parse provider options. Prefer `amazonBedrock`; fall back to legacy
     // `bedrock` key for backward compatibility.
     let amazonBedrockOptions =
-      (await parseProviderOptions({
-        provider: 'amazonBedrock',
-        providerOptions,
-        schema: amazonBedrockLanguageModelChatOptions,
-      })) ??
-      (await parseProviderOptions({
-        provider: 'bedrock',
-        providerOptions,
-        schema: amazonBedrockLanguageModelChatOptions,
-      })) ??
-      {};
+      (
+        await resolveProviderOptions({
+          providerOptions,
+          namespaces: ['amazonBedrock', 'bedrock'],
+          resolution: 'first',
+          schema: amazonBedrockLanguageModelChatOptions,
+        })
+      ).options ?? {};
 
     const anthropicOptions = await parseProviderOptions({
       provider: 'anthropic',
@@ -243,11 +242,12 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       }
     }
 
-    const openAIModelId = /^(?:[^.]+\.)?(openai\..+)$/.exec(this.modelId)?.[1];
-    const isOpenAIModel = openAIModelId != null;
-    const isOpenAIGptOssModel =
-      openAIModelId?.startsWith('openai.gpt-oss-') ?? false;
-    const isNovaReasoningModel = isNova2ReasoningModel(this.modelId);
+    const modelEntry = getAmazonBedrockLanguageModelEntry(this.modelId);
+    const {
+      openai: isOpenAIModel,
+      openaiGptOss: isOpenAIGptOssModel,
+      nova2Reasoning: isNovaReasoningModel,
+    } = modelEntry.requestConfig.language;
     const shouldNormalizeTemperature = !isOpenAIModel || isOpenAIGptOssModel;
 
     if (shouldNormalizeTemperature && temperature != null && temperature > 1) {
@@ -431,7 +431,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
       (rejectsForcedToolUse ||
-        (this.modelId.includes('claude-') &&
+        (modelEntry.requestConfig.language.claude &&
           (!isKnownModel || !modelSupportsStructuredOutput) &&
           !supportsNativeStructuredOutput(this.modelId) &&
           structuredOutputMode !== 'jsonTool') ||
@@ -1765,7 +1765,8 @@ const openAIReasoningEffortMap = {
 } as const;
 
 function isNova2ReasoningModel(modelId: string): boolean {
-  return modelId.includes('amazon.nova-2-lite-v1:0');
+  return getAmazonBedrockLanguageModelEntry(modelId).requestConfig.language
+    .nova2Reasoning;
 }
 
 function resolveAmazonBedrockReasoningConfig({
@@ -1856,7 +1857,8 @@ function resolveAmazonBedrockReasoningConfig({
           effortMap: isNovaReasoningModel
             ? amazonNovaReasoningEffortMap
             : isOpenAIModel
-              ? modelId.includes('openai.gpt-oss-')
+              ? getAmazonBedrockLanguageModelEntry(modelId).requestConfig
+                  .language.openaiGptOssReasoning
                 ? openAIGptOssReasoningEffortMap
                 : openAIReasoningEffortMap
               : amazonBedrockReasoningEffortMap,

@@ -15,6 +15,21 @@ import { createAgentUIStreamResponse } from './create-agent-ui-stream-response';
 import { ToolLoopAgent } from './tool-loop-agent';
 
 describe('createAgentUIStreamResponse', () => {
+  it('should reject repeated malformed parts before running the agent', async () => {
+    const agent = new ToolLoopAgent({ model: new MockLanguageModelV4() });
+    const stream = vi.spyOn(agent, 'stream');
+
+    const error = await createAgentUIStreamResponse({
+      agent,
+      uiMessages: [{ id: 'm1', role: 'user', parts: Array(2500).fill({}) }],
+    }).catch(error => error);
+
+    expect(error.name).toBe('AI_TypeValidationError');
+    expect(error.message.length).toBeLessThan(40_000);
+    expect(error.cause.issues).toHaveLength(1);
+    expect(stream).not.toHaveBeenCalled();
+  });
+
   describe('when using tools toModelOutput', () => {
     let recordedInputs: LanguageModelV4CallOptions[];
     let response: Response;

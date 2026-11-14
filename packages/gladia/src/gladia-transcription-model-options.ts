@@ -5,6 +5,27 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
+/**
+ * Polling settings are consumed by the SDK and are not sent to the Gladia API.
+ * The shape is shared with the provider-level settings validation.
+ */
+export function gladiaPollingOptionsShape() {
+  return {
+    /**
+     * Interval in milliseconds between transcription job status checks.
+     * Overrides the provider-level `pollIntervalMs` setting for this call.
+     */
+    pollIntervalMs: z.number().int().positive().nullish(),
+
+    /**
+     * Maximum time in milliseconds to wait for the transcription job to finish
+     * before throwing a `TranscriptionJobPollingTimedOut` error.
+     * Overrides the provider-level `pollTimeoutMs` setting for this call.
+     */
+    pollTimeoutMs: z.number().int().positive().nullish(),
+  };
+}
+
 // https://docs.gladia.io/api-reference/v2/pre-recorded/init
 // Source of truth: https://api.gladia.io/openapi.json → InitTranscriptionRequest
 export const gladiaTranscriptionModelOptionsSchema = lazySchema(() =>
@@ -393,6 +414,8 @@ export const gladiaTranscriptionModelOptionsSchema = lazySchema(() =>
        * Whether to enhance punctuation in the transcription.
        */
       punctuationEnhanced: z.boolean().nullish(),
+
+      ...gladiaPollingOptionsShape(),
     }),
   ),
 );

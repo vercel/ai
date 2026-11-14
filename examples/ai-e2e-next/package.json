@@ -3,12 +3,16 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
     "start": "next start",
     "lint": "ultracite check",
     "dev:websocket": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx scripts/websocket-chat-server.ts",
     "test:websocket": "playwright test --config playwright.websocket.config.ts",
+    "test:downloads": "vitest run --config vitest.downloads.config.ts",
+    "test:local-shell": "vitest run --config vitest.local-shell.config.ts",
+    "test:mcp-auth": "vitest run --config vitest.mcp-auth.config.ts",
+    "test:mcp-elicitation": "vitest run --config vitest.mcp-elicitation.config.ts",
     "dev:transcribe": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx scripts/mistral-transcription-server.ts"
   },
   "dependencies": {
@@ -46,6 +50,7 @@
     "ai": "workspace:*",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "guarded-fetch": "^0.3.0",
     "lucide-react": "^0.545.0",
     "next": "^16.4.1",
     "react": "^18.3.1",

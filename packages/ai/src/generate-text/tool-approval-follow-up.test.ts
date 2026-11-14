@@ -1,5 +1,10 @@
 import type { LanguageModelV4Usage } from '@ai-sdk/provider';
-import { dynamicTool, type ModelMessage, tool } from '@ai-sdk/provider-utils';
+import {
+  dynamicTool,
+  jsonSchema,
+  type ModelMessage,
+  tool,
+} from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
@@ -24,6 +29,123 @@ const usage: LanguageModelV4Usage = {
 describe.each(['generateText', 'streamText'] as const)(
   '%s approved tool continuation',
   api => {
+    it.each([false, true])(
+      'should isolate in-place refinement during signed approval replay (schema input supplied: %s)',
+      async hasInputSchemaInput => {
+        const input = { counter: { value: 2 } };
+        const execute = vi.fn(async () => 'recorded');
+        const signature = await signToolApproval({
+          secret: 'test-secret',
+          approvalId: 'approval',
+          toolCallId: 'call',
+          toolName: 'record',
+          input,
+        });
+        const messages: ModelMessage[] = [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call',
+                toolName: 'record',
+                input,
+              },
+              {
+                type: 'tool-approval-request',
+                approvalId: 'approval',
+                toolCallId: 'call',
+                signature,
+                ...(hasInputSchemaInput
+                  ? { inputSchemaInput: { counter: { value: 1 } } }
+                  : {}),
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval',
+                approved: true,
+              },
+            ],
+          },
+        ];
+        const originalMessages = structuredClone(messages);
+        const options = {
+          model: new MockLanguageModelV4({
+            doGenerate: {
+              content: [{ type: 'text', text: 'OK' }],
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage,
+              warnings: [],
+            },
+            doStream: {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage,
+                },
+              ]),
+            },
+          }),
+          tools: {
+            record: tool({
+              inputSchema: jsonSchema<typeof input>({ type: 'object' }),
+              execute,
+            }),
+          },
+          experimental_toolApprovalSecret: 'test-secret',
+          experimental_refineToolInput: {
+            record: (input: { counter: { value: number } }) => {
+              input.counter.value++;
+              return input;
+            },
+          },
+          toolApproval: { record: 'user-approval' as const },
+          messages,
+        };
+        let responseMessages: ModelMessage[];
+        if (api === 'generateText') {
+          responseMessages = (await generateText(options)).responseMessages;
+        } else {
+          const onError = vi.fn();
+          const result = streamText({ ...options, onError });
+          await result.consumeStream();
+          expect(onError).not.toHaveBeenCalled();
+          responseMessages = await result.responseMessages;
+        }
+
+        expect(execute).toHaveBeenCalledTimes(hasInputSchemaInput ? 1 : 0);
+        if (hasInputSchemaInput) {
+          expect(execute).toHaveBeenCalledWith(
+            { counter: { value: 2 } },
+            expect.anything(),
+          );
+        }
+        expect(messages).toEqual(originalMessages);
+        const results = responseMessages
+          .filter(message => message.role === 'tool')
+          .flatMap(message => message.content)
+          .filter(part => part.type === 'tool-result');
+        expect(results).toHaveLength(1);
+        expect(results[0].output).toEqual(
+          hasInputSchemaInput
+            ? { type: 'text', value: 'recorded' }
+            : {
+                type: 'error-text',
+                value: expect.stringContaining(
+                  'does not match the validated schema output',
+                ),
+              },
+        );
+      },
+    );
+
     it.each(
       (['toolMetadata', 'dynamic', 'title'] as const).flatMap(field =>
         [undefined, 'test-secret'].map(secret => ({ field, secret })),

@@ -1,3 +1,4 @@
+import { getGoogleVertexRequestConfig } from './google-vertex-model-catalog-config';
 import {
   TooManyEmbeddingValuesForCallError,
   type EmbeddingModelV4,
@@ -226,6 +227,6 @@ const googleVertexEmbedContentResponseSchema = lazySchema(() =>
 
 function usesEmbedContentEndpoint(modelId: GoogleVertexEmbeddingModelId) {
   return (
-    modelId === 'gemini-embedding-2' || modelId === 'gemini-embedding-2-preview'
+    getGoogleVertexRequestConfig(modelId).embedding?.endpoint === 'embedContent'
   );
 }
