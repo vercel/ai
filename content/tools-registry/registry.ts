@@ -1000,4 +1000,35 @@ console.log(text);`,
     websiteUrl: 'https://keenable.ai',
     npmUrl: 'https://www.npmjs.com/package/@keenable/ai-sdk',
   },
+  {
+    slug: 'agent-data-tools',
+    name: 'Agent Data Tools',
+    description:
+      'Several hundred pay-per-call data tools in one package: PDF to text, web page to Markdown, web search and news, token prices, wallet and chain reads, sanctions checks, weather and company registers. Name the tools a task needs. Free calls to start, then a prepaid key or USDC per call via x402; failed calls are not charged.',
+    packageName: 'agent-data-tools',
+    tags: ['web-scraping', 'pdf', 'search', 'crypto', 'x402'],
+    apiKeyEnvName: 'ADT_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add agent-data-tools',
+      npm: 'npm install agent-data-tools',
+      yarn: 'yarn add agent-data-tools',
+      bun: 'bun add agent-data-tools',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { agentDataTools } from 'agent-data-tools/ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-haiku-5.5',
+  tools: await agentDataTools(['extract', 'weather']),
+  stopWhen: isStepCount(5),
+  prompt:
+    'Read https://www.iana.org/help/example-domains and tell me what example.com is for, then give me the weather in Lisbon.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://agent-data-tools.revmesh2074.workers.dev/guides/ai-sdk',
+    apiKeyUrl: 'https://agent-data-tools.revmesh2074.workers.dev/credits',
+    websiteUrl: 'https://agent-data-tools.revmesh2074.workers.dev',
+    npmUrl: 'https://www.npmjs.com/package/agent-data-tools',
+  },
 ];
