@@ -11,6 +11,60 @@ import { createAgentUIStreamResponse } from './create-agent-ui-stream-response';
 import { ToolLoopAgent } from './tool-loop-agent';
 
 describe('createAgentUIStreamResponse', () => {
+  it('should run the agent with nested provider metadata without copying it', async () => {
+    const value: unknown[] = Array.from({ length: 20 }, () =>
+      JSON.parse(`${'['.repeat(100)}[]${']'.repeat(100)}`),
+    );
+    const model = new MockLanguageModelV3({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start', warnings: [] },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: 1,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: { total: 1, text: 1, reasoning: undefined },
+            },
+          },
+        ]),
+      }),
+    });
+
+    const response = await createAgentUIStreamResponse({
+      agent: new ToolLoopAgent({ model }),
+      uiMessages: [
+        {
+          id: 'm1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-x',
+              toolCallId: 'call-1',
+              state: 'output-denied',
+              input: {},
+              approval: { id: 'approval-1', approved: false },
+              callProviderMetadata: { p: { value } },
+            },
+          ],
+        },
+      ],
+    });
+    await response.text();
+
+    expect(model.doStreamCalls).toHaveLength(1);
+
+    const toolCallPart = model.doStreamCalls[0].prompt
+      .flatMap(message => (message.role === 'assistant' ? message.content : []))
+      .find(part => part.type === 'tool-call');
+    expect(toolCallPart?.providerOptions?.p.value).toBe(value);
+  });
+
   describe('when using tools toModelOutput', () => {
     let recordedInputs: LanguageModelV3CallOptions[];
     let response: Response;
