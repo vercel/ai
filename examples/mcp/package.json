@@ -32,6 +32,7 @@
     "client:server-instructions": "tsx src/server-instructions/client.ts",
     "stdio:build": "tsc src/stdio/server.ts --outDir src/stdio/dist --target es2023 --module nodenext",
     "client:stdio": "tsx src/stdio/client.ts",
+    "client:pkgdiet": "tsx src/pkgdiet/client.ts",
     "custom-transport:build": "tsc src/custom-transport/server.ts --outDir src/custom-transport/dist --target es2023 --module nodenext",
     "custom-transport:client": "tsx src/custom-transport/client.ts",
     "type-check": "tsc --build"
