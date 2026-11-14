@@ -1000,4 +1000,45 @@ console.log(text);`,
     websiteUrl: 'https://keenable.ai',
     npmUrl: 'https://www.npmjs.com/package/@keenable/ai-sdk',
   },
+  {
+    slug: 'agent-commerce-gateway',
+    name: 'Agent Commerce Gateway',
+    description:
+      'Tools that let agents call and pay for API endpoints behind a self-hosted Agent Commerce Gateway with x402, within set spending limits.',
+    packageName: '@devlab.group/agent-commerce-ai-sdk',
+    tags: ['payments', 'x402', 'agents', 'api'],
+    installCommand: {
+      pnpm: 'pnpm add @devlab.group/agent-commerce-ai-sdk viem',
+      npm: 'npm install @devlab.group/agent-commerce-ai-sdk viem',
+      yarn: 'yarn add @devlab.group/agent-commerce-ai-sdk viem',
+      bun: 'bun add @devlab.group/agent-commerce-ai-sdk viem',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { privateKeyToAccount } from 'viem/accounts';
+import { agentCommerceToolApproval, agentCommerceTools } from '@devlab.group/agent-commerce-ai-sdk';
+
+const tools = await agentCommerceTools({
+  gatewayUrl: 'https://merchant.example.com',
+  wallet: privateKeyToAccount(process.env.BUYER_PRIVATE_KEY as \`0x\${string}\`),
+  networks: ['eip155:84532'],
+  limits: { maxPerCall: '0.05', maxPerDay: '1.00' },
+});
+
+const { text, content } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Get me the market report on solar panels.',
+  tools,
+  // Paid tools stop for human approval; free tools run directly
+  toolApproval: agentCommerceToolApproval(tools),
+  stopWhen: isStepCount(5),
+});
+
+for (const part of content) {
+  if (part.type === 'tool-approval-request') console.log('Needs approval:', part.toolCall.toolName, part.toolCall.input);
+}
+console.log(text);`,
+    docsUrl: 'https://acg.devlab.group/docs/integrations/ai-sdk',
+    websiteUrl: 'https://acg.devlab.group',
+    npmUrl: 'https://www.npmjs.com/package/@devlab.group/agent-commerce-ai-sdk',
+  },
 ];
