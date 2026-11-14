@@ -124,6 +124,11 @@ choosing a model for a task.
   as refused and `experimental_extract` throws
   `Experimental_ExtractionRefusalError`.
 
+The [AI Gateway](/providers/ai-sdk-providers/ai-gateway#extraction-models) serves
+extraction models from several providers through
+`gateway.extractionModel('scaledown/extract-1')`. Supported field types depend on
+the model, so the gateway reports an unsupported field after the request is sent.
+
 ## Answers
 
 Every answer has the field's `type` and a `value`. `value` is `null` when the

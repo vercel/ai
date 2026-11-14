@@ -41,6 +41,7 @@ import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
 import { GatewayVideoModel } from './gateway-video-model';
 import { GatewayDecisionModel } from './gateway-decision-model';
+import { GatewayExtractionModel } from './gateway-extraction-model';
 import { GatewayRerankingModel } from './gateway-reranking-model';
 import { GatewaySpeechModel, toGatewaySpeechUrl } from './gateway-speech-model';
 import {
@@ -50,6 +51,7 @@ import {
 import { GatewayRealtimeModel } from './gateway-realtime-model';
 import type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
 import type { GatewayDecisionModelId } from './gateway-decision-model-settings';
+import type { GatewayExtractionModelId } from './gateway-extraction-model-settings';
 import type { GatewayImageModelId } from './gateway-image-model-settings';
 import type { GatewayRerankingModelId } from './gateway-reranking-model-settings';
 import type { GatewaySpeechModelId } from './gateway-speech-model-settings';
@@ -69,6 +71,7 @@ import {
   type TranscriptionModelV4,
   type Experimental_VideoModelV4,
   type Experimental_DecisionModelV4,
+  type Experimental_ExtractionModelV4,
   type Experimental_StreamingSpeechModelV4,
   type Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
   type Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
@@ -183,6 +186,18 @@ export interface GatewayProvider extends ProviderV4 {
   evaluation(
     modelId: GatewayDecisionModelId,
   ): ReturnType<GatewayProvider['evaluationModel']>;
+
+  /**
+   * Creates a model for extracting typed field values from shared state.
+   */
+  extraction(modelId: GatewayExtractionModelId): Experimental_ExtractionModelV4;
+
+  /**
+   * Creates a model for extracting typed field values from shared state.
+   */
+  extractionModel(
+    modelId: GatewayExtractionModelId,
+  ): Experimental_ExtractionModelV4;
 
   /**
    * Creates a model for text-to-speech generation.
@@ -688,6 +703,17 @@ export function createGateway(
   provider.decision = createDecisionModel;
   provider.evaluationModel = createDecisionModel;
   provider.evaluation = createDecisionModel;
+  const createExtractionModel = (modelId: GatewayExtractionModelId) => {
+    return new GatewayExtractionModel(modelId, {
+      provider: 'gateway',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      o11yHeaders: createO11yHeaders(),
+    });
+  };
+  provider.extractionModel = createExtractionModel;
+  provider.extraction = createExtractionModel;
   const createSpeechModel = (modelId: GatewaySpeechModelId) => {
     return new GatewaySpeechModel(modelId, {
       provider: 'gateway',

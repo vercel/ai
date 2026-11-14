@@ -503,6 +503,35 @@ console.log(ranking);
 
 Reranking models are useful for improving search results in retrieval-augmented generation (RAG) pipelines by re-scoring candidate documents after an initial retrieval step.
 
+## Extraction Models
+
+<Note type="warning">
+  Extraction is experimental and the API may change in patch releases.
+</Note>
+
+You can create extraction models using the `extractionModel` method on the provider instance and use them with [`experimental_extract`](/docs/ai-sdk-core/extractions):
+
+```ts
+import { gateway } from '@ai-sdk/gateway';
+import { experimental_extract } from 'ai';
+
+const { answers } = await experimental_extract({
+  model: gateway.extractionModel('scaledown/extract-1'),
+  state: 'Invoice INV-2041 from Acme Corp. Contacts: Ana, Bo.',
+  fields: {
+    invoiceNumber: { type: 'text', instructions: 'The invoice number' },
+    contacts: { type: 'list', items: 'text', instructions: 'Contact names' },
+  },
+});
+
+console.log(answers.invoiceNumber.value); // 'INV-2041'
+console.log(answers.contacts.value); // ['Ana', 'Bo']
+```
+
+- **Field types:** which field types are supported depends on the model. A field the model cannot extract throws `Experimental_ExtractionUnsupportedFieldTypeError` with the `fieldId` and `fieldType`, after the request reaches the gateway.
+- **Files:** send file state inline, as bytes or base64. Files given as a URL are downloaded by `experimental_extract` when you pass `experimental_download`.
+- **Provider options:** [gateway provider options](#gateway-provider-options) such as `user` and `tags` go under `providerOptions.gateway`.
+
 ## Streaming Speech Models
 
 <Note type="warning">
