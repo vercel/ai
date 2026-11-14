@@ -1,0 +1,103 @@
+---
+title: GenMagic
+description: Use the GenMagic OpenAI compatible API with the AI SDK.
+---
+
+# GenMagic Provider
+
+[GenMagic](https://genmagic.co/) provides text and image models through an OpenAI-compatible API. You can use it with the AI SDK through `@ai-sdk/openai-compatible`; no GenMagic-specific provider package is needed.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Create a GenMagic API key and store it in a server-side environment variable:
+
+```bash
+export GENMAGIC_API_KEY=your-api-key
+```
+
+See the [GenMagic API guide](https://genmagic.co/developers#ai-sdk) for instructions on creating a key.
+
+## Provider Instance
+
+Create a GenMagic provider instance with `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const genmagic = createOpenAICompatible({
+  name: 'genmagic',
+  apiKey: process.env.GENMAGIC_API_KEY,
+  baseURL: 'https://genmagic.co/api/v1',
+  includeUsage: true,
+});
+```
+
+## Language Models
+
+Pass a GenMagic model ID to the provider instance to create a language model:
+
+```ts
+const model = genmagic('google/gemini-3.5-flash-lite');
+```
+
+### Generate Text
+
+Use `generateText` to generate text with the model:
+
+```ts
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: genmagic('google/gemini-3.5-flash-lite'),
+  prompt: 'Explain what an API gateway does in one sentence.',
+});
+
+console.log(text);
+```
+
+### Stream Text
+
+Use `streamText` to stream a model response:
+
+```ts
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: genmagic('google/gemini-3.5-flash-lite'),
+  prompt: 'Count from 1 to 5, separated by spaces.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+## Image Models
+
+Use `imageModel` with `generateImage` to generate an image. Request `b64_json` so the response contains image data that the AI SDK can read:
+
+```ts
+import { generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: genmagic.imageModel('recraft/recraft-v4.1-flash'),
+  prompt: 'A watercolor fox reading a book under a tree',
+  providerOptions: { genmagic: { response_format: 'b64_json' } },
+});
+
+console.log(image.mediaType);
+```
+
+## Supported Models and Capabilities
+
+Use the public [GenMagic model catalog](https://genmagic.co/api/v1/models) to find current model IDs and model-specific capabilities. Text generation, tool calling, and image generation depend on the model you select.
+
+## Resources
+
+- [GenMagic AI SDK integration guide](https://genmagic.co/developers#ai-sdk)
+- [GenMagic model catalog](https://genmagic.co/api/v1/models)
+- [AI SDK OpenAI Compatible provider](/providers/openai-compatible-providers)
