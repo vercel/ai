@@ -1,11 +1,7 @@
 {
   "compilerOptions": {
     "target": "es2022",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["ES2024", "dom", "dom.iterable"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -105,6 +101,9 @@
     },
     {
       "path": "../../packages/rsc"
+    },
+    {
+      "path": "../../packages/sandbox-vercel"
     },
     {
       "path": "../../packages/valibot"

@@ -41,11 +41,6 @@ it('infers text, structured outputs, per-call overrides, tools and runtime conte
   agent.generate({ prompt: 'test', writable: new WritableStream() });
   // @ts-expect-error generate does not expose raw chunks
   agent.generate({ prompt: 'test', includeRawChunks: true });
-  agent.generate({
-    prompt: 'test',
-    // @ts-expect-error generate does not transform streams
-    experimental_transform: () => new TransformStream(),
-  });
   // @ts-expect-error generate does not close streams
   agent.generate({ prompt: 'test', preventClose: true });
   // @ts-expect-error generate does not send stream finish chunks

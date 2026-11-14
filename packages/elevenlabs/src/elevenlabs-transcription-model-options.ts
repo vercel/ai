@@ -18,6 +18,7 @@ export const elevenLabsTranscriptionModelOptionsSchema = lazySchema(() =>
         .default('word'),
       diarize: z.boolean().nullish().default(true),
       fileFormat: z.enum(['pcm_s16le_16', 'other']).nullish().default('other'),
+      sourceUrl: z.string().nullish(),
       streaming: z
         .object({
           commitStrategy: z.enum(['manual', 'vad']).nullish(),

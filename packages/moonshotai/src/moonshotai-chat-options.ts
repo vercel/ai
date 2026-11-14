@@ -1,24 +1,18 @@
+import {
+  getMoonshotAILanguageModelEntry,
+  type MoonshotAIModelIds,
+} from './moonshotai-model-catalog';
 import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import type { LanguageModelV4FunctionTool } from '@ai-sdk/provider';
 import { z } from 'zod/v4';
 
 export type MoonshotAIChatModelId =
-  | 'moonshot-v1-auto'
-  | 'moonshot-v1-8k'
-  | 'moonshot-v1-32k'
-  | 'moonshot-v1-128k'
-  | 'moonshot-v1-8k-vision-preview'
-  | 'moonshot-v1-32k-vision-preview'
-  | 'moonshot-v1-128k-vision-preview'
-  | 'kimi-k2.5'
-  | 'kimi-k2.6'
-  | 'kimi-k2.7-code'
-  | 'kimi-k2.7-code-highspeed'
-  | 'kimi-k3'
+  | MoonshotAIModelIds['language']
   | (string & {});
 
 export function isMoonshotAIKimiModel(modelId: MoonshotAIChatModelId): boolean {
-  return getMoonshotAIModelFamily(modelId).startsWith('kimi-');
+  return !getMoonshotAILanguageModelEntry(modelId).capabilities.language
+    .sampling.temperature;
 }
 
 export type MoonshotAIModelFamily =
@@ -32,14 +26,7 @@ export type MoonshotAIModelFamily =
 export function getMoonshotAIModelFamily(
   modelId: MoonshotAIChatModelId,
 ): MoonshotAIModelFamily {
-  if (modelId === 'kimi-k2.5') return 'kimi-k2.5';
-  if (modelId === 'kimi-k2.6') return 'kimi-k2.6';
-  if (modelId === 'kimi-k2.7-code' || modelId === 'kimi-k2.7-code-highspeed') {
-    return 'kimi-k2.7';
-  }
-  if (modelId === 'kimi-k3') return 'kimi-k3';
-  if (modelId.startsWith('moonshot-v1-')) return 'moonshot-v1';
-  return 'unknown';
+  return getMoonshotAILanguageModelEntry(modelId).requestConfig.language.family;
 }
 
 export const moonshotaiLanguageModelOptions = lazySchema(() =>
@@ -118,6 +105,17 @@ export const moonshotaiLanguageModelOptions = lazySchema(() =>
       promptCacheKey: z.string().optional(),
 
       /**
+       * Context caching options for Kimi K3 models. `ttl` selects the cache
+       * write tier (`5m` or `1h`). Moonshot uses `5m` when omitted.
+       */
+      promptCacheOptions: z
+        .object({
+          mode: z.literal('implicit').optional(),
+          ttl: z.enum(['5m', '1h']).optional(),
+        })
+        .optional(),
+
+      /**
        * A stable identifier used to help Moonshot detect users violating usage
        * policies. Recommended to hash the username or email address.
        */
@@ -174,6 +172,15 @@ export type MoonshotAILanguageModelOptions = {
    */
   reasoningHistory?: 'disabled' | 'interleaved' | 'preserved';
   promptCacheKey?: string;
+
+  /**
+   * Context caching options for Kimi K3 models. `ttl` selects the cache write
+   * tier (`5m` or `1h`). Moonshot uses `5m` when omitted.
+   */
+  promptCacheOptions?: {
+    mode?: 'implicit';
+    ttl?: '5m' | '1h';
+  };
   safetyIdentifier?: string;
 };
 

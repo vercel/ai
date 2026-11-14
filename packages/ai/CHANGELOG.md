@@ -1,5 +1,373 @@
 # ai
 
+## 7.0.173
+
+### Patch Changes
+
+- 3c09e00: Prevent in-place schema validation or input refinement from changing approved tool arguments during approval replay.
+- f43ee39: fix(workflow): log the default step limit warning when `WorkflowAgent.generate()` stops at the default limit.
+- 7ce7ffc: fix(workflow): log provider warnings in `WorkflowAgent`
+
+  `WorkflowAgent.generate()` and `WorkflowAgent.stream()` now log the warnings of every model call through the AI SDK warning logger, like `ToolLoopAgent`. The `AI_SDK_LOG_WARNINGS` global controls the output.
+
+- f6809e3: fix(workflow): align the `prepareStep` results of `WorkflowAgent` with `ToolLoopAgent`. Returned `instructions` (or the deprecated `system`) replace the instructions of the step and carry forward to later steps, returned `providerOptions` are merged with the agent options, and returned `headers` are merged over the headers of the call.
+- 2559173: feat(workflow): support `toolApproval` in `WorkflowAgent`
+
+  `WorkflowAgent` accepts a `toolApproval` configuration in the constructor and per `generate()` or `stream()` call. The configuration takes precedence over a tool's `needsApproval` setting, and its functions run in workflow context, outside of the durable model steps. Calls that the configuration approves run in the same step, and calls that it denies receive an `execution-denied` tool result without pausing the workflow.
+
+- f1de9cb: feat(workflow): support the `timeout` object in `WorkflowAgent`
+
+  `generate()` and `stream()` accept `timeout: { totalMs, stepMs, firstChunkMs, chunkMs }` in addition to a number. `stepMs` limits each model call. In `stream()`, `firstChunkMs` and `chunkMs` limit the wait for model output. Invalid timeout values are rejected with an `InvalidArgumentError`. A timeout now also ends a model step when the provider stream ignores the abort signal.
+
+- Updated dependencies [9baa2d0]
+  - @ai-sdk/gateway@4.0.146
+
+## 7.0.172
+
+### Patch Changes
+
+- 79d2004: Require an explicit `experimental_download` hook for remote file URLs in `experimental_extract` and `experimental_decide` instead of silently downloading through global fetch. Callers can use `createDownload({ fetch })` with a DNS-protected transport for untrusted URLs; inline file data continues to work without a hook.
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+  - @ai-sdk/gateway@4.0.145
+
+## 7.0.171
+
+### Patch Changes
+
+- 11323f9: Prevent excessive memory and CPU usage when validating malformed UI messages. `validateUIMessages`, `safeValidateUIMessages`, and the agent UI stream helpers reported the issues of every part schema for every invalid part, so a small request with many malformed parts could exhaust memory. Each part is now validated against the schemas for its type only, validation stops at the first invalid message or part, and an invalid JSON value in provider or tool metadata is reported as a single issue.
+- 2ebc78b: Forward the provider's configured fetch transport when downloading file inputs. Add a `fetch` option to `createDownload` so core downloads can also use `guarded-fetch` for opt-in DNS validation on Node.js. The function returned by `createDownload` can now also be passed as `experimental_download` to `generateText` and `streamText`, and `experimental_download` now also handles generated file URLs returned by the model, so one hook covers all core downloads. Document that the default URL checks do not resolve DNS and recommend the guarded transport or network egress controls for untrusted URLs.
+
+  Keep Azure image and Vertex tool-result downloads separate from provider authentication wrappers so file hosts never receive Azure bearer tokens or Vertex Express Mode API keys.
+
+  Pass the call's abort signal to custom download requests, including prompt assets and generated files, so `experimental_download: createDownload({ fetch })` preserves cancellation and timeouts.
+
+- cb4fa52: add experimental extract api and extraction model spec
+- ceeee29: Warn when a UI message stream sends a tool error text that differs from the text the model received and then sends reasoning from a later step. By default, `toUIMessageStream` sends "An error occurred." to the client for a failed tool call, while the model receives the full error text during a multi-step call. Converting the stored UI messages back with `convertToModelMessages` then changes the tool result, and models that bind reasoning to the preceding messages (for example Anthropic models with preserved thinking) reject the request. The request still fails after this change; the warning and the updated documentation explain the cause and the available options.
+- 1a94af3: Send the error text of failed tool calls to the client as the model received it.
+
+  `toUIMessageStream` and `toUIMessageChunk` replaced the error text of failed tool calls with "An error occurred." by default. The model had already received the full text during a multi-step call, so UI messages that were converted back with `convertToModelMessages` contained a different tool result. Models that bind reasoning to the preceding messages rejected that history (for example Anthropic models with preserved thinking, with HTTP 400 "The block is bound to a different conversation"), and other models continued from an error they never received.
+
+  UI messages now keep the model's error text for tool execution errors and invalid tool calls. This text reaches the client. To keep details away from the model and the client, throw an error with a safe message from the tool's `execute` function. The error text of an invalid tool call contains the generated input, the validation messages of the input schema, or the names of the available tools; `execute` does not run for it. To restore the previous behavior, set the new `redactToolErrors: true` option. A provided `onError` keeps handling failed tool calls unless you set `redactToolErrors: false`. Stream errors are still masked by default.
+
+- Updated dependencies [640569d]
+- Updated dependencies [4e43721]
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/gateway@4.0.144
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+
+## 7.0.170
+
+### Patch Changes
+
+- 91a67c2: Fix excessive CPU usage when streaming long arrays with `Output.array` or `streamObject`. Parse and validate completed elements incrementally instead of repeatedly processing the entire accumulated array on every text chunk.
+- 84b1cb0: Cancel pending send-now operations when a later stop or dispose occurs, preventing an abandoned chat's queued messages and history from being sent through a replacement transport.
+- Updated dependencies [eaeb37e]
+  - @ai-sdk/gateway@4.0.143
+
+## 7.0.169
+
+### Patch Changes
+
+- 4311fa1: Use Zod Mini for internal validation schemas to reduce bundle size while preserving the public message schemas' classic Zod methods, error messages, and compatibility with supported Zod 3 and Zod 4 versions.
+- d9dd2b7: keep the request options when the useChat queue sends a tool approval first, and hold the queue while an async sendAutomaticallyWhen decides
+- Updated dependencies [4311fa1]
+- Updated dependencies [c160b74]
+- Updated dependencies [4311fa1]
+- Updated dependencies [838dd53]
+  - @ai-sdk/provider-utils@5.0.79
+  - @ai-sdk/gateway@4.0.142
+
+## 7.0.168
+
+### Patch Changes
+
+- 65aa669: add experimental_queue to useChat to queue messages sent while a response is in progress
+- 8585d7e: fix(ai): call `toUIMessageStream` `onError` once per invalid tool call
+- Updated dependencies [5497ff7]
+- Updated dependencies [88b9575]
+  - @ai-sdk/gateway@4.0.141
+  - @ai-sdk/provider-utils@5.0.78
+
+## 7.0.167
+
+### Patch Changes
+
+- 9f37b45: refactor: separate provider-specific credential redaction from core telemetry
+- 404ce3b: Redact OpenAI Code Interpreter and shell domain secrets and MCP credentials from telemetry events and tracing results, including raw request metadata, while preserving provider requests and application results.
+- Updated dependencies [8420810]
+- Updated dependencies [6d65092]
+- Updated dependencies [9f37b45]
+- Updated dependencies [0e869b4]
+  - @ai-sdk/gateway@4.0.140
+  - @ai-sdk/provider-utils@5.0.77
+
+## 7.0.166
+
+### Patch Changes
+
+- Updated dependencies [44db225]
+  - @ai-sdk/gateway@4.0.139
+
+## 7.0.165
+
+### Patch Changes
+
+- 883fcde: remove transcription word timings from telemetry when recordOutputs is false
+- 6d21e8e: Sanitize provider request URLs before text generation results reach telemetry integrations and tracing subscribers, preventing endpoint credentials from being exposed.
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+  - @ai-sdk/gateway@4.0.138
+
+## 7.0.164
+
+### Patch Changes
+
+- Updated dependencies [bace553]
+- Updated dependencies [6737c77]
+- Updated dependencies [bb4e2d0]
+  - @ai-sdk/gateway@4.0.137
+
+## 7.0.163
+
+### Patch Changes
+
+- 5d18351: fix(ai): detect downloaded audio types from bytes when servers return a generic or non-audio content type such as application/octet-stream
+- 8da48db: Respect `recordInputs` and `recordOutputs` when delivering telemetry events to integrations and the `ai:telemetry` channel. Filter nested content and omit raw span results when content recording is disabled, while preserving application results.
+- fd7e8a7: Preserve the order of text and complete function calls in streamed Google responses, including standalone thought signatures on empty text or reasoning parts.
+
+  Keep provider metadata on empty text parts when converting results to response messages so it can be passed back in subsequent requests.
+
+  Omit foreign-provider empty signature text when replaying history through Anthropic or Bedrock, preserving Bedrock’s existing native reasoning-history handling.
+
+- 36802d4: Support native URL transcription with an optional provider capability, keeping existing file-generation contracts unchanged. Groq sends HTTP(S) audio URLs through its `url` parameter without downloading and re-uploading them, avoiding the attachment upload limit. Supplying a custom `download` function retains local download behavior.
+
+  For telemetry integrations, `TranscriptionEndEvent.audio.byteLength` and `audio.mediaType` can now be `undefined` when a provider fetches the audio URL natively. Check for missing values before using them as a number or string. Downloaded and inline audio continue to report their metadata; streaming transcription metadata is unchanged.
+
+  Strip media fragments before sending URLs to Groq. If Groq rejects a redirect, fall back to the existing secure local downloader and file upload rather than failing previously working URL inputs. Other provider errors are preserved.
+
+- 933dae3: fix (ai): download deprecated `file-url` and `image-url` tool result content
+
+  Tool result content parts that use the deprecated `file-url` and `image-url`
+  types were converted to `file` parts with `{ type: 'url' }` data, but they were
+  never passed to the download function. When the model does not support the URL,
+  the provider received a bare URL instead of the file contents, even though the
+  replacement `file` part with `{ type: 'url' }` data was downloaded and inlined.
+
+  Downloaded legacy URL parts now use the same media type normalization as file
+  parts, resolving generic types from the response header or image bytes.
+  Legacy base64 data URLs also normalize to inline data with the media type from
+  their data URL, matching replacement file parts.
+
+- e0143b0: feat(ai): support provider-owned realtime transports
+
+  Add an optional `createTransport` interface and `provider` connection capability.
+
+- 934100c: Report the actual OpenAI Chat HTTP endpoint (also used by Azure Chat and Bedrock Mantle Chat) through optional request metadata and model-call end events. Record its host and port on OpenTelemetry chat spans without exposing URL credentials, paths, queries, or fragments. Expose only the sanitized HTTP origin in text and object generation results and step/finish callbacks. Providers that do not report an endpoint leave these attributes unset.
+- c389374: fix(ai): infer union output types when passing a union of schemas to `Output.object` and `Output.array`
+
+  Previously, passing a schema whose type is a union of schemas (e.g. a schema selected from a map at runtime) failed to type-check because the output type was inferred from the first union member only. The output type is now inferred as the union of the schemas' output types.
+
+- 892af4d: feat (ai): re-export realtime server-connection and usage types
+
+  Adds `Experimental_RealtimeServerConnection`, `Experimental_RealtimeSessionIntent`, and `Experimental_RealtimeUsage` aliases for the new experimental `RealtimeModelV4` server-side spec types.
+
+- 1a1da8d: stream steering messages to the ui and keep them in converted messages
+- 41465fd: Expose optional transcription word timings separately from segments and accept shared timestampGranularities. Explicit provider timing settings take precedence. OpenAI now sends timestamp_granularities only with verbose_json and warns when a requested timing is unavailable or excluded.
+- 9754014: Add typed streaming heartbeat parts. Anthropic emits them only with `includePings: true` (disabled by default), without requiring raw chunks. Core forwards pings through stream retries without storing them as generated content or sending them to UI message streams. Consumers with exhaustive stream-part switches must handle the new `ping` union variant when upgrading, even when the opt-in is disabled. Typed pings do not flush partial words during stream smoothing.
+- 2e44144: Represent videos delivered directly to caller-managed storage with an explicit uploaded outcome. Video generation reports `uploadedVideos` without downloading or synthesizing video bytes; access `video` only when `videos` is nonempty.
+- Updated dependencies [722d4a9]
+- Updated dependencies [acea2b5]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [2e44144]
+- Updated dependencies [36802d4]
+- Updated dependencies [ef2dfb5]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [32acf43]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/gateway@4.0.136
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
+## 7.0.162
+
+### Patch Changes
+
+- 857ca45: Restore server-defined tool metadata, dynamic status, and title when validating tool approval continuations so approval policies receive the same tool definition fields as new model calls.
+- 4d6d830: Support a single telemetry operation for durable `WorkflowAgent` runs, including the prompt, final output, steps, and tools. Events recorded in the workflow are reported on completion or suspension with their original timestamps. For OpenTelemetry, pass the same `OpenTelemetryIdGenerator` instance as the tracer provider's `idGenerator` and `sampler` and as `new OpenTelemetry({ durable })`. This explicit bridge carries parent trace context and sampling across steps, reports model spans live with provider requests nested beneath them, and reconstructs the enclosing `invoke_agent` tree when the run completes. Without the bridge, existing live per-model tracing is preserved. Add typed experimental durable context hooks for telemetry integrations; remove reliance on process-global ID-generator detection.
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+  - @ai-sdk/gateway@4.0.135
+
+## 7.0.161
+
+### Patch Changes
+
+- 51ca5b7: fix(ai): support cross-realm Uint8Array and ArrayBuffer in DefaultGeneratedFile
+- 51ca5b7: fix(ai): handle cross-realm Uint8Array and ArrayBuffer in data-content and file-part-data
+- 51ca5b7: fix(ai): support cross-realm binary buffers and circular structures in cloneModelMessages
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+  - @ai-sdk/gateway@4.0.134
+
+## 7.0.160
+
+### Patch Changes
+
+- a71172d: fix(ai): clarify inverted smoothStream prefix error message
+- cf27969: add steering.queue() to send a message once the current task is done
+- 17b6923: fix(ai): validate streamed data parts against `dataPartSchemas`
+
+  `processUIMessageStream` looked up `dataPartSchemas` by the full chunk type (`data-weather`) instead of the bare part name (`weather`), so `useChat` / `Chat` never validated streamed data parts. Invalid data parts now raise a `TypeValidationError`.
+
+- Updated dependencies [2099d45]
+- Updated dependencies [d05ff62]
+  - @ai-sdk/gateway@4.0.133
+
+## 7.0.159
+
+### Patch Changes
+
+- Updated dependencies [cbc9ac0]
+  - @ai-sdk/gateway@4.0.132
+
+## 7.0.158
+
+### Patch Changes
+
+- 8ba3a5c: fix(ai): repair partial JSON that ends with a minus sign at the start of an array
+- 5c247e9: feat(sandbox): add `stat`, `listDirectory`, and `deleteFile` to `Experimental_SandboxSession`, and specify that relative paths in every method resolve against the directory `run` and `spawn` start in
+
+  The just-bash and Vercel Sandbox adapters implement the new methods. Both now resolve a relative `workingDirectory` for `run` and `spawn` against the sandbox's working directory, and the just-bash adapter rejects writes to a directory instead of replacing it with a file.
+
+- Updated dependencies [7716e18]
+- Updated dependencies [f850782]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/gateway@4.0.131
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
+## 7.0.157
+
+### Patch Changes
+
+- 0cc4921: graduate LanguageModelStreamPart to stable and deprecate Experimental_LanguageModelStreamPart
+- 077cfb3: feat(ai): Graduate `filterActiveTools` from experimental. It is now exported as `filterActiveTools`; `experimental_filterActiveTools` remains as a deprecated alias.
+- eb768e2: Fix Next.js Edge Runtime warnings from Node.js runtime detection used by telemetry tracing.
+- Updated dependencies [9ca8bcf]
+- Updated dependencies [61a315e]
+  - @ai-sdk/gateway@4.0.130
+  - @ai-sdk/provider-utils@5.0.71
+
+## 7.0.156
+
+### Patch Changes
+
+- Updated dependencies [9f19c79]
+  - @ai-sdk/gateway@4.0.129
+
+## 7.0.155
+
+### Patch Changes
+
+- b6b9dca: chore(ai): remove runtime validation of inputs that TypeScript types already guarantee
+
+  `streamText`, `generateText`, `generateObject` and `streamObject` no longer validate messages against the `ModelMessage` schema. This removes a cost that grew linearly with message history and was paid on every `streamText` step. Type checks on call settings, steering messages, tool caller configuration, `smoothStream` chunking, `experimental_streamSpeech` text input, the shape of `decide` state and questions, and the batch reference version have also been removed. Value constraints that types cannot express, such as integer ranges, non-empty collections, unknown keys, and non-finite numbers or cycles in `decide` JSON input, are still validated.
+
+- Updated dependencies [57086ff]
+- Updated dependencies [01d7a03]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/gateway@4.0.128
+
+## 7.0.154
+
+### Patch Changes
+
+- 47236dd: add onStepError callback to generateText, streamText, ToolLoopAgent and telemetry integrations, and onError and onAbort to ToolLoopAgent
+- c8e8866: Add `aiVersion` to telemetry events so tracing-channel subscribers and telemetry integrations can identify the emitting `ai` package version, including in bundled applications and applications with multiple SDK versions.
+- 1cf95c6: add experimental steering to generateText, streamText and ToolLoopAgent
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/gateway@4.0.127
+
+## 7.0.153
+
+### Patch Changes
+
+- 5475347: Fix non-streaming Responses API structured output failing when multiple assistant messages contain JSON. Providers can supply separate structured-output text for parsing, allowing OpenAI and Azure Responses models to select the last `final_answer` while preserving all generated content, annotations, conversation history, and token usage.
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/provider-utils@5.0.68
+  - @ai-sdk/gateway@4.0.126
+
+## 7.0.152
+
+### Patch Changes
+
+- Updated dependencies [a706678]
+  - @ai-sdk/gateway@4.0.125
+
+## 7.0.151
+
+### Patch Changes
+
+- Updated dependencies [1bf6d85]
+  - @ai-sdk/gateway@4.0.124
+
+## 7.0.150
+
+### Patch Changes
+
+- 8e18d59: feat(ai): add experimental_streamSpeech
+
+  Streams speech audio from a string, or an array, iterable, or stream of text deltas and/or text parts (each with an optional `voice` and `providerOptions`) using speech models that implement the experimental `Experimental_StreamingSpeechModelV4` extension. Returns a single-consumer `audioStream` / `fullStream` plus `usage`, `warnings`, `responses`, and `providerMetadata` promises. Provider `error` parts are non-fatal and reported through `onError` (default `console.error`). A user abort or a cancel rejects the result promises immediately. Exports the `Experimental_SpeechTextPart`, `Experimental_SpeechStreamPart`, `Experimental_SpeechStreamUsage`, and `Experimental_StreamSpeechResult` types, adds an optional `cause` to `NoSpeechGeneratedError`, and adds `Experimental_MockStreamingSpeechModelV4` to `ai/test`.
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/gateway@4.0.123
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+
+## 7.0.149
+
+### Patch Changes
+
+- 1727442: fix(ai): process only the first approval response per tool call, so repeated or conflicting responses in the final tool message no longer execute a tool twice or both execute and deny it
+- 0a5d0e7: Fix `toolChoice: 'none'` by forwarding it to the Hugging Face Responses API and rejecting tool calls before local execution in `generateText`, `streamText`, and `WorkflowAgent`. Streamed tool parts are withheld so client-side tools cannot act on them, and `repairToolCall` and `experimental_refineToolInput` are not invoked for rejected tool calls.
+- 10026d1: Add the `interrupted` finish reason for provider streams that end without a completion signal. Preserve partial output without introducing an error solely for interruption, and stop tool execution, agent continuation, and automatic UI follow-ups for interrupted responses, including late tool results and approvals. Provider detection and emission will be added separately.
+
+  **Compatibility notice:** Adding `interrupted` to the public finish-reason types can break type checking after upgrading, even though this is a patch release. Exhaustive switches (for example, using an `assertNever` fallback) and mappings such as `Record<FinishReason, string>` must handle the new value. Update any custom validation or application logic that assumes the existing set of finish reasons is exhaustive.
+
+  When providers begin emitting `interrupted`, a stream ending without a completion signal will preserve partial output and report this finish reason without emitting an error solely for the interruption. Applications that need to detect incomplete responses should check `finishReason === 'interrupted'` as well as their existing error handling.
+
+- Updated dependencies [101ce42]
+- Updated dependencies [e104368]
+- Updated dependencies [eb1f056]
+- Updated dependencies [10026d1]
+- Updated dependencies [5893e99]
+  - @ai-sdk/gateway@4.0.122
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/provider-utils@5.0.66
+
 ## 7.0.148
 
 ### Patch Changes

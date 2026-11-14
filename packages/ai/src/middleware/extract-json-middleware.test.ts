@@ -7,7 +7,7 @@ import {
   convertAsyncIterableToArray,
 } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it } from 'vitest';
-import { generateText, streamText } from '../generate-text';
+import { generateText, Output, streamText } from '../generate-text';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { extractJsonMiddleware } from './extract-json-middleware';
@@ -41,6 +41,52 @@ function clearObjectPrototypeState() {
 
 describe('extractJsonMiddleware', () => {
   describe('wrapGenerate', () => {
+    it.each([
+      {
+        name: 'markdown fences',
+        text: '```json\n{"value":"final"}\n```',
+        options: undefined,
+      },
+      {
+        name: 'a custom transform',
+        text: 'PREFIX{"value":"final"}SUFFIX',
+        options: {
+          transform: (text: string) =>
+            text.replace('PREFIX', '').replace('SUFFIX', ''),
+        },
+      },
+    ])(
+      'should apply $name to structured output text without losing other text',
+      async ({ text, options }) => {
+        const result = await generateText({
+          model: wrapLanguageModel({
+            model: new MockLanguageModelV4({
+              doGenerate: {
+                content: [
+                  { type: 'text', text: '{"value":"draft"}' },
+                  { type: 'text', text },
+                ],
+                structuredOutputText: text,
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+                warnings: [],
+              },
+            }),
+            middleware: extractJsonMiddleware(options),
+          }),
+          output: Output.json(),
+          prompt: 'Generate JSON',
+        });
+
+        expect(result.output).toEqual({ value: 'final' });
+        expect(result.text).toBe('{"value":"draft"}{"value":"final"}');
+        expect(result.content).toEqual([
+          { type: 'text', text: '{"value":"draft"}' },
+          { type: 'text', text: '{"value":"final"}' },
+        ]);
+      },
+    );
+
     it('should strip markdown json fence from text content', async () => {
       const mockModel = new MockLanguageModelV4({
         async doGenerate() {

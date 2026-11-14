@@ -1,3 +1,4 @@
+import { getQuiverAILanguageModelEntry } from './quiverai-model-catalog';
 import {
   InvalidArgumentError,
   type LanguageModelV4,
@@ -11,6 +12,8 @@ import {
   type OpenResponsesProviderSettings,
 } from '@ai-sdk/open-responses';
 import {
+  isCustomReasoning,
+  mapReasoningToProviderEffort,
   serializeModelOptions,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
@@ -66,13 +69,13 @@ export class QuiverAILanguageModel implements LanguageModelV4 {
   }
 
   async doGenerate(options: LanguageModelV4CallOptions) {
-    const prepared = prepareQuiverAICall(options);
+    const prepared = prepareQuiverAICall(this.modelId, options);
     const result = await this.model.doGenerate(prepared.options);
     return { ...result, warnings: [...prepared.warnings, ...result.warnings] };
   }
 
   async doStream(options: LanguageModelV4CallOptions) {
-    const prepared = prepareQuiverAICall(options);
+    const prepared = prepareQuiverAICall(this.modelId, options);
     const result = await this.model.doStream(prepared.options);
     if (prepared.warnings.length === 0) return result;
     return {
@@ -98,7 +101,10 @@ export class QuiverAILanguageModel implements LanguageModelV4 {
   }
 }
 
-function prepareQuiverAICall(options: LanguageModelV4CallOptions): {
+function prepareQuiverAICall(
+  modelId: string,
+  options: LanguageModelV4CallOptions,
+): {
   options: LanguageModelV4CallOptions;
   warnings: SharedV4Warning[];
 } {
@@ -107,7 +113,11 @@ function prepareQuiverAICall(options: LanguageModelV4CallOptions): {
   if (
     reasoningEffort != null &&
     (typeof reasoningEffort !== 'string' ||
-      !['low', 'medium', 'high', 'xhigh'].includes(reasoningEffort))
+      !getQuiverAILanguageModelEntry(
+        modelId,
+      ).capabilities.language.reasoning.efforts.some(
+        effort => effort === reasoningEffort,
+      ))
   ) {
     throw new InvalidArgumentError({
       argument: 'providerOptions',
@@ -122,16 +132,25 @@ function prepareQuiverAICall(options: LanguageModelV4CallOptions): {
   }
 
   const warnings: SharedV4Warning[] = [];
-  const omitReasoning = options.reasoning === 'none' && reasoningEffort == null;
-  if (omitReasoning) {
-    warnings.push({ type: 'unsupported', feature: 'reasoning effort none' });
-  }
+  const reasoning =
+    reasoningEffort == null && isCustomReasoning(options.reasoning)
+      ? mapReasoningToProviderEffort({
+          reasoning: options.reasoning,
+          effortMap: {
+            low: 'low',
+            medium: 'medium',
+            high: 'high',
+            xhigh: 'xhigh',
+          },
+          warnings,
+        })
+      : options.reasoning;
 
   return {
     warnings,
     options: {
       ...options,
-      reasoning: omitReasoning ? undefined : options.reasoning,
+      reasoning,
       prompt: options.prompt.map(message =>
         message.role !== 'assistant'
           ? message

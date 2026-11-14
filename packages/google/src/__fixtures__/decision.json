@@ -1,31 +1,44 @@
 {
-  "candidates": [
-    {
-      "content": {
-        "parts": [
-          {
-            "text": "{\n  \"q0\": \"c1\",\n  \"q1\": 1.25\n}",
-            "thoughtSignature": "El4KXAERTTIPMd78Z3zYWtz6Q3NtDTPVJokZntX+MiaoiIJx9wRewb2wAGzOedHMq8M7i+Am1AKSrJIzMvHSjke7YnaOSnWfi61150vZdYgDakxauXf/3q0Uab2HMaD1"
-          }
-        ],
-        "role": "model"
+  "answers": {
+    "requestsRefund": {
+      "confidence": 0.6375181188885488,
+      "noul": 0.36248188111145113,
+      "type": "noul"
+    },
+    "department": {
+      "confidence": 0.8624268048164867,
+      "choice": "billing",
+      "probabilities": {
+        "billing": 0.8624268048164867,
+        "technical": 0.13757319518351327
       },
-      "finishReason": "STOP",
-      "index": 0
+      "type": "choice"
+    },
+    "severity": {
+      "confidence": 0.5849037405969755,
+      "score": 0.8093588003103453,
+      "probabilities": {
+        "0": 0.3028687295463396,
+        "1": 0.5849037405969755,
+        "2": 0.11222752985668494
+      },
+      "legend": {
+        "0": "Low",
+        "1": "Medium",
+        "2": "High"
+      },
+      "type": "score"
     }
-  ],
-  "usageMetadata": {
-    "promptTokenCount": 21,
-    "candidatesTokenCount": 24,
-    "totalTokenCount": 45,
-    "promptTokensDetails": [
+  },
+  "usage": {
+    "total_tokens": 193,
+    "total_input_tokens": 193,
+    "input_tokens_by_modality": [
       {
-        "modality": "TEXT",
-        "tokenCount": 21
+        "modality": "text",
+        "tokens": 193
       }
     ],
-    "serviceTier": "standard"
-  },
-  "modelVersion": "gemini-3.5-flash-lite",
-  "responseId": "a9-qapPZOLm4mtkPluzysAg"
+    "total_output_tokens": 0
+  }
 }

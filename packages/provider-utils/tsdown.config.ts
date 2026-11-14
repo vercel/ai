@@ -21,6 +21,10 @@ export default defineConfig(
       outDir: 'dist/experimental-evaluation',
     },
     {
+      entry: ['src/experimental-extraction/index.ts'],
+      outDir: 'dist/experimental-extraction',
+    },
+    {
       entry: ['src/test/index.ts'],
       outDir: 'dist/test',
       // Avoid bundling Chai and other test dependencies.

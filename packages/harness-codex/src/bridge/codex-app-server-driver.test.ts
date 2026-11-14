@@ -33,6 +33,7 @@ const server = vi.hoisted(() => ({
   nextTurn: 0,
   autoComplete: true,
   hookResponse: undefined as unknown,
+  threadModel: undefined as string | undefined,
   steerResponse: undefined as
     | ((params: unknown) => Promise<unknown> | unknown)
     | undefined,
@@ -98,6 +99,7 @@ vi.mock('./codex-app-server-client', () => ({
           },
           approvalPolicy: 'never',
           sandbox: { type: 'dangerFullAccess' },
+          ...(server.threadModel == null ? {} : { model: server.threadModel }),
         };
       }
       if (method === 'turn/start') {
@@ -203,12 +205,14 @@ describe('Codex app-server runtime lifecycle', () => {
     server.nextTurn = 0;
     server.autoComplete = true;
     server.hookResponse = undefined;
+    server.threadModel = undefined;
     server.steerResponse = undefined;
   });
 
   function createOptions({
     threadId,
     codexConfig = {},
+    codexModel = 'gpt-5.3-codex',
     start = {},
     abortSignal = new AbortController().signal,
     emit = () => {},
@@ -216,6 +220,7 @@ describe('Codex app-server runtime lifecycle', () => {
   }: {
     threadId?: string;
     codexConfig?: Record<string, unknown>;
+    codexModel?: string;
     start?: Partial<StartMessage>;
     abortSignal?: AbortSignal;
     emit?: (event: Record<string, unknown>) => void;
@@ -240,7 +245,7 @@ describe('Codex app-server runtime lifecycle', () => {
       emit,
       workdir: '/workspace',
       threadId,
-      codexModel: 'gpt-5.3-codex',
+      codexModel,
       codexConfig,
       stepTracker: createCodexStepTracker({ send }),
       emitStreamEvent: vi.fn(),
@@ -280,6 +285,92 @@ describe('Codex app-server runtime lifecycle', () => {
     expect(server.clients[0]?.closed).toBe(1);
   });
 
+  describe('stream-start model', () => {
+    function streamStarts(emit: ReturnType<typeof vi.fn>) {
+      return emit.mock.calls
+        .map(([event]) => event as Record<string, unknown>)
+        .filter(event => event.type === 'stream-start');
+    }
+
+    it('reports the model from the thread/start response', async () => {
+      server.threadModel = 'gpt-5.3-codex-resolved';
+      const runtime = createCodexAppServerRuntime();
+      const emit = vi.fn();
+      await runtime.runTurn(createOptions({ emit }));
+
+      expect(streamStarts(emit)).toEqual([
+        { type: 'stream-start', modelId: 'gpt-5.3-codex-resolved' },
+      ]);
+      await runtime.close();
+    });
+
+    it('reuses the reported model for turns on the loaded thread', async () => {
+      server.threadModel = 'gpt-5.3-codex-resolved';
+      const runtime = createCodexAppServerRuntime();
+      await runtime.runTurn(createOptions());
+      server.threadModel = 'unexpected-model';
+      const emit = vi.fn();
+      await runtime.runTurn(createOptions({ threadId: 'thread-1', emit }));
+
+      expect(methods(server.clients[0]!)).toEqual([
+        'initialize',
+        'thread/start',
+        'turn/start',
+        'turn/start',
+      ]);
+      expect(streamStarts(emit)).toEqual([
+        { type: 'stream-start', modelId: 'gpt-5.3-codex-resolved' },
+      ]);
+      await runtime.close();
+    });
+
+    it('falls back to the requested model when the thread response has none', async () => {
+      const runtime = createCodexAppServerRuntime();
+      const emit = vi.fn();
+      await runtime.runTurn(createOptions({ emit }));
+
+      expect(streamStarts(emit)).toEqual([
+        { type: 'stream-start', modelId: 'gpt-5.3-codex' },
+      ]);
+      await runtime.close();
+    });
+
+    it('reports a turn-level model override on the loaded thread', async () => {
+      server.threadModel = 'gpt-5.3-codex-resolved';
+      const runtime = createCodexAppServerRuntime();
+      await runtime.runTurn(createOptions());
+      const emit = vi.fn();
+      await runtime.runTurn(
+        createOptions({
+          threadId: 'thread-1',
+          codexModel: 'gpt-5.5',
+          emit,
+        }),
+      );
+
+      expect(streamStarts(emit)).toEqual([
+        { type: 'stream-start', modelId: 'gpt-5.5' },
+      ]);
+      await runtime.close();
+    });
+
+    it('re-reads the model after the thread restarts', async () => {
+      server.threadModel = 'first-model';
+      const runtime = createCodexAppServerRuntime();
+      await runtime.runTurn(createOptions());
+      server.threadModel = 'second-model';
+      const emit = vi.fn();
+      await runtime.runTurn(
+        createOptions({ start: { restartThread: true }, emit }),
+      );
+
+      expect(streamStarts(emit)).toEqual([
+        { type: 'stream-start', modelId: 'second-model' },
+      ]);
+      await runtime.close();
+    });
+  });
+
   it('restarts a thread inside the same app-server process', async () => {
     const runtime = createCodexAppServerRuntime();
     await runtime.runTurn(createOptions());
@@ -298,6 +389,37 @@ describe('Codex app-server runtime lifecycle', () => {
       'thread/start',
       'turn/start',
     ]);
+    await runtime.close();
+  });
+
+  it('selects model providers on the app-server command line', async () => {
+    const runtime = createCodexAppServerRuntime();
+    await runtime.runTurn(
+      createOptions({
+        codexConfig: {
+          model_provider: 'agent_bridge_openai',
+          model_providers: {
+            agent_bridge_openai: {
+              base_url: 'https://api.openai.com/v1',
+              env_key: 'CODEX_API_KEY',
+            },
+          },
+          model_verbosity: 'low',
+        },
+      }),
+    );
+
+    const client = server.clients[0]!;
+    expect(client.args).toContain('model_provider="agent_bridge_openai"');
+    expect(client.args).toContain(
+      'model_providers={"agent_bridge_openai"={"base_url"="https://api.openai.com/v1","env_key"="CODEX_API_KEY"}}',
+    );
+    const { config: threadConfig } = client.calls.find(
+      call => call.method === 'thread/start',
+    )!.params as { config: Record<string, unknown> };
+    expect(threadConfig).not.toHaveProperty('model_provider');
+    expect(threadConfig).not.toHaveProperty('model_providers');
+    expect(threadConfig.model_verbosity).toBe('low');
     await runtime.close();
   });
 

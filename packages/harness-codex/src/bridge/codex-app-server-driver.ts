@@ -20,6 +20,7 @@ import { isDeepStrictEqual } from 'node:util';
 import {
   assertTrustedApplyPatchHook,
   createTrustedApplyPatchHook,
+  toTomlInline,
 } from './codex-tool-filtering-hook';
 
 type Emit = (message: Record<string, unknown>) => void;
@@ -55,6 +56,15 @@ export function createCodexAppServerRuntime(): {
 } {
   let client: CodexAppServerClient | undefined;
   let loadedThreadId: string | undefined;
+  /*
+   * The model Codex reported in the `thread/start` / `thread/resume` response
+   * for the loaded thread, keyed by the model the bridge requested. Turns on an
+   * already-loaded thread skip those requests, so the reported model is reused
+   * while the requested model is unchanged.
+   */
+  let loadedThreadModel:
+    | { requestedModel: string | undefined; modelId: string | undefined }
+    | undefined;
   let loadedConfig: Record<string, unknown> | undefined;
   let activeTurn: ActiveTurn | undefined;
 
@@ -62,13 +72,16 @@ export function createCodexAppServerRuntime(): {
     const previous = client;
     client = undefined;
     loadedThreadId = undefined;
+    loadedThreadModel = undefined;
     loadedConfig = undefined;
     await previous?.close();
   };
 
   const runTurn = async (options: RunTurnOptions): Promise<void> => {
-    const { start, turn, emit, workdir, threadId, codexModel, codexConfig } =
-      options;
+    const { start, turn, emit, workdir, threadId, codexModel } = options;
+    const { codexConfig, providerCliOverrides } = splitModelProviderConfig(
+      options.codexConfig,
+    );
     if (activeTurn != null) throw new Error('A Codex turn is already active.');
     const toolPolicy = resolveCodexBuiltinToolPolicy({
       builtinToolFiltering: start.builtinToolFiltering,
@@ -90,9 +103,13 @@ export function createCodexAppServerRuntime(): {
           }
         : {}),
     };
+    const cliOverrides = [
+      ...providerCliOverrides,
+      ...(trustedHook?.cliOverrides ?? []),
+    ];
     const processConfig = {
       thread: nextConfig,
-      cliOverrides: trustedHook?.cliOverrides ?? [],
+      cliOverrides,
     };
     if (client != null && !isDeepStrictEqual(loadedConfig, processConfig)) {
       await close();
@@ -121,9 +138,7 @@ export function createCodexAppServerRuntime(): {
     if (client == null) {
       const created = new CodexAppServerClient({
         executable: process.execPath,
-        args: createCodexAppServerArgs({
-          cliOverrides: trustedHook?.cliOverrides,
-        }),
+        args: createCodexAppServerArgs({ cliOverrides }),
         cwd: workdir,
         env: process.env,
         onNotification: notification => {
@@ -279,6 +294,7 @@ export function createCodexAppServerRuntime(): {
           }),
         });
         loadedThreadId = undefined;
+        loadedThreadModel = undefined;
       }
       if (trustedHook != null) {
         const hooks = await raceWithProcess({
@@ -328,9 +344,23 @@ export function createCodexAppServerRuntime(): {
           method: threadMethod,
         });
         loadedThreadId = currentTurn.threadId;
+        loadedThreadModel = {
+          requestedModel: codexModel,
+          modelId: readOptionalString(asRecord(threadResponse)?.model),
+        };
       }
       handler.announceThread(currentTurn.threadId!);
-      emit({ type: 'stream-start' });
+      const threadModel = loadedThreadModel;
+      const streamStartModelId =
+        threadModel != null &&
+        threadModel.requestedModel === codexModel &&
+        threadModel.modelId != null
+          ? threadModel.modelId
+          : codexModel;
+      emit({
+        type: 'stream-start',
+        ...(streamStartModelId ? { modelId: streamStartModelId } : {}),
+      });
       const turnResponse = await raceWithProcess({
         operation: runningClient.request({
           method: 'turn/start',
@@ -402,6 +432,36 @@ export function createCodexAppServerArgs({
   ];
 }
 
+/*
+ * Codex app-server admits turn input only when a thread's provider matches
+ * the provider resolved from process-level configuration, which ignores
+ * per-thread config overrides. Provider selection and definitions therefore
+ * go on the app-server command line so threads and process agree.
+ */
+export function splitModelProviderConfig(
+  codexConfig: Record<string, unknown>,
+): {
+  codexConfig: Record<string, unknown>;
+  providerCliOverrides: string[];
+} {
+  const {
+    model_provider: modelProvider,
+    model_providers: modelProviders,
+    ...threadConfig
+  } = codexConfig;
+  return {
+    codexConfig: threadConfig,
+    providerCliOverrides: [
+      ...(modelProvider === undefined
+        ? []
+        : [`model_provider=${toTomlInline(modelProvider)}`]),
+      ...(modelProviders === undefined
+        ? []
+        : [`model_providers=${toTomlInline(modelProviders)}`]),
+    ],
+  };
+}
+
 export function createThreadParams({
   start,
   workdir,
@@ -413,6 +473,13 @@ export function createThreadParams({
   codexModel: string | undefined;
   codexConfig: Record<string, unknown>;
 }): Record<string, unknown> {
+  /*
+   * Codex app-server does not expose an option to skip reading project
+   * configuration. Project configuration is trust-gated, but the full-access
+   * permissions below can grant project trust automatically. Repository hooks
+   * still require separate per-hook trust before execution, so this is an
+   * accepted limitation rather than complete project configuration isolation.
+   */
   return {
     ...(codexModel == null ? {} : { model: codexModel }),
     cwd: workdir,
@@ -650,4 +717,8 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
   return value != null && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : undefined;
+}
+
+function readOptionalString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
 }

@@ -415,6 +415,28 @@ describe('DevToolsTelemetry', () => {
     });
   });
 
+  describe('onStepError', () => {
+    it('records the error on the failed step only once', async () => {
+      const integration = createIntegration();
+
+      await integration.onStart!(makeStartEvent());
+      await integration.onStepStart!(makeStepStartEvent());
+
+      await integration.onStepError!({
+        ...makeStepStartEvent({ stepNumber: 0 }),
+        error: new Error('step failed'),
+      } as any);
+      await integration.onError!({
+        callId: 'call-1',
+        error: new Error('call failed'),
+      });
+
+      expect(mockUpdateStepResult).toHaveBeenCalledTimes(1);
+      expect(mockUpdateStepResult.mock.calls[0][1].error).toBe('step failed');
+      expect(mockUpdateStepResult.mock.calls[0][1].output).toBeNull();
+    });
+  });
+
   describe('onError', () => {
     it('extracts error message from Error cause', async () => {
       const integration = createIntegration();

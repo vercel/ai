@@ -11,6 +11,7 @@ import {
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockSpeechModelV4 } from '../test/mock-speech-model-v4';
 import type { Warning } from '../types/warning';
+import { VERSION } from '../version';
 import { generateSpeech } from './generate-speech';
 import {
   DefaultGeneratedAudioFile,
@@ -496,8 +497,8 @@ describe('generateSpeech', () => {
             format: 'mp3',
           },
           usage: { characters: sampleText.length },
-          providerMetadata: { mock: { traceId: 'trace-1' } },
           functionId: 'speak-text',
+          providerMetadata: undefined,
           recordOutputs: false,
         },
       },
@@ -551,6 +552,7 @@ describe('generateSpeech', () => {
     ).rejects.toBe(error);
 
     expect(onError).toHaveBeenCalledExactlyOnceWith({
+      aiVersion: VERSION,
       callId: 'call-1',
       error,
     });

@@ -1,5 +1,247 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.187
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.184
+
+## 1.0.186
+
+### Patch Changes
+
+- 71bef69: feat(harness): require approval for sensitive workspace file changes in `allow-edits` permission mode
+- Updated dependencies [6d50947]
+- Updated dependencies [71bef69]
+  - @ai-sdk/provider-utils@5.0.81
+  - @ai-sdk/harness@1.0.183
+
+## 1.0.185
+
+### Patch Changes
+
+- Updated dependencies [2ebc78b]
+- Updated dependencies [1a94af3]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/harness@1.0.182
+  - @ai-sdk/provider@4.0.38
+
+## 1.0.184
+
+### Patch Changes
+
+- aa4e711: fix(harness-opencode): ignore compacted tool parts in the bridge
+  - @ai-sdk/harness@1.0.181
+
+## 1.0.183
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+  - @ai-sdk/harness@1.0.180
+
+## 1.0.182
+
+### Patch Changes
+
+- 0fc1f13: chore(harness): update harness adapter underlying SDKs to their latest releases
+- c849d37: feat(harness): use public-key cryptography instead of token for sandbox bridge communication
+- Updated dependencies [c849d37]
+- Updated dependencies [7f1c01e]
+- Updated dependencies [88b9575]
+  - @ai-sdk/harness@1.0.179
+  - @ai-sdk/provider-utils@5.0.78
+
+## 1.0.181
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+  - @ai-sdk/harness@1.0.178
+
+## 1.0.180
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.177
+
+## 1.0.179
+
+### Patch Changes
+
+- a97f490: fix(harness-opencode): add `auth: 'direct'` to use the selected provider's credentials or native subscription when `VERCEL_OIDC_TOKEN` or `AI_GATEWAY_API_KEY` is set
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+  - @ai-sdk/harness@1.0.176
+
+## 1.0.178
+
+### Patch Changes
+
+- 89e6bc9: Read OpenCode subscriptions from `~/.local/share/opencode/auth.json` on Windows, where OpenCode stores them, and keep `~/.opencode/auth.json` as a fallback for the GitLab auth plugin.
+- a54f0fd: fix(harness): abort a running turn when its host disconnects for good
+- f779a62: fix(harness-opencode): ensure Google and Mistral models use OpenAI compatible endpoint when used with AI Gateway
+- Updated dependencies [8e8033a]
+- Updated dependencies [a54f0fd]
+  - @ai-sdk/harness@1.0.175
+
+## 1.0.177
+
+### Patch Changes
+
+- 138d66e: fix(harness-opencode): make GitLab credential brokering specific to chat route requests
+- 3af9d06: fix(harness-opencode): require approval when accessing files outside of workDir with permission modes `allow-reads` and `allow-edits`
+- 30548ee: fix(harness-opencode): ensure OpenCode ignores repo-specific settings
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [3bf70f8]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/harness@1.0.174
+  - @ai-sdk/provider-utils@5.0.75
+
+## 1.0.176
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+  - @ai-sdk/harness@1.0.173
+
+## 1.0.175
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [8a20b57]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+  - @ai-sdk/harness@1.0.172
+
+## 1.0.174
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.171
+
+## 1.0.173
+
+### Patch Changes
+
+- 504536a: Send a tool call to the host before its approval request. OpenCode asks for permission while the call is still pending and reports it as running only afterwards, so with `allow-reads` or `allow-edits` the approval request reached `HarnessAgent` first and the turn failed with "emitted approval request ... for unknown tool call".
+
+## 1.0.172
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.170
+
+## 1.0.171
+
+### Patch Changes
+
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+  - @ai-sdk/harness@1.0.169
+
+## 1.0.170
+
+### Patch Changes
+
+- Updated dependencies [033f8d9]
+- Updated dependencies [e7a8988]
+- Updated dependencies [2c12e25]
+- Updated dependencies [61a315e]
+- Updated dependencies [6eab0f7]
+  - @ai-sdk/harness@1.0.168
+  - @ai-sdk/provider-utils@5.0.71
+
+## 1.0.169
+
+### Patch Changes
+
+- 726a1cc: fix(harness): copy bridge lockfile as `pnpm-lockfile.yaml` in `dist/` so `pnpm pack` includes it in published tarballs
+  - @ai-sdk/harness@1.0.167
+
+## 1.0.168
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/harness@1.0.166
+
+## 1.0.167
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/harness@1.0.165
+
+## 1.0.166
+
+### Patch Changes
+
+- a9837eb: feat(harness): provide shared utils for bridge-backed adapters to manage web socket connection and bridge handshake
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [a9837eb]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/harness@1.0.164
+  - @ai-sdk/provider-utils@5.0.68
+
+## 1.0.165
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.163
+
+## 1.0.164
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.162
+
+## 1.0.163
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+  - @ai-sdk/harness@1.0.161
+
+## 1.0.162
+
+### Patch Changes
+
+- Updated dependencies [10026d1]
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/harness@1.0.160
+  - @ai-sdk/provider-utils@5.0.66
+
 ## 1.0.161
 
 ### Patch Changes

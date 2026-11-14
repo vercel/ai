@@ -166,6 +166,145 @@ describe('toUIMessageChunk', () => {
     ).toBeUndefined();
   });
 
+  it('maps steering messages with text content', () => {
+    expect(
+      toUIMessageChunk({
+        type: 'steering-message',
+        id: 'steer-1',
+        message: { role: 'user', content: 'I meant Paris, Texas.' },
+        stepNumber: 1,
+      }),
+    ).toEqual({
+      type: 'steering-message',
+      id: 'steer-1',
+      parts: [{ type: 'text', text: 'I meant Paris, Texas.' }],
+    });
+  });
+
+  it('keeps provider options of steering message parts as provider metadata', () => {
+    expect(
+      toUIMessageChunk({
+        type: 'steering-message',
+        id: 'steer-1',
+        message: {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'I meant Paris, Texas.',
+              providerOptions: {
+                anthropic: { cacheControl: { type: 'ephemeral' } },
+              },
+            },
+            {
+              type: 'file',
+              data: new URL('https://example.com/map.png'),
+              mediaType: 'image/png',
+              providerOptions: { openai: { imageDetail: 'low' } },
+            },
+          ],
+        },
+        stepNumber: 1,
+      }),
+    ).toEqual({
+      type: 'steering-message',
+      id: 'steer-1',
+      parts: [
+        {
+          type: 'text',
+          text: 'I meant Paris, Texas.',
+          providerMetadata: {
+            anthropic: { cacheControl: { type: 'ephemeral' } },
+          },
+        },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          url: 'https://example.com/map.png',
+          providerMetadata: { openai: { imageDetail: 'low' } },
+        },
+      ],
+    });
+  });
+
+  it('maps files in steering messages to ui file parts', () => {
+    expect(
+      toUIMessageChunk({
+        type: 'steering-message',
+        id: 'steer-1',
+        message: {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Look at these.' },
+            {
+              type: 'image',
+              image: new Uint8Array([1, 2, 3]),
+              mediaType: 'image/png',
+            },
+            { type: 'image', image: new URL('https://example.com/cat.png') },
+            {
+              type: 'file',
+              data: 'data:application/pdf;base64,AQID',
+              mediaType: 'application/pdf',
+              filename: 'report.pdf',
+            },
+            {
+              type: 'file',
+              data: { type: 'text', text: 'Hello' },
+              mediaType: 'text/plain',
+            },
+            {
+              type: 'file',
+              data: { type: 'reference', reference: { openai: 'file-1' } },
+              mediaType: 'application/pdf',
+            },
+          ],
+        },
+        stepNumber: 1,
+      }),
+    ).toMatchInlineSnapshot(`
+      {
+        "id": "steer-1",
+        "parts": [
+          {
+            "text": "Look at these.",
+            "type": "text",
+          },
+          {
+            "mediaType": "image/png",
+            "type": "file",
+            "url": "data:image/png;base64,AQID",
+          },
+          {
+            "mediaType": "image",
+            "type": "file",
+            "url": "https://example.com/cat.png",
+          },
+          {
+            "filename": "report.pdf",
+            "mediaType": "application/pdf",
+            "type": "file",
+            "url": "data:application/pdf;base64,AQID",
+          },
+          {
+            "mediaType": "text/plain",
+            "type": "file",
+            "url": "data:text/plain;base64,SGVsbG8=",
+          },
+          {
+            "mediaType": "application/pdf",
+            "providerReference": {
+              "openai": "file-1",
+            },
+            "type": "file",
+            "url": "",
+          },
+        ],
+        "type": "steering-message",
+      }
+    `);
+  });
+
   it('skips sources by default and sends them when enabled', () => {
     const urlSourcePart: TextStreamPart<{}> = {
       type: 'source',
@@ -674,6 +813,118 @@ describe('toUIMessageChunk', () => {
     });
 
     expect(onError).toHaveBeenCalledWith(error);
+  });
+
+  it('masks error parts by default', () => {
+    expect(
+      toUIMessageChunk({ type: 'error', error: new Error('boom') }),
+    ).toEqual({
+      type: 'error',
+      errorText: 'An error occurred.',
+    });
+  });
+
+  it('masks error parts when redactToolErrors is false', () => {
+    expect(
+      toUIMessageChunk(
+        { type: 'error', error: new Error('boom') },
+        { redactToolErrors: false },
+      ),
+    ).toEqual({
+      type: 'error',
+      errorText: 'An error occurred.',
+    });
+  });
+
+  describe('error text of failed tool calls', () => {
+    const toolError: TextStreamPart<Tools> = {
+      type: 'tool-error',
+      toolCallId: 'call-1',
+      toolName: 'runtimeTool',
+      input: { value: 'input' },
+      error: new Error('tool failed'),
+      dynamic: true,
+    };
+
+    const invalidToolCall: TextStreamPart<Tools> = {
+      type: 'tool-call',
+      toolCallId: 'call-1',
+      toolName: 'runtimeTool',
+      input: '{broken',
+      dynamic: true,
+      invalid: true,
+      error: new Error('tool failed'),
+    };
+
+    const formatError = (error: unknown) =>
+      `handled: ${(error as Error).message}`;
+
+    it.each([
+      {
+        name: 'keeps the text that the model received by default',
+        options: {},
+        expectedErrorText: 'Error: tool failed',
+      },
+      {
+        name: 'uses the default onError when tool errors are redacted',
+        options: { redactToolErrors: true },
+        expectedErrorText: 'An error occurred.',
+      },
+      {
+        name: 'uses a provided onError',
+        options: { onError: formatError },
+        expectedErrorText: 'handled: tool failed',
+      },
+      {
+        name: 'keeps the text that the model received when a provided onError does not redact tool errors',
+        options: { onError: formatError, redactToolErrors: false },
+        expectedErrorText: 'Error: tool failed',
+      },
+    ])('$name', ({ options, expectedErrorText }) => {
+      expect(toUIMessageChunk<Tools>(toolError, options)).toEqual({
+        type: 'tool-output-error',
+        toolCallId: 'call-1',
+        dynamic: true,
+        errorText: expectedErrorText,
+      });
+
+      expect(toUIMessageChunk<Tools>(invalidToolCall, options)).toEqual({
+        type: 'tool-input-error',
+        toolCallId: 'call-1',
+        toolName: 'runtimeTool',
+        input: '{broken',
+        dynamic: true,
+        errorText: expectedErrorText,
+      });
+    });
+
+    it('uses onError when the tool error cannot be serialized', () => {
+      const circularError: { self?: unknown } = {};
+      circularError.self = circularError;
+
+      expect(
+        toUIMessageChunk<Tools>({ ...toolError, error: circularError }),
+      ).toEqual({
+        type: 'tool-output-error',
+        toolCallId: 'call-1',
+        dynamic: true,
+        errorText: 'An error occurred.',
+      });
+    });
+
+    it('uses onError for invalid tool calls of provider-executed tools', () => {
+      expect(
+        toUIMessageChunk<Tools>({ ...invalidToolCall, providerExecuted: true }),
+      ).toEqual({
+        type: 'tool-input-error',
+        toolCallId: 'call-1',
+        toolName: 'runtimeTool',
+        input: '{broken',
+        providerExecuted: true,
+        dynamic: true,
+        errorText: 'An error occurred.',
+      });
+    });
   });
 
   it('returns undefined for parts that do not produce UI message chunks', () => {

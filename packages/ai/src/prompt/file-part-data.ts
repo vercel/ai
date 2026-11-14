@@ -1,5 +1,8 @@
+import { convertDataContentToUint8Array } from './data-content';
 import type { LanguageModelV4FilePart } from '@ai-sdk/provider';
 import {
+  isUint8Array,
+  isArrayBuffer,
   isBuffer,
   isProviderReference,
   type DataContent,
@@ -58,12 +61,9 @@ function convertUrlStringToFilePartData(content: string): ConvertResult {
 }
 
 function convertInlineDataToFilePartData(content: DataContent): ConvertResult {
-  if (content instanceof Uint8Array) {
-    return { data: { type: 'data', data: content }, mediaType: undefined };
-  }
-  if (content instanceof ArrayBuffer) {
+  if (isUint8Array(content) || isArrayBuffer(content)) {
     return {
-      data: { type: 'data', data: new Uint8Array(content) },
+      data: { type: 'data', data: convertDataContentToUint8Array(content) },
       mediaType: undefined,
     };
   }
@@ -128,6 +128,10 @@ export function convertToLanguageModelV4FilePart(
     } catch {
       return convertInlineDataToFilePartData(content);
     }
+  }
+
+  if (isUint8Array(content) || isArrayBuffer(content)) {
+    return convertInlineDataToFilePartData(content);
   }
 
   if (isProviderReference(content)) {

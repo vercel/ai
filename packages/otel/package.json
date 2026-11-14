@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/otel",
-  "version": "1.0.148",
+  "version": "1.0.173",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -40,13 +40,14 @@
   },
   "devDependencies": {
     "@ai-sdk/provider-utils": "workspace:*",
+    "@opentelemetry/sdk-metrics": "2.8.0",
     "@opentelemetry/sdk-trace-base": "2.7.1",
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
     "@vercel/ai-tsdown-config": "workspace:*",
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
-    "zod": "3.25.76"
+    "zod": "4.6.7"
   },
   "engines": {
     "node": ">=22"

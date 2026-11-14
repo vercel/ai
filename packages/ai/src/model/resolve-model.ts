@@ -3,6 +3,7 @@ import {
   NoSuchModelError,
   type Experimental_DecisionModelV4 as DecisionModelV4,
   type EmbeddingModelV4,
+  type Experimental_ExtractionModelV4 as ExtractionModelV4,
   type Experimental_SpeechTranslationModelV4,
   type Experimental_VideoModelV4,
   type ImageModelV4,
@@ -15,6 +16,7 @@ import {
 import type { DecisionModel } from '../decide/decision-result';
 import type { DecisionProvider } from '../decide/decision-provider';
 import { UnsupportedModelVersionError } from '../error';
+import type { ExtractionModel } from '../extract/extraction-result';
 import type { EmbeddingModel } from '../types/embedding-model';
 import type { LanguageModel } from '../types/language-model';
 import type { SpeechModel } from '../types/speech-model';
@@ -266,6 +268,20 @@ export function resolveDecisionModel(model: DecisionModel): DecisionModelV4 {
     supportedQuestionTypes: legacyModel.supportedQuestionTypes,
     doDecide: options => legacyModel.doEvaluate(options),
   };
+}
+
+export function resolveExtractionModel(
+  model: ExtractionModel,
+): ExtractionModelV4 {
+  const version: string = model.specificationVersion;
+  if (version !== 'v4') {
+    throw new UnsupportedModelVersionError({
+      version,
+      provider: model.provider,
+      modelId: model.modelId,
+    });
+  }
+  return model;
 }
 
 function getGlobalProvider(): ProviderV4 {
