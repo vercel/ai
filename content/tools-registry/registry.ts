@@ -1000,4 +1000,38 @@ console.log(text);`,
     websiteUrl: 'https://keenable.ai',
     npmUrl: 'https://www.npmjs.com/package/@keenable/ai-sdk',
   },
+  {
+    slug: 'angel-agent-guard',
+    name: 'Angel Agent Guard',
+    description:
+      'Pre-purchase and prompt-injection checks for agents that buy or pay. verifyBeforePay checks a shop, checkout or payment link, paid API, x402 endpoint or token before the agent pays (TLS, domain age, look-alike domains, redirects, payment provider, card fields, hidden instructions in the page) and returns pay, caution or do_not_pay. guardUntrusted scans web pages, emails and tool output for prompt injection.',
+    packageName: 'angel-agent-guard',
+    tags: ['security', 'prompt-injection', 'payments', 'commerce', 'x402'],
+    installCommand: {
+      pnpm: 'pnpm add angel-agent-guard',
+      npm: 'npm install angel-agent-guard',
+      yarn: 'yarn add angel-agent-guard',
+      bun: 'bun add angel-agent-guard',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { verifyBeforePay, guardUntrusted } from 'angel-agent-guard/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt:
+    'Check https://shop.example.com/checkout before paying. Only continue if the verdict is pay.',
+  tools: {
+    verifyBeforePay: verifyBeforePay(),
+    guardUntrusted: guardUntrusted(),
+  },
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl:
+      'https://github.com/daoudandiaye98-alt/angel-agent-guard#vercel-ai-sdk',
+    websiteUrl:
+      'https://angel.oroboros-design.com/docs/prompt-injection-defense/',
+    npmUrl: 'https://www.npmjs.com/package/angel-agent-guard',
+  },
 ];
