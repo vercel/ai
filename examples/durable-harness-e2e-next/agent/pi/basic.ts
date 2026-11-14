@@ -44,10 +44,10 @@ const agentGlobal = globalThis as {
  * request or from the drive queue, must go through one agent for that guard
  * to hold.
  */
-export const Agent = (agentGlobal.__durableHarnessE2EPiAgent ??= createAgent());
+export const agent = (agentGlobal.__durableHarnessE2EPiAgent ??= createAgent());
 
 export type PiHarnessAgentMessage = UIMessage<
   unknown,
   never,
-  InferUITools<typeof Agent.tools>
+  InferUITools<typeof agent.tools>
 >;

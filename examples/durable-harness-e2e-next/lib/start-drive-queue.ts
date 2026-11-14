@@ -1,9 +1,9 @@
 import {
-  Agent as FxAgent,
+  agent as fxAgent,
   DRIVE_QUEUE_PREFIX as FX_DRIVE_QUEUE_PREFIX,
 } from '@/agent/fx/basic';
 import {
-  Agent as PiAgent,
+  agent as piAgent,
   DRIVE_QUEUE_PREFIX as PI_DRIVE_QUEUE_PREFIX,
 } from '@/agent/pi/basic';
 import {
@@ -50,8 +50,8 @@ export async function startDriveQueue(): Promise<void> {
     agent: DriveQueueAgent<unknown> & { harnessId: string };
     queuePrefix: DriveQueuePrefix;
   }> = [
-    { agent: PiAgent, queuePrefix: PI_DRIVE_QUEUE_PREFIX },
-    { agent: FxAgent, queuePrefix: FX_DRIVE_QUEUE_PREFIX },
+    { agent: piAgent, queuePrefix: PI_DRIVE_QUEUE_PREFIX },
+    { agent: fxAgent, queuePrefix: FX_DRIVE_QUEUE_PREFIX },
   ];
   for (const { agent, queuePrefix } of queues) {
     world.registerHandler(

@@ -1,4 +1,4 @@
-import { Agent } from '@/agent/pi/basic';
+import { agent } from '@/agent/pi/basic';
 import { getHarnessE2EErrorMessage } from '@/util/harness-ui-stream';
 import { createUIMessageStreamResponse } from 'ai';
 
@@ -26,10 +26,10 @@ export async function GET(request: Request) {
     return new Response('Missing runId', { status: 400 });
   }
 
-  const session = await Agent.createSession({ runId });
-  let result: Awaited<ReturnType<typeof Agent.readStream>>;
+  const session = await agent.createSession({ runId });
+  let result: Awaited<ReturnType<typeof agent.readStream>>;
   try {
-    result = await Agent.readStream({ session, abortSignal: request.signal });
+    result = await agent.readStream({ session, abortSignal: request.signal });
   } catch (error) {
     if (error instanceof Error && error.message.includes('has no turn')) {
       return new Response(null, { status: 204 });

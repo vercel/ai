@@ -1,4 +1,4 @@
-import { Agent } from '@/agent/fx/basic';
+import { agent } from '@/agent/fx/basic';
 
 /**
  * Crashes the process of the drive running the session's current turn, like
@@ -12,9 +12,9 @@ export async function POST(request: Request) {
     return new Response('Missing runId', { status: 400 });
   }
 
-  const session = await Agent.createSession({ runId: body.runId });
+  const session = await agent.createSession({ runId: body.runId });
   try {
-    await Agent.experimental_crash({ session });
+    await agent.experimental_crash({ session });
   } catch (error) {
     if (
       error instanceof Error &&

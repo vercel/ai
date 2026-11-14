@@ -1,5 +1,5 @@
 import {
-  Agent,
+  agent,
   DRIVE_QUEUE_PREFIX,
   type PiHarnessAgentMessage,
 } from '@/agent/pi/basic';
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   return createUIMessageStreamResponse({
     stream: createUIMessageStream<PiHarnessAgentMessage>({
       execute: async ({ writer }) => {
-        const session = await Agent.createSession(storedSession);
+        const session = await agent.createSession(storedSession);
         /*
          * `stream()` runs the turn's drive in this process. The backstop,
          * sent before the drive starts, continues the turn in a background
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
           queuePrefix: DRIVE_QUEUE_PREFIX,
           runId: session.runId,
         });
-        const result = await Agent.stream({ session, messages });
+        const result = await agent.stream({ session, messages });
 
         /*
          * The result's own `toUIMessageStream()` is used instead of the

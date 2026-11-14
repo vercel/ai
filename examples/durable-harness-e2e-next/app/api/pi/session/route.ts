@@ -1,4 +1,4 @@
-import { Agent } from '@/agent/pi/basic';
+import { agent } from '@/agent/pi/basic';
 import { createSandboxSession } from '@/lib/sandbox';
 import type { StoredAgentSession } from '@/lib/stored-agent-session';
 
@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     return new Response('Missing chat id', { status: 400 });
   }
 
-  const session = await Agent.createSession({
+  const session = await agent.createSession({
     sessionId: body.chatId,
     sandboxSession: await createSandboxSession(),
   });

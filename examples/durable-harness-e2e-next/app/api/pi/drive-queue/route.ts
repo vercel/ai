@@ -1,4 +1,4 @@
-import { Agent, DRIVE_QUEUE_PREFIX } from '@/agent/pi/basic';
+import { agent, DRIVE_QUEUE_PREFIX } from '@/agent/pi/basic';
 import { createDriveQueueHandler } from '@/lib/drive-queue';
 import { getWorld } from '@/lib/world';
 
@@ -13,7 +13,7 @@ export const maxDuration = 800;
 export async function POST(request: Request) {
   return createDriveQueueHandler({
     world: getWorld(),
-    agent: Agent,
+    agent,
     queuePrefix: DRIVE_QUEUE_PREFIX,
   })(request);
 }
