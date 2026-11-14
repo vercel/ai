@@ -1,0 +1,169 @@
+---
+title: Saturn
+description: Learn how to use Saturn with the AI SDK for zero-configuration AI service discovery.
+---
+
+# Saturn Provider
+
+The [Saturn](https://jperrello.github.io/Saturn/) provider for the [AI SDK](https://ai-sdk.dev/) enables zero-configuration AI service discovery on local networks. Saturn uses mDNS/DNS-SD to automatically discover and connect to AI services without manual endpoint configuration.
+
+Instead of configuring API keys and endpoints per-application, Saturn lets a network administrator set up AI services once — and every device on the network gets access automatically, like connecting to a printer via Bonjour.
+
+<Note>
+  Saturn requires a Saturn-compatible service running on your local network and
+  advertising via mDNS. The provider discovers services at runtime — if no
+  services are found, requests will fail with a descriptive error.
+</Note>
+
+## Setup
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add ai-sdk-provider-saturn" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install ai-sdk-provider-saturn" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add ai-sdk-provider-saturn" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add ai-sdk-provider-saturn" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+Import the default `saturn` provider instance or create a custom one with `createSaturn`:
+
+```ts
+import { saturn } from 'ai-sdk-provider-saturn';
+```
+
+Importing `saturn` starts mDNS discovery immediately in the background. This is intentional because discovery needs time to find services, so starting early means services are already found by the time you make a request.
+
+To control when discovery starts or configure the provider:
+
+```ts
+import { createSaturn } from 'ai-sdk-provider-saturn';
+
+const saturn = createSaturn({
+  discoveryTimeout: 5000,
+  logLevel: 'info',
+});
+```
+
+### Direct Endpoint Mode
+
+If you already know your service endpoint, bypass discovery entirely:
+
+```ts
+import { createSaturn } from 'ai-sdk-provider-saturn';
+
+const saturn = createSaturn({
+  serviceEndpoint: 'http://192.168.1.100:8080/v1',
+  serviceName: 'my-ollama',
+});
+```
+
+## Language Models
+
+Saturn discovers models by querying `/v1/models` on each discovered service. Pass the model ID exactly as the backend advertises it:
+
+```ts
+const model = saturn('openai/gpt-4o');
+```
+
+Model IDs depend on the backend. An OpenRouter service might advertise `openai/gpt-4o` or `anthropic/claude-3.5-sonnet`, while an Ollama service might advertise `llama3.2` or `mistral`.
+
+If multiple services offer the same model, Saturn routes to the highest-priority healthy service automatically.
+
+## Examples
+
+### Generate Text
+
+```ts
+import { saturn } from 'ai-sdk-provider-saturn';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: saturn('openai/gpt-4o'),
+  prompt: 'Explain quantum computing in simple terms.',
+});
+
+console.log(text);
+```
+
+### Stream Text
+
+```ts
+import { saturn } from 'ai-sdk-provider-saturn';
+import { streamText } from 'ai';
+
+const { textStream } = streamText({
+  model: saturn('anthropic/claude-3.5-sonnet'),
+  prompt: 'Write a haiku about programming.',
+});
+
+for await (const chunk of textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+### Tool Calls
+
+```ts
+import { saturn } from 'ai-sdk-provider-saturn';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const { text } = await generateText({
+  model: saturn('openai/gpt-4o'),
+  prompt: 'What is the weather in San Francisco?',
+  tools: {
+    getWeather: tool({
+      description: 'Get the current weather for a location',
+      parameters: z.object({
+        location: z.string().describe('The city name'),
+      }),
+      execute: async ({ location }) => {
+        return { temperature: 72, condition: 'sunny', location };
+      },
+    }),
+  },
+});
+```
+
+## How It Works
+
+Saturn services advertise themselves as `_saturn._tcp.local.` via mDNS. The provider:
+
+1. Sends mDNS queries on the local network
+2. Resolves service host, port, and TXT record metadata (priority, deployment type, capabilities)
+3. Fetches `/v1/models` from each discovered service
+4. Routes requests to the best available service by priority
+
+Services are continuously monitored — new services are picked up automatically and stale services are cleaned up.
+
+### Failover
+
+Requests route to the lowest-priority-number service offering the requested model. If that service fails, the provider automatically retries with the next one. A built-in circuit breaker temporarily removes services after repeated failures.
+
+### Model Capabilities
+
+Saturn passes requests through to OpenAI-compatible backends. Supported features depend on the backend:
+
+| Feature | Support |
+|---------|---------|
+| Text Generation | All services |
+| Streaming | All services |
+| Tool Calls | OpenAI-compatible services |
+| JSON Mode | OpenAI-compatible services |
+| Object Generation | Via JSON mode |
+
+## Additional Resources
+
+- [Saturn GitHub Repository](https://github.com/jperrello/Saturn)
+- [Provider npm Package](https://www.npmjs.com/package/ai-sdk-provider-saturn)
+- [AI SDK Documentation](https://ai-sdk.dev/)
+- [Saturn Doc Page](https://jperrello.github.io/Saturn/)
