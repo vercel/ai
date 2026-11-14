@@ -1000,4 +1000,32 @@ console.log(text);`,
     websiteUrl: 'https://keenable.ai',
     npmUrl: 'https://www.npmjs.com/package/@keenable/ai-sdk',
   },
+  {
+    slug: 'cultmath',
+    name: 'CULT+MATH',
+    description:
+      'Search CULT+MATH decision research for free, and run paid measurements on SEC filings, federal data and AI answers, paid per run over x402.',
+    packageName: '@cultmath/agent-tools',
+    tags: ['research', 'sec-filings', 'market-research', 'x402'],
+    installCommand: {
+      pnpm: 'pnpm add @cultmath/agent-tools',
+      npm: 'npm install @cultmath/agent-tools',
+      yarn: 'yarn add @cultmath/agent-tools',
+      bun: 'bun add @cultmath/agent-tools',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createCultMathTools } from '@cultmath/agent-tools/ai-sdk';
+
+const tools = await createCultMathTools();
+
+const { text } = await generateText({
+  model: 'openai/gpt-5',
+  tools,
+  stopWhen: isStepCount(5),
+  prompt: 'Is tariff risk spreading through 10-K filings?',
+});`,
+    docsUrl: 'https://github.com/letsbuild-math/cultmath-agent-tools',
+    websiteUrl: 'https://cultmath.com/agent',
+    npmUrl: 'https://www.npmjs.com/package/@cultmath/agent-tools',
+  },  
 ];
