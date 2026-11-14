@@ -2,6 +2,7 @@ import type {
   Experimental_BatchV4 as BatchV4,
   Experimental_DecisionModelV4 as DecisionModelV4,
   EmbeddingModelV4,
+  Experimental_ExtractionModelV4 as ExtractionModelV4,
   FilesV4,
   ImageModelV4,
   LanguageModelV4,
@@ -12,6 +13,8 @@ import type {
   Experimental_SpeechTranslationModelV4 as SpeechTranslationModelV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolveWith,
   loadApiKey,
   loadOptionalSetting,
   validateBaseURL,
@@ -20,6 +23,7 @@ import {
   type FetchFunction,
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
+import { Experimental_ExtractionLanguageModel as ExtractionLanguageModel } from '@ai-sdk/provider-utils/experimental-extraction';
 import {
   DecisionOpenAIModel,
   type OpenAIDecisionModelId,
@@ -59,6 +63,9 @@ export interface OpenAIProvider extends ProviderV4 {
   evaluationModel(modelId: OpenAIDecisionModelId): DecisionModelV4 & {
     doEvaluate: DecisionModelV4['doDecide'];
   };
+
+  /** Creates an experimental typed field extraction model using Responses. */
+  extractionModel(modelId: OpenAIResponsesModelId): ExtractionModelV4;
 
   /**
    * Creates an OpenAI model for text generation.
@@ -175,8 +182,9 @@ export interface OpenAIProviderSettings {
 
   /**
    * API key for authenticating requests.
+   * A function is called before each request and may return a promise.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * OpenAI Organization.
@@ -230,18 +238,20 @@ export function createOpenAI(
   const providerName = options.name ?? 'openai';
 
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'OPENAI_API_KEY',
-          description: 'OpenAI',
-        })}`,
-        'OpenAI-Organization': options.organization,
-        'OpenAI-Project': options.project,
-        ...options.headers,
-      },
-      `ai-sdk-openai/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'OPENAI_API_KEY',
+            description: 'OpenAI',
+          })}`,
+          'OpenAI-Organization': options.organization,
+          'OpenAI-Project': options.project,
+          ...options.headers,
+        },
+        `ai-sdk-openai/${VERSION}`,
+      ),
     );
 
   const createChatModel = (modelId: OpenAIChatModelId) =>
@@ -376,6 +386,11 @@ export function createOpenAI(
     });
   provider.evaluationModel =
     provider.decisionModel as OpenAIProvider['evaluationModel'];
+  provider.extractionModel = (modelId: OpenAIResponsesModelId) =>
+    new ExtractionLanguageModel({
+      model: createLanguageModel(modelId),
+      provider: `${providerName}.extraction`,
+    });
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;

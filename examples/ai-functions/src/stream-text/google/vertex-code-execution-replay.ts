@@ -20,7 +20,7 @@ const prompt =
 
 run(async () => {
   const first = streamText({
-    model: googleVertex('gemini-3-flash-preview'),
+    model: googleVertex('gemini-4-hydrogen'),
     tools,
     prompt,
     maxRetries: 0,
@@ -43,7 +43,7 @@ run(async () => {
   print('First turn messages:', firstTurnMessages);
 
   const second = streamText({
-    model: googleVertex('gemini-3-flash-preview'),
+    model: googleVertex('gemini-4-hydrogen'),
     tools,
     messages: [
       { role: 'user', content: prompt },

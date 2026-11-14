@@ -18,7 +18,7 @@ run(async () => {
   ];
 
   const turn1 = await generateText({
-    model: google.interactions('gemini-3.8-flash'),
+    model: google.interactions('gemini-4-hydrogen'),
     messages,
     providerOptions: {
       google: { store: false } satisfies GoogleLanguageModelInteractionsOptions,
@@ -45,7 +45,7 @@ run(async () => {
   });
 
   const turn2 = await generateText({
-    model: google.interactions('gemini-3.8-flash'),
+    model: google.interactions('gemini-4-hydrogen'),
     messages,
     providerOptions: {
       google: { store: false } satisfies GoogleLanguageModelInteractionsOptions,

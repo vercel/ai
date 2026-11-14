@@ -91,7 +91,12 @@ You can use the following optional settings to customize the AI Gateway provider
 
   Use a different URL prefix for API calls. The default prefix is `https://ai-gateway.vercel.sh/v4/ai`.
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
+
+  Pass a callback to resolve the API key before each request. The callback can
+  return a string or a promise; token caching and renewal are handled by the caller.
+  A callback or promise selects API key authentication and must resolve to a
+  non-empty string; lookup failures do not switch authentication methods.
 
   API key or Vercel access token that is being sent using the `Authorization`
   header. It defaults to the `AI_GATEWAY_API_KEY` environment variable.
@@ -221,6 +226,40 @@ started, AI SDK Core exposes it as a
 [`StreamProviderError`](/docs/reference/ai-sdk-errors/ai-stream-provider-error).
 Use its `type`, `code`, `statusCode`, and `isRetryable` metadata to classify
 the failure without inspecting the Gateway's serialized error payload.
+
+## Image Models
+
+AI Gateway supports image generation through `generateImage`. To reduce peak
+memory when receiving large images, opt in to streaming base64 decoding:
+
+```ts
+import { generateImage } from 'ai';
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+
+const { image } = await generateImage({
+  model: 'bfl/flux-kontext-pro',
+  prompt: 'A mountain lake at sunrise',
+  providerOptions: {
+    gateway: {
+      experimental_streamingImageDecoding: true,
+    } satisfies GatewayProviderOptions,
+  },
+});
+
+console.log(image.uint8Array.byteLength);
+```
+
+The option defaults to `false`, preserving base64 strings in provider results.
+When enabled, canonical base64 images of at least 64 KiB are decoded while the
+response arrives. The model returns these images as `Uint8Array`; if a response
+mixes extracted bytes with smaller images, all images in that result become
+bytes. Images that cannot be extracted retain the regular decoding path.
+
+This experimental option changes what image-model middleware sees in
+`result.images`. `GeneratedFile` still provides both `uint8Array` and `base64`,
+but reading `base64` can require re-encoding. Validation errors contain short
+placeholders for extracted data. The option is handled by the client and is
+not sent to the Gateway service.
 
 ## Batch
 
@@ -464,7 +503,72 @@ console.log(ranking);
 
 Reranking models are useful for improving search results in retrieval-augmented generation (RAG) pipelines by re-scoring candidate documents after an initial retrieval step.
 
+## Streaming Speech Models
+
+<Note type="warning">
+  Streaming speech is experimental and the API may change in patch releases.
+</Note>
+
+Speech models that support streaming can be used with
+`experimental_streamSpeech`. The gateway provider connects to AI Gateway over a
+WebSocket, forwards text deltas as they arrive, and streams audio chunks back.
+Gateway WebSocket auth is carried in the subprotocols, so no header-capable
+WebSocket implementation is needed.
+
+Streaming speech works only with models that the
+[AI Gateway model catalog](https://vercel.com/ai-gateway/models) lists with
+streaming speech support. The model ID below is illustrative; check the catalog
+for current availability.
+
+```ts
+import { experimental_streamSpeech as streamSpeech } from 'ai';
+
+const result = streamSpeech({
+  model: 'elevenlabs/eleven-flash-v2.5',
+  text: textStream, // a string, or an array or stream of strings and/or text parts
+  outputFormat: { type: 'audio/pcm', rate: 24000 },
+});
+
+for await (const chunk of result.audioStream) {
+  // Uint8Array audio bytes
+}
+
+console.log(await result.usage); // { inputCharacters: ... }
+```
+
+### Streaming Speech in the Browser
+
+To stream speech from browser code without exposing your Gateway credential,
+mint a short-lived client secret on your server with
+`gateway.experimental_speech.getToken()` and pass the token to the browser.
+The token is bound to the streaming speech surface and the requested model.
+
+```ts
+// Server
+import { gateway } from '@ai-sdk/gateway';
+
+const { token } = await gateway.experimental_speech.getToken({
+  model: 'elevenlabs/eleven-flash-v2.5',
+  expiresAfterSeconds: 60,
+});
+```
+
+```ts
+// Browser
+import { createGateway } from '@ai-sdk/gateway';
+import { experimental_streamSpeech as streamSpeech } from 'ai';
+
+const gateway = createGateway({ apiKey: token });
+
+const result = streamSpeech({
+  model: gateway.experimental_speech('elevenlabs/eleven-flash-v2.5'),
+  text: textStream,
+});
+```
+
 ## Realtime Models
+
+For a trusted [server-owned connection](/docs/ai-sdk-core/realtime#server-owned-connections), `getServerWebSocketConfig()` reuses Gateway HTTP authentication, protocol, team and custom headers. Only the conversation intent is supported. The identity codec passes through normalized usage only when the Gateway route includes it in its events; credentials in connection settings remain on your server.
 
 <Note type="warning">
   Realtime support is experimental and the API may change in patch releases.
@@ -708,6 +812,9 @@ It returns a `GatewayGenerationInfo` object with the following fields:
 
 - **id** _string_ - The generation ID
 - **totalCost** _number_ - Total cost in USD
+- **marketCost** _number (optional)_ - Market cost in USD, excluding surcharges
+- **surchargeCost** _number (optional)_ - Total surcharges applied in USD
+- **gatewayCost** _number (optional)_ - Total amount debited in USD
 - **upstreamInferenceCost** _number_ - Upstream inference cost in USD (relevant for BYOK)
 - **usage** _number_ - Usage cost in USD (same as totalCost)
 - **createdAt** _string_ - ISO 8601 timestamp when the generation was created
@@ -724,6 +831,11 @@ It returns a `GatewayGenerationInfo` object with the following fields:
 - **cachedTokens** _number_ - Cached tokens used (if applicable)
 - **cacheCreationTokens** _number_ - Cache creation input tokens
 - **billableWebSearchCalls** _number_ - Number of billable web search calls
+
+The optional cost breakdown fields contain the values reported by AI Gateway.
+Fields that are missing or `null` in the API response are omitted from the result,
+so unavailable costs remain distinct from a reported cost of zero. The SDK does
+not calculate these fields from other costs.
 
 ## Examples
 
@@ -1144,7 +1256,7 @@ console.log('Tool calls:', JSON.stringify(result.toolCalls, null, 2));
 console.log('Tool results:', JSON.stringify(result.toolResults, null, 2));
 ```
 
-Configure the search with effort, source selection, and localization defaults. These defaults override values the model includes in a tool call:
+Configure the search with effort, source selection, and localization defaults. These defaults override values the model includes in a tool call. `variableCost`, `maxVariableCostUsd`, and `extraBody` are developer-only: the model can't see or set them.
 
 ```ts
 import { gateway, generateText } from 'ai';
@@ -1199,6 +1311,43 @@ The Tako Search tool supports these optional configuration options:
 - **timezone** _string_ - IANA timezone, such as `'America/New_York'`.
 - **outputSettings** _object_ - Card rendering controls. `forceRefresh` is available only with `'instant'` effort.
 - **includeRelated** _number_ - Number of related search suggestions to include (1-20).
+- **variableCost** _boolean_ - Serve data from sources priced per unit, such as web traffic and SEO. Each such card adds a charge, and the total per call is capped by `maxVariableCostUsd`. Defaults to `true`. Set it to `false` to opt out; those cards then come back as placeholders. Only searches that include the data index (`sources.data` set, or `sources` omitted) return these cards.
+- **maxVariableCostUsd** _number | null_ - The most one search call can be charged in variable cost, in USD.
+  - Defaults to `0.25`, and `null` removes the cap.
+  - Tako checks each card's maximum charge (`content.export_pricing.variable_cost_max_usd`) in rank order. A card that doesn't fit comes back as a placeholder with `reason: 'over_cap'`, even if its actual charge would have fit.
+  - `0` returns only the cards whose charge the base price already covers.
+  - It can't be combined with `variableCost: false`.
+- **extraBody** _Record&lt;string, unknown&gt;_ - Extra Tako request fields, in snake_case, deep-merged into the request body last. Objects merge, and scalars and arrays replace. Use it for Tako parameters this tool doesn't model yet. Its limits:
+  - It can't set a field the tool already models, including the `sources.data` variable-cost fields. The gateway answers `invalid_input`.
+  - Tako rejects unknown keys, so a typo comes back as an `api_error`.
+  - It's limited to 16,384 serialized characters.
+
+When Tako withholds a card's data, it returns a placeholder card instead. A placeholder keeps its title and a description but carries no data. `placeholder.withheld_source` names the source, and `placeholder.reason` is `'not_served'` (variable cost is off, or the account isn't served that source) or `'over_cap'`. `usage.variable_cost.cost_usd` reports the variable-cost charge for the call:
+
+```ts
+import { gateway, generateText } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-5.4-nano',
+  prompt: 'How much monthly web traffic does vercel.com get?',
+  tools: {
+    tako_search: gateway.tools.takoSearch({
+      sources: { data: {}, web: {} },
+      maxVariableCostUsd: 0.1,
+    }),
+  },
+});
+
+for (const toolResult of result.toolResults) {
+  if (toolResult.dynamic || 'error' in toolResult.output) continue;
+  for (const card of toolResult.output.cards ?? []) {
+    if (card.placeholder) {
+      const reason = card.placeholder.reason ?? 'not_served';
+      console.log(`Withheld (${reason}):`, card.title);
+    }
+  }
+}
+```
 
 For precise entity matching, quote a phrase in the query and optionally append a label: `"Tesla":PRODUCT price`. Tako treats the quoted phrase as one entity before searching.
 
@@ -1354,6 +1503,100 @@ for await (const part of result.stream) {
 }
 ```
 
+#### DeepSeek Search and Fetch
+
+Use `gateway.tools.deepseekSearch()` to search the web and
+`gateway.tools.deepseekFetch()` to retrieve a page as Markdown. Both tools call
+DeepSeek's standalone Search/Fetch APIs from AI Gateway and work with supported
+tool-calling models from any provider. They are separate from a model's built-in
+web search. No additional model provider package is required.
+
+```ts
+import { gateway, generateText } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-6-luna',
+  prompt: 'Search for DeepSeek API documentation and fetch a relevant page.',
+  tools: {
+    deepseek_search: gateway.tools.deepseekSearch({
+      count: 5,
+      needContent: true,
+    }),
+    deepseek_fetch: gateway.tools.deepseekFetch(),
+  },
+});
+
+console.log(result.text);
+console.log(result.toolResults);
+for (const part of result.content) {
+  if (part.type === 'tool-error') console.error('Tool error:', part.error);
+}
+```
+
+The Search tool supports the following optional configuration options:
+
+- **query** _string_
+
+  Pin the search query; otherwise the model chooses it. Queries contain 1–128 Unicode characters and cannot be all whitespace.
+
+- **count** _number_
+
+  Number of results, 1–50 (default: 10).
+
+- **needContent** _boolean_
+
+  Include available page content (default: false).
+
+- **oriQuestion** _string | null_
+
+  Original question, 1–128 Unicode characters. `null` means not provided.
+
+- **localization** _string_
+
+  IP address used to localize results; developer configuration only.
+
+The model-facing input uses `query`, `count`, `need_content`, and `ori_question`.
+Queries support search operators including `site:`, `-site:`, `lang:`, `after:`,
+`before:`, and quoted phrases. Search returns `{ results }`, containing ranked
+URLs, titles, snippets, summaries, optional page content, and nullable site/date
+metadata. An empty `results` array is a successful search with no matches.
+
+Fetch accepts an HTTP(S) `url` up to 8,192 characters, without a username or
+password, and returns `{ content, title? }`. The content is Markdown. You can
+pin the URL with `gateway.tools.deepseekFetch({ url: 'https://example.com' })`.
+The Fetch tool supports the following optional configuration option:
+
+- **url** _string_
+
+  Pin the HTTP(S) URL; otherwise the model chooses it.
+
+Tool failures appear as `tool-error` parts in `result.content` (for
+`generateText`) or `result.stream` (for `streamText`). Inspect `part.error`
+there; failures are not included in `result.toolResults`.
+
+The tools also work with `streamText`:
+
+```ts
+import { gateway, streamText } from 'ai';
+
+const result = streamText({
+  model: 'openai/gpt-6-luna',
+  prompt: 'Search for DeepSeek API documentation and fetch a relevant page.',
+  tools: {
+    deepseek_search: gateway.tools.deepseekSearch(),
+    deepseek_fetch: gateway.tools.deepseekFetch(),
+  },
+});
+
+for await (const part of result.stream) {
+  if (part.type === 'text-delta') process.stdout.write(part.text);
+  if (part.type === 'tool-error') console.error('Tool error:', part.error);
+}
+```
+
+See the [DeepSeek API guide](https://api-docs.deepseek.com/guides/search/) for the
+underlying APIs.
+
 ### Custom Reporting
 
 Track usage per end-user and categorize requests with tags, then query the data through the reporting API.
@@ -1459,7 +1702,7 @@ The AI Gateway provider accepts provider options that control routing behavior a
 
 ### Gateway Provider Options
 
-You can use the `gateway` key in `providerOptions` to control how AI Gateway routes requests:
+You can use the `gateway` key in `providerOptions` to control how AI Gateway routes requests. Without any routing options, AI Gateway picks providers based on recent uptime and latency and falls back to other providers that serve the same model, so most applications don't need to set them.
 
 ```ts
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
@@ -1470,8 +1713,7 @@ const { text } = await generateText({
   prompt: 'Explain quantum computing',
   providerOptions: {
     gateway: {
-      order: ['vertex', 'anthropic'], // Try Vertex AI first, then Anthropic
-      only: ['vertex', 'anthropic'], // Only use these providers
+      order: ['vertex', 'anthropic'], // Try Vertex AI first, then Anthropic, then other providers
     } satisfies GatewayProviderOptions,
   },
 });
@@ -1488,6 +1730,8 @@ The following gateway provider options are available:
 - **only** _string[]_
 
   Restricts routing to only the specified providers. When set, the gateway will never route to providers not in this list, even if they would otherwise be available.
+
+  Because unlisted providers are never tried, the request fails instead of falling back when the listed providers are unavailable. When the requirement is about data handling or a model capability, `zeroDataRetention`, `disallowPromptTraining`, or `has` filter by that requirement while keeping every qualifying provider eligible.
 
   Example: `only: ['anthropic', 'vertex']` will only allow routing to Anthropic or Vertex AI.
 
@@ -1508,7 +1752,7 @@ The following gateway provider options are available:
 
   Specifies fallback models in attempt order. String entries keep their existing behavior: the gateway tries them when the primary model fails or is unavailable. Decision requests can also start the list with one conditional `{ model, when }` entry to retry a successful but uncertain decision with another model. Only the first entry can be conditional, and only one conditional entry is allowed. If the primary model fails, the gateway also advances to the conditional entry under its existing error fallback behavior. Conditional entries are rejected on non-decision requests.
 
-  Example: `models: ['openai/gpt-5.4-nano', 'google/gemini-3.8-flash']` will try the fallback models in order if the primary model fails.
+  Example: `models: ['openai/gpt-5.4-nano', 'google/gemini-4-hydrogen']` will try the fallback models in order if the primary model fails.
 
   A direct condition uses `{ question, confidenceBelow }` for Choice and Score questions, or `{ question, probabilityBetween: [minimum, maximum] }` for Boolean questions. Leave out `question` to check every question of that type: `{ confidenceBelow: 0.6 }` matches when any Choice or Score answer is below 0.6, and a request with no Choice or Score questions never matches it. Boolean probability is P(true), not confidence in the selected Boolean outcome. Bounds are inclusive, finite, ordered, and within `[0, 1]`.
 
@@ -1547,6 +1791,10 @@ The following gateway provider options are available:
 - **disallowPromptTraining** _boolean_
 
   Restricts routing to providers that have agreements with Vercel for AI Gateway to not use prompts for model training. When using BYOK credentials, this filter is not applied. If BYOK credentials fail and the request falls back to system credentials, only providers that do not train on prompt data will be used. If there are no providers available for the model that disallow prompt training, the request will fail.
+
+- **headquarters** _string[]_
+
+  Restricts routing to providers whose parent company is headquartered in the listed countries, given as ISO 3166-1 alpha-2 codes (for example `['US', 'DE']`). To exclude countries instead, prefix every code with `!`, as in `['!US']`. A list can't mix allowed and excluded countries. The filter applies to both BYOK and system credentials, since it's about the provider rather than the credential. Providers without a recorded headquarters country are always excluded. If no provider for the model is headquartered in an allowed country, the request fails.
 
 - **quotaEntityId** _string_
 
@@ -1601,7 +1849,7 @@ The following gateway provider options are available:
   });
   ```
 
-You can combine these options to have fine-grained control over routing and tracking:
+You can combine these options to have fine-grained control over routing and tracking. For example, prefer Vertex AI while keeping fallbacks, and require zero data retention:
 
 ```ts
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
@@ -1613,7 +1861,7 @@ const { text } = await generateText({
   providerOptions: {
     gateway: {
       order: ['vertex'], // Prefer Vertex AI
-      only: ['anthropic', 'vertex'], // Only allow these providers
+      zeroDataRetention: true, // Only route to providers with zero data retention agreements
     } satisfies GatewayProviderOptions,
   },
 });
@@ -1632,7 +1880,7 @@ const { text } = await generateText({
   prompt: 'Write a TypeScript haiku',
   providerOptions: {
     gateway: {
-      models: ['openai/gpt-5.4-nano', 'google/gemini-3.8-flash'], // Fallback models
+      models: ['openai/gpt-5.4-nano', 'google/gemini-4-hydrogen'], // Fallback models
     } satisfies GatewayProviderOptions,
   },
 });
@@ -1640,7 +1888,7 @@ const { text } = await generateText({
 // This will:
 // 1. Try openai/gpt-6-astra first
 // 2. If it fails, try openai/gpt-5.4-nano
-// 3. If that fails, try google/gemini-3.8-flash
+// 3. If that fails, try google/gemini-4-hydrogen
 // 4. Return the result from the first model that succeeds
 ```
 

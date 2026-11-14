@@ -19,6 +19,10 @@ The content sync generates `apps/docs/content/` from three reviewed sources:
 - v5 documentation from the commit pinned in
   `scripts/sync-content.mjs`.
 
+`dev:site` syncs only v7 so the dev server starts faster; v5 and v6 pages
+return 404. Set `DOCS_ALL_VERSIONS=1` to include them. Builds always include
+every version.
+
 Generated content, Fumadocs source files, and Next.js output are ignored by
 Git. Run the complete local validation with:
 
@@ -30,7 +34,7 @@ To run the versioned-search browser regression, start the docs server on port
 3217, then run the test from the repository root (requires Playwright Chromium):
 
 ```bash
-pnpm --filter ai-sdk-docs dev:site --port 3217
+DOCS_ALL_VERSIONS=1 pnpm --filter ai-sdk-docs dev:site --port 3217
 node --test apps/docs/scripts/search.e2e.mjs
 ```
 
@@ -61,6 +65,17 @@ labeled with the `siteId` exported from `geistdocs.tsx`. Social cards are
 rendered by `app/[lang]/og/[...slug]/route.tsx`, which serves both the
 Geistdocs URL shape (`/og/<slugs>/image.png`) and the legacy production
 shape (`/og/docs?title=…&description=…`).
+
+The homepage and docs share `lib/geistdocs/og.tsx` and its local Geist Sans and
+Geist Mono fonts, copied from the Geistdocs 2.15.3 template (`1efeba6`). The
+1200×630 cards use a black background, Vercel triangle, white title, and a gray
+monospace description. The text uses the card's full padded width and is centered
+between the logo and the bottom of the card. Satori measures the wrapped text
+with the bundled fonts; oversized text scales down and reflows automatically,
+without line limits or ellipses. Keep our route's source lookup and cache headers
+when adopting future template updates. Bump the image
+URL version in `lib/og.ts` when changing the design so immutable query-based
+cards refresh.
 
 Mirroring production, every cookbook recipe is served on two URL surfaces:
 `/cookbook/...` and `/resources/recipes/...`. The sitemap, llms.txt, and
@@ -96,7 +111,7 @@ the original interactive section (simulated generation progress, custom audio
 player, animated transcription and provider carousel) and uses `motion`.
 The Core/UI section in `components/home/code-examples/` mirrors the one on
 vercel.com/ai-sdk, with a live preview for each example and a Code view.
-Image/video previews and the social card use the existing public Blob store,
+Image/video previews use the existing public Blob store,
 and speech uses the original ElevenLabs audio sample.
 Stats are cached hourly and fall back to conservative counts if public npm or
 GitHub requests fail. Starter prompts live in `lib/home/prompt-templates.ts`.

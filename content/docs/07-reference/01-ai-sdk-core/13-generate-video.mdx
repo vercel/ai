@@ -166,7 +166,7 @@ console.log(videos);
       type: '(options: { url: URL; abortSignal?: AbortSignal }) => Promise<{ data: Uint8Array; mediaType: string | undefined }>',
       isOptional: true,
       description:
-        'Custom download function for fetching videos from URLs. Use `createDownload()` from `ai` to create a download function with custom size limits, e.g. `createDownload({ maxBytes: 50 * 1024 * 1024 })`. Default: built-in download with 2 GiB limit.',
+        'Custom download function for fetching videos from URLs. Use `createDownload()` from `ai` to create a download function with a custom size limit (e.g. `createDownload({ maxBytes: 50 * 1024 * 1024 })`) or fetch transport (e.g. `createDownload({ fetch })` with `guarded-fetch` on Node.js for untrusted URLs). Default: built-in download with 2 GiB limit.',
     },
     {
       name: 'poll',
@@ -220,7 +220,8 @@ console.log(videos);
     {
       name: 'video',
       type: 'GeneratedFile',
-      description: 'The first video that was generated.',
+      description:
+        'The first video available to the SDK. For upload-only results, accessing this property throws NoVideoGeneratedError; use uploadedVideos instead.',
       properties: [
         {
           type: 'GeneratedFile',
@@ -272,6 +273,12 @@ console.log(videos);
           ],
         },
       ],
+    },
+    {
+      name: 'uploadedVideos',
+      type: 'number',
+      description:
+        'Number of videos delivered directly to caller-managed storage by the provider. These are not downloaded and are not included in videos.',
     },
     {
       name: 'warnings',

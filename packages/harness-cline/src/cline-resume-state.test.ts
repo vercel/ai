@@ -57,38 +57,59 @@ describe('clineResumeStateSchema', () => {
 });
 
 describe('resolveClinePrivateSessionDirectory', () => {
-  it('creates a stable private directory outside the session workspace', () => {
-    const privateSessionDir = resolveClinePrivateSessionDirectory({
-      sandboxHomeDir: '/sandbox/home',
-      sessionWorkDir: '/sandbox/work/cline-s1',
-      sessionId: '../unsafe/session-id',
-    });
-
-    expect(privateSessionDir).toMatch(
-      /^\/sandbox\/home\/\.ai-sdk\/harness-cline\/[a-f0-9]{64}$/,
-    );
-    expect(privateSessionDir).toBe(
-      resolveClinePrivateSessionDirectory({
+  it.each([
+    { sessionId: 'session-1', segment: 'session-1' },
+    { sessionId: '../unsafe/session-id', segment: '..%2Funsafe%2Fsession-id' },
+    { sessionId: 'a/b', segment: 'a%2Fb' },
+    { sessionId: 'a%2Fb', segment: 'a%252Fb' },
+    { sessionId: '..', segment: '%2E%2E' },
+    { sessionId: '', segment: '%' },
+  ])(
+    'keeps $sessionId in one stable session directory',
+    ({ sessionId, segment }) => {
+      const privateSessionDir = resolveClinePrivateSessionDirectory({
         sandboxHomeDir: '/sandbox/home',
         sessionWorkDir: '/sandbox/work/cline-s1',
-        sessionId: '../unsafe/session-id',
-      }),
-    );
-  });
+        sessionId,
+      });
 
-  it('rejects a private directory inside the session workspace', () => {
-    expect(() =>
-      resolveClinePrivateSessionDirectory({
-        sandboxHomeDir: '/sandbox/work/cline-s1',
-        sessionWorkDir: '/sandbox/work/cline-s1',
-        sessionId: 'session-1',
-      }),
-    ).toThrow(/must be outside sessionWorkDir/);
-  });
+      expect(privateSessionDir).toBe(
+        `/sandbox/home/.ai-sdk-harness/.agent-runs/${segment}/cline`,
+      );
+      expect(privateSessionDir).toBe(
+        resolveClinePrivateSessionDirectory({
+          sandboxHomeDir: '/sandbox/home',
+          sessionWorkDir: '/sandbox/work/cline-s1',
+          sessionId,
+        }),
+      );
+    },
+  );
+
+  it.each([
+    '/sandbox/home',
+    '/sandbox/home/.ai-sdk-harness/.agent-runs/session-1',
+    '/sandbox/home/.ai-sdk-harness/.agent-runs/session-1/cline',
+  ])(
+    'rejects private state inside or equal to workspace %s',
+    sessionWorkDir => {
+      expect(() =>
+        resolveClinePrivateSessionDirectory({
+          sandboxHomeDir: '/sandbox/home',
+          sessionWorkDir,
+          sessionId: 'session-1',
+        }),
+      ).toThrow(/must be outside sessionWorkDir/);
+    },
+  );
 });
 
 describe('persist/pull history round trip', () => {
-  const privateSessionDir = '/sandbox/home/.ai-sdk/harness-cline/session-key';
+  const privateSessionDir = resolveClinePrivateSessionDirectory({
+    sandboxHomeDir: '/sandbox/home',
+    sessionWorkDir: '/sandbox/work/cline-s1',
+    sessionId: 'session-1',
+  });
   const messages = [
     {
       id: 'm1',
@@ -109,7 +130,7 @@ describe('persist/pull history round trip', () => {
       messages,
     });
     expect([...files.keys()]).toEqual([
-      '/sandbox/home/.ai-sdk/harness-cline/session-key/history.json',
+      '/sandbox/home/.ai-sdk-harness/.agent-runs/session-1/cline/history.json',
     ]);
 
     const restored = await pullHistoryFromSandbox({
@@ -134,7 +155,7 @@ describe('persist/pull history round trip', () => {
   it('returns undefined for corrupt history content', async () => {
     const files = new Map([
       [
-        '/sandbox/home/.ai-sdk/harness-cline/session-key/history.json',
+        '/sandbox/home/.ai-sdk-harness/.agent-runs/session-1/cline/history.json',
         'not json',
       ],
     ]);
@@ -151,7 +172,7 @@ describe('persist/pull history round trip', () => {
   it('returns undefined for history with unsafe prototype properties', async () => {
     const files = new Map([
       [
-        '/sandbox/home/.ai-sdk/harness-cline/session-key/history.json',
+        '/sandbox/home/.ai-sdk-harness/.agent-runs/session-1/cline/history.json',
         '[{"__proto__":{"polluted":true}}]',
       ],
     ]);

@@ -93,6 +93,18 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
     ).toExtend<HarnessAgentAdapter<any>>();
   });
 
+  test('createClaudeCode accepts an optional boolean autoMode', () => {
+    expectTypeOf<ClaudeCodeHarnessSettings['autoMode']>().toEqualTypeOf<
+      boolean | undefined
+    >();
+    assertType<HarnessAgentSettings['harness']>(
+      createClaudeCode({ autoMode: true }),
+    );
+    createClaudeCode({ autoMode: false });
+    // @ts-expect-error - autoMode must be a boolean, not a permission mode
+    createClaudeCode({ autoMode: 'auto' });
+  });
+
   test('createClaudeCode accepts asynchronous credential forwarding', () => {
     expectTypeOf(
       createClaudeCode({
@@ -101,8 +113,40 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
     ).toExtend<HarnessAgentAdapter<any>>();
   });
 
+  test('createClaudeCode accepts skill overrides', () => {
+    const skillOverrides = {
+      'enabled-skill': 'on',
+      'name-only-skill': 'name-only',
+      'user-invocable-skill': 'user-invocable-only',
+      'disabled-skill': 'off',
+    } as const;
+
+    expectTypeOf(createClaudeCode({ skillOverrides })).toExtend<
+      HarnessAgentAdapter<any>
+    >();
+    // @ts-expect-error - Claude Code only accepts its supported skill override modes
+    createClaudeCode({ skillOverrides: { init: 'disabled' } });
+    // @ts-expect-error - arbitrary Claude Code settings are not part of this API
+    createClaudeCode({ settings: { skillOverrides: { init: 'off' } } });
+  });
+
+  test('createClaudeCode accepts question timeout and dynamic section settings', () => {
+    const settings: ClaudeCodeHarnessSettings = {
+      questionTimeoutMs: 600_000,
+      excludeDynamicSections: true,
+    };
+    createClaudeCode(settings);
+    expectTypeOf(settings.questionTimeoutMs).toEqualTypeOf<
+      number | undefined
+    >();
+    expectTypeOf(settings.excludeDynamicSections).toEqualTypeOf<
+      boolean | undefined
+    >();
+  });
+
   test('createClaudeCode accepts sandbox bridge reconnect settings', () => {
     const settings: ClaudeCodeHarnessSettings = {
+      turnStartTimeoutMs: 60_000,
       reconnect: {
         maxElapsedMs: 120_000,
         initialDelayMs: 100,

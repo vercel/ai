@@ -6,6 +6,7 @@ description: Learn how to use HeyGen with AI Gateway and the direct provider.
 # HeyGen Provider
 
 The [HeyGen](https://developers.heygen.com/docs/models/heygen-video) provider supports `heygen-video-1`, a video generation model with text-to-video, image-to-video, and reference-to-video modes. Generated clips include audio.
+It also supports [HeyGen Decision](#decision-models) models, which classify, check, and score text, images, and video.
 You can use HeyGen models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended) or connect directly with `@ai-sdk/heygen`.
 
 ```ts provider="heygen" model="heygen/heygen-video-1"
@@ -60,7 +61,7 @@ AI Gateway does not expose every API in `@ai-sdk/heygen`. Use the direct provide
   availability can differ.
 </Note>
 
-This provider supports video generation only. HeyGen's avatar, voice, translation, and video editing APIs are not included.
+This provider supports video generation and decision models. HeyGen's avatar, voice, translation, and video editing APIs are not included.
 
 ## Provider Instance
 
@@ -82,7 +83,12 @@ const heygen = createHeyGen({
 
 The following settings are optional:
 
-- **apiKey** _string_: The key sent in the `x-api-key` header. Defaults to the `HEYGEN_API_KEY` environment variable.
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_: The key sent in the `x-api-key` header. Defaults to the `HEYGEN_API_KEY` environment variable.
+
+  Pass a function to resolve credentials before each request, including when keys
+  rotate. The function can return a string or a promise. Credential caching and
+  refresh are managed by the function.
+
 - **baseURL** _string_: The API URL prefix. Defaults to `https://api.heygen.com`.
 - **headers** _Record&lt;string, string&gt;_: Additional request headers.
 - **fetch** _typeof fetch_: A custom fetch implementation.
@@ -144,7 +150,7 @@ const { videos } = await generateVideo({
 
 References are grouped by media type, preserving order within each group. Address them in the prompt as `<Picture 1>`, `<Video 1>`, and `<Audio 1>`. Provider-option references are appended after standard references of the same kind.
 
-Reference-to-video requires at least one image or video. Audio-only conditioning is not supported. HeyGen accepts up to 9 image references, 3 video references, and 3 audio references, with a combined maximum of 12. Only the first 5 seconds of each reference video are used.
+Reference-to-video requires at least one image or video. Audio-only conditioning is not supported. The adapter accepts up to 9 image references, 3 video references, and 3 audio references, with a combined maximum of 12. Reference videos share a 15-second input budget across the request. Footage within that budget is used in full; longer references are allocated and trimmed by HeyGen. See the [reference-video rules](https://developers.heygen.com/docs/models/heygen-video#references-and-prompt-labels).
 
 ### Provider Options
 
@@ -168,7 +174,7 @@ const { videos } = await generateVideo({
 
 - **mode** _'text_to_video' | 'image_to_video' | 'reference_to_video'_: Inferred from the inputs when omitted. Explicit modes must match the supplied inputs. First-frame images cannot be combined with references.
 - **resolution** _'480p' | '768p' | '1080p' | '2k'_: Output size class. Defaults to `768p`. Takes precedence over the standard `resolution` option.
-- **promptEnhancement** _'turbo' | 'quality' | 'disabled'_: HeyGen's prompt enhancement setting. The API defaults to `turbo`.
+- **promptEnhancement** _'turbo' | 'quality' | 'ultraquality' | 'disabled'_: HeyGen's prompt enhancement setting. The API defaults to `quality`.
 - **image** _HeyGenVideoAsset_: First-frame input, including an existing asset ID. Cannot be combined with a standard image or `frameImages`.
 - **referenceImages** _HeyGenVideoAsset[]_: Additional image references.
 - **referenceVideos** _HeyGenVideoAsset[]_: Additional video references.
@@ -202,7 +208,7 @@ Text-to-video defaults to `16:9`. Reference-to-video defaults to `adaptive`, inh
 ### Other Constraints
 
 - Prompts must contain between 1 and 32,000 characters.
-- Duration must be an integer from 5 to 15 seconds; the default is 5.
+- The SDK accepts positive whole-second durations and forwards them unchanged. HeyGen currently supports 5–30 seconds for text-to-video and image-to-video with `quality` or `turbo` prompt enhancement, and 5–15 seconds for reference-to-video or `ultraquality`/`disabled` enhancement. The default duration is 5. The API enforces these limits; see [duration limits](https://developers.heygen.com/docs/models/heygen-video#duration-limits).
 - Seeds must be unsigned 32-bit integers.
 - One video is generated per provider call.
 - Output is MP4 at 24 fps with generated audio. Unsupported `fps` values and `generateAudio: false` produce warnings.
@@ -228,3 +234,166 @@ Pass an `Idempotency-Key` through the standard `headers` option when retrying th
 Submission and in-progress operation metadata exposes `videoId`, `mode`, and `resolution` directly under `providerMetadata.heygen`. Failed or cancelled operations also expose `failureCode` when HeyGen reports it.
 
 The current HeyGen video endpoint does not document token counts or credit consumption in its generation response. The provider returns the reported duration and dimensions without estimating those quantities. Reported inference timing is preserved per video.
+
+## Decision Models
+
+Use `heygen.decisionModel()` with
+[`experimental_decide`](/docs/reference/ai-sdk-core/decide) to call the
+[HeyGen Decision API](https://developers.heygen.com/docs/models/heygen-decision).
+This API is experimental and may change in patch releases.
+
+```ts
+import { heygen } from '@ai-sdk/heygen';
+import { experimental_decide as decide } from 'ai';
+
+const result = await decide({
+  model: heygen.decisionModel('heygen-decision-1'),
+  state:
+    'Video export fails for everyone on our team after today’s update. We have no workaround.',
+  questions: {
+    team: {
+      type: 'choice',
+      instructions: 'Which support team should handle this request?',
+      criteria: {
+        video: 'Video creation, rendering, or export problems',
+        account: 'Sign-in, access, or workspace administration',
+        billing: 'Payments, invoices, or subscription charges',
+      },
+    },
+    blocked: {
+      type: 'boolean',
+      instructions: 'Is the customer unable to work without a workaround?',
+    },
+    impact: {
+      type: 'score',
+      instructions: 'How much does this issue affect the customer’s work?',
+      criteria: ['Cosmetic', 'Slower, with a workaround', 'Blocked'],
+    },
+  },
+});
+
+result.answers.blocked.probability; // P(true), from 0 to 1
+result.answers.team.choice; // 'video' | 'account' | 'billing'
+result.answers.impact.score; // Expected zero-based level, from 0 to 2
+```
+
+`heygen-decision-1` and `heygen-decision-1-turbo` are available. The provider
+maps SDK `boolean` questions to HeyGen's native `noul` type and returns Choice
+and Score probability distributions without rounding. Box questions are
+unsupported.
+
+### Images and video
+
+Add image and video file parts to `state`. The provider sends them as HeyGen
+`assets` and keeps text and JSON parts in the native `state`. HeyGen reads
+images first, then videos, then the state, each in request order, so describe
+each input's role in the text by its order:
+
+```ts
+import { readFileSync } from 'node:fs';
+
+const result = await decide({
+  model: heygen.decisionModel('heygen-decision-1'),
+  state: [
+    {
+      type: 'text',
+      text: 'The first image is the reference product; the video is the unboxing.',
+    },
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: readFileSync('reference.png'),
+    },
+    {
+      type: 'file',
+      mediaType: 'video/mp4',
+      data: readFileSync('unboxing.mp4'),
+    },
+  ],
+  questions: {
+    matches: {
+      type: 'boolean',
+      instructions: 'Does the unboxed product match the reference product?',
+    },
+  },
+});
+```
+
+Inline file data is sent as base64. When calling the model directly, HTTPS URL
+file data is passed to HeyGen as a URL, and a provider reference such as
+`{ type: 'reference', reference: { heygen: assetId } }` is sent as an uploaded
+HeyGen asset. `experimental_decide` downloads URL file state before calling the
+provider.
+
+### Confidence, legends, and response metadata
+
+HeyGen's confidence values and Score legends are available in
+`providerMetadata.heygen`, keyed by question ID. Confidence is distinct from the
+selected option's probability. Per-answer diagnostic warnings returned by HeyGen
+are available at `providerMetadata.heygen.answerWarnings`.
+
+```ts
+const metadata = result.providerMetadata?.heygen;
+console.log(metadata?.confidence); // Choice and Score confidence by question ID
+console.log(metadata?.legend); // Score index-to-description maps by question ID
+console.log(metadata?.answerWarnings); // Diagnostic warnings by question ID
+console.log(metadata?.requestId); // HeyGen request ID for support
+console.log(result.response.id); // HeyGen decision ID
+console.log(result.usage.inputTokens);
+```
+
+### Decision limits
+
+The provider validates these limits before sending the decision request:
+
+| Input          | Limit                                                                      |
+| -------------- | -------------------------------------------------------------------------- |
+| Questions      | 1–400; names nonempty, without colons, newlines, or surrounding whitespace |
+| Choice options | 1–255                                                                      |
+| Score levels   | 1–10, all non-null                                                         |
+| Media          | At most 4 images and 1 video; HTTPS URLs only                              |
+
+See HeyGen's [media limits](https://developers.heygen.com/docs/models/heygen-decision#media-limits)
+and [context limits](https://developers.heygen.com/docs/models/heygen-decision#context-limits)
+for API-enforced file-size and token limits. HeyGen decision models do not accept
+provider-specific options, `maxOutputTokens`, or `reasoning`; these produce
+unsupported warnings and are not sent to the API.
+
+### Decision Model Capabilities
+
+{/* model-capabilities:heygen-decision:start */}
+
+| Model                     | Boolean   | Choice    | Score     | Box       | Image Input | Reasoning | Max Output Tokens |
+| ------------------------- | --------- | --------- | --------- | --------- | ----------- | --------- | ----------------- |
+| `heygen-decision-1`       | <Check /> | <Check /> | <Check /> | <Cross /> | <Check />   | <Cross /> | <Cross />         |
+| `heygen-decision-1-turbo` | <Check /> | <Check /> | <Check /> | <Cross /> | <Check />   | <Cross /> | <Cross />         |
+
+{/* model-capabilities:heygen-decision:end */}
+
+## Model Capabilities
+
+{/* model-capabilities:heygen-video:start */}
+
+| Model            | Image Input | First Frame | Last Frame | Reference Images | Reference Video | Audio                                                                | Aspect Ratio                                            | Resolution                                              | Duration  | FPS                           | Seed      |
+| ---------------- | ----------- | ----------- | ---------- | ---------------- | --------------- | -------------------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------- | --------- | ----------------------------- | --------- |
+| `heygen-video-1` | <Check />   | <Check />   | <Cross />  | <Check />        | <Check />       | Conditional: Audio is always generated; disabling it is unsupported. | Conditional: Supported outside reference-to-video mode. | Conditional: Supported outside reference-to-video mode. | <Check /> | Conditional: Fixed at 24 fps. | <Check /> |
+
+{/* model-capabilities:heygen-video:end */}
+
+## Provider Option Reference
+
+The following option definitions are generated from the provider catalog.
+
+{/* model-capabilities:heygen-provider-options:start */}
+
+| Operation | Option              | Description                                                                                |
+| --------- | ------------------- | ------------------------------------------------------------------------------------------ |
+| video     | `mode`              | Inferred from the supplied image and references when omitted.                              |
+| video     | `resolution`        | Output size class. Takes precedence over the standard resolution option.                   |
+| video     | `promptEnhancement` | Defaults to quality. Use disabled to preserve the original prompt.                         |
+| video     | `image`             | First frame, including an existing HeyGen asset. Cannot be combined with a standard image. |
+| video     | `referenceImages`   | Additional references, appended after standard inputReferences of the same kind.           |
+| video     | `referenceVideos`   | referenceVideos                                                                            |
+| video     | `referenceAudio`    | referenceAudio                                                                             |
+
+{/* model-capabilities:heygen-provider-options:end */}

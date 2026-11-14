@@ -9,6 +9,43 @@ import {
 } from './create-emit-stream-event';
 
 describe('createEmitStreamEvent', () => {
+  it('reports effective init and status permission modes without session metadata', () => {
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state: createClaudeStreamEventState(),
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+    emitStreamEvent({
+      type: 'system',
+      subtype: 'init',
+      model: 'claude-sonnet-4-6',
+      permissionMode: 'auto',
+    });
+    emitStreamEvent({
+      type: 'system',
+      subtype: 'status',
+      permissionMode: 'default',
+    });
+    expect(emitted).toEqual([
+      { type: 'stream-start', modelId: 'claude-sonnet-4-6' },
+      {
+        type: 'raw',
+        rawValue: { type: 'system', subtype: 'init', permissionMode: 'auto' },
+      },
+      {
+        type: 'raw',
+        rawValue: {
+          type: 'system',
+          subtype: 'status',
+          permissionMode: 'default',
+        },
+      },
+    ]);
+  });
   const mcpImageBlock = {
     type: 'image',
     source: { type: 'base64', media_type: 'image/png', data: 'iVBORw0KGgo' },
@@ -180,6 +217,42 @@ describe('createEmitStreamEvent', () => {
 
     expect(emitted).toEqual([{ type: 'stream-start' }]);
     expect(state.stepOpen).toBe(true);
+  });
+
+  it('reports the init model on stream-start when command lifecycle frames arrive first', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent({
+      type: 'command_lifecycle',
+      command_uuid: 'command-1',
+      state: 'queued',
+    } as ClaudeMessage);
+    emitStreamEvent({
+      type: 'command_lifecycle',
+      command_uuid: 'command-1',
+      state: 'started',
+    } as ClaudeMessage);
+    expect(emitted).toEqual([]);
+
+    emitStreamEvent({
+      type: 'system',
+      subtype: 'init',
+      model: 'claude-sonnet-4-6',
+    });
+
+    expect(emitted).toEqual([
+      { type: 'stream-start', modelId: 'claude-sonnet-4-6' },
+      { type: 'raw', rawValue: { type: 'system', subtype: 'init' } },
+    ]);
   });
 
   it.each([
@@ -577,6 +650,13 @@ describe('createEmitStreamEvent', () => {
         {
           "modelId": "claude-opus",
           "type": "stream-start",
+        },
+        {
+          "rawValue": {
+            "subtype": "init",
+            "type": "system",
+          },
+          "type": "raw",
         },
         {
           "input": "{"command":"pwd"}",

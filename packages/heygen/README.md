@@ -1,14 +1,12 @@
 # AI SDK - HeyGen Provider
 
-The **[HeyGen provider](https://ai-sdk.dev/providers/ai-sdk-providers/heygen)** for the [AI SDK](https://ai-sdk.dev/docs) supports text-to-video, image-to-video, and reference-to-video generation with `heygen-video-1`.
+The **[HeyGen provider](https://ai-sdk.dev/providers/ai-sdk-providers/heygen)** for the [AI SDK](https://ai-sdk.dev/docs) supports text-to-video, image-to-video, and reference-to-video generation with `heygen-video-1`, and decision models with `heygen-decision-1` and `heygen-decision-1-turbo`.
 
 ## Setup
 
-```sh
-npm install @ai-sdk/heygen
+```bash
+npm i ai @ai-sdk/heygen
 ```
-
-Set the `HEYGEN_API_KEY` environment variable or pass `apiKey` to `createHeyGen`.
 
 ## Usage
 
@@ -25,6 +23,4 @@ const { videos } = await generateVideo({
 });
 ```
 
-The provider implements asynchronous submission and status retrieval. The AI SDK handles polling when you call `generateVideo`.
-
-See the [provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/heygen) and [HeyGen API documentation](https://developers.heygen.com/docs/models/heygen-video) for supported inputs and options.
+See the [HeyGen Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/heygen) for more information.

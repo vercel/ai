@@ -4,34 +4,10 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { AnthropicModelIds } from './anthropic-model-catalog';
 
 // https://docs.claude.com/en/docs/about-claude/models/overview
-export type AnthropicModelId =
-  | 'claude-3-haiku-20240307'
-  | 'claude-haiku-4-5-20251001'
-  | 'claude-haiku-4-5'
-  | 'claude-haiku-5-5'
-  | 'claude-opus-4-0'
-  | 'claude-opus-4-20250514'
-  | 'claude-opus-4-1-20250805'
-  | 'claude-opus-4-1'
-  | 'claude-opus-4-5'
-  | 'claude-opus-4-5-20251101'
-  | 'claude-sonnet-4-0'
-  | 'claude-sonnet-4-20250514'
-  | 'claude-sonnet-4-5-20250929'
-  | 'claude-sonnet-4-5'
-  | 'claude-sonnet-4-6'
-  | 'claude-opus-4-6'
-  | 'claude-opus-4-7'
-  | 'claude-opus-4-8'
-  | 'claude-opus-5'
-  | 'claude-opus-5-5'
-  | 'claude-fable-5'
-  | 'claude-fable-5-1'
-  | 'claude-sonnet-5'
-  | 'claude-sonnet-5-5'
-  | (string & {});
+export type AnthropicModelId = AnthropicModelIds['language'] | (string & {});
 
 /**
  * Anthropic file part provider options for document-specific features.
@@ -111,17 +87,43 @@ export const anthropicSystemMessageProviderOptions = lazySchema(() =>
        * initial system prompt). A system message carrying tool changes must come
        * right before an assistant message or at the end of the messages.
        *
-       * Tools referenced by a `tool_addition` must be declared in the `tools`
-       * option (typically with `deferLoading: true` so they are not loaded until
-       * the addition surfaces them). The required
-       * `mid-conversation-tool-changes-2026-07-01` beta is added automatically.
+       * A `tool_addition` either references a tool by `toolName` or defines it
+       * by value with `tool`:
+       * - By reference: the tool must be declared in the `tools` option
+       *   (typically with `deferLoading: true` so it is not loaded until the
+       *   addition surfaces it). The required
+       *   `mid-conversation-tool-changes-2026-07-01` beta is added
+       *   automatically.
+       * - By value: `tool` is a function or provider tool, in the same shape as
+       *   an entry of the `tools` option. The tool does not need to be declared
+       *   in `tools`, and defining a tool under an existing name replaces it
+       *   from that point on. The required `inline-tools-2026-09-15` beta is
+       *   added automatically.
+       *
+       * A `tool_removal` always references the tool by `toolName`.
        */
       toolChanges: z
         .array(
-          z.discriminatedUnion('type', [
+          z.union([
             z.object({
               type: z.literal('tool_addition'),
               toolName: z.string(),
+            }),
+            z.object({
+              type: z.literal('tool_addition'),
+              tool: z.union([
+                z.looseObject({
+                  type: z.literal('function'),
+                  name: z.string(),
+                  inputSchema: z.record(z.string(), z.unknown()),
+                }),
+                z.looseObject({
+                  type: z.literal('provider'),
+                  id: z.string(),
+                  name: z.string(),
+                  args: z.record(z.string(), z.unknown()),
+                }),
+              ]),
             }),
             z.object({
               type: z.literal('tool_removal'),
@@ -142,6 +144,21 @@ export const anthropicLanguageModelOptions = lazySchema(() =>
   zodSchema(
     z.object({
       /**
+       * Create or continue a short-lived server-side message thread.
+       * On continuation, messages must contain only new messages. Keep the full
+       * conversation locally so it can be replayed when the thread expires.
+       */
+      thread: z
+        .discriminatedUnion('type', [
+          z.object({ type: z.literal('create') }),
+          z.object({
+            type: z.literal('continue'),
+            previousMessageId: z.string().min(1),
+          }),
+        ])
+        .optional(),
+
+      /**
        * Whether to send reasoning to the model.
        *
        * This allows you to deactivate reasoning inputs for models that do not support them.
@@ -158,6 +175,9 @@ export const anthropicLanguageModelOptions = lazySchema(() =>
       structuredOutputMode: z
         .enum(['outputFormat', 'jsonTool', 'auto'])
         .optional(),
+
+      /** Emit typed streaming heartbeat parts. Disabled by default. */
+      includePings: z.boolean().optional(),
 
       /**
        * Configuration for enabling Claude's extended thinking.
@@ -344,8 +364,14 @@ export const anthropicLanguageModelOptions = lazySchema(() =>
        */
       speed: z.enum(['fast', 'standard']).optional(),
 
-      /** Selects Anthropic's service tier for the request. */
-      serviceTier: z.enum(['auto', 'standard_only']).optional(),
+      /**
+       * Request admission tier. Anthropic accepts `auto` and `standard_only`;
+       * MiniMax accepts `standard` and `priority`. Values for another known
+       * provider are omitted with an unsupported-setting warning.
+       */
+      serviceTier: z
+        .enum(['auto', 'standard_only', 'standard', 'priority'])
+        .optional(),
 
       /**
        * Controls where model inference runs for this request.

@@ -1,3 +1,6 @@
-export type CartesiaRealtimeModelId = 'ink-2' | (string & {});
+import type { CartesiaModelIds } from './cartesia-model-catalog';
+export type CartesiaRealtimeModelId =
+  | CartesiaModelIds['realtime']
+  | (string & {});
 
 export type CartesiaRealtimeModelOptions = Record<string, never>;
