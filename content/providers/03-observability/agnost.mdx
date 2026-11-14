@@ -1,0 +1,75 @@
+---
+title: Agnost AI
+description: Monitor AI SDK conversations in production with Agnost AI
+---
+
+# Agnost AI Observability
+
+[Agnost AI](https://agnost.ai) monitors AI agents in production. It reads the OpenTelemetry spans the AI SDK emits and groups them into conversations and users. It then judges each finished conversation against rules you write in plain English, labels user intent and sentiment, and can alert on Slack or email. With the AI SDK, it captures:
+
+- Every `generateText`, `streamText`, and tool call span, with model, token usage, and latency
+- Conversations grouped by a session ID, and users grouped by a user ID, from the call's runtime context
+- The user and assistant messages of each conversation, reconstructed from the spans
+
+## Setup
+
+Agnost AI accepts OTLP/HTTP traces. Register the AI SDK's OpenTelemetry integration and point an OTLP exporter at Agnost AI.
+
+Install the packages:
+
+<InstallPackages packages="ai @ai-sdk/otel @opentelemetry/sdk-node @opentelemetry/exporter-trace-otlp-proto" />
+
+Sign in at [app.agnost.ai](https://app.agnost.ai) and copy your organization ID from **Settings → Organization**. Set it in your environment:
+
+```bash filename=".env"
+AGNOST_ORG_ID="..."
+```
+
+Start the OpenTelemetry SDK and register telemetry once at startup, for example in Next.js `instrumentation.ts`:
+
+```ts filename="instrumentation.ts"
+import { NodeSDK } from '@opentelemetry/sdk-node';
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
+
+const sdk = new NodeSDK({
+  traceExporter: new OTLPTraceExporter({
+    url: 'https://otel.agnost.ai/v1/traces',
+    headers: { 'X-Agnost-Org-ID': process.env.AGNOST_ORG_ID! },
+  }),
+});
+sdk.start();
+
+registerTelemetry(new OpenTelemetry({ runtimeContext: true }));
+```
+
+Pass a user ID and session ID through the runtime context, and allow them in telemetry. Agnost AI uses `sessionId` to group calls into a conversation and `userId` to group conversations by user:
+
+```ts
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const { text } = await generateText({
+  model: openai('gpt-6-astra'),
+  prompt: 'Did my refund go through?',
+  runtimeContext: {
+    userId: 'user-42',
+    sessionId: 'conversation-123',
+  },
+  telemetry: {
+    isEnabled: true,
+    functionId: 'support-reply',
+    includeRuntimeContext: { userId: true, sessionId: true },
+  },
+});
+```
+
+The AI SDK leaves runtime context out of telemetry unless a field is listed in `includeRuntimeContext`. Keep secrets and sensitive request data out of that list.
+
+If your app already runs an OpenTelemetry SDK, add `new BatchSpanProcessor({ exporter })` from `@opentelemetry/sdk-trace`, using the same exporter, to your existing `spanProcessors` instead of creating a second SDK.
+
+## Resources
+
+- [Agnost AI Vercel AI SDK guide](https://docs.agnost.ai/vercel-ai)
+- [Agnost AI documentation](https://docs.agnost.ai)
