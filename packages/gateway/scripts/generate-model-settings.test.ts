@@ -50,3 +50,29 @@ it.each([
     );
   },
 );
+
+it('writes the extraction settings file for extraction catalog models', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: [{ id: 'provider/extract', type: 'extraction' }],
+      }),
+    }),
+  );
+
+  await import('./generate-model-settings');
+  await vi.waitFor(() => expect(execFileSync).toHaveBeenCalledOnce());
+
+  expect(fs.writeFileSync).toHaveBeenCalledExactlyOnceWith(
+    expect.stringContaining('gateway-extraction-model-settings.ts'),
+    [
+      'export type GatewayExtractionModelId =',
+      "  | 'provider/extract'",
+      '  | (string & {});',
+      '',
+    ].join('\n'),
+    'utf-8',
+  );
+});
