@@ -10,6 +10,7 @@ import {
   asLanguageModelUsage,
   convertToLanguageModelPrompt,
   convertLanguageModelContent,
+  logWarnings,
   parseToolCall,
   prepareLanguageModelCallOptions,
   prepareRetries,
@@ -285,6 +286,11 @@ async function generateModelCall(
       return events;
     },
   );
+  logWarnings({
+    warnings: response.warnings,
+    provider: model.provider,
+    model: model.modelId,
+  });
   return {
     toolCalls,
     finish: {

@@ -109,6 +109,7 @@ Use a provider's `decisionModel` factory:
 | OpenAI      | `openai.decisionModel('gpt-6-luna')`                   |
 | Anthropic   | `anthropic.decisionModel('claude-haiku-4-5-20251001')` |
 | Google      | `google.decisionModel('gemini-decision-1')`            |
+| HeyGen      | `heygen.decisionModel('heygen-decision-1')`            |
 
 TypeSafe AI's [Jev](https://vercel.com/i/what-is-jev), OpenAI's
 [Decisions API](https://developers.openai.com/api/docs/guides/decisions),
@@ -296,6 +297,9 @@ Perplexity exposes Choice/Score confidence at
 Google exposes confidence for all three question types at
 `result.providerMetadata?.google?.confidence` and Score legends at
 `result.providerMetadata?.google?.legend`, also keyed by question ID.
+HeyGen exposes Choice/Score confidence at
+`result.providerMetadata?.heygen?.confidence` and Score legends at
+`result.providerMetadata?.heygen?.legend`, also keyed by question ID.
 
 Check for optional distributions before using them. For example, an application
 can route only when a provider supplies a sufficiently high selected-option
