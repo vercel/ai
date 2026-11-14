@@ -1,16 +1,16 @@
 import ChatIdProvider from '@/components/chat-id-provider';
-import PiHarnessChat from '@/components/pi-harness-chat';
+import SessionHarnessChat from '@/components/session-harness-chat';
 
 export const metadata = {
-  title: 'Pi — Basic',
+  title: 'Basic',
 };
 
-const STORAGE_KEY = 'durable-harness-pi-basic-chat-id';
+const STORAGE_KEY = 'durable-harness-basic-chat-id';
 
-export default function HarnessPiPage() {
+export default function HarnessPage() {
   return (
     <ChatIdProvider storageKey={STORAGE_KEY}>
-      <PiHarnessChat apiRoute="/api/chat" exampleLabel="Basic" />
+      <SessionHarnessChat exampleLabel="Basic" />
     </ChatIdProvider>
   );
 }

@@ -1,4 +1,8 @@
-import { Agent, type PiHarnessAgentMessage } from '@/agent/pi/basic';
+import {
+  Agent,
+  DRIVE_QUEUE_PREFIX,
+  type FxHarnessAgentMessage,
+} from '@/agent/fx/basic';
 import { sendBackstop } from '@/lib/drive-queue';
 import { isStoredAgentSession } from '@/lib/stored-agent-session';
 import { getWorld } from '@/lib/world';
@@ -14,7 +18,7 @@ export const maxDuration = 800;
 export async function POST(request: Request) {
   const body: {
     id?: string;
-    messages: PiHarnessAgentMessage[];
+    messages: FxHarnessAgentMessage[];
     session?: unknown;
   } = await request.json();
 
@@ -28,7 +32,7 @@ export async function POST(request: Request) {
   const messages = await convertToModelMessages(body.messages);
 
   return createUIMessageStreamResponse({
-    stream: createUIMessageStream<PiHarnessAgentMessage>({
+    stream: createUIMessageStream<FxHarnessAgentMessage>({
       execute: async ({ writer }) => {
         const session = await Agent.createSession(storedSession);
         /*
@@ -36,7 +40,11 @@ export async function POST(request: Request) {
          * sent before the drive starts, continues the turn in a background
          * drive if this process dies or the drive yields at its deadline.
          */
-        await sendBackstop({ world: getWorld(), runId: session.runId });
+        await sendBackstop({
+          world: getWorld(),
+          queuePrefix: DRIVE_QUEUE_PREFIX,
+          runId: session.runId,
+        });
         const result = await Agent.stream({ session, messages });
 
         /*

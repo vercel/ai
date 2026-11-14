@@ -1,8 +1,16 @@
-import { Agent } from '@/agent/pi/basic';
+import {
+  Agent as FxAgent,
+  DRIVE_QUEUE_PREFIX as FX_DRIVE_QUEUE_PREFIX,
+} from '@/agent/fx/basic';
+import {
+  Agent as PiAgent,
+  DRIVE_QUEUE_PREFIX as PI_DRIVE_QUEUE_PREFIX,
+} from '@/agent/pi/basic';
 import {
   createDriveQueueHandler,
-  DRIVE_QUEUE_PREFIX,
   recoverDrives,
+  type DriveQueueAgent,
+  type DriveQueuePrefix,
 } from '@/lib/drive-queue';
 import { getWorld, getWorldName } from '@/lib/world';
 import type { World } from '@workflow/world';
@@ -19,15 +27,15 @@ type InProcessQueueWorld = World & {
 };
 
 /**
- * Starts consuming the drive queue in this process and recovers the
+ * Starts consuming the drive queues in this process and recovers the
  * sessions a dead process left unfinished. Called once at server startup.
  *
  * Only on the local World: its queue lives in this process's memory, so it
  * delivers drive messages to a handler registered here, and a crash loses
  * every message in flight, which is why every unfinished session is sent a
- * new drive message at startup. On Vercel, the queue delivers to the drive
- * route (`app/api/drive-queue`), and redelivers the
- * message of a crashed drive itself.
+ * new drive message at startup. On Vercel, each queue delivers to its
+ * harness's drive route (`app/api/<harness>/drive-queue`), and redelivers
+ * the message of a crashed drive itself.
  */
 export async function startDriveQueue(): Promise<void> {
   if (getWorldName() !== 'local') return;
@@ -38,15 +46,29 @@ export async function startDriveQueue(): Promise<void> {
       'The local World cannot deliver queue messages in process.',
     );
   }
-  world.registerHandler(
-    DRIVE_QUEUE_PREFIX,
-    createDriveQueueHandler({ world, agent: Agent }),
-  );
+  const queues: Array<{
+    agent: DriveQueueAgent<unknown> & { harnessId: string };
+    queuePrefix: DriveQueuePrefix;
+  }> = [
+    { agent: PiAgent, queuePrefix: PI_DRIVE_QUEUE_PREFIX },
+    { agent: FxAgent, queuePrefix: FX_DRIVE_QUEUE_PREFIX },
+  ];
+  for (const { agent, queuePrefix } of queues) {
+    world.registerHandler(
+      queuePrefix,
+      createDriveQueueHandler({ world, agent, queuePrefix }),
+    );
+  }
   await world.start?.();
 
-  const count = await recoverDrives({
-    world,
-    workflowName: `workflow//@ai-sdk/harness//${Agent.harnessId}`,
-  });
-  console.log(`[drive-queue] sent ${count} recovery drive message(s)`);
+  for (const { agent, queuePrefix } of queues) {
+    const count = await recoverDrives({
+      world,
+      queuePrefix,
+      workflowName: `workflow//@ai-sdk/harness//${agent.harnessId}`,
+    });
+    console.log(
+      `[drive-queue] sent ${count} ${agent.harnessId} recovery drive message(s)`,
+    );
+  }
 }

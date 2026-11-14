@@ -1,16 +1,23 @@
 import type { World } from '@workflow/world';
 
 /**
- * Queue prefix of the drive queue. It has a namespace of its own (`harness`),
- * so its messages never reach the Workflow SDK's own consumer, which takes
- * `__wkf_workflow_` (or `__<WORKFLOW_QUEUE_NAMESPACE>_wkf_workflow_`).
+ * Queue prefix of a drive queue. Each harness has a namespace of its own
+ * (e.g. `harnesspi` for `__harnesspi_wkf_workflow_`), so its messages never
+ * reach another harness's agent or the Workflow SDK's own consumer, which
+ * takes `__wkf_workflow_` (or `__<WORKFLOW_QUEUE_NAMESPACE>_wkf_workflow_`).
  */
-export const DRIVE_QUEUE_PREFIX = '__harness_wkf_workflow_';
+export type DriveQueuePrefix = `__${string}_wkf_workflow_`;
 
 /**
- * Queue name of every drive message.
+ * Returns the queue name of every drive message of a drive queue.
  */
-export const DRIVE_QUEUE_NAME = `${DRIVE_QUEUE_PREFIX}drive`;
+function getDriveQueueName({
+  queuePrefix,
+}: {
+  queuePrefix: DriveQueuePrefix;
+}): `${DriveQueuePrefix}drive` {
+  return `${queuePrefix}drive`;
+}
 
 /**
  * Seconds a backstop is delayed past the deadline of the drive it covers, so
@@ -66,11 +73,13 @@ export function isDriveQueueMessage(
 
 async function sendDriveMessage({
   world,
+  queuePrefix,
   runId,
   reason,
   delaySeconds,
 }: {
   world: World;
+  queuePrefix: DriveQueuePrefix;
   runId: string;
   reason: DriveQueueMessageReason;
   delaySeconds?: number;
@@ -79,7 +88,7 @@ async function sendDriveMessage({
     runId,
     input: { kind: 'harness-drive', reason },
   };
-  await world.queue(DRIVE_QUEUE_NAME, message, {
+  await world.queue(getDriveQueueName({ queuePrefix }), message, {
     ...(delaySeconds != null && { delaySeconds }),
   });
 }
@@ -97,9 +106,11 @@ async function sendDriveMessage({
  */
 export async function sendBackstop({
   world,
+  queuePrefix,
   runId,
 }: {
   world: World;
+  queuePrefix: DriveQueuePrefix;
   runId: string;
 }): Promise<boolean> {
   const deadline = await world.getRuntimeDeadline?.();
@@ -107,7 +118,13 @@ export async function sendBackstop({
   const delaySeconds =
     Math.max(1, Math.ceil((deadline.getTime() - Date.now()) / 1000)) +
     BACKSTOP_MARGIN_SECONDS;
-  await sendDriveMessage({ world, runId, reason: 'backstop', delaySeconds });
+  await sendDriveMessage({
+    world,
+    queuePrefix,
+    runId,
+    reason: 'backstop',
+    delaySeconds,
+  });
   return true;
 }
 
@@ -119,9 +136,11 @@ export async function sendBackstop({
  */
 export async function recoverDrives({
   world,
+  queuePrefix,
   workflowName,
 }: {
   world: World;
+  queuePrefix: DriveQueuePrefix;
   workflowName: string;
 }): Promise<number> {
   let count = 0;
@@ -136,6 +155,7 @@ export async function recoverDrives({
     for (const run of page.data) {
       await sendDriveMessage({
         world,
+        queuePrefix,
         runId: run.runId,
         reason: 'recovery',
       });
@@ -158,11 +178,13 @@ export async function recoverDrives({
 export async function consumeDriveQueueMessage<SESSION>({
   world,
   agent,
+  queuePrefix,
   message,
   messageId,
 }: {
   world: World;
   agent: DriveQueueAgent<SESSION>;
+  queuePrefix: DriveQueuePrefix;
   message: unknown;
   messageId: string;
 }): Promise<void> {
@@ -177,26 +199,29 @@ export async function consumeDriveQueueMessage<SESSION>({
     messageId,
   });
   const session = await agent.createSession({ runId });
-  await sendBackstop({ world, runId });
+  await sendBackstop({ world, queuePrefix, runId });
   await agent.drive({ session, queueMessageId: messageId });
 }
 
 /**
- * Creates the HTTP handler of the drive queue, for a route the World
- * delivers drive messages to (on Vercel, a Function subscribed to
- * `__harness_wkf_workflow_*`).
+ * Creates the HTTP handler of a drive queue, for a route the World delivers
+ * drive messages to (on Vercel, a Function subscribed to the queue prefix
+ * followed by `*`).
  */
 export function createDriveQueueHandler<SESSION>({
   world,
   agent,
+  queuePrefix,
 }: {
   world: World;
   agent: DriveQueueAgent<SESSION>;
+  queuePrefix: DriveQueuePrefix;
 }): (request: Request) => Promise<Response> {
-  return world.createQueueHandler(DRIVE_QUEUE_PREFIX, (message, meta) =>
+  return world.createQueueHandler(queuePrefix, (message, meta) =>
     consumeDriveQueueMessage({
       world,
       agent,
+      queuePrefix,
       message,
       messageId: meta.messageId,
     }),

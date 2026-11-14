@@ -18,8 +18,10 @@ const PRE_CLASS_ERROR =
   'overflow-x-auto px-2 py-1.5 font-mono text-sm text-red-600 whitespace-pre-wrap bg-red-50 rounded-lg border border-red-300';
 
 export default function HarnessBashToolView({
+  label = 'Bash',
   invocation,
 }: {
+  label?: string;
   invocation: BashInvocation;
 }) {
   const command = invocation.input?.command ?? '';
@@ -31,7 +33,7 @@ export default function HarnessBashToolView({
     <div className="relative mb-2 text-sm text-gray-500">
       {running && <ToolSpinner />}
       <div>
-        <strong>Bash</strong>(<code>{command}</code>)
+        <strong>{label}</strong>(<code>{command}</code>)
       </div>
       <BashOutput invocation={invocation} />
     </div>

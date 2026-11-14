@@ -33,6 +33,9 @@
       "path": "../../packages/harness"
     },
     {
+      "path": "../../packages/harness-fx-v2"
+    },
+    {
       "path": "../../packages/harness-pi-v2"
     },
     {

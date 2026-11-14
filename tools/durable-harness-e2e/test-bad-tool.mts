@@ -25,11 +25,14 @@
  * when a check fails. It refuses to run while something else listens on the
  * app's port.
  *
- * Usage: `./tools/durable-harness-e2e/test-bad-tool.mts [--record [path]]`.
- * Must run outside of any sandbox, since it starts a server, a browser, and
- * Vercel Sandboxes. With `--record`, it records the browser session as a
- * video until it closes the browser, saved to `path` (resolved against the
- * current directory) or to `recording.mp4` in the current directory.
+ * Usage: `./tools/durable-harness-e2e/test-bad-tool.mts [--harness <id>]
+ * [--record [path]]`. Must run outside of any sandbox, since it starts a
+ * server, a browser, and Vercel Sandboxes. With `--harness`, it starts the
+ * session on the harness of `packages/harness-<id>-v2` (e.g. `pi` or `fx`),
+ * and otherwise on the harness the new session dialog preselects. With
+ * `--record`, it records the browser session as a video until it closes the
+ * browser, saved to `path` (resolved against the current directory) or to
+ * `recording.mp4` in the current directory.
  */
 
 import { execFileSync, spawn, type ChildProcess } from 'node:child_process';
@@ -41,6 +44,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { createBrowserRecording } from './util/browser-recording.mts';
 import { browserLaunchArgs } from './util/browser-window.mts';
+import { parseHarnessArg, startNewSession } from './util/new-session.mts';
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 const appPackage = '@example/durable-harness-e2e-next';
@@ -259,28 +263,16 @@ const readChatStateScript = `(() => {
   });
 })()`;
 
-const chatIdStorageKey = 'durable-harness-pi-basic-chat-id';
 const chatReadyExpression = `document.querySelector('[placeholder="Say something..."]') != null`;
 
 /**
- * Waits until the page shows the chat and, if given, holds a chat ID other
- * than `previousChatId`.
+ * Waits until the page shows the chat.
  *
  * `wait --load` is not usable here: it waits for the next load event, so on
  * a page that already loaded it only returns after its timeout.
  */
-function waitForChat({ previousChatId }: { previousChatId?: string } = {}) {
-  const expression =
-    previousChatId == null
-      ? chatReadyExpression
-      : `${chatReadyExpression} && sessionStorage.getItem(${JSON.stringify(chatIdStorageKey)}) !== ${JSON.stringify(previousChatId)}`;
-  browser(['wait', '--fn', expression]);
-}
-
-function readChatId(): string {
-  return JSON.parse(
-    browser(['eval', `sessionStorage.getItem(${JSON.stringify(chatIdStorageKey)})`]),
-  );
+function waitForChat() {
+  browser(['wait', '--fn', chatReadyExpression]);
 }
 
 /**
@@ -374,6 +366,7 @@ async function recover({
 }
 
 async function verify(): Promise<void> {
+  const harness = parseHarnessArg();
   if (await isPortInUse()) {
     fail(
       `Port ${port} is already in use. Stop the server listening there first.`,
@@ -387,9 +380,11 @@ async function verify(): Promise<void> {
   browserOpened = true;
   recording.start();
   waitForChat();
-  const previousChatId = readChatId();
-  browser(['find', 'role', 'button', 'click', '--name', 'new session']);
-  waitForChat({ previousChatId });
+  const harnessId = await startNewSession({
+    runBrowserCommand: browser,
+    harness,
+    log,
+  });
 
   log('Sending the prompt.');
   browser(['find', 'placeholder', 'Say something...', 'fill', prompt]);
@@ -414,7 +409,8 @@ async function verify(): Promise<void> {
   for (let crashNumber = 1; finished == null; crashNumber++) {
     const outcome = await waitForCrashOrTurnEnd({
       server,
-      timeoutMs: crashNumber === 1 ? TOOL_CRASH_TIMEOUT_MS : TURN_END_TIMEOUT_MS,
+      timeoutMs:
+        crashNumber === 1 ? TOOL_CRASH_TIMEOUT_MS : TURN_END_TIMEOUT_MS,
     });
     if (!outcome.crashed) {
       if (crashNumber === 1) {
@@ -468,7 +464,7 @@ async function verify(): Promise<void> {
   }
   const replay = await (
     await fetch(
-      `${baseUrl}/api/chat/${encodeURIComponent(finished.chatId)}/stream?runId=${encodeURIComponent(finished.runId)}`,
+      `${baseUrl}/api/${harnessId}/chat/${encodeURIComponent(finished.chatId)}/stream?runId=${encodeURIComponent(finished.runId)}`,
     )
   ).text();
   const count = (type: string) => replay.split(`"type":"${type}"`).length - 1;

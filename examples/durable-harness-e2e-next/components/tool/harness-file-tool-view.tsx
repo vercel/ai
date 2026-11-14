@@ -1,7 +1,6 @@
 import ToolSpinner from './tool-spinner';
 
 type FileToolPart = {
-  type: 'tool-read' | 'tool-write' | 'tool-edit';
   state: string;
   input?: {
     file_path?: string;
@@ -9,15 +8,11 @@ type FileToolPart = {
   };
 };
 
-const LABELS = {
-  'tool-read': 'Read',
-  'tool-write': 'Write',
-  'tool-edit': 'Edit',
-} as const;
-
 export default function HarnessFileToolView({
+  label,
   invocation,
 }: {
+  label: string;
   invocation: FileToolPart;
 }) {
   const filePath = invocation.input?.file_path ?? invocation.input?.path;
@@ -25,7 +20,6 @@ export default function HarnessFileToolView({
     return null;
   }
 
-  const label = LABELS[invocation.type];
   const running = invocation.state !== 'output-available';
 
   return (

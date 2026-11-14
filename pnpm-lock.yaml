@@ -910,6 +910,9 @@ importers:
       '@ai-sdk/harness':
         specifier: workspace:*
         version: link:../../packages/harness
+      '@ai-sdk/harness-fx-v2':
+        specifier: workspace:*
+        version: link:../../packages/harness-fx-v2
       '@ai-sdk/harness-pi-v2':
         specifier: workspace:*
         version: link:../../packages/harness-pi-v2

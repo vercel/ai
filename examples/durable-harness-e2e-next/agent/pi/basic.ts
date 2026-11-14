@@ -6,6 +6,13 @@ import { badMarkerTool } from '@/lib/bad-marker-tool';
 import { getSandboxSession } from '@/lib/sandbox';
 import { getWorld } from '@/lib/world';
 
+/**
+ * Queue prefix of the Pi agent's drive queue. Each harness has a queue of
+ * its own, so that a drive message only reaches the agent that owns its
+ * session.
+ */
+export const DRIVE_QUEUE_PREFIX = '__harnesspi_wkf_workflow_';
+
 function createAgent() {
   return new HarnessAgent({
     harness: pi,
