@@ -13,7 +13,7 @@ pnpm i
 cp .env.local.example .env.local # and fill in the required values
 ```
 
-2. Based on your Kasada dashboard, update the API URL in both `kasada-server.ts` and `kasada-client.ts`. It looks something like this:
+2. Based on your Kasada dashboard, update the classification API URL in `kasada/kasada-server.tsx` and the script URL in `kasada/kasada-client.tsx`. The classification API URL looks something like this:
 
 ```
 https://${kasadaAPIHostname}/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/api/${kasadaAPIVersion}/classification
