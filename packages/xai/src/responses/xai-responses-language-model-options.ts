@@ -4,16 +4,9 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { XaiModelIds } from '../xai-model-catalog';
 
-export type XaiResponsesModelId =
-  | 'grok-4.20-non-reasoning'
-  | 'grok-4.20-reasoning'
-  | 'grok-4.3'
-  | 'grok-4.5'
-  | 'grok-4.6'
-  | 'grok-4.7'
-  | 'grok-latest'
-  | (string & {});
+export type XaiResponsesModelId = XaiModelIds['language'] | (string & {});
 
 /**
  * @see https://docs.x.ai/docs/api-reference#create-new-response
@@ -24,9 +17,9 @@ export const xaiLanguageModelResponsesOptions = lazySchema(() =>
       /**
        * Constrains how hard a reasoning model thinks before responding.
        * Possible values are `none` (disables reasoning entirely; supported by
-       * `grok-4.3` and newer reasoning models), `low` (uses fewer reasoning
-       * tokens), `medium`, `high` (uses more reasoning tokens), and `xhigh`
-       * (supported by `grok-4.6`).
+       * `grok-4.3`), `low` (uses fewer reasoning tokens), `medium`, `high`
+       * (uses more reasoning tokens), and `xhigh`
+       * (supported by `grok-4.6` and `grok-4.7`).
        *
        * @see https://docs.x.ai/docs/guides/reasoning
        */

@@ -6,10 +6,8 @@ The **[Mistral provider](https://ai-sdk.dev/providers/ai-sdk-providers/mistral)*
 
 ## Setup
 
-The Mistral provider is available in the `@ai-sdk/mistral` module. You can install it with
-
 ```bash
-npm i @ai-sdk/mistral
+npm i ai @ai-sdk/mistral
 ```
 
 ## Skill for Coding Agents
@@ -20,15 +18,7 @@ If you use coding agents such as Claude Code or Cursor, we highly recommend addi
 npx skills add vercel/ai
 ```
 
-## Provider Instance
-
-You can import the default provider instance `mistral` from `@ai-sdk/mistral`:
-
-```ts
-import { mistral } from '@ai-sdk/mistral';
-```
-
-## Example
+## Usage
 
 ```ts
 import { mistral } from '@ai-sdk/mistral';
@@ -40,6 +30,4 @@ const { text } = await generateText({
 });
 ```
 
-## Documentation
-
-Please check out the **[Mistral provider](https://ai-sdk.dev/providers/ai-sdk-providers/mistral)** for more information.
+See the [Mistral Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/mistral) for more information.

@@ -8,6 +8,8 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  secureJsonParse,
+  stringifyWithBigIntAndCycles,
   lazySchema,
   zodSchema,
   type InferSchema,
@@ -27,6 +29,7 @@ import {
   openaiResponsesSystemMessageOptionsSchema,
   openaiResponsesToolResultOptionsSchema,
 } from './openai-responses-language-model-options';
+import { normalizeOpenAIResponsesTextFormat } from './openai-responses-text-format';
 import {
   applyPatchInputSchema,
   applyPatchOutputSchema,
@@ -62,7 +65,15 @@ import {
 } from './expand-parallel-tool-call';
 
 function serializeToolCallArguments(input: unknown): string {
-  return JSON.stringify(input === undefined ? {} : input);
+  if (typeof input === 'string') {
+    try {
+      secureJsonParse(input);
+      return input;
+    } catch {
+      return stringifyWithBigIntAndCycles(input);
+    }
+  }
+  return stringifyWithBigIntAndCycles(input === undefined ? {} : input);
 }
 
 function mapToolCaller(
@@ -172,19 +183,23 @@ async function convertFunctionToolResultOutput({
   switch (output.type) {
     case 'text':
       return convertScalarOutput(
-        hasOutputSchema ? JSON.stringify(output.value) : output.value,
+        hasOutputSchema
+          ? stringifyWithBigIntAndCycles(output.value)
+          : output.value,
       );
     case 'error-text':
     case 'error-json':
-      return convertScalarOutput(JSON.stringify({ error: output.value }));
+      return convertScalarOutput(
+        stringifyWithBigIntAndCycles({ error: output.value }),
+      );
     case 'execution-denied': {
       const reason = output.reason ?? 'Tool call execution denied.';
       return convertScalarOutput(
-        hasOutputSchema ? JSON.stringify(reason) : reason,
+        hasOutputSchema ? stringifyWithBigIntAndCycles(reason) : reason,
       );
     }
     case 'json':
-      return convertScalarOutput(JSON.stringify(output.value));
+      return convertScalarOutput(stringifyWithBigIntAndCycles(output.value));
     case 'content':
       return output.value
         .map(item => {
@@ -297,7 +312,7 @@ async function convertFunctionToolResultOutput({
 }
 
 type ParallelToolResultGroup = {
-  metadata: ParallelToolCallMetadata;
+  metadata: ParallelToolCallMetadata & { input: string };
   results: Array<LanguageModelV4ToolResultPart>;
 };
 
@@ -309,7 +324,9 @@ function hasSameParallelToolCall(
     first.itemId === second.itemId &&
     first.toolCallId === second.toolCallId &&
     first.toolName === second.toolName &&
-    first.input === second.input &&
+    (first.input === undefined ||
+      second.input === undefined ||
+      first.input === second.input) &&
     first.count === second.count
   );
 }
@@ -367,6 +384,12 @@ function collectCompleteParallelToolResultGroups({
         continue;
       }
 
+      if (
+        existing.metadata.input === undefined &&
+        metadata.input !== undefined
+      ) {
+        existing.metadata = metadata;
+      }
       existing.results.set(metadata.index, part);
     }
   }
@@ -374,7 +397,11 @@ function collectCompleteParallelToolResultGroups({
   const completeGroups = new Map<string, ParallelToolResultGroup>();
 
   for (const [toolCallId, group] of pendingGroups) {
-    if (group.invalid || group.results.size !== group.metadata.count) {
+    if (
+      group.invalid ||
+      group.results.size !== group.metadata.count ||
+      group.metadata.input === undefined
+    ) {
       continue;
     }
 
@@ -384,7 +411,7 @@ function collectCompleteParallelToolResultGroups({
 
     if (results.every(isNonNullable)) {
       completeGroups.set(toolCallId, {
-        metadata: group.metadata,
+        metadata: { ...group.metadata, input: group.metadata.input },
         results,
       });
     }
@@ -508,24 +535,52 @@ export async function convertToOpenAIResponsesInput({
           });
         }
         const effort = options?.reasoningEffortUpdate;
-        if (effort != null) {
+        const textFormat = options?.textFormatUpdate;
+        const additionalTools = options?.additionalTools;
+        if (effort != null || textFormat != null || additionalTools != null) {
+          const hasConfigurationUpdate = effort != null || textFormat != null;
+          const feature =
+            effort != null
+              ? 'reasoningEffortUpdate'
+              : textFormat != null
+                ? 'textFormatUpdate'
+                : 'additionalTools';
           const unsupportedReason =
             content !== ''
-              ? 'Message-level reasoningEffortUpdate requires empty system message content.'
-              : configurationUpdateUnsupportedReason;
+              ? `Message-level ${feature} requires empty system message content.`
+              : hasConfigurationUpdate
+                ? configurationUpdateUnsupportedReason
+                : undefined;
 
           if (unsupportedReason != null) {
             throw new UnsupportedFunctionalityError({
-              functionality: 'Message-level reasoningEffortUpdate',
+              functionality: `Message-level ${feature}`,
               message: unsupportedReason,
             });
           }
 
-          input.push({
-            type: 'configuration_update',
-            reasoning: { effort },
-          });
-          // The control is independent of systemMessageMode's text handling.
+          if (hasConfigurationUpdate) {
+            input.push({
+              type: 'configuration_update',
+              ...(effort != null && { reasoning: { effort } }),
+              ...(textFormat != null && {
+                text: {
+                  format: normalizeOpenAIResponsesTextFormat(
+                    textFormat,
+                    warnings,
+                  ),
+                },
+              }),
+            });
+          }
+          if (additionalTools != null && additionalTools.length > 0) {
+            input.push({
+              type: 'additional_tools',
+              role: 'developer',
+              tools: additionalTools,
+            });
+          }
+          // The controls are independent of systemMessageMode's text handling.
           break;
         }
 
@@ -1074,7 +1129,7 @@ export async function convertToOpenAIResponsesInput({
                   input:
                     typeof part.input === 'string'
                       ? part.input
-                      : JSON.stringify(part.input),
+                      : stringifyWithBigIntAndCycles(part.input),
                   ...(isAsync != null && { async: isAsync }),
                   id,
                 });
@@ -1311,7 +1366,7 @@ export async function convertToOpenAIResponsesInput({
                   } else if (reasoningMessage !== undefined) {
                     warnings.push({
                       type: 'other',
-                      message: `Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: ${JSON.stringify(part)}.`,
+                      message: `Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: ${stringifyWithBigIntAndCycles(part)}.`,
                     });
                   }
 
@@ -1362,7 +1417,7 @@ export async function convertToOpenAIResponsesInput({
                 } else {
                   warnings.push({
                     type: 'other',
-                    message: `Non-OpenAI reasoning parts are not supported. Skipping reasoning part: ${JSON.stringify(part)}.`,
+                    message: `Non-OpenAI reasoning parts are not supported. Skipping reasoning part: ${stringifyWithBigIntAndCycles(part)}.`,
                   });
                 }
               }
@@ -1480,7 +1535,9 @@ export async function convertToOpenAIResponsesInput({
                 }),
               );
               const serializedToolOutputs = toolOutputs.map(({ output }) =>
-                typeof output === 'string' ? output : JSON.stringify(output),
+                typeof output === 'string'
+                  ? output
+                  : stringifyWithBigIntAndCycles(output),
               );
               const hasPromptCacheBreakpoint = toolOutputs.some(
                 ({ promptCacheBreakpoint }) => promptCacheBreakpoint != null,
@@ -1502,6 +1559,20 @@ export async function convertToOpenAIResponsesInput({
                     }))
                   : serializedToolOutputs.join('\n'),
               });
+
+              for (const result of parallelToolResultGroup.results) {
+                const additionalTools = await parseToolResultAdditionalTools({
+                  providerOptions: result.providerOptions,
+                  providerOptionsName,
+                });
+                if (additionalTools?.length) {
+                  input.push({
+                    type: 'additional_tools',
+                    role: 'developer',
+                    tools: additionalTools,
+                  });
+                }
+              }
             }
             continue;
           }
@@ -1663,7 +1734,7 @@ export async function convertToOpenAIResponsesInput({
               case 'error-text':
               case 'error-json':
                 outputValue = convertScalarOutput(
-                  JSON.stringify({ error: output.value }),
+                  stringifyWithBigIntAndCycles({ error: output.value }),
                 );
                 break;
               case 'execution-denied':
@@ -1672,7 +1743,9 @@ export async function convertToOpenAIResponsesInput({
                 );
                 break;
               case 'json':
-                outputValue = convertScalarOutput(JSON.stringify(output.value));
+                outputValue = convertScalarOutput(
+                  stringifyWithBigIntAndCycles(output.value),
+                );
                 break;
               case 'content':
                 outputValue = output.value
@@ -1806,16 +1879,15 @@ export async function convertToOpenAIResponsesInput({
             ...(caller != null && { caller }),
           });
 
-          const options = await parseProviderOptions({
-            provider: providerOptionsName,
+          const additionalTools = await parseToolResultAdditionalTools({
             providerOptions: part.providerOptions,
-            schema: openaiResponsesToolResultOptionsSchema,
+            providerOptionsName,
           });
-          if (options?.additionalTools?.length) {
+          if (additionalTools?.length) {
             input.push({
               type: 'additional_tools',
               role: 'developer',
-              tools: options.additionalTools,
+              tools: additionalTools,
             });
           }
         }
@@ -1868,3 +1940,26 @@ const openaiResponsesReasoningProviderOptionsSchema = lazySchema(() =>
 export type OpenAIResponsesReasoningProviderOptions = InferSchema<
   typeof openaiResponsesReasoningProviderOptionsSchema
 >;
+
+async function parseToolResultAdditionalTools({
+  providerOptions,
+  providerOptionsName,
+}: {
+  providerOptions: SharedV4ProviderOptions | undefined;
+  providerOptionsName: string;
+}) {
+  const options = await parseProviderOptions({
+    provider: providerOptionsName,
+    providerOptions,
+    schema: openaiResponsesToolResultOptionsSchema,
+  });
+  if (options?.additionalTools != null || providerOptionsName === 'openai') {
+    return options?.additionalTools;
+  }
+  const openaiOptions = await parseProviderOptions({
+    provider: 'openai',
+    providerOptions,
+    schema: openaiResponsesToolResultOptionsSchema,
+  });
+  return openaiOptions?.additionalTools;
+}

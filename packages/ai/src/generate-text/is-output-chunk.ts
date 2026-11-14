@@ -30,6 +30,7 @@ const isOutputChunkType = {
   'model-call-response-metadata': false,
   'model-call-end': false,
   error: false,
+  ping: false,
   raw: false,
 } as const satisfies Record<
   Exclude<ExecuteToolsStreamPart, StreamRetryAttemptBoundaryPart>['type'],

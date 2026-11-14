@@ -1,5 +1,7 @@
+import { getFishAudioSpeechModelEntry } from './fish-audio-model-catalog';
 import type { SharedV4Warning, SpeechModelV4 } from '@ai-sdk/provider';
 import {
+  resolve,
   combineHeaders,
   createBinaryResponseHandler,
   parseProviderOptions,
@@ -142,7 +144,10 @@ export class FishAudioSpeechModel implements SpeechModelV4 {
       // Fish Audio accepts `normalize_loudness` on s1 but ignores it, so warn
       // rather than let it silently do nothing. Only s1 is known to ignore it;
       // unrecognized model IDs are left alone.
-      if (this.modelId === 's1') {
+      if (
+        getFishAudioSpeechModelEntry(this.modelId).capabilities.speech
+          .normalizeLoudness === false
+      ) {
         warnings.push({
           type: 'unsupported',
           feature: 'providerOptions.fishAudio.normalizeLoudness',
@@ -269,7 +274,7 @@ export class FishAudioSpeechModel implements SpeechModelV4 {
       // Fish Audio selects the TTS model with a `model` HTTP header rather
       // than a request body field.
       headers: combineHeaders(
-        this.config.headers?.(),
+        await resolve(this.config.headers),
         { model: this.modelId },
         options.headers,
       ),

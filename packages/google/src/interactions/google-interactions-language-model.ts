@@ -12,6 +12,8 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId as defaultGenerateId,
+  isCustomReasoning,
+  mapReasoningToProviderEffort,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -22,6 +24,7 @@ import {
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { googleFailedResponseHandler } from '../google-error';
+import { getGoogleLanguageModelEntry } from '../google-model-catalog';
 import { buildGoogleInteractionsStreamTransform } from './build-google-interactions-stream-transform';
 import {
   convertGoogleInteractionsUsage,
@@ -44,6 +47,7 @@ import type {
   GoogleInteractionsNetworkConfig,
   GoogleInteractionsRequestBody,
   GoogleInteractionsResponseFormatEntry,
+  GoogleInteractionsThinkingLevel,
   GoogleInteractionsTool,
   GoogleInteractionsToolChoice,
 } from './google-interactions-prompt';
@@ -313,6 +317,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       }
       if (options.maxOutputTokens != null)
         droppedFields.push('maxOutputTokens');
+      if (isCustomReasoning(options.reasoning)) droppedFields.push('reasoning');
       if (googleOptions?.thinkingLevel != null)
         droppedFields.push('thinkingLevel');
       if (googleOptions?.thinkingSummaries != null) {
@@ -337,7 +342,20 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
             ? options.stopSequences
             : undefined,
         max_output_tokens: options.maxOutputTokens ?? undefined,
-        thinking_level: googleOptions?.thinkingLevel ?? undefined,
+        thinking_level: mapReasoningToProviderEffort<
+          GoogleInteractionsThinkingLevel,
+          GoogleInteractionsThinkingLevel
+        >({
+          reasoning: options.reasoning,
+          providerOptionsEffort: googleOptions?.thinkingLevel,
+          effortMap: Object.fromEntries(
+            (
+              getGoogleLanguageModelEntry(this.modelId).capabilities.language
+                .reasoning.efforts ?? []
+            ).map(level => [level, level]),
+          ),
+          warnings,
+        }),
         thinking_summaries: googleOptions?.thinkingSummaries ?? undefined,
         tool_choice: toolChoiceForBody,
       });
@@ -447,6 +465,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     const args: GoogleInteractionsRequestBody = pruneUndefined({
       ...(isAgent ? { agent: this.agent } : { model: this.modelId }),
       input,
+      labels: googleOptions?.labels ?? undefined,
       system_instruction: systemInstruction,
       tools: toolsForBody,
       response_format:
@@ -487,14 +506,12 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
 
     const url = `${this.config.baseURL}/interactions`;
 
-    const mergedHeaders = combineHeaders(
-      this.config.headers ? await resolve(this.config.headers) : undefined,
-      options.headers,
-    );
+    const mergedHeaders = async () =>
+      combineHeaders(await resolve(this.config.headers), options.headers);
 
     const postResult = await postJsonToApi({
       url,
-      headers: mergedHeaders,
+      headers: await resolve(mergedHeaders),
       body: args,
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -620,10 +637,8 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
 
     const url = `${this.config.baseURL}/interactions`;
 
-    const mergedHeaders = combineHeaders(
-      this.config.headers ? await resolve(this.config.headers) : undefined,
-      options.headers,
-    );
+    const mergedHeaders = async () =>
+      combineHeaders(await resolve(this.config.headers), options.headers);
 
     /*
      * `background: true` is incompatible with `stream: true` on POST. Drive
@@ -647,7 +662,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url,
-      headers: mergedHeaders,
+      headers: await resolve(mergedHeaders),
       body,
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -709,13 +724,13 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     args: GoogleInteractionsRequestBody;
     warnings: Array<SharedV4Warning>;
     url: string;
-    mergedHeaders: Record<string, string | undefined>;
+    mergedHeaders: Resolvable<Record<string, string | undefined>>;
     options: LanguageModelV4CallOptions;
     pollingTimeoutMs: number | undefined;
   }): Promise<LanguageModelV4StreamResult> {
     const postResult = await postJsonToApi({
       url,
-      headers: mergedHeaders,
+      headers: await resolve(mergedHeaders),
       body: args,
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

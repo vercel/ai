@@ -196,10 +196,29 @@ describe('doGenerate', () => {
       expect(result.warnings).toEqual([]);
     });
 
-    it('should omit unsupported top-level reasoning none and warn', async () => {
+    it('should map top-level reasoning none to the lowest effort for GPT-OSS models', async () => {
       const gptOssModel = provider('openai/gpt-oss-120b');
 
       const result = await gptOssModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'low',
+      );
+      expect(result.warnings).toContainEqual({
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "none" is not directly supported by this model. mapped to effort "low".',
+      });
+    });
+
+    it('should omit top-level reasoning none for models without reasoning and warn', async () => {
+      const llamaModel = provider('llama-3.3-70b-versatile');
+
+      const result = await llamaModel.doGenerate({
         prompt: TEST_PROMPT,
         reasoning: 'none',
       });

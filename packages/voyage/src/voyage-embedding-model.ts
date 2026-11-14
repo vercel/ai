@@ -1,8 +1,11 @@
+import { voyageEmbeddingLimits } from './voyage-model-catalog';
 import {
   TooManyEmbeddingValuesForCallError,
   type EmbeddingModelV4,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
   lazySchema,
   zodSchema,
   combineHeaders,
@@ -24,7 +27,7 @@ import { voyageFailedResponseHandler } from './voyage-error';
 type VoyageEmbeddingConfig = {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 };
 
@@ -32,8 +35,8 @@ export class VoyageEmbeddingModel implements EmbeddingModelV4 {
   readonly specificationVersion = 'v4';
   readonly modelId: VoyageEmbeddingModelId;
 
-  readonly maxEmbeddingsPerCall = 128;
-  readonly supportsParallelCalls = true;
+  readonly maxEmbeddingsPerCall = voyageEmbeddingLimits.maxEmbeddingsPerCall;
+  readonly supportsParallelCalls = voyageEmbeddingLimits.supportsParallelCalls;
 
   private readonly config: VoyageEmbeddingConfig;
 
@@ -90,7 +93,7 @@ export class VoyageEmbeddingModel implements EmbeddingModelV4 {
       rawValue,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/embeddings`,
-      headers: combineHeaders(this.config.headers?.(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       body: {
         input: values,
         model: this.modelId,

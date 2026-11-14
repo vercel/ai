@@ -53,6 +53,38 @@ describe('ACP bridge environment', () => {
     },
   );
 
+  it('round-trips write-protected paths', async () => {
+    const configuration = {
+      agent,
+      writeProtectedPaths: ['.github/hooks', '.mcp.json'],
+    };
+    await expect(
+      readACPBridgeEnvironment({
+        env: createACPBridgeEnvironment(configuration),
+      }),
+    ).resolves.toEqual(configuration);
+  });
+
+  it.each([
+    { writeProtectedPaths: '.github/hooks' },
+    { writeProtectedPaths: [1] },
+    { writeProtectedPaths: [null] },
+  ])(
+    'rejects invalid write-protected paths: %j',
+    async ({ writeProtectedPaths }) => {
+      await expect(
+        readACPBridgeEnvironment({
+          env: {
+            [ACP_BRIDGE_CONFIGURATION_ENV]: JSON.stringify({
+              agent,
+              writeProtectedPaths,
+            }),
+          },
+        }),
+      ).rejects.toThrow('ACP bridge configuration environment is invalid.');
+    },
+  );
+
   it('round-trips fixed authentication and session configuration', async () => {
     const configuration = {
       agent,

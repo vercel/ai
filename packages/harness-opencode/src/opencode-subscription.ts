@@ -255,7 +255,7 @@ export async function readOpenCodeSubscription({
   fetch?: typeof globalThis.fetch;
 }): Promise<OpenCodeSubscription | undefined> {
   if (!isSubscriptionProvider(providerId)) return undefined;
-  const stored = await readStore({ env, homeDirectory, platform });
+  const stored = await readStore({ providerId, env, homeDirectory, platform });
   if (stored == null) return undefined;
   const candidate = stored.value[providerId];
   if (!isRecord(candidate)) return undefined;
@@ -661,10 +661,12 @@ async function extractOpenAIAccountId(
 }
 
 async function readStore({
+  providerId,
   env,
   homeDirectory,
   platform,
 }: {
+  providerId: string;
   env: Readonly<Record<string, string | undefined>>;
   homeDirectory: string;
   platform: NodeJS.Platform;
@@ -681,20 +683,30 @@ async function readStore({
       ? { value: parsed.value }
       : undefined;
   }
-  const authPath =
+  // OpenCode keeps auth.json in its XDG data directory on every platform,
+  // including Windows. The GitLab auth plugin (before v3) writes to
+  // `~/.opencode` on Windows instead, so that store is checked as a fallback.
+  const authPaths =
     env.XDG_DATA_HOME != null
-      ? join(env.XDG_DATA_HOME, 'opencode', 'auth.json')
-      : isWindows(platform)
-        ? join(homeDirectory, '.opencode', 'auth.json')
-        : join(homeDirectory, '.local', 'share', 'opencode', 'auth.json');
-  const text = await readFile(authPath, 'utf8').catch(() => undefined);
-  if (text == null) return undefined;
-  const parsed = await safeParseJSON({ text });
-  if (!parsed.success || !isRecord(parsed.value)) return undefined;
-  return {
-    value: parsed.value,
-    write: value => writeStore({ authPath, value }),
-  };
+      ? [join(env.XDG_DATA_HOME, 'opencode', 'auth.json')]
+      : [
+          join(homeDirectory, '.local', 'share', 'opencode', 'auth.json'),
+          ...(isWindows(platform)
+            ? [join(homeDirectory, '.opencode', 'auth.json')]
+            : []),
+        ];
+  for (const authPath of authPaths) {
+    const text = await readFile(authPath, 'utf8').catch(() => undefined);
+    if (text == null) continue;
+    const parsed = await safeParseJSON({ text });
+    if (!parsed.success || !isRecord(parsed.value)) continue;
+    if (!isRecord(parsed.value[providerId])) continue;
+    return {
+      value: parsed.value,
+      write: value => writeStore({ authPath, value }),
+    };
+  }
+  return undefined;
 }
 
 async function writeStore({

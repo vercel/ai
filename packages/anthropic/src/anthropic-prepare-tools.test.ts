@@ -10,6 +10,28 @@ import { webSearch_20260318OutputSchema } from './tool/web-search_20260318';
 import { anthropicChunkSchema, anthropicResponseSchema } from './anthropic-api';
 
 describe('prepareTools', () => {
+  it('does not add the strict-tool beta for providers that only support native final output', async () => {
+    const result = await prepareTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'report',
+          inputSchema: { type: 'object', properties: {} },
+          strict: true,
+        },
+      ],
+      toolChoice: undefined,
+      supportsStructuredOutput: true,
+      supportsStrictTools: false,
+    });
+
+    expect(result.betas).toEqual(new Set());
+    expect(result.tools?.[0]).not.toHaveProperty('strict');
+    expect(result.toolWarnings).toEqual([
+      expect.objectContaining({ type: 'unsupported', feature: 'strict' }),
+    ]);
+  });
+
   it('should return undefined tools and tool_choice when tools are null', async () => {
     const result = await prepareTools({
       tools: undefined,

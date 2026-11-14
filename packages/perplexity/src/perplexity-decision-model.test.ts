@@ -44,7 +44,11 @@ const options = {
   },
 } as const satisfies DecisionModelV4CallOptions;
 
-function setup(body: unknown = fixture, status = 200) {
+function setup(
+  body: unknown = fixture,
+  status = 200,
+  headers: Record<string, string> = {},
+) {
   const fetch = vi.fn<typeof globalThis.fetch>().mockImplementation(
     async () =>
       new Response(typeof body === 'string' ? body : JSON.stringify(body), {
@@ -55,6 +59,7 @@ function setup(body: unknown = fixture, status = 200) {
           'x-request-id': 'request-123',
           'retry-after': '2',
           'x-ratelimit-remaining': '9',
+          ...headers,
         },
       }),
   );
@@ -549,5 +554,85 @@ it.each([undefined, 'none', 'provider-default', 'high'] as const)(
     const body = JSON.parse(fetch.mock.calls[0][1]?.body as string);
     expect(body).not.toHaveProperty('reasoning');
     expect(body).not.toHaveProperty('reasoning_effort');
+  },
+);
+
+it('forwards grounding options and preserves evidence and exact tool counts', async () => {
+  const searchResults = [
+    {
+      title: 'Webb launch',
+      url: 'https://example.com/webb',
+      snippet: 'Launched in December 2021.',
+      date: '2021-12-25',
+      last_updated: '2026-11-01',
+    },
+  ];
+  const fetchedResults = [
+    { title: 'Webb', url: 'https://example.com/page', snippet: 'Page text.' },
+  ];
+  const toolCalls = {
+    search_web: { invocation: 2 },
+    fetch_url: { invocation: 1 },
+  };
+  const { model, fetch } = setup({
+    ...fixture,
+    search_results: searchResults,
+    fetched_results: fetchedResults,
+    usage: { ...fixture.usage, tool_calls_details: toolCalls },
+  });
+  const result = await model.doDecide({
+    ...options,
+    providerOptions: { perplexity: { mode: 'web_grounding', maxStaleness: 0 } },
+  });
+  expect(JSON.parse(fetch.mock.calls[0][1]?.body as string)).toMatchObject({
+    mode: 'web_grounding',
+    max_staleness: 0,
+  });
+  expect(result.warnings).toEqual([]);
+  expect(result.providerMetadata?.perplexity).toMatchObject({
+    searchResults,
+    fetchedResults,
+    toolCalls,
+  });
+});
+
+it.each([{ mode: 'invalid' }, { maxStaleness: -1 }, { maxStaleness: 0.5 }])(
+  'rejects invalid grounding options %j before sending a request',
+  async perplexity => {
+    const { model, fetch } = setup();
+    await expect(
+      model.doDecide({ ...options, providerOptions: { perplexity } }),
+    ).rejects.toBeInstanceOf(InvalidArgumentError);
+    expect(fetch).not.toHaveBeenCalled();
+  },
+);
+
+it.each(['0', '1'])(
+  'preserves completed grounding counts of %s on HTTP errors',
+  async count => {
+    const responseHeaders = {
+      'x-perplexity-search-queries': count,
+      'x-perplexity-fetched-urls': count,
+    };
+    await expect(
+      setup(
+        {
+          error: {
+            message: 'Context limit exceeded',
+            type: 'invalid_request',
+            code: '400',
+          },
+        },
+        400,
+        responseHeaders,
+      ).model.doDecide({
+        ...options,
+        providerOptions: { perplexity: { mode: 'web_grounding' } },
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      responseHeaders,
+      isRetryable: false,
+    });
   },
 );

@@ -30,7 +30,9 @@ pnpm --filter harness-cline update @cline/agents @cline/core --latest --lockfile
 # Codex
 pnpm --filter harness-codex update @openai/codex --latest --lockfile-only
 # Deep Agents
-pnpm --filter harness-deepagents update @langchain/core @langchain/langgraph deepagents langchain langsmith --latest --lockfile-only
+pnpm --filter harness-deepagents update @langchain/anthropic @langchain/core @langchain/langgraph deepagents langchain langsmith --latest --lockfile-only
+# fx
+pnpm --filter harness-fx update libfx --latest --lockfile-only
 # GitHub Copilot
 pnpm --filter harness-github-copilot update @github/copilot --latest --lockfile-only
 # Grok Build
@@ -65,22 +67,6 @@ pnpm --dir packages/harness-opencode/src/bridge update @opencode-ai/sdk opencode
 The following harness adapter uses an unversioned installer script instead of an NPM package for its CLI and therefore can be ignored:
 
 - `packages/harness-cursor`
-
-#### Update the pinned fx CLI version
-
-The fx harness adapter pins the fx CLI release with `FX_VERSION` in
-`packages/harness-fx/src/fx-harness.ts`. To discover the latest release, run:
-
-```bash
-curl -fsSL https://releases.fx.sh/latest.txt
-```
-
-Update `FX_VERSION` to that version without a leading `v`, then run the fx
-harness tests:
-
-```bash
-pnpm --filter harness-fx test
-```
 
 #### Example dependencies
 

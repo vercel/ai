@@ -1,9 +1,6 @@
 import type * as os from 'node:os';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import {
-  secureJsonParse,
-  type Experimental_SandboxSession as SandboxSession,
-} from '@ai-sdk/provider-utils';
+import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import type {
   HarnessV1PromptTurnOptions,
@@ -15,7 +12,8 @@ import {
   type FxRuntimeOptions,
   type FxToolResult,
 } from './fx-runtime';
-import type { FxStoredState } from './fx-resume-state';
+import type { FxSessionState } from './fx-resume-state';
+import type { FxSessionStorage } from './fx-session-storage';
 import { createFx } from './fx-harness';
 import { resolveFxEnv } from './fx-auth';
 import * as subscriptions from './fx-subscription';
@@ -34,6 +32,13 @@ const runtime = vi.hoisted(() => ({
 vi.mock('node:os', async importOriginal => ({
   ...(await importOriginal<typeof os>()),
   homedir: () => '/nonexistent-ai-sdk-fx-test-home',
+}));
+vi.mock('@ai-sdk/harness/utils', async importOriginal => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  isSandboxWriteProtectedPath: vi.fn(
+    async ({ paths }: { paths: ReadonlyArray<string> }) =>
+      paths.some(filePath => filePath.startsWith('/workspace/.fx/')),
+  ),
 }));
 vi.mock('./fx-runtime', () => ({
   createFxRuntime: vi.fn(async (options: FxRuntimeOptions) => {
@@ -117,6 +122,19 @@ const turnOptions = {
   skills: [],
   tools: [],
 } satisfies Partial<HarnessV1PromptTurnOptions>;
+function sessionStateOf(state: { data: unknown }): FxSessionState {
+  return (state.data as { session: FxSessionState }).session;
+}
+function createMemoryStorage() {
+  const entries: Array<Parameters<FxSessionStorage['append']>[0]['entry']> = [];
+  const storage: FxSessionStorage = {
+    append: async ({ entry }) => {
+      entries.push(structuredClone(entry));
+    },
+    read: async () => entries,
+  };
+  return { entries, storage };
+}
 function invoke(options: {
   runtimeOptions: FxRuntimeOptions;
   name: string;
@@ -230,7 +248,8 @@ describe('fx harness', () => {
     const session = await harness.doStart(start);
     try {
       const resumeFrom = await session.doStop();
-      expect([...files.values()].join('\n')).toContain('"provider":"grok"');
+      expect(sessionStateOf(resumeFrom).provider).toBe('grok');
+      expect(files.size).toBe(0);
       const resumed = await harness.doStart({ ...start, resumeFrom });
       try {
         expect(auth).toHaveBeenLastCalledWith({
@@ -750,6 +769,59 @@ describe('fx harness', () => {
     },
   );
 
+  it.each([
+    { filePath: 'notes.md', approval: false },
+    { filePath: '.fx/settings.json', approval: true },
+  ])(
+    'requires approval=$approval for an allow-edits write to $filePath',
+    async ({ filePath, approval }) => {
+      const { sandbox, files } = createSandbox();
+      runtime.run = async options => {
+        await invoke({
+          runtimeOptions: options,
+          name: 'write',
+          id: 'write-id',
+          input: { file_path: filePath, content: 'hello' },
+        }).catch(() => {});
+      };
+      const session = await createFx().doStart({
+        sandboxSession: sandbox,
+        sessionId: 'write-approval',
+        sessionWorkDir: '/workspace',
+        permissionMode: 'allow-edits',
+      });
+      const events: HarnessV1StreamPart[] = [];
+      let approvalRequested!: () => void;
+      const pending = new Promise<void>(resolve => {
+        approvalRequested = resolve;
+      });
+      try {
+        const control = await session.doPromptTurn({
+          ...turnOptions,
+          prompt: 'go',
+          emit: event => {
+            events.push(event);
+            if (event.type === 'tool-approval-request') approvalRequested();
+          },
+        });
+        if (approval) {
+          await pending;
+          expect(files.has(`/workspace/${filePath}`)).toBe(false);
+          await control.submitToolApproval!({
+            approvalId: 'fx:write-id',
+            approved: true,
+          });
+        }
+        await control.done;
+        expect(
+          events.filter(event => event.type === 'tool-approval-request'),
+        ).toHaveLength(approval ? 1 : 0);
+      } finally {
+        await session.doDestroy();
+      }
+    },
+  );
+
   it('gates shell execution before touching the sandbox', async () => {
     const { sandbox, run } = createSandbox();
     runtime.run = async options => {
@@ -916,7 +988,7 @@ describe('fx turn failures', () => {
   it.each(['initialization', 'prompt', 'abort', 'pre-aborted'] as const)(
     'preserves the committed checkpoint and accepts a new prompt after %s failure',
     async phase => {
-      const { sandbox, files } = createSandbox();
+      const { sandbox } = createSandbox();
       const session = await createFx().doStart({
         sandboxSession: sandbox,
         sessionId: 'failed-turn',
@@ -930,12 +1002,7 @@ describe('fx turn failures', () => {
             emit() {},
           })
         ).done;
-        const statePath = [...files.keys()].find(path =>
-          path.endsWith('/state.json'),
-        )!;
-        const baseline = secureJsonParse(
-          files.get(statePath)!,
-        ) as FxStoredState;
+        const baseline = sessionStateOf(await session.doSuspendTurn());
         const failure = new Error(`${phase} failed`);
         const controller = new AbortController();
         const events: HarnessV1StreamPart[] = [];
@@ -960,7 +1027,7 @@ describe('fx turn failures', () => {
           { type: 'error', error: failure },
         ]);
         expect(events.some(event => event.type === 'finish')).toBe(false);
-        const stored = secureJsonParse(files.get(statePath)!) as FxStoredState;
+        const stored = sessionStateOf(await session.doSuspendTurn());
         expect(stored.turn).toBeUndefined();
         expect(stored.checkpoint).toBe(baseline.checkpoint);
         await expect(
@@ -1088,7 +1155,7 @@ describe('fx turn failures', () => {
   );
 
   it('accepts a fresh prompt after a cold-continued turn fails', async () => {
-    const { sandbox, files } = createSandbox();
+    const { sandbox } = createSandbox();
     const harness = createFx();
     const start = {
       sandboxSession: sandbox,
@@ -1128,10 +1195,9 @@ describe('fx turn failures', () => {
     try {
       const continued = await resumed.doContinueTurn({ ...options, emit() {} });
       await expect(continued.done).rejects.toBe(failure);
-      const stored = secureJsonParse(
-        [...files.entries()].find(([path]) => path.endsWith('/state.json'))![1],
-      ) as FxStoredState;
-      expect(stored.turn).toBeUndefined();
+      expect(
+        sessionStateOf(await resumed.doSuspendTurn()).turn,
+      ).toBeUndefined();
       runtime.run = undefined;
       await (
         await resumed.doPromptTurn({
@@ -1479,4 +1545,200 @@ describe('tool conversion and permissions', () => {
       expect(fxToolRequiresApproval({ permissionMode, kind })).toBe(expected);
     },
   );
+});
+
+describe('fx session state', () => {
+  const start = (sandbox: SandboxSession, sessionId = 'state-session') => ({
+    sandboxSession: sandbox,
+    sessionId,
+    sessionWorkDir: '/workspace',
+  });
+
+  async function runPrompt(
+    session: Awaited<ReturnType<ReturnType<typeof createFx>['doStart']>>,
+  ) {
+    await (
+      await session.doPromptTurn({ ...turnOptions, prompt: 'go', emit() {} })
+    ).done;
+  }
+
+  it('never stores session state in the sandbox', async () => {
+    const { sandbox, run, files } = createSandbox();
+    const harness = createFx();
+    const options = { ...turnOptions, tools: [{ name: 'custom' }] };
+    runtime.run = async runtimeOptions => {
+      await invoke({
+        runtimeOptions,
+        name: 'custom',
+        id: 'custom-id',
+        input: {},
+      });
+    };
+    let waiting!: () => void;
+    const pending = new Promise<void>(resolve => {
+      waiting = resolve;
+    });
+    const session = await harness.doStart(start(sandbox));
+    const first = await session.doPromptTurn({
+      ...options,
+      prompt: 'wait',
+      emit: event => {
+        if (event.type === 'finish-step') waiting();
+      },
+    });
+    await pending;
+    const continueFrom = await session.doSuspendTurn();
+    await first.done;
+    const resumed = await harness.doStart({
+      ...start(sandbox),
+      continueFrom,
+    });
+    const continued = await resumed.doContinueTurn({ ...options, emit() {} });
+    await continued.submitToolResult({ toolCallId: 'custom-id', output: 'ok' });
+    await continued.done;
+    await resumed.doStop();
+    await session.doDestroy();
+
+    expect(files.size).toBe(0);
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it('runs an approval-gated tool only after the host approves it', async () => {
+    const { sandbox, run } = createSandbox();
+    const harness = createFx();
+    runtime.run = async runtimeOptions => {
+      await invoke({
+        runtimeOptions,
+        name: 'bash',
+        id: 'bash-id',
+        input: { command: 'gated-effect' },
+      }).catch(() => {});
+    };
+    let waiting!: () => void;
+    const pending = new Promise<void>(resolve => {
+      waiting = resolve;
+    });
+    const startOptions = {
+      ...start(sandbox),
+      permissionMode: 'allow-reads' as const,
+    };
+    const session = await harness.doStart(startOptions);
+    const first = await session.doPromptTurn({
+      ...turnOptions,
+      prompt: 'run it',
+      emit: event => {
+        if (event.type === 'tool-approval-request') waiting();
+      },
+    });
+    await pending;
+    const continueFrom = await session.doSuspendTurn();
+    await first.done;
+    const effects = () =>
+      run.mock.calls.filter(([input]) => input.command === 'gated-effect');
+    const resumed = await harness.doStart({ ...startOptions, continueFrom });
+    try {
+      const continued = await resumed.doContinueTurn({
+        ...turnOptions,
+        emit() {},
+      });
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(effects()).toHaveLength(0);
+      await continued.submitToolApproval!({
+        approvalId: 'fx:bash-id',
+        approved: true,
+      });
+      await continued.done;
+      expect(effects()).toHaveLength(1);
+    } finally {
+      await resumed.doDestroy();
+      await session.doDestroy();
+    }
+  });
+
+  it('returns lifecycle state that later turns do not change', async () => {
+    const { sandbox } = createSandbox();
+    const session = await createFx().doStart(start(sandbox));
+    try {
+      const before = await session.doSuspendTurn();
+      const snapshot = structuredClone(before);
+      await runPrompt(session);
+
+      expect(before).toEqual(snapshot);
+      expect(sessionStateOf(before).checkpoint).toBeUndefined();
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('resumes from the storage leaf and appends only changed state', async () => {
+    const { sandbox } = createSandbox();
+    const { entries, storage } = createMemoryStorage();
+    const harness = createFx({ sessionStorage: storage });
+    const first = await harness.doStart(start(sandbox));
+    await runPrompt(first);
+    const firstState = await first.doStop();
+
+    expect(firstState.data).toEqual({ leafId: entries[0].entryId });
+    expect(entries).toEqual([
+      {
+        entryId: expect.any(String),
+        data: { provider: 'gateway', checkpoint: 'AQID' },
+      },
+    ]);
+
+    const second = await harness.doStart({
+      ...start(sandbox),
+      resumeFrom: firstState,
+    });
+    await runPrompt(second);
+    expect(Array.from(runtime.options.at(-1)!.checkpoint!)).toEqual([1, 2, 3]);
+    const secondState = await second.doStop();
+
+    expect(secondState.data).toEqual(firstState.data);
+    expect(entries).toHaveLength(1);
+  });
+
+  it('appends nothing when the session is destroyed', async () => {
+    const { sandbox } = createSandbox();
+    const { entries, storage } = createMemoryStorage();
+    const session = await createFx({ sessionStorage: storage }).doStart(
+      start(sandbox),
+    );
+    await runPrompt(session);
+    await session.doDestroy();
+
+    expect(entries).toEqual([]);
+  });
+
+  it('fails to start from a leaf without a session storage', async () => {
+    const { sandbox } = createSandbox();
+    await expect(
+      createFx().doStart({
+        ...start(sandbox),
+        resumeFrom: {
+          type: 'resume-session',
+          harnessId: 'fx',
+          specificationVersion: 'harness-v1',
+          data: { leafId: 'entry-1' },
+        },
+      }),
+    ).rejects.toThrow('createFx has no sessionStorage to load it from');
+  });
+
+  it('fails to start from a whole session with a session storage', async () => {
+    const { sandbox } = createSandbox();
+    const session = await createFx().doStart(start(sandbox));
+    await runPrompt(session);
+    const resumeFrom = await session.doStop();
+    const { storage } = createMemoryStorage();
+
+    await expect(
+      createFx({ sessionStorage: storage }).doStart({
+        ...start(sandbox),
+        resumeFrom,
+      }),
+    ).rejects.toThrow(
+      'createFx has a sessionStorage, so its lifecycle state must hold a leafId.',
+    );
+  });
 });

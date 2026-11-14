@@ -20,6 +20,7 @@ const CODEX_ENV_KEYS = [
 ] as const;
 
 const state = vi.hoisted(() => ({
+  hostDisconnectTimeoutMs: undefined as number | undefined,
   startModel: 'gpt-5.5',
   startResponseFormat: undefined as
     | { type: 'json'; schema: Record<string, unknown> }
@@ -62,11 +63,14 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
     onStart,
     onStop,
     onDestroy,
+    hostDisconnectTimeoutMs,
   }: {
     onStart: (start: unknown, turn: unknown) => Promise<void>;
     onStop: () => Promise<unknown>;
     onDestroy: () => Promise<void>;
+    hostDisconnectTimeoutMs?: number;
   }) => {
+    state.hostDisconnectTimeoutMs = hostDisconnectTimeoutMs;
     const start = {
       prompt: 'Use the weather tool.',
       responseFormat: state.startResponseFormat,
@@ -187,6 +191,21 @@ describe('Codex bridge config', () => {
     expect(state.appServerOptions[0]?.start.tools).toEqual([]);
   });
 
+  test.each([
+    [['--host-disconnect-timeout-ms', '60000'], 60_000],
+    [[], undefined],
+  ])(
+    'passes the host disconnect timeout argument to the bridge (%j)',
+    async (extraArgs, expected) => {
+      state.hostDisconnectTimeoutMs = undefined;
+      process.argv.push(...extraArgs);
+
+      await import('./index');
+
+      expect(state.hostDisconnectTimeoutMs).toBe(expected);
+    },
+  );
+
   test('reuses one runtime for turns and closes on stop and destroy', async () => {
     state.runSecondTurn = true;
 
@@ -235,7 +254,7 @@ describe('Codex bridge config', () => {
         "features": {
           "multi_agent": false,
         },
-        "model_reasoning_summary": "detailed",
+        "model_reasoning_summary": "none",
         "model_verbosity": "low",
       }
     `);
@@ -250,6 +269,43 @@ describe('Codex bridge config', () => {
       }
     `);
   });
+
+  test.each(
+    [
+      { model: 'gpt-5.5', gateway: false },
+      { model: 'gpt-5.5', gateway: true },
+      { model: 'openai/gpt-5.5', gateway: true },
+      { model: '@cf/openai/gpt-oss-20b', gateway: true },
+      { model: '@cf/openai/gpt-oss-120b', gateway: true },
+    ].flatMap(({ model, gateway }) =>
+      [undefined, 'none', 'concise', 'detailed'].map(summary => ({
+        model,
+        gateway,
+        summary,
+      })),
+    ),
+  )(
+    'respects reasoning summary $summary for $model (gateway $gateway)',
+    async ({ model, gateway, summary }) => {
+      state.startModel = model;
+      state.startCodexConfig =
+        summary === undefined
+          ? undefined
+          : { model_reasoning_summary: summary };
+      if (gateway) {
+        process.env.AI_GATEWAY_BASE_URL = 'https://ai-gateway.test/v1';
+      }
+
+      await import('./index');
+
+      expect(state.emittedErrors).toEqual([]);
+      expect(state.appServerOptions).toHaveLength(1);
+      const actual = state.appServerOptions[0]!;
+      expect(actual.codexConfig.model_reasoning_summary).toBe(
+        summary ?? 'detailed',
+      );
+    },
+  );
 
   test.each(['xhigh', 'max'] as const)(
     'passes %s reasoning effort to app-server',
@@ -276,11 +332,49 @@ describe('Codex bridge config', () => {
         agent_bridge_openai: {
           base_url: 'https://api.openai.com/v1',
           env_key: 'CODEX_API_KEY',
+          supports_standalone_web_search: true,
           supports_websockets: false,
         },
       },
-      preferred_auth_method: 'apikey',
     });
+    expect(state.appServerOptions[0]?.codexConfig).not.toHaveProperty(
+      'preferred_auth_method',
+    );
+  });
+
+  test('enables standalone web search for the ChatGPT Codex backend', async () => {
+    process.env.CODEX_API_KEY = 'CODEX_API_KEY';
+    process.env.OPENAI_BASE_URL = 'https://chatgpt.com/backend-api/codex/';
+
+    await import('./index');
+
+    expect(state.appServerOptions[0]?.codexConfig).toMatchObject({
+      model_providers: {
+        agent_bridge_openai: { supports_standalone_web_search: true },
+      },
+    });
+  });
+
+  test('does not enable standalone web search for a custom base URL', async () => {
+    process.env.CODEX_API_KEY = 'CODEX_API_KEY';
+    process.env.OPENAI_BASE_URL = 'https://proxy.example.com/v1';
+
+    await import('./index');
+
+    expect(
+      state.appServerOptions[0]?.codexConfig.model_providers,
+    ).not.toHaveProperty('agent_bridge_openai.supports_standalone_web_search');
+  });
+
+  test('does not enable standalone web search for AI Gateway', async () => {
+    process.env.AI_GATEWAY_API_KEY = 'gateway-key';
+    process.env.AI_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh/v1';
+
+    await import('./index');
+
+    expect(
+      state.appServerOptions[0]?.codexConfig.model_providers,
+    ).not.toHaveProperty('agent_bridge_openai.supports_standalone_web_search');
   });
 
   test('configures direct API key auth without an explicit base URL', async () => {
@@ -295,6 +389,7 @@ describe('Codex bridge config', () => {
           "base_url": "https://api.openai.com/v1",
           "env_key": "CODEX_API_KEY",
           "name": "Agent Bridge OpenAI",
+          "supports_standalone_web_search": true,
           "supports_websockets": false,
           "wire_api": "responses",
         },
@@ -330,7 +425,7 @@ describe('Codex bridge config', () => {
     expect(state.appServerOptions[0]?.threadId).toBe('thread-previous');
   });
 
-  test('uses the creator-qualified model and forces summaries for AI Gateway', async () => {
+  test('uses the creator-qualified model and defaults to detailed summaries for AI Gateway', async () => {
     process.env.AI_GATEWAY_API_KEY = 'gateway-key';
     process.env.AI_GATEWAY_BASE_URL = 'https://ai-gateway.test/v1';
 
@@ -340,14 +435,10 @@ describe('Codex bridge config', () => {
       model: state.appServerOptions[0]?.codexModel,
       reasoningSummary:
         state.appServerOptions[0]?.codexConfig.model_reasoning_summary,
-      supportsReasoningSummaries:
-        state.appServerOptions[0]?.codexConfig
-          .model_supports_reasoning_summaries,
     }).toMatchInlineSnapshot(`
       {
         "model": "openai/gpt-5.5",
         "reasoningSummary": "detailed",
-        "supportsReasoningSummaries": true,
       }
     `);
   });
@@ -368,6 +459,7 @@ describe('Codex bridge config', () => {
             "x-tenant": "acme",
           },
           "name": "Agent Bridge OpenAI",
+          "supports_standalone_web_search": true,
           "supports_websockets": false,
           "wire_api": "responses",
         },

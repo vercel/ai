@@ -31,6 +31,15 @@ export async function asGatewayError(
   error: unknown,
   authMethod?: 'api-key' | 'oidc',
 ) {
+  // Caller cancellation is not a gateway failure and must not become a retryable 500.
+  if (
+    (error instanceof Error ||
+      (typeof DOMException === 'function' && error instanceof DOMException)) &&
+    (error.name === 'AbortError' || error.name === 'TimeoutError')
+  ) {
+    throw error;
+  }
+
   if (GatewayError.isInstance(error)) {
     return error;
   }

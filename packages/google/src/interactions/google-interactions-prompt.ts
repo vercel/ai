@@ -424,7 +424,8 @@ export type GoogleInteractionsThinkingLevel =
   | 'minimal'
   | 'low'
   | 'medium'
-  | 'high';
+  | 'high'
+  | 'xhigh';
 
 export type GoogleInteractionsThinkingSummaries = 'auto' | 'none';
 
@@ -577,6 +578,7 @@ export type GoogleInteractionsRequestBody = {
   model?: string;
   agent?: string;
   input: GoogleInteractionsInput;
+  labels?: Record<string, string>;
   system_instruction?: string;
   tools?: Array<GoogleInteractionsTool>;
   response_format?: Array<GoogleInteractionsResponseFormatEntry>;

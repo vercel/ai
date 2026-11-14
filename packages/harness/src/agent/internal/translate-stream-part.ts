@@ -138,10 +138,11 @@ export function translateStreamPart<TOOLS extends ToolSet>(
           true)
       ) {
         /*
-         * `providerExecuted` decides whether the message survives:
-         * `toUIMessageChunk` forwards the real error text only for
+         * `providerExecuted` decides whether the message survives when the
+         * application redacts tool errors (`redactToolErrors`):
+         * `toUIMessageChunk` then forwards the real error text only for
          * provider-executed errors, and replaces every other one with the
-         * generic `onError` string.
+         * `onError` string.
          */
         return [
           {

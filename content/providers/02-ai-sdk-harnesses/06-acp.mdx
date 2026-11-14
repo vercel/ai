@@ -85,10 +85,25 @@ try {
   value forwarded into the sandbox process. It does not restrict which
   credentials the harness adapter can discover, read, or otherwise access in
   the host process.
+- `prepareSandbox`: optional synchronous or asynchronous callback for
+  runtime-specific sandbox configuration. Receives `{ sandbox, workDir,
+abortSignal }`, where `sandbox` is the restricted sandbox session and
+  `workDir` is the session working directory. It runs after authentication
+  files are written and before each new bridge process starts, including
+  recovery starts. It is skipped when reconnecting to a live bridge. Errors
+  reject startup without launching the bridge. Forward `abortSignal` to
+  sandbox operations to support startup cancellation.
 - `env`: persistent environment values written at bootstrap.
 - `builtinTools`: optional native tool definitions for static typing and exact
   name matching.
 - `mcpServers`: MCP server definitions keyed by server name.
+- `resolveHostToolCall`: required function that resolves an ACP tool call to
+  the host tool it invokes, or `undefined` if it's not a host tool call.
+- `isMcpToolCall`: required function that receives an ACP tool call that was
+  classified by `resolveHostToolCall` to _not_ be a host tool call, and
+  returns whether it invokes a tool from a configured MCP server. Matching
+  tool calls are reported as dynamic tool calls instead of provider-executed
+  built-in tool calls.
 - `hostToolMcpTransport`: transport used for the harness-owned MCP server that
   exposes host tools to the ACP implementation. It defaults to `'stdio'`. Set
   this to `'http'` for implementations that only accept HTTP or SSE MCP servers
@@ -141,10 +156,21 @@ try {
   advertised ACP session modes or configuration options. Set an entry to
   `null` when the ACP implementation does not support that mode. When omitted,
   the adapter applies `permissionMode` to ACP permission requests by tool kind.
+- `writeProtectedPaths`: optional paths relative to the session working
+  directory, such as files or directories that hold the implementation's own
+  configuration, which the agent must not write to without Harness approval.
+  Under `allow-edits`, `edit`, `delete`, and `move` permission requests that
+  touch these paths always require approval. `.agents/skills` is always
+  protected. Entries must not be absolute or contain `.` or `..` segments.
 - `session.meta`: serializable implementation-specific metadata for session
   creation and restoration.
 - `port`: exposed bridge port override.
 - `startupTimeoutMs`: bridge startup timeout. The default is 120 seconds.
+- `hostDisconnectTimeoutMs`: aborts a running turn when the host disconnects
+  and no host reconnects within this many milliseconds. A suspended turn is
+  not aborted. When unset, a turn keeps running in the sandbox after its host
+  disconnects, including when the host process is gone for good, until the
+  turn finishes or the sandbox stops.
 - `reconnect`: reconnect timing after an established bridge WebSocket
   connection drops. `maxElapsedMs` controls the total retry window, including
   connection establishment and backoff delays, and defaults to 30 seconds.
@@ -152,10 +178,9 @@ try {
   2 seconds. These retries use exponential backoff and are separate from
   `startupTimeoutMs`. They cannot recover when the sandbox, bridge process, or
   bridge endpoint is permanently unavailable.
-- `mintBridgeToken`: synchronous function that receives the sandbox id and
-  returns the bridge authentication token. By default, the adapter generates a
-  random 32-byte token. Custom implementations must return a suitably secret
-  token.
+- `mintBridgeToken`: deprecated and ignored. Passing it logs a warning. The
+  adapter generates a key pair for each bridge, passes only the public key into
+  the sandbox, and keeps the private key in host-side resume state.
 - `clientApp`: optional client attribution with `name` and `version`. It
   defaults to the installed `ai-sdk-harness-acp/<version>` identity and is
   available to Gateway environment placeholders.
@@ -170,16 +195,7 @@ implementations with a private prompt metadata extension can opt in explicitly:
 
 ```ts
 const harness = createACP({
-  harnessId: 'example-acp',
-  source: {
-    type: 'install-command',
-    command: 'curl -fsSL https://example.com/install.sh | bash',
-  },
-  executable: 'example-acp',
-  modelMapping: {
-    type: 'session-config-option',
-    path: 'model',
-  },
+  // ...implementation settings
   outputSchemaMapping: {
     type: 'session-prompt-meta',
     path: ['outputSchema'],
@@ -344,6 +360,24 @@ approval request. Without a mapping, the adapter automatically selects
 approval for the rest. A rejection selects `reject_once`; persistent choices
 are never inferred. Host-tool approval remains independent.
 
+Under `allow-reads` and `allow-edits`, automatically approved file operations
+must also declare locations that resolve within the session working directory.
+Every location is checked, including symlink targets and existing parent
+directories for new files. External, missing, or unresolvable file locations
+require Harness approval. `allow-all` retains unrestricted automatic approval.
+These checks apply to permission requests received from the ACP implementation;
+use separate sandboxes when jobs require filesystem isolation.
+
+Under `allow-edits`, `edit`, `delete`, and `move` permission requests that
+touch `.agents/skills` or a configured `writeProtectedPaths` entry also require
+Harness approval, even inside the session working directory. A location matches
+when it is a protected path, lies inside one, or is a parent of one. Symlinks
+are resolved in both directions: writes through an alias that points into a
+protected path match, as do writes to targets of symlinks inside protected
+directories. While a protected path exists, writes to hard-linked files also
+require approval. Reads of protected paths are still automatically approved,
+and `allow-all` is unaffected.
+
 ## Complete ACP Harness Implementations
 
 Unless noted otherwise, these profiles support direct authentication through
@@ -383,6 +417,8 @@ export const codexACPHarness = createACP({
     type: 'session-config-option',
     path: 'model',
   },
+  resolveHostToolCall: resolveCodexACPHostToolCall,
+  isMcpToolCall: toolCall => toolCall._meta?.is_mcp_tool_call === true,
   forwardEnv: ['CODEX_CONFIG'],
   credentialEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
   credentialBrokering: ({ env, sandboxEnv }) => {
@@ -493,6 +529,37 @@ export const cursorACPHarness = createACP({
   clientCapabilities: {
     _meta: { parameterizedModelPicker: true },
   },
+  // Cursor reports MCP tool calls with a
+  // `{ providerIdentifier, toolName, args }` raw input.
+  resolveHostToolCall: ({ toolCall, serverName, toolNames }) => {
+    const rawInput = toolCall.rawInput as
+      | { providerIdentifier?: unknown; toolName?: unknown; args?: unknown }
+      | undefined;
+    if (
+      rawInput?.providerIdentifier !== serverName ||
+      typeof rawInput.toolName !== 'string' ||
+      !toolNames.includes(rawInput.toolName) ||
+      rawInput.args == null ||
+      typeof rawInput.args !== 'object'
+    ) {
+      return undefined;
+    }
+    return {
+      toolName: rawInput.toolName,
+      input: rawInput.args as Record<string, unknown>,
+    };
+  },
+  isMcpToolCall: toolCall => {
+    const rawInput = toolCall.rawInput as
+      | { providerIdentifier?: unknown; toolName?: unknown; args?: unknown }
+      | undefined;
+    return (
+      typeof rawInput?.providerIdentifier === 'string' &&
+      typeof rawInput.toolName === 'string' &&
+      rawInput.args != null &&
+      typeof rawInput.args === 'object'
+    );
+  },
   credentialEnv: ['CURSOR_API_KEY'],
   credentialBrokering: ({ env, sandboxEnv }) => {
     if (!env.CURSOR_API_KEY || !sandboxEnv?.CURSOR_API_KEY) return [];
@@ -556,6 +623,34 @@ export const grokBuildACPHarness = createACP({
   modelMapping: {
     type: 'session-model',
     path: 'modelId',
+  },
+  // Grok Build calls MCP tools through its `use_tool` meta-tool, with a
+  // `{ tool_name, tool_input }` raw input where `tool_name` is
+  // `${serverName}__${toolName}`.
+  resolveHostToolCall: ({ toolCall, serverName, toolNames }) => {
+    const rawInput = toolCall.rawInput as
+      | { tool_name?: unknown; tool_input?: unknown }
+      | undefined;
+    const toolName = toolNames.find(
+      name => rawInput?.tool_name === `${serverName}__${name}`,
+    );
+    if (
+      toolName == null ||
+      rawInput?.tool_input == null ||
+      typeof rawInput.tool_input !== 'object'
+    ) {
+      return undefined;
+    }
+    return {
+      toolName,
+      input: rawInput.tool_input as Record<string, unknown>,
+    };
+  },
+  isMcpToolCall: toolCall => {
+    const metadata = toolCall._meta?.['x.ai/tool'] as
+      | { namespace?: unknown }
+      | undefined;
+    return metadata?.namespace === 'mcp';
   },
   credentialEnv: ['XAI_API_KEY'],
   credentialBrokering: ({ env, sandboxEnv }) => {

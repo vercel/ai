@@ -65,6 +65,9 @@ describe('createBashTool', () => {
         .fn()
         .mockResolvedValue({ stdout: 'custom', stderr: '', exitCode: 0 }),
       writeTextFile: vi.fn().mockResolvedValue(undefined),
+      stat: vi.fn().mockResolvedValue(null),
+      listDirectory: vi.fn().mockResolvedValue(null),
+      deleteFile: vi.fn().mockResolvedValue(false),
       readTextFile: vi.fn().mockResolvedValue('report'),
       readFile: vi.fn(),
       readBinaryFile: vi.fn(),
