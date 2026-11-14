@@ -21,7 +21,7 @@ This pattern is useful when you want to:
 ```ts
 import { ModelMessage, streamText, tool } from 'ai';
 import 'dotenv/config';
-import z from 'zod';
+import { z } from 'zod/v4';
 
 const getWeather = async ({ location }: { location: string }) => {
   return `The weather in ${location} is ${Math.floor(Math.random() * 100)} degrees.`;
@@ -61,35 +61,104 @@ async function main() {
       }
     }
 
-    // Add LLM generated messages to the message history
+    // Collect model messages, including SDK-generated tool error results
     const responseMessages = await result.responseMessages;
+    const clientToolCalls = (await result.toolCalls).filter(
+      toolCall => !toolCall.providerExecuted,
+    );
+    const finishReason = await result.finishReason;
+    const canExecuteTools =
+      finishReason === 'stop' || finishReason === 'tool-calls';
+    const toolParts = responseMessages
+      .filter(message => message.role === 'tool')
+      .flatMap(message => message.content);
+    const completedCallIds = new Set(
+      toolParts
+        .filter(part => part.type === 'tool-result')
+        .map(part => part.toolCallId),
+    );
+    const approvedIds = new Set(
+      toolParts
+        .filter(part => part.type === 'tool-approval-response')
+        .filter(part => part.approved)
+        .map(part => part.approvalId),
+    );
+    const blockedCallIds = new Set(
+      responseMessages
+        .filter(message => message.role === 'assistant')
+        .flatMap(message =>
+          typeof message.content === 'string' ? [] : message.content,
+        )
+        .filter(part => part.type === 'tool-approval-request')
+        .filter(part => !approvedIds.has(part.approvalId))
+        .map(part => part.toolCallId),
+    );
+    const toolCalls = canExecuteTools
+      ? (await result.staticToolCalls).filter(
+          toolCall =>
+            !toolCall.providerExecuted &&
+            !completedCallIds.has(toolCall.toolCallId) &&
+            !blockedCallIds.has(toolCall.toolCallId),
+        )
+      : [];
+
+    // Execute only validated calls to the declared client-side tools
+    for (const toolCall of toolCalls) {
+      if (toolCall.toolName === 'getWeather') {
+        const toolOutput = await getWeather(toolCall.input);
+        responseMessages.push({
+          role: 'tool',
+          content: [
+            {
+              toolName: toolCall.toolName,
+              toolCallId: toolCall.toolCallId,
+              type: 'tool-result',
+              output: { type: 'text', value: toolOutput }, // update depending on the tool's output format
+            },
+          ],
+        });
+      }
+      // Handle other tool calls
+    }
+
+    // Preserve tool-result order when SDK errors and manual results are mixed
+    const toolCallOrder = new Map(
+      clientToolCalls.map((toolCall, index) => [toolCall.toolCallId, index]),
+    );
+    const toolResults = responseMessages
+      .filter(message => message.role === 'tool')
+      .flatMap(message => message.content)
+      .filter(part => part.type === 'tool-result')
+      .filter(part => toolCallOrder.has(part.toolCallId))
+      .sort(
+        (a, b) =>
+          (toolCallOrder.get(a.toolCallId) ?? clientToolCalls.length) -
+          (toolCallOrder.get(b.toolCallId) ?? clientToolCalls.length),
+      );
+
+    let toolResultIndex = 0;
+    for (const message of responseMessages) {
+      if (message.role === 'tool') {
+        message.content = message.content.map(part =>
+          part.type === 'tool-result' && toolCallOrder.has(part.toolCallId)
+            ? toolResults[toolResultIndex++]!
+            : part,
+        );
+      }
+    }
+
     messages.push(...responseMessages);
 
-    const finishReason = await result.finishReason;
-
-    if (finishReason === 'tool-calls') {
-      const toolCalls = await result.toolCalls;
-
-      // Handle all tool call execution here
-      for (const toolCall of toolCalls) {
-        if (toolCall.toolName === 'getWeather') {
-          const toolOutput = await getWeather(toolCall.input);
-          messages.push({
-            role: 'tool',
-            content: [
-              {
-                toolName: toolCall.toolName,
-                toolCallId: toolCall.toolCallId,
-                type: 'tool-result',
-                output: { type: 'text', value: toolOutput }, // update depending on the tool's output format
-              },
-            ],
-          });
-        }
-        // Handle other tool calls
-      }
-    } else {
-      // Exit the loop when the model doesn't request to use any more tools
+    if (
+      clientToolCalls.length === 0 ||
+      clientToolCalls.some(
+        toolCall =>
+          !toolResults.some(
+            result => result.toolCallId === toolCall.toolCallId,
+          ),
+      )
+    ) {
+      // Stop when there are no client calls or some still need a result
       console.log('\\n\\nFinal message history:');
       console.dir(messages, { depth: null });
       break;
@@ -104,50 +173,107 @@ main().catch(console.error);
 
 ### Message Management
 
-The example maintains a `messages` array that tracks the entire conversation history. After each model response, the generated messages are added to this history:
+The example maintains a `messages` array that tracks the entire conversation
+history. Collect the generated messages, append manually executed tool results
+to the same response batch, and order the results by their tool calls before
+adding the batch to the history. This keeps generated errors and manual results
+paired with the correct calls, including for providers that omit call IDs.
+The complete example reorders only results for the current calls. Results from
+earlier approval rounds keep their position before the new assistant message,
+and other message parts are preserved:
 
 ```ts
 const responseMessages = await result.responseMessages;
+// Append manual results and order current-call results as in the complete example.
 messages.push(...responseMessages);
 ```
 
 ### Tool Execution Control
 
-Tool execution is handled manually in the loop. When the model requests tool calls, you process each one individually:
+Tool execution is handled manually in the loop. As with the SDK's automatic
+execution, only run tools when the finish reason is `stop` or `tool-calls`.
+Do not execute calls from truncated, filtered, or failed responses. Use
+`staticToolCalls` for validated calls to the declared tools and exclude
+provider-executed calls so they are not executed again. Also skip calls with an
+existing result or an approval request that has not been approved. Pending
+approvals pause the loop; denials return the SDK-generated denial result without
+executing the tool. The complete example computes `completedCallIds` and
+`blockedCallIds` from the response messages. Reuse those sets when selecting
+calls, then append manual results alongside SDK-generated results:
 
 ```ts
-if (finishReason === 'tool-calls') {
-  const toolCalls = await result.toolCalls;
+const finishReason = await result.finishReason;
+const canExecuteTools =
+  finishReason === 'stop' || finishReason === 'tool-calls';
+const toolCalls = canExecuteTools
+  ? (await result.staticToolCalls).filter(
+      toolCall =>
+        !toolCall.providerExecuted &&
+        !completedCallIds.has(toolCall.toolCallId) &&
+        !blockedCallIds.has(toolCall.toolCallId),
+    )
+  : [];
 
-  for (const toolCall of toolCalls) {
-    if (toolCall.toolName === 'getWeather') {
-      const toolOutput = await getWeather(toolCall.input);
-      // Add tool result to message history
-      messages.push({
-        role: 'tool',
-        content: [
-          {
-            toolName: toolCall.toolName,
-            toolCallId: toolCall.toolCallId,
-            type: 'tool-result',
-            output: { type: 'text', value: toolOutput },
-          },
-        ],
-      });
-    }
+for (const toolCall of toolCalls) {
+  if (toolCall.toolName === 'getWeather') {
+    const toolOutput = await getWeather(toolCall.input);
+    responseMessages.push({
+      role: 'tool',
+      content: [
+        {
+          toolName: toolCall.toolName,
+          toolCallId: toolCall.toolCallId,
+          type: 'tool-result',
+          output: { type: 'text', value: toolOutput },
+        },
+      ],
+    });
   }
 }
 ```
 
+If you add an approval policy, resuming an approved call requires an extra step
+because this recipe deliberately omits `execute`. Before calling `main()` again,
+execute the approved historical call using its validated original input and
+append its `tool-result` to `messages` together with the approved
+`tool-approval-response`. Use the original `toolCallId` and `toolName` for the
+result. An approval response alone is insufficient: `staticToolCalls` only
+contains newly generated calls, so the manual executor below `streamText`
+cannot supply a missing result for a call from the input history. Do not execute
+pending or denied calls. Alternatively, provide an `execute` function and let
+the SDK handle execution of approved calls.
+
 ### Loop Termination
 
-The loop continues until the model stops requesting tool calls. You can customize this logic to implement your own termination conditions:
+The loop continues when every client-side tool call has a corresponding result
+in the current response batch. Check all client calls, including dynamic calls:
+the SDK generates error results for unknown tools or invalid inputs, and the
+model needs those errors to repair its next call. Only validated static calls
+are executed manually.
+
+The finish reason controls whether tools can run, but does not determine loop
+completion by itself: a complete call can accompany `stop`. Stop when there are
+no client calls or when any call still needs a result, even if the final text is
+empty or the finish reason is `tool-calls`.
+
+You can customize this logic to implement your own termination conditions:
 
 ```ts
-if (finishReason === 'tool-calls') {
-  // Continue the loop
-} else {
-  // Exit the loop
+const clientToolCalls = (await result.toolCalls).filter(
+  toolCall => !toolCall.providerExecuted,
+);
+const toolResults = responseMessages
+  .filter(message => message.role === 'tool')
+  .flatMap(message => message.content)
+  .filter(part => part.type === 'tool-result');
+
+if (
+  clientToolCalls.length === 0 ||
+  clientToolCalls.some(
+    toolCall =>
+      !toolResults.some(result => result.toolCallId === toolCall.toolCallId),
+  )
+) {
   break;
 }
 ```
@@ -191,8 +317,8 @@ const toolPromises = toolCalls.map(async toolCall => {
   // Handle other tools
 });
 
-const toolResults = await Promise.all(toolPromises);
-messages.push(...toolResults.filter(Boolean));
+const toolMessages = await Promise.all(toolPromises);
+responseMessages.push(...toolMessages.filter(message => message !== undefined));
 ```
 
 This manual approach gives you complete control over the agentic loop while still leveraging the AI SDK's powerful streaming and tool calling capabilities.
