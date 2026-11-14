@@ -385,7 +385,7 @@ Checkpointing only `step.response.messages` inside `onStepEnd` risks losing the 
 
 In-process lifecycle callbacks—and durable execution engines like [`WorkflowAgent`](/docs/agents/workflow-agent) that automate step checkpointing—cannot prevent duplicate external writes if a process terminates (`SIGKILL` or hardware failure) _after_ an external service processes a request but _before_ the tool completion is durably recorded.
 
-For operations with external side-effects, always pass `toolCallId` (provided to `execute`) as an idempotency key to your external payment, database, or email service so retried attempts are safely deduplicated.
+For operations with external side-effects, pass an idempotency key to your external payment, database, or email service. Using `toolCallId` (provided to `execute`) deduplicates replays of the same tool call after a crash, whereas a key derived from the business operation (for example, `refund:<ticketId>`) covers both crash replays and new tool calls issued when the model retries after a timeout.
 
 ## Related APIs
 
