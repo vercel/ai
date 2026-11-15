@@ -1,14 +1,12 @@
 import {
   APICallError,
   Experimental_ExtractionUnsupportedFieldTypeError as ExtractionUnsupportedFieldTypeError,
-  UnsupportedFunctionalityError,
-  type Experimental_DecisionModelV4State as DecisionModelV4State,
   type Experimental_ExtractionModelV4 as ExtractionModelV4,
+  type Experimental_ExtractionModelV4Result as ExtractionModelV4Result,
   type SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  convertUint8ArrayToBase64,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   getErrorMessage,
@@ -24,6 +22,8 @@ import { asGatewayError } from './errors';
 import { extractApiCallResponse } from './errors/extract-api-call-response';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import type { GatewayConfig } from './gateway-config';
+import { gatewayWarningSchema } from './gateway-warning-schema';
+import { toGatewayStateParts } from './to-gateway-state-parts';
 
 export class GatewayExtractionModel implements ExtractionModelV4 {
   readonly specificationVersion = 'v4';
@@ -63,7 +63,11 @@ export class GatewayExtractionModel implements ExtractionModelV4 {
   }: Parameters<ExtractionModelV4['doExtract']>[0]): Promise<
     Awaited<ReturnType<ExtractionModelV4['doExtract']>>
   > {
-    const stateParts = toGatewayExtractionState(state);
+    const stateParts = toGatewayStateParts({
+      state,
+      modelType: 'extraction',
+      allowReferences: true,
+    });
     const resolvedHeaders = this.config.headers
       ? await resolve(this.config.headers)
       : undefined;
@@ -100,11 +104,20 @@ export class GatewayExtractionModel implements ExtractionModelV4 {
       });
 
       return {
-        answers: responseBody.answers,
-        ...(responseBody.usage ? { usage: responseBody.usage } : {}),
+        answers: omitNulls(
+          responseBody.answers,
+        ) as ExtractionModelV4Result['answers'],
+        ...(responseBody.usage
+          ? {
+              usage: {
+                inputTokens: responseBody.usage.inputTokens ?? undefined,
+                outputTokens: responseBody.usage.outputTokens ?? undefined,
+              },
+            }
+          : {}),
         warnings: responseBody.warnings ?? [],
-        providerMetadata:
-          responseBody.providerMetadata as unknown as SharedV4ProviderMetadata,
+        providerMetadata: (responseBody.providerMetadata ??
+          undefined) as unknown as SharedV4ProviderMetadata,
         response: {
           modelId: responseBody.model ?? this.modelId,
           headers: responseHeaders,
@@ -157,20 +170,20 @@ const stringAnswerSchema = <TYPE extends string>(type: TYPE) =>
   z.object({
     type: z.literal(type),
     value: z.nullable(z.string()),
-    guess: z.optional(z.string()),
-    pNull: z.optional(z.number()),
-    confidence: z.optional(z.number()),
-    source: z.optional(gatewayExtractionSourceSchema()),
+    guess: z.nullish(z.string()),
+    pNull: z.nullish(z.number()),
+    confidence: z.nullish(z.number()),
+    source: z.nullish(gatewayExtractionSourceSchema()),
   });
 
 const numberAnswerSchema = <TYPE extends string>(type: TYPE) =>
   z.object({
     type: z.literal(type),
     value: z.nullable(z.number()),
-    guess: z.optional(z.number()),
-    pNull: z.optional(z.number()),
-    confidence: z.optional(z.number()),
-    source: z.optional(gatewayExtractionSourceSchema()),
+    guess: z.nullish(z.number()),
+    pNull: z.nullish(z.number()),
+    confidence: z.nullish(z.number()),
+    source: z.nullish(gatewayExtractionSourceSchema()),
   });
 
 const gatewayExtractionAnswerSchema = () =>
@@ -184,13 +197,13 @@ const gatewayExtractionAnswerSchema = () =>
     z.object({
       type: z.literal('list'),
       value: z.nullable(z.union([z.array(z.string()), z.array(z.number())])),
-      pNull: z.optional(z.number()),
-      confidence: z.optional(z.number()),
-      items: z.optional(
+      pNull: z.nullish(z.number()),
+      confidence: z.nullish(z.number()),
+      items: z.nullish(
         z.array(
           z.object({
-            confidence: z.optional(z.number()),
-            source: z.optional(gatewayExtractionSourceSchema()),
+            confidence: z.nullish(z.number()),
+            source: z.nullish(gatewayExtractionSourceSchema()),
           }),
         ),
       ),
@@ -200,42 +213,33 @@ const gatewayExtractionAnswerSchema = () =>
     }),
   ]);
 
+// Warnings are advisory: one this client does not know is kept as `other`
+// instead of failing a successful response.
 const gatewayExtractionWarningSchema = () =>
-  z.discriminatedUnion('type', [
-    z.object({
-      type: z.literal('unsupported'),
-      feature: z.string(),
-      details: z.optional(z.string()),
-    }),
-    z.object({
-      type: z.literal('compatibility'),
-      feature: z.string(),
-      details: z.optional(z.string()),
-    }),
-    z.object({
-      type: z.literal('deprecated'),
-      setting: z.string(),
-      message: z.string(),
-    }),
-    z.object({
-      type: z.literal('other'),
-      message: z.string(),
-    }),
+  z.union([
+    gatewayWarningSchema(),
+    z.pipe(
+      z.unknown(),
+      z.transform(warning => ({
+        type: 'other' as const,
+        message: `Unknown warning: ${JSON.stringify(warning)}`,
+      })),
+    ),
   ]);
 
 const gatewayExtractionResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       answers: z.record(z.string(), gatewayExtractionAnswerSchema()),
-      model: z.optional(z.string()),
-      usage: z.optional(
+      model: z.nullish(z.string()),
+      usage: z.nullish(
         z.object({
-          inputTokens: z.optional(z.number()),
-          outputTokens: z.optional(z.number()),
+          inputTokens: z.nullish(z.number()),
+          outputTokens: z.nullish(z.number()),
         }),
       ),
-      warnings: z.optional(z.array(gatewayExtractionWarningSchema())),
-      providerMetadata: z.optional(
+      warnings: z.nullish(z.array(gatewayExtractionWarningSchema())),
+      providerMetadata: z.nullish(
         z.record(z.string(), z.record(z.string(), z.unknown())),
       ),
     }),
@@ -271,23 +275,13 @@ async function getUnsupportedField(
   return { fieldId, fieldType };
 }
 
-function toGatewayExtractionState(
-  state: DecisionModelV4State,
-): DecisionModelV4State {
-  return state.map(part => {
-    if (part.type !== 'file' || part.data.type === 'reference') return part;
-    if (part.data.type !== 'data') {
-      throw new UnsupportedFunctionalityError({
-        functionality: `Gateway extraction file input: ${part.data.type} data`,
-      });
-    }
-    const { data } = part.data;
-    return {
-      ...part,
-      data: {
-        type: 'data',
-        data: typeof data === 'string' ? data : convertUint8ArrayToBase64(data),
-      },
-    };
-  });
+/** Drops `null` optional fields, which the specification leaves out. */
+function omitNulls(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(omitNulls);
+  if (value == null || typeof value !== 'object') return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key, entry]) => entry !== null || key === 'value')
+      .map(([key, entry]) => [key, omitNulls(entry)]),
+  );
 }

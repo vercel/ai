@@ -385,6 +385,72 @@ describe('GatewayExtractionModel', () => {
       expect(result.warnings).toStrictEqual([]);
     });
 
+    it('should drop null optional fields from the response', async () => {
+      prepareJsonResponse({
+        answers: {
+          invoiceNumber: {
+            type: 'text',
+            value: null,
+            guess: null,
+            pNull: 0.9,
+            confidence: null,
+            source: null,
+          },
+          total: { type: 'number', value: 1250, guess: null, source: null },
+          contacts: {
+            type: 'list',
+            value: ['Ana'],
+            pNull: null,
+            items: [{ confidence: null, source: null }],
+          },
+        },
+        model: null,
+        usage: { inputTokens: 120, outputTokens: null },
+        warnings: null,
+        providerMetadata: null,
+      });
+
+      const result = await createTestModel().doExtract({
+        state: testState,
+        fields: testFields,
+      });
+
+      expect(result.answers).toStrictEqual({
+        invoiceNumber: { type: 'text', value: null, pNull: 0.9 },
+        total: { type: 'number', value: 1250 },
+        contacts: { type: 'list', value: ['Ana'], items: [{}] },
+      });
+      expect(result.usage).toStrictEqual({
+        inputTokens: 120,
+        outputTokens: undefined,
+      });
+      expect(result.warnings).toStrictEqual([]);
+      expect(result.providerMetadata).toBeUndefined();
+      expect(result.response?.modelId).toBe('scaledown/extract-1');
+    });
+
+    it('should keep an unknown warning as an other warning', async () => {
+      prepareJsonResponse({
+        warnings: [
+          { type: 'other', message: 'Known.' },
+          { type: 'future', detail: 'New.' },
+        ],
+      });
+
+      const result = await createTestModel().doExtract({
+        state: testState,
+        fields: testFields,
+      });
+
+      expect(result.warnings).toStrictEqual([
+        { type: 'other', message: 'Known.' },
+        {
+          type: 'other',
+          message: 'Unknown warning: {"type":"future","detail":"New."}',
+        },
+      ]);
+    });
+
     it('should return response metadata', async () => {
       prepareJsonResponse(
         { model: 'scaledown/extract-1-fallback' },
