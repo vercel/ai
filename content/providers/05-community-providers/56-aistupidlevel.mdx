@@ -1,0 +1,179 @@
+---
+title: AI Stupid Level
+description: AI Stupid Level Smart Router provider for AI SDK 7
+---
+
+# AI Stupid Level
+
+[AI Stupid Level](https://aistupidlevel.info) runs benchmarks on the major models continuously, for
+coding, reasoning and tool use, and publishes the results. Its Smart Router is an OpenAI-compatible
+endpoint that uses those results to send each request to the model scoring best for that kind of
+work. You call it with your own provider keys: OpenAI, Anthropic, Google, DeepSeek, Kimi and GLM.
+
+The AI Stupid Level provider is a good fit if you want:
+
+- **Benchmark-based model choice**: ask for `auto-coding`, `auto-reasoning` or `auto-tooling`
+  instead of naming a model, and get the one scoring best for that task right now
+- **The cost-effective choice**: `auto-value` modes pick the model with the most benchmark points
+  per measured dollar, among models within 5 points of the best
+- **Your own provider keys**: requests are billed to your own provider accounts
+- **Visibility**: the model and provider that answered are returned in `providerMetadata`
+
+## Setup
+
+The `@aistupidlevel/ai-sdk-provider` package supports AI SDK 7 (Node.js 22 or later).
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @aistupidlevel/ai-sdk-provider ai@^7" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @aistupidlevel/ai-sdk-provider ai@^7" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @aistupidlevel/ai-sdk-provider ai@^7" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @aistupidlevel/ai-sdk-provider ai@^7" dark />
+  </Tab>
+</Tabs>
+
+## API Key Setup
+
+Create a router key (`aism_...`) at
+[aistupidlevel.info/router/keys](https://aistupidlevel.info/router/keys), add at least one
+provider key, and set:
+
+```bash
+export ASL_ROUTER_KEY=aism_your_key_here
+```
+
+## Provider Instance
+
+You can import the default provider instance `asl`. It reads `ASL_ROUTER_KEY` when the request is
+made:
+
+```ts
+import { asl } from '@aistupidlevel/ai-sdk-provider';
+```
+
+To customise the settings, create an instance with `createASL`:
+
+```ts
+import { createASL } from '@aistupidlevel/ai-sdk-provider';
+
+const asl = createASL({
+  apiKey: process.env.ASL_ROUTER_KEY,
+  // Optional:
+  // baseURL: 'https://aistupidlevel.info/v1',
+  // sandbox: true, // real routing, mock answers: nothing is spent or counted
+  // headers: { ... },
+});
+```
+
+## Language Models
+
+Pass a routing mode as the model id, or any real model id to pin that model:
+
+```ts
+const model = asl('auto-coding');
+```
+
+| Model id | Routes to |
+| --- | --- |
+| `auto-coding`, `auto-reasoning`, `auto-tooling` | the top model on that benchmark |
+| `auto-best` | the highest combined score |
+| `auto-value`, `auto-value-coding`, `auto-value-reasoning`, `auto-value-tooling` | the most points per measured dollar, among near-top models |
+| `auto-fastest-quality` | the fastest model within 5 points of the best |
+| `auto` | the strategy saved on your account |
+
+See the [full list of routing modes](https://aistupidlevel.info/router/docs#strategies).
+
+## Examples
+
+### `generateText`
+
+```ts
+import { asl } from '@aistupidlevel/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text, providerMetadata } = await generateText({
+  model: asl('auto-coding'),
+  prompt: 'Write a TypeScript function that debounces another function.',
+});
+
+console.log(text);
+console.log(providerMetadata?.aistupidlevel); // { model, provider } that answered
+```
+
+### `streamText`
+
+```ts
+import { asl } from '@aistupidlevel/ai-sdk-provider';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: asl('auto-best'),
+  prompt: 'Explain the difference between optimistic and pessimistic locking.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+### Tool Calling
+
+A multi-step tool loop stays on the model that started it.
+
+```ts
+import { asl } from '@aistupidlevel/ai-sdk-provider';
+import { generateText, tool, stepCountIs } from 'ai';
+import { z } from 'zod';
+
+const { text } = await generateText({
+  model: asl('auto-tooling'),
+  prompt: 'What is the weather in Oslo?',
+  tools: {
+    weather: tool({
+      description: 'Get the weather for a city',
+      inputSchema: z.object({ city: z.string() }),
+      execute: async ({ city }) => ({ city, temperature: 7 }),
+    }),
+  },
+  stopWhen: stepCountIs(5),
+});
+```
+
+### Routing details
+
+`routingFromResponse` reads the full routing decision from the response headers. It returns the
+model, the provider, the reason for the choice, the request id, and whether a fallback answered:
+
+```ts
+import { asl, routingFromResponse } from '@aistupidlevel/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const result = await generateText({ model: asl('auto-reasoning'), prompt: '...' });
+console.log(routingFromResponse(result).reasoning);
+```
+
+## Embeddings
+
+```ts
+import { asl } from '@aistupidlevel/ai-sdk-provider';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: asl.embeddingModel('text-embedding-3-small'),
+  value: 'sunny day at the beach',
+});
+```
+
+Embeddings use your OpenAI provider key.
+
+## Additional Resources
+
+- [npm package](https://www.npmjs.com/package/@aistupidlevel/ai-sdk-provider)
+- [Source code](https://github.com/StudioPlatforms/aistupidlevel-sdk/tree/main/packages/ai-sdk-provider)
+- [API documentation](https://aistupidlevel.info/router/docs)
