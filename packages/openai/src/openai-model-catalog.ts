@@ -993,10 +993,24 @@ function findModelEntry(modelId: string): OpenAIModelEntry | undefined {
     : undefined;
 }
 
+/**
+ * Amazon Bedrock's OpenAI-compatible endpoint uses cross-Region inference
+ * profile ids such as `global.openai.gpt-5.6-sol` or `us.openai.gpt-5.6-sol`,
+ * and Mantle uses `openai.gpt-5.6-sol`. The prefixes are stripped so the
+ * remaining id can be classified like the equivalent OpenAI model id.
+ */
+function stripBedrockModelIdPrefix(modelId: string): string {
+  return modelId.replace(
+    /^(?:(?:global|us-gov|us|eu|apac|jp|au|ca)\.)?(?:openai\.)?/,
+    '',
+  );
+}
+
 export function getOpenAILanguageModelEntry(
   modelId: string,
 ): OpenAILanguageModelEntry {
-  const entry = findModelEntry(modelId);
+  const baseModelId = stripBedrockModelIdPrefix(modelId);
+  const entry = findModelEntry(baseModelId);
   return entry?.capabilities.language != null &&
     entry.providerOptions?.language != null &&
     entry.requestConfig?.language != null
@@ -1005,7 +1019,7 @@ export function getOpenAILanguageModelEntry(
         providerOptions: { language: entry.providerOptions.language },
         requestConfig: { language: entry.requestConfig.language },
       }
-    : createOpenAILanguageModelEntry(modelId);
+    : createOpenAILanguageModelEntry(baseModelId);
 }
 
 export function getOpenAIImageModelEntry(

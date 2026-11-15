@@ -1339,6 +1339,41 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it.each([
+        'global.openai.gpt-5.6-sol',
+        'us.openai.gpt-5.6-sol',
+        'openai.gpt-5.6-sol',
+      ])(
+        'should send reasoningEffort for Bedrock model ID %s',
+        async modelId => {
+          const { warnings } = await createModel(modelId).doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              openai: {
+                reasoningEffort: 'low',
+                reasoningSummary: 'auto',
+              } satisfies OpenAILanguageModelResponsesOptions,
+            },
+          });
+
+          expect(await server.calls[0].requestBodyJson).toStrictEqual({
+            model: modelId,
+            input: [
+              {
+                role: 'user',
+                content: [{ type: 'input_text', text: 'Hello' }],
+              },
+            ],
+            reasoning: {
+              effort: 'low',
+              summary: 'auto',
+            },
+          });
+
+          expect(warnings).toStrictEqual([]);
+        },
+      );
+
       it('should send xhigh reasoningEffort for codex-max model', async () => {
         const { warnings } = await createModel('gpt-5.1-codex-max').doGenerate({
           prompt: TEST_PROMPT,
