@@ -268,6 +268,48 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
+  it('finishes when generationComplete follows a final transcription', async () => {
+    vi.useFakeTimers();
+    try {
+      const model = createModel('gemini-3.5-transcribe-live', {
+        finishGraceMs: 3000,
+      });
+
+      const result = await model.doStream({
+        audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+        inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+        providerOptions: {},
+      });
+
+      const partsPromise = convertReadableStreamToArray(result.stream);
+      let settled = false;
+      void partsPromise.then(() => {
+        settled = true;
+      });
+      const ws = MockWebSocket.instances[0];
+      ws.open();
+      await vi.advanceTimersByTimeAsync(0);
+      ws.message({ setupComplete: {} });
+      await vi.advanceTimersByTimeAsync(0);
+      ws.message({
+        serverContent: { inputTranscription: { text: 'hello' } },
+      });
+      ws.message({ serverContent: { generationComplete: true } });
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(settled).toBe(true);
+
+      const parts = await partsPromise;
+      expect(parts.at(-2)).toMatchObject({
+        type: 'transcript-final',
+        text: 'hello',
+      });
+      expect(parts.at(-1)).toMatchObject({ type: 'finish', text: 'hello' });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('streams transcription over the Gemini Live API WebSocket', async () => {
     const model = createModel();
 

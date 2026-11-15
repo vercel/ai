@@ -41,7 +41,8 @@ const liveWebSocketPath =
 
 /**
  * After the input audio has ended, finish when no terminal signal
- * (`turnComplete` / idle `interactionStatus`) arrives within this window.
+ * (`generationComplete`, `turnComplete`, or idle `interactionStatus`) arrives
+ * within this window.
  * Trailing transcripts reset the timer.
  */
 const defaultFinishGraceMs = 3000;
@@ -412,7 +413,8 @@ function createVertexLiveTranscriptionStream({
       // Google Live messages carry no response/item IDs; a segment counter
       // generates consistent synthetic IDs. Transcription fragments arrive
       // incrementally and are accumulated per segment; a `finished: true`
-      // transcription or `turnComplete` finalizes the current segment.
+      // transcription, `generationComplete`, or `turnComplete` finalizes the
+      // current segment.
       let segmentCounter = 0;
       let segmentBuffer = '';
       let fullText = '';
@@ -611,7 +613,8 @@ function createVertexLiveTranscriptionStream({
             }
           }
 
-          if (serverContent?.turnComplete) {
+          const generationComplete = serverContent?.generationComplete === true;
+          if (serverContent?.turnComplete || generationComplete) {
             completeSegment();
           }
 
@@ -624,7 +627,8 @@ function createVertexLiveTranscriptionStream({
             (interactionStatus === 'IDLE' ||
               interactionStatus === 'REQUIRES_ACTION' ||
               (serverContent?.turnComplete === true &&
-                interactionStatus == null))
+                interactionStatus == null) ||
+              generationComplete)
           ) {
             finish();
           }
