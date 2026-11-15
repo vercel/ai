@@ -668,14 +668,16 @@ The raw `CallToolResult` that your application receives can contain more than wh
 Fields that are not part of the standard result shape pass validation and stay on the tool output,
 so you can read them in your own code.
 
-Only the `content` parts are passed to the model:
+When the result has a `content` array, only the `content` parts are passed to the model:
 
 - Text parts are passed as text. Other fields on the part (e.g. `annotations`) are not included.
 - Image parts are passed as files.
 - All other parts (e.g. resources, resource links, and custom part types) are passed as text containing the serialized JSON of the part.
 
-Fields outside of `content`, such as `_meta`, `structuredContent`, or custom fields on the result, are not passed to the model.
-If an MCP server needs the model to see additional information, it must include that information in `content`.
+For these results, fields outside of `content`, such as `_meta`, `structuredContent`, or custom fields on the result, are not passed to the model.
+If an MCP server needs the model to see additional information, it should include that information in `content`.
+
+Results without a `content` array (e.g. legacy results that only contain `toolResult`) are passed to the model as JSON in full, including `_meta` and any custom fields.
 
 <Note>
   When you define an `outputSchema`, the validated structured output is passed
