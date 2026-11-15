@@ -1,12 +1,18 @@
-import { ImageModelV3, NoSuchModelError, ProviderV3 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  NoSuchModelError,
+  type ImageModelV4,
+  type ProviderV4,
+} from '@ai-sdk/provider';
+import {
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { LumaImageModel } from './luma-image-model';
-import { LumaImageModelId } from './luma-image-settings';
+import type { LumaImageModelId } from './luma-image-settings';
 import { VERSION } from './version';
 
 export interface LumaProviderSettings {
@@ -14,7 +20,7 @@ export interface LumaProviderSettings {
    * Luma API key. Default value is taken from the `LUMA_API_KEY` environment
    * variable.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
   /**
    * Base URL for the API calls.
    */
@@ -30,16 +36,16 @@ export interface LumaProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface LumaProvider extends ProviderV3 {
+export interface LumaProvider extends ProviderV4 {
   /**
    * Creates a model for image generation.
    */
-  image(modelId: LumaImageModelId): ImageModelV3;
+  image(modelId: LumaImageModelId): ImageModelV4;
 
   /**
    * Creates a model for image generation.
    */
-  imageModel(modelId: LumaImageModelId): ImageModelV3;
+  imageModel(modelId: LumaImageModelId): ImageModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -52,16 +58,18 @@ const defaultBaseURL = 'https://api.lumalabs.ai';
 export function createLuma(options: LumaProviderSettings = {}): LumaProvider {
   const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'LUMA_API_KEY',
-          description: 'Luma',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk/luma/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'LUMA_API_KEY',
+            description: 'Luma',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-luma/${VERSION}`,
+      ),
     );
 
   const createImageModel = (modelId: LumaImageModelId) =>
@@ -80,7 +88,7 @@ export function createLuma(options: LumaProviderSettings = {}): LumaProvider {
   };
 
   return {
-    specificationVersion: 'v3' as const,
+    specificationVersion: 'v4' as const,
     image: createImageModel,
     imageModel: createImageModel,
     languageModel: (modelId: string) => {

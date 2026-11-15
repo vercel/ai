@@ -1,0 +1,164 @@
+---
+title: Chat Platforms
+description: Run AI SDK agents in Slack, Microsoft Teams, Discord, and other chat platforms with Chat SDK.
+---
+
+# Chat Platforms
+
+[Chat SDK](https://chat-sdk.dev) is a TypeScript SDK for building bots that run on Slack, Microsoft Teams, Google Chat, Discord, Telegram, GitHub, Linear, WhatsApp, and more. You write your bot logic once, and platform adapters handle webhook verification, message parsing, and native formatting for each platform.
+
+Chat SDK works with the AI SDK out of the box:
+
+- `thread.post()` accepts an agent's `fullStream` and streams the reply into the conversation.
+- `toAiMessages` from `chat/ai` converts a thread's messages into AI SDK `ModelMessage[]`.
+- `createChatTools` from `chat/ai` gives an agent tools for reading and acting in the conversation.
+
+This page shows how to connect a [`ToolLoopAgent`](/docs/agents/building-agents) to Slack. The same code works on every platform Chat SDK supports.
+
+## Installation
+
+Install Chat SDK, a platform adapter, and a state adapter. The state adapter stores thread subscriptions and locks. This example uses Slack and Redis:
+
+<InstallPackages packages="ai chat @chat-adapter/slack @chat-adapter/state-redis" />
+
+The Slack adapter reads `SLACK_BOT_TOKEN` and `SLACK_SIGNING_SECRET` from the environment, and the Redis state adapter reads `REDIS_URL`. See the [Slack adapter docs](https://chat-sdk.dev/adapters/official/slack) for the Slack app manifest. The examples on this page set `agentView: true` to match a manifest that uses Slack's Agent messaging experience (`agent_view`).
+
+## Create a Bot
+
+Create a `Chat` instance and an agent. When someone mentions the bot, subscribe to the thread and stream the agent's reply into it:
+
+```ts filename="lib/bot.ts"
+import { Chat } from 'chat';
+import { createSlackAdapter } from '@chat-adapter/slack';
+import { createRedisState } from '@chat-adapter/state-redis';
+import { ToolLoopAgent } from 'ai';
+
+export const bot = new Chat({
+  userName: 'mybot',
+  adapters: {
+    slack: createSlackAdapter({ agentView: true }),
+  },
+  state: createRedisState(),
+});
+
+const agent = new ToolLoopAgent({
+  model: 'anthropic/claude-sonnet-5.5',
+  instructions:
+    'You are a helpful assistant in a team chat. Keep replies short.',
+});
+
+bot.onNewMention(async (thread, message) => {
+  await thread.subscribe();
+
+  const result = await agent.stream({
+    prompt: message.text,
+    abortSignal: thread.signal,
+  });
+
+  await thread.post(result.fullStream);
+});
+```
+
+`thread.signal` is aborted when the platform cancels the turn (for example, when a user clicks Slack's stop button), so passing it as `abortSignal` stops generation too.
+
+Then route the platform's webhooks to the bot:
+
+```ts filename="app/api/webhooks/slack/route.ts"
+import { after } from 'next/server';
+import { bot } from '@/lib/bot';
+
+export async function POST(request: Request): Promise<Response> {
+  return bot.webhooks.slack(request, {
+    waitUntil: task => after(() => task),
+  });
+}
+```
+
+`waitUntil` keeps the function running after the webhook responds, so the agent can finish streaming its reply.
+
+### Why `fullStream`?
+
+Pass `fullStream` instead of `textStream`. When an agent calls tools between text steps, `textStream` joins the text from each step without separators. `fullStream` includes `finish-step` events, which Chat SDK uses to add paragraph breaks between steps.
+
+## Use Thread History
+
+After `thread.subscribe()`, later messages in the thread go to `onSubscribedMessage`. Load the thread history and convert it with `toAiMessages` to give the agent the full conversation:
+
+```ts filename="lib/bot.ts"
+import { toAiMessages } from 'chat/ai';
+
+bot.onSubscribedMessage(async thread => {
+  const { messages } = await bot.history.thread.list(thread.id, {
+    limit: 20,
+  });
+
+  const result = await agent.stream({
+    messages: await toAiMessages(messages),
+    abortSignal: thread.signal,
+  });
+
+  await thread.post(result.fullStream);
+});
+```
+
+`toAiMessages` maps the bot's own messages to `assistant` and all others to `user`, sorts them oldest first, and includes supported attachments such as images and text files. Pass `{ includeNames: true }` to prefix each user message with the sender's name in multi-user threads.
+
+## Give the Agent Chat Tools
+
+`createChatTools` returns AI SDK tools that let the agent read and act in the chat: fetch messages, look up channels, post, react, and more. Use a preset to limit the tools to what the agent needs:
+
+```ts filename="lib/bot.ts"
+import { ToolLoopAgent } from 'ai';
+import { createChatTools } from 'chat/ai';
+
+const agent = new ToolLoopAgent({
+  model: 'anthropic/claude-sonnet-5.5',
+  instructions:
+    'You are a helpful assistant in a team chat. You can read messages in the current channel.',
+  tools: createChatTools({ chat: bot, preset: 'reader' }),
+  toolApproval: {
+    getUser: {
+      type: 'denied',
+      reason: 'Profile lookups are disabled for this bot',
+    },
+  },
+});
+```
+
+The presets are `reader` (read-only), `messenger` (read, post, DM, and react), and `moderator` (all tools, including edit and delete).
+
+When a tool runs inside a Chat SDK handler, it is limited to the conversation being handled. This stops the model from reading or posting in other channels the bot can access. See [Limiting what the agent can reach](https://chat-sdk.dev/docs/ai/ai-sdk-tools#limiting-what-the-agent-can-reach) for the `scope` and `strictScope` options.
+
+Chat SDK marks write tools and `getUser` as needing approval by default. A `toolApproval` rule on the agent takes precedence over those defaults, so you can approve or deny calls automatically when your bot has no approval UI. The example above denies `getUser` profile lookups. See [Tool Approvals](/docs/agents/tool-approvals) for all approval options.
+
+## Add More Platforms
+
+Register more adapters to run the same handlers on other platforms:
+
+```ts filename="lib/bot.ts"
+import { Chat } from 'chat';
+import { createSlackAdapter } from '@chat-adapter/slack';
+import { createTeamsAdapter } from '@chat-adapter/teams';
+import { createDiscordAdapter } from '@chat-adapter/discord';
+import { createRedisState } from '@chat-adapter/state-redis';
+
+export const bot = new Chat({
+  userName: 'mybot',
+  adapters: {
+    slack: createSlackAdapter({ agentView: true }),
+    teams: createTeamsAdapter(),
+    discord: createDiscordAdapter(),
+  },
+  state: createRedisState(),
+});
+```
+
+Each adapter gets its own webhook route, such as `bot.webhooks.teams`. Chat SDK normalizes messages and threads across platforms, so your handlers and agent stay the same.
+
+To serve a browser chat from the same bot, use the Chat SDK Web adapter with `useChat`. See [Chat SDK Web Adapter](/docs/ai-sdk-ui/transport#chat-sdk-web-adapter).
+
+## Next Steps
+
+- **[Slackbot Agent Guide](/cookbook/guides/slackbot)** - Build and deploy a Slack agent with tools step by step
+- **[Tool Approvals](/docs/agents/tool-approvals)** - Approve or deny tool calls automatically or with a human in the loop
+- **[Chat SDK documentation](https://chat-sdk.dev/docs)** - Adapters, cards, modals, slash commands, and more

@@ -1,1 +1,3 @@
-export type XaiImageModelId = 'grok-2-image' | (string & {});
+import type { XaiModelIds } from './xai-model-catalog';
+
+export type XaiImageModelId = XaiModelIds['image'] | (string & {});

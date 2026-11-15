@@ -1,0 +1,88 @@
+/*
+ * Cross-process resume smoke test for the GitHub Copilot harness.
+ *
+ * Within a single Node process this example simulates the REST-server
+ * flow: turn 1 runs, the session is stopped, the agent reference is dropped,
+ * and a fresh `HarnessAgent` instance picks the conversation back up using
+ * the persisted `HarnessAgentResumeSessionState`. If resume works the second turn
+ * answers from the workdir state the GitHub Copilot ACP implementation preserved across the snapshot.
+ */
+import {
+  HarnessAgent,
+  type HarnessAgentResumeSessionState,
+} from '@ai-sdk/harness/agent';
+import { createGitHubCopilot } from './_create';
+import {
+  createVercelNetworkSandboxSession,
+  resumeVercelNetworkSandboxSession,
+} from '@ai-sdk/sandbox-vercel';
+import { printFullStream } from '../../lib/print-full-stream';
+import { run } from '../../lib/run';
+
+const githubCopilot = createGitHubCopilot();
+
+run(async () => {
+  const sandboxName = `harness-${crypto.randomUUID()}`;
+  const sandboxSession = await createVercelNetworkSandboxSession({
+    sandboxId: sandboxName,
+    runtime: 'node24',
+    ports: [4000],
+    timeout: 10 * 60 * 1000,
+  });
+  let activeSandboxSession = sandboxSession;
+  try {
+    // Turn 1: introduce the name.
+    let sessionId: string;
+    let resumeState: HarnessAgentResumeSessionState;
+    {
+      const agent = new HarnessAgent({ harness: githubCopilot });
+      const session = await agent.createSession({
+        sandboxSession: activeSandboxSession,
+      });
+      sessionId = session.sessionId;
+      console.log('--- turn 1 ---');
+      const result = await agent.stream({
+        session,
+        prompt: 'My name is Felix. Remember it.',
+      });
+      await printFullStream({ result });
+      resumeState = await session.stop();
+      console.log('[stopped] resume state:');
+    }
+
+    // Turn 2: a new agent resumes with the persisted state and reattached sandbox.
+    {
+      activeSandboxSession = await resumeVercelNetworkSandboxSession({
+        sandboxId: sandboxName,
+      });
+      const agent = new HarnessAgent({ harness: githubCopilot });
+      const session = await agent.createSession({
+        sandboxSession: activeSandboxSession,
+        sessionId,
+        resumeFrom: resumeState,
+      });
+      console.log('--- turn 2 (resumed) ---');
+      const result = await agent.stream({
+        session,
+        prompt: 'What is my name? Answer in one word.',
+      });
+      let secondTurnText = '';
+      await printFullStream({
+        result,
+        onText: text => {
+          secondTurnText += text.text;
+        },
+      });
+      await session.destroy();
+      if (!secondTurnText.includes('Felix')) {
+        throw new Error(
+          'Second turn did not retain context from previous turn',
+        );
+      }
+    }
+
+    process.exitCode = 0;
+  } finally {
+    await activeSandboxSession.destroy();
+  }
+});

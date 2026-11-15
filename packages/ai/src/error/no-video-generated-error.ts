@@ -1,5 +1,5 @@
 import { AISDKError } from '@ai-sdk/provider';
-import { VideoModelResponseMetadata } from '../types/video-model-response-metadata';
+import type { VideoModelResponseMetadata } from '../types/video-model-response-metadata';
 
 const name = 'AI_NoVideoGeneratedError';
 const marker = `vercel.ai.error.${name}`;

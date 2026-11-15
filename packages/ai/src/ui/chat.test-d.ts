@@ -1,8 +1,12 @@
 import { z } from 'zod/v4';
-import { tool } from '@ai-sdk/provider-utils';
-import { ChatInit } from './chat';
-import { ToolSet } from '../generate-text/tool-set';
-import { InferUITools, UIDataTypes, UIMessage, UITools } from './ui-messages';
+import { tool, type ToolSet } from '@ai-sdk/provider-utils';
+import type { ChatInit } from './chat';
+import type {
+  InferUITools,
+  UIDataTypes,
+  UIMessage,
+  UITools,
+} from './ui-messages';
 import { describe, it, expectTypeOf } from 'vitest';
 
 type ToolCallCallback<TOOLS extends ToolSet | UITools> = NonNullable<
@@ -229,5 +233,20 @@ describe('onToolCall', () => {
           }
       >();
     });
+  });
+});
+
+describe('messageMetadataSchema', () => {
+  it('accepts a nullish metadata schema when the message id is branded', () => {
+    const metadataSchema = z.object({ value: z.string() }).nullish();
+
+    type MessageId = string & { readonly __brand: 'MessageId' };
+    type Message = UIMessage<z.infer<typeof metadataSchema>> & {
+      id: MessageId;
+    };
+
+    expectTypeOf<typeof metadataSchema>().toMatchTypeOf<
+      NonNullable<ChatInit<Message>['messageMetadataSchema']>
+    >();
   });
 });

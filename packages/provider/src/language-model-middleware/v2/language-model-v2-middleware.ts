@@ -1,5 +1,5 @@
-import { LanguageModelV2 } from '../../language-model/v2/language-model-v2';
-import { LanguageModelV2CallOptions } from '../../language-model/v2/language-model-v2-call-options';
+import type { LanguageModelV2 } from '../../language-model/v2/language-model-v2';
+import type { LanguageModelV2CallOptions } from '../../language-model/v2/language-model-v2-call-options';
 
 /**
  * Experimental middleware for LanguageModelV2.

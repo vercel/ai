@@ -1,7 +1,12 @@
-import { JSONSchema7, TypeValidationError } from '@ai-sdk/provider';
-import { StandardSchemaV1, StandardJSONSchemaV1 } from '@standard-schema/spec';
-import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4';
+import { TypeValidationError, type JSONSchema7 } from '@ai-sdk/provider';
+import type {
+  StandardSchemaV1,
+  StandardJSONSchemaV1,
+} from '@standard-schema/spec';
+import type * as z3 from 'zod/v3';
+import { safeParseAsync } from 'zod/v4';
+import { config, toJSONSchema, type $ZodType } from 'zod/v4/core';
+import en from 'zod/v4/locales/en.js';
 import { addAdditionalPropertiesToJsonSchema } from './add-additional-properties-to-json-schema';
 import { zod3ToJsonSchema } from './to-json-schema/zod3-to-json-schema';
 
@@ -62,23 +67,41 @@ export function lazySchema<SCHEMA>(
 
 export type LazySchema<SCHEMA> = () => Schema<SCHEMA>;
 
-export type ZodSchema<SCHEMA = any> =
-  | z3.Schema<SCHEMA, z3.ZodTypeDef, any>
-  | z4.core.$ZodType<SCHEMA, any>;
+// Compare the fields used by the adapter, rather than recursively comparing
+// Zod 3's fluent methods across installed versions. `_type` distinguishes v3.
+type Zod3Schema<SCHEMA = any> = {
+  readonly _type: SCHEMA;
+  readonly _output: SCHEMA;
+  readonly _input: any;
+  readonly _def: z3.ZodTypeDef;
+  safeParseAsync: z3.Schema<SCHEMA>['safeParseAsync'];
+};
 
-export type StandardSchema<SCHEMA = any> = StandardSchemaV1<unknown, SCHEMA> &
+export type ZodSchema<SCHEMA = any> =
+  | Zod3Schema<SCHEMA>
+  | $ZodType<SCHEMA, any>;
+
+export type StandardSchema<SCHEMA = any> = StandardSchemaV1<unknown, SCHEMA> & {
+  readonly '~standard': StandardSchemaV1.Props<unknown, SCHEMA> & {
+    readonly jsonSchema?: StandardJSONSchemaV1.Converter;
+  };
+};
+
+type StandardSchemaWithJsonSchema<SCHEMA = any> = StandardSchema<SCHEMA> &
   StandardJSONSchemaV1<unknown, SCHEMA>;
 
 export type FlexibleSchema<SCHEMA = any> =
   | Schema<SCHEMA>
   | LazySchema<SCHEMA>
-  | ZodSchema<SCHEMA>
-  | StandardSchema<SCHEMA>;
+  // Zod 3 implements Standard Schema. Avoid comparing its recursive fluent
+  // methods across installed Zod versions during type inference.
+  | StandardSchema<SCHEMA>
+  | $ZodType<SCHEMA, any>;
 
 export type InferSchema<SCHEMA> =
-  SCHEMA extends ZodSchema<infer T>
+  SCHEMA extends StandardSchema<infer T>
     ? T
-    : SCHEMA extends StandardSchema<infer T>
+    : SCHEMA extends ZodSchema<infer T>
       ? T
       : SCHEMA extends LazySchema<infer T>
         ? T
@@ -133,7 +156,11 @@ export function asSchema<OBJECT>(
   schema: FlexibleSchema<OBJECT> | undefined,
 ): Schema<OBJECT> {
   return schema == null
-    ? jsonSchema({ properties: {}, additionalProperties: false })
+    ? jsonSchema({
+        type: 'object',
+        properties: {},
+        additionalProperties: false,
+      })
     : isSchema(schema)
       ? schema
       : '~standard' in schema
@@ -147,12 +174,19 @@ function standardSchema<OBJECT>(
   standardSchema: StandardSchema<OBJECT>,
 ): Schema<OBJECT> {
   return jsonSchema(
-    () =>
-      addAdditionalPropertiesToJsonSchema(
+    () => {
+      if (!hasStandardJsonSchema(standardSchema)) {
+        throw new Error(
+          `Standard schema vendor '${standardSchema['~standard'].vendor}' does not support JSON Schema conversion.`,
+        );
+      }
+
+      return addAdditionalPropertiesToJsonSchema(
         standardSchema['~standard'].jsonSchema.input({
           target: 'draft-07',
         }) as JSONSchema7,
-      ),
+      );
+    },
     {
       validate: async value => {
         const result = await standardSchema['~standard'].validate(value);
@@ -170,8 +204,14 @@ function standardSchema<OBJECT>(
   );
 }
 
+function hasStandardJsonSchema<OBJECT>(
+  schema: StandardSchema<OBJECT>,
+): schema is StandardSchemaWithJsonSchema<OBJECT> {
+  return schema['~standard'].jsonSchema != null;
+}
+
 export function zod3Schema<OBJECT>(
-  zodSchema: z3.Schema<OBJECT, z3.ZodTypeDef, any>,
+  zodSchema: Zod3Schema<OBJECT>,
   options?: {
     /**
      * Enables support for references in the schema.
@@ -188,7 +228,7 @@ export function zod3Schema<OBJECT>(
   return jsonSchema(
     // defer json schema creation to avoid unnecessary computation when only validation is needed
     () =>
-      zod3ToJsonSchema(zodSchema, {
+      zod3ToJsonSchema(zodSchema as z3.Schema<OBJECT, z3.ZodTypeDef, any>, {
         $refStrategy: useReferences ? 'root' : 'none',
       }) as JSONSchema7,
     {
@@ -203,7 +243,7 @@ export function zod3Schema<OBJECT>(
 }
 
 export function zod4Schema<OBJECT>(
-  zodSchema: z4.core.$ZodType<OBJECT, any>,
+  zodSchema: $ZodType<OBJECT, any>,
   options?: {
     /**
      * Enables support for references in the schema.
@@ -214,6 +254,12 @@ export function zod4Schema<OBJECT>(
     useReferences?: boolean;
   },
 ): Schema<OBJECT> {
+  // Mini does not initialize the default locale. Preserve classic Zod's error
+  // messages while allowing a consumer-configured locale to take precedence.
+  if (!config().localeError) {
+    config(en());
+  }
+
   // default to no references (to support openapi conversion for google)
   const useReferences = options?.useReferences ?? false;
 
@@ -221,7 +267,7 @@ export function zod4Schema<OBJECT>(
     // defer json schema creation to avoid unnecessary computation when only validation is needed
     () =>
       addAdditionalPropertiesToJsonSchema(
-        z4.toJSONSchema(zodSchema, {
+        toJSONSchema(zodSchema, {
           target: 'draft-7',
           io: 'input',
           reused: useReferences ? 'ref' : 'inline',
@@ -229,7 +275,7 @@ export function zod4Schema<OBJECT>(
       ),
     {
       validate: async value => {
-        const result = await z4.safeParseAsync(zodSchema, value);
+        const result = await safeParseAsync(zodSchema, value);
         return result.success
           ? { success: true, value: result.data }
           : { success: false, error: result.error };
@@ -239,16 +285,14 @@ export function zod4Schema<OBJECT>(
 }
 
 export function isZod4Schema(
-  zodSchema: z4.core.$ZodType<any, any> | z3.Schema<any, z3.ZodTypeDef, any>,
-): zodSchema is z4.core.$ZodType<any, any> {
+  zodSchema: ZodSchema,
+): zodSchema is $ZodType<any, any> {
   // https://zod.dev/library-authors?id=how-to-support-zod-3-and-zod-4-simultaneously
   return '_zod' in zodSchema;
 }
 
 export function zodSchema<OBJECT>(
-  zodSchema:
-    | z4.core.$ZodType<OBJECT, any>
-    | z3.Schema<OBJECT, z3.ZodTypeDef, any>,
+  zodSchema: ZodSchema<OBJECT>,
   options?: {
     /**
      * Enables support for references in the schema.

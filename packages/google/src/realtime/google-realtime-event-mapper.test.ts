@@ -1,0 +1,1985 @@
+import { beforeEach, describe, it, expect } from 'vitest';
+import type { JSONSchema7 } from '@ai-sdk/provider';
+import {
+  GoogleRealtimeEventMapper,
+  buildGoogleSessionConfig,
+} from './google-realtime-event-mapper';
+import type { GoogleRealtimeModelOptions } from './google-realtime-model-options';
+
+describe('GoogleRealtimeEventMapper', () => {
+  describe('parseServerEvent', () => {
+    it('maps setupComplete to session-created', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = { setupComplete: true };
+      const result = mapper.parseServerEvent(raw);
+
+      expect(result).toEqual({
+        type: 'session-created',
+        raw,
+      });
+    });
+
+    it('maps serverContent with audio to audio-delta', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = {
+        serverContent: {
+          modelTurn: {
+            parts: [{ inlineData: { data: 'base64audio' } }],
+          },
+        },
+      };
+      const result = mapper.parseServerEvent(raw);
+
+      expect(result).toEqual({
+        type: 'audio-delta',
+        responseId: 'google-resp-0',
+        itemId: 'google-item-0',
+        delta: 'base64audio',
+        raw,
+      });
+    });
+
+    it('maps serverContent with text to text-delta', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = {
+        serverContent: {
+          modelTurn: {
+            parts: [{ text: 'hello world' }],
+          },
+        },
+      };
+      const result = mapper.parseServerEvent(raw);
+
+      expect(result).toEqual({
+        type: 'text-delta',
+        responseId: 'google-resp-0',
+        itemId: 'google-item-0',
+        delta: 'hello world',
+        raw,
+      });
+    });
+
+    it('maps serverContent with outputTranscription to audio-transcript-delta', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = {
+        serverContent: {
+          outputTranscription: { text: 'transcribed text' },
+        },
+      };
+      const result = mapper.parseServerEvent(raw);
+
+      expect(result).toEqual({
+        type: 'audio-transcript-delta',
+        responseId: 'google-resp-0',
+        itemId: 'google-item-0',
+        delta: 'transcribed text',
+        raw,
+      });
+    });
+
+    it('maps serverContent with inputTranscription to input-transcription-completed', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = {
+        serverContent: {
+          inputTranscription: { text: 'Can you hear me?' },
+        },
+      };
+      const result = mapper.parseServerEvent(raw);
+
+      expect(result).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-0',
+        transcript: 'Can you hear me?',
+        raw,
+      });
+    });
+
+    it('maps top-level inputTranscription to input-transcription-completed', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = {
+        inputTranscription: { text: 'Can you hear me?' },
+      };
+      const result = mapper.parseServerEvent(raw);
+
+      expect(result).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-0',
+        transcript: 'Can you hear me?',
+        raw,
+      });
+    });
+
+    it('increments top-level input transcription IDs after turnComplete', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      mapper.parseServerEvent({
+        inputTranscription: { text: 'What time is it?' },
+      });
+      mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: {
+            parts: [{ inlineData: { data: 'audio1' } }],
+          },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: { turnComplete: true },
+      });
+
+      const raw = {
+        inputTranscription: { text: 'And the date?' },
+      };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-1',
+        transcript: 'And the date?',
+        raw,
+      });
+    });
+
+    it('maps serverContent with interrupted to speech-started', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = {
+        serverContent: { interrupted: true },
+      };
+      const result = mapper.parseServerEvent(raw);
+
+      expect(result).toEqual({
+        type: 'speech-started',
+        raw,
+      });
+    });
+
+    it('maps serverContent with turnComplete after audio to done events + response-done', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: {
+            parts: [{ inlineData: { data: 'audio' } }],
+          },
+        },
+      });
+
+      const raw = { serverContent: { turnComplete: true } };
+      const result = mapper.parseServerEvent(raw);
+
+      expect(result).toEqual([
+        {
+          type: 'audio-done',
+          responseId: 'google-resp-0',
+          itemId: 'google-item-0',
+          raw,
+        },
+        {
+          type: 'response-done',
+          responseId: 'google-resp-0',
+          status: 'completed',
+          raw,
+        },
+      ]);
+    });
+
+    it('maps serverContent with turnComplete after text to done events + response-done', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: {
+            parts: [{ text: 'hello' }],
+          },
+        },
+      });
+
+      const raw = { serverContent: { turnComplete: true } };
+      const result = mapper.parseServerEvent(raw);
+
+      expect(result).toEqual([
+        {
+          type: 'text-done',
+          responseId: 'google-resp-0',
+          itemId: 'google-item-0',
+          raw,
+        },
+        {
+          type: 'response-done',
+          responseId: 'google-resp-0',
+          status: 'completed',
+          raw,
+        },
+      ]);
+    });
+
+    it('increments IDs after turnComplete', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: {
+            parts: [{ inlineData: { data: 'audio1' } }],
+          },
+        },
+      });
+
+      mapper.parseServerEvent({
+        serverContent: { turnComplete: true },
+      });
+
+      const raw = {
+        serverContent: {
+          modelTurn: {
+            parts: [{ inlineData: { data: 'audio2' } }],
+          },
+        },
+      };
+      const result = mapper.parseServerEvent(raw);
+
+      expect(result).toEqual({
+        type: 'audio-delta',
+        responseId: 'google-resp-1',
+        itemId: 'google-item-1',
+        delta: 'audio2',
+        raw,
+      });
+    });
+
+    it('increments input transcription IDs after turnComplete', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      mapper.parseServerEvent({
+        serverContent: {
+          inputTranscription: { text: 'What time is it?' },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: {
+            parts: [{ inlineData: { data: 'audio1' } }],
+          },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: { turnComplete: true },
+      });
+
+      const raw = {
+        serverContent: {
+          inputTranscription: { text: 'And the date?' },
+        },
+      };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-1',
+        transcript: 'And the date?',
+        raw,
+      });
+      expect(
+        mapper.parseServerEvent({
+          serverContent: {
+            modelTurn: {
+              parts: [{ inlineData: { data: 'audio2' } }],
+            },
+          },
+        }),
+      ).toMatchObject({
+        responseId: 'google-resp-1',
+        itemId: 'google-item-1',
+      });
+    });
+
+    it('keeps the interrupted response active until its trailing turnComplete', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      mapper.parseServerEvent({
+        serverContent: {
+          inputTranscription: { text: 'Tell me a story.' },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: {
+            parts: [{ inlineData: { data: 'audio1' } }],
+          },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: { interrupted: true },
+      });
+
+      const raw = {
+        serverContent: {
+          inputTranscription: { text: 'Stop.' },
+        },
+      };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-1',
+        transcript: 'Stop.',
+        raw,
+      });
+
+      const turnCompleteRaw = {
+        serverContent: { turnComplete: true },
+      };
+      expect(mapper.parseServerEvent(turnCompleteRaw)).toEqual([
+        {
+          type: 'audio-done',
+          responseId: 'google-resp-0',
+          itemId: 'google-item-0',
+          raw: turnCompleteRaw,
+        },
+        {
+          type: 'response-done',
+          responseId: 'google-resp-0',
+          status: 'completed',
+          raw: turnCompleteRaw,
+        },
+      ]);
+
+      expect(
+        mapper.parseServerEvent({
+          serverContent: {
+            modelTurn: {
+              parts: [{ inlineData: { data: 'audio2' } }],
+            },
+          },
+        }),
+      ).toMatchObject({
+        responseId: 'google-resp-1',
+        itemId: 'google-item-1',
+      });
+    });
+
+    it('keeps an interrupting utterance together across the trailing turnComplete', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      mapper.parseServerEvent({
+        serverContent: {
+          inputTranscription: { text: 'Tell me a story.' },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: {
+            parts: [{ inlineData: { data: 'audio1' } }],
+          },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: { interrupted: true },
+      });
+
+      const firstFragment = {
+        serverContent: {
+          inputTranscription: { text: 'Stop', finished: false },
+        },
+      };
+      expect(mapper.parseServerEvent(firstFragment)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-1',
+        transcript: 'Stop',
+        raw: firstFragment,
+      });
+
+      mapper.parseServerEvent({
+        serverContent: { turnComplete: true },
+      });
+
+      const finalFragment = {
+        serverContent: {
+          inputTranscription: { text: ' now.', finished: true },
+        },
+      };
+      expect(mapper.parseServerEvent(finalFragment)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-1',
+        transcript: 'Stop now.',
+        raw: finalFragment,
+      });
+    });
+
+    it('keeps a delayed final fragment with its utterance and separates the next one', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      mapper.parseServerEvent({
+        serverContent: {
+          inputTranscription: { text: 'What time', finished: false },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: {
+            parts: [{ inlineData: { data: 'audio1' } }],
+          },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: { turnComplete: true },
+      });
+
+      const delayedFinalFragment = {
+        serverContent: {
+          inputTranscription: { text: ' is it?', finished: true },
+        },
+      };
+      expect(mapper.parseServerEvent(delayedFinalFragment)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-0',
+        transcript: 'What time is it?',
+        raw: delayedFinalFragment,
+      });
+
+      const nextUtterance = {
+        serverContent: {
+          inputTranscription: { text: 'And the date?', finished: true },
+        },
+      };
+      expect(mapper.parseServerEvent(nextUtterance)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-1',
+        transcript: 'And the date?',
+        raw: nextUtterance,
+      });
+    });
+
+    it('assigns separate IDs to consecutive finished transcriptions', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      const first = {
+        serverContent: {
+          inputTranscription: { text: 'First utterance.', finished: true },
+        },
+      };
+      expect(mapper.parseServerEvent(first)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-0',
+        transcript: 'First utterance.',
+        raw: first,
+      });
+
+      const second = {
+        serverContent: {
+          inputTranscription: { text: 'Second utterance.', finished: true },
+        },
+      };
+      expect(mapper.parseServerEvent(second)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-1',
+        transcript: 'Second utterance.',
+        raw: second,
+      });
+    });
+
+    describe.each(['serverContent', 'top-level'] as const)(
+      '%s input transcription boundaries',
+      location => {
+        const wrap = (inputTranscription: {
+          text?: string;
+          finished?: boolean;
+        }) =>
+          location === 'serverContent'
+            ? { serverContent: { inputTranscription } }
+            : { inputTranscription };
+
+        it.each([{ finished: true }, { text: '', finished: true }])(
+          'honors a standalone completion marker %j after turnComplete',
+          completion => {
+            const mapper = new GoogleRealtimeEventMapper();
+            mapper.parseServerEvent(wrap({ text: 'First', finished: false }));
+            mapper.parseServerEvent({ serverContent: { turnComplete: true } });
+
+            // Completion-only messages must not create an empty user message.
+            expect(mapper.parseServerEvent(wrap(completion))).toMatchObject({
+              type: 'custom',
+            });
+
+            const next = wrap({ text: 'Second', finished: true });
+            expect(mapper.parseServerEvent(next)).toEqual({
+              type: 'input-transcription-completed',
+              itemId: 'google-input-1',
+              transcript: 'Second',
+              raw: next,
+            });
+          },
+        );
+
+        it('separates utterances using standalone completion markers without response events', () => {
+          const mapper = new GoogleRealtimeEventMapper();
+          mapper.parseServerEvent(wrap({ text: 'First' }));
+          mapper.parseServerEvent(wrap({ finished: true }));
+          // Empty or repeated markers must not consume another ID or reopen
+          // the completed utterance.
+          mapper.parseServerEvent(wrap({ finished: true }));
+          mapper.parseServerEvent(wrap({ text: '', finished: false }));
+
+          const next = wrap({ text: 'Second' });
+          expect(mapper.parseServerEvent(next)).toEqual({
+            type: 'input-transcription-completed',
+            itemId: 'google-input-1',
+            transcript: 'Second',
+            raw: next,
+          });
+        });
+
+        it('does not allocate an utterance for empty input', () => {
+          const mapper = new GoogleRealtimeEventMapper();
+          for (const transcription of [
+            {},
+            { finished: false },
+            { finished: true },
+            { text: '', finished: true },
+          ]) {
+            expect(mapper.parseServerEvent(wrap(transcription))).toMatchObject({
+              type: 'custom',
+            });
+          }
+
+          expect(
+            mapper.parseServerEvent(wrap({ text: 'First' })),
+          ).toMatchObject({
+            itemId: 'google-input-0',
+            transcript: 'First',
+          });
+        });
+
+        it('preserves an interrupting utterance until its standalone completion marker', () => {
+          const mapper = new GoogleRealtimeEventMapper();
+          mapper.parseServerEvent(wrap({ text: 'First' }));
+          mapper.parseServerEvent({ serverContent: { interrupted: true } });
+          mapper.parseServerEvent(wrap({ text: 'Stop' }));
+          mapper.parseServerEvent({ serverContent: { turnComplete: true } });
+          expect(mapper.parseServerEvent(wrap({ text: ' now' }))).toMatchObject(
+            {
+              itemId: 'google-input-1',
+              transcript: 'Stop now',
+            },
+          );
+          mapper.parseServerEvent(wrap({ finished: true }));
+          expect(mapper.parseServerEvent(wrap({ text: 'Next' }))).toMatchObject(
+            {
+              itemId: 'google-input-2',
+              transcript: 'Next',
+            },
+          );
+        });
+      },
+    );
+
+    it('starts a new response after interruption without a trailing turnComplete', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      mapper.parseServerEvent({
+        serverContent: {
+          inputTranscription: { text: 'Tell me a story.' },
+          modelTurn: { parts: [{ text: 'Once upon a time' }] },
+        },
+      });
+      mapper.parseServerEvent({ serverContent: { interrupted: true } });
+      expect(
+        mapper.parseServerEvent({
+          serverContent: { inputTranscription: { text: 'Stop.' } },
+        }),
+      ).toMatchObject({ itemId: 'google-input-1', transcript: 'Stop.' });
+
+      expect(
+        mapper.parseServerEvent({
+          serverContent: { modelTurn: { parts: [{ text: 'OK.' }] } },
+        }),
+      ).toMatchObject({ responseId: 'google-resp-1', itemId: 'google-item-1' });
+      mapper.parseServerEvent({ serverContent: { turnComplete: true } });
+      expect(
+        mapper.parseServerEvent({
+          serverContent: { inputTranscription: { text: 'Next question.' } },
+        }),
+      ).toMatchObject({
+        itemId: 'google-input-2',
+        transcript: 'Next question.',
+      });
+    });
+
+    it('accumulates consecutive input transcription fragments into one utterance', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      const fragment1 = {
+        serverContent: {
+          inputTranscription: { text: 'The quick brown fox' },
+        },
+      };
+      expect(mapper.parseServerEvent(fragment1)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-0',
+        transcript: 'The quick brown fox',
+        raw: fragment1,
+      });
+
+      const fragment2 = {
+        serverContent: {
+          inputTranscription: { text: ' jumps over the' },
+        },
+      };
+      expect(mapper.parseServerEvent(fragment2)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-0',
+        transcript: 'The quick brown fox jumps over the',
+        raw: fragment2,
+      });
+
+      const fragment3 = {
+        serverContent: {
+          inputTranscription: { text: ' lazy dog.' },
+        },
+      };
+      expect(mapper.parseServerEvent(fragment3)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-0',
+        transcript: 'The quick brown fox jumps over the lazy dog.',
+        raw: fragment3,
+      });
+    });
+
+    it('starts a fresh accumulation for the next utterance after a completed turn', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: {
+            parts: [{ inlineData: { data: 'audio1' } }],
+          },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: { turnComplete: true },
+      });
+
+      // A late transcript for the just-completed turn still opens at index 0.
+      const delayed = {
+        serverContent: {
+          inputTranscription: { text: 'What time is it?' },
+        },
+      };
+      expect(mapper.parseServerEvent(delayed)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-0',
+        transcript: 'What time is it?',
+        raw: delayed,
+      });
+
+      // A second fragment with no intervening turn boundary is part of the
+      // same utterance and accumulates under the same id.
+      const continued = {
+        serverContent: {
+          inputTranscription: { text: ' And the date?' },
+        },
+      };
+      expect(mapper.parseServerEvent(continued)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-0',
+        transcript: 'What time is it? And the date?',
+        raw: continued,
+      });
+
+      expect(
+        mapper.parseServerEvent({
+          serverContent: {
+            modelTurn: {
+              parts: [{ inlineData: { data: 'audio2' } }],
+            },
+          },
+        }),
+      ).toMatchObject({
+        responseId: 'google-resp-1',
+        itemId: 'google-item-1',
+      });
+    });
+
+    it('keeps a late transcript attached to the just-completed turn', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: { parts: [{ inlineData: { data: 'audio1' } }] },
+        },
+      });
+
+      mapper.parseServerEvent({ serverContent: { turnComplete: true } });
+
+      // A transcript that arrives after turnComplete (Google delivers
+      // transcription independently) must still reference the turn it belongs
+      // to, not the next one. The counter only advances when new model content
+      // actually arrives.
+      const raw = {
+        serverContent: { outputTranscription: { text: 'late transcript' } },
+      };
+      const result = mapper.parseServerEvent(raw);
+
+      expect(result).toEqual({
+        type: 'audio-transcript-delta',
+        responseId: 'google-resp-0',
+        itemId: 'google-item-0',
+        delta: 'late transcript',
+        raw,
+      });
+
+      // The next model response then opens turn 1.
+      const next = mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: { parts: [{ inlineData: { data: 'audio2' } }] },
+        },
+      });
+      expect(next).toMatchObject({ responseId: 'google-resp-1' });
+    });
+
+    it('maps multi-part serverContent to multiple events', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = {
+        serverContent: {
+          modelTurn: {
+            parts: [{ inlineData: { data: 'audio' } }, { text: 'text' }],
+          },
+        },
+      };
+      const result = mapper.parseServerEvent(raw);
+
+      expect(Array.isArray(result)).toBe(true);
+      expect(result).toEqual([
+        {
+          type: 'audio-delta',
+          responseId: 'google-resp-0',
+          itemId: 'google-item-0',
+          delta: 'audio',
+          raw,
+        },
+        {
+          type: 'text-delta',
+          responseId: 'google-resp-0',
+          itemId: 'google-item-0',
+          delta: 'text',
+          raw,
+        },
+      ]);
+    });
+
+    it('maps toolCall to function-call-arguments-delta and done events', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = {
+        toolCall: {
+          functionCalls: [
+            { id: 'call_1', name: 'getWeather', args: { city: 'NYC' } },
+            { id: 'call_2', name: 'rollDice', args: {} },
+          ],
+        },
+      };
+      const result = mapper.parseServerEvent(raw);
+
+      expect(Array.isArray(result)).toBe(true);
+      expect(result).toEqual([
+        {
+          type: 'function-call-arguments-delta',
+          responseId: 'google-resp-0',
+          itemId: 'google-item-0',
+          callId: 'call_1',
+          delta: '{"city":"NYC"}',
+          raw,
+        },
+        {
+          type: 'function-call-arguments-done',
+          responseId: 'google-resp-0',
+          itemId: 'google-item-0',
+          callId: 'call_1',
+          name: 'getWeather',
+          arguments: '{"city":"NYC"}',
+          raw,
+        },
+        {
+          type: 'function-call-arguments-delta',
+          responseId: 'google-resp-0',
+          itemId: 'google-item-0',
+          callId: 'call_2',
+          delta: '{}',
+          raw,
+        },
+        {
+          type: 'function-call-arguments-done',
+          responseId: 'google-resp-0',
+          itemId: 'google-item-0',
+          callId: 'call_2',
+          name: 'rollDice',
+          arguments: '{}',
+          raw,
+        },
+      ]);
+    });
+
+    it('maps toolCallCancellation to custom event', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = { toolCallCancellation: { ids: ['call_1'] } };
+      const result = mapper.parseServerEvent(raw);
+
+      expect(result).toEqual({
+        type: 'custom',
+        rawType: 'toolCallCancellation',
+        raw,
+      });
+    });
+
+    it('maps goAway to a stable custom lifecycle event', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = { goAway: { timeLeft: '30s' } };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'custom',
+        rawType: 'goAway',
+        raw,
+      });
+    });
+
+    it('maps sessionResumptionUpdate to a stable custom lifecycle event', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = {
+        sessionResumptionUpdate: {
+          newHandle: 'resume-handle',
+          resumable: true,
+          lastConsumedClientMessageIndex: '42',
+        },
+      };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'custom',
+        rawType: 'sessionResumptionUpdate',
+        raw,
+      });
+    });
+
+    it('surfaces interactionStatus as a custom event', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = { serverContent: { interactionStatus: 'IN_PROGRESS' } };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'custom',
+        rawType: 'interactionStatus',
+        raw,
+      });
+    });
+
+    it('emits interactionStatus alongside turnComplete events', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: { parts: [{ inlineData: { data: 'AAAA' } }] },
+        },
+      });
+      const raw = {
+        serverContent: { turnComplete: true, interactionStatus: 'IDLE' },
+      };
+
+      const events = mapper.parseServerEvent(raw);
+      expect(Array.isArray(events)).toBe(true);
+      if (Array.isArray(events)) {
+        expect(events).toContainEqual({
+          type: 'custom',
+          rawType: 'interactionStatus',
+          raw,
+        });
+        expect(events).toContainEqual({
+          type: 'response-done',
+          responseId: 'google-resp-0',
+          status: 'completed',
+          raw,
+        });
+      }
+    });
+
+    it('surfaces waitingForInput as a custom event', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = { serverContent: { waitingForInput: true } };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'custom',
+        rawType: 'waitingForInput',
+        raw,
+      });
+    });
+
+    it('keeps generationComplete distinct from turnComplete', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = { serverContent: { generationComplete: true } };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'custom',
+        rawType: 'generationComplete',
+        raw,
+      });
+
+      const next = mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: { parts: [{ text: 'still turn zero' }] },
+        },
+      });
+      expect(next).toMatchObject({
+        type: 'text-delta',
+        responseId: 'google-resp-0',
+      });
+    });
+
+    it('maps unrecognized top-level key to custom event', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = { somethingNew: { data: 123 } };
+      const result = mapper.parseServerEvent(raw);
+
+      expect(result).toEqual({
+        type: 'custom',
+        rawType: 'somethingNew',
+        raw,
+      });
+    });
+  });
+
+  describe('serializeClientEvent', () => {
+    let mapper: GoogleRealtimeEventMapper;
+
+    beforeEach(() => {
+      mapper = new GoogleRealtimeEventMapper();
+    });
+
+    it('serializes session-update as setup message', () => {
+      const result = mapper.serializeClientEvent(
+        { type: 'session-update', config: {} },
+        'gemini-2.0-flash-live-001',
+      );
+
+      expect(result).toEqual({
+        setup: {
+          model: 'models/gemini-2.0-flash-live-001',
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+          },
+        },
+      });
+    });
+
+    it('serializes session-update with normalized session config', () => {
+      const result = mapper.serializeClientEvent(
+        {
+          type: 'session-update',
+          config: {
+            instructions: 'Be helpful',
+            voice: 'Puck',
+            outputModalities: ['audio', 'text'],
+            inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+            tools: [
+              {
+                type: 'function',
+                name: 'getWeather',
+                description: 'Get weather',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    city: { type: 'string' },
+                  },
+                },
+              },
+            ],
+          },
+        },
+        'gemini-2.0-flash-live-001',
+      );
+
+      expect(result).toEqual({
+        setup: {
+          model: 'models/gemini-2.0-flash-live-001',
+          systemInstruction: {
+            parts: [{ text: 'Be helpful' }],
+          },
+          generationConfig: {
+            responseModalities: ['AUDIO', 'TEXT'],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: {
+                  voiceName: 'Puck',
+                },
+              },
+            },
+          },
+          tools: [
+            {
+              functionDeclarations: [
+                {
+                  name: 'getWeather',
+                  description: 'Get weather',
+                  parametersJsonSchema: {
+                    type: 'object',
+                    properties: {
+                      city: { type: 'string' },
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      });
+    });
+
+    it('serializes live translation config into generationConfig', () => {
+      const result = mapper.serializeClientEvent(
+        {
+          type: 'session-update',
+          config: {
+            inputAudioTranscription: {},
+            outputAudioTranscription: {},
+            providerOptions: {
+              google: {
+                translationConfig: {
+                  targetLanguageCode: 'pl',
+                  echoTargetLanguage: true,
+                },
+              } satisfies GoogleRealtimeModelOptions,
+            },
+          },
+        },
+        'gemini-3.5-live-translate-preview',
+      );
+
+      expect(result).toEqual({
+        setup: {
+          model: 'models/gemini-3.5-live-translate-preview',
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            translationConfig: {
+              targetLanguageCode: 'pl',
+              echoTargetLanguage: true,
+            },
+          },
+          inputAudioTranscription: {},
+          outputAudioTranscription: {},
+        },
+      });
+    });
+
+    it('serializes input-audio-append as realtimeInput', () => {
+      const result = mapper.serializeClientEvent(
+        { type: 'input-audio-append', audio: 'base64data' },
+        'model',
+      );
+
+      expect(result).toEqual({
+        realtimeInput: {
+          audio: {
+            data: 'base64data',
+            mimeType: 'audio/pcm;rate=16000',
+          },
+        },
+      });
+    });
+
+    it('serializes input-audio-commit as audioStreamEnd', () => {
+      expect(
+        mapper.serializeClientEvent({ type: 'input-audio-commit' }, 'model'),
+      ).toEqual({
+        realtimeInput: {
+          audioStreamEnd: true,
+        },
+      });
+    });
+
+    it('returns null for input-audio-clear', () => {
+      expect(
+        mapper.serializeClientEvent({ type: 'input-audio-clear' }, 'model'),
+      ).toBeNull();
+    });
+
+    it('returns null for response-create', () => {
+      expect(
+        mapper.serializeClientEvent({ type: 'response-create' }, 'model'),
+      ).toBeNull();
+    });
+
+    it('returns null for response-cancel', () => {
+      expect(
+        mapper.serializeClientEvent({ type: 'response-cancel' }, 'model'),
+      ).toBeNull();
+    });
+
+    it('serializes text message as realtimeInput', () => {
+      const result = mapper.serializeClientEvent(
+        {
+          type: 'conversation-item-create',
+          item: { type: 'text-message', role: 'user', text: 'hello' },
+        },
+        'model',
+      );
+
+      expect(result).toEqual({
+        realtimeInput: {
+          text: 'hello',
+        },
+      });
+    });
+
+    it('serializes function-call-output as toolResponse', async () => {
+      const result = await mapper.serializeClientEvent(
+        {
+          type: 'conversation-item-create',
+          item: {
+            type: 'function-call-output',
+            callId: 'call_1',
+            name: 'getWeather',
+            output: '{"temp":72}',
+          },
+        },
+        'model',
+      );
+
+      expect(result).toEqual({
+        toolResponse: {
+          functionResponses: [
+            {
+              id: 'call_1',
+              name: 'getWeather',
+              response: { temp: 72 },
+            },
+          ],
+        },
+      });
+    });
+
+    it.each([
+      ['a string', '"SEARCH_UNAVAILABLE"', { output: 'SEARCH_UNAVAILABLE' }],
+      ['a number', '42', { output: 42 }],
+      ['an array', '["a","b"]', { output: ['a', 'b'] }],
+      ['null', 'null', { output: null }],
+      ['a boolean', 'false', { output: false }],
+    ])(
+      'wraps %s tool result so the response stays an object',
+      async (_label, output, expected) => {
+        const result = await mapper.serializeClientEvent(
+          {
+            type: 'conversation-item-create',
+            item: {
+              type: 'function-call-output',
+              callId: 'call_1',
+              name: 'getWeather',
+              output,
+            },
+          },
+          'model',
+        );
+
+        expect(result).toEqual({
+          toolResponse: {
+            functionResponses: [
+              { id: 'call_1', name: 'getWeather', response: expected },
+            ],
+          },
+        });
+      },
+    );
+
+    it('keeps unparseable function-call-output as text instead of an empty object', async () => {
+      const result = await mapper.serializeClientEvent(
+        {
+          type: 'conversation-item-create',
+          item: {
+            type: 'function-call-output',
+            callId: 'call_1',
+            name: 'getWeather',
+            output: '{',
+          },
+        },
+        'model',
+      );
+
+      expect(result).toEqual({
+        toolResponse: {
+          functionResponses: [
+            {
+              id: 'call_1',
+              name: 'getWeather',
+              response: { output: '{' },
+            },
+          ],
+        },
+      });
+    });
+
+    it('returns null for conversation-item-truncate', () => {
+      expect(
+        mapper.serializeClientEvent(
+          {
+            type: 'conversation-item-truncate',
+            itemId: 'item_1',
+            contentIndex: 0,
+            audioEndMs: 1000,
+          },
+          'model',
+        ),
+      ).toBeNull();
+    });
+  });
+});
+
+describe('buildGoogleSessionConfig', () => {
+  it('builds config with model path', () => {
+    const result = buildGoogleSessionConfig(undefined, 'gemini-2.0-flash');
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "generationConfig": {
+          "responseModalities": [
+            "AUDIO",
+          ],
+        },
+        "model": "models/gemini-2.0-flash",
+      }
+    `);
+  });
+
+  it('builds config with instructions and voice', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        instructions: 'Be helpful',
+        voice: 'Puck',
+      },
+      'gemini-2.0-flash',
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "generationConfig": {
+          "responseModalities": [
+            "AUDIO",
+          ],
+          "speechConfig": {
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {
+                "voiceName": "Puck",
+              },
+            },
+          },
+        },
+        "model": "models/gemini-2.0-flash",
+        "systemInstruction": {
+          "parts": [
+            {
+              "text": "Be helpful",
+            },
+          ],
+        },
+      }
+    `);
+  });
+
+  it('builds config with tools', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        tools: [
+          {
+            type: 'function',
+            name: 'getWeather',
+            description: 'Get weather',
+            parameters: {
+              type: 'object',
+              properties: {
+                city: { type: 'string' },
+              },
+              required: ['city'],
+            },
+          },
+        ],
+      },
+      'gemini-2.0-flash',
+    );
+
+    expect(result.tools).toMatchInlineSnapshot(`
+      [
+        {
+          "functionDeclarations": [
+            {
+              "description": "Get weather",
+              "name": "getWeather",
+              "parametersJsonSchema": {
+                "properties": {
+                  "city": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "city",
+                ],
+                "type": "object",
+              },
+            },
+          ],
+        },
+      ]
+    `);
+  });
+
+  it('builds config with preserved local JSON Schema references', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        tools: [
+          {
+            type: 'function',
+            name: 'formatDate',
+            description: 'Format a date',
+            parameters: {
+              type: 'object',
+              properties: {
+                locale: { $ref: '#/$defs/Locale' },
+              },
+              required: ['locale'],
+              $defs: {
+                Locale: { type: 'string', enum: ['de', 'en'] },
+              },
+            } as JSONSchema7,
+          },
+        ],
+      },
+      'gemini-2.0-flash',
+    );
+
+    expect(result.tools).toEqual([
+      {
+        functionDeclarations: [
+          {
+            name: 'formatDate',
+            description: 'Format a date',
+            parametersJsonSchema: {
+              type: 'object',
+              properties: {
+                locale: { $ref: '#/$defs/Locale' },
+              },
+              required: ['locale'],
+              $defs: {
+                Locale: { type: 'string', enum: ['de', 'en'] },
+              },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('maps output modalities to uppercase', () => {
+    const result = buildGoogleSessionConfig(
+      { outputModalities: ['audio', 'text'] },
+      'model',
+    );
+
+    expect(
+      (result.generationConfig as Record<string, unknown>).responseModalities,
+    ).toEqual(['AUDIO', 'TEXT']);
+  });
+
+  it('enables input audio transcription', () => {
+    const result = buildGoogleSessionConfig(
+      { inputAudioTranscription: {} },
+      'model',
+    );
+
+    expect(result.inputAudioTranscription).toEqual({});
+  });
+
+  it('enables output audio transcription', () => {
+    const result = buildGoogleSessionConfig(
+      { outputAudioTranscription: {} },
+      'model',
+    );
+
+    expect(result.outputAudioTranscription).toEqual({});
+  });
+
+  it('maps providerOptions.google.translationConfig to generationConfig', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        providerOptions: {
+          google: {
+            translationConfig: {
+              targetLanguageCode: 'es',
+              echoTargetLanguage: true,
+            },
+          } satisfies GoogleRealtimeModelOptions,
+        },
+      },
+      'gemini-3.5-live-translate-preview',
+    );
+
+    expect(result).toEqual({
+      model: 'models/gemini-3.5-live-translate-preview',
+      generationConfig: {
+        responseModalities: ['AUDIO'],
+        translationConfig: {
+          targetLanguageCode: 'es',
+          echoTargetLanguage: true,
+        },
+      },
+    });
+  });
+
+  it('merges translation config into raw generationConfig provider options', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        providerOptions: {
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            temperature: 0.2,
+          },
+          google: {
+            translationConfig: {
+              targetLanguageCode: 'fr',
+            },
+          } satisfies GoogleRealtimeModelOptions,
+        },
+      },
+      'gemini-3.5-live-translate-preview',
+    );
+
+    expect(result.generationConfig).toEqual({
+      responseModalities: ['AUDIO'],
+      temperature: 0.2,
+      translationConfig: {
+        targetLanguageCode: 'fr',
+      },
+    });
+  });
+
+  it('maps providerOptions.google.thinkingConfig to generationConfig', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        providerOptions: {
+          google: {
+            thinkingConfig: {
+              thinkingLevel: 'high',
+              includeThoughts: true,
+            },
+          } satisfies GoogleRealtimeModelOptions,
+        },
+      },
+      'gemini-3.8-live-extended-thinking',
+    );
+
+    expect(result).toEqual({
+      model: 'models/gemini-3.8-live-extended-thinking',
+      generationConfig: {
+        responseModalities: ['AUDIO'],
+        thinkingConfig: {
+          thinkingLevel: 'high',
+          includeThoughts: true,
+        },
+      },
+    });
+  });
+
+  it('defaults thinkingLevel to low on background-reasoning Live models', () => {
+    for (const modelId of [
+      'gemini-3.8-live-extended-thinking',
+      'models/gemini-3.8-live-extended-thinking',
+    ]) {
+      expect(buildGoogleSessionConfig(undefined, modelId)).toEqual({
+        model: 'models/gemini-3.8-live-extended-thinking',
+        generationConfig: {
+          responseModalities: ['AUDIO'],
+          thinkingConfig: { thinkingLevel: 'low' },
+        },
+      });
+    }
+
+    expect(
+      buildGoogleSessionConfig(
+        { outputModalities: ['audio'], instructions: 'Be brief.' },
+        'gemini-3.8-live-extended-thinking',
+      ).generationConfig,
+    ).toEqual({
+      responseModalities: ['AUDIO'],
+      thinkingConfig: { thinkingLevel: 'low' },
+    });
+  });
+
+  it('does not default thinkingConfig on Live models without background reasoning', () => {
+    for (const modelId of [
+      'gemini-3.8-live',
+      'gemini-3.1-flash-live-preview',
+      'gemini-3.5-live-translate-preview',
+    ]) {
+      expect(
+        buildGoogleSessionConfig({ outputModalities: ['audio'] }, modelId)
+          .generationConfig,
+      ).toEqual({ responseModalities: ['AUDIO'] });
+    }
+  });
+
+  it('does not add a default thinkingLevel when thinkingBudget is set', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        providerOptions: {
+          google: {
+            thinkingConfig: { thinkingBudget: 256 },
+          } satisfies GoogleRealtimeModelOptions,
+        },
+      },
+      'gemini-3.8-live-extended-thinking',
+    );
+
+    expect(result.generationConfig).toEqual({
+      responseModalities: ['AUDIO'],
+      thinkingConfig: { thinkingBudget: 256 },
+    });
+  });
+
+  it('keeps the default thinkingLevel under a raw generationConfig provider option', () => {
+    const result = buildGoogleSessionConfig(
+      { providerOptions: { generationConfig: { temperature: 0.2 } } },
+      'gemini-3.8-live-extended-thinking',
+    );
+
+    expect(result.generationConfig).toEqual({
+      temperature: 0.2,
+      thinkingConfig: { thinkingLevel: 'low' },
+    });
+  });
+
+  it('merges thinking config into raw generationConfig provider options', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        providerOptions: {
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            temperature: 0.2,
+          },
+          google: {
+            thinkingConfig: { thinkingBudget: 512 },
+          } satisfies GoogleRealtimeModelOptions,
+        },
+      },
+      'gemini-3.8-live-extended-thinking',
+    );
+
+    expect(result.generationConfig).toEqual({
+      responseModalities: ['AUDIO'],
+      temperature: 0.2,
+      thinkingConfig: { thinkingBudget: 512 },
+    });
+  });
+
+  it('merges translation and thinking config together into generationConfig', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        providerOptions: {
+          google: {
+            translationConfig: { targetLanguageCode: 'fr' },
+            thinkingConfig: { thinkingBudget: 1024 },
+          } satisfies GoogleRealtimeModelOptions,
+        },
+      },
+      'gemini-3.8-live-extended-thinking',
+    );
+
+    expect(result.generationConfig).toEqual({
+      responseModalities: ['AUDIO'],
+      translationConfig: { targetLanguageCode: 'fr' },
+      thinkingConfig: { thinkingBudget: 1024 },
+    });
+  });
+
+  it('adds the default thinkingLevel when thinkingConfig sets neither thinkingLevel nor thinkingBudget', () => {
+    for (const modelId of [
+      'gemini-3.8-live-extended-thinking',
+      'models/gemini-3.8-live-extended-thinking',
+    ]) {
+      expect(
+        buildGoogleSessionConfig(
+          {
+            providerOptions: {
+              google: {
+                thinkingConfig: { includeThoughts: true },
+              } satisfies GoogleRealtimeModelOptions,
+            },
+          },
+          modelId,
+        ).generationConfig,
+      ).toEqual({
+        responseModalities: ['AUDIO'],
+        thinkingConfig: { includeThoughts: true, thinkingLevel: 'low' },
+      });
+    }
+
+    for (const thinkingConfig of [{}, { thinkingLevel: undefined }]) {
+      expect(
+        buildGoogleSessionConfig(
+          {
+            providerOptions: {
+              google: { thinkingConfig } satisfies GoogleRealtimeModelOptions,
+            },
+          },
+          'gemini-3.8-live-extended-thinking',
+        ).generationConfig,
+      ).toEqual({
+        responseModalities: ['AUDIO'],
+        thinkingConfig: { thinkingLevel: 'low' },
+      });
+    }
+  });
+
+  it('keeps thinkingBudget: 0 without adding a default thinkingLevel', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        providerOptions: {
+          google: {
+            thinkingConfig: { thinkingBudget: 0 },
+          } satisfies GoogleRealtimeModelOptions,
+        },
+      },
+      'gemini-3.8-live-extended-thinking',
+    );
+
+    expect(result.generationConfig).toEqual({
+      responseModalities: ['AUDIO'],
+      thinkingConfig: { thinkingBudget: 0 },
+    });
+  });
+
+  it('does not overwrite a raw generationConfig.thinkingConfig that sets thinkingLevel or thinkingBudget', () => {
+    for (const thinkingConfig of [
+      { thinkingLevel: 'high' },
+      { thinkingBudget: 1024, includeThoughts: true },
+    ]) {
+      expect(
+        buildGoogleSessionConfig(
+          {
+            providerOptions: {
+              generationConfig: {
+                responseModalities: ['AUDIO'],
+                thinkingConfig,
+              },
+            },
+          },
+          'gemini-3.8-live-extended-thinking',
+        ).generationConfig,
+      ).toEqual({
+        responseModalities: ['AUDIO'],
+        thinkingConfig,
+      });
+    }
+  });
+
+  it('adds the default thinkingLevel to a raw generationConfig.thinkingConfig that sets neither', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        providerOptions: {
+          generationConfig: {
+            temperature: 0.2,
+            thinkingConfig: { includeThoughts: true },
+          },
+        },
+      },
+      'gemini-3.8-live-extended-thinking',
+    );
+
+    expect(result.generationConfig).toEqual({
+      temperature: 0.2,
+      thinkingConfig: { includeThoughts: true, thinkingLevel: 'low' },
+    });
+  });
+
+  it('prefers a typed thinkingConfig over a raw generationConfig.thinkingConfig', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        providerOptions: {
+          generationConfig: {
+            thinkingConfig: { thinkingLevel: 'high' },
+          },
+          google: {
+            thinkingConfig: { thinkingBudget: 512 },
+          } satisfies GoogleRealtimeModelOptions,
+        },
+      },
+      'gemini-3.8-live-extended-thinking',
+    );
+
+    expect(result.generationConfig).toEqual({
+      thinkingConfig: { thinkingBudget: 512 },
+    });
+  });
+
+  it('does not add a default thinkingLevel on Live models without background reasoning', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        providerOptions: {
+          google: {
+            thinkingConfig: { includeThoughts: true },
+          } satisfies GoogleRealtimeModelOptions,
+        },
+      },
+      'gemini-3.8-live',
+    );
+
+    expect(result.generationConfig).toEqual({
+      responseModalities: ['AUDIO'],
+      thinkingConfig: { includeThoughts: true },
+    });
+  });
+
+  it('stamps defaultToolBehavior onto every function declaration', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        tools: [
+          {
+            type: 'function',
+            name: 'getWeather',
+            description: 'Get weather',
+            parameters: {
+              type: 'object',
+              properties: { city: { type: 'string' } },
+              required: ['city'],
+            },
+          },
+          {
+            type: 'function',
+            name: 'getTime',
+            parameters: { type: 'object', properties: {} },
+          },
+        ],
+        providerOptions: {
+          google: {
+            defaultToolBehavior: 'BLOCKING',
+          } satisfies GoogleRealtimeModelOptions,
+        },
+      },
+      'gemini-3.8-live',
+    );
+
+    const tools = result.tools as Array<{
+      functionDeclarations: Array<Record<string, unknown>>;
+    }>;
+    expect(tools[0].functionDeclarations.map(d => d.behavior)).toEqual([
+      'BLOCKING',
+      'BLOCKING',
+    ]);
+  });
+
+  it('omits behavior from function declarations when defaultToolBehavior is unset', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        tools: [
+          {
+            type: 'function',
+            name: 'getWeather',
+            parameters: { type: 'object', properties: {} },
+          },
+        ],
+      },
+      'gemini-3.8-live',
+    );
+
+    const tools = result.tools as Array<{
+      functionDeclarations: Array<Record<string, unknown>>;
+    }>;
+    expect('behavior' in tools[0].functionDeclarations[0]).toBe(false);
+  });
+
+  it('preserves model path that already includes slash', () => {
+    const result = buildGoogleSessionConfig(
+      undefined,
+      'models/gemini-2.0-flash',
+    );
+    expect(result.model).toBe('models/gemini-2.0-flash');
+  });
+});
+
+describe('GoogleRealtimeEventMapper usage', () => {
+  it('includes reported thinking, tool-use and cache counts without changing modality subsets', () => {
+    const mapper = new GoogleRealtimeEventMapper();
+    const result = mapper.parseServerEvent({
+      serverContent: { turnComplete: true },
+      usageMetadata: {
+        promptTokenCount: 30,
+        responseTokenCount: 9,
+        toolUsePromptTokenCount: 3,
+        thoughtsTokenCount: 7,
+        cachedContentTokenCount: 8,
+        promptTokensDetails: [{ modality: 'AUDIO', tokenCount: 30 }],
+        responseTokensDetails: [{ modality: 'AUDIO', tokenCount: 9 }],
+      },
+    });
+    const events = Array.isArray(result) ? result : [result];
+    expect(events.find(event => event.type === 'response-done')).toMatchObject({
+      usage: {
+        inputTokens: 33,
+        outputTokens: 16,
+        cachedInputTokens: 8,
+        inputAudioTokens: 30,
+        outputAudioTokens: 9,
+      },
+    });
+  });
+
+  it('does not invent gross totals from partial thinking or tool-use counts', () => {
+    const mapper = new GoogleRealtimeEventMapper();
+    const event = mapper.parseServerEvent({
+      usageMetadata: {
+        toolUsePromptTokenCount: 3,
+        thoughtsTokenCount: 7,
+        cachedContentTokenCount: 0,
+      },
+    });
+    expect(event).toMatchObject({ usage: { cachedInputTokens: 0 } });
+    expect('usage' in event && event.usage).not.toHaveProperty('inputTokens');
+    expect('usage' in event && event.usage).not.toHaveProperty('outputTokens');
+  });
+
+  it('preserves totals and known zeros without inventing missing modality counts', () => {
+    const mapper = new GoogleRealtimeEventMapper();
+    const event = mapper.parseServerEvent({
+      usageMetadata: {
+        promptTokenCount: 10,
+        responseTokenCount: 0,
+        promptTokensDetails: [
+          { modality: 'AUDIO' },
+          { modality: 'TEXT', tokenCount: 0 },
+          { modality: 'IMAGE', tokenCount: 10 },
+        ],
+        responseTokensDetails: [{ modality: 'AUDIO', tokenCount: null }],
+      },
+    });
+    expect(event).toMatchObject({
+      type: 'custom',
+      usage: { inputTokens: 10, outputTokens: 0, inputTextTokens: 0 },
+    });
+    expect('usage' in event && event.usage).not.toHaveProperty(
+      'inputAudioTokens',
+    );
+    expect('usage' in event && event.usage).not.toHaveProperty(
+      'outputAudioTokens',
+    );
+  });
+
+  it('attaches per-modality usage to response-done on turnComplete', () => {
+    const mapper = new GoogleRealtimeEventMapper();
+    const events = mapper.parseServerEvent({
+      serverContent: { turnComplete: true },
+      usageMetadata: {
+        promptTokenCount: 60,
+        responseTokenCount: 200,
+        promptTokensDetails: [
+          { modality: 'AUDIO', tokenCount: 50 },
+          { modality: 'TEXT', tokenCount: 10 },
+        ],
+        responseTokensDetails: [{ modality: 'AUDIO', tokenCount: 200 }],
+      },
+    });
+
+    const list = Array.isArray(events) ? events : [events];
+    const done = list.find(e => e.type === 'response-done');
+    expect(done?.type === 'response-done' && done.usage).toMatchInlineSnapshot(`
+      {
+        "inputAudioTokens": 50,
+        "inputTextTokens": 10,
+        "inputTokens": 60,
+        "outputAudioTokens": 200,
+        "outputTokens": 200,
+      }
+    `);
+  });
+
+  it('preserves aggregate counts without inventing modality details', () => {
+    const mapper = new GoogleRealtimeEventMapper();
+    const events = mapper.parseServerEvent({
+      serverContent: { turnComplete: true },
+      usageMetadata: { promptTokenCount: 12, responseTokenCount: 34 },
+    });
+
+    const list = Array.isArray(events) ? events : [events];
+    const done = list.find(e => e.type === 'response-done');
+    expect(done?.type === 'response-done' && done.usage).toMatchInlineSnapshot(`
+      {
+        "inputTokens": 12,
+        "outputTokens": 34,
+      }
+    `);
+  });
+
+  it.each([
+    { setupComplete: true },
+    { toolCall: { functionCalls: [{ id: 'call', name: 'tool' }] } },
+    { toolCallCancellation: { ids: ['call'] } },
+    { inputTranscription: { text: 'hello' } },
+    { serverContent: { interrupted: true } },
+  ])('retains usage alongside non-terminal messages: %j', frame => {
+    const mapper = new GoogleRealtimeEventMapper();
+    const raw = {
+      ...frame,
+      usageMetadata: {
+        promptTokensDetails: [{ modality: 'TEXT', tokenCount: 12 }],
+      },
+    };
+    const result = mapper.parseServerEvent(raw);
+    const list = Array.isArray(result) ? result : [result];
+    expect(list).toContainEqual({
+      type: 'custom',
+      rawType: 'usageMetadata',
+      usage: { inputTextTokens: 12 },
+      raw,
+    });
+    expect(list.some(event => event.type === 'response-done')).toBe(false);
+  });
+
+  it('keeps unassociated usage snapshots separate from completion and later turns', () => {
+    const mapper = new GoogleRealtimeEventMapper();
+    const snapshot = (count: number) => ({
+      usageMetadata: {
+        promptTokensDetails: [{ modality: 'TEXT', tokenCount: count }],
+      },
+    });
+    expect(mapper.parseServerEvent(snapshot(12))).toMatchObject({
+      type: 'custom',
+      usage: { inputTextTokens: 12 },
+    });
+    const done = mapper.parseServerEvent({
+      serverContent: { turnComplete: true },
+    });
+    const list = Array.isArray(done) ? done : [done];
+    expect(list).toContainEqual(
+      expect.objectContaining({ type: 'response-done' }),
+    );
+    expect(list.some(event => 'usage' in event)).toBe(false);
+    // A late final snapshot is retained instead of discarded as a duplicate.
+    expect(mapper.parseServerEvent(snapshot(15))).toMatchObject({
+      type: 'custom',
+      rawType: 'usageMetadata',
+      usage: { inputTextTokens: 15 },
+    });
+    mapper.parseServerEvent({ toolCall: { functionCalls: [] } });
+    expect(mapper.parseServerEvent(snapshot(16))).toMatchObject({
+      type: 'custom',
+      usage: { inputTextTokens: 16 },
+    });
+    mapper.parseServerEvent({ serverContent: { interrupted: true } });
+    expect(mapper.parseServerEvent(snapshot(17))).toMatchObject({
+      type: 'custom',
+      usage: { inputTextTokens: 17 },
+    });
+    const next = mapper.parseServerEvent({
+      serverContent: {
+        modelTurn: { parts: [{ text: 'next' }] },
+        turnComplete: true,
+      },
+    });
+    expect(
+      (Array.isArray(next) ? next : [next]).some(event => 'usage' in event),
+    ).toBe(false);
+  });
+
+  it('omits usage when no usageMetadata is present', () => {
+    const mapper = new GoogleRealtimeEventMapper();
+    const events = mapper.parseServerEvent({
+      serverContent: { turnComplete: true },
+    });
+
+    const list = Array.isArray(events) ? events : [events];
+    const done = list.find(e => e.type === 'response-done');
+    expect(done?.type === 'response-done' && done.usage).toBeUndefined();
+  });
+});

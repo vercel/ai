@@ -1,30 +1,48 @@
+import { openaiCompatibleRequestDefaults } from '../openai-compatible-model-catalog';
 import {
-  ImageModelV3,
-  ImageModelV3File,
-  SharedV3ProviderOptions,
-  SharedV3Warning,
+  InvalidResponseDataError,
+  type ImageModelV4,
+  type ImageModelV4File,
+  type ImageModelV4Usage,
+  type SharedV4ProviderOptions,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  toCamelCase,
+  warnIfDeprecatedProviderOptionsKey,
+} from '../utils/to-camel-case';
+import {
+  type Resolvable,
+  resolve,
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   convertToFormData,
+  createBinaryResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  createStatusCodeErrorResponseHandler,
   downloadBlob,
-  FetchFunction,
+  getFromApi,
   postFormDataToApi,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
   defaultOpenAICompatibleErrorStructure,
-  ProviderErrorStructure,
+  type ProviderErrorStructure,
 } from '../openai-compatible-error';
-import { OpenAICompatibleImageModelId } from './openai-compatible-image-settings';
+import type { OpenAICompatibleImageModelId } from './openai-compatible-image-settings';
 
 export type OpenAICompatibleImageModelConfig = {
   provider: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   errorStructure?: ProviderErrorStructure<any>;
@@ -33,9 +51,12 @@ export type OpenAICompatibleImageModelConfig = {
   };
 };
 
-export class OpenAICompatibleImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
-  readonly maxImagesPerCall = 10;
+export class OpenAICompatibleImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
+  readonly maxImagesPerCall =
+    openaiCompatibleRequestDefaults.image.maxImagesPerCall;
+  readonly supportsFileInputs = undefined;
+  readonly supportsMaskInputs = undefined;
 
   get provider(): string {
     return this.config.provider;
@@ -48,15 +69,34 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
     return this.config.provider.split('.')[0].trim();
   }
 
+  static [WORKFLOW_SERIALIZE](model: OpenAICompatibleImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: OpenAICompatibleImageModelConfig;
+  }) {
+    return new OpenAICompatibleImageModel(options.modelId, options.config);
+  }
+
   constructor(
     readonly modelId: OpenAICompatibleImageModelId,
     private readonly config: OpenAICompatibleImageModelConfig,
   ) {}
 
-  // TODO: deprecate non-camelCase keys and remove in future major version
   private getArgs(
-    providerOptions: SharedV3ProviderOptions,
+    providerOptions: SharedV4ProviderOptions,
+    warnings: SharedV4Warning[],
   ): Record<string, unknown> {
+    warnIfDeprecatedProviderOptionsKey({
+      rawName: this.providerOptionsKey,
+      providerOptions,
+      warnings,
+    });
     return {
       ...providerOptions[this.providerOptionsKey],
       ...providerOptions[toCamelCase(this.providerOptionsKey)],
@@ -74,10 +114,10 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
     abortSignal,
     files,
     mask,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
+  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const warnings: Array<SharedV3Warning> = [];
+    const warnings: Array<SharedV4Warning> = [];
 
     if (aspectRatio != null) {
       warnings.push({
@@ -94,21 +134,32 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
-    const args = this.getArgs(providerOptions);
+    const args = this.getArgs(providerOptions, warnings);
+    const isEditing = files != null && files.length > 0;
+    const url = this.config.url({
+      path: isEditing ? '/images/edits' : '/images/generations',
+      modelId: this.modelId,
+    });
+    const requestHeaders = combineHeaders(
+      await resolve(this.config.headers),
+      headers,
+    );
 
     // Image editing mode - use form data and /images/edits endpoint
-    if (files != null && files.length > 0) {
+    if (isEditing) {
       const { value: response, responseHeaders } = await postFormDataToApi({
-        url: this.config.url({
-          path: '/images/edits',
-          modelId: this.modelId,
-        }),
-        headers: combineHeaders(this.config.headers(), headers),
+        url,
+        headers: requestHeaders,
         formData: convertToFormData<OpenAICompatibleFormDataInput>({
           model: this.modelId,
           prompt,
-          image: await Promise.all(files.map(file => fileToBlob(file))),
-          mask: mask != null ? await fileToBlob(mask) : undefined,
+          image: await Promise.all(
+            files.map(file => fileToBlob(file, this.config.fetch)),
+          ),
+          mask:
+            mask != null
+              ? await fileToBlob(mask, this.config.fetch)
+              : undefined,
           n,
           size,
           ...args,
@@ -124,8 +175,13 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
       });
 
       return {
-        images: response.data.map(item => item.b64_json),
+        images: await this.getImages(response.data, {
+          url,
+          headers,
+          abortSignal,
+        }),
         warnings,
+        usage: mapImageUsage(response.usage),
         response: {
           timestamp: currentDate,
           modelId: this.modelId,
@@ -136,18 +192,14 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
 
     // Standard image generation mode - use JSON and /images/generations endpoint
     const { value: response, responseHeaders } = await postJsonToApi({
-      url: this.config.url({
-        path: '/images/generations',
-        modelId: this.modelId,
-      }),
-      headers: combineHeaders(this.config.headers(), headers),
+      url,
+      headers: requestHeaders,
       body: {
         model: this.modelId,
         prompt,
         n,
         size,
         ...args,
-        response_format: 'b64_json',
       },
       failedResponseHandler: createJsonErrorResponseHandler(
         this.config.errorStructure ?? defaultOpenAICompatibleErrorStructure,
@@ -160,8 +212,13 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
     });
 
     return {
-      images: response.data.map(item => item.b64_json),
+      images: await this.getImages(response.data, {
+        url,
+        headers,
+        abortSignal,
+      }),
       warnings,
+      usage: mapImageUsage(response.usage),
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
@@ -169,13 +226,92 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
       },
     };
   }
+
+  private async getImages(
+    data: InferSchema<typeof openaiCompatibleImageResponseSchema>['data'],
+    options: {
+      url: string;
+      headers: Record<string, string | undefined> | undefined;
+      abortSignal: AbortSignal | undefined;
+    },
+  ): Promise<string[] | Uint8Array[]> {
+    // Preserve base64 responses without conversion
+    if (data.every(image => image.b64_json != null)) {
+      return data.map(image => image.b64_json!);
+    }
+
+    return Promise.all(
+      data.map(async image => {
+        if (image.b64_json != null) {
+          return convertBase64ToUint8Array(image.b64_json);
+        }
+
+        if (image.url == null) {
+          throw new InvalidResponseDataError({
+            data: image,
+            message: 'Expected url in the image response',
+          });
+        }
+
+        const { value } = await getFromApi({
+          url: image.url,
+          validateUrl: true,
+          trustedOrigin: options.url,
+          credentialedOrigin: options.url,
+          headers: combineHeaders(
+            await resolve(this.config.headers),
+            options.headers,
+          ),
+          abortSignal: options.abortSignal,
+          fetch: this.config.fetch,
+          successfulResponseHandler: createBinaryResponseHandler(),
+          failedResponseHandler: createStatusCodeErrorResponseHandler(),
+        });
+        return value;
+      }),
+    );
+  }
+}
+
+// Providers that omit `usage` are not warned about: many OpenAI-compatible
+// backends legitimately do not report token counts for image generation.
+function mapImageUsage(
+  usage: InferSchema<typeof openaiCompatibleImageResponseSchema>['usage'],
+): ImageModelV4Usage | undefined {
+  return usage == null
+    ? undefined
+    : {
+        inputTokens: usage.input_tokens ?? undefined,
+        outputTokens: usage.output_tokens ?? undefined,
+        totalTokens: usage.total_tokens ?? undefined,
+      };
 }
 
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const openaiCompatibleImageResponseSchema = z.object({
-  data: z.array(z.object({ b64_json: z.string() })),
-});
+const openaiCompatibleImageResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      data: z.array(
+        z
+          .object({
+            b64_json: z.string().nullish(),
+            url: z.string().nullish(),
+          })
+          .refine(image => image.b64_json != null || image.url != null, {
+            message: 'Expected b64_json or url in the image response',
+          }),
+      ),
+      usage: z
+        .object({
+          input_tokens: z.number().nullish(),
+          output_tokens: z.number().nullish(),
+          total_tokens: z.number().nullish(),
+        })
+        .nullish(),
+    }),
+  ),
+);
 
 type OpenAICompatibleFormDataInput = {
   model: string;
@@ -187,9 +323,12 @@ type OpenAICompatibleFormDataInput = {
   [key: string]: unknown;
 };
 
-async function fileToBlob(file: ImageModelV3File): Promise<Blob> {
+async function fileToBlob(
+  file: ImageModelV4File,
+  fetch: FetchFunction | undefined,
+): Promise<Blob> {
   if (file.type === 'url') {
-    return downloadBlob(file.url);
+    return downloadBlob(file.url, { fetch });
   }
 
   const data =
@@ -198,8 +337,4 @@ async function fileToBlob(file: ImageModelV3File): Promise<Blob> {
       : convertBase64ToUint8Array(file.data);
 
   return new Blob([data as BlobPart], { type: file.mediaType });
-}
-
-function toCamelCase(str: string): string {
-  return str.replace(/[_-]([a-z])/g, g => g[1].toUpperCase());
 }

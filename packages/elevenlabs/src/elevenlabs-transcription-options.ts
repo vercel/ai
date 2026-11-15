@@ -1,4 +1,4 @@
+import type { ElevenLabsModelIds } from './elevenlabs-model-catalog';
 export type ElevenLabsTranscriptionModelId =
-  | 'scribe_v1'
-  | 'scribe_v1_experimental'
+  | ElevenLabsModelIds['transcription']
   | (string & {});

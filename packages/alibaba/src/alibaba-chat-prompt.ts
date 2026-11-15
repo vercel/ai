@@ -26,11 +26,16 @@ export interface AlibabaChatUserMessage {
 
 export type AlibabaChatUserMessageContent =
   | { type: 'text'; text: string; cache_control?: AlibabaCacheControl }
-  | { type: 'image_url'; image_url: { url: string } };
+  | {
+      type: 'image_url';
+      image_url: { url: string };
+      cache_control?: AlibabaCacheControl;
+    };
 
 export interface AlibabaChatAssistantMessage {
   role: 'assistant';
   content: string | null | Array<AlibabaChatAssistantMessageContent>;
+  reasoning_content?: string;
   tool_calls?: Array<{
     id: string;
     type: 'function';
@@ -61,3 +66,13 @@ export type AlibabaChatToolChoice =
   | 'auto'
   | 'none'
   | 'required';
+
+export type AlibabaFunctionTool = {
+  type: 'function';
+  function: {
+    name: string;
+    description: string | undefined;
+    parameters: unknown;
+    strict?: boolean;
+  };
+};

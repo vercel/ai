@@ -1,5 +1,4 @@
-import { JsonSchema7AnyType, parseAnyDef } from './any';
-
+import { parseAnyDef, type JsonSchema7AnyType } from './any';
 export type JsonSchema7NeverType = {
   not: JsonSchema7AnyType;
 };

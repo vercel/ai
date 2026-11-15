@@ -1,4 +1,4 @@
-import { JSONSchema7 } from '@ai-sdk/provider';
+import type { JSONSchema7 } from '@ai-sdk/provider';
 import { describe, expect, it } from 'vitest';
 import { addAdditionalPropertiesToJsonSchema } from './add-additional-properties-to-json-schema';
 
@@ -273,6 +273,29 @@ describe('addAdditionalPropertiesToJsonSchema', () => {
           properties: {
             id: { type: 'string' },
           },
+        },
+      },
+    });
+  });
+
+  it('preserves schema-valued additionalProperties recursively', () => {
+    const schema: JSONSchema7 = {
+      type: 'object',
+      additionalProperties: {
+        type: 'object',
+        properties: {
+          value: { type: 'string' },
+        },
+      },
+    };
+
+    expect(addAdditionalPropertiesToJsonSchema(schema)).toEqual({
+      type: 'object',
+      additionalProperties: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          value: { type: 'string' },
         },
       },
     });

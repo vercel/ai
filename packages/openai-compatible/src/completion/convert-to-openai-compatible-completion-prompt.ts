@@ -1,15 +1,14 @@
 import {
   InvalidPromptError,
-  LanguageModelV3Prompt,
   UnsupportedFunctionalityError,
+  type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
-
 export function convertToOpenAICompatibleCompletionPrompt({
   prompt,
   user = 'user',
   assistant = 'assistant',
 }: {
-  prompt: LanguageModelV3Prompt;
+  prompt: LanguageModelV4Prompt;
   user?: string;
   assistant?: string;
 }): {
@@ -29,7 +28,7 @@ export function convertToOpenAICompatibleCompletionPrompt({
     switch (role) {
       case 'system': {
         throw new InvalidPromptError({
-          message: 'Unexpected system message in prompt: ${content}',
+          message: `Unexpected system message in prompt: ${content}`,
           prompt,
         });
       }

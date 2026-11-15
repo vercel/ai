@@ -1,28 +1,29 @@
 import {
-  LanguageModelV3CallOptions,
-  SharedV3Warning,
   UnsupportedFunctionalityError,
+  type LanguageModelV4CallOptions,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
-import {
+import type {
   OpenAIChatToolChoice,
   OpenAIChatFunctionTool,
 } from './openai-chat-api';
+import { normalizeOpenAIJsonSchema } from '../normalize-openai-json-schema';
 
 export function prepareChatTools({
   tools,
   toolChoice,
 }: {
-  tools: LanguageModelV3CallOptions['tools'];
-  toolChoice?: LanguageModelV3CallOptions['toolChoice'];
+  tools: LanguageModelV4CallOptions['tools'];
+  toolChoice?: LanguageModelV4CallOptions['toolChoice'];
 }): {
   tools?: OpenAIChatFunctionTool[];
   toolChoice?: OpenAIChatToolChoice;
-  toolWarnings: Array<SharedV3Warning>;
+  toolWarnings: Array<SharedV4Warning>;
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
-  const toolWarnings: SharedV3Warning[] = [];
+  const toolWarnings: SharedV4Warning[] = [];
 
   if (tools == null) {
     return { tools: undefined, toolChoice: undefined, toolWarnings };
@@ -32,17 +33,23 @@ export function prepareChatTools({
 
   for (const tool of tools) {
     switch (tool.type) {
-      case 'function':
+      case 'function': {
+        const normalizedInputSchema = normalizeOpenAIJsonSchema(
+          tool.inputSchema,
+        );
+        toolWarnings.push(...normalizedInputSchema.warnings);
+
         openaiTools.push({
           type: 'function',
           function: {
             name: tool.name,
             description: tool.description,
-            parameters: tool.inputSchema,
+            parameters: normalizedInputSchema.schema,
             ...(tool.strict != null ? { strict: tool.strict } : {}),
           },
         });
         break;
+      }
       default:
         toolWarnings.push({
           type: 'unsupported',

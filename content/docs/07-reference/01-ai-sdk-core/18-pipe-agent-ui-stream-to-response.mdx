@@ -28,6 +28,7 @@ export async function handler(req, res) {
     agent: MyAgent,
     uiMessages: messages, // Required: array of input UI messages
     // abortSignal: optional AbortSignal for cancellation
+    // experimental_sandbox: optional experimental sandbox passed through to tool execution
     // status: 200,
     // headers: { ... },
     // ...other optional UI message stream options
@@ -61,6 +62,13 @@ export async function handler(req, res) {
         'Array of input UI messages sent to the agent (such as user/assistant message objects).',
     },
     {
+      name: 'convertDataPart',
+      type: '(part: DataUIPart) => TextPart | FilePart | undefined',
+      isRequired: false,
+      description:
+        'Converts custom UI data parts into text or file parts for the model. Data parts are ignored when this callback is omitted or returns undefined.',
+    },
+    {
       name: 'abortSignal',
       type: 'AbortSignal',
       isRequired: false,
@@ -73,6 +81,13 @@ export async function handler(req, res) {
       isRequired: false,
       description:
         'Timeout in milliseconds. Can be specified as a number or as an object with a totalMs property. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
+    },
+    {
+      name: 'experimental_sandbox',
+      type: 'Experimental_SandboxSession',
+      isRequired: false,
+      description:
+        'Optional experimental sandbox environment that is passed through to tool execution. Tools can access it from their execution context.',
     },
     {
       name: 'options',
@@ -89,14 +104,28 @@ export async function handler(req, res) {
         'Optional stream text transformation(s) applied to agent output.',
     },
     {
-      name: 'onStepFinish',
-      type: 'ToolLoopAgentOnStepFinishCallback',
+      name: 'onStepEnd',
+      type: 'GenerateTextOnStepEndCallback',
       isRequired: false,
       description:
-        'Callback invoked after each agent step (LLM/tool call) completes. Useful for tracking token usage or logging intermediate steps.',
+        'Callback invoked after each agent step (LLM/tool call) completes. Useful for tracking token usage, per-step performance, or logging intermediate steps.',
     },
     {
-      name: '...UIMessageStreamResponseInit & UIMessageStreamOptions',
+      name: 'onStepFinish',
+      type: 'GenerateTextOnStepFinishCallback',
+      isRequired: false,
+      description:
+        'Deprecated. Use `onStepEnd` instead. This alias is only used as a fallback when `onStepEnd` is not provided.',
+    },
+    {
+      name: 'onUIMessageStepEnd',
+      type: 'UIMessageStreamOnStepEndCallback',
+      isRequired: false,
+      description:
+        'Callback invoked after each UI message step is assembled. It receives `messages`, `isContinuation`, and the accumulated `responseMessage` for intermediate persistence.',
+    },
+    {
+      name: '...UIMessageStreamResponseInit & AgentUIMessageStreamOptions',
       type: 'object',
       isRequired: false,
       description:
@@ -108,6 +137,8 @@ export async function handler(req, res) {
 ## Returns
 
 A `Promise<void>`. The function completes when the UI message stream has been fully sent to the provided ServerResponse.
+
+Use `onUIMessageStepEnd` to persist the accumulated UI response after every agent step. It is awaited before the corresponding `finish-step` chunk is piped. Use idempotent writes and protect model output, reasoning, tool inputs, and tool outputs as sensitive conversation data. Use the existing `onStepEnd` callback when you need low-level generation usage, finish reasons, or raw step details instead.
 
 ## Example: Express Route Handler
 
@@ -121,6 +152,7 @@ app.post('/chat', async (req, res) => {
     response: res,
     agent: openaiWebSearchAgent,
     uiMessages: req.body.messages,
+    // experimental_sandbox, // optional
     // abortSignal: yourController.signal
     // status: 200,
     // headers: { ... },
@@ -131,7 +163,7 @@ app.post('/chat', async (req, res) => {
 
 ## How It Works
 
-1. **Runs the Agent:** Calls the agent’s `.stream` method with the provided UI messages and options, converting them into model messages as needed.
+1. **Runs the Agent:** Calls the agent’s `.stream` method with the provided UI messages and options, converting them into model messages as needed and passing through options such as `experimental_sandbox`.
 2. **Streams UI Message Output:** Pipes the agent output as a UI message stream to the `ServerResponse`, sending data via streaming HTTP responses (including appropriate headers).
 3. **Abort Signal Handling:** If `abortSignal` is supplied, streaming is cancelled as soon as the signal is triggered (such as on client disconnect).
 4. **No Response Return:** Unlike Edge/serverless APIs that return a `Response`, this function writes bytes directly to the ServerResponse and does not return a response object.
@@ -142,6 +174,7 @@ app.post('/chat', async (req, res) => {
 - **Node.js Only:** Only works with Node.js [ServerResponse](https://nodejs.org/api/http.html#class-httpserverresponse) objects (e.g., in Express, Hono’s node adapter, etc.), not Edge/serverless/web Response APIs.
 - **Streaming Support:** Make sure your client (and any proxies) correctly support streaming HTTP responses for full effect.
 - **Parameter Names:** The property for input messages is `uiMessages` (not `messages`) for consistency with SDK agent utilities.
+- Pass `experimental_sandbox` when your agent tools need an experimental sandbox environment during execution.
 
 ## See Also
 

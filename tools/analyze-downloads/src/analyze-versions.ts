@@ -27,8 +27,13 @@ function aggregateByMinor(
     // ignore versions < 1.0
     if (minor.startsWith('0.')) continue;
 
-    // ignore versions that have channel but where channel is not beta
-    if (minor.includes('(') && !minor.includes('(beta)')) continue;
+    // ignore versions that have channel but where channel is not beta or canary
+    if (
+      minor.includes('(') &&
+      !minor.includes('(beta)') &&
+      !minor.includes('(canary)')
+    )
+      continue;
 
     output[minor] = (output[minor] || 0) + downloads;
   }
@@ -47,7 +52,7 @@ async function main() {
   );
   console.log(`Total weekly downloads: ${totalDownloads.toLocaleString()}`);
   console.log(
-    `For simplicity, we remove versions < 1.0 and non-beta channels from the table below.`,
+    `For simplicity, we remove versions < 1.0 and channels other than beta and canary from the table below.`,
   );
 
   const aggregated = aggregateByMinor(downloads);
@@ -55,10 +60,15 @@ async function main() {
     Object.entries(aggregated)
       // sort by version string
       .sort(([a], [b]) => {
-        // sort 5.0 beta after 5.0
-        if (a === b.replace(' (beta)', '')) return -1;
-        if (b === a.replace(' (beta)', '')) return 1;
-        return b.localeCompare(a);
+        // strip the channel suffix, e.g. "5.0 (beta)" -> "5.0"
+        const stripChannel = (version: string) =>
+          version.replace(/ \(.+\)$/, '');
+        const baseA = stripChannel(a);
+        const baseB = stripChannel(b);
+
+        // sort channels (e.g. "5.0 (beta)") after their stable version ("5.0")
+        if (baseA === baseB) return a.localeCompare(b);
+        return baseB.localeCompare(baseA);
       })
       // map to objects for better console.table formatting
       .map(([version, count]) => {

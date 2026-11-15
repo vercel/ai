@@ -31,7 +31,7 @@ available_tools = {
 def stream_text(messages: List[ClientMessage], protocol: str = 'data'):
     stream = client.chat.completions.create(
         messages=messages,
-        model="gpt-4o",
+        model="gpt-6-astra",
         stream=True,
         tools=[{
             "type": "function",

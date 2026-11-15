@@ -1,5 +1,5 @@
-import { SharedV3ProviderMetadata } from '@ai-sdk/provider';
-import { z } from 'zod/v4';
+import type { SharedV4ProviderMetadata } from '@ai-sdk/provider';
+import { z, type ZodType } from '../util/classic-zod';
 import { jsonValueSchema } from './json-value';
 
 /**
@@ -8,9 +8,9 @@ import { jsonValueSchema } from './json-value';
  * This is needed to enable provider-specific functionality that can be
  * fully encapsulated in the provider.
  */
-export type ProviderMetadata = SharedV3ProviderMetadata;
+export type ProviderMetadata = SharedV4ProviderMetadata;
 
-export const providerMetadataSchema: z.ZodType<ProviderMetadata> = z.record(
+export const providerMetadataSchema: ZodType<ProviderMetadata> = z.record(
   z.string(),
   z.record(z.string(), jsonValueSchema.optional()),
 );

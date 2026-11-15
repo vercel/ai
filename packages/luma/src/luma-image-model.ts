@@ -1,25 +1,33 @@
+import { getLumaImageModelEntry } from './luma-model-catalog';
 import {
-  ImageModelV3,
-  ImageModelV3File,
-  SharedV3Warning,
   InvalidResponseDataError,
+  type ImageModelV4,
+  type ImageModelV4File,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  resolve,
+  type Resolvable,
+  type InferSchema,
   combineHeaders,
   createBinaryResponseHandler,
   createJsonResponseHandler,
   createJsonErrorResponseHandler,
   createStatusCodeErrorResponseHandler,
   delay,
+  encodePathSegment,
   getFromApi,
   postJsonToApi,
-  InferSchema,
   lazySchema,
   parseProviderOptions,
   zodSchema,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { LumaImageSettings, LumaReferenceType } from './luma-image-settings';
+import { lumaImageModelOptionsSchema } from './luma-image-model-options';
+import type { LumaReferenceType } from './luma-image-settings';
 import { z } from 'zod/v4';
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;
@@ -28,21 +36,50 @@ const DEFAULT_MAX_POLL_ATTEMPTS = 60000 / DEFAULT_POLL_INTERVAL_MILLIS;
 interface LumaImageModelConfig {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string>;
+  headers?: Resolvable<Record<string, string>>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
   };
 }
 
-export class LumaImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
-  readonly maxImagesPerCall = 1;
+export class LumaImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
+  get maxImagesPerCall(): number {
+    return getLumaImageModelEntry(this.modelId).capabilities.image
+      .maxImagesPerCall;
+  }
   readonly pollIntervalMillis = DEFAULT_POLL_INTERVAL_MILLIS;
   readonly maxPollAttempts = DEFAULT_MAX_POLL_ATTEMPTS;
 
+  get supportsFileInputs(): boolean | undefined {
+    const support = getLumaImageModelEntry(this.modelId).capabilities.image
+      .fileInput;
+    return support === 'unknown' ? undefined : support;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    const support = getLumaImageModelEntry(this.modelId).capabilities.image
+      .maskInput;
+    return support === 'unknown' ? undefined : support;
+  }
+
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: LumaImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: LumaImageModelConfig;
+  }) {
+    return new LumaImageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -52,7 +89,6 @@ export class LumaImageModel implements ImageModelV3 {
 
   async doGenerate({
     prompt,
-    n,
     size,
     aspectRatio,
     seed,
@@ -61,10 +97,10 @@ export class LumaImageModel implements ImageModelV3 {
     abortSignal,
     files,
     mask,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
+  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const warnings: Array<SharedV3Warning> = [];
+    const warnings: Array<SharedV4Warning> = [];
 
     if (seed != null) {
       warnings.push({
@@ -87,7 +123,7 @@ export class LumaImageModel implements ImageModelV3 {
     const lumaOptions = await parseProviderOptions({
       provider: 'luma',
       providerOptions,
-      schema: lumaImageProviderOptionsSchema,
+      schema: lumaImageModelOptionsSchema,
     });
 
     // Extract non-request options
@@ -108,10 +144,11 @@ export class LumaImageModel implements ImageModelV3 {
     );
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const fullHeaders = combineHeaders(this.config.headers(), headers);
+    const getHeaders = async () =>
+      combineHeaders(await resolve(this.config.headers), headers);
     const { value: generationResponse, responseHeaders } = await postJsonToApi({
       url: this.getLumaGenerationsUrl(),
-      headers: fullHeaders,
+      headers: await getHeaders(),
       body: {
         prompt,
         ...(aspectRatio ? { aspect_ratio: aspectRatio } : {}),
@@ -129,7 +166,7 @@ export class LumaImageModel implements ImageModelV3 {
 
     const imageUrl = await this.pollForImageUrl(
       generationResponse.id,
-      fullHeaders,
+      getHeaders,
       abortSignal,
       {
         pollIntervalMillis: pollIntervalMillis ?? undefined,
@@ -152,7 +189,7 @@ export class LumaImageModel implements ImageModelV3 {
 
   private async pollForImageUrl(
     generationId: string,
-    headers: Record<string, string | undefined>,
+    headers: Resolvable<Record<string, string | undefined>>,
     abortSignal: AbortSignal | undefined,
     pollSettings?: { pollIntervalMillis?: number; maxPollAttempts?: number },
   ): Promise<string> {
@@ -165,7 +202,8 @@ export class LumaImageModel implements ImageModelV3 {
     for (let i = 0; i < maxPollAttempts; i++) {
       const { value: statusResponse } = await getFromApi({
         url,
-        headers,
+        validateUrl: false,
+        headers: await resolve(headers),
         abortSignal,
         fetch: this.config.fetch,
         failedResponseHandler: this.createLumaErrorHandler(),
@@ -206,8 +244,8 @@ export class LumaImageModel implements ImageModelV3 {
   }
 
   private getEditingOptions(
-    files: ImageModelV3File[] | undefined,
-    mask: ImageModelV3File | undefined,
+    files: ImageModelV4File[] | undefined,
+    mask: ImageModelV4File | undefined,
     referenceType: LumaReferenceType = 'image',
     imageConfigs: Array<{ weight?: number | null; id?: string | null }> = [],
   ): Record<string, unknown> {
@@ -318,9 +356,9 @@ export class LumaImageModel implements ImageModelV3 {
   }
 
   private getLumaGenerationsUrl(generationId?: string) {
-    return `${this.config.baseURL}/dream-machine/v1/generations/${
-      generationId ?? 'image'
-    }`;
+    return `${this.config.baseURL}/dream-machine/v1/generations/${encodePathSegment(
+      generationId ?? 'image',
+    )}`;
   }
 
   private async downloadImage(
@@ -329,6 +367,9 @@ export class LumaImageModel implements ImageModelV3 {
   ): Promise<Uint8Array> {
     const { value: response } = await getFromApi({
       url,
+      // url is a generated-image URL from the provider response; validate it.
+      validateUrl: true,
+      trustedOrigin: this.config.baseURL,
       // No specific headers should be needed for this request as it's a
       // generated image provided by Luma.
       abortSignal,
@@ -357,85 +398,30 @@ const lumaGenerationResponseSchema = lazySchema(() =>
   ),
 );
 
-const lumaErrorSchema = z.object({
-  detail: z.array(
+const lumaErrorSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      type: z.string(),
-      loc: z.array(z.string()),
-      msg: z.string(),
-      input: z.string(),
-      ctx: z
-        .object({
-          expected: z.string(),
-        })
-        .nullish(),
+      detail: z.array(
+        z.object({
+          type: z.string(),
+          loc: z.array(z.string()),
+          msg: z.string(),
+          input: z.string(),
+          ctx: z
+            .object({
+              expected: z.string(),
+            })
+            .nullish(),
+        }),
+      ),
     }),
   ),
-});
+);
 
-export type LumaErrorData = z.infer<typeof lumaErrorSchema>;
+export type LumaErrorData = InferSchema<typeof lumaErrorSchema>;
 
 /**
  * Provider options schema for Luma image generation.
  *
  * @see https://docs.lumalabs.ai/docs/image-generation
  */
-export const lumaImageProviderOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z
-      .object({
-        /**
-         * The type of image reference to use when providing input images.
-         * - `image`: Guide generation using reference images (up to 4). Default.
-         * - `style`: Apply a specific style from reference image(s).
-         * - `character`: Create consistent characters from reference images (up to 4).
-         * - `modify_image`: Transform a single input image with prompt guidance.
-         */
-        referenceType: z
-          .enum(['image', 'style', 'character', 'modify_image'])
-          .nullish(),
-
-        /**
-         * Per-image configuration array. Each entry corresponds to an image in `prompt.images`.
-         * Allows setting individual weights for each reference image.
-         */
-        images: z
-          .array(
-            z.object({
-              /**
-               * The weight of this image's influence on the generation.
-               * - For `image`: Higher weight = closer to reference (default: 0.85)
-               * - For `style`: Higher weight = stronger style influence (default: 0.8)
-               * - For `modify_image`: Higher weight = closer to input, lower = more creative (default: 1.0)
-               */
-              weight: z.number().min(0).max(1).nullish(),
-
-              /**
-               * The identity name for character references.
-               * Used with `character` to specify which identity group the image belongs to.
-               * Luma supports multiple identities (e.g., 'identity0', 'identity1') for generating
-               * images with multiple consistent characters.
-               * Default: 'identity0'
-               */
-              id: z.string().nullish(),
-            }),
-          )
-          .nullish(),
-
-        /**
-         * Override the polling interval in milliseconds (default 500).
-         */
-        pollIntervalMillis: z.number().nullish(),
-
-        /**
-         * Override the maximum number of polling attempts (default 120).
-         */
-        maxPollAttempts: z.number().nullish(),
-      })
-      .passthrough(),
-  ),
-);
-
-export type LumaImageProviderOptions = InferSchema<
-  typeof lumaImageProviderOptionsSchema
->;

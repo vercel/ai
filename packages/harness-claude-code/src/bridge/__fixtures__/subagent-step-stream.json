@@ -1,0 +1,129 @@
+[
+  {
+    "type": "assistant",
+    "parent_tool_use_id": null,
+    "message": {
+      "content": [{ "type": "thinking", "thinking": "Delegating." }],
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 5605,
+        "cache_read_input_tokens": 2298,
+        "output_tokens": 5
+      }
+    }
+  },
+  {
+    "type": "assistant",
+    "parent_tool_use_id": null,
+    "message": {
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_main_agent",
+          "name": "Agent",
+          "input": {
+            "description": "Run pwd and echo",
+            "prompt": "Use Bash to run pwd, then echo subagent-done.",
+            "subagent_type": "general-purpose",
+            "run_in_background": false
+          }
+        }
+      ],
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 5605,
+        "cache_read_input_tokens": 2298,
+        "output_tokens": 5
+      }
+    }
+  },
+  {
+    "type": "user",
+    "parent_tool_use_id": "toolu_main_agent",
+    "message": {
+      "content": [{ "type": "text", "text": "The subagent started." }]
+    }
+  },
+  {
+    "type": "assistant",
+    "parent_tool_use_id": "toolu_main_agent",
+    "message": {
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_subagent_pwd",
+          "name": "Bash",
+          "input": { "command": "pwd" }
+        }
+      ],
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 5024,
+        "cache_read_input_tokens": 3519,
+        "output_tokens": 4
+      }
+    }
+  },
+  {
+    "type": "assistant",
+    "parent_tool_use_id": "toolu_main_agent",
+    "message": {
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_subagent_echo",
+          "name": "Bash",
+          "input": { "command": "echo subagent-done" }
+        }
+      ],
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 5024,
+        "cache_read_input_tokens": 3519,
+        "output_tokens": 4
+      }
+    }
+  },
+  {
+    "type": "user",
+    "parent_tool_use_id": "toolu_main_agent",
+    "message": {
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_subagent_pwd",
+          "content": "/work/packages/harness-claude-code",
+          "is_error": false
+        }
+      ]
+    }
+  },
+  {
+    "type": "user",
+    "parent_tool_use_id": "toolu_main_agent",
+    "message": {
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_subagent_echo",
+          "content": "subagent-done",
+          "is_error": false
+        }
+      ]
+    }
+  },
+  {
+    "type": "user",
+    "parent_tool_use_id": null,
+    "message": {
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_main_agent",
+          "content": "Both commands ran successfully.",
+          "is_error": false
+        }
+      ]
+    }
+  }
+]

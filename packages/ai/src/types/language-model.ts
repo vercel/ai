@@ -1,9 +1,10 @@
-import { GatewayModelId } from '@ai-sdk/gateway';
-import {
+import type { GatewayModelId } from '@ai-sdk/gateway';
+import type {
   LanguageModelV2,
   LanguageModelV3,
-  SharedV3Warning,
-  LanguageModelV3Source,
+  LanguageModelV4,
+  SharedV4Warning,
+  LanguageModelV4Source,
 } from '@ai-sdk/provider';
 
 declare global {
@@ -56,6 +57,7 @@ export type GlobalProviderModelId = [keyof RegisteredProviderModels] extends [
  */
 export type LanguageModel =
   | GlobalProviderModelId
+  | LanguageModelV4
   | LanguageModelV3
   | LanguageModelV2;
 
@@ -68,6 +70,7 @@ export type LanguageModel =
  * - `content-filter`: content filter violation stopped the model
  * - `tool-calls`: model triggered tool calls
  * - `error`: model stopped because of an error
+ * - `interrupted`: provider stream ended without a completion signal; output may be incomplete
  * - `other`: model stopped for other reasons
  */
 export type FinishReason =
@@ -76,18 +79,27 @@ export type FinishReason =
   | 'content-filter'
   | 'tool-calls'
   | 'error'
+  | 'interrupted'
   | 'other';
+
+/**
+ * Registry for call warning variants. Packages that expose additional warning
+ * protocols can augment this interface.
+ */
+export interface CallWarningRegistry {
+  sharedV4: SharedV4Warning;
+}
 
 /**
  * Warning from the model provider for this call. The call will proceed, but e.g.
  * some settings might not be supported, which can lead to suboptimal results.
  */
-export type CallWarning = SharedV3Warning;
+export type CallWarning = CallWarningRegistry[keyof CallWarningRegistry];
 
 /**
  * A source that has been used as input to generate the response.
  */
-export type Source = LanguageModelV3Source;
+export type Source = LanguageModelV4Source;
 
 /**
  * Tool choice for the generation. It supports the following settings:

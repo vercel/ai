@@ -1,0 +1,58 @@
+import type {
+  Experimental_BatchV4 as BatchV4,
+  LanguageModelV4,
+} from '@ai-sdk/provider';
+import { expectTypeOf, it } from 'vitest';
+import type {
+  AnthropicLanguageModelOptions,
+  AnthropicModelId,
+} from './anthropic-language-model-options';
+import type { AnthropicCitation, AnthropicTextProviderMetadata } from './index';
+import { anthropic, createAnthropic } from './anthropic-provider';
+
+it('accepts static, promised, synchronous, and asynchronous auth tokens', () => {
+  expectTypeOf(createAnthropic).toBeCallableWith({ authToken: 'token' });
+  expectTypeOf(createAnthropic).toBeCallableWith({
+    authToken: Promise.resolve('token'),
+  });
+  expectTypeOf(createAnthropic).toBeCallableWith({
+    authToken: () => 'token',
+  });
+  expectTypeOf(createAnthropic).toBeCallableWith({
+    authToken: async () => 'token',
+  });
+});
+
+it('types batch support on the provider', () => {
+  expectTypeOf(anthropic.experimental_batch()).toEqualTypeOf<
+    BatchV4<{ text: AnthropicModelId }>
+  >();
+  expectTypeOf(
+    anthropic('claude-3-haiku-20240307'),
+  ).toEqualTypeOf<LanguageModelV4>();
+  expectTypeOf(
+    anthropic.languageModel('claude-3-haiku-20240307'),
+  ).toEqualTypeOf<LanguageModelV4>();
+  expectTypeOf(
+    anthropic.chat('claude-3-haiku-20240307'),
+  ).toEqualTypeOf<LanguageModelV4>();
+  expectTypeOf(
+    anthropic.messages('claude-3-haiku-20240307'),
+  ).toEqualTypeOf<LanguageModelV4>();
+});
+
+it('types on-demand compaction provider options', () => {
+  expectTypeOf<AnthropicLanguageModelOptions['compaction']>().toEqualTypeOf<
+    | {
+        type: 'summarize';
+        instructions?: string;
+      }
+    | undefined
+  >();
+});
+
+it('exports typed text citation metadata', () => {
+  expectTypeOf<
+    AnthropicTextProviderMetadata['anthropic']['citations'][number]
+  >().toEqualTypeOf<AnthropicCitation>();
+});

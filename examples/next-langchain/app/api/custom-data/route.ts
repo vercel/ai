@@ -1,4 +1,4 @@
-import { createUIMessageStreamResponse, UIMessage } from 'ai';
+import { createUIMessageStreamResponse, type UIMessage } from 'ai';
 import { NextResponse } from 'next/server';
 
 import { z } from 'zod';
@@ -13,7 +13,7 @@ import {
 } from '@langchain/langgraph';
 
 import { ToolNode } from '@langchain/langgraph/prebuilt';
-import { ProgressData, StatusData, FileStatusData } from '../../types';
+import type { ProgressData, StatusData, FileStatusData } from '../../types';
 
 /**
  * Allow streaming responses up to 60 seconds
@@ -24,7 +24,7 @@ export const maxDuration = 60;
  * The model to use for the agent
  */
 const model = new ChatOpenAI({
-  model: 'gpt-4o-mini',
+  model: 'gpt-6-luna',
 });
 
 /**

@@ -1,10 +1,9 @@
-import { ZodMapDef } from 'zod/v3';
+import type { ZodMapDef } from 'zod/v3';
 import { parseDef } from '../parse-def';
-import { JsonSchema7Type } from '../parse-types';
-import { Refs } from '../refs';
+import type { JsonSchema7Type } from '../parse-types';
+import type { Refs } from '../refs';
 import { parseAnyDef } from './any';
-import { JsonSchema7RecordType, parseRecordDef } from './record';
-
+import { parseRecordDef, type JsonSchema7RecordType } from './record';
 export type JsonSchema7MapType = {
   type: 'array';
   maxItems: 125;

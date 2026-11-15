@@ -1,35 +1,62 @@
 import {
-  ImageModelV3,
-  ImageModelV3CallOptions,
-  ImageModelV3File,
-  ImageModelV3ProviderMetadata,
+  isJSONObject,
+  type ImageModelV4,
+  type ImageModelV4CallOptions,
+  type ImageModelV4File,
+  type ImageModelV4ProviderMetadata,
+  type ImageModelV4Result,
+  type JSONObject,
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
-  DataContent,
-  ProviderOptions,
+  detectMediaType,
   withUserAgentSuffix,
+  type DataContent,
+  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { NoImageGeneratedError } from '../error/no-image-generated-error';
 import {
   DefaultGeneratedFile,
-  GeneratedFile,
+  type GeneratedFile,
 } from '../generate-text/generated-file';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveImageModel } from '../model/resolve-model';
 import type { ImageModel } from '../types/image-model';
-import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
-import { addImageModelUsage, ImageModelUsage } from '../types/usage';
-import { Warning } from '../types/warning';
-import {
-  detectMediaType,
-  imageMediaTypeSignatures,
-} from '../util/detect-media-type';
+import type { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
+import { addImageModelUsage, type ImageModelUsage } from '../types/usage';
+import type { Warning } from '../types/warning';
+import { getOwn } from '../util/get-own';
+import { setOwn } from '../util/set-own';
 import { prepareRetries } from '../util/prepare-retries';
+import { RetryError } from '../util/retry-error';
 import { VERSION } from '../version';
-import { GenerateImageResult } from './generate-image-result';
+import type {
+  GenerateImageCall,
+  GenerateImageResult,
+} from './generate-image-result';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
 import { splitDataUrl } from '../prompt/split-data-url';
+
+const gatewayCostMetadataKeys = [
+  'cost',
+  'gatewayCost',
+  'inferenceCost',
+  'inputInferenceCost',
+  'marketCost',
+  'outputInferenceCost',
+  'surchargeCost',
+] as const;
+
+type GatewayCostMetadata = {
+  [key in (typeof gatewayCostMetadataKeys)[number]]?: unknown;
+};
+
+class RetryableNoImageResultError extends Error {
+  constructor() {
+    super('No image generated.');
+    this.name = 'RetryableNoImageResultError';
+  }
+}
 
 export type GenerateImagePrompt =
   | string
@@ -51,7 +78,7 @@ export type GenerateImagePrompt =
  * @param seed - Seed for the image generation.
  * @param providerOptions - Additional provider-specific options that are passed through to the provider
  * as body parameters.
- * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
+ * @param maxRetries - Maximum number of retries per image model call, including retries after unclassified empty responses. Empty responses marked as not retryable by the provider are not retried. Set to 0 to disable retries. Default: 2.
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
@@ -122,7 +149,9 @@ export async function generateImage({
   providerOptions?: ProviderOptions;
 
   /**
-   * Maximum number of retries per image model call. Set to 0 to disable retries.
+   * Maximum number of retries per image model call, including retries after
+   * unclassified empty responses. Empty responses marked as not retryable by
+   * the provider are not retried. Set to 0 to disable retries.
    *
    * @default 2
    */
@@ -149,6 +178,8 @@ export async function generateImage({
   const { retry } = prepareRetries({
     maxRetries: maxRetriesArg,
     abortSignal,
+    additionalRetryableError: error =>
+      error instanceof RetryableNoImageResultError,
   });
 
   // default to 1 if the model has not specified limits on
@@ -167,51 +198,91 @@ export async function generateImage({
     return remainder === 0 ? maxImagesPerCallWithDefault : remainder;
   });
 
-  const results = await Promise.all(
-    callImageCounts.map(async callImageCount =>
-      retry(() => {
-        const { prompt, files, mask } = normalizePrompt(promptArg);
+  const resultGroups = await Promise.all(
+    callImageCounts.map(async callImageCount => {
+      const callResults: Array<ImageModelV4Result> = [];
 
-        return model.doGenerate({
-          prompt,
-          files,
-          mask,
-          n: callImageCount,
-          abortSignal,
-          headers: headersWithUserAgent,
-          size,
-          aspectRatio,
-          seed,
-          providerOptions: providerOptions ?? {},
+      try {
+        await retry(async () => {
+          const { prompt, files, mask } = normalizePrompt(promptArg);
+
+          const result = await model.doGenerate({
+            prompt,
+            files,
+            mask,
+            n: callImageCount,
+            abortSignal,
+            headers: headersWithUserAgent,
+            size,
+            aspectRatio,
+            seed,
+            providerOptions: providerOptions ?? {},
+          });
+
+          callResults.push(result);
+
+          if (result.images.length === 0 && result.isRetryable !== false) {
+            throw new RetryableNoImageResultError();
+          }
+
+          return result;
         });
-      }),
-    ),
+
+        return callResults;
+      } catch (error) {
+        const noImageResultError =
+          error instanceof RetryableNoImageResultError
+            ? error
+            : RetryError.isInstance(error) &&
+                error.lastError instanceof RetryableNoImageResultError
+              ? error.lastError
+              : undefined;
+
+        if (noImageResultError != null) {
+          return callResults;
+        }
+
+        throw error;
+      }
+    }),
   );
+  const results = resultGroups.flat();
 
   // collect result images, warnings, and response metadata
-  const images: Array<DefaultGeneratedFile> = [];
+  const images: Array<GeneratedFile> = [];
+  const calls: Array<GenerateImageCall> = [];
   const warnings: Array<Warning> = [];
   const responses: Array<ImageModelResponseMetadata> = [];
-  const providerMetadata: ImageModelV3ProviderMetadata = {};
+  const providerMetadata: ImageModelV4ProviderMetadata = {};
   let totalUsage: ImageModelUsage = {
     inputTokens: undefined,
     outputTokens: undefined,
     totalTokens: undefined,
   };
   for (const result of results) {
-    images.push(
-      ...result.images.map(
-        image =>
-          new DefaultGeneratedFile({
-            data: image,
-            mediaType:
-              detectMediaType({
-                data: image,
-                signatures: imageMediaTypeSignatures,
-              }) ?? 'image/png',
-          }),
-      ),
+    const callImages = result.images.map(
+      (image, index) =>
+        new DefaultGeneratedFile({
+          data: image,
+          mediaType:
+            detectMediaType({
+              data: image,
+              topLevelType: 'image',
+            }) ?? 'image/png',
+          providerMetadata: getImageProviderMetadata(
+            result.providerMetadata,
+            index,
+          ),
+        }),
     );
+    images.push(...callImages);
+    calls.push({
+      images: callImages,
+      providerMetadata: result.providerMetadata,
+      response: result.response,
+      warnings: result.warnings,
+      usage: result.usage,
+    });
     warnings.push(...result.warnings);
 
     if (result.usage != null) {
@@ -219,19 +290,33 @@ export async function generateImage({
     }
 
     if (result.providerMetadata) {
-      for (const [providerName, metadata] of Object.entries<{
-        images: unknown;
-      }>(result.providerMetadata)) {
+      for (const [providerName, metadata] of Object.entries(
+        result.providerMetadata,
+      )) {
         if (providerName === 'gateway') {
           const currentEntry = providerMetadata[providerName];
           if (currentEntry != null && typeof currentEntry === 'object') {
+            const currentGatewayMetadata = currentEntry as GatewayCostMetadata;
+            const newGatewayMetadata = metadata as GatewayCostMetadata;
+
             providerMetadata[providerName] = {
               ...(currentEntry as object),
-              ...metadata,
-            } as ImageModelV3ProviderMetadata[string];
+              ...(metadata as object),
+              ...Object.fromEntries(
+                gatewayCostMetadataKeys.flatMap(key => {
+                  const total = addDecimalStrings(
+                    currentGatewayMetadata[key],
+                    newGatewayMetadata[key],
+                  );
+
+                  return total == null ? [] : [[key, total]];
+                }),
+              ),
+            } as ImageModelV4ProviderMetadata[string];
           } else {
-            providerMetadata[providerName] =
-              metadata as ImageModelV3ProviderMetadata[string];
+            providerMetadata[providerName] = {
+              ...(metadata as object),
+            } as ImageModelV4ProviderMetadata[string];
           }
           const imagesValue = (
             providerMetadata[providerName] as { images?: unknown }
@@ -241,10 +326,11 @@ export async function generateImage({
               .images;
           }
         } else {
-          providerMetadata[providerName] ??= { images: [] };
-          providerMetadata[providerName].images.push(
-            ...result.providerMetadata[providerName].images,
-          );
+          const currentEntry = getOwn(providerMetadata, providerName) ?? {
+            images: [],
+          };
+          currentEntry.images.push(...metadata.images);
+          setOwn(providerMetadata, providerName, currentEntry);
         }
       }
     }
@@ -255,11 +341,12 @@ export async function generateImage({
   logWarnings({ warnings, provider: model.provider, model: model.modelId });
 
   if (!images.length) {
-    throw new NoImageGeneratedError({ responses });
+    throw new NoImageGeneratedError({ calls, responses });
   }
 
   return new DefaultGenerateImageResult({
     images,
+    calls,
     warnings,
     responses,
     providerMetadata,
@@ -269,19 +356,22 @@ export async function generateImage({
 
 class DefaultGenerateImageResult implements GenerateImageResult {
   readonly images: Array<GeneratedFile>;
+  readonly calls: Array<GenerateImageCall>;
   readonly warnings: Array<Warning>;
   readonly responses: Array<ImageModelResponseMetadata>;
-  readonly providerMetadata: ImageModelV3ProviderMetadata;
+  readonly providerMetadata: ImageModelV4ProviderMetadata;
   readonly usage: ImageModelUsage;
 
   constructor(options: {
     images: Array<GeneratedFile>;
+    calls: Array<GenerateImageCall>;
     warnings: Array<Warning>;
     responses: Array<ImageModelResponseMetadata>;
-    providerMetadata: ImageModelV3ProviderMetadata;
+    providerMetadata: ImageModelV4ProviderMetadata;
     usage: ImageModelUsage;
   }) {
     this.images = options.images;
+    this.calls = options.calls;
     this.warnings = options.warnings;
     this.responses = options.responses;
     this.providerMetadata = options.providerMetadata;
@@ -293,7 +383,31 @@ class DefaultGenerateImageResult implements GenerateImageResult {
   }
 }
 
-async function invokeModelMaxImagesPerCall(model: ImageModelV3) {
+/**
+ * Extracts per-image metadata from the legacy `providerMetadata.<provider>.images` result shape.
+ */
+export function getImageProviderMetadata(
+  providerMetadata: ImageModelV4ProviderMetadata | undefined,
+  imageIndex: number,
+): Record<string, JSONObject> | undefined {
+  if (providerMetadata == null) {
+    return undefined;
+  }
+
+  let imageMetadata: Record<string, JSONObject> | undefined;
+
+  for (const [providerName, metadata] of Object.entries(providerMetadata)) {
+    const value = metadata.images?.[imageIndex];
+
+    if (isJSONObject(value) && !Array.isArray(value)) {
+      setOwn((imageMetadata ??= {}), providerName, value);
+    }
+  }
+
+  return imageMetadata;
+}
+
+async function invokeModelMaxImagesPerCall(model: ImageModelV4) {
   const isFunction = model.maxImagesPerCall instanceof Function;
 
   if (!isFunction) {
@@ -305,21 +419,49 @@ async function invokeModelMaxImagesPerCall(model: ImageModelV3) {
   });
 }
 
-function normalizePrompt(
+function addDecimalStrings(
+  value1: unknown,
+  value2: unknown,
+): string | undefined {
+  if (
+    typeof value1 !== 'string' ||
+    typeof value2 !== 'string' ||
+    !/^\d+(?:\.\d+)?$/.test(value1) ||
+    !/^\d+(?:\.\d+)?$/.test(value2)
+  ) {
+    return undefined;
+  }
+
+  const [integer1, fraction1 = ''] = value1.split('.');
+  const [integer2, fraction2 = ''] = value2.split('.');
+  const precision = Math.max(fraction1.length, fraction2.length);
+  const sum =
+    BigInt(integer1 + fraction1.padEnd(precision, '0')) +
+    BigInt(integer2 + fraction2.padEnd(precision, '0'));
+  const sumString = sum.toString().padStart(precision + 1, '0');
+
+  return precision === 0
+    ? sumString
+    : `${sumString.slice(0, -precision)}.${sumString.slice(
+        -precision,
+      )}`.replace(/\.?0+$/, '');
+}
+
+export function normalizePrompt(
   prompt: GenerateImagePrompt,
-): Pick<ImageModelV3CallOptions, 'prompt' | 'files' | 'mask'> {
+): Pick<ImageModelV4CallOptions, 'prompt' | 'files' | 'mask'> {
   if (typeof prompt === 'string') {
     return { prompt, files: undefined, mask: undefined };
   }
 
   return {
     prompt: prompt.text,
-    files: prompt.images.map(toImageModelV3File),
-    mask: prompt.mask ? toImageModelV3File(prompt.mask) : undefined,
+    files: prompt.images.map(toImageModelV4File),
+    mask: prompt.mask ? toImageModelV4File(prompt.mask) : undefined,
   };
 }
 
-function toImageModelV3File(dataContent: DataContent): ImageModelV3File {
+function toImageModelV4File(dataContent: DataContent): ImageModelV4File {
   if (typeof dataContent === 'string' && dataContent.startsWith('http')) {
     return {
       type: 'url',
@@ -341,7 +483,7 @@ function toImageModelV3File(dataContent: DataContent): ImageModelV3File {
           dataUrlMediaType ||
           detectMediaType({
             data: uint8Data,
-            signatures: imageMediaTypeSignatures,
+            topLevelType: 'image',
           }) ||
           'image/png',
       };
@@ -355,7 +497,7 @@ function toImageModelV3File(dataContent: DataContent): ImageModelV3File {
     mediaType:
       detectMediaType({
         data: uint8Data,
-        signatures: imageMediaTypeSignatures,
+        topLevelType: 'image',
       }) || 'image/png',
   };
 }

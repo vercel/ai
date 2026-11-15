@@ -1,14 +1,19 @@
+import { execFileSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import * as z4 from 'zod/v4';
 
-const MODALITIES = ['language', 'embedding', 'image'] as const;
 const API_URL = 'https://ai-gateway.vercel.sh/v1/models';
-const OUTPUT_DIR = path.join(__dirname, '..', 'src');
+const OUTPUT_DIR = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..',
+  'src',
+);
 
 const modelSchema = z4.object({
   id: z4.string(),
-  type: z4.enum(MODALITIES),
+  type: z4.string(),
 });
 
 const modelsResponseSchema = z4.object({
@@ -16,10 +21,9 @@ const modelsResponseSchema = z4.object({
 });
 
 type ModelsResponse = z4.infer<typeof modelsResponseSchema>;
-type Modality = (typeof MODALITIES)[number];
 
 const MODALITY_CONFIG: Record<
-  Modality,
+  string,
   { outputFile: string; typeName: string }
 > = {
   language: {
@@ -30,9 +34,33 @@ const MODALITY_CONFIG: Record<
     outputFile: 'gateway-embedding-model-settings.ts',
     typeName: 'GatewayEmbeddingModelId',
   },
+  decision: {
+    outputFile: 'gateway-decision-model-settings.ts',
+    typeName: 'GatewayDecisionModelId',
+  },
   image: {
     outputFile: 'gateway-image-model-settings.ts',
     typeName: 'GatewayImageModelId',
+  },
+  video: {
+    outputFile: 'gateway-video-model-settings.ts',
+    typeName: 'GatewayVideoModelId',
+  },
+  realtime: {
+    outputFile: 'gateway-realtime-model-settings.ts',
+    typeName: 'GatewayRealtimeModelId',
+  },
+  reranking: {
+    outputFile: 'gateway-reranking-model-settings.ts',
+    typeName: 'GatewayRerankingModelId',
+  },
+  speech: {
+    outputFile: 'gateway-speech-model-settings.ts',
+    typeName: 'GatewaySpeechModelId',
+  },
+  transcription: {
+    outputFile: 'gateway-transcription-model-settings.ts',
+    typeName: 'GatewayTranscriptionModelId',
   },
 };
 
@@ -67,32 +95,59 @@ function generateTypeFile(modelIds: string[], typeName: string): string {
   return lines.join('\n') + '\n';
 }
 
+function getModalityConfig(type: string): {
+  outputFile: string;
+  typeName: string;
+} {
+  if (MODALITY_CONFIG[type]) {
+    return MODALITY_CONFIG[type];
+  }
+  const capitalized = type.charAt(0).toUpperCase() + type.slice(1);
+  return {
+    outputFile: `gateway-${type}-model-settings.ts`,
+    typeName: `Gateway${capitalized}ModelId`,
+  };
+}
+
 async function main() {
   const response = await fetchModels();
 
-  const modelsByModality = Object.fromEntries(
-    MODALITIES.map(modality => [modality, [] as string[]]),
-  ) as Record<Modality, string[]>;
+  const modelsByType: Record<string, string[]> = {};
 
   for (const model of response.data) {
-    modelsByModality[model.type].push(model.id);
+    // Gateway's catalog migrates evaluation models to decision one at a time.
+    // so treat evaluation as decision for now.
+    const type = model.type === 'evaluation' ? 'decision' : model.type;
+    if (!modelsByType[type]) {
+      modelsByType[type] = [];
+    }
+    modelsByType[type].push(model.id);
   }
 
-  for (const modality of MODALITIES) {
-    const config = MODALITY_CONFIG[modality];
-    const modelIds = modelsByModality[modality];
+  const writtenPaths: string[] = [];
 
-    if (modelIds.length === 0) {
-      throw new Error(`No ${modality} models found`);
+  for (const [type, modelIds] of Object.entries(modelsByType)) {
+    const config = getModalityConfig(type);
+    const outputPath = path.join(OUTPUT_DIR, config.outputFile);
+
+    if (!fs.existsSync(outputPath)) {
+      throw new Error(
+        `Output file does not exist for type '${type}': ${config.outputFile}`,
+      );
     }
 
     const content = generateTypeFile(modelIds, config.typeName);
-    const outputPath = path.join(OUTPUT_DIR, config.outputFile);
-
     fs.writeFileSync(outputPath, content, 'utf-8');
+    writtenPaths.push(outputPath);
     console.log(
       `Generated ${config.outputFile} with ${modelIds.length} models`,
     );
+  }
+
+  // A union short enough to fit on one line is emitted multi-line here, so the
+  // repo formatter decides the final shape rather than this script guessing it.
+  if (writtenPaths.length > 0) {
+    execFileSync('oxfmt', writtenPaths, { stdio: 'inherit' });
   }
 
   console.log('Model settings updated successfully');

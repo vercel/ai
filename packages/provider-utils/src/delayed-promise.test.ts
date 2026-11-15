@@ -1,8 +1,15 @@
 import { DelayedPromise } from './delayed-promise';
-import { delay } from '@ai-sdk/provider-utils';
-import { describe, it, expect } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('DelayedPromise', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('should resolve when accessed after resolution', async () => {
     const dp = new DelayedPromise<string>();
     dp.resolve('success');
@@ -60,7 +67,7 @@ describe('DelayedPromise', () => {
     expect(resolved).toBe(false);
 
     // Wait a bit to ensure it's truly blocking
-    await delay(10);
+    await vi.advanceTimersByTimeAsync(10);
     expect(resolved).toBe(false);
 
     // Now resolve it
@@ -86,7 +93,7 @@ describe('DelayedPromise', () => {
     expect(rejected).toBe(false);
 
     // Wait a bit to ensure it's truly blocking
-    await delay(10);
+    await vi.advanceTimersByTimeAsync(10);
     expect(rejected).toBe(false);
 
     // Now reject it
@@ -117,7 +124,7 @@ describe('DelayedPromise', () => {
     expect(results).toHaveLength(0);
 
     // Wait to ensure they're blocking
-    await delay(10);
+    await vi.advanceTimersByTimeAsync(10);
     expect(results).toHaveLength(0);
 
     // Resolve the promise

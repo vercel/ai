@@ -1,40 +1,30 @@
-import { ProviderErrorStructure } from '@ai-sdk/openai-compatible';
+import { getMoonshotAILanguageModelEntry } from './moonshotai-model-catalog';
 import {
-  LanguageModelV3,
   NoSuchModelError,
-  ProviderV3,
+  type LanguageModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  type Resolvable,
+  resolveWith,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
 import { MoonshotAIChatLanguageModel } from './moonshotai-chat-language-model';
-import { MoonshotAIChatModelId } from './moonshotai-chat-options';
+import type { MoonshotAIChatModelId } from './moonshotai-chat-options';
 import { VERSION } from './version';
 
-export type MoonshotAIErrorData = z.infer<typeof moonshotaiErrorSchema>;
-
-const moonshotaiErrorSchema = z.object({
-  error: z.object({
-    message: z.string(),
-    type: z.string().nullish(),
-  }),
-});
-
-const moonshotaiErrorStructure: ProviderErrorStructure<MoonshotAIErrorData> = {
-  errorSchema: moonshotaiErrorSchema,
-  errorToMessage: data => data.error.message,
-};
+export type { MoonshotAIErrorData } from './moonshotai-chat-api-types';
 
 export interface MoonshotAIProviderSettings {
   /**
    * Moonshot API key. Default value is taken from the `MOONSHOT_API_KEY`
    * environment variable.
+   * A function is called before each request and may return a promise.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
   /**
    * Base URL for the API calls.
    */
@@ -50,90 +40,67 @@ export interface MoonshotAIProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface MoonshotAIProvider extends ProviderV3 {
+export interface MoonshotAIProvider extends ProviderV4 {
   /**
    * Creates a model for text generation.
    */
-  (modelId: MoonshotAIChatModelId): LanguageModelV3;
+  (modelId: MoonshotAIChatModelId): LanguageModelV4;
 
   /**
    * Creates a chat model for text generation.
    */
-  chatModel(modelId: MoonshotAIChatModelId): LanguageModelV3;
+  chatModel(modelId: MoonshotAIChatModelId): LanguageModelV4;
 
   /**
    * Creates a language model for text generation.
    */
-  languageModel(modelId: MoonshotAIChatModelId): LanguageModelV3;
+  languageModel(modelId: MoonshotAIChatModelId): LanguageModelV4;
 }
 
 const defaultBaseURL = 'https://api.moonshot.ai/v1';
+
+export function getModelStructuredOutputSupport(
+  modelId: MoonshotAIChatModelId,
+): boolean {
+  // All known Moonshot models support structured output. Future IDs inherit
+  // that support instead of depending on a specific family name.
+  return getMoonshotAILanguageModelEntry(modelId).requestConfig.language
+    .supportsStructuredOutputs;
+}
 
 export function createMoonshotAI(
   options: MoonshotAIProviderSettings = {},
 ): MoonshotAIProvider {
   const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'MOONSHOT_API_KEY',
-          description: 'Moonshot API key',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk/moonshotai/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'MOONSHOT_API_KEY',
+            description: 'Moonshot API key',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-moonshotai/${VERSION}`,
+      ),
     );
-
-  interface CommonModelConfig {
-    provider: string;
-    url: ({ path }: { path: string }) => string;
-    headers: () => Record<string, string>;
-    fetch?: FetchFunction;
-  }
-
-  const getCommonModelConfig = (modelType: string): CommonModelConfig => ({
-    provider: `moonshotai.${modelType}`,
-    url: ({ path }) => `${baseURL}${path}`,
-    headers: getHeaders,
-    fetch: options.fetch,
-  });
 
   const createChatModel = (modelId: MoonshotAIChatModelId) => {
     return new MoonshotAIChatLanguageModel(modelId, {
-      ...getCommonModelConfig('chat'),
+      provider: 'moonshotai.chat',
+      url: ({ path }) => `${baseURL}${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
       includeUsage: true,
-      errorStructure: moonshotaiErrorStructure,
-      transformRequestBody: (args: Record<string, any>) => {
-        const thinking = args.thinking as
-          | { type?: string; budgetTokens?: number }
-          | undefined;
-        const reasoningHistory = args.reasoningHistory as string | undefined;
-
-        const { thinking: _, reasoningHistory: __, ...rest } = args;
-
-        return {
-          ...rest,
-          ...(thinking && {
-            thinking: {
-              type: thinking.type,
-              ...(thinking.budgetTokens !== undefined && {
-                budget_tokens: thinking.budgetTokens,
-              }),
-            },
-          }),
-          ...(reasoningHistory && {
-            reasoning_history: reasoningHistory,
-          }),
-        };
-      },
+      supportsStructuredOutputs: getModelStructuredOutputSupport(modelId),
     });
   };
 
   const provider = (modelId: MoonshotAIChatModelId) => createChatModel(modelId);
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.chatModel = createChatModel;
   provider.languageModel = createChatModel;
 

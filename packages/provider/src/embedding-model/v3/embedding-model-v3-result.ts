@@ -1,9 +1,9 @@
-import {
+import type {
   SharedV3Headers,
   SharedV3ProviderMetadata,
   SharedV3Warning,
 } from '../../shared';
-import { EmbeddingModelV3Embedding } from './embedding-model-v3-embedding';
+import type { EmbeddingModelV3Embedding } from './embedding-model-v3-embedding';
 
 /**
  * The result of a embedding model doEmbed call.

@@ -1,4 +1,4 @@
-import { LanguageModelV3FinishReason } from '@ai-sdk/provider';
+import type { LanguageModelV4FinishReason } from '@ai-sdk/provider';
 
 /**
  * @see https://docs.anthropic.com/en/api/messages#response-stop-reason
@@ -9,7 +9,7 @@ export function mapAnthropicStopReason({
 }: {
   finishReason: string | null | undefined;
   isJsonResponseFromTool?: boolean;
-}): LanguageModelV3FinishReason['unified'] {
+}): LanguageModelV4FinishReason['unified'] {
   switch (finishReason) {
     case 'pause_turn':
     case 'end_turn':

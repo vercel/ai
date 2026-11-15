@@ -1,7 +1,6 @@
 {
   "extends": "./node_modules/@vercel/ai-tsconfig/react-library.json",
   "compilerOptions": {
-    "target": "ES2018",
     "stripInternal": true,
     "composite": true,
     "rootDir": "src",
@@ -11,14 +10,23 @@
     "dist",
     "build",
     "node_modules",
-    "tsup.config.ts"
+    "tsdown.config.ts"
   ],
   "references": [
+    {
+      "path": "../ai"
+    },
+    {
+      "path": "../mcp"
+    },
+    {
+      "path": "../provider"
+    },
     {
       "path": "../provider-utils"
     },
     {
-      "path": "../ai"
+      "path": "../test-server"
     }
   ]
 }

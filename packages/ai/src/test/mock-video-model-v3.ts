@@ -1,4 +1,4 @@
-import { Experimental_VideoModelV3 } from '@ai-sdk/provider';
+import type { Experimental_VideoModelV3 } from '@ai-sdk/provider';
 import { notImplemented } from './not-implemented';
 
 export class MockVideoModelV3 implements Experimental_VideoModelV3 {

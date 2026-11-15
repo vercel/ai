@@ -1,11 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es5",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "target": "es2022",
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -44,10 +39,10 @@
       "path": "../../packages/ai"
     },
     {
-      "path": "../../packages/react"
+      "path": "../../packages/langchain"
     },
     {
-      "path": "../../packages/langchain"
+      "path": "../../packages/react"
     }
   ]
 }

@@ -1,12 +1,13 @@
 import { z } from 'zod/v4';
+import type { FireworksModelIds } from './fireworks-model-catalog';
 
 // Below is just a subset of the available models.
 export type FireworksEmbeddingModelId =
-  | 'nomic-ai/nomic-embed-text-v1.5'
+  | FireworksModelIds['embedding']
   | (string & {});
 
-export const fireworksEmbeddingProviderOptions = z.object({});
+export const fireworksEmbeddingModelOptions = z.object({});
 
-export type FireworksEmbeddingProviderOptions = z.infer<
-  typeof fireworksEmbeddingProviderOptions
+export type FireworksEmbeddingModelOptions = z.infer<
+  typeof fireworksEmbeddingModelOptions
 >;

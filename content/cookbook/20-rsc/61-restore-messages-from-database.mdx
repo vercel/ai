@@ -11,16 +11,16 @@ When building AI applications, you might want to restore previous conversations 
 ## Client
 
 ```tsx filename='app/layout.tsx'
-import { ServerMessage } from './actions';
+import { ServerMessage, getSavedMessages } from './actions';
 import { AI } from './ai';
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   // Fetch stored messages from your database
-  const savedMessages: ServerMessage[] = getSavedMessages();
+  const savedMessages: ServerMessage[] = await getSavedMessages();
 
   return (
     <html lang="en">
@@ -94,10 +94,10 @@ export default function Home() {
 
 ## Server
 
-The server-side implementation handles the restoration of messages and their transformation into the appropriate format for display.
+The server-side implementation handles the restoration of messages and their transformation into the appropriate format for display. It reuses the `continueConversation` action from the [Save Messages To Database](/cookbook/rsc/save-messages-to-database) example.
 
 ```tsx filename='app/ai.ts'
-import { createAI } from '@ai-sdk/rsc';
+import { createAI, getAIState } from '@ai-sdk/rsc';
 import { ServerMessage, ClientMessage, continueConversation } from './actions';
 import { Stock } from '@ai-studio/components/stock';
 import { generateId } from 'ai';
@@ -126,7 +126,6 @@ export const AI = createAI<ServerMessage[], ClientMessage[]>({
 ```tsx filename='app/actions.tsx'
 'use server';
 
-import { getAIState } from '@ai-sdk/rsc';
 import type { ReactNode } from 'react';
 
 export interface ServerMessage {
@@ -147,4 +146,6 @@ export async function getSavedMessages(): Promise<ServerMessage[]> {
   // Implement your database fetching logic here
   return await fetchMessagesFromDatabase();
 }
+
+// Export `continueConversation` as shown in the Save Messages To Database example
 ```

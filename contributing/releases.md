@@ -1,4 +1,4 @@
-# Releases
+# Releases - for maintainers only
 
 We use [changesets](https://github.com/changesets/action) for automated releases.
 
@@ -12,6 +12,7 @@ We use [changesets](https://github.com/changesets/action) for automated releases
 
 - The [Changesets action](https://github.com/changesets/action) automatically creates a **Version Packages** PR.
 - Merging this PR triggers the release workflow, which publishes the npm packages.
+- The release job uses the `npm-release` environment, which only permits `main` and maintenance branches.
 
 ## Maintenance Releases
 
@@ -21,21 +22,69 @@ We use [changesets](https://github.com/changesets/action) for automated releases
   1. Create a pull request against the maintenance branch.
   2. Merge it to trigger the release workflow.
 
-## Beta Releases
+## Beta / Pre-Release Cycle
 
-- Create a maintenance branch for the current stable minor version (e.g., if latest is `5.0.24`, create `release-v5.0`).
-- Switch `main` branch to beta release mode:
+For starting and managing a major-version pre-release cycle (beta releases on `main` while maintaining stable patches), see **[Pre-Release Cycle](./pre-release-cycle.md)**.
 
-  ```bash
-  pnpm changeset pre enter beta
-  ```
+Quick reference:
 
-  (This creates a PR like #8710).
+- Enter beta mode: `pnpm changeset pre enter beta`
+- Exit beta mode: `pnpm changeset pre exit`
 
-- During beta: All PRs continue to target main.
-- In order to backport pull requests to the stable release, add the `backport` label. This will create a new pull request with the same changes against the stable release branch.
-- To exit the beta release mode, run:
+## Pull Request Package Previews
 
-  ```bash
-  pnpm changeset pre exit
-  ```
+To test a PR in a downstream application, install its
+[package preview](./package-previews.md). Tarball previews replace the npm snapshot
+releases previously dispatched through `release.yml`; the release workflow now
+only handles regular npm releases.
+
+Vercel's Git integration builds the tarballs and updates its PR deployment
+comment. Fork PRs require a Vercel team member's deployment authorization,
+separately from GitHub CI approval. Deployments do not wait for GitHub CI to pass.
+Packages are installed directly from immutable deployment URLs.
+
+Complete the [maintainer setup](./package-previews.md#maintainer-setup) to connect
+the project. There is no manual snapshot option in the release workflow.
+
+## New Major Releases
+
+- Update version in `skills/use-ai-sdk/SKILL.md`.
+
+## Provenance
+
+All packages are published with [npm provenance](https://docs.npmjs.com/generating-provenance-statements). This is enabled via:
+
+- `publishConfig.provenance: true` in each package's `package.json`
+- `id-token: write` permission in `.github/workflows/release.yml`
+- A [Trusted Publisher](https://docs.npmjs.com/trusted-publishers) configured per package on npmjs.com, pointing at `vercel/ai`, `release.yml`, and the `npm-release` [environment](https://github.com/vercel/ai/settings/environments)
+
+For an existing package, no action is required — provenance is emitted automatically on every publish. For a **new** package, see [Bootstrapping a new `@ai-sdk/*` package](#bootstrapping-a-new-ai-sdk-package) below.
+
+### Bootstrapping a new `@ai-sdk/*` package
+
+npm requires a package to exist before a Trusted Publisher can be configured for it. The first publish therefore has to happen manually, before the package is wired into the monorepo's release workflow. This must be done by a member of the Vercel IT team who has publish rights on the `@ai-sdk` npm scope.
+
+Steps:
+
+1. Create a new empty folder outside the monorepo.
+2. `cd` into that folder.
+3. Create a `package.json` from the template below, replacing `<package-name>`:
+
+   ```json
+   {
+     "name": "@ai-sdk/<package-name>",
+     "version": "0.0.0"
+   }
+   ```
+
+4. Run `npm publish`.
+5. Open `https://www.npmjs.com/package/@ai-sdk/<package-name>/access` and configure the Trusted Publisher with:
+   - **Publisher:** GitHub Actions
+   - **Organization or user:** `vercel`
+   - **Repository:** `ai`
+   - **Workflow name:** `release.yml`
+   - **Environment name:** `npm-release`
+
+   Do not add a Trusted Publisher without an environment name. It would allow publishing from any branch.
+
+After this is done, subsequent releases of the package go through the normal changesets flow on `main`.

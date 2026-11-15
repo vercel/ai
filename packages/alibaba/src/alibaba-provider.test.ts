@@ -1,10 +1,13 @@
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { createAlibaba } from './alibaba-provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
-import { AlibabaLanguageModel } from './alibaba-chat-language-model';
+import { AlibabaChatLanguageModel } from './alibaba-chat-language-model';
+import { AlibabaEmbeddingModel } from './alibaba-embedding-model';
 import { AlibabaVideoModel } from './alibaba-video-model';
 
-const AlibabaLanguageModelMock = AlibabaLanguageModel as unknown as Mock;
+const AlibabaChatLanguageModelMock =
+  AlibabaChatLanguageModel as unknown as Mock;
+const AlibabaEmbeddingModelMock = AlibabaEmbeddingModel as unknown as Mock;
 const AlibabaVideoModelMock = AlibabaVideoModel as unknown as Mock;
 
 vi.mock('./alibaba-chat-language-model', () => {
@@ -18,7 +21,7 @@ vi.mock('./alibaba-chat-language-model', () => {
     this.settings = settings;
   });
   return {
-    AlibabaLanguageModel: mockConstructor,
+    AlibabaChatLanguageModel: mockConstructor,
   };
 });
 
@@ -34,6 +37,21 @@ vi.mock('./alibaba-video-model', () => {
   });
   return {
     AlibabaVideoModel: mockConstructor,
+  };
+});
+
+vi.mock('./alibaba-embedding-model', () => {
+  const mockConstructor = vi.fn().mockImplementation(function (
+    this: any,
+    modelId: string,
+    settings: any,
+  ) {
+    this.provider = 'alibaba.embedding';
+    this.modelId = modelId;
+    this.settings = settings;
+  });
+  return {
+    AlibabaEmbeddingModel: mockConstructor,
   };
 });
 
@@ -56,7 +74,7 @@ describe('AlibabaProvider', () => {
       const provider = createAlibaba();
       const model = provider('qwen-plus');
 
-      const constructorCall = AlibabaLanguageModelMock.mock.calls[0];
+      const constructorCall = AlibabaChatLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
       config.headers();
 
@@ -76,7 +94,7 @@ describe('AlibabaProvider', () => {
       const provider = createAlibaba(options);
       const model = provider('qwen-plus');
 
-      const constructorCall = AlibabaLanguageModelMock.mock.calls[0];
+      const constructorCall = AlibabaChatLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
       config.headers();
 
@@ -92,14 +110,14 @@ describe('AlibabaProvider', () => {
       const modelId = 'qwen3-max';
 
       const model = provider(modelId);
-      expect(model).toBeInstanceOf(AlibabaLanguageModel);
+      expect(model).toBeInstanceOf(AlibabaChatLanguageModel);
     });
 
     it('should pass includeUsage option to language model', () => {
       const provider = createAlibaba({ includeUsage: false });
       provider('qwen-plus');
 
-      const constructorCall = AlibabaLanguageModelMock.mock.calls[0];
+      const constructorCall = AlibabaChatLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
 
       expect(config.includeUsage).toBe(false);
@@ -109,7 +127,7 @@ describe('AlibabaProvider', () => {
       const provider = createAlibaba();
       provider('qwen-plus');
 
-      const constructorCall = AlibabaLanguageModelMock.mock.calls[0];
+      const constructorCall = AlibabaChatLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
 
       expect(config.includeUsage).toBe(true);
@@ -123,7 +141,7 @@ describe('AlibabaProvider', () => {
 
       const model = provider.chatModel(modelId);
 
-      expect(model).toBeInstanceOf(AlibabaLanguageModel);
+      expect(model).toBeInstanceOf(AlibabaChatLanguageModel);
     });
   });
 
@@ -134,7 +152,78 @@ describe('AlibabaProvider', () => {
 
       const model = provider.languageModel(modelId);
 
-      expect(model).toBeInstanceOf(AlibabaLanguageModel);
+      expect(model).toBeInstanceOf(AlibabaChatLanguageModel);
+    });
+  });
+
+  describe('embedding', () => {
+    it('should construct an embedding model with correct provider', () => {
+      const provider = createAlibaba();
+      const model = provider.embedding('text-embedding-v4');
+
+      expect(model).toBeInstanceOf(AlibabaEmbeddingModel);
+      const constructorCall = AlibabaEmbeddingModelMock.mock.calls[0];
+      expect(constructorCall[0]).toBe('text-embedding-v4');
+      expect(constructorCall[1].provider).toBe('alibaba.embedding');
+    });
+
+    it('should use default embeddingBaseURL', () => {
+      const provider = createAlibaba();
+      provider.embedding('text-embedding-v4');
+
+      const constructorCall = AlibabaEmbeddingModelMock.mock.calls[0];
+      expect(constructorCall[1].baseURL).toBe(
+        'https://dashscope-intl.aliyuncs.com/api/v1',
+      );
+    });
+
+    it('should use custom embeddingBaseURL', () => {
+      const provider = createAlibaba({
+        embeddingBaseURL: 'https://custom-embedding.example.com/api/v1',
+      });
+      provider.embedding('text-embedding-v4');
+
+      const constructorCall = AlibabaEmbeddingModelMock.mock.calls[0];
+      expect(constructorCall[1].baseURL).toBe(
+        'https://custom-embedding.example.com/api/v1',
+      );
+    });
+
+    it('should pass custom fetch to embedding model', () => {
+      const customFetch = vi.fn();
+      const provider = createAlibaba({ fetch: customFetch });
+      provider.embedding('text-embedding-v4');
+
+      const constructorCall = AlibabaEmbeddingModelMock.mock.calls[0];
+      expect(constructorCall[1].fetch).toBe(customFetch);
+    });
+
+    it('should pass headers function to embedding model', () => {
+      const provider = createAlibaba({
+        apiKey: 'test-key',
+        headers: { 'X-Custom': 'value' },
+      });
+      provider.embedding('text-embedding-v4');
+
+      const constructorCall = AlibabaEmbeddingModelMock.mock.calls[0];
+      const headers = constructorCall[1].headers();
+
+      expect(headers).toMatchObject({
+        authorization: 'Bearer mock-api-key',
+        'x-custom': 'value',
+      });
+    });
+  });
+
+  describe('embeddingModel', () => {
+    it('should construct an embedding model with correct configuration', () => {
+      const provider = createAlibaba();
+      const model = provider.embeddingModel('text-embedding-v3');
+
+      expect(model).toBeInstanceOf(AlibabaEmbeddingModel);
+      const constructorCall = AlibabaEmbeddingModelMock.mock.calls[0];
+      expect(constructorCall[0]).toBe('text-embedding-v3');
+      expect(constructorCall[1].provider).toBe('alibaba.embedding');
     });
   });
 

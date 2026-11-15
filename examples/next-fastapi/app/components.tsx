@@ -1,6 +1,6 @@
 import { GeistMono } from 'geist/font/mono';
 import Link from 'next/link';
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 const Code = ({ children }: { children: ReactNode }) => {
   return (

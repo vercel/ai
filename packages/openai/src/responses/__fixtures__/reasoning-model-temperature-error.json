@@ -1,0 +1,8 @@
+{
+  "error": {
+    "message": "Unsupported parameter: 'temperature' is not supported with this model.",
+    "type": "invalid_request_error",
+    "param": "temperature",
+    "code": null
+  }
+}

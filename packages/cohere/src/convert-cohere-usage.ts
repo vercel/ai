@@ -1,38 +1,39 @@
-import { LanguageModelV3Usage } from '@ai-sdk/provider';
+import type { LanguageModelV4Usage } from '@ai-sdk/provider';
+import { createNullLanguageModelUsage } from '@ai-sdk/provider-utils';
 
 export type CohereUsageTokens = {
-  input_tokens: number;
-  output_tokens: number;
+  input_tokens?: number | null;
+  output_tokens?: number | null;
+};
+
+export type CohereUsage = {
+  billed_units?: CohereUsageTokens | null;
+  tokens?: CohereUsageTokens | null;
+  cached_tokens?: number | null;
 };
 
 export function convertCohereUsage(
-  tokens: CohereUsageTokens | undefined | null,
-): LanguageModelV3Usage {
-  if (tokens == null) {
-    return {
-      inputTokens: {
-        total: undefined,
-        noCache: undefined,
-        cacheRead: undefined,
-        cacheWrite: undefined,
-      },
-      outputTokens: {
-        total: undefined,
-        text: undefined,
-        reasoning: undefined,
-      },
-      raw: undefined,
-    };
+  usage: CohereUsage | undefined | null,
+): LanguageModelV4Usage {
+  if (usage == null) {
+    return createNullLanguageModelUsage();
   }
 
-  const inputTokens = tokens.input_tokens;
-  const outputTokens = tokens.output_tokens;
+  // `tokens` is the only measure that matches the unified token counts.
+  // `billed_units` count billed units rather than tokens, so they are kept in
+  // `raw` only and never used as token counts or reduced by cached tokens.
+  const inputTokens = usage.tokens?.input_tokens ?? undefined;
+  const outputTokens = usage.tokens?.output_tokens ?? undefined;
+  const cacheReadTokens = usage.cached_tokens ?? undefined;
 
   return {
     inputTokens: {
       total: inputTokens,
-      noCache: inputTokens,
-      cacheRead: undefined,
+      noCache:
+        inputTokens != null && cacheReadTokens != null
+          ? inputTokens - cacheReadTokens
+          : inputTokens,
+      cacheRead: cacheReadTokens,
       cacheWrite: undefined,
     },
     outputTokens: {
@@ -40,6 +41,6 @@ export function convertCohereUsage(
       text: outputTokens,
       reasoning: undefined,
     },
-    raw: tokens,
+    raw: usage,
   };
 }

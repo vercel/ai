@@ -28,6 +28,7 @@ export type AssemblyAITranscriptionAPITypes = {
 
   /**
    * How much to boost specified words
+   * @deprecated Only used with the deprecated `word_boost`. Use `keyterms_prompt`.
    */
   boost_param?: 'low' | 'default' | 'high';
 
@@ -208,6 +209,16 @@ export type AssemblyAITranscriptionAPITypes = {
   language_detection?: boolean;
 
   /**
+   * Options for automatic language detection.
+   */
+  language_detection_options?: {
+    expected_languages?: string[];
+    fallback_language?: string;
+    code_switching?: boolean;
+    code_switching_confidence_threshold?: number;
+  };
+
+  /**
    * Enable Multichannel transcription, can be true or false.
    * @default false
    */
@@ -230,6 +241,14 @@ export type AssemblyAITranscriptionAPITypes = {
    * @default false
    */
   redact_pii_audio?: boolean;
+
+  /**
+   * Options for PII-redacted audio files. Requires redact_pii.
+   */
+  redact_pii_audio_options?: {
+    return_redacted_no_speech_audio?: boolean;
+    override_audio_redaction_method?: 'silence';
+  };
 
   /**
    * Controls the filetype of the audio created by redact_pii_audio. Currently supports mp3 (default) and wav.
@@ -287,9 +306,21 @@ export type AssemblyAITranscriptionAPITypes = {
   >;
 
   /**
+   * Return the original unredacted transcript alongside the redacted one.
+   * Requires redact_pii.
+   */
+  redact_pii_return_unredacted?: boolean;
+
+  /**
    * The replacement logic for detected PII, can be "entity_name" or "hash".
    */
   redact_pii_sub?: 'entity_name' | 'hash';
+
+  /**
+   * Map of user-defined labels to exact terms to redact, applied on top of
+   * standard PII redaction. Requires redact_pii.
+   */
+  redact_static_entities?: Record<string, string[]>;
 
   /**
    * Enable Sentiment Analysis, can be true or false
@@ -304,14 +335,35 @@ export type AssemblyAITranscriptionAPITypes = {
   speaker_labels?: boolean;
 
   /**
+   * Options for speaker diarization, e.g. a range of possible speakers.
+   */
+  speaker_options?: {
+    min_speakers_expected?: number;
+    max_speakers_expected?: number;
+  };
+
+  /**
    * Tells the speaker label model how many speakers it should attempt to identify, up to 10.
    */
   speakers_expected?: number;
 
   /**
    * The speech model to use for the transcription.
+   *
+   * @deprecated This parameter has been replaced with `speech_models`. It only
+   * supports the legacy `best` model. Use `speech_models` for `universal-2`,
+   * `universal-3-pro`, `universal-3-5-pro`, etc.
+   * @see https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model
    */
-  speech_model?: 'best' | 'nano';
+  speech_model?: 'best';
+
+  /**
+   * List of speech models in priority order, allowing the system to
+   * automatically route the audio to the best available option. When omitted,
+   * the API defaults to `['universal-3-pro', 'universal-2']`.
+   * @see https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model
+   */
+  speech_models?: string[];
 
   /**
    * Reject audio files that contain less than this fraction of speech. Valid values are in the range [0, 1] inclusive.
@@ -357,6 +409,37 @@ export type AssemblyAITranscriptionAPITypes = {
 
   /**
    * The list of custom vocabulary to boost transcription probability for
+   * @deprecated Rejected by `universal-3-pro` / `universal-3-5-pro` and
+   * `slam-1` (works only on `universal-2`/`best`). Use `keyterms_prompt`.
    */
   word_boost?: string[];
+
+  /**
+   * Domain-specific keyterms to boost (max 6 words per phrase). Replaces
+   * `word_boost` for `universal-3-pro` / `universal-3-5-pro` and `slam-1`.
+   */
+  keyterms_prompt?: string[];
+
+  /**
+   * Natural-language context (up to 1,500 words) to steer the model.
+   * Only supported by `universal-3-pro` / `universal-3-5-pro` and `slam-1`.
+   */
+  prompt?: string;
+
+  /**
+   * Sampling temperature (0-1) controlling randomness. Universal-3 Pro models.
+   */
+  temperature?: number;
+
+  /**
+   * Remove inline annotations from rich transcripts: `'all'` removes all
+   * annotations, `'speaker'` removes only speaker cues. Universal-3 Pro models.
+   */
+  remove_audio_tags?: 'all' | 'speaker';
+
+  /**
+   * Enable a domain-specific model to improve accuracy for specialized
+   * terminology, e.g. `'medical-v1'` for Medical Mode.
+   */
+  domain?: string;
 };

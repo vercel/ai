@@ -1,5 +1,9 @@
-import { JSONSchema7 } from '@ai-sdk/provider';
-import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
+import type { JSONSchema7 } from '@ai-sdk/provider';
+import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { openaiErrorDataSchema } from '../openai-error';
 
@@ -32,6 +36,13 @@ export const openaiChatResponseSchema = lazySchema(() =>
           message: z.object({
             role: z.literal('assistant').nullish(),
             content: z.string().nullish(),
+            // set instead of `content` when the model refuses to answer:
+            refusal: z.string().nullish(),
+            audio: z
+              .object({
+                transcript: z.string().nullish(),
+              })
+              .nullish(),
             tool_calls: z
               .array(
                 z.object({
@@ -75,6 +86,22 @@ export const openaiChatResponseSchema = lazySchema(() =>
                   }),
                 )
                 .nullish(),
+              // logprobs of the refusal tokens (set instead of `content` when
+              // the model refuses to answer):
+              refusal: z
+                .array(
+                  z.object({
+                    token: z.string(),
+                    logprob: z.number(),
+                    top_logprobs: z.array(
+                      z.object({
+                        token: z.string(),
+                        logprob: z.number(),
+                      }),
+                    ),
+                  }),
+                )
+                .nullish(),
             })
             .nullish(),
           finish_reason: z.string().nullish(),
@@ -88,6 +115,7 @@ export const openaiChatResponseSchema = lazySchema(() =>
           prompt_tokens_details: z
             .object({
               cached_tokens: z.number().nullish(),
+              cache_write_tokens: z.number().nullish(),
             })
             .nullish(),
           completion_tokens_details: z
@@ -118,6 +146,8 @@ export const openaiChatChunkSchema = lazySchema(() =>
               .object({
                 role: z.enum(['assistant']).nullish(),
                 content: z.string().nullish(),
+                // set instead of `content` when the model refuses to answer:
+                refusal: z.string().nullish(),
                 tool_calls: z
                   .array(
                     z.object({
@@ -162,6 +192,22 @@ export const openaiChatChunkSchema = lazySchema(() =>
                     }),
                   )
                   .nullish(),
+                // logprobs of the refusal tokens (set instead of `content` when
+                // the model refuses to answer):
+                refusal: z
+                  .array(
+                    z.object({
+                      token: z.string(),
+                      logprob: z.number(),
+                      top_logprobs: z.array(
+                        z.object({
+                          token: z.string(),
+                          logprob: z.number(),
+                        }),
+                      ),
+                    }),
+                  )
+                  .nullish(),
               })
               .nullish(),
             finish_reason: z.string().nullish(),
@@ -176,6 +222,7 @@ export const openaiChatChunkSchema = lazySchema(() =>
             prompt_tokens_details: z
               .object({
                 cached_tokens: z.number().nullish(),
+                cache_write_tokens: z.number().nullish(),
               })
               .nullish(),
             completion_tokens_details: z
@@ -188,7 +235,7 @@ export const openaiChatChunkSchema = lazySchema(() =>
           })
           .nullish(),
       }),
-      openaiErrorDataSchema,
+      openaiErrorDataSchema(),
     ]),
   ),
 );

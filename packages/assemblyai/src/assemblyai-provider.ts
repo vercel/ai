@@ -1,20 +1,22 @@
 import {
-  TranscriptionModelV3,
-  ProviderV3,
   NoSuchModelError,
+  type TranscriptionModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { AssemblyAITranscriptionModel } from './assemblyai-transcription-model';
-import { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
+import type { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
 import { VERSION } from './version';
 
-export interface AssemblyAIProvider extends ProviderV3 {
+export interface AssemblyAIProvider extends ProviderV4 {
   (
-    modelId: 'best',
+    modelId: AssemblyAITranscriptionModelId,
     settings?: {},
   ): {
     transcription: AssemblyAITranscriptionModel;
@@ -23,7 +25,7 @@ export interface AssemblyAIProvider extends ProviderV3 {
   /**
    * Creates a model for transcription.
    */
-  transcription(modelId: AssemblyAITranscriptionModelId): TranscriptionModelV3;
+  transcription(modelId: AssemblyAITranscriptionModelId): TranscriptionModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -33,9 +35,10 @@ export interface AssemblyAIProvider extends ProviderV3 {
 
 export interface AssemblyAIProviderSettings {
   /**
-   * API key for authenticating requests.
+   * API key for authenticating requests. May be a string, promise, or a
+   * synchronous/asynchronous callback called before each request.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Custom headers to include in the requests.
@@ -56,16 +59,18 @@ export function createAssemblyAI(
   options: AssemblyAIProviderSettings = {},
 ): AssemblyAIProvider {
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        authorization: loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'ASSEMBLYAI_API_KEY',
-          description: 'AssemblyAI',
-        }),
-        ...options.headers,
-      },
-      `ai-sdk/assemblyai/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          authorization: loadApiKey({
+            apiKey,
+            environmentVariableName: 'ASSEMBLYAI_API_KEY',
+            description: 'AssemblyAI',
+          }),
+          ...options.headers,
+        },
+        `ai-sdk-assemblyai/${VERSION}`,
+      ),
     );
 
   const createTranscriptionModel = (modelId: AssemblyAITranscriptionModelId) =>
@@ -82,7 +87,7 @@ export function createAssemblyAI(
     };
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
 

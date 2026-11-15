@@ -1,4 +1,5 @@
 export { defaultEmbeddingSettingsMiddleware } from './default-embedding-settings-middleware';
+export { defaultInstructionsMiddleware } from './default-instructions-middleware';
 export { defaultSettingsMiddleware } from './default-settings-middleware';
 export { extractJsonMiddleware } from './extract-json-middleware';
 export { extractReasoningMiddleware } from './extract-reasoning-middleware';

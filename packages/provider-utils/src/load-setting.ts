@@ -35,7 +35,7 @@ export function loadSetting({
       message:
         `${description} setting is missing. ` +
         `Pass it using the '${settingName}' parameter. ` +
-        `Environment variables is not supported in this environment.`,
+        `Environment variables are not supported in this environment.`,
     });
   }
 

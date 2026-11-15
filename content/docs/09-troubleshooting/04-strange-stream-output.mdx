@@ -29,7 +29,9 @@ You have several options:
        prompt,
      });
 
-     return result.toTextStreamResponse();
+     return createTextStreamResponse({
+       stream: toTextStream({ stream: result.stream }),
+     });
    }
    ```
 

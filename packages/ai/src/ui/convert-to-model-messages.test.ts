@@ -1,9 +1,52 @@
-import { ModelMessage } from '@ai-sdk/provider-utils';
-import { describe, expect, it } from 'vitest';
+import { tool, type ModelMessage } from '@ai-sdk/provider-utils';
+import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import z from 'zod/v4';
+import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
+import { consumeStream } from '../util/consume-stream';
 import { convertToModelMessages } from './convert-to-model-messages';
-import { UIMessage } from './ui-messages';
+import {
+  createStreamingUIMessageState,
+  processUIMessageStream,
+} from './process-ui-message-stream';
+import type { UIMessage } from './ui-messages';
+import { validateUIMessages } from './validate-ui-messages';
+
+async function recordAssistantMessageFromChunks<
+  UI_MESSAGE extends UIMessage = UIMessage,
+>(chunks: UIMessageChunk[]): Promise<UI_MESSAGE> {
+  const state = createStreamingUIMessageState<UI_MESSAGE>({
+    messageId: 'msg-123',
+    lastMessage: undefined,
+  });
+
+  await consumeStream({
+    stream: processUIMessageStream<UI_MESSAGE>({
+      stream: convertArrayToReadableStream(chunks),
+      runUpdateMessageJob: async job => {
+        await job({
+          state,
+          write: () => {},
+        });
+      },
+      onError: error => {
+        throw error;
+      },
+    }),
+  });
+
+  return state.message;
+}
 
 describe('convertToModelMessages', () => {
+  beforeEach(() => {
+    globalThis.AI_SDK_LOG_WARNINGS = false;
+  });
+
+  afterEach(() => {
+    delete globalThis.AI_SDK_LOG_WARNINGS;
+  });
+
   describe('system message', () => {
     it('should convert a simple system message', async () => {
       const result = await convertToModelMessages([
@@ -185,7 +228,10 @@ describe('convertToModelMessages', () => {
             {
               type: 'file',
               mediaType: 'image/jpeg',
-              data: 'https://example.com/image.jpg',
+              data: {
+                type: 'url',
+                url: new URL('https://example.com/image.jpg'),
+              },
             },
             { type: 'text', text: 'Check this image' },
           ],
@@ -216,7 +262,10 @@ describe('convertToModelMessages', () => {
             {
               type: 'file',
               mediaType: 'image/jpeg',
-              data: 'https://example.com/image.jpg',
+              data: {
+                type: 'url',
+                url: new URL('https://example.com/image.jpg'),
+              },
               providerOptions: { testProvider: { signature: '1234567890' } },
             },
             { type: 'text', text: 'Check this image' },
@@ -247,9 +296,48 @@ describe('convertToModelMessages', () => {
             {
               type: 'file',
               mediaType: 'image/jpeg',
-              data: 'https://example.com/image.jpg',
+              data: {
+                type: 'url',
+                url: new URL('https://example.com/image.jpg'),
+              },
               filename: 'image.jpg',
             },
+          ],
+        },
+      ]);
+    });
+
+    it('should use providerReference as data for user file parts', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'user',
+          parts: [
+            {
+              type: 'file',
+              mediaType: 'application/pdf',
+              filename: 'doc.pdf',
+              url: 'data:application/pdf;base64,abc',
+              providerReference: { openai: 'file-abc123' },
+            },
+            { type: 'text', text: 'Summarize this' },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'application/pdf',
+              filename: 'doc.pdf',
+              data: {
+                type: 'reference',
+                reference: { openai: 'file-abc123' },
+              },
+            },
+            { type: 'text', text: 'Summarize this' },
           ],
         },
       ]);
@@ -277,7 +365,10 @@ describe('convertToModelMessages', () => {
           {
             type: 'file',
             mediaType: 'image/jpeg',
-            data: 'https://example.com/image.jpg',
+            data: {
+              type: 'url',
+              url: new URL('https://example.com/image.jpg'),
+            },
           },
         ],
       },
@@ -285,6 +376,42 @@ describe('convertToModelMessages', () => {
   });
 
   describe('assistant message', () => {
+    it('should convert custom assistant parts', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            {
+              type: 'custom',
+              kind: 'test-provider.compaction',
+              providerMetadata: {
+                openai: {
+                  itemId: 'cmp_123',
+                },
+              },
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'custom',
+              kind: 'test-provider.compaction',
+              providerOptions: {
+                openai: {
+                  itemId: 'cmp_123',
+                },
+              },
+            },
+          ],
+        },
+      ] satisfies ModelMessage[]);
+    });
+
     it('should convert a simple assistant text message', async () => {
       const result = await convertToModelMessages([
         {
@@ -334,6 +461,61 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
+    });
+
+    it('should preserve an Anthropic compaction signature through UI message persistence', async () => {
+      const recordedMessage = await recordAssistantMessageFromChunks([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'text-start',
+          id: 'compaction',
+          providerMetadata: {
+            anthropic: {
+              type: 'compaction',
+              signature: 'compaction-signature',
+            },
+          },
+        },
+        {
+          type: 'text-delta',
+          id: 'compaction',
+          delta: 'Summary of the conversation.',
+        },
+        { type: 'text-end', id: 'compaction' },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      expect(recordedMessage.parts).toContainEqual({
+        type: 'text',
+        text: 'Summary of the conversation.',
+        state: 'done',
+        providerMetadata: {
+          anthropic: {
+            type: 'compaction',
+            signature: 'compaction-signature',
+          },
+        },
+      });
+
+      await expect(
+        convertToModelMessages([recordedMessage]),
+      ).resolves.toContainEqual({
+        role: 'assistant',
+        content: [
+          {
+            type: 'text',
+            text: 'Summary of the conversation.',
+            providerOptions: {
+              anthropic: {
+                type: 'compaction',
+                signature: 'compaction-signature',
+              },
+            },
+          },
+        ],
+      });
     });
 
     it('should convert an assistant message with reasoning', async () => {
@@ -405,7 +587,10 @@ describe('convertToModelMessages', () => {
             {
               type: 'file',
               mediaType: 'image/png',
-              data: 'data:image/png;base64,dGVzdA==',
+              data: {
+                type: 'url',
+                url: new URL('data:image/png;base64,dGVzdA=='),
+              },
             },
           ],
         },
@@ -434,8 +619,82 @@ describe('convertToModelMessages', () => {
             {
               type: 'file',
               mediaType: 'image/png',
-              data: 'data:image/png;base64,dGVzdA==',
+              data: {
+                type: 'url',
+                url: new URL('data:image/png;base64,dGVzdA=='),
+              },
               filename: 'test.png',
+            },
+          ],
+        },
+      ] as unknown as ModelMessage[]);
+    });
+
+    it('should handle assistant message file parts with provider metadata', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              url: 'data:image/png;base64,dGVzdA==',
+              providerMetadata: {
+                testProvider: { signature: 'test-signature' },
+              },
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: {
+                type: 'url',
+                url: new URL('data:image/png;base64,dGVzdA=='),
+              },
+              providerOptions: {
+                testProvider: { signature: 'test-signature' },
+              },
+            },
+          ],
+        },
+      ] as unknown as ModelMessage[]);
+    });
+
+    it('should use providerReference as data for assistant file parts', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            {
+              type: 'file',
+              mediaType: 'application/pdf',
+              filename: 'doc.pdf',
+              url: 'data:application/pdf;base64,xyz',
+              providerReference: { anthropic: 'file-xyz789' },
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'application/pdf',
+              filename: 'doc.pdf',
+              data: {
+                type: 'reference',
+                reference: { anthropic: 'file-xyz789' },
+              },
             },
           ],
         },
@@ -521,8 +780,169 @@ describe('convertToModelMessages', () => {
       `);
     });
 
+    it('should omit persisted output when a static tool is no longer available', async () => {
+      const historicalTool = tool({
+        inputSchema: z.object({ query: z.string() }),
+        outputSchema: z.object({
+          summary: z.string(),
+          privateMetadata: z.string(),
+        }),
+        toModelOutput: ({ output }) => ({
+          type: 'text',
+          value: output.summary,
+        }),
+      });
+
+      const history: UIMessage[] = [
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-search',
+              toolCallId: 'call-1',
+              state: 'output-available',
+              input: { query: 'weather' },
+              output: {
+                summary: 'sunny',
+                privateMetadata: 'must-not-reach-the-model',
+              },
+            },
+          ],
+        },
+      ];
+
+      const before = await convertToModelMessages(
+        await validateUIMessages({
+          messages: history,
+          tools: { search: historicalTool },
+        }),
+        { tools: { search: historicalTool } },
+      );
+
+      const validatedWithoutTool = await validateUIMessages({
+        messages: history,
+        tools: {},
+      });
+
+      expect(validatedWithoutTool[0].parts[0]).toMatchObject({
+        type: 'dynamic-tool',
+        dynamic: false,
+      });
+
+      const reloadedMessages = [
+        JSON.parse(JSON.stringify(validatedWithoutTool)) as UIMessage[],
+        structuredClone(validatedWithoutTool),
+      ];
+
+      for (const messages of reloadedMessages) {
+        const revalidatedMessages = await validateUIMessages({
+          messages,
+          tools: {},
+        });
+
+        await expect(
+          convertToModelMessages(revalidatedMessages, { tools: {} }),
+        ).resolves.toEqual([
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'search',
+                input: { query: 'weather' },
+                providerExecuted: undefined,
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'search',
+                output: {
+                  type: 'text',
+                  value:
+                    'Tool output omitted because the tool is no longer available.',
+                },
+              },
+            ],
+          },
+        ]);
+
+        await expect(
+          convertToModelMessages(revalidatedMessages, {
+            tools: { search: historicalTool },
+          }),
+        ).resolves.toEqual(before);
+      }
+    });
+
     describe('tool output error', () => {
+      it('should preserve result provider metadata on a failed tool call when call metadata is unavailable', async () => {
+        const result = await convertToModelMessages([
+          {
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-createWidget',
+                state: 'output-error',
+                toolCallId: 'call1',
+                input: undefined,
+                rawInput: {},
+                errorText: 'Invalid input',
+                resultProviderMetadata: {
+                  openai: {
+                    namespace: 'widget_tools',
+                  },
+                },
+              },
+            ],
+          },
+        ]);
+
+        expect(result).toEqual([
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call1',
+                toolName: 'createWidget',
+                input: {},
+                providerExecuted: undefined,
+                providerOptions: {
+                  openai: {
+                    namespace: 'widget_tools',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call1',
+                toolName: 'createWidget',
+                output: {
+                  type: 'error-text',
+                  value: 'Invalid input',
+                },
+              },
+            ],
+          },
+        ]);
+      });
+
       it('should handle assistant message with tool output error that has raw input', async () => {
+        const warningLogger = vi.fn();
+        globalThis.AI_SDK_LOG_WARNINGS = warningLogger;
+
         const result = await convertToModelMessages([
           {
             role: 'assistant',
@@ -539,7 +959,7 @@ describe('convertToModelMessages', () => {
                 toolCallId: 'call1',
                 errorText: 'Error: Invalid input',
                 input: undefined,
-                rawInput: { operation: 'add', numbers: [1, 2] },
+                rawInput: '{"operation":"add","numbers":[1,2]',
               },
             ],
           },
@@ -554,13 +974,7 @@ describe('convertToModelMessages', () => {
                 "type": "text",
               },
               {
-                "input": {
-                  "numbers": [
-                    1,
-                    2,
-                  ],
-                  "operation": "add",
-                },
+                "input": "{"operation":"add","numbers":[1,2]",
                 "providerExecuted": undefined,
                 "toolCallId": "call1",
                 "toolName": "calculator",
@@ -585,6 +999,44 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
+        expect(warningLogger).toHaveBeenCalledWith({
+          warnings: [
+            {
+              type: 'deprecated',
+              setting: 'rawInput in output-error UI message parts',
+              message:
+                'Use the "input" field instead. The "rawInput" field will be removed in the next major version.',
+            },
+          ],
+        });
+      });
+
+      it('should preserve the deprecated rawInput fallback when input is null', async () => {
+        const result = await convertToModelMessages([
+          {
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-calculator',
+                state: 'output-error',
+                toolCallId: 'call1',
+                errorText: 'Error: Invalid input',
+                input: null,
+                rawInput: 'legacy input',
+              },
+            ],
+          },
+        ]);
+
+        expect(result[0]).toMatchObject({
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              input: 'legacy input',
+            },
+          ],
+        });
       });
 
       it('should handle assistant message with tool output error that has no raw input', async () => {
@@ -838,6 +1290,72 @@ describe('convertToModelMessages', () => {
       `);
     });
 
+    it('should prefer result provider metadata over call provider metadata for provider-executed tool-result', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'tool-calculator',
+              state: 'output-available',
+              toolCallId: 'call1',
+              input: { operation: 'multiply', numbers: [3, 4] },
+              output: '12',
+              providerExecuted: true,
+              callProviderMetadata: {
+                testProvider: {
+                  itemId: 'call-item',
+                },
+              },
+              resultProviderMetadata: {
+                testProvider: {
+                  itemId: 'result-item',
+                },
+              },
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call1',
+              toolName: 'calculator',
+              input: {
+                operation: 'multiply',
+                numbers: [3, 4],
+              },
+              providerExecuted: true,
+              providerOptions: {
+                testProvider: {
+                  itemId: 'call-item',
+                },
+              },
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'call1',
+              toolName: 'calculator',
+              output: {
+                type: 'text',
+                value: '12',
+              },
+              providerOptions: {
+                testProvider: {
+                  itemId: 'result-item',
+                },
+              },
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should handle assistant message with tool invocations that have multi-part responses', async () => {
       const result = await convertToModelMessages([
         {
@@ -974,6 +1492,149 @@ describe('convertToModelMessages', () => {
     });
   });
 
+  describe('steering messages', () => {
+    it('should add steering messages as user messages between the steps of an assistant message', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'user',
+          parts: [{ type: 'text', text: 'What is the weather in Paris?' }],
+        },
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'tool-weather',
+              state: 'output-available',
+              toolCallId: 'call-1',
+              input: { city: 'Paris' },
+              output: 'sunny',
+            },
+            {
+              type: 'steering-message',
+              id: 'steer-1',
+              parts: [
+                { type: 'text', text: 'I meant Paris, Texas.' },
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  url: 'https://example.com/map.png',
+                },
+                {
+                  type: 'file',
+                  mediaType: 'application/pdf',
+                  url: '',
+                  providerReference: { openai: 'file-1' },
+                },
+              ],
+            },
+            { type: 'step-start' },
+            { type: 'text', text: 'It is hot in Texas.', state: 'done' },
+          ],
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather in Paris?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Paris",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "text",
+                  "value": "sunny",
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+          {
+            "content": [
+              {
+                "text": "I meant Paris, Texas.",
+                "type": "text",
+              },
+              {
+                "data": {
+                  "type": "url",
+                  "url": "https://example.com/map.png",
+                },
+                "filename": undefined,
+                "mediaType": "image/png",
+                "type": "file",
+              },
+              {
+                "data": {
+                  "reference": {
+                    "openai": "file-1",
+                  },
+                  "type": "reference",
+                },
+                "filename": undefined,
+                "mediaType": "application/pdf",
+                "type": "file",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "text": "It is hot in Texas.",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should add a steering message that was received before the first step', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            {
+              type: 'steering-message',
+              id: 'steer-1',
+              parts: [{ type: 'text', text: 'Use Celsius.' }],
+            },
+            { type: 'step-start' },
+            { type: 'text', text: 'It is 20 degrees.', state: 'done' },
+          ],
+        },
+      ]);
+
+      expect(result.map(({ role }) => role)).toEqual(['user', 'assistant']);
+    });
+  });
+
   describe('multiple messages', () => {
     it('should handle a conversation with multiple messages', async () => {
       const result = await convertToModelMessages([
@@ -1078,7 +1739,7 @@ describe('convertToModelMessages', () => {
 
   describe('error handling', () => {
     it('should throw an error for unhandled roles', async () => {
-      expect(async () => {
+      await expect(async () => {
         await convertToModelMessages([
           {
             role: 'unknown' as any,
@@ -1089,7 +1750,260 @@ describe('convertToModelMessages', () => {
     });
   });
 
+  describe('pending tool approvals', () => {
+    it('should ignore a pending approval when followed by a user message', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-weather',
+              state: 'approval-requested',
+              toolCallId: 'call-awaiting-approval',
+              input: { city: 'Tokyo' },
+              approval: { id: 'approval-1' },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          parts: [{ type: 'text', text: 'Use a different city instead.' }],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Use a different city instead.' }],
+        },
+      ]);
+    });
+  });
+
   describe('when ignoring incomplete tool calls', () => {
+    it('should ignore preliminary tool outputs', async () => {
+      let toModelOutputCalls = 0;
+
+      const result = await convertToModelMessages(
+        [
+          {
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-streamingTool',
+                state: 'output-available',
+                toolCallId: 'call-preliminary',
+                input: { task: 'finish the work' },
+                output: { complete: false, progress: 'half finished' },
+                preliminary: true,
+              },
+            ],
+          },
+          {
+            role: 'user',
+            parts: [{ type: 'text', text: 'Continue.' }],
+          },
+        ],
+        {
+          ignoreIncompleteToolCalls: true,
+          tools: {
+            streamingTool: tool({
+              inputSchema: z.object({ task: z.string() }),
+              toModelOutput: ({ output }) => {
+                toModelOutputCalls++;
+                return { type: 'json', value: output };
+              },
+            }),
+          },
+        },
+      );
+
+      expect(toModelOutputCalls).toBe(0);
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Continue.' }],
+        },
+      ]);
+    });
+
+    it('should ignore tool calls that are awaiting approval or have no state', async () => {
+      const result = await convertToModelMessages(
+        [
+          {
+            role: 'assistant',
+            parts: [
+              {
+                type: 'text',
+                text: 'Waiting for completed tool calls.',
+                state: 'done',
+              },
+              {
+                type: 'tool-weather',
+                state: 'approval-requested',
+                toolCallId: 'call-awaiting-approval',
+                input: { city: 'Tokyo' },
+                approval: { id: 'approval-1' },
+              },
+              {
+                type: 'tool-weather',
+                toolCallId: 'call-without-state',
+                input: { city: 'Berlin' },
+              } as any,
+            ],
+          },
+          {
+            role: 'user',
+            parts: [{ type: 'text', text: 'Continue.' }],
+          },
+        ],
+        { ignoreIncompleteToolCalls: true },
+      );
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'Waiting for completed tool calls.',
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Continue.' }],
+        },
+      ]);
+    });
+
+    it('should preserve tool calls with approval responses', async () => {
+      const result = await convertToModelMessages(
+        [
+          {
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-weather',
+                state: 'approval-responded',
+                toolCallId: 'call-approved',
+                input: { city: 'Tokyo' },
+                approval: { id: 'approval-1', approved: true },
+              },
+            ],
+          },
+        ],
+        { ignoreIncompleteToolCalls: true },
+      );
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-approved',
+              toolName: 'weather',
+              input: { city: 'Tokyo' },
+              providerExecuted: undefined,
+            },
+            {
+              type: 'tool-approval-request',
+              approvalId: 'approval-1',
+              toolCallId: 'call-approved',
+              isAutomatic: undefined,
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-approval-response',
+              approvalId: 'approval-1',
+              approved: true,
+              reason: undefined,
+              providerExecuted: undefined,
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should preserve transformed approval input through a UI message round trip', async () => {
+      const tools = {
+        count: tool({
+          inputSchema: z.object({
+            count: z.string().transform(Number),
+          }),
+        }),
+      };
+      const assistantMessage = await recordAssistantMessageFromChunks([
+        {
+          type: 'tool-input-available',
+          toolCallId: 'count-call',
+          toolName: 'count',
+          input: { count: 3 },
+        },
+        {
+          type: 'tool-approval-request',
+          approvalId: 'approval-1',
+          toolCallId: 'count-call',
+          inputSchemaInput: { count: '3' },
+        },
+        {
+          type: 'tool-approval-response',
+          approvalId: 'approval-1',
+          approved: true,
+        },
+      ]);
+      const persistedMessage = JSON.parse(
+        JSON.stringify(assistantMessage),
+      ) as UIMessage;
+
+      const validatedMessages = await validateUIMessages({
+        messages: [persistedMessage],
+        tools,
+      });
+      const result = await convertToModelMessages(validatedMessages, {
+        tools,
+      });
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'count-call',
+              toolName: 'count',
+              input: { count: 3 },
+              providerExecuted: undefined,
+            },
+            {
+              type: 'tool-approval-request',
+              approvalId: 'approval-1',
+              toolCallId: 'count-call',
+              isAutomatic: undefined,
+              inputSchemaInput: { count: '3' },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-approval-response',
+              approvalId: 'approval-1',
+              approved: true,
+              reason: undefined,
+              providerExecuted: undefined,
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should handle conversation with multiple tool invocations and user message at the end', async () => {
       const result = await convertToModelMessages(
         [
@@ -1340,6 +2254,107 @@ describe('convertToModelMessages', () => {
         ]
       `);
     });
+
+    it('should convert a denied provider-executed tool approval request with an execution-denied result', async () => {
+      const result = await convertToModelMessages(
+        [
+          {
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'dynamic-tool',
+                toolName: 'screenshot',
+                state: 'approval-responded',
+                toolCallId: 'call-1',
+                input: { value: 'value-1' },
+                providerExecuted: true,
+                callProviderMetadata: {
+                  'test-provider': {
+                    'key-a': 'test-value-1',
+                  },
+                },
+                approval: {
+                  id: 'approval-1',
+                  approved: false,
+                  reason: 'User denied the request',
+                },
+              },
+            ],
+          },
+          {
+            role: 'user',
+            parts: [{ type: 'text', text: 'Thanks!' }],
+          },
+        ],
+        { ignoreIncompleteToolCalls: true },
+      );
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "value": "value-1",
+                },
+                "providerExecuted": true,
+                "providerOptions": {
+                  "test-provider": {
+                    "key-a": "test-value-1",
+                  },
+                },
+                "toolCallId": "call-1",
+                "toolName": "screenshot",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "approval-1",
+                "isAutomatic": undefined,
+                "toolCallId": "call-1",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "approvalId": "approval-1",
+                "approved": false,
+                "providerExecuted": true,
+                "reason": "User denied the request",
+                "type": "tool-approval-response",
+              },
+              {
+                "output": {
+                  "reason": "User denied the request",
+                  "type": "execution-denied",
+                },
+                "providerOptions": {
+                  "test-provider": {
+                    "key-a": "test-value-1",
+                  },
+                },
+                "toolCallId": "call-1",
+                "toolName": "screenshot",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+          {
+            "content": [
+              {
+                "text": "Thanks!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
   });
 
   describe('when converting tool approval request responses', () => {
@@ -1401,6 +2416,7 @@ describe('convertToModelMessages', () => {
               },
               {
                 "approvalId": "approval-1",
+                "isAutomatic": undefined,
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
               },
@@ -1482,6 +2498,7 @@ describe('convertToModelMessages', () => {
               },
               {
                 "approvalId": "approval-1",
+                "isAutomatic": undefined,
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
               },
@@ -1496,6 +2513,100 @@ describe('convertToModelMessages', () => {
                 "providerExecuted": undefined,
                 "reason": undefined,
                 "type": "tool-approval-response",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
+    it('should preserve automatic approval metadata for approved tool results', async () => {
+      const result = await convertToModelMessages([
+        {
+          parts: [
+            {
+              text: 'What is the weather in Tokyo?',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          parts: [
+            { type: 'step-start' },
+            {
+              approval: {
+                approved: true,
+                id: 'approval-1',
+                isAutomatic: true,
+                reason: 'trusted internal tool',
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              output: {
+                weather: 'Sunny',
+              },
+              state: 'output-available',
+              toolCallId: 'call-1',
+              type: 'tool-weather',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather in Tokyo?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Tokyo",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "approval-1",
+                "isAutomatic": true,
+                "toolCallId": "call-1",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "approvalId": "approval-1",
+                "approved": true,
+                "providerExecuted": undefined,
+                "reason": "trusted internal tool",
+                "type": "tool-approval-response",
+              },
+              {
+                "output": {
+                  "type": "json",
+                  "value": {
+                    "weather": "Sunny",
+                  },
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-result",
               },
             ],
             "role": "tool",
@@ -1568,6 +2679,7 @@ describe('convertToModelMessages', () => {
               },
               {
                 "approvalId": "approval-1",
+                "isAutomatic": undefined,
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
               },
@@ -1582,6 +2694,15 @@ describe('convertToModelMessages', () => {
                 "providerExecuted": undefined,
                 "reason": "I don't want to approve this",
                 "type": "tool-approval-response",
+              },
+              {
+                "output": {
+                  "reason": "I don't want to approve this",
+                  "type": "execution-denied",
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-result",
               },
             ],
             "role": "tool",
@@ -1664,6 +2785,7 @@ describe('convertToModelMessages', () => {
               },
               {
                 "approvalId": "approval-1",
+                "isAutomatic": undefined,
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
               },
@@ -1678,6 +2800,15 @@ describe('convertToModelMessages', () => {
                 "providerExecuted": undefined,
                 "reason": "I don't want to approve this",
                 "type": "tool-approval-response",
+              },
+              {
+                "output": {
+                  "reason": "I don't want to approve this",
+                  "type": "execution-denied",
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-result",
               },
             ],
             "role": "tool",
@@ -1753,6 +2884,7 @@ describe('convertToModelMessages', () => {
               },
               {
                 "approvalId": "approval-1",
+                "isAutomatic": undefined,
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
               },
@@ -1772,6 +2904,75 @@ describe('convertToModelMessages', () => {
                 "output": {
                   "type": "error-text",
                   "value": "I don't want to approve this",
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
+    it('should convert tool output denied without approval (static tool)', async () => {
+      const result = await convertToModelMessages([
+        {
+          parts: [
+            {
+              text: 'What is the weather in Tokyo?',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          role: 'assistant',
+          parts: [
+            {
+              input: {
+                city: 'Tokyo',
+              },
+              state: 'output-denied',
+              toolCallId: 'call-1',
+              type: 'tool-weather',
+            },
+          ],
+        },
+      ] as unknown as UIMessage[]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather in Tokyo?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Tokyo",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "error-text",
+                  "value": "Tool call execution denied.",
                 },
                 "toolCallId": "call-1",
                 "toolName": "weather",
@@ -1843,6 +3044,7 @@ describe('convertToModelMessages', () => {
               },
               {
                 "approvalId": "approval-1",
+                "isAutomatic": undefined,
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
               },
@@ -1939,6 +3141,7 @@ describe('convertToModelMessages', () => {
               },
               {
                 "approvalId": "approval-1",
+                "isAutomatic": undefined,
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
               },
@@ -1980,6 +3183,206 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
+    });
+
+    it('should propagate reason from a pending approval request', async () => {
+      const result = await convertToModelMessages([
+        {
+          parts: [
+            {
+              approval: {
+                id: 'a1',
+                requestReason: 'requires operator review',
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              state: 'approval-requested',
+              toolCallId: 'call-1',
+              type: 'tool-weather',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      const assistantMessage = result.find(
+        message => message.role === 'assistant',
+      );
+      expect(assistantMessage?.content).toContainEqual({
+        type: 'tool-approval-request',
+        approvalId: 'a1',
+        toolCallId: 'call-1',
+        isAutomatic: undefined,
+        reason: 'requires operator review',
+      });
+    });
+
+    it('should keep request and response reasons separate after approval', async () => {
+      const result = await convertToModelMessages([
+        {
+          parts: [
+            {
+              approval: {
+                approved: true,
+                id: 'a1',
+                requestReason: 'requires operator review',
+                reason: 'approved by on-call operator',
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              state: 'approval-responded',
+              toolCallId: 'call-1',
+              type: 'tool-weather',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      const assistantMessage = result.find(
+        message => message.role === 'assistant',
+      );
+      expect(assistantMessage?.content).toContainEqual({
+        type: 'tool-approval-request',
+        approvalId: 'a1',
+        toolCallId: 'call-1',
+        isAutomatic: undefined,
+        reason: 'requires operator review',
+      });
+
+      const toolMessage = result.find(message => message.role === 'tool');
+      expect(toolMessage?.content).toContainEqual({
+        type: 'tool-approval-response',
+        approvalId: 'a1',
+        approved: true,
+        providerExecuted: undefined,
+        reason: 'approved by on-call operator',
+      });
+    });
+
+    it('should propagate signature from approval to tool-approval-request part', async () => {
+      const result = await convertToModelMessages([
+        {
+          parts: [
+            {
+              text: 'What is the weather in Tokyo?',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          parts: [
+            {
+              type: 'step-start',
+            },
+            {
+              approval: {
+                approved: true,
+                id: 'a1',
+                signature: 'test-sig',
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              state: 'approval-responded',
+              toolCallId: 'call-1',
+              type: 'tool-weather',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather in Tokyo?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Tokyo",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "a1",
+                "isAutomatic": undefined,
+                "signature": "test-sig",
+                "toolCallId": "call-1",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "approvalId": "a1",
+                "approved": true,
+                "providerExecuted": undefined,
+                "reason": undefined,
+                "type": "tool-approval-response",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
+    it('should not include signature in tool-approval-request when approval has no signature', async () => {
+      const result = await convertToModelMessages([
+        {
+          parts: [
+            {
+              text: 'What is the weather in Tokyo?',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          parts: [
+            {
+              type: 'step-start',
+            },
+            {
+              approval: {
+                approved: true,
+                id: 'a1',
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              state: 'approval-responded',
+              toolCallId: 'call-1',
+              type: 'tool-weather',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      const assistantMessage = result.find(m => m.role === 'assistant')!;
+      const approvalRequest = (assistantMessage.content as any[]).find(
+        (p: any) => p.type === 'tool-approval-request',
+      );
+      expect(approvalRequest).toBeDefined();
+      expect(approvalRequest).not.toHaveProperty('signature');
     });
 
     it('should convert tool error result with approval and follow up text (static tool)', async () => {
@@ -2044,6 +3447,7 @@ describe('convertToModelMessages', () => {
               },
               {
                 "approvalId": "approval-1",
+                "isAutomatic": undefined,
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
               },
@@ -2353,24 +3757,27 @@ describe('convertToModelMessages', () => {
         );
 
         expect(result).toMatchInlineSnapshot(`
-        [
-          {
-            "content": [
-              {
-                "text": "Hello",
-                "type": "text",
-              },
-              {
-                "data": "https://example.com/image.png",
-                "filename": undefined,
-                "mediaType": "image/png",
-                "type": "file",
-              },
-            ],
-            "role": "user",
-          },
-        ]
-      `);
+          [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+                {
+                  "data": {
+                    "type": "url",
+                    "url": "https://example.com/image.png",
+                  },
+                  "filename": undefined,
+                  "mediaType": "image/png",
+                  "type": "file",
+                },
+              ],
+              "role": "user",
+            },
+          ]
+        `);
       });
 
       it('should preserve order of parts including converted data parts', async () => {
@@ -2488,6 +3895,78 @@ describe('convertToModelMessages', () => {
               "content": [
                 {
                   "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should not emit empty assistant message for persistent data written before model stream starts', async () => {
+        type WeatherUIMessage = UIMessage<
+          unknown,
+          {
+            weather: {
+              city: string;
+              status: 'loading' | 'success';
+              weather?: string;
+            };
+          }
+        >;
+
+        const recordedMessage =
+          await recordAssistantMessageFromChunks<WeatherUIMessage>([
+            { type: 'start', messageId: 'msg-123' },
+            {
+              type: 'data-weather',
+              id: 'weather-1',
+              data: { city: 'San Francisco', status: 'loading' },
+            },
+            { type: 'start-step' },
+            { type: 'text-start', id: 'text-1' },
+            { type: 'text-delta', id: 'text-1', delta: 'It is sunny.' },
+            { type: 'text-end', id: 'text-1' },
+            { type: 'finish-step' },
+            { type: 'finish' },
+          ]);
+
+        expect(recordedMessage).toMatchInlineSnapshot(`
+          {
+            "id": "msg-123",
+            "metadata": undefined,
+            "parts": [
+              {
+                "data": {
+                  "city": "San Francisco",
+                  "status": "loading",
+                },
+                "id": "weather-1",
+                "type": "data-weather",
+              },
+              {
+                "type": "step-start",
+              },
+              {
+                "providerMetadata": undefined,
+                "state": "done",
+                "text": "It is sunny.",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          }
+        `);
+
+        const result = await convertToModelMessages([recordedMessage]);
+
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "It is sunny.",
                   "type": "text",
                 },
               ],
@@ -2704,7 +4183,10 @@ describe('convertToModelMessages', () => {
                   "type": "text",
                 },
                 {
-                  "data": "https://example.com/image.png",
+                  "data": {
+                    "type": "url",
+                    "url": "https://example.com/image.png",
+                  },
                   "filename": undefined,
                   "mediaType": "image/png",
                   "type": "file",

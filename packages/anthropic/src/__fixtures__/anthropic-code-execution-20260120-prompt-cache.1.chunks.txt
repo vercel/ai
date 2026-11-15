@@ -1,0 +1,44 @@
+{"type":"message_start","message":{"model":"claude-sonnet-5","id":"msg_011CdYfpjpVtBoXyXCQD1tQP","type":"message","role":"assistant","content":[],"stop_reason":null,"stop_sequence":null,"stop_details":null,"usage":{"input_tokens":2,"cache_creation_input_tokens":3068,"cache_read_input_tokens":0,"cache_creation":{"ephemeral_5m_input_tokens":3068,"ephemeral_1h_input_tokens":0},"output_tokens":69,"service_tier":"standard","inference_geo":"global"}}}
+{"type":"content_block_start","index":0,"content_block":{"type":"server_tool_use","id":"srvtoolu_011fxGj786xCAh2kPk9GMxQw","name":"bash_code_execution","input":{}}}
+{"type":"ping"}
+{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":""}}
+{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\"command"}}
+{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"\":"}}
+{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":" \""}}
+{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"for"}}
+{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":" n in $(seq "}}
+{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"1 12)"}}
+{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"; do echo "}}
+{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"\\\"$n: $("}}
+{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"(n*n))\\\"; d"}}
+{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"one\"}"}}
+{"type":"content_block_stop","index":0}
+{"type":"content_block_start","index":1,"content_block":{"type":"bash_code_execution_tool_result","tool_use_id":"srvtoolu_011fxGj786xCAh2kPk9GMxQw","content":{"type":"bash_code_execution_result","stdout":"1: 1\n2: 4\n3: 9\n4: 16\n5: 25\n6: 36\n7: 49\n8: 64\n9: 81\n10: 100\n11: 121\n12: 144\n","stderr":"","return_code":0,"content":[]}}}
+{"type":"content_block_stop","index":1}
+{"type":"content_block_start","index":2,"content_block":{"type":"server_tool_use","id":"srvtoolu_013eUksWZnfcjFk1iarJsYgM","name":"bash_code_execution","input":{}}}
+{"type":"content_block_delta","index":2,"delta":{"type":"input_json_delta","partial_json":""}}
+{"type":"content_block_delta","index":2,"delta":{"type":"input_json_delta","partial_json":"{\"c"}}
+{"type":"content_block_delta","index":2,"delta":{"type":"input_json_delta","partial_json":"ommand"}}
+{"type":"content_block_delta","index":2,"delta":{"type":"input_json_delta","partial_json":"\": \"sum=0"}}
+{"type":"content_block_delta","index":2,"delta":{"type":"input_json_delta","partial_json":"; for n in"}}
+{"type":"content_block_delta","index":2,"delta":{"type":"input_json_delta","partial_json":" $(s"}}
+{"type":"content_block_delta","index":2,"delta":{"type":"input_json_delta","partial_json":"eq 1 12); "}}
+{"type":"content_block_delta","index":2,"delta":{"type":"input_json_delta","partial_json":"do"}}
+{"type":"content_block_delta","index":2,"delta":{"type":"input_json_delta","partial_json":" s"}}
+{"type":"content_block_delta","index":2,"delta":{"type":"input_json_delta","partial_json":"um=$(("}}
+{"type":"content_block_delta","index":2,"delta":{"type":"input_json_delta","partial_json":"sum "}}
+{"type":"content_block_delta","index":2,"delta":{"type":"input_json_delta","partial_json":"+ n*"}}
+{"type":"content_block_delta","index":2,"delta":{"type":"input_json_delta","partial_json":"n)"}}
+{"type":"content_block_delta","index":2,"delta":{"type":"input_json_delta","partial_json":"); do"}}
+{"type":"content_block_delta","index":2,"delta":{"type":"input_json_delta","partial_json":"ne; echo"}}
+{"type":"content_block_delta","index":2,"delta":{"type":"input_json_delta","partial_json":" \\\"Sum: "}}
+{"type":"content_block_delta","index":2,"delta":{"type":"input_json_delta","partial_json":"$sum\\\"\"}"}}
+{"type":"content_block_stop","index":2}
+{"type":"content_block_start","index":3,"content_block":{"type":"bash_code_execution_tool_result","tool_use_id":"srvtoolu_013eUksWZnfcjFk1iarJsYgM","content":{"type":"bash_code_execution_result","stdout":"Sum: 650\n","stderr":"","return_code":0,"content":[]}}}
+{"type":"content_block_stop","index":3}
+{"type":"content_block_start","index":4,"content_block":{"type":"text","text":""}}
+{"type":"content_block_delta","index":4,"delta":{"type":"text_delta","text":"The"}}
+{"type":"content_block_delta","index":4,"delta":{"type":"text_delta","text":" sum of the squares of the numbers 1 through 12 is **650**."}}
+{"type":"content_block_stop","index":4}
+{"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null,"stop_details":null,"container":{"id":"container_01Qh1LG5zm6onKQjYrHnhrvi","expires_at":"2026-07-30T18:54:08.960841Z"}},"usage":{"input_tokens":6,"cache_creation_input_tokens":3337,"cache_read_input_tokens":6289,"output_tokens":198,"output_tokens_details":{"thinking_tokens":0},"server_tool_use":{"web_search_requests":0,"web_fetch_requests":0}}}
+{"type":"message_stop"}

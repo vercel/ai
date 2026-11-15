@@ -1,4 +1,4 @@
-import { ProviderOptions } from './provider-options';
+import type { ProviderOptions } from './provider-options';
 
 /**
  * A system message. It can contain system information.

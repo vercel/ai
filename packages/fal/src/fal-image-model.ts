@@ -1,21 +1,27 @@
-import type { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
-import type { Resolvable } from '@ai-sdk/provider-utils';
+import { getFalImageModelEntry } from './fal-model-catalog';
+import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertImageModelFileToDataUri,
   createBinaryResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
-  FetchFunction,
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type Resolvable,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { FalImageModelId, FalImageSize } from './fal-image-settings';
-import { falImageProviderOptionsSchema } from './fal-image-options';
+import type { FalImageModelId, FalImageSize } from './fal-image-settings';
+import { falImageModelOptionsSchema } from './fal-image-model-options';
 
 interface FalImageModelConfig {
   provider: string;
@@ -27,12 +33,41 @@ interface FalImageModelConfig {
   };
 }
 
-export class FalImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
-  readonly maxImagesPerCall = 1;
+export class FalImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
+  get maxImagesPerCall(): number {
+    return getFalImageModelEntry(this.modelId).capabilities.image
+      .maxImagesPerCall;
+  }
+
+  get supportsFileInputs(): boolean | undefined {
+    const support = getFalImageModelEntry(this.modelId).capabilities.image
+      .fileInput;
+    return support === 'unknown' ? undefined : support;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    const support = getFalImageModelEntry(this.modelId).capabilities.image
+      .maskInput;
+    return support === 'unknown' ? undefined : support;
+  }
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: FalImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: FalImageModelId;
+    config: FalImageModelConfig;
+  }) {
+    return new FalImageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -49,8 +84,8 @@ export class FalImageModel implements ImageModelV3 {
     providerOptions,
     files,
     mask,
-  }: Parameters<ImageModelV3['doGenerate']>[0]) {
-    const warnings: Array<SharedV3Warning> = [];
+  }: Parameters<ImageModelV4['doGenerate']>[0]) {
+    const warnings: Array<SharedV4Warning> = [];
 
     let imageSize: FalImageSize | undefined;
     if (size) {
@@ -63,7 +98,7 @@ export class FalImageModel implements ImageModelV3 {
     const falOptions = await parseProviderOptions({
       provider: 'fal',
       providerOptions,
-      schema: falImageProviderOptionsSchema,
+      schema: falImageModelOptionsSchema,
     });
 
     const requestBody: Record<string, unknown> = {
@@ -149,15 +184,15 @@ export class FalImageModel implements ImageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<ImageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<ImageModelV3['doGenerate']>>> {
+    options: Parameters<ImageModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<ImageModelV4['doGenerate']>>> {
     const { requestBody, warnings } = await this.getArgs(options);
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { value, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/${this.modelId}`,
       headers: combineHeaders(
-        await resolve(this.config.headers),
+        this.config.headers ? await resolve(this.config.headers) : undefined,
         options.headers,
       ),
       body: requestBody,
@@ -199,7 +234,7 @@ export class FalImageModel implements ImageModelV3 {
         fal: {
           images: targetImages.map((image, index) => {
             const {
-              url,
+              url: _url,
               content_type: contentType,
               file_name: fileName,
               file_data: fileData,
@@ -233,6 +268,9 @@ export class FalImageModel implements ImageModelV3 {
   ): Promise<Uint8Array> {
     const { value: response } = await getFromApi({
       url,
+      // url is a generated-image URL from the provider response; validate it.
+      validateUrl: true,
+      trustedOrigin: this.config.baseURL,
       // No specific headers should be needed for this request as it's a
       // generated image provided by fal.ai.
       abortSignal,
@@ -278,7 +316,6 @@ function convertAspectRatioToSize(
     case '9:21':
       return { width: 1080, height: 2560 };
   }
-  return undefined;
 }
 
 // Validation error has a particular payload to inform the exact property that is invalid
@@ -295,60 +332,70 @@ const falValidationErrorSchema = z.object({
 type ValidationError = z.infer<typeof falValidationErrorSchema>;
 
 // Other errors have a message property
-const falHttpErrorSchema = z.object({
-  message: z.string(),
-});
+const falHttpErrorSchema = () =>
+  z.object({
+    message: z.string(),
+  });
 
-const falErrorSchema = z.union([falValidationErrorSchema, falHttpErrorSchema]);
+const falErrorSchema = lazySchema(() =>
+  zodSchema(z.union([falValidationErrorSchema, falHttpErrorSchema()])),
+);
 
-const falImageSchema = z.object({
-  url: z.string(),
-  width: z.number().nullish(),
-  height: z.number().nullish(),
-  // e.g. https://fal.ai/models/fal-ai/fashn/tryon/v1.6/api#schema-output
-  content_type: z.string().nullish(),
-  // e.g. https://fal.ai/models/fal-ai/flowedit/api#schema-output
-  file_name: z.string().nullish(),
-  file_data: z.string().optional(),
-  file_size: z.number().nullish(),
-});
+const falImageSchema = () =>
+  z.object({
+    url: z.string(),
+    width: z.number().nullish(),
+    height: z.number().nullish(),
+    // e.g. https://fal.ai/models/fal-ai/fashn/tryon/v1.6/api#schema-output
+    content_type: z.string().nullish(),
+    // e.g. https://fal.ai/models/fal-ai/flowedit/api#schema-output
+    file_name: z.string().nullish(),
+    file_data: z.string().optional(),
+    file_size: z.number().nullish(),
+  });
 
 // https://fal.ai/models/fal-ai/lora/api#type-File
-const loraFileSchema = z.object({
-  url: z.string(),
-  content_type: z.string().optional(),
-  file_name: z.string().nullable().optional(),
-  file_data: z.string().optional(),
-  file_size: z.number().nullable().optional(),
-});
+const loraFileSchema = () =>
+  z.object({
+    url: z.string(),
+    content_type: z.string().optional(),
+    file_name: z.string().nullable().optional(),
+    file_data: z.string().optional(),
+    file_size: z.number().nullable().optional(),
+  });
 
-const commonResponseSchema = z.object({
-  timings: z
-    .object({
-      inference: z.number().optional(),
-    })
-    .optional(),
-  seed: z.number().optional(),
-  has_nsfw_concepts: z.array(z.boolean()).optional(),
-  prompt: z.string().optional(),
-  // https://fal.ai/models/fal-ai/lcm/api#schema-output
-  nsfw_content_detected: z.array(z.boolean()).optional(),
-  num_inference_steps: z.number().optional(),
-  // https://fal.ai/models/fal-ai/lora/api#schema-output
-  debug_latents: loraFileSchema.optional(),
-  debug_per_pass_latents: loraFileSchema.optional(),
-});
+const commonResponseSchema = () =>
+  z.object({
+    timings: z
+      .object({
+        inference: z.number().optional(),
+      })
+      .optional(),
+    seed: z.number().optional(),
+    has_nsfw_concepts: z.array(z.boolean()).optional(),
+    prompt: z.string().optional(),
+    // https://fal.ai/models/fal-ai/lcm/api#schema-output
+    nsfw_content_detected: z.array(z.boolean()).optional(),
+    num_inference_steps: z.number().optional(),
+    // https://fal.ai/models/fal-ai/lora/api#schema-output
+    debug_latents: loraFileSchema().optional(),
+    debug_per_pass_latents: loraFileSchema().optional(),
+  });
 
 // Most FAL image models respond with an array of images, but some have a response
 // with a single image, e.g. https://fal.ai/models/easel-ai/easel-avatar/api#schema-output
-const base = z.looseObject(commonResponseSchema.shape);
-const falImageResponseSchema = z
-  .union([
-    base.extend({ images: z.array(falImageSchema) }),
-    base.extend({ image: falImageSchema }),
-  ])
-  .transform(v => ('images' in v ? v : { ...v, images: [v.image] }))
-  .pipe(base.extend({ images: z.array(falImageSchema) }));
+const base = () => z.looseObject(commonResponseSchema().shape);
+const falImageResponseSchema = lazySchema(() =>
+  zodSchema(
+    z
+      .union([
+        base().extend({ images: z.array(falImageSchema()) }),
+        base().extend({ image: falImageSchema() }),
+      ])
+      .transform(v => ('images' in v ? v : { ...v, images: [v.image] }))
+      .pipe(base().extend({ images: z.array(falImageSchema()) })),
+  ),
+);
 
 function isValidationError(error: unknown): error is ValidationError {
   return falValidationErrorSchema.safeParse(error).success;

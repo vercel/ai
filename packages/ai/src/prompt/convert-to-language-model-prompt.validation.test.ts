@@ -6,6 +6,7 @@ describe('tool validation', () => {
   it('should pass validation for provider-executed tools (deferred results)', async () => {
     const result = await convertToLanguageModelPrompt({
       prompt: {
+        instructions: undefined,
         messages: [
           {
             role: 'assistant',
@@ -28,50 +29,56 @@ describe('tool validation', () => {
     expect(result).toMatchSnapshot();
   });
 
-  it('should pass validation for tool-approval-response', async () => {
-    const result = await convertToLanguageModelPrompt({
-      prompt: {
-        messages: [
-          {
-            role: 'assistant',
-            content: [
+  it.each([false, true])(
+    'should reject an unresolved local approval (follow-up: %s)',
+    async followUp => {
+      await expect(
+        convertToLanguageModelPrompt({
+          prompt: {
+            instructions: undefined,
+            messages: [
               {
-                type: 'tool-call',
-                toolCallId: 'call_to_approve',
-                toolName: 'dangerous_action',
-                input: { action: 'delete_db' },
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'call_to_approve',
+                    toolName: 'dangerous_action',
+                    input: { action: 'delete_db' },
+                  },
+                  {
+                    type: 'tool-approval-request',
+                    toolCallId: 'call_to_approve',
+                    approvalId: 'approval_123',
+                  },
+                ],
               },
               {
-                type: 'tool-approval-request',
-                toolCallId: 'call_to_approve',
-                approvalId: 'approval_123',
-                toolName: 'dangerous_action',
-                input: { action: 'delete_db' },
-              } as any,
+                role: 'tool',
+                content: [
+                  {
+                    type: 'tool-approval-response',
+                    approvalId: 'approval_123',
+                    approved: true,
+                  },
+                ],
+              },
+              ...(followUp
+                ? [{ role: 'user' as const, content: 'Continue.' }]
+                : []),
             ],
           },
-          {
-            role: 'tool',
-            content: [
-              {
-                type: 'tool-approval-response',
-                approvalId: 'approval_123',
-                approved: true,
-              } as any,
-            ],
-          },
-        ],
-      },
-      supportedUrls: {},
-      download: undefined,
-    });
-
-    expect(result).toMatchSnapshot();
-  });
+          supportedUrls: {},
+          download: undefined,
+        }),
+      ).rejects.toBeInstanceOf(MissingToolResultsError);
+    },
+  );
 
   it('should preserve provider-executed tool-approval-response', async () => {
     const result = await convertToLanguageModelPrompt({
       prompt: {
+        instructions: undefined,
         messages: [
           {
             role: 'assistant',
@@ -116,6 +123,7 @@ describe('tool validation', () => {
     await expect(async () => {
       await convertToLanguageModelPrompt({
         prompt: {
+          instructions: undefined,
           messages: [
             {
               role: 'assistant',

@@ -1,9 +1,9 @@
-import { EmbeddingModelV3 } from '../../embedding-model/v3/embedding-model-v3';
-import { ImageModelV3 } from '../../image-model/v3/image-model-v3';
-import { LanguageModelV3 } from '../../language-model/v3/language-model-v3';
-import { RerankingModelV3 } from '../../reranking-model/v3/reranking-model-v3';
-import { SpeechModelV3 } from '../../speech-model/v3/speech-model-v3';
-import { TranscriptionModelV3 } from '../../transcription-model/v3/transcription-model-v3';
+import type { EmbeddingModelV3 } from '../../embedding-model/v3/embedding-model-v3';
+import type { ImageModelV3 } from '../../image-model/v3/image-model-v3';
+import type { LanguageModelV3 } from '../../language-model/v3/language-model-v3';
+import type { RerankingModelV3 } from '../../reranking-model/v3/reranking-model-v3';
+import type { SpeechModelV3 } from '../../speech-model/v3/speech-model-v3';
+import type { TranscriptionModelV3 } from '../../transcription-model/v3/transcription-model-v3';
 
 /**
  * Provider for language, text embedding, and image generation models.

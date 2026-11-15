@@ -6,7 +6,7 @@ import { run } from '../lib/run';
 run(async () => {
   const result = streamText({
     model: wrapLanguageModel({
-      model: openai('gpt-4o'),
+      model: openai('gpt-6-astra'),
       middleware: yourRagMiddleware,
     }),
     prompt: 'What cities are in the United States?',

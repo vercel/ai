@@ -1,4 +1,4 @@
-import { createUIMessageStreamResponse, UIMessage } from 'ai';
+import { createUIMessageStreamResponse, type UIMessage } from 'ai';
 import { NextResponse } from 'next/server';
 
 import { ChatOpenAI, tools } from '@langchain/openai';
@@ -15,7 +15,7 @@ export const maxDuration = 120;
  * This enables access to OpenAI's built-in tools like image generation
  */
 const model = new ChatOpenAI({
-  model: 'gpt-4o',
+  model: 'gpt-6-astra',
 });
 
 /**

@@ -4,5 +4,8 @@ export type {
   BasetenProvider,
   BasetenProviderSettings,
   BasetenErrorData,
+  BasetenPerformanceClient,
+  BasetenPerformanceClientConstructor,
 } from './baseten-provider';
+export type { BasetenEmbeddingModelOptions } from './baseten-embedding-options';
 export { VERSION } from './version';

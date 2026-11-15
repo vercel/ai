@@ -1,4 +1,9 @@
-export { createHuggingFace, huggingface } from './huggingface-provider';
+export {
+  createHuggingFace,
+  huggingFace,
+  /** @deprecated Use `huggingFace` instead. */
+  huggingFace as huggingface,
+} from './huggingface-provider';
 export type {
   HuggingFaceProvider,
   HuggingFaceProviderSettings,
@@ -8,3 +13,4 @@ export type {
   HuggingFaceResponsesSettings,
 } from './responses/huggingface-responses-settings';
 export type { OpenAICompatibleErrorData as HuggingFaceErrorData } from '@ai-sdk/openai-compatible';
+export { VERSION } from './version';

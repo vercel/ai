@@ -37,15 +37,21 @@ const exclusionPrefixes = [
   'docs/07-reference/01-ai-sdk-core',
   'docs/07-reference/02-ai-sdk-ui',
   'docs/07-reference/03-ai-sdk-rsc',
+  'docs/07-reference/04-stream-helpers',
   'docs/07-reference/05-ai-sdk-errors/index',
   'docs/08-migration-guides',
   'docs/09-troubleshooting',
   'providers/01-ai-sdk-providers/index',
   'providers/02-openai-compatible-providers/01-custom-providers',
   'providers/02-openai-compatible-providers/40-baseten',
+  'providers/04-openai-compatible-providers/01-custom-providers',
+  'providers/04-openai-compatible-providers/40-baseten',
   'providers/03-community-providers',
+  'providers/05-community-providers',
   'providers/04-adapters',
+  'providers/06-adapters',
   'providers/05-observability',
+  'providers/03-observability',
 ];
 
 async function main() {

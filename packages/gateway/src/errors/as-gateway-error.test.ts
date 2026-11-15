@@ -8,6 +8,26 @@ import {
 } from './index';
 
 describe('asGatewayError', () => {
+  describe('caller cancellation', () => {
+    it.each(['AbortError', 'TimeoutError'])(
+      'should rethrow a %s DOMException unchanged',
+      async name => {
+        const error = new DOMException('Request cancelled', name);
+
+        await expect(asGatewayError(error)).rejects.toBe(error);
+      },
+    );
+
+    it.each(['AbortError', 'TimeoutError'])(
+      'should rethrow an Error named %s unchanged',
+      async name => {
+        const error = Object.assign(new Error('Request cancelled'), { name });
+
+        await expect(asGatewayError(error)).rejects.toBe(error);
+      },
+    );
+  });
+
   describe('timeout error detection', () => {
     it('should detect error with UND_ERR_HEADERS_TIMEOUT code', async () => {
       const error = Object.assign(new Error('Request timeout'), {
@@ -166,6 +186,23 @@ describe('asGatewayError', () => {
       const result = await asGatewayError(apiCallError);
 
       expect(GatewayTimeoutError.isInstance(result)).toBe(false);
+    });
+
+    it('should preserve retryability for transport errors after response headers', async () => {
+      const apiCallError = new APICallError({
+        message: 'Failed to process successful response',
+        url: 'https://example.com',
+        requestBodyValues: {},
+        statusCode: 200,
+        isRetryable: true,
+      });
+
+      const result = await asGatewayError(apiCallError);
+
+      expect(GatewayResponseError.isInstance(result)).toBe(true);
+      expect(result.isRetryable).toBe(true);
+      expect(result.statusCode).toBe(200);
+      expect(result.cause).toBe(apiCallError);
     });
   });
 });

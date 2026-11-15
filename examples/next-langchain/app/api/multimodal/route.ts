@@ -1,4 +1,4 @@
-import { createUIMessageStreamResponse, UIMessage } from 'ai';
+import { createUIMessageStreamResponse, type UIMessage } from 'ai';
 import { NextResponse } from 'next/server';
 
 import { ChatOpenAI } from '@langchain/openai';
@@ -14,7 +14,7 @@ export const maxDuration = 60;
  * GPT-4o has excellent vision capabilities for image understanding
  */
 const model = new ChatOpenAI({
-  model: 'gpt-4o',
+  model: 'gpt-6-astra',
 });
 
 /**

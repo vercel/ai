@@ -1,4 +1,4 @@
-import { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provider-metadata';
+import type { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provider-metadata';
 
 /**
  * A source that has been used as input to generate the response.

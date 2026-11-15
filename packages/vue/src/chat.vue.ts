@@ -1,18 +1,18 @@
 import {
   AbstractChat,
-  ChatInit as BaseChatInit,
-  ChatState,
-  ChatStatus,
-  UIMessage,
+  type ChatInit,
+  type ChatState,
+  type ChatStatus,
+  type UIMessage,
 } from 'ai';
-import { Ref, ref } from 'vue';
-
-class VueChatState<UI_MESSAGE extends UIMessage>
-  implements ChatState<UI_MESSAGE>
-{
+import { ref, type Ref } from 'vue';
+class VueChatState<
+  UI_MESSAGE extends UIMessage,
+> implements ChatState<UI_MESSAGE> {
   private messagesRef: Ref<UI_MESSAGE[]>;
   private statusRef = ref<ChatStatus>('ready');
   private errorRef = ref<Error | undefined>(undefined);
+  private queuedMessagesRef = ref([]) as Ref<UI_MESSAGE[]>;
 
   constructor(messages?: UI_MESSAGE[]) {
     this.messagesRef = ref(messages ?? []) as Ref<UI_MESSAGE[]>;
@@ -42,6 +42,14 @@ class VueChatState<UI_MESSAGE extends UIMessage>
     this.errorRef.value = error;
   }
 
+  get experimental_queuedMessages(): UI_MESSAGE[] {
+    return this.queuedMessagesRef.value;
+  }
+
+  set experimental_queuedMessages(experimental_queuedMessages: UI_MESSAGE[]) {
+    this.queuedMessagesRef.value = experimental_queuedMessages;
+  }
+
   pushMessage = (message: UI_MESSAGE) => {
     this.messagesRef.value = [...this.messagesRef.value, message];
   };
@@ -58,10 +66,14 @@ class VueChatState<UI_MESSAGE extends UIMessage>
   snapshot = <T>(value: T): T => value;
 }
 
+/**
+ * @deprecated Use the {@link useChat} composable instead. It exposes reactive
+ * refs and automatically recreates the chat when its init object changes.
+ */
 export class Chat<
   UI_MESSAGE extends UIMessage,
 > extends AbstractChat<UI_MESSAGE> {
-  constructor({ messages, ...init }: BaseChatInit<UI_MESSAGE>) {
+  constructor({ messages, ...init }: ChatInit<UI_MESSAGE>) {
     super({
       ...init,
       state: new VueChatState(messages),

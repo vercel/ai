@@ -74,6 +74,22 @@ describe('string', () => {
     assert.strictEqual(fixJson('"value with \\'), '"value with "');
   });
 
+  test('should handle incomplete unicode escape sequences', () => {
+    assert.strictEqual(fixJson('"\\u'), '""');
+    assert.strictEqual(fixJson('"\\u12'), '""');
+    assert.strictEqual(fixJson('"text \\u00'), '"text "');
+    assert.strictEqual(fixJson('{"a":"\\u12'), '{"a":""}');
+
+    for (const json of [
+      fixJson('"\\u'),
+      fixJson('"\\u12'),
+      fixJson('"text \\u00'),
+      fixJson('{"a":"\\u12'),
+    ]) {
+      assert.doesNotThrow(() => JSON.parse(json));
+    }
+  });
+
   test('should handle unicode characters', () => {
     assert.strictEqual(
       fixJson('"value with unicode \u003C"'),
@@ -113,6 +129,14 @@ describe('array', () => {
 
   test('should handle closing array', () => {
     assert.strictEqual(fixJson('[[], 123'), '[[], 123]');
+  });
+
+  test('should handle incomplete negative number as first element', () => {
+    assert.strictEqual(fixJson('[-'), '[]');
+    assert.strictEqual(fixJson('[ -'), '[]');
+    assert.strictEqual(fixJson('[[1], [-'), '[[1], []]');
+    assert.strictEqual(fixJson('{"a": [-'), '{"a": []}');
+    assert.strictEqual(fixJson('[-1'), '[-1]');
   });
 });
 

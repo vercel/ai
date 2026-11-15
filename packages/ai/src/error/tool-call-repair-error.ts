@@ -1,6 +1,6 @@
 import { AISDKError, getErrorMessage } from '@ai-sdk/provider';
-import { InvalidToolInputError } from './invalid-tool-input-error';
-import { NoSuchToolError } from './no-such-tool-error';
+import type { InvalidToolInputError } from './invalid-tool-input-error';
+import type { NoSuchToolError } from './no-such-tool-error';
 
 const name = 'AI_ToolCallRepairError';
 const marker = `vercel.ai.error.${name}`;

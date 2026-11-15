@@ -25,7 +25,7 @@ It should return the body content that will be sent to the server.
 
 ## Example
 
-This example shows how to only send the text of the last message to the server.
+This example shows how to only send the last message to the server.
 This can be useful if you want to reduce the amount of data sent to the server.
 
 ### Client
@@ -83,8 +83,13 @@ export default function Chat() {
 We need to adjust the server to receive the custom request format with the chat ID and last message.
 The rest of the message history can be loaded from storage.
 
-```tsx filename='app/api/chat/route.ts' highlight="8,11,12,16"
-import { convertToModelMessages, streamText } from 'ai';
+```tsx filename='app/api/chat/route.ts' highlight="12,15-16,21"
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -98,16 +103,19 @@ export async function POST(req: Request) {
 
   // Call the language model
   const result = streamText({
-    model: 'openai/gpt-4.1',
+    model: 'openai/gpt-6-astra',
     messages: await convertToModelMessages(messages),
   });
 
   // Respond with the stream
-  return result.toUIMessageStreamResponse({
-    originalMessages: messages,
-    onFinish: ({ messages: newMessages }) => {
-      saveMessages(id, newMessages);
-    },
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      originalMessages: messages,
+      onFinish: ({ messages: newMessages }) => {
+        saveMessages(id, newMessages);
+      },
+    }),
   });
 }
 ```

@@ -127,6 +127,7 @@ type V4FilePart = Extract<V4Part, { type: 'file' }>;
 // Type guards
 function isV4Message(msg: V4Message | MyUIMessage): msg is V4Message {
   return (
+    msg?.parts == null ||
     'toolInvocations' in msg ||
     (msg?.parts?.some(p => p.type === 'tool-invocation') ?? false) ||
     msg?.role === 'data' ||
@@ -465,9 +466,8 @@ export async function POST(req: Request) {
     message: convertV5MessageToV4(message), // convert to v4
   });
 
-  // Load previous messages (already in v5 format)
-  const previousMessages = await loadChat(chatId);
-  const messages = [...previousMessages, message];
+  // Load all messages, including the one just saved (already in v5 format)
+  const messages = await loadChat(chatId);
 
   const result = streamText({
     model: __MODEL__,
@@ -827,8 +827,7 @@ export async function POST(req: Request) {
     message,
   });
 
-  const previousMessages = await loadChat(chatId);
-  const messages = [...previousMessages, message];
+  const messages = await loadChat(chatId);
 
   const result = streamText({
     model: __MODEL__,

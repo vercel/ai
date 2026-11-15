@@ -1,6 +1,6 @@
-import { UIMessageChunk } from '../ui-message-stream';
-import { ChatRequestOptions } from './chat';
-import { UIMessage } from './ui-messages';
+import type { UIMessageChunk } from '../ui-message-stream';
+import type { ChatRequestOptions } from './chat';
+import type { UIMessage } from './ui-messages';
 
 /**
  * Transport interface for handling chat message communication and streaming.
@@ -13,6 +13,22 @@ import { UIMessage } from './ui-messages';
  * @template UI_MESSAGE - The UI message type extending UIMessage
  */
 export interface ChatTransport<UI_MESSAGE extends UIMessage> {
+  /**
+   * Whether reconnecting returns the complete response from its beginning.
+   * Complete replays must reset the streaming message state before processing
+   * the first start chunk.
+   */
+  readonly resumeStreamIsReplay?: boolean;
+
+  /**
+   * Releases persistent resources owned by the transport.
+   *
+   * The caller that creates a transport owns its lifecycle and should call
+   * this method when no consumers remain. `AbstractChat.dispose()` calls it
+   * for directly managed chat instances.
+   */
+  close?: () => void;
+
   /**
    * Sends messages to the chat API endpoint and returns a streaming response.
    *
@@ -64,6 +80,7 @@ export interface ChatTransport<UI_MESSAGE extends UIMessage> {
    *
    * @param options - Configuration object containing:
    * @param options.chatId - Unique identifier for the chat session to reconnect to
+   * @param options.abortSignal - Signal to abort the reconnection request if needed
    * @param options.headers - Additional HTTP headers to include in the reconnection request
    * @param options.body - Additional JSON properties to include in the request body
    * @param options.metadata - Custom metadata to attach to the request
@@ -78,6 +95,8 @@ export interface ChatTransport<UI_MESSAGE extends UIMessage> {
     options: {
       /** Unique identifier for the chat session to reconnect to */
       chatId: string;
+      /** Signal to abort the reconnection request if needed */
+      abortSignal?: AbortSignal;
     } & ChatRequestOptions,
   ) => Promise<ReadableStream<UIMessageChunk> | null>;
 }

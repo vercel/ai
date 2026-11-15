@@ -1,22 +1,29 @@
 import {
-  JSONValue,
-  LanguageModelV3CallOptions,
   TypeValidationError,
+  type JSONSchema7,
+  type JSONValue,
+  type LanguageModelV4CallOptions,
 } from '@ai-sdk/provider';
 import {
   asSchema,
-  FlexibleSchema,
   resolve,
   safeParseJSON,
   safeValidateTypes,
+  type FlexibleSchema,
+  type InferSchema,
 } from '@ai-sdk/provider-utils';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
-import { FinishReason } from '../types/language-model';
-import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
-import { LanguageModelUsage } from '../types/usage';
-import { DeepPartial } from '../util/deep-partial';
+import type { FinishReason } from '../types/language-model';
+import type { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
+import type { LanguageModelUsage } from '../types/usage';
+import {
+  createArrayOutputStreamParser,
+  arrayStreamParserFactories,
+} from '../util/array-output-stream';
+import type { DeepPartial } from '../util/deep-partial';
 import { parsePartialJson } from '../util/parse-partial-json';
-import { EnrichedStreamPart } from './stream-text';
+import type { EnrichedStreamPart } from './stream-text';
 
 export interface Output<OUTPUT = any, PARTIAL = any, ELEMENT = any> {
   /**
@@ -27,7 +34,7 @@ export interface Output<OUTPUT = any, PARTIAL = any, ELEMENT = any> {
   /**
    * The response format to use for the model.
    */
-  responseFormat: PromiseLike<LanguageModelV3CallOptions['responseFormat']>;
+  responseFormat: PromiseLike<LanguageModelV4CallOptions['responseFormat']>;
 
   /**
    * Parses the complete output of the model.
@@ -35,7 +42,7 @@ export interface Output<OUTPUT = any, PARTIAL = any, ELEMENT = any> {
   parseCompleteOutput(
     options: { text: string },
     context: {
-      response: LanguageModelResponseMetadata;
+      response: Omit<LanguageModelResponseMetadata, 'messages' | 'body'>;
       usage: LanguageModelUsage;
       finishReason: FinishReason;
     },
@@ -79,22 +86,25 @@ export const text = (): Output<string, string, never> => ({
   },
 });
 
-/**
- * Output specification for typed object generation using schemas.
- * When the model generates a text response, it will return an object that matches the schema.
- *
- * @param schema - The schema of the object to generate.
- * @param name - Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.
- * @param description - Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.
- *
- * @returns An output specification for generating objects with the specified schema.
- */
-export const object = <OBJECT>({
-  schema: inputSchema,
-  name,
-  description,
-}: {
-  schema: FlexibleSchema<OBJECT>;
+// pass through explicit `any` types for backward compat
+type ValidatedSchema<SCHEMA> = 0 extends 1 & SCHEMA
+  ? never
+  : [SCHEMA] extends [FlexibleSchema]
+    ? SCHEMA
+    : never;
+
+// The output type is the first type parameter so that an explicit output type
+// (e.g. `typeof Output.object<Person>`) is preserved. Otherwise it is inferred
+// from the schema.
+type ResolveOutput<OUTPUT, SCHEMA> = [OUTPUT] extends [never]
+  ? InferSchema<SCHEMA>
+  : OUTPUT;
+
+type ObjectOptions<SCHEMA> = {
+  /**
+   * The schema of the object to generate.
+   */
+  schema: SCHEMA;
   /**
    * Optional name of the output that should be generated.
    * Used by some providers for additional LLM guidance, e.g. via tool or schema name.
@@ -105,7 +115,37 @@ export const object = <OBJECT>({
    * Used by some providers for additional LLM guidance, e.g. via tool or schema description.
    */
   description?: string;
-}): Output<OBJECT, DeepPartial<OBJECT>, never> => {
+};
+
+/**
+ * Output specification for typed object generation using schemas.
+ * When the model generates a text response, it will return an object that matches the schema.
+ *
+ * @param schema - The schema of the object to generate.
+ * @param name - Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.
+ * @param description - Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.
+ *
+ * @returns An output specification for generating objects with the specified schema.
+ */
+export function object<OBJECT>(
+  options: ObjectOptions<FlexibleSchema<OBJECT>>,
+): Output<OBJECT, DeepPartial<OBJECT>, never>;
+export function object<OUTPUT = never, SCHEMA = FlexibleSchema<OUTPUT>>(
+  options: ObjectOptions<ValidatedSchema<SCHEMA>>,
+): Output<
+  ResolveOutput<OUTPUT, SCHEMA>,
+  DeepPartial<ResolveOutput<OUTPUT, SCHEMA>>,
+  never
+>;
+export function object<OBJECT>({
+  schema: inputSchema,
+  name,
+  description,
+}: ObjectOptions<FlexibleSchema<OBJECT>>): Output<
+  OBJECT,
+  DeepPartial<OBJECT>,
+  never
+> {
   const schema = asSchema(inputSchema);
 
   return {
@@ -130,12 +170,10 @@ export const object = <OBJECT>({
 
       if (!parseResult.success) {
         throw new NoObjectGeneratedError({
+          ...context,
           message: 'No object generated: could not parse the response.',
           cause: parseResult.error,
           text,
-          response: context.response,
-          usage: context.usage,
-          finishReason: context.finishReason,
         });
       }
 
@@ -146,12 +184,10 @@ export const object = <OBJECT>({
 
       if (!validationResult.success) {
         throw new NoObjectGeneratedError({
+          ...context,
           message: 'No object generated: response did not match schema.',
           cause: validationResult.error,
           text,
-          response: context.response,
-          usage: context.usage,
-          finishReason: context.finishReason,
         });
       }
 
@@ -181,24 +217,21 @@ export const object = <OBJECT>({
       return undefined;
     },
   };
-};
+}
 
-/**
- * Output specification for array generation.
- * When the model generates a text response, it will return an array of elements.
- *
- * @param element - The schema of the array elements to generate.
- * @param name - Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.
- * @param description - Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.
- *
- * @returns An output specification for generating an array of elements.
- */
-export const array = <ELEMENT>({
-  element: inputElementSchema,
-  name,
-  description,
-}: {
-  element: FlexibleSchema<ELEMENT>;
+type ArrayOptions<SCHEMA> = {
+  /**
+   * The schema of the array elements to generate.
+   */
+  element: SCHEMA;
+  /**
+   * Optional minimum number of elements to generate.
+   */
+  minItems?: number;
+  /**
+   * Optional maximum number of elements to generate.
+   */
+  maxItems?: number;
   /**
    * Optional name of the output that should be generated.
    * Used by some providers for additional LLM guidance, e.g. via tool or schema name.
@@ -209,24 +242,83 @@ export const array = <ELEMENT>({
    * Used by some providers for additional LLM guidance, e.g. via tool or schema description.
    */
   description?: string;
-}): Output<Array<ELEMENT>, Array<ELEMENT>, ELEMENT> => {
+};
+
+/**
+ * Output specification for array generation.
+ * When the model generates a text response, it will return an array of elements.
+ *
+ * @param element - The schema of the array elements to generate.
+ * @param minItems - Optional minimum number of elements to generate.
+ * @param maxItems - Optional maximum number of elements to generate.
+ * @param name - Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.
+ * @param description - Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.
+ *
+ * @returns An output specification for generating an array of elements.
+ */
+export function array<ELEMENT>(
+  options: ArrayOptions<FlexibleSchema<ELEMENT>>,
+): Output<Array<ELEMENT>, Array<ELEMENT>, ELEMENT>;
+export function array<OUTPUT = never, SCHEMA = FlexibleSchema<OUTPUT>>(
+  options: ArrayOptions<ValidatedSchema<SCHEMA>>,
+): Output<
+  Array<ResolveOutput<OUTPUT, SCHEMA>>,
+  Array<ResolveOutput<OUTPUT, SCHEMA>>,
+  ResolveOutput<OUTPUT, SCHEMA>
+>;
+export function array<ELEMENT>({
+  element: inputElementSchema,
+  minItems,
+  maxItems,
+  name,
+  description,
+}: ArrayOptions<FlexibleSchema<ELEMENT>>): Output<
+  Array<ELEMENT>,
+  Array<ELEMENT>,
+  ELEMENT
+> {
+  validateArrayBound({ name: 'minItems', value: minItems });
+  validateArrayBound({ name: 'maxItems', value: maxItems });
+
+  if (minItems != null && maxItems != null && minItems > maxItems) {
+    throw new InvalidArgumentError({
+      parameter: 'minItems',
+      value: minItems,
+      message: 'minItems must be less than or equal to maxItems',
+    });
+  }
+
   const elementSchema = asSchema(inputElementSchema);
 
-  return {
+  const output: Output<Array<ELEMENT>, Array<ELEMENT>, ELEMENT> = {
     name: 'array',
 
     // JSON schema that describes an array of elements:
     responseFormat: resolve(elementSchema.jsonSchema).then(jsonSchema => {
-      // remove $schema from schema.jsonSchema:
-      const { $schema, ...itemSchema } = jsonSchema;
+      // keep root-level definitions available to root-relative references:
+      const {
+        $schema: _$schema,
+        definitions,
+        $defs,
+        ...itemSchema
+      } = jsonSchema as JSONSchema7 & {
+        $defs?: JSONSchema7['definitions'];
+      };
 
       return {
         type: 'json' as const,
         schema: {
           $schema: 'http://json-schema.org/draft-07/schema#',
+          ...(definitions != null && { definitions }),
+          ...($defs != null && { $defs }),
           type: 'object',
           properties: {
-            elements: { type: 'array', items: itemSchema },
+            elements: {
+              type: 'array',
+              items: itemSchema,
+              ...(minItems != null && { minItems }),
+              ...(maxItems != null && { maxItems }),
+            },
           },
           required: ['elements'],
           additionalProperties: false,
@@ -248,12 +340,10 @@ export const array = <ELEMENT>({
 
       if (!parseResult.success) {
         throw new NoObjectGeneratedError({
+          ...context,
           message: 'No object generated: could not parse the response.',
           cause: parseResult.error,
           text,
-          response: context.response,
-          usage: context.usage,
-          finishReason: context.finishReason,
         });
       }
 
@@ -266,18 +356,32 @@ export const array = <ELEMENT>({
         !Array.isArray(outerValue.elements)
       ) {
         throw new NoObjectGeneratedError({
+          ...context,
           message: 'No object generated: response did not match schema.',
           cause: new TypeValidationError({
             value: outerValue,
             cause: 'response must be an object with an elements array',
           }),
           text,
-          response: context.response,
-          usage: context.usage,
-          finishReason: context.finishReason,
         });
       }
 
+      const lengthValidationError = getArrayLengthValidationError({
+        value: outerValue.elements,
+        minItems,
+        maxItems,
+      });
+
+      if (lengthValidationError != null) {
+        throw new NoObjectGeneratedError({
+          ...context,
+          message: 'No object generated: response did not match schema.',
+          cause: lengthValidationError,
+          text,
+        });
+      }
+
+      const validatedElements: Array<ELEMENT> = [];
       for (const element of outerValue.elements) {
         const validationResult = await safeValidateTypes({
           value: element,
@@ -286,17 +390,17 @@ export const array = <ELEMENT>({
 
         if (!validationResult.success) {
           throw new NoObjectGeneratedError({
+            ...context,
             message: 'No object generated: response did not match schema.',
             cause: validationResult.error,
             text,
-            response: context.response,
-            usage: context.usage,
-            finishReason: context.finishReason,
           });
         }
+
+        validatedElements.push(validationResult.value);
       }
 
-      return outerValue.elements as Array<ELEMENT>;
+      return validatedElements;
     },
 
     async parsePartialOutput({ text }: { text: string }) {
@@ -359,6 +463,16 @@ export const array = <ELEMENT>({
               publishedElements < partialOutput.length;
               publishedElements++
             ) {
+              if (maxItems != null && publishedElements >= maxItems) {
+                controller.error(
+                  getArrayLengthValidationError({
+                    value: partialOutput,
+                    maxItems,
+                  }),
+                );
+                return;
+              }
+
               controller.enqueue(partialOutput[publishedElements]);
             }
           }
@@ -366,11 +480,71 @@ export const array = <ELEMENT>({
       });
     },
   };
-};
+
+  const parsePartialOutput = output.parsePartialOutput;
+  arrayStreamParserFactories.set(output, () =>
+    output.parsePartialOutput === parsePartialOutput
+      ? createArrayOutputStreamParser(elementSchema, true)
+      : undefined,
+  );
+  return output;
+}
+
+function validateArrayBound({
+  name,
+  value,
+}: {
+  name: 'minItems' | 'maxItems';
+  value: number | undefined;
+}) {
+  if (value == null) {
+    return;
+  }
+
+  if (!Number.isInteger(value)) {
+    throw new InvalidArgumentError({
+      parameter: name,
+      value,
+      message: `${name} must be an integer`,
+    });
+  }
+
+  if (value < 0) {
+    throw new InvalidArgumentError({
+      parameter: name,
+      value,
+      message: `${name} must be greater than or equal to 0`,
+    });
+  }
+}
+
+function getArrayLengthValidationError({
+  value,
+  minItems,
+  maxItems,
+}: {
+  value: Array<unknown>;
+  minItems?: number;
+  maxItems?: number;
+}): TypeValidationError | undefined {
+  if (minItems != null && value.length < minItems) {
+    return new TypeValidationError({
+      value,
+      cause: `elements array must contain at least ${minItems} items`,
+    });
+  }
+
+  if (maxItems != null && value.length > maxItems) {
+    return new TypeValidationError({
+      value,
+      cause: `elements array must contain at most ${maxItems} items`,
+    });
+  }
+}
 
 /**
  * Output specification for choice generation.
- * When the model generates a text response, it will return a one of the choice options.
+ * When the model generates a text response, it will return one of the choice options.
  *
  * @param options - The available choices.
  * @param name - Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.
@@ -426,12 +600,10 @@ export const choice = <CHOICE extends string>({
 
       if (!parseResult.success) {
         throw new NoObjectGeneratedError({
+          ...context,
           message: 'No object generated: could not parse the response.',
           cause: parseResult.error,
           text,
-          response: context.response,
-          usage: context.usage,
-          finishReason: context.finishReason,
         });
       }
 
@@ -445,15 +617,13 @@ export const choice = <CHOICE extends string>({
         !choiceOptions.includes(outerValue.result as any)
       ) {
         throw new NoObjectGeneratedError({
+          ...context,
           message: 'No object generated: response did not match schema.',
           cause: new TypeValidationError({
             value: outerValue,
             cause: 'response must be an object that contains a choice value.',
           }),
           text,
-          response: context.response,
-          usage: context.usage,
-          finishReason: context.finishReason,
         });
       }
 
@@ -553,12 +723,10 @@ export const json = ({
 
       if (!parseResult.success) {
         throw new NoObjectGeneratedError({
+          ...context,
           message: 'No object generated: could not parse the response.',
           cause: parseResult.error,
           text,
-          response: context.response,
-          usage: context.usage,
-          finishReason: context.finishReason,
         });
       }
 

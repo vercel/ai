@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { expect } from 'vitest';
 import { baseten as provider } from '@ai-sdk/baseten';
-import { APICallError } from 'ai';
+import type { APICallError } from 'ai';
 import {
   createFeatureTestSuite,
   createLanguageModelWithCapabilities,

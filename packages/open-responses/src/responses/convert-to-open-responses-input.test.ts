@@ -131,7 +131,7 @@ describe('convertToOpenResponsesInput', () => {
             content: [
               {
                 type: 'file',
-                data: 'ZmFrZS1kYXRh',
+                data: { type: 'data' as const, data: 'ZmFrZS1kYXRh' },
                 mediaType: 'image/png',
               },
             ],
@@ -144,6 +144,7 @@ describe('convertToOpenResponsesInput', () => {
           {
             "content": [
               {
+                "detail": "auto",
                 "image_url": "data:image/png;base64,ZmFrZS1kYXRh",
                 "type": "input_image",
               },
@@ -163,7 +164,10 @@ describe('convertToOpenResponsesInput', () => {
             content: [
               {
                 type: 'file',
-                data: new URL('https://example.com/image.png'),
+                data: {
+                  type: 'url' as const,
+                  url: new URL('https://example.com/image.png'),
+                },
                 mediaType: 'image/png',
               },
             ],
@@ -176,6 +180,7 @@ describe('convertToOpenResponsesInput', () => {
           {
             "content": [
               {
+                "detail": "auto",
                 "image_url": "https://example.com/image.png",
                 "type": "input_image",
               },
@@ -187,16 +192,67 @@ describe('convertToOpenResponsesInput', () => {
       `);
     });
 
-    it('should warn when non-image file parts are provided', async () => {
+    it('should preserve image detail provider options', async () => {
+      const result = await convertToOpenResponsesInput({
+        providerOptionsName: 'test-provider',
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: { type: 'data' as const, data: 'ZmFrZS1kYXRh' },
+                mediaType: 'image/png',
+                providerOptions: {
+                  'test-provider': { imageDetail: 'low' },
+                },
+              },
+              {
+                type: 'file',
+                data: {
+                  type: 'url' as const,
+                  url: new URL('https://example.com/image.png'),
+                },
+                mediaType: 'image/png',
+                providerOptions: {
+                  'test-provider': { imageDetail: 'high' },
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'message',
+          role: 'user',
+          content: [
+            {
+              type: 'input_image',
+              image_url: 'data:image/png;base64,ZmFrZS1kYXRh',
+              detail: 'low',
+            },
+            {
+              type: 'input_image',
+              image_url: 'https://example.com/image.png',
+              detail: 'high',
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should convert PDF file parts with base64 data to input_file', async () => {
       const result = await convertToOpenResponsesInput({
         prompt: [
           {
             role: 'user',
             content: [
-              { type: 'text', text: 'Here is an image id.' },
+              { type: 'text', text: 'What does this PDF say?' },
               {
                 type: 'file',
-                data: 'UERGREFUQQ==',
+                data: { type: 'data' as const, data: 'UERGREFUQQ==' },
                 mediaType: 'application/pdf',
               },
             ],
@@ -209,8 +265,13 @@ describe('convertToOpenResponsesInput', () => {
           {
             "content": [
               {
-                "text": "Here is an image id.",
+                "text": "What does this PDF say?",
                 "type": "input_text",
+              },
+              {
+                "file_data": "data:application/pdf;base64,UERGREFUQQ==",
+                "filename": "data",
+                "type": "input_file",
               },
             ],
             "role": "user",
@@ -218,12 +279,77 @@ describe('convertToOpenResponsesInput', () => {
           },
         ]
       `);
-      expect(result.warnings).toEqual([
-        {
-          message: 'unsupported file content type: application/pdf',
-          type: 'other',
-        },
-      ]);
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should convert PDF file parts with URL data to input_file', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: {
+                  type: 'url' as const,
+                  url: new URL('https://example.com/document.pdf'),
+                },
+                mediaType: 'application/pdf',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "file_url": "https://example.com/document.pdf",
+                "type": "input_file",
+              },
+            ],
+            "role": "user",
+            "type": "message",
+          },
+        ]
+      `);
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should use provided filename for non-image file parts', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: { type: 'data' as const, data: 'UERGREFUQQ==' },
+                mediaType: 'application/pdf',
+                filename: 'report.pdf',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "file_data": "data:application/pdf;base64,UERGREFUQQ==",
+                "filename": "report.pdf",
+                "type": "input_file",
+              },
+            ],
+            "role": "user",
+            "type": "message",
+          },
+        ]
+      `);
     });
   });
 
@@ -286,6 +412,217 @@ describe('convertToOpenResponsesInput', () => {
         ]
       `);
     });
+
+    it('should convert reasoning parts to reasoning items', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'Analyzing the problem step by step',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'reasoning',
+          summary: [],
+          content: [
+            {
+              type: 'reasoning_text',
+              text: 'Analyzing the problem step by step',
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should preserve interleaved assistant content order', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'Analyzing the problem',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                input: '{}',
+              },
+              {
+                type: 'text',
+                text: 'Answer after the call',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(
+        Array.isArray(result.input)
+          ? result.input.map(item => item.type)
+          : undefined,
+      ).toEqual(['reasoning', 'function_call', 'message']);
+    });
+
+    it('should preserve reasoning item provider data', async () => {
+      const result = await convertToOpenResponsesInput({
+        providerOptionsName: 'test-provider',
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'safe summary',
+                providerOptions: {
+                  'test-provider': {
+                    itemId: 'rs_123',
+                    reasoningSummary: [
+                      { type: 'summary_text', text: 'safe summary' },
+                    ],
+                    reasoningEncryptedContent: 'encrypted-state',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toEqual([
+        {
+          id: 'rs_123',
+          type: 'reasoning',
+          summary: [{ type: 'summary_text', text: 'safe summary' }],
+          content: [{ type: 'reasoning_text', text: 'safe summary' }],
+          encrypted_content: 'encrypted-state',
+        },
+      ]);
+    });
+
+    it('should preserve output text annotations from provider data', async () => {
+      const result = await convertToOpenResponsesInput({
+        providerOptionsName: 'test-provider',
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Sourced answer',
+                providerOptions: {
+                  'test-provider': {
+                    itemId: 'msg_123',
+                    annotations: [
+                      {
+                        type: 'url_citation',
+                        start_index: 0,
+                        end_index: 7,
+                        url: 'https://example.com/source',
+                        title: 'Example source',
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toEqual([
+        {
+          id: 'msg_123',
+          type: 'message',
+          role: 'assistant',
+          content: [
+            {
+              type: 'output_text',
+              text: 'Sourced answer',
+              annotations: [
+                {
+                  type: 'url_citation',
+                  start_index: 0,
+                  end_index: 7,
+                  url: 'https://example.com/source',
+                  title: 'Example source',
+                },
+              ],
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should use an easy input message without generating an ID in strict mode', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello from assistant' }],
+          },
+        ],
+        strictResponseInput: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'message',
+          role: 'assistant',
+          content: 'Hello from assistant',
+        },
+      ]);
+    });
+
+    it('should preserve a genuine item ID as a complete output message in strict mode', async () => {
+      const result = await convertToOpenResponsesInput({
+        providerOptionsName: 'test-provider',
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Hello from assistant',
+                providerOptions: {
+                  'test-provider': {
+                    itemId: 'msg_123',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        strictResponseInput: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          id: 'msg_123',
+          type: 'message',
+          status: 'completed',
+          role: 'assistant',
+          content: [
+            {
+              type: 'output_text',
+              text: 'Hello from assistant',
+              annotations: [],
+              logprobs: [],
+            },
+          ],
+        },
+      ]);
+    });
   });
 
   describe('assistant messages with tool calls', () => {
@@ -338,7 +675,7 @@ describe('convertToOpenResponsesInput', () => {
       expect(result.input).toMatchInlineSnapshot(`
         [
           {
-            "arguments": "{\"location\":\"Berlin\"}",
+            "arguments": "{"location":"Berlin"}",
             "call_id": "call_124",
             "name": "get_weather",
             "type": "function_call",
@@ -611,8 +948,12 @@ describe('convertToOpenResponsesInput', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'image-url',
-                      url: 'https://example.com/image.png',
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/image.png'),
+                      },
+                      mediaType: 'image/png',
                     },
                   ],
                 },
@@ -628,6 +969,7 @@ describe('convertToOpenResponsesInput', () => {
             "call_id": "call_image",
             "output": [
               {
+                "detail": "auto",
                 "image_url": "https://example.com/image.png",
                 "type": "input_image",
               },
@@ -636,6 +978,67 @@ describe('convertToOpenResponsesInput', () => {
           },
         ]
       `);
+    });
+
+    it('should preserve image detail provider options in tool output', async () => {
+      const result = await convertToOpenResponsesInput({
+        providerOptionsName: 'test-provider',
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_image',
+                toolName: 'screenshot',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file',
+                      data: { type: 'data', data: 'ZmFrZS1kYXRh' },
+                      mediaType: 'image/png',
+                      providerOptions: {
+                        'test-provider': { imageDetail: 'low' },
+                      },
+                    },
+                    {
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/image.png'),
+                      },
+                      mediaType: 'image/png',
+                      providerOptions: {
+                        'test-provider': { imageDetail: 'high' },
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_image',
+          output: [
+            {
+              type: 'input_image',
+              image_url: 'data:image/png;base64,ZmFrZS1kYXRh',
+              detail: 'low',
+            },
+            {
+              type: 'input_image',
+              image_url: 'https://example.com/image.png',
+              detail: 'high',
+            },
+          ],
+        },
+      ]);
     });
 
     it('should convert tool message with multiple tool results', async () => {
@@ -854,7 +1257,7 @@ describe('convertToOpenResponsesInput', () => {
             "type": "message",
           },
           {
-            "arguments": "{\"location\":\"Tokyo\"}",
+            "arguments": "{"location":"Tokyo"}",
             "call_id": "call_weather",
             "name": "get_weather",
             "type": "function_call",
@@ -877,5 +1280,259 @@ describe('convertToOpenResponsesInput', () => {
         ]
       `);
     });
+  });
+
+  describe('provider reference', () => {
+    it('should throw for file parts with provider references', async () => {
+      await expect(
+        convertToOpenResponsesInput({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: {
+                    type: 'reference' as const,
+                    reference: { openResponses: 'file-ref-123' },
+                  },
+                  mediaType: 'image/png',
+                },
+              ],
+            },
+          ],
+        }),
+      ).rejects.toThrow(
+        "'file parts with provider references' functionality not supported",
+      );
+    });
+  });
+
+  describe('top-level-only media type resolution', () => {
+    const pngBase64 = 'iVBORw0KGgo=';
+
+    it('passes full image/png through unchanged for inline data', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: { type: 'data', data: pngBase64 },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect((result.input[0] as { content: unknown[] }).content[0]).toEqual({
+        type: 'input_image',
+        image_url: `data:image/png;base64,${pngBase64}`,
+        detail: 'auto',
+      });
+    });
+
+    it('detects image subtype from inline bytes for top-level "image"', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image',
+                data: { type: 'data', data: pngBase64 },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect((result.input[0] as { content: unknown[] }).content[0]).toEqual({
+        type: 'input_image',
+        image_url: `data:image/png;base64,${pngBase64}`,
+        detail: 'auto',
+      });
+    });
+
+    it('passes through URL source for top-level-only image', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image',
+                data: {
+                  type: 'url',
+                  url: new URL('https://example.com/x.png'),
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect((result.input[0] as { content: unknown[] }).content[0]).toEqual({
+        type: 'input_image',
+        image_url: 'https://example.com/x.png',
+        detail: 'auto',
+      });
+    });
+
+    it('normalizes image/* wildcard via detection', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/*',
+                data: { type: 'data', data: pngBase64 },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect((result.input[0] as { content: unknown[] }).content[0]).toEqual({
+        type: 'input_image',
+        image_url: `data:image/png;base64,${pngBase64}`,
+        detail: 'auto',
+      });
+    });
+  });
+});
+
+describe('custom tool results', () => {
+  it('preserves text, images, and files in custom tool history', async () => {
+    const result = await convertToOpenResponsesInput({
+      customToolId: 'acme.custom',
+      providerToolsByName: new Map([
+        [
+          'render',
+          { type: 'provider', id: 'acme.custom', name: 'render', args: {} },
+        ],
+      ]),
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call_1',
+              toolName: 'render',
+              output: {
+                type: 'content',
+                value: [
+                  { type: 'text', text: 'Rendered result' },
+                  {
+                    type: 'file',
+                    mediaType: 'image/png',
+                    data: {
+                      type: 'url',
+                      url: new URL('https://example.com/result.png'),
+                    },
+                  },
+                  {
+                    type: 'file',
+                    mediaType: 'application/pdf',
+                    data: {
+                      type: 'url',
+                      url: new URL('https://example.com/result.pdf'),
+                    },
+                  },
+                  {
+                    type: 'file',
+                    mediaType: 'image/png',
+                    data: { type: 'data', data: 'aW1hZ2U=' },
+                  },
+                  {
+                    type: 'file',
+                    mediaType: 'application/pdf',
+                    filename: 'result.pdf',
+                    data: { type: 'data', data: 'cGRm' },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+    expect(result.warnings).toEqual([]);
+    expect(result.input).toEqual([
+      {
+        type: 'custom_tool_call_output',
+        call_id: 'call_1',
+        output: [
+          { type: 'input_text', text: 'Rendered result' },
+          {
+            type: 'input_image',
+            image_url: 'https://example.com/result.png',
+            detail: 'auto',
+          },
+          {
+            type: 'input_file',
+            file_url: 'https://example.com/result.pdf',
+          },
+          {
+            type: 'input_image',
+            image_url: 'data:image/png;base64,aW1hZ2U=',
+            detail: 'auto',
+          },
+          {
+            type: 'input_file',
+            filename: 'result.pdf',
+            file_data: 'data:application/pdf;base64,cGRm',
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('warns when a custom tool result contains unsupported provider file references', async () => {
+    const result = await convertToOpenResponsesInput({
+      customToolId: 'acme.custom',
+      providerToolsByName: new Map([
+        [
+          'render',
+          { type: 'provider', id: 'acme.custom', name: 'render', args: {} },
+        ],
+      ]),
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call_1',
+              toolName: 'render',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file',
+                    mediaType: 'image/png',
+                    data: { type: 'reference', reference: { acme: 'file_1' } },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+    expect(result.warnings).toEqual([
+      {
+        type: 'other',
+        message:
+          'unsupported tool content part type: file with data type: reference',
+      },
+    ]);
   });
 });

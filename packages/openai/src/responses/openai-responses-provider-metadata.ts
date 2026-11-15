@@ -1,8 +1,9 @@
-import {
+import type {
   openaiResponsesChunkSchema,
   OpenAIResponsesLogprobs,
+  OpenAIResponsesPromptCacheDiagnostics,
 } from './openai-responses-api';
-import { InferSchema } from '@ai-sdk/provider-utils';
+import type { InferSchema } from '@ai-sdk/provider-utils';
 
 type OpenaiResponsesChunk = InferSchema<typeof openaiResponsesChunkSchema>;
 
@@ -15,6 +16,8 @@ export type ResponsesProviderMetadata = {
   responseId: string | null | undefined;
   logprobs?: Array<OpenAIResponsesLogprobs>;
   serviceTier?: string;
+  reasoningContext?: string;
+  promptCacheDiagnostics?: OpenAIResponsesPromptCacheDiagnostics;
 };
 
 export type ResponsesReasoningProviderMetadata = {
@@ -30,8 +33,35 @@ export type OpenaiResponsesProviderMetadata = {
   openai: ResponsesProviderMetadata;
 };
 
+export type ResponsesToolCallProviderMetadata = {
+  itemId: string;
+  async?: boolean;
+  namespace?: string;
+  caller?:
+    | { type: 'direct' }
+    | {
+        type: 'program';
+        callerId: string;
+      };
+};
+
+export type OpenaiResponsesToolCallProviderMetadata = {
+  openai: ResponsesToolCallProviderMetadata;
+};
+
+export type ResponsesCompactionProviderMetadata = {
+  type: 'compaction';
+  itemId: string;
+  encryptedContent?: string;
+};
+
+export type OpenaiResponsesCompactionProviderMetadata = {
+  openai: ResponsesCompactionProviderMetadata;
+};
+
 export type ResponsesTextProviderMetadata = {
   itemId: string;
+  phase?: 'commentary' | 'final_answer' | null;
   annotations?: Array<ResponsesOutputTextAnnotationProviderMetadata>;
 };
 
@@ -40,6 +70,10 @@ export type OpenaiResponsesTextProviderMetadata = {
 };
 
 export type ResponsesSourceDocumentProviderMetadata =
+  | {
+      type: 'file_search';
+      fileId: string;
+    }
   | {
       type: 'file_citation';
       fileId: string;

@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import { createMCPClient } from '@ai-sdk/mcp';
 
 import 'dotenv/config';
@@ -18,13 +18,13 @@ async function main() {
   const tools = await mcpClient.tools();
 
   const { text: answer } = await generateText({
-    model: openai('gpt-4o-mini'),
+    model: openai('gpt-6-luna'),
     tools,
-    stopWhen: stepCountIs(10),
+    stopWhen: isStepCount(10),
     onStepFinish: async ({ toolResults }) => {
       console.log(`STEP RESULTS: ${JSON.stringify(toolResults, null, 2)}`);
     },
-    system: 'You are a helpful chatbot',
+    instructions: 'You are a helpful chatbot',
     prompt: 'List all products, then find availability for Product 1.',
   });
 

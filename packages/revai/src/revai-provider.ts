@@ -1,18 +1,20 @@
 import {
-  TranscriptionModelV3,
-  ProviderV3,
   NoSuchModelError,
+  type TranscriptionModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { RevaiTranscriptionModel } from './revai-transcription-model';
-import { RevaiTranscriptionModelId } from './revai-transcription-options';
+import type { RevaiTranscriptionModelId } from './revai-transcription-options';
 import { VERSION } from './version';
 
-export interface RevaiProvider extends ProviderV3 {
+export interface RevaiProvider extends ProviderV4 {
   (
     modelId: 'machine',
     settings?: {},
@@ -23,7 +25,7 @@ export interface RevaiProvider extends ProviderV3 {
   /**
    * Creates a model for transcription.
    */
-  transcription(modelId: RevaiTranscriptionModelId): TranscriptionModelV3;
+  transcription(modelId: RevaiTranscriptionModelId): TranscriptionModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -33,9 +35,10 @@ export interface RevaiProvider extends ProviderV3 {
 
 export interface RevaiProviderSettings {
   /**
-   * API key for authenticating requests.
+   * API key for authenticating requests. May be a string, promise, or a
+   * synchronous/asynchronous callback called before each request.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Custom headers to include in the requests.
@@ -56,16 +59,18 @@ export function createRevai(
   options: RevaiProviderSettings = {},
 ): RevaiProvider {
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'REVAI_API_KEY',
-          description: 'Rev.ai',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk/revai/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'REVAI_API_KEY',
+            description: 'Rev.ai',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-revai/${VERSION}`,
+      ),
     );
 
   const createTranscriptionModel = (modelId: RevaiTranscriptionModelId) =>
@@ -82,7 +87,7 @@ export function createRevai(
     };
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
 

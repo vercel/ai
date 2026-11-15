@@ -1,7 +1,7 @@
-import { ZodTypeDef } from 'zod/v3';
-import { Refs, Seen } from './refs';
+import type { ZodTypeDef } from 'zod/v3';
+import type { Refs, Seen } from './refs';
 import { ignoreOverride } from './options';
-import { JsonSchema7Type } from './parse-types';
+import type { JsonSchema7Type } from './parse-types';
 import { selectParser } from './select-parser';
 import { getRelativePath } from './get-relative-path';
 import { parseAnyDef } from './parsers/any';

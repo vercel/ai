@@ -1,11 +1,6 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -45,9 +40,6 @@
     },
     {
       "path": "../../packages/react"
-    },
-    {
-      "path": "../../packages/ai"
     }
   ]
 }

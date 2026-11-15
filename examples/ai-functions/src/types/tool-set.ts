@@ -1,5 +1,10 @@
 import { openai } from '@ai-sdk/openai';
-import { StaticToolCall, StaticToolResult, generateText, tool } from 'ai';
+import {
+  generateText,
+  tool,
+  type StaticToolCall,
+  type StaticToolResult,
+} from 'ai';
 import { z } from 'zod';
 
 const myToolSet = {
@@ -24,7 +29,7 @@ async function generateSomething(prompt: string): Promise<{
   staticToolResults: Array<MyToolResult>;
 }> {
   return generateText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     tools: myToolSet,
     prompt,
   });

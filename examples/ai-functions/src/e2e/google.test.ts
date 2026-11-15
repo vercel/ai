@@ -1,38 +1,44 @@
-import { GoogleErrorData, google as provider } from '@ai-sdk/google';
-import { APICallError, ImageModelV3, LanguageModelV3 } from '@ai-sdk/provider';
+import { google as provider, type GoogleErrorData } from '@ai-sdk/google';
+import type {
+  APICallError,
+  LanguageModelV3,
+  LanguageModelV4,
+} from '@ai-sdk/provider';
 import 'dotenv/config';
 import { expect } from 'vitest';
 import {
-  ModelWithCapabilities,
   createEmbeddingModelWithCapabilities,
   createFeatureTestSuite,
   createLanguageModelWithCapabilities,
   createImageModelWithCapabilities,
   defaultChatModelCapabilities,
+  type ModelWithCapabilities,
 } from './feature-test-suite';
-import { wrapLanguageModel } from 'ai';
-import { defaultSettingsMiddleware } from 'ai';
+import { defaultSettingsMiddleware, wrapLanguageModel } from 'ai';
 
-const createChatModel = (
-  modelId: string,
-): ModelWithCapabilities<LanguageModelV3> =>
+const createChatModel = (modelId: string) =>
   createLanguageModelWithCapabilities(provider.chat(modelId));
 
-const createImageModel = (
-  modelId: string,
-): ModelWithCapabilities<ImageModelV3> =>
+const createImageModel = (modelId: string) =>
   createImageModelWithCapabilities(provider.image(modelId));
 
 const createSearchGroundedModel = (
   modelId: string,
-): ModelWithCapabilities<LanguageModelV3> => {
+): ModelWithCapabilities<LanguageModelV3 | LanguageModelV4> => {
   const model = provider.chat(modelId);
   return {
     model: wrapLanguageModel({
       model,
       middleware: defaultSettingsMiddleware({
         settings: {
-          providerOptions: { google: { useSearchGrounding: true } },
+          tools: [
+            {
+              type: 'provider',
+              id: 'google.google_search',
+              name: 'google_search',
+              args: {},
+            },
+          ],
         },
       }),
     }),
@@ -41,24 +47,30 @@ const createSearchGroundedModel = (
 };
 
 createFeatureTestSuite({
-  name: 'Google Generative AI',
+  name: 'Google',
   models: {
     invalidModel: provider.chat('no-such-model'),
     languageModels: [
-      createSearchGroundedModel('gemini-1.5-flash-latest'),
-      createChatModel('gemini-1.5-flash-latest'),
+      createSearchGroundedModel('gemini-4-hydrogen'),
+      createChatModel('gemini-4-hydrogen'),
       // Gemini 2.0 and Pro models have low quota limits and may require billing enabled.
-      // createChatModel('gemini-2.0-flash-exp'),
-      // createSearchGroundedModel('gemini-2.0-flash-exp'),
-      // createChatModel('gemini-1.5-pro-latest'),
+      // createChatModel('gemini-2.5-flash-image'),
+      // createSearchGroundedModel('gemini-2.5-flash-image'),
+      // createChatModel('gemini-2.5-pro'),
       // createChatModel('gemini-1.0-pro'),
     ],
     embeddingModels: [
       createEmbeddingModelWithCapabilities(
         provider.embeddingModel('gemini-embedding-001'),
       ),
+      createEmbeddingModelWithCapabilities(
+        provider.embeddingModel('gemini-embedding-2-preview'),
+      ),
     ],
-    imageModels: [createImageModel('imagen-3.0-generate-002')],
+    imageModels: [
+      createImageModel('gemini-2.5-flash-image'),
+      createImageModel('gemini-nano-banana-2.1'),
+    ],
   },
   timeout: 20000,
   customAssertions: {
@@ -66,7 +78,7 @@ createFeatureTestSuite({
     errorValidator: (error: APICallError) => {
       console.log(error);
       expect((error.data as GoogleErrorData).error.message).match(
-        /models\/no\-such\-model is not found/,
+        /models\/no-such-model is not found/,
       );
     },
   },

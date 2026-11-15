@@ -1,5 +1,5 @@
 import {
-  createProviderToolFactory,
+  createProviderDefinedToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -26,7 +26,7 @@ const computer_20241022InputSchema = lazySchema(() =>
   ),
 );
 
-export const computer_20241022 = createProviderToolFactory<
+export const computer_20241022 = createProviderDefinedToolFactory<
   {
     /**
      * The action to perform. The available actions are:

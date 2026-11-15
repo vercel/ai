@@ -1,0 +1,21 @@
+{
+  "id": "chatcmpl-test-text",
+  "object": "chat.completion",
+  "created": 1785880000,
+  "model": "kimi-k3",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Hello, world!"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 9,
+    "completion_tokens": 5,
+    "total_tokens": 14
+  }
+}

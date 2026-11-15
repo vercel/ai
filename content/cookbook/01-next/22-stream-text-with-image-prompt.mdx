@@ -6,7 +6,7 @@ tags: ['next', 'streaming', 'multimodal']
 
 # Stream Text with Image Prompt
 
-Vision models such as GPT-4o can process both text and images. In this example, we will show you how to send an image URL along with the user's message to the model with `useChat`.
+Vision models such as GPT-6 Astra can process both text and images. In this example, we will show you how to send an image URL along with the user's message to the model with `useChat`.
 
 ## Using Image URLs
 
@@ -14,8 +14,13 @@ Vision models such as GPT-4o can process both text and images. In this example, 
 
 The server route uses `convertToModelMessages` to handle the conversion from `UIMessage`s to model messages, which automatically handles multimodal content including images.
 
-```tsx filename='app/api/chat/route.ts' highlight="8,9,23"
-import { streamText } from 'ai';
+```tsx filename='app/api/chat/route.ts' highlight="16,20-22"
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 
 export const maxDuration = 60;
 
@@ -24,12 +29,14 @@ export async function POST(req: Request) {
 
   // Call the language model
   const result = streamText({
-    model: 'openai/gpt-4.1',
+    model: 'openai/gpt-6-astra',
     messages: await convertToModelMessages(messages),
   });
 
   // Respond with the stream
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 

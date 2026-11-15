@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import type { Experimental_VideoModelV4 } from '@ai-sdk/provider';
+import { describe, it, expect, vi } from 'vitest';
 import { GatewayVideoModel } from './gateway-video-model';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import type { GatewayConfig } from './gateway-config';
@@ -26,6 +27,8 @@ const createTestModel = (
 describe('GatewayVideoModel', () => {
   const server = createTestServer({
     'https://api.test.com/video-model': {},
+    'https://api.test.com/video-model/start': {},
+    'https://api.test.com/video-model/status': {},
   });
 
   describe('constructor', () => {
@@ -34,7 +37,7 @@ describe('GatewayVideoModel', () => {
 
       expect(model.modelId).toBe(TEST_MODEL_ID);
       expect(model.provider).toBe('gateway');
-      expect(model.specificationVersion).toBe('v3');
+      expect(model.specificationVersion).toBe('v4');
       expect(model.maxVideosPerCall).toBe(Number.MAX_SAFE_INTEGER);
     });
 
@@ -65,6 +68,7 @@ describe('GatewayVideoModel', () => {
 
   describe('doGenerate', () => {
     type VideoData =
+      | { type: 'uploaded'; mediaType: string }
       | { type: 'url'; url: string; mediaType: string }
       | { type: 'base64'; data: string; mediaType: string };
 
@@ -80,16 +84,22 @@ describe('GatewayVideoModel', () => {
       providerMetadata,
     }: {
       videos?: VideoData[];
-      warnings?: Array<{ type: 'other'; message: string }>;
+      warnings?: Array<
+        | { type: 'unsupported'; feature: string; details?: string }
+        | { type: 'compatibility'; feature: string; details?: string }
+        | { type: 'other'; message: string }
+      >;
       providerMetadata?: Record<string, unknown>;
     } = {}) {
+      const ssePayload = {
+        type: 'result',
+        videos,
+        ...(warnings && { warnings }),
+        ...(providerMetadata && { providerMetadata }),
+      };
       server.urls['https://api.test.com/video-model'].response = {
-        type: 'json-value',
-        body: {
-          videos,
-          ...(warnings && { warnings }),
-          ...(providerMetadata && { providerMetadata }),
-        },
+        type: 'stream-chunks',
+        chunks: [`data: ${JSON.stringify(ssePayload)}\n\n`],
       };
     }
 
@@ -99,19 +109,22 @@ describe('GatewayVideoModel', () => {
       await createTestModel().doGenerate({
         prompt: 'A beautiful sunset over mountains',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
       const headers = server.calls[0].requestHeaders;
       expect(headers).toMatchObject({
         authorization: 'Bearer test-token',
-        'ai-video-model-specification-version': '3',
+        'ai-video-model-specification-version': '4',
         'ai-model-id': TEST_MODEL_ID,
       });
     });
@@ -125,12 +138,15 @@ describe('GatewayVideoModel', () => {
       await createTestModel().doGenerate({
         prompt,
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: '16:9',
         resolution: '1920x1080',
         duration: 5,
         fps: 24,
         seed: 42,
+        generateAudio: true,
         providerOptions: {
           fal: { motionStrength: 0.8 },
         },
@@ -145,8 +161,31 @@ describe('GatewayVideoModel', () => {
         duration: 5,
         fps: 24,
         seed: 42,
+        generateAudio: true,
         providerOptions: { fal: { motionStrength: 0.8 } },
       });
+    });
+
+    it('should pass seed when it is 0', async () => {
+      prepareJsonResponse();
+
+      await createTestModel().doGenerate({
+        prompt: 'A simple prompt',
+        image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
+        n: 1,
+        aspectRatio: undefined,
+        resolution: undefined,
+        duration: undefined,
+        fps: undefined,
+        seed: 0,
+        generateAudio: undefined,
+        providerOptions: {},
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toHaveProperty('seed', 0);
     });
 
     it('should omit optional parameters when not provided', async () => {
@@ -156,12 +195,15 @@ describe('GatewayVideoModel', () => {
       await createTestModel().doGenerate({
         prompt,
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -176,6 +218,7 @@ describe('GatewayVideoModel', () => {
       expect(requestBody).not.toHaveProperty('duration');
       expect(requestBody).not.toHaveProperty('fps');
       expect(requestBody).not.toHaveProperty('seed');
+      expect(requestBody).not.toHaveProperty('generateAudio');
     });
 
     it('should return videos array correctly', async () => {
@@ -188,12 +231,15 @@ describe('GatewayVideoModel', () => {
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 2,
         aspectRatio: undefined,
         resolution: undefined,
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -213,6 +259,32 @@ describe('GatewayVideoModel', () => {
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
+        n: 1,
+        aspectRatio: undefined,
+        resolution: undefined,
+        duration: undefined,
+        fps: undefined,
+        seed: undefined,
+        generateAudio: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.videos).toEqual(mockVideos);
+    });
+
+    it('accepts uploaded video outcomes', async () => {
+      const videos: VideoData[] = [
+        { type: 'uploaded', mediaType: 'video/mp4' },
+      ];
+      prepareJsonResponse({ videos });
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
+        generateAudio: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
@@ -221,8 +293,7 @@ describe('GatewayVideoModel', () => {
         seed: undefined,
         providerOptions: {},
       });
-
-      expect(result.videos).toEqual(mockVideos);
+      expect(result.videos).toEqual(videos);
     });
 
     it('should return provider metadata correctly', async () => {
@@ -244,12 +315,15 @@ describe('GatewayVideoModel', () => {
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -270,12 +344,15 @@ describe('GatewayVideoModel', () => {
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -296,12 +373,15 @@ describe('GatewayVideoModel', () => {
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -316,12 +396,15 @@ describe('GatewayVideoModel', () => {
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -341,12 +424,80 @@ describe('GatewayVideoModel', () => {
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.warnings).toEqual(mockWarnings);
+    });
+
+    it('should return unsupported warnings correctly', async () => {
+      const mockWarnings = [
+        {
+          type: 'unsupported' as const,
+          feature: 'aspectRatio',
+          details:
+            'KlingAI image-to-video does not support aspectRatio. The output dimensions are determined by the input image.',
+        },
+      ];
+
+      prepareJsonResponse({
+        videos: [{ type: 'base64', data: 'base64-1', mediaType: 'video/mp4' }],
+        warnings: mockWarnings,
+      });
+
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
+        n: 1,
+        aspectRatio: undefined,
+        resolution: undefined,
+        duration: undefined,
+        fps: undefined,
+        seed: undefined,
+        generateAudio: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.warnings).toEqual(mockWarnings);
+    });
+
+    it('should return compatibility warnings correctly', async () => {
+      const mockWarnings = [
+        {
+          type: 'compatibility' as const,
+          feature: 'resolution',
+          details: 'Resolution was adjusted to nearest supported value.',
+        },
+      ];
+
+      prepareJsonResponse({
+        videos: [{ type: 'base64', data: 'base64-1', mediaType: 'video/mp4' }],
+        warnings: mockWarnings,
+      });
+
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
+        n: 1,
+        aspectRatio: undefined,
+        resolution: undefined,
+        duration: undefined,
+        fps: undefined,
+        seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -361,12 +512,15 @@ describe('GatewayVideoModel', () => {
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -381,12 +535,15 @@ describe('GatewayVideoModel', () => {
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -401,12 +558,15 @@ describe('GatewayVideoModel', () => {
       await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         headers: {
           'X-Custom-Header': 'custom-value',
         },
@@ -417,7 +577,7 @@ describe('GatewayVideoModel', () => {
       expect(headers).toMatchObject({
         authorization: 'Bearer test-token',
         'x-custom-header': 'custom-value',
-        'ai-video-model-specification-version': '3',
+        'ai-video-model-specification-version': '4',
         'ai-model-id': TEST_MODEL_ID,
       });
     });
@@ -433,12 +593,15 @@ describe('GatewayVideoModel', () => {
       }).doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -456,12 +619,15 @@ describe('GatewayVideoModel', () => {
       await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         abortSignal: abortController.signal,
         providerOptions: {},
       });
@@ -485,12 +651,15 @@ describe('GatewayVideoModel', () => {
         createTestModel().doGenerate({
           prompt: 'Test prompt',
           image: undefined,
+          frameImages: undefined,
+          inputReferences: undefined,
           n: 1,
           aspectRatio: undefined,
           resolution: undefined,
           duration: undefined,
           fps: undefined,
           seed: undefined,
+          generateAudio: undefined,
           providerOptions: {},
         }),
       ).rejects.toThrow();
@@ -512,15 +681,137 @@ describe('GatewayVideoModel', () => {
         createTestModel().doGenerate({
           prompt: 'Test prompt',
           image: undefined,
+          frameImages: undefined,
+          inputReferences: undefined,
           n: 1,
           aspectRatio: undefined,
           resolution: undefined,
           duration: undefined,
           fps: undefined,
           seed: undefined,
+          generateAudio: undefined,
           providerOptions: {},
         }),
       ).rejects.toThrow();
+    });
+
+    it('should throw on SSE error event with correct message and status', async () => {
+      server.urls['https://api.test.com/video-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'error',
+            message: 'Rate limit exceeded',
+            errorType: 'rate_limit_exceeded',
+            statusCode: 429,
+            param: null,
+          })}\n\n`,
+        ],
+      };
+
+      await expect(
+        createTestModel().doGenerate({
+          prompt: 'Test prompt',
+          image: undefined,
+          frameImages: undefined,
+          inputReferences: undefined,
+          n: 1,
+          aspectRatio: undefined,
+          resolution: undefined,
+          duration: undefined,
+          fps: undefined,
+          seed: undefined,
+          generateAudio: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow('Rate limit exceeded');
+    });
+
+    it('should throw on SSE error event with provider routing failure', async () => {
+      server.urls['https://api.test.com/video-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'error',
+            message: 'All providers failed',
+            errorType: 'internal_server_error',
+            statusCode: 500,
+            param: null,
+          })}\n\n`,
+        ],
+      };
+
+      await expect(
+        createTestModel().doGenerate({
+          prompt: 'Test prompt',
+          image: undefined,
+          frameImages: undefined,
+          inputReferences: undefined,
+          n: 1,
+          aspectRatio: undefined,
+          resolution: undefined,
+          duration: undefined,
+          fps: undefined,
+          seed: undefined,
+          generateAudio: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow('All providers failed');
+    });
+
+    it('should throw on empty SSE stream', async () => {
+      server.urls['https://api.test.com/video-model'].response = {
+        type: 'stream-chunks',
+        chunks: [],
+      };
+
+      await expect(
+        createTestModel().doGenerate({
+          prompt: 'Test prompt',
+          image: undefined,
+          frameImages: undefined,
+          inputReferences: undefined,
+          n: 1,
+          aspectRatio: undefined,
+          resolution: undefined,
+          duration: undefined,
+          fps: undefined,
+          seed: undefined,
+          generateAudio: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow();
+    });
+
+    it('should ignore SSE heartbeat comments and parse data event', async () => {
+      const videos = [
+        { type: 'base64' as const, data: 'base64-1', mediaType: 'video/mp4' },
+      ];
+      server.urls['https://api.test.com/video-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          ':\n\n',
+          ':\n\n',
+          `data: ${JSON.stringify({ type: 'result', videos })}\n\n`,
+        ],
+      };
+
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
+        n: 1,
+        aspectRatio: undefined,
+        resolution: undefined,
+        duration: undefined,
+        fps: undefined,
+        seed: undefined,
+        generateAudio: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.videos).toEqual(videos);
     });
 
     it('should include providerOptions object in request body', async () => {
@@ -529,12 +820,15 @@ describe('GatewayVideoModel', () => {
       await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {
           fal: {
             motionStrength: 0.8,
@@ -568,12 +862,15 @@ describe('GatewayVideoModel', () => {
       await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -600,12 +897,15 @@ describe('GatewayVideoModel', () => {
       await model.doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -641,12 +941,15 @@ describe('GatewayVideoModel', () => {
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -684,11 +987,14 @@ describe('GatewayVideoModel', () => {
             data: binaryData,
           },
           n: 1,
+          frameImages: undefined,
+          inputReferences: undefined,
           aspectRatio: undefined,
           resolution: undefined,
           duration: undefined,
           fps: undefined,
           seed: undefined,
+          generateAudio: undefined,
           providerOptions: {},
         });
 
@@ -711,11 +1017,14 @@ describe('GatewayVideoModel', () => {
             data: 'already-base64-encoded',
           },
           n: 1,
+          frameImages: undefined,
+          inputReferences: undefined,
           aspectRatio: undefined,
           resolution: undefined,
           duration: undefined,
           fps: undefined,
           seed: undefined,
+          generateAudio: undefined,
           providerOptions: {},
         });
 
@@ -737,11 +1046,14 @@ describe('GatewayVideoModel', () => {
             url: 'https://example.com/image.png',
           },
           n: 1,
+          frameImages: undefined,
+          inputReferences: undefined,
           aspectRatio: undefined,
           resolution: undefined,
           duration: undefined,
           fps: undefined,
           seed: undefined,
+          generateAudio: undefined,
           providerOptions: {},
         });
 
@@ -766,11 +1078,14 @@ describe('GatewayVideoModel', () => {
             providerOptions: { fal: { enhanceImage: true } },
           },
           n: 1,
+          frameImages: undefined,
+          inputReferences: undefined,
           aspectRatio: undefined,
           resolution: undefined,
           duration: undefined,
           fps: undefined,
           seed: undefined,
+          generateAudio: undefined,
           providerOptions: {},
         });
 
@@ -782,6 +1097,428 @@ describe('GatewayVideoModel', () => {
           providerOptions: { fal: { enhanceImage: true } },
         });
       });
+    });
+
+    describe('frameImages and inputReferences encoding', () => {
+      it('should encode frameImages with Uint8Array data to base64', async () => {
+        prepareJsonResponse();
+
+        const binaryData = new Uint8Array([72, 101, 108, 108, 111]);
+
+        await createTestModel().doGenerate({
+          prompt: 'Animate between frames',
+          image: undefined,
+          frameImages: [
+            {
+              frameType: 'first_frame',
+              image: {
+                type: 'file',
+                mediaType: 'image/png',
+                data: binaryData,
+              },
+            },
+            {
+              frameType: 'last_frame',
+              image: {
+                type: 'url',
+                url: 'https://example.com/last-frame.png',
+              },
+            },
+          ],
+          inputReferences: undefined,
+          n: 1,
+          aspectRatio: undefined,
+          resolution: undefined,
+          duration: undefined,
+          fps: undefined,
+          seed: undefined,
+          generateAudio: undefined,
+          providerOptions: {},
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.frameImages).toEqual([
+          {
+            frameType: 'first_frame',
+            image: {
+              type: 'file',
+              mediaType: 'image/png',
+              data: 'SGVsbG8=',
+            },
+          },
+          {
+            frameType: 'last_frame',
+            image: {
+              type: 'url',
+              url: 'https://example.com/last-frame.png',
+            },
+          },
+        ]);
+      });
+
+      it('should encode inputReferences with Uint8Array data to base64', async () => {
+        prepareJsonResponse();
+
+        const binaryData = new Uint8Array([72, 101, 108, 108, 111]);
+
+        await createTestModel().doGenerate({
+          prompt: 'Generate from references',
+          image: undefined,
+          frameImages: undefined,
+          inputReferences: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: binaryData,
+            },
+            {
+              type: 'url',
+              url: 'https://example.com/reference.png',
+            },
+          ],
+          n: 1,
+          aspectRatio: undefined,
+          resolution: undefined,
+          duration: undefined,
+          fps: undefined,
+          seed: undefined,
+          generateAudio: undefined,
+          providerOptions: {},
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.inputReferences).toEqual([
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: 'SGVsbG8=',
+          },
+          {
+            type: 'url',
+            url: 'https://example.com/reference.png',
+          },
+        ]);
+      });
+
+      it('should omit frameImages and inputReferences when not provided', async () => {
+        prepareJsonResponse();
+
+        await createTestModel().doGenerate({
+          prompt: 'Text to video',
+          image: undefined,
+          frameImages: undefined,
+          inputReferences: undefined,
+          n: 1,
+          aspectRatio: undefined,
+          resolution: undefined,
+          duration: undefined,
+          fps: undefined,
+          seed: undefined,
+          generateAudio: undefined,
+          providerOptions: {},
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).not.toHaveProperty('frameImages');
+        expect(requestBody).not.toHaveProperty('inputReferences');
+      });
+    });
+  });
+
+  describe('handleWebhookOption', () => {
+    it('should pass the factory URL and received promise straight through', async () => {
+      const received = Promise.resolve({
+        headers: { 'x-ai-gateway-signature': 't=1,v1=abc' },
+        body: { type: 'video.generation.completed' },
+      });
+      const webhook = vi.fn(async () => ({
+        url: 'https://example.com/hook',
+        received,
+      }));
+
+      const result = await createTestModel().handleWebhookOption!({ webhook });
+
+      expect(webhook).toHaveBeenCalledOnce();
+      expect(result.webhookUrl).toBe('https://example.com/hook');
+      expect(result.received).toBe(received);
+    });
+  });
+
+  describe('doStart', () => {
+    const baseCallOptions = {
+      prompt: 'A beautiful sunset over mountains',
+      image: undefined,
+      frameImages: undefined,
+      inputReferences: undefined,
+      n: 1,
+      aspectRatio: undefined,
+      resolution: undefined,
+      duration: undefined,
+      fps: undefined,
+      seed: undefined,
+      generateAudio: undefined,
+      providerOptions: {},
+    };
+
+    it('should call the Gateway start endpoint and return the operation', async () => {
+      server.urls['https://api.test.com/video-model/start'].response = {
+        type: 'json-value',
+        body: {
+          operation: { gatewayJobId: 'job_123' },
+          warnings: [{ type: 'other', message: 'queued' }],
+          providerMetadata: {
+            gateway: { asyncJob: { jobId: 'job_123', status: 'queued' } },
+          },
+        },
+      };
+
+      const result = await createTestModel().doStart({
+        ...baseCallOptions,
+        aspectRatio: '16:9',
+        resolution: '1280x720',
+        duration: 5,
+        fps: 24,
+        seed: 123,
+        generateAudio: true,
+        providerOptions: { gateway: { tags: ['async'] } },
+        webhookUrl: 'https://example.com/webhook',
+      });
+
+      expect(result.operation).toEqual({ gatewayJobId: 'job_123' });
+      expect(result.warnings).toEqual([{ type: 'other', message: 'queued' }]);
+      expect(result.providerMetadata).toEqual({
+        gateway: { asyncJob: { jobId: 'job_123', status: 'queued' } },
+      });
+      expect(result.response.modelId).toBe(TEST_MODEL_ID);
+      expect(result.response.timestamp).toBeInstanceOf(Date);
+      expect(result.response.headers).toBeDefined();
+
+      const call = server.calls[0];
+      expect(call.requestHeaders).toMatchObject({
+        authorization: 'Bearer test-token',
+        'ai-video-model-specification-version': '4',
+        'ai-model-id': TEST_MODEL_ID,
+      });
+      await expect(call.requestBodyJson).resolves.toEqual({
+        prompt: 'A beautiful sunset over mountains',
+        n: 1,
+        aspectRatio: '16:9',
+        resolution: '1280x720',
+        duration: 5,
+        fps: 24,
+        seed: 123,
+        generateAudio: true,
+        providerOptions: { gateway: { tags: ['async'] } },
+        // The spec-side `webhookUrl` option maps onto the Gateway's
+        // `callbackUrl` wire field (its completion-webhook contract).
+        callbackUrl: 'https://example.com/webhook',
+      });
+    });
+
+    it('should omit optional fields and callbackUrl when webhookUrl is not provided', async () => {
+      server.urls['https://api.test.com/video-model/start'].response = {
+        type: 'json-value',
+        body: { operation: { gatewayJobId: 'job_123' } },
+      };
+
+      const result = await createTestModel().doStart(baseCallOptions);
+
+      // warnings defaults to an empty array when omitted by the gateway
+      expect(result.warnings).toEqual([]);
+      await expect(server.calls[0].requestBodyJson).resolves.toEqual({
+        prompt: 'A beautiful sunset over mountains',
+        n: 1,
+        providerOptions: {},
+      });
+    });
+
+    it('should map gateway errors', async () => {
+      server.urls['https://api.test.com/video-model/start'].response = {
+        type: 'error',
+        status: 400,
+        body: JSON.stringify({
+          error: { message: 'Invalid request', code: 'invalid_request' },
+        }),
+      };
+
+      await expect(
+        createTestModel().doStart(baseCallOptions),
+      ).rejects.toThrow();
+    });
+
+    it('should forward the caller-supplied idempotency key', async () => {
+      server.urls['https://api.test.com/video-model/start'].response = {
+        type: 'json-value',
+        body: { operation: { gatewayJobId: 'job_123' } },
+      };
+
+      // The key is minted by `generateVideo` once per logical start and passed
+      // down, so a retry of a lost response dedupes at the gateway rather than
+      // starting a second billable generation. The model must not invent one:
+      // inferring retry identity from an options object would collide across
+      // unrelated calls that happen to share it.
+      await createTestModel().doStart({
+        ...baseCallOptions,
+        headers: { 'idempotency-key': 'aisdk_vid_abc123' },
+      });
+
+      expect(server.calls[0].requestHeaders['idempotency-key']).toBe(
+        'aisdk_vid_abc123',
+      );
+    });
+
+    it('should send no idempotency key when the caller supplies none', async () => {
+      server.urls['https://api.test.com/video-model/start'].response = {
+        type: 'json-value',
+        body: { operation: { gatewayJobId: 'job_123' } },
+      };
+
+      await createTestModel().doStart(baseCallOptions);
+
+      expect(server.calls[0].requestHeaders['idempotency-key']).toBeUndefined();
+    });
+  });
+
+  describe('doStatus', () => {
+    it('should return pending status', async () => {
+      server.urls['https://api.test.com/video-model/status'].response = {
+        type: 'json-value',
+        body: {
+          status: 'pending',
+          providerMetadata: {
+            gateway: { asyncJob: { jobId: 'job_123', status: 'running' } },
+          },
+        },
+      };
+
+      const result = await createTestModel().doStatus({
+        operation: { gatewayJobId: 'job_123' },
+      });
+
+      expect(result).toMatchObject({
+        status: 'pending',
+        providerMetadata: {
+          gateway: { asyncJob: { jobId: 'job_123', status: 'running' } },
+        },
+      });
+      expect(result.response.modelId).toBe(TEST_MODEL_ID);
+      await expect(server.calls[0].requestBodyJson).resolves.toEqual({
+        operation: { gatewayJobId: 'job_123' },
+      });
+    });
+
+    it('accepts uploaded outcomes in completed status responses', async () => {
+      server.urls['https://api.test.com/video-model/status'].response = {
+        type: 'json-value',
+        body: {
+          status: 'completed',
+          videos: [{ type: 'uploaded', mediaType: 'video/mp4' }],
+          warnings: [],
+        },
+      };
+      const result = await createTestModel().doStatus({
+        operation: { gatewayJobId: 'job_123' },
+      });
+      expect(result).toMatchObject({
+        status: 'completed',
+        videos: [{ type: 'uploaded', mediaType: 'video/mp4' }],
+      });
+    });
+
+    it('should return completed videos (provider-hosted URLs)', async () => {
+      server.urls['https://api.test.com/video-model/status'].response = {
+        type: 'json-value',
+        body: {
+          status: 'completed',
+          videos: [
+            {
+              type: 'url',
+              url: 'https://cdn.example.com/v.mp4',
+              mediaType: 'video/mp4',
+            },
+          ],
+          warnings: [{ type: 'other', message: 'complete' }],
+          providerMetadata: {
+            gateway: {
+              asyncJob: {
+                jobId: 'job_123',
+                result: { expiresAt: 1234 },
+                status: 'completed',
+              },
+            },
+          },
+        },
+      };
+
+      const result = await createTestModel().doStatus({
+        operation: { gatewayJobId: 'job_123' },
+      });
+
+      expect(result).toMatchObject({
+        status: 'completed',
+        videos: [
+          {
+            type: 'url',
+            url: 'https://cdn.example.com/v.mp4',
+            mediaType: 'video/mp4',
+          },
+        ],
+        warnings: [{ type: 'other', message: 'complete' }],
+      });
+    });
+
+    it('should return error status', async () => {
+      server.urls['https://api.test.com/video-model/status'].response = {
+        type: 'json-value',
+        body: {
+          status: 'error',
+          error: 'Async video job failed',
+        },
+      };
+
+      const result = await createTestModel().doStatus({
+        operation: { gatewayJobId: 'job_123' },
+      });
+
+      expect(result).toMatchObject({
+        status: 'error',
+        error: 'Async video job failed',
+      });
+    });
+
+    it('maps the gateway cancelled status to a terminal error', async () => {
+      server.urls['https://api.test.com/video-model/status'].response = {
+        type: 'json-value',
+        body: {
+          status: 'cancelled',
+          providerMetadata: {
+            gateway: { asyncJob: { jobId: 'job_123', status: 'cancelled' } },
+          },
+        },
+      };
+
+      const result = await createTestModel().doStatus({
+        operation: { gatewayJobId: 'job_123' },
+      });
+
+      expect(result).toMatchObject({
+        status: 'error',
+        error: 'Video generation was cancelled.',
+      });
+    });
+
+    it('should map gateway errors', async () => {
+      server.urls['https://api.test.com/video-model/status'].response = {
+        type: 'error',
+        status: 401,
+        body: JSON.stringify({
+          error: { message: 'Unauthorized', code: 'unauthorized' },
+        }),
+      };
+
+      await expect(
+        createTestModel().doStatus({ operation: { gatewayJobId: 'job_123' } }),
+      ).rejects.toThrow();
     });
   });
 });

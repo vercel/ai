@@ -1,14 +1,39 @@
-import { AbstractChat, ChatInit, ChatState, ChatStatus, UIMessage } from 'ai';
+import {
+  AbstractChat,
+  type ChatInit,
+  type ChatState,
+  type ChatStatus,
+  type UIMessage,
+} from 'ai';
 import { throttle } from './throttle';
 
-class ReactChatState<UI_MESSAGE extends UIMessage>
-  implements ChatState<UI_MESSAGE>
-{
+function cloneMetadata<METADATA>(metadata: METADATA): METADATA {
+  if (Array.isArray(metadata)) {
+    return [...metadata] as METADATA;
+  }
+
+  if (
+    metadata != null &&
+    typeof metadata === 'object' &&
+    (Object.getPrototypeOf(metadata) === Object.prototype ||
+      Object.getPrototypeOf(metadata) === null)
+  ) {
+    return { ...metadata } as METADATA;
+  }
+
+  return metadata;
+}
+
+class ReactChatState<
+  UI_MESSAGE extends UIMessage,
+> implements ChatState<UI_MESSAGE> {
   #messages: UI_MESSAGE[];
   #status: ChatStatus = 'ready';
   #error: Error | undefined = undefined;
+  #queuedMessages: UI_MESSAGE[] = [];
 
   #messagesCallbacks = new Set<() => void>();
+  #queuedMessagesCallbacks = new Set<() => void>();
   #statusCallbacks = new Set<() => void>();
   #errorCallbacks = new Set<() => void>();
 
@@ -34,6 +59,15 @@ class ReactChatState<UI_MESSAGE extends UIMessage>
     this.#callErrorCallbacks();
   }
 
+  get experimental_queuedMessages(): UI_MESSAGE[] {
+    return this.#queuedMessages;
+  }
+
+  set experimental_queuedMessages(newQueuedMessages: UI_MESSAGE[]) {
+    this.#queuedMessages = newQueuedMessages;
+    this.#queuedMessagesCallbacks.forEach(callback => callback());
+  }
+
   get messages(): UI_MESSAGE[] {
     return this.#messages;
   }
@@ -56,14 +90,34 @@ class ReactChatState<UI_MESSAGE extends UIMessage>
   replaceMessage = (index: number, message: UI_MESSAGE) => {
     this.#messages = [
       ...this.#messages.slice(0, index),
-      // We deep clone the message here to ensure the new React Compiler (currently in RC) detects deeply nested parts/metadata changes:
       this.snapshot(message),
       ...this.#messages.slice(index + 1),
     ];
     this.#callMessagesCallbacks();
   };
 
-  snapshot = <T>(value: T): T => structuredClone(value);
+  snapshot = <T>(value: T): T => {
+    if (
+      value == null ||
+      typeof value !== 'object' ||
+      !('parts' in value) ||
+      !Array.isArray(value.parts)
+    ) {
+      return value;
+    }
+
+    const message = value as UI_MESSAGE;
+    const snapshot = {
+      ...message,
+      parts: message.parts.map(part => ({ ...part })),
+    };
+
+    if ('metadata' in message) {
+      snapshot.metadata = cloneMetadata(message.metadata);
+    }
+
+    return snapshot as T;
+  };
 
   '~registerMessagesCallback' = (
     onChange: () => void,
@@ -89,6 +143,13 @@ class ReactChatState<UI_MESSAGE extends UIMessage>
     this.#errorCallbacks.add(onChange);
     return () => {
       this.#errorCallbacks.delete(onChange);
+    };
+  };
+
+  '~registerQueuedMessagesCallback' = (onChange: () => void): (() => void) => {
+    this.#queuedMessagesCallbacks.add(onChange);
+    return () => {
+      this.#queuedMessagesCallbacks.delete(onChange);
     };
   };
 
@@ -127,4 +188,7 @@ export class Chat<
 
   '~registerErrorCallback' = (onChange: () => void): (() => void) =>
     this.#state['~registerErrorCallback'](onChange);
+
+  '~registerQueuedMessagesCallback' = (onChange: () => void): (() => void) =>
+    this.#state['~registerQueuedMessagesCallback'](onChange);
 }

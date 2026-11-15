@@ -2,8 +2,9 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createFal } from './fal-provider';
 import { FalTranscriptionModel } from './fal-transcription-model';
 import { readFile } from 'node:fs/promises';
+import fs from 'node:fs';
 import path from 'node:path';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 const audioData = await readFile(path.join(__dirname, 'transcript-test.mp3'));
 const provider = createFal({ apiKey: 'test-api-key' });
@@ -12,170 +13,169 @@ const model = provider.transcription('wizper');
 const server = createTestServer({
   'https://queue.fal.run/fal-ai/wizper': {},
   'https://queue.fal.run/fal-ai/wizper/requests/test-id': {},
+  'https://queue.fal.run/fal-ai/wizper/requests/abc%2F..%2F..%2Finternal': {},
 });
 
-describe('doGenerate', () => {
-  function prepareJsonResponse({
+function prepareJsonFixtureResponse(headers?: Record<string, string>) {
+  server.urls['https://queue.fal.run/fal-ai/wizper'].response = {
+    type: 'json-value',
     headers,
-  }: {
-    headers?: Record<string, string>;
-  } = {}) {
-    server.urls['https://queue.fal.run/fal-ai/wizper'].response = {
+    body: JSON.parse(
+      fs.readFileSync('src/__fixtures__/fal-transcription-queue.json', 'utf8'),
+    ),
+  };
+  server.urls['https://queue.fal.run/fal-ai/wizper/requests/test-id'].response =
+    {
       type: 'json-value',
       headers,
-      body: {
-        status: 'COMPLETED',
-        request_id: 'test-id',
-        response_url:
-          'https://queue.fal.run/fal-ai/wizper/requests/test-id/result',
-        status_url: 'https://queue.fal.run/fal-ai/wizper/requests/test-id',
-        cancel_url:
-          'https://queue.fal.run/fal-ai/wizper/requests/test-id/cancel',
-        logs: null,
-        metrics: {},
-        queue_position: 0,
-      },
+      body: JSON.parse(
+        fs.readFileSync(
+          'src/__fixtures__/fal-transcription-result.json',
+          'utf8',
+        ),
+      ),
     };
-    server.urls[
-      'https://queue.fal.run/fal-ai/wizper/requests/test-id'
-    ].response = {
-      type: 'json-value',
-      headers,
-      body: {
-        text: 'Hello world!',
-        chunks: [
-          {
-            text: 'Hello',
-            timestamp: [0, 1],
-            speaker: 'speaker_1',
-          },
-          {
-            text: ' ',
-            timestamp: [1, 2],
-            speaker: 'speaker_1',
-          },
-          {
-            text: 'world!',
-            timestamp: [2, 3],
-            speaker: 'speaker_1',
-          },
-        ],
-        diarization_segments: [
-          {
-            speaker: 'speaker_1',
-            timestamp: [0, 3],
-          },
-        ],
-      },
-    };
-  }
+}
 
-  it('should pass the model', async () => {
-    prepareJsonResponse();
+describe('doGenerate', () => {
+  describe('transcription', () => {
+    beforeEach(() => prepareJsonFixtureResponse());
 
-    await model.doGenerate({
-      audio: audioData,
-      mediaType: 'audio/wav',
+    it('should encode the request ID as a single URL path segment', async () => {
+      const requestId = 'abc/../../internal';
+
+      server.urls['https://queue.fal.run/fal-ai/wizper'].response = {
+        type: 'json-value',
+        body: {
+          status: 'IN_QUEUE',
+          request_id: requestId,
+          response_url: `https://queue.fal.run/fal-ai/wizper/requests/${requestId}/result`,
+          status_url: `https://queue.fal.run/fal-ai/wizper/requests/${requestId}`,
+          cancel_url: `https://queue.fal.run/fal-ai/wizper/requests/${requestId}/cancel`,
+          logs: null,
+          metrics: {},
+          queue_position: 0,
+        },
+      };
+      server.urls[
+        'https://queue.fal.run/fal-ai/wizper/requests/abc%2F..%2F..%2Finternal'
+      ].response = {
+        type: 'json-value',
+        body: {
+          text: 'Hello from the Versal AISDK.',
+          chunks: [
+            { timestamp: [0, 2.508], text: 'Hello from the Versal AISDK.' },
+          ],
+          languages: ['en'],
+        },
+      };
+
+      await model.doGenerate({ audio: audioData, mediaType: 'audio/wav' });
+
+      expect(server.calls[1].requestUrl).toBe(
+        `https://queue.fal.run/fal-ai/wizper/requests/${encodeURIComponent(
+          requestId,
+        )}`,
+      );
     });
 
-    expect(await server.calls[0].requestBodyJson).toMatchObject({
-      audio_url: expect.stringMatching(/^data:audio\//),
-      task: 'transcribe',
-      diarize: true,
-      chunk_level: 'word',
-    });
-  });
+    it('should pass the model', async () => {
+      await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
 
-  it('should pass headers', async () => {
-    prepareJsonResponse();
-
-    const provider = createFal({
-      apiKey: 'test-api-key',
-      headers: {
-        'Custom-Provider-Header': 'provider-header-value',
-      },
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        audio_url: expect.stringMatching(/^data:audio\//),
+        task: 'transcribe',
+        diarize: true,
+        chunk_level: 'word',
+      });
     });
 
-    await provider.transcription('wizper').doGenerate({
-      audio: audioData,
-      mediaType: 'audio/wav',
-      headers: {
-        'Custom-Request-Header': 'request-header-value',
-      },
-    });
+    it('should pass headers', async () => {
+      const provider = createFal({
+        apiKey: 'test-api-key',
+        headers: {
+          'Custom-Provider-Header': 'provider-header-value',
+        },
+      });
 
-    expect(server.calls[0].requestHeaders).toMatchObject({
-      authorization: 'Key test-api-key',
-      'content-type': 'application/json',
-      'custom-provider-header': 'provider-header-value',
-      'custom-request-header': 'request-header-value',
-    });
-  });
+      await provider.transcription('wizper').doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        headers: {
+          'Custom-Request-Header': 'request-header-value',
+        },
+      });
 
-  it('should extract the transcription text', async () => {
-    prepareJsonResponse();
-
-    const result = await model.doGenerate({
-      audio: audioData,
-      mediaType: 'audio/wav',
-    });
-
-    expect(result.text).toBe('Hello world!');
-  });
-
-  it('should include response data with timestamp, modelId and headers', async () => {
-    prepareJsonResponse({
-      headers: {
-        'x-request-id': 'test-request-id',
-        'x-ratelimit-remaining': '123',
-      },
-    });
-
-    const testDate = new Date(0);
-    const customModel = new FalTranscriptionModel('wizper', {
-      provider: 'test-provider',
-      url: ({ path }) => path,
-      headers: () => ({}),
-      _internal: {
-        currentDate: () => testDate,
-      },
-    });
-
-    const result = await customModel.doGenerate({
-      audio: audioData,
-      mediaType: 'audio/wav',
-    });
-
-    expect(result.response).toMatchObject({
-      timestamp: testDate,
-      modelId: 'wizper',
-      headers: {
+      expect(server.calls[0].requestHeaders).toMatchObject({
+        authorization: 'Key test-api-key',
         'content-type': 'application/json',
-        'x-request-id': 'test-request-id',
-        'x-ratelimit-remaining': '123',
-      },
+        'custom-provider-header': 'provider-header-value',
+        'custom-request-header': 'request-header-value',
+      });
+    });
+
+    it('should extract the transcription text', async () => {
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      expect(result.text).toMatchInlineSnapshot(
+        `"Hello from the Versal AISDK."`,
+      );
     });
   });
 
-  it('should use real date when no custom date provider is specified', async () => {
-    prepareJsonResponse();
+  describe('response headers', () => {
+    it('should include response data with timestamp, modelId and headers', async () => {
+      prepareJsonFixtureResponse({
+        'x-request-id': 'test-request-id',
+        'x-ratelimit-remaining': '123',
+      });
 
-    const testDate = new Date(0);
-    const customModel = new FalTranscriptionModel('wizper', {
-      provider: 'test-provider',
-      url: ({ path }) => path,
-      headers: () => ({}),
-      _internal: {
-        currentDate: () => testDate,
-      },
+      const testDate = new Date(0);
+      const customModel = new FalTranscriptionModel('wizper', {
+        provider: 'test-provider',
+        url: ({ path }) => path,
+        headers: () => ({}),
+        _internal: {
+          currentDate: () => testDate,
+        },
+      });
+
+      const result = await customModel.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      expect(result.response).toMatchSnapshot();
     });
+  });
 
-    const result = await customModel.doGenerate({
-      audio: audioData,
-      mediaType: 'audio/wav',
+  describe('response metadata', () => {
+    it('should use real date when no custom date provider is specified', async () => {
+      prepareJsonFixtureResponse();
+
+      const testDate = new Date(0);
+      const customModel = new FalTranscriptionModel('wizper', {
+        provider: 'test-provider',
+        url: ({ path }) => path,
+        headers: () => ({}),
+        _internal: {
+          currentDate: () => testDate,
+        },
+      });
+
+      const result = await customModel.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      expect(result.response.timestamp.getTime()).toEqual(testDate.getTime());
+      expect(result.response.modelId).toBe('wizper');
     });
-
-    expect(result.response.timestamp.getTime()).toEqual(testDate.getTime());
-    expect(result.response.modelId).toBe('wizper');
   });
 });

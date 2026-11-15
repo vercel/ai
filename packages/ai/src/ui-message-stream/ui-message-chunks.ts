@@ -1,177 +1,248 @@
-import { z } from 'zod/v4';
+import { citationSchema, type Citation } from '../types/citation';
+import type { JSONObject } from '@ai-sdk/provider';
 import {
-  ProviderMetadata,
   providerMetadataSchema,
+  type ProviderMetadata,
 } from '../types/provider-metadata';
-import { FinishReason } from '../types/language-model';
-import {
+import { jsonValueSchema } from '../types/json-value';
+import type { FinishReason } from '../types/language-model';
+import type {
+  FileUIPart,
   InferUIMessageData,
   InferUIMessageMetadata,
+  TextUIPart,
   UIDataTypes,
   UIMessage,
 } from '../ui/ui-messages';
-import { ValueOf } from '../util/value-of';
+import type { ValueOf } from '../util/value-of';
+import { z, type ZodType } from '../util/zod';
 import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 
+const toolMetadataSchema: ZodType<JSONObject> = z.record(
+  z.string(),
+  z.optional(jsonValueSchema),
+);
+
 export const uiMessageChunkSchema = lazySchema(() =>
-  zodSchema(
+  zodSchema<UIMessageChunk>(
     z.union([
-      z.strictObject({
+      z.looseObject({
         type: z.literal('text-start'),
         id: z.string(),
-        providerMetadata: providerMetadataSchema.optional(),
+        providerMetadata: z.optional(providerMetadataSchema),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('text-delta'),
         id: z.string(),
         delta: z.string(),
-        providerMetadata: providerMetadataSchema.optional(),
+        providerMetadata: z.optional(providerMetadataSchema),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('text-end'),
         id: z.string(),
-        providerMetadata: providerMetadataSchema.optional(),
+        citations: z.optional(z.array(citationSchema)),
+        providerMetadata: z.optional(providerMetadataSchema),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('error'),
         errorText: z.string(),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('tool-input-start'),
         toolCallId: z.string(),
         toolName: z.string(),
-        providerExecuted: z.boolean().optional(),
-        providerMetadata: providerMetadataSchema.optional(),
-        dynamic: z.boolean().optional(),
-        title: z.string().optional(),
+        inputEncoding: z.optional(z.enum(['json', 'text'])),
+        providerExecuted: z.optional(z.boolean()),
+        providerMetadata: z.optional(providerMetadataSchema),
+        toolMetadata: z.optional(toolMetadataSchema),
+        dynamic: z.optional(z.boolean()),
+        title: z.optional(z.string()),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('tool-input-delta'),
         toolCallId: z.string(),
         inputTextDelta: z.string(),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('tool-input-available'),
         toolCallId: z.string(),
         toolName: z.string(),
         input: z.unknown(),
-        providerExecuted: z.boolean().optional(),
-        providerMetadata: providerMetadataSchema.optional(),
-        dynamic: z.boolean().optional(),
-        title: z.string().optional(),
+        providerExecuted: z.optional(z.boolean()),
+        providerMetadata: z.optional(providerMetadataSchema),
+        toolMetadata: z.optional(toolMetadataSchema),
+        dynamic: z.optional(z.boolean()),
+        title: z.optional(z.string()),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('tool-input-error'),
         toolCallId: z.string(),
         toolName: z.string(),
         input: z.unknown(),
-        providerExecuted: z.boolean().optional(),
-        providerMetadata: providerMetadataSchema.optional(),
-        dynamic: z.boolean().optional(),
+        providerExecuted: z.optional(z.boolean()),
+        providerMetadata: z.optional(providerMetadataSchema),
+        toolMetadata: z.optional(toolMetadataSchema),
+        dynamic: z.optional(z.boolean()),
         errorText: z.string(),
-        title: z.string().optional(),
+        title: z.optional(z.string()),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('tool-approval-request'),
         approvalId: z.string(),
         toolCallId: z.string(),
+        approvalDescriptor: z.optional(z.unknown()),
+        inputSchemaInput: z.optional(z.unknown()),
+        reason: z.optional(z.string()),
+        isAutomatic: z.optional(z.boolean()),
+        signature: z.optional(z.string()),
       }),
-      z.strictObject({
+      z.looseObject({
+        type: z.literal('tool-approval-response'),
+        approvalId: z.string(),
+        approved: z.boolean(),
+        reason: z.optional(z.string()),
+        providerExecuted: z.optional(z.boolean()),
+        providerMetadata: z.optional(providerMetadataSchema),
+      }),
+      z.looseObject({
         type: z.literal('tool-output-available'),
         toolCallId: z.string(),
         output: z.unknown(),
-        providerExecuted: z.boolean().optional(),
-        dynamic: z.boolean().optional(),
-        preliminary: z.boolean().optional(),
+        providerExecuted: z.optional(z.boolean()),
+        providerMetadata: z.optional(providerMetadataSchema),
+        toolMetadata: z.optional(toolMetadataSchema),
+        dynamic: z.optional(z.boolean()),
+        preliminary: z.optional(z.boolean()),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('tool-output-error'),
         toolCallId: z.string(),
         errorText: z.string(),
-        providerExecuted: z.boolean().optional(),
-        dynamic: z.boolean().optional(),
+        providerExecuted: z.optional(z.boolean()),
+        providerMetadata: z.optional(providerMetadataSchema),
+        toolMetadata: z.optional(toolMetadataSchema),
+        dynamic: z.optional(z.boolean()),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('tool-output-denied'),
         toolCallId: z.string(),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('reasoning-start'),
         id: z.string(),
-        providerMetadata: providerMetadataSchema.optional(),
+        providerMetadata: z.optional(providerMetadataSchema),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('reasoning-delta'),
         id: z.string(),
         delta: z.string(),
-        providerMetadata: providerMetadataSchema.optional(),
+        providerMetadata: z.optional(providerMetadataSchema),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('reasoning-end'),
         id: z.string(),
-        providerMetadata: providerMetadataSchema.optional(),
+        providerMetadata: z.optional(providerMetadataSchema),
       }),
-      z.strictObject({
+      z.looseObject({
+        type: z.literal('custom'),
+        kind: z.pipe(
+          z.string(),
+          z.transform(value => value as `${string}.${string}`),
+        ),
+        providerMetadata: z.optional(providerMetadataSchema),
+      }),
+      z.looseObject({
         type: z.literal('source-url'),
         sourceId: z.string(),
         url: z.string(),
-        title: z.string().optional(),
-        providerMetadata: providerMetadataSchema.optional(),
+        title: z.optional(z.string()),
+        providerMetadata: z.optional(providerMetadataSchema),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('source-document'),
         sourceId: z.string(),
         mediaType: z.string(),
         title: z.string(),
-        filename: z.string().optional(),
-        providerMetadata: providerMetadataSchema.optional(),
+        filename: z.optional(z.string()),
+        providerMetadata: z.optional(providerMetadataSchema),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('file'),
         url: z.string(),
         mediaType: z.string(),
-        providerMetadata: providerMetadataSchema.optional(),
+        providerMetadata: z.optional(providerMetadataSchema),
       }),
-      z.strictObject({
+      z.looseObject({
+        type: z.literal('reasoning-file'),
+        url: z.string(),
+        mediaType: z.string(),
+        providerMetadata: z.optional(providerMetadataSchema),
+      }),
+      z.looseObject({
+        type: z.literal('steering-message'),
+        id: z.string(),
+        parts: z.array(
+          z.union([
+            z.looseObject({
+              type: z.literal('text'),
+              text: z.string(),
+              providerMetadata: z.optional(providerMetadataSchema),
+            }),
+            z.looseObject({
+              type: z.literal('file'),
+              mediaType: z.string(),
+              url: z.string(),
+              filename: z.optional(z.string()),
+              providerReference: z.optional(z.record(z.string(), z.string())),
+              providerMetadata: z.optional(providerMetadataSchema),
+            }),
+          ]),
+        ),
+      }),
+      z.looseObject({
         type: z.custom<`data-${string}`>(
           (value): value is `data-${string}` =>
             typeof value === 'string' && value.startsWith('data-'),
           { message: 'Type must start with "data-"' },
         ),
-        id: z.string().optional(),
+        id: z.optional(z.string()),
         data: z.unknown(),
-        transient: z.boolean().optional(),
+        transient: z.optional(z.boolean()),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('start-step'),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('finish-step'),
       }),
-      z.strictObject({
-        type: z.literal('start'),
-        messageId: z.string().optional(),
-        messageMetadata: z.unknown().optional(),
+      z.looseObject({
+        type: z.literal('reset-step'),
       }),
-      z.strictObject({
+      z.looseObject({
+        type: z.literal('start'),
+        messageId: z.optional(z.string()),
+        messageMetadata: z.optional(z.unknown()),
+      }),
+      z.looseObject({
         type: z.literal('finish'),
-        finishReason: z
-          .enum([
+        finishReason: z.optional(
+          z.enum([
             'stop',
             'length',
             'content-filter',
             'tool-calls',
             'error',
+            'interrupted',
             'other',
-          ] as const satisfies readonly FinishReason[])
-          .optional(),
-        messageMetadata: z.unknown().optional(),
+          ] as const satisfies readonly FinishReason[]),
+        ),
+        messageMetadata: z.optional(z.unknown()),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('abort'),
-        reason: z.string().optional(),
+        reason: z.optional(z.string()),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('message-metadata'),
         messageMetadata: z.unknown(),
       }),
@@ -205,6 +276,7 @@ export type UIMessageChunk<
     }
   | {
       type: 'text-end';
+      citations?: Array<Citation>;
       id: string;
       providerMetadata?: ProviderMetadata;
     }
@@ -225,6 +297,11 @@ export type UIMessageChunk<
       providerMetadata?: ProviderMetadata;
     }
   | {
+      type: 'custom';
+      kind: `${string}.${string}`;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
       type: 'error';
       errorText: string;
     }
@@ -235,6 +312,7 @@ export type UIMessageChunk<
       input: unknown;
       providerExecuted?: boolean;
       providerMetadata?: ProviderMetadata;
+      toolMetadata?: JSONObject;
       dynamic?: boolean;
       title?: string;
     }
@@ -245,6 +323,7 @@ export type UIMessageChunk<
       input: unknown;
       providerExecuted?: boolean;
       providerMetadata?: ProviderMetadata;
+      toolMetadata?: JSONObject;
       dynamic?: boolean;
       errorText: string;
       title?: string;
@@ -253,12 +332,27 @@ export type UIMessageChunk<
       type: 'tool-approval-request';
       approvalId: string;
       toolCallId: string;
+      approvalDescriptor?: unknown;
+      inputSchemaInput?: unknown;
+      reason?: string;
+      isAutomatic?: boolean;
+      signature?: string;
+    }
+  | {
+      type: 'tool-approval-response';
+      approvalId: string;
+      approved: boolean;
+      reason?: string;
+      providerExecuted?: boolean;
+      providerMetadata?: ProviderMetadata;
     }
   | {
       type: 'tool-output-available';
       toolCallId: string;
       output: unknown;
       providerExecuted?: boolean;
+      providerMetadata?: ProviderMetadata;
+      toolMetadata?: JSONObject;
       dynamic?: boolean;
       preliminary?: boolean;
     }
@@ -267,6 +361,8 @@ export type UIMessageChunk<
       toolCallId: string;
       errorText: string;
       providerExecuted?: boolean;
+      providerMetadata?: ProviderMetadata;
+      toolMetadata?: JSONObject;
       dynamic?: boolean;
     }
   | {
@@ -277,8 +373,11 @@ export type UIMessageChunk<
       type: 'tool-input-start';
       toolCallId: string;
       toolName: string;
+      /** Encoding of the input deltas. Defaults to JSON when omitted. */
+      inputEncoding?: 'json' | 'text';
       providerExecuted?: boolean;
       providerMetadata?: ProviderMetadata;
+      toolMetadata?: JSONObject;
       dynamic?: boolean;
       title?: string;
     }
@@ -308,12 +407,32 @@ export type UIMessageChunk<
       mediaType: string;
       providerMetadata?: ProviderMetadata;
     }
+  | {
+      type: 'reasoning-file';
+      url: string;
+      mediaType: string;
+      providerMetadata?: ProviderMetadata;
+    }
   | DataUIMessageChunk<DATA_TYPES>
+  | {
+      /**
+       * Experimental. A user message that was added to the run with steering.
+       */
+      type: 'steering-message';
+      id: string;
+      parts: Array<TextUIPart | FileUIPart>;
+    }
   | {
       type: 'start-step';
     }
   | {
       type: 'finish-step';
+    }
+  | {
+      /**
+       * Removes all message parts added during the current step.
+       */
+      type: 'reset-step';
     }
   | {
       type: 'start';

@@ -1,16 +1,16 @@
 import {
-  LanguageModelV3CallOptions,
-  SharedV3Warning,
   UnsupportedFunctionalityError,
+  type LanguageModelV4CallOptions,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
-import { MistralToolChoice } from './mistral-chat-prompt';
+import type { MistralToolChoice } from './mistral-chat-prompt';
 
 export function prepareTools({
   tools,
   toolChoice,
 }: {
-  tools: LanguageModelV3CallOptions['tools'];
-  toolChoice?: LanguageModelV3CallOptions['toolChoice'];
+  tools: LanguageModelV4CallOptions['tools'];
+  toolChoice?: LanguageModelV4CallOptions['toolChoice'];
 }): {
   tools:
     | Array<{
@@ -24,12 +24,12 @@ export function prepareTools({
       }>
     | undefined;
   toolChoice: MistralToolChoice | undefined;
-  toolWarnings: SharedV3Warning[];
+  toolWarnings: SharedV4Warning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
-  const toolWarnings: SharedV3Warning[] = [];
+  const toolWarnings: SharedV4Warning[] = [];
 
   if (tools == null) {
     return { tools: undefined, toolChoice: undefined, toolWarnings };
@@ -76,15 +76,13 @@ export function prepareTools({
       return { tools: mistralTools, toolChoice: type, toolWarnings };
     case 'required':
       return { tools: mistralTools, toolChoice: 'any', toolWarnings };
-
-    // mistral does not support tool mode directly,
-    // so we filter the tools and force the tool choice through 'any'
     case 'tool':
       return {
-        tools: mistralTools.filter(
-          tool => tool.function.name === toolChoice.toolName,
-        ),
-        toolChoice: 'any',
+        tools: mistralTools,
+        toolChoice: {
+          type: 'function',
+          function: { name: toolChoice.toolName },
+        },
         toolWarnings,
       };
     default: {

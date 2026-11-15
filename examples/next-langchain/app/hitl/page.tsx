@@ -10,7 +10,7 @@ import {
   ToolApprovalCard,
   getPendingApprovals,
 } from '../../components/tool-approval-card';
-import { type CustomDataMessage } from '../types';
+import type { CustomDataMessage } from '../types';
 
 /**
  * Generate a unique thread ID for HITL persistence

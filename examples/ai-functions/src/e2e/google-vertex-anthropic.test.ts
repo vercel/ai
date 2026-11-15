@@ -7,17 +7,16 @@ import {
   createVertexAnthropic as createVertexAnthropicEdge,
   vertexAnthropic as vertexAnthropicEdge,
 } from '@ai-sdk/google-vertex/anthropic/edge';
-import { LanguageModelV3 } from '@ai-sdk/provider';
-import { APICallError, generateText, stepCountIs } from 'ai';
+import type { LanguageModelV3, LanguageModelV4 } from '@ai-sdk/provider';
+import { generateText, isStepCount, type APICallError } from 'ai';
 import 'dotenv/config';
 import fs from 'fs';
 import { describe, expect, it } from 'vitest';
 import {
   createFeatureTestSuite,
   createLanguageModelWithCapabilities,
-  ModelWithCapabilities,
+  type ModelWithCapabilities,
 } from './feature-test-suite';
-
 const RUNTIME_VARIANTS = {
   edge: {
     name: 'Edge Runtime',
@@ -32,8 +31,8 @@ const RUNTIME_VARIANTS = {
 } as const;
 
 const createModelObject = (
-  model: LanguageModelV3,
-): { model: LanguageModelV3; modelId: string } => ({
+  model: LanguageModelV4,
+): { model: LanguageModelV4; modelId: string } => ({
   model: model,
   modelId: model.modelId,
 });
@@ -43,8 +42,8 @@ const createLanguageModel = (
     | typeof createVertexAnthropicNode
     | typeof createVertexAnthropicEdge,
   modelId: string,
-  additionalTests: ((model: LanguageModelV3) => void)[] = [],
-): ModelWithCapabilities<LanguageModelV3> => {
+  additionalTests: ((model: LanguageModelV4) => void)[] = [],
+): ModelWithCapabilities<LanguageModelV3 | LanguageModelV4> => {
   const model = createVertexAnthropic({
     project: process.env.GOOGLE_VERTEX_PROJECT!,
     // Anthropic models are typically only available in us-east5 region.
@@ -68,7 +67,7 @@ const createModelVariants = (
     | typeof createVertexAnthropicNode
     | typeof createVertexAnthropicEdge,
   modelId: string,
-): ModelWithCapabilities<LanguageModelV3>[] => [
+): ModelWithCapabilities<LanguageModelV3 | LanguageModelV4>[] => [
   createLanguageModel(createVertexAnthropic, modelId, [toolTests]),
 ];
 
@@ -113,7 +112,7 @@ describe.each(Object.values(RUNTIME_VARIANTS))(
   },
 );
 
-const toolTests = (model: LanguageModelV3) => {
+const toolTests = (model: LanguageModelV4) => {
   it.skipIf(!['claude-3-5-sonnet-v2@20241022'].includes(model.modelId))(
     'should execute computer tool commands',
     async () => {
@@ -127,7 +126,8 @@ const toolTests = (model: LanguageModelV3) => {
               switch (action) {
                 case 'screenshot': {
                   return {
-                    type: 'image',
+                    type: 'file',
+                    mediaType: 'image',
                     data: fs
                       .readFileSync('./data/screenshot-editor.png')
                       .toString('base64'),
@@ -145,9 +145,9 @@ const toolTests = (model: LanguageModelV3) => {
                   typeof output === 'string'
                     ? { type: 'text', text: output }
                     : {
-                        type: 'image-data',
-                        data: output.data,
+                        type: 'file',
                         mediaType: 'image/png',
+                        data: { type: 'data', data: output.data },
                       },
                 ],
               };
@@ -156,7 +156,7 @@ const toolTests = (model: LanguageModelV3) => {
         },
         prompt:
           'How can I switch to dark mode? Take a look at the screen and tell me.',
-        stopWhen: stepCountIs(5),
+        stopWhen: isStepCount(5),
       });
 
       console.log(result.text);
@@ -164,7 +164,7 @@ const toolTests = (model: LanguageModelV3) => {
       expect(result.text.toLowerCase()).toMatch(/color theme|dark mode/);
       expect(result.usage?.totalTokens).toBeGreaterThan(0);
     },
-    { timeout: COMPUTER_USE_TEST_MILLIS },
+    COMPUTER_USE_TEST_MILLIS,
   );
 
   it.skipIf(!['claude-3-5-sonnet-v2@20241022'].includes(model.modelId))(
@@ -188,7 +188,7 @@ README.md     build         data          node_modules  package.json  src       
           }),
         },
         prompt: 'List the files in my directory.',
-        stopWhen: stepCountIs(2),
+        stopWhen: isStepCount(2),
       });
 
       expect(result.text).toBeTruthy();
@@ -197,7 +197,7 @@ README.md     build         data          node_modules  package.json  src       
       expect(result.text).toContain('node_modules'); // Check for directory
       expect(result.usage?.totalTokens).toBeGreaterThan(0);
     },
-    { timeout: COMPUTER_USE_TEST_MILLIS },
+    COMPUTER_USE_TEST_MILLIS,
   );
 
   it.skipIf(!['claude-3-5-sonnet-v2@20241022'].includes(model.modelId))(
@@ -233,13 +233,13 @@ README.md     build         data          node_modules  package.json  src       
           }),
         },
         prompt: 'Update my README file to talk about AI.',
-        stopWhen: stepCountIs(5),
+        stopWhen: isStepCount(5),
       });
 
       expect(result.text).toBeTruthy();
       expect(editorContent).not.toBe('## README\nThis is a test file.');
       expect(result.usage?.totalTokens).toBeGreaterThan(0);
     },
-    { timeout: COMPUTER_USE_TEST_MILLIS },
+    COMPUTER_USE_TEST_MILLIS,
   );
 };

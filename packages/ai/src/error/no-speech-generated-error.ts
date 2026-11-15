@@ -1,5 +1,5 @@
 import { AISDKError } from '@ai-sdk/provider';
-import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
+import type { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
 
 const name = 'AI_NoSpeechGeneratedError';
 const marker = `vercel.ai.error.${name}`;
@@ -13,10 +13,14 @@ export class NoSpeechGeneratedError extends AISDKError {
 
   readonly responses: Array<SpeechModelResponseMetadata>;
 
-  constructor(options: { responses: Array<SpeechModelResponseMetadata> }) {
+  constructor(options: {
+    responses: Array<SpeechModelResponseMetadata>;
+    cause?: unknown;
+  }) {
     super({
       name,
       message: 'No speech audio generated.',
+      ...(options.cause !== undefined && { cause: options.cause }),
     });
 
     this.responses = options.responses;

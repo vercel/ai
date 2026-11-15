@@ -1,0 +1,573 @@
+import path from 'node:path';
+import { rgPath } from '@vscode/ripgrep';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { pruneMemorySaver } from './persistent-memory-saver';
+import { SANDBOX_PATH_FALLBACK } from './local-shell-backend';
+
+const originalPath = process.env.PATH;
+
+function restorePath() {
+  if (originalPath === undefined) delete process.env.PATH;
+  else process.env.PATH = originalPath;
+}
+
+type DeepAgentOptions = {
+  tools?: Array<{
+    name: string;
+    invoke: (input: Record<string, unknown>) => Promise<unknown>;
+  }>;
+  middleware?: Array<{
+    name?: string;
+    wrapModelCall?: (request: any, handler: any) => Promise<unknown>;
+    wrapToolCall?: (request: any, handler: any) => Promise<unknown>;
+  }>;
+  model?: unknown;
+  memory?: string[];
+  skills?: string[];
+  interruptOn?: Record<string, unknown>;
+  systemPrompt?: string | { suffix?: string };
+};
+
+type ChatAnthropicOptions = {
+  model?: string;
+  thinking?: unknown;
+  outputConfig?: unknown;
+  clientOptions?: {
+    defaultHeaders?: Record<string, string>;
+  };
+};
+
+const state = vi.hoisted(() => ({
+  hostDisconnectTimeoutMs: undefined as number | undefined,
+  createDeepAgentOptions: [] as DeepAgentOptions[],
+  repositoryResourceOptions: undefined as
+    | { workDir: string; homeDir: string; skillsPaths?: ReadonlyArray<string> }
+    | undefined,
+  originalArgv: [] as string[],
+  prunedAfterEventTypes: [] as Array<string | undefined>,
+  responseFormat: undefined as
+    | { type: 'json'; schema: Record<string, unknown> }
+    | undefined,
+  headers: undefined as Record<string, string> | undefined,
+  skillsPaths: undefined as string[] | undefined,
+  permissionMode: undefined as 'allow-reads' | undefined,
+  prompt: undefined as unknown,
+  streamInputs: [] as Array<unknown>,
+  hostToolResponse: undefined as
+    | { output: unknown; isError?: boolean; toolResult?: unknown }
+    | undefined,
+  hostToolOutput: undefined as unknown,
+  receivedToolCallId: undefined as string | undefined,
+  emitted: [] as Array<Record<string, unknown>>,
+}));
+
+vi.mock('deepagents', () => ({
+  createDeepAgent: (options: DeepAgentOptions) => {
+    state.createDeepAgentOptions.push(options);
+    return {
+      streamEvents: async function* (input: unknown) {
+        state.streamInputs.push(input);
+        if (state.hostToolResponse !== undefined) {
+          const hostTool = options.tools?.find(tool => tool.name === 'weather');
+          if (!hostTool)
+            throw new Error('Weather host tool was not registered');
+          yield {
+            event: 'on_tool_start',
+            name: 'weather',
+            run_id: 'langchain-run-id',
+            data: { input: { city: 'Berlin' } },
+          };
+          state.hostToolOutput = await hostTool.invoke({ city: 'Berlin' });
+          yield {
+            event: 'on_tool_end',
+            name: 'weather',
+            run_id: 'langchain-run-id',
+            data: { output: state.hostToolOutput },
+          };
+        }
+      },
+      getState: async () => ({ tasks: [] }),
+    };
+  },
+  LocalShellBackend: class {},
+}));
+
+vi.mock('./repository-resources', () => ({
+  createDeepAgentsRepositoryResourceMiddlewares: (options: {
+    workDir: string;
+    homeDir: string;
+    skillsPaths?: ReadonlyArray<string>;
+  }) => {
+    state.repositoryResourceOptions = options;
+    return {
+      memory: { name: 'confinedMemory' },
+      skills: { name: 'confinedSkills' },
+    };
+  },
+}));
+
+vi.mock('@ai-sdk/harness/bridge', async importOriginal => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  runBridge: async ({
+    onStart,
+    hostDisconnectTimeoutMs,
+  }: {
+    onStart: (start: unknown, turn: unknown) => Promise<void>;
+    hostDisconnectTimeoutMs?: number;
+  }) => {
+    state.hostDisconnectTimeoutMs = hostDisconnectTimeoutMs;
+    await onStart(
+      {
+        prompt: state.prompt,
+        instructions: 'Answer every question in German.',
+        thinking: { type: 'adaptive', display: 'summarized' },
+        effort: 'max',
+        tools:
+          state.hostToolResponse === undefined
+            ? []
+            : [
+                {
+                  name: 'weather',
+                  inputSchema: {
+                    type: 'object',
+                    properties: { city: { type: 'string' } },
+                    required: ['city'],
+                  },
+                },
+              ],
+        responseFormat: state.responseFormat,
+        headers: state.headers,
+        skillsPaths: state.skillsPaths,
+        permissionMode: state.permissionMode,
+      },
+      {
+        emit: (event: Record<string, unknown>) => {
+          state.emitted.push(event);
+        },
+        requestToolResult: async (toolCallId: string) => {
+          state.receivedToolCallId = toolCallId;
+          return state.hostToolResponse ?? { output: {} };
+        },
+        requestToolApproval: async () => ({ approved: true }),
+        abortSignal: new AbortController().signal,
+      },
+    );
+  },
+}));
+
+vi.mock('./persistent-memory-saver', async importOriginal => {
+  const actual = (await importOriginal()) as Record<string, unknown> & {
+    pruneMemorySaver: typeof pruneMemorySaver;
+  };
+  return {
+    ...actual,
+    pruneMemorySaver: (args: Parameters<typeof pruneMemorySaver>[0]) => {
+      state.prunedAfterEventTypes.push(
+        state.emitted.at(-1)?.type as string | undefined,
+      );
+      actual.pruneMemorySaver(args);
+    },
+  };
+});
+
+vi.mock('@langchain/anthropic', () => ({
+  ChatAnthropic: class {
+    model?: string;
+    outputConfig?: unknown;
+    thinking?: unknown;
+    clientOptions?: {
+      defaultHeaders?: Record<string, string>;
+    };
+
+    constructor(options: ChatAnthropicOptions) {
+      this.model = options.model;
+      this.outputConfig = options.outputConfig;
+      this.thinking = options.thinking;
+      this.clientOptions = options.clientOptions;
+    }
+  },
+}));
+
+vi.mock('@langchain/core/messages', () => ({
+  AIMessage: { isInstance: () => false },
+  ToolMessage: class {},
+}));
+
+vi.mock('@langchain/core/tools', () => ({
+  tool: vi.fn((...args: unknown[]) => {
+    const [invoke, config] = args as [
+      (input: Record<string, unknown>) => Promise<unknown>,
+      { name: string },
+    ];
+    return { name: config.name, invoke };
+  }),
+}));
+
+vi.mock('@langchain/langgraph', () => ({
+  Command: class {},
+  MemorySaver: class {
+    storage = Object.create(null);
+    writes = Object.create(null);
+  },
+}));
+
+vi.mock('@langchain/mcp-adapters', () => ({
+  MultiServerMCPClient: class {},
+}));
+
+vi.mock('langchain', () => ({
+  createMiddleware: <Middleware>(middleware: Middleware) => middleware,
+  toolStrategy: (schema: Record<string, unknown>) => [
+    {
+      kind: 'tool-strategy',
+      name: 'StructuredOutput',
+      schema,
+    },
+  ],
+}));
+
+describe('Deep Agents bridge instructions', () => {
+  beforeEach(() => {
+    restorePath();
+    state.createDeepAgentOptions = [];
+    state.repositoryResourceOptions = undefined;
+    state.prunedAfterEventTypes = [];
+    state.responseFormat = undefined;
+    state.headers = undefined;
+    state.skillsPaths = undefined;
+    state.permissionMode = undefined;
+    state.prompt = 'What is the capital of France?';
+    state.streamInputs = [];
+    state.hostToolResponse = undefined;
+    state.hostToolOutput = undefined;
+    state.receivedToolCallId = undefined;
+    state.emitted = [];
+    state.originalArgv = [...process.argv];
+    process.argv.splice(
+      0,
+      process.argv.length,
+      'node',
+      'bridge.mjs',
+      '--workdir',
+      '/tmp/harness-deepagents-test/work',
+      '--home-dir',
+      '/home/sandbox',
+      '--bridge-state-dir',
+      '/tmp/harness-deepagents-test/state',
+    );
+  });
+
+  afterEach(() => {
+    process.argv.splice(0, process.argv.length, ...state.originalArgv);
+    restorePath();
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  it('adds packaged ripgrep after the existing PATH for built-in tools', async () => {
+    const existingPath = ['/sandbox/bin', '/usr/bin'].join(path.delimiter);
+    process.env.PATH = existingPath;
+
+    await import('./index');
+
+    expect(process.env.PATH).toBe(
+      [existingPath, path.dirname(rgPath)].join(path.delimiter),
+    );
+  });
+
+  it.each([
+    [['--host-disconnect-timeout-ms', '60000'], 60_000],
+    [[], undefined],
+  ])(
+    'passes the host disconnect timeout argument to the bridge (%j)',
+    async (extraArgs, expected) => {
+      state.hostDisconnectTimeoutMs = undefined;
+      process.argv.push(...extraArgs);
+
+      await import('./index');
+
+      expect(state.hostDisconnectTimeoutMs).toBe(expected);
+    },
+  );
+
+  it('keeps a usable fallback PATH when PATH is unavailable', async () => {
+    delete process.env.PATH;
+
+    await import('./index');
+
+    expect(process.env.PATH).toBe(
+      [SANDBOX_PATH_FALLBACK, path.dirname(rgPath)].join(path.delimiter),
+    );
+  });
+
+  it('prunes checkpoint history after the turn has emitted its finish event', async () => {
+    await import('./index');
+
+    expect(state.emitted.at(-1)?.type).toBe('finish');
+    expect(state.prunedAfterEventTypes).toEqual(['finish']);
+  });
+
+  it('appends instructions to the native system prompt', async () => {
+    await import('./index');
+
+    expect(state.createDeepAgentOptions[0]?.systemPrompt).toEqual({
+      suffix: 'Answer every question in German.',
+    });
+  });
+
+  it('uses confined middleware for workDir instructions and skills', async () => {
+    state.skillsPaths = [
+      '/tmp/harness-deepagents-test/work/.agents/skills',
+      '/home/sandbox/.agents/skills',
+    ];
+    state.permissionMode = 'allow-reads';
+
+    await import('./index');
+
+    const options = state.createDeepAgentOptions[0];
+    expect({
+      memory: options?.memory,
+      skills: options?.skills,
+      systemPrompt: options?.systemPrompt,
+      writeApproval: options?.interruptOn?.write_file,
+    }).toMatchInlineSnapshot(`
+      {
+        "memory": undefined,
+        "skills": undefined,
+        "systemPrompt": {
+          "suffix": "Answer every question in German.",
+        },
+        "writeApproval": {
+          "allowedDecisions": [
+            "approve",
+            "reject",
+          ],
+        },
+      }
+    `);
+    expect(state.repositoryResourceOptions).toEqual({
+      workDir: '/tmp/harness-deepagents-test/work',
+      homeDir: '/home/sandbox',
+      skillsPaths: [
+        '/tmp/harness-deepagents-test/work/.agents/skills',
+        '/home/sandbox/.agents/skills',
+      ],
+    });
+    expect(options?.middleware?.map(middleware => middleware.name)).toContain(
+      'confinedMemory',
+    );
+    expect(options?.middleware?.map(middleware => middleware.name)).toContain(
+      'confinedSkills',
+    );
+  });
+
+  it('installs MCP tool error recovery in the native agent', async () => {
+    await import('./index');
+
+    expect(
+      state.createDeepAgentOptions[0]?.middleware?.some(
+        middleware => middleware.name === 'harnessMcpToolErrors',
+      ),
+    ).toBe(true);
+  });
+
+  it('configures reasoning on the default Deep Agents model', async () => {
+    await import('./index');
+
+    const { ChatAnthropic } = await import('@langchain/anthropic');
+    const resolvedModel = new ChatAnthropic({
+      model: 'upstream-selected-model',
+    });
+    const handler = vi.fn(async request => request.model);
+    const wrapModelCall = state.createDeepAgentOptions[0]?.middleware?.find(
+      middleware => middleware.name === 'harnessModel',
+    )?.wrapModelCall;
+
+    expect(state.createDeepAgentOptions[0]?.model).toBeUndefined();
+    expect(wrapModelCall).toBeDefined();
+    await wrapModelCall!(
+      {
+        model: {
+          _getModelInstance: async () => resolvedModel,
+        },
+      },
+      handler,
+    );
+    const configuredModel = handler.mock.calls[0]?.[0].model;
+    expect(configuredModel).not.toBe(resolvedModel);
+    expect(configuredModel).toMatchObject({
+      model: 'upstream-selected-model',
+      outputConfig: { effort: 'max' },
+      thinking: { type: 'adaptive', display: 'summarized' },
+    });
+    expect(handler).toHaveBeenCalledWith({ model: configuredModel });
+  });
+
+  it('passes headers to a direct Anthropic client', async () => {
+    state.headers = { 'x-tenant': 'acme' };
+    vi.stubEnv('ANTHROPIC_API_KEY', 'anthropic-key');
+
+    await import('./index');
+
+    const { ChatAnthropic } = await import('@langchain/anthropic');
+    const resolvedModel = new ChatAnthropic({
+      model: 'upstream-selected-model',
+    });
+    const handler = vi.fn(async request => request.model);
+    const wrapModelCall = state.createDeepAgentOptions[0]?.middleware?.find(
+      middleware => middleware.name === 'harnessModel',
+    )?.wrapModelCall;
+
+    await wrapModelCall!(
+      {
+        model: {
+          _getModelInstance: async () => resolvedModel,
+        },
+      },
+      handler,
+    );
+
+    expect(handler.mock.calls[0]?.[0].model).toMatchObject({
+      clientOptions: {
+        defaultHeaders: {
+          'x-tenant': 'acme',
+        },
+      },
+    });
+  });
+
+  it('applies the requested JSON schema for the active turn', async () => {
+    const schema = {
+      type: 'object',
+      properties: { answer: { type: 'string' } },
+      required: ['answer'],
+    };
+    state.responseFormat = { type: 'json', schema };
+
+    await import('./index');
+
+    const wrapModelCall = state.createDeepAgentOptions[0]?.middleware?.find(
+      middleware => middleware.name === 'HarnessResponseFormat',
+    )?.wrapModelCall;
+    const handler = vi.fn(async request => request);
+    await wrapModelCall?.({ model: 'model' }, handler);
+
+    expect(handler).toHaveBeenCalledWith({
+      model: 'model',
+      responseFormat: [
+        { kind: 'tool-strategy', name: 'StructuredOutput', schema },
+      ],
+    });
+  });
+
+  async function expectHostToolResult({
+    output,
+    isError,
+  }: {
+    output?: unknown;
+    isError?: boolean;
+  }) {
+    state.hostToolResponse = { output, isError };
+
+    await import('./index');
+
+    const toolCallId = state.receivedToolCallId;
+    expect(toolCallId).toMatch(/^weather-/);
+    expect(state.emitted.filter(event => event.type === 'tool-call')).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId,
+        toolName: 'weather',
+        input: '{"city":"Berlin"}',
+        providerExecuted: false,
+      },
+    ]);
+    expect(state.emitted.filter(event => event.type === 'tool-result')).toEqual(
+      [
+        {
+          type: 'tool-result',
+          toolCallId,
+          toolName: 'weather',
+          result: output ?? null,
+          ...(isError !== undefined ? { isError } : {}),
+        },
+      ],
+    );
+    expect(state.hostToolOutput).toBe(
+      typeof output === 'string' ? output : JSON.stringify(output),
+    );
+  }
+
+  it('emits one successful host-tool result without duplicating on_tool_end', async () => {
+    await expectHostToolResult({ output: { temperature: 18 }, isError: false });
+  });
+
+  it('returns model-facing text and inline images as LangChain content blocks', async () => {
+    state.hostToolResponse = {
+      output: { status: 'ready' },
+      toolResult: {
+        type: 'tool-result',
+        toolCallId: 'weather-1',
+        toolName: 'weather',
+        output: {
+          type: 'content',
+          value: [
+            { type: 'text', text: 'marker' },
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: { type: 'data', data: 'iVBORw==' },
+            },
+          ],
+        },
+      },
+    };
+
+    await import('./index');
+
+    expect(state.hostToolOutput).toEqual([
+      { type: 'text', text: 'marker' },
+      {
+        type: 'image_url',
+        image_url: { url: 'data:image/png;base64,iVBORw==' },
+      },
+    ]);
+    expect(state.emitted.filter(event => event.type === 'tool-result')).toEqual(
+      [expect.objectContaining({ result: { status: 'ready' } })],
+    );
+  });
+
+  it('passes user text and inline images as LangChain content blocks', async () => {
+    state.prompt = [
+      { type: 'text', text: 'Describe this image.' },
+      { type: 'image', data: 'AQID', mediaType: 'image/png' },
+    ];
+
+    await import('./index');
+
+    expect(state.streamInputs).toEqual([
+      {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Describe this image.' },
+              { type: 'image', mimeType: 'image/png', data: 'AQID' },
+            ],
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('emits one errored host-tool result without duplicating on_tool_end', async () => {
+    await expectHostToolResult({
+      output: { error: 'Tool input validation failed.' },
+      isError: true,
+    });
+  });
+
+  it('emits null when the host-tool output is absent', async () => {
+    await expectHostToolResult({});
+  });
+});

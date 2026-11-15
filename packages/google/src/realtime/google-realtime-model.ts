@@ -1,0 +1,210 @@
+import type {
+  Experimental_RealtimeModelV4 as RealtimeModelV4,
+  Experimental_RealtimeModelV4ClientEvent as RealtimeModelV4ClientEvent,
+  Experimental_RealtimeModelV4ClientSecretOptions as RealtimeModelV4ClientSecretOptions,
+  Experimental_RealtimeModelV4ClientSecretResult as RealtimeModelV4ClientSecretResult,
+  Experimental_RealtimeModelV4ServerConnection as RealtimeModelV4ServerConnection,
+  Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
+  Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
+  Experimental_RealtimeModelV4SessionIntent as RealtimeModelV4SessionIntent,
+} from '@ai-sdk/provider';
+import {
+  resolve,
+  resolveWith,
+  removeUndefinedEntries,
+  type Resolvable,
+  type FetchFunction,
+} from '@ai-sdk/provider-utils';
+import {
+  getRealtimeBaseURL,
+  getRealtimeWebSocketURL,
+} from '../get-realtime-base-url';
+import {
+  GoogleRealtimeEventMapper,
+  buildGoogleSessionConfig,
+} from './google-realtime-event-mapper';
+
+const realtimeWebSocketPath =
+  'google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained';
+
+// Server-side connections use the unconstrained Bidi endpoint: a trusted server
+// holds the API key and sends the session `setup` over the socket, rather than
+// baking it into an ephemeral token at mint time (which the constrained
+// endpoint requires).
+const realtimeServerWebSocketPath =
+  'google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
+
+function getAuthTokensURL(baseURL: string): string {
+  const url = getRealtimeBaseURL(baseURL);
+  url.pathname = `${url.pathname.replace(/\/$/, '')}/v1alpha/auth_tokens`;
+  return url.toString();
+}
+
+function getWebSocketURL(baseURL: string): string {
+  return getRealtimeWebSocketURL(baseURL, realtimeWebSocketPath).toString();
+}
+
+function getServerWebSocketURL(baseURL: string): string {
+  const url = getRealtimeBaseURL(baseURL);
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+  url.pathname = `${url.pathname.replace(/\/$/, '')}/ws/${realtimeServerWebSocketPath}`;
+  return url.toString();
+}
+
+export type GoogleRealtimeModelConfig = {
+  provider: string;
+  baseURL: string;
+  headers: Resolvable<Record<string, string | undefined>>;
+  fetch?: FetchFunction;
+};
+
+export class GoogleRealtimeModel implements RealtimeModelV4 {
+  readonly specificationVersion = 'v4' as const;
+  readonly capabilities = {
+    conversation: 'turn-based',
+    transports: ['websocket'],
+    connections: ['client-secret-websocket', 'server-websocket'],
+  } as const;
+  readonly provider: string;
+  readonly modelId: string;
+
+  private readonly config: GoogleRealtimeModelConfig;
+  private readonly mapper = new GoogleRealtimeEventMapper();
+
+  constructor(modelId: string, config: GoogleRealtimeModelConfig) {
+    this.modelId = modelId;
+    this.provider = config.provider;
+    this.config = config;
+  }
+
+  async doCreateClientSecret(
+    options: RealtimeModelV4ClientSecretOptions,
+  ): Promise<RealtimeModelV4ClientSecretResult> {
+    const fetchFn = this.config.fetch ?? fetch;
+    const headers = await resolve(this.config.headers);
+    const apiKey = headers['x-goog-api-key'];
+
+    if (!apiKey) {
+      throw new Error(
+        'Google Generative AI API key is required for realtime token creation.',
+      );
+    }
+
+    // `newSessionExpireTime` controls how long the token can be used to *open*
+    // a session — the window callers actually care about — so map
+    // `expiresAfterSeconds` to it (Google otherwise defaults it to ~60s).
+    // `expireTime` is the overall token lifetime and must be >=
+    // `newSessionExpireTime`, so extend it to leave room for the opened session
+    // to run.
+    const now = Date.now();
+    const openWindowMs = (options.expiresAfterSeconds ?? 60) * 1000;
+    const newSessionExpireTime = new Date(now + openWindowMs).toISOString();
+    const expireTime = new Date(
+      now + openWindowMs + 30 * 60 * 1000,
+    ).toISOString();
+
+    const setupPayload = buildGoogleSessionConfig(
+      options.sessionConfig,
+      this.modelId,
+    );
+
+    const response = await fetchFn(
+      `${getAuthTokensURL(this.config.baseURL)}?key=${encodeURIComponent(apiKey)}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          // `uses: 0` means no limit is applied to how many times the token can
+          // start a session (per the AuthToken spec). An unset value would
+          // default to 1, which breaks WebSocket reconnects within the session.
+          uses: 0,
+          expireTime,
+          newSessionExpireTime,
+          bidiGenerateContentSetup: setupPayload,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(
+        `Google realtime auth token request failed: ${response.status} ${text}`,
+      );
+    }
+
+    const data = (await response.json()) as {
+      name: string;
+      expireTime?: string;
+    };
+
+    return {
+      token: data.name,
+      url: getWebSocketURL(this.config.baseURL),
+      expiresAt: data.expireTime
+        ? Math.floor(new Date(data.expireTime).getTime() / 1000)
+        : undefined,
+    };
+  }
+
+  getWebSocketConfig(options: { token: string; url: string }): {
+    url: string;
+    protocols?: string[];
+  } {
+    return {
+      url: `${options.url}?access_token=${encodeURIComponent(options.token)}`,
+    };
+  }
+
+  getServerWebSocketConfig(options?: {
+    intent?: RealtimeModelV4SessionIntent;
+  }):
+    | RealtimeModelV4ServerConnection
+    | PromiseLike<RealtimeModelV4ServerConnection> {
+    // Gemini Live exposes only the conversational endpoint; fail fast instead
+    // of silently downgrading unsupported intents.
+    this.assertConversationIntent(options);
+    return resolveWith(this.config.headers, headers => ({
+      url: getServerWebSocketURL(this.config.baseURL),
+      headers: removeUndefinedEntries(headers),
+    }));
+  }
+
+  private assertConversationIntent(options?: {
+    intent?: RealtimeModelV4SessionIntent;
+  }): void {
+    if (options?.intent != null && options.intent !== 'conversation') {
+      throw new Error(
+        `Google realtime does not support the '${options.intent}' session intent.`,
+      );
+    }
+  }
+
+  parseServerEvent(
+    raw: unknown,
+  ): RealtimeModelV4ServerEvent | RealtimeModelV4ServerEvent[] {
+    return this.mapper.parseServerEvent(raw);
+  }
+
+  createServerEventParser(): ReturnType<
+    NonNullable<RealtimeModelV4['createServerEventParser']>
+  > {
+    const mapper = new GoogleRealtimeEventMapper();
+    return raw => mapper.parseServerEvent(raw);
+  }
+
+  serializeClientEvent(
+    event: RealtimeModelV4ClientEvent,
+    options?: { intent?: RealtimeModelV4SessionIntent },
+  ): ReturnType<RealtimeModelV4['serializeClientEvent']> {
+    this.assertConversationIntent(options);
+    return this.mapper.serializeClientEvent(event, this.modelId);
+  }
+
+  buildSessionConfig(
+    config: RealtimeModelV4SessionConfig,
+    options?: { intent?: RealtimeModelV4SessionIntent },
+  ): Record<string, unknown> {
+    this.assertConversationIntent(options);
+    return buildGoogleSessionConfig(config, this.modelId);
+  }
+}

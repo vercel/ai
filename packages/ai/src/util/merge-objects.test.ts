@@ -115,4 +115,44 @@ describe('mergeObjects', () => {
     expect(mergeObjects({ a: 1 }, undefined)).toEqual({ a: 1 });
     expect(mergeObjects(undefined, { b: 2 })).toEqual({ b: 2 });
   });
+
+  it('should not pollute Object.prototype via __proto__', () => {
+    const malicious = JSON.parse('{"__proto__": {"polluted": true}}');
+
+    const result = mergeObjects({}, malicious) as Record<string, unknown>;
+
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+    expect(result.polluted).toBeUndefined();
+    expect(Object.hasOwn(Object.prototype, 'polluted')).toBe(false);
+  });
+
+  it('should ignore __proto__, constructor, and prototype keys', () => {
+    const malicious = JSON.parse(
+      '{"__proto__": {"a": 1}, "constructor": {"prototype": {"b": 2}}, "prototype": {"c": 3}, "safe": "value"}',
+    );
+
+    const result = mergeObjects({ existing: 'ok' }, malicious) as Record<
+      string,
+      unknown
+    >;
+
+    expect(result).toEqual({ existing: 'ok', safe: 'value' });
+    expect(({} as Record<string, unknown>).a).toBeUndefined();
+    expect(({} as Record<string, unknown>).b).toBeUndefined();
+    expect(({} as Record<string, unknown>).c).toBeUndefined();
+  });
+
+  it('should ignore dangerous keys nested in mergeable objects', () => {
+    const base = { metadata: { user: 'alice' } };
+    const malicious = JSON.parse(
+      '{"metadata": {"__proto__": {"polluted": true}, "role": "admin"}}',
+    );
+
+    const result = mergeObjects(base, malicious) as {
+      metadata: Record<string, unknown>;
+    };
+
+    expect(result.metadata).toEqual({ user: 'alice', role: 'admin' });
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+  });
 });

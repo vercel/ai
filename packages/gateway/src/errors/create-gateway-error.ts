@@ -1,4 +1,4 @@
-import { z } from 'zod/v4';
+import { z } from '../zod';
 import type { GatewayError } from './gateway-error';
 import { GatewayAuthenticationError } from './gateway-authentication-error';
 import { GatewayInvalidRequestError } from './gateway-invalid-request-error';
@@ -7,28 +7,34 @@ import {
   GatewayModelNotFoundError,
   modelNotFoundParamSchema,
 } from './gateway-model-not-found-error';
+import { GatewayNotFoundError } from './gateway-not-found-error';
 import { GatewayInternalServerError } from './gateway-internal-server-error';
+import { GatewayFailedDependencyError } from './gateway-failed-dependency-error';
+import {
+  GatewayForbiddenError,
+  forbiddenParamSchema,
+} from './gateway-forbidden-error';
 import { GatewayResponseError } from './gateway-response-error';
 import {
-  InferSchema,
   lazySchema,
   safeValidateTypes,
-  validateTypes,
   zodSchema,
+  type InferSchema,
 } from '@ai-sdk/provider-utils';
-
 export async function createGatewayErrorFromResponse({
   response,
   statusCode,
   defaultMessage = 'Gateway request failed',
   cause,
   authMethod,
+  isRetryable,
 }: {
   response: unknown;
   statusCode: number;
   defaultMessage?: string;
   cause?: unknown;
   authMethod?: 'api-key' | 'oidc';
+  isRetryable?: boolean;
 }): Promise<GatewayError> {
   const parseResult = await safeValidateTypes({
     value: response,
@@ -51,6 +57,7 @@ export async function createGatewayErrorFromResponse({
       validationError: parseResult.error,
       cause,
       generationId: rawGenerationId,
+      isRetryable,
     });
   }
 
@@ -96,6 +103,13 @@ export async function createGatewayErrorFromResponse({
         generationId,
       });
     }
+    case 'not_found':
+      return new GatewayNotFoundError({
+        message,
+        statusCode,
+        cause,
+        generationId,
+      });
     case 'internal_server_error':
       return new GatewayInternalServerError({
         message,
@@ -103,6 +117,27 @@ export async function createGatewayErrorFromResponse({
         cause,
         generationId,
       });
+    case 'failed_dependency':
+      return new GatewayFailedDependencyError({
+        message,
+        statusCode,
+        cause,
+        generationId,
+      });
+    case 'forbidden': {
+      const ruleResult = await safeValidateTypes({
+        value: validatedResponse.error.param,
+        schema: forbiddenParamSchema,
+      });
+
+      return new GatewayForbiddenError({
+        message,
+        statusCode,
+        cause,
+        generationId,
+        ruleId: ruleResult.success ? ruleResult.value.ruleId : undefined,
+      });
+    }
     default:
       return new GatewayInternalServerError({
         message,
@@ -118,11 +153,11 @@ const gatewayErrorResponseSchema = lazySchema(() =>
     z.object({
       error: z.object({
         message: z.string(),
-        type: z.string().nullish(),
-        param: z.unknown().nullish(),
-        code: z.union([z.string(), z.number()]).nullish(),
+        type: z.nullish(z.string()),
+        param: z.nullish(z.unknown()),
+        code: z.nullish(z.union([z.string(), z.number()])),
       }),
-      generationId: z.string().nullish(),
+      generationId: z.nullish(z.string()),
     }),
   ),
 );

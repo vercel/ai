@@ -1,38 +1,76 @@
-import {
-  ImageModelV3,
-  ImageModelV3File,
-  SharedV3Warning,
+import { getDeepInfraImageModelEntry } from './deepinfra-model-catalog';
+import type {
+  ImageModelV4,
+  ImageModelV4File,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
   combineHeaders,
   convertBase64ToUint8Array,
   convertToFormData,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   downloadBlob,
-  FetchFunction,
+  parseProviderOptions,
   postFormDataToApi,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { DeepInfraImageModelId } from './deepinfra-image-settings';
 import { z } from 'zod/v4';
+import {
+  deepInfraImageModelOptionsSchema,
+  type DeepInfraImageModelOptions,
+} from './deepinfra-image-model-options';
+import type { DeepInfraImageModelId } from './deepinfra-image-settings';
 
 interface DeepInfraImageModelConfig {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string>;
+  headers?: Resolvable<Record<string, string>>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
   };
 }
 
-export class DeepInfraImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
-  readonly maxImagesPerCall = 1;
+export class DeepInfraImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
+  get maxImagesPerCall() {
+    return getDeepInfraImageModelEntry(this.modelId).capabilities.image
+      .maxImagesPerCall;
+  }
+
+  get supportsFileInputs(): boolean | undefined {
+    const support = getDeepInfraImageModelEntry(this.modelId).capabilities.image
+      .fileInput;
+    return support === 'unknown' ? undefined : support;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs;
+  }
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: DeepInfraImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: DeepInfraImageModelId;
+    config: DeepInfraImageModelConfig;
+  }) {
+    return new DeepInfraImageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -51,26 +89,36 @@ export class DeepInfraImageModel implements ImageModelV3 {
     abortSignal,
     files,
     mask,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
+  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const warnings: Array<SharedV3Warning> = [];
+    const warnings: Array<SharedV4Warning> = [];
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const deepInfraOptions = (await parseProviderOptions({
+      provider: 'deepinfra',
+      providerOptions,
+      schema: deepInfraImageModelOptionsSchema,
+    })) as DeepInfraImageModelOptions | undefined;
 
     // Image editing mode - use OpenAI-compatible /images/edits endpoint
     if (files != null && files.length > 0) {
       const { value: response, responseHeaders } = await postFormDataToApi({
         url: this.getEditUrl(),
-        headers: combineHeaders(this.config.headers(), headers),
+        headers: combineHeaders(await resolve(this.config.headers), headers),
         formData: convertToFormData<DeepInfraFormDataInput>(
           {
             model: this.modelId,
             prompt,
-            image: await Promise.all(files.map(file => fileToBlob(file))),
-            mask: mask != null ? await fileToBlob(mask) : undefined,
+            image: await Promise.all(
+              files.map(file => fileToBlob(file, this.config.fetch)),
+            ),
+            mask:
+              mask != null
+                ? await fileToBlob(mask, this.config.fetch)
+                : undefined,
             n,
             size,
-            ...(providerOptions.deepinfra ?? {}),
+            ...deepInfraOptions,
           },
           { useArrayBrackets: false },
         ),
@@ -102,14 +150,14 @@ export class DeepInfraImageModel implements ImageModelV3 {
     const splitSize = size?.split('x');
     const { value: response, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/${this.modelId}`,
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       body: {
         prompt,
         num_images: n,
         ...(aspectRatio && { aspect_ratio: aspectRatio }),
         ...(splitSize && { width: splitSize[0], height: splitSize[1] }),
         ...(seed != null && { seed }),
-        ...(providerOptions.deepinfra ?? {}),
+        ...deepInfraOptions,
       },
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: deepInfraErrorSchema,
@@ -180,9 +228,12 @@ type DeepInfraFormDataInput = {
   [key: string]: unknown;
 };
 
-async function fileToBlob(file: ImageModelV3File): Promise<Blob> {
+async function fileToBlob(
+  file: ImageModelV4File,
+  fetch: FetchFunction | undefined,
+): Promise<Blob> {
   if (file.type === 'url') {
-    return downloadBlob(file.url);
+    return downloadBlob(file.url, { fetch });
   }
 
   const data =

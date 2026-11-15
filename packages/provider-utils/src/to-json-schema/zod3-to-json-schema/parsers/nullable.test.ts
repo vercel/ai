@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { z } from 'zod/v3';
 import { parseObjectDef } from './object';
 import { getRefs } from '../refs';
-import { JSONSchema7 } from '@ai-sdk/provider';
+import type { JSONSchema7 } from '@ai-sdk/provider';
 
 describe('nullable', () => {
   it('should be possible to properly reference nested nullable primitives', () => {

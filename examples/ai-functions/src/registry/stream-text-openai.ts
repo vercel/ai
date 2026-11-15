@@ -4,7 +4,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: registry.languageModel('openai:gpt-4-turbo'),
+    model: registry.languageModel('openai:gpt-6-luna'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

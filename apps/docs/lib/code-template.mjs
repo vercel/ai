@@ -1,0 +1,51 @@
+import {
+  getCodeTemplateDefaults,
+  MODEL_KIND_PLACEHOLDERS,
+} from './geistdocs/model-placeholders.ts';
+import { resolveGatewayOptions } from './provider-code-config.ts';
+
+export const hasCodeTemplate = code =>
+  /__(?:MODEL|TEXT_MODEL|IMAGE_MODEL|VIDEO_MODEL|SPEECH_MODEL|TRANSCRIPTION_MODEL|EMBEDDING_MODEL|DECISION_MODEL|PROVIDER_IMPORT|GATEWAY_OPTIONS)__/.test(code);
+
+export const parseCodeTemplateOptions = (meta = '') => {
+  const fenceMeta = meta ?? '';
+  const provider = fenceMeta.match(/\bprovider=(?:"([^"]*)"|'([^']*)')/);
+  const model = fenceMeta.match(/\bmodel=(?:"([^"]*)"|'([^']*)')/);
+  return {
+    provider: provider?.[1] ?? provider?.[2],
+    defaultModelId: model?.[1] ?? model?.[2],
+  };
+};
+
+export const renderGatewayCode = (
+  code,
+  { defaultModelId, provider } = {},
+) => {
+  const defaultModels = getCodeTemplateDefaults(code, defaultModelId);
+  let result = resolveGatewayOptions(code, provider);
+  for (const [kind, placeholders] of Object.entries(MODEL_KIND_PLACEHOLDERS)) {
+    for (const placeholder of placeholders) {
+      result = result.replaceAll(placeholder, `"${defaultModels[kind]}"`);
+    }
+  }
+  return result.replace(/.*__PROVIDER_IMPORT__.*\n?/g, '').trim();
+};
+
+export const parseHighlightedLines = meta =>
+  (meta.match(/\{([\d,\s-]+)\}/)?.[1] ?? '')
+    .split(',')
+    .filter(Boolean)
+    .flatMap(range => {
+      const [start, end = start] = range.trim().split('-').map(Number);
+      return Array.from({ length: Math.max(0, end - start + 1) }, (_, i) => start + i);
+    });
+
+// Removing the provider import shifts all subsequent highlight positions.
+export const gatewayHighlightedLines = (code, highlightedLines) => {
+  const lines = code.split('\n');
+  return highlightedLines.flatMap(line => {
+    if (lines[line - 1]?.includes('__PROVIDER_IMPORT__')) return [];
+    const removed = lines.slice(0, line).filter(value => value.includes('__PROVIDER_IMPORT__')).length;
+    return [line - removed];
+  });
+};
