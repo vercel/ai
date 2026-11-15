@@ -713,6 +713,110 @@ describe('toUIMessageStream', () => {
     ]);
   });
 
+  it('should not duplicate a tool input when another subgraph advances a step', async () => {
+    const namespaceA = ['tools:a'];
+    const namespaceB = ['tools:b'];
+    const toolChunk = (
+      messageId: string,
+      chunk: { id?: string; name?: string; args: string },
+    ) =>
+      new AIMessageChunk({
+        id: messageId,
+        content: '',
+        tool_call_chunks: [{ type: 'tool_call_chunk', index: 0, ...chunk }],
+      });
+    const aCall = new AIMessage({
+      id: 'a-1',
+      content: '',
+      tool_calls: [{ id: 'call_a', name: 'lookup', args: { id: 1 } }],
+    });
+    const bCall = new AIMessage({
+      id: 'b-1',
+      content: '',
+      tool_calls: [{ id: 'call_b', name: 'lookup', args: { id: 2 } }],
+    });
+    const aResult = new ToolMessage({
+      id: 'tm-a',
+      tool_call_id: 'call_a',
+      name: 'lookup',
+      content: 'one',
+    });
+    const bResult = new ToolMessage({
+      id: 'tm-b',
+      tool_call_id: 'call_b',
+      name: 'lookup',
+      content: 'two',
+    });
+    const inputStream = convertArrayToReadableStream([
+      [
+        namespaceA,
+        'messages',
+        [
+          toolChunk('a-1', {
+            id: 'call_a',
+            name: 'lookup',
+            args: '{"id": 1}',
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      [
+        namespaceB,
+        'messages',
+        [
+          toolChunk('b-1', {
+            id: 'call_b',
+            name: 'lookup',
+            args: '{"i',
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      [namespaceA, 'messages', [aResult, { langgraph_step: 2 }]],
+      [
+        namespaceB,
+        'messages',
+        [toolChunk('b-1', { args: 'd": 2}' }), { langgraph_step: 1 }],
+      ],
+      [
+        namespaceA,
+        'values',
+        { messages: [new HumanMessage('a'), aCall, aResult] },
+      ],
+      [namespaceB, 'values', { messages: [new HumanMessage('b'), bCall] }],
+      [
+        namespaceB,
+        'messages',
+        [bResult, { langgraph_step: 2, langgraph_node: 'tools' }],
+      ],
+      [
+        namespaceB,
+        'values',
+        { messages: [new HumanMessage('b'), bCall, bResult] },
+      ],
+    ]);
+
+    let finalMessage: UIMessage | undefined;
+    for await (const message of readUIMessageStream({
+      stream: toUIMessageStream(inputStream),
+    })) {
+      finalMessage = message;
+    }
+
+    expect(
+      finalMessage?.parts
+        .filter(part => part.type === 'dynamic-tool')
+        .map(part => ({
+          toolCallId: part.toolCallId,
+          state: part.state,
+          output: 'output' in part ? part.output : undefined,
+        })),
+    ).toEqual([
+      { toolCallId: 'call_a', state: 'output-available', output: 'one' },
+      { toolCallId: 'call_b', state: 'output-available', output: 'two' },
+    ]);
+  });
+
   it('should keep child reasoning active when the root step advances', async () => {
     const rootMessageId = 'root-step-message';
     const nextRootMessageId = 'next-root-step-message';
