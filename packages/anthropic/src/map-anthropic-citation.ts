@@ -26,7 +26,6 @@ export function mapAnthropicCitation(
         id: url,
         url,
         title: citation.title ?? undefined,
-        providerMetadata: { anthropic: { ...citation } },
       },
       citedText: citation.cited_text,
     };
@@ -44,7 +43,6 @@ export function mapAnthropicCitation(
         document?.title ??
         `Document ${citation.document_index}`,
       filename: document?.filename,
-      providerMetadata: { anthropic: { ...citation } },
     },
     citedText: citation.cited_text,
   };
