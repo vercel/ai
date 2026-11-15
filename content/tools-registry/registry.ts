@@ -1010,10 +1010,10 @@ console.log(text);`,
     tags: ['data-analysis', 'sql', 'visualization', 'charts'],
     apiKeyEnvName: 'AI_GATEWAY_API_KEY',
     installCommand: {
-      pnpm: 'pnpm add ai-sdk-ava',
-      npm: 'npm install ai-sdk-ava',
-      yarn: 'yarn add ai-sdk-ava',
-      bun: 'bun add ai-sdk-ava',
+      pnpm: 'pnpm add ai-sdk-ava ai zod @antv/ava',
+      npm: 'npm install ai-sdk-ava ai zod @antv/ava',
+      yarn: 'yarn add ai-sdk-ava ai zod @antv/ava',
+      bun: 'bun add ai-sdk-ava ai zod @antv/ava',
     },
     codeExample: `import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -1023,8 +1023,12 @@ import { avaTools } from 'ai-sdk-ava';
 
 const tempDir = await mkdtemp(join(tmpdir(), 'ai-sdk-ava-'));
 const csvPath = join(tempDir, 'sales.csv');
+// The sample dataset is written below (region,revenue header plus three
+// rows), so no separate download is needed for the local-file tool.
 const { tools, dispose } = avaTools({
   llm: {
+    // Requires AI_GATEWAY_API_KEY in your environment; see the API key
+    // setup link on the tool detail page.
     model: 'openai/gpt-4o-mini',
     apiKey: process.env.AI_GATEWAY_API_KEY!,
     baseURL: 'https://ai-gateway.vercel.sh/v1',
