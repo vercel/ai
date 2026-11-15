@@ -1000,4 +1000,42 @@ console.log(text);`,
     websiteUrl: 'https://keenable.ai',
     npmUrl: 'https://www.npmjs.com/package/@keenable/ai-sdk',
   },
+  {
+    slug: 'paystage',
+    name: 'PayStage',
+    description:
+      'Read-only preflight for x402 payments: returns pay, review or do_not_pay with the rules that fired, before the agent signs. Nothing signs, holds a key or moves money.',
+    packageName: '@paystage/ai-sdk',
+    tags: ['payments', 'x402', 'security', 'spend-controls', 'preflight'],
+    installCommand: {
+      pnpm: 'pnpm add @paystage/ai-sdk ai zod',
+      npm: 'npm install @paystage/ai-sdk ai zod',
+      yarn: 'yarn add @paystage/ai-sdk ai zod',
+      bun: 'bun add @paystage/ai-sdk ai zod',
+    },
+    codeExample: `import { generateText, gateway, isStepCount } from 'ai';
+import { paystageTools } from '@paystage/ai-sdk';
+
+// The policy is the rule the model cannot talk its way around: which payees,
+// which network, how much, how often.
+const policy = {
+  version: 1,
+  max_amount: { value: '0.05', asset: 'USDC', decimals: 6 },
+  allowed_networks: ['eip155:8453'],
+  unknown_payee: 'deny',
+};
+
+const { text } = await generateText({
+  model: gateway('openai/gpt-5-mini'),
+  prompt: 'Buy the weather data, but not above 2 cents.',
+  // PayStage decides whether a payment may be signed; the payment tools still do the paying.
+  tools: { ...paystageTools({ policy }), ...yourPaymentTools },
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://paystage.xyz/ai-sdk',
+    websiteUrl: 'https://paystage.xyz',
+    npmUrl: 'https://www.npmjs.com/package/@paystage/ai-sdk',
+  },
 ];
