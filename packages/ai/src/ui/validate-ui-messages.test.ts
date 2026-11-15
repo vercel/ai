@@ -1,5 +1,11 @@
 import { z } from 'zod/v4';
-import type { DynamicToolUIPart, InferUITool, UIMessage } from './ui-messages';
+import type {
+  DynamicToolUIPart,
+  InferUITool,
+  TextUIPart,
+  ToolUIPart,
+  UIMessage,
+} from './ui-messages';
 import {
   safeValidateUIMessages,
   validateUIMessages,
@@ -1711,6 +1717,207 @@ describe('validateUIMessages', () => {
         JSON.stringify(messages).length + 1000,
       );
     });
+  });
+
+  describe('valid JSON values in metadata', () => {
+    // Validating a JSON value with a recursive union schema needs several
+    // times the memory of the value. The values are validated in place instead.
+    function createNestedArrays(): unknown[] {
+      return Array.from({ length: 20 }, () =>
+        JSON.parse(`${'['.repeat(100)}[]${']'.repeat(100)}`),
+      );
+    }
+
+    it('should not copy JSON values in provider metadata', async () => {
+      const value = createNestedArrays();
+
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'text',
+                text: 'Hello',
+                providerMetadata: { provider: { key: value } },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(messages[0].parts[0]).toStrictEqual({
+        type: 'text',
+        text: 'Hello',
+        providerMetadata: { provider: { key: value } },
+      });
+      expect(
+        (messages[0].parts[0] as TextUIPart).providerMetadata?.provider.key,
+      ).toBe(value);
+    });
+
+    it('should not copy JSON values in tool part metadata', async () => {
+      const callValue = createNestedArrays();
+
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-foo',
+                toolCallId: '1',
+                state: 'output-available',
+                input: {},
+                output: 'result',
+                callProviderMetadata: { provider: { key: callValue } },
+              },
+            ],
+          },
+        ],
+      });
+
+      const part = messages[0].parts[0] as ToolUIPart & {
+        state: 'output-available';
+      };
+      expect(part.callProviderMetadata?.provider.key).toBe(callValue);
+    });
+
+    it('should read JSON values in provider metadata once', async () => {
+      let readCount = 0;
+
+      await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-foo',
+                toolCallId: '1',
+                state: 'input-available',
+                input: {},
+                callProviderMetadata: {
+                  provider: {
+                    key: {
+                      get nested() {
+                        readCount++;
+                        return createNestedArrays();
+                      },
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(readCount).toBe(1);
+    });
+
+    it('should remove __proto__ keys from JSON values in provider metadata', async () => {
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'text',
+                text: 'Hello',
+                providerMetadata: JSON.parse(
+                  '{"provider":{"key":[{"__proto__":{"polluted":true},"a":1}]}}',
+                ),
+              },
+            ],
+          },
+        ],
+      });
+
+      const value = (messages[0].parts[0] as TextUIPart).providerMetadata
+        ?.provider.key as Array<Record<string, unknown>>;
+      expect(value).toStrictEqual([{ a: 1 }]);
+      expect(Object.keys(value[0])).toEqual(['a']);
+      expect(value[0].polluted).toBeUndefined();
+    });
+
+    it('should accept undefined properties in nested provider metadata values', async () => {
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'text',
+                text: 'Hello',
+                providerMetadata: {
+                  provider: { nested: { key: undefined } },
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(messages[0].parts[0]).toStrictEqual({
+        type: 'text',
+        text: 'Hello',
+        providerMetadata: {
+          provider: { nested: { key: undefined } },
+        },
+      });
+    });
+
+    it('should reject undefined values in provider metadata records', async () => {
+      const result = await safeValidateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'text',
+                text: 'Hello',
+                providerMetadata: { provider: { key: undefined } },
+              },
+            ],
+          },
+        ],
+      });
+
+      expectToBe(result.success, false);
+      expect(getIssuePaths(result.error)).toEqual([
+        [0, 'parts', 0, 'providerMetadata', 'provider', 'key'],
+      ]);
+    });
+
+    it.each([
+      ['an array', []],
+      ['a provider without an object', { provider: 'value' }],
+      ['an undefined provider', { provider: undefined }],
+    ])(
+      'should reject provider metadata that is %s',
+      async (_, providerMetadata) => {
+        const result = await safeValidateUIMessages({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [{ type: 'text', text: 'Hello', providerMetadata }],
+            },
+          ],
+        });
+
+        expectToBe(result.success, false);
+        expect(
+          (result.error.cause as z.ZodError).issues.map(issue => issue.code),
+        ).toEqual(['invalid_type']);
+      },
+    );
   });
 
   describe('invalid JSON values in metadata', () => {
