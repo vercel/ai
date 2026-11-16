@@ -30,6 +30,11 @@ export type AlibabaChatUserMessageContent =
       type: 'image_url';
       image_url: { url: string };
       cache_control?: AlibabaCacheControl;
+    }
+  | {
+      type: 'video_url';
+      video_url: { url: string };
+      cache_control?: AlibabaCacheControl;
     };
 
 export interface AlibabaChatAssistantMessage {
