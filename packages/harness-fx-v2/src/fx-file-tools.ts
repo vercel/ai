@@ -224,7 +224,9 @@ async function readFileHead(options: {
     if (!stopped) throw error;
   }
   if (!stopped && exitCode != null && exitCode !== 0) {
-    throw new Error(`read_file could not read ${path}`);
+    throw new Error(
+      `could not read ${path}: the sandbox command exited with code ${exitCode}`,
+    );
   }
   const decoded = Buffer.from(
     Buffer.from(capture.toBytes()).toString('utf8').replace(/\s+/g, ''),

@@ -289,6 +289,10 @@ function createFakeFileSession(options: {
    */
   contentBytes?: number;
   /**
+   * Whether the command fails, like `base64` on a file it cannot read.
+   */
+  fails?: boolean;
+  /**
    * Bytes at the start of the file, before the filler lines.
    */
   prefix?: Uint8Array;
@@ -357,6 +361,7 @@ function createFakeFileSession(options: {
         if (pending.length > 0) yield Buffer.from(pending.toString('base64'));
       }
       const source = encoded();
+      const exitCode = options.fails ? 1 : 0;
       let finished = false;
       let drain = () => {};
       const drained = new Promise<void>(resolve => {
@@ -395,7 +400,7 @@ function createFakeFileSession(options: {
           },
         }),
         async wait() {
-          return Promise.race([drained.then(() => ({ exitCode: 0 })), aborted]);
+          return Promise.race([drained.then(() => ({ exitCode })), aborted]);
         },
         async kill() {
           state.stopped++;
@@ -512,6 +517,28 @@ describe('readFxFile with a file larger than a snapshot', () => {
 });
 
 describe('editFxFile with a preimage larger than the limit', () => {
+  test('reports a preimage the sandbox could not read', async () => {
+    const { session } = createFakeFileSession({
+      size: 4 * 1024,
+      fails: true,
+    });
+    const sandbox: FxToolSandbox = {
+      session,
+      workDir: '/home/user',
+      home: '/home/user',
+    };
+
+    await expect(
+      editFxFile({
+        sandbox,
+        input: { path: 'unreadable.txt', old_string: 'a', new_string: 'b' },
+        abortSignal: new AbortController().signal,
+      }),
+    ).rejects.toThrow(
+      'could not read /home/user/unreadable.txt: the sandbox command exited with code 1',
+    );
+  });
+
   test('rejects a file that grew past its stat within the limit', async () => {
     const { session, calls, state } = createFakeFileSession({
       size: 4 * 1024,
