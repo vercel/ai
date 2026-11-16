@@ -85,7 +85,8 @@ async function readStream(options: {
   const decoder = new TextDecoder();
   const reader = options.stream.getReader();
   const onAbort = () => {
-    void reader.cancel();
+    // An already errored stream rejects the cancel.
+    reader.cancel().catch(() => {});
   };
   options.abortSignal?.addEventListener('abort', onAbort, { once: true });
   try {
@@ -360,8 +361,13 @@ async function executeBash(options: {
       // Stop reading before the command is killed, so a stream that stays open
       // after the process ends does not keep the result waiting.
       stopController.abort();
-      // Stopping the command is best effort: not every sandbox can kill.
-      void Promise.resolve(child.kill()).catch(() => {});
+      // Stopping the command is best effort: not every sandbox can kill, and a
+      // kill that throws must not turn the stop into a tool error.
+      try {
+        void Promise.resolve(child.kill()).catch(() => {});
+      } catch {
+        // The stop still reports the output that was received.
+      }
     };
     const [{ exitCode: code }] = await Promise.all([
       child.wait(),
