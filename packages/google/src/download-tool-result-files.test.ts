@@ -1,11 +1,19 @@
 import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
-import { describe, expect, it, vi } from 'vitest';
+import type * as providerUtils from '@ai-sdk/provider-utils';
+import { fetchWithValidatedRedirects } from '@ai-sdk/provider-utils';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { downloadToolResultFiles } from './download-tool-result-files';
+
+vi.mock('@ai-sdk/provider-utils', async importOriginal => ({
+  ...(await importOriginal<typeof providerUtils>()),
+  fetchWithValidatedRedirects: vi.fn(),
+}));
+
+const fetchWithValidatedRedirectsMock = vi.mocked(fetchWithValidatedRedirects);
 
 const MAX_BYTES = 1024;
 
-function createDownloadFetch({
+function mockDownloadResponse({
   body = new TextEncoder().encode('%PDF-demo'),
   contentType = 'application/pdf',
   contentLength,
@@ -14,8 +22,8 @@ function createDownloadFetch({
   contentType?: string;
   contentLength?: number;
 } = {}) {
-  return vi.fn<FetchFunction>(async () => {
-    return new Response(body, {
+  fetchWithValidatedRedirectsMock.mockResolvedValue(
+    new Response(body, {
       status: 200,
       headers: {
         'content-type': contentType,
@@ -23,11 +31,15 @@ function createDownloadFetch({
           ? {}
           : { 'content-length': String(contentLength) }),
       },
-    });
-  });
+    }),
+  );
 }
 
 describe('downloadToolResultFiles', () => {
+  beforeEach(() => {
+    fetchWithValidatedRedirectsMock.mockReset();
+  });
+
   it.each(['assistant', 'tool'] as const)(
     'downloads URLs in %s tool results with the provided fetch without changing the input',
     async role => {
@@ -59,7 +71,8 @@ describe('downloadToolResultFiles', () => {
         },
       ];
       const abortSignal = new AbortController().signal;
-      const fetch = createDownloadFetch();
+      const fetch = vi.fn();
+      mockDownloadResponse();
 
       const result = await downloadToolResultFiles(prompt, {
         abortSignal,
@@ -67,11 +80,11 @@ describe('downloadToolResultFiles', () => {
         maxBytes: MAX_BYTES,
       });
 
-      expect(fetch).toHaveBeenCalledTimes(1);
-      const [requestedUrl, requestInit] = fetch.mock.calls[0];
-      expect(requestedUrl).toBe(url);
-      expect(requestInit?.redirect).toBe('manual');
-      expect(requestInit?.signal).toBe(abortSignal);
+      expect(fetchWithValidatedRedirectsMock).toHaveBeenCalledExactlyOnceWith({
+        url,
+        abortSignal,
+        fetch,
+      });
       expect(result[0]).toBe(prompt[0]);
       expect(result[1].content).toEqual([
         {
@@ -108,7 +121,8 @@ describe('downloadToolResultFiles', () => {
       mediaType: 'application/pdf',
     };
     const imageUrl = 'https://example.com/image.png';
-    const fetch = createDownloadFetch({
+    const fetch = vi.fn();
+    mockDownloadResponse({
       body: new TextEncoder().encode('image'),
       contentType: 'image/png',
     });
@@ -142,8 +156,11 @@ describe('downloadToolResultFiles', () => {
       },
     );
 
-    expect(fetch).toHaveBeenCalledTimes(1);
-    expect(fetch.mock.calls[0][0]).toBe(imageUrl);
+    expect(fetchWithValidatedRedirectsMock).toHaveBeenCalledExactlyOnceWith({
+      url: imageUrl,
+      abortSignal: undefined,
+      fetch,
+    });
     expect(result[0].content).toMatchObject([
       {
         output: {
@@ -157,8 +174,42 @@ describe('downloadToolResultFiles', () => {
     ]);
   });
 
+  it('uses the default validated transport when no download fetch is configured', async () => {
+    const imageUrl = 'https://example.com/image.png';
+    mockDownloadResponse({
+      body: new TextEncoder().encode('image'),
+      contentType: 'image/png',
+    });
+
+    await downloadToolResultFiles(
+      [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call',
+              toolName: 'view',
+              output: {
+                type: 'content',
+                value: [{ type: 'image-url', url: imageUrl }],
+              },
+            },
+          ],
+        },
+      ],
+      { abortSignal: undefined, maxBytes: MAX_BYTES },
+    );
+
+    expect(fetchWithValidatedRedirectsMock).toHaveBeenCalledExactlyOnceWith({
+      url: imageUrl,
+      abortSignal: undefined,
+      fetch: undefined,
+    });
+  });
+
   it('throws a DownloadError when a tool result file exceeds maxBytes', async () => {
-    const fetch = createDownloadFetch({
+    mockDownloadResponse({
       body: new TextEncoder().encode('too large'),
       contentLength: 9,
     });
@@ -183,7 +234,7 @@ describe('downloadToolResultFiles', () => {
             ],
           },
         ],
-        { abortSignal: undefined, fetch, maxBytes: 8 },
+        { abortSignal: undefined, maxBytes: 8 },
       ),
     ).rejects.toThrow(/exceeded maximum size of 8 bytes/);
   });
