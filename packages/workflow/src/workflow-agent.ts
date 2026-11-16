@@ -74,6 +74,7 @@ import type {
 } from './do-stream-step.js';
 import { resolveToolContext } from './resolve-tool-context.js';
 import { toModelResponseMessages } from './to-model-response-messages.js';
+import { withServerToolFields } from './with-server-tool-fields.js';
 import { logDefaultStepLimitWarning } from './log-default-step-limit-warning.js';
 import { modelCallIterator } from './model-call-iterator.js';
 import { shouldDispatchModelCallTelemetryInStep } from './model-call-telemetry.js';
@@ -2217,7 +2218,12 @@ export class WorkflowAgent<
         concurrency: toolCallConcurrency,
         abortSignal: effectiveAbortSignal,
         execute: async approval => {
-          const tool = (this.tools as ToolSet)[approval.toolName];
+          const tool = Object.prototype.hasOwnProperty.call(
+            this.tools as ToolSet,
+            approval.toolName,
+          )
+            ? (this.tools as ToolSet)[approval.toolName]
+            : undefined;
           if (tool && typeof tool.execute === 'function') {
             // Approval responses replayed from client-supplied history are only
             // accepted for calls that still require approval. The configured
@@ -2231,12 +2237,17 @@ export class WorkflowAgent<
                   toolApproval: toolApproval as
                     | ToolApprovalConfiguration<ToolSet, TRuntimeContext>
                     | undefined,
-                  toolCall: {
-                    type: 'tool-call',
-                    toolCallId: approval.toolCallId,
-                    toolName: approval.toolName,
-                    input: approval.input,
-                  } as TypedToolCall<ToolSet>,
+                  // The fields that identify a protected tool come from the
+                  // server-side definition, which the history cannot alter.
+                  toolCall: withServerToolFields(
+                    {
+                      type: 'tool-call',
+                      toolCallId: approval.toolCallId,
+                      toolName: approval.toolName,
+                      input: approval.input,
+                    },
+                    tool,
+                  ) as TypedToolCall<ToolSet>,
                   messages: prompt.messages,
                   toolsContext:
                     effectiveToolsContext as InferToolSetContext<ToolSet>,
@@ -2964,7 +2975,11 @@ export class WorkflowAgent<
                   | ToolApprovalConfiguration<ToolSet, TRuntimeContext>
                   | undefined,
                 toolCall: tc as unknown as TypedToolCall<ToolSet>,
-                messages: iterMessages as unknown as ModelMessage[],
+                // Approval functions receive the same messages as tool
+                // execution: the system prompt and the assistant response that
+                // contains the call are excluded, so calls from the current
+                // response that have not run cannot count as history.
+                messages: getToolCallbackMessages(iterMessages),
                 toolsContext:
                   toolsContext as unknown as InferToolSetContext<ToolSet>,
                 runtimeContext,
