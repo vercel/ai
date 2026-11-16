@@ -1731,7 +1731,7 @@ export class OpenTelemetry implements Telemetry {
           output: () =>
             JSON.stringify(
               formatOutputContent({
-                content: event.finalStep.content,
+                content: event.content,
                 finishReason: event.finishReason,
               }),
             ),

@@ -2899,6 +2899,50 @@ describe('OpenTelemetry', () => {
           },
         ]
       `);
+
+      const rootSpan = getExportedSpan(sdkTrace.exporter, 'invoke_agent gpt-4');
+      expect(parseJsonAttributes(rootSpan.attributes, 'gen_ai.output.messages'))
+        .toMatchInlineSnapshot(`
+        {
+          "gen_ai.output.messages": [
+            {
+              "finish_reason": "stop",
+              "parts": [
+                {
+                  "content": "Summary of earlier work.",
+                  "type": "text",
+                },
+                {
+                  "content": "I should look this up.",
+                  "type": "reasoning",
+                },
+                {
+                  "content": "Looking it up now.",
+                  "type": "text",
+                },
+                {
+                  "arguments": {
+                    "id": 7,
+                  },
+                  "id": "call-1",
+                  "name": "lookup",
+                  "type": "tool_call",
+                },
+                {
+                  "id": "call-1",
+                  "response": "seven",
+                  "type": "tool_call_response",
+                },
+                {
+                  "content": "It is seven.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+        }
+      `);
     });
   });
 
