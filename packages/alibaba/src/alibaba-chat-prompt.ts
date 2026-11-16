@@ -1,4 +1,4 @@
-export type AlibabaCacheControl = { type: string };
+export type AlibabaCacheControl = { type: string; ttl?: string };
 
 export type AlibabaChatPrompt = Array<AlibabaChatMessage>;
 

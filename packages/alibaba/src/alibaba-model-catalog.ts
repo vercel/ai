@@ -82,6 +82,14 @@ export const alibabaProviderOptions = {
     thinkingBudget: {
       description: 'Maximum number of reasoning tokens to generate.',
     },
+    reasoningEffort: {
+      description:
+        'Reasoning effort level, sent as `reasoning_effort`: `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, or `max`. Alibaba maps the value to the levels a model supports, and `none` disables thinking. Some models reject it together with `thinkingBudget`.',
+    },
+    promptCacheOptions: {
+      description:
+        'Request-level prompt cache settings, sent as `prompt_cache_options`. `mode: implicit` places an automatic cache breakpoint at the end of the input; `mode: explicit` caches only at `cacheControl` breakpoints. `ttl` (`5m` or `1h`, default `5m`) applies to every breakpoint in the request.',
+    },
     preserveThinking: {
       description:
         'Whether to preserve reasoning from previous assistant messages. When enabled, historical reasoning is sent separately as `reasoning_content` and Alibaba receives `preserve_thinking: true`. Defaults to `true` for models that support preserved thinking; set to `false` to opt out.',
