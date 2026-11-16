@@ -167,6 +167,7 @@ export const alibabaProviderOptions = {
 } as const satisfies ProviderOptionDefinitions;
 
 const languageModelIds = [
+  'qwen4-max',
   'qwen3.7-max',
   'qwen3-max',
   'qwen3-max-preview',
@@ -210,6 +211,7 @@ const JSON_SCHEMA_MODEL_PREFIXES = [
   'qwen3.7-max',
   'qwen3.8-max',
   'qwen3.8-flash',
+  'qwen4-max',
 ];
 
 function supportsJsonSchemaOutput(modelId: string): boolean {
@@ -243,6 +245,7 @@ const preservedThinkingModelIds = new Set([
   'qwen3.8-flash',
   'qwen3.8-max',
   'qwen3.8-max-0902',
+  'qwen4-max',
 ]);
 
 function supportsPreservedThinking(modelId: string): boolean {
