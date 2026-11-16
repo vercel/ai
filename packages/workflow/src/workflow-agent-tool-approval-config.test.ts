@@ -160,7 +160,7 @@ function approvalRequests(run: AgentRun) {
   }>;
 }
 
-function toolCallNames(messages: LanguageModelV4Prompt | ModelMessage[]) {
+function toolCallNames(messages: ModelMessage[]) {
   return messages.flatMap(message =>
     message.role === 'assistant' && Array.isArray(message.content)
       ? message.content
@@ -840,7 +840,9 @@ describe.each<Mode>(['generate', 'stream'])(
 
     it('offers a call and result that completed in an earlier step', async () => {
       const attestExecute = vi.fn(async () => 'attested');
-      const actionExecute = vi.fn(async () => 'protected output');
+      const actionExecute = vi.fn(
+        async (_input: unknown) => 'protected output',
+      );
       const approvalMessages: ModelMessage[][] = [];
       let executedForToolNames: string[] = [];
       const model = createAgentModel([
