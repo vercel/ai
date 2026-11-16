@@ -303,6 +303,15 @@ function createFakeFileSession(options: {
    */
   raw?: Uint8Array;
   /**
+   * Whether an abort ends the output as if it were complete, like a backend
+   * that closes its streams on abort, instead of rejecting `wait`.
+   */
+  closeOnAbort?: boolean;
+  /**
+   * Aborts the caller once the output has been pulled this many times.
+   */
+  cancelAfterChunks?: { chunks: number; abortController: AbortController };
+  /**
    * Text the command prints before its output, like a shell profile would.
    */
   noise?: string;
@@ -323,7 +332,7 @@ function createFakeFileSession(options: {
   } = options;
   const line = `${'x'.repeat(lineLength - 1)}\n`;
   const calls: string[] = [];
-  const state = { sent: 0, stopped: 0 };
+  const state = { sent: 0, stopped: 0, kills: 0, pulls: 0 };
 
   /**
    * Yields the contents of the file.
@@ -397,11 +406,15 @@ function createFakeFileSession(options: {
       const drained = new Promise<void>(resolve => {
         drain = resolve;
       });
-      const aborted = new Promise<never>((_, reject) => {
+      const ended = new Promise<{ exitCode: number }>((resolve, reject) => {
         abortSignal?.addEventListener(
           'abort',
           () => {
             state.stopped++;
+            if (options.closeOnAbort) {
+              resolve({ exitCode: 0 });
+              return;
+            }
             reject(abortSignal.reason);
           },
           { once: true },
@@ -419,6 +432,14 @@ function createFakeFileSession(options: {
             return;
           }
           state.sent += value.length;
+          if (options.cancelAfterChunks != null) {
+            state.pulls++;
+            if (state.pulls === options.cancelAfterChunks.chunks) {
+              options.cancelAfterChunks.abortController.abort(
+                new Error('cancelled'),
+              );
+            }
+          }
           controller.enqueue(new Uint8Array(value));
         },
       });
@@ -430,10 +451,11 @@ function createFakeFileSession(options: {
           },
         }),
         async wait() {
-          return Promise.race([drained.then(() => ({ exitCode })), aborted]);
+          return Promise.race([drained.then(() => ({ exitCode })), ended]);
         },
         async kill() {
           state.stopped++;
+          state.kills++;
         },
       };
     },
@@ -809,9 +831,9 @@ describe('a read the sandbox refuses', () => {
 
 describe('a snapshot that stops inside a character', () => {
   test('shows the text before the cut', async () => {
-    // Two-byte characters throughout, so the snapshot that stops a byte
-    // before the limit stops inside one of them.
-    const raw = Buffer.from('é'.repeat(5 * MIB + 50));
+    // Three-byte characters throughout, so a snapshot that stops near the
+    // limit stops inside one of them.
+    const raw = Buffer.from('€'.repeat(3.5 * MIB));
     const { session } = createFakeFileSession({
       size: raw.length,
       raw: new Uint8Array(raw),
@@ -847,5 +869,40 @@ describe('a sandbox that cannot start a read', () => {
       text: 'file mutation preparation failed: unable to read the approved preimage',
       isError: true,
     });
+  });
+});
+
+describe('a read the caller stops', () => {
+  test('stops the command it no longer reads', async () => {
+    const { session, state } = createFakeFileSession({
+      size: 64 * MIB,
+      contentBytes: 64 * MIB,
+    });
+
+    await readFxFile({
+      sandbox: { session, workDir: '/home/user', home: '/home/user' },
+      input: { path: 'big.txt' },
+      abortSignal: new AbortController().signal,
+    });
+
+    expect(state.kills).toBeGreaterThan(0);
+  });
+
+  test('reports an abort even when the sandbox ends its output cleanly', async () => {
+    const controller = new AbortController();
+    const { session } = createFakeFileSession({
+      size: 64 * MIB,
+      contentBytes: 64 * MIB,
+      closeOnAbort: true,
+      cancelAfterChunks: { chunks: 2, abortController: controller },
+    });
+
+    await expect(
+      readFxFile({
+        sandbox: { session, workDir: '/home/user', home: '/home/user' },
+        input: { path: 'big.txt' },
+        abortSignal: controller.signal,
+      }),
+    ).rejects.toThrow('cancelled');
   });
 });

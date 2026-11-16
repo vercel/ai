@@ -23,6 +23,7 @@ import {
   type FxBuiltinToolOutput,
 } from './fx-builtin-tools';
 import { createFxEngineTools } from './fx-engine-tools';
+import { createFxOutputCapture, readFxChunks } from './fx-sandbox-output';
 import {
   getFxCatalogEffectKey,
   getFxModelEffectKey,
@@ -1058,13 +1059,52 @@ export class FxDrive {
   private getBuiltinToolExecutors(): Promise<FxBuiltinToolExecutors> {
     this.builtinToolExecutors ??= (async () => {
       const { session, workDir } = await this.context.sandbox();
-      const result = await session.run({ command: 'printf %s "$HOME"' });
-      const home = result.stdout.trim();
+      /*
+       * The home directory is read with a bounded command: the session's own
+       * commands collect their whole output in the host.
+       */
+      const home = await (async () => {
+        const capture = createFxOutputCapture({
+          headBytes: 4096,
+          tailBytes: 0,
+        });
+        const controller = new AbortController();
+        try {
+          const child = await session.spawn({
+            command: 'printf %s "$HOME"',
+            workingDirectory: workDir,
+            abortSignal: controller.signal,
+          });
+          const [result] = await Promise.all([
+            child.wait(),
+            readFxChunks({
+              stream: child.stdout,
+              onChunk: chunk => {
+                capture.add(chunk);
+                if (!capture.complete) {
+                  controller.abort(new Error('home directory limit'));
+                }
+              },
+              abortSignal: controller.signal,
+            }),
+            readFxChunks({
+              stream: child.stderr,
+              onChunk: () => {},
+              abortSignal: controller.signal,
+            }),
+          ]);
+          if (result.exitCode !== 0) return undefined;
+        } catch {
+          return undefined;
+        }
+        const value = new TextDecoder().decode(capture.toBytes()).trim();
+        return value.length > 0 ? value : undefined;
+      })();
       return createFxBuiltinToolExecutors({
         sandbox: {
           session,
           workDir,
-          home: result.exitCode === 0 && home.length > 0 ? home : workDir,
+          home: home ?? workDir,
         },
       });
     })();
