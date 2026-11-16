@@ -76,6 +76,25 @@ describe('createPiSandboxOperations', () => {
     ).rejects.toThrow('File is too large to read');
   });
 
+  test('does not reuse a size from a stat after the file has grown', async () => {
+    const { session, root, operations } = await setup();
+    const limit = 10 * 1024 * 1024;
+    await session.writeTextFile({
+      path: `${root}/grows.log`,
+      content: 'small',
+    });
+    // `ls` stats entries, and its last stat must not be trusted by a read.
+    await operations.stat(`${root}/grows.log`);
+    await session.writeTextFile({
+      path: `${root}/grows.log`,
+      content: 'a'.repeat(limit + 1),
+    });
+
+    await expect(operations.readFile(`${root}/grows.log`)).rejects.toThrow(
+      'File is too large to read',
+    );
+  });
+
   test('refuses to read a directory', async () => {
     const { root, operations } = await setup();
 

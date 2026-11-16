@@ -178,9 +178,9 @@ export function createPiSandboxOperations(options: {
     | undefined;
 
   /**
-   * Returns the type and size of a file, reusing the stat that `access()` or
-   * `stat()` read for the same path right before, as Pi's read tool calls
-   * `access()` before it reads.
+   * Returns the type and size of a file, reusing the stat that `access()` read
+   * for the same path right before, as Pi's read tool calls `access()` before
+   * it reads.
    */
   const statFor = async (
     filePath: string,
@@ -234,7 +234,6 @@ export function createPiSandboxOperations(options: {
     if (stat == null) {
       throw createNotFoundError({ operation: 'stat', path: filePath });
     }
-    lastStat = { path: filePath, type: stat.type, size: stat.size };
     return stat;
   };
 
@@ -243,7 +242,14 @@ export function createPiSandboxOperations(options: {
       return Buffer.from(await readBytes(filePath));
     },
     async access(filePath) {
-      await statPath(filePath);
+      /*
+       * Pi's read and edit tools call `access()` right before they read, so the
+       * size can be reused there without a second request. Tools that stat many
+       * paths, such as `ls`, must not leave a size behind that a later read
+       * trusts after the file has grown.
+       */
+      const stat = await statPath(filePath);
+      lastStat = { path: filePath, type: stat.type, size: stat.size };
     },
     async detectImageMimeType(filePath) {
       const bytes = await readBytes(filePath);
