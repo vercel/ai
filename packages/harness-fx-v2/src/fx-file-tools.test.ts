@@ -845,8 +845,8 @@ describe('a snapshot that stops inside a character', () => {
       abortSignal: new AbortController().signal,
     });
 
-    // The two bytes of `é` straddle the snapshot limit, so the snapshot is
-    // cut before them rather than inside them.
+    // A three-byte character straddles the snapshot limit, so the snapshot
+    // is cut before it rather than inside it.
     expect(output.text).not.toContain('binary or non-utf8');
     expect(output.text).toContain('file snapshot was capped before EOF');
   });
@@ -872,7 +872,7 @@ describe('a sandbox that cannot start a read', () => {
   });
 });
 
-describe('a read the caller stops', () => {
+describe('a read that stops early', () => {
   test('stops the command it no longer reads', async () => {
     const { session, state } = createFakeFileSession({
       size: 64 * MIB,
