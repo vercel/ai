@@ -2182,7 +2182,7 @@ class DefaultStreamTextResult<
     stream = applyStreamTextTransforms({
       stream,
       transforms,
-      tools: tools as TOOLS,
+      tools: tools ?? ({} as TOOLS),
       stopStream() {
         stitchableStream.terminate();
         isRunning = false;
