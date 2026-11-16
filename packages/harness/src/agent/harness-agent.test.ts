@@ -496,6 +496,28 @@ describe('HarnessAgent', () => {
     );
   });
 
+  test('rejects approval-requiring tools when proxying to a HarnessV2 adapter', () => {
+    expect(
+      () =>
+        new HarnessAgent({
+          harness: {
+            specificationVersion: 'harness-v2',
+            harnessId: 'mock-v2',
+            builtinTools: {},
+            drive: async () => {},
+          },
+          getSandboxSession: async () => ({}) as SandboxSession,
+          tools: {
+            deleteFile: tool({
+              inputSchema: z.object({ path: z.string() }),
+              needsApproval: true,
+              execute: async () => 'deleted',
+            }),
+          },
+        }),
+    ).toThrow(HarnessCapabilityUnsupportedError);
+  });
+
   test('uses prepared runtime context for each prompt turn and filters telemetry', async () => {
     type RuntimeContext = { requestId: string; secret: string };
     const configuredContext = { requestId: 'default', secret: 'configured' };

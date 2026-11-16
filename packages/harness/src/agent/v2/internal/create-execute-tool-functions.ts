@@ -25,6 +25,10 @@ import type { HarnessV2EffectContext } from '../../../v2/harness-v2-effect';
 import type { HarnessV2NetworkSandboxSession } from '../../../v2/harness-v2-network-sandbox-session';
 import type { HarnessV2ToolResult } from '../../../v2/harness-v2-stream-part';
 import { isPlainJSONValue } from './utils';
+import {
+  createToolApprovalUnsupportedError,
+  requiresApproval,
+} from './tool-approval';
 import type { HarnessAgentEffectFunction } from './create-effect-function';
 import type { HarnessAgentLog } from './create-log';
 
@@ -346,13 +350,15 @@ function emitToolError(options: {
  * attempt, the call is validated (unknown or provider-executed tools, input
  * that does not match the input schema, tool context), the sandbox is
  * resolved, a `tool-execution-start` event is committed, and the tool is
- * executed. Validation failures and thrown errors
- * become recorded `error` outcomes. Preliminary values of a generator tool
- * are recorded as partial output. Values are converted to JSON, and
- * `modelOutput` is computed from the raw output only when the tool defines
- * `toModelOutput`. A tool without `execute` that the provider does not
- * execute is a client tool: the call resolves `suspended` without being
- * recorded.
+ * executed. Validation failures and thrown errors become recorded `error`
+ * outcomes. A tool that sets `needsApproval` is refused with a
+ * `HarnessCapabilityUnsupportedError` before validation, the sandbox lookup
+ * and the execution, since the engine cannot request the consent it asks for.
+ * Preliminary values of a generator tool are recorded as partial output.
+ * Values are converted to JSON, and `modelOutput` is computed from the raw
+ * output only when the tool defines `toModelOutput`. A tool without `execute`
+ * that the provider does not execute is a client tool: the call resolves
+ * `suspended` without being recorded.
  *
  * `executeBuiltinTool()` runs one of the harness's built-in tools with the
  * implementation the adapter passes as `execute`, with the attempt's abort
@@ -364,7 +370,9 @@ function emitToolError(options: {
  * then as the final value. A value that is not a valid tool value, an
  * iterable that yields nothing and a thrown error become recorded `error`
  * outcomes. A call to a tool that is not one of the harness's built-in tools
- * is recorded as an `error` without running `execute`.
+ * is recorded as an `error` without running `execute`, and so is a built-in
+ * tool that sets `needsApproval`, since the engine cannot request the consent
+ * it asks for.
  *
  * The `tool-execution-start` event (ID `tool-execution-start:${startId}`) is
  * committed right before the tool runs. An attempt that a crashed drive left
@@ -376,6 +384,11 @@ export function createExecuteToolFunctions(options: {
    * Engine log of the session, used to record `tool-execution-start` events.
    */
   log: HarnessAgentLog;
+
+  /**
+   * Identifier of the harness adapter, recorded on capability errors.
+   */
+  harnessId: string;
 
   /**
    * The agent's own tools, without the harness's built-in tools.
@@ -403,7 +416,8 @@ export function createExecuteToolFunctions(options: {
   executeHostTool: HarnessAgentExecuteHostToolFunction;
   executeBuiltinTool: HarnessAgentExecuteBuiltinToolFunction;
 } {
-  const { log, tools, builtinTools, effect, getSandboxSession } = options;
+  const { log, tools, builtinTools, effect, getSandboxSession, harnessId } =
+    options;
 
   /**
    * Commits the `tool-execution-start` event of an attempt, right before its
@@ -458,6 +472,16 @@ export function createExecuteToolFunctions(options: {
       tool == null || isProviderExecuted(tool) || tool.type === 'dynamic';
 
     try {
+      /*
+       * Fails closed for a tool that asks for consent: the agent may have been
+       * built before the requirement was added, or its tool set may have been
+       * changed after construction. The refusal is recorded as an error tool
+       * result like any other tool failure, so the call never runs the tool.
+       */
+      if (tool != null && requiresApproval(tool)) {
+        throw createToolApprovalUnsupportedError({ harnessId, toolName });
+      }
+
       if (tool == null || isProviderExecuted(tool) || !isExecutableTool(tool)) {
         throw new NoSuchToolError({
           toolName,
@@ -615,6 +639,20 @@ export function createExecuteToolFunctions(options: {
         throw new NoSuchToolError({
           toolName,
           availableTools: Object.keys(builtinTools),
+        });
+      }
+      /*
+       * Fails closed for an adapter built-in tool that asks for consent: the
+       * agent may have been built before the requirement was added, or the
+       * adapter's tool set may have been changed after construction. The
+       * refusal is recorded as an error tool result like any other tool
+       * failure, so `execute` never runs the tool.
+       */
+      if (requiresApproval(tool)) {
+        throw createToolApprovalUnsupportedError({
+          harnessId,
+          toolName,
+          kind: 'built-in tool',
         });
       }
       await markExecutionStart(context);

@@ -125,6 +125,24 @@ const getSandboxSession: NonNullable<
   HarnessAgentSettings<typeof harness>['getSandboxSession']
 > = async ({ sandboxId: _sandboxId }) => ({}) as SandboxSession;
 
+/**
+ * Name of `HarnessCapabilityUnsupportedError`, asserted by name because the
+ * HarnessV2 entrypoints must not import from parent directories.
+ */
+const capabilityErrorName = 'AI_HarnessCapabilityUnsupportedError';
+
+/**
+ * Returns the error thrown by the given synchronous function.
+ */
+function captureError(fn: () => unknown): Error {
+  try {
+    fn();
+  } catch (error) {
+    return error as Error;
+  }
+  throw new Error('expected the call to throw');
+}
+
 describe('HarnessAgent', () => {
   test('rejects a harness adapter with a different specification version', () => {
     expect(
@@ -274,6 +292,163 @@ describe('HarnessAgent', () => {
           onSandboxSession: async () => {},
         }),
     ).toThrow('setting `onSandboxSession` is not supported');
+  });
+
+  test.each([
+    ['a boolean', true],
+    ['a function', async () => true],
+  ])(
+    'rejects a host tool whose approval requirement is %s',
+    (_kind, needsApproval) => {
+      const error = captureError(
+        () =>
+          new HarnessAgent({
+            harness,
+            getSandboxSession,
+            tools: {
+              deleteFile: tool({
+                inputSchema: z.object({ path: z.string() }),
+                needsApproval,
+                execute: async () => 'deleted',
+              }),
+            },
+          }),
+      );
+
+      expect(error.name).toBe(capabilityErrorName);
+      expect(error.message).toContain(
+        'tool approval is not supported with HarnessV2',
+      );
+    },
+  );
+
+  test('names every host tool that requires approval', () => {
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          getSandboxSession,
+          tools: {
+            deleteFile: tool({
+              inputSchema: z.object({ path: z.string() }),
+              needsApproval: true,
+              execute: async () => 'deleted',
+            }),
+            sendEmail: tool({
+              inputSchema: z.object({ to: z.string() }),
+              needsApproval: true,
+              execute: async () => 'sent',
+            }),
+          },
+        }),
+    ).toThrow("remove `needsApproval` from tools 'deleteFile', 'sendEmail'");
+  });
+
+  test.each([
+    ['a boolean', true],
+    ['a function', async () => true],
+  ])(
+    'rejects a built-in tool whose approval requirement is %s',
+    (_kind, needsApproval) => {
+      const error = captureError(
+        () =>
+          new HarnessAgent({
+            harness: {
+              ...harness,
+              builtinTools: {
+                bash: tool({
+                  inputSchema: z.object({ command: z.string() }),
+                  needsApproval,
+                }),
+              },
+            },
+            getSandboxSession,
+          }),
+      );
+
+      expect(error.name).toBe(capabilityErrorName);
+      expect(error.message).toContain(
+        "remove `needsApproval` from built-in tool 'bash'",
+      );
+    },
+  );
+
+  test('names every built-in tool that requires approval', () => {
+    const error = captureError(
+      () =>
+        new HarnessAgent({
+          harness: {
+            ...harness,
+            builtinTools: {
+              bash: tool({ inputSchema: z.object({}), needsApproval: true }),
+              write: tool({ inputSchema: z.object({}), needsApproval: true }),
+            },
+          },
+          getSandboxSession,
+        }),
+    );
+
+    expect(error.name).toBe(capabilityErrorName);
+    expect(error.message).toContain(
+      "remove `needsApproval` from built-in tools 'bash', 'write'",
+    );
+  });
+
+  test('accepts built-in tools without approval requirements', () => {
+    const agent = new HarnessAgent({
+      harness: {
+        ...harness,
+        builtinTools: { bash: tool({ inputSchema: z.object({}) }) },
+      },
+      getSandboxSession,
+    });
+
+    expect(Object.keys(agent.tools)).toContain('bash');
+  });
+
+  test('rejects the toolApproval setting', () => {
+    const error = captureError(
+      () =>
+        new HarnessAgent({
+          harness,
+          getSandboxSession,
+          toolApproval: { deleteFile: 'user-approval' },
+        }),
+    );
+
+    expect(error.name).toBe(capabilityErrorName);
+    expect(error.message).toContain(
+      '`toolApproval` is not supported with HarnessV2',
+    );
+  });
+
+  test.each(['allow-reads', 'allow-edits'] as const)(
+    'rejects the approval-implying permission mode %s',
+    permissionMode => {
+      const error = captureError(
+        () =>
+          new HarnessAgent({
+            harness,
+            getSandboxSession,
+            permissionMode,
+          }),
+      );
+
+      expect(error.name).toBe(capabilityErrorName);
+      expect(error.message).toContain(
+        `\`permissionMode: '${permissionMode}'\` is not supported with HarnessV2`,
+      );
+    },
+  );
+
+  test('accepts the allow-all permission mode', () => {
+    const agent = new HarnessAgent({
+      harness,
+      getSandboxSession,
+      permissionMode: 'allow-all',
+    });
+
+    expect(agent.harnessId).toBe('mock-v2');
   });
 
   test('creates and starts a World run for a new session', async () => {
@@ -687,6 +862,105 @@ describe('HarnessAgent turns', () => {
         output: { city: 'Berlin', temperature: 20 },
       },
     ]);
+  });
+
+  test('refuses a host tool that requires approval after construction', async () => {
+    const execute = vi.fn(async () => 'sunny');
+    const tools = {
+      weather: tool({
+        inputSchema: z.object({ city: z.string() }),
+        execute,
+      }),
+    } as ToolSet;
+    const harness = createFakeHarness({
+      modelParts: [
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'weather',
+          input: '{"city":"Berlin"}',
+        },
+      ],
+      afterModel: async ({ context }) => {
+        await context.executeHostTool({
+          toolCallId: 'call-1',
+          toolName: 'weather',
+          input: { city: 'Berlin' },
+        });
+      },
+    });
+    const { agent, session } = await setup({ harness, tools });
+
+    // The agent was built without approval requirements, so this tool set
+    // changed afterwards and must be refused instead of run without consent.
+    (tools.weather as { needsApproval?: boolean }).needsApproval = true;
+
+    const result = await agent.stream({ prompt: 'weather?', session });
+    const parts: Array<{ type: string }> = [];
+    for await (const part of result.fullStream) parts.push(part);
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(parts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'tool-error',
+          toolCallId: 'call-1',
+          toolName: 'weather',
+          error: expect.stringContaining(
+            "remove `needsApproval` from tool 'weather'",
+          ),
+        }),
+      ]),
+    );
+  });
+
+  test('refuses a built-in tool that requires approval after construction', async () => {
+    const execute = vi.fn(async () => ({ raw: { stdout: 'ran' } }));
+    const builtinTools: ToolSet = {
+      bash: tool({ inputSchema: z.object({ command: z.string() }) }),
+    };
+    const harness = createFakeHarness({
+      builtinTools,
+      modelParts: [
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'bash',
+          input: '{"command":"ls"}',
+        },
+      ],
+      afterModel: async ({ context }) => {
+        await context.executeBuiltinTool({
+          toolCallId: 'call-1',
+          toolName: 'bash',
+          input: { command: 'ls' },
+          execute,
+        });
+      },
+    });
+    const { agent, session } = await setup({ harness });
+
+    // The adapter's built-in tool set changed after the agent was built, so the
+    // call must be refused instead of run without the consent it asks for.
+    (builtinTools.bash as { needsApproval?: boolean }).needsApproval = true;
+
+    const result = await agent.stream({ prompt: 'run ls', session });
+    const parts: Array<{ type: string }> = [];
+    for await (const part of result.fullStream) parts.push(part);
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(parts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'tool-error',
+          toolCallId: 'call-1',
+          toolName: 'bash',
+          error: expect.stringContaining(
+            "remove `needsApproval` from built-in tool 'bash'",
+          ),
+        }),
+      ]),
+    );
   });
 
   test('keeps a session replayable when a tool result has prototype-sensitive keys', async () => {
