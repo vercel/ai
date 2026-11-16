@@ -37,6 +37,8 @@ const CONTEXT_FILE_BYTES = 200 * 1024;
 const MiB = 1024 * 1024;
 const MAX_SEARCH_OUTPUT_BYTES = 8 * MiB;
 const MAX_SEARCH_ERROR_BYTES = 8 * 1024;
+const MAX_SEARCH_MATCHES = 20_000;
+const MAX_LIST_ENTRIES = 100_000;
 
 /**
  * Runs a search command and keeps at most `MAX_SEARCH_OUTPUT_BYTES` of its
@@ -137,9 +139,17 @@ async function runSearchCommand(options: {
       // Ignore a sandbox that cannot stop the command.
     }
   }
+  const kept = capture.toBytes();
+  /*
+   * Stopping the command can cut its last line in the middle, and a partial
+   * path or match would be reported as a result, so the cut line is dropped.
+   */
+  const complete = truncated
+    ? kept.subarray(0, kept.lastIndexOf(0x0a) + 1)
+    : kept;
   const decode = (bytes: Uint8Array) => Buffer.from(bytes).toString('utf8');
   return {
-    stdout: decode(capture.toBytes()),
+    stdout: decode(complete),
     stderr: decode(errorCapture.toBytes()),
     exitCode,
     truncated,
@@ -337,12 +347,15 @@ async function listFiles(options: {
     );
   }
   const prefix = root === '/' ? '/' : `${root}/`;
-  const files = result.stdout
-    .split('\n')
-    .filter(line => line.startsWith(prefix))
-    .map(line => line.slice(prefix.length))
-    .sort();
-  return { files, truncated: result.truncated };
+  const files: string[] = [];
+  for (const line of result.stdout.split('\n')) {
+    if (!line.startsWith(prefix)) continue;
+    if (files.length >= MAX_LIST_ENTRIES) {
+      return { files, truncated: true };
+    }
+    files.push(line.slice(prefix.length));
+  }
+  return { files: files.sort(), truncated: result.truncated };
 }
 
 /**
@@ -441,7 +454,10 @@ export async function globFxFiles(options: {
     };
   }
   if (matches.length === 0) {
-    return { text: `[glob] no matches for ${pattern}\n` };
+    const notice = listingTruncated
+      ? ` in the listed part; the file listing was cut off after ${MAX_SEARCH_OUTPUT_BYTES} bytes`
+      : '';
+    return { text: `[glob] no matches for ${pattern}${notice}\n` };
   }
   let out = `[glob] ${matches.length} matches for ${pattern}\n`;
   for (const match of matches) out += ` - ${match}\n`;
@@ -529,6 +545,25 @@ async function readContextLines(options: {
   const lines = text?.split('\n');
   if (lines?.at(-1) === '') lines.pop();
   return lines;
+}
+
+/**
+ * Returns a count as fx shows it, marked as a lower bound when the search
+ * that produced it was cut off.
+ */
+function approximate(options: {
+  /**
+   * Count of what was found.
+   */
+  count: number;
+
+  /**
+   * Whether the search was cut off.
+   */
+  cutOff: boolean;
+}): string {
+  const { count, cutOff } = options;
+  return cutOff ? `at least ${count}` : `${count}`;
 }
 
 /**
@@ -651,12 +686,17 @@ export async function grepFxFiles(options: {
       text: `grep_files failed: ${result.stderr.trim() || `grep exited with code ${result.exitCode}`}`,
     });
   }
-  const cutoffNotice = result.truncated
-    ? `... grep output was cut off after ${MAX_SEARCH_OUTPUT_BYTES} bytes; narrow the pattern, the include filter, or the search path\n`
-    : '';
-
   const matches: GrepMatch[] = [];
-  for (const line of result.stdout.split('\n')) {
+  let matchesCapped = false;
+  const stdout = result.stdout;
+  for (let at = 0; at < stdout.length; ) {
+    const end = stdout.indexOf('\n', at);
+    const line = stdout.slice(at, end === -1 ? stdout.length : end);
+    at = end === -1 ? stdout.length : end + 1;
+    if (matches.length >= MAX_SEARCH_MATCHES) {
+      matchesCapped = true;
+      break;
+    }
     if (line === '' || line.includes('\u0000')) continue;
     if (isFile) {
       const parsed = SINGLE_FILE_GREP_LINE.exec(line);
@@ -681,6 +721,14 @@ export async function grepFxFiles(options: {
       text: parsed[3],
     });
   }
+  /*
+   * A stopped command and a capped match list both mean the matches are a
+   * prefix of the search's, so totals are lower bounds.
+   */
+  const cutoffNotice =
+    result.truncated || matchesCapped
+      ? `... grep output was cut off after ${MAX_SEARCH_OUTPUT_BYTES} bytes; narrow the pattern, the include filter, or the search path\n`
+      : '';
   const filtered = matches
     .filter(
       match =>
@@ -697,9 +745,8 @@ export async function grepFxFiles(options: {
 
   if (mode === 'count') {
     const files = new Set(filtered.map(match => match.path)).size;
-    const notice = result.truncated
-      ? ' (at least; the grep output was cut off)'
-      : '';
+    const notice =
+      cutoffNotice === '' ? '' : ' (at least; the grep output was cut off)';
     return {
       text: `[grep] count ${filtered.length} matching lines in ${files} files for ${pattern}${notice}\n`,
     };
@@ -715,12 +762,12 @@ export async function grepFxFiles(options: {
     if (paths.length === 0) {
       out = `[grep] no files with matches for ${pattern}\n`;
     } else if (end === start) {
-      out = `[grep] no files with matches for ${pattern} at offset ${from} (${paths.length} total files)\n`;
+      out = `[grep] no files with matches for ${pattern} at offset ${from} (${approximate({ count: paths.length, cutOff: cutoffNotice !== '' })} total files)\n`;
     } else {
       out =
         start === 0 && end === paths.length
           ? `[grep] ${end - start} files with matches for ${pattern}\n`
-          : `[grep] ${end - start} files with matches for ${pattern} (showing ${start + 1}-${end} of ${paths.length})\n`;
+          : `[grep] ${end - start} files with matches for ${pattern} (showing ${start + 1}-${end} of ${approximate({ count: paths.length, cutOff: cutoffNotice !== '' })})\n`;
       for (const path of paths.slice(start, end)) out += ` - ${path}\n`;
     }
     if (end < paths.length) {
@@ -736,12 +783,12 @@ export async function grepFxFiles(options: {
   if (filtered.length === 0) {
     out = `[grep] no matches for ${pattern}\n`;
   } else if (end === start) {
-    out = `[grep] no matches for ${pattern} at offset ${from} (${filtered.length} total matches)\n`;
+    out = `[grep] no matches for ${pattern} at offset ${from} (${approximate({ count: filtered.length, cutOff: cutoffNotice !== '' })} total matches)\n`;
   } else {
     out =
       start === 0 && end === filtered.length
         ? `[grep] ${end - start} matches for ${pattern}\n`
-        : `[grep] ${end - start} matches for ${pattern} (showing ${start + 1}-${end} of ${filtered.length})\n`;
+        : `[grep] ${end - start} matches for ${pattern} (showing ${start + 1}-${end} of ${approximate({ count: filtered.length, cutOff: cutoffNotice !== '' })})\n`;
     const fileLines = new Map<string, string[] | undefined>();
     for (const match of filtered.slice(start, end)) {
       let lines: string[] | undefined;
