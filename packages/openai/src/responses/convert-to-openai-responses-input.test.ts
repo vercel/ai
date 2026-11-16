@@ -841,6 +841,25 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
+    it('does not warn when defer_loading false matches an unset option', async () => {
+      const { resolveAdditionalTool } = registerAdditionalTools([
+        registeredTool('list_issues', { description: 'List issues' }),
+      ]);
+      const { warnings } = await convert(
+        [
+          {
+            role: 'tool',
+            content: [
+              result([{ ...definition, strict: false, defer_loading: false }]),
+            ],
+          },
+        ],
+        'openai',
+        resolveAdditionalTool,
+      );
+      expect(warnings).toEqual([]);
+    });
+
     it('sends a repeated definition once', async () => {
       const { registeredTools, resolveAdditionalTool } =
         registerAdditionalTools([

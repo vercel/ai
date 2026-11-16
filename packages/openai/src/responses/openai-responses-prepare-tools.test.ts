@@ -3606,6 +3606,30 @@ describe('findAdditionalToolDefinition', () => {
     ]);
   });
 
+  it('does not repeat schema warnings of tools in the request tools', async () => {
+    const tools: Array<LanguageModelV4FunctionTool> = [
+      {
+        ...listIssuesTool,
+        providerOptions: undefined,
+        inputSchema: {
+          type: 'object',
+          properties: {
+            values: {
+              type: 'object',
+              propertyNames: { type: 'string', format: 'uuid' },
+            },
+          },
+        },
+      },
+    ];
+    const resolved = await findAdditionalToolDefinition({
+      tools,
+      additionalTool: { type: 'function', name: 'list_issues' },
+    });
+
+    expect(resolved?.warnings).toEqual([]);
+  });
+
   it('does not prepare tools the entry does not reference', async () => {
     const tools: Array<LanguageModelV4FunctionTool> = [
       {

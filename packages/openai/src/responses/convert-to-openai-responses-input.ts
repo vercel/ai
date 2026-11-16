@@ -2186,7 +2186,7 @@ function pushDefinitionMismatchWarning({
 
   if (
     additionalTool.defer_loading != null &&
-    additionalTool.defer_loading !== definition.defer_loading
+    additionalTool.defer_loading !== (definition.defer_loading ?? false)
   ) {
     mismatchedFields.push('defer_loading');
   }

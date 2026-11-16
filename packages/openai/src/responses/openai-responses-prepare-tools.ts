@@ -659,12 +659,18 @@ export async function findAdditionalToolDefinition({
       }
 
       description ??= namespace.description;
+
+      // Tools that are part of the request tools were already prepared with
+      // their warnings; only report the warnings of hidden tools here.
+      const toolWarnings =
+        openaiOptions?.omitFromRequestTools === true ? warnings : [];
+
       namespaceTools.push(
         toAdditionalFunctionTool(
           prepareFunctionTool({
             tool,
             options: openaiOptions,
-            toolWarnings: warnings,
+            toolWarnings,
             async: undefined,
           }),
         ),
@@ -698,16 +704,21 @@ export async function findAdditionalToolDefinition({
         continue;
       }
 
+      // Tools that are part of the request tools were already prepared with
+      // their warnings; only report the warnings of hidden tools here.
+      const omitFromRequestTools = openaiOptions?.omitFromRequestTools === true;
+      const toolWarnings = omitFromRequestTools ? warnings : [];
+
       return {
         definition: toAdditionalFunctionTool(
           prepareFunctionTool({
             tool,
             options: openaiOptions,
-            toolWarnings: warnings,
+            toolWarnings,
             async: undefined,
           }),
         ),
-        warnings,
+        warnings: omitFromRequestTools ? warnings : [],
       };
     }
 
