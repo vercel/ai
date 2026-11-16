@@ -1,17 +1,22 @@
-import type {
-  LanguageModelV4CustomPart,
-  LanguageModelV4FilePart,
-  LanguageModelV4Message,
-  LanguageModelV4Prompt,
-  LanguageModelV4ReasoningFilePart,
-  LanguageModelV4ReasoningPart,
-  LanguageModelV4TextPart,
-  LanguageModelV4ToolApprovalResponsePart,
-  LanguageModelV4ToolCallPart,
-  LanguageModelV4ToolResultPart,
+import {
+  getErrorMessage,
+  type LanguageModelV4CustomPart,
+  type LanguageModelV4FilePart,
+  type LanguageModelV4Message,
+  type LanguageModelV4Prompt,
+  type LanguageModelV4ReasoningFilePart,
+  type LanguageModelV4ReasoningPart,
+  type LanguageModelV4TextPart,
+  type LanguageModelV4ToolApprovalResponsePart,
+  type LanguageModelV4ToolCallPart,
+  type LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
 import type { ModelMessage } from '@ai-sdk/provider-utils';
-import { convertDataContentToBase64String } from 'ai';
+import {
+  convertDataContentToBase64String,
+  type ContentPart,
+  type ToolSet,
+} from 'ai';
 
 type LanguageModelV4ContentPart =
   | LanguageModelV4TextPart
@@ -166,91 +171,19 @@ function convertMessagePartToSemConv(
         arguments: part.input,
       };
 
-    case 'tool-result': {
-      const output = part.output;
-      let response: unknown;
-      if (output) {
-        if (output.type === 'text' || output.type === 'error-text') {
-          response = output.value;
-        } else if (output.type === 'json' || output.type === 'error-json') {
-          response = output.value;
-        } else if (output.type === 'execution-denied') {
-          response = { denied: true, reason: output.reason };
-        } else {
-          response = output;
-        }
-      }
+    case 'tool-result':
       return {
         type: 'tool_call_response',
         id: part.toolCallId ?? null,
-        response,
+        response: convertToolResultOutputToResponse(part.output),
       };
-    }
 
-    case 'file': {
-      const rawData = part.data as
-        | string
-        | Uint8Array
-        | URL
-        | ArrayBuffer
-        | { type: 'data'; data: string | Uint8Array | ArrayBuffer }
-        | { type: 'url'; url: URL }
-        | { type: 'reference'; reference: Record<string, string> }
-        | { type: 'text'; text: string };
-
-      const data: string | Uint8Array | URL | ArrayBuffer = (() => {
-        if (
-          typeof rawData === 'object' &&
-          rawData !== null &&
-          !(rawData instanceof URL) &&
-          !(rawData instanceof Uint8Array) &&
-          !(rawData instanceof ArrayBuffer) &&
-          'type' in rawData
-        ) {
-          switch (rawData.type) {
-            case 'data':
-              return rawData.data;
-            case 'url':
-              return rawData.url;
-            case 'text':
-              return rawData.text;
-            default:
-              return '';
-          }
-        }
-        return rawData as string | Uint8Array | URL | ArrayBuffer;
-      })();
-
-      let content: string;
-      if (data instanceof Uint8Array) {
-        content = convertDataContentToBase64String(data);
-      } else if (typeof data === 'string') {
-        if (data.startsWith('http://') || data.startsWith('https://')) {
-          return {
-            type: 'uri',
-            modality: getModality(part.mediaType),
-            mime_type: part.mediaType ?? null,
-            uri: data,
-          };
-        }
-        content = data;
-      } else if (data instanceof URL) {
-        return {
-          type: 'uri',
-          modality: getModality(part.mediaType),
-          mime_type: part.mediaType ?? null,
-          uri: data.toString(),
-        };
-      } else {
-        content = String(data);
-      }
-      return {
-        type: 'blob',
-        modality: getModality(part.mediaType),
-        mime_type: part.mediaType ?? null,
-        content,
-      };
-    }
+    case 'file':
+    case 'reasoning-file':
+      return convertFileDataToSemConv({
+        data: part.data,
+        mediaType: part.mediaType,
+      });
 
     case 'tool-approval-response':
       return {
@@ -263,14 +196,92 @@ function convertMessagePartToSemConv(
     case 'custom':
       return { type: 'custom', kind: part.kind };
 
-    case 'reasoning-file':
-      return { type: String(part.type) };
-
     default: {
       const _exhaustive: never = part;
       return { type: String((_exhaustive as { type: string }).type) };
     }
   }
+}
+
+function convertToolResultOutputToResponse(output: unknown): unknown {
+  if (output == null || typeof output !== 'object' || !('type' in output)) {
+    return output;
+  }
+
+  const typedOutput = output as {
+    type: string;
+    value?: unknown;
+    reason?: string;
+  };
+
+  switch (typedOutput.type) {
+    case 'text':
+    case 'error-text':
+    case 'json':
+    case 'error-json':
+      return typedOutput.value;
+    case 'execution-denied':
+      return { denied: true, reason: typedOutput.reason };
+    default:
+      return output;
+  }
+}
+
+function convertFileDataToSemConv({
+  data: rawData,
+  mediaType,
+}: {
+  data: unknown;
+  mediaType: string | undefined;
+}): SemConvPart {
+  const data: string | Uint8Array | URL | ArrayBuffer = (() => {
+    if (
+      typeof rawData === 'object' &&
+      rawData !== null &&
+      !(rawData instanceof URL) &&
+      !(rawData instanceof Uint8Array) &&
+      !(rawData instanceof ArrayBuffer) &&
+      'type' in rawData
+    ) {
+      const fileData = rawData as
+        | { type: 'data'; data: string | Uint8Array | ArrayBuffer }
+        | { type: 'url'; url: URL }
+        | { type: 'reference'; reference: Record<string, string> }
+        | { type: 'text'; text: string };
+
+      switch (fileData.type) {
+        case 'data':
+          return fileData.data;
+        case 'url':
+          return fileData.url;
+        case 'text':
+          return fileData.text;
+        default:
+          return '';
+      }
+    }
+    return rawData as string | Uint8Array | URL | ArrayBuffer;
+  })();
+
+  if (
+    data instanceof URL ||
+    (typeof data === 'string' &&
+      (data.startsWith('http://') || data.startsWith('https://')))
+  ) {
+    return {
+      type: 'uri',
+      modality: getModality(mediaType),
+      mime_type: mediaType ?? null,
+      uri: data.toString(),
+    };
+  }
+
+  return {
+    type: 'blob',
+    modality: getModality(mediaType),
+    mime_type: mediaType ?? null,
+    content: convertDataContentToBase64String(data),
+  };
 }
 
 function getModality(mediaType: string | undefined): string {
@@ -388,71 +399,11 @@ function convertModelMessageToSemConv(msg: ModelMessage): SemConvInputMessage {
             content: convertDataContentToBase64String(data as Uint8Array),
           };
         }
-        case 'file': {
-          const rawData = part.data as
-            | string
-            | Uint8Array
-            | URL
-            | ArrayBuffer
-            | { type: 'data'; data: string | Uint8Array | ArrayBuffer }
-            | { type: 'url'; url: URL }
-            | { type: 'reference'; reference: Record<string, string> }
-            | { type: 'text'; text: string };
-
-          const data: string | Uint8Array | URL | ArrayBuffer = (() => {
-            if (
-              typeof rawData === 'object' &&
-              rawData !== null &&
-              !(rawData instanceof URL) &&
-              !(rawData instanceof Uint8Array) &&
-              !(rawData instanceof ArrayBuffer) &&
-              'type' in rawData
-            ) {
-              switch (rawData.type) {
-                case 'data':
-                  return rawData.data;
-                case 'url':
-                  return rawData.url;
-                case 'text':
-                  return rawData.text;
-                default:
-                  return '';
-              }
-            }
-            return rawData as string | Uint8Array | URL | ArrayBuffer;
-          })();
-
-          if (data instanceof URL) {
-            return {
-              type: 'uri' as const,
-              modality: getModality(part.mediaType),
-              mime_type: part.mediaType ?? null,
-              uri: data.toString(),
-            };
-          }
-          if (typeof data === 'string') {
-            if (data.startsWith('http://') || data.startsWith('https://')) {
-              return {
-                type: 'uri' as const,
-                modality: getModality(part.mediaType),
-                mime_type: part.mediaType ?? null,
-                uri: data,
-              };
-            }
-            return {
-              type: 'blob' as const,
-              modality: getModality(part.mediaType),
-              mime_type: part.mediaType ?? null,
-              content: data,
-            };
-          }
-          return {
-            type: 'blob' as const,
-            modality: getModality(part.mediaType),
-            mime_type: part.mediaType ?? null,
-            content: convertDataContentToBase64String(data as Uint8Array),
-          };
-        }
+        case 'file':
+          return convertFileDataToSemConv({
+            data: part.data,
+            mediaType: part.mediaType,
+          });
         default:
           return { type: String((part as { type: string }).type) };
       }
@@ -473,6 +424,14 @@ function convertModelMessageToSemConv(msg: ModelMessage): SemConvInputMessage {
           return { type: 'text' as const, content: part.text };
         case 'reasoning':
           return { type: 'reasoning' as const, content: part.text };
+        case 'file':
+        case 'reasoning-file':
+          return convertFileDataToSemConv({
+            data: part.data,
+            mediaType: part.mediaType,
+          });
+        case 'custom':
+          return { type: 'custom', kind: part.kind };
         case 'tool-call':
           return {
             type: 'tool_call' as const,
@@ -480,26 +439,19 @@ function convertModelMessageToSemConv(msg: ModelMessage): SemConvInputMessage {
             name: part.toolName,
             arguments: part.input,
           };
-        case 'tool-result': {
-          const output = part.output;
-          let response: unknown;
-          if (output) {
-            if (output.type === 'text' || output.type === 'error-text') {
-              response = output.value;
-            } else if (output.type === 'json' || output.type === 'error-json') {
-              response = output.value;
-            } else if (output.type === 'execution-denied') {
-              response = { denied: true, reason: output.reason };
-            } else {
-              response = output;
-            }
-          }
+        case 'tool-result':
           return {
             type: 'tool_call_response' as const,
             id: part.toolCallId ?? null,
-            response,
+            response: convertToolResultOutputToResponse(part.output),
           };
-        }
+        case 'tool-approval-request':
+          return {
+            type: 'tool_approval_request',
+            approval_id: part.approvalId,
+            tool_call_id: part.toolCallId,
+            reason: part.reason,
+          };
         default:
           return { type: String((part as { type: string }).type) };
       }
@@ -509,27 +461,23 @@ function convertModelMessageToSemConv(msg: ModelMessage): SemConvInputMessage {
 
   if (msg.role === 'tool') {
     const parts: SemConvPart[] = msg.content.map(part => {
-      if (part.type === 'tool-result') {
-        const output = part.output;
-        let response: unknown;
-        if (output) {
-          if (output.type === 'text' || output.type === 'error-text') {
-            response = output.value;
-          } else if (output.type === 'json' || output.type === 'error-json') {
-            response = output.value;
-          } else if (output.type === 'execution-denied') {
-            response = { denied: true, reason: output.reason };
-          } else {
-            response = output;
-          }
-        }
-        return {
-          type: 'tool_call_response' as const,
-          id: part.toolCallId ?? null,
-          response,
-        };
+      switch (part.type) {
+        case 'tool-result':
+          return {
+            type: 'tool_call_response' as const,
+            id: part.toolCallId ?? null,
+            response: convertToolResultOutputToResponse(part.output),
+          };
+        case 'tool-approval-response':
+          return {
+            type: 'tool_approval_response',
+            approval_id: part.approvalId,
+            approved: part.approved,
+            reason: part.reason,
+          };
+        default:
+          return { type: String((part as { type: string }).type) };
       }
-      return { type: String((part as { type: string }).type) };
     });
     return { role: 'tool', parts };
   }
@@ -551,7 +499,116 @@ export function extractSystemFromPrompt(
 }
 
 /**
+ * Converts content parts produced by a model call or step to the
+ * gen_ai.output.messages SemConv format.
+ * Parts are preserved in the order they were produced.
+ */
+export function formatOutputContent({
+  content,
+  finishReason,
+}: {
+  content: ReadonlyArray<ContentPart<ToolSet>>;
+  finishReason: string;
+}): SemConvOutputMessage[] {
+  const parts: SemConvPart[] = [];
+
+  for (const part of content) {
+    switch (part.type) {
+      case 'text':
+        // skip empty text without provider metadata (same as response messages):
+        if (part.text.length > 0 || part.providerMetadata != null) {
+          parts.push({ type: 'text', content: part.text });
+        }
+        break;
+
+      case 'reasoning':
+        parts.push({ type: 'reasoning', content: part.text });
+        break;
+
+      case 'file':
+      case 'reasoning-file':
+        parts.push(
+          convertFileDataToSemConv({
+            data: part.file.base64,
+            mediaType: part.file.mediaType,
+          }),
+        );
+        break;
+
+      case 'custom':
+        parts.push({ type: 'custom', kind: part.kind });
+        break;
+
+      case 'tool-call':
+        parts.push({
+          type: 'tool_call',
+          id: part.toolCallId,
+          name: part.toolName,
+          arguments: part.input,
+        });
+        break;
+
+      case 'tool-result':
+        parts.push({
+          type: 'tool_call_response',
+          id: part.toolCallId,
+          response: part.output,
+        });
+        break;
+
+      case 'tool-error':
+        parts.push({
+          type: 'tool_call_response',
+          id: part.toolCallId,
+          response: part.providerExecuted
+            ? part.error
+            : getErrorMessage(part.error),
+        });
+        break;
+
+      case 'tool-approval-request':
+        parts.push({
+          type: 'tool_approval_request',
+          approval_id: part.approvalId,
+          tool_call_id: part.toolCall.toolCallId,
+          reason: part.reason,
+        });
+        break;
+
+      case 'tool-approval-response':
+        parts.push({
+          type: 'tool_approval_response',
+          approval_id: part.approvalId,
+          approved: part.approved,
+          reason: part.reason,
+        });
+        break;
+
+      case 'source':
+        // sources are response metadata, not message parts:
+        break;
+
+      default: {
+        const _exhaustive: never = part;
+        parts.push({ type: String((_exhaustive as { type: string }).type) });
+      }
+    }
+  }
+
+  return [
+    {
+      role: 'assistant',
+      parts,
+      finish_reason: mapFinishReason(finishReason),
+    },
+  ];
+}
+
+/**
  * Converts step result data to the gen_ai.output.messages SemConv format.
+ *
+ * @deprecated Use `formatOutputContent` instead. This function groups parts
+ * by type and does not preserve the order in which they were produced.
  */
 export function formatOutputMessages({
   text,

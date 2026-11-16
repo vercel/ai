@@ -80,6 +80,7 @@ Preserve current package conventions rather than recreating configuration from m
 - Include the standard `files`, documentation prepack, repository, bugs, engines, and public provenance publishing metadata.
 - Use `workspace:*` for AI SDK workspace dependencies. Add `@ai-sdk/test-server` only when tests use it.
 - Support the repository's Zod 3 and Zod 4 peer dependency range and use `zod/v4` for new implementation schemas.
+- Add `zod` to `devDependencies` at exactly the version used in `packages/ai/package.json`, never a Zod 3 version (see `.agents/guidelines/zod-dependency-version.md`).
 
 Run `pnpm update-references` after adding or changing workspace dependencies.
 

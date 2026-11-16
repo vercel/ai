@@ -25,6 +25,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { googleFailedResponseHandler } from '../google-error';
 import { getGoogleLanguageModelEntry } from '../google-model-catalog';
+import { withGoogleInteractionsRequestRedaction } from '../redact-google-tool-credentials';
 import { buildGoogleInteractionsStreamTransform } from './build-google-interactions-stream-transform';
 import {
   convertGoogleInteractionsUsage,
@@ -490,7 +491,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     });
 
     return {
-      args,
+      args: withGoogleInteractionsRequestRedaction(args),
       warnings,
       isAgent,
       isBackground: googleOptions?.background === true,
@@ -658,7 +659,10 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       });
     }
 
-    const body = { ...args, stream: true };
+    const body = withGoogleInteractionsRequestRedaction({
+      ...args,
+      stream: true,
+    });
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url,

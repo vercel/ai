@@ -60,6 +60,7 @@ export type {
 } from './gateway-provider-options';
 export {
   GatewayError,
+  GatewayAccessPolicyDeniedError,
   GatewayAuthenticationError,
   GatewayFailedDependencyError,
   GatewayForbiddenError,
