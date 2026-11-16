@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 24894,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-24894.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-24894.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "dead peer left Claude Code turn pending beyond heartbeat and reconnect budgets"
+  }
+}
