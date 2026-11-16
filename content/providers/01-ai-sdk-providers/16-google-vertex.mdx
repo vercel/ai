@@ -776,10 +776,12 @@ wildcard MIME types, or MIME types outside the list above.
 HTTP(S) tool-result files are downloaded and sent as inline data, including when
 the file part specifies a `mediaType`. Downloads use the `fetch` option passed to
 `createVertex` and are limited to `toolResultDownloads.maxBytes` (7 MiB by
-default). The Vertex API key is not sent to those hosts. On server runtimes, pass
-a `fetch` implementation that validates DNS at connect time when tool result URLs
-are untrusted, or constrain egress at the network layer. Direct `gs://` references
-are fetched by Vertex instead.
+default). The Vertex API key is not sent to those hosts. On Node.js the default
+download transport validates and pins DNS results at connect time; a configured
+`fetch` replaces it and is then responsible for equivalent validation. On other
+server runtimes, validate DNS in your `fetch` when tool result URLs are untrusted,
+or constrain egress at the network layer. Direct `gs://` references are fetched by
+Vertex instead.
 
 ### Cached Content
 
