@@ -82,24 +82,118 @@ function toImageResult(options: {
    * Bytes of the image.
    */
   bytes: Uint8Array;
+
+  /**
+   * Size of the image in bytes, which is larger than `bytes` when the file
+   * was only read up to the snapshot limit.
+   */
+  size: number;
 }): FxBuiltinToolOutput {
-  const { rel, mediaType, bytes } = options;
+  const { rel, mediaType, bytes, size } = options;
   const encodedLength = Math.ceil(bytes.length / 3) * 4;
-  if (
-    bytes.length > READ_SNAPSHOT_BYTES ||
-    encodedLength > MAX_ENCODED_IMAGE_BYTES
-  ) {
+  if (size > READ_SNAPSHOT_BYTES || encodedLength > MAX_ENCODED_IMAGE_BYTES) {
     const reason =
-      bytes.length > READ_SNAPSHOT_BYTES
+      size > READ_SNAPSHOT_BYTES
         ? "the file exceeds read_file's 10 MiB read limit"
         : 'the image exceeds the 5 MiB encoded attach limit';
     return {
-      text: `<path>${rel}</path>\n<content>image not attached: ${mediaType} (${bytes.length} bytes); ${reason}. Use an available image tool to save a smaller copy to a new file, then read_file the copy. If no image tool is available, ask the user before installing one.</content>`,
+      text: `<path>${rel}</path>\n<content>image not attached: ${mediaType} (${size} bytes); ${reason}. Use an available image tool to save a smaller copy to a new file, then read_file the copy. If no image tool is available, ask the user before installing one.</content>`,
     };
   }
   return {
-    text: `<path>${rel}</path>\n<content>image attached (${mediaType}, ${bytes.length} bytes)</content>`,
+    text: `<path>${rel}</path>\n<content>image attached (${mediaType}, ${size} bytes)</content>`,
     images: [{ mediaType, data: convertUint8ArrayToBase64(bytes) }],
+  };
+}
+
+/**
+ * File contents `read_file` works on: at most the bytes of a snapshot, and
+ * whether they are the whole file.
+ */
+type FxFileSnapshot = {
+  /**
+   * Bytes read.
+   */
+  bytes: Uint8Array;
+
+  /**
+   * Whether `bytes` is the whole file.
+   */
+  complete: boolean;
+
+  /**
+   * Size of the file in bytes, from its stat when only a snapshot was read.
+   */
+  totalBytes: number;
+};
+
+/**
+ * Reads the bytes of a snapshot of a file, streaming the file while it is
+ * larger than a snapshot, so that a large file never has to fit into host
+ * memory as a whole.
+ */
+async function readFileSnapshot(options: {
+  /**
+   * Sandbox session the file is in.
+   */
+  session: FxToolSandbox['session'];
+
+  /**
+   * Absolute path of the file.
+   */
+  path: string;
+
+  /**
+   * Size of the file from its stat.
+   */
+  size: number;
+
+  /**
+   * Aborts the read.
+   */
+  abortSignal: AbortSignal;
+}): Promise<FxFileSnapshot> {
+  const { session, path, size, abortSignal } = options;
+  if (size <= READ_SNAPSHOT_BYTES) {
+    const bytes =
+      (await session.readBinaryFile({ path, abortSignal })) ?? new Uint8Array();
+    // A file that grew after its stat is cut to the snapshot limit here.
+    return bytes.length <= READ_SNAPSHOT_BYTES
+      ? { bytes, complete: true, totalBytes: bytes.length }
+      : {
+          bytes: bytes.subarray(0, READ_SNAPSHOT_BYTES),
+          complete: false,
+          totalBytes: bytes.length,
+        };
+  }
+  const stream = await session.readFile({ path, abortSignal });
+  if (stream == null)
+    return { bytes: new Uint8Array(), complete: true, totalBytes: 0 };
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  let length = 0;
+  let complete = false;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) {
+        complete = true;
+        break;
+      }
+      if (value.length === 0) continue;
+      const take = Math.min(READ_SNAPSHOT_BYTES - length, value.length);
+      chunks.push(take === value.length ? value : value.slice(0, take));
+      length += take;
+      if (length >= READ_SNAPSHOT_BYTES) break;
+    }
+  } finally {
+    await reader.cancel().catch(() => {});
+    reader.releaseLock();
+  }
+  return {
+    bytes: Buffer.concat(chunks),
+    complete,
+    totalBytes: complete ? length : Math.max(size, length),
   };
 }
 
@@ -107,7 +201,8 @@ function toImageResult(options: {
  * Runs fx's `read_file` on the sandbox: up to 400 numbered lines from
  * `start_line` (each clipped at 2000 characters, all within 256 KiB of
  * output) wrapped in `<path>` and `<content>`, with a notice when lines were
- * left out. Images are attached, and other binary files are omitted.
+ * left out. Images are attached, and other binary files are omitted. A file
+ * larger than a snapshot is only read up to the snapshot limit.
  */
 export async function readFxFile(options: {
   /**
@@ -171,20 +266,26 @@ export async function readFxFile(options: {
         'Use glob_files to inspect directory contents, then choose a regular file.',
     });
   }
-  const bytes =
-    (await session.readBinaryFile({ path: target.abs, abortSignal })) ??
-    new Uint8Array();
+  const snapshot = await readFileSnapshot({
+    session,
+    path: target.abs,
+    size: stat.size,
+    abortSignal,
+  });
+  const { bytes, complete, totalBytes } = snapshot;
   const mediaType = detectImageMediaType({ bytes });
   if (mediaType != null) {
-    return toImageResult({ rel: target.rel, mediaType, bytes });
+    return toImageResult({
+      rel: target.rel,
+      mediaType,
+      bytes,
+      size: totalBytes,
+    });
   }
-  const complete = bytes.length <= READ_SNAPSHOT_BYTES;
-  const text = decodeFxModelSafeText({
-    bytes: complete ? bytes : bytes.subarray(0, READ_SNAPSHOT_BYTES),
-  });
+  const text = decodeFxModelSafeText({ bytes });
   if (text === undefined) {
     return {
-      text: `<path>${target.rel}</path>\n<content>binary or non-utf8 file omitted (${bytes.length} bytes)</content>`,
+      text: `<path>${target.rel}</path>\n<content>binary or non-utf8 file omitted (${totalBytes} bytes)</content>`,
     };
   }
 
@@ -289,7 +390,8 @@ export async function writeFxFile(options: {
     });
   }
   const { content } = input;
-  if (getUtf8ByteLength(content) > CONTENT_BYTES) {
+  const contentBytes = getUtf8ByteLength(content);
+  if (contentBytes > CONTENT_BYTES) {
     return toFxToolError({
       text: 'write_file failed: content exceeds the 4 MiB preparation limit',
     });
@@ -300,7 +402,12 @@ export async function writeFxFile(options: {
       text: 'file mutation preparation failed: target is not a regular file',
     });
   }
-  if (stat != null) {
+  /*
+   * Only a file of the content's size can have the content, so any other
+   * file is not read here: reading it would load a file of any size into
+   * host memory.
+   */
+  if (stat != null && stat.size === contentBytes) {
     const existing = await session.readBinaryFile({
       path: target.abs,
       abortSignal,
@@ -316,7 +423,7 @@ export async function writeFxFile(options: {
   }
   await session.writeTextFile({ path: target.abs, content, abortSignal });
   return {
-    text: `wrote ${target.rel} (${getUtf8ByteLength(content)} bytes)`,
+    text: `wrote ${target.rel} (${contentBytes} bytes)`,
   };
 }
 
@@ -373,6 +480,15 @@ export async function editFxFile(options: {
   if (stat.type !== 'file') {
     return toFxToolError({
       text: 'file mutation preparation failed: target is not a regular file',
+    });
+  }
+  /*
+   * The preimage limit is checked before the file is read, so a file of any
+   * size is never loaded into host memory just to be rejected for its size.
+   */
+  if (stat.size > CONTENT_BYTES) {
+    return toFxToolError({
+      text: 'file mutation preparation failed: preimage exceeds the 4 MiB preparation limit',
     });
   }
   const bytes =

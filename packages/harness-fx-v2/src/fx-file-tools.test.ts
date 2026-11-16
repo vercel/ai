@@ -198,3 +198,193 @@ describe('editFxFile', () => {
     );
   });
 });
+
+/**
+ * Fake sandbox session for one file, so a test controls the file's reported
+ * size and its contents, and records the session calls the tools make.
+ */
+function createFakeFileSession(options: {
+  size: number;
+  /**
+   * Bytes at the start of the file, before the filler lines.
+   */
+  prefix?: Uint8Array;
+  /**
+   * Length of each filler line, including its newline.
+   */
+  lineLength?: number;
+}) {
+  const { size, prefix = new Uint8Array(), lineLength = 999 } = options;
+  const line = `${'x'.repeat(lineLength - 1)}\n`;
+  const calls: string[] = [];
+  /**
+   * Yields the contents of the file, line by line.
+   *
+   * @yields One chunk of the file contents.
+   */
+  function* contents() {
+    yield prefix;
+    let written = prefix.length;
+    while (written < size) {
+      const length = Math.min(64 * 1024, size - written);
+      const text = line.repeat(Math.ceil(length / line.length));
+      const bytes = Buffer.from(text, 'utf8').subarray(0, length);
+      yield new Uint8Array(bytes);
+      written += length;
+    }
+  }
+  // oxlint-disable-next-line ai-sdk/no-as-unknown-as -- partial sandbox session for a test.
+  const session = {
+    description: 'fake sandbox',
+    async stat() {
+      calls.push('stat');
+      return { type: 'file', size };
+    },
+    async readFile() {
+      calls.push('readFile');
+      const source = contents();
+      return new ReadableStream<Uint8Array>({
+        pull(controller) {
+          const { done, value } = source.next();
+          // oxlint-disable-next-line no-await-in-loop -- a stream source
+          if (done) {
+            controller.close();
+            return;
+          }
+          controller.enqueue(value);
+        },
+      });
+    },
+    async readBinaryFile() {
+      calls.push('readBinaryFile');
+      throw new Error('readBinaryFile must not be called');
+    },
+    async writeTextFile() {
+      calls.push('writeTextFile');
+    },
+    async writeBinaryFile() {
+      calls.push('writeBinaryFile');
+    },
+  } as unknown as FxToolSandbox['session'];
+  return { session, calls };
+}
+
+const MIB = 1024 * 1024;
+
+describe('readFxFile with a file larger than a snapshot', () => {
+  const abortSignal = new AbortController().signal;
+
+  test('reads only a snapshot of the file', async () => {
+    const { session, calls } = createFakeFileSession({ size: 20 * MIB });
+    const sandbox: FxToolSandbox = {
+      session,
+      workDir: '/home/user',
+      home: '/home/user',
+    };
+
+    const output = await readFxFile({
+      sandbox,
+      input: { path: 'big.txt', start_line: 1, line_count: 3 },
+      abortSignal,
+    });
+
+    expect(calls).toEqual(['stat', 'readFile']);
+    expect(output.text).toContain('1\txxx');
+    expect(output.text).toContain('file snapshot was capped before EOF');
+  });
+
+  test('names the size of an image it does not attach', async () => {
+    const { session, calls } = createFakeFileSession({
+      size: 12 * MIB,
+      prefix: PNG_BYTES,
+    });
+    const sandbox: FxToolSandbox = {
+      session,
+      workDir: '/home/user',
+      home: '/home/user',
+    };
+
+    const output = await readFxFile({
+      sandbox,
+      input: { path: 'big.png' },
+      abortSignal,
+    });
+
+    expect(calls).toEqual(['stat', 'readFile']);
+    expect(output.text).toBe(
+      "<path>big.png</path>\n<content>image not attached: image/png (12582912 bytes); the file exceeds read_file's 10 MiB read limit. Use an available image tool to save a smaller copy to a new file, then read_file the copy. If no image tool is available, ask the user before installing one.</content>",
+    );
+  });
+
+  test('reads a file within the snapshot limit as a whole', async () => {
+    const justBash = await createJustBashNetworkSandboxSession();
+    const workDir = justBash.defaultWorkingDirectory;
+    await justBash.writeTextFile({
+      path: `${workDir}/notes.txt`,
+      content: 'one\ntwo\n',
+    });
+    const calls: string[] = [];
+    const session = new Proxy(justBash, {
+      // oxlint-disable-next-line ai-sdk/require-object-parameter -- `Proxy` handler signature.
+      get(target, property, receiver) {
+        const value = Reflect.get(target, property, receiver);
+        if (typeof value !== 'function') return value;
+        return (...args: unknown[]) => {
+          calls.push(String(property));
+          return value.apply(target, args);
+        };
+      },
+    });
+
+    await readFxFile({
+      sandbox: { session, workDir, home: workDir },
+      input: { path: 'notes.txt' },
+      abortSignal,
+    });
+
+    expect(calls).toEqual(['stat', 'readBinaryFile']);
+  });
+});
+
+describe('editFxFile with a preimage larger than the limit', () => {
+  test('rejects the file without reading it', async () => {
+    const { session, calls } = createFakeFileSession({ size: 20 * MIB });
+    const sandbox: FxToolSandbox = {
+      session,
+      workDir: '/home/user',
+      home: '/home/user',
+    };
+
+    const output = await editFxFile({
+      sandbox,
+      input: { path: 'big.txt', old_string: 'needle', new_string: 'other' },
+      abortSignal: new AbortController().signal,
+    });
+
+    expect(calls).toEqual(['stat']);
+    expect(output).toEqual({
+      text: 'file mutation preparation failed: preimage exceeds the 4 MiB preparation limit',
+      isError: true,
+    });
+  });
+});
+
+describe('writeFxFile over a file of another size', () => {
+  test('writes without reading the existing file', async () => {
+    const { session, calls } = createFakeFileSession({ size: 20 * MIB });
+    const sandbox: FxToolSandbox = {
+      session,
+      workDir: '/home/user',
+      home: '/home/user',
+    };
+
+    const output = await writeFxFile({
+      sandbox,
+      input: { path: 'big.txt', content: 'replacement\n' },
+      abortSignal: new AbortController().signal,
+    });
+
+    expect(calls).toEqual(['stat', 'writeTextFile']);
+    expect(output).toEqual({ text: 'wrote big.txt (12 bytes)' });
+  });
+});
