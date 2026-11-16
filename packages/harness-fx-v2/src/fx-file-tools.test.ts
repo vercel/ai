@@ -349,11 +349,12 @@ function createFakeFileSession(options: {
       calls.push(`spawn ${command}`);
       /*
        * Models `base64 <path>`: the whole file, encoded in whole three-byte
-       * groups so that the pieces decode in order. Only the tool's capture
-       * bounds what the host keeps. A sandbox that refuses the command, like
-       * the just-bash sandbox when a command prints more than it may, prints
-       * nothing.
+       * groups so that the pieces decode in order and wrapped like `base64`
+       * wraps its lines. Only the tool's capture bounds what the host keeps.
+       * A sandbox that refuses the command, like the just-bash sandbox when a
+       * command prints more than it may, prints nothing.
        */
+      const wrap = (text: string) => `${text.replace(/(.{76})/g, '$1\n')}\n`;
       function* encoded() {
         if (options.fails) return;
         if (options.noise != null) yield Buffer.from(`${options.noise}\n`);
@@ -363,11 +364,15 @@ function createFakeFileSession(options: {
           pending = Buffer.concat([pending, Buffer.from(chunk)]);
           const whole = pending.length - (pending.length % 3);
           if (whole > 0) {
-            yield Buffer.from(pending.subarray(0, whole).toString('base64'));
+            yield Buffer.from(
+              wrap(pending.subarray(0, whole).toString('base64')),
+            );
             pending = pending.subarray(whole);
           }
         }
-        if (pending.length > 0) yield Buffer.from(pending.toString('base64'));
+        if (pending.length > 0) {
+          yield Buffer.from(wrap(pending.toString('base64')));
+        }
       }
       const source = encoded();
       const exitCode = options.fails ? 1 : 0;
