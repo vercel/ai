@@ -26,6 +26,7 @@ export const openaiAdditionalToolsAgent = new ToolLoopAgent({
       execute: async () => ({ tool: 'linear__list_issues', connected: true }),
     }),
     linear__list_issues: tool({
+      description: 'List Linear issues.',
       inputSchema: z.object({}),
       execute: async () => ({ issues: ['Synthetic issue'] }),
       providerOptions: {

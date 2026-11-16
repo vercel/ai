@@ -1889,13 +1889,14 @@ await generateText({
 - `type: 'namespace'` with `name`, `description`, and a non-empty `tools` list of
   function definitions
 
-Entries only select registered tools. The provider sends the definition derived
-from the registered tool, not the text in the history: function and namespace
-entries use the registered tool's description, input schema, `strict` setting,
-and `deferLoading` option, and custom entries use the registered tool's
-`description` and `format`. Register every tool you load this way, usually with
-`omitFromRequestTools: true`, and keep its name aligned with the entry. An empty
-array emits no item.
+Entries only select registered tools; the `description`, `parameters`,
+`strict`, `defer_loading`, and `format` in an entry are not sent. The provider
+sends the definition derived from the registered tool instead: function and
+namespace entries use that tool's description, input schema, `strict` setting,
+and `deferLoading` option, and custom entries use its `description` and `format`.
+A namespace entry loads only the registered tools whose names it lists. Register
+every tool you load this way, usually with `omitFromRequestTools: true`, and keep
+its name aligned with the entry. An empty array emits no item.
 
 ##### Load tools at any point in the conversation
 
