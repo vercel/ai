@@ -4819,8 +4819,8 @@ importers:
   packages/tool-bash:
     dependencies:
       zod:
-        specifier: 3.25.76
-        version: 3.25.76
+        specifier: 4.6.7
+        version: 4.6.7
     devDependencies:
       '@ai-sdk/sandbox-just-bash':
         specifier: workspace:*
@@ -4859,8 +4859,8 @@ importers:
         specifier: ^0.18.13
         version: 0.18.13
       zod:
-        specifier: 3.25.76
-        version: 3.25.76
+        specifier: 4.6.7
+        version: 4.6.7
     devDependencies:
       '@types/node':
         specifier: 22.19.19
