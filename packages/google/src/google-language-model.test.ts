@@ -5659,6 +5659,30 @@ describe('doGenerate', () => {
         expect(result.warnings).toEqual([]);
       });
 
+      it('passes prefixMismatchBehavior in thinkingConfig', async () => {
+        const result = await provider('gemini-4-hydrogen').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            google: {
+              thinkingConfig: {
+                thinkingLevel: 'high',
+                prefixMismatchBehavior: 'DROP',
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          generationConfig: {
+            thinkingConfig: {
+              thinkingLevel: 'high',
+              prefixMismatchBehavior: 'DROP',
+            },
+          },
+        });
+        expect(result.warnings).toEqual([]);
+      });
+
       it('leaves the thinking level unset for the API default', async () => {
         await provider('gemini-4-hydrogen').doGenerate({
           prompt: TEST_PROMPT,
