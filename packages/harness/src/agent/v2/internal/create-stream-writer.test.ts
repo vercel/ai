@@ -255,6 +255,10 @@ describe('decodeStreamRecords', () => {
     ['a missing part', '{"version":1,"startId":"s"}\n'],
     ['an invalid tag', '{"version":1,"part":{"type":"reset-step"},"key":1}\n'],
     ['a part without a type', '{"version":1,"part":{}}\n'],
+    [
+      'an escaped part that is not JSON',
+      '{"version":1,"part":"not a JSON record"}\n',
+    ],
   ])('rejects %s', async (_, text) => {
     await expect(decodeStreamRecords({ text })).rejects.toThrow();
   });

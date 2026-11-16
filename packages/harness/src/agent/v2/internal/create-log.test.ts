@@ -128,10 +128,10 @@ describe('createLog', () => {
       }),
     ),
     new TextEncoder().encode(
-      JSON.stringify({
-        version: 1,
-        event: { type: 'submission', data: null },
-      }),
+      JSON.stringify({ version: 1, event: { type: 'submission', data: null } }),
+    ),
+    new TextEncoder().encode(
+      JSON.stringify({ version: 1, event: 'not a JSON record' }),
     ),
     ...[undefined, null, 42].map(id =>
       new TextEncoder().encode(
