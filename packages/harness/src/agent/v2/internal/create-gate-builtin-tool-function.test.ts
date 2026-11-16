@@ -2,7 +2,6 @@ import type { JSONValue } from '@ai-sdk/provider';
 import { tool, type ToolSet } from '@ai-sdk/provider-utils';
 import { afterEach, describe, expect, test } from 'vitest';
 import { z } from 'zod/v4';
-import { HarnessCapabilityUnsupportedError } from '../../../errors/harness-capability-unsupported-error';
 import type { HarnessV2ToolGateOutput } from '../../../v2/harness-v2-drive-context';
 import type { HarnessV2EffectOutput } from '../../../v2/harness-v2-effect';
 import { DefaultHarnessAgentSession } from '../harness-agent-session';
@@ -162,7 +161,7 @@ describe('createGateBuiltinToolFunction', () => {
     expect(await readEffectEvents({ log, type: 'effect-end' })).toEqual([]);
   });
 
-  test('refuses a built-in tool that requires approval', async () => {
+  test('denies a built-in tool that requires approval', async () => {
     const customBuiltinTools: ToolSet = {
       Bash: tool({
         inputSchema: z.object({ command: z.string() }),
@@ -173,17 +172,41 @@ describe('createGateBuiltinToolFunction', () => {
       builtinTools: customBuiltinTools,
     });
 
-    const error = await gateBuiltinTool(call).catch(error => error);
+    const output = await gateBuiltinTool(call);
 
-    expect(error).toBeInstanceOf(HarnessCapabilityUnsupportedError);
-    expect(error.message).toContain(
-      "remove `needsApproval` from built-in tool 'Bash'",
-    );
-    expect((await log.read()).events).toEqual([]);
-    expect(await readParts({ world })).toEqual([]);
+    expect(output).toEqual({
+      type: 'denied',
+      reason: expect.stringContaining(
+        "remove `needsApproval` from built-in tool 'Bash'",
+      ),
+    });
+    expect(await readEffectEvents({ log, type: 'effect-end' })).toEqual([
+      {
+        startId: expect.any(String),
+        output: {
+          type: 'error',
+          error: {
+            message: expect.stringContaining(
+              "remove `needsApproval` from built-in tool 'Bash'",
+            ),
+          },
+        },
+      },
+    ]);
+    expect(await readParts({ world })).toEqual([
+      expect.objectContaining({
+        type: 'tool-result',
+        toolCallId: 'call-1',
+        toolName: 'Bash',
+        isError: true,
+      }),
+    ]);
+    expect(
+      (await log.read({ types: ['tool-execution-start'] })).events,
+    ).toEqual([]);
   });
 
-  test('refuses a built-in tool that requires approval after construction', async () => {
+  test('denies a built-in tool that requires approval after construction', async () => {
     const customBuiltinTools: ToolSet = {
       Bash: tool({ inputSchema: z.object({ command: z.string() }) }),
     };
@@ -194,9 +217,12 @@ describe('createGateBuiltinToolFunction', () => {
     (customBuiltinTools.Bash as { needsApproval?: boolean }).needsApproval =
       true;
 
-    await expect(gateBuiltinTool(call)).rejects.toThrow(
-      HarnessCapabilityUnsupportedError,
-    );
+    expect(await gateBuiltinTool(call)).toEqual({
+      type: 'denied',
+      reason: expect.stringContaining(
+        "remove `needsApproval` from built-in tool 'Bash'",
+      ),
+    });
   });
 
   test('uses the built-in tool replay policy', async () => {

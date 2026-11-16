@@ -914,6 +914,55 @@ describe('HarnessAgent turns', () => {
     );
   });
 
+  test('refuses a built-in tool that requires approval after construction', async () => {
+    const execute = vi.fn(async () => ({ raw: { stdout: 'ran' } }));
+    const builtinTools: ToolSet = {
+      bash: tool({ inputSchema: z.object({ command: z.string() }) }),
+    };
+    const harness = createFakeHarness({
+      builtinTools,
+      modelParts: [
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'bash',
+          input: '{"command":"ls"}',
+        },
+      ],
+      afterModel: async ({ context }) => {
+        await context.executeBuiltinTool({
+          toolCallId: 'call-1',
+          toolName: 'bash',
+          input: { command: 'ls' },
+          execute,
+        });
+      },
+    });
+    const { agent, session } = await setup({ harness });
+
+    // The adapter's built-in tool set changed after the agent was built, so the
+    // call must be refused instead of run without the consent it asks for.
+    (builtinTools.bash as { needsApproval?: boolean }).needsApproval = true;
+
+    const result = await agent.stream({ prompt: 'run ls', session });
+    const parts: Array<{ type: string }> = [];
+    for await (const part of result.fullStream) parts.push(part);
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(parts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'tool-error',
+          toolCallId: 'call-1',
+          toolName: 'bash',
+          error: expect.stringContaining(
+            "remove `needsApproval` from built-in tool 'bash'",
+          ),
+        }),
+      ]),
+    );
+  });
+
   test('finishes a started turn with an error when the adapter throws', async () => {
     const harness = createFakeHarness({
       afterModel: async () => {
