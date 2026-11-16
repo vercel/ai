@@ -110,6 +110,7 @@ describe('grepFxFiles', () => {
 });
 
 const MIB = 1024 * 1024;
+const workDir = '/home/user';
 
 /**
  * Fake sandbox session whose commands print what a test scripts, so a test
@@ -254,12 +255,18 @@ describe('searching a sandbox that prints without end', () => {
     expect(state.stopped).toBeGreaterThan(0);
   });
 
-  test('drops a line a cut-off listing leaves half-written', async () => {
+  test('drops a path a cut-off listing leaves half-written', async () => {
     const { session } = createFakeSearchSession({
       stat: () => ({ type: 'directory', size: 0 }),
       command: () => ({
         chunks: function* () {
-          // One file name that never ends, so the kept output has no newline.
+          for (let line = 0; line < 10; line++) {
+            yield new Uint8Array(
+              Buffer.from(`${workDir}/src/complete.ts\n`, 'utf8'),
+            );
+          }
+          // A path that never ends, so the kept output ends inside it.
+          yield new Uint8Array(Buffer.from(`${workDir}/src/half`, 'utf8'));
           for (;;) {
             yield new Uint8Array(Buffer.alloc(64 * MIB, 0x61));
           }
@@ -273,7 +280,8 @@ describe('searching a sandbox that prints without end', () => {
       abortSignal: new AbortController().signal,
     });
 
-    expect(output.text).toContain('no matches for src/** in the listed part');
+    expect(output.text).toContain('src/complete.ts');
+    expect(output.text).not.toContain('src/half');
     expect(output.text).toContain('the file listing was cut off');
   });
 
@@ -282,6 +290,11 @@ describe('searching a sandbox that prints without end', () => {
       stat: () => ({ type: 'directory', size: 0 }),
       command: () => ({
         chunks: function* () {
+          for (let line = 0; line < 10; line++) {
+            yield new Uint8Array(Buffer.from('./src/a.ts:1:needle\n', 'utf8'));
+          }
+          // A match line that never ends, so the kept output ends inside it.
+          yield new Uint8Array(Buffer.from('./src/b.ts:1:needle', 'utf8'));
           for (;;) {
             yield new Uint8Array(Buffer.alloc(64 * MIB, 0x61));
           }
@@ -295,8 +308,65 @@ describe('searching a sandbox that prints without end', () => {
       abortSignal: new AbortController().signal,
     });
 
-    expect(output.text).toContain('no matches for needle');
+    expect(output.text).toContain('src/a.ts:1: needle');
+    expect(output.text).not.toContain('src/b.ts');
     expect(output.text).toContain('grep output was cut off');
+  });
+
+  test('bounds the number of files it lists, keeping them sorted', async () => {
+    const { session } = createFakeSearchSession({
+      stat: () => ({ type: 'directory', size: 0 }),
+      command: () => ({
+        chunks: function* () {
+          for (let file = 0; file < 100_100; file++) {
+            yield new Uint8Array(
+              Buffer.from(`${workDir}/src/file${file}.ts\n`, 'utf8'),
+            );
+          }
+        },
+      }),
+    });
+
+    const output = await globFxFiles({
+      sandbox: testSandbox(session),
+      input: { pattern: '**/*.ts' },
+      abortSignal: new AbortController().signal,
+    });
+
+    expect(output.text).toContain('the file listing was cut off');
+    const listed = output.text
+      .split('\n')
+      .filter(line => line.startsWith(' - '))
+      .map(line => line.slice(3));
+    expect(listed.length).toBeGreaterThan(0);
+    expect(listed).toEqual([...listed].sort());
+  });
+
+  test('marks a page as a lower bound when only the output was cut off', async () => {
+    const { session } = createFakeSearchSession({
+      stat: () => ({ type: 'directory', size: 0 }),
+      command: () => ({
+        chunks: function* () {
+          for (;;) {
+            // 1 KiB lines, so the byte limit is reached long before the
+            // match limit.
+            yield new Uint8Array(
+              Buffer.from(`./src/a.ts:1:${'x'.repeat(1020)}\n`, 'utf8'),
+            );
+          }
+        },
+      }),
+    });
+
+    const output = await grepFxFiles({
+      sandbox: testSandbox(session),
+      input: { pattern: 'x', head_limit: 1 },
+      abortSignal: new AbortController().signal,
+    });
+
+    expect(output.text).toContain('(showing 1-1 of at least ');
+    expect(output.text).toContain('grep output was cut off');
+    expect(output.text).not.toContain('more than 20000 matches');
   });
 
   test('marks totals as lower bounds when the output was cut off', async () => {
@@ -345,7 +415,7 @@ describe('searching a sandbox that prints without end', () => {
     });
 
     expect(output.text).toContain('of at least 20000');
-    expect(output.text).toContain('grep output was cut off');
+    expect(output.text).toContain('more than 20000 matches');
   });
 
   test('bounds the count of grep_files for a cut-off output', async () => {

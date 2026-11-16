@@ -348,10 +348,14 @@ async function listFiles(options: {
   }
   const prefix = root === '/' ? '/' : `${root}/`;
   const files: string[] = [];
-  for (const line of result.stdout.split('\n')) {
+  const stdout = result.stdout;
+  for (let at = 0; at < stdout.length; ) {
+    const end = stdout.indexOf('\n', at);
+    const line = stdout.slice(at, end === -1 ? stdout.length : end);
+    at = end === -1 ? stdout.length : end + 1;
     if (!line.startsWith(prefix)) continue;
     if (files.length >= MAX_LIST_ENTRIES) {
-      return { files, truncated: true };
+      return { files: files.sort(), truncated: true };
     }
     files.push(line.slice(prefix.length));
   }
@@ -686,91 +690,110 @@ export async function grepFxFiles(options: {
       text: `grep_files failed: ${result.stderr.trim() || `grep exited with code ${result.exitCode}`}`,
     });
   }
-  const matches: GrepMatch[] = [];
-  let matchesCapped = false;
-  const stdout = result.stdout;
-  for (let at = 0; at < stdout.length; ) {
-    const end = stdout.indexOf('\n', at);
-    const line = stdout.slice(at, end === -1 ? stdout.length : end);
-    at = end === -1 ? stdout.length : end + 1;
-    if (matches.length >= MAX_SEARCH_MATCHES) {
-      matchesCapped = true;
-      break;
-    }
-    if (line === '' || line.includes('\u0000')) continue;
+  /**
+   * Parses one line of the grep output into a match, or returns undefined
+   * for a line that is not one.
+   */
+  const toMatch = (line: string): GrepMatch | undefined => {
+    if (line === '' || line.includes('\u0000')) return undefined;
     if (isFile) {
       const parsed = SINGLE_FILE_GREP_LINE.exec(line);
-      if (parsed == null) continue;
-      matches.push({
+      if (parsed == null) return undefined;
+      return {
         path: root.rel,
         abs: root.abs,
         relative: root.rel,
         line: Number(parsed[1]),
         text: parsed[2],
-      });
-      continue;
+      };
     }
     const parsed = RECURSIVE_GREP_LINE.exec(line);
-    if (parsed == null) continue;
+    if (parsed == null) return undefined;
     const relative = parsed[1].replace(/^\.\//, '');
-    matches.push({
+    return {
       path: toShownPath({ root, relative }),
       abs: root.abs === '/' ? `/${relative}` : `${root.abs}/${relative}`,
       relative,
       line: Number(parsed[2]),
       text: parsed[3],
-    });
+    };
+  };
+
+  const matches: GrepMatch[] = [];
+  const paths = new Set<string>();
+  let counted = 0;
+  let matchesCapped = false;
+  const stdout = result.stdout;
+  /*
+   * One pass over the output: the include filter applies while parsing, so
+   * the match limit only counts matches the tool keeps, and a count does not
+   * keep them at all.
+   */
+  for (let at = 0; at < stdout.length; ) {
+    const end = stdout.indexOf('\n', at);
+    const line = stdout.slice(at, end === -1 ? stdout.length : end);
+    at = end === -1 ? stdout.length : end + 1;
+    const match = toMatch(line);
+    if (match == null) continue;
+    if (
+      include !== undefined &&
+      !matchesFxGlob({ pattern: include, path: match.relative })
+    ) {
+      continue;
+    }
+    counted++;
+    paths.add(match.path);
+    if (mode !== 'matches') continue;
+    if (matches.length >= MAX_SEARCH_MATCHES) {
+      matchesCapped = true;
+      break;
+    }
+    matches.push(match);
   }
   /*
-   * A stopped command and a capped match list both mean the matches are a
-   * prefix of the search's, so totals are lower bounds.
+   * A stopped command and a capped match list both mean the result covers a
+   * prefix of the search's matches, so its totals are lower bounds.
    */
-  const cutoffNotice =
-    result.truncated || matchesCapped
-      ? `... grep output was cut off after ${MAX_SEARCH_OUTPUT_BYTES} bytes; narrow the pattern, the include filter, or the search path\n`
+  const cutoffNotice = result.truncated
+    ? `... grep output was cut off after ${MAX_SEARCH_OUTPUT_BYTES} bytes; narrow the pattern, the include filter, or the search path\n`
+    : matchesCapped
+      ? `... more than ${MAX_SEARCH_MATCHES} matches; narrow the pattern or the include filter\n`
       : '';
-  const filtered = matches
-    .filter(
-      match =>
-        include === undefined ||
-        matchesFxGlob({ pattern: include, path: match.relative }),
-    )
-    .sort((left, right) =>
-      left.path === right.path
-        ? left.line - right.line
-        : left.path < right.path
-          ? -1
-          : 1,
-    );
+  const cutOff = cutoffNotice !== '';
+  const filtered = [...matches].sort((left, right) =>
+    left.path === right.path
+      ? left.line - right.line
+      : left.path < right.path
+        ? -1
+        : 1,
+  );
 
   if (mode === 'count') {
-    const files = new Set(filtered.map(match => match.path)).size;
-    const notice =
-      cutoffNotice === '' ? '' : ' (at least; the grep output was cut off)';
+    const notice = cutOff ? ' (at least; the grep output was cut off)' : '';
     return {
-      text: `[grep] count ${filtered.length} matching lines in ${files} files for ${pattern}${notice}\n`,
+      text: `[grep] count ${counted} matching lines in ${paths.size} files for ${pattern}${notice}\n`,
     };
   }
   const limit = Math.min(headLimit ?? LIST_ENTRIES, LIST_ENTRIES);
   const from = offset ?? 0;
 
   if (mode === 'files_with_matches') {
-    const paths = [...new Set(filtered.map(match => match.path))];
-    const start = Math.min(from, paths.length);
-    const end = Math.min(start + limit, paths.length);
+    const files = [...paths].sort();
+    const start = Math.min(from, files.length);
+    const end = Math.min(start + limit, files.length);
     let out: string;
-    if (paths.length === 0) {
+    if (files.length === 0) {
       out = `[grep] no files with matches for ${pattern}\n`;
     } else if (end === start) {
-      out = `[grep] no files with matches for ${pattern} at offset ${from} (${approximate({ count: paths.length, cutOff: cutoffNotice !== '' })} total files)\n`;
+      out = `[grep] no files with matches for ${pattern} at offset ${from} (${approximate({ count: files.length, cutOff })} total files)\n`;
     } else {
       out =
-        start === 0 && end === paths.length
+        start === 0 && end === files.length
           ? `[grep] ${end - start} files with matches for ${pattern}\n`
-          : `[grep] ${end - start} files with matches for ${pattern} (showing ${start + 1}-${end} of ${approximate({ count: paths.length, cutOff: cutoffNotice !== '' })})\n`;
-      for (const path of paths.slice(start, end)) out += ` - ${path}\n`;
+          : `[grep] ${end - start} files with matches for ${pattern} (showing ${start + 1}-${end} of ${approximate({ count: files.length, cutOff })})\n`;
+      for (const path of files.slice(start, end)) out += ` - ${path}\n`;
     }
-    if (end < paths.length) {
+    if (end < files.length) {
       out += `... more files available; use offset ${end} to continue\n`;
     }
     return { text: out + cutoffNotice };
@@ -783,12 +806,12 @@ export async function grepFxFiles(options: {
   if (filtered.length === 0) {
     out = `[grep] no matches for ${pattern}\n`;
   } else if (end === start) {
-    out = `[grep] no matches for ${pattern} at offset ${from} (${approximate({ count: filtered.length, cutOff: cutoffNotice !== '' })} total matches)\n`;
+    out = `[grep] no matches for ${pattern} at offset ${from} (${approximate({ count: filtered.length, cutOff })} total matches)\n`;
   } else {
     out =
       start === 0 && end === filtered.length
         ? `[grep] ${end - start} matches for ${pattern}\n`
-        : `[grep] ${end - start} matches for ${pattern} (showing ${start + 1}-${end} of ${approximate({ count: filtered.length, cutOff: cutoffNotice !== '' })})\n`;
+        : `[grep] ${end - start} matches for ${pattern} (showing ${start + 1}-${end} of ${approximate({ count: filtered.length, cutOff })})\n`;
     const fileLines = new Map<string, string[] | undefined>();
     for (const match of filtered.slice(start, end)) {
       let lines: string[] | undefined;
