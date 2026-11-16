@@ -174,7 +174,13 @@ export interface ModelCallIteratorYieldValue {
   tools?: ToolSet;
   /** The conversation messages up to (and including) the tool call request */
   messages: LanguageModelV4Prompt;
-  /** Pre-response model input, excluding system messages, for tool approval. */
+  /**
+   * The messages that were sent to the language model to initiate the step that
+   * returned the tool calls, including `prepareStep` changes. They exclude
+   * system messages and the assistant response that contains the tool calls,
+   * so approval functions never see calls that have not run yet. This matches
+   * the `messages` that `generateText` and `streamText` pass to `toolApproval`.
+   */
   approvalMessages: ModelMessage[];
   /** The step result from the current step */
   step?: StepResult<ToolSet, any>;
