@@ -1,11 +1,5 @@
-import {
-  agent,
-  DRIVE_QUEUE_PREFIX,
-  type FxHarnessAgentMessage,
-} from '@/agent/fx/basic';
-import { sendBackstop } from '@/lib/drive-queue';
+import { agent, type FxHarnessAgentMessage } from '@/agent/fx/basic';
 import { isStoredAgentSession } from '@/lib/stored-agent-session';
-import { getWorld } from '@/lib/world';
 import { getHarnessE2EErrorMessage } from '@/util/harness-ui-stream';
 import {
   convertToModelMessages,
@@ -36,15 +30,11 @@ export async function POST(request: Request) {
       execute: async ({ writer }) => {
         const session = await agent.createSession(storedSession);
         /*
-         * `stream()` runs the turn's drive in this process. The backstop,
-         * sent before the drive starts, continues the turn in a background
-         * drive if this process dies or the drive yields at its deadline.
+         * `stream()` runs the turn's drive in this process. The agent sends
+         * a backstop before the drive starts, which continues the turn in a
+         * background drive if this process dies or the drive yields at its
+         * deadline.
          */
-        await sendBackstop({
-          world: getWorld(),
-          queuePrefix: DRIVE_QUEUE_PREFIX,
-          runId: session.runId,
-        });
         const result = await agent.stream({ session, messages });
 
         /*

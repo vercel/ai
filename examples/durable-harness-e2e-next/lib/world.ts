@@ -28,10 +28,8 @@ const worldGlobal = globalThis as { __durableHarnessE2EWorld?: World };
  * It is cached on `globalThis`, since Next compiles route handlers into
  * separate module graphs and every route must share one World instance.
  *
- * The local World's own recovery of active runs is turned off: it would
- * re-enqueue the sessions' runs to the Workflow SDK's queue, which this app
- * does not consume. The app recovers them on its own drive queue instead
- * (`lib/start-drive-queue.ts`).
+ * The agents start it on first use, which also runs the local World's
+ * recovery of the sessions a dead process left unfinished.
  */
 export function getWorld(): World {
   worldGlobal.__durableHarnessE2EWorld ??=
@@ -39,7 +37,6 @@ export function getWorld(): World {
       ? createVercelWorld()
       : createLocalWorld({
           dataDir: process.env.WORKFLOW_LOCAL_DATA_DIR ?? '.workflow-data',
-          recoverActiveRuns: false,
         });
   return worldGlobal.__durableHarnessE2EWorld;
 }
