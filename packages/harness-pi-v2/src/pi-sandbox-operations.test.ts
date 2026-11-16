@@ -95,6 +95,56 @@ describe('createPiSandboxOperations', () => {
     );
   });
 
+  test('refuses a file that grew after its stat, without holding it', async () => {
+    /*
+     * A sandbox process grows the file between the stat that the read checks
+     * and the read itself, so the size the host sees is far below what the
+     * reads serve.
+     */
+    const limit = 10 * 1024 * 1024;
+    const encodedLength = Math.ceil((40 * 1024 * 1024) / 3) * 4;
+    const state = { served: 0 };
+    const session = {
+      description: 'growing file sandbox',
+      async stat() {
+        return { type: 'file' as const, size: 4 };
+      },
+      async run({ command }: { command: string }) {
+        if (command.includes('wc -c')) {
+          return { exitCode: 0, stdout: `${encodedLength}\n`, stderr: '' };
+        }
+        const size = Number(/tail -c (\d+)/.exec(command)?.[1] ?? 0);
+        // Valid base64 of the requested length, so the read decodes it.
+        const encoded = 'QUFB'.repeat(Math.ceil(size / 4)).slice(0, size);
+        state.served += encoded.length;
+        return { exitCode: 0, stdout: encoded, stderr: '' };
+      },
+    };
+    // oxlint-disable-next-line ai-sdk/no-as-unknown-as -- partial sandbox session for a test.
+    const operations = createPiSandboxOperations({ session: session as never });
+
+    await expect(operations.readFile('/home/user/grows.log')).rejects.toThrow(
+      'File is too large to read: /home/user/grows.log is larger than the limit',
+    );
+    // The host stopped as soon as the limit was passed, well before the 40 MiB
+    // the file would encode to.
+    expect(state.served).toBeLessThan(encodedLength / 2);
+    expect(state.served).toBeLessThan(4 * limit);
+  });
+
+  test('reads binary content byte for byte', async () => {
+    const { session, root, operations } = await setup();
+    const bytes = new Uint8Array(4096);
+    for (let index = 0; index < bytes.length; index++) {
+      bytes[index] = index % 256;
+    }
+    await session.writeBinaryFile({ path: `${root}/bin.dat`, content: bytes });
+
+    const read = await operations.readFile(`${root}/bin.dat`);
+
+    expect(Buffer.compare(Buffer.from(read), Buffer.from(bytes))).toBe(0);
+  });
+
   test('refuses to read a directory', async () => {
     const { root, operations } = await setup();
 

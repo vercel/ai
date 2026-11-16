@@ -20,6 +20,94 @@ import path from 'node:path';
 const MAX_READ_BYTES = 10 * 1024 * 1024;
 
 /**
+ * Bytes that one read command brings back, before base64 encoding. A chunk
+ * keeps a single command's output small enough for a sandbox that limits it
+ * (just-bash refuses more than 10 MiB of output), so a file up to the read
+ * limit is read by a few commands that are never cut off.
+ */
+const READ_CHUNK_BYTES = 4 * 1024 * 1024;
+
+/**
+ * Characters of the base64 text that one read command prints for a chunk, as a
+ * multiple of four so that every window decodes on its own.
+ */
+const READ_CHUNK_CHARS = Math.ceil(READ_CHUNK_BYTES / 3) * 4;
+
+/**
+ * Reads at most `limitBytes` of a file with commands inside the sandbox, so the
+ * host never holds more than the limit, whatever a stat reported: a file that
+ * grows or is replaced between its stat and its read cannot exhaust the process
+ * that serves many sessions.
+ *
+ * Each command prints one window of the file's base64 text, so that a chunk
+ * both survives the text stream of a sandbox and stays far below its
+ * command-output limit. A short window ends the read, a full one continues at
+ * the next offset, and a window that takes the total past the limit ends the
+ * read as incomplete.
+ */
+async function readFileBytes(options: {
+  /**
+   * Sandbox session the file is in.
+   */
+  session: SandboxSession;
+
+  /**
+   * Absolute path of the file.
+   */
+  filePath: string;
+
+  /**
+   * Maximum number of bytes to hold.
+   */
+  limitBytes: number;
+}): Promise<{ bytes: Uint8Array; complete: boolean } | undefined> {
+  const { session, filePath, limitBytes } = options;
+  const quoted = shellQuote(filePath);
+  /*
+   * The length of the encoded text gives every window its exact size, so the
+   * last window is not shifted back when the file is shorter than a full one.
+   */
+  const sized = await session.run({
+    command: `base64 ${quoted} | tr -d '\\n' | wc -c`,
+  });
+  if (sized.exitCode !== 0) return undefined;
+  const encodedLength = Number(sized.stdout.trim());
+  if (!Number.isSafeInteger(encodedLength) || encodedLength < 0) {
+    return undefined;
+  }
+  if (encodedLength === 0) {
+    return { bytes: new Uint8Array(), complete: true };
+  }
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  const collect = () => {
+    const bytes = new Uint8Array(total);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    return bytes;
+  };
+  for (
+    let start = 0;
+    start < encodedLength && total <= limitBytes;
+    start += READ_CHUNK_CHARS
+  ) {
+    const size = Math.min(READ_CHUNK_CHARS, encodedLength - start);
+    const result = await session.run({
+      command: `base64 ${quoted} | tr -d '\\n' | head -c ${start + size} | tail -c ${size}`,
+    });
+    if (result.exitCode !== 0) return undefined;
+    const chunk = Buffer.from(result.stdout.replace(/\s+/g, ''), 'base64');
+    if (chunk.byteLength === 0) break;
+    chunks.push(chunk);
+    total += chunk.byteLength;
+  }
+  return { bytes: collect(), complete: total <= limitBytes };
+}
+
+/**
  * File system operations of Pi's built-in tools, implemented on a sandbox
  * session instead of the local file system.
  */
@@ -218,20 +306,34 @@ export function createPiSandboxOperations(options: {
       );
     }
     if (stat != null && stat.size > MAX_READ_BYTES) {
-      /*
-       * The size comes from a stat that runs before the read, so a file that
-       * grows in between is still read; closing that gap needs a byte range in
-       * the sandbox interface.
-       */
       throw new Error(
         `File is too large to read: ${filePath} is ${formatSize(stat.size)}, the limit is ${formatSize(MAX_READ_BYTES)}. Read part of it with a bash command, for example \`sed -n '1,200p' ${filePath}\`.`,
       );
     }
-    const bytes = await session.readBinaryFile({ path: filePath });
-    if (bytes == null) {
-      throw createNotFoundError({ operation: 'open', path: filePath });
+    /*
+     * The read itself is bounded, so the size the stat reported is only a hint:
+     * a file that grows or is replaced between the stat and the read still
+     * cannot make the host hold more than the limit.
+     */
+    const read = await readFileBytes({
+      session,
+      filePath,
+      limitBytes: MAX_READ_BYTES,
+    });
+    if (read == null) {
+      if ((await session.stat({ path: filePath })) == null) {
+        throw createNotFoundError({ operation: 'open', path: filePath });
+      }
+      throw new Error(
+        `Cannot read ${filePath}: the sandbox could not run the bounded read. Read it with a bash command instead, for example \`sed -n '1,200p' ${filePath}\`.`,
+      );
     }
-    return bytes;
+    if (!read.complete) {
+      throw new Error(
+        `File is too large to read: ${filePath} is larger than the limit of ${formatSize(MAX_READ_BYTES)}. Read part of it with a bash command, for example \`sed -n '1,200p' ${filePath}\`.`,
+      );
+    }
+    return read.bytes;
   };
 
   const statPath = async (filePath: string) => {
