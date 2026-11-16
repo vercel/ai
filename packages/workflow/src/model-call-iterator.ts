@@ -174,14 +174,6 @@ export interface ModelCallIteratorYieldValue {
   tools?: ToolSet;
   /** The conversation messages up to (and including) the tool call request */
   messages: LanguageModelV4Prompt;
-  /**
-   * The messages that were sent to the language model to initiate the step that
-   * returned the tool calls, including `prepareStep` changes. They exclude
-   * system messages and the assistant response that contains the tool calls,
-   * so approval functions never see calls that have not run yet. This matches
-   * the `messages` that `generateText` and `streamText` pass to `toolApproval`.
-   */
-  approvalMessages: ModelMessage[];
   /** The step result from the current step */
   step?: StepResult<ToolSet, any>;
   /** The current runtime context shared across the agent loop */
@@ -495,11 +487,9 @@ export async function* modelCallIterator({
         );
       }
 
-      // Keep the model input separate from the conversation that receives the
-      // current response. Pending sibling calls must not become approval history.
-      const stepInputMessages = [
-        ...conversationPrompt,
-      ] as unknown as ModelMessage[];
+      const stepInputMessages = (mode === 'generate'
+        ? [...conversationPrompt]
+        : conversationPrompt) as unknown as ModelMessage[];
       const callOptions = {
         ...currentGenerationSettings,
         toolChoice: currentToolChoice,
@@ -744,9 +734,6 @@ export async function* modelCallIterator({
           toolCalls: processableToolCalls,
           tools: effectiveTools,
           messages: conversationPrompt,
-          approvalMessages: stepInputMessages.filter(
-            message => message.role !== 'system',
-          ),
           step,
           runtimeContext: currentRuntimeContext,
           toolsContext: currentToolsContext,
@@ -848,7 +835,6 @@ export async function* modelCallIterator({
     yield {
       toolCalls: [],
       messages: conversationPrompt,
-      approvalMessages: [],
       step: lastStep,
       runtimeContext: currentRuntimeContext,
       toolsContext: currentToolsContext,
