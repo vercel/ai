@@ -147,6 +147,121 @@ describe('HttpMCPTransport', () => {
     });
   });
 
+  describe('text/event-stream response that finishes before the response', () => {
+    let controller: TestResponseController;
+
+    beforeEach(async () => {
+      transport = createLegacyHttpTransport({
+        url: 'http://localhost:4000/stream',
+      });
+      controller = new TestResponseController();
+      server.urls['http://localhost:4000/stream'].response = ({ callNumber }) =>
+        callNumber === 0
+          ? { type: 'error', status: 405 }
+          : {
+              type: 'controlled-stream',
+              controller,
+              headers: { 'content-type': 'text/event-stream' },
+            };
+      await transport.start();
+    });
+
+    const message = {
+      jsonrpc: '2.0' as const,
+      method: 'tools/call',
+      id: 3,
+      params: { name: 'echo', arguments: {} },
+    };
+
+    it('should emit a JSON-RPC error for the request when the stream closes', async () => {
+      const messages: unknown[] = [];
+      transport.onmessage = msg => messages.push(msg);
+
+      await transport.send(message);
+      await controller.write(': keep-alive\n\n');
+      await controller.close();
+      await vi.waitFor(() => expect(messages).toHaveLength(1));
+
+      expect(messages[0]).toMatchObject({
+        jsonrpc: '2.0',
+        id: 3,
+        error: {
+          code: -32000,
+          message: expect.stringContaining('ended before the response'),
+        },
+      });
+    });
+
+    it('should emit a JSON-RPC error for the request when the stream errors', async () => {
+      const messages: unknown[] = [];
+      const errors: unknown[] = [];
+      transport.onmessage = msg => messages.push(msg);
+      transport.onerror = error => errors.push(error);
+
+      await transport.send(message);
+      await controller.write(': keep-alive\n\n');
+      await controller.error(new Error('terminated'));
+      await vi.waitFor(() => expect(messages).toHaveLength(1));
+
+      expect(messages[0]).toMatchObject({
+        id: 3,
+        error: {
+          code: -32000,
+          message: expect.stringContaining('failed before the response'),
+        },
+      });
+      expect(errors).toHaveLength(1);
+    });
+
+    it('should not emit an error after the response arrived', async () => {
+      const messages: unknown[] = [];
+      transport.onmessage = msg => messages.push(msg);
+
+      await transport.send(message);
+      await controller.write(
+        `event: message\ndata: ${JSON.stringify({ jsonrpc: '2.0', id: 3, result: { content: [] } })}\n\n`,
+      );
+      await controller.close();
+      await vi.waitFor(() => expect(messages).toHaveLength(1));
+      await vi.advanceTimersByTimeAsync(10);
+
+      expect(messages).toEqual([
+        { jsonrpc: '2.0', id: 3, result: { content: [] } },
+      ]);
+    });
+
+    it('should emit a JSON-RPC error when the stream only carried a notification', async () => {
+      const messages: unknown[] = [];
+      transport.onmessage = msg => messages.push(msg);
+
+      await transport.send(message);
+      await controller.write(
+        `event: message\ndata: ${JSON.stringify({ jsonrpc: '2.0', method: 'notifications/progress', params: { progressToken: 1, progress: 1 } })}\n\n`,
+      );
+      await controller.close();
+      await vi.waitFor(() => expect(messages).toHaveLength(2));
+
+      expect(messages[0]).toMatchObject({ method: 'notifications/progress' });
+      expect(messages[1]).toMatchObject({ id: 3, error: { code: -32000 } });
+    });
+
+    it('should not emit an error when the caller aborts the request', async () => {
+      const messages: unknown[] = [];
+      const errors: unknown[] = [];
+      transport.onmessage = msg => messages.push(msg);
+      transport.onerror = error => errors.push(error);
+      const abortController = new AbortController();
+
+      await transport.send(message, { signal: abortController.signal });
+      await controller.write(': keep-alive\n\n');
+      abortController.abort();
+      await vi.advanceTimersByTimeAsync(10);
+
+      expect(messages).toEqual([]);
+      expect(errors).toEqual([]);
+    });
+  });
+
   it('should initialize MCP client from SSE response without explicit event field', async () => {
     const controller = new TestResponseController();
 

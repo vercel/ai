@@ -414,15 +414,42 @@ export class HttpMCPTransport implements MCPTransport {
             .pipeThrough(new EventSourceParserStream());
           const reader = stream.getReader();
 
+          // A stream that finishes without the response would leave the
+          // request pending forever, so answer it with a JSON-RPC error.
+          const requestId = 'method' in message ? message.id : undefined;
+          let answered = false;
+          const failUnanswered = (reason: 'ended' | 'failed') => {
+            if (answered || requestId === undefined) return;
+            answered = true;
+            this.onmessage?.({
+              jsonrpc: '2.0',
+              id: requestId,
+              error: {
+                code: -32000,
+                message: `MCP HTTP Transport Error: text/event-stream response ${reason} before the response to request ${requestId}`,
+              },
+            });
+          };
+
           const processEvents = async () => {
             try {
               while (true) {
                 const { done, value } = await reader.read();
-                if (done) return;
+                if (done) {
+                  failUnanswered('ended');
+                  return;
+                }
                 const { event, data } = value;
                 if (isMessageEvent(event)) {
                   try {
                     const jsonRpcMessage = await parseJSONRPCMessage(data);
+                    if (
+                      ('result' in jsonRpcMessage ||
+                        'error' in jsonRpcMessage) &&
+                      jsonRpcMessage.id === requestId
+                    ) {
+                      answered = true;
+                    }
                     this.onmessage?.(jsonRpcMessage);
                   } catch (error) {
                     const e = new MCPClientError({
@@ -442,6 +469,7 @@ export class HttpMCPTransport implements MCPTransport {
                 return;
               }
               this.onerror?.(error);
+              failUnanswered('failed');
             }
           };
 
