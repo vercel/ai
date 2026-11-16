@@ -502,17 +502,19 @@ export async function writeFxFile(options: {
   }
   /*
    * Only a file of the content's size can have the content, so any other
-   * file is not read here: reading it would load a file of any size into
-   * host memory.
+   * file is not read here, and the read of a matching file is bounded by
+   * that size.
    */
   if (stat != null && stat.size === contentBytes) {
-    const existing = await session.readBinaryFile({
+    const existing = await readFileHead({
+      sandbox,
       path: target.abs,
+      limitBytes: contentBytes,
       abortSignal,
     });
     if (
-      existing != null &&
-      decodeFxModelSafeText({ bytes: existing }) === content
+      !existing.exceeded &&
+      decodeFxModelSafeText({ bytes: existing.bytes }) === content
     ) {
       return {
         text: `No changes to ${target.rel}; it already contains the requested content`,
@@ -589,15 +591,18 @@ export async function editFxFile(options: {
       text: 'file mutation preparation failed: preimage exceeds the 4 MiB preparation limit',
     });
   }
-  const bytes =
-    (await session.readBinaryFile({ path: target.abs, abortSignal })) ??
-    new Uint8Array();
-  if (bytes.length > CONTENT_BYTES) {
+  const preimage = await readFileHead({
+    sandbox,
+    path: target.abs,
+    limitBytes: CONTENT_BYTES,
+    abortSignal,
+  });
+  if (preimage.exceeded) {
     return toFxToolError({
       text: 'file mutation preparation failed: preimage exceeds the 4 MiB preparation limit',
     });
   }
-  const before = decodeFxModelSafeText({ bytes });
+  const before = decodeFxModelSafeText({ bytes: preimage.bytes });
   if (before === undefined) {
     return toFxToolError({
       text: 'file mutation preparation failed: unable to read the approved preimage',

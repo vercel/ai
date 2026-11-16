@@ -208,6 +208,10 @@ describe('editFxFile', () => {
 function createFakeFileSession(options: {
   size: number;
   /**
+   * Size of the bytes a read returns, when a file grew past its stat.
+   */
+  contentBytes?: number;
+  /**
    * Bytes at the start of the file, before the filler lines.
    */
   prefix?: Uint8Array;
@@ -220,7 +224,12 @@ function createFakeFileSession(options: {
    */
   ignoreLimit?: boolean;
 }) {
-  const { size, prefix = new Uint8Array(), lineLength = 999 } = options;
+  const {
+    size,
+    contentBytes = size,
+    prefix = new Uint8Array(),
+    lineLength = 999,
+  } = options;
   const line = `${'x'.repeat(lineLength - 1)}\n`;
   const calls: string[] = [];
   const state = { sent: 0, stopped: 0 };
@@ -233,8 +242,8 @@ function createFakeFileSession(options: {
   function* contents() {
     yield prefix;
     let written = prefix.length;
-    while (written < size) {
-      const length = Math.min(64 * 1024, size - written);
+    while (written < contentBytes) {
+      const length = Math.min(64 * 1024, contentBytes - written);
       const text = line.repeat(Math.ceil(length / line.length));
       yield new Uint8Array(Buffer.from(text, 'utf8').subarray(0, length));
       written += length;
@@ -443,6 +452,35 @@ describe('readFxFile with a file larger than a snapshot', () => {
 });
 
 describe('editFxFile with a preimage larger than the limit', () => {
+  test('rejects a file that grew past its stat within the limit', async () => {
+    const { session, calls, state } = createFakeFileSession({
+      size: 4 * 1024,
+      contentBytes: 64 * MIB,
+      ignoreLimit: true,
+    });
+    const sandbox: FxToolSandbox = {
+      session,
+      workDir: '/home/user',
+      home: '/home/user',
+    };
+
+    const output = await editFxFile({
+      sandbox,
+      input: { path: 'growth.txt', old_string: 'needle', new_string: 'other' },
+      abortSignal: new AbortController().signal,
+    });
+
+    expect(calls).toEqual([
+      'stat',
+      `spawn head -c ${4 * MIB + 1} '/home/user/growth.txt' | base64`,
+    ]);
+    expect(output).toEqual({
+      text: 'file mutation preparation failed: preimage exceeds the 4 MiB preparation limit',
+      isError: true,
+    });
+    expect(state.sent).toBeLessThan(7 * MIB);
+  });
+
   test('rejects the file without reading it', async () => {
     const { session, calls } = createFakeFileSession({ size: 20 * MIB });
     const sandbox: FxToolSandbox = {
@@ -466,6 +504,28 @@ describe('editFxFile with a preimage larger than the limit', () => {
 });
 
 describe('writeFxFile over a file of another size', () => {
+  test('compares a file that grew past its stat within the limit', async () => {
+    const { session, state } = createFakeFileSession({
+      size: 12,
+      contentBytes: 64 * MIB,
+      ignoreLimit: true,
+    });
+    const sandbox: FxToolSandbox = {
+      session,
+      workDir: '/home/user',
+      home: '/home/user',
+    };
+
+    const output = await writeFxFile({
+      sandbox,
+      input: { path: 'growth.txt', content: 'replacement\n' },
+      abortSignal: new AbortController().signal,
+    });
+
+    expect(output).toEqual({ text: 'wrote growth.txt (12 bytes)' });
+    expect(state.sent).toBeLessThan(MIB);
+  });
+
   test('writes without reading the existing file', async () => {
     const { session, calls } = createFakeFileSession({ size: 20 * MIB });
     const sandbox: FxToolSandbox = {
