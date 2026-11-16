@@ -2875,6 +2875,7 @@ export class WorkflowAgent<
           toolCalls,
           tools: stepTools = effectiveTools as ToolSet,
           messages: iterMessages,
+          approvalMessages,
           step,
           runtimeContext: yieldedRuntimeContext,
           toolsContext: yieldedToolsContext,
@@ -2961,7 +2962,7 @@ export class WorkflowAgent<
                   | ToolApprovalConfiguration<ToolSet, TRuntimeContext>
                   | undefined,
                 toolCall: tc as unknown as TypedToolCall<ToolSet>,
-                messages: iterMessages as unknown as ModelMessage[],
+                messages: approvalMessages,
                 toolsContext:
                   toolsContext as unknown as InferToolSetContext<ToolSet>,
                 runtimeContext: effectiveRuntimeContext,

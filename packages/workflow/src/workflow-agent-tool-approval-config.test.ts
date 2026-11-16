@@ -1,5 +1,6 @@
 import type {
   LanguageModelV4GenerateResult,
+  LanguageModelV4Prompt,
   LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
 import type { Context } from '@ai-sdk/provider-utils';
@@ -652,6 +653,171 @@ describe.each<Mode>(['generate', 'stream'])(
         ]);
       }
     });
+  },
+);
+
+describe.each<Mode>(['generate', 'stream'])(
+  '%s workflow agent approval history',
+  mode => {
+    function priorToolNames(messages: ModelMessage[]) {
+      return messages.flatMap(message =>
+        message.role === 'assistant' && Array.isArray(message.content)
+          ? message.content
+              .filter(part => part.type === 'tool-call')
+              .map(part => part.toolName)
+          : [],
+      );
+    }
+
+    it.each([
+      'alone',
+      'denied',
+      'pending',
+      'invalid',
+      'unknown',
+      'reversed',
+    ] as const)(
+      'does not authorize action from a %s sibling',
+      async sibling => {
+        const execute = vi.fn(async () => 'protected output');
+        const attestExecute = vi.fn(async () => 'attested');
+        const approvalMessages: ModelMessage[][] = [];
+        const action = actionResponse().content[1];
+        const attest = {
+          type: 'tool-call' as const,
+          toolCallId: 'attest-call',
+          toolName: 'attest',
+          input: sibling === 'invalid' ? '{}' : '{"value":"attestation"}',
+        };
+        const response: LanguageModelV4GenerateResult = {
+          ...actionResponse(),
+          content:
+            sibling === 'alone'
+              ? [action]
+              : sibling === 'reversed'
+                ? [attest, action]
+                : [action, attest],
+        };
+        const { run, model } = await runWorkflow(
+          mode,
+          [response, textResponse('Done.')],
+          {
+            tools: {
+              ...actionTools(execute),
+              ...(sibling === 'unknown'
+                ? {}
+                : { attest: actionTools(attestExecute).action }),
+            },
+            toolApproval: ({ toolCall, messages }) => {
+              approvalMessages.push(messages);
+              if (toolCall.toolName === 'attest') {
+                return sibling === 'pending' ? 'user-approval' : 'denied';
+              }
+              return priorToolNames(messages).at(-1) === 'attest'
+                ? 'approved'
+                : 'user-approval';
+            },
+          },
+          prompt,
+        );
+
+        expect(execute).not.toHaveBeenCalled();
+        expect(attestExecute).not.toHaveBeenCalled();
+        expect(approvalMessages.length).toBeGreaterThan(0);
+        const modelCalls =
+          mode === 'generate' ? model.doGenerateCalls : model.doStreamCalls;
+        for (const messages of approvalMessages)
+          expect(messages).toEqual(modelCalls[0].prompt);
+        expect(approvalRequests(run)).toContainEqual(
+          expect.objectContaining({
+            toolCall: expect.objectContaining({ toolName: 'action' }),
+          }),
+        );
+        expect(run.steps.flatMap(step => step.toolResults)).toEqual([]);
+      },
+    );
+
+    it.each(['generic', 'per-tool', 'needsApproval'] as const)(
+      'uses prepared pre-response history for %s, preserving execution context',
+      async configuration => {
+        const history: LanguageModelV4Prompt = [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Perform the action.' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'prior',
+                toolName: 'attest',
+                input: { value: 'attestation' },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'prior',
+                toolName: 'attest',
+                output: { type: 'text', value: 'attested' },
+              },
+            ],
+          },
+        ];
+        const approvalMessages: ModelMessage[][] = [];
+        const hasAttestation = (messages: ModelMessage[]) => {
+          approvalMessages.push(messages);
+          return priorToolNames(messages).at(-1) === 'attest';
+        };
+        const execute = vi.fn(async (_input, { messages }) => {
+          expect(priorToolNames(messages)).toEqual(['attest', 'action']);
+          return 'protected output';
+        });
+        const agent = new WorkflowAgent({
+          model: createAgentModel([actionResponse(), textResponse('Done.')]),
+          instructions: 'Do not include instructions in approval messages.',
+          prepareStep: ({ stepNumber }) =>
+            stepNumber === 0
+              ? {
+                  messages: [
+                    { role: 'system', content: 'Prepared instructions.' },
+                    ...history,
+                  ],
+                }
+              : undefined,
+          tools: {
+            action: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute,
+              ...(configuration === 'needsApproval'
+                ? {
+                    needsApproval: (_input, { messages }) =>
+                      !hasAttestation(messages),
+                  }
+                : {}),
+            }),
+          },
+          toolApproval:
+            configuration === 'generic'
+              ? ({ messages }) =>
+                  hasAttestation(messages) ? 'approved' : 'user-approval'
+              : configuration === 'per-tool'
+                ? {
+                    action: (_input, { messages }) =>
+                      hasAttestation(messages) ? 'approved' : 'user-approval',
+                  }
+                : undefined,
+        });
+        await agent[mode]({ messages: prompt });
+        expect(execute).toHaveBeenCalledTimes(1);
+        // Check retained references after execution, not just inside the policy.
+        expect(approvalMessages).toEqual([history]);
+      },
+    );
   },
 );
 

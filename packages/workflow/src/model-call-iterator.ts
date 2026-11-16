@@ -174,6 +174,8 @@ export interface ModelCallIteratorYieldValue {
   tools?: ToolSet;
   /** The conversation messages up to (and including) the tool call request */
   messages: LanguageModelV4Prompt;
+  /** Pre-response model input, excluding system messages, for tool approval. */
+  approvalMessages: ModelMessage[];
   /** The step result from the current step */
   step?: StepResult<ToolSet, any>;
   /** The current runtime context shared across the agent loop */
@@ -487,9 +489,11 @@ export async function* modelCallIterator({
         );
       }
 
-      const stepInputMessages = (mode === 'generate'
-        ? [...conversationPrompt]
-        : conversationPrompt) as unknown as ModelMessage[];
+      // Keep the model input separate from the conversation that receives the
+      // current response. Pending sibling calls must not become approval history.
+      const stepInputMessages = [
+        ...conversationPrompt,
+      ] as unknown as ModelMessage[];
       const callOptions = {
         ...currentGenerationSettings,
         toolChoice: currentToolChoice,
@@ -734,6 +738,9 @@ export async function* modelCallIterator({
           toolCalls: processableToolCalls,
           tools: effectiveTools,
           messages: conversationPrompt,
+          approvalMessages: stepInputMessages.filter(
+            message => message.role !== 'system',
+          ),
           step,
           runtimeContext: currentRuntimeContext,
           toolsContext: currentToolsContext,
@@ -835,6 +842,7 @@ export async function* modelCallIterator({
     yield {
       toolCalls: [],
       messages: conversationPrompt,
+      approvalMessages: [],
       step: lastStep,
       runtimeContext: currentRuntimeContext,
       toolsContext: currentToolsContext,
