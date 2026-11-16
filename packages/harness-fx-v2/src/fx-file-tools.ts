@@ -33,6 +33,13 @@ const READ_OUTPUT_BYTES = 256 * 1024;
 const CONTENT_BYTES = 4 * MiB;
 const MAX_ENCODED_IMAGE_BYTES = 5 * MiB;
 
+/*
+ * Largest file whose whole read the host accepts when a sandbox cannot run
+ * the bounded read: a refused read must not turn into a download of whatever
+ * size the sandbox reports.
+ */
+const MAX_WHOLE_READ_BYTES = 2 * READ_SNAPSHOT_BYTES;
+
 /**
  * Returns the media type of an image from its leading bytes, for the image
  * formats fx's `read_file` attaches (PNG, JPEG, GIF and WebP).
@@ -365,7 +372,14 @@ async function readFileSnapshot(options: {
     limitBytes: READ_SNAPSHOT_BYTES,
     abortSignal,
   });
-  if (head == null) return whole();
+  if (head == null) {
+    if (size > MAX_WHOLE_READ_BYTES) {
+      throw new Error(
+        `could not read ${path}: the sandbox could not run the bounded read`,
+      );
+    }
+    return whole();
+  }
   return {
     bytes: head.bytes,
     complete: !head.exceeded,
@@ -582,10 +596,11 @@ export async function writeFxFile(options: {
   }
   /*
    * A file can only have the content if it has the content's size, and the
-   * read is bounded by that size, so the comparison never loads a larger
-   * file.
+   * read is bounded by that size, so a file of another size is not read:
+   * the content cannot be in it, and reading it would load a file of any
+   * size into host memory.
    */
-  if (stat != null) {
+  if (stat != null && stat.size === contentBytes) {
     const existing = await readFileWithin({
       sandbox,
       path: target.abs,

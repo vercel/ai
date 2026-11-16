@@ -476,9 +476,9 @@ describe('readFxFile with a file larger than a snapshot', () => {
     expect(state.stopped).toBeGreaterThan(0);
   });
 
-  test('reads the file as a whole when the sandbox refuses the command', async () => {
+  test('reads a bounded file as a whole when the sandbox refuses the command', async () => {
     const { session, calls } = createFakeFileSession({
-      size: 20 * MIB,
+      size: 12 * MIB,
       fails: true,
     });
 
@@ -494,6 +494,24 @@ describe('readFxFile with a file larger than a snapshot', () => {
       'readBinaryFile',
     ]);
     expect(output.text).toContain('file snapshot was capped before EOF');
+  });
+
+  test('does not download a huge file when the sandbox refuses the command', async () => {
+    const { session, calls } = createFakeFileSession({
+      size: 64 * MIB,
+      fails: true,
+    });
+
+    await expect(
+      readFxFile({
+        sandbox: sandbox(session),
+        input: { path: 'huge.txt' },
+        abortSignal,
+      }),
+    ).rejects.toThrow(
+      'could not read /home/user/huge.txt: the sandbox could not run the bounded read',
+    );
+    expect(calls).toEqual(['stat', `spawn base64 '/home/user/huge.txt'`]);
   });
 
   test('names the size of an image it does not attach', async () => {
@@ -638,8 +656,8 @@ describe('writeFxFile over a file of another size', () => {
     expect(state.sent).toBeLessThan(MIB);
   });
 
-  test('writes without loading the existing file', async () => {
-    const { session, calls, state } = createFakeFileSession({ size: 20 * MIB });
+  test('writes without reading a file of another size', async () => {
+    const { session, calls } = createFakeFileSession({ size: 20 * MIB });
     const sandbox: FxToolSandbox = {
       session,
       workDir: '/home/user',
@@ -652,12 +670,7 @@ describe('writeFxFile over a file of another size', () => {
       abortSignal: new AbortController().signal,
     });
 
-    expect(calls).toEqual([
-      'stat',
-      `spawn base64 '/home/user/big.txt'`,
-      'writeTextFile',
-    ]);
+    expect(calls).toEqual(['stat', 'writeTextFile']);
     expect(output).toEqual({ text: 'wrote big.txt (12 bytes)' });
-    expect(state.stopped).toBeGreaterThan(0);
   });
 });
