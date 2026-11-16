@@ -336,6 +336,61 @@ export async function findSandboxFiles(options: {
 }
 
 /**
+ * Entries of a directory that one listing may transfer, so a directory that
+ * sandbox code filled cannot take more than this many names from the sandbox.
+ */
+const MAX_LIST_ENTRIES = 10_000;
+
+/**
+ * Bytes of a directory listing that the host keeps, so names of extreme length
+ * cannot fill the memory of the process that serves many sessions.
+ */
+const MAX_LIST_BYTES = 2 * 1024 * 1024;
+
+/**
+ * Lists the entries of a directory in the sandbox.
+ *
+ * The sandbox sorts the entries and stops the listing at `MAX_LIST_ENTRIES`
+ * names and `MAX_LIST_BYTES` bytes, so a directory that sandbox code filled is
+ * never transferred as a whole; the cap cuts the entries that Pi's own order
+ * puts last. Pi adds the directory suffix and its entry-limit notice.
+ */
+export async function listSandboxDirectory(options: {
+  /**
+   * Sandbox session to list.
+   */
+  session: SandboxSession;
+
+  /**
+   * Absolute directory to list.
+   */
+  directory: string;
+}): Promise<string[]> {
+  const { session, directory } = options;
+  const result = await session.run({
+    command: `set -o pipefail; ls -A ${shellQuote(directory)} | sort | head -n ${MAX_LIST_ENTRIES + 1} | head -c ${MAX_LIST_BYTES + 1}`,
+  });
+  let entries = result.stdout.split('\n').filter(line => line.length > 0);
+  const reachedBudget =
+    entries.length > MAX_LIST_ENTRIES ||
+    Buffer.byteLength(result.stdout, 'utf-8') > MAX_LIST_BYTES;
+  /*
+   * A sandbox whose command runner ignores SIGPIPE reports the closed pipe as a
+   * write error, so a listing that reached the budget is accepted whatever its
+   * exit code; 141 is `head` closing the pipe.
+   */
+  if (!reachedBudget && result.exitCode !== 0 && result.exitCode !== 141) {
+    throw createNotFoundError({ operation: 'scandir', path: directory });
+  }
+  if (reachedBudget) {
+    // The byte budget can cut the last name in half, so it is dropped.
+    if (!result.stdout.endsWith('\n')) entries = entries.slice(0, -1);
+    entries = entries.slice(0, MAX_LIST_ENTRIES);
+  }
+  return entries;
+}
+
+/**
  * Creates the operations of Pi's read, write, edit, find and ls tools on a
  * sandbox session. Pi's tools pass absolute paths resolved against the
  * sandbox working directory.
@@ -481,11 +536,7 @@ export function createPiSandboxOperations(options: {
       return { isDirectory: () => stat.type === 'directory' };
     },
     async readdir(directory) {
-      const entries = await session.listDirectory({ path: directory });
-      if (entries == null) {
-        throw createNotFoundError({ operation: 'scandir', path: directory });
-      }
-      return entries.map(entry => entry.name);
+      return listSandboxDirectory({ session, directory });
     },
     // oxlint-disable-next-line ai-sdk/require-object-parameter -- Pi `FindOperations` signature.
     async glob(pattern, directory, globOptions) {

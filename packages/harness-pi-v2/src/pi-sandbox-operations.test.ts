@@ -5,6 +5,7 @@ import {
   detectImageMimeType,
   expandSandboxHome,
   findSandboxFiles,
+  listSandboxDirectory,
 } from './pi-sandbox-operations';
 
 async function setup() {
@@ -219,6 +220,122 @@ describe('createPiSandboxOperations', () => {
       limit,
     );
   });
+
+  test('reports a file that changed while it was read', async () => {
+    const encoded = 8 * 1024 * 1024;
+    const session = {
+      description: 'shrinking file sandbox',
+      async stat() {
+        return { type: 'file' as const, size: 4 * 1024 * 1024 };
+      },
+      async run(options: { command: string }) {
+        if (options.command.includes('wc -c')) {
+          return { exitCode: 0, stdout: `${encoded}\n`, stderr: '' };
+        }
+        // The file shrank after its length was read.
+        return { exitCode: 0, stdout: 'QUFB', stderr: '' };
+      },
+    };
+    const operations = createPiSandboxOperations({
+      // oxlint-disable-next-line ai-sdk/no-as-unknown-as -- partial sandbox session for a test.
+      session: session as never,
+    });
+
+    await expect(operations.readFile('/home/user/log.txt')).rejects.toThrow(
+      'the file changed while it was read',
+    );
+  });
+
+  test('reports a missing file that the sandbox cannot read', async () => {
+    const session = {
+      description: 'missing file sandbox',
+      async stat() {
+        return null;
+      },
+      async run() {
+        return {
+          exitCode: 1,
+          stdout: '',
+          stderr: 'base64: no such file or directory',
+        };
+      },
+    };
+    const operations = createPiSandboxOperations({
+      // oxlint-disable-next-line ai-sdk/no-as-unknown-as -- partial sandbox session for a test.
+      session: session as never,
+    });
+
+    await expect(operations.readFile('/home/user/missing.txt')).rejects.toThrow(
+      'ENOENT',
+    );
+  });
+
+  test('reads binary content byte for byte', async () => {
+    const { session, root, operations } = await setup();
+    const bytes = new Uint8Array(4096);
+    for (let index = 0; index < bytes.length; index++) {
+      bytes[index] = index % 256;
+    }
+    await session.writeBinaryFile({ path: `${root}/bin.dat`, content: bytes });
+
+    const read = await operations.readFile(`${root}/bin.dat`);
+
+    expect(Buffer.compare(Buffer.from(read), Buffer.from(bytes))).toBe(0);
+  });
+
+  test('refuses to read a directory', async () => {
+    const { root, operations } = await setup();
+
+    await expect(operations.readFile(`${root}/src`)).rejects.toThrow('EISDIR');
+  });
+
+  test('refuses a file above the size limit and reads one exactly at it', async () => {
+    const limit = 10 * 1024 * 1024;
+    /*
+     * A fake session, so the test does not push 10 MiB through the sandbox: the
+     * commands print windows of the file's base64 text, which is what a
+     * sandbox would print.
+     */
+    const createSession = (size: number) => {
+      const encoded = Buffer.alloc(size, 0x61).toString('base64');
+      return {
+        description: 'sized file sandbox',
+        async stat() {
+          return { type: 'file' as const, size };
+        },
+        async run(options: { command: string }) {
+          if (options.command.includes('wc -c')) {
+            return { exitCode: 0, stdout: `${encoded.length}\n`, stderr: '' };
+          }
+          const start = Number(/head -c (\d+)/.exec(options.command)?.[1] ?? 0);
+          const length = Number(
+            /tail -c (\d+)/.exec(options.command)?.[1] ?? 0,
+          );
+          return {
+            exitCode: 0,
+            stdout: encoded.slice(start - length, start),
+            stderr: '',
+          };
+        },
+      };
+    };
+
+    const large = createPiSandboxOperations({
+      // oxlint-disable-next-line ai-sdk/no-as-unknown-as -- partial sandbox session for a test.
+      session: createSession(limit + 1) as never,
+    });
+    await expect(large.readFile('/home/user/large.log')).rejects.toThrow(
+      'File is too large to read: ',
+    );
+
+    const atLimit = createPiSandboxOperations({
+      // oxlint-disable-next-line ai-sdk/no-as-unknown-as -- partial sandbox session for a test.
+      session: createSession(limit) as never,
+    });
+    expect((await atLimit.readFile('/home/user/at-limit.log')).byteLength).toBe(
+      limit,
+    );
+  });
 });
 
 describe('findSandboxFiles', () => {
@@ -334,6 +451,43 @@ describe('findSandboxFiles', () => {
         limit: 1,
       }),
     ).toEqual(['src/a.ts']);
+  });
+});
+
+describe('listSandboxDirectory', () => {
+  test('lists a directory in the sandbox', async () => {
+    const { session, root } = await setup();
+
+    expect(
+      await listSandboxDirectory({ session, directory: `${root}/src` }),
+    ).toEqual(['a.ts', 'b.test.ts']);
+  });
+
+  test('bounds the listing of a directory that a sandbox user filled', async () => {
+    const line = `${'d'.repeat(200)}.txt\n`;
+    let command = '';
+    const session = {
+      description: 'huge directory sandbox',
+      async run(options: { command: string }) {
+        command = options.command;
+        // What the capped command prints for a directory far above the budget.
+        return {
+          exitCode: 0,
+          stdout: line.repeat(Math.ceil((3 * 1024 * 1024) / line.length)),
+          stderr: '',
+        };
+      },
+    };
+
+    const entries = await listSandboxDirectory({
+      // oxlint-disable-next-line ai-sdk/no-as-unknown-as -- partial sandbox session for a test.
+      session: session as never,
+      directory: '/home/user',
+    });
+
+    expect(command).toContain(`head -n ${10_000 + 1}`);
+    expect(command).toContain(`head -c ${2 * 1024 * 1024 + 1}`);
+    expect(entries).toHaveLength(10_000);
   });
 });
 
