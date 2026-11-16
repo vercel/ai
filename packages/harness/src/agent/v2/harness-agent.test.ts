@@ -14,7 +14,6 @@ import type { HarnessV2StreamPart } from '../../v2/harness-v2-stream-part';
 import type { HarnessAgentSettings } from '../harness-agent-settings';
 import { describe, expect, test, vi } from 'vitest';
 import { z } from 'zod/v4';
-import { HarnessCapabilityUnsupportedError } from '../../errors/harness-capability-unsupported-error';
 import {
   DefaultHarnessAgentSession,
   type HarnessAgentSession,
@@ -125,6 +124,24 @@ class WorkflowSerializableCallOption {
 const getSandboxSession: NonNullable<
   HarnessAgentSettings<typeof harness>['getSandboxSession']
 > = async ({ sandboxId: _sandboxId }) => ({}) as SandboxSession;
+
+/**
+ * Name of `HarnessCapabilityUnsupportedError`, asserted by name because the
+ * HarnessV2 entrypoints must not import from parent directories.
+ */
+const capabilityErrorName = 'AI_HarnessCapabilityUnsupportedError';
+
+/**
+ * Returns the error thrown by the given synchronous function.
+ */
+function captureError(fn: () => unknown): Error {
+  try {
+    fn();
+  } catch (error) {
+    return error as Error;
+  }
+  throw new Error('expected the call to throw');
+}
 
 describe('HarnessAgent', () => {
   test('rejects a harness adapter with a different specification version', () => {
@@ -283,7 +300,7 @@ describe('HarnessAgent', () => {
   ])(
     'rejects a host tool whose approval requirement is %s',
     (_kind, needsApproval) => {
-      expect(
+      const error = captureError(
         () =>
           new HarnessAgent({
             harness,
@@ -296,7 +313,12 @@ describe('HarnessAgent', () => {
               }),
             },
           }),
-      ).toThrow(HarnessCapabilityUnsupportedError);
+      );
+
+      expect(error.name).toBe(capabilityErrorName);
+      expect(error.message).toContain(
+        'tool approval is not supported with HarnessV2',
+      );
     },
   );
 
@@ -323,27 +345,37 @@ describe('HarnessAgent', () => {
   });
 
   test('rejects the toolApproval setting', () => {
-    expect(
+    const error = captureError(
       () =>
         new HarnessAgent({
           harness,
           getSandboxSession,
           toolApproval: { deleteFile: 'user-approval' },
         }),
-    ).toThrow(HarnessCapabilityUnsupportedError);
+    );
+
+    expect(error.name).toBe(capabilityErrorName);
+    expect(error.message).toContain(
+      '`toolApproval` is not supported with HarnessV2',
+    );
   });
 
   test.each(['allow-reads', 'allow-edits'] as const)(
     'rejects the approval-implying permission mode %s',
     permissionMode => {
-      expect(
+      const error = captureError(
         () =>
           new HarnessAgent({
             harness,
             getSandboxSession,
             permissionMode,
           }),
-      ).toThrow(HarnessCapabilityUnsupportedError);
+      );
+
+      expect(error.name).toBe(capabilityErrorName);
+      expect(error.message).toContain(
+        `\`permissionMode: '${permissionMode}'\` is not supported with HarnessV2`,
+      );
     },
   );
 

@@ -15,6 +15,47 @@ export function requiresApproval(tool: Tool): boolean {
 }
 
 /**
+ * Throws a `HarnessCapabilityUnsupportedError` for approval settings that the v2
+ * engine cannot honor: the `toolApproval` setting and every permission mode but
+ * `'allow-all'`, which matches the engine's behavior of running tools without
+ * asking. Accepting them would run tools that the app expects a user to approve
+ * first.
+ */
+export function assertNoUnsupportedApprovalSettings(options: {
+  /**
+   * Identifier of the harness adapter, recorded on the error.
+   */
+  harnessId: string;
+
+  /**
+   * The `permissionMode` setting of the agent.
+   */
+  permissionMode?: string;
+
+  /**
+   * The `toolApproval` setting of the agent.
+   */
+  toolApproval?: unknown;
+}): void {
+  if (options.toolApproval != null) {
+    throw new HarnessCapabilityUnsupportedError({
+      message:
+        'HarnessAgent: `toolApproval` is not supported with HarnessV2; remove it or use a HarnessV1 adapter.',
+      harnessId: options.harnessId,
+    });
+  }
+  if (
+    options.permissionMode != null &&
+    options.permissionMode !== 'allow-all'
+  ) {
+    throw new HarnessCapabilityUnsupportedError({
+      message: `HarnessAgent: \`permissionMode: '${options.permissionMode}'\` is not supported with HarnessV2; only 'allow-all' is supported.`,
+      harnessId: options.harnessId,
+    });
+  }
+}
+
+/**
  * Throws a `HarnessCapabilityUnsupportedError` when any of the given tools
  * requires approval, naming the offending tools so the caller can remove
  * `needsApproval` instead of having the tool run without consent.

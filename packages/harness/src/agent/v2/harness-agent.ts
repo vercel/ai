@@ -47,8 +47,10 @@ import { HarnessGenerateTextResult } from './internal/harness-generate-text-resu
 import { HarnessStreamTextResult } from './internal/harness-stream-text-result';
 import { getDriveProcess, trackRunningDrive } from './internal/drive-process';
 import { startDrive } from './internal/start-drive';
-import { assertNoToolApprovalRequirements } from './internal/tool-approval';
-import { HarnessCapabilityUnsupportedError } from '../../errors/harness-capability-unsupported-error';
+import {
+  assertNoToolApprovalRequirements,
+  assertNoUnsupportedApprovalSettings,
+} from './internal/tool-approval';
 import type {
   HarnessAgentSandboxConfig,
   HarnessAgentSettings,
@@ -210,22 +212,11 @@ export class HarnessAgent<
      * request consent, so accepting them would run tools that the app expects
      * a user to approve first.
      */
-    if (settings.toolApproval != null) {
-      throw new HarnessCapabilityUnsupportedError({
-        message:
-          'HarnessAgent: `toolApproval` is not supported with HarnessV2; remove it or use a HarnessV1 adapter.',
-        harnessId: settings.harness.harnessId,
-      });
-    }
-    if (
-      settings.permissionMode != null &&
-      settings.permissionMode !== 'allow-all'
-    ) {
-      throw new HarnessCapabilityUnsupportedError({
-        message: `HarnessAgent: \`permissionMode: '${settings.permissionMode}'\` is not supported with HarnessV2; only 'allow-all' is supported.`,
-        harnessId: settings.harness.harnessId,
-      });
-    }
+    assertNoUnsupportedApprovalSettings({
+      harnessId: settings.harness.harnessId,
+      permissionMode: settings.permissionMode,
+      toolApproval: settings.toolApproval,
+    });
 
     const sandboxConfig = settings.sandboxConfig ?? {};
     const unsupportedSandboxSetting = Reflect.ownKeys(sandboxConfig).find(
