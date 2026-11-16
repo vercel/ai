@@ -144,20 +144,26 @@ You can use the following optional settings to customize the provider instance:
 
 - **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
 
-  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation for Vertex API requests.
   Defaults to the global `fetch` function.
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
+  This option is not used to download tool result files; see `toolResultDownloads`.
 
 - **baseURL** _string_
 
   Optional. Base URL for the Google Vertex API calls e.g. to use proxy servers. By default, it is constructed using the location and project:
   `https://${location}-aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/google`
 
-- **toolResultDownloads** _{ maxBytes?: number }_
+- **toolResultDownloads** _{ maxBytes?: number, fetch?: FetchFunction }_
 
   Configuration for downloading tool result files that Vertex cannot reference directly in function responses.
-  Each downloaded file is limited to `maxBytes`, which is 7 MiB by default.
+
+  - **maxBytes** _number_
+    Maximum size of each downloaded tool result file in bytes. Defaults to 7 MiB.
+
+  - **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+    Transport for tool result downloads. Defaults to a validated transport that pins DNS results on Node.js. Only provide a transport that performs equivalent connect-time DNS validation for untrusted URLs, such as a guarded fetch on Bun or Deno.
 
 <a id="google-vertex-edge-runtime"></a>
 #### Edge Runtime
@@ -238,15 +244,21 @@ You can use the following optional settings to customize the provider instance:
 
 - **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
 
-  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation for Vertex API requests.
   Defaults to the global `fetch` function.
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
+  This option is not used to download tool result files; see `toolResultDownloads`.
 
-- **toolResultDownloads** _{ maxBytes?: number }_
+- **toolResultDownloads** _{ maxBytes?: number, fetch?: FetchFunction }_
 
   Configuration for downloading tool result files that Vertex cannot reference directly in function responses.
-  Each downloaded file is limited to `maxBytes`, which is 7 MiB by default.
+
+  - **maxBytes** _number_
+    Maximum size of each downloaded tool result file in bytes. Defaults to 7 MiB.
+
+  - **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+    Transport for tool result downloads. Defaults to a validated transport that pins DNS results on Node.js. Only provide a transport that performs equivalent connect-time DNS validation for untrusted URLs, such as a guarded fetch on Bun or Deno.
 
 #### Express Mode
 
@@ -774,12 +786,16 @@ tool-result forwarding is not supported for older Gemini models, missing or
 wildcard MIME types, or MIME types outside the list above.
 
 HTTP(S) tool-result files are downloaded and sent as inline data, including when
-the file part specifies a `mediaType`. Downloads use the `fetch` option passed to
-`createVertex` and are limited to `toolResultDownloads.maxBytes` (7 MiB by
-default). The Vertex API key is not sent to those hosts. On Node.js the default
-download transport validates and pins DNS results at connect time; a configured
-`fetch` replaces it and is then responsible for equivalent validation. On other
-server runtimes, validate DNS in your `fetch` when tool result URLs are untrusted,
+the file part specifies a `mediaType`. Downloads use a validated transport that
+resolves every hostname through a validating lookup hook and pins the connection
+to the resolved address on Node.js, independent of the provider `fetch` option.
+Each file is limited to `toolResultDownloads.maxBytes` (7 MiB by default), and the
+Vertex API key is never sent to those hosts.
+
+On Node.js, leave `toolResultDownloads.fetch` unset so this protection stays in
+effect. On other server runtimes (for example Bun or Deno) the default download
+transport is the runtime's global fetch, which does not pin DNS results: pass a
+guarded fetch via `toolResultDownloads.fetch` when tool result URLs are untrusted,
 or constrain egress at the network layer. Direct `gs://` references are fetched by
 Vertex instead.
 

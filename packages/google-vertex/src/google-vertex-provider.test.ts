@@ -187,21 +187,45 @@ describe('google-vertex-provider', () => {
     );
   });
 
-  it('should download tool result files with the configured fetch and default limit', () => {
-    const customFetch = vi.fn();
+  it('should not use the provider fetch for tool result downloads', () => {
+    const providerFetch = vi.fn();
     const provider = createVertex({
       project: 'test-project',
       location: 'test-location',
-      fetch: customFetch,
+      fetch: providerFetch,
     });
     provider('test-model-id');
 
     expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
       'test-model-id',
       expect.objectContaining({
+        fetch: providerFetch,
         downloadToolResultFiles: {
           maxBytes: 7 * 1024 * 1024,
-          fetch: customFetch,
+          fetch: undefined,
+        },
+      }),
+    );
+  });
+
+  it('should use toolResultDownloads.fetch for tool result downloads', () => {
+    const providerFetch = vi.fn();
+    const downloadFetch = vi.fn();
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'test-location',
+      fetch: providerFetch,
+      toolResultDownloads: { fetch: downloadFetch },
+    });
+    provider('test-model-id');
+
+    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+      'test-model-id',
+      expect.objectContaining({
+        fetch: providerFetch,
+        downloadToolResultFiles: {
+          maxBytes: 7 * 1024 * 1024,
+          fetch: downloadFetch,
         },
       }),
     );
@@ -224,24 +248,26 @@ describe('google-vertex-provider', () => {
   });
 
   it('should not attach the Express Mode API key to tool result downloads', () => {
-    const customFetch = vi.fn();
+    const providerFetch = vi.fn();
+    const downloadFetch = vi.fn();
     const provider = createVertex({
       apiKey: 'test-api-key',
       baseURL: 'https://vertex.example.com',
-      fetch: customFetch,
+      fetch: providerFetch,
+      toolResultDownloads: { fetch: downloadFetch },
     });
     provider('test-model-id');
 
     const [, config] = vi.mocked(GoogleGenerativeAILanguageModel).mock
       .calls[0] as [string, any];
 
-    // The API requests use a wrapper that adds the API key header ...
+    // API requests use a wrapper that adds the API key header ...
     expect(config.fetch).toEqual(expect.any(Function));
-    expect(config.fetch).not.toBe(customFetch);
-    // ... but tool result downloads use the caller's transport as-is.
+    expect(config.fetch).not.toBe(providerFetch);
+    // ... while tool result downloads use only the explicit download transport.
     expect(config.downloadToolResultFiles).toEqual({
       maxBytes: 7 * 1024 * 1024,
-      fetch: customFetch,
+      fetch: downloadFetch,
     });
   });
 

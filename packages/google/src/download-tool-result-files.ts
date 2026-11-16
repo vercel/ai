@@ -79,8 +79,8 @@ export async function downloadToolResultFiles(
     abortSignal: AbortSignal | undefined;
     /**
      * Transport used for the downloads. Defaults to the runtime's validated
-     * download fetch, so pass the caller-configured fetch to keep their
-     * transport (and its protections) in effect.
+     * download fetch, which pins DNS results on Node.js. Only pass a transport
+     * that provides equivalent connect-time DNS validation.
      */
     fetch?: FetchFunction;
     /**

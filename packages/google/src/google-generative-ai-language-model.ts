@@ -100,8 +100,9 @@ type GoogleGenerativeAIConfig = {
     maxBytes: number;
 
     /**
-     * Transport used for the downloads. Pass the caller-configured fetch so
-     * its protections (e.g. connect-time DNS validation) stay in effect.
+     * Transport used for the downloads. Defaults to the runtime's validated
+     * download transport, which pins DNS results on Node.js. Only set a
+     * transport that provides equivalent connect-time DNS validation.
      */
     fetch?: FetchFunction;
   };

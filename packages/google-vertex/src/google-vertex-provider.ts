@@ -154,8 +154,12 @@ export interface GoogleVertexProviderSettings {
   headers?: Resolvable<Record<string, string | undefined>>;
 
   /**
-   * Custom fetch implementation. You can use it as a middleware to intercept requests,
-   * or to provide a custom fetch implementation for e.g. testing.
+   * Custom fetch implementation for Vertex API requests. You can use it as a
+   * middleware to intercept requests, or to provide a custom fetch
+   * implementation for e.g. testing.
+   *
+   * It is not used to download tool result files; those downloads use the
+   * validated default transport unless `toolResultDownloads.fetch` is set.
    */
   fetch?: FetchFunction;
 
@@ -177,6 +181,20 @@ export interface GoogleVertexProviderSettings {
      * Defaults to 7 MiB.
      */
     maxBytes?: number;
+
+    /**
+     * Transport used to download tool result files.
+     *
+     * Downloads default to a validated transport that resolves every hostname
+     * through a validating lookup hook and pins the connection to the resolved
+     * address on Node.js. Pass a fetch here only if it provides equivalent
+     * connect-time DNS validation for the URLs you download, e.g. a guarded
+     * fetch on Bun or Deno.
+     *
+     * The `fetch` option is not used for these downloads, and the Vertex API key
+     * is never attached to them.
+     */
+    fetch?: FetchFunction;
   };
 }
 
@@ -271,9 +289,11 @@ export function createVertex(
         maxBytes:
           options.toolResultDownloads?.maxBytes ??
           DEFAULT_TOOL_RESULT_DOWNLOAD_MAX_BYTES,
-        // Use the caller's transport, not the Express Mode wrapper, so the API
-        // key is never attached to tool result download hosts.
-        fetch: options.fetch,
+        // Tool result hosts are unrelated to the Vertex API, so this must be an
+        // explicit download transport. The provider `fetch` is often a logging
+        // or proxy wrapper that would replace the DNS-pinned default transport,
+        // and the Express Mode wrapper would leak the API key to those hosts.
+        fetch: options.toolResultDownloads?.fetch,
       },
     });
   };

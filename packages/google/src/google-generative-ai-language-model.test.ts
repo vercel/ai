@@ -815,7 +815,7 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should download tool result files with the configured fetch and size limit', async () => {
+  it('should download tool result files with the configured download fetch and size limit', async () => {
     prepareJsonResponse({ content: 'done' });
 
     const downloadFetch = vi.fn<FetchFunction>(
