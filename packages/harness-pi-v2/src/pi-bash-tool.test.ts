@@ -1,9 +1,10 @@
 import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
+import type { Experimental_SandboxProcess } from '@ai-sdk/provider-utils';
 import {
   DEFAULT_MAX_BYTES,
   type BashToolInput,
 } from '@earendil-works/pi-coding-agent';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { createPiBashTool, RetainedOutput } from './pi-bash-tool';
 
 async function setup() {
@@ -139,6 +140,51 @@ describe('createPiBashTool', () => {
     expect(text(result)).toBe('hi\n');
     expect(result.details).toBeUndefined();
     expect(await session.stat({ path: '/tmp/pi-bash-call-1.log' })).toBeNull();
+  });
+
+  test('stops a command that floods its output', async () => {
+    let killed = false;
+    let sent = 0;
+    const chunk = new TextEncoder().encode(`${'x'.repeat(63)}\n`);
+    const session = await createJustBashNetworkSandboxSession();
+    // The sandbox doubles stop long commands before they can flood, and their
+    // memory is the host's, so the command is replaced by a stream.
+    const floodingProcess: Experimental_SandboxProcess = {
+      stdout: new ReadableStream<Uint8Array>({
+        pull(controller) {
+          if (killed || sent > 20 * 1024 * 1024) {
+            controller.close();
+            return;
+          }
+          controller.enqueue(chunk);
+          sent += chunk.length;
+        },
+      }),
+      stderr: new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.close();
+        },
+      }),
+      wait: async () => ({ exitCode: killed ? 137 : 0 }),
+      kill: async () => {
+        killed = true;
+      },
+    };
+    vi.spyOn(session, 'spawn').mockImplementation(async () => floodingProcess);
+    const tool = createPiBashTool({ session, workDir: '/workspace' });
+
+    const result = await tool.execute(
+      'call-1',
+      { command: 'noisy' },
+      new AbortController().signal,
+      () => {},
+    );
+
+    expect(killed).toBe(true);
+    expect(result).toMatchObject({ isError: true });
+    expect(text(result)).toMatch(
+      /Command stopped after producing more than 16\.0MB of output$/,
+    );
   });
 
   test('keeps the exit code and trailing comments of the command', async () => {

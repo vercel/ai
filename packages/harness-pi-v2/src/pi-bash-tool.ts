@@ -107,6 +107,15 @@ function appendStatus(options: {
 }
 
 /**
+ * Bytes of output above which the host stops a command. Pi keeps the end of
+ * the output for display, so this budget does not limit what a command shows;
+ * it only stops a command that floods its output, which would otherwise keep
+ * the sandbox busy until its timeout and grow the log file in the sandbox
+ * without bound.
+ */
+const MAX_COMMAND_OUTPUT_BYTES = 16 * 1024 * 1024;
+
+/**
  * Collects the output of a command for the result while keeping only a bounded
  * tail of it in the host's memory.
  *
@@ -197,6 +206,13 @@ export class RetainedOutput {
    */
   get lastLineBytes(): number {
     return this.currentLineBytes;
+  }
+
+  /**
+   * Bytes of the whole output.
+   */
+  get bytesReceived(): number {
+    return this.totalBytes;
   }
 
   /**
@@ -312,6 +328,8 @@ async function executeBash(options: {
 
   const output = new RetainedOutput();
   const fullOutputPath = `/tmp/pi-bash-${toolCallId}.log`;
+  let stopped = false;
+  let stopCommand: (() => void) | undefined;
   let lastUpdateAt = 0;
   let updateTimer: ReturnType<typeof setTimeout> | undefined;
   const emitUpdate = () => {
@@ -325,6 +343,7 @@ async function executeBash(options: {
   const onText = (text: string) => {
     if (text.length === 0) return;
     output.append(text);
+    if (output.bytesReceived > MAX_COMMAND_OUTPUT_BYTES) stopCommand?.();
     if (onUpdate == null || updateTimer != null) return;
     const delay = UPDATE_THROTTLE_MS - (Date.now() - lastUpdateAt);
     if (delay <= 0) emitUpdate();
@@ -352,6 +371,12 @@ async function executeBash(options: {
           ? timeoutController.signal
           : AbortSignal.any([abortSignal, timeoutController.signal]),
     });
+    stopCommand = () => {
+      if (stopped) return;
+      stopped = true;
+      // Stopping is best effort: not every sandbox implementation can kill.
+      void Promise.resolve(child.kill()).catch(() => {});
+    };
     const [{ exitCode: code }] = await Promise.all([
       child.wait(),
       readStream({ stream: child.stdout, onText }),
@@ -403,6 +428,22 @@ async function executeBash(options: {
     await removeFullOutputFile();
   }
 
+  if (stopped) {
+    return {
+      content: [
+        {
+          type: 'text',
+          text: appendStatus({
+            text,
+            status: `Command stopped after producing more than ${formatSize(MAX_COMMAND_OUTPUT_BYTES)} of output`,
+          }),
+        },
+      ],
+      details,
+      isError: true,
+    };
+  }
+
   if (exitCode !== 0) {
     return {
       content: [
@@ -433,7 +474,9 @@ async function executeBash(options: {
  * that cuts output, the notice names the file that holds the full output, and
  * otherwise the file is removed. Empty output becomes `(no output)`, and a
  * nonzero exit code is an error result ending with `Command exited with code
- * N`.
+ * N`. A command that produces more than 16MB of output is stopped with an
+ * error result ending with `Command stopped after producing more than 16.0MB
+ * of output`.
  *
  * Throws for an invalid timeout, with `Command timed out after N seconds`
  * when the timeout elapsed, and with `Command aborted` when the signal
