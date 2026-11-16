@@ -279,8 +279,9 @@ describe('editFxFile', () => {
 /**
  * Fake sandbox session for one file, so a test controls the file's reported
  * size and its contents, and records the calls the tools make. `spawn` runs
- * the `head` command the tools use for a bounded read and streams at most
- * the bytes it asks for, unless `ignoreLimit` makes it fail to do so.
+ * the encoded read the tools use for a bounded read and streams the whole
+ * file, so that the tool's capture is what bounds the read, and
+ * `readBinaryFile` returns the whole file for a sandbox that cannot run it.
  */
 function createFakeFileSession(options: {
   size: number;
@@ -345,9 +346,12 @@ function createFakeFileSession(options: {
       /*
        * Models `base64 <path>`: the whole file, encoded in whole three-byte
        * groups so that the pieces decode in order. Only the tool's capture
-       * bounds what the host keeps.
+       * bounds what the host keeps. A sandbox that refuses the command, like
+       * the just-bash sandbox when a command prints more than it may, prints
+       * nothing.
        */
       function* encoded() {
+        if (options.fails) return;
         let pending = Buffer.alloc(0);
         for (const chunk of contents()) {
           if (chunk.length === 0) continue;
@@ -409,7 +413,11 @@ function createFakeFileSession(options: {
     },
     async readBinaryFile() {
       calls.push('readBinaryFile');
-      throw new Error('readBinaryFile must not be called');
+      const bytes = Buffer.concat([
+        Buffer.from(prefix),
+        Buffer.alloc(size - prefix.length, 0x78),
+      ]);
+      return new Uint8Array(bytes);
     },
     async readFile() {
       calls.push('readFile');
@@ -468,6 +476,26 @@ describe('readFxFile with a file larger than a snapshot', () => {
     expect(state.stopped).toBeGreaterThan(0);
   });
 
+  test('reads the file as a whole when the sandbox refuses the command', async () => {
+    const { session, calls } = createFakeFileSession({
+      size: 20 * MIB,
+      fails: true,
+    });
+
+    const output = await readFxFile({
+      sandbox: sandbox(session),
+      input: { path: 'big.txt', start_line: 1, line_count: 3 },
+      abortSignal,
+    });
+
+    expect(calls).toEqual([
+      'stat',
+      `spawn base64 '/home/user/big.txt'`,
+      'readBinaryFile',
+    ]);
+    expect(output.text).toContain('file snapshot was capped before EOF');
+  });
+
   test('names the size of an image it does not attach', async () => {
     const { session, calls } = createFakeFileSession({
       size: 12 * MIB,
@@ -484,6 +512,30 @@ describe('readFxFile with a file larger than a snapshot', () => {
     expect(output.text).toBe(
       "<path>big.png</path>\n<content>image not attached: image/png (12582912 bytes); the file exceeds read_file's 10 MiB read limit. Use an available image tool to save a smaller copy to a new file, then read_file the copy. If no image tool is available, ask the user before installing one.</content>",
     );
+  });
+
+  test('reads a snapshot of a large file on the just-bash backend', async () => {
+    const justBash = await createJustBashNetworkSandboxSession();
+    const workDir = justBash.defaultWorkingDirectory;
+    const line = `${'x'.repeat(998)}\n`;
+    // One byte past the snapshot limit, so the encoded read is refused and
+    // the whole-file fallback has to keep the result capped.
+    const content = Buffer.from(
+      line.repeat(Math.ceil((10 * MIB + 1) / line.length)),
+    ).subarray(0, 10 * MIB + 1);
+    await justBash.writeBinaryFile({
+      path: `${workDir}/big.txt`,
+      content: new Uint8Array(content),
+    });
+
+    const output = await readFxFile({
+      sandbox: { session: justBash, workDir, home: workDir },
+      input: { path: 'big.txt', start_line: 1, line_count: 2 },
+      abortSignal,
+    });
+
+    expect(output.text).toContain('1\txxx');
+    expect(output.text).toContain('file snapshot was capped before EOF');
   });
 
   test('reads a file within the snapshot limit as a whole', async () => {
@@ -517,28 +569,6 @@ describe('readFxFile with a file larger than a snapshot', () => {
 });
 
 describe('editFxFile with a preimage larger than the limit', () => {
-  test('reports a preimage the sandbox could not read', async () => {
-    const { session } = createFakeFileSession({
-      size: 4 * 1024,
-      fails: true,
-    });
-    const sandbox: FxToolSandbox = {
-      session,
-      workDir: '/home/user',
-      home: '/home/user',
-    };
-
-    await expect(
-      editFxFile({
-        sandbox,
-        input: { path: 'unreadable.txt', old_string: 'a', new_string: 'b' },
-        abortSignal: new AbortController().signal,
-      }),
-    ).rejects.toThrow(
-      'could not read /home/user/unreadable.txt: the sandbox command exited with code 1',
-    );
-  });
-
   test('rejects a file that grew past its stat within the limit', async () => {
     const { session, calls, state } = createFakeFileSession({
       size: 4 * 1024,
@@ -608,8 +638,8 @@ describe('writeFxFile over a file of another size', () => {
     expect(state.sent).toBeLessThan(MIB);
   });
 
-  test('writes without reading the existing file', async () => {
-    const { session, calls } = createFakeFileSession({ size: 20 * MIB });
+  test('writes without loading the existing file', async () => {
+    const { session, calls, state } = createFakeFileSession({ size: 20 * MIB });
     const sandbox: FxToolSandbox = {
       session,
       workDir: '/home/user',
@@ -622,7 +652,12 @@ describe('writeFxFile over a file of another size', () => {
       abortSignal: new AbortController().signal,
     });
 
-    expect(calls).toEqual(['stat', 'writeTextFile']);
+    expect(calls).toEqual([
+      'stat',
+      `spawn base64 '/home/user/big.txt'`,
+      'writeTextFile',
+    ]);
     expect(output).toEqual({ text: 'wrote big.txt (12 bytes)' });
+    expect(state.stopped).toBeGreaterThan(0);
   });
 });

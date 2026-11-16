@@ -138,7 +138,9 @@ type FxFileSnapshot = {
  * The command reads the file rather than a pipeline so that a file it cannot
  * read fails the read instead of looking like an empty one, and it encodes
  * the bytes because a sandbox stream carries text: an unencoded read would
- * replace every byte that is not valid UTF-8.
+ * replace every byte that is not valid UTF-8. A sandbox that cannot run the
+ * read, for example because it caps what a command may print, resolves to
+ * `undefined` instead.
  */
 async function readFileHead(options: {
   /**
@@ -160,17 +162,20 @@ async function readFileHead(options: {
    * Aborts the read.
    */
   abortSignal: AbortSignal;
-}): Promise<{
-  /**
-   * Bytes read, at most `limitBytes`.
-   */
-  bytes: Uint8Array;
+}): Promise<
+  | {
+      /**
+       * Bytes read, at most `limitBytes`.
+       */
+      bytes: Uint8Array;
 
-  /**
-   * Whether the file has more bytes than `limitBytes`.
-   */
-  exceeded: boolean;
-}> {
+      /**
+       * Whether the file has more bytes than `limitBytes`.
+       */
+      exceeded: boolean;
+    }
+  | undefined
+> {
   const { sandbox, path, limitBytes, abortSignal } = options;
   const { session, workDir } = sandbox;
   /*
@@ -223,11 +228,12 @@ async function readFileHead(options: {
     if (abortSignal.aborted) throw error;
     if (!stopped) throw error;
   }
-  if (!stopped && exitCode != null && exitCode !== 0) {
-    throw new Error(
-      `could not read ${path}: the sandbox command exited with code ${exitCode}`,
-    );
-  }
+  /*
+   * A sandbox can refuse the read, e.g. because it caps what a command may
+   * print, so a failed read is reported for the caller to fall back to the
+   * session's read primitive.
+   */
+  if (!stopped && exitCode != null && exitCode !== 0) return undefined;
   const decoded = Buffer.from(
     Buffer.from(capture.toBytes()).toString('utf8').replace(/\s+/g, ''),
     'base64',
@@ -239,9 +245,83 @@ async function readFileHead(options: {
 }
 
 /**
+ * Reads a whole file with the session's read primitive, which loads it into
+ * host memory before it returns, and cuts it to `limitBytes`.
+ */
+async function readWholeFile(options: {
+  /**
+   * Sandbox the file is in.
+   */
+  sandbox: FxToolSandbox;
+
+  /**
+   * Absolute path of the file.
+   */
+  path: string;
+
+  /**
+   * Maximum bytes to keep.
+   */
+  limitBytes: number;
+
+  /**
+   * Aborts the read.
+   */
+  abortSignal: AbortSignal;
+}): Promise<FxFileSnapshot> {
+  const { sandbox, path, limitBytes, abortSignal } = options;
+  const bytes =
+    (await sandbox.session.readBinaryFile({ path, abortSignal })) ??
+    new Uint8Array();
+  return bytes.length <= limitBytes
+    ? { bytes, complete: true, totalBytes: bytes.length }
+    : {
+        bytes: bytes.subarray(0, limitBytes),
+        complete: false,
+        totalBytes: bytes.length,
+      };
+}
+
+/**
+ * Reads at most `limitBytes` of a file, with the encoded command when the
+ * sandbox runs it and as a whole file, cut to the limit, when it does not.
+ */
+async function readFileWithin(options: {
+  /**
+   * Sandbox the file is in.
+   */
+  sandbox: FxToolSandbox;
+
+  /**
+   * Absolute path of the file.
+   */
+  path: string;
+
+  /**
+   * Maximum bytes to keep.
+   */
+  limitBytes: number;
+
+  /**
+   * Aborts the read.
+   */
+  abortSignal: AbortSignal;
+}): Promise<FxFileSnapshot> {
+  const head = await readFileHead(options);
+  if (head == null) return readWholeFile(options);
+  return {
+    bytes: head.bytes,
+    complete: !head.exceeded,
+    totalBytes: head.bytes.length,
+  };
+}
+
+/**
  * Reads the bytes of a snapshot of a file, so that the host holds at most a
- * snapshot of it: a file larger than a snapshot is read with `head` in the
- * sandbox instead of being loaded as a whole.
+ * snapshot of it: a file larger than a snapshot is read with a bounded,
+ * encoded `base64` command in the sandbox instead of being loaded as a
+ * whole, and a sandbox that cannot run that command is read as a whole
+ * instead.
  */
 async function readFileSnapshot(options: {
   /**
@@ -265,30 +345,27 @@ async function readFileSnapshot(options: {
   abortSignal: AbortSignal;
 }): Promise<FxFileSnapshot> {
   const { sandbox, path, size, abortSignal } = options;
-  if (size <= READ_SNAPSHOT_BYTES) {
-    const bytes =
-      (await sandbox.session.readBinaryFile({ path, abortSignal })) ??
-      new Uint8Array();
-    /*
-     * The read is bounded by the size its stat reported. A file that grew
-     * past it before the read is cut here, after the read; reading small
-     * files directly is the fast path, since a bounded read costs a command
-     * in the sandbox.
-     */
-    return bytes.length <= READ_SNAPSHOT_BYTES
-      ? { bytes, complete: true, totalBytes: bytes.length }
-      : {
-          bytes: bytes.subarray(0, READ_SNAPSHOT_BYTES),
-          complete: false,
-          totalBytes: bytes.length,
-        };
-  }
+  /*
+   * The read of a file within the limit is bounded by the size its stat
+   * reported. A file that grew past it before the read is cut after the
+   * read; reading such a file directly is the fast path, since a bounded
+   * read costs a command in the sandbox.
+   */
+  const whole = () =>
+    readWholeFile({
+      sandbox,
+      path,
+      limitBytes: READ_SNAPSHOT_BYTES,
+      abortSignal,
+    });
+  if (size <= READ_SNAPSHOT_BYTES) return whole();
   const head = await readFileHead({
     sandbox,
     path,
     limitBytes: READ_SNAPSHOT_BYTES,
     abortSignal,
   });
+  if (head == null) return whole();
   return {
     bytes: head.bytes,
     complete: !head.exceeded,
@@ -504,19 +581,19 @@ export async function writeFxFile(options: {
     });
   }
   /*
-   * Only a file of the content's size can have the content, so any other
-   * file is not read here, and the read of a matching file is bounded by
-   * that size.
+   * A file can only have the content if it has the content's size, and the
+   * read is bounded by that size, so the comparison never loads a larger
+   * file.
    */
-  if (stat != null && stat.size === contentBytes) {
-    const existing = await readFileHead({
+  if (stat != null) {
+    const existing = await readFileWithin({
       sandbox,
       path: target.abs,
       limitBytes: contentBytes,
       abortSignal,
     });
     if (
-      !existing.exceeded &&
+      existing.complete &&
       existing.bytes.length === contentBytes &&
       decodeFxModelSafeText({ bytes: existing.bytes }) === content
     ) {
@@ -595,25 +672,15 @@ export async function editFxFile(options: {
       text: 'file mutation preparation failed: preimage exceeds the 4 MiB preparation limit',
     });
   }
-  const preimage = await readFileHead({
+  const preimage = await readFileWithin({
     sandbox,
     path: target.abs,
     limitBytes: CONTENT_BYTES,
     abortSignal,
   });
-  if (preimage.exceeded) {
+  if (!preimage.complete) {
     return toFxToolError({
       text: 'file mutation preparation failed: preimage exceeds the 4 MiB preparation limit',
-    });
-  }
-  /*
-   * The preimage is the whole file only if it has the size the stat
-   * reported, so a file that changed in between is refused rather than
-   * edited from a read of another version of it.
-   */
-  if (preimage.bytes.length !== stat.size) {
-    return toFxToolError({
-      text: 'file mutation preparation failed: approved filesystem identity changed',
     });
   }
   const before = decodeFxModelSafeText({ bytes: preimage.bytes });
