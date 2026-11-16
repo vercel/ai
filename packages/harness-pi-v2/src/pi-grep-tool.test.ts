@@ -1,6 +1,6 @@
 import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
 import type { GrepToolInput } from '@earendil-works/pi-coding-agent';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { createPiGrepTool } from './pi-grep-tool';
 
 async function setup() {
@@ -51,6 +51,64 @@ describe('createPiGrepTool', () => {
     expect(
       text(await grep({ pattern: 'bar = ', path: 'src/a.ts', context: 1 })),
     ).toBe('a.ts-1- const foo = 1;\na.ts:2: const bar = 2;\na.ts-3- foo(bar);');
+  });
+
+  test('reads context lines in the sandbox without loading the file', async () => {
+    const { session, workDir, grep } = await setup();
+    const lines = Array.from(
+      { length: 200_000 },
+      (_value, index) => `line ${index + 1}`,
+    );
+    await session.writeTextFile({
+      path: `${workDir}/large.txt`,
+      content: `${lines.join('\n')}\n`,
+    });
+    const readTextFile = vi.spyOn(session, 'readTextFile');
+    const readBinaryFile = vi.spyOn(session, 'readBinaryFile');
+
+    const result = await grep({
+      pattern: 'line 199999$',
+      path: 'large.txt',
+      context: 1,
+    });
+
+    expect(text(result)).toBe(
+      'large.txt-199998- line 199998\nlarge.txt:199999: line 199999\nlarge.txt-200000- line 200000',
+    );
+    expect(readTextFile).not.toHaveBeenCalled();
+    expect(readBinaryFile).not.toHaveBeenCalled();
+  });
+
+  test('bounds the context lines of files with very long lines', async () => {
+    const { session, workDir, grep } = await setup();
+    await session.writeTextFile({
+      path: `${workDir}/wide.txt`,
+      content: `${'x'.repeat(400_000)}\nmatch\n${'y'.repeat(400_000)}\n`,
+    });
+
+    const result = await grep({
+      pattern: '^match$',
+      path: 'wide.txt',
+      context: 1,
+    });
+
+    expect(text(result)).toContain('wide.txt:2: match');
+    expect(text(result)).toContain(
+      'Some context lines omitted for large files',
+    );
+  });
+
+  test('bounds a matching line that is far longer than the result', async () => {
+    const { session, workDir, grep } = await setup();
+    await session.writeTextFile({
+      path: `${workDir}/long.txt`,
+      content: `${'a'.repeat(2_000_000)}\n`,
+    });
+
+    const result = await grep({ pattern: 'aaaaa', path: 'long.txt' });
+
+    expect(text(result).startsWith('long.txt:1: aaaaa')).toBe(true);
+    expect(text(result).length).toBeLessThan(1000);
   });
 
   test('reports the match limit', async () => {
