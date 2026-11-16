@@ -27,6 +27,10 @@ import type {
   OpenAIResponsesFunctionTool,
   OpenAIResponsesTool,
 } from './openai-responses-api';
+import {
+  getOpenAIResponsesAdditionalToolKey,
+  type OpenAIResponsesAdditionalTool,
+} from './openai-responses-language-model-options';
 
 type AllowedToolResolution =
   | { supported: true; entry: OpenAIResponsesAllowedTool }
@@ -614,6 +618,108 @@ export async function prepareResponsesTools({
   }
 }
 
+/**
+ * Builds the definitions that the input converter substitutes for
+ * `additionalTools` entries in the prompt.
+ *
+ * Prompts contain replayable conversation history, so a supplied entry only
+ * selects a registered tool: the provider sends the definition derived from
+ * that tool, never the definition text from the history.
+ */
+export async function prepareAdditionalToolDefinitions({
+  tools,
+  providerOptionsName = 'openai',
+}: {
+  tools: LanguageModelV4CallOptions['tools'];
+  providerOptionsName?: string;
+}): Promise<Map<string, OpenAIResponsesAdditionalTool>> {
+  const definitions = new Map<string, OpenAIResponsesAdditionalTool>();
+  const namespaceTools = new Map<
+    string,
+    {
+      description: string;
+      tools: Array<AdditionalFunctionTool>;
+    }
+  >();
+
+  for (const tool of tools ?? []) {
+    switch (tool.type) {
+      case 'function': {
+        const openaiOptions = (tool.providerOptions?.[providerOptionsName] ??
+          tool.providerOptions?.openai) as OpenAIToolOptions | undefined;
+        const definition = toAdditionalFunctionTool(
+          prepareFunctionTool({
+            tool,
+            options: openaiOptions,
+            toolWarnings: [],
+            async: undefined,
+          }),
+        );
+        const namespace = openaiOptions?.namespace;
+
+        if (namespace == null) {
+          definitions.set(
+            getOpenAIResponsesAdditionalToolKey(definition),
+            definition,
+          );
+          break;
+        }
+
+        let namespaceDefinition = namespaceTools.get(namespace.name);
+
+        if (namespaceDefinition == null) {
+          namespaceDefinition = {
+            description: namespace.description,
+            tools: [],
+          };
+          namespaceTools.set(namespace.name, namespaceDefinition);
+        }
+
+        namespaceDefinition.tools.push(definition);
+        break;
+      }
+      case 'provider': {
+        if (tool.id !== 'openai.custom') {
+          break;
+        }
+
+        const args = await validateTypes({
+          value: tool.args,
+          schema: customArgsSchema,
+        });
+
+        definitions.set(
+          getOpenAIResponsesAdditionalToolKey({
+            type: 'custom',
+            name: tool.name,
+          }),
+          {
+            type: 'custom',
+            name: tool.name,
+            description: args.description,
+            format: args.format,
+          },
+        );
+        break;
+      }
+    }
+  }
+
+  for (const [name, namespace] of namespaceTools) {
+    definitions.set(
+      getOpenAIResponsesAdditionalToolKey({ type: 'namespace', name }),
+      {
+        type: 'namespace',
+        name,
+        description: namespace.description,
+        tools: namespace.tools,
+      },
+    );
+  }
+
+  return definitions;
+}
+
 function allowedToolKey(entry: OpenAIResponsesAllowedTool): string {
   switch (entry.type) {
     case 'mcp':
@@ -669,6 +775,30 @@ function toAllowedToolResolution(
         reason: `OpenAI does not support ${tool.type} tools in tool_choice.allowed_tools`,
       };
   }
+}
+
+type AdditionalFunctionTool = Extract<
+  OpenAIResponsesAdditionalTool,
+  { type: 'function' }
+>;
+
+function toAdditionalFunctionTool({
+  name,
+  description,
+  parameters,
+  strict,
+  defer_loading,
+}: OpenAIResponsesFunctionTool): AdditionalFunctionTool {
+  return {
+    type: 'function',
+    name,
+    description,
+    // The derived schema is a JSON Schema object, which the additional-tool
+    // schema accepts as a JSON object.
+    parameters: parameters as unknown as AdditionalFunctionTool['parameters'],
+    strict,
+    ...(defer_loading != null ? { defer_loading } : {}),
+  };
 }
 
 function prepareFunctionTool({

@@ -96,7 +96,10 @@ import {
   type OpenAILanguageModelResponsesOptions,
   type OpenAIResponsesModelId,
 } from './openai-responses-language-model-options';
-import { prepareResponsesTools } from './openai-responses-prepare-tools';
+import {
+  prepareAdditionalToolDefinitions,
+  prepareResponsesTools,
+} from './openai-responses-prepare-tools';
 import { normalizeOpenAIResponsesTextFormat } from './openai-responses-text-format';
 import type {
   ResponsesCompactionProviderMetadata,
@@ -406,6 +409,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       providerOptionsName,
     });
 
+    // Prompts can contain client-supplied conversation history. Only the tools
+    // registered for this request may be loaded from such history.
+    const additionalToolDefinitions = await prepareAdditionalToolDefinitions({
+      tools,
+      providerOptionsName,
+    });
+
     const configurationUpdateUnsupportedReason =
       getConfigurationUpdateUnsupportedReason({
         modelCapabilities,
@@ -442,6 +452,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             : undefined,
         outputSchemaToolNames:
           outputSchemaToolNames.size > 0 ? outputSchemaToolNames : undefined,
+        additionalToolDefinitions,
       });
 
     warnings.push(...inputWarnings);

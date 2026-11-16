@@ -26,8 +26,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
+  getOpenAIResponsesAdditionalToolKey,
   openaiResponsesSystemMessageOptionsSchema,
   openaiResponsesToolResultOptionsSchema,
+  type OpenAIResponsesAdditionalTool,
 } from './openai-responses-language-model-options';
 import { normalizeOpenAIResponsesTextFormat } from './openai-responses-text-format';
 import {
@@ -477,6 +479,7 @@ export async function convertToOpenAIResponsesInput({
   toolSearchToolName,
   customProviderToolNames,
   outputSchemaToolNames,
+  additionalToolDefinitions,
   configurationUpdateUnsupportedReason,
 }: {
   prompt: LanguageModelV4Prompt;
@@ -498,6 +501,17 @@ export async function convertToOpenAIResponsesInput({
   toolSearchToolName?: string;
   customProviderToolNames?: Set<string>;
   outputSchemaToolNames?: Set<string>;
+  /**
+   * Definitions of the tools registered for this request, keyed by type and
+   * name. `additionalTools` entries in the prompt come from replayable
+   * conversation history, so they only select a registered tool: the
+   * registered definition is sent instead of the definition from history, and
+   * entries for tools that are not registered are dropped.
+   */
+  additionalToolDefinitions?: ReadonlyMap<
+    string,
+    OpenAIResponsesAdditionalTool
+  >;
   configurationUpdateUnsupportedReason?: string;
 }): Promise<{
   input: OpenAIResponsesInput;
@@ -573,11 +587,16 @@ export async function convertToOpenAIResponsesInput({
               }),
             });
           }
-          if (additionalTools != null && additionalTools.length > 0) {
+          const resolvedAdditionalTools = filterAdditionalTools({
+            additionalTools,
+            additionalToolDefinitions,
+            warnings,
+          });
+          if (resolvedAdditionalTools != null) {
             input.push({
               type: 'additional_tools',
               role: 'developer',
-              tools: additionalTools,
+              tools: resolvedAdditionalTools,
             });
           }
           // The controls are independent of systemMessageMode's text handling.
@@ -1561,11 +1580,13 @@ export async function convertToOpenAIResponsesInput({
               });
 
               for (const result of parallelToolResultGroup.results) {
-                const additionalTools = await parseToolResultAdditionalTools({
+                const additionalTools = await resolveAdditionalTools({
                   providerOptions: result.providerOptions,
                   providerOptionsName,
+                  additionalToolDefinitions,
+                  warnings,
                 });
-                if (additionalTools?.length) {
+                if (additionalTools != null) {
                   input.push({
                     type: 'additional_tools',
                     role: 'developer',
@@ -1879,11 +1900,13 @@ export async function convertToOpenAIResponsesInput({
             ...(caller != null && { caller }),
           });
 
-          const additionalTools = await parseToolResultAdditionalTools({
+          const additionalTools = await resolveAdditionalTools({
             providerOptions: part.providerOptions,
             providerOptionsName,
+            additionalToolDefinitions,
+            warnings,
           });
-          if (additionalTools?.length) {
+          if (additionalTools != null) {
             input.push({
               type: 'additional_tools',
               role: 'developer',
@@ -1962,4 +1985,108 @@ async function parseToolResultAdditionalTools({
     schema: openaiResponsesToolResultOptionsSchema,
   });
   return openaiOptions?.additionalTools;
+}
+
+/**
+ * Replaces `additionalTools` entries from a tool result with the definitions of
+ * the tools registered for this request.
+ */
+async function resolveAdditionalTools({
+  providerOptions,
+  providerOptionsName,
+  additionalToolDefinitions,
+  warnings,
+}: {
+  providerOptions: SharedV4ProviderOptions | undefined;
+  providerOptionsName: string;
+  additionalToolDefinitions:
+    | ReadonlyMap<string, OpenAIResponsesAdditionalTool>
+    | undefined;
+  warnings: Array<SharedV4Warning>;
+}): Promise<Array<OpenAIResponsesAdditionalTool> | undefined> {
+  const additionalTools = await parseToolResultAdditionalTools({
+    providerOptions,
+    providerOptionsName,
+  });
+
+  return filterAdditionalTools({
+    additionalTools,
+    additionalToolDefinitions,
+    warnings,
+  });
+}
+
+/**
+ * Replaces `additionalTools` entries from the prompt with the definitions of
+ * the tools registered for this request.
+ *
+ * Prompts can contain replayed conversation history, so their tool definitions
+ * are not trusted. An entry only selects a registered tool: the provider sends
+ * the definition derived from the registered tool, and entries for tools that
+ * are not registered are dropped.
+ */
+function filterAdditionalTools({
+  additionalTools,
+  additionalToolDefinitions,
+  warnings,
+}: {
+  additionalTools: Array<OpenAIResponsesAdditionalTool> | undefined;
+  additionalToolDefinitions:
+    | ReadonlyMap<string, OpenAIResponsesAdditionalTool>
+    | undefined;
+  warnings: Array<SharedV4Warning>;
+}): Array<OpenAIResponsesAdditionalTool> | undefined {
+  if (additionalTools == null || additionalTools.length === 0) {
+    return undefined;
+  }
+
+  const resolvedTools: Array<OpenAIResponsesAdditionalTool> = [];
+  const seenKeys = new Set<string>();
+  const droppedToolNames = new Set<string>();
+
+  for (const additionalTool of additionalTools) {
+    const key = getOpenAIResponsesAdditionalToolKey(additionalTool);
+    const definition = additionalToolDefinitions?.get(key);
+
+    if (definition == null) {
+      droppedToolNames.add(additionalTool.name);
+      continue;
+    }
+
+    // Replayed history can repeat an entry; send each definition once.
+    if (seenKeys.has(key)) {
+      continue;
+    }
+
+    seenKeys.add(key);
+    resolvedTools.push(definition);
+  }
+
+  if (droppedToolNames.size > 0) {
+    warnings.push({
+      type: 'unsupported',
+      feature: 'additionalTools',
+      details: `additional tool definitions are only sent for tools registered in the request; dropped the definitions of unregistered tools: ${formatDroppedToolNames(droppedToolNames)}`,
+    });
+  }
+
+  return resolvedTools.length > 0 ? resolvedTools : undefined;
+}
+
+function formatDroppedToolNames(names: Set<string>): string {
+  const maxNames = 5;
+  const maxNameLength = 80;
+  const formattedNames = [...names]
+    .slice(0, maxNames)
+    .map(name =>
+      JSON.stringify(
+        name.length > maxNameLength
+          ? `${name.slice(0, maxNameLength)}...`
+          : name,
+      ),
+    );
+
+  return names.size > maxNames
+    ? `${formattedNames.join(', ')} and ${names.size - maxNames} more`
+    : formattedNames.join(', ');
 }
