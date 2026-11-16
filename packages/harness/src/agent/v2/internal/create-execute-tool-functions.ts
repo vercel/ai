@@ -14,7 +14,6 @@ import {
 } from '@ai-sdk/provider-utils';
 import { InvalidToolInputError, NoSuchToolError } from 'ai';
 import { createToolModelOutput, validateToolContext } from 'ai/internal';
-import { HarnessCapabilityUnsupportedError } from '../../../errors/harness-capability-unsupported-error';
 import { HarnessInvalidDriveStateError } from '../../../errors/harness-invalid-drive-state-error';
 import type {
   HarnessV2ExecuteBuiltinToolFunction,
@@ -26,7 +25,10 @@ import type { HarnessV2EffectContext } from '../../../v2/harness-v2-effect';
 import type { HarnessV2NetworkSandboxSession } from '../../../v2/harness-v2-network-sandbox-session';
 import type { HarnessV2ToolResult } from '../../../v2/harness-v2-stream-part';
 import { isPlainJSONValue } from './utils';
-import { requiresApproval } from './tool-approval';
+import {
+  createToolApprovalUnsupportedError,
+  requiresApproval,
+} from './tool-approval';
 import type { HarnessAgentEffectFunction } from './create-effect-function';
 import type { HarnessAgentLog } from './create-log';
 
@@ -368,7 +370,9 @@ function emitToolError(options: {
  * then as the final value. A value that is not a valid tool value, an
  * iterable that yields nothing and a thrown error become recorded `error`
  * outcomes. A call to a tool that is not one of the harness's built-in tools
- * is recorded as an `error` without running `execute`.
+ * is recorded as an `error` without running `execute`, and so is a built-in
+ * tool that sets `needsApproval`, since the engine cannot request the consent
+ * it asks for.
  *
  * The `tool-execution-start` event (ID `tool-execution-start:${startId}`) is
  * committed right before the tool runs. An attempt that a crashed drive left
@@ -475,10 +479,7 @@ export function createExecuteToolFunctions(options: {
        * result like any other tool failure, so the call never runs the tool.
        */
       if (tool != null && requiresApproval(tool)) {
-        throw new HarnessCapabilityUnsupportedError({
-          message: `HarnessAgent: tool '${toolName}' requires approval (\`needsApproval\`), which is not supported with HarnessV2.`,
-          harnessId,
-        });
+        throw createToolApprovalUnsupportedError({ harnessId, toolName });
       }
 
       if (tool == null || isProviderExecuted(tool) || !isExecutableTool(tool)) {
@@ -638,6 +639,20 @@ export function createExecuteToolFunctions(options: {
         throw new NoSuchToolError({
           toolName,
           availableTools: Object.keys(builtinTools),
+        });
+      }
+      /*
+       * Fails closed for an adapter built-in tool that asks for consent: the
+       * agent may have been built before the requirement was added, or the
+       * adapter's tool set may have been changed after construction. The
+       * refusal is recorded as an error tool result like any other tool
+       * failure, so `execute` never runs the tool.
+       */
+      if (requiresApproval(tool)) {
+        throw createToolApprovalUnsupportedError({
+          harnessId,
+          toolName,
+          kind: 'built-in tool',
         });
       }
       await markExecutionStart(context);

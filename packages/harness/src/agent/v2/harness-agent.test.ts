@@ -344,6 +344,68 @@ describe('HarnessAgent', () => {
     ).toThrow("remove `needsApproval` from tools 'deleteFile', 'sendEmail'");
   });
 
+  test.each([
+    ['a boolean', true],
+    ['a function', async () => true],
+  ])(
+    'rejects a built-in tool whose approval requirement is %s',
+    (_kind, needsApproval) => {
+      const error = captureError(
+        () =>
+          new HarnessAgent({
+            harness: {
+              ...harness,
+              builtinTools: {
+                bash: tool({
+                  inputSchema: z.object({ command: z.string() }),
+                  needsApproval,
+                }),
+              },
+            },
+            getSandboxSession,
+          }),
+      );
+
+      expect(error.name).toBe(capabilityErrorName);
+      expect(error.message).toContain(
+        "remove `needsApproval` from built-in tool 'bash'",
+      );
+    },
+  );
+
+  test('names every built-in tool that requires approval', () => {
+    const error = captureError(
+      () =>
+        new HarnessAgent({
+          harness: {
+            ...harness,
+            builtinTools: {
+              bash: tool({ inputSchema: z.object({}), needsApproval: true }),
+              write: tool({ inputSchema: z.object({}), needsApproval: true }),
+            },
+          },
+          getSandboxSession,
+        }),
+    );
+
+    expect(error.name).toBe(capabilityErrorName);
+    expect(error.message).toContain(
+      "remove `needsApproval` from built-in tools 'bash', 'write'",
+    );
+  });
+
+  test('accepts built-in tools without approval requirements', () => {
+    const agent = new HarnessAgent({
+      harness: {
+        ...harness,
+        builtinTools: { bash: tool({ inputSchema: z.object({}) }) },
+      },
+      getSandboxSession,
+    });
+
+    expect(Object.keys(agent.tools)).toContain('bash');
+  });
+
   test('rejects the toolApproval setting', () => {
     const error = captureError(
       () =>
@@ -844,7 +906,9 @@ describe('HarnessAgent turns', () => {
           type: 'tool-error',
           toolCallId: 'call-1',
           toolName: 'weather',
-          error: expect.stringContaining("tool 'weather' requires approval"),
+          error: expect.stringContaining(
+            "remove `needsApproval` from tool 'weather'",
+          ),
         }),
       ]),
     );

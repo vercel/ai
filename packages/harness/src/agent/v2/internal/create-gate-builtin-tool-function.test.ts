@@ -2,6 +2,7 @@ import type { JSONValue } from '@ai-sdk/provider';
 import { tool, type ToolSet } from '@ai-sdk/provider-utils';
 import { afterEach, describe, expect, test } from 'vitest';
 import { z } from 'zod/v4';
+import { HarnessCapabilityUnsupportedError } from '../../../errors/harness-capability-unsupported-error';
 import type { HarnessV2ToolGateOutput } from '../../../v2/harness-v2-drive-context';
 import type { HarnessV2EffectOutput } from '../../../v2/harness-v2-effect';
 import { DefaultHarnessAgentSession } from '../harness-agent-session';
@@ -46,7 +47,11 @@ const call = {
 /**
  * Creates `gateBuiltinTool()` for a new drive on the given session log.
  */
-function createDrive(options: { world: InMemoryWorld; log: HarnessAgentLog }): {
+function createDrive(options: {
+  world: InMemoryWorld;
+  log: HarnessAgentLog;
+  builtinTools?: ToolSet;
+}): {
   gateBuiltinTool: HarnessAgentGateBuiltinToolFunction;
   abortController: AbortController;
 } {
@@ -64,21 +69,22 @@ function createDrive(options: { world: InMemoryWorld; log: HarnessAgentLog }): {
   });
   const gateBuiltinTool = createGateBuiltinToolFunction({
     log: options.log,
-    builtinTools,
+    harnessId: 'mock-harness',
+    builtinTools: options.builtinTools ?? builtinTools,
     effect,
     abortSignal: abortController.signal,
   });
   return { gateBuiltinTool, abortController };
 }
 
-async function setup() {
+async function setup(options?: { builtinTools?: ToolSet }) {
   const world = new InMemoryWorld();
   await world.events.create(runId, {
     eventType: 'run_created',
     eventData: { deploymentId: 'test', workflowName: 'harness', input: [] },
   });
   const log = createLog({ world, runId });
-  return { world, log, ...createDrive({ world, log }) };
+  return { world, log, ...createDrive({ world, log, ...options }) };
 }
 
 /**
@@ -154,6 +160,43 @@ describe('createGateBuiltinToolFunction', () => {
       },
     ]);
     expect(await readEffectEvents({ log, type: 'effect-end' })).toEqual([]);
+  });
+
+  test('refuses a built-in tool that requires approval', async () => {
+    const customBuiltinTools: ToolSet = {
+      Bash: tool({
+        inputSchema: z.object({ command: z.string() }),
+        needsApproval: true,
+      }),
+    };
+    const { world, log, gateBuiltinTool } = await setup({
+      builtinTools: customBuiltinTools,
+    });
+
+    const error = await gateBuiltinTool(call).catch(error => error);
+
+    expect(error).toBeInstanceOf(HarnessCapabilityUnsupportedError);
+    expect(error.message).toContain(
+      "remove `needsApproval` from built-in tool 'Bash'",
+    );
+    expect((await log.read()).events).toEqual([]);
+    expect(await readParts({ world })).toEqual([]);
+  });
+
+  test('refuses a built-in tool that requires approval after construction', async () => {
+    const customBuiltinTools: ToolSet = {
+      Bash: tool({ inputSchema: z.object({ command: z.string() }) }),
+    };
+    const { gateBuiltinTool } = await setup({
+      builtinTools: customBuiltinTools,
+    });
+
+    (customBuiltinTools.Bash as { needsApproval?: boolean }).needsApproval =
+      true;
+
+    await expect(gateBuiltinTool(call)).rejects.toThrow(
+      HarnessCapabilityUnsupportedError,
+    );
   });
 
   test('uses the built-in tool replay policy', async () => {

@@ -2,6 +2,12 @@ import type { Tool, ToolSet } from '@ai-sdk/provider-utils';
 import { HarnessCapabilityUnsupportedError } from '../../../errors/harness-capability-unsupported-error';
 
 /**
+ * What an approval requirement is attached to: one of the app's own tools, or
+ * one of the harness adapter's built-in tools.
+ */
+export type ToolApprovalTargetKind = 'tool' | 'built-in tool';
+
+/**
  * Returns whether a tool asks for a user's consent before it may run.
  *
  * `needsApproval` may be a boolean or a function of the tool input, but the v2
@@ -12,6 +18,35 @@ import { HarnessCapabilityUnsupportedError } from '../../../errors/harness-capab
 export function requiresApproval(tool: Tool): boolean {
   const needsApproval = (tool as { needsApproval?: unknown }).needsApproval;
   return needsApproval != null && needsApproval !== false;
+}
+
+/**
+ * Creates the `HarnessCapabilityUnsupportedError` for a tool that requires
+ * approval, telling the caller to remove `needsApproval` instead of having the
+ * tool run without consent.
+ */
+export function createToolApprovalUnsupportedError(options: {
+  /**
+   * Identifier of the harness adapter, recorded on the error.
+   */
+  harnessId?: string;
+
+  /**
+   * Name of the tool that requires approval.
+   */
+  toolName: string;
+
+  /**
+   * What the requirement is attached to. Defaults to `'tool'`.
+   */
+  kind?: ToolApprovalTargetKind;
+}): HarnessCapabilityUnsupportedError {
+  return new HarnessCapabilityUnsupportedError({
+    message: `HarnessAgent: tool approval is not supported with HarnessV2; remove \`needsApproval\` from ${
+      options.kind ?? 'tool'
+    } '${options.toolName}'.`,
+    harnessId: options.harnessId,
+  });
 }
 
 /**
@@ -70,7 +105,13 @@ export function assertNoToolApprovalRequirements(options: {
    * Tools to check.
    */
   tools: ToolSet;
+
+  /**
+   * What the tools are. Defaults to `'tool'`.
+   */
+  kind?: ToolApprovalTargetKind;
 }): void {
+  const kind = options.kind ?? 'tool';
   const toolNames = Object.entries(options.tools)
     .filter(([, tool]) => requiresApproval(tool))
     .map(([name]) => name);
@@ -79,8 +120,8 @@ export function assertNoToolApprovalRequirements(options: {
   throw new HarnessCapabilityUnsupportedError({
     message: `HarnessAgent: tool approval is not supported with HarnessV2; remove \`needsApproval\` from ${
       toolNames.length === 1
-        ? `tool '${toolNames[0]}'`
-        : `tools ${toolNames.map(name => `'${name}'`).join(', ')}`
+        ? `${kind} '${toolNames[0]}'`
+        : `${kind}s ${toolNames.map(name => `'${name}'`).join(', ')}`
     }.`,
     harnessId: options.harnessId,
   });

@@ -240,6 +240,16 @@ export class HarnessAgent<
       harnessId: this.harnessId,
       tools: settings.tools ?? {},
     });
+    /*
+     * An adapter's built-in tools are part of the public `HarnessV2`
+     * interface, so a wrapper or a custom adapter can add `needsApproval` to
+     * them; they get the same check as the app's own tools.
+     */
+    assertNoToolApprovalRequirements({
+      harnessId: this.harnessId,
+      tools: this.harness.builtinTools,
+      kind: 'built-in tool',
+    });
     this.userTools = settings.tools ?? {};
     this.tools = {
       ...this.harness.builtinTools,
@@ -1024,6 +1034,7 @@ async function runDrivePass(options: {
     });
     const gateBuiltinTool = createGateBuiltinToolFunction({
       log,
+      harnessId: harness.harnessId,
       builtinTools: harness.builtinTools,
       effect,
       abortSignal: AbortSignal.any([stopAbortSignal, yieldAbortSignal]),

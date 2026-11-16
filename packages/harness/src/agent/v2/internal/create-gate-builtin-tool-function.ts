@@ -22,6 +22,10 @@ import type {
 } from '../../../v2/harness-v2-effect';
 import type { HarnessV2ToolResult } from '../../../v2/harness-v2-stream-part';
 import { isPlainJSONValue } from './utils';
+import {
+  createToolApprovalUnsupportedError,
+  requiresApproval,
+} from './tool-approval';
 import type { HarnessAgentEffectFunction } from './create-effect-function';
 import type { HarnessAgentLog } from './create-log';
 
@@ -252,6 +256,10 @@ function emitToolResult(options: {
  * - the tool is not one of the harness's built-in tools: the call is recorded
  *   as an `error`, so a replay is denied the same way.
  *
+ * A built-in tool that sets `needsApproval` throws a
+ * `HarnessCapabilityUnsupportedError` before its effect starts, since the
+ * engine cannot request the consent it asks for.
+ *
  * A recorded retryable interruption (a `replay: 'safe'` tool, or an attempt
  * that a crashed drive left before its `tool-execution-start` committed) lets
  * the effect start a new attempt, so a call the runtime dispatches again is
@@ -270,6 +278,11 @@ export function createGateBuiltinToolFunction(options: {
   log: HarnessAgentLog;
 
   /**
+   * Identifier of the harness adapter, recorded on capability errors.
+   */
+  harnessId: string;
+
+  /**
    * The harness's built-in tools.
    */
   builtinTools: ToolSet;
@@ -284,7 +297,7 @@ export function createGateBuiltinToolFunction(options: {
    */
   abortSignal: AbortSignal;
 }): HarnessAgentGateBuiltinToolFunction {
-  const { log, builtinTools, effect, abortSignal } = options;
+  const { log, harnessId, builtinTools, effect, abortSignal } = options;
 
   /**
    * Records a call to a tool that is not a built-in tool as an `error` effect
@@ -549,6 +562,20 @@ export function createGateBuiltinToolFunction(options: {
 
     const tool = getTool({ builtinTools, toolName });
     if (tool == null) return denyUnknownTool({ toolCallId, toolName, input });
+
+    /*
+     * Fails closed for a built-in tool that asks for consent: the agent may
+     * have been built before the requirement was added, so the call is refused
+     * before its effect starts instead of being approved.
+     */
+    if (requiresApproval(tool)) {
+      throw createToolApprovalUnsupportedError({
+        harnessId,
+        toolName,
+        kind: 'built-in tool',
+      });
+    }
+
     return startBuiltinTool({ toolCallId, toolName, input, tool });
   };
 }
