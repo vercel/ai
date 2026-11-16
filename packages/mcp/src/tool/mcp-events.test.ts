@@ -17,6 +17,7 @@ class EventTransport implements MCPTransport {
   onclose?: () => void;
   onerror?: (error: Error) => void;
   eventsSupported = true;
+  eventsExtensionSupported = false;
   listResult: Record<string, unknown> = { events: [eventDefinition] };
   beforeSubscribe?: (request: JSONRPCRequest) => Promise<void>;
   subscribeError?: { code: number; message: string };
@@ -38,6 +39,9 @@ class EventTransport implements MCPTransport {
           capabilities: {
             tools: {},
             ...(this.eventsSupported ? { events: {} } : {}),
+            ...(this.eventsExtensionSupported
+              ? { extensions: { 'io.modelcontextprotocol/events': {} } }
+              : {}),
           },
         };
         break;
@@ -458,6 +462,15 @@ describe('MCP client events', () => {
       'Server does not support events',
     );
     expect(transport.requests).toHaveLength(1);
+  });
+
+  it('supports servers that advertise events via capabilities.extensions (SEP-3415)', async () => {
+    const transport = new EventTransport();
+    transport.eventsSupported = false;
+    transport.eventsExtensionSupported = true;
+    const { client } = await setup(transport);
+    const result = await client.experimental_events.list();
+    expect(result.events).toHaveLength(1);
   });
 
   it('allows discovery without storage but requires storage before subscribing', async () => {

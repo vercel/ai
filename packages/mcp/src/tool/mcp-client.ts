@@ -21,7 +21,11 @@ import {
   type ManagedMCPEvents,
   type MCPEventAdapter,
 } from './mcp-events-adapter';
-import type { MCPEvents, MCPEventsConfig } from './mcp-event-types';
+import {
+  MCP_EVENTS_EXTENSION_NAME,
+  type MCPEvents,
+  type MCPEventsConfig,
+} from './mcp-event-types';
 import { MCPClientError } from '../error/mcp-client-error';
 import type {
   JSONRPCError,
@@ -856,7 +860,10 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
       case 'events/list':
       case 'events/subscribe':
       case 'events/unsubscribe':
-        if (!this.serverCapabilities.events) {
+        if (
+          !this.serverCapabilities.events &&
+          !this.serverCapabilities.extensions?.[MCP_EVENTS_EXTENSION_NAME]
+        ) {
           throw new MCPClientError({
             message: 'Server does not support events',
           });

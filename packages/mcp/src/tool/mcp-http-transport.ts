@@ -486,7 +486,12 @@ export class HttpMCPTransport implements MCPTransport {
     const name =
       message.method === 'resources/read'
         ? params?.uri
-        : message.method === 'tools/call' || message.method === 'prompts/get'
+        : message.method === 'tools/call' ||
+            message.method === 'prompts/get' ||
+            message.method === 'events/subscribe' ||
+            message.method === 'events/unsubscribe' ||
+            message.method === 'events/poll' ||
+            message.method === 'events/stream'
           ? params?.name
           : undefined;
 

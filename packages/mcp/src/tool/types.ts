@@ -124,6 +124,7 @@ const ElicitationCapabilitySchema = z
 
 const ServerCapabilitiesSchema = z.looseObject({
   events: z.looseObject({ listChanged: z.boolean().nullish() }).nullish(),
+  extensions: z.record(z.string(), z.unknown()).nullish(),
   experimental: z.optional(z.object({}).loose()),
   logging: z.optional(z.object({}).loose()),
   completions: z.optional(z.object({}).loose()),
@@ -150,6 +151,7 @@ export type ServerCapabilities = z.infer<typeof ServerCapabilitiesSchema>;
 export const ClientCapabilitiesSchema = z
   .object({
     elicitation: z.optional(ElicitationCapabilitySchema),
+    extensions: z.optional(z.record(z.string(), z.unknown())),
   })
   .loose();
 

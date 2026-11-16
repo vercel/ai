@@ -223,7 +223,7 @@ describe('MCP event webhook receiver', () => {
 
   it.each([
     { ...event, name: 'other.event' },
-    { ...event, eventId: 'evt_other' },
+    { ...event, eventId: '' },
     { ...event, timestamp: 'invalid' },
     { ...event, data: { text: 42 } },
     { ...event, data: { text: 'comment', unexpected: true } },
@@ -234,6 +234,40 @@ describe('MCP event webhook receiver', () => {
     expect(onEvent).not.toHaveBeenCalled();
     expect(await store.get(subscription.key)).toMatchObject({
       cursor: 'cursor_1',
+    });
+  });
+
+  it('accepts a delivery where webhook-id differs from eventId (SEP-3415)', async () => {
+    const request = signedRequest(subscription, event, {
+      id: 'msg_unique_per_message_123',
+    });
+    expect((await webhook(request)).status).toBe(204);
+    expect(onEvent).toHaveBeenCalledWith({
+      subscription: {
+        id: subscription.id,
+        name: subscription.name,
+        arguments: subscription.arguments,
+        delivery: { mode: 'webhook', url: subscription.delivery.url },
+        refreshBefore: subscription.refreshBefore,
+      },
+      event,
+    });
+  });
+
+  it('accepts a delivery where webhook-id equals eventId (legacy)', async () => {
+    const request = signedRequest(subscription, event, {
+      id: event.eventId,
+    });
+    expect((await webhook(request)).status).toBe(204);
+    expect(onEvent).toHaveBeenCalledWith({
+      subscription: {
+        id: subscription.id,
+        name: subscription.name,
+        arguments: subscription.arguments,
+        delivery: { mode: 'webhook', url: subscription.delivery.url },
+        refreshBefore: subscription.refreshBefore,
+      },
+      event,
     });
   });
 
