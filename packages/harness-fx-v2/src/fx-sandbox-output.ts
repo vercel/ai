@@ -154,8 +154,9 @@ export function createFxOutputCapture(options: {
 
 /**
  * Reads a sandbox byte stream to its end, passing each chunk to `onChunk`.
- * Cancelling in the `finally` block releases a stream that a sandbox keeps
- * open, e.g. after a stopped command left a child process writing to it.
+ * The reader is cancelled when `abortSignal` aborts and in the `finally`
+ * block, so the read ends even when a sandbox leaves the stream open after
+ * it stopped the command, e.g. while a child process still holds the pipe.
  */
 export async function readFxChunks(options: {
   /**
@@ -167,15 +168,26 @@ export async function readFxChunks(options: {
    * Receives each chunk.
    */
   onChunk: (chunk: Uint8Array) => void;
+
+  /**
+   * Aborts the read, resolving it as if the stream had ended.
+   */
+  abortSignal?: AbortSignal;
 }): Promise<void> {
-  const reader = options.stream.getReader();
+  const { stream, onChunk, abortSignal } = options;
+  const reader = stream.getReader();
+  const onAbort = () => {
+    void reader.cancel().catch(() => {});
+  };
+  abortSignal?.addEventListener('abort', onAbort, { once: true });
   try {
     for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
-      if (value.length > 0) options.onChunk(value);
+      if (value.length > 0) onChunk(value);
     }
   } finally {
+    abortSignal?.removeEventListener('abort', onAbort);
     void reader.cancel().catch(() => {});
     reader.releaseLock();
   }

@@ -329,6 +329,7 @@ export async function runFxShell(options: {
     headBytes: MAX_OUTPUT_HEAD_BYTES,
     tailBytes: MAX_OUTPUT_TAIL_BYTES,
   });
+  const outputLimitController = new AbortController();
   let outputStopped = false;
   let stopCommand: (() => void) | undefined;
   const onChunk = (chunk: Uint8Array) => {
@@ -338,16 +339,27 @@ export async function runFxShell(options: {
       capture.totalBytes > MAX_OUTPUT_BYTES + MAX_DISCARDED_OUTPUT_BYTES
     ) {
       outputStopped = true;
+      /*
+       * Aborting makes the sandbox stop the command and end the streams it
+       * writes to, so that the call returns even for a command whose
+       * children keep those streams open after a kill.
+       */
+      outputLimitController.abort(new Error('output limit'));
       stopCommand?.();
     }
   };
   const startedAt = Date.now();
+  const commandAbortSignal = AbortSignal.any([
+    abortSignal,
+    timeoutController.signal,
+    outputLimitController.signal,
+  ]);
   let exitCode: number | null = null;
   try {
     const child = await session.spawn({
       command,
       workingDirectory: cwd.abs,
-      abortSignal: AbortSignal.any([abortSignal, timeoutController.signal]),
+      abortSignal: commandAbortSignal,
     });
     stopCommand = () => {
       // Stopping is best effort: not every sandbox implementation can kill.
@@ -359,8 +371,16 @@ export async function runFxShell(options: {
     };
     const [result] = await Promise.all([
       child.wait(),
-      readFxChunks({ stream: child.stdout, onChunk }),
-      readFxChunks({ stream: child.stderr, onChunk }),
+      readFxChunks({
+        stream: child.stdout,
+        onChunk,
+        abortSignal: commandAbortSignal,
+      }),
+      readFxChunks({
+        stream: child.stderr,
+        onChunk,
+        abortSignal: commandAbortSignal,
+      }),
     ]);
     exitCode = result.exitCode;
   } catch (error) {
@@ -371,7 +391,8 @@ export async function runFxShell(options: {
     stopCommand = undefined;
   }
   if (abortSignal.aborted) throw new Error('Command aborted');
-  if (timedOut) exitCode = null;
+  // A stopped command has no exit code of its own to report.
+  if (timedOut || outputStopped) exitCode = null;
   const durationMs = Date.now() - startedAt;
 
   const complete = capture.complete;

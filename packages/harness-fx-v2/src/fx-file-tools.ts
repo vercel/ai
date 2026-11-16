@@ -184,17 +184,29 @@ async function readFileHead(options: {
       limitController.abort(new Error('read limit'));
     }
   };
+  const readAbortSignal = AbortSignal.any([
+    abortSignal,
+    limitController.signal,
+  ]);
   const child = await session.spawn({
     command: `head -c ${limit} -- ${shellQuote(path)}`,
     workingDirectory: workDir,
-    abortSignal: AbortSignal.any([abortSignal, limitController.signal]),
+    abortSignal: readAbortSignal,
   });
   let exitCode: number | null = null;
   try {
     const [result] = await Promise.all([
       child.wait(),
-      readFxChunks({ stream: child.stdout, onChunk }),
-      readFxChunks({ stream: child.stderr, onChunk: () => {} }),
+      readFxChunks({
+        stream: child.stdout,
+        onChunk,
+        abortSignal: readAbortSignal,
+      }),
+      readFxChunks({
+        stream: child.stderr,
+        onChunk: () => {},
+        abortSignal: readAbortSignal,
+      }),
     ]);
     exitCode = result.exitCode;
   } catch (error) {

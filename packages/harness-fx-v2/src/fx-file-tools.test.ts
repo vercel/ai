@@ -225,6 +225,11 @@ function createFakeFileSession(options: {
   const calls: string[] = [];
   const state = { sent: 0, stopped: 0 };
 
+  /**
+   * Yields the contents of the file.
+   *
+   * @yields One chunk of the file contents.
+   */
   function* contents() {
     yield prefix;
     let written = prefix.length;

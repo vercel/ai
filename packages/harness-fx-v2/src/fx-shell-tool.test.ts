@@ -148,12 +148,15 @@ describe('runFxShell', () => {
  * Fake sandbox session whose command streams a fixed number of equal chunks,
  * so a test controls how many output bytes the host has to handle, and that
  * records whether the command was killed and what was written to the sandbox.
+ * With `stuck`, the command leaves its streams open after a kill, like a
+ * sandbox whose child processes still hold the pipe.
  */
 function createFakeShellSession(options: {
   chunkSize: number;
   chunkCount: number;
+  stuck?: boolean;
 }) {
-  const { chunkSize, chunkCount } = options;
+  const { chunkSize, chunkCount, stuck = false } = options;
   const state = { killed: 0, sent: 0, writes: [] as number[] };
   // oxlint-disable-next-line ai-sdk/no-as-unknown-as -- partial sandbox session for a test.
   const session = {
@@ -164,15 +167,23 @@ function createFakeShellSession(options: {
     async writeBinaryFile({ content }: { content: Uint8Array }) {
       state.writes.push(content.length);
     },
-    async spawn() {
+    async spawn({ abortSignal }: { abortSignal?: AbortSignal }) {
       let closed = false;
       let resolveClosed = () => {};
       const done = new Promise<void>(resolve => {
         resolveClosed = resolve;
       });
+      const aborted = new Promise<never>((_, reject) => {
+        abortSignal?.addEventListener(
+          'abort',
+          () => reject(abortSignal.reason),
+          { once: true },
+        );
+      });
       const stdout = new ReadableStream<Uint8Array>({
         pull(controller) {
           if (state.killed > 0 || state.sent >= chunkCount) {
+            if (stuck) return;
             if (!closed) {
               closed = true;
               resolveClosed();
@@ -192,8 +203,10 @@ function createFakeShellSession(options: {
           },
         }),
         async wait() {
-          await done;
-          return { exitCode: state.killed > 0 ? 137 : 0 };
+          return Promise.race([
+            done.then(() => ({ exitCode: state.killed > 0 ? 137 : 0 })),
+            aborted,
+          ]);
         },
         async kill() {
           state.killed++;
@@ -241,7 +254,7 @@ describe('runFxShell with large output', () => {
       output_truncated: true,
       output_incomplete: true,
       full_output_handle: null,
-      exit_code: 137,
+      exit_code: null,
     });
     expect(output.isError).toBe(true);
     // Almost 19 MiB of output reached the host, but only the kept bytes can.
@@ -252,6 +265,28 @@ describe('runFxShell with large output', () => {
     expect(result.output_delta).toContain('drops the rest');
     expect(result.retry_guidance).toContain('was stopped');
     expect(state.writes).toEqual([]);
+  });
+
+  test('returns when the sandbox leaves the streams open after a stop', async () => {
+    const { session, state } = createFakeShellSession({
+      chunkSize: 64 * 1024,
+      chunkCount: 300,
+      stuck: true,
+    });
+    const output = await runFxShell({
+      sandbox: testSandbox(session),
+      toolCallId: 'call-1',
+      input: { action: 'run', command: 'yes' },
+      abortSignal: new AbortController().signal,
+    });
+    const result = await parseShellResult(output.text);
+
+    expect(result).toMatchObject({
+      state: 'stopped',
+      error: 'OutputLimitExceeded',
+      output_incomplete: true,
+    });
+    expect(state.killed).toBe(1);
   });
 
   test('keeps a head and a tail of a large but finite output', async () => {
