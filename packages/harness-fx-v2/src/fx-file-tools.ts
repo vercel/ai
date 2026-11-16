@@ -1,3 +1,4 @@
+import { shellQuote } from '@ai-sdk/harness/utils';
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import type {
   FxEditFileInput,
@@ -5,6 +6,7 @@ import type {
   FxWriteFileInput,
 } from './fx-builtin-tool-specs';
 import type { FxBuiltinToolOutput, FxToolSandbox } from './fx-builtin-tools';
+import { createFxOutputCapture, readFxChunks } from './fx-sandbox-output';
 import {
   decodeFxModelSafeText,
   getUtf8ByteLength,
@@ -128,15 +130,97 @@ type FxFileSnapshot = {
 };
 
 /**
- * Reads the bytes of a snapshot of a file, streaming the file while it is
- * larger than a snapshot, so that a large file never has to fit into host
- * memory as a whole.
+ * Reads at most `limitBytes` from the start of a file with `head` in the
+ * sandbox, so that the host never holds more of the file than that: a
+ * session's read primitives load a whole file before they return, and the
+ * workspace can hold a file of any size.
+ */
+async function readFileHead(options: {
+  /**
+   * Sandbox the file is in.
+   */
+  sandbox: FxToolSandbox;
+
+  /**
+   * Absolute path of the file.
+   */
+  path: string;
+
+  /**
+   * Maximum bytes to read.
+   */
+  limitBytes: number;
+
+  /**
+   * Aborts the read.
+   */
+  abortSignal: AbortSignal;
+}): Promise<{
+  /**
+   * Bytes read, at most `limitBytes`.
+   */
+  bytes: Uint8Array;
+
+  /**
+   * Whether the file has more bytes than `limitBytes`.
+   */
+  exceeded: boolean;
+}> {
+  const { sandbox, path, limitBytes, abortSignal } = options;
+  const { session, workDir } = sandbox;
+  /*
+   * One byte past the limit tells the caller whether the file goes on. The
+   * command prints no more than that, and the capture drops anything a
+   * sandbox sends beyond it, so neither can grow without bound.
+   */
+  const limit = limitBytes + 1;
+  const capture = createFxOutputCapture({ headBytes: limit, tailBytes: 0 });
+  const limitController = new AbortController();
+  let stopped = false;
+  const onChunk = (chunk: Uint8Array) => {
+    capture.add(chunk);
+    if (!stopped && !capture.complete) {
+      stopped = true;
+      limitController.abort(new Error('read limit'));
+    }
+  };
+  const child = await session.spawn({
+    command: `head -c ${limit} -- ${shellQuote(path)}`,
+    workingDirectory: workDir,
+    abortSignal: AbortSignal.any([abortSignal, limitController.signal]),
+  });
+  let exitCode: number | null = null;
+  try {
+    const [result] = await Promise.all([
+      child.wait(),
+      readFxChunks({ stream: child.stdout, onChunk }),
+      readFxChunks({ stream: child.stderr, onChunk: () => {} }),
+    ]);
+    exitCode = result.exitCode;
+  } catch (error) {
+    if (abortSignal.aborted) throw error;
+    if (!stopped) throw error;
+  }
+  if (!stopped && exitCode != null && exitCode !== 0) {
+    throw new Error(`read_file could not read ${path}`);
+  }
+  const bytes = capture.toBytes();
+  return {
+    bytes: bytes.subarray(0, limitBytes),
+    exceeded: bytes.length > limitBytes,
+  };
+}
+
+/**
+ * Reads the bytes of a snapshot of a file, so that the host holds at most a
+ * snapshot of it: a file larger than a snapshot is read with `head` in the
+ * sandbox instead of being loaded as a whole.
  */
 async function readFileSnapshot(options: {
   /**
-   * Sandbox session the file is in.
+   * Sandbox the file is in.
    */
-  session: FxToolSandbox['session'];
+  sandbox: FxToolSandbox;
 
   /**
    * Absolute path of the file.
@@ -153,11 +237,17 @@ async function readFileSnapshot(options: {
    */
   abortSignal: AbortSignal;
 }): Promise<FxFileSnapshot> {
-  const { session, path, size, abortSignal } = options;
+  const { sandbox, path, size, abortSignal } = options;
   if (size <= READ_SNAPSHOT_BYTES) {
     const bytes =
-      (await session.readBinaryFile({ path, abortSignal })) ?? new Uint8Array();
-    // A file that grew after its stat is cut to the snapshot limit here.
+      (await sandbox.session.readBinaryFile({ path, abortSignal })) ??
+      new Uint8Array();
+    /*
+     * The read is bounded by the size its stat reported. A file that grew
+     * past it before the read is cut here, after the read; reading small
+     * files directly is the fast path, since a bounded read costs a command
+     * in the sandbox.
+     */
     return bytes.length <= READ_SNAPSHOT_BYTES
       ? { bytes, complete: true, totalBytes: bytes.length }
       : {
@@ -166,34 +256,18 @@ async function readFileSnapshot(options: {
           totalBytes: bytes.length,
         };
   }
-  const stream = await session.readFile({ path, abortSignal });
-  if (stream == null)
-    return { bytes: new Uint8Array(), complete: true, totalBytes: 0 };
-  const reader = stream.getReader();
-  const chunks: Uint8Array[] = [];
-  let length = 0;
-  let complete = false;
-  try {
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) {
-        complete = true;
-        break;
-      }
-      if (value.length === 0) continue;
-      const take = Math.min(READ_SNAPSHOT_BYTES - length, value.length);
-      chunks.push(take === value.length ? value : value.slice(0, take));
-      length += take;
-      if (length >= READ_SNAPSHOT_BYTES) break;
-    }
-  } finally {
-    await reader.cancel().catch(() => {});
-    reader.releaseLock();
-  }
+  const head = await readFileHead({
+    sandbox,
+    path,
+    limitBytes: READ_SNAPSHOT_BYTES,
+    abortSignal,
+  });
   return {
-    bytes: Buffer.concat(chunks),
-    complete,
-    totalBytes: complete ? length : Math.max(size, length),
+    bytes: head.bytes,
+    complete: !head.exceeded,
+    totalBytes: head.exceeded
+      ? Math.max(size, head.bytes.length + 1)
+      : head.bytes.length,
   };
 }
 
@@ -267,7 +341,7 @@ export async function readFxFile(options: {
     });
   }
   const snapshot = await readFileSnapshot({
-    session,
+    sandbox,
     path: target.abs,
     size: stat.size,
     abortSignal,
