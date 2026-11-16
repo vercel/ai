@@ -1,4 +1,12 @@
 /**
+ * Returns whether a chunk is its own allocation, so that keeping it keeps
+ * only its bytes and not a larger buffer that it is a view of.
+ */
+function isOwnAllocation(bytes: Uint8Array): boolean {
+  return bytes.byteOffset === 0 && bytes.byteLength === bytes.buffer.byteLength;
+}
+
+/**
  * Returns whether a byte can only continue a UTF-8 encoded character.
  */
 function isContinuationByte(byte: number | undefined): boolean {
@@ -104,30 +112,36 @@ export function createFxOutputCapture(options: {
       totalBytes += chunk.length;
       /*
        * A chunk can be a view of a larger allocation, and keeping it would
-       * keep that whole allocation, so kept bytes are copied out of a view.
-       * A chunk that is its own allocation is kept as it is.
+       * keep that whole allocation, so a chunk is only kept as it is when it
+       * is its own allocation and all of it is kept; otherwise the bytes
+       * that are kept are copied out of it.
        */
-      let rest =
-        chunk.byteOffset === 0 && chunk.byteLength === chunk.buffer.byteLength
-          ? chunk
-          : new Uint8Array(chunk);
+      let rest = chunk;
       if (headLength < headBytes) {
-        /*
-         * A partially kept chunk is copied for the same reason: a large
-         * chunk must not stay alive for the few bytes of it that are kept.
-         */
         const take = Math.min(headBytes - headLength, rest.length);
         head.push(
-          take === rest.length ? rest : new Uint8Array(rest.subarray(0, take)),
+          take === rest.length && isOwnAllocation(rest)
+            ? rest
+            : new Uint8Array(rest.subarray(0, take)),
         );
         headLength += take;
         rest = rest.subarray(take);
         if (rest.length === 0) return;
       }
-      if (rest.byteOffset !== 0 || rest.byteLength !== rest.buffer.byteLength) {
-        rest = new Uint8Array(rest);
+      if (rest.length >= tailBytes) {
+        /*
+         * This chunk fills the tail by itself, so only its last bytes are
+         * kept, as a copy.
+         */
+        droppedBytes += tailLength + (rest.length - tailBytes);
+        tail.length = 0;
+        tail.push(
+          new Uint8Array(rest.subarray(rest.length - tailBytes, rest.length)),
+        );
+        tailLength = tailBytes;
+        return;
       }
-      tail.push(rest);
+      tail.push(isOwnAllocation(rest) ? rest : new Uint8Array(rest));
       tailLength += rest.length;
       while (tailLength > tailBytes) {
         const first = tail[0];

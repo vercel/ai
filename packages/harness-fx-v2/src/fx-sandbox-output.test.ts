@@ -49,6 +49,50 @@ describe('createFxOutputCapture', () => {
     expect([...capture.toBytes()]).toEqual([1, 2, 3, 4, 7, 8, 9, 10]);
   });
 
+  /**
+   * Returns a 10-byte view of a larger allocation, with the digits 1 to 10,
+   * and a function that overwrites the allocation.
+   */
+  function viewOfLargerAllocation() {
+    const backing = new Uint8Array(1024).fill(7);
+    const view = backing.subarray(0, 10);
+    view.set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    return {
+      view,
+      overwrite: () => {
+        backing.fill(0);
+        view.fill(0);
+      },
+    };
+  }
+
+  test('copies a view the head keeps whole', () => {
+    const { view, overwrite } = viewOfLargerAllocation();
+    const capture = createFxOutputCapture({ headBytes: 16, tailBytes: 16 });
+    capture.add(view);
+    overwrite();
+
+    expect([...capture.toBytes()]).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  });
+
+  test('copies a view the tail keeps whole', () => {
+    const { view, overwrite } = viewOfLargerAllocation();
+    const capture = createFxOutputCapture({ headBytes: 0, tailBytes: 16 });
+    capture.add(view);
+    overwrite();
+
+    expect([...capture.toBytes()]).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  });
+
+  test('copies a view that spans the head and the tail', () => {
+    const { view, overwrite } = viewOfLargerAllocation();
+    const capture = createFxOutputCapture({ headBytes: 4, tailBytes: 16 });
+    capture.add(view);
+    overwrite();
+
+    expect([...capture.toBytes()]).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  });
+
   test('copies the kept bytes out of a view of a larger allocation', () => {
     const capture = createFxOutputCapture({ headBytes: 4, tailBytes: 4 });
     const backing = new Uint8Array(MIB).fill(7);
