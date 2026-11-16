@@ -154,6 +154,11 @@ You can use the following optional settings to customize the provider instance:
   Optional. Base URL for the Google Vertex API calls e.g. to use proxy servers. By default, it is constructed using the location and project:
   `https://${location}-aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/google`
 
+- **toolResultDownloads** _{ maxBytes?: number }_
+
+  Configuration for downloading tool result files that Vertex cannot reference directly in function responses.
+  Each downloaded file is limited to `maxBytes`, which is 7 MiB by default.
+
 <a id="google-vertex-edge-runtime"></a>
 #### Edge Runtime
 
@@ -237,6 +242,11 @@ You can use the following optional settings to customize the provider instance:
   Defaults to the global `fetch` function.
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
+
+- **toolResultDownloads** _{ maxBytes?: number }_
+
+  Configuration for downloading tool result files that Vertex cannot reference directly in function responses.
+  Each downloaded file is limited to `maxBytes`, which is 7 MiB by default.
 
 #### Express Mode
 
