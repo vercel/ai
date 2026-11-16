@@ -20,6 +20,129 @@ import path from 'node:path';
 const MAX_READ_BYTES = 10 * 1024 * 1024;
 
 /**
+ * Bytes that one read command brings back, before base64 encoding. A chunk
+ * keeps a single command's output small enough for a sandbox that limits it
+ * (just-bash refuses more than 10 MiB of output), so a file up to the read
+ * limit is read by a few commands that are never cut off.
+ */
+const READ_CHUNK_BYTES = 4 * 1024 * 1024;
+
+/**
+ * Characters of the base64 text that one read command prints for a chunk, as a
+ * multiple of four so that every window decodes on its own.
+ */
+const READ_CHUNK_CHARS = Math.ceil(READ_CHUNK_BYTES / 3) * 4;
+
+/**
+ * Outcome of a bounded read: the bytes and whether the file ended within the
+ * limit, a sandbox that could not run the read, or a file that changed while it
+ * was read.
+ */
+interface BoundedRead {
+  /**
+   * What the read did.
+   */
+  status: 'read' | 'refused' | 'changed';
+
+  /**
+   * Bytes the host kept, for a read that succeeded.
+   */
+  bytes?: Uint8Array;
+
+  /**
+   * Whether the file ended within the limit, for a read that succeeded.
+   */
+  complete?: boolean;
+}
+
+/**
+ * Reads at most `limitBytes` of a file with commands inside the sandbox, so the
+ * host never holds more than the limit, whatever a stat reported: a file that
+ * grows or is replaced between its stat and its read cannot exhaust the process
+ * that serves many sessions.
+ *
+ * Each command prints one window of the file's base64 text, so that a chunk
+ * both survives the text stream of a sandbox and stays far below its
+ * command-output limit. A window that is shorter than the text it asked for
+ * means the file changed, since the length of its text was read first.
+ */
+async function readFileBytes(options: {
+  /**
+   * Sandbox session the file is in.
+   */
+  session: SandboxSession;
+
+  /**
+   * Absolute path of the file.
+   */
+  filePath: string;
+
+  /**
+   * Maximum number of bytes to hold.
+   */
+  limitBytes: number;
+}): Promise<BoundedRead> {
+  const { session, filePath, limitBytes } = options;
+  const quoted = shellQuote(filePath);
+  /*
+   * The length of the encoded text gives every window its exact size, so the
+   * last window is not shifted back when the file is shorter than a full one.
+   * `pipefail` reports a file that the sandbox cannot read, which `wc` alone
+   * would hide behind its own exit status.
+   */
+  const sized = await session.run({
+    command: `set -o pipefail; base64 ${quoted} | tr -d '\\n' | wc -c`,
+  });
+  if (sized.exitCode !== 0) return { status: 'refused' };
+  const encodedLength = Number(sized.stdout.trim());
+  if (!Number.isSafeInteger(encodedLength) || encodedLength < 0) {
+    return { status: 'refused' };
+  }
+  if (encodedLength === 0) {
+    return { status: 'read', bytes: new Uint8Array(), complete: true };
+  }
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  const finish = (complete: boolean): BoundedRead => {
+    const bytes = new Uint8Array(total);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    return { status: 'read', bytes, complete };
+  };
+  for (
+    let start = 0;
+    start < encodedLength && total <= limitBytes;
+    start += READ_CHUNK_CHARS
+  ) {
+    const size = Math.min(READ_CHUNK_CHARS, encodedLength - start);
+    const result = await session.run({
+      command: `set -o pipefail; base64 ${quoted} | tr -d '\\n' | head -c ${start + size} | tail -c ${size}`,
+    });
+    const encoded = result.stdout.replace(/\s+/g, '');
+    /*
+     * A window that is not the text it asked for means the file shrank or was
+     * replaced after its length was read, so the content cannot be assembled.
+     * A runner that reports the closed pipe of `head` as a write error still
+     * delivers the whole window, so the exit code only matters when the window
+     * is short.
+     */
+    if (encoded.length !== size) {
+      return result.exitCode === 0 || result.exitCode === 141
+        ? { status: 'changed' }
+        : { status: 'refused' };
+    }
+    const chunk = Buffer.from(encoded, 'base64');
+    if (chunk.byteLength === 0) return { status: 'changed' };
+    chunks.push(chunk);
+    total += chunk.byteLength;
+  }
+  return finish(total <= limitBytes);
+}
+
+/**
  * File system operations of Pi's built-in tools, implemented on a sandbox
  * session instead of the local file system.
  */
@@ -84,6 +207,19 @@ function createNotFoundError(options: {
 }
 
 /**
+ * Paths that one recursive search may enumerate, so a tree with a huge number
+ * of files cannot take more than this many paths from the sandbox.
+ */
+const MAX_FIND_ENTRIES = 50_000;
+
+/**
+ * Bytes of the enumeration that the host keeps, so a tree with very long paths
+ * cannot fill the memory of the process that serves many sessions. The limit
+ * applies before Pi sees the paths and before they are filtered or sorted.
+ */
+const MAX_FIND_BYTES = 4 * 1024 * 1024;
+
+/**
  * Lists the files below a directory in the sandbox that match a glob
  * pattern, as paths relative to the directory, sorted case-insensitively.
  *
@@ -91,6 +227,10 @@ function createNotFoundError(options: {
  * matches `src/a.ts`), while a pattern with a `/` matches the whole relative
  * path. Files matching one of the `ignore` patterns are skipped, and at most
  * `limit` paths are returned. A file path lists that file.
+ *
+ * The sandbox stops the enumeration at `MAX_FIND_ENTRIES` paths and
+ * `MAX_FIND_BYTES` bytes, so a tree that a sandbox user filled cannot exhaust
+ * the host before the requested limit applies.
  */
 export async function findSandboxFiles(options: {
   /**
@@ -120,18 +260,48 @@ export async function findSandboxFiles(options: {
 }): Promise<string[]> {
   const { session, pattern, directory, ignore, limit } = options;
   const quoted = shellQuote(directory);
+  /*
+   * Directories that the ignore patterns exclude are pruned in the sandbox, so
+   * a large `node_modules` or `.git` cannot use up the budget that the paths a
+   * search may return share.
+   */
+  const pruned = [
+    ...new Set(
+      ignore
+        .map(ignored => /^\*\*\/([^/*]+)\/\*\*$/.exec(ignored)?.[1])
+        .filter((name): name is string => name != null),
+    ),
+  ];
+  const prune =
+    pruned.length === 0
+      ? ''
+      : `\\( ${pruned
+          .map(name => `-name ${shellQuote(name)}`)
+          .join(' -o ')} \\) -prune -o`;
   const result = await session.run({
-    command: `if [ -d ${quoted} ]; then find ${quoted} -type f; else printf '%s\\n' ${quoted}; fi`,
+    command: `set -o pipefail; if [ -d ${quoted} ]; then find ${quoted} ! -path ${quoted} ${prune} -type f -print | head -n ${MAX_FIND_ENTRIES + 1} | head -c ${MAX_FIND_BYTES + 1}; else printf '%s\\n' ${quoted}; fi`,
   });
-  if (result.exitCode !== 0) {
+  let entries = result.stdout.split('\n').filter(line => line.length > 0);
+  const reachedBudget =
+    entries.length > MAX_FIND_ENTRIES ||
+    Buffer.byteLength(result.stdout, 'utf-8') > MAX_FIND_BYTES;
+  /*
+   * A sandbox whose command runner ignores SIGPIPE reports the closed pipe as a
+   * write error, so a result that reached the budget is accepted whatever its
+   * exit code; 141 is `head` closing the pipe.
+   */
+  if (!reachedBudget && result.exitCode !== 0 && result.exitCode !== 141) {
     throw new Error(
       result.stderr.trim() || `find failed with exit code ${result.exitCode}`,
     );
   }
+  if (reachedBudget) {
+    // The byte budget can cut the last path in half, so it is dropped.
+    if (!result.stdout.endsWith('\n')) entries = entries.slice(0, -1);
+    entries = entries.slice(0, MAX_FIND_ENTRIES);
+  }
   const matchesName = !pattern.includes('/');
-  return result.stdout
-    .split('\n')
-    .filter(line => line.length > 0)
+  const results = entries
     .map(filePath =>
       filePath === directory
         ? path.posix.basename(filePath)
@@ -155,6 +325,72 @@ export async function findSandboxFiles(options: {
       left.toLowerCase().localeCompare(right.toLowerCase()),
     )
     .slice(0, limit);
+  /*
+   * Pi reports its own result limit when the search returns `limit` paths, but
+   * it cannot report that the enumeration stopped before it found them, so an
+   * incomplete answer is an error rather than a short list.
+   */
+  if (reachedBudget && results.length < limit) {
+    throw new Error(
+      `The search stopped after ${MAX_FIND_ENTRIES} files before it found ${limit} matches. Search a subdirectory or narrow the pattern.`,
+    );
+  }
+  return results;
+}
+
+/**
+ * Entries of a directory that one listing may transfer, so a directory that
+ * sandbox code filled cannot take more than this many names from the sandbox.
+ */
+const MAX_LIST_ENTRIES = 10_000;
+
+/**
+ * Bytes of a directory listing that the host keeps, so names of extreme length
+ * cannot fill the memory of the process that serves many sessions.
+ */
+const MAX_LIST_BYTES = 2 * 1024 * 1024;
+
+/**
+ * Lists the entries of a directory in the sandbox.
+ *
+ * The sandbox sorts the entries and stops the listing at `MAX_LIST_ENTRIES`
+ * names and `MAX_LIST_BYTES` bytes, so a directory that sandbox code filled is
+ * never transferred as a whole; the cap cuts the entries that Pi's own order
+ * puts last. Pi adds the directory suffix and its entry-limit notice.
+ */
+export async function listSandboxDirectory(options: {
+  /**
+   * Sandbox session to list.
+   */
+  session: SandboxSession;
+
+  /**
+   * Absolute directory to list.
+   */
+  directory: string;
+}): Promise<string[]> {
+  const { session, directory } = options;
+  const result = await session.run({
+    command: `set -o pipefail; ls -A ${shellQuote(directory)} | LC_ALL=C sort -f | head -n ${MAX_LIST_ENTRIES + 1} | head -c ${MAX_LIST_BYTES + 1}`,
+  });
+  let entries = result.stdout.split('\n').filter(line => line.length > 0);
+  const reachedBudget =
+    entries.length > MAX_LIST_ENTRIES ||
+    Buffer.byteLength(result.stdout, 'utf-8') > MAX_LIST_BYTES;
+  /*
+   * A sandbox whose command runner ignores SIGPIPE reports the closed pipe as a
+   * write error, so a listing that reached the budget is accepted whatever its
+   * exit code; 141 is `head` closing the pipe.
+   */
+  if (!reachedBudget && result.exitCode !== 0 && result.exitCode !== 141) {
+    throw createNotFoundError({ operation: 'scandir', path: directory });
+  }
+  if (reachedBudget) {
+    // The byte budget can cut the last name in half, so it is dropped.
+    if (!result.stdout.endsWith('\n')) entries = entries.slice(0, -1);
+    entries = entries.slice(0, MAX_LIST_ENTRIES);
+  }
+  return entries;
 }
 
 /**
@@ -218,20 +454,39 @@ export function createPiSandboxOperations(options: {
       );
     }
     if (stat != null && stat.size > MAX_READ_BYTES) {
-      /*
-       * The size comes from a stat that runs before the read, so a file that
-       * grows in between is still read; closing that gap needs a byte range in
-       * the sandbox interface.
-       */
       throw new Error(
         `File is too large to read: ${filePath} is ${formatSize(stat.size)}, the limit is ${formatSize(MAX_READ_BYTES)}. Read part of it with a bash command, for example \`sed -n '1,200p' ${filePath}\`.`,
       );
     }
-    const bytes = await session.readBinaryFile({ path: filePath });
-    if (bytes == null) {
-      throw createNotFoundError({ operation: 'open', path: filePath });
+    /*
+     * The read itself is bounded, so the size the stat reported is only a hint:
+     * a file that grows or is replaced between the stat and the read still
+     * cannot make the host hold more than the limit.
+     */
+    const read = await readFileBytes({
+      session,
+      filePath,
+      limitBytes: MAX_READ_BYTES,
+    });
+    if (read.status === 'refused') {
+      if ((await session.stat({ path: filePath })) == null) {
+        throw createNotFoundError({ operation: 'open', path: filePath });
+      }
+      throw new Error(
+        `Cannot read ${filePath}: the sandbox could not run the bounded read. Read it with a bash command instead, for example \`sed -n '1,200p' ${filePath}\`.`,
+      );
     }
-    return bytes;
+    if (read.status === 'changed') {
+      throw new Error(
+        `Cannot read ${filePath}: the file changed while it was read. Try again.`,
+      );
+    }
+    if (!read.complete) {
+      throw new Error(
+        `File is too large to read: ${filePath} is larger than the limit of ${formatSize(MAX_READ_BYTES)}. Read part of it with a bash command, for example \`sed -n '1,200p' ${filePath}\`.`,
+      );
+    }
+    return read.bytes ?? new Uint8Array();
   };
 
   const statPath = async (filePath: string) => {
@@ -284,11 +539,7 @@ export function createPiSandboxOperations(options: {
       return { isDirectory: () => stat.type === 'directory' };
     },
     async readdir(directory) {
-      const entries = await session.listDirectory({ path: directory });
-      if (entries == null) {
-        throw createNotFoundError({ operation: 'scandir', path: directory });
-      }
-      return entries.map(entry => entry.name);
+      return listSandboxDirectory({ session, directory });
     },
     // oxlint-disable-next-line ai-sdk/require-object-parameter -- Pi `FindOperations` signature.
     async glob(pattern, directory, globOptions) {
