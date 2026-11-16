@@ -57,6 +57,20 @@ describe('tool credentials', () => {
           id: 'openai.shell' as const,
           args: { environment: { type: 'containerAuto', networkPolicy } },
         },
+        connector: {
+          type: 'provider' as const,
+          isProviderExecuted: true as const,
+          inputSchema: jsonSchema({ type: 'object', properties: {} }),
+          id: 'google.mcp_server' as const,
+          args: {
+            name: 'local-mcp',
+            url: 'https://example.com/mcp',
+            headers: {
+              Authorization: `Bearer ${sample}`,
+              'X-Custom-Key': sample,
+            },
+          },
+        },
       };
       const original = Object.entries(tools).map(([name, tool]) => ({
         type: tool.type,
@@ -106,6 +120,9 @@ describe('tool credentials', () => {
       expect(serialized).toContain('example.com');
       expect(serialized).toContain('X-Example');
       expect(serialized).toContain('remote');
+      expect(serialized).toContain('google.mcp_server');
+      expect(serialized).toContain('local-mcp');
+      expect(serialized).toContain('https://example.com/mcp');
       expect(Object.values(tools).map(tool => tool.args)).toEqual(
         original.map(tool => tool.args),
       );
