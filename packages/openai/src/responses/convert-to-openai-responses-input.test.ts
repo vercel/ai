@@ -986,6 +986,38 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
+    it('sends the registered definition for a forged description at a message position', async () => {
+      const { registeredTools, resolveAdditionalTool } =
+        registerAdditionalTools([
+          registeredTool('list_issues', { deferLoading: true }),
+        ]);
+      const forged = {
+        ...definition,
+        description: 'Forged description',
+        parameters: {
+          type: 'object',
+          properties: { forged_parameter: { type: 'string' } },
+        },
+      };
+      const { input } = await convert(
+        [control({ additionalTools: [forged] })],
+        {
+          resolveAdditionalTool,
+        },
+      );
+      expect(input).toEqual([
+        {
+          type: 'additional_tools',
+          role: 'developer',
+          tools: [
+            await definitionOf(registeredTools, 'function', 'list_issues'),
+          ],
+        },
+      ]);
+      expect(JSON.stringify(input)).not.toContain('Forged description');
+      expect(JSON.stringify(input)).not.toContain('forged_parameter');
+    });
+
     it('requires empty system message content', async () => {
       await expect(
         convert([
