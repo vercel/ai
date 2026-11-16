@@ -27,10 +27,7 @@ import type {
   OpenAIResponsesFunctionTool,
   OpenAIResponsesTool,
 } from './openai-responses-api';
-import {
-  getOpenAIResponsesAdditionalToolKey,
-  type OpenAIResponsesAdditionalTool,
-} from './openai-responses-language-model-options';
+import type { OpenAIResponsesAdditionalTool } from './openai-responses-language-model-options';
 
 type AllowedToolResolution =
   | { supported: true; entry: OpenAIResponsesAllowedTool }
@@ -619,105 +616,133 @@ export async function prepareResponsesTools({
 }
 
 /**
- * Builds the definitions that the input converter substitutes for
- * `additionalTools` entries in the prompt.
+ * Resolves an `additionalTools` entry from the prompt to the definition of the
+ * tool registered for this request.
  *
  * Prompts contain replayable conversation history, so a supplied entry only
  * selects a registered tool: the provider sends the definition derived from
- * that tool, never the definition text from the history.
+ * that tool, never the definition text from the history. Only the selected tool
+ * is prepared, so registered tools that the history does not reference are not
+ * processed at all.
  */
-export async function prepareAdditionalToolDefinitions({
+export async function findAdditionalToolDefinition({
   tools,
+  additionalTool,
   providerOptionsName = 'openai',
 }: {
   tools: LanguageModelV4CallOptions['tools'];
+  additionalTool: Pick<OpenAIResponsesAdditionalTool, 'type' | 'name'>;
   providerOptionsName?: string;
-}): Promise<Map<string, OpenAIResponsesAdditionalTool>> {
-  const definitions = new Map<string, OpenAIResponsesAdditionalTool>();
-  const namespaceTools = new Map<
-    string,
-    {
-      description: string;
-      tools: Array<AdditionalFunctionTool>;
+}): Promise<
+  | {
+      definition: OpenAIResponsesAdditionalTool;
+      warnings: Array<SharedV4Warning>;
     }
-  >();
+  | undefined
+> {
+  const warnings: Array<SharedV4Warning> = [];
 
-  for (const tool of tools ?? []) {
-    switch (tool.type) {
-      case 'function': {
-        const openaiOptions = (tool.providerOptions?.[providerOptionsName] ??
-          tool.providerOptions?.openai) as OpenAIToolOptions | undefined;
-        const definition = toAdditionalFunctionTool(
+  if (additionalTool.type === 'namespace') {
+    const namespaceTools: Array<AdditionalFunctionTool> = [];
+    let description: string | undefined;
+
+    for (const tool of tools ?? []) {
+      if (tool.type !== 'function') {
+        continue;
+      }
+
+      const openaiOptions = getOpenAIToolOptions(tool, providerOptionsName);
+      const namespace = openaiOptions?.namespace;
+
+      if (namespace?.name !== additionalTool.name) {
+        continue;
+      }
+
+      description ??= namespace.description;
+      namespaceTools.push(
+        toAdditionalFunctionTool(
           prepareFunctionTool({
             tool,
             options: openaiOptions,
-            toolWarnings: [],
+            toolWarnings: warnings,
             async: undefined,
           }),
-        );
-        const namespace = openaiOptions?.namespace;
+        ),
+      );
+    }
 
-        if (namespace == null) {
-          definitions.set(
-            getOpenAIResponsesAdditionalToolKey(definition),
-            definition,
-          );
-          break;
-        }
+    if (description == null || namespaceTools.length === 0) {
+      return undefined;
+    }
 
-        let namespaceDefinition = namespaceTools.get(namespace.name);
+    return {
+      definition: {
+        type: 'namespace',
+        name: additionalTool.name,
+        description,
+        tools: namespaceTools,
+      },
+      warnings,
+    };
+  }
 
-        if (namespaceDefinition == null) {
-          namespaceDefinition = {
-            description: namespace.description,
-            tools: [],
-          };
-          namespaceTools.set(namespace.name, namespaceDefinition);
-        }
+  for (const tool of tools ?? []) {
+    if (additionalTool.type === 'function' && tool.type === 'function') {
+      const openaiOptions = getOpenAIToolOptions(tool, providerOptionsName);
 
-        namespaceDefinition.tools.push(definition);
-        break;
+      // Namespaced functions are only sent as part of their namespace.
+      if (
+        tool.name !== additionalTool.name ||
+        openaiOptions?.namespace != null
+      ) {
+        continue;
       }
-      case 'provider': {
-        if (tool.id !== 'openai.custom') {
-          break;
-        }
 
-        const args = await validateTypes({
-          value: tool.args,
-          schema: customArgsSchema,
-        });
-
-        definitions.set(
-          getOpenAIResponsesAdditionalToolKey({
-            type: 'custom',
-            name: tool.name,
+      return {
+        definition: toAdditionalFunctionTool(
+          prepareFunctionTool({
+            tool,
+            options: openaiOptions,
+            toolWarnings: warnings,
+            async: undefined,
           }),
-          {
-            type: 'custom',
-            name: tool.name,
-            description: args.description,
-            format: args.format,
-          },
-        );
-        break;
-      }
+        ),
+        warnings,
+      };
+    }
+
+    if (
+      additionalTool.type === 'custom' &&
+      tool.type === 'provider' &&
+      tool.id === 'openai.custom' &&
+      tool.name === additionalTool.name
+    ) {
+      const args = await validateTypes({
+        value: tool.args,
+        schema: customArgsSchema,
+      });
+
+      return {
+        definition: {
+          type: 'custom',
+          name: tool.name,
+          description: args.description,
+          format: args.format,
+        },
+        warnings,
+      };
     }
   }
 
-  for (const [name, namespace] of namespaceTools) {
-    definitions.set(
-      getOpenAIResponsesAdditionalToolKey({ type: 'namespace', name }),
-      {
-        type: 'namespace',
-        name,
-        description: namespace.description,
-        tools: namespace.tools,
-      },
-    );
-  }
+  return undefined;
+}
 
-  return definitions;
+function getOpenAIToolOptions(
+  tool: LanguageModelV4FunctionTool,
+  providerOptionsName: string,
+): OpenAIToolOptions | undefined {
+  return (tool.providerOptions?.[providerOptionsName] ??
+    tool.providerOptions?.openai) as OpenAIToolOptions | undefined;
 }
 
 function allowedToolKey(entry: OpenAIResponsesAllowedTool): string {

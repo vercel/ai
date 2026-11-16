@@ -365,12 +365,6 @@ export type OpenAIResponsesAdditionalTool = NonNullable<
   OpenAIResponsesToolResultOptions['additionalTools']
 >[number];
 
-export function getOpenAIResponsesAdditionalToolKey(
-  tool: Pick<OpenAIResponsesAdditionalTool, 'type' | 'name'>,
-): string {
-  return `${tool.type}:${tool.name}`;
-}
-
 function openaiResponsesFunctionToolDefinitionSchema() {
   return z.strictObject({
     type: z.literal('function'),

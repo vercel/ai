@@ -26,7 +26,6 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
-  getOpenAIResponsesAdditionalToolKey,
   openaiResponsesSystemMessageOptionsSchema,
   openaiResponsesToolResultOptionsSchema,
   type OpenAIResponsesAdditionalTool,
@@ -460,6 +459,16 @@ function isFileId(data: string, prefixes?: readonly string[]): boolean {
   return prefixes.some(prefix => data.startsWith(prefix));
 }
 
+type AdditionalToolResolver = (
+  additionalTool: Pick<OpenAIResponsesAdditionalTool, 'type' | 'name'>,
+) => Promise<
+  | {
+      definition: OpenAIResponsesAdditionalTool;
+      warnings: Array<SharedV4Warning>;
+    }
+  | undefined
+>;
+
 export async function convertToOpenAIResponsesInput({
   prompt,
   toolNameMapping,
@@ -479,7 +488,7 @@ export async function convertToOpenAIResponsesInput({
   toolSearchToolName,
   customProviderToolNames,
   outputSchemaToolNames,
-  additionalToolDefinitions,
+  findAdditionalToolDefinition,
   configurationUpdateUnsupportedReason,
 }: {
   prompt: LanguageModelV4Prompt;
@@ -502,16 +511,13 @@ export async function convertToOpenAIResponsesInput({
   customProviderToolNames?: Set<string>;
   outputSchemaToolNames?: Set<string>;
   /**
-   * Definitions of the tools registered for this request, keyed by type and
-   * name. `additionalTools` entries in the prompt come from replayable
-   * conversation history, so they only select a registered tool: the
-   * registered definition is sent instead of the definition from history, and
-   * entries for tools that are not registered are dropped.
+   * Resolves an `additionalTools` entry from the prompt to the definition of
+   * the tool registered for this request. Entries come from replayable
+   * conversation history, so they only select a registered tool: the resolver
+   * returns the registered definition, and entries it cannot resolve are
+   * dropped.
    */
-  additionalToolDefinitions?: ReadonlyMap<
-    string,
-    OpenAIResponsesAdditionalTool
-  >;
+  findAdditionalToolDefinition?: AdditionalToolResolver;
   configurationUpdateUnsupportedReason?: string;
 }): Promise<{
   input: OpenAIResponsesInput;
@@ -519,6 +525,7 @@ export async function convertToOpenAIResponsesInput({
 }> {
   let input: OpenAIResponsesInput = [];
   const warnings: Array<SharedV4Warning> = [];
+  const seenAdditionalToolWarnings = new Set<string>();
   const processedApprovalIds = new Set<string>();
   const programmaticToolCallIds = new Set<string>();
   const parallelToolResultGroups =
@@ -587,9 +594,10 @@ export async function convertToOpenAIResponsesInput({
               }),
             });
           }
-          const resolvedAdditionalTools = filterAdditionalTools({
+          const resolvedAdditionalTools = await filterAdditionalTools({
             additionalTools,
-            additionalToolDefinitions,
+            findAdditionalToolDefinition,
+            seenWarnings: seenAdditionalToolWarnings,
             warnings,
           });
           if (resolvedAdditionalTools != null) {
@@ -1583,7 +1591,8 @@ export async function convertToOpenAIResponsesInput({
                 const additionalTools = await resolveAdditionalTools({
                   providerOptions: result.providerOptions,
                   providerOptionsName,
-                  additionalToolDefinitions,
+                  findAdditionalToolDefinition,
+                  seenWarnings: seenAdditionalToolWarnings,
                   warnings,
                 });
                 if (additionalTools != null) {
@@ -1903,7 +1912,8 @@ export async function convertToOpenAIResponsesInput({
           const additionalTools = await resolveAdditionalTools({
             providerOptions: part.providerOptions,
             providerOptionsName,
-            additionalToolDefinitions,
+            findAdditionalToolDefinition,
+            seenWarnings: seenAdditionalToolWarnings,
             warnings,
           });
           if (additionalTools != null) {
@@ -1994,14 +2004,14 @@ async function parseToolResultAdditionalTools({
 async function resolveAdditionalTools({
   providerOptions,
   providerOptionsName,
-  additionalToolDefinitions,
+  findAdditionalToolDefinition,
+  seenWarnings,
   warnings,
 }: {
   providerOptions: SharedV4ProviderOptions | undefined;
   providerOptionsName: string;
-  additionalToolDefinitions:
-    | ReadonlyMap<string, OpenAIResponsesAdditionalTool>
-    | undefined;
+  findAdditionalToolDefinition: AdditionalToolResolver | undefined;
+  seenWarnings: Set<string>;
   warnings: Array<SharedV4Warning>;
 }): Promise<Array<OpenAIResponsesAdditionalTool> | undefined> {
   const additionalTools = await parseToolResultAdditionalTools({
@@ -2011,7 +2021,8 @@ async function resolveAdditionalTools({
 
   return filterAdditionalTools({
     additionalTools,
-    additionalToolDefinitions,
+    findAdditionalToolDefinition,
+    seenWarnings,
     warnings,
   });
 }
@@ -2025,17 +2036,17 @@ async function resolveAdditionalTools({
  * the definition derived from the registered tool, and entries for tools that
  * are not registered are dropped.
  */
-function filterAdditionalTools({
+async function filterAdditionalTools({
   additionalTools,
-  additionalToolDefinitions,
+  findAdditionalToolDefinition,
+  seenWarnings,
   warnings,
 }: {
   additionalTools: Array<OpenAIResponsesAdditionalTool> | undefined;
-  additionalToolDefinitions:
-    | ReadonlyMap<string, OpenAIResponsesAdditionalTool>
-    | undefined;
+  findAdditionalToolDefinition: AdditionalToolResolver | undefined;
+  seenWarnings: Set<string>;
   warnings: Array<SharedV4Warning>;
-}): Array<OpenAIResponsesAdditionalTool> | undefined {
+}): Promise<Array<OpenAIResponsesAdditionalTool> | undefined> {
   if (additionalTools == null || additionalTools.length === 0) {
     return undefined;
   }
@@ -2045,16 +2056,27 @@ function filterAdditionalTools({
   const droppedToolNames = new Set<string>();
 
   for (const additionalTool of additionalTools) {
-    const key = getOpenAIResponsesAdditionalToolKey(additionalTool);
-    const registeredDefinition = additionalToolDefinitions?.get(key);
+    const resolved = await findAdditionalToolDefinition?.({
+      type: additionalTool.type,
+      name: additionalTool.name,
+    });
 
-    if (registeredDefinition == null) {
+    if (resolved == null) {
       droppedToolNames.add(additionalTool.name);
       continue;
     }
 
+    for (const warning of resolved.warnings) {
+      const signature = JSON.stringify(warning);
+
+      if (!seenWarnings.has(signature)) {
+        seenWarnings.add(signature);
+        warnings.push(warning);
+      }
+    }
+
     const definition = narrowNamespaceDefinition({
-      registeredDefinition,
+      registeredDefinition: resolved.definition,
       additionalTool,
       droppedToolNames,
     });

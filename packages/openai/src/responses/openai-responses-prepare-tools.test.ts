@@ -1,7 +1,13 @@
-import { NoSuchProviderReferenceError } from '@ai-sdk/provider';
+import {
+  NoSuchProviderReferenceError,
+  type LanguageModelV4FunctionTool,
+} from '@ai-sdk/provider';
 import { openai } from '../openai-provider';
 import { imageGeneration } from '../tool/image-generation';
-import { prepareResponsesTools } from './openai-responses-prepare-tools';
+import {
+  findAdditionalToolDefinition,
+  prepareResponsesTools,
+} from './openai-responses-prepare-tools';
 import { describe, it, expect } from 'vitest';
 import { redactTelemetryValue } from '@ai-sdk/provider-utils';
 import { withOpenAIResponseRedaction } from '../redact-openai-tool-credentials';
@@ -3396,5 +3402,232 @@ describe('prepareResponsesTools', () => {
         type: 'programmatic_tool_calling',
       });
     });
+  });
+});
+
+describe('findAdditionalToolDefinition', () => {
+  const listIssuesTool: LanguageModelV4FunctionTool = {
+    type: 'function',
+    name: 'list_issues',
+    description: 'List Linear issues.',
+    inputSchema: {
+      type: 'object',
+      properties: { team: { type: 'string' } },
+      required: ['team'],
+      additionalProperties: false,
+    },
+    providerOptions: {
+      openai: { omitFromRequestTools: true, deferLoading: true },
+    },
+  };
+
+  it('derives the function definition from the registered tool', async () => {
+    const resolved = await findAdditionalToolDefinition({
+      tools: [listIssuesTool],
+      additionalTool: { type: 'function', name: 'list_issues' },
+    });
+
+    expect(resolved).toEqual({
+      definition: {
+        type: 'function',
+        name: 'list_issues',
+        description: 'List Linear issues.',
+        parameters: {
+          type: 'object',
+          properties: { team: { type: 'string' } },
+          required: ['team'],
+          additionalProperties: false,
+        },
+        strict: false,
+        defer_loading: true,
+      },
+      warnings: [],
+    });
+  });
+
+  it('reads provider options of another provider name', async () => {
+    const tools: Array<LanguageModelV4FunctionTool> = [
+      {
+        ...listIssuesTool,
+        providerOptions: {
+          azure: { omitFromRequestTools: true, deferLoading: true },
+        },
+      },
+    ];
+    const resolved = await findAdditionalToolDefinition({
+      tools,
+      additionalTool: { type: 'function', name: 'list_issues' },
+      providerOptionsName: 'azure',
+    });
+
+    expect(resolved?.definition).toMatchObject({
+      name: 'list_issues',
+      description: 'List Linear issues.',
+      defer_loading: true,
+    });
+  });
+
+  it('derives a namespace definition from the registered namespace tools', async () => {
+    const namespace = { name: 'linear', description: 'Linear tools' };
+    const tools: Array<LanguageModelV4FunctionTool> = [
+      {
+        type: 'function',
+        name: 'get_issue',
+        inputSchema: { type: 'object', properties: {} },
+        providerOptions: { openai: { namespace } },
+      },
+      {
+        type: 'function',
+        name: 'list_issues',
+        description: 'List issues.',
+        inputSchema: { type: 'object', properties: {} },
+        providerOptions: { openai: { namespace } },
+      },
+    ];
+    const resolved = await findAdditionalToolDefinition({
+      tools,
+      additionalTool: { type: 'namespace', name: 'linear' },
+    });
+
+    expect(resolved).toEqual({
+      definition: {
+        type: 'namespace',
+        name: 'linear',
+        description: 'Linear tools',
+        tools: [
+          {
+            type: 'function',
+            name: 'get_issue',
+            description: undefined,
+            parameters: { type: 'object', properties: {} },
+            strict: false,
+          },
+          {
+            type: 'function',
+            name: 'list_issues',
+            description: 'List issues.',
+            parameters: { type: 'object', properties: {} },
+            strict: false,
+          },
+        ],
+      },
+      warnings: [],
+    });
+  });
+
+  it('does not resolve a namespaced function as a function', async () => {
+    const tools: Array<LanguageModelV4FunctionTool> = [
+      {
+        type: 'function',
+        name: 'get_issue',
+        inputSchema: { type: 'object', properties: {} },
+        providerOptions: {
+          openai: {
+            namespace: { name: 'linear', description: 'Linear tools' },
+          },
+        },
+      },
+    ];
+    const resolved = await findAdditionalToolDefinition({
+      tools,
+      additionalTool: { type: 'function', name: 'get_issue' },
+    });
+
+    expect(resolved).toBeUndefined();
+  });
+
+  it('derives a custom definition from the registered custom tool', async () => {
+    const resolved = await findAdditionalToolDefinition({
+      tools: [
+        {
+          type: 'provider',
+          id: 'openai.custom',
+          name: 'apply_patch',
+          args: {
+            description: 'Apply a patch',
+            format: { type: 'text' },
+          },
+        },
+      ],
+      additionalTool: { type: 'custom', name: 'apply_patch' },
+    });
+
+    expect(resolved).toEqual({
+      definition: {
+        type: 'custom',
+        name: 'apply_patch',
+        description: 'Apply a patch',
+        format: { type: 'text' },
+      },
+      warnings: [],
+    });
+  });
+
+  it.each([
+    { type: 'function' as const, name: 'unregistered' },
+    { type: 'custom' as const, name: 'apply_patch' },
+    { type: 'namespace' as const, name: 'unregistered' },
+  ])('does not resolve an unregistered entry: $type $name', async entry => {
+    const resolved = await findAdditionalToolDefinition({
+      tools: [listIssuesTool],
+      additionalTool: entry,
+    });
+
+    expect(resolved).toBeUndefined();
+  });
+
+  it('returns schema warnings of the resolved tool', async () => {
+    const tools: Array<LanguageModelV4FunctionTool> = [
+      {
+        ...listIssuesTool,
+        inputSchema: {
+          type: 'object',
+          properties: {
+            values: {
+              type: 'object',
+              propertyNames: { type: 'string', format: 'uuid' },
+            },
+          },
+        },
+      },
+    ];
+    const resolved = await findAdditionalToolDefinition({
+      tools,
+      additionalTool: { type: 'function', name: 'list_issues' },
+    });
+
+    expect(resolved?.warnings).toEqual([
+      {
+        type: 'compatibility',
+        feature: 'JSON Schema propertyNames',
+        details:
+          'OpenAI does not support JSON Schema propertyNames. It was removed before sending the schema, so OpenAI will not enforce property-name constraints.',
+      },
+    ]);
+  });
+
+  it('does not prepare tools the entry does not reference', async () => {
+    const tools: Array<LanguageModelV4FunctionTool> = [
+      {
+        type: 'function',
+        name: 'unsupported_schema',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            values: {
+              type: 'object',
+              propertyNames: { type: 'number' },
+            },
+          },
+        },
+      },
+      listIssuesTool,
+    ];
+    const resolved = await findAdditionalToolDefinition({
+      tools,
+      additionalTool: { type: 'function', name: 'list_issues' },
+    });
+
+    expect(resolved?.definition.name).toBe('list_issues');
   });
 });

@@ -94,10 +94,11 @@ import {
   openaiLanguageModelResponsesOptionsSchema,
   TOP_LOGPROBS_MAX,
   type OpenAILanguageModelResponsesOptions,
+  type OpenAIResponsesAdditionalTool,
   type OpenAIResponsesModelId,
 } from './openai-responses-language-model-options';
 import {
-  prepareAdditionalToolDefinitions,
+  findAdditionalToolDefinition,
   prepareResponsesTools,
 } from './openai-responses-prepare-tools';
 import { normalizeOpenAIResponsesTextFormat } from './openai-responses-text-format';
@@ -410,11 +411,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     });
 
     // Prompts can contain client-supplied conversation history. Only the tools
-    // registered for this request may be loaded from such history.
-    const additionalToolDefinitions = await prepareAdditionalToolDefinitions({
-      tools,
-      providerOptionsName,
-    });
+    // registered for this request may be loaded from such history; each entry
+    // resolves to the definition derived from its registered tool.
+    const findAdditionalToolForRequest = ({
+      type,
+      name,
+    }: Pick<OpenAIResponsesAdditionalTool, 'type' | 'name'>) =>
+      findAdditionalToolDefinition({
+        tools,
+        providerOptionsName,
+        additionalTool: { type, name },
+      });
 
     const configurationUpdateUnsupportedReason =
       getConfigurationUpdateUnsupportedReason({
@@ -452,7 +459,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             : undefined,
         outputSchemaToolNames:
           outputSchemaToolNames.size > 0 ? outputSchemaToolNames : undefined,
-        additionalToolDefinitions,
+        findAdditionalToolDefinition: findAdditionalToolForRequest,
       });
 
     warnings.push(...inputWarnings);

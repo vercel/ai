@@ -8,7 +8,8 @@ import {
 import type { ToolNameMapping } from '@ai-sdk/provider-utils';
 import { describe, it, expect } from 'vitest';
 import { convertToOpenAIResponsesInput as convertToOpenAIResponsesInputBase } from './convert-to-openai-responses-input';
-import { prepareAdditionalToolDefinitions } from './openai-responses-prepare-tools';
+import { findAdditionalToolDefinition } from './openai-responses-prepare-tools';
+import type { OpenAIResponsesAdditionalTool } from './openai-responses-language-model-options';
 
 const testToolNameMapping: ToolNameMapping = {
   toProviderToolName: (customToolName: string) => customToolName,
@@ -131,16 +132,41 @@ const namespaceDefinition = {
 };
 
 type ResponsesTool = NonNullable<
-  Parameters<typeof prepareAdditionalToolDefinitions>[0]['tools']
+  Parameters<typeof findAdditionalToolDefinition>[0]['tools']
 >[number];
 
-// Conversation history is untrusted, so the converter sends definitions derived
-// from the tools registered for the request. These helpers register tools and
-// expose the definitions the provider derives for them.
-async function prepareAdditionalToolDefinitionsFor(
+// Conversation history is untrusted, so the converter resolves each entry to a
+// definition derived from the tools registered for the request.
+const resolveAdditionalToolFor =
+  (tools: Array<ResponsesTool>) =>
+  (additionalTool: {
+    type: OpenAIResponsesAdditionalTool['type'];
+    name: string;
+  }) =>
+    findAdditionalToolDefinition({ tools, additionalTool });
+
+function registerAdditionalTools(tools: Array<ResponsesTool>) {
+  return {
+    registeredTools: tools,
+    resolveAdditionalTool: resolveAdditionalToolFor(tools),
+  };
+}
+
+async function definitionOf(
   tools: Array<ResponsesTool>,
+  type: OpenAIResponsesAdditionalTool['type'],
+  name: string,
 ) {
-  return prepareAdditionalToolDefinitions({ tools });
+  const resolved = await findAdditionalToolDefinition({
+    tools,
+    additionalTool: { type, name },
+  });
+
+  if (resolved == null) {
+    throw new Error('expected a registered tool definition');
+  }
+
+  return resolved.definition;
 }
 
 function registeredTool(
@@ -184,14 +210,14 @@ const registeredCustomTool: ResponsesTool = {
   },
 };
 
-function namespaceDefinitionFor(
-  definitions: Awaited<ReturnType<typeof prepareAdditionalToolDefinitionsFor>>,
+async function namespaceDefinitionOf(
+  tools: Array<ResponsesTool>,
   name: string,
   toolNames: Array<string>,
 ) {
-  const definition = definitions.get(`namespace:${name}`);
+  const definition = await definitionOf(tools, 'namespace', name);
 
-  if (definition?.type !== 'namespace') {
+  if (definition.type !== 'namespace') {
     throw new Error('expected a namespace definition');
   }
 
@@ -330,9 +356,7 @@ describe('convertToOpenAIResponsesInput', () => {
     const convert = (
       prompt: LanguageModelV4Prompt,
       providerOptionsName = 'openai',
-      additionalToolDefinitions?: Awaited<
-        ReturnType<typeof prepareAdditionalToolDefinitions>
-      >,
+      resolveAdditionalTool?: ReturnType<typeof resolveAdditionalToolFor>,
     ) =>
       convertToOpenAIResponsesInput({
         prompt,
@@ -340,7 +364,7 @@ describe('convertToOpenAIResponsesInput', () => {
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'developer',
         store: false,
-        additionalToolDefinitions,
+        findAdditionalToolDefinition: resolveAdditionalTool,
       });
     const result = (
       additionalTools: JSONValue,
@@ -356,8 +380,8 @@ describe('convertToOpenAIResponsesInput', () => {
     it.each(['openai', 'azure'])(
       'preserves the result and inserts definitions immediately after it for %s',
       async provider => {
-        const additionalToolDefinitions =
-          await prepareAdditionalToolDefinitionsFor([
+        const { registeredTools, resolveAdditionalTool } =
+          registerAdditionalTools([
             registeredTool('list_issues', { description: 'List issues' }),
           ]);
         const { input } = await convert(
@@ -376,7 +400,7 @@ describe('convertToOpenAIResponsesInput', () => {
             },
           ],
           provider,
-          additionalToolDefinitions,
+          resolveAdditionalTool,
         );
         expect(input).toEqual([
           {
@@ -387,7 +411,9 @@ describe('convertToOpenAIResponsesInput', () => {
           {
             type: 'additional_tools',
             role: 'developer',
-            tools: [additionalToolDefinitions.get('function:list_issues')],
+            tools: [
+              await definitionOf(registeredTools, 'function', 'list_issues'),
+            ],
           },
           {
             type: 'function_call_output',
@@ -399,15 +425,15 @@ describe('convertToOpenAIResponsesInput', () => {
     );
 
     it('preserves multiple insertion points when replaying and extending history', async () => {
-      const additionalToolDefinitions =
-        await prepareAdditionalToolDefinitionsFor([
+      const { registeredTools, resolveAdditionalTool } =
+        registerAdditionalTools([
           registeredTool('list_issues', { description: 'List issues' }),
           registeredTool('get_issue', { description: 'List issues' }),
         ]);
       const prompt: LanguageModelV4Prompt = [
         { role: 'tool', content: [result([definition])] },
       ];
-      const first = await convert(prompt, 'openai', additionalToolDefinitions);
+      const first = await convert(prompt, 'openai', resolveAdditionalTool);
       prompt.push(
         { role: 'user', content: [{ type: 'text', text: 'Search again' }] },
         {
@@ -420,15 +446,15 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
         },
       );
-      const second = await convert(prompt, 'openai', additionalToolDefinitions);
+      const second = await convert(prompt, 'openai', resolveAdditionalTool);
       expect(second.input.slice(0, first.input.length)).toEqual(first.input);
       expect(second.input.at(-1)).toEqual({
         type: 'additional_tools',
         role: 'developer',
-        tools: [additionalToolDefinitions.get('function:get_issue')],
+        tools: [await definitionOf(registeredTools, 'function', 'get_issue')],
       });
       expect(
-        (await convert(prompt, 'openai', additionalToolDefinitions)).input,
+        (await convert(prompt, 'openai', resolveAdditionalTool)).input,
       ).toEqual(second.input);
     });
 
@@ -462,8 +488,8 @@ describe('convertToOpenAIResponsesInput', () => {
     );
 
     it('reads openai options when using another provider name', async () => {
-      const additionalToolDefinitions =
-        await prepareAdditionalToolDefinitionsFor([
+      const { registeredTools, resolveAdditionalTool } =
+        registerAdditionalTools([
           registeredTool('list_issues', { description: 'List issues' }),
         ]);
       expect(
@@ -471,7 +497,7 @@ describe('convertToOpenAIResponsesInput', () => {
           await convert(
             [{ role: 'tool', content: [result([definition], 'openai')] }],
             'azure',
-            additionalToolDefinitions,
+            resolveAdditionalTool,
           )
         ).input,
       ).toEqual([
@@ -483,7 +509,9 @@ describe('convertToOpenAIResponsesInput', () => {
         {
           type: 'additional_tools',
           role: 'developer',
-          tools: [additionalToolDefinitions.get('function:list_issues')],
+          tools: [
+            await definitionOf(registeredTools, 'function', 'list_issues'),
+          ],
         },
       ]);
     });
@@ -491,8 +519,8 @@ describe('convertToOpenAIResponsesInput', () => {
     it.each([{ hasConversation: true }, { hasPreviousResponseId: true }])(
       'keeps definitions from expanded parallel results with %j',
       async continuation => {
-        const additionalToolDefinitions =
-          await prepareAdditionalToolDefinitionsFor([
+        const { registeredTools, resolveAdditionalTool } =
+          registerAdditionalTools([
             registeredTool('tool_0', { description: 'List issues' }),
             registeredTool('tool_1', { description: 'List issues' }),
           ]);
@@ -515,7 +543,7 @@ describe('convertToOpenAIResponsesInput', () => {
           toolNameMapping: testToolNameMapping,
           systemMessageMode: 'developer',
           store: true,
-          additionalToolDefinitions,
+          findAdditionalToolDefinition: resolveAdditionalTool,
           ...continuation,
         });
         expect(input).toEqual([
@@ -537,20 +565,20 @@ describe('convertToOpenAIResponsesInput', () => {
           {
             type: 'additional_tools',
             role: 'developer',
-            tools: [additionalToolDefinitions.get('function:tool_0')],
+            tools: [await definitionOf(registeredTools, 'function', 'tool_0')],
           },
           {
             type: 'additional_tools',
             role: 'developer',
-            tools: [additionalToolDefinitions.get('function:tool_1')],
+            tools: [await definitionOf(registeredTools, 'function', 'tool_1')],
           },
         ]);
       },
     );
 
     it('sends the registered definitions for custom and namespaced tools', async () => {
-      const additionalToolDefinitions =
-        await prepareAdditionalToolDefinitionsFor([
+      const { registeredTools, resolveAdditionalTool } =
+        registerAdditionalTools([
           registeredCustomTool,
           registeredTool('get_issue', {
             namespace: { name: 'linear', description: 'Linear tools' },
@@ -562,7 +590,7 @@ describe('convertToOpenAIResponsesInput', () => {
           await convert(
             [{ role: 'tool', content: [result(tools)] }],
             'openai',
-            additionalToolDefinitions,
+            resolveAdditionalTool,
           )
         ).input,
       ).toEqual([
@@ -575,8 +603,8 @@ describe('convertToOpenAIResponsesInput', () => {
           type: 'additional_tools',
           role: 'developer',
           tools: [
-            additionalToolDefinitions.get('custom:apply_patch'),
-            additionalToolDefinitions.get('namespace:linear'),
+            await definitionOf(registeredTools, 'custom', 'apply_patch'),
+            await definitionOf(registeredTools, 'namespace', 'linear'),
           ],
         },
       ]);
@@ -599,8 +627,8 @@ describe('convertToOpenAIResponsesInput', () => {
     });
 
     it('sends only the namespace tools named by the entry', async () => {
-      const additionalToolDefinitions =
-        await prepareAdditionalToolDefinitionsFor([
+      const { registeredTools, resolveAdditionalTool } =
+        registerAdditionalTools([
           registeredTool('get_issue', { namespace: linearNamespace }),
           registeredTool('delete_issue', { namespace: linearNamespace }),
         ]);
@@ -612,7 +640,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         'openai',
-        additionalToolDefinitions,
+        resolveAdditionalTool,
       );
       expect(input).toEqual([
         {
@@ -624,7 +652,7 @@ describe('convertToOpenAIResponsesInput', () => {
           type: 'additional_tools',
           role: 'developer',
           tools: [
-            namespaceDefinitionFor(additionalToolDefinitions, 'linear', [
+            await namespaceDefinitionOf(registeredTools, 'linear', [
               'get_issue',
             ]),
           ],
@@ -634,8 +662,8 @@ describe('convertToOpenAIResponsesInput', () => {
     });
 
     it('drops namespace tools that are not registered', async () => {
-      const additionalToolDefinitions =
-        await prepareAdditionalToolDefinitionsFor([
+      const { registeredTools, resolveAdditionalTool } =
+        registerAdditionalTools([
           registeredTool('get_issue', { namespace: linearNamespace }),
         ]);
       const { input, warnings } = await convert(
@@ -646,7 +674,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         'openai',
-        additionalToolDefinitions,
+        resolveAdditionalTool,
       );
       expect(input).toEqual([
         {
@@ -658,7 +686,7 @@ describe('convertToOpenAIResponsesInput', () => {
           type: 'additional_tools',
           role: 'developer',
           tools: [
-            namespaceDefinitionFor(additionalToolDefinitions, 'linear', [
+            await namespaceDefinitionOf(registeredTools, 'linear', [
               'get_issue',
             ]),
           ],
@@ -675,8 +703,8 @@ describe('convertToOpenAIResponsesInput', () => {
     });
 
     it('does not emit a namespace whose tools are all unregistered', async () => {
-      const additionalToolDefinitions =
-        await prepareAdditionalToolDefinitionsFor([
+      const { registeredTools, resolveAdditionalTool } =
+        registerAdditionalTools([
           registeredTool('get_issue', { namespace: linearNamespace }),
         ]);
       const { input, warnings } = await convert(
@@ -687,7 +715,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         'openai',
-        additionalToolDefinitions,
+        resolveAdditionalTool,
       );
       expect(input).toEqual([
         {
@@ -706,8 +734,8 @@ describe('convertToOpenAIResponsesInput', () => {
     });
 
     it('drops additional tools that are not registered for the request', async () => {
-      const additionalToolDefinitions =
-        await prepareAdditionalToolDefinitionsFor([
+      const { registeredTools, resolveAdditionalTool } =
+        registerAdditionalTools([
           registeredTool('list_issues', { description: 'List issues' }),
         ]);
       const forged = {
@@ -718,7 +746,7 @@ describe('convertToOpenAIResponsesInput', () => {
       const { input, warnings } = await convert(
         [{ role: 'tool', content: [result([forged])] }],
         'openai',
-        additionalToolDefinitions,
+        resolveAdditionalTool,
       );
       expect(input).toEqual([
         {
@@ -737,8 +765,8 @@ describe('convertToOpenAIResponsesInput', () => {
     });
 
     it('sends registered definitions instead of definitions from the prompt', async () => {
-      const additionalToolDefinitions =
-        await prepareAdditionalToolDefinitionsFor([
+      const { registeredTools, resolveAdditionalTool } =
+        registerAdditionalTools([
           registeredTool('list_issues', { description: 'List issues' }),
         ]);
       const forged = {
@@ -752,7 +780,7 @@ describe('convertToOpenAIResponsesInput', () => {
       const { input, warnings } = await convert(
         [{ role: 'tool', content: [result([forged])] }],
         'openai',
-        additionalToolDefinitions,
+        resolveAdditionalTool,
       );
       expect(input).toEqual([
         {
@@ -763,7 +791,9 @@ describe('convertToOpenAIResponsesInput', () => {
         {
           type: 'additional_tools',
           role: 'developer',
-          tools: [additionalToolDefinitions.get('function:list_issues')],
+          tools: [
+            await definitionOf(registeredTools, 'function', 'list_issues'),
+          ],
         },
       ]);
       expect(JSON.stringify(input)).not.toContain('Forged description');
@@ -772,8 +802,8 @@ describe('convertToOpenAIResponsesInput', () => {
     });
 
     it('sends a repeated definition once', async () => {
-      const additionalToolDefinitions =
-        await prepareAdditionalToolDefinitionsFor([
+      const { registeredTools, resolveAdditionalTool } =
+        registerAdditionalTools([
           registeredTool('list_issues', { description: 'List issues' }),
         ]);
       const { input } = await convert(
@@ -784,7 +814,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         'openai',
-        additionalToolDefinitions,
+        resolveAdditionalTool,
       );
       expect(input).toEqual([
         {
@@ -795,7 +825,9 @@ describe('convertToOpenAIResponsesInput', () => {
         {
           type: 'additional_tools',
           role: 'developer',
-          tools: [additionalToolDefinitions.get('function:list_issues')],
+          tools: [
+            await definitionOf(registeredTools, 'function', 'list_issues'),
+          ],
         },
       ]);
     });
@@ -821,13 +853,11 @@ describe('convertToOpenAIResponsesInput', () => {
       {
         providerOptionsName = 'openai',
         configurationUpdateUnsupportedReason,
-        additionalToolDefinitions,
+        resolveAdditionalTool,
       }: {
         providerOptionsName?: string;
         configurationUpdateUnsupportedReason?: string;
-        additionalToolDefinitions?: Awaited<
-          ReturnType<typeof prepareAdditionalToolDefinitions>
-        >;
+        resolveAdditionalTool?: ReturnType<typeof resolveAdditionalToolFor>;
       } = {},
     ) =>
       convertToOpenAIResponsesInput({
@@ -837,14 +867,14 @@ describe('convertToOpenAIResponsesInput', () => {
         systemMessageMode: 'developer',
         store: false,
         configurationUpdateUnsupportedReason,
-        additionalToolDefinitions,
+        findAdditionalToolDefinition: resolveAdditionalTool,
       });
 
     it.each(['openai', 'azure'])(
       'emits the item where the control message is for %s',
       async provider => {
-        const additionalToolDefinitions =
-          await prepareAdditionalToolDefinitionsFor([
+        const { registeredTools, resolveAdditionalTool } =
+          registerAdditionalTools([
             registeredTool('list_issues', { deferLoading: true }),
             registeredCustomTool,
             registeredTool('get_issue', {
@@ -858,7 +888,10 @@ describe('convertToOpenAIResponsesInput', () => {
             control({ additionalTools: tools }, provider),
             { role: 'user', content: [{ type: 'text', text: 'Use them' }] },
           ],
-          { providerOptionsName: provider, additionalToolDefinitions },
+          {
+            providerOptionsName: provider,
+            resolveAdditionalTool,
+          },
         );
         expect(input).toEqual([
           { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
@@ -866,9 +899,9 @@ describe('convertToOpenAIResponsesInput', () => {
             type: 'additional_tools',
             role: 'developer',
             tools: [
-              additionalToolDefinitions.get('function:list_issues'),
-              additionalToolDefinitions.get('custom:apply_patch'),
-              additionalToolDefinitions.get('namespace:linear'),
+              await definitionOf(registeredTools, 'function', 'list_issues'),
+              await definitionOf(registeredTools, 'custom', 'apply_patch'),
+              await definitionOf(registeredTools, 'namespace', 'linear'),
             ],
           },
           { role: 'user', content: [{ type: 'input_text', text: 'Use them' }] },
@@ -877,8 +910,8 @@ describe('convertToOpenAIResponsesInput', () => {
     );
 
     it('emits a configuration update before tools from the same message', async () => {
-      const additionalToolDefinitions =
-        await prepareAdditionalToolDefinitionsFor([
+      const { registeredTools, resolveAdditionalTool } =
+        registerAdditionalTools([
           registeredTool('list_issues', { deferLoading: true }),
         ]);
       const { input } = await convert(
@@ -888,35 +921,39 @@ describe('convertToOpenAIResponsesInput', () => {
             additionalTools: [definition],
           }),
         ],
-        { additionalToolDefinitions },
+        { resolveAdditionalTool },
       );
       expect(input).toEqual([
         { type: 'configuration_update', reasoning: { effort: 'low' } },
         {
           type: 'additional_tools',
           role: 'developer',
-          tools: [additionalToolDefinitions.get('function:list_issues')],
+          tools: [
+            await definitionOf(registeredTools, 'function', 'list_issues'),
+          ],
         },
       ]);
     });
 
     it('does not need configuration update support', async () => {
-      const additionalToolDefinitions =
-        await prepareAdditionalToolDefinitionsFor([
+      const { registeredTools, resolveAdditionalTool } =
+        registerAdditionalTools([
           registeredTool('list_issues', { deferLoading: true }),
         ]);
       const { input } = await convert(
         [control({ additionalTools: [definition] })],
         {
           configurationUpdateUnsupportedReason: 'not supported',
-          additionalToolDefinitions,
+          resolveAdditionalTool,
         },
       );
       expect(input).toEqual([
         {
           type: 'additional_tools',
           role: 'developer',
-          tools: [additionalToolDefinitions.get('function:list_issues')],
+          tools: [
+            await definitionOf(registeredTools, 'function', 'list_issues'),
+          ],
         },
       ]);
     });
