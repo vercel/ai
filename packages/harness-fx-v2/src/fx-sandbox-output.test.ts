@@ -66,6 +66,32 @@ describe('createFxOutputCapture', () => {
     };
   }
 
+  test('drops the oldest tail bytes as later chunks arrive', () => {
+    const capture = createFxOutputCapture({ headBytes: 4, tailBytes: 4 });
+    for (const chunk of [
+      [1, 2, 3],
+      [4, 5, 6],
+      [7, 8, 9],
+      [10, 11, 12],
+    ]) {
+      capture.add(Uint8Array.from(chunk));
+    }
+
+    expect([...capture.toBytes()]).toEqual([1, 2, 3, 4, 9, 10, 11, 12]);
+    expect(capture.complete).toBe(false);
+    expect(capture.totalBytes).toBe(12);
+  });
+
+  test('keeps only the head when the caller asks for no tail', () => {
+    const capture = createFxOutputCapture({ headBytes: 4, tailBytes: 0 });
+    capture.add(Uint8Array.from([1, 2, 3, 4, 5, 6]));
+    capture.add(Uint8Array.from([7, 8]));
+
+    expect([...capture.toBytes()]).toEqual([1, 2, 3, 4]);
+    expect(capture.complete).toBe(false);
+    expect(capture.totalBytes).toBe(8);
+  });
+
   test('copies a view the head keeps whole', () => {
     const { view, overwrite } = viewOfLargerAllocation();
     const capture = createFxOutputCapture({ headBytes: 16, tailBytes: 16 });

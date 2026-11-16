@@ -153,10 +153,12 @@ export function createFxOutputCapture(options: {
           continue;
         }
         /*
-         * The kept part of a partially dropped chunk is copied for the same
-         * reason as the head: a large chunk must not stay alive for it.
+         * Only the front entry is ever cut this way, and it is at most
+         * `tailBytes` long, so the view it leaves keeps at most that much
+         * beyond what is counted, and copying it again for every small chunk
+         * would cost time rather than memory.
          */
-        tail[0] = new Uint8Array(first.subarray(excess));
+        tail[0] = first.subarray(excess);
         tailLength -= excess;
         droppedBytes += excess;
       }
