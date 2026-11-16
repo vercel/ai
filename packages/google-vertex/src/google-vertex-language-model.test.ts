@@ -160,3 +160,50 @@ it('should preserve local JSON Schema references in tool requests', async () => 
     },
   });
 });
+
+it('should pass safetySettings through Vertex', async () => {
+  server.urls[TEST_URL].response = {
+    type: 'json-value',
+    body: {
+      candidates: [
+        {
+          content: { parts: [{ text: 'Done' }], role: 'model' },
+          finishReason: 'STOP',
+          index: 0,
+        },
+      ],
+    },
+  };
+
+  const provider = createGoogleVertex({ apiKey: 'test-api-key' });
+
+  await provider('gemini-2.5-flash').doGenerate({
+    prompt: TEST_PROMPT,
+    providerOptions: {
+      googleVertex: {
+        safetySettings: [
+          {
+            category: 'HARM_CATEGORY_IMAGE_HATE',
+            threshold: 'BLOCK_LOW_AND_ABOVE',
+          },
+          {
+            category: 'HARM_CATEGORY_JAILBREAK',
+            threshold: 'BLOCK_ONLY_HIGH',
+          },
+        ],
+      },
+    },
+  });
+
+  const requestBody = await server.calls[0].requestBodyJson;
+  expect(requestBody.safetySettings).toEqual([
+    {
+      category: 'HARM_CATEGORY_IMAGE_HATE',
+      threshold: 'BLOCK_LOW_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_JAILBREAK',
+      threshold: 'BLOCK_ONLY_HIGH',
+    },
+  ]);
+});
