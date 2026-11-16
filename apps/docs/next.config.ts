@@ -1,6 +1,7 @@
 import { createGeistdocs } from '@vercel/geistdocs/next';
 import type { NextConfig } from 'next';
 import { exampleRedirects } from './lib/example-redirects';
+import { hasPrebuiltSearchIndex } from './lib/geistdocs/search-index-mode.mjs';
 import { legacyRedirects } from './lib/legacy-redirects';
 import { versionHostRedirects } from './lib/version-host-redirects';
 
@@ -12,6 +13,11 @@ const withGeistdocs = createGeistdocs();
 const config: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
+  env: {
+    // Inlined at build time so `lib/geistdocs/search-sources.ts` bundles
+    // either the prebuilt search index or the compiled pages, never both.
+    DOCS_PREBUILT_SEARCH_INDEX: String(hasPrebuiltSearchIndex),
+  },
   experimental: {
     // Cap static-generation workers: the Vercel build machine exposes 30
     // cores, and ~29 concurrent prerender workers OOM the container during

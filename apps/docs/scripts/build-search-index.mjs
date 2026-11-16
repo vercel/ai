@@ -11,6 +11,11 @@
  * Run it after `fumadocs-mdx`: collections, schemas, and MDX options are read
  * from the config that command compiles to `.source/source.config.mjs`, so the
  * index is built from the same definitions as the site.
+ *
+ * It only builds the index for production deployments and does nothing
+ * otherwise (see lib/geistdocs/search-index-mode.mjs). To build it locally:
+ *
+ *   VERCEL_ENV=production pnpm build:site
  */
 
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -24,6 +29,7 @@ import {
   workerData,
 } from 'node:worker_threads';
 import { applyMdxPreset, remarkInclude } from 'fumadocs-mdx/config';
+import { hasPrebuiltSearchIndex } from '../lib/geistdocs/search-index-mode.mjs';
 import {
   collectSearchFiles,
   createStructureExtractor,
@@ -33,6 +39,11 @@ import {
 const appDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const outDir = join(appDir, '.search-index');
 const log = message => console.log(`[search-index] ${message}`);
+
+if (!hasPrebuiltSearchIndex) {
+  log('skipped: only production deployments search a prebuilt index');
+  process.exit(0);
+}
 
 const { default: globalConfig = {}, ...collections } = await import(
   pathToFileURL(join(appDir, '.source/source.config.mjs')).href
