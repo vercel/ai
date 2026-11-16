@@ -226,9 +226,8 @@ documentation for the tools and models available in batches.
 
 ## Structured output
 
-`startBatch` accepts the same `output` specification as `generateText`. Its
-response format is sent with every text request in the batch. Image requests
-ignore it:
+`startBatch` accepts an `output` option for structured output. It is used by every
+text request in the batch. Other batch formats, like image requests, ignore it.
 
 ```ts
 import {
@@ -271,19 +270,13 @@ for await (const item of getBatchResults({ batch, output })) {
 }
 ```
 
-A parsing or validation failure does not fail the item or the iteration. The
-item stays `succeeded` with `text`, `usage`, and the other results intact, and
-has an `outputError` instead of `output`. This lets you resubmit only the
+Parsing or validation failures don't fail the entire item. Instead, items get
+an `outputError` instead of `output`. This lets you resubmit only the
 requests whose response was not valid. Without `output`, the raw JSON is
 available in `text`.
 
 Because `output` applies to the whole batch, all text items are parsed with the
-same specification. To use different schemas, start separate batches. Support for structured output depends on the provider and model:
-
-- Anthropic batches require a model with native structured output.
-- Google batches do not support output schemas, because the Google batch
-  endpoint does not enforce them. Requests with a schema are rejected when the
-  batch is started.
+same specification. To use different schemas, start separate batches.
 
 ## Checking batch status
 
