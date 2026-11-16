@@ -3,6 +3,15 @@ import type { GrepToolInput } from '@earendil-works/pi-coding-agent';
 import { describe, expect, test, vi } from 'vitest';
 import { createPiGrepTool } from './pi-grep-tool';
 
+/**
+ * Output of a recursive search as the sandbox frames it: `path\0 line:text … \0`
+ * per file, followed by the marker that a complete search prints.
+ */
+function framedOutput(blocks: string[]): string {
+  const nul = '\u0000';
+  return `${blocks.join(nul)}${nul}/pi-grep-complete${nul}`;
+}
+
 async function setup() {
   const session = await createJustBashNetworkSandboxSession();
   const workDir = session.defaultWorkingDirectory;
@@ -196,6 +205,168 @@ describe('createPiGrepTool', () => {
     ).toBe('a=b.txt-1- first\na=b.txt:2: match me\na=b.txt-3- last');
   });
 
+  test('searches files whose names contain colon digits colon', async () => {
+    const { session, workDir, grep } = await setup();
+    // The prefix of the crafted name is a real, tiny file, as in the report.
+    await session.writeTextFile({ path: `${workDir}/a`, content: 'tiny\n' });
+    await session.writeTextFile({
+      path: `${workDir}/a:999999999999999999:b.txt`,
+      content: 'before\nmatch after\nafter\n',
+    });
+    await session.writeTextFile({
+      path: `${workDir}/c:123:d.txt`,
+      content: 'x\nmatch here\n',
+    });
+
+    const result = await grep({ pattern: 'match', context: 1 });
+
+    expect(text(result)).toContain(
+      'a:999999999999999999:b.txt-1- before\na:999999999999999999:b.txt:2: match after\na:999999999999999999:b.txt-3- after',
+    );
+    expect(text(result)).toContain(
+      'c:123:d.txt-1- x\nc:123:d.txt:2: match here',
+    );
+    expect(text(result).split('\n')).toHaveLength(5);
+  });
+
+  test('drops a match with an unsafe line number', async () => {
+    const { session, grep } = await setup();
+    const run = session.run.bind(session);
+    const framed = framedOutput([
+      './crafted.txt',
+      '99999999999999999999:match\n',
+      './plain.txt',
+      '2:ok\n',
+    ]);
+    vi.spyOn(session, 'run').mockImplementation(async options => {
+      if (options.command.includes('NR>=')) {
+        return { exitCode: 0, stdout: '', stderr: '' };
+      }
+      return { exitCode: 0, stdout: framed, stderr: '' };
+    });
+
+    const result = await grep({ pattern: 'match', context: 1 });
+
+    // The unsafe line number is dropped instead of being rendered.
+    expect(text(result)).toBe('plain.txt:2: ok');
+  });
+
+  test('strips the directory prefix that GNU grep prints', async () => {
+    const { session, grep } = await setup();
+    const framed = framedOutput(['././src/a.ts', '1:const foo = 1;\n']);
+    vi.spyOn(session, 'run').mockResolvedValue({
+      exitCode: 0,
+      stdout: framed,
+      stderr: '',
+    });
+
+    const result = await grep({ pattern: 'foo' });
+
+    expect(text(result)).toBe('src/a.ts:1: const foo = 1;');
+  });
+
+  test('drops a block whose path leaves the directory', async () => {
+    const { session, grep } = await setup();
+    const framed = framedOutput([
+      '../../etc/hosts',
+      '1:127.0.0.1 match\n',
+      './plain.txt',
+      '2:ok\n',
+    ]);
+    vi.spyOn(session, 'run').mockResolvedValue({
+      exitCode: 0,
+      stdout: framed,
+      stderr: '',
+    });
+
+    const result = await grep({ pattern: 'match' });
+
+    expect(text(result)).toBe('plain.txt:2: ok');
+  });
+
+  test('reports a cut file list when no match is shown', async () => {
+    const { session, grep } = await setup();
+    // The search listed more files than the cap, and none of them printed a
+    // `line:text`, which is what a binary file does on the Vercel sandbox.
+    const framed = framedOutput(['./a.png', '', './b.png', '']);
+    vi.spyOn(session, 'run').mockResolvedValue({
+      exitCode: 0,
+      stdout: framed,
+      stderr: '',
+    });
+
+    const result = await grep({ pattern: 'match', limit: 1 });
+
+    expect(text(result)).toBe(
+      'No matches found\n\n[Some matches may be missing, the output reached its limit]',
+    );
+  });
+
+  test('keeps a match whose line contains a NUL byte in its own file', async () => {
+    const { session, workDir, grep } = await setup();
+    // A file whose matching line holds a NUL byte must not be able to end the
+    // frame of its file and name another one.
+    await session.writeBinaryFile({
+      path: `${workDir}/nul.txt`,
+      content: new Uint8Array([0x6d, 0x61, 0x74, 0x63, 0x68, 0x00, 0x78, 0x0a]),
+    });
+    await session.writeTextFile({
+      path: `${workDir}/plain.txt`,
+      content: 'match\n',
+    });
+
+    const result = await grep({ pattern: 'match' });
+
+    expect(text(result)).toContain('nul.txt:1: matchx');
+    expect(text(result)).toContain('plain.txt:1: match');
+    expect(text(result).split('\n')).toHaveLength(2);
+  });
+
+  test('bounds the result when many lines match with context', async () => {
+    const { session, workDir, grep } = await setup();
+    const content = Array.from(
+      { length: 4000 },
+      (_, index) => `line ${index + 1} match`,
+    ).join('\n');
+    await session.writeTextFile({ path: `${workDir}/many.txt`, content });
+
+    const result = await grep({ pattern: 'match', context: 1, limit: 4000 });
+
+    expect(text(result)).toContain('many.txt:1: line 1 match');
+    // The result stops at the display limit instead of rendering every match.
+    expect(text(result)).not.toContain('line 4000 match');
+    expect(text(result).length).toBeLessThan(300_000);
+  });
+
+  test('reports a recursive output that the byte cap cut', async () => {
+    const { session, grep } = await setup();
+    const nul = '\u0000';
+    // One frame whose match lines the byte cap cut, so the marker is missing.
+    const body = `${`1:${'x'.repeat(2000)}`}\n`.repeat(600);
+    vi.spyOn(session, 'run').mockResolvedValue({
+      exitCode: 0,
+      stdout: ['./a.txt', body].join(nul),
+      stderr: '',
+    });
+
+    const result = await grep({ pattern: 'x', limit: 5000 });
+
+    expect(text(result)).toContain(
+      'Some matches may be missing, the output reached its limit',
+    );
+  });
+
+  test('refuses a recursive output without the NUL framing', async () => {
+    const { session, grep } = await setup();
+    vi.spyOn(session, 'run').mockResolvedValue({
+      exitCode: 0,
+      stdout: './a.txt1:match\n',
+      stderr: '',
+    });
+
+    await expect(grep({ pattern: 'match' })).rejects.toThrow('NUL framing');
+  });
+
   test('reports the match limit', async () => {
     const { grep } = await setup();
 
@@ -214,6 +385,8 @@ describe('createPiGrepTool', () => {
     await expect(grep({ pattern: 'foo', path: 'missing' })).rejects.toThrow(
       `Path not found: ${workDir}/missing`,
     );
-    await expect(grep({ pattern: '(' })).rejects.toThrow();
+    await expect(grep({ pattern: '(' })).rejects.toThrow(
+      /invalid regular expression|Unmatched/i,
+    );
   });
 });
