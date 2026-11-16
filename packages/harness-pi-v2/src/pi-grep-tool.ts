@@ -70,43 +70,88 @@ type GrepMatch = {
 };
 
 /**
- * Parses the output lines of `grep -n`: `path:line:text` for a recursive
- * search and `line:text` for a single file. Lines that are no matches (e.g.
- * `Binary file ... matches`) are skipped.
+ * Parses the number of a line that `grep -n` reported, or `undefined` when the
+ * sandbox printed something that is not a positive safe integer. A line number
+ * that a filename or a file could forge would otherwise drive the context
+ * rendering.
  */
-function parseGrepOutput(options: {
+function parseLineNumber(options: {
   /**
-   * Standard output of the search.
+   * Digits of the line number.
+   */
+  text: string;
+}): number | undefined {
+  const lineNumber = Number(options.text);
+  return Number.isSafeInteger(lineNumber) && lineNumber > 0
+    ? lineNumber
+    : undefined;
+}
+
+/**
+ * Parses the matches of one file out of `grep -n` output, which prints
+ * `line:text` for an explicit file.
+ */
+function parseMatchLines(options: {
+  /**
+   * Output of the search for one file.
    */
   output: string;
 
   /**
-   * Path to report for a single-file search, which prints no file names.
+   * Path to report for the matches.
    */
-  singleFile?: string;
+  relativePath: string;
 }): GrepMatch[] {
   const matches: GrepMatch[] = [];
   for (const line of options.output.split('\n')) {
-    if (options.singleFile != null) {
-      const match = /^(\d+):(.*)$/s.exec(line);
-      if (match == null) continue;
-      matches.push({
-        relativePath: options.singleFile,
-        lineNumber: Number.parseInt(match[1], 10),
-        lineText: match[2],
-      });
-      continue;
-    }
-    const match = /^(.+?):(\d+):(.*)$/s.exec(line);
+    const match = /^(\d+):(.*)$/s.exec(line);
     if (match == null) continue;
+    const lineNumber = parseLineNumber({ text: match[1] ?? '' });
+    if (lineNumber == null) continue;
     matches.push({
-      relativePath: match[1].replace(/^\.\//, ''),
-      lineNumber: Number.parseInt(match[2], 10),
-      lineText: match[3],
+      relativePath: options.relativePath,
+      lineNumber,
+      lineText: match[2] ?? '',
     });
   }
   return matches;
 }
+
+/**
+ * Parses the output of a recursive search, which the sandbox frames as
+ * `path\0 line:text … \0` per file.
+ *
+ * A filename can contain `:`, so the file name is delimited by a NUL byte that
+ * a filename cannot contain and the matches of a file follow as `line:text`.
+ * Blocks that do not parse are skipped, as are lines that are no matches (e.g.
+ * `Binary file ... matches`).
+ */
+function parseRecursiveOutput(options: {
+  /**
+   * Framed output of the search.
+   */
+  output: string;
+}): GrepMatch[] {
+  const matches: GrepMatch[] = [];
+  const blocks = options.output.split('\0');
+  for (let index = 0; index + 1 < blocks.length; index += 2) {
+    const relativePath = (blocks[index] ?? '').replace(/^\.\//, '');
+    if (relativePath.length === 0) continue;
+    matches.push(
+      ...parseMatchLines({
+        output: blocks[index + 1] ?? '',
+        relativePath,
+      }),
+    );
+  }
+  return matches;
+}
+
+/**
+ * Files that one recursive search may open, so a search that matches many files
+ * does not build an oversized sandbox command.
+ */
+const MAX_SEARCH_FILES = 250;
 
 /**
  * Merges line ranges that overlap or touch, sorted by their first line, so one
@@ -270,41 +315,54 @@ async function executeGrep(options: {
   const contextValue = input.context && input.context > 0 ? input.context : 0;
   const limit = Math.max(1, input.limit ?? DEFAULT_LIMIT);
 
-  const flags = [
+  const matchFlags = [
     '-n',
-    ...(isDirectory
-      ? [
-          '-r',
-          ...EXCLUDED_DIRECTORIES.map(name => `--exclude-dir=${name}`),
-          ...(input.glob
-            ? [`--include=${path.posix.basename(input.glob)}`]
-            : []),
-        ]
-      : []),
     ...(input.ignoreCase ? ['-i'] : []),
     input.literal ? '-F' : '-E',
   ];
-  const target = isDirectory ? '.' : `./${fileName}`;
+  const fileFlags = [
+    '-r',
+    '-l',
+    ...EXCLUDED_DIRECTORIES.map(name => `--exclude-dir=${name}`),
+    ...(input.glob ? [`--include=${path.posix.basename(input.glob)}`] : []),
+    ...(input.ignoreCase ? ['-i'] : []),
+    input.literal ? '-F' : '-E',
+  ];
+  const quotedFlags = (flags: string[]) => flags.map(shellQuote).join(' ');
+  const quotedPattern = shellQuote(input.pattern);
+  const fileLimit = Math.min(limit, MAX_SEARCH_FILES);
+  /*
+   * A filename can contain `:`, so a recursive search cannot report
+   * `path:line:text`: the files that match are listed first and each one is
+   * searched on its own, framed by NUL bytes around `path` and its matches.
+   * The per-line cut and the byte cap keep the transfer bounded. The per-file
+   * search runs in a subshell because just-bash skips loop iterations when the
+   * body pipes a command directly.
+   */
+  const command = isDirectory
+    ? `set -o pipefail; cd ${shellQuote(directory)} && grep ${quotedFlags(fileFlags)} -e ${quotedPattern} . | head -n ${fileLimit + 1} | while IFS= read -r file; do printf '%s\\0' "./$file"; ( grep ${quotedFlags(matchFlags)} -e ${quotedPattern} "./$file" | head -n ${limit} | awk '{ print substr($0, 1, ${LINE_MAX_CHARS}) }' ); printf '\\0'; done | head -c ${MATCH_MAX_BYTES}`
+    : `set -o pipefail; cd ${shellQuote(directory)} && grep ${quotedFlags(matchFlags)} -e ${quotedPattern} ${shellQuote(`./${fileName}`)} | head -n ${limit} | awk '{ print substr($0, 1, ${LINE_MAX_CHARS}) }' | head -c ${MATCH_MAX_BYTES}`;
   let result: { exitCode: number; stdout: string; stderr: string };
   try {
-    result = await session.run({
-      command: `set -o pipefail; cd ${shellQuote(directory)} && grep ${flags.map(shellQuote).join(' ')} -e ${shellQuote(input.pattern)} ${shellQuote(target)} | head -n ${limit} | awk '{ print substr($0, 1, ${LINE_MAX_CHARS}) }' | head -c ${MATCH_MAX_BYTES}`,
-      abortSignal,
-    });
+    result = await session.run({ command, abortSignal });
   } catch (error) {
     if (abortSignal?.aborted) throw new Error('Operation aborted');
     throw error;
   }
   if (abortSignal?.aborted) throw new Error('Operation aborted');
 
-  const matches = parseGrepOutput({
-    output: result.stdout,
-    singleFile: isDirectory ? undefined : fileName,
-  }).slice(0, limit);
+  const matches = (
+    isDirectory
+      ? parseRecursiveOutput({ output: result.stdout })
+      : parseMatchLines({ output: result.stdout, relativePath: fileName })
+  ).slice(0, limit);
   // The search output is capped in bytes, so the last match can be cut off.
   const matchesTruncated =
     Buffer.byteLength(result.stdout, 'utf-8') >= MATCH_MAX_BYTES &&
     !result.stdout.endsWith('\n');
+  const filesTruncated =
+    isDirectory &&
+    Math.floor((result.stdout.split('\0').length - 1) / 2) > fileLimit;
   /*
    * grep exits with 1 when nothing matched, and with 141 when `head` closed
    * the pipe after reaching the limit. A recursive search that hit an
@@ -401,19 +459,28 @@ async function executeGrep(options: {
     }
     const start = Math.max(1, match.lineNumber - contextValue);
     const end = match.lineNumber + contextValue;
-    for (let current = start; current <= end; current++) {
-      if (current === match.lineNumber) {
-        // The matching line comes from the search itself, so it is complete
-        // even where the context read stopped at its byte limit.
-        outputLines.push(
-          `${match.relativePath}:${current}: ${formatLine(match.lineText)}`,
-        );
-        continue;
+    /*
+     * Render the lines that the sandbox returned for this window instead of
+     * every number from `start` to `end`: the range can be huge and a forged
+     * line number cannot make this loop.
+     */
+    const window: Array<{ line: number; text: string; match: boolean }> = [];
+    if (context != null) {
+      for (const [line, text] of context) {
+        if (line === match.lineNumber) continue;
+        if (line < start || line > end) continue;
+        window.push({ line, text, match: false });
       }
-      const contextText = context?.get(current);
-      if (contextText == null) continue;
+    }
+    // The matching line comes from the search itself, so it is complete even
+    // where the context read stopped at its byte limit.
+    window.push({ line: match.lineNumber, text: match.lineText, match: true });
+    window.sort((left, right) => left.line - right.line);
+    for (const entry of window) {
       outputLines.push(
-        `${match.relativePath}-${current}- ${formatLine(contextText)}`,
+        entry.match
+          ? `${match.relativePath}:${entry.line}: ${formatLine(entry.text)}`
+          : `${match.relativePath}-${entry.line}- ${formatLine(entry.text)}`,
       );
     }
   }
@@ -443,7 +510,7 @@ async function executeGrep(options: {
   if (contextTruncated) {
     notices.push('Some context lines omitted for large files');
   }
-  if (matchesTruncated) {
+  if (matchesTruncated || filesTruncated) {
     notices.push('Some matches may be missing, the output reached its limit');
   }
   if (notices.length > 0) output += `\n\n[${notices.join('. ')}]`;
@@ -460,13 +527,16 @@ async function executeGrep(options: {
  * The tool is Pi's own grep tool, but since Pi's implementation runs ripgrep
  * on the local file system, its execution runs `grep` in the sandbox
  * instead: recursively for a directory (skipping `.git` and `node_modules`),
- * as an extended regular expression or a literal string, and limited to `limit` matches (100 by default). `glob`
- * filters file names. Matches are formatted like Pi's (`path:line: text`,
- * with `path-line- text` context lines), long lines are truncated, the output
- * is cut at Pi's byte limit, and Pi's notices are appended when a limit was
- * reached. Context lines are selected in the sandbox and bounded in bytes, so a
- * match in a file that is far larger than the host should hold does not read
- * that file.
+ * as an extended regular expression or a literal string, and limited to `limit`
+ * matches (100 by default). `glob` filters file names. A recursive search lists
+ * the matching files and searches each of them on its own, framed by NUL bytes
+ * around its path and its matches, because a file name may contain the `:` that
+ * `grep` puts between path, line and text. Matches are formatted like Pi's
+ * (`path:line: text`, with `path-line- text` context lines), long lines are
+ * truncated, the output is cut at Pi's byte limit, and Pi's notices are appended
+ * when a limit was reached. Context lines are selected in the sandbox, bounded
+ * in bytes, and rendered from the lines that came back, so a match in a file
+ * that is far larger than the host should hold does not read that file.
  *
  * Throws `Path not found` for a missing path, `Operation aborted` when the
  * signal aborts, and the search's error output when it fails.

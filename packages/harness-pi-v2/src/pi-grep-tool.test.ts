@@ -196,6 +196,55 @@ describe('createPiGrepTool', () => {
     ).toBe('a=b.txt-1- first\na=b.txt:2: match me\na=b.txt-3- last');
   });
 
+  test('searches files whose names contain colon digits colon', async () => {
+    const { session, workDir, grep } = await setup();
+    // The prefix of the crafted name is a real, tiny file, as in the report.
+    await session.writeTextFile({ path: `${workDir}/a`, content: 'tiny\n' });
+    await session.writeTextFile({
+      path: `${workDir}/a:999999999999999999:b.txt`,
+      content: 'before\nmatch after\nafter\n',
+    });
+    await session.writeTextFile({
+      path: `${workDir}/c:123:d.txt`,
+      content: 'x\nmatch here\n',
+    });
+
+    const result = await grep({ pattern: 'match', context: 1 });
+
+    expect(text(result)).toContain(
+      'a:999999999999999999:b.txt-1- before\na:999999999999999999:b.txt:2: match after\na:999999999999999999:b.txt-3- after',
+    );
+    expect(text(result)).toContain(
+      'c:123:d.txt-1- x\nc:123:d.txt:2: match here',
+    );
+    expect(text(result).split('\n')).toHaveLength(5);
+  });
+
+  test('drops a match with an unsafe line number', async () => {
+    const { session, grep } = await setup();
+    const run = session.run.bind(session);
+    // The sandbox frames each file as `path\0 line:text … \0`.
+    const nul = '\u0000';
+    const framed = [
+      './crafted.txt',
+      '99999999999999999999:match\n',
+      './plain.txt',
+      '2:ok\n',
+      '',
+    ].join(nul);
+    vi.spyOn(session, 'run').mockImplementation(async options => {
+      if (options.command.includes('NR>=')) {
+        return { exitCode: 0, stdout: '', stderr: '' };
+      }
+      return { exitCode: 0, stdout: framed, stderr: '' };
+    });
+
+    const result = await grep({ pattern: 'match', context: 1 });
+
+    // The unsafe line number is dropped instead of being rendered.
+    expect(text(result)).toBe('plain.txt:2: ok');
+  });
+
   test('reports the match limit', async () => {
     const { grep } = await setup();
 
