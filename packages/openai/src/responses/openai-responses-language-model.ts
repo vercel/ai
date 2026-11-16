@@ -216,6 +216,31 @@ function mapComputerCallInput({
   };
 }
 
+/**
+ * Adds warnings that are not already present, so a tool that is both sent in
+ * the request tools and loaded from history does not report its schema
+ * warnings twice.
+ */
+function mergeWarnings(
+  target: Array<SharedV4Warning>,
+  warnings: Array<SharedV4Warning>,
+): Array<SharedV4Warning> {
+  const seen = new Set(target.map(warning => JSON.stringify(warning)));
+
+  for (const warning of warnings) {
+    const signature = JSON.stringify(warning);
+
+    if (seen.has(signature)) {
+      continue;
+    }
+
+    seen.add(signature);
+    target.push(warning);
+  }
+
+  return target;
+}
+
 export const openaiResponsesSupportedUrls: Record<string, RegExp[]> = {
   'image/*': [/^https?:\/\/.*$/],
   'application/pdf': [/^https?:\/\/.*$/],
@@ -462,7 +487,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         findAdditionalToolDefinition: findAdditionalToolForRequest,
       });
 
-    warnings.push(...inputWarnings);
+    mergeWarnings(warnings, inputWarnings);
 
     // The schema accepts update efforts supported by any supported model. Check
     // whether this specific model supports the requested effort.
@@ -854,7 +879,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         tools: openaiTools,
         tool_choice: openaiToolChoice,
       }),
-      warnings: [...warnings, ...toolWarnings],
+      warnings: mergeWarnings([...warnings], toolWarnings),
       store,
       toolNameMapping,
       providerOptionsName,
