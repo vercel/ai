@@ -1,7 +1,11 @@
 import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
-import type { BashToolInput } from '@earendil-works/pi-coding-agent';
-import { describe, expect, test } from 'vitest';
-import { createPiBashTool } from './pi-bash-tool';
+import type { Experimental_SandboxProcess } from '@ai-sdk/provider-utils';
+import {
+  DEFAULT_MAX_BYTES,
+  type BashToolInput,
+} from '@earendil-works/pi-coding-agent';
+import { describe, expect, test, vi } from 'vitest';
+import { createPiBashTool, RetainedOutput } from './pi-bash-tool';
 
 async function setup() {
   const session = await createJustBashNetworkSandboxSession();
@@ -96,5 +100,330 @@ describe('createPiBashTool', () => {
     });
     expect(full?.endsWith('2999\n3000\n')).toBe(true);
     expect(full?.startsWith('1\n2\n')).toBe(true);
+  });
+
+  test('writes the retained tail to a file in the sandbox', async () => {
+    const { session, bash } = await setup();
+
+    const result = await bash({ input: { command: 'seq 1 100000' } });
+
+    expect(text(result)).toMatch(
+      /\n100000\n\n\[Showing lines 98001-100000 of 100000\. Output truncated at \d+\.\dKB: \/tmp\/pi-bash-call-1\.log\]$/,
+    );
+    const full = await session.stat({ path: '/tmp/pi-bash-call-1.log' });
+    expect(full!.size).toBeLessThanOrEqual(200 * 1024);
+    const tail = await session.readTextFile({
+      path: '/tmp/pi-bash-call-1.log',
+    });
+    expect(tail?.endsWith('99999\n100000\n')).toBe(true);
+  });
+
+  test('keeps the end of a single line that exceeds the byte limit', async () => {
+    const { session, bash } = await setup();
+
+    const result = await bash({
+      input: { command: `seq 1 100000 | tr -d '\\n'` },
+    });
+
+    expect(text(result)).toMatch(
+      /\n\n\[Showing last 50\.0KB of line 1 \(line is 477\.4KB\)\. Output truncated at \d+\.\dKB: \/tmp\/pi-bash-call-1\.log\]$/,
+    );
+    const full = await session.stat({ path: '/tmp/pi-bash-call-1.log' });
+    expect(full!.size).toBeLessThanOrEqual(200 * 1024);
+  });
+
+  test('passes the abort signal to the log file write', async () => {
+    const { session, bash } = await setup();
+    const writeTextFile = vi.spyOn(session, 'writeTextFile');
+    const abortController = new AbortController();
+
+    await bash({
+      input: { command: 'seq 1 3000' },
+      abortSignal: abortController.signal,
+    });
+
+    expect(writeTextFile).toHaveBeenCalledTimes(1);
+    expect(writeTextFile.mock.calls[0]![0]).toMatchObject({
+      path: '/tmp/pi-bash-call-1.log',
+      abortSignal: abortController.signal,
+    });
+  });
+
+  test('writes no output file when the output is not truncated', async () => {
+    const { session, bash } = await setup();
+
+    const result = await bash({ input: { command: 'echo hi' } });
+
+    expect(text(result)).toBe('hi\n');
+    expect(result.details).toBeUndefined();
+    expect(await session.stat({ path: '/tmp/pi-bash-call-1.log' })).toBeNull();
+  });
+
+  test('stops a command that floods its output', async () => {
+    let killed = false;
+    let sent = 0;
+    const chunk = new TextEncoder().encode(`${'x'.repeat(63)}\n`);
+    const session = await createJustBashNetworkSandboxSession();
+    // The sandbox doubles stop long commands before they can flood, and their
+    // memory is the host's, so the command is replaced by a stream.
+    const floodingProcess: Experimental_SandboxProcess = {
+      stdout: new ReadableStream<Uint8Array>({
+        pull(controller) {
+          if (killed || sent > 20 * 1024 * 1024) {
+            controller.close();
+            return;
+          }
+          controller.enqueue(chunk);
+          sent += chunk.length;
+        },
+      }),
+      stderr: new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.close();
+        },
+      }),
+      wait: async () => ({ exitCode: killed ? 137 : 0 }),
+      kill: async () => {
+        killed = true;
+      },
+    };
+    vi.spyOn(session, 'spawn').mockImplementation(async () => floodingProcess);
+    const tool = createPiBashTool({ session, workDir: '/workspace' });
+
+    const result = await tool.execute(
+      'call-1',
+      { command: 'noisy' },
+      new AbortController().signal,
+      () => {},
+    );
+
+    expect(killed).toBe(true);
+    expect(result).toMatchObject({ isError: true });
+    expect(text(result)).toMatch(
+      /Command stopped after producing more than 16\.0MB of output$/,
+    );
+  });
+
+  test('returns when a stopped command keeps its output open', async () => {
+    let sent = 0;
+    const chunk = new TextEncoder().encode('x'.repeat(64 * 1024 - 1) + '\n');
+    // A sandbox can leave a writer alive after the shell it killed, and then
+    // `wait()` returns while the output stream stays open. The stream parks
+    // instead of closing, without spinning.
+    const floodingProcess: Experimental_SandboxProcess = {
+      stdout: new ReadableStream<Uint8Array>({
+        pull(controller) {
+          if (sent > 20 * 1024 * 1024) return new Promise(() => {});
+          controller.enqueue(chunk);
+          sent += chunk.length;
+          return undefined;
+        },
+      }),
+      stderr: new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.close();
+        },
+      }),
+      wait: async () => ({ exitCode: 143 }),
+      kill: async () => {},
+    };
+    const session = await createJustBashNetworkSandboxSession();
+    vi.spyOn(session, 'spawn').mockImplementation(async () => floodingProcess);
+    const tool = createPiBashTool({ session, workDir: '/workspace' });
+
+    const result = await tool.execute(
+      'call-1',
+      { command: 'noisy' },
+      new AbortController().signal,
+      () => {},
+    );
+
+    expect(result).toMatchObject({ isError: true });
+    expect(text(result)).toMatch(
+      /Command stopped after producing more than 16\.0MB of output$/,
+    );
+  });
+
+  test('keeps the shell semantics of the command', async () => {
+    const { bash } = await setup();
+
+    expect(text(await bash({ input: { command: 'echo hi | cat' } }))).toBe(
+      'hi\n',
+    );
+    // As in bash, the exit code of a pipeline is the last command's.
+    expect(
+      (await bash({ input: { command: 'false | cat' } })).isError,
+    ).toBeUndefined();
+    expect(
+      text(await bash({ input: { command: 'cat <<EOF\nhi\nthere\nEOF' } })),
+    ).toBe('hi\nthere\n');
+
+    const failed = await bash({
+      input: { command: 'set -e; false; echo after' },
+    });
+    expect(failed).toMatchObject({ isError: true });
+    expect(text(failed)).toBe('(no output)\n\nCommand exited with code 1');
+  });
+
+  test('keeps the stopped result when the sandbox reports the stop as a failure', async () => {
+    let killed = false;
+    let releaseKill: () => void = () => {};
+    const killSignal = new Promise<void>(resolve => {
+      releaseKill = resolve;
+    });
+    const chunk = new TextEncoder().encode(`${'x'.repeat(63)}\n`);
+    const floodingProcess: Experimental_SandboxProcess = {
+      stdout: new ReadableStream<Uint8Array>({
+        pull(controller) {
+          if (killed) {
+            controller.close();
+            return;
+          }
+          controller.enqueue(chunk);
+        },
+      }),
+      stderr: new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.close();
+        },
+      }),
+      wait: async () => {
+        await killSignal;
+        throw new Error('command was killed');
+      },
+      kill: async () => {
+        killed = true;
+        releaseKill();
+      },
+    };
+    const session = await createJustBashNetworkSandboxSession();
+    vi.spyOn(session, 'spawn').mockImplementation(async () => floodingProcess);
+    const tool = createPiBashTool({ session, workDir: '/workspace' });
+
+    const result = await tool.execute(
+      'call-1',
+      { command: 'noisy' },
+      new AbortController().signal,
+      () => {},
+    );
+
+    expect(result).toMatchObject({ isError: true });
+    expect(text(result)).toMatch(
+      /Command stopped after producing more than 16\.0MB of output$/,
+    );
+  });
+
+  test('stops the command when the sandbox cannot kill it', async () => {
+    const createProcess = (
+      kill: () => Promise<void>,
+    ): Experimental_SandboxProcess => {
+      const chunk = new TextEncoder().encode(`${'x'.repeat(63)}\n`);
+      return {
+        stdout: new ReadableStream<Uint8Array>({
+          pull(controller) {
+            controller.enqueue(chunk);
+          },
+        }),
+        stderr: new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.close();
+          },
+        }),
+        wait: async () => ({ exitCode: 137 }),
+        kill,
+      };
+    };
+    const stopped =
+      /Command stopped after producing more than 16\.0MB of output$/;
+
+    for (const kill of [
+      () => {
+        throw new Error('kill is unsupported');
+      },
+      async () => {
+        throw new Error('kill is unsupported');
+      },
+    ]) {
+      const session = await createJustBashNetworkSandboxSession();
+      vi.spyOn(session, 'spawn').mockImplementation(async () =>
+        createProcess(kill),
+      );
+      const tool = createPiBashTool({ session, workDir: '/workspace' });
+
+      const result = await tool.execute(
+        'call-1',
+        { command: 'noisy' },
+        new AbortController().signal,
+        () => {},
+      );
+
+      expect(result).toMatchObject({ isError: true });
+      expect(text(result)).toMatch(stopped);
+    }
+  });
+
+  test('keeps the exit code and trailing comments of the command', async () => {
+    const { bash } = await setup();
+
+    expect(text(await bash({ input: { command: 'echo hi # comment' } }))).toBe(
+      'hi\n',
+    );
+    const failed = await bash({ input: { command: 'echo bye; exit 4' } });
+    expect(failed).toMatchObject({ isError: true });
+    expect(text(failed)).toBe('bye\n\n\nCommand exited with code 4');
+  });
+});
+
+describe('RetainedOutput', () => {
+  test('keeps only a bounded tail of output far above the limits', () => {
+    const output = new RetainedOutput();
+    const line = 'line\n';
+    for (let index = 0; index < 100_000; index++) output.append(line);
+
+    // Twice the tail kept for display, i.e. the hard bound of the class.
+    expect(output.retainedBytes).toBeLessThanOrEqual(4 * DEFAULT_MAX_BYTES);
+
+    const truncation = output.snapshot();
+    expect(truncation.truncated).toBe(true);
+    expect(truncation.truncatedBy).toBe('lines');
+    expect(truncation.totalBytes).toBe(500_000);
+    expect(truncation.totalLines).toBe(100_000);
+    expect(truncation.outputLines).toBe(2000);
+    expect(truncation.content.split('\n')).toHaveLength(2000);
+    expect(truncation.content.endsWith('line')).toBe(true);
+  });
+
+  test('keeps the end of a line that exceeds the byte limit', () => {
+    const output = new RetainedOutput();
+    output.append('a'.repeat(300_000));
+
+    // Twice the tail kept for display, i.e. the hard bound of the class.
+    expect(output.retainedBytes).toBeLessThanOrEqual(4 * DEFAULT_MAX_BYTES);
+
+    const truncation = output.snapshot();
+    expect(truncation).toMatchObject({
+      truncated: true,
+      truncatedBy: 'bytes',
+      lastLinePartial: true,
+      totalBytes: 300_000,
+      totalLines: 1,
+    });
+    expect(truncation.content).toBe('a'.repeat(DEFAULT_MAX_BYTES));
+    expect(output.lastLineBytes).toBe(300_000);
+  });
+
+  test('returns output within the limits unchanged', () => {
+    const output = new RetainedOutput();
+    output.append('out\n');
+    output.append('err\n');
+
+    expect(output.snapshot()).toMatchObject({
+      content: 'out\nerr\n',
+      truncated: false,
+      truncatedBy: null,
+      totalBytes: 8,
+      totalLines: 2,
+    });
+    expect(output.retainedBytes).toBe(8);
   });
 });

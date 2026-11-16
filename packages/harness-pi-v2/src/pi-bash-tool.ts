@@ -6,14 +6,34 @@ import type {
 import {
   createBashTool,
   DEFAULT_MAX_BYTES,
+  DEFAULT_MAX_LINES,
   formatSize,
   truncateTail,
   type BashToolDetails,
   type BashToolInput,
+  type TruncationResult,
 } from '@earendil-works/pi-coding-agent';
 
 const MAX_TIMEOUT_MS = 2_147_483_647;
 const UPDATE_THROTTLE_MS = 500;
+
+/**
+ * Bytes of command output that the host keeps for the displayed result. Pi
+ * shows at most `DEFAULT_MAX_BYTES` bytes of the end of the output; twice that
+ * limit leaves enough output to cut the retained text at a line boundary
+ * instead of in the middle of a line. A command that produces more output is
+ * not limited, but the host only ever holds this much of it.
+ */
+const TARGET_RETAINED_OUTPUT_BYTES = 2 * DEFAULT_MAX_BYTES;
+
+/**
+ * Bytes of output above which the retained tail is cut back to
+ * `TARGET_RETAINED_OUTPUT_BYTES`, and therefore the hard limit of what the
+ * output of a command can add to the host's memory. Trimming at twice the
+ * target runs the trim once per target's worth of output instead of once per
+ * chunk.
+ */
+const MAX_RETAINED_OUTPUT_BYTES = 2 * TARGET_RETAINED_OUTPUT_BYTES;
 
 /**
  * Validates a bash timeout given in seconds and returns it in milliseconds,
@@ -42,6 +62,9 @@ function resolveTimeoutMs(options: {
 
 /**
  * Reads a byte stream to its end, passing each decoded chunk to `onText`.
+ *
+ * Stops reading when the signal aborts, so that a stream which stays open
+ * after its command was stopped does not keep the caller waiting.
  */
 async function readStream(options: {
   /**
@@ -53,9 +76,19 @@ async function readStream(options: {
    * Receives each decoded chunk.
    */
   onText: (text: string) => void;
+
+  /**
+   * Signal that stops the read.
+   */
+  abortSignal?: AbortSignal;
 }): Promise<void> {
   const decoder = new TextDecoder();
   const reader = options.stream.getReader();
+  const onAbort = () => {
+    // An already errored stream rejects the cancel.
+    reader.cancel().catch(() => {});
+  };
+  options.abortSignal?.addEventListener('abort', onAbort, { once: true });
   try {
     for (;;) {
       const { done, value } = await reader.read();
@@ -64,6 +97,7 @@ async function readStream(options: {
     }
     options.onText(decoder.decode());
   } finally {
+    options.abortSignal?.removeEventListener('abort', onAbort);
     reader.releaseLock();
   }
 }
@@ -83,6 +117,159 @@ function appendStatus(options: {
   status: string;
 }): string {
   return `${options.text ? `${options.text}\n\n` : ''}${options.status}`;
+}
+
+/**
+ * Bytes of output above which the host stops a command. Pi keeps the end of
+ * the output for display, so this budget does not limit what a command shows;
+ * it only stops a command that floods its output, which would otherwise keep
+ * the sandbox busy until its timeout and grow the log file in the sandbox
+ * without bound.
+ */
+const MAX_COMMAND_OUTPUT_BYTES = 16 * 1024 * 1024;
+
+/**
+ * Collects the output of a command for the result while keeping only a bounded
+ * tail of it in the host's memory.
+ *
+ * The end of the output is kept for the displayed result, and the bytes and
+ * lines of the whole output are counted for the truncation notice, as Pi's
+ * bash tool reports them. Everything before the retained tail is dropped, so a
+ * command whose output is far above the display limits cannot grow the host's
+ * memory beyond `MAX_RETAINED_OUTPUT_BYTES`.
+ *
+ * Exported for the tool's tests, not as part of the package's API.
+ */
+export class RetainedOutput {
+  /**
+   * Tail of the output, at most `MAX_RETAINED_OUTPUT_BYTES` bytes.
+   */
+  private tail = '';
+  private tailBytes = 0;
+  private tailStartsAtLineBoundary = true;
+
+  /**
+   * Bytes of the whole output.
+   */
+  private totalBytes = 0;
+  private completedLines = 0;
+  private totalLines = 0;
+  private currentLineBytes = 0;
+  private hasOpenLine = false;
+
+  /**
+   * Appends one decoded chunk of output, dropping the start of the retained
+   * tail once it exceeds the hard limit, so that trimming does not run for
+   * every chunk.
+   */
+  append(text: string): void {
+    if (text.length === 0) return;
+
+    const bytes = Buffer.byteLength(text, 'utf-8');
+    this.totalBytes += bytes;
+    this.tail += text;
+    this.tailBytes += bytes;
+    if (this.tailBytes > MAX_RETAINED_OUTPUT_BYTES) this.trimTail();
+
+    let newlines = 0;
+    let lastNewline = -1;
+    for (
+      let index = text.indexOf('\n');
+      index !== -1;
+      index = text.indexOf('\n', index + 1)
+    ) {
+      newlines++;
+      lastNewline = index;
+    }
+    if (newlines === 0) {
+      this.currentLineBytes += bytes;
+      this.hasOpenLine = true;
+    } else {
+      this.completedLines += newlines;
+      const lastLine = text.slice(lastNewline + 1);
+      this.currentLineBytes = Buffer.byteLength(lastLine, 'utf-8');
+      this.hasOpenLine = lastLine.length > 0;
+    }
+    this.totalLines = this.completedLines + (this.hasOpenLine ? 1 : 0);
+  }
+
+  /**
+   * Returns the end of the output truncated to Pi's line and byte limits,
+   * along with the counts of the whole output.
+   */
+  snapshot(): TruncationResult {
+    const truncation = truncateTail(this.getSnapshotText());
+    const truncated =
+      this.totalLines > DEFAULT_MAX_LINES ||
+      this.totalBytes > DEFAULT_MAX_BYTES;
+    return {
+      ...truncation,
+      truncated,
+      truncatedBy: truncated
+        ? (truncation.truncatedBy ??
+          (this.totalBytes > DEFAULT_MAX_BYTES ? 'bytes' : 'lines'))
+        : null,
+      totalLines: this.totalLines,
+      totalBytes: this.totalBytes,
+    };
+  }
+
+  /**
+   * Bytes of the last line of the output, whether or not it is retained.
+   */
+  get lastLineBytes(): number {
+    return this.currentLineBytes;
+  }
+
+  /**
+   * Bytes of the whole output.
+   */
+  get bytesReceived(): number {
+    return this.totalBytes;
+  }
+
+  /**
+   * Bytes of the output currently retained in memory.
+   */
+  get retainedBytes(): number {
+    return this.tailBytes;
+  }
+
+  /**
+   * The retained output, without a first line that was cut.
+   */
+  get retained(): string {
+    return this.getSnapshotText();
+  }
+
+  /**
+   * Drops the start of the retained tail down to the target, at a UTF-8
+   * character boundary.
+   */
+  private trimTail(): void {
+    const buffer = Buffer.from(this.tail, 'utf-8');
+    if (buffer.length <= TARGET_RETAINED_OUTPUT_BYTES) {
+      this.tailBytes = buffer.length;
+      return;
+    }
+
+    let start = buffer.length - TARGET_RETAINED_OUTPUT_BYTES;
+    while (start < buffer.length && (buffer[start] & 0xc0) === 0x80) start++;
+
+    this.tailStartsAtLineBoundary =
+      start > 0 ? buffer[start - 1] === 0x0a : this.tailStartsAtLineBoundary;
+    this.tail = buffer.subarray(start).toString('utf-8');
+    this.tailBytes = Buffer.byteLength(this.tail, 'utf-8');
+  }
+
+  /**
+   * Returns the retained tail, without its first line when that line was cut.
+   */
+  private getSnapshotText(): string {
+    if (this.tailStartsAtLineBoundary) return this.tail;
+    const firstNewline = this.tail.indexOf('\n');
+    return firstNewline === -1 ? this.tail : this.tail.slice(firstNewline + 1);
+  }
 }
 
 /**
@@ -134,20 +321,24 @@ async function executeBash(options: {
           timeoutController.abort(new Error('timeout'));
         }, timeoutMs);
 
-  let output = '';
+  const output = new RetainedOutput();
+  const stopController = new AbortController();
+  let stopped = false;
+  let stopCommand: (() => void) | undefined;
   let lastUpdateAt = 0;
   let updateTimer: ReturnType<typeof setTimeout> | undefined;
   const emitUpdate = () => {
     updateTimer = undefined;
     lastUpdateAt = Date.now();
     onUpdate?.({
-      content: [{ type: 'text', text: truncateTail(output).content }],
+      content: [{ type: 'text', text: output.snapshot().content }],
       details: undefined,
     });
   };
   const onText = (text: string) => {
     if (text.length === 0) return;
-    output += text;
+    output.append(text);
+    if (output.bytesReceived > MAX_COMMAND_OUTPUT_BYTES) stopCommand?.();
     if (onUpdate == null || updateTimer != null) return;
     const delay = UPDATE_THROTTLE_MS - (Date.now() - lastUpdateAt);
     if (delay <= 0) emitUpdate();
@@ -164,27 +355,56 @@ async function executeBash(options: {
           ? timeoutController.signal
           : AbortSignal.any([abortSignal, timeoutController.signal]),
     });
+    stopCommand = () => {
+      if (stopped) return;
+      stopped = true;
+      // Stop reading before the command is killed, so a stream that stays open
+      // after the process ends does not keep the result waiting.
+      stopController.abort();
+      // Stopping the command is best effort: not every sandbox can kill, and a
+      // kill that throws must not turn the stop into a tool error.
+      try {
+        void Promise.resolve(child.kill()).catch(() => {});
+      } catch {
+        // The stop still reports the output that was received.
+      }
+    };
     const [{ exitCode: code }] = await Promise.all([
       child.wait(),
-      readStream({ stream: child.stdout, onText }),
-      readStream({ stream: child.stderr, onText }),
+      readStream({
+        stream: child.stdout,
+        onText,
+        abortSignal: stopController.signal,
+      }),
+      readStream({
+        stream: child.stderr,
+        onText,
+        abortSignal: stopController.signal,
+      }),
     ]);
     exitCode = code;
   } catch (error) {
-    if (timedOut) {
+    if (stopped) {
+      // A sandbox can report a stopped command as a failure, and the stopped
+      // result below already reports the output that was received.
+      exitCode = 1;
+    } else if (timedOut) {
       throw new Error(
         appendStatus({
-          text: output,
+          text: output.snapshot().content,
           status: `Command timed out after ${input.timeout} seconds`,
         }),
       );
-    }
-    if (abortSignal?.aborted) {
+    } else if (abortSignal?.aborted) {
       throw new Error(
-        appendStatus({ text: output, status: 'Command aborted' }),
+        appendStatus({
+          text: output.snapshot().content,
+          status: 'Command aborted',
+        }),
       );
+    } else {
+      throw error;
     }
-    throw error;
   } finally {
     clearTimeout(timeoutHandle);
     if (updateTimer != null) {
@@ -193,27 +413,49 @@ async function executeBash(options: {
     }
   }
 
-  const truncation = truncateTail(output);
+  const truncation = output.snapshot();
   let text = truncation.content || '(no output)';
   let details: BashToolDetails | undefined;
   if (truncation.truncated) {
     const fullOutputPath = `/tmp/pi-bash-${toolCallId}.log`;
+    const retained = output.retained;
     await session.writeTextFile({
       path: fullOutputPath,
-      content: output,
+      content: retained,
       abortSignal,
     });
+    const retainedBytes = Buffer.byteLength(retained, 'utf-8');
+    // The file holds everything only when the retained tail is the whole output.
+    const saved =
+      retainedBytes < truncation.totalBytes
+        ? `Output truncated at ${formatSize(retainedBytes)}`
+        : 'Full output';
     details = { truncation, fullOutputPath };
     const startLine = truncation.totalLines - truncation.outputLines + 1;
     const endLine = truncation.totalLines;
     if (truncation.lastLinePartial) {
-      const lastLine = output.slice(output.lastIndexOf('\n') + 1);
-      text += `\n\n[Showing last ${formatSize(truncation.outputBytes)} of line ${endLine} (line is ${formatSize(Buffer.byteLength(lastLine))}). Full output: ${fullOutputPath}]`;
+      text += `\n\n[Showing last ${formatSize(truncation.outputBytes)} of line ${endLine} (line is ${formatSize(output.lastLineBytes)}). ${saved}: ${fullOutputPath}]`;
     } else if (truncation.truncatedBy === 'lines') {
-      text += `\n\n[Showing lines ${startLine}-${endLine} of ${truncation.totalLines}. Full output: ${fullOutputPath}]`;
+      text += `\n\n[Showing lines ${startLine}-${endLine} of ${truncation.totalLines}. ${saved}: ${fullOutputPath}]`;
     } else {
-      text += `\n\n[Showing lines ${startLine}-${endLine} of ${truncation.totalLines} (${formatSize(DEFAULT_MAX_BYTES)} limit). Full output: ${fullOutputPath}]`;
+      text += `\n\n[Showing lines ${startLine}-${endLine} of ${truncation.totalLines} (${formatSize(DEFAULT_MAX_BYTES)} limit). ${saved}: ${fullOutputPath}]`;
     }
+  }
+
+  if (stopped) {
+    return {
+      content: [
+        {
+          type: 'text',
+          text: appendStatus({
+            text,
+            status: `Command stopped after producing more than ${formatSize(MAX_COMMAND_OUTPUT_BYTES)} of output`,
+          }),
+        },
+      ],
+      details,
+      isError: true,
+    };
   }
 
   if (exitCode !== 0) {
@@ -238,13 +480,19 @@ async function executeBash(options: {
  * Creates Pi's bash tool, running commands in a sandbox.
  *
  * The tool is Pi's own bash tool with its execution replaced: a command runs
- * in the working directory with stdout and stderr combined in arrival
- * order. While it runs, the output so far is reported through `onUpdate` at
- * most every 500ms. The result keeps the tail of the output
- * within Pi's line and byte limits; when that cuts output, the full output
- * is written to `/tmp/pi-bash-<toolCallId>.log` in the sandbox and the
- * notice names that file. Empty output becomes `(no output)`, and a nonzero
- * exit code is an error result ending with `Command exited with code N`.
+ * in the working directory with stdout and stderr combined in arrival order,
+ * and the host keeps only a bounded tail of the output in memory. While the
+ * command runs, the output so far is reported through `onUpdate` at most every
+ * 500ms. The result keeps the tail of the output within Pi's line and byte
+ * limits; when that cuts output, the retained tail is written to
+ * `/tmp/pi-bash-<toolCallId>.log` in the sandbox and the notice names that
+ * file, saying whether it holds the full output or only the retained tail.
+ * Until the output fills the retained tail, that file holds the full output;
+ * beyond it, only the tail is kept, because the host does not hold the rest.
+ * Empty output becomes `(no output)`, and a nonzero exit code is an error
+ * result ending with `Command exited with code N`. A command that produces
+ * more than 16MB of output is stopped with an error result ending with
+ * `Command stopped after producing more than 16.0MB of output`.
  *
  * Throws for an invalid timeout, with `Command timed out after N seconds`
  * when the timeout elapsed, and with `Command aborted` when the signal

@@ -1,13 +1,23 @@
 import { shellQuote } from '@ai-sdk/harness/utils';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
-import type {
-  EditOperations,
-  FindOperations,
-  LsOperations,
-  ReadOperations,
-  WriteOperations,
+import {
+  formatSize,
+  type EditOperations,
+  type FindOperations,
+  type LsOperations,
+  type ReadOperations,
+  type WriteOperations,
 } from '@earendil-works/pi-coding-agent';
 import path from 'node:path';
+
+/**
+ * Bytes of a file that the host reads into memory at once. Pi's read tool
+ * shows at most `DEFAULT_MAX_BYTES` of a file but reads the whole file, which
+ * only fits in the memory of the process that runs the tool; the host that
+ * runs the sandbox serves many sessions, so it refuses to read a file above
+ * this limit instead.
+ */
+const MAX_READ_BYTES = 10 * 1024 * 1024;
 
 /**
  * File system operations of Pi's built-in tools, implemented on a sandbox
@@ -163,12 +173,59 @@ export function createPiSandboxOperations(options: {
 }): PiSandboxOperations {
   const { session } = options;
   let lastRead: { path: string; bytes: Uint8Array } | undefined;
+  let lastStat:
+    | { path: string; type: 'file' | 'directory' | 'other'; size: number }
+    | undefined;
+
+  /**
+   * Returns the type and size of a file, reusing the stat that `access()` read
+   * for the same path right before, as Pi's read tool calls `access()` before
+   * it reads.
+   */
+  const statFor = async (
+    filePath: string,
+  ): Promise<
+    { type: 'file' | 'directory' | 'other'; size: number } | undefined
+  > => {
+    if (lastStat?.path === filePath) {
+      const { type, size } = lastStat;
+      lastStat = undefined;
+      return { type, size };
+    }
+    const stat = await session.stat({ path: filePath });
+    return stat == null ? undefined : { type: stat.type, size: stat.size };
+  };
 
   const readBytes = async (filePath: string): Promise<Uint8Array> => {
     if (lastRead?.path === filePath) {
       const { bytes } = lastRead;
       lastRead = undefined;
       return bytes;
+    }
+    const stat = await statFor(filePath);
+    if (stat?.type === 'directory') {
+      throw Object.assign(
+        new Error(
+          `EISDIR: illegal operation on a directory, read '${filePath}'`,
+        ),
+        { code: 'EISDIR' },
+      );
+    }
+    if (stat != null && stat.type !== 'file') {
+      // A device or a pipe has no size to check and may never end.
+      throw new Error(
+        `Cannot read ${filePath}: it is not a regular file. Read it with a bash command instead.`,
+      );
+    }
+    if (stat != null && stat.size > MAX_READ_BYTES) {
+      /*
+       * The size comes from a stat that runs before the read, so a file that
+       * grows in between is still read; closing that gap needs a byte range in
+       * the sandbox interface.
+       */
+      throw new Error(
+        `File is too large to read: ${filePath} is ${formatSize(stat.size)}, the limit is ${formatSize(MAX_READ_BYTES)}. Read part of it with a bash command, for example \`sed -n '1,200p' ${filePath}\`.`,
+      );
     }
     const bytes = await session.readBinaryFile({ path: filePath });
     if (bytes == null) {
@@ -190,7 +247,14 @@ export function createPiSandboxOperations(options: {
       return Buffer.from(await readBytes(filePath));
     },
     async access(filePath) {
-      await statPath(filePath);
+      /*
+       * Pi's read and edit tools call `access()` right before they read, so the
+       * size can be reused there without a second request. Tools that stat many
+       * paths, such as `ls`, must not leave a size behind that a later read
+       * trusts after the file has grown.
+       */
+      const stat = await statPath(filePath);
+      lastStat = { path: filePath, type: stat.type, size: stat.size };
     },
     async detectImageMimeType(filePath) {
       const bytes = await readBytes(filePath);
