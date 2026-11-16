@@ -48,6 +48,34 @@ describe('createPiSandboxOperations', () => {
     );
   });
 
+  test('detects an image and refuses an oversized one', async () => {
+    const { session, root, operations } = await setup();
+    const header = new Uint8Array([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+    ]);
+    await session.writeBinaryFile({
+      path: `${root}/small.png`,
+      content: header,
+    });
+
+    // Image detection reads through the same bounded read as the read tool.
+    expect(await operations.detectImageMimeType!(`${root}/small.png`)).toBe(
+      'image/png',
+    );
+    expect((await operations.readFile(`${root}/small.png`)).byteLength).toBe(8);
+
+    const large = new Uint8Array(10 * 1024 * 1024 + 1);
+    large.set(header);
+    await session.writeBinaryFile({
+      path: `${root}/large.png`,
+      content: large,
+    });
+
+    await expect(
+      operations.detectImageMimeType!(`${root}/large.png`),
+    ).rejects.toThrow('File is too large to read');
+  });
+
   test('refuses to read a directory', async () => {
     const { root, operations } = await setup();
 
