@@ -245,6 +245,78 @@ describe('createPiGrepTool', () => {
     expect(text(result)).toBe('plain.txt:2: ok');
   });
 
+  test('strips the directory prefix that GNU grep prints', async () => {
+    const { session, grep } = await setup();
+    const nul = '\u0000';
+    const framed = ['././src/a.ts', '1:const foo = 1;\n', ''].join(nul);
+    vi.spyOn(session, 'run').mockResolvedValue({
+      exitCode: 0,
+      stdout: framed,
+      stderr: '',
+    });
+
+    const result = await grep({ pattern: 'foo' });
+
+    expect(text(result)).toBe('src/a.ts:1: const foo = 1;');
+  });
+
+  test('drops a block whose path leaves the directory', async () => {
+    const { session, grep } = await setup();
+    const nul = '\u0000';
+    const framed = [
+      '../../etc/hosts',
+      '1:127.0.0.1 match\n',
+      './plain.txt',
+      '2:ok\n',
+      '',
+    ].join(nul);
+    vi.spyOn(session, 'run').mockResolvedValue({
+      exitCode: 0,
+      stdout: framed,
+      stderr: '',
+    });
+
+    const result = await grep({ pattern: 'match' });
+
+    expect(text(result)).toBe('plain.txt:2: ok');
+  });
+
+  test('keeps a match whose line contains a NUL byte in its own file', async () => {
+    const { session, workDir, grep } = await setup();
+    // A file whose matching line holds a NUL byte must not be able to end the
+    // frame of its file and name another one.
+    await session.writeBinaryFile({
+      path: `${workDir}/nul.txt`,
+      content: new Uint8Array([0x6d, 0x61, 0x74, 0x63, 0x68, 0x00, 0x78, 0x0a]),
+    });
+    await session.writeTextFile({
+      path: `${workDir}/plain.txt`,
+      content: 'match\n',
+    });
+
+    const result = await grep({ pattern: 'match' });
+
+    expect(text(result)).toContain('nul.txt:1: matchx');
+    expect(text(result)).toContain('plain.txt:1: match');
+    expect(text(result).split('\n')).toHaveLength(2);
+  });
+
+  test('bounds the result when many lines match with context', async () => {
+    const { session, workDir, grep } = await setup();
+    const content = Array.from(
+      { length: 4000 },
+      (_, index) => `line ${index + 1} match`,
+    ).join('\n');
+    await session.writeTextFile({ path: `${workDir}/many.txt`, content });
+
+    const result = await grep({ pattern: 'match', context: 1, limit: 4000 });
+
+    expect(text(result)).toContain('many.txt:1: line 1 match');
+    // The result stops at the display limit instead of rendering every match.
+    expect(text(result)).not.toContain('line 4000 match');
+    expect(text(result).length).toBeLessThan(300_000);
+  });
+
   test('reports the match limit', async () => {
     const { grep } = await setup();
 

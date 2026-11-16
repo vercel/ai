@@ -118,13 +118,32 @@ function parseMatchLines(options: {
 }
 
 /**
+ * Whether a path that the sandbox listed stays inside the searched directory.
+ *
+ * A file name that contains a newline reaches the search as several names, and
+ * the text of a file can imitate the framing, so a listed path is checked
+ * before its matches are reported or its lines are read.
+ */
+function isSearchablePath(options: {
+  /**
+   * Path as the sandbox printed it.
+   */
+  relativePath: string;
+}): boolean {
+  if (options.relativePath.length === 0) return false;
+  if (options.relativePath.startsWith('/')) return false;
+  const segments = options.relativePath.split('/');
+  if (segments.includes('..')) return false;
+  return !EXCLUDED_DIRECTORIES.some(name => segments.includes(name));
+}
+
+/**
  * Parses the output of a recursive search, which the sandbox frames as
  * `path\0 line:text … \0` per file.
  *
- * A filename can contain `:`, so the file name is delimited by a NUL byte that
- * a filename cannot contain and the matches of a file follow as `line:text`.
- * Blocks that do not parse are skipped, as are lines that are no matches (e.g.
- * `Binary file ... matches`).
+ * A filename can contain `:`, so the file name is delimited by a NUL byte and
+ * the matches of a file follow as `line:text`. Blocks that do not parse are
+ * skipped, as are lines that are no matches (e.g. `Binary file ... matches`).
  */
 function parseRecursiveOutput(options: {
   /**
@@ -135,8 +154,8 @@ function parseRecursiveOutput(options: {
   const matches: GrepMatch[] = [];
   const blocks = options.output.split('\0');
   for (let index = 0; index + 1 < blocks.length; index += 2) {
-    const relativePath = (blocks[index] ?? '').replace(/^\.\//, '');
-    if (relativePath.length === 0) continue;
+    const relativePath = (blocks[index] ?? '').replace(/^(\.\/)+/, '');
+    if (!isSearchablePath({ relativePath })) continue;
     matches.push(
       ...parseMatchLines({
         output: blocks[index + 1] ?? '',
@@ -152,6 +171,13 @@ function parseRecursiveOutput(options: {
  * does not build an oversized sandbox command.
  */
 const MAX_SEARCH_FILES = 250;
+
+/**
+ * Bytes of the rendered result that the host holds before it truncates. Twice
+ * Pi's display limit is enough for the truncation notice to describe the same
+ * output, and a large `limit` or `context` cannot grow it further.
+ */
+const MAX_RENDERED_BYTES = 4 * DEFAULT_MAX_BYTES;
 
 /**
  * Merges line ranges that overlap or touch, sorted by their first line, so one
@@ -312,8 +338,14 @@ async function executeGrep(options: {
   const isDirectory = stat.type === 'directory';
   const directory = isDirectory ? searchPath : path.posix.dirname(searchPath);
   const fileName = path.posix.basename(searchPath);
-  const contextValue = input.context && input.context > 0 ? input.context : 0;
-  const limit = Math.max(1, input.limit ?? DEFAULT_LIMIT);
+  const requestContext = Number(input.context ?? 0);
+  const contextValue = Number.isFinite(requestContext)
+    ? Math.max(0, Math.floor(requestContext))
+    : 0;
+  const requestLimit = Number(input.limit ?? DEFAULT_LIMIT);
+  const limit = Number.isFinite(requestLimit)
+    ? Math.max(1, Math.floor(requestLimit))
+    : DEFAULT_LIMIT;
 
   const matchFlags = [
     '-n',
@@ -340,8 +372,8 @@ async function executeGrep(options: {
    * body pipes a command directly.
    */
   const command = isDirectory
-    ? `set -o pipefail; cd ${shellQuote(directory)} && grep ${quotedFlags(fileFlags)} -e ${quotedPattern} . | head -n ${fileLimit + 1} | while IFS= read -r file; do printf '%s\\0' "./$file"; ( grep ${quotedFlags(matchFlags)} -e ${quotedPattern} "./$file" | head -n ${limit} | awk '{ print substr($0, 1, ${LINE_MAX_CHARS}) }' ); printf '\\0'; done | head -c ${MATCH_MAX_BYTES}`
-    : `set -o pipefail; cd ${shellQuote(directory)} && grep ${quotedFlags(matchFlags)} -e ${quotedPattern} ${shellQuote(`./${fileName}`)} | head -n ${limit} | awk '{ print substr($0, 1, ${LINE_MAX_CHARS}) }' | head -c ${MATCH_MAX_BYTES}`;
+    ? `set -o pipefail; cd ${shellQuote(directory)} && grep ${quotedFlags(fileFlags)} -e ${quotedPattern} . | head -n ${fileLimit + 1} | while IFS= read -r file; do printf '%s\\0' "./$file"; ( grep ${quotedFlags(matchFlags)} -e ${quotedPattern} "./$file" | head -n ${limit} | awk '{ gsub("\\000", ""); print substr($0, 1, ${LINE_MAX_CHARS}) }' ); printf '\\0'; done | head -c ${MATCH_MAX_BYTES}`
+    : `set -o pipefail; cd ${shellQuote(directory)} && grep ${quotedFlags(matchFlags)} -e ${quotedPattern} ${shellQuote(`./${fileName}`)} | head -n ${limit} | awk '{ gsub("\\000", ""); print substr($0, 1, ${LINE_MAX_CHARS}) }' | head -c ${MATCH_MAX_BYTES}`;
   let result: { exitCode: number; stdout: string; stderr: string };
   try {
     result = await session.run({ command, abortSignal });
@@ -360,9 +392,12 @@ async function executeGrep(options: {
   const matchesTruncated =
     Buffer.byteLength(result.stdout, 'utf-8') >= MATCH_MAX_BYTES &&
     !result.stdout.endsWith('\n');
+  // The sandbox can only say that it listed more files than the cap, so the
+  // notice is only accurate when the matches themselves are below the limit.
   const filesTruncated =
     isDirectory &&
-    Math.floor((result.stdout.split('\0').length - 1) / 2) > fileLimit;
+    Math.floor((result.stdout.split('\0').length - 1) / 2) > fileLimit &&
+    matches.length < limit;
   /*
    * grep exits with 1 when nothing matched, and with 141 when `head` closed
    * the pipe after reaching the limit. A recursive search that hit an
@@ -443,45 +478,82 @@ async function executeGrep(options: {
   }
 
   const outputLines: string[] = [];
+  let renderedBytes = 0;
+  /*
+   * Lines that the sandbox returned for each file, sorted once, so a match
+   * finds its window by binary search: walking the whole map for every match
+   * would be quadratic in the size of the result.
+   */
+  const sortedContextByFile = new Map<
+    string,
+    Array<{ line: number; text: string }>
+  >();
+  for (const [relativePath, lines] of contextByFile) {
+    if (lines == null) continue;
+    sortedContextByFile.set(
+      relativePath,
+      [...lines]
+        .map(([line, text]) => ({ line, text }))
+        .sort((left, right) => left.line - right.line),
+    );
+  }
+
+  const pushLine = (line: string) => {
+    outputLines.push(line);
+    renderedBytes += Buffer.byteLength(line, 'utf-8') + 1;
+    return renderedBytes < MAX_RENDERED_BYTES;
+  };
+
   for (const match of matches) {
+    if (renderedBytes >= MAX_RENDERED_BYTES) break;
     if (contextValue === 0) {
-      outputLines.push(
+      pushLine(
         `${match.relativePath}:${match.lineNumber}: ${formatLine(match.lineText)}`,
       );
       continue;
     }
     const context = contextByFile.get(match.relativePath);
     if (context === null) {
-      outputLines.push(
+      pushLine(
         `${match.relativePath}:${match.lineNumber}: (unable to read file)`,
       );
       continue;
     }
     const start = Math.max(1, match.lineNumber - contextValue);
     const end = match.lineNumber + contextValue;
+    const entries = sortedContextByFile.get(match.relativePath) ?? [];
+    // First returned line that is inside the window.
+    let low = 0;
+    let high = entries.length;
+    while (low < high) {
+      const middle = (low + high) >>> 1;
+      if ((entries[middle]?.line ?? 0) < start) {
+        low = middle + 1;
+      } else {
+        high = middle;
+      }
+    }
     /*
      * Render the lines that the sandbox returned for this window instead of
      * every number from `start` to `end`: the range can be huge and a forged
      * line number cannot make this loop.
      */
     const window: Array<{ line: number; text: string; match: boolean }> = [];
-    if (context != null) {
-      for (const [line, text] of context) {
-        if (line === match.lineNumber) continue;
-        if (line < start || line > end) continue;
-        window.push({ line, text, match: false });
-      }
+    for (let index = low; index < entries.length; index++) {
+      const entry = entries[index];
+      if (entry == null || entry.line > end) break;
+      if (entry.line === match.lineNumber) continue;
+      window.push({ line: entry.line, text: entry.text, match: false });
     }
     // The matching line comes from the search itself, so it is complete even
     // where the context read stopped at its byte limit.
     window.push({ line: match.lineNumber, text: match.lineText, match: true });
     window.sort((left, right) => left.line - right.line);
     for (const entry of window) {
-      outputLines.push(
-        entry.match
-          ? `${match.relativePath}:${entry.line}: ${formatLine(entry.text)}`
-          : `${match.relativePath}-${entry.line}- ${formatLine(entry.text)}`,
-      );
+      const line = entry.match
+        ? `${match.relativePath}:${entry.line}: ${formatLine(entry.text)}`
+        : `${match.relativePath}-${entry.line}- ${formatLine(entry.text)}`;
+      if (!pushLine(line)) break;
     }
   }
 
@@ -531,7 +603,9 @@ async function executeGrep(options: {
  * matches (100 by default). `glob` filters file names. A recursive search lists
  * the matching files and searches each of them on its own, framed by NUL bytes
  * around its path and its matches, because a file name may contain the `:` that
- * `grep` puts between path, line and text. Matches are formatted like Pi's
+ * `grep` puts between path, line and text; NUL bytes in a matching line are
+ * removed in the sandbox, so file content cannot forge that frame. Matches are
+ * formatted like Pi's
  * (`path:line: text`, with `path-line- text` context lines), long lines are
  * truncated, the output is cut at Pi's byte limit, and Pi's notices are appended
  * when a limit was reached. Context lines are selected in the sandbox, bounded
