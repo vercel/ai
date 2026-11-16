@@ -2972,7 +2972,11 @@ export class WorkflowAgent<
                   | ToolApprovalConfiguration<ToolSet, TRuntimeContext>
                   | undefined,
                 toolCall: tc as unknown as TypedToolCall<ToolSet>,
-                messages: iterMessages as unknown as ModelMessage[],
+                // Approval functions receive the same messages as tool
+                // execution: the system prompt and the assistant response that
+                // contains the call are excluded, so calls from the current
+                // response that have not run cannot count as history.
+                messages: getToolCallbackMessages(iterMessages),
                 toolsContext:
                   toolsContext as unknown as InferToolSetContext<ToolSet>,
                 runtimeContext: effectiveRuntimeContext,

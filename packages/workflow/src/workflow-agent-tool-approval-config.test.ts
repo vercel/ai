@@ -1,5 +1,6 @@
 import type {
   LanguageModelV4GenerateResult,
+  LanguageModelV4Prompt,
   LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
 import type { Context } from '@ai-sdk/provider-utils';
@@ -157,6 +158,16 @@ function approvalRequests(run: AgentRun) {
     isAutomatic?: boolean;
     signature?: string;
   }>;
+}
+
+function toolCallNames(messages: ModelMessage[]) {
+  return messages.flatMap(message =>
+    message.role === 'assistant' && Array.isArray(message.content)
+      ? message.content
+          .filter(part => part.type === 'tool-call')
+          .map(part => part.toolName)
+      : [],
+  );
 }
 
 /**
@@ -651,6 +662,256 @@ describe.each<Mode>(['generate', 'stream'])(
           { toolCallId: 'call-asked', isAutomatic: undefined },
         ]);
       }
+    });
+  },
+);
+
+describe.each<Mode>(['generate', 'stream'])(
+  '%s workflow agent approval history',
+  mode => {
+    it.each([
+      'alone',
+      'denied',
+      'pending',
+      'invalid',
+      'unknown',
+      'reversed',
+    ] as const)(
+      'does not authorize action from a %s sibling',
+      async sibling => {
+        const execute = vi.fn(async () => 'protected output');
+        const attestExecute = vi.fn(async () => 'attested');
+        const approvalMessages: ModelMessage[][] = [];
+        const action = actionResponse().content[1];
+        const attest = {
+          type: 'tool-call' as const,
+          toolCallId: 'attest-call',
+          toolName: 'attest',
+          input: sibling === 'invalid' ? '{}' : '{"value":"attestation"}',
+        };
+        const response: LanguageModelV4GenerateResult = {
+          ...actionResponse(),
+          content:
+            sibling === 'alone'
+              ? [action]
+              : sibling === 'reversed'
+                ? [attest, action]
+                : [action, attest],
+        };
+        const { run, model } = await runWorkflow(
+          mode,
+          [response, textResponse('Done.')],
+          {
+            tools: {
+              ...actionTools(execute),
+              ...(sibling === 'unknown'
+                ? {}
+                : { attest: actionTools(attestExecute).action }),
+            },
+            toolApproval: ({ toolCall, messages }) => {
+              approvalMessages.push(messages);
+              if (toolCall.toolName === 'attest') {
+                return sibling === 'pending' ? 'user-approval' : 'denied';
+              }
+              return toolCallNames(messages).at(-1) === 'attest'
+                ? 'approved'
+                : 'user-approval';
+            },
+          },
+          prompt,
+        );
+
+        expect(execute).not.toHaveBeenCalled();
+        expect(attestExecute).not.toHaveBeenCalled();
+        expect(approvalMessages.length).toBeGreaterThan(0);
+        const modelCalls =
+          mode === 'generate' ? model.doGenerateCalls : model.doStreamCalls;
+        for (const messages of approvalMessages)
+          expect(messages).toEqual(modelCalls[0].prompt);
+        expect(approvalRequests(run)).toContainEqual(
+          expect.objectContaining({
+            toolCall: expect.objectContaining({ toolName: 'action' }),
+          }),
+        );
+        expect(run.steps.flatMap(step => step.toolResults)).toEqual([]);
+      },
+    );
+
+    it.each(['generic', 'per-tool', 'needsApproval'] as const)(
+      'uses prepared pre-response history for %s, preserving execution context',
+      async configuration => {
+        const history: LanguageModelV4Prompt = [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Perform the action.' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'prior',
+                toolName: 'attest',
+                input: { value: 'attestation' },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'prior',
+                toolName: 'attest',
+                output: { type: 'text', value: 'attested' },
+              },
+            ],
+          },
+        ];
+        const approvalMessages: ModelMessage[][] = [];
+        const hasAttestation = (messages: ModelMessage[]) => {
+          approvalMessages.push(messages);
+          return toolCallNames(messages).at(-1) === 'attest';
+        };
+        // Assertions thrown inside `execute` become tool errors instead of
+        // failing the test, so collect the value and assert after the run.
+        const executionToolNames: string[][] = [];
+        const execute = vi.fn(async (_input, { messages }) => {
+          executionToolNames.push(toolCallNames(messages));
+          return 'protected output';
+        });
+        const agent = new WorkflowAgent({
+          model: createAgentModel([actionResponse(), textResponse('Done.')]),
+          instructions: 'Do not include instructions in approval messages.',
+          prepareStep: ({ stepNumber }) =>
+            stepNumber === 0
+              ? {
+                  messages: [
+                    { role: 'system', content: 'Prepared instructions.' },
+                    ...history,
+                  ],
+                }
+              : undefined,
+          tools: {
+            action: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute,
+              ...(configuration === 'needsApproval'
+                ? {
+                    needsApproval: (_input, { messages }) =>
+                      !hasAttestation(messages),
+                  }
+                : {}),
+            }),
+          },
+          toolApproval:
+            configuration === 'generic'
+              ? ({ messages }) =>
+                  hasAttestation(messages) ? 'approved' : 'user-approval'
+              : configuration === 'per-tool'
+                ? {
+                    action: (_input, { messages }) =>
+                      hasAttestation(messages) ? 'approved' : 'user-approval',
+                  }
+                : undefined,
+        });
+        await agent[mode]({ messages: prompt });
+        expect(execute).toHaveBeenCalledTimes(1);
+        // Tool execution receives the prepared pre-response history without the
+        // response that contained the call, as in `generateText`/`streamText`.
+        expect(executionToolNames).toEqual([['attest']]);
+        // Check retained references after execution, not just inside the policy.
+        expect(approvalMessages).toEqual([history]);
+      },
+    );
+  },
+);
+
+describe.each<Mode>(['generate', 'stream'])(
+  '%s workflow agent approval history across steps',
+  mode => {
+    function toolResultParts(messages: ModelMessage[]) {
+      return messages.flatMap(message =>
+        message.role === 'tool' && Array.isArray(message.content)
+          ? message.content.filter(part => part.type === 'tool-result')
+          : [],
+      );
+    }
+
+    it('offers a call and result that completed in an earlier step', async () => {
+      const attestExecute = vi.fn(async () => 'attested');
+      const actionExecute = vi.fn(
+        async (_input: unknown) => 'protected output',
+      );
+      const approvalMessages: ModelMessage[][] = [];
+      let executedForToolNames: string[] = [];
+      const model = createAgentModel([
+        {
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'attest-call',
+              toolName: 'attest',
+              input: '{"value":"attestation"}',
+            },
+          ],
+          finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+          usage,
+          warnings: [],
+        },
+        actionResponse(),
+        textResponse('Done.'),
+      ]);
+      const agent = new WorkflowAgent({
+        model,
+        instructions: 'Instructions are never approval messages.',
+        tools: {
+          attest: actionTools(attestExecute).action,
+          action: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async (input, { messages }) => {
+              // Tool execution keeps the pre-response history, like Core.
+              executedForToolNames = toolCallNames(messages);
+              return actionExecute(input);
+            },
+          }),
+        },
+        toolApproval: ({ toolCall, messages }) => {
+          if (toolCall.toolName !== 'action') return 'not-applicable';
+          approvalMessages.push(messages);
+          return toolCallNames(messages).at(-1) === 'attest' &&
+            toolResultParts(messages).some(part => part.toolName === 'attest')
+            ? 'approved'
+            : 'user-approval';
+        },
+      });
+
+      await agent[mode]({ messages: prompt });
+
+      expect(attestExecute).toHaveBeenCalledTimes(1);
+      expect(executedForToolNames).toEqual(['attest']);
+      expect(actionExecute).toHaveBeenCalledTimes(1);
+      expect(approvalMessages).toHaveLength(1);
+      const messages = approvalMessages[0];
+      // The attest call and its result are real history and stay visible.
+      expect(toolCallNames(messages)).toEqual(['attest']);
+      expect(toolResultParts(messages)).toEqual([
+        expect.objectContaining({
+          toolName: 'attest',
+          output: { type: 'text', value: 'attested' },
+        }),
+      ]);
+      // The model received instructions, the policy does not.
+      const modelCalls =
+        mode === 'generate' ? model.doGenerateCalls : model.doStreamCalls;
+      expect(
+        modelCalls[1].prompt.some(message => message.role === 'system'),
+      ).toBe(true);
+      expect(messages.some(message => message.role === 'system')).toBe(false);
+      // Apart from the system messages, the policy sees the model input.
+      expect(messages).toEqual(
+        modelCalls[1].prompt.filter(message => message.role !== 'system'),
+      );
     });
   },
 );
