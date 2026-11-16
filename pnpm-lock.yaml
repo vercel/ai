@@ -22775,8 +22775,8 @@ packages:
     resolution: {integrity: sha512-1gnZf7DFcoIcajTjTwjwuDjzuz4PPcY2StKPlsGAQ1+YH20IRVrBaXSWmdjowTJ6u8Rc01PoYOGHXfP1mYcZNQ==}
     engines: {node: '>= 18'}
 
-  serialize-javascript@7.1.0:
-    resolution: {integrity: sha512-RNEqWOyhhUQYN9V1GfHwu9AR/g+NTciH6Z5u3/no6X3/w+04J2lVDL+svFQVXgXrEGBMG2puMVN3gq2SNGuTGw==}
+  serialize-javascript@7.1.4:
+    resolution: {integrity: sha512-FqlEuoTq/zRmA4Lg6aOqyH3lCHbUtCB0bmHCeFniX2GBdDqMJM3FwdvEhlE5Pim1dlt2FfBdVPmUNNiGhhKqpw==}
     engines: {node: '>=20.0.0'}
 
   seroval@1.6.2:
@@ -35211,7 +35211,7 @@ snapshots:
 
   '@rollup/plugin-terser@1.0.0(rollup@4.62.5)':
     dependencies:
-      serialize-javascript: 7.1.0
+      serialize-javascript: 7.1.4
       smob: 1.6.2
       terser: 5.50.0
     optionalDependencies:
@@ -40072,7 +40072,7 @@ snapshots:
       glob-parent: 6.0.2
       normalize-path: 3.0.0
       schema-utils: 4.3.3
-      serialize-javascript: 7.1.0
+      serialize-javascript: 7.1.4
       tinyglobby: 0.2.17
       webpack: 5.105.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(cssnano@7.1.9(postcss@8.5.23))(csso@5.0.5)(esbuild@0.28.1)(lightningcss@1.32.0)(postcss@8.5.23)(uglify-js@3.19.3)
 
@@ -48839,7 +48839,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  serialize-javascript@7.1.0: {}
+  serialize-javascript@7.1.4: {}
 
   seroval@1.6.2: {}
 
