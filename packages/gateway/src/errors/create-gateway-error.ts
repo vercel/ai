@@ -13,6 +13,10 @@ import {
   GatewayForbiddenError,
   forbiddenParamSchema,
 } from './gateway-forbidden-error';
+import {
+  GatewayAccessPolicyDeniedError,
+  accessPolicyDeniedParamSchema,
+} from './gateway-access-policy-denied-error';
 import { GatewayResponseError } from './gateway-response-error';
 import {
   lazySchema,
@@ -130,6 +134,23 @@ export async function createGatewayErrorFromResponse({
         cause,
         generationId,
         ruleId: ruleResult.success ? ruleResult.value.ruleId : undefined,
+      });
+    }
+    case 'access_policy_denied': {
+      const paramResult = await safeValidateTypes({
+        value: validatedResponse.error.param,
+        schema: accessPolicyDeniedParamSchema,
+      });
+      const param = paramResult.success ? paramResult.value : undefined;
+
+      return new GatewayAccessPolicyDeniedError({
+        message,
+        statusCode,
+        cause,
+        generationId,
+        policyIds: param?.policyIds,
+        removedModels: param?.removedModels,
+        removedProviders: param?.removedProviders,
       });
     }
     default:
