@@ -258,7 +258,31 @@ function createFakeFileSession(options: {
       calls.push(`spawn ${command}`);
       const asked = Number(/head -c (\d+)/.exec(command)?.[1]);
       const limit = options.ignoreLimit ? Number.POSITIVE_INFINITY : asked;
-      const source = contents();
+      /*
+       * Models `head -c <limit> <path> | base64`: at most the requested
+       * bytes, encoded in whole three-byte groups so that the pieces decode
+       * in order, and none of them past the limit.
+       */
+      function* encoded() {
+        let raw = 0;
+        let pending = Buffer.alloc(0);
+        for (const chunk of contents()) {
+          if (chunk.length === 0) continue;
+          const take = Math.min(limit - raw, chunk.length);
+          if (take <= 0) break;
+          const slice = take === chunk.length ? chunk : chunk.slice(0, take);
+          raw += slice.length;
+          pending = Buffer.concat([pending, Buffer.from(slice)]);
+          const whole = pending.length - (pending.length % 3);
+          if (whole > 0) {
+            yield Buffer.from(pending.subarray(0, whole).toString('base64'));
+            pending = pending.subarray(whole);
+          }
+          if (raw >= limit) break;
+        }
+        if (pending.length > 0) yield Buffer.from(pending.toString('base64'));
+      }
+      const source = encoded();
       let finished = false;
       let drain = () => {};
       const drained = new Promise<void>(resolve => {
@@ -276,14 +300,6 @@ function createFakeFileSession(options: {
       });
       const stdout = new ReadableStream<Uint8Array>({
         pull(controller) {
-          if (state.sent >= limit) {
-            if (!finished) {
-              finished = true;
-              drain();
-            }
-            controller.close();
-            return;
-          }
           const { done, value } = source.next();
           if (done) {
             if (!finished) {
@@ -293,10 +309,8 @@ function createFakeFileSession(options: {
             controller.close();
             return;
           }
-          const take = Math.min(limit - state.sent, value.length);
-          const chunk = take === value.length ? value : value.slice(0, take);
-          state.sent += chunk.length;
-          controller.enqueue(chunk);
+          state.sent += value.length;
+          controller.enqueue(new Uint8Array(value));
         },
       });
       return {
@@ -353,7 +367,7 @@ describe('readFxFile with a file larger than a snapshot', () => {
 
     expect(calls).toEqual([
       'stat',
-      `spawn head -c ${10 * MIB + 1} -- '/home/user/big.txt'`,
+      `spawn head -c ${10 * MIB + 1} '/home/user/big.txt' | base64`,
     ]);
     expect(output.text).toContain('1\txxx');
     expect(output.text).toContain('file snapshot was capped before EOF');
@@ -373,7 +387,7 @@ describe('readFxFile with a file larger than a snapshot', () => {
 
     expect(output.text).toContain('file snapshot was capped before EOF');
     // The host kept a snapshot, not the 64 MiB stream the sandbox sent.
-    expect(state.sent).toBeLessThan(11 * MIB);
+    expect(state.sent).toBeLessThan(15 * MIB);
     expect(state.stopped).toBeGreaterThan(0);
   });
 
@@ -391,7 +405,7 @@ describe('readFxFile with a file larger than a snapshot', () => {
 
     expect(calls).toEqual([
       'stat',
-      `spawn head -c ${10 * MIB + 1} -- '/home/user/big.png'`,
+      `spawn head -c ${10 * MIB + 1} '/home/user/big.png' | base64`,
     ]);
     expect(output.text).toBe(
       "<path>big.png</path>\n<content>image not attached: image/png (12582912 bytes); the file exceeds read_file's 10 MiB read limit. Use an available image tool to save a smaller copy to a new file, then read_file the copy. If no image tool is available, ask the user before installing one.</content>",

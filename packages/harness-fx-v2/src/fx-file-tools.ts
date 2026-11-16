@@ -170,11 +170,16 @@ async function readFileHead(options: {
   const { session, workDir } = sandbox;
   /*
    * One byte past the limit tells the caller whether the file goes on. The
-   * command prints no more than that, and the capture drops anything a
-   * sandbox sends beyond it, so neither can grow without bound.
+   * command prints no more than that, encoded, and the capture drops
+   * anything a sandbox sends beyond it, so neither can grow without bound.
    */
   const limit = limitBytes + 1;
-  const capture = createFxOutputCapture({ headBytes: limit, tailBytes: 0 });
+  const encodedLimit = Math.ceil(limit / 3) * 4;
+  const capture = createFxOutputCapture({
+    // Base64 can wrap its lines, which are kept and dropped when decoding.
+    headBytes: encodedLimit + Math.ceil(encodedLimit / 76) + 8,
+    tailBytes: 0,
+  });
   const limitController = new AbortController();
   let stopped = false;
   const onChunk = (chunk: Uint8Array) => {
@@ -189,7 +194,11 @@ async function readFileHead(options: {
     limitController.signal,
   ]);
   const child = await session.spawn({
-    command: `head -c ${limit} -- ${shellQuote(path)}`,
+    /*
+     * A sandbox stream carries text, so the read is encoded: a plain `head`
+     * would replace every byte that is not valid UTF-8.
+     */
+    command: `head -c ${limit} ${shellQuote(path)} | base64`,
     workingDirectory: workDir,
     abortSignal: readAbortSignal,
   });
@@ -216,10 +225,13 @@ async function readFileHead(options: {
   if (!stopped && exitCode != null && exitCode !== 0) {
     throw new Error(`read_file could not read ${path}`);
   }
-  const bytes = capture.toBytes();
+  const decoded = Buffer.from(
+    Buffer.from(capture.toBytes()).toString('utf8').replace(/\s+/g, ''),
+    'base64',
+  );
   return {
-    bytes: bytes.subarray(0, limitBytes),
-    exceeded: bytes.length > limitBytes,
+    bytes: decoded.subarray(0, limitBytes),
+    exceeded: !capture.complete || decoded.length > limitBytes,
   };
 }
 
