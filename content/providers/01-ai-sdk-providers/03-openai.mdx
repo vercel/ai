@@ -1581,6 +1581,11 @@ When your own search function discovers tools, attach
 provider preserves the ordinary result and emits an `additional_tools` item
 immediately after it. Replaying the same messages preserves that insertion point.
 
+Because messages can contain replayed, client-supplied history, each entry only
+selects a tool that is registered in `tools`; the provider sends the definition
+it derives from that tool, including its description and input schema. Entries
+for tools that are not registered for the request are dropped with a warning.
+
 ```ts
 import {
   openai,
@@ -1638,6 +1643,7 @@ const messages: ModelMessage[] = [
 const tools = {
   search: tool({ inputSchema: z.object({}) }),
   list_issues: tool({
+    description: 'List Linear issues.',
     inputSchema: z.object({}),
     execute: async () => ({ issues: ['Example issue'] }),
     providerOptions: {
@@ -1672,8 +1678,18 @@ await generateText({
 - `type: 'namespace'` with `name`, `description`, and a non-empty `tools` list of
   function definitions
 
-An empty array emits no item. Keep the names and schemas aligned with the SDK tools
-used for local validation and execution.
+Entries only select registered tools; the `description`, `parameters`, `strict`,
+`defer_loading`, and `format` in an entry are not sent. The provider sends the
+definition derived from the registered tool instead: function and namespace
+entries use that tool's description, input schema, `strict` setting, and
+`deferLoading` option, and custom entries use its `description` and `format`.
+A namespace entry loads only the registered tools whose names it lists. An entry
+can also name a tool that is already part of the request tools; the provider then
+sends that tool's definition again at the named position. When the request sets
+`allowedTools`, history can only load tools in that set, and namespace entries are
+not loaded. Register every tool you load this way, usually with
+`omitFromRequestTools: true`, and keep its name aligned with the entry. An empty
+array emits no item.
 
 ##### Load tools at any point in the conversation
 
@@ -1681,6 +1697,8 @@ To add tools somewhere other than after a tool result, add an empty system messa
 with `providerOptions.openai.additionalTools` at that point. The Responses provider
 emits an `additional_tools` item in its place, so the earlier history and the
 top-level tool list stay unchanged. This requires `allowSystemInMessages: true`.
+The same registration check applies: every entry must refer to a tool in `tools`,
+and the provider sends the registered definition.
 
 ```ts
 import {
@@ -1715,7 +1733,7 @@ messages.push(
 
 await generateText({
   model: openai.responses('gpt-5.4'),
-  tools, // includes get_weather with omitFromRequestTools: true
+  tools, // includes get_weather with omitFromRequestTools: true and its description
   messages,
   allowSystemInMessages: true,
 });
@@ -1729,6 +1747,9 @@ the configuration update comes first.
 definition. Keep the function in `tools` and, if you use `activeTools`, include it
 there too: inactive tools cannot be executed. Use automatic tool choice for these
 functions; OpenAI cannot force or allow-list a tool absent from the top-level list.
+Omission only affects serialization: decide which tools a user may run with
+`activeTools` or by choosing which tools to register on the server, not by
+leaving them out of the request.
 
 Both `generateText` and `streamText` support this representation. For streaming,
 append `(await result.response).messages` when replaying the conversation. This

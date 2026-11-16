@@ -26,6 +26,7 @@ import { z } from 'zod/v4';
 import {
   openaiResponsesSystemMessageOptionsSchema,
   openaiResponsesToolResultOptionsSchema,
+  type OpenAIResponsesAdditionalTool,
 } from './openai-responses-options';
 import {
   applyPatchInputSchema,
@@ -411,6 +412,16 @@ function isFileId(data: string, prefixes?: readonly string[]): boolean {
   return prefixes.some(prefix => data.startsWith(prefix));
 }
 
+type AdditionalToolResolver = (
+  additionalTool: Pick<OpenAIResponsesAdditionalTool, 'type' | 'name'>,
+) => Promise<
+  | {
+      definition: OpenAIResponsesAdditionalTool | undefined;
+      warnings: Array<SharedV3Warning>;
+    }
+  | undefined
+>;
+
 export async function convertToOpenAIResponsesInput({
   prompt,
   toolNameMapping,
@@ -429,6 +440,7 @@ export async function convertToOpenAIResponsesInput({
   hasApplyPatchTool = false,
   toolSearchToolName,
   customProviderToolNames,
+  findAdditionalToolDefinition,
 }: {
   prompt: LanguageModelV3Prompt;
   toolNameMapping: ToolNameMapping;
@@ -447,12 +459,22 @@ export async function convertToOpenAIResponsesInput({
   hasApplyPatchTool?: boolean;
   toolSearchToolName?: string;
   customProviderToolNames?: Set<string>;
+  /**
+   * Resolves an `additionalTools` entry from the prompt to the definition of
+   * the tool registered for this request. Entries come from replayable
+   * conversation history, so they only select a registered tool: the resolver
+   * returns the registered definition, and entries it cannot resolve are
+   * dropped.
+   */
+  findAdditionalToolDefinition?: AdditionalToolResolver;
 }): Promise<{
   input: OpenAIResponsesInput;
   warnings: Array<SharedV3Warning>;
 }> {
   let input: OpenAIResponsesInput = [];
   const warnings: Array<SharedV3Warning> = [];
+  const seenAdditionalToolWarnings = new Set<string>();
+  const droppedAdditionalToolNames = new Set<string>();
   const processedApprovalIds = new Set<string>();
   const parallelToolResultGroups =
     hasConversation || hasPreviousResponseId
@@ -517,11 +539,18 @@ export async function convertToOpenAIResponsesInput({
               }),
             });
           }
-          if (additionalTools != null && additionalTools.length > 0) {
+          const resolvedAdditionalTools = await filterAdditionalTools({
+            additionalTools,
+            findAdditionalToolDefinition,
+            seenWarnings: seenAdditionalToolWarnings,
+            droppedToolNames: droppedAdditionalToolNames,
+            warnings,
+          });
+          if (resolvedAdditionalTools != null) {
             input.push({
               type: 'additional_tools',
               role: 'developer',
-              tools: additionalTools,
+              tools: resolvedAdditionalTools,
             });
           }
           // The controls are independent of systemMessageMode's text handling.
@@ -1340,11 +1369,15 @@ export async function convertToOpenAIResponsesInput({
               });
 
               for (const result of parallelToolResultGroup.results) {
-                const additionalTools = await parseToolResultAdditionalTools({
+                const additionalTools = await resolveAdditionalTools({
                   providerOptions: result.providerOptions,
                   providerOptionsName,
+                  findAdditionalToolDefinition,
+                  seenWarnings: seenAdditionalToolWarnings,
+                  droppedToolNames: droppedAdditionalToolNames,
+                  warnings,
                 });
-                if (additionalTools?.length) {
+                if (additionalTools != null) {
                   input.push({
                     type: 'additional_tools',
                     role: 'developer',
@@ -1583,11 +1616,15 @@ export async function convertToOpenAIResponsesInput({
             output: contentValue,
           });
 
-          const additionalTools = await parseToolResultAdditionalTools({
+          const additionalTools = await resolveAdditionalTools({
             providerOptions: part.providerOptions,
             providerOptionsName,
+            findAdditionalToolDefinition,
+            seenWarnings: seenAdditionalToolWarnings,
+            droppedToolNames: droppedAdditionalToolNames,
+            warnings,
           });
-          if (additionalTools?.length) {
+          if (additionalTools != null) {
             input.push({
               type: 'additional_tools',
               role: 'developer',
@@ -1629,6 +1666,14 @@ export async function convertToOpenAIResponsesInput({
     );
   }
 
+  if (droppedAdditionalToolNames.size > 0) {
+    warnings.push({
+      type: 'unsupported',
+      feature: 'additionalTools',
+      details: `additional tool definitions are only sent for tools registered in the request; dropped the definitions of unregistered tools: ${formatDroppedToolNames(droppedAdditionalToolNames)}`,
+    });
+  }
+
   return { input, warnings };
 }
 
@@ -1666,4 +1711,236 @@ async function parseToolResultAdditionalTools({
     schema: openaiResponsesToolResultOptionsSchema,
   });
   return openaiOptions?.additionalTools;
+}
+
+/**
+ * Replaces `additionalTools` entries from a tool result with the definitions of
+ * the tools registered for this request.
+ */
+async function resolveAdditionalTools({
+  providerOptions,
+  providerOptionsName,
+  findAdditionalToolDefinition,
+  seenWarnings,
+  droppedToolNames,
+  warnings,
+}: {
+  providerOptions: SharedV3ProviderOptions | undefined;
+  providerOptionsName: string;
+  findAdditionalToolDefinition: AdditionalToolResolver | undefined;
+  seenWarnings: Set<string>;
+  droppedToolNames: Set<string>;
+  warnings: Array<SharedV3Warning>;
+}): Promise<Array<OpenAIResponsesAdditionalTool> | undefined> {
+  const additionalTools = await parseToolResultAdditionalTools({
+    providerOptions,
+    providerOptionsName,
+  });
+
+  return filterAdditionalTools({
+    additionalTools,
+    findAdditionalToolDefinition,
+    seenWarnings,
+    droppedToolNames,
+    warnings,
+  });
+}
+
+/**
+ * Replaces `additionalTools` entries from the prompt with the definitions of
+ * the tools registered for this request.
+ *
+ * Prompts can contain replayed conversation history, so their tool definitions
+ * are not trusted. An entry only selects a registered tool: the provider sends
+ * the definition derived from the registered tool, and entries for tools that
+ * are not registered are dropped.
+ */
+async function filterAdditionalTools({
+  additionalTools,
+  findAdditionalToolDefinition,
+  seenWarnings,
+  droppedToolNames,
+  warnings,
+}: {
+  additionalTools: Array<OpenAIResponsesAdditionalTool> | undefined;
+  findAdditionalToolDefinition: AdditionalToolResolver | undefined;
+  seenWarnings: Set<string>;
+  droppedToolNames: Set<string>;
+  warnings: Array<SharedV3Warning>;
+}): Promise<Array<OpenAIResponsesAdditionalTool> | undefined> {
+  if (additionalTools == null || additionalTools.length === 0) {
+    return undefined;
+  }
+
+  const resolvedTools: Array<OpenAIResponsesAdditionalTool> = [];
+  const seenDefinitions = new Set<string>();
+
+  for (const additionalTool of additionalTools) {
+    const resolved = await findAdditionalToolDefinition?.({
+      type: additionalTool.type,
+      name: additionalTool.name,
+    });
+
+    if (resolved == null) {
+      droppedToolNames.add(additionalTool.name);
+      continue;
+    }
+
+    for (const warning of resolved.warnings) {
+      const signature = JSON.stringify(warning);
+
+      if (!seenWarnings.has(signature)) {
+        seenWarnings.add(signature);
+        warnings.push(warning);
+      }
+    }
+
+    if (resolved.definition == null) {
+      continue;
+    }
+
+    pushDefinitionMismatchWarning({
+      additionalTool,
+      definition: resolved.definition,
+      seenWarnings,
+      warnings,
+    });
+
+    const definition = narrowNamespaceDefinition({
+      registeredDefinition: resolved.definition,
+      additionalTool,
+      droppedToolNames,
+    });
+
+    if (definition == null) {
+      continue;
+    }
+
+    // Replayed history can repeat an entry; send each definition once.
+    const signature = JSON.stringify(definition);
+
+    if (seenDefinitions.has(signature)) {
+      continue;
+    }
+
+    seenDefinitions.add(signature);
+    resolvedTools.push(definition);
+  }
+
+  return resolvedTools.length > 0 ? resolvedTools : undefined;
+}
+
+/**
+ * A namespace entry names the tools to load. Send only the registered tools of
+ * the namespace that the entry names, so an entry cannot load more of a
+ * namespace than it asked for.
+ */
+function narrowNamespaceDefinition({
+  registeredDefinition,
+  additionalTool,
+  droppedToolNames,
+}: {
+  registeredDefinition: OpenAIResponsesAdditionalTool;
+  additionalTool: OpenAIResponsesAdditionalTool;
+  droppedToolNames: Set<string>;
+}): OpenAIResponsesAdditionalTool | undefined {
+  if (
+    registeredDefinition.type !== 'namespace' ||
+    additionalTool.type !== 'namespace'
+  ) {
+    return registeredDefinition;
+  }
+
+  const requestedToolNames = new Set(
+    additionalTool.tools.map(tool => tool.name),
+  );
+  const registeredToolNames = new Set(
+    registeredDefinition.tools.map(tool => tool.name),
+  );
+
+  for (const toolName of requestedToolNames) {
+    if (!registeredToolNames.has(toolName)) {
+      droppedToolNames.add(toolName);
+    }
+  }
+
+  const tools = registeredDefinition.tools.filter(tool =>
+    requestedToolNames.has(tool.name),
+  );
+
+  return tools.length > 0 ? { ...registeredDefinition, tools } : undefined;
+}
+
+/**
+ * The entry in the history is not sent, so a `strict` or `defer_loading` value
+ * that differs from the registered tool is ignored. Warn instead of silently
+ * changing the behavior the entry asks for.
+ */
+function pushDefinitionMismatchWarning({
+  additionalTool,
+  definition,
+  seenWarnings,
+  warnings,
+}: {
+  additionalTool: OpenAIResponsesAdditionalTool;
+  definition: OpenAIResponsesAdditionalTool;
+  seenWarnings: Set<string>;
+  warnings: Array<SharedV3Warning>;
+}) {
+  if (additionalTool.type !== 'function' || definition.type !== 'function') {
+    return;
+  }
+
+  const mismatchedFields: Array<string> = [];
+
+  // v6 omits `strict` from the definition when the registered tool does not set
+  // it, so only warn about an explicit difference.
+  if (
+    additionalTool.strict != null &&
+    definition.strict != null &&
+    additionalTool.strict !== definition.strict
+  ) {
+    mismatchedFields.push('strict');
+  }
+
+  if (
+    additionalTool.defer_loading != null &&
+    additionalTool.defer_loading !== (definition.defer_loading ?? false)
+  ) {
+    mismatchedFields.push('defer_loading');
+  }
+
+  if (mismatchedFields.length === 0) {
+    return;
+  }
+
+  const warning: SharedV3Warning = {
+    type: 'unsupported',
+    feature: `additionalTools entry "${definition.name}"`,
+    details: `the history entry sets ${mismatchedFields.join(' and ')} differently from the registered tool; the registered definition is sent`,
+  };
+  const signature = JSON.stringify(warning);
+
+  if (!seenWarnings.has(signature)) {
+    seenWarnings.add(signature);
+    warnings.push(warning);
+  }
+}
+
+function formatDroppedToolNames(names: Set<string>): string {
+  const maxNames = 5;
+  const maxNameLength = 80;
+  const formattedNames = [...names]
+    .slice(0, maxNames)
+    .map(name =>
+      JSON.stringify(
+        name.length > maxNameLength
+          ? `${name.slice(0, maxNameLength)}...`
+          : name,
+      ),
+    );
+
+  return names.size > maxNames
+    ? `${formattedNames.join(', ')} and ${names.size - maxNames} more`
+    : formattedNames.join(', ');
 }

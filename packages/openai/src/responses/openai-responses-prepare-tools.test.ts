@@ -1,6 +1,10 @@
+import type { LanguageModelV3FunctionTool } from '@ai-sdk/provider';
 import { ToolNameMapping } from '@ai-sdk/provider-utils';
 import type { imageGeneration } from '../tool/image-generation';
-import { prepareResponsesTools } from './openai-responses-prepare-tools';
+import {
+  findAdditionalToolDefinition,
+  prepareResponsesTools,
+} from './openai-responses-prepare-tools';
 import { describe, it, expect } from 'vitest';
 
 describe('prepareResponsesTools', () => {
@@ -2608,5 +2612,262 @@ describe('prepareResponsesTools', () => {
         tools: [{ type: 'function', name: 'mapped_tool' }],
       });
     });
+  });
+});
+
+describe('findAdditionalToolDefinition', () => {
+  const listIssuesTool: LanguageModelV3FunctionTool = {
+    type: 'function',
+    name: 'list_issues',
+    description: 'List Linear issues.',
+    inputSchema: {
+      type: 'object',
+      properties: { team: { type: 'string' } },
+      required: ['team'],
+      additionalProperties: false,
+    },
+    providerOptions: {
+      openai: { omitFromRequestTools: true, deferLoading: true },
+    },
+  };
+
+  it('derives the function definition from the registered tool', async () => {
+    const resolved = await findAdditionalToolDefinition({
+      tools: [listIssuesTool],
+      additionalTool: { type: 'function', name: 'list_issues' },
+    });
+
+    expect(resolved).toEqual({
+      definition: {
+        type: 'function',
+        name: 'list_issues',
+        description: 'List Linear issues.',
+        parameters: {
+          type: 'object',
+          properties: { team: { type: 'string' } },
+          required: ['team'],
+          additionalProperties: false,
+        },
+        defer_loading: true,
+      },
+      warnings: [],
+    });
+  });
+
+  it('reads provider options of another provider name', async () => {
+    const tools: Array<LanguageModelV3FunctionTool> = [
+      {
+        ...listIssuesTool,
+        providerOptions: {
+          azure: { omitFromRequestTools: true, deferLoading: true },
+        },
+      },
+    ];
+    const resolved = await findAdditionalToolDefinition({
+      tools,
+      additionalTool: { type: 'function', name: 'list_issues' },
+      providerOptionsName: 'azure',
+    });
+
+    expect(resolved?.definition).toMatchObject({
+      name: 'list_issues',
+      description: 'List Linear issues.',
+      defer_loading: true,
+    });
+  });
+
+  it('derives a namespace definition from the registered namespace tools', async () => {
+    const namespace = { name: 'linear', description: 'Linear tools' };
+    const tools: Array<LanguageModelV3FunctionTool> = [
+      {
+        type: 'function',
+        name: 'get_issue',
+        inputSchema: { type: 'object', properties: {} },
+        providerOptions: { openai: { namespace } },
+      },
+      {
+        type: 'function',
+        name: 'list_issues',
+        description: 'List issues.',
+        inputSchema: { type: 'object', properties: {} },
+        providerOptions: { openai: { namespace } },
+      },
+    ];
+    const resolved = await findAdditionalToolDefinition({
+      tools,
+      additionalTool: { type: 'namespace', name: 'linear' },
+    });
+
+    expect(resolved).toEqual({
+      definition: {
+        type: 'namespace',
+        name: 'linear',
+        description: 'Linear tools',
+        tools: [
+          {
+            type: 'function',
+            name: 'get_issue',
+            description: undefined,
+            parameters: { type: 'object', properties: {} },
+          },
+          {
+            type: 'function',
+            name: 'list_issues',
+            description: 'List issues.',
+            parameters: { type: 'object', properties: {} },
+          },
+        ],
+      },
+      warnings: [],
+    });
+  });
+
+  it('does not resolve a namespaced function as a function', async () => {
+    const tools: Array<LanguageModelV3FunctionTool> = [
+      {
+        type: 'function',
+        name: 'get_issue',
+        inputSchema: { type: 'object', properties: {} },
+        providerOptions: {
+          openai: {
+            namespace: { name: 'linear', description: 'Linear tools' },
+          },
+        },
+      },
+    ];
+    const resolved = await findAdditionalToolDefinition({
+      tools,
+      additionalTool: { type: 'function', name: 'get_issue' },
+    });
+
+    expect(resolved).toBeUndefined();
+  });
+
+  it('derives a custom definition from the registered custom tool', async () => {
+    const resolved = await findAdditionalToolDefinition({
+      tools: [
+        {
+          type: 'provider',
+          id: 'openai.custom',
+          name: 'apply_patch_tool',
+          args: {
+            name: 'apply_patch',
+            description: 'Apply a patch',
+            format: { type: 'text' },
+          },
+        },
+      ],
+      additionalTool: { type: 'custom', name: 'apply_patch' },
+    });
+
+    expect(resolved).toEqual({
+      definition: {
+        type: 'custom',
+        name: 'apply_patch',
+        description: 'Apply a patch',
+        format: { type: 'text' },
+      },
+      warnings: [],
+    });
+  });
+
+  it.each([
+    { type: 'function' as const, name: 'unregistered' },
+    { type: 'custom' as const, name: 'apply_patch' },
+    { type: 'namespace' as const, name: 'unregistered' },
+  ])('does not resolve an unregistered entry: $type $name', async entry => {
+    const resolved = await findAdditionalToolDefinition({
+      tools: [listIssuesTool],
+      additionalTool: entry,
+    });
+
+    expect(resolved).toBeUndefined();
+  });
+
+  it('does not load a tool outside allowedTools', async () => {
+    const resolved = await findAdditionalToolDefinition({
+      tools: [listIssuesTool],
+      additionalTool: { type: 'function', name: 'list_issues' },
+      allowedToolNames: new Set(['search']),
+    });
+
+    expect(resolved).toEqual({
+      definition: undefined,
+      warnings: [
+        {
+          type: 'unsupported',
+          feature: 'additionalTools entry "list_issues"',
+          details:
+            'the tool is not part of allowedTools for this request; the entry is not loaded',
+        },
+      ],
+    });
+  });
+
+  it('does not load a namespace while allowedTools restricts callable tools', async () => {
+    const tools: Array<LanguageModelV3FunctionTool> = [
+      {
+        type: 'function',
+        name: 'get_issue',
+        inputSchema: { type: 'object', properties: {} },
+        providerOptions: {
+          openai: {
+            namespace: { name: 'linear', description: 'Linear tools' },
+          },
+        },
+      },
+    ];
+    const resolved = await findAdditionalToolDefinition({
+      tools,
+      additionalTool: { type: 'namespace', name: 'linear' },
+      allowedToolNames: new Set(['search']),
+    });
+
+    expect(resolved).toEqual({
+      definition: undefined,
+      warnings: [
+        {
+          type: 'unsupported',
+          feature: 'additionalTools namespace "linear"',
+          details:
+            'tool namespaces cannot be loaded while allowedTools restricts the callable tools; the entry is not loaded',
+        },
+      ],
+    });
+  });
+
+  it('warns about conflicting namespace descriptions', async () => {
+    const tools: Array<LanguageModelV3FunctionTool> = [
+      {
+        type: 'function',
+        name: 'get_issue',
+        inputSchema: { type: 'object', properties: {} },
+        providerOptions: {
+          openai: { namespace: { name: 'linear', description: 'First' } },
+        },
+      },
+      {
+        type: 'function',
+        name: 'list_issues',
+        inputSchema: { type: 'object', properties: {} },
+        providerOptions: {
+          openai: { namespace: { name: 'linear', description: 'Second' } },
+        },
+      },
+    ];
+    const resolved = await findAdditionalToolDefinition({
+      tools,
+      additionalTool: { type: 'namespace', name: 'linear' },
+    });
+
+    expect(resolved?.definition).toMatchObject({ description: 'First' });
+    expect(resolved?.warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'conflicting descriptions for OpenAI tool namespace "linear"',
+        details:
+          'the first registered description is used for the loaded namespace',
+      },
+    ]);
   });
 });
