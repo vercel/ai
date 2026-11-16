@@ -207,8 +207,16 @@ async function readLineRanges(options: {
     if (abortSignal?.aborted) throw new Error('Operation aborted');
     return null;
   }
-  // 141 is `head` closing the pipe after it reached the byte limit.
-  if (result.exitCode !== 0 && result.exitCode !== 141) return null;
+  // 141 is `head` closing the pipe after it reached the byte limit. A sandbox
+  // whose command runner ignores SIGPIPE reports a write failure instead, so
+  // an output past the limit is accepted whatever the exit code.
+  if (
+    result.exitCode !== 0 &&
+    result.exitCode !== 141 &&
+    Buffer.byteLength(result.stdout, 'utf-8') <= maxBytes
+  ) {
+    return null;
+  }
 
   const lines = new Map<number, string>();
   for (const rawLine of result.stdout.split('\n')) {
