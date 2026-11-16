@@ -565,7 +565,7 @@ async function readContextLines(options: {
     limitBytes: CONTEXT_FILE_BYTES,
     abortSignal,
   });
-  if (!snapshot.complete) return undefined;
+  if (snapshot == null || !snapshot.complete) return undefined;
   const text = decodeFxModelSafeText({ bytes: snapshot.bytes });
   const lines = text?.split('\n');
   if (lines?.at(-1) === '') lines.pop();

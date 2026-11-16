@@ -583,6 +583,38 @@ describe('grep_files context lines', () => {
     expect(calls.filter(call => call.startsWith('base64'))).toEqual([]);
   });
 
+  test('reads context of a file that grew after its stat within the limit', async () => {
+    const { session, calls, state } = createFakeSearchSession({
+      stat: path =>
+        path === workDir
+          ? { type: 'directory', size: 0 }
+          : { type: 'file', size: 1024 },
+      command: command => ({
+        chunks: function* () {
+          if (command.startsWith('base64')) {
+            // The file grew to 64 MiB after the stat reported 1 KiB.
+            for (;;) {
+              yield new Uint8Array(Buffer.alloc(64 * 1024, 0x61));
+            }
+          }
+          yield new Uint8Array(Buffer.from('./growth.txt:2:needle\n', 'utf8'));
+        },
+      }),
+    });
+
+    const output = await grepFxFiles({
+      sandbox: testSandbox(session),
+      input: { pattern: 'needle', context_lines: 2 },
+      abortSignal: new AbortController().signal,
+    });
+
+    expect(output.text).toContain(' - growth.txt:2: needle');
+    // The read is bounded, so the grown file has no context lines.
+    expect(output.text).not.toContain('growth.txt:1-');
+    expect(calls.filter(call => call.startsWith('base64'))).toHaveLength(1);
+    expect(state.sent).toBeLessThan(400 * 1024);
+  });
+
   test('shows context lines of a file within the context limit', async () => {
     const session = await createJustBashNetworkSandboxSession();
     const workDir = session.defaultWorkingDirectory;
