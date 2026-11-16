@@ -1,5 +1,11 @@
 # @ai-sdk/alibaba
 
+## 0.0.39
+
+### Patch Changes
+
+- 4ddb1fa: Prevent streaming tool calls from finalizing on parsable partial JSON. A tool call was treated as complete as soon as its accumulated arguments parsed as JSON, so a stream that sent valid JSON early and more argument text in later deltas ran the tool with truncated arguments. Tool calls are now finalized when the stream ends.
+
 ## 0.0.38
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 2.0.64
+
+### Patch Changes
+
+- 4ddb1fa: Prevent streaming tool calls from finalizing on parsable partial JSON. A tool call was treated as complete as soon as its accumulated arguments parsed as JSON, so a stream that sent valid JSON early and more argument text in later deltas ran the tool with truncated arguments. Tool calls are now finalized when the stream ends.
+
 ## 2.0.63
 
 ### Patch Changes
