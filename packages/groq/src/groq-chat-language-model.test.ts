@@ -1242,6 +1242,112 @@ describe('doStream', () => {
     `);
   });
 
+  it('should only finalize a tool call when the stream ends', async () => {
+    server.urls['https://api.groq.com/openai/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        // The first delta alone is valid JSON; the second delta continues it.
+        `data: {"id":"chatcmpl-early-finalization","object":"chat.completion.chunk","created":1733162241,` +
+          `"model":"gemma2-9b-it","choices":[{"index":0,"delta":{"role":"assistant","tool_calls":[{"index":0,` +
+          `"id":"call_early_finalization","type":"function","function":{"name":"log","arguments":"{\\"path\\":\\"/safe\\"}"}}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-early-finalization","object":"chat.completion.chunk","created":1733162241,` +
+          `"model":"gemma2-9b-it","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+          `"function":{"arguments":",\\"confirm\\":false}"}}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-early-finalization","object":"chat.completion.chunk","created":1733162241,` +
+          `"model":"gemma2-9b-it","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'log',
+          inputSchema: {
+            type: 'object',
+            properties: { path: { type: 'string' } },
+            required: ['path'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+
+    const toolCalls = parts.filter(part => part.type === 'tool-call');
+    expect(toolCalls).toHaveLength(1);
+    expect(toolCalls[0]).toMatchObject({
+      input: '{"path":"/safe"},"confirm":false}',
+      toolCallId: 'call_early_finalization',
+      toolName: 'log',
+    });
+
+    expect(
+      parts
+        .filter(part => part.type === 'tool-input-delta')
+        .map(part => part.delta),
+    ).toStrictEqual(['{"path":"/safe"}', ',"confirm":false}']);
+
+    const partTypes = parts.map(part => part.type);
+    expect(partTypes.lastIndexOf('tool-input-delta')).toBeLessThan(
+      partTypes.indexOf('tool-call'),
+    );
+  });
+
+  it('should finalize a tool call with a non-zero index when earlier indexes are absent', async () => {
+    server.urls['https://api.groq.com/openai/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        // only tool call index 1 is sent; index 0 never appears
+        `data: {"id":"chatcmpl-sparse-index","object":"chat.completion.chunk","created":1733162241,` +
+          `"model":"gemma2-9b-it","choices":[{"index":0,"delta":{"role":"assistant","tool_calls":[{"index":1,` +
+          `"id":"call_sparse_index","type":"function","function":{"name":"log","arguments":"{\\"path\\":"}}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-sparse-index","object":"chat.completion.chunk","created":1733162241,` +
+          `"model":"gemma2-9b-it","choices":[{"index":0,"delta":{"tool_calls":[{"index":1,` +
+          `"function":{"arguments":"\\"/safe\\"}"}}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-sparse-index","object":"chat.completion.chunk","created":1733162241,` +
+          `"model":"gemma2-9b-it","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'log',
+          inputSchema: {
+            type: 'object',
+            properties: { path: { type: 'string' } },
+            required: ['path'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+
+    const toolCalls = parts.filter(part => part.type === 'tool-call');
+    expect(toolCalls).toHaveLength(1);
+    expect(toolCalls[0]).toMatchObject({
+      input: '{"path":"/safe"}',
+      toolCallId: 'call_sparse_index',
+      toolName: 'log',
+    });
+
+    expect(parts.some(part => part.type === 'error')).toBe(false);
+    expect(parts[parts.length - 1]).toMatchObject({ type: 'finish' });
+  });
+
   it('should not duplicate tool calls when there is an additional empty chunk after the tool call has been completed', async () => {
     server.urls['https://api.groq.com/openai/v1/chat/completions'].response = {
       type: 'stream-chunks',
@@ -1342,6 +1448,11 @@ describe('doStream', () => {
         },
         {
           "delta": " ai"}",
+          "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": "",
           "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
           "type": "tool-input-delta",
         },
