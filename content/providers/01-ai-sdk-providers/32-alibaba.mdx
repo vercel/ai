@@ -286,6 +286,38 @@ discarded before the provider can serialize them as `reasoning_content`. Set
 - Historical reasoning remains separate from visible assistant text; it is never
   merged into `content`.
 
+### Image and Video Input
+
+Multimodal Qwen models accept image and video file parts. Images are sent as
+Alibaba `image_url` content and videos as `video_url` content. Both accept a
+public URL or inline data, which is sent as a base64 data URL:
+
+```ts
+import { alibaba } from '@ai-sdk/alibaba';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: alibaba('qwen4-max'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Describe what happens in this video.' },
+        {
+          type: 'file',
+          mediaType: 'video/mp4',
+          data: new URL('https://example.com/clip.mp4'),
+        },
+      ],
+    },
+  ],
+});
+```
+
+Other file types, such as PDFs, are not supported. Video input requires a
+model that accepts video; see Alibaba's
+[visual understanding documentation](https://www.alibabacloud.com/help/en/model-studio/vision).
+
 ### Tool Calling
 
 Alibaba models support tool calling with parallel execution:
