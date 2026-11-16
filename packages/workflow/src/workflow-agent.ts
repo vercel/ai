@@ -2963,7 +2963,10 @@ export class WorkflowAgent<
           // Resolve which tool calls need approval. The configured approval
           // policy takes precedence over each tool's `needsApproval` setting.
           // Approval functions run here in workflow context, outside of the
-          // durable model steps.
+          // durable model steps. The policy must see the runtime context of the
+          // current step: `prepareStep` can tighten permissions for this step,
+          // and evaluating the invocation-start context would approve calls the
+          // current policy denies.
           const approvalStatuses = await Promise.all(
             nonProviderToolCalls.map(tc =>
               resolveToolApproval<ToolSet, TRuntimeContext>({
@@ -2972,10 +2975,14 @@ export class WorkflowAgent<
                   | ToolApprovalConfiguration<ToolSet, TRuntimeContext>
                   | undefined,
                 toolCall: tc as unknown as TypedToolCall<ToolSet>,
-                messages: iterMessages as unknown as ModelMessage[],
+                // Approval functions receive the same messages as tool
+                // execution: the system prompt and the assistant response that
+                // contains the call are excluded, so calls from the current
+                // response that have not run cannot count as history.
+                messages: getToolCallbackMessages(iterMessages),
                 toolsContext:
                   toolsContext as unknown as InferToolSetContext<ToolSet>,
-                runtimeContext: effectiveRuntimeContext,
+                runtimeContext,
               }),
             ),
           );
