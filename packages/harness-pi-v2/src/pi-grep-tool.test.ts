@@ -383,6 +383,8 @@ describe('createPiGrepTool', () => {
     await expect(grep({ pattern: 'foo', path: 'missing' })).rejects.toThrow(
       `Path not found: ${workDir}/missing`,
     );
-    await expect(grep({ pattern: '(' })).rejects.toThrow();
+    await expect(grep({ pattern: '(' })).rejects.toThrow(
+      /invalid regular expression|Unmatched/i,
+    );
   });
 });

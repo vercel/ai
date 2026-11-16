@@ -156,12 +156,14 @@ function parseRecursiveOutput(options: {
   for (let index = 0; index + 1 < blocks.length; index += 2) {
     const relativePath = (blocks[index] ?? '').replace(/^(\.\/)+/, '');
     if (!isSearchablePath({ relativePath })) continue;
-    matches.push(
-      ...parseMatchLines({
-        output: blocks[index + 1] ?? '',
-        relativePath,
-      }),
-    );
+    // One match at a time: a spread of a very large array can overflow the
+    // stack when the search returns many lines.
+    for (const match of parseMatchLines({
+      output: blocks[index + 1] ?? '',
+      relativePath,
+    })) {
+      matches.push(match);
+    }
   }
   return matches;
 }
@@ -376,8 +378,8 @@ async function executeGrep(options: {
    * body pipes a command directly.
    */
   const command = isDirectory
-    ? `set -o pipefail; cd ${shellQuote(directory)} && grep ${quotedFlags(fileFlags)} -e ${quotedPattern} . | head -n ${fileLimit + 1} | while IFS= read -r file; do printf '%s\\0' "./$file"; ( grep ${quotedFlags(matchFlags)} -e ${quotedPattern} "./$file" | head -n ${limit} | awk '{ gsub("\\000", ""); print substr($0, 1, ${LINE_MAX_CHARS}) }' ); printf '\\0'; done | head -c ${MATCH_MAX_BYTES}`
-    : `set -o pipefail; cd ${shellQuote(directory)} && grep ${quotedFlags(matchFlags)} -e ${quotedPattern} ${shellQuote(`./${fileName}`)} | head -n ${limit} | awk '{ gsub("\\000", ""); print substr($0, 1, ${LINE_MAX_CHARS}) }' | head -c ${MATCH_MAX_BYTES}`;
+    ? `set -o pipefail; cd ${shellQuote(directory)} && grep ${quotedFlags(fileFlags)} -e ${quotedPattern} . | head -n ${fileLimit + 1} | while IFS= read -r file; do printf '%s\\0' "./$file"; ( grep ${quotedFlags(matchFlags)} -e ${quotedPattern} "./$file" | head -n ${limit} | awk '{ gsub("\\000", ""); print substr($0, 1, ${LINE_MAX_CHARS}) }' ); printf '\\0'; done | head -c ${MATCH_MAX_BYTES + 1}`
+    : `set -o pipefail; cd ${shellQuote(directory)} && grep ${quotedFlags(matchFlags)} -e ${quotedPattern} ${shellQuote(`./${fileName}`)} | head -n ${limit} | awk '{ gsub("\\000", ""); print substr($0, 1, ${LINE_MAX_CHARS}) }' | head -c ${MATCH_MAX_BYTES + 1}`;
   let result: { exitCode: number; stdout: string; stderr: string };
   try {
     result = await session.run({ command, abortSignal });
@@ -392,15 +394,12 @@ async function executeGrep(options: {
       ? parseRecursiveOutput({ output: result.stdout })
       : parseMatchLines({ output: result.stdout, relativePath: fileName })
   ).slice(0, limit);
-  // The search output is capped in bytes, so the last match can be cut off.
   /*
-   * A recursive search ends with the NUL byte that closes its last frame, a
-   * single-file search with the newline of its last line; a byte cap that cut
-   * the output leaves neither.
+   * The search asks for one byte more than the cap, so a longer output means
+   * the byte cap cut it and the last match can be incomplete.
    */
   const matchesTruncated =
-    Buffer.byteLength(result.stdout, 'utf-8') >= MATCH_MAX_BYTES &&
-    !result.stdout.endsWith(isDirectory ? '\0' : '\n');
+    Buffer.byteLength(result.stdout, 'utf-8') > MATCH_MAX_BYTES;
   const listedFiles = isDirectory
     ? Math.floor((result.stdout.split('\0').length - 1) / 2)
     : 0;
@@ -409,16 +408,6 @@ async function executeGrep(options: {
   const filesTruncated = listedFiles > fileLimit && matches.length < limit;
   const missingMatchesNotice =
     'Some matches may be missing, the output reached its limit';
-  /*
-   * Every frame of a recursive search carries a NUL byte. Without one, the
-   * sandbox did not deliver that framing, and an empty parse must not be
-   * reported as a complete answer.
-   */
-  if (isDirectory && result.exitCode !== 1 && !result.stdout.includes('\0')) {
-    throw new Error(
-      'The sandbox did not preserve the NUL framing of the grep output',
-    );
-  }
   /*
    * grep exits with 1 when nothing matched, and with 141 when `head` closed
    * the pipe after reaching the limit. A recursive search that hit an
@@ -432,6 +421,20 @@ async function executeGrep(options: {
   ) {
     throw new Error(
       result.stderr.trim() || `grep exited with code ${result.exitCode}`,
+    );
+  }
+  /*
+   * A search that succeeded frames every file with NUL bytes. Without one, the
+   * sandbox did not deliver that framing, and the empty parse must not be
+   * reported as a complete answer.
+   */
+  if (
+    isDirectory &&
+    (result.exitCode === 0 || result.exitCode === 141) &&
+    !result.stdout.includes('\0')
+  ) {
+    throw new Error(
+      'The sandbox did not preserve the NUL framing of the grep output',
     );
   }
   if (matches.length === 0) {
