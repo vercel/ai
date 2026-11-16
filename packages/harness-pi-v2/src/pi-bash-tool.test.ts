@@ -1,7 +1,10 @@
 import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
-import type { BashToolInput } from '@earendil-works/pi-coding-agent';
+import {
+  DEFAULT_MAX_BYTES,
+  type BashToolInput,
+} from '@earendil-works/pi-coding-agent';
 import { describe, expect, test } from 'vitest';
-import { createPiBashTool } from './pi-bash-tool';
+import { createPiBashTool, RetainedOutput } from './pi-bash-tool';
 
 async function setup() {
   const session = await createJustBashNetworkSandboxSession();
@@ -96,5 +99,110 @@ describe('createPiBashTool', () => {
     });
     expect(full?.endsWith('2999\n3000\n')).toBe(true);
     expect(full?.startsWith('1\n2\n')).toBe(true);
+  });
+
+  test('keeps the visible result correct for output far above the limits', async () => {
+    const { session, bash } = await setup();
+
+    const result = await bash({ input: { command: 'seq 1 100000' } });
+
+    expect(text(result)).toMatch(
+      /\n100000\n\n\[Showing lines 98001-100000 of 100000\. Full output: \/tmp\/pi-bash-call-1\.log\]$/,
+    );
+    const full = await session.readTextFile({
+      path: '/tmp/pi-bash-call-1.log',
+    });
+    expect(full?.endsWith('99999\n100000\n')).toBe(true);
+    expect(full?.startsWith('1\n2\n')).toBe(true);
+  });
+
+  test('keeps the end of a single line that exceeds the byte limit', async () => {
+    const { session, bash } = await setup();
+
+    const result = await bash({
+      input: { command: `seq 1 100000 | tr -d '\\n'` },
+    });
+
+    expect(text(result)).toMatch(
+      /\n\n\[Showing last 50\.0KB of line 1 \(line is 477\.4KB\)\. Full output: \/tmp\/pi-bash-call-1\.log\]$/,
+    );
+    expect(
+      await session.stat({ path: '/tmp/pi-bash-call-1.log' }),
+    ).toMatchObject({ size: 488_895 });
+  });
+
+  test('removes the output file when the output is not truncated', async () => {
+    const { session, bash } = await setup();
+
+    const result = await bash({ input: { command: 'echo hi' } });
+
+    expect(text(result)).toBe('hi\n');
+    expect(result.details).toBeUndefined();
+    expect(await session.stat({ path: '/tmp/pi-bash-call-1.log' })).toBeNull();
+  });
+
+  test('keeps the exit code and trailing comments of the command', async () => {
+    const { bash } = await setup();
+
+    expect(text(await bash({ input: { command: 'echo hi # comment' } }))).toBe(
+      'hi\n',
+    );
+    const failed = await bash({ input: { command: 'echo bye; exit 4' } });
+    expect(failed).toMatchObject({ isError: true });
+    expect(text(failed)).toBe('bye\n\n\nCommand exited with code 4');
+  });
+});
+
+describe('RetainedOutput', () => {
+  test('keeps only a bounded tail of output far above the limits', () => {
+    const output = new RetainedOutput();
+    const line = 'line\n';
+    for (let index = 0; index < 100_000; index++) output.append(line);
+
+    // Twice the tail kept for display, i.e. the hard bound of the class.
+    expect(output.retainedBytes).toBeLessThanOrEqual(4 * DEFAULT_MAX_BYTES);
+
+    const truncation = output.snapshot();
+    expect(truncation.truncated).toBe(true);
+    expect(truncation.truncatedBy).toBe('lines');
+    expect(truncation.totalBytes).toBe(500_000);
+    expect(truncation.totalLines).toBe(100_000);
+    expect(truncation.outputLines).toBe(2000);
+    expect(truncation.content.split('\n')).toHaveLength(2000);
+    expect(truncation.content.endsWith('line')).toBe(true);
+  });
+
+  test('keeps the end of a line that exceeds the byte limit', () => {
+    const output = new RetainedOutput();
+    output.append('a'.repeat(300_000));
+
+    // Twice the tail kept for display, i.e. the hard bound of the class.
+    expect(output.retainedBytes).toBeLessThanOrEqual(4 * DEFAULT_MAX_BYTES);
+
+    const truncation = output.snapshot();
+    expect(truncation).toMatchObject({
+      truncated: true,
+      truncatedBy: 'bytes',
+      lastLinePartial: true,
+      totalBytes: 300_000,
+      totalLines: 1,
+    });
+    expect(truncation.content).toBe('a'.repeat(DEFAULT_MAX_BYTES));
+    expect(output.lastLineBytes).toBe(300_000);
+  });
+
+  test('returns output within the limits unchanged', () => {
+    const output = new RetainedOutput();
+    output.append('out\n');
+    output.append('err\n');
+
+    expect(output.snapshot()).toMatchObject({
+      content: 'out\nerr\n',
+      truncated: false,
+      truncatedBy: null,
+      totalBytes: 8,
+      totalLines: 2,
+    });
+    expect(output.retainedBytes).toBe(8);
   });
 });
