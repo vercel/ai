@@ -3661,9 +3661,14 @@ describe('GoogleInteractionsLanguageModel MCP server credential telemetry', () =
 
     const error = await model
       .doGenerate({ prompt: TEST_PROMPT, tools: [MCP_TOOL] })
-      .catch(error => error);
+      .then(
+        () => undefined,
+        (caught: unknown) => caught,
+      );
 
-    expect(error.name).toBe('AI_APICallError');
-    expectRedactedTelemetryView(error.requestBodyValues);
+    expect(error).toMatchObject({ name: 'AI_APICallError' });
+    expectRedactedTelemetryView(
+      (error as { requestBodyValues?: unknown }).requestBodyValues,
+    );
   });
 });
