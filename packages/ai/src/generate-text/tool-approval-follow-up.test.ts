@@ -730,6 +730,160 @@ describe('issue #24624: tool approval abort and persistence invariants', () => {
     expect(onError).not.toHaveBeenCalled();
   });
 
+  const approvedRefundMessages: ModelMessage[] = [
+    {
+      role: 'assistant',
+      content: [
+        {
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'refund',
+          input: { amount: 50 },
+        },
+        {
+          type: 'tool-approval-request',
+          approvalId: 'app_1',
+          toolCallId: 'call_1',
+        },
+      ],
+    },
+    {
+      role: 'tool',
+      content: [
+        {
+          type: 'tool-approval-response',
+          approvalId: 'app_1',
+          approved: true,
+        },
+      ],
+    },
+  ];
+
+  it('VT-A5: streamText must not execute approved tool or run downstream policy when signal aborts during revalidation', async () => {
+    const abortController = new AbortController();
+    const execute = vi.fn(async () => ({ success: true }));
+    const refine = vi.fn(async (input: { amount: number }) => {
+      abortController.abort();
+      return input;
+    });
+    const policy = vi.fn(async () => 'approved' as const);
+    const onToolExecutionStart = vi.fn();
+    const onError = vi.fn();
+    let doStreamCalled = false;
+
+    const model = new MockLanguageModelV4({
+      doStream: async () => {
+        doStreamCalled = true;
+        return {
+          stream: new ReadableStream({
+            start(controller) {
+              controller.close();
+            },
+          }),
+        };
+      },
+    });
+
+    const result = streamText({
+      model,
+      messages: approvedRefundMessages,
+      tools: {
+        refund: tool({
+          description: 'Issue refund',
+          inputSchema: z.object({ amount: z.number() }),
+          execute,
+        }),
+      },
+      toolApproval: { refund: policy },
+      experimental_refineToolInput: { refund: refine },
+      onToolExecutionStart,
+      onError,
+      abortSignal: abortController.signal,
+    });
+
+    const partTypes: string[] = [];
+    for await (const part of result.fullStream) {
+      partTypes.push(part.type);
+    }
+
+    await expect(result.text).rejects.toThrow();
+    expect(refine).toHaveBeenCalledTimes(1);
+    expect(policy).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
+    expect(onToolExecutionStart).not.toHaveBeenCalled();
+    expect(doStreamCalled).toBe(false);
+    expect(onError).not.toHaveBeenCalled();
+    expect(partTypes).toEqual(['start', 'abort']);
+  });
+
+  it('VT-A6: generateText must skip revalidation when pre-aborted and not execute approved tool when aborted during revalidation', async () => {
+    const preAbortedController = new AbortController();
+    preAbortedController.abort();
+
+    const preAbortedExecute = vi.fn(async () => ({ success: true }));
+    const preAbortedRefine = vi.fn(async (input: { amount: number }) => input);
+    const preAbortedPolicy = vi.fn(async () => 'approved' as const);
+
+    const model = new MockLanguageModelV4({
+      doGenerate: async () => ({
+        content: [{ type: 'text', text: 'Should not run' }],
+        finishReason: { unified: 'stop', raw: undefined },
+        usage,
+        warnings: [],
+      }),
+    });
+
+    await expect(
+      generateText({
+        model,
+        messages: approvedRefundMessages,
+        tools: {
+          refund: tool({
+            description: 'Issue refund',
+            inputSchema: z.object({ amount: z.number() }),
+            execute: preAbortedExecute,
+          }),
+        },
+        toolApproval: { refund: preAbortedPolicy },
+        experimental_refineToolInput: { refund: preAbortedRefine },
+        abortSignal: preAbortedController.signal,
+      }),
+    ).rejects.toThrow();
+
+    expect(preAbortedRefine).not.toHaveBeenCalled();
+    expect(preAbortedPolicy).not.toHaveBeenCalled();
+    expect(preAbortedExecute).not.toHaveBeenCalled();
+
+    const inRefineController = new AbortController();
+    const inRefineExecute = vi.fn(async () => ({ success: true }));
+    const inRefinePolicy = vi.fn(async () => 'approved' as const);
+    const inRefine = vi.fn(async (input: { amount: number }) => {
+      inRefineController.abort();
+      return input;
+    });
+
+    await expect(
+      generateText({
+        model,
+        messages: approvedRefundMessages,
+        tools: {
+          refund: tool({
+            description: 'Issue refund',
+            inputSchema: z.object({ amount: z.number() }),
+            execute: inRefineExecute,
+          }),
+        },
+        toolApproval: { refund: inRefinePolicy },
+        experimental_refineToolInput: { refund: inRefine },
+        abortSignal: inRefineController.signal,
+      }),
+    ).rejects.toThrow();
+
+    expect(inRefine).toHaveBeenCalledTimes(1);
+    expect(inRefinePolicy).not.toHaveBeenCalled();
+    expect(inRefineExecute).not.toHaveBeenCalled();
+  });
+
   it('VT-B1: invariant verification: responseMessages contains pre-step tool result exactly once', async () => {
     const model = new MockLanguageModelV4({
       doGenerate: async () => ({

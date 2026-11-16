@@ -812,6 +812,14 @@ async function generateTextInternal<
         deniedToolApprovals: collectedDeniedToolApprovals,
       } = collectToolApprovals<TOOLS>({ messages: initialMessages });
 
+      const hasPreStepApprovals =
+        collectedDeniedToolApprovals.length > 0 ||
+        approvedToolApprovals.length > 0;
+
+      if (hasPreStepApprovals) {
+        mergedAbortSignal?.throwIfAborted();
+      }
+
       const {
         approvedToolApprovals: localApprovedToolApprovals,
         deniedToolApprovals: revalidationDeniedToolApprovals,
@@ -827,7 +835,12 @@ async function generateTextInternal<
         runtimeContext,
         toolApprovalSecret: experimental_toolApprovalSecret,
         refineToolInput,
+        abortSignal: mergedAbortSignal,
       });
+
+      if (hasPreStepApprovals) {
+        mergedAbortSignal?.throwIfAborted();
+      }
 
       const deniedToolApprovals = [
         ...collectedDeniedToolApprovals,
@@ -842,8 +855,6 @@ async function generateTextInternal<
         localApprovedToolApprovals.length > 0 ||
         invalidToolApprovals.length > 0
       ) {
-        mergedAbortSignal?.throwIfAborted();
-
         const toolResults = await executeTools({
           toolCalls: localApprovedToolApprovals.map(
             toolApproval => toolApproval.toolCall,
