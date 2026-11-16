@@ -7,7 +7,7 @@ import {
   type ImageModelV4Result,
   type ProviderV4,
 } from '@ai-sdk/provider';
-import { gateway } from '@ai-sdk/gateway';
+import { createDefaultGatewayBatch } from '@ai-sdk/gateway';
 import {
   detectMediaType,
   type ToolSet,
@@ -417,7 +417,13 @@ export function getBatchResults<TOOLS extends ToolSet>({
 }
 
 function resolveBatchApi(provider?: BatchProvider): BatchV4 {
-  provider ??= asProviderV4(globalThis.AI_SDK_DEFAULT_PROVIDER ?? gateway);
+  if (provider == null) {
+    const defaultProvider = globalThis.AI_SDK_DEFAULT_PROVIDER;
+    if (defaultProvider == null) {
+      return createDefaultGatewayBatch();
+    }
+    provider = asProviderV4(defaultProvider);
+  }
 
   if (isBatchApi(provider)) {
     return provider;

@@ -12,6 +12,8 @@ import { join } from 'path';
 // Bounded validation of malformed UI messages adds ~1.5 KiB.
 // The experimental extract API adds ~5 KiB.
 // Single-pass validation of JSON values in UI message metadata adds ~1 KiB.
+// String model IDs resolve through per-modality Gateway factories, so
+// single-function bundles only include the Gateway model they use.
 const LIMIT = 652 * 1024;
 
 interface BundleResult {
@@ -63,7 +65,7 @@ async function bundleForNode(
       entry === 'tool'
         ? 8 * 1024
         : entry === 'generateText'
-          ? 300 * 1024
+          ? 230 * 1024
           : LIMIT,
   };
 }
@@ -111,7 +113,7 @@ async function bundleForBrowser(
       entry === 'tool'
         ? 8 * 1024
         : entry === 'generateText'
-          ? 292 * 1024
+          ? 218 * 1024
           : LIMIT,
   };
 }

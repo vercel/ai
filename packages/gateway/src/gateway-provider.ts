@@ -4,21 +4,13 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   getErrorMessage,
-  loadOptionalSetting,
-  resolve,
   postJsonToApi,
-  withoutTrailingSlash,
-  withUserAgentSuffix,
   type FetchFunction,
   type Resolvable,
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { z } from './zod';
-import { asGatewayError, GatewayAuthenticationError } from './errors';
-import {
-  GATEWAY_AUTH_METHOD_HEADER,
-  VERCEL_AI_GATEWAY_TEAM_HEADER,
-} from './gateway-headers';
+import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import {
   GatewayFetchMetadata,
@@ -57,10 +49,8 @@ import type { GatewayTranscriptionModelId } from './gateway-transcription-model-
 import type { GatewayRealtimeModelId } from './gateway-realtime-model-settings';
 import type { GatewayVideoModelId } from './gateway-video-model-settings';
 import { gatewayTools } from './gateway-tools';
-import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import {
-  LoadAPIKeyError,
   type EmbeddingModelV4,
   type Experimental_BatchV4 as BatchV4,
   type ImageModelV4,
@@ -75,7 +65,12 @@ import {
   type ProviderV4,
   type LanguageModelV4,
 } from '@ai-sdk/provider';
-import { VERSION } from './version';
+import {
+  createGatewayModelConfig,
+  getGatewayAuthToken,
+} from './gateway-model-config';
+
+export { getGatewayAuthToken };
 
 export interface GatewayProvider extends ProviderV4 {
   (modelId: GatewayModelId): LanguageModelV4;
@@ -359,8 +354,6 @@ export interface GatewayProviderSettings {
   };
 }
 
-const AI_GATEWAY_PROTOCOL_VERSION = '0.0.1';
-
 /** Response shape of `POST /v1/realtime/client-secrets`. `expiresAt` is epoch seconds. */
 const gatewayClientSecretResponseSchema = lazySchema(() =>
   zodSchema(
@@ -383,56 +376,13 @@ export function createGateway(
     options.metadataCacheRefreshMillis ?? 1000 * 60 * 5;
   let lastFetchTime = 0;
 
-  const baseURL =
-    withoutTrailingSlash(options.baseURL) ??
-    'https://ai-gateway.vercel.sh/v4/ai';
-
-  const createAuthHeaders = (auth: {
-    token: string;
-    authMethod: 'api-key' | 'oidc';
-  }) =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${auth.token}`,
-        'ai-gateway-protocol-version': AI_GATEWAY_PROTOCOL_VERSION,
-        [GATEWAY_AUTH_METHOD_HEADER]: auth.authMethod,
-        ...(options.teamIdOrSlug != null
-          ? { [VERCEL_AI_GATEWAY_TEAM_HEADER]: options.teamIdOrSlug }
-          : {}),
-        ...options.headers,
-      },
-      `ai-sdk-gateway/${VERSION}`,
-    );
-
-  const getHeaders = async (
-    onResolved?: (headers: Record<string, string | undefined>) => void,
-  ) => {
-    try {
-      const headers = createAuthHeaders(await getGatewayAuthToken(options));
-      onResolved?.(headers);
-      return headers;
-    } catch (error) {
-      throw GatewayAuthenticationError.createContextualError({
-        apiKeyProvided: false,
-        oidcTokenProvided: false,
-        statusCode: 401,
-        cause: error,
-      });
-    }
-  };
-
-  const getRealtimeAuthToken = async () => {
-    try {
-      return await getGatewayAuthToken(options);
-    } catch (error) {
-      throw GatewayAuthenticationError.createContextualError({
-        apiKeyProvided: false,
-        oidcTokenProvided: false,
-        statusCode: 401,
-        cause: error,
-      });
-    }
-  };
+  const {
+    baseURL,
+    createAuthHeaders,
+    getAuthToken,
+    getHeaders,
+    createModelSettings,
+  } = createGatewayModelConfig(options);
 
   // Mints a short-lived client secret (`vcst_`) via the Gateway's
   // `/v1/realtime/client-secrets` route, authenticated with the long-lived
@@ -449,7 +399,7 @@ export function createGateway(
     routeKind?: 'speech' | 'transcription';
   }): Promise<{ token: string; expiresAt?: number }> => {
     assertGatewayClientSecretServerEnvironment();
-    const auth = await getRealtimeAuthToken();
+    const auth = await getAuthToken();
     const headers = createAuthHeaders(auth);
     const url = new URL('/v1/realtime/client-secrets', baseURL).toString();
     try {
@@ -481,54 +431,14 @@ export function createGateway(
     }
   };
 
-  const createO11yHeaders = () => {
-    const deploymentId = loadOptionalSetting({
-      settingValue: undefined,
-      environmentVariableName: 'VERCEL_DEPLOYMENT_ID',
-    });
-    const environment = loadOptionalSetting({
-      settingValue: undefined,
-      environmentVariableName: 'VERCEL_ENV',
-    });
-    const region = loadOptionalSetting({
-      settingValue: undefined,
-      environmentVariableName: 'VERCEL_REGION',
-    });
-    const projectId = loadOptionalSetting({
-      settingValue: undefined,
-      environmentVariableName: 'VERCEL_PROJECT_ID',
-    });
-
-    return async () => {
-      const requestId = await getVercelRequestId();
-      return {
-        ...(deploymentId && { 'ai-o11y-deployment-id': deploymentId }),
-        ...(environment && { 'ai-o11y-environment': environment }),
-        ...(region && { 'ai-o11y-region': region }),
-        ...(requestId && { 'ai-o11y-request-id': requestId }),
-        ...(projectId && { 'ai-o11y-project-id': projectId }),
-      };
-    };
-  };
-
   const createLanguageModel = (modelId: GatewayModelId) => {
-    return new GatewayLanguageModel(modelId, {
-      provider: 'gateway',
-      baseURL,
-      headers: getHeaders,
-      fetch: options.fetch,
-      o11yHeaders: createO11yHeaders(),
-    });
+    return new GatewayLanguageModel(modelId, createModelSettings());
   };
 
   const createBatch = () =>
     new GatewayBatch({
-      provider: 'gateway',
+      ...createModelSettings(),
       maxLineBytes: options.batchResultDownloads?.maxLineBytes,
-      baseURL,
-      headers: getHeaders,
-      fetch: options.fetch,
-      o11yHeaders: createO11yHeaders(),
     });
 
   const getAvailableModels = async () => {
@@ -634,55 +544,25 @@ export function createGateway(
   provider.getSpendReport = getSpendReport;
   provider.getGenerationInfo = getGenerationInfo;
   provider.imageModel = (modelId: GatewayImageModelId) => {
-    return new GatewayImageModel(modelId, {
-      provider: 'gateway',
-      baseURL,
-      headers: getHeaders,
-      fetch: options.fetch,
-      o11yHeaders: createO11yHeaders(),
-    });
+    return new GatewayImageModel(modelId, createModelSettings());
   };
   provider.languageModel = createLanguageModel;
   provider.experimental_batch = createBatch;
   const createEmbeddingModel = (modelId: GatewayEmbeddingModelId) => {
-    return new GatewayEmbeddingModel(modelId, {
-      provider: 'gateway',
-      baseURL,
-      headers: getHeaders,
-      fetch: options.fetch,
-      o11yHeaders: createO11yHeaders(),
-    });
+    return new GatewayEmbeddingModel(modelId, createModelSettings());
   };
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.videoModel = (modelId: GatewayVideoModelId) => {
-    return new GatewayVideoModel(modelId, {
-      provider: 'gateway',
-      baseURL,
-      headers: getHeaders,
-      fetch: options.fetch,
-      o11yHeaders: createO11yHeaders(),
-    });
+    return new GatewayVideoModel(modelId, createModelSettings());
   };
   const createRerankingModel = (modelId: GatewayRerankingModelId) => {
-    return new GatewayRerankingModel(modelId, {
-      provider: 'gateway',
-      baseURL,
-      headers: getHeaders,
-      fetch: options.fetch,
-      o11yHeaders: createO11yHeaders(),
-    });
+    return new GatewayRerankingModel(modelId, createModelSettings());
   };
   provider.rerankingModel = createRerankingModel;
   provider.reranking = createRerankingModel;
   const createDecisionModel = (modelId: GatewayDecisionModelId) => {
-    return new GatewayDecisionModel(modelId, {
-      provider: 'gateway',
-      baseURL,
-      headers: getHeaders,
-      fetch: options.fetch,
-      o11yHeaders: createO11yHeaders(),
-    });
+    return new GatewayDecisionModel(modelId, createModelSettings());
   };
   provider.decisionModel = createDecisionModel;
   provider.decision = createDecisionModel;
@@ -690,11 +570,7 @@ export function createGateway(
   provider.evaluation = createDecisionModel;
   const createSpeechModel = (modelId: GatewaySpeechModelId) => {
     return new GatewaySpeechModel(modelId, {
-      provider: 'gateway',
-      baseURL,
-      headers: getHeaders,
-      fetch: options.fetch,
-      o11yHeaders: createO11yHeaders(),
+      ...createModelSettings(),
       webSocket: options.webSocket,
     });
   };
@@ -726,11 +602,7 @@ export function createGateway(
   ) as GatewaySpeechFactory;
   const createTranscriptionModel = (modelId: GatewayTranscriptionModelId) => {
     return new GatewayTranscriptionModel(modelId, {
-      provider: 'gateway',
-      baseURL,
-      headers: getHeaders,
-      fetch: options.fetch,
-      o11yHeaders: createO11yHeaders(),
+      ...createModelSettings(),
       webSocket: options.webSocket,
     });
   };
@@ -798,57 +670,7 @@ export function createGateway(
   return provider;
 }
 
-export const gateway = createGateway();
-
-/**
- * Resolves the credential for a Gateway request, in this order:
- *
- * 1. The `apiKey` setting (a string, or a callback resolved per request).
- * 2. The `AI_GATEWAY_API_KEY` environment variable.
- * 3. The Vercel OIDC token from `getVercelOidcToken()`. It is available
- *    automatically on Vercel deployments, and locally after `vercel env pull`
- *    or under `vercel dev`.
- *
- * A non-empty configured API key is never replaced by OIDC, even if the key is
- * invalid. An empty string option or environment variable falls through to
- * OIDC; a callback must return a non-empty key. Callers wrap a failure here in a
- * `GatewayAuthenticationError` ("No authentication provided").
- */
-export async function getGatewayAuthToken(
-  options: GatewayProviderSettings,
-): Promise<{ token: string; authMethod: 'api-key' | 'oidc' }> {
-  const resolvedApiKey =
-    typeof options.apiKey === 'string' || options.apiKey == null
-      ? options.apiKey
-      : await resolve(options.apiKey);
-  if (
-    options.apiKey != null &&
-    typeof options.apiKey !== 'string' &&
-    (typeof resolvedApiKey !== 'string' || !resolvedApiKey.trim())
-  ) {
-    throw new LoadAPIKeyError({
-      message: 'AI Gateway API key must be a non-empty string.',
-    });
-  }
-
-  const apiKey = loadOptionalSetting({
-    settingValue: resolvedApiKey,
-    environmentVariableName: 'AI_GATEWAY_API_KEY',
-  });
-
-  if (apiKey) {
-    return {
-      token: apiKey,
-      authMethod: 'api-key',
-    };
-  }
-
-  const oidcToken = await getVercelOidcToken();
-  return {
-    token: oidcToken,
-    authMethod: 'oidc',
-  };
-}
+export const gateway = /* @__PURE__ */ createGateway();
 
 function assertGatewayClientSecretServerEnvironment(): void {
   if (typeof globalThis.window !== 'undefined') {
