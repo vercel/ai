@@ -685,7 +685,7 @@ describe('grep_files with a file name that is not a file', () => {
     // read as an option or as stdin if the search did not prefix it.
     await session.writeTextFile({
       path: `${workDir}/aaa\n-`,
-      content: 'nothing\n',
+      content: 'needle in a name with a newline\n',
     });
     await session.writeTextFile({
       path: `${workDir}/real.txt`,
@@ -704,7 +704,8 @@ describe('grep_files with a file name that is not a file', () => {
 
     expect(output.text).toContain(' - real.txt:1: needle here');
     expect(output.text).toContain(' - zzz.txt:1: needle there');
-    expect(output.text).not.toContain('not found');
+    // The fragments the name is listed as are reported, not dropped.
+    expect(output.text).toContain('a listed name could not be searched');
   });
 
   test('skips a matching line that contains a NUL byte', async () => {

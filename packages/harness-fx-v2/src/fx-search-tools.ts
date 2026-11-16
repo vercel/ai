@@ -82,11 +82,19 @@ const MAX_GREP_FILES = 500;
 const MAX_GREP_LINES_PER_FILE = 2000;
 
 /*
- * Bytes of one match line the sandbox sends: enough for the longest line the
- * result shows, and a bound on what a single line of a generated file can
- * take from the output budget.
+ * Characters of one match line the sandbox sends: enough for the longest line
+ * the result shows, and a bound on what a single line of a generated file can
+ * take from the output budget. The sandbox counts characters, so a line can
+ * take a few times as many bytes.
  */
-const MAX_GREP_LINE_BYTES = 64 * 1024;
+const MAX_GREP_LINE_CHARS = 64 * 1024;
+
+/*
+ * First character of the path of a listing entry the sandbox could not
+ * search, such as a fragment of a file name that contains a newline. A path
+ * cannot start with it, so the host can tell the marker from a frame.
+ */
+const UNSERCHED_NAME_MARKER = '\u0001';
 
 /**
  * Runs a search command and keeps at most `MAX_SEARCH_OUTPUT_BYTES` of its
@@ -662,7 +670,7 @@ function approximate(options: {
  * framing every file as `path\0 line:text … \0`, so that a file name cannot
  * be read as a line number; a single-file search greps that file. It looks at
  * up to `MAX_GREP_FILES` files with `MAX_GREP_LINES_PER_FILE` match lines of
- * at most `MAX_GREP_LINE_BYTES` each, and reports a result it cut off at any
+ * at most `MAX_GREP_LINE_CHARS` characters each, and reports a result it cut off at any
  * of those limits, or a listed name it could not search, as a lower bound.
  * The `include` filter applies to the parsed matches, so a search cut off at
  * the file limit may hold fewer matches than a wider search would. Files with NUL
@@ -774,7 +782,7 @@ export async function grepFxFiles(options: {
     sandbox,
     command: isFile
       ? `grep ${flags.map(shellQuote).join(' ')} -e ${shellQuote(pattern)} ${shellQuote(root.abs)}`
-      : `set -o pipefail; cd ${shellQuote(root.abs)} && grep ${listFlags.map(shellQuote).join(' ')} -e ${shellQuote(pattern)} . | head -n ${MAX_GREP_FILES + 1} | while IFS= read -r file; do printf '%s\\0' "$file"; ( grep ${flags.map(shellQuote).join(' ')} -e ${shellQuote(pattern)} "./$file" < /dev/null | awk 'index($0, sprintf("%c", 0)) > 0 { next } { print substr($0, 1, ${MAX_GREP_LINE_BYTES}) }' | head -n ${MAX_GREP_LINES_PER_FILE + 1} ); printf '\\0'; done`,
+      : `set -o pipefail; cd ${shellQuote(root.abs)} || exit 2 && grep ${listFlags.map(shellQuote).join(' ')} -e ${shellQuote(pattern)} . | head -n ${MAX_GREP_FILES + 1} | while IFS= read -r file; do if [ -f "./$file" ]; then printf '%s\\0' "$file"; ( grep ${flags.map(shellQuote).join(' ')} -e ${shellQuote(pattern)} "./$file" < /dev/null | awk 'index($0, sprintf("%c", 0)) > 0 { next } { print substr($0, 1, ${MAX_GREP_LINE_CHARS}) }' | head -n ${MAX_GREP_LINES_PER_FILE + 1} ); printf '\\0'; else printf '\\001%s\\0\\0' "$file"; fi; done`,
     abortSignal,
   });
   if (
@@ -903,6 +911,10 @@ export async function grepFxFiles(options: {
         filesCutOff = true;
         break;
       }
+      if (block.startsWith(UNSERCHED_NAME_MARKER)) {
+        namesSkipped = true;
+        continue;
+      }
       const relative = block.replace(/^(\.\/)+/, '');
       if (!isSearchedPath({ relative })) {
         // A name that is not a file of the search cannot be reported, and the
@@ -940,7 +952,7 @@ export async function grepFxFiles(options: {
     : matchesCapped
       ? `... more than ${MAX_SEARCH_MATCHES} matches; narrow the pattern or the include filter\n`
       : filesCutOff
-        ? `... the search looked at ${MAX_GREP_FILES} files; narrow the pattern, the include filter, or the search path\n`
+        ? `... the search looked at ${MAX_GREP_FILES} files; narrow the pattern or the search path\n`
         : linesCutOff
           ? `... a file has more than ${MAX_GREP_LINES_PER_FILE} matching lines; narrow the pattern or the include filter\n`
           : namesSkipped
