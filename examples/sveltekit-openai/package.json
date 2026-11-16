@@ -16,7 +16,7 @@
     "@ai-sdk/openai": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
     "@ai-sdk/svelte": "workspace:*",
-    "@sveltejs/adapter-vercel": "^6.3.3",
+    "@sveltejs/adapter-vercel": "^6.3.5",
     "@sveltejs/kit": "^2.70.2",
     "@sveltejs/vite-plugin-svelte": "^6.2.4",
     "@types/node": "22.19.19",
