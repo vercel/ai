@@ -1969,8 +1969,8 @@ tools under `google.tools.*` map onto Interactions tool descriptors:
 | `google.tools.urlContext`             | `url_context`          | Fetch URLs referenced in the prompt.      |
 | `google.tools.fileSearch`             | `file_search`          | Retrieval from File Search stores.        |
 | `google.tools.googleMaps`             | `google_maps`          | Maps grounding for nearby-places queries. |
+| `google.tools.mcpServer`              | `mcp_server`           | Remote MCP server passthrough.            |
 | _provider tool_ `google.computer_use` | `computer_use`         | Computer use (browser environment).       |
-| _provider tool_ `google.mcp_server`   | `mcp_server`           | Remote MCP server passthrough.            |
 | _provider tool_ `google.retrieval`    | `retrieval`            | Vertex AI Search retrieval.               |
 
 Function tools (`type: 'function'`) defined with the AI SDK `tool(...)`
@@ -2009,6 +2009,33 @@ const { text, toolCalls } = await generateText({
   model: google.interactions('gemini-4-argon'),
   tools: { getWeather: weatherTool },
   stopWhen: isStepCount(5),
+  prompt: 'What is the weather in San Francisco right now?',
+});
+```
+
+### Remote MCP servers
+
+`google.tools.mcpServer` connects a remote MCP server so the model can call its
+tools. Header values are sent to the Gemini API and redacted from telemetry at
+the same time. Tool definitions that are built by hand instead of with this
+factory do not carry the provider's telemetry redaction. Google Vertex
+Interactions models use the same tool as `googleVertex.tools.mcpServer`, see
+[Remote MCP Server](/providers/ai-sdk-providers/google-vertex#remote-mcp-server).
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: google.interactions('gemini-4-argon'),
+  tools: {
+    mcp_server: google.tools.mcpServer({
+      name: 'local-mcp',
+      url: 'https://example.com/mcp',
+      headers: { Authorization: `Bearer ${process.env.MCP_TOKEN}` },
+      allowedTools: ['getWeather'],
+    }),
+  },
   prompt: 'What is the weather in San Francisco right now?',
 });
 ```
