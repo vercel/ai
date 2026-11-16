@@ -40,6 +40,17 @@ const MAX_SEARCH_ERROR_BYTES = 8 * 1024;
 const MAX_SEARCH_MATCHES = 20_000;
 const MAX_LIST_ENTRIES = 100_000;
 
+/*
+ * Files a recursive search greps one at a time, and match lines it keeps
+ * from each. The search lists the matching files and greps each of them, so
+ * that a file name is framed by a NUL byte instead of sharing the line with
+ * the line number: a name such as `a:999999999999999999:b.txt` would
+ * otherwise be read as the file `a` at an unsafe line number, which a
+ * context loop cannot advance past.
+ */
+const MAX_GREP_FILES = 500;
+const MAX_GREP_LINES_PER_FILE = 2000;
+
 /**
  * Runs a search command and keeps at most `MAX_SEARCH_OUTPUT_BYTES` of its
  * standard output and `MAX_SEARCH_ERROR_BYTES` of its standard error,
@@ -530,7 +541,6 @@ function clipLine(line: string): string {
   return line.length > LINE_LENGTH ? `${line.slice(0, LINE_LENGTH)}...` : line;
 }
 
-const RECURSIVE_GREP_LINE = /^(.*?):(\d+):(.*)$/;
 const SINGLE_FILE_GREP_LINE = /^(\d+):(.*)$/;
 
 /**
@@ -611,9 +621,13 @@ function approximate(options: {
  * root (skipping fx's ignored directories and binary files) with fx's
  * output modes, `include` filter, pagination and context lines.
  *
- * The search runs the sandbox's `grep -rn -F`; files with NUL bytes in
- * matching lines are treated as binary and skipped. Context lines are read
- * only for the matches on the returned page.
+ * A recursive search lists its matching files and greps each of them,
+ * framing every file as `path\0 line:text … \0`, so that a file name cannot
+ * be read as a line number; a single-file search greps that file. Files with
+ * NUL bytes in matching lines are treated as binary and skipped, and a match
+ * line whose number is not a positive safe integer is dropped. Context lines
+ * are read only for the matches on the returned page, and rendered only from
+ * the lines that read returned.
  */
 export async function grepFxFiles(options: {
   /**
@@ -701,19 +715,24 @@ export async function grepFxFiles(options: {
   }
 
   const isFile = stat.type === 'file';
-  const flags = [
-    '-n',
-    ...(isFile
-      ? []
-      : ['-r', ...IGNORED_DIRECTORIES.map(name => `--exclude-dir=${name}`)]),
-    ...(input.case_insensitive === true ? ['-i'] : []),
+  const caseFlags = input.case_insensitive === true ? ['-i'] : [];
+  const flags = ['-n', ...caseFlags, '-F'];
+  const listFlags = [
+    '-rl',
+    ...IGNORED_DIRECTORIES.map(name => `--exclude-dir=${name}`),
+    ...caseFlags,
     '-F',
   ];
+  /*
+   * The recursive search frames each file as `path\0 line:text … \0`: the
+   * `awk` step drops a line with a NUL byte in it, which is how a binary
+   * file is skipped, and clips the line the way a match line is shown.
+   */
   const result = await runSearchCommand({
     sandbox,
     command: isFile
       ? `grep ${flags.map(shellQuote).join(' ')} -e ${shellQuote(pattern)} ${shellQuote(root.abs)}`
-      : `cd ${shellQuote(root.abs)} && grep ${flags.map(shellQuote).join(' ')} -e ${shellQuote(pattern)} .`,
+      : `cd ${shellQuote(root.abs)} && grep ${listFlags.map(shellQuote).join(' ')} -e ${shellQuote(pattern)} . | head -n ${MAX_GREP_FILES + 1} | while IFS= read -r file; do printf '%s\\0' "$file"; ( grep ${flags.map(shellQuote).join(' ')} -e ${shellQuote(pattern)} "$file" | head -n ${MAX_GREP_LINES_PER_FILE} | awk 'index($0, sprintf("%c", 0)) > 0 { next } { print substr($0, 1, ${LINE_LENGTH}) }' ); printf '\\0'; done`,
     abortSignal,
   });
   if (
@@ -727,31 +746,50 @@ export async function grepFxFiles(options: {
     });
   }
   /**
-   * Parses one line of the grep output into a match, or returns undefined
-   * for a line that is not one.
+   * Returns a line number of the grep output, or undefined when it is not a
+   * positive safe integer: a number past the safe range does not advance
+   * when the lines around it are walked.
    */
-  const toMatch = (line: string): GrepMatch | undefined => {
-    if (line === '' || line.includes('\u0000')) return undefined;
-    if (isFile) {
-      const parsed = SINGLE_FILE_GREP_LINE.exec(line);
-      if (parsed == null) return undefined;
-      return {
-        path: root.rel,
-        abs: root.abs,
-        relative: root.rel,
-        line: Number(parsed[1]),
-        text: parsed[2],
-      };
-    }
-    const parsed = RECURSIVE_GREP_LINE.exec(line);
+  const toLineNumber = (text: string): number | undefined => {
+    const number = Number(text);
+    return Number.isSafeInteger(number) && number > 0 ? number : undefined;
+  };
+
+  /**
+   * Parses one `line:text` line of a file's grep output, or returns
+   * undefined for a line that is not one.
+   */
+  const toMatch = (options: {
+    /**
+     * Path shown for the match.
+     */
+    path: string;
+
+    /**
+     * Absolute path of the file.
+     */
+    abs: string;
+
+    /**
+     * Path of the file below the search root.
+     */
+    relative: string;
+
+    /**
+     * Line of the grep output.
+     */
+    line: string;
+  }): GrepMatch | undefined => {
+    const parsed = SINGLE_FILE_GREP_LINE.exec(options.line);
     if (parsed == null) return undefined;
-    const relative = parsed[1].replace(/^\.\//, '');
+    const line = toLineNumber(parsed[1]);
+    if (line == null) return undefined;
     return {
-      path: toShownPath({ root, relative }),
-      abs: root.abs === '/' ? `/${relative}` : `${root.abs}/${relative}`,
-      relative,
-      line: Number(parsed[2]),
-      text: parsed[3],
+      path: options.path,
+      abs: options.abs,
+      relative: options.relative,
+      line,
+      text: parsed[2],
     };
   };
 
@@ -759,32 +797,70 @@ export async function grepFxFiles(options: {
   const paths = new Set<string>();
   let counted = 0;
   let matchesCapped = false;
+  let filesCutOff = false;
   const stdout = result.stdout;
-  /*
-   * One pass over the output: the include filter applies while parsing, so
-   * the match limit only counts matches the tool keeps, and a count does not
-   * keep them at all.
+  /**
+   * Records a match the search parsed, applying the include filter first so
+   * that the match limit only counts matches the tool keeps, and returning
+   * false once the limit is reached.
    */
-  for (let at = 0; at < stdout.length; ) {
-    const end = stdout.indexOf('\n', at);
-    const line = stdout.slice(at, end === -1 ? stdout.length : end);
-    at = end === -1 ? stdout.length : end + 1;
-    const match = toMatch(line);
-    if (match == null) continue;
+  const record = (match: GrepMatch): boolean => {
     if (
       include !== undefined &&
       !matchesFxGlob({ pattern: include, path: match.relative })
     ) {
-      continue;
+      return true;
     }
     counted++;
     paths.add(match.path);
-    if (mode !== 'matches') continue;
+    if (mode !== 'matches') return true;
     if (matches.length >= MAX_SEARCH_MATCHES) {
       matchesCapped = true;
-      break;
+      return false;
     }
     matches.push(match);
+    return true;
+  };
+  if (isFile) {
+    const options = { path: root.rel, abs: root.abs, relative: root.rel };
+    for (let at = 0; at < stdout.length; ) {
+      const end = stdout.indexOf('\n', at);
+      const line = stdout.slice(at, end === -1 ? stdout.length : end);
+      at = end === -1 ? stdout.length : end + 1;
+      const match = toMatch({ ...options, line });
+      if (match == null) continue;
+      if (!record(match)) break;
+    }
+  } else {
+    /*
+     * A file's block is its path, a NUL byte, its match lines and a NUL byte,
+     * so the blocks alternate between a path and a body. A block the byte cap
+     * cut off keeps the lines it completed, and a cut inside its path leaves
+     * a path without a body, which is skipped.
+     */
+    const blocks = stdout.split('\u0000');
+    let files = 0;
+    for (let at = 0; at + 1 < blocks.length; at += 2) {
+      const block = blocks[at];
+      const body = blocks[at + 1];
+      if (block == null || body == null) break;
+      files++;
+      const relative = block.replace(/^\.\//, '');
+      const path = toShownPath({ root, relative });
+      const abs = root.abs === '/' ? `/${relative}` : `${root.abs}/${relative}`;
+      for (let from = 0; from < body.length; ) {
+        const end = body.indexOf('\n', from);
+        // A line the byte cap cut off is not a match.
+        if (end === -1) break;
+        const line = body.slice(from, end);
+        from = end + 1;
+        const match = toMatch({ path, abs, relative, line });
+        if (match == null) continue;
+        if (!record(match)) break;
+      }
+      if (matchesCapped) break;
+    }
+    filesCutOff = files > MAX_GREP_FILES;
   }
   /*
    * A stopped command and a capped match list both mean the result covers a
@@ -794,7 +870,9 @@ export async function grepFxFiles(options: {
     ? `... grep output was cut off after ${MAX_SEARCH_OUTPUT_BYTES} bytes; narrow the pattern, the include filter, or the search path\n`
     : matchesCapped
       ? `... more than ${MAX_SEARCH_MATCHES} matches; narrow the pattern or the include filter\n`
-      : '';
+      : filesCutOff
+        ? `... the search looked at ${MAX_GREP_FILES} files; narrow the pattern, the include filter, or the search path\n`
+        : '';
   const cutOff = cutoffNotice !== '';
   const filtered = [...matches].sort((left, right) =>
     left.path === right.path
@@ -864,16 +942,30 @@ export async function grepFxFiles(options: {
         }
         lines = fileLines.get(match.abs);
       }
+      /*
+       * Context comes only from the lines the read returned, so the lines
+       * around a match are an index range into that array, never a walk over
+       * numbers the grep output supplied.
+       */
       if (lines != null) {
-        for (let n = Math.max(1, match.line - around); n < match.line; n++) {
-          out += `   ${match.path}:${n}- ${clipLine(lines[n - 1] ?? '')}\n`;
+        const before = Math.min(match.line - 1, lines.length);
+        for (
+          let index = Math.max(0, before - around);
+          index < before;
+          index++
+        ) {
+          out += `   ${match.path}:${index + 1}- ${clipLine(lines[index] ?? '')}\n`;
         }
       }
       out += ` - ${match.path}:${match.line}: ${clipLine(match.text)}\n`;
       if (lines != null) {
         const last = Math.min(lines.length, match.line + around);
-        for (let n = match.line + 1; n <= last; n++) {
-          out += `   ${match.path}:${n}- ${clipLine(lines[n - 1])}\n`;
+        for (
+          let index = Math.min(match.line, lines.length);
+          index < last;
+          index++
+        ) {
+          out += `   ${match.path}:${index + 1}- ${clipLine(lines[index] ?? '')}\n`;
         }
       }
     }

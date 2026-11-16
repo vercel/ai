@@ -117,6 +117,15 @@ const workDir = '/home/user';
  * controls how much output a search command or a context read produces, and
  * that records the commands and whether a command was stopped.
  */
+/**
+ * Frames the grep output of one file the way the sandbox sends it: its path,
+ * a NUL byte, its `line:text` lines and a NUL byte, so that a file name can
+ * never be read as a line number.
+ */
+function frame(options: { path: string; lines: string[] }): string {
+  return `${options.path}\u0000${options.lines.map(line => `${line}\n`).join('')}\u0000`;
+}
+
 function createFakeSearchSession(options: {
   /**
    * Returns the output of a command, and the exit code it ends with.
@@ -235,10 +244,9 @@ describe('searching a sandbox that prints without end', () => {
       stat: () => ({ type: 'directory', size: 0 }),
       command: () => ({
         chunks: function* () {
+          yield new Uint8Array(Buffer.from('./src/file.ts\u0000', 'utf8'));
           for (;;) {
-            yield new Uint8Array(
-              Buffer.from('./src/file.ts:1:needle\n', 'utf8'),
-            );
+            yield new Uint8Array(Buffer.from('1:needle\n', 'utf8'));
           }
         },
       }),
@@ -290,11 +298,16 @@ describe('searching a sandbox that prints without end', () => {
       stat: () => ({ type: 'directory', size: 0 }),
       command: () => ({
         chunks: function* () {
-          for (let line = 0; line < 10; line++) {
-            yield new Uint8Array(Buffer.from('./src/a.ts:1:needle\n', 'utf8'));
-          }
-          // A match line that never ends, so the kept output ends inside it.
-          yield new Uint8Array(Buffer.from('./src/b.ts:1:needle', 'utf8'));
+          yield new Uint8Array(
+            Buffer.from(
+              frame({ path: './src/a.ts', lines: Array(10).fill('1:needle') }),
+              'utf8',
+            ),
+          );
+          // A file whose block never ends, so the kept output stops inside it
+          // and the block has no closing NUL.
+          yield new Uint8Array(Buffer.from('./src/b.ts\u0000', 'utf8'));
+          yield new Uint8Array(Buffer.from('1:needle', 'utf8'));
           for (;;) {
             yield new Uint8Array(Buffer.alloc(64 * MIB, 0x61));
           }
@@ -389,11 +402,12 @@ describe('searching a sandbox that prints without end', () => {
       stat: () => ({ type: 'directory', size: 0 }),
       command: () => ({
         chunks: function* () {
+          yield new Uint8Array(Buffer.from('./src/a.ts\u0000', 'utf8'));
           for (;;) {
             // 1 KiB lines, so the byte limit is reached long before the
             // match limit.
             yield new Uint8Array(
-              Buffer.from(`./src/a.ts:1:${'x'.repeat(1020)}\n`, 'utf8'),
+              Buffer.from(`1:${'x'.repeat(1020)}\n`, 'utf8'),
             );
           }
         },
@@ -416,9 +430,10 @@ describe('searching a sandbox that prints without end', () => {
       stat: () => ({ type: 'directory', size: 0 }),
       command: () => ({
         chunks: function* () {
+          yield new Uint8Array(Buffer.from('./src/file.ts\u0000', 'utf8'));
           for (;;) {
             yield new Uint8Array(
-              Buffer.from(`./src/file.ts:1:${'needle'.padEnd(40, '.')}\n`),
+              Buffer.from(`1:${'needle'.padEnd(40, '.')}\n`),
             );
           }
         },
@@ -443,9 +458,11 @@ describe('searching a sandbox that prints without end', () => {
         chunks: function* () {
           // More matches than the parser keeps, in far less than the byte
           // limit, so the match limit is what cuts the result off.
+          yield new Uint8Array(Buffer.from('./a.ts\u0000', 'utf8'));
           for (let line = 0; line < 25_000; line++) {
-            yield new Uint8Array(Buffer.from('./a.ts:1:x\n', 'utf8'));
+            yield new Uint8Array(Buffer.from('1:x\n', 'utf8'));
           }
+          yield new Uint8Array(Buffer.from('\u0000', 'utf8'));
         },
       }),
     });
@@ -465,14 +482,23 @@ describe('searching a sandbox that prints without end', () => {
       stat: () => ({ type: 'directory', size: 0 }),
       command: () => ({
         chunks: function* () {
-          // More matches than the match limit in files the filter drops, and
-          // a few it keeps.
-          for (let line = 0; line < 25_000; line++) {
-            yield new Uint8Array(Buffer.from('./other/f.ts:1:x\n', 'utf8'));
-          }
-          for (let line = 0; line < 5; line++) {
-            yield new Uint8Array(Buffer.from('./docs/f.ts:1:x\n', 'utf8'));
-          }
+          // More matches than the match limit in a file the filter drops, and
+          // a few in one it keeps.
+          yield new Uint8Array(
+            Buffer.from(
+              frame({
+                path: './other/f.ts',
+                lines: Array(25_000).fill('1:x'),
+              }),
+              'utf8',
+            ),
+          );
+          yield new Uint8Array(
+            Buffer.from(
+              frame({ path: './docs/f.ts', lines: Array(5).fill('1:x') }),
+              'utf8',
+            ),
+          );
         },
       }),
     });
@@ -492,9 +518,12 @@ describe('searching a sandbox that prints without end', () => {
       stat: () => ({ type: 'directory', size: 0 }),
       command: () => ({
         chunks: function* () {
-          for (let line = 0; line < 25_000; line++) {
-            yield new Uint8Array(Buffer.from('./a.ts:1:x\n', 'utf8'));
-          }
+          yield new Uint8Array(
+            Buffer.from(
+              frame({ path: './a.ts', lines: Array(25_000).fill('1:x') }),
+              'utf8',
+            ),
+          );
         },
       }),
     });
@@ -515,9 +544,16 @@ describe('searching a sandbox that prints without end', () => {
       stat: () => ({ type: 'directory', size: 0 }),
       command: () => ({
         chunks: function* () {
-          for (let line = 0; line < 25_000; line++) {
-            const file = line % 2 === 0 ? 'a.ts' : 'b.ts';
-            yield new Uint8Array(Buffer.from(`./${file}:1:x\n`, 'utf8'));
+          for (const name of ['a', 'b']) {
+            yield new Uint8Array(
+              Buffer.from(
+                frame({
+                  path: `./${name}.ts`,
+                  lines: Array(12_500).fill('1:x'),
+                }),
+                'utf8',
+              ),
+            );
           }
         },
       }),
@@ -539,10 +575,9 @@ describe('searching a sandbox that prints without end', () => {
       stat: () => ({ type: 'directory', size: 0 }),
       command: () => ({
         chunks: function* () {
+          yield new Uint8Array(Buffer.from('./src/file.ts\u0000', 'utf8'));
           for (;;) {
-            yield new Uint8Array(
-              Buffer.from('./src/file.ts:1:needle\n', 'utf8'),
-            );
+            yield new Uint8Array(Buffer.from('1:needle\n', 'utf8'));
           }
         },
       }),
@@ -558,6 +593,62 @@ describe('searching a sandbox that prints without end', () => {
   });
 });
 
+describe('grep_files with a crafted file name', () => {
+  test('reads a name with a line number as the file it is', async () => {
+    const session = await createJustBashNetworkSandboxSession();
+    const workDir = session.defaultWorkingDirectory;
+    await session.writeTextFile({ path: `${workDir}/a`, content: 'tiny\n' });
+    await session.writeTextFile({
+      path: `${workDir}/a:999999999999999999:b.txt`,
+      content: 'before\nmatch after\nafter\n',
+    });
+
+    const output = await grepFxFiles({
+      sandbox: { session, workDir, home: workDir },
+      input: { pattern: 'match', context_lines: 1 },
+      abortSignal: new AbortController().signal,
+    });
+
+    // The name is a path, not the file `a` at line 999999999999999999.
+    expect(output.text).toContain('a:999999999999999999:b.txt:1- before');
+    expect(output.text).toContain(
+      ' - a:999999999999999999:b.txt:2: match after',
+    );
+    expect(output.text).toContain('a:999999999999999999:b.txt:3- after');
+    expect(output.text).not.toContain(' - a:2:');
+  });
+
+  test('drops a match whose line number is not a positive safe integer', async () => {
+    const { session } = createFakeSearchSession({
+      stat: path =>
+        path === workDir
+          ? { type: 'directory', size: 0 }
+          : { type: 'file', size: 10 },
+      command: () => ({
+        chunks: function* () {
+          yield new Uint8Array(
+            Buffer.from(
+              './file.txt\u00000:zero\n99999999999999999999:unsafe\n-1:negative\n2:match\n\u0000',
+              'utf8',
+            ),
+          );
+        },
+      }),
+    });
+
+    const output = await grepFxFiles({
+      sandbox: testSandbox(session),
+      input: { pattern: 'x', context_lines: 1 },
+      abortSignal: new AbortController().signal,
+    });
+
+    expect(output.text).toContain(' - file.txt:2: match');
+    expect(output.text).not.toContain('zero');
+    expect(output.text).not.toContain('unsafe');
+    expect(output.text).not.toContain('negative');
+  });
+});
+
 describe('grep_files context lines', () => {
   test('skips a file over the context limit without reading it', async () => {
     const { session, calls } = createFakeSearchSession({
@@ -567,7 +658,9 @@ describe('grep_files context lines', () => {
           : { type: 'file', size: 4 * MIB },
       command: () => ({
         chunks: function* () {
-          yield new Uint8Array(Buffer.from('./big.txt:3:needle\n', 'utf8'));
+          yield new Uint8Array(
+            Buffer.from(frame({ path: './big.txt', lines: ['3:needle'] })),
+          );
         },
       }),
     });
@@ -597,7 +690,9 @@ describe('grep_files context lines', () => {
               yield new Uint8Array(Buffer.alloc(64 * 1024, 0x61));
             }
           }
-          yield new Uint8Array(Buffer.from('./growth.txt:2:needle\n', 'utf8'));
+          yield new Uint8Array(
+            Buffer.from(frame({ path: './growth.txt', lines: ['2:needle'] })),
+          );
         },
       }),
     });
