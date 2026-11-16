@@ -1,0 +1,36 @@
+---
+title: AnonRouter
+description: Learn how to use the AnonRouter provider for the AI SDK.
+---
+
+# AnonRouter
+
+The AnonRouter provider supports text generation, streaming, tool calls, and text embeddings. By default, the provider exchanges your API key for a single-use ticket on the control origin. The inference origin receives the request and the ticket.
+
+## Setup
+
+The provider requires AI SDK 7 and Node.js 22 or later. Install the [AnonRouter npm package](https://www.npmjs.com/package/@anonrouter/ai-sdk-provider) alongside the AI SDK.
+
+<InstallPackages packages="ai@7 @anonrouter/ai-sdk-provider" />
+
+Create an inference key and set `ANONROUTER_API_KEY` in your server environment. See the [AnonRouter setup guide](https://docs.anonrouter.ai/vercel-ai-sdk).
+
+## Generate Text
+
+```ts
+import { anonrouter } from '@anonrouter/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: anonrouter('deepseek/deepseek-v3.2'),
+  prompt: 'Explain binary search in two sentences.',
+  maxOutputTokens: 256,
+  maxRetries: 0,
+});
+
+console.log(text);
+```
+
+Set `maxRetries: 0` so an interrupted request does not automatically repeat a generation that may have been charged.
+
+The setup guide also covers streaming, embeddings, routing options, managed web search, and compatibility mode.
