@@ -1045,7 +1045,7 @@ console.log(text);`,
       yarn: 'yarn add @kosa8/maqpna',
       bun: 'bun add @kosa8/maqpna',
     },
-    codeExample: `import { generateText, isStepCount, jsonSchema, type ToolSet } from 'ai';
+    codeExample: `import { generateText, isStepCount, jsonSchema } from 'ai';
 import { MaqpnaClient, aiSdkTools } from '@kosa8/maqpna';
 
 // Reads MAQPNA_GATEWAY_URL, the session token and MAQPNA_TOOL_<NAME>_URL,
@@ -1055,7 +1055,7 @@ const client = MaqpnaClient.fromEnv();
 const { text } = await generateText({
   model: 'openai/gpt-5-mini',
   prompt: 'Summarize issue 4821 in acme/api',
-  tools: (await aiSdkTools(client.tools('github'), { jsonSchema })) as ToolSet,
+  tools: await aiSdkTools(client.tools('github'), { jsonSchema }),
   stopWhen: isStepCount(5),
 });
 
