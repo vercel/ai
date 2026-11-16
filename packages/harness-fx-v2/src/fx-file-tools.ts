@@ -6,7 +6,11 @@ import type {
   FxWriteFileInput,
 } from './fx-builtin-tool-specs';
 import type { FxBuiltinToolOutput, FxToolSandbox } from './fx-builtin-tools';
-import { createFxOutputCapture, readFxChunks } from './fx-sandbox-output';
+import {
+  createFxOutputCapture,
+  readFxChunks,
+  toUtf8BoundaryEnd,
+} from './fx-sandbox-output';
 import {
   decodeFxModelSafeText,
   getUtf8ByteLength,
@@ -197,6 +201,11 @@ async function readFileHead(options: {
     if (!stopped && !capture.complete) {
       stopped = true;
       limitController.abort(new Error('read limit'));
+      // Stopping is best effort: the abort ends the streams, and a sandbox
+      // that can kill the command is asked to do so as well.
+      try {
+        void Promise.resolve(child.kill()).catch(() => {});
+      } catch {}
     }
   };
   const readAbortSignal = AbortSignal.any([
@@ -236,12 +245,18 @@ async function readFileHead(options: {
     if (!stopped) throw error;
   }
   /*
+   * A backend that ends the streams when the caller aborts would otherwise
+   * pass its partial output on as a complete read.
+   */
+  abortSignal.throwIfAborted();
+  /*
    * A sandbox can refuse the read, e.g. because it caps what a command may
    * print or because the file is missing, so a failed read is reported for
    * the caller to report instead of reading the file as a whole.
    */
   if (!stopped && exitCode != null && exitCode !== 0) return undefined;
-  const encoded = Buffer.from(capture.toBytes())
+  const kept = capture.toBytes();
+  const encoded = Buffer.from(kept.buffer, kept.byteOffset, kept.byteLength)
     .toString('utf8')
     .replace(/\s+/g, '');
   /*
@@ -341,12 +356,21 @@ async function readFileSnapshot(options: {
       `could not read ${path}: the sandbox could not run the bounded read (it may be missing or unreadable, or unsupported by the sandbox)`,
     );
   }
+  /*
+   * A snapshot that stops inside a UTF-8 character is cut back to the
+   * character boundary, so that a text file decodes instead of being
+   * reported as binary.
+   */
+  const bytes = head.exceeded
+    ? head.bytes.subarray(
+        0,
+        toUtf8BoundaryEnd({ bytes: head.bytes, end: head.bytes.length }),
+      )
+    : head.bytes;
   return {
-    bytes: head.bytes,
+    bytes,
     complete: !head.exceeded,
-    totalBytes: head.exceeded
-      ? Math.max(size, head.bytes.length + 1)
-      : head.bytes.length,
+    totalBytes: head.exceeded ? Math.max(size, bytes.length + 1) : bytes.length,
   };
 }
 

@@ -299,6 +299,10 @@ function createFakeFileSession(options: {
    */
   spawnFails?: boolean;
   /**
+   * Bytes of the file, when they are not the repeated filler line.
+   */
+  raw?: Uint8Array;
+  /**
    * Text the command prints before its output, like a shell profile would.
    */
   noise?: string;
@@ -327,6 +331,12 @@ function createFakeFileSession(options: {
    * @yields One chunk of the file contents.
    */
   function* contents() {
+    if (options.raw != null) {
+      for (let offset = 0; offset < options.raw.length; offset += 64 * 1024) {
+        yield options.raw.subarray(offset, offset + 64 * 1024);
+      }
+      return;
+    }
     yield prefix;
     let written = prefix.length;
     while (written < contentBytes) {
@@ -565,7 +575,7 @@ describe('readFxFile with a file larger than a snapshot', () => {
     const workDir = justBash.defaultWorkingDirectory;
     const line = `${'x'.repeat(998)}\n`;
     // One byte past the snapshot limit, so the encoded read is refused and
-    // the whole-file fallback has to keep the result capped.
+    // the tool reports it instead of reading the file as a whole.
     const content = Buffer.from(
       line.repeat(Math.ceil((10 * MIB + 1) / line.length)),
     ).subarray(0, 10 * MIB + 1);
@@ -794,5 +804,48 @@ describe('a read the sandbox refuses', () => {
         abortSignal: new AbortController().signal,
       }),
     ).rejects.toThrow('the sandbox could not run the bounded read');
+  });
+});
+
+describe('a snapshot that stops inside a character', () => {
+  test('shows the text before the cut', async () => {
+    // Two-byte characters throughout, so the snapshot that stops a byte
+    // before the limit stops inside one of them.
+    const raw = Buffer.from('é'.repeat(5 * MIB + 50));
+    const { session } = createFakeFileSession({
+      size: raw.length,
+      raw: new Uint8Array(raw),
+    });
+
+    const output = await readFxFile({
+      sandbox: { session, workDir: '/home/user', home: '/home/user' },
+      input: { path: 'text.txt', start_line: 1, line_count: 1 },
+      abortSignal: new AbortController().signal,
+    });
+
+    // The two bytes of `é` straddle the snapshot limit, so the snapshot is
+    // cut before them rather than inside them.
+    expect(output.text).not.toContain('binary or non-utf8');
+    expect(output.text).toContain('file snapshot was capped before EOF');
+  });
+});
+
+describe('a sandbox that cannot start a read', () => {
+  test('reports an edit_file preimage it cannot read', async () => {
+    const { session } = createFakeFileSession({
+      size: 1024,
+      spawnFails: true,
+    });
+
+    const output = await editFxFile({
+      sandbox: { session, workDir: '/home/user', home: '/home/user' },
+      input: { path: 'file.txt', old_string: 'a', new_string: 'b' },
+      abortSignal: new AbortController().signal,
+    });
+
+    expect(output).toEqual({
+      text: 'file mutation preparation failed: unable to read the approved preimage',
+      isError: true,
+    });
   });
 });
