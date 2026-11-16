@@ -190,7 +190,8 @@ function standardSchema<OBJECT>(
     {
       validate: async value => {
         const result = await standardSchema['~standard'].validate(value);
-        return 'value' in result
+        // Failed Standard Schema results can also contain a value.
+        return result.issues === undefined && 'value' in result
           ? { success: true, value: result.value }
           : {
               success: false,
