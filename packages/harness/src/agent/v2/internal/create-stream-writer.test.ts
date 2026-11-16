@@ -89,6 +89,41 @@ describe('createStreamWriter', () => {
     ]);
   });
 
+  test('decodes a part whose value has prototype-sensitive own keys', async () => {
+    const { world, writer } = setup();
+    /*
+     * JSON returned by a host tool can contain these valid own keys, e.g. from
+     * an external API. Writing them verbatim made the secure parser reject the
+     * committed record on every later read.
+     */
+    const result = JSON.parse(
+      '{"__proto__":{"polluted":true},"constructor":{"prototype":{"polluted":true}},"value":"kept"}',
+    );
+    writer.unsafeEmit({
+      type: 'tool-result',
+      toolCallId: 'call-1',
+      toolName: 'fetchJson',
+      result,
+    });
+    await writer.flush();
+
+    const records = await readRecords(world);
+    expect(records).toHaveLength(1);
+    const part = records[0].part as Extract<
+      HarnessAgentStreamPart,
+      { type: 'tool-result' }
+    >;
+    expect(Object.hasOwn(part.result as object, '__proto__')).toBe(true);
+    expect(Object.hasOwn(part.result as object, 'constructor')).toBe(true);
+    expect(
+      Object.hasOwn(
+        (part.result as { constructor: object }).constructor,
+        'prototype',
+      ),
+    ).toBe(true);
+    expect((part.result as { value: string }).value).toBe('kept');
+  });
+
   test('batches a synchronous burst into one chunk ending with a blank line', async () => {
     const { world, writer } = setup();
     writer.unsafeEmit(part('a'));

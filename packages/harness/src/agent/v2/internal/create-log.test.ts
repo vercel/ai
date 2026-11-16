@@ -827,6 +827,42 @@ describe('createLog', () => {
     ).rejects.toThrow('event ID already has different content');
   });
 
+  test('keeps events with prototype-sensitive keys readable on replay', async () => {
+    const { world, runId, log } = await setup();
+    /*
+     * JSON returned by a host tool can contain these valid own keys, e.g. from
+     * an external API. Writing them verbatim made the secure parser reject the
+     * committed event on every later read.
+     */
+    const output = JSON.parse(
+      '{"__proto__":{"polluted":true},"constructor":{"prototype":{"polluted":true}},"value":"kept"}',
+    );
+    const event: HarnessAgentLogEvent = {
+      type: 'harness:journal',
+      id: 'event',
+      data: { output },
+    };
+
+    await expect(log.append(event)).resolves.toBe(true);
+
+    const replay = await createLog({ world, runId }).read();
+    expect(replay.events).toHaveLength(1);
+    const replayed = (
+      replay.events[0] as { data: { output: Record<string, unknown> } }
+    ).data.output;
+    expect(Object.hasOwn(replayed, '__proto__')).toBe(true);
+    expect(Object.hasOwn(replayed, 'constructor')).toBe(true);
+    expect(Object.hasOwn(replayed.constructor as object, 'prototype')).toBe(
+      true,
+    );
+    expect(replayed.value).toBe('kept');
+
+    await expect(log.read()).resolves.toEqual({
+      events: [event],
+      position: 2,
+    });
+  });
+
   test('isolates callback exceptions and hint publishing failures from committed appends', async () => {
     const { world, log } = await setup();
     await log.read();
