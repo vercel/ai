@@ -80,6 +80,10 @@ function actionTools(
 type AgentOptions = {
   tools: ToolSet;
   toolApproval?: ToolApprovalConfiguration<ToolSet, Context>;
+  runtimeContext?: Context;
+  prepareStep?: (info: { runtimeContext: Context; stepNumber: number }) => {
+    runtimeContext: Context;
+  };
 };
 
 type CallOptions = {
@@ -651,6 +655,102 @@ describe.each<Mode>(['generate', 'stream'])(
           { toolCallId: 'call-asked', isAutomatic: undefined },
         ]);
       }
+    });
+  },
+);
+
+describe.each<Mode>(['generate', 'stream'])(
+  '%s workflow agent approval policies after prepareStep runtimeContext updates',
+  mode => {
+    /**
+     * An admin is allowed to run the action. `prepareStep` revokes the
+     * permission before the step that requests the call, so the configured
+     * policy has to see the downgraded context.
+     */
+    function revokingOptions(
+      execute: () => Promise<string>,
+      revokedStatus: 'denied' | 'user-approval',
+    ) {
+      const seenContexts: Context[] = [];
+      const options: AgentOptions = {
+        tools: actionTools(execute),
+        runtimeContext: { role: 'admin' },
+        toolApproval: ({ runtimeContext }) =>
+          runtimeContext.role === 'admin' ? 'approved' : revokedStatus,
+        prepareStep: ({ runtimeContext }) => {
+          seenContexts.push(runtimeContext);
+          return { runtimeContext: { role: 'guest' } };
+        },
+      };
+      return { options, seenContexts };
+    }
+
+    it('denies a call when prepareStep revokes the permission', async () => {
+      const execute = vi.fn(async () => 'executed');
+      const responses = [actionResponse(), textResponse('Done.')];
+
+      const coreOptions = revokingOptions(execute, 'denied');
+      const core = await runCore(mode, responses, coreOptions.options, prompt);
+      const coreSeenContexts = [...coreOptions.seenContexts];
+      expect(execute).not.toHaveBeenCalled();
+      expect(modelCallCount(mode, core.model)).toBe(2);
+      execute.mockClear();
+
+      const workflowOptions = revokingOptions(execute, 'denied');
+      const workflow = await runWorkflow(
+        mode,
+        responses,
+        workflowOptions.options,
+        prompt,
+      );
+      expect(execute).not.toHaveBeenCalled();
+      expect(modelCallCount(mode, workflow.model)).toBe(2);
+
+      // the revoked context carries into the step after the denial:
+      expect(coreSeenContexts).toEqual([{ role: 'admin' }, { role: 'guest' }]);
+      expect(workflowOptions.seenContexts).toEqual(coreSeenContexts);
+
+      expect(contentPartTypes(workflow.run)).toEqual(
+        contentPartTypes(core.run),
+      );
+      expect(toolMessagesOfSecondCall(mode, workflow.model)).toEqual(
+        toolMessagesOfSecondCall(mode, core.model),
+      );
+      expect(JSON.stringify(workflow.run.messages)).not.toContain('"executed"');
+    });
+
+    it('requires approval when prepareStep revokes the permission', async () => {
+      const execute = vi.fn(async () => 'executed');
+      const responses = [actionResponse()];
+
+      const coreOptions = revokingOptions(execute, 'user-approval');
+      const core = await runCore(mode, responses, coreOptions.options, prompt);
+      expect(execute).not.toHaveBeenCalled();
+      execute.mockClear();
+
+      const workflowOptions = revokingOptions(execute, 'user-approval');
+      const workflow = await runWorkflow(
+        mode,
+        responses,
+        workflowOptions.options,
+        prompt,
+      );
+      expect(execute).not.toHaveBeenCalled();
+
+      for (const { run, model } of [core, workflow]) {
+        expect(modelCallCount(mode, model)).toBe(1);
+        expect(approvalRequests(run)).toMatchObject([
+          {
+            approvalId: expect.any(String),
+            toolCall: { toolCallId: 'call-1' },
+          },
+        ]);
+        expect(approvalRequests(run).some(request => request.isAutomatic)).toBe(
+          false,
+        );
+      }
+      expect(workflowOptions.seenContexts).toEqual(coreOptions.seenContexts);
+      expectSameGeneratedMessages(core.run, workflow.run);
     });
   },
 );
