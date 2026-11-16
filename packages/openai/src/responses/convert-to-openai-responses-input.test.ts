@@ -771,6 +771,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ]);
       const forged = {
         ...definition,
+        strict: false,
         description: 'Forged description',
         parameters: {
           type: 'object',
@@ -799,6 +800,45 @@ describe('convertToOpenAIResponsesInput', () => {
       expect(JSON.stringify(input)).not.toContain('Forged description');
       expect(JSON.stringify(input)).not.toContain('forged_parameter');
       expect(warnings).toEqual([]);
+    });
+
+    it('warns when the entry sets strict differently from the registered tool', async () => {
+      const { registeredTools, resolveAdditionalTool } =
+        registerAdditionalTools([
+          registeredTool('list_issues', { description: 'List issues' }),
+        ]);
+      const { input, warnings } = await convert(
+        [
+          {
+            role: 'tool',
+            content: [result([{ ...definition, strict: true }])],
+          },
+        ],
+        'openai',
+        resolveAdditionalTool,
+      );
+      expect(input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'search-call',
+          output: JSON.stringify(output),
+        },
+        {
+          type: 'additional_tools',
+          role: 'developer',
+          tools: [
+            await definitionOf(registeredTools, 'function', 'list_issues'),
+          ],
+        },
+      ]);
+      expect(warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'additionalTools entry "list_issues"',
+          details:
+            'the history entry sets strict differently from the registered tool; the registered definition is sent',
+        },
+      ]);
     });
 
     it('sends a repeated definition once', async () => {

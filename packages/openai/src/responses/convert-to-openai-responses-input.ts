@@ -2075,6 +2075,13 @@ async function filterAdditionalTools({
       }
     }
 
+    pushDefinitionMismatchWarning({
+      additionalTool,
+      definition: resolved.definition,
+      seenWarnings,
+      warnings,
+    });
+
     const definition = narrowNamespaceDefinition({
       registeredDefinition: resolved.definition,
       additionalTool,
@@ -2146,6 +2153,59 @@ function narrowNamespaceDefinition({
   );
 
   return tools.length > 0 ? { ...registeredDefinition, tools } : undefined;
+}
+
+/**
+ * The entry in the history is not sent, so a `strict` or `defer_loading` value
+ * that differs from the registered tool is ignored. Warn instead of silently
+ * changing the behavior the entry asks for.
+ */
+function pushDefinitionMismatchWarning({
+  additionalTool,
+  definition,
+  seenWarnings,
+  warnings,
+}: {
+  additionalTool: OpenAIResponsesAdditionalTool;
+  definition: OpenAIResponsesAdditionalTool;
+  seenWarnings: Set<string>;
+  warnings: Array<SharedV4Warning>;
+}) {
+  if (additionalTool.type !== 'function' || definition.type !== 'function') {
+    return;
+  }
+
+  const mismatchedFields: Array<string> = [];
+
+  if (
+    additionalTool.strict != null &&
+    additionalTool.strict !== definition.strict
+  ) {
+    mismatchedFields.push('strict');
+  }
+
+  if (
+    additionalTool.defer_loading != null &&
+    additionalTool.defer_loading !== definition.defer_loading
+  ) {
+    mismatchedFields.push('defer_loading');
+  }
+
+  if (mismatchedFields.length === 0) {
+    return;
+  }
+
+  const warning: SharedV4Warning = {
+    type: 'unsupported',
+    feature: `additionalTools entry "${definition.name}"`,
+    details: `the history entry sets ${mismatchedFields.join(' and ')} differently from the registered tool; the registered definition is sent`,
+  };
+  const signature = JSON.stringify(warning);
+
+  if (!seenWarnings.has(signature)) {
+    seenWarnings.add(signature);
+    warnings.push(warning);
+  }
 }
 
 function formatDroppedToolNames(names: Set<string>): string {
