@@ -60,11 +60,8 @@ function round(value: unknown, decimals: number | undefined) {
     : value;
 }
 
-/** Maps empty strings and lists to null and rounds numbers to `decimals`. */
+/** Rounds numbers to `decimals`. */
 function answerValue(field: ExtractionModelV4Field, value: unknown) {
-  if (value === '' || (Array.isArray(value) && value.length === 0)) {
-    return null;
-  }
   if (field.type === 'list') {
     return field.items === 'number' && Array.isArray(value)
       ? value.map(item => round(item, field.decimals))

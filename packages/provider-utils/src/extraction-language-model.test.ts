@@ -536,7 +536,7 @@ describe('maxFieldsPerCall', () => {
   );
 });
 
-it('treats empty strings and lists as no value', async () => {
+it('passes empty strings and lists through for core to normalize', async () => {
   const { model } = setup({
     content: [
       {
@@ -548,10 +548,10 @@ it('treats empty strings and lists as no value', async () => {
   const result = await model.doExtract(options);
   expect(result.answers['invoice number']).toEqual({
     type: 'text',
-    value: null,
+    value: '',
   });
-  expect(result.answers.dueDate).toEqual({ type: 'date', value: null });
-  expect(result.answers.contacts).toEqual({ type: 'list', value: null });
+  expect(result.answers.dueDate).toEqual({ type: 'date', value: '' });
+  expect(result.answers.contacts).toEqual({ type: 'list', value: [] });
 });
 
 it('rounds numbers, durations, and number list items to decimals', async () => {
