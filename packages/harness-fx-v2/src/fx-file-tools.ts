@@ -130,10 +130,15 @@ type FxFileSnapshot = {
 };
 
 /**
- * Reads at most `limitBytes` from the start of a file with `head` in the
+ * Reads at most `limitBytes` from the start of a file with `base64` in the
  * sandbox, so that the host never holds more of the file than that: a
  * session's read primitives load a whole file before they return, and the
  * workspace can hold a file of any size.
+ *
+ * The command reads the file rather than a pipeline so that a file it cannot
+ * read fails the read instead of looking like an empty one, and it encodes
+ * the bytes because a sandbox stream carries text: an unencoded read would
+ * replace every byte that is not valid UTF-8.
  */
 async function readFileHead(options: {
   /**
@@ -169,9 +174,9 @@ async function readFileHead(options: {
   const { sandbox, path, limitBytes, abortSignal } = options;
   const { session, workDir } = sandbox;
   /*
-   * One byte past the limit tells the caller whether the file goes on. The
-   * command prints no more than that, encoded, and the capture drops
-   * anything a sandbox sends beyond it, so neither can grow without bound.
+   * One byte past the limit tells the caller whether the file goes on, and
+   * the capture stops the command once the encoded output passes what that
+   * needs, so neither the command nor the host can grow without bound.
    */
   const limit = limitBytes + 1;
   const encodedLimit = Math.ceil(limit / 3) * 4;
@@ -194,11 +199,7 @@ async function readFileHead(options: {
     limitController.signal,
   ]);
   const child = await session.spawn({
-    /*
-     * A sandbox stream carries text, so the read is encoded: a plain `head`
-     * would replace every byte that is not valid UTF-8.
-     */
-    command: `head -c ${limit} ${shellQuote(path)} | base64`,
+    command: `base64 ${shellQuote(path)}`,
     workingDirectory: workDir,
     abortSignal: readAbortSignal,
   });
@@ -514,6 +515,7 @@ export async function writeFxFile(options: {
     });
     if (
       !existing.exceeded &&
+      existing.bytes.length === contentBytes &&
       decodeFxModelSafeText({ bytes: existing.bytes }) === content
     ) {
       return {
@@ -600,6 +602,16 @@ export async function editFxFile(options: {
   if (preimage.exceeded) {
     return toFxToolError({
       text: 'file mutation preparation failed: preimage exceeds the 4 MiB preparation limit',
+    });
+  }
+  /*
+   * The preimage is the whole file only if it has the size the stat
+   * reported, so a file that changed in between is refused rather than
+   * edited from a read of another version of it.
+   */
+  if (preimage.bytes.length !== stat.size) {
+    return toFxToolError({
+      text: 'file mutation preparation failed: approved filesystem identity changed',
     });
   }
   const before = decodeFxModelSafeText({ bytes: preimage.bytes });

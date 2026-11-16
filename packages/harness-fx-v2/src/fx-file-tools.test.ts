@@ -118,6 +118,43 @@ describe('readFxFile', () => {
 });
 
 describe('writeFxFile', () => {
+  test('reports no change for a file with non-ASCII text', async () => {
+    const { session, workDir, sandbox, abortSignal } = await setup();
+    await session.writeTextFile({
+      path: `${workDir}/notes.txt`,
+      content: 'caf\u00e9 \u20ac\n',
+    });
+
+    expect(
+      await writeFxFile({
+        sandbox,
+        input: { path: 'notes.txt', content: 'caf\u00e9 \u20ac\n' },
+        abortSignal,
+      }),
+    ).toEqual({
+      text: 'No changes to notes.txt; it already contains the requested content',
+    });
+  });
+
+  test('writes a file that is not valid UTF-8', async () => {
+    const { session, workDir, sandbox, abortSignal } = await setup();
+    await session.writeBinaryFile({
+      path: `${workDir}/latin1.txt`,
+      content: Uint8Array.from([0x63, 0x61, 0x66, 0xe9, 0x0a]),
+    });
+
+    expect(
+      await writeFxFile({
+        sandbox,
+        input: { path: 'latin1.txt', content: 'cafe\n' },
+        abortSignal,
+      }),
+    ).toEqual({ text: 'wrote latin1.txt (5 bytes)' });
+    expect(await session.readTextFile({ path: `${workDir}/latin1.txt` })).toBe(
+      'cafe\n',
+    );
+  });
+
   test('creates a file with its parent directories', async () => {
     const { session, workDir, sandbox, abortSignal } = await setup();
 
@@ -139,6 +176,46 @@ describe('writeFxFile', () => {
 });
 
 describe('editFxFile', () => {
+  test('edits a file with non-ASCII text through the bounded read', async () => {
+    const { session, workDir, sandbox, abortSignal } = await setup();
+    await session.writeTextFile({
+      path: `${workDir}/file.txt`,
+      content: 'caf\u00e9 \u20ac\n',
+    });
+
+    const output = await editFxFile({
+      sandbox,
+      input: { path: 'file.txt', old_string: '\u20ac', new_string: 'EUR' },
+      abortSignal,
+    });
+
+    expect(output).toEqual({ text: 'edited file.txt (10 bytes)' });
+    expect(await session.readTextFile({ path: `${workDir}/file.txt` })).toBe(
+      'caf\u00e9 EUR\n',
+    );
+  });
+
+  test('refuses a preimage that is not valid UTF-8', async () => {
+    const { session, workDir, sandbox, abortSignal } = await setup();
+    // 'café\n' in Latin-1, so that the preimage keeps a byte that is not
+    // valid UTF-8.
+    await session.writeBinaryFile({
+      path: `${workDir}/latin1.txt`,
+      content: Uint8Array.from([0x63, 0x61, 0x66, 0xe9, 0x0a]),
+    });
+
+    expect(
+      await editFxFile({
+        sandbox,
+        input: { path: 'latin1.txt', old_string: 'caf', new_string: 'dog' },
+        abortSignal,
+      }),
+    ).toEqual({
+      text: 'file mutation preparation failed: unable to read the approved preimage',
+      isError: true,
+    });
+  });
+
   test('replaces a unique match', async () => {
     const { session, workDir, sandbox, abortSignal } = await setup();
     await session.writeTextFile({
@@ -219,10 +296,6 @@ function createFakeFileSession(options: {
    * Length of each filler line, including its newline.
    */
   lineLength?: number;
-  /**
-   * Whether the fake sandbox ignores the byte limit of `head -c`.
-   */
-  ignoreLimit?: boolean;
 }) {
   const {
     size,
@@ -265,29 +338,21 @@ function createFakeFileSession(options: {
       abortSignal?: AbortSignal;
     }) {
       calls.push(`spawn ${command}`);
-      const asked = Number(/head -c (\d+)/.exec(command)?.[1]);
-      const limit = options.ignoreLimit ? Number.POSITIVE_INFINITY : asked;
       /*
-       * Models `head -c <limit> <path> | base64`: at most the requested
-       * bytes, encoded in whole three-byte groups so that the pieces decode
-       * in order, and none of them past the limit.
+       * Models `base64 <path>`: the whole file, encoded in whole three-byte
+       * groups so that the pieces decode in order. Only the tool's capture
+       * bounds what the host keeps.
        */
       function* encoded() {
-        let raw = 0;
         let pending = Buffer.alloc(0);
         for (const chunk of contents()) {
           if (chunk.length === 0) continue;
-          const take = Math.min(limit - raw, chunk.length);
-          if (take <= 0) break;
-          const slice = take === chunk.length ? chunk : chunk.slice(0, take);
-          raw += slice.length;
-          pending = Buffer.concat([pending, Buffer.from(slice)]);
+          pending = Buffer.concat([pending, Buffer.from(chunk)]);
           const whole = pending.length - (pending.length % 3);
           if (whole > 0) {
             yield Buffer.from(pending.subarray(0, whole).toString('base64'));
             pending = pending.subarray(whole);
           }
-          if (raw >= limit) break;
         }
         if (pending.length > 0) yield Buffer.from(pending.toString('base64'));
       }
@@ -366,7 +431,7 @@ describe('readFxFile with a file larger than a snapshot', () => {
   });
 
   test('reads a snapshot of the file with a bounded command', async () => {
-    const { session, calls } = createFakeFileSession({ size: 20 * MIB });
+    const { session, calls, state } = createFakeFileSession({ size: 20 * MIB });
 
     const output = await readFxFile({
       sandbox: sandbox(session),
@@ -374,18 +439,16 @@ describe('readFxFile with a file larger than a snapshot', () => {
       abortSignal,
     });
 
-    expect(calls).toEqual([
-      'stat',
-      `spawn head -c ${10 * MIB + 1} '/home/user/big.txt' | base64`,
-    ]);
+    expect(calls).toEqual(['stat', `spawn base64 '/home/user/big.txt'`]);
     expect(output.text).toContain('1\txxx');
     expect(output.text).toContain('file snapshot was capped before EOF');
+    // The sandbox sent the whole file, and the host stopped reading it.
+    expect(state.sent).toBeLessThan(15 * MIB);
   });
 
-  test('keeps the snapshot bounded when the sandbox ignores the limit', async () => {
+  test('keeps the snapshot bounded when the sandbox sends the whole file', async () => {
     const { session, state } = createFakeFileSession({
       size: 64 * MIB,
-      ignoreLimit: true,
     });
 
     const output = await readFxFile({
@@ -412,10 +475,7 @@ describe('readFxFile with a file larger than a snapshot', () => {
       abortSignal,
     });
 
-    expect(calls).toEqual([
-      'stat',
-      `spawn head -c ${10 * MIB + 1} '/home/user/big.png' | base64`,
-    ]);
+    expect(calls).toEqual(['stat', `spawn base64 '/home/user/big.png'`]);
     expect(output.text).toBe(
       "<path>big.png</path>\n<content>image not attached: image/png (12582912 bytes); the file exceeds read_file's 10 MiB read limit. Use an available image tool to save a smaller copy to a new file, then read_file the copy. If no image tool is available, ask the user before installing one.</content>",
     );
@@ -456,7 +516,6 @@ describe('editFxFile with a preimage larger than the limit', () => {
     const { session, calls, state } = createFakeFileSession({
       size: 4 * 1024,
       contentBytes: 64 * MIB,
-      ignoreLimit: true,
     });
     const sandbox: FxToolSandbox = {
       session,
@@ -470,10 +529,7 @@ describe('editFxFile with a preimage larger than the limit', () => {
       abortSignal: new AbortController().signal,
     });
 
-    expect(calls).toEqual([
-      'stat',
-      `spawn head -c ${4 * MIB + 1} '/home/user/growth.txt' | base64`,
-    ]);
+    expect(calls).toEqual(['stat', `spawn base64 '/home/user/growth.txt'`]);
     expect(output).toEqual({
       text: 'file mutation preparation failed: preimage exceeds the 4 MiB preparation limit',
       isError: true,
@@ -508,7 +564,6 @@ describe('writeFxFile over a file of another size', () => {
     const { session, state } = createFakeFileSession({
       size: 12,
       contentBytes: 64 * MIB,
-      ignoreLimit: true,
     });
     const sandbox: FxToolSandbox = {
       session,
