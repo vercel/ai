@@ -345,6 +345,45 @@ describe('searching a sandbox that prints without end', () => {
     expect(listed).toEqual([...listed].sort());
   });
 
+  test('lists the files a pattern matches in a tree of many others', async () => {
+    const { session } = createFakeSearchSession({
+      stat: () => ({ type: 'directory', size: 0 }),
+      command: () => ({
+        chunks: function* () {
+          // More files than the listing limit, none of them matching, before
+          // the ones that do.
+          for (let file = 0; file < 100_100; file++) {
+            yield new Uint8Array(
+              Buffer.from(`${workDir}/other/f${file}.js\n`, 'utf8'),
+            );
+          }
+          for (const name of ['a', 'b']) {
+            yield new Uint8Array(
+              Buffer.from(`${workDir}/src/${name}.ts\n`, 'utf8'),
+            );
+          }
+        },
+      }),
+    });
+
+    expect(
+      await globFxFiles({
+        sandbox: testSandbox(session),
+        input: { pattern: 'src/**' },
+        abortSignal: new AbortController().signal,
+      }),
+    ).toEqual({
+      text: '[glob] 2 matches for src/**\n - src/a.ts\n - src/b.ts\n',
+    });
+    expect(
+      await globFxFiles({
+        sandbox: testSandbox(session),
+        input: { pattern: 'src/**', mode: 'count' },
+        abortSignal: new AbortController().signal,
+      }),
+    ).toEqual({ text: '[glob] count 2 matches for src/**\n' });
+  });
+
   test('marks a page as a lower bound when only the output was cut off', async () => {
     const { session } = createFakeSearchSession({
       stat: () => ({ type: 'directory', size: 0 }),
