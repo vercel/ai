@@ -4,6 +4,7 @@ import type {
   LanguageModelV4Prompt,
   LanguageModelV4ProviderTool,
 } from '@ai-sdk/provider';
+import { redactTelemetryValue } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import * as fs from 'node:fs';
@@ -3544,5 +3545,130 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
           ?.unified,
       ).toBe('stop');
     });
+  });
+});
+
+describe('GoogleInteractionsLanguageModel MCP server credential telemetry', () => {
+  const server = createTestServer({ [TEST_URL]: {} });
+  const SECRET = 'test-connector-secret';
+  const MCP_TOOL = {
+    type: 'provider' as const,
+    id: 'google.mcp_server' as const,
+    name: 'connector',
+    args: {
+      name: 'local-mcp',
+      url: 'https://example.com/mcp',
+      headers: { Authorization: `Bearer ${SECRET}` },
+      allowedTools: ['getWeather'],
+    },
+  };
+
+  function prepareJsonFixtureResponse() {
+    server.urls[TEST_URL].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync('src/interactions/__fixtures__/basic.json', 'utf8'),
+      ),
+    };
+  }
+
+  function expectRedactedTelemetryView(value: unknown) {
+    // Diagnostics keep the credentials; only the telemetry view is redacted.
+    expect(JSON.stringify(value)).toContain(SECRET);
+    const telemetryValue = redactTelemetryValue(value);
+    expect(JSON.stringify(telemetryValue)).not.toContain(SECRET);
+    expect(JSON.stringify(telemetryValue)).toContain('[redacted]');
+  }
+
+  it('keeps credentials in the doGenerate request and redacts their telemetry view', async () => {
+    prepareJsonFixtureResponse();
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [MCP_TOOL],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      tools: [
+        { type: 'mcp_server', headers: { Authorization: `Bearer ${SECRET}` } },
+      ],
+    });
+    expectRedactedTelemetryView(result.request?.body);
+  });
+
+  it('keeps credentials in the doStream request and redacts their telemetry view', async () => {
+    server.urls[TEST_URL].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          event_type: 'interaction.created',
+          event_id: 'evt-1',
+          interaction: { id: 'v1_credential-test', status: 'in_progress' },
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          event_type: 'step.start',
+          event_id: 'evt-2',
+          index: 0,
+          step: { type: 'model_output' },
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          event_type: 'step.delta',
+          event_id: 'evt-3',
+          index: 0,
+          delta: { type: 'text', text: 'OK' },
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          event_type: 'step.stop',
+          event_id: 'evt-4',
+          index: 0,
+          step: { type: 'model_output' },
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          event_type: 'interaction.completed',
+          event_id: 'evt-5',
+          interaction: { id: 'v1_credential-test', status: 'completed' },
+        })}\n\n`,
+      ],
+    };
+
+    const result = await model.doStream({
+      prompt: TEST_PROMPT,
+      tools: [MCP_TOOL],
+    });
+    await convertReadableStreamToArray(result.stream);
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      stream: true,
+      tools: [
+        { type: 'mcp_server', headers: { Authorization: `Bearer ${SECRET}` } },
+      ],
+    });
+    expectRedactedTelemetryView(result.request?.body);
+  });
+
+  it('redacts credentials from the provider error telemetry view', async () => {
+    server.urls[TEST_URL].response = {
+      type: 'error',
+      status: 400,
+      body: JSON.stringify({
+        error: {
+          code: 400,
+          message: 'invalid request',
+          status: 'INVALID_ARGUMENT',
+        },
+      }),
+    };
+
+    const error = await model
+      .doGenerate({ prompt: TEST_PROMPT, tools: [MCP_TOOL] })
+      .then(
+        () => undefined,
+        (caught: unknown) => caught,
+      );
+
+    expect(error).toMatchObject({ name: 'AI_APICallError' });
+    expectRedactedTelemetryView(
+      (error as { requestBodyValues?: unknown }).requestBodyValues,
+    );
   });
 });

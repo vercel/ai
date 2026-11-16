@@ -3,6 +3,7 @@ import { enterpriseWebSearch } from './tool/enterprise-web-search';
 import { fileSearch } from './tool/file-search';
 import { googleMaps } from './tool/google-maps';
 import { googleSearch } from './tool/google-search';
+import { mcpServer } from './tool/mcp-server';
 import { urlContext } from './tool/url-context';
 import { vertexRagStore } from './tool/vertex-rag-store';
 
@@ -68,4 +69,14 @@ export const googleTools = {
    * Must have name "vertex_rag_store".
    */
   vertexRagStore,
+
+  /**
+   * Connects a remote MCP server so the model can call its tools.
+   * Must have name "mcp_server".
+   *
+   * @note Only available with `google.interactions(...)`.
+   *
+   * Headers carry connector credentials and are redacted from telemetry.
+   */
+  mcpServer,
 };
