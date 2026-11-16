@@ -17,12 +17,12 @@ const GREP_MAX_LINE_LENGTH = 500;
 const EXCLUDED_DIRECTORIES = ['.git', 'node_modules'];
 
 /**
- * Characters of a matching line that the search transfers. The result shows
+ * Characters of a line that the search transfers for a match or for context.
  * 500 of them, and the path and line number come first, so a matching line
  * that is far longer than the result shows does not fill the host's memory
  * while every match stays in the result.
  */
-const MATCH_LINE_MAX_CHARS = 4096;
+const LINE_MAX_CHARS = 4096;
 
 /**
  * Bytes of matching lines that one search may transfer, as a backstop for a
@@ -191,12 +191,14 @@ async function readLineRanges(options: {
   const conditions = ranges
     .map(({ start, end }) => `NR>=${start} && NR<=${end}`)
     .join(' || ');
+  const lastLine = ranges[ranges.length - 1]?.end ?? 0;
   /*
    * The absolute path keeps a name with `=` from being read as an assignment,
-   * and `pipefail` reports an unreadable file instead of the exit code of
-   * `head`.
+   * `pipefail` reports an unreadable file instead of the exit code of `head`,
+   * and the lines are cut and the scan stopped early so that a file with very
+   * long lines or with lines after the last range stays cheap.
    */
-  const command = `set -o pipefail; awk '${conditions} { print NR "\\t" $0 }' ${shellQuote(path.posix.join(directory, relativePath))} | head -c ${maxBytes + 1}`;
+  const command = `set -o pipefail; awk '${conditions} { print NR "\\t" substr($0, 1, ${LINE_MAX_CHARS}) } NR > ${lastLine} { exit }' ${shellQuote(path.posix.join(directory, relativePath))} | head -c ${maxBytes + 1}`;
 
   let result: { exitCode: number; stdout: string; stderr: string };
   try {
@@ -278,7 +280,7 @@ async function executeGrep(options: {
   let result: { exitCode: number; stdout: string; stderr: string };
   try {
     result = await session.run({
-      command: `set -o pipefail; cd ${shellQuote(directory)} && grep ${flags.map(shellQuote).join(' ')} -e ${shellQuote(input.pattern)} ${shellQuote(target)} | head -n ${limit} | awk '{ print substr($0, 1, ${MATCH_LINE_MAX_CHARS}) }' | head -c ${MATCH_MAX_BYTES}`,
+      command: `set -o pipefail; cd ${shellQuote(directory)} && grep ${flags.map(shellQuote).join(' ')} -e ${shellQuote(input.pattern)} ${shellQuote(target)} | head -n ${limit} | awk '{ print substr($0, 1, ${LINE_MAX_CHARS}) }' | head -c ${MATCH_MAX_BYTES}`,
       abortSignal,
     });
   } catch (error) {
@@ -293,7 +295,8 @@ async function executeGrep(options: {
   }).slice(0, limit);
   // The search output is capped in bytes, so the last match can be cut off.
   const matchesTruncated =
-    Buffer.byteLength(result.stdout, 'utf-8') >= MATCH_MAX_BYTES;
+    Buffer.byteLength(result.stdout, 'utf-8') >= MATCH_MAX_BYTES &&
+    !result.stdout.endsWith('\n');
   /*
    * grep exits with 1 when nothing matched, and with 141 when `head` closed
    * the pipe after reaching the limit. A recursive search that hit an

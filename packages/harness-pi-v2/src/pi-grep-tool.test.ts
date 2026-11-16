@@ -93,6 +93,32 @@ describe('createPiGrepTool', () => {
     });
 
     expect(text(result)).toContain('wide.txt:2: match');
+    // The context lines are cut in the sandbox, so they fit and stay bounded.
+    expect(text(result)).toContain('wide.txt-1- x');
+    expect(text(result)).toContain('wide.txt-3- y');
+    expect(text(result)).toContain('Some lines truncated to 500 chars');
+    expect(text(result).length).toBeLessThan(4000);
+  });
+
+  test('omits context that would exceed the per-file ranges', async () => {
+    const { session, workDir, grep } = await setup();
+    const lines = Array.from({ length: 3000 }, (_value, index) =>
+      index % 5 === 0 ? 'match' : `line ${index}`,
+    );
+    await session.writeTextFile({
+      path: `${workDir}/many.txt`,
+      content: `${lines.join('\n')}\n`,
+    });
+
+    const result = await grep({
+      pattern: '^match$',
+      path: 'many.txt',
+      limit: 600,
+      context: 1,
+    });
+
+    // Every match is still shown, while the context reads are capped.
+    expect(text(result).match(/many\.txt:\d+: match/gm)).toHaveLength(600);
     expect(text(result)).toContain(
       'Some context lines omitted for large files',
     );
