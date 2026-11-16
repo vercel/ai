@@ -49,6 +49,20 @@ describe('createFxOutputCapture', () => {
     expect([...capture.toBytes()]).toEqual([1, 2, 3, 4, 7, 8, 9, 10]);
   });
 
+  test('copies the kept bytes out of a view of a larger allocation', () => {
+    const capture = createFxOutputCapture({ headBytes: 4, tailBytes: 4 });
+    const backing = new Uint8Array(MIB).fill(7);
+    const view = backing.subarray(0, 10);
+    view.set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    capture.add(view);
+    backing.fill(0);
+    view.fill(0);
+
+    // The kept bytes are independent of the allocation they came from.
+    expect([...capture.toBytes()]).toEqual([1, 2, 3, 4, 7, 8, 9, 10]);
+    expect(capture.complete).toBe(false);
+  });
+
   test('cuts the kept bytes at UTF-8 character boundaries', () => {
     // 'a€bc€d', so that both cut ends fall inside a character.
     const output = new TextEncoder().encode('a\u20acbc\u20acd');

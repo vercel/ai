@@ -102,17 +102,30 @@ export function createFxOutputCapture(options: {
     add(chunk) {
       if (chunk.length === 0) return;
       totalBytes += chunk.length;
-      let rest = chunk;
+      /*
+       * A chunk can be a view of a larger allocation, and keeping it would
+       * keep that whole allocation, so kept bytes are copied out of a view.
+       * A chunk that is its own allocation is kept as it is.
+       */
+      let rest =
+        chunk.byteOffset === 0 && chunk.byteLength === chunk.buffer.byteLength
+          ? chunk
+          : new Uint8Array(chunk);
       if (headLength < headBytes) {
         /*
-         * A partially kept chunk is copied, so a large chunk does not stay
-         * alive in host memory for the few bytes of it that are kept.
+         * A partially kept chunk is copied for the same reason: a large
+         * chunk must not stay alive for the few bytes of it that are kept.
          */
         const take = Math.min(headBytes - headLength, rest.length);
-        head.push(take === rest.length ? rest : rest.slice(0, take));
+        head.push(
+          take === rest.length ? rest : new Uint8Array(rest.subarray(0, take)),
+        );
         headLength += take;
         rest = rest.subarray(take);
         if (rest.length === 0) return;
+      }
+      if (rest.byteOffset !== 0 || rest.byteLength !== rest.buffer.byteLength) {
+        rest = new Uint8Array(rest);
       }
       tail.push(rest);
       tailLength += rest.length;
@@ -129,7 +142,7 @@ export function createFxOutputCapture(options: {
          * The kept part of a partially dropped chunk is copied for the same
          * reason as the head: a large chunk must not stay alive for it.
          */
-        tail[0] = first.slice(excess);
+        tail[0] = new Uint8Array(first.subarray(excess));
         tailLength -= excess;
         droppedBytes += excess;
       }
