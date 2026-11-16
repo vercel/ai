@@ -311,6 +311,8 @@ export function resolveSerializableTools(
         return [
           name,
           dynamicTool({
+            title: t.title,
+            metadata: t.metadata,
             description: t.description,
             inputExamples: t.inputExamples,
             providerOptions: t.providerOptions,
