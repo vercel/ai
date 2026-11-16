@@ -47,6 +47,26 @@ describe('createPiSandboxOperations', () => {
       'r',
     );
   });
+
+  test('refuses to read a file above the size limit', async () => {
+    const { session, root, operations } = await setup();
+    const limit = 10 * 1024 * 1024;
+    await session.writeTextFile({
+      path: `${root}/large.log`,
+      content: 'a'.repeat(limit + 1),
+    });
+    await session.writeTextFile({
+      path: `${root}/at-limit.log`,
+      content: 'a'.repeat(limit),
+    });
+
+    await expect(operations.readFile(`${root}/large.log`)).rejects.toThrow(
+      'File is too large to read: ',
+    );
+    expect((await operations.readFile(`${root}/at-limit.log`)).byteLength).toBe(
+      limit,
+    );
+  });
 });
 
 describe('findSandboxFiles', () => {

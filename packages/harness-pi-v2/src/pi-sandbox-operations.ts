@@ -1,13 +1,23 @@
 import { shellQuote } from '@ai-sdk/harness/utils';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
-import type {
-  EditOperations,
-  FindOperations,
-  LsOperations,
-  ReadOperations,
-  WriteOperations,
+import {
+  formatSize,
+  type EditOperations,
+  type FindOperations,
+  type LsOperations,
+  type ReadOperations,
+  type WriteOperations,
 } from '@earendil-works/pi-coding-agent';
 import path from 'node:path';
+
+/**
+ * Bytes of a file that the host reads into memory at once. Pi's read tool
+ * shows at most `DEFAULT_MAX_BYTES` of a file but reads the whole file, which
+ * only fits in the memory of the process that runs the tool; the host that
+ * runs the sandbox serves many sessions, so it refuses to read a file above
+ * this limit instead.
+ */
+const MAX_READ_BYTES = 10 * 1024 * 1024;
 
 /**
  * File system operations of Pi's built-in tools, implemented on a sandbox
@@ -163,12 +173,33 @@ export function createPiSandboxOperations(options: {
 }): PiSandboxOperations {
   const { session } = options;
   let lastRead: { path: string; bytes: Uint8Array } | undefined;
+  let lastStat: { path: string; size: number } | undefined;
+
+  /**
+   * Returns the size of a file, reusing the size that `access()` or `stat()`
+   * read for the same path right before, as Pi's read tool calls `access()`
+   * before it reads.
+   */
+  const statSize = async (filePath: string): Promise<number | undefined> => {
+    if (lastStat?.path === filePath) {
+      const { size } = lastStat;
+      lastStat = undefined;
+      return size;
+    }
+    return (await session.stat({ path: filePath }))?.size;
+  };
 
   const readBytes = async (filePath: string): Promise<Uint8Array> => {
     if (lastRead?.path === filePath) {
       const { bytes } = lastRead;
       lastRead = undefined;
       return bytes;
+    }
+    const size = await statSize(filePath);
+    if (size != null && size > MAX_READ_BYTES) {
+      throw new Error(
+        `File is too large to read: ${filePath} is ${formatSize(size)}, the limit is ${formatSize(MAX_READ_BYTES)}. Read part of it with a bash command, for example \`sed -n '1,200p' ${filePath}\`.`,
+      );
     }
     const bytes = await session.readBinaryFile({ path: filePath });
     if (bytes == null) {
@@ -182,6 +213,7 @@ export function createPiSandboxOperations(options: {
     if (stat == null) {
       throw createNotFoundError({ operation: 'stat', path: filePath });
     }
+    lastStat = { path: filePath, size: stat.size };
     return stat;
   };
 
