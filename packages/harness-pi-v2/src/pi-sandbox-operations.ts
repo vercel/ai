@@ -218,6 +218,11 @@ export function createPiSandboxOperations(options: {
       );
     }
     if (stat != null && stat.size > MAX_READ_BYTES) {
+      /*
+       * The size comes from a stat that runs before the read, so a file that
+       * grows in between is still read; closing that gap needs a byte range in
+       * the sandbox interface.
+       */
       throw new Error(
         `File is too large to read: ${filePath} is ${formatSize(stat.size)}, the limit is ${formatSize(MAX_READ_BYTES)}. Read part of it with a bash command, for example \`sed -n '1,200p' ${filePath}\`.`,
       );
