@@ -336,6 +336,35 @@ describe('createPiGrepTool', () => {
     expect(text(result).length).toBeLessThan(300_000);
   });
 
+  test('reports a recursive output that the byte cap cut', async () => {
+    const { session, grep } = await setup();
+    const nul = '\u0000';
+    // One frame whose match lines the byte cap cut, so it has no closing NUL.
+    const body = `${`1:${'x'.repeat(2000)}`}\n`.repeat(600);
+    vi.spyOn(session, 'run').mockResolvedValue({
+      exitCode: 0,
+      stdout: ['./a.txt', body].join(nul),
+      stderr: '',
+    });
+
+    const result = await grep({ pattern: 'x', limit: 5000 });
+
+    expect(text(result)).toContain(
+      'Some matches may be missing, the output reached its limit',
+    );
+  });
+
+  test('refuses a recursive output without the NUL framing', async () => {
+    const { session, grep } = await setup();
+    vi.spyOn(session, 'run').mockResolvedValue({
+      exitCode: 0,
+      stdout: './a.txt1:match\n',
+      stderr: '',
+    });
+
+    await expect(grep({ pattern: 'match' })).rejects.toThrow('NUL framing');
+  });
+
   test('reports the match limit', async () => {
     const { grep } = await setup();
 

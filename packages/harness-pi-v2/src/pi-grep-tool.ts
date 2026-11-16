@@ -340,11 +340,15 @@ async function executeGrep(options: {
   const fileName = path.posix.basename(searchPath);
   const requestContext = Number(input.context ?? 0);
   const contextValue = Number.isFinite(requestContext)
-    ? Math.max(0, Math.floor(requestContext))
+    ? Math.min(Math.max(0, Math.floor(requestContext)), Number.MAX_SAFE_INTEGER)
     : 0;
+  /*
+   * `limit` reaches `head -n` as a number, so it stays below the point where
+   * JavaScript prints exponent notation that `head` rejects.
+   */
   const requestLimit = Number(input.limit ?? DEFAULT_LIMIT);
   const limit = Number.isFinite(requestLimit)
-    ? Math.max(1, Math.floor(requestLimit))
+    ? Math.min(Math.max(1, Math.floor(requestLimit)), Number.MAX_SAFE_INTEGER)
     : DEFAULT_LIMIT;
 
   const matchFlags = [
@@ -389,9 +393,14 @@ async function executeGrep(options: {
       : parseMatchLines({ output: result.stdout, relativePath: fileName })
   ).slice(0, limit);
   // The search output is capped in bytes, so the last match can be cut off.
+  /*
+   * A recursive search ends with the NUL byte that closes its last frame, a
+   * single-file search with the newline of its last line; a byte cap that cut
+   * the output leaves neither.
+   */
   const matchesTruncated =
     Buffer.byteLength(result.stdout, 'utf-8') >= MATCH_MAX_BYTES &&
-    !result.stdout.endsWith('\n');
+    !result.stdout.endsWith(isDirectory ? '\0' : '\n');
   const listedFiles = isDirectory
     ? Math.floor((result.stdout.split('\0').length - 1) / 2)
     : 0;
@@ -400,6 +409,16 @@ async function executeGrep(options: {
   const filesTruncated = listedFiles > fileLimit && matches.length < limit;
   const missingMatchesNotice =
     'Some matches may be missing, the output reached its limit';
+  /*
+   * Every frame of a recursive search carries a NUL byte. Without one, the
+   * sandbox did not deliver that framing, and an empty parse must not be
+   * reported as a complete answer.
+   */
+  if (isDirectory && result.exitCode !== 1 && !result.stdout.includes('\0')) {
+    throw new Error(
+      'The sandbox did not preserve the NUL framing of the grep output',
+    );
+  }
   /*
    * grep exits with 1 when nothing matched, and with 141 when `head` closed
    * the pipe after reaching the limit. A recursive search that hit an
