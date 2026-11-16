@@ -12,6 +12,10 @@ import {
   modelNotFoundParamSchema,
 } from './gateway-model-not-found-error';
 import { GatewayInternalServerError } from './gateway-internal-server-error';
+import {
+  GatewayAccessPolicyDeniedError,
+  accessPolicyDeniedParamSchema,
+} from './gateway-access-policy-denied-error';
 import { GatewayResponseError } from './gateway-response-error';
 import {
   type InferValidator,
@@ -94,6 +98,22 @@ export async function createGatewayErrorFromResponse({
         statusCode,
         cause,
         ruleId: ruleResult.success ? ruleResult.value.ruleId : undefined,
+      });
+    }
+    case 'access_policy_denied': {
+      const paramResult = await safeValidateTypes({
+        value: validatedResponse.error.param,
+        schema: accessPolicyDeniedParamSchema,
+      });
+      const param = paramResult.success ? paramResult.value : undefined;
+
+      return new GatewayAccessPolicyDeniedError({
+        message,
+        statusCode,
+        cause,
+        policyIds: param?.policyIds,
+        removedModels: param?.removedModels,
+        removedProviders: param?.removedProviders,
       });
     }
     default:

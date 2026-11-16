@@ -28,6 +28,7 @@ export type {
 export type { GatewayProviderOptions } from './gateway-provider-options';
 export {
   GatewayError,
+  GatewayAccessPolicyDeniedError,
   GatewayAuthenticationError,
   GatewayForbiddenError,
   GatewayInvalidRequestError,

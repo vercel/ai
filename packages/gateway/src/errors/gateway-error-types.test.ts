@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   GatewayError,
+  GatewayAccessPolicyDeniedError,
   GatewayAuthenticationError,
+  GatewayForbiddenError,
   GatewayInvalidRequestError,
   GatewayRateLimitError,
   GatewayModelNotFoundError,
@@ -148,6 +150,31 @@ describe('GatewayRateLimitError', () => {
 
     expect(GatewayRateLimitError.isInstance(error)).toBe(true);
     expect(GatewayError.isInstance(error)).toBe(true);
+  });
+});
+
+describe('GatewayAccessPolicyDeniedError', () => {
+  it('should create error with default values', () => {
+    const error = new GatewayAccessPolicyDeniedError();
+
+    expect(error.name).toBe('GatewayAccessPolicyDeniedError');
+    expect(error.type).toBe('access_policy_denied');
+    expect(error.message).toBe('Access policy denied');
+    expect(error.statusCode).toBe(403);
+    expect(error.isRetryable).toBe(false);
+    expect(error.policyIds).toBeUndefined();
+    expect(error.removedModels).toBeUndefined();
+    expect(error.removedProviders).toBeUndefined();
+  });
+
+  it('should be distinguishable from GatewayForbiddenError', () => {
+    const denied = new GatewayAccessPolicyDeniedError();
+    const forbidden = new GatewayForbiddenError();
+
+    expect(GatewayAccessPolicyDeniedError.isInstance(denied)).toBe(true);
+    expect(GatewayError.isInstance(denied)).toBe(true);
+    expect(GatewayForbiddenError.isInstance(denied)).toBe(false);
+    expect(GatewayAccessPolicyDeniedError.isInstance(forbidden)).toBe(false);
   });
 });
 
