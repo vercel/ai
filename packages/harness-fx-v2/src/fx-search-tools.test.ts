@@ -108,3 +108,172 @@ describe('grepFxFiles', () => {
     `);
   });
 });
+
+const MIB = 1024 * 1024;
+
+/**
+ * Fake sandbox session whose commands print what a test scripts, so a test
+ * controls how much output a search command or a context read produces, and
+ * that records the commands and whether a command was stopped.
+ */
+function createFakeSearchSession(options: {
+  /**
+   * Returns the output of a command, and the exit code it ends with.
+   */
+  command: (command: string) => {
+    chunks: () => Generator<Uint8Array>;
+    exitCode?: number;
+  };
+  /**
+   * Returns the stat of a path.
+   */
+  stat: (path: string) => { type: 'file' | 'directory'; size: number } | null;
+}) {
+  const calls: string[] = [];
+  const state = { sent: 0, stopped: 0 };
+  // oxlint-disable-next-line ai-sdk/no-as-unknown-as -- partial sandbox session for a test.
+  const session = {
+    description: 'fake sandbox',
+    async stat({ path }: { path: string }) {
+      calls.push(`stat ${path}`);
+      return options.stat(path);
+    },
+    async spawn({
+      command,
+      abortSignal,
+    }: {
+      command: string;
+      abortSignal?: AbortSignal;
+    }) {
+      calls.push(command);
+      const scripted = options.command(command);
+      const iterator = scripted.chunks();
+      let finished = false;
+      let settle = () => {};
+      const drained = new Promise<void>(resolve => {
+        settle = resolve;
+      });
+      const aborted = new Promise<never>((_, reject) => {
+        abortSignal?.addEventListener(
+          'abort',
+          () => {
+            state.stopped++;
+            reject(abortSignal.reason);
+          },
+          { once: true },
+        );
+      });
+      return {
+        stdout: new ReadableStream<Uint8Array>({
+          pull(controller) {
+            const { done, value } = iterator.next();
+            if (done) {
+              if (!finished) {
+                finished = true;
+                settle();
+              }
+              controller.close();
+              return;
+            }
+            state.sent += value.length;
+            controller.enqueue(value);
+          },
+        }),
+        stderr: new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.close();
+          },
+        }),
+        async wait() {
+          return Promise.race([
+            drained.then(() => ({ exitCode: scripted.exitCode ?? 0 })),
+            aborted,
+          ]);
+        },
+        async kill() {
+          state.stopped++;
+        },
+      };
+    },
+  } as unknown as FxToolSandbox['session'];
+  return { session, calls, state };
+}
+
+function testSandbox(session: FxToolSandbox['session']): FxToolSandbox {
+  return { session, workDir: '/home/user', home: '/home/user' };
+}
+
+describe('searching a sandbox that prints without end', () => {
+  test('bounds the file listing of glob_files', async () => {
+    const { session, state } = createFakeSearchSession({
+      stat: () => ({ type: 'directory', size: 0 }),
+      command: () => ({
+        chunks: function* () {
+          for (;;) {
+            yield new Uint8Array(
+              Buffer.from('/home/user/src/file.ts\n', 'utf8'),
+            );
+          }
+        },
+      }),
+    });
+
+    const output = await globFxFiles({
+      sandbox: testSandbox(session),
+      input: { pattern: '**/*.ts' },
+      abortSignal: new AbortController().signal,
+    });
+
+    expect(output.text).toContain('the file listing was cut off');
+    expect(state.sent).toBeLessThan(9 * MIB);
+    expect(state.stopped).toBeGreaterThan(0);
+  });
+
+  test('bounds the match output of grep_files', async () => {
+    const { session, state } = createFakeSearchSession({
+      stat: () => ({ type: 'directory', size: 0 }),
+      command: () => ({
+        chunks: function* () {
+          for (;;) {
+            yield new Uint8Array(
+              Buffer.from('./src/file.ts:1:needle\n', 'utf8'),
+            );
+          }
+        },
+      }),
+    });
+
+    const output = await grepFxFiles({
+      sandbox: testSandbox(session),
+      input: { pattern: 'needle' },
+      abortSignal: new AbortController().signal,
+    });
+
+    expect(output.text).toContain('grep output was cut off');
+    expect(state.sent).toBeLessThan(9 * MIB);
+    expect(state.stopped).toBeGreaterThan(0);
+  });
+
+  test('bounds the count of grep_files for a cut-off output', async () => {
+    const { session } = createFakeSearchSession({
+      stat: () => ({ type: 'directory', size: 0 }),
+      command: () => ({
+        chunks: function* () {
+          for (;;) {
+            yield new Uint8Array(
+              Buffer.from('./src/file.ts:1:needle\n', 'utf8'),
+            );
+          }
+        },
+      }),
+    });
+
+    const output = await grepFxFiles({
+      sandbox: testSandbox(session),
+      input: { pattern: 'needle', mode: 'count' },
+      abortSignal: new AbortController().signal,
+    });
+
+    expect(output.text).toContain('at least; the grep output was cut off');
+  });
+});
