@@ -273,7 +273,8 @@ export class RetainedOutput {
  * `tee` writes.
  *
  * The command keeps its own line, so a trailing comment or `;` cannot swallow
- * the closing brace.
+ * the closing brace. A command that ends in the middle of a line continuation
+ * or a heredoc is a syntax error, because the wrapper adds lines after it.
  */
 function captureFullOutput(options: {
   /**

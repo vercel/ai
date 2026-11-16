@@ -238,6 +238,36 @@ describe('createPiBashTool', () => {
     ).rejects.toThrow('Command timed out after 0.2 seconds');
   });
 
+  test('keeps the shell semantics of the command', async () => {
+    const { bash } = await setup();
+
+    expect(text(await bash({ input: { command: 'echo hi | cat' } }))).toBe(
+      'hi\n',
+    );
+    // As in bash, the exit code of a pipeline is the last command's.
+    expect(
+      (await bash({ input: { command: 'false | cat' } })).isError,
+    ).toBeUndefined();
+    expect(
+      text(await bash({ input: { command: 'cat <<EOF\nhi\nthere\nEOF' } })),
+    ).toBe('hi\nthere\n');
+
+    const failed = await bash({
+      input: { command: 'set -e; false; echo after' },
+    });
+    expect(failed).toMatchObject({ isError: true });
+    expect(text(failed)).toBe('(no output)\n\nCommand exited with code 1');
+  });
+
+  test('reports a command that does not close a heredoc', async () => {
+    const { bash } = await setup();
+
+    // The wrapper adds lines after the command, so an unterminated heredoc is
+    // a syntax error instead of the warning bash prints for the command alone.
+    const result = await bash({ input: { command: 'cat <<EOF\nhi' } });
+    expect(result).toMatchObject({ isError: true });
+  });
+
   test('keeps the exit code and trailing comments of the command', async () => {
     const { bash } = await setup();
 
