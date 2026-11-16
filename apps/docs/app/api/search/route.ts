@@ -1,72 +1,48 @@
 import { createSearchRoute } from '@vercel/geistdocs/routes/search';
 import { config } from '@/lib/geistdocs/config';
+import {
+  loadSearchSources,
+  type SearchVersion,
+} from '@/lib/geistdocs/search-sources';
 
-// TEMPORARY DIAGNOSTICS: this revision defers the source import and the
-// per-version index creation so their cost can be reported per phase in a
-// Server-Timing header. It is not the final shape of this route.
-
-type Version = 'v5' | 'v6' | 'v7';
 type Search = ReturnType<typeof createSearchRoute>;
 
-const phases: string[] = [];
-const measure = async <T>(name: string, run: () => T | Promise<T>) => {
-  const start = performance.now();
-  try {
-    return await run();
-  } finally {
-    phases.push(`${name};dur=${(performance.now() - start).toFixed(1)}`);
-  }
-};
+// Creating a search route builds its indexes, which takes seconds per version
+// on a cold function instance. Build each version on its first request so a
+// search only waits for the version it asks for.
+const searches = new Map<SearchVersion, Promise<Search>>();
 
-const importSources = () => import('@/lib/geistdocs/source');
-let sources: ReturnType<typeof importSources> | undefined;
-const loadSources = () =>
-  (sources ??= measure('import-sources', importSources));
-
-const searches = new Map<Version, Promise<Search>>();
-const getSearch = (version: Version) => {
+const getSearch = (version: SearchVersion) => {
   let search = searches.get(version);
   if (!search) {
-    search = loadSources().then(source =>
-      measure(`create-${version}`, () =>
-        createSearchRoute({
-          config,
-          sources: {
-            v5: source.v5Sources,
-            v6: source.v6Sources,
-            v7: source.v7Sources,
-          }[version],
-        }),
-      ),
-    );
+    // TEMPORARY DIAGNOSTICS: report cold start phases in Server-Timing.
+    const start = performance.now();
+    search = loadSearchSources(version).then(sources => {
+      const loaded = performance.now();
+      const route = createSearchRoute({ config, sources });
+      const created = performance.now();
+      const memory = process.memoryUsage();
+      const timing = [
+        `load-index-${version};dur=${(loaded - start).toFixed(1)}`,
+        `create-${version};dur=${(created - loaded).toFixed(1)}`,
+        `uptime;dur=${(process.uptime() * 1000).toFixed(0)}`,
+        `rss;desc="${Math.round(memory.rss / 1e6)}MB"`,
+      ].join(', ');
+      let reported = false;
+      return async (request: Request) => {
+        const response = await route(request);
+        if (!reported) {
+          reported = true;
+          response.headers.set('Server-Timing', timing);
+        }
+        return response;
+      };
+    });
+    // Let the next request retry instead of caching a failed load.
+    search.catch(() => searches.delete(version));
     searches.set(version, search);
   }
   return search;
-};
-
-const withTimings = async (
-  version: Version,
-  run: (search: Search) => Promise<Response>,
-) => {
-  const start = performance.now();
-  const search = await getSearch(version);
-  const ready = performance.now();
-  const response = await run(search);
-  const done = performance.now();
-  const memory = process.memoryUsage();
-  response.headers.set(
-    'Server-Timing',
-    [
-      // Phases recorded so far in this instance (only on its first requests).
-      ...phases.splice(0),
-      `ready-${version};dur=${(ready - start).toFixed(1)}`,
-      `search-${version};dur=${(done - ready).toFixed(1)}`,
-      `uptime;dur=${(process.uptime() * 1000).toFixed(0)}`,
-      `rss;desc="${Math.round(memory.rss / 1e6)}MB"`,
-      `heap;desc="${Math.round(memory.heapUsed / 1e6)}MB"`,
-    ].join(', '),
-  );
-  return response;
 };
 
 export const GET = async (request: Request) => {
@@ -77,12 +53,13 @@ export const GET = async (request: Request) => {
     // The version scopes the client cache and selects an index. It is not a
     // content tag: passing it to Geistdocs would filter out every result.
     url.searchParams.delete('tag');
-    return withTimings(tag, search => search(new Request(url, request)));
+    const search = await getSearch(tag);
+    return search(new Request(url, request));
   }
 
   // Keep unscoped clients (including WebMCP) compatible with versioned pages.
   const referer = request.headers.get('referer');
-  let version: Version = 'v7';
+  let version: SearchVersion = 'v7';
   if (referer) {
     try {
       const pathname = new URL(referer).pathname;
@@ -95,7 +72,8 @@ export const GET = async (request: Request) => {
       // Invalid or synthetic Referer headers fall back to current docs search.
     }
   }
-  const response = await withTimings(version, search => search(request));
+  const search = await getSearch(version);
+  const response = await search(request);
   response.headers.append('Vary', 'Referer');
   return response;
 };
