@@ -9,6 +9,7 @@ import {
   GatewayNotFoundError,
   GatewayFailedDependencyError,
   GatewayForbiddenError,
+  GatewayBillingError,
   GatewayResponseError,
   type GatewayErrorResponse,
 } from './index';
@@ -240,6 +241,76 @@ describe('Valid error responses', () => {
     expect(error).toBeInstanceOf(GatewayInternalServerError);
     expect(error.message).toBe('Unknown error occurred');
     expect(error.statusCode).toBe(500);
+  });
+});
+
+describe('Billing error responses', () => {
+  it('creates GatewayBillingError for customer_verification_required', async () => {
+    const response: GatewayErrorResponse = {
+      error: {
+        message:
+          'AI Gateway requires a valid credit card on file to service requests. Please visit https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%3Fmodal%3Dadd-credit-card to add a card and unlock your free credits.',
+        type: 'customer_verification_required',
+      },
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 403,
+    });
+
+    expect(error).toBeInstanceOf(GatewayBillingError);
+    expect(GatewayBillingError.isInstance(error)).toBe(true);
+    expect(error.type).toBe('customer_verification_required');
+    expect(error.statusCode).toBe(403);
+    expect(error.isRetryable).toBe(false);
+    expect(error.message).toBe(response.error.message);
+    expect((error as GatewayBillingError).actionUrl).toBe(
+      'https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%3Fmodal%3Dadd-credit-card',
+    );
+  });
+
+  it('creates GatewayBillingError for insufficient_funds', async () => {
+    const response: GatewayErrorResponse = {
+      error: {
+        message:
+          'A positive credit balance is required for all requests. Add credits at https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%3Fmodal%3Dtop-up to continue.',
+        type: 'insufficient_funds',
+      },
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 402,
+    });
+
+    expect(error).toBeInstanceOf(GatewayBillingError);
+    expect(error.type).toBe('insufficient_funds');
+    expect(error.statusCode).toBe(402);
+    expect(error.isRetryable).toBe(false);
+    expect((error as GatewayBillingError).actionUrl).toBe(
+      'https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%3Fmodal%3Dtop-up',
+    );
+  });
+
+  it('creates GatewayBillingError without actionUrl when the message has no link', async () => {
+    const response: GatewayErrorResponse = {
+      error: {
+        message: 'Budget for this API key has been reached.',
+        type: 'quota_for_entity_exceeded',
+      },
+      generationId: 'gen_123',
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 402,
+    });
+
+    expect(error).toBeInstanceOf(GatewayBillingError);
+    expect(error.type).toBe('quota_for_entity_exceeded');
+    expect(error.generationId).toBe('gen_123');
+    expect((error as GatewayBillingError).actionUrl).toBeUndefined();
   });
 });
 
