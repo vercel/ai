@@ -124,6 +124,20 @@ describe('createStreamWriter', () => {
     expect((part.result as { value: string }).value).toBe('kept');
   });
 
+  test('stores a string that mentions a sensitive key without escaping it', async () => {
+    const { world, writer } = setup();
+    const delta = 'see "__proto__": and "constructor": in the payload';
+    writer.unsafeEmit({ type: 'text-delta', id: 'text', delta });
+    await writer.flush();
+
+    const chunks = await readChunks(world);
+    // The part stays an object: only an actual key triggers the escaped form.
+    expect(chunks[0]).toContain('"part":{"type":"text-delta"');
+    expect(await readRecords(world)).toEqual([
+      { part: { type: 'text-delta', id: 'text', delta } },
+    ]);
+  });
+
   test('batches a synchronous burst into one chunk ending with a blank line', async () => {
     const { world, writer } = setup();
     writer.unsafeEmit(part('a'));

@@ -84,6 +84,11 @@ export function encodeJSONRecord(options: {
     { [options.field]: JSON.stringify(options.record[options.field]) },
   );
   const escaped = JSON.stringify(escapedRecord);
+  /*
+   * With today's envelopes this cannot fail, because escaping leaves only
+   * strings and numbers at the top level. The check stays as a fail-stop in
+   * case an envelope shape changes, so nothing unreadable is ever committed.
+   */
   if (!isReadableRecordText({ text: escaped })) {
     throw new Error('HarnessAgent: durable record cannot be stored.');
   }
