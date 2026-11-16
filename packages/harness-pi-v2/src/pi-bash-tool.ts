@@ -384,23 +384,27 @@ async function executeBash(options: {
     ]);
     exitCode = code;
   } catch (error) {
-    if (timedOut) {
+    if (stopped) {
+      // A sandbox can report a stopped command as a failure, and the stopped
+      // result below already reports the output that was received.
+      exitCode = 1;
+    } else if (timedOut) {
       throw new Error(
         appendStatus({
           text: output.snapshot().content,
           status: `Command timed out after ${input.timeout} seconds`,
         }),
       );
-    }
-    if (abortSignal?.aborted) {
+    } else if (abortSignal?.aborted) {
       throw new Error(
         appendStatus({
           text: output.snapshot().content,
           status: 'Command aborted',
         }),
       );
+    } else {
+      throw error;
     }
-    throw error;
   } finally {
     clearTimeout(timeoutHandle);
     if (updateTimer != null) {

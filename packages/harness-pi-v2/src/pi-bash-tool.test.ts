@@ -248,6 +248,54 @@ describe('createPiBashTool', () => {
     expect(text(failed)).toBe('(no output)\n\nCommand exited with code 1');
   });
 
+  test('keeps the stopped result when the sandbox reports the stop as a failure', async () => {
+    let killed = false;
+    let releaseKill: () => void = () => {};
+    const killSignal = new Promise<void>(resolve => {
+      releaseKill = resolve;
+    });
+    const chunk = new TextEncoder().encode(`${'x'.repeat(63)}\n`);
+    const floodingProcess: Experimental_SandboxProcess = {
+      stdout: new ReadableStream<Uint8Array>({
+        pull(controller) {
+          if (killed) {
+            controller.close();
+            return;
+          }
+          controller.enqueue(chunk);
+        },
+      }),
+      stderr: new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.close();
+        },
+      }),
+      wait: async () => {
+        await killSignal;
+        throw new Error('command was killed');
+      },
+      kill: async () => {
+        killed = true;
+        releaseKill();
+      },
+    };
+    const session = await createJustBashNetworkSandboxSession();
+    vi.spyOn(session, 'spawn').mockImplementation(async () => floodingProcess);
+    const tool = createPiBashTool({ session, workDir: '/workspace' });
+
+    const result = await tool.execute(
+      'call-1',
+      { command: 'noisy' },
+      new AbortController().signal,
+      () => {},
+    );
+
+    expect(result).toMatchObject({ isError: true });
+    expect(text(result)).toMatch(
+      /Command stopped after producing more than 16\.0MB of output$/,
+    );
+  });
+
   test('keeps the exit code and trailing comments of the command', async () => {
     const { bash } = await setup();
 
