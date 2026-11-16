@@ -516,22 +516,24 @@ export class AlibabaLanguageModel implements LanguageModelV2 {
 
             // Finalize any unfinished tool calls on stream end to
             // prevent premature execution from parsable partial JSON.
+            // The array is indexed by the provider's tool call index, so it
+            // can have empty slots when an index is never sent.
             for (const toolCall of toolCalls) {
-              if (!toolCall.hasFinished) {
-                controller.enqueue({
-                  type: 'tool-input-end',
-                  id: toolCall.id,
-                });
+              if (toolCall == null || toolCall.hasFinished) continue;
 
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallId: toolCall.id,
-                  toolName: toolCall.function.name,
-                  input: toolCall.function.arguments,
-                });
+              controller.enqueue({
+                type: 'tool-input-end',
+                id: toolCall.id,
+              });
 
-                toolCall.hasFinished = true;
-              }
+              controller.enqueue({
+                type: 'tool-call',
+                toolCallId: toolCall.id,
+                toolName: toolCall.function.name,
+                input: toolCall.function.arguments,
+              });
+
+              toolCall.hasFinished = true;
             }
 
             controller.enqueue({
