@@ -54,8 +54,13 @@ function isSearchedPath(options: {
 }): boolean {
   const { relative } = options;
   if (relative === '' || relative.startsWith('/')) return false;
-  return relative
-    .split('/')
+  const segments = relative.split('/');
+  const name = segments.at(-1) ?? '';
+  if (name === '' || name === '.' || name === '..') return false;
+  // Only the directories a search skips are skipped, not a file that shares
+  // an ignored directory's name.
+  return segments
+    .slice(0, -1)
     .every(
       segment =>
         segment !== '' &&
@@ -75,6 +80,13 @@ function isSearchedPath(options: {
  */
 const MAX_GREP_FILES = 500;
 const MAX_GREP_LINES_PER_FILE = 2000;
+
+/*
+ * Bytes of one match line the sandbox sends: enough for the longest line the
+ * result shows, and a bound on what a single line of a generated file can
+ * take from the output budget.
+ */
+const MAX_GREP_LINE_BYTES = 64 * 1024;
 
 /**
  * Runs a search command and keeps at most `MAX_SEARCH_OUTPUT_BYTES` of its
@@ -649,10 +661,11 @@ function approximate(options: {
  * A recursive search lists its matching files and greps each of them,
  * framing every file as `path\0 line:text … \0`, so that a file name cannot
  * be read as a line number; a single-file search greps that file. It looks at
- * up to `MAX_GREP_FILES` files with `MAX_GREP_LINES_PER_FILE` match lines
- * each, and reports a result it cut off at either limit as a lower bound. The
- * `include` filter applies to the parsed matches, so a search cut off at the
- * file limit may hold fewer matches than a wider search would. Files with NUL
+ * up to `MAX_GREP_FILES` files with `MAX_GREP_LINES_PER_FILE` match lines of
+ * at most `MAX_GREP_LINE_BYTES` each, and reports a result it cut off at any
+ * of those limits, or a listed name it could not search, as a lower bound.
+ * The `include` filter applies to the parsed matches, so a search cut off at
+ * the file limit may hold fewer matches than a wider search would. Files with NUL
  * bytes in matching lines are treated as binary and skipped, and a match line
  * whose number is not a positive safe integer is dropped. Context lines are
  * read only for the matches on the returned page, and rendered only from the
@@ -761,7 +774,7 @@ export async function grepFxFiles(options: {
     sandbox,
     command: isFile
       ? `grep ${flags.map(shellQuote).join(' ')} -e ${shellQuote(pattern)} ${shellQuote(root.abs)}`
-      : `set -o pipefail; cd ${shellQuote(root.abs)} && grep ${listFlags.map(shellQuote).join(' ')} -e ${shellQuote(pattern)} . | head -n ${MAX_GREP_FILES + 1} | while IFS= read -r file; do printf '%s\\0' "$file"; ( grep ${flags.map(shellQuote).join(' ')} -e ${shellQuote(pattern)} "./$file" < /dev/null | head -n ${MAX_GREP_LINES_PER_FILE + 1} | awk 'index($0, sprintf("%c", 0)) > 0 { next } { print }' ); printf '\\0'; done`,
+      : `set -o pipefail; cd ${shellQuote(root.abs)} && grep ${listFlags.map(shellQuote).join(' ')} -e ${shellQuote(pattern)} . | head -n ${MAX_GREP_FILES + 1} | while IFS= read -r file; do printf '%s\\0' "$file"; ( grep ${flags.map(shellQuote).join(' ')} -e ${shellQuote(pattern)} "./$file" < /dev/null | awk 'index($0, sprintf("%c", 0)) > 0 { next } { print substr($0, 1, ${MAX_GREP_LINE_BYTES}) }' | head -n ${MAX_GREP_LINES_PER_FILE + 1} ); printf '\\0'; done`,
     abortSignal,
   });
   if (
@@ -838,6 +851,7 @@ export async function grepFxFiles(options: {
   let matchesCapped = false;
   let filesCutOff = false;
   let linesCutOff = false;
+  let namesSkipped = false;
   const stdout = result.stdout;
   /**
    * Records a match the search parsed, applying the include filter first so
@@ -884,12 +898,17 @@ export async function grepFxFiles(options: {
       const block = blocks[at];
       const body = blocks[at + 1];
       if (block == null || body == null) break;
-      const relative = block.replace(/^(\.\/)+/, '');
-      if (!isSearchedPath({ relative })) continue;
       files++;
       if (files > MAX_GREP_FILES) {
         filesCutOff = true;
         break;
+      }
+      const relative = block.replace(/^(\.\/)+/, '');
+      if (!isSearchedPath({ relative })) {
+        // A name that is not a file of the search cannot be reported, and the
+        // result does not cover what that name might have matched.
+        namesSkipped = true;
+        continue;
       }
       const path = toShownPath({ root, relative });
       const abs = root.abs === '/' ? `/${relative}` : `${root.abs}/${relative}`;
@@ -924,7 +943,9 @@ export async function grepFxFiles(options: {
         ? `... the search looked at ${MAX_GREP_FILES} files; narrow the pattern, the include filter, or the search path\n`
         : linesCutOff
           ? `... a file has more than ${MAX_GREP_LINES_PER_FILE} matching lines; narrow the pattern or the include filter\n`
-          : '';
+          : namesSkipped
+            ? `... a listed name could not be searched; narrow the search path\n`
+            : '';
   const cutOff = cutoffNotice !== '';
   const filtered = [...matches].sort((left, right) =>
     left.path === right.path

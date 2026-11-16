@@ -737,6 +737,51 @@ describe('grep_files with a file name that is not a file', () => {
   });
 });
 
+describe('grep_files with a listed name that is not a file of the search', () => {
+  test('reports that a listed name could not be searched', async () => {
+    const { session } = createFakeSearchSession({
+      stat: () => ({ type: 'directory', size: 0 }),
+      command: () => ({
+        chunks: function* () {
+          yield new Uint8Array(
+            Buffer.from(
+              '../outside.txt\u00001:x\n\u0000./ok.ts\u00001:x\n\u0000',
+              'utf8',
+            ),
+          );
+        },
+      }),
+    });
+
+    const output = await grepFxFiles({
+      sandbox: testSandbox(session),
+      input: { pattern: 'x' },
+      abortSignal: new AbortController().signal,
+    });
+
+    expect(output.text).toContain(' - ok.ts:1: x');
+    expect(output.text).not.toContain('outside.txt');
+    expect(output.text).toContain('a listed name could not be searched');
+  });
+
+  test('searches a file named like an ignored directory', async () => {
+    const session = await createJustBashNetworkSandboxSession();
+    const workDir = session.defaultWorkingDirectory;
+    await session.writeTextFile({
+      path: `${workDir}/bin/build`,
+      content: 'needle in a file named build\n',
+    });
+
+    const output = await grepFxFiles({
+      sandbox: { session, workDir, home: workDir },
+      input: { pattern: 'needle' },
+      abortSignal: new AbortController().signal,
+    });
+
+    expect(output.text).toContain(' - bin/build:1: needle');
+  });
+});
+
 describe('grep_files with a file that has more matches than it keeps', () => {
   test('reports the file limit as a lower bound', async () => {
     const { session } = createFakeSearchSession({
