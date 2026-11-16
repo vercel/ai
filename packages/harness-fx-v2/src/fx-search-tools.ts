@@ -40,6 +40,31 @@ const MAX_SEARCH_ERROR_BYTES = 8 * 1024;
 const MAX_SEARCH_MATCHES = 20_000;
 const MAX_LIST_ENTRIES = 100_000;
 
+/**
+ * Returns whether a path the recursive search listed is one it covers:
+ * below the search root, outside the ignored directories, and not a
+ * fragment. A file name that contains a newline is listed as several names,
+ * and such a fragment is not a file of the search.
+ */
+function isSearchedPath(options: {
+  /**
+   * Path of the listing entry, relative to the search root.
+   */
+  relative: string;
+}): boolean {
+  const { relative } = options;
+  if (relative === '' || relative.startsWith('/')) return false;
+  return relative
+    .split('/')
+    .every(
+      segment =>
+        segment !== '' &&
+        segment !== '.' &&
+        segment !== '..' &&
+        !IGNORED_DIRECTORIES.includes(segment),
+    );
+}
+
 /*
  * Files a recursive search greps one at a time, and match lines it keeps
  * from each. The search lists the matching files and greps each of them, so
@@ -623,11 +648,15 @@ function approximate(options: {
  *
  * A recursive search lists its matching files and greps each of them,
  * framing every file as `path\0 line:text … \0`, so that a file name cannot
- * be read as a line number; a single-file search greps that file. Files with
- * NUL bytes in matching lines are treated as binary and skipped, and a match
- * line whose number is not a positive safe integer is dropped. Context lines
- * are read only for the matches on the returned page, and rendered only from
- * the lines that read returned.
+ * be read as a line number; a single-file search greps that file. It looks at
+ * up to `MAX_GREP_FILES` files with `MAX_GREP_LINES_PER_FILE` match lines
+ * each, and reports a result it cut off at either limit as a lower bound. The
+ * `include` filter applies to the parsed matches, so a search cut off at the
+ * file limit may hold fewer matches than a wider search would. Files with NUL
+ * bytes in matching lines are treated as binary and skipped, and a match line
+ * whose number is not a positive safe integer is dropped. Context lines are
+ * read only for the matches on the returned page, and rendered only from the
+ * lines that read returned.
  */
 export async function grepFxFiles(options: {
   /**
@@ -732,7 +761,7 @@ export async function grepFxFiles(options: {
     sandbox,
     command: isFile
       ? `grep ${flags.map(shellQuote).join(' ')} -e ${shellQuote(pattern)} ${shellQuote(root.abs)}`
-      : `cd ${shellQuote(root.abs)} && grep ${listFlags.map(shellQuote).join(' ')} -e ${shellQuote(pattern)} . | head -n ${MAX_GREP_FILES + 1} | while IFS= read -r file; do printf '%s\\0' "$file"; ( grep ${flags.map(shellQuote).join(' ')} -e ${shellQuote(pattern)} "$file" | head -n ${MAX_GREP_LINES_PER_FILE} | awk 'index($0, sprintf("%c", 0)) > 0 { next } { print substr($0, 1, ${LINE_LENGTH}) }' ); printf '\\0'; done`,
+      : `set -o pipefail; cd ${shellQuote(root.abs)} && grep ${listFlags.map(shellQuote).join(' ')} -e ${shellQuote(pattern)} . | head -n ${MAX_GREP_FILES + 1} | while IFS= read -r file; do printf '%s\\0' "$file"; ( grep ${flags.map(shellQuote).join(' ')} -e ${shellQuote(pattern)} "./$file" < /dev/null | head -n ${MAX_GREP_LINES_PER_FILE + 1} | awk 'index($0, sprintf("%c", 0)) > 0 { next } { print }' ); printf '\\0'; done`,
     abortSignal,
   });
   if (
@@ -743,6 +772,15 @@ export async function grepFxFiles(options: {
   ) {
     return toFxToolError({
       text: `grep_files failed: ${result.stderr.trim() || `grep exited with code ${result.exitCode}`}`,
+    });
+  }
+  if (
+    isFile === false &&
+    result.stdout !== '' &&
+    !result.stdout.includes('\u0000')
+  ) {
+    return toFxToolError({
+      text: 'grep_files failed: the sandbox did not preserve the NUL framing of the grep output',
     });
   }
   /**
@@ -780,6 +818,7 @@ export async function grepFxFiles(options: {
      */
     line: string;
   }): GrepMatch | undefined => {
+    if (options.line.includes('\u0000')) return undefined;
     const parsed = SINGLE_FILE_GREP_LINE.exec(options.line);
     if (parsed == null) return undefined;
     const line = toLineNumber(parsed[1]);
@@ -798,6 +837,7 @@ export async function grepFxFiles(options: {
   let counted = 0;
   let matchesCapped = false;
   let filesCutOff = false;
+  let linesCutOff = false;
   const stdout = result.stdout;
   /**
    * Records a match the search parsed, applying the include filter first so
@@ -844,23 +884,33 @@ export async function grepFxFiles(options: {
       const block = blocks[at];
       const body = blocks[at + 1];
       if (block == null || body == null) break;
+      const relative = block.replace(/^(\.\/)+/, '');
+      if (!isSearchedPath({ relative })) continue;
       files++;
-      const relative = block.replace(/^\.\//, '');
+      if (files > MAX_GREP_FILES) {
+        filesCutOff = true;
+        break;
+      }
       const path = toShownPath({ root, relative });
       const abs = root.abs === '/' ? `/${relative}` : `${root.abs}/${relative}`;
+      let lines = 0;
       for (let from = 0; from < body.length; ) {
         const end = body.indexOf('\n', from);
         // A line the byte cap cut off is not a match.
         if (end === -1) break;
         const line = body.slice(from, end);
         from = end + 1;
+        lines++;
+        if (lines > MAX_GREP_LINES_PER_FILE) {
+          linesCutOff = true;
+          break;
+        }
         const match = toMatch({ path, abs, relative, line });
         if (match == null) continue;
         if (!record(match)) break;
       }
       if (matchesCapped) break;
     }
-    filesCutOff = files > MAX_GREP_FILES;
   }
   /*
    * A stopped command and a capped match list both mean the result covers a
@@ -872,7 +922,9 @@ export async function grepFxFiles(options: {
       ? `... more than ${MAX_SEARCH_MATCHES} matches; narrow the pattern or the include filter\n`
       : filesCutOff
         ? `... the search looked at ${MAX_GREP_FILES} files; narrow the pattern, the include filter, or the search path\n`
-        : '';
+        : linesCutOff
+          ? `... a file has more than ${MAX_GREP_LINES_PER_FILE} matching lines; narrow the pattern or the include filter\n`
+          : '';
   const cutOff = cutoffNotice !== '';
   const filtered = [...matches].sort((left, right) =>
     left.path === right.path
