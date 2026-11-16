@@ -1,11 +1,11 @@
 ---
 title: Adaption
-description: Use the Adaption OpenAI compatible API with the AI SDK.
+description: Use Adaption models with the AI SDK through the Chat Completions and Responses APIs.
 ---
 
 # Adaption Provider
 
-[Adaption](https://adaptionlabs.ai) provides access to open-weight language models through an OpenAI-compatible Chat Completions API. You can use it with the AI SDK through the `@ai-sdk/openai-compatible` module.
+[Adaption](https://adaptionlabs.ai) provides access to open-weight language models through OpenAI-compatible Chat Completions and Responses APIs. You can use it with the AI SDK through the `@ai-sdk/openai-compatible` module for Chat Completions, or `@ai-sdk/openai` for the Responses API.
 
 ## Setup
 
@@ -84,6 +84,33 @@ for await (const textPart of result.textStream) {
   process.stdout.write(textPart);
 }
 ```
+
+## Responses API
+
+Adaption also serves the Responses API. Install the OpenAI provider:
+
+<InstallPackages packages="@ai-sdk/openai" />
+
+Create a provider with Adaption's base URL and API key, and select the Responses API explicitly:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const adaption = createOpenAI({
+  baseURL: 'https://api.prod.adaptionlabs.ai/api/v1',
+  apiKey: process.env.ADAPTION_API_KEY,
+});
+
+const { text } = await generateText({
+  model: adaption.responses('glm-5.2'),
+  prompt: 'Tell me about yourself in one sentence.',
+});
+
+console.log(text);
+```
+
+`streamText` works with the same model.
 
 ## Supported Models
 
