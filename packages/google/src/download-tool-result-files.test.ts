@@ -1,21 +1,35 @@
 import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
-import type * as providerUtils from '@ai-sdk/provider-utils';
-import { downloadBlob } from '@ai-sdk/provider-utils';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { FetchFunction } from '@ai-sdk/provider-utils';
+import { describe, expect, it, vi } from 'vitest';
 import { downloadToolResultFiles } from './download-tool-result-files';
 
-vi.mock('@ai-sdk/provider-utils', async importOriginal => ({
-  ...(await importOriginal<typeof providerUtils>()),
-  downloadBlob: vi.fn(),
-}));
+const MAX_BYTES = 1024;
+
+function createDownloadFetch({
+  body = new TextEncoder().encode('%PDF-demo'),
+  contentType = 'application/pdf',
+  contentLength,
+}: {
+  body?: Uint8Array;
+  contentType?: string;
+  contentLength?: number;
+} = {}) {
+  return vi.fn<FetchFunction>(async () => {
+    return new Response(body, {
+      status: 200,
+      headers: {
+        'content-type': contentType,
+        ...(contentLength == null
+          ? {}
+          : { 'content-length': String(contentLength) }),
+      },
+    });
+  });
+}
 
 describe('downloadToolResultFiles', () => {
-  beforeEach(() => {
-    vi.mocked(downloadBlob).mockReset();
-  });
-
   it.each(['assistant', 'tool'] as const)(
-    'downloads URLs in %s tool results without changing the input',
+    'downloads URLs in %s tool results with the provided fetch without changing the input',
     async role => {
       const url = 'https://example.com/report.pdf';
       const output = {
@@ -45,15 +59,19 @@ describe('downloadToolResultFiles', () => {
         },
       ];
       const abortSignal = new AbortController().signal;
-      vi.mocked(downloadBlob).mockResolvedValue(
-        new Blob(['%PDF-demo'], { type: 'application/pdf' }),
-      );
+      const fetch = createDownloadFetch();
 
-      const result = await downloadToolResultFiles(prompt, { abortSignal });
-
-      expect(downloadBlob).toHaveBeenCalledExactlyOnceWith(url, {
+      const result = await downloadToolResultFiles(prompt, {
         abortSignal,
+        fetch,
+        maxBytes: MAX_BYTES,
       });
+
+      expect(fetch).toHaveBeenCalledTimes(1);
+      const [requestedUrl, requestInit] = fetch.mock.calls[0];
+      expect(requestedUrl).toBe(url);
+      expect(requestInit?.redirect).toBe('manual');
+      expect(requestInit?.signal).toBe(abortSignal);
       expect(result[0]).toBe(prompt[0]);
       expect(result[1].content).toEqual([
         {
@@ -90,9 +108,11 @@ describe('downloadToolResultFiles', () => {
       mediaType: 'application/pdf',
     };
     const imageUrl = 'https://example.com/image.png';
-    vi.mocked(downloadBlob).mockResolvedValue(
-      new Blob(['image'], { type: 'image/png' }),
-    );
+    const fetch = createDownloadFetch({
+      body: new TextEncoder().encode('image'),
+      contentType: 'image/png',
+    });
+
     const result = await downloadToolResultFiles(
       [
         {
@@ -116,13 +136,14 @@ describe('downloadToolResultFiles', () => {
       ],
       {
         abortSignal: undefined,
+        fetch,
+        maxBytes: MAX_BYTES,
         supportedUrls: { 'image/png': [/^gs:\/\/.*$/] },
       },
     );
 
-    expect(downloadBlob).toHaveBeenCalledExactlyOnceWith(imageUrl, {
-      abortSignal: undefined,
-    });
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch.mock.calls[0][0]).toBe(imageUrl);
     expect(result[0].content).toMatchObject([
       {
         output: {
@@ -134,5 +155,36 @@ describe('downloadToolResultFiles', () => {
         },
       },
     ]);
+  });
+
+  it('throws a DownloadError when a tool result file exceeds maxBytes', async () => {
+    const fetch = createDownloadFetch({
+      body: new TextEncoder().encode('too large'),
+      contentLength: 9,
+    });
+
+    await expect(
+      downloadToolResultFiles(
+        [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call',
+                toolName: 'view',
+                output: {
+                  type: 'content',
+                  value: [
+                    { type: 'image-url', url: 'https://example.com/a.png' },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        { abortSignal: undefined, fetch, maxBytes: 8 },
+      ),
+    ).rejects.toThrow(/exceeded maximum size of 8 bytes/);
   });
 });

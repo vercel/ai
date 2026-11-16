@@ -187,6 +187,64 @@ describe('google-vertex-provider', () => {
     );
   });
 
+  it('should download tool result files with the configured fetch and default limit', () => {
+    const customFetch = vi.fn();
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'test-location',
+      fetch: customFetch,
+    });
+    provider('test-model-id');
+
+    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+      'test-model-id',
+      expect.objectContaining({
+        downloadToolResultFiles: {
+          maxBytes: 7 * 1024 * 1024,
+          fetch: customFetch,
+        },
+      }),
+    );
+  });
+
+  it('should allow overriding the tool result download limit', () => {
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'test-location',
+      toolResultDownloads: { maxBytes: 1024 },
+    });
+    provider('test-model-id');
+
+    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+      'test-model-id',
+      expect.objectContaining({
+        downloadToolResultFiles: expect.objectContaining({ maxBytes: 1024 }),
+      }),
+    );
+  });
+
+  it('should not attach the Express Mode API key to tool result downloads', () => {
+    const customFetch = vi.fn();
+    const provider = createVertex({
+      apiKey: 'test-api-key',
+      baseURL: 'https://vertex.example.com',
+      fetch: customFetch,
+    });
+    provider('test-model-id');
+
+    const [, config] = vi.mocked(GoogleGenerativeAILanguageModel).mock
+      .calls[0] as [string, any];
+
+    // The API requests use a wrapper that adds the API key header ...
+    expect(config.fetch).toEqual(expect.any(Function));
+    expect(config.fetch).not.toBe(customFetch);
+    // ... but tool result downloads use the caller's transport as-is.
+    expect(config.downloadToolResultFiles).toEqual({
+      maxBytes: 7 * 1024 * 1024,
+      fetch: customFetch,
+    });
+  });
+
   it('should use languageModel method to create a model', () => {
     const provider = createVertex({
       project: 'test-project',

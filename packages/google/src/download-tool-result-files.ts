@@ -3,10 +3,66 @@ import type {
   LanguageModelV3ToolResultOutput,
 } from '@ai-sdk/provider';
 import {
+  cancelResponseBody,
   convertUint8ArrayToBase64,
-  downloadBlob,
+  DownloadError,
+  fetchWithValidatedRedirects,
   isUrlSupported,
+  readResponseWithSizeLimit,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
+
+/**
+ * Downloads a single tool result file through the validated download transport.
+ *
+ * `downloadBlob` does not accept a custom fetch in this release, so the
+ * provider builds the blob from the same guarded primitives instead of falling
+ * back to the runtime's global fetch. This keeps a caller-provided transport
+ * (e.g. one that validates DNS at connect time) in effect for tool result
+ * downloads and enforces a size limit on the response body.
+ */
+async function downloadToolResultFile(
+  url: string,
+  {
+    abortSignal,
+    fetch,
+    maxBytes,
+  }: {
+    abortSignal: AbortSignal | undefined;
+    fetch?: FetchFunction;
+    maxBytes: number;
+  },
+): Promise<Blob> {
+  try {
+    const response = await fetchWithValidatedRedirects({
+      url,
+      abortSignal,
+      fetch,
+    });
+
+    if (!response.ok) {
+      // Release the connection before rejecting so an error status from an
+      // attacker-controlled origin cannot leak open sockets.
+      await cancelResponseBody(response);
+      throw new DownloadError({
+        url,
+        statusCode: response.status,
+        statusText: response.statusText,
+      });
+    }
+
+    const data = await readResponseWithSizeLimit({ response, url, maxBytes });
+    const contentType = response.headers.get('content-type') ?? undefined;
+
+    return new Blob([data], contentType ? { type: contentType } : undefined);
+  } catch (error) {
+    if (DownloadError.isInstance(error)) {
+      throw error;
+    }
+
+    throw new DownloadError({ url, cause: error });
+  }
+}
 
 /**
  * Vertex accepts more URLs in user messages than in function responses.
@@ -16,9 +72,21 @@ export async function downloadToolResultFiles(
   prompt: LanguageModelV3Prompt,
   {
     abortSignal,
+    fetch,
+    maxBytes,
     supportedUrls = {},
   }: {
     abortSignal: AbortSignal | undefined;
+    /**
+     * Transport used for the downloads. Defaults to the runtime's validated
+     * download fetch, so pass the caller-configured fetch to keep their
+     * transport (and its protections) in effect.
+     */
+    fetch?: FetchFunction;
+    /**
+     * Maximum number of bytes per downloaded file.
+     */
+    maxBytes: number;
     supportedUrls?: Record<string, RegExp[]>;
   },
 ): Promise<LanguageModelV3Prompt> {
@@ -49,7 +117,11 @@ export async function downloadToolResultFiles(
             return part;
           }
 
-          const blob = await downloadBlob(part.url, { abortSignal });
+          const blob = await downloadToolResultFile(part.url, {
+            abortSignal,
+            fetch,
+            maxBytes,
+          });
           return {
             type:
               part.type === 'file-url'

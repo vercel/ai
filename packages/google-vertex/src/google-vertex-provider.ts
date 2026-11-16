@@ -40,6 +40,10 @@ import type { GoogleVertexVideoModelId } from './google-vertex-video-settings';
 const EXPRESS_MODE_BASE_URL =
   'https://aiplatform.googleapis.com/v1/publishers/google';
 
+// Tool result files are sent inline in the request, so the limit also keeps the
+// generated request body a reasonable size. Mirrors the upstream default.
+const DEFAULT_TOOL_RESULT_DOWNLOAD_MAX_BYTES = 7 * 1024 * 1024;
+
 // set `x-goog-api-key` header to API key for express mode
 function createExpressModeFetch(
   apiKey: string,
@@ -162,6 +166,18 @@ export interface GoogleVertexProviderSettings {
    * Base URL for the Google Vertex API calls.
    */
   baseURL?: string;
+
+  /**
+   * Configuration for downloading tool result files whose URLs cannot be
+   * referenced in Vertex function responses.
+   */
+  toolResultDownloads?: {
+    /**
+     * Maximum number of bytes per downloaded tool result file.
+     * Defaults to 7 MiB.
+     */
+    maxBytes?: number;
+  };
 }
 
 /**
@@ -251,6 +267,14 @@ export function createVertex(
           /^gs:\/\/.*$/,
         ],
       }),
+      downloadToolResultFiles: {
+        maxBytes:
+          options.toolResultDownloads?.maxBytes ??
+          DEFAULT_TOOL_RESULT_DOWNLOAD_MAX_BYTES,
+        // Use the caller's transport, not the Express Mode wrapper, so the API
+        // key is never attached to tool result download hosts.
+        fetch: options.fetch,
+      },
     });
   };
 
