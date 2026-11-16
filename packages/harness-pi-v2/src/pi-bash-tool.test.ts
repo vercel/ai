@@ -227,6 +227,17 @@ describe('createPiBashTool', () => {
     );
   });
 
+  test('does not wait for the sandbox when the command fails', async () => {
+    const { session, bash } = await setup();
+    vi.spyOn(session, 'deleteFile').mockImplementation(
+      () => new Promise<boolean>(() => {}),
+    );
+
+    await expect(
+      bash({ input: { command: 'sleep 5', timeout: 0.2 } }),
+    ).rejects.toThrow('Command timed out after 0.2 seconds');
+  });
+
   test('keeps the exit code and trailing comments of the command', async () => {
     const { bash } = await setup();
 

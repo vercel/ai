@@ -409,7 +409,8 @@ async function executeBash(options: {
     ]);
     exitCode = code;
   } catch (error) {
-    await removeFullOutputFile();
+    // Do not wait for the sandbox: an abort often means it is going away.
+    void removeFullOutputFile();
     if (timedOut) {
       throw new Error(
         appendStatus({
