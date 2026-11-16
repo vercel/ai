@@ -47,6 +47,17 @@ export type {
   GatewayProvider,
   GatewayProviderSettings,
 } from './gateway-provider';
+export {
+  createDefaultGatewayBatch,
+  createDefaultGatewayDecisionModel,
+  createDefaultGatewayEmbeddingModel,
+  createDefaultGatewayImageModel,
+  createDefaultGatewayLanguageModel,
+  createDefaultGatewayRerankingModel,
+  createDefaultGatewaySpeechModel,
+  createDefaultGatewayTranscriptionModel,
+  createDefaultGatewayVideoModel,
+} from './gateway-default-models';
 export type {
   GatewayAsyncJobMetadata,
   GatewayProviderMetadata,

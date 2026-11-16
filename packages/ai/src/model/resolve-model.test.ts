@@ -1,4 +1,3 @@
-import { gateway } from '@ai-sdk/gateway';
 import type { EmbeddingModelV2, LanguageModelV2 } from '@ai-sdk/provider';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -17,11 +16,13 @@ import { MockVideoModelV4 } from '../test/mock-video-model-v4';
 import { customProvider } from '../registry/custom-provider';
 import { MockImageModelV2 } from '../test/mock-image-model-v2';
 import {
+  resolveDecisionModel,
   resolveEmbeddingModel,
   resolveImageModel,
   resolveLanguageModel,
   resolveRerankingModel,
   resolveSpeechModel,
+  resolveSpeechTranslationModel,
   resolveTranscriptionModel,
   resolveVideoModel,
 } from './resolve-model';
@@ -264,23 +265,10 @@ describe('resolveSpeechModel', () => {
 
   describe('when a string is provided and the global default provider is not set', () => {
     it('should return a gateway speech model', () => {
-      const mockModel = new MockSpeechModelV4({
-        provider: 'gateway',
-        modelId: 'test-model-id',
-      });
+      const resolvedModel = resolveSpeechModel('test-model-id');
 
-      const speechModelSpy = vi
-        .spyOn(gateway, 'speechModel')
-        .mockReturnValue(mockModel as any);
-
-      try {
-        const resolvedModel = resolveSpeechModel('test-model-id');
-
-        expect(resolvedModel?.provider).toBe('gateway');
-        expect(resolvedModel?.modelId).toBe('test-model-id');
-      } finally {
-        speechModelSpy.mockRestore();
-      }
+      expect(resolvedModel?.provider).toBe('gateway');
+      expect(resolvedModel?.modelId).toBe('test-model-id');
     });
   });
 
@@ -378,23 +366,10 @@ describe('resolveTranscriptionModel', () => {
 
   describe('when a string is provided and the global default provider is not set', () => {
     it('should return a gateway transcription model', () => {
-      const mockModel = new MockTranscriptionModelV4({
-        provider: 'gateway',
-        modelId: 'test-model-id',
-      });
+      const resolvedModel = resolveTranscriptionModel('test-model-id');
 
-      const transcriptionModelSpy = vi
-        .spyOn(gateway, 'transcriptionModel')
-        .mockReturnValue(mockModel as any);
-
-      try {
-        const resolvedModel = resolveTranscriptionModel('test-model-id');
-
-        expect(resolvedModel?.provider).toBe('gateway');
-        expect(resolvedModel?.modelId).toBe('test-model-id');
-      } finally {
-        transcriptionModelSpy.mockRestore();
-      }
+      expect(resolvedModel?.provider).toBe('gateway');
+      expect(resolvedModel?.modelId).toBe('test-model-id');
     });
   });
 
@@ -477,25 +452,10 @@ describe('resolveImageModel', () => {
 
   describe('when a string is provided and the global default provider is not set', () => {
     it('should return a gateway image model', () => {
-      const resolvedModel = resolveImageModel(
-        new MockImageModelV2({
-          provider: 'gateway',
-          modelId: 'test-model-id',
-        }),
-      );
+      const resolvedModel = resolveImageModel('test-model-id');
 
-      // gateway.imageModel returns V3 types; cast needed until gateway is updated to V4
-      const imageModelSpy = vi
-        .spyOn(gateway, 'imageModel')
-        .mockReturnValue(resolvedModel as any);
-
-      try {
-        const resolvedModel = resolveImageModel('test-model-id');
-
-        expect(resolvedModel).toBe(resolvedModel);
-      } finally {
-        imageModelSpy.mockRestore();
-      }
+      expect(resolvedModel.provider).toBe('gateway');
+      expect(resolvedModel.modelId).toBe('test-model-id');
     });
   });
 
@@ -557,25 +517,11 @@ describe('resolveVideoModel', () => {
   });
 
   describe('when a string is provided and the global default provider is not set', () => {
-    it('should return a gateway video model converted to v4', () => {
-      const mockModel = new MockVideoModelV4({
-        provider: 'gateway',
-        modelId: 'test-model-id',
-      });
+    it('should return a gateway video model', () => {
+      const resolvedModel = resolveVideoModel('test-model-id');
 
-      // gateway.videoModel returns V3 types; cast needed until gateway is updated to V4
-      const videoModelSpy = vi
-        .spyOn(gateway, 'videoModel')
-        .mockReturnValue(mockModel as any);
-
-      try {
-        const resolvedModel = resolveVideoModel('test-model-id');
-
-        expect(resolvedModel.provider).toBe('gateway');
-        expect(resolvedModel.modelId).toBe('test-model-id');
-      } finally {
-        videoModelSpy.mockRestore();
-      }
+      expect(resolvedModel.provider).toBe('gateway');
+      expect(resolvedModel.modelId).toBe('test-model-id');
     });
   });
 
@@ -684,24 +630,11 @@ describe('resolveRerankingModel', () => {
   });
 
   describe('when a string is provided and the global default provider is not set', () => {
-    it('should return a gateway reranking model converted to v4', () => {
-      const mockModel = new MockRerankingModelV4({
-        provider: 'gateway',
-        modelId: 'test-model-id',
-      });
+    it('should return a gateway reranking model', () => {
+      const resolvedModel = resolveRerankingModel('test-model-id');
 
-      const rerankingModelSpy = vi
-        .spyOn(gateway, 'rerankingModel')
-        .mockReturnValue(mockModel as any);
-
-      try {
-        const resolvedModel = resolveRerankingModel('test-model-id');
-
-        expect(resolvedModel.provider).toBe('gateway');
-        expect(resolvedModel.modelId).toBe('test-model-id');
-      } finally {
-        rerankingModelSpy.mockRestore();
-      }
+      expect(resolvedModel.provider).toBe('gateway');
+      expect(resolvedModel.modelId).toBe('test-model-id');
     });
   });
 
@@ -775,6 +708,27 @@ describe('resolveRerankingModel', () => {
       } as any;
 
       expect(() => resolveRerankingModel(v2Model)).toThrow();
+    });
+  });
+});
+
+describe('resolveDecisionModel', () => {
+  describe('when a string is provided and the global default provider is not set', () => {
+    it('should return a gateway decision model', () => {
+      const resolvedModel = resolveDecisionModel('test-model-id');
+
+      expect(resolvedModel.provider).toBe('gateway');
+      expect(resolvedModel.modelId).toBe('test-model-id');
+    });
+  });
+});
+
+describe('resolveSpeechTranslationModel', () => {
+  describe('when a string is provided and the global default provider is not set', () => {
+    it('should throw because the gateway does not support speech translation models', () => {
+      expect(() => resolveSpeechTranslationModel('test-model-id')).toThrow(
+        'The default provider does not support speech translation models.',
+      );
     });
   });
 });

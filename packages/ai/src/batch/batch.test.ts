@@ -1,3 +1,5 @@
+import type * as gatewayModule from '@ai-sdk/gateway';
+import { createDefaultGatewayBatch } from '@ai-sdk/gateway';
 import {
   UnsupportedFunctionalityError,
   type Experimental_BatchV4 as BatchV4,
@@ -28,6 +30,11 @@ type MockBatchModelIds = {
 };
 
 vi.mock('../version', () => ({ VERSION: '0.0.0-test' }));
+
+vi.mock('@ai-sdk/gateway', async importOriginal => ({
+  ...(await importOriginal<typeof gatewayModule>()),
+  createDefaultGatewayBatch: vi.fn(),
+}));
 
 const testUsage: LanguageModelV4Usage = {
   inputTokens: {
@@ -270,6 +277,40 @@ describe('startBatch', () => {
       delete globalThis.AI_SDK_DEFAULT_PROVIDER;
     }
 
+    expect(calls[0]).toMatchObject({
+      requests: [
+        {
+          id: 'request-1',
+          type: 'text',
+          modelId: 'anthropic/claude-sonnet-5',
+        },
+      ],
+    });
+  });
+
+  it('uses the default Gateway batch API when no provider is configured', async () => {
+    const calls: Array<Parameters<BatchV4['doStartBatch']>[0]> = [];
+    vi.mocked(createDefaultGatewayBatch).mockReturnValue(
+      createMockBatchApi({
+        doStartBatch: async options => {
+          calls.push(options);
+          return { batchId: 'batch-123', status: 'pending', warnings: [] };
+        },
+      }) as unknown as ReturnType<typeof createDefaultGatewayBatch>,
+    );
+
+    await startBatch({
+      requests: [
+        {
+          id: 'request-1',
+          type: 'text',
+          model: 'anthropic/claude-sonnet-5',
+          prompt: 'hello',
+        },
+      ],
+    });
+
+    expect(createDefaultGatewayBatch).toHaveBeenCalledTimes(1);
     expect(calls[0]).toMatchObject({
       requests: [
         {

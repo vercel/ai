@@ -1,4 +1,13 @@
-import { gateway } from '@ai-sdk/gateway';
+import {
+  createDefaultGatewayDecisionModel,
+  createDefaultGatewayEmbeddingModel,
+  createDefaultGatewayImageModel,
+  createDefaultGatewayLanguageModel,
+  createDefaultGatewayRerankingModel,
+  createDefaultGatewaySpeechModel,
+  createDefaultGatewayTranscriptionModel,
+  createDefaultGatewayVideoModel,
+} from '@ai-sdk/gateway';
 import {
   NoSuchModelError,
   type Experimental_DecisionModelV4 as DecisionModelV4,
@@ -36,7 +45,10 @@ import type { VideoModel } from '../types/video-model';
 
 export function resolveLanguageModel(model: LanguageModel): LanguageModelV4 {
   if (typeof model === 'string') {
-    return getGlobalProvider().languageModel(model);
+    const provider = getGlobalProvider();
+    return provider == null
+      ? createDefaultGatewayLanguageModel(model)
+      : provider.languageModel(model);
   }
 
   if (!['v4', 'v3', 'v2'].includes(model.specificationVersion)) {
@@ -53,7 +65,10 @@ export function resolveLanguageModel(model: LanguageModel): LanguageModelV4 {
 
 export function resolveEmbeddingModel(model: EmbeddingModel): EmbeddingModelV4 {
   if (typeof model === 'string') {
-    return getGlobalProvider().embeddingModel(model);
+    const provider = getGlobalProvider();
+    return provider == null
+      ? createDefaultGatewayEmbeddingModel(model)
+      : provider.embeddingModel(model);
   }
 
   if (!['v4', 'v3', 'v2'].includes(model.specificationVersion)) {
@@ -72,7 +87,10 @@ export function resolveTranscriptionModel(
   model: TranscriptionModel,
 ): TranscriptionModelV4 | undefined {
   if (typeof model === 'string') {
-    return getGlobalProvider().transcriptionModel?.(model);
+    const provider = getGlobalProvider();
+    return provider == null
+      ? createDefaultGatewayTranscriptionModel(model)
+      : provider.transcriptionModel?.(model);
   }
 
   if (!['v4', 'v3', 'v2'].includes(model.specificationVersion)) {
@@ -92,11 +110,12 @@ export function resolveSpeechTranslationModel(
 ): Experimental_SpeechTranslationModelV4 {
   if (typeof model === 'string') {
     // Use raw global provider because speechTranslationModel is experimental
-    // and not part of the ProviderV4 interface
-    const provider = globalThis.AI_SDK_DEFAULT_PROVIDER ?? gateway;
+    // and not part of the ProviderV4 interface. The Gateway does not support
+    // speech translation models.
+    const provider = globalThis.AI_SDK_DEFAULT_PROVIDER;
     // TODO AI SDK v7
     // @ts-expect-error - speechTranslationModel support is experimental
-    const speechTranslationModel = provider.speechTranslationModel;
+    const speechTranslationModel = provider?.speechTranslationModel;
 
     if (!speechTranslationModel) {
       throw new Error(
@@ -124,7 +143,10 @@ export function resolveSpeechModel(
   model: SpeechModel,
 ): SpeechModelV4 | undefined {
   if (typeof model === 'string') {
-    return getGlobalProvider().speechModel?.(model);
+    const provider = getGlobalProvider();
+    return provider == null
+      ? createDefaultGatewaySpeechModel(model)
+      : provider.speechModel?.(model);
   }
 
   if (!['v4', 'v3', 'v2'].includes(model.specificationVersion)) {
@@ -141,7 +163,10 @@ export function resolveSpeechModel(
 
 export function resolveImageModel(model: ImageModel): ImageModelV4 {
   if (typeof model === 'string') {
-    return getGlobalProvider().imageModel(model);
+    const provider = getGlobalProvider();
+    return provider == null
+      ? createDefaultGatewayImageModel(model)
+      : provider.imageModel(model);
   }
 
   if (!['v4', 'v3', 'v2'].includes(model.specificationVersion)) {
@@ -162,7 +187,10 @@ export function resolveVideoModel(
   if (typeof model === 'string') {
     // Use raw global provider because videoModel is experimental
     // and not part of the ProviderV4 interface
-    const provider = globalThis.AI_SDK_DEFAULT_PROVIDER ?? gateway;
+    const provider = globalThis.AI_SDK_DEFAULT_PROVIDER;
+    if (provider == null) {
+      return createDefaultGatewayVideoModel(model);
+    }
     // TODO AI SDK v7
     // @ts-expect-error - videoModel support is experimental
     const videoModel = provider.videoModel;
@@ -192,6 +220,9 @@ export function resolveVideoModel(
 export function resolveRerankingModel(model: RerankingModel): RerankingModelV4 {
   if (typeof model === 'string') {
     const provider = getGlobalProvider();
+    if (provider == null) {
+      return createDefaultGatewayRerankingModel(model);
+    }
     const rerankingModel = provider.rerankingModel;
 
     if (!rerankingModel) {
@@ -222,30 +253,14 @@ export function resolveRerankingModel(model: RerankingModel): RerankingModelV4 {
 export function resolveDecisionModel(model: DecisionModel): DecisionModelV4 {
   if (typeof model === 'string') {
     // Use the original provider so experimental methods and their receiver survive.
-    const provider = (globalThis.AI_SDK_DEFAULT_PROVIDER ??
-      gateway) as DecisionProvider;
+    const provider = globalThis.AI_SDK_DEFAULT_PROVIDER as
+      | DecisionProvider
+      | undefined;
 
-    const factory:
-      | ((modelId: string) => Exclude<DecisionModel, string>)
-      | undefined = provider.decisionModel ?? provider.evaluationModel;
-    if (typeof factory !== 'function') {
-      throw new NoSuchModelError({
-        modelId: model,
-        modelType: 'decisionModel',
-        message:
-          'The default provider does not support decision models. ' +
-          'Pass a decision model instance or configure AI_SDK_DEFAULT_PROVIDER with a decisionModel method.',
-      });
-    }
-
-    const resolvedModel = factory.call(provider, model);
-    if (resolvedModel == null) {
-      throw new NoSuchModelError({
-        modelId: model,
-        modelType: 'decisionModel',
-      });
-    }
-    model = resolvedModel;
+    model =
+      provider == null
+        ? createDefaultGatewayDecisionModel(model)
+        : getDecisionModelFromProvider(provider, model);
   }
 
   if (model.specificationVersion !== 'v4') {
@@ -284,9 +299,40 @@ export function resolveExtractionModel(
   return model;
 }
 
-function getGlobalProvider(): ProviderV4 {
-  const provider = globalThis.AI_SDK_DEFAULT_PROVIDER ?? gateway;
-  return asProviderV4(provider);
+function getDecisionModelFromProvider(
+  provider: DecisionProvider,
+  modelId: string,
+): Exclude<DecisionModel, string> {
+  const factory:
+    | ((modelId: string) => Exclude<DecisionModel, string>)
+    | undefined = provider.decisionModel ?? provider.evaluationModel;
+  if (typeof factory !== 'function') {
+    throw new NoSuchModelError({
+      modelId,
+      modelType: 'decisionModel',
+      message:
+        'The default provider does not support decision models. ' +
+        'Pass a decision model instance or configure AI_SDK_DEFAULT_PROVIDER with a decisionModel method.',
+    });
+  }
+
+  const resolvedModel = factory.call(provider, modelId);
+  if (resolvedModel == null) {
+    throw new NoSuchModelError({
+      modelId,
+      modelType: 'decisionModel',
+    });
+  }
+  return resolvedModel;
+}
+
+/**
+ * Returns the global default provider, or `undefined` when string model IDs
+ * resolve to the Gateway's per-modality default factories.
+ */
+function getGlobalProvider(): ProviderV4 | undefined {
+  const provider = globalThis.AI_SDK_DEFAULT_PROVIDER;
+  return provider == null ? undefined : asProviderV4(provider);
 }
 
 /** Internal adapter for deprecated provider factories. */
