@@ -102,19 +102,20 @@ describe('createPiBashTool', () => {
     expect(full?.startsWith('1\n2\n')).toBe(true);
   });
 
-  test('keeps the visible result correct for output far above the limits', async () => {
+  test('writes the retained tail to a file in the sandbox', async () => {
     const { session, bash } = await setup();
 
     const result = await bash({ input: { command: 'seq 1 100000' } });
 
     expect(text(result)).toMatch(
-      /\n100000\n\n\[Showing lines 98001-100000 of 100000\. Full output: \/tmp\/pi-bash-call-1\.log\]$/,
+      /\n100000\n\n\[Showing lines 98001-100000 of 100000\. Output truncated at \d+\.\dKB: \/tmp\/pi-bash-call-1\.log\]$/,
     );
-    const full = await session.readTextFile({
+    const full = await session.stat({ path: '/tmp/pi-bash-call-1.log' });
+    expect(full!.size).toBeLessThanOrEqual(200 * 1024);
+    const tail = await session.readTextFile({
       path: '/tmp/pi-bash-call-1.log',
     });
-    expect(full?.endsWith('99999\n100000\n')).toBe(true);
-    expect(full?.startsWith('1\n2\n')).toBe(true);
+    expect(tail?.endsWith('99999\n100000\n')).toBe(true);
   });
 
   test('keeps the end of a single line that exceeds the byte limit', async () => {
@@ -125,14 +126,13 @@ describe('createPiBashTool', () => {
     });
 
     expect(text(result)).toMatch(
-      /\n\n\[Showing last 50\.0KB of line 1 \(line is 477\.4KB\)\. Full output: \/tmp\/pi-bash-call-1\.log\]$/,
+      /\n\n\[Showing last 50\.0KB of line 1 \(line is 477\.4KB\)\. Output truncated at \d+\.\dKB: \/tmp\/pi-bash-call-1\.log\]$/,
     );
-    expect(
-      await session.stat({ path: '/tmp/pi-bash-call-1.log' }),
-    ).toMatchObject({ size: 488_895 });
+    const full = await session.stat({ path: '/tmp/pi-bash-call-1.log' });
+    expect(full!.size).toBeLessThanOrEqual(200 * 1024);
   });
 
-  test('removes the output file when the output is not truncated', async () => {
+  test('writes no output file when the output is not truncated', async () => {
     const { session, bash } = await setup();
 
     const result = await bash({ input: { command: 'echo hi' } });
@@ -190,9 +190,9 @@ describe('createPiBashTool', () => {
   test('returns when a stopped command keeps its output open', async () => {
     let sent = 0;
     const chunk = new TextEncoder().encode('x'.repeat(64 * 1024 - 1) + '\n');
-    // A sandbox that signals only the shell leaves the command and the `tee`
-    // that holds the output open running, so `wait()` returns while the output
-    // stream stays open. The stream parks instead of closing, without spinning.
+    // A sandbox can leave a writer alive after the shell it killed, and then
+    // `wait()` returns while the output stream stays open. The stream parks
+    // instead of closing, without spinning.
     const floodingProcess: Experimental_SandboxProcess = {
       stdout: new ReadableStream<Uint8Array>({
         pull(controller) {
@@ -227,17 +227,6 @@ describe('createPiBashTool', () => {
     );
   });
 
-  test('does not wait for the sandbox when the command fails', async () => {
-    const { session, bash } = await setup();
-    vi.spyOn(session, 'deleteFile').mockImplementation(
-      () => new Promise<boolean>(() => {}),
-    );
-
-    await expect(
-      bash({ input: { command: 'sleep 5', timeout: 0.2 } }),
-    ).rejects.toThrow('Command timed out after 0.2 seconds');
-  });
-
   test('keeps the shell semantics of the command', async () => {
     const { bash } = await setup();
 
@@ -257,15 +246,6 @@ describe('createPiBashTool', () => {
     });
     expect(failed).toMatchObject({ isError: true });
     expect(text(failed)).toBe('(no output)\n\nCommand exited with code 1');
-  });
-
-  test('reports a command that does not close a heredoc', async () => {
-    const { bash } = await setup();
-
-    // The wrapper adds lines after the command, so an unterminated heredoc is
-    // a syntax error instead of the warning bash prints for the command alone.
-    const result = await bash({ input: { command: 'cat <<EOF\nhi' } });
-    expect(result).toMatchObject({ isError: true });
   });
 
   test('keeps the exit code and trailing comments of the command', async () => {

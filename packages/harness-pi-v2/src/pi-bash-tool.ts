@@ -1,4 +1,3 @@
-import { shellQuote } from '@ai-sdk/harness/utils';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import type {
   AgentToolResult,
@@ -236,6 +235,13 @@ export class RetainedOutput {
   }
 
   /**
+   * The retained output, without a first line that was cut.
+   */
+  get retained(): string {
+    return this.getSnapshotText();
+  }
+
+  /**
    * Drops the start of the retained tail down to the target, at a UTF-8
    * character boundary.
    */
@@ -263,32 +269,6 @@ export class RetainedOutput {
     const firstNewline = this.tail.indexOf('\n');
     return firstNewline === -1 ? this.tail : this.tail.slice(firstNewline + 1);
   }
-}
-
-/**
- * Wraps a command so that its combined output is also written to
- * `fullOutputPath` in the sandbox, and so that the exit code is the command's
- * exit code rather than the exit code of the pipeline. The command streams its
- * output through `tee`, so the host does not have to hold the output that
- * `tee` writes.
- *
- * The command keeps its own line, so a trailing comment or `;` cannot swallow
- * the closing brace. A command that ends in the middle of a line continuation
- * or a heredoc is a syntax error, because the wrapper adds lines after it.
- */
-function captureFullOutput(options: {
-  /**
-   * Command given by the model.
-   */
-  command: string;
-
-  /**
-   * Path in the sandbox to write the full output to.
-   */
-  fullOutputPath: string;
-}): string {
-  const { command, fullOutputPath } = options;
-  return `{\n${command}\n} 2>&1 | tee ${shellQuote(fullOutputPath)}; exit "\${PIPESTATUS[0]}"`;
 }
 
 /**
@@ -341,7 +321,6 @@ async function executeBash(options: {
         }, timeoutMs);
 
   const output = new RetainedOutput();
-  const fullOutputPath = `/tmp/pi-bash-${toolCallId}.log`;
   const stopController = new AbortController();
   let stopped = false;
   let stopCommand: (() => void) | undefined;
@@ -364,22 +343,11 @@ async function executeBash(options: {
     if (delay <= 0) emitUpdate();
     else updateTimer = setTimeout(emitUpdate, delay);
   };
-  /**
-   * Removes the file that every command writes its output to while the result
-   * does not name it. A leftover file is harmless, so failures are ignored.
-   */
-  const removeFullOutputFile = async () => {
-    try {
-      await session.deleteFile({ path: fullOutputPath });
-    } catch {
-      // The command's output is what matters here.
-    }
-  };
 
   let exitCode: number;
   try {
     const child = await session.spawn({
-      command: captureFullOutput({ command: input.command, fullOutputPath }),
+      command: input.command,
       workingDirectory: workDir,
       abortSignal:
         abortSignal == null
@@ -389,8 +357,8 @@ async function executeBash(options: {
     stopCommand = () => {
       if (stopped) return;
       stopped = true;
-      // Stop reading first: a sandbox that only signals the shell leaves the
-      // command and `tee` running, and the streams would stay open.
+      // Stop reading before the command is killed, so a stream that stays open
+      // after the process ends does not keep the result waiting.
       stopController.abort();
       // Stopping the command is best effort: not every sandbox can kill.
       void Promise.resolve(child.kill()).catch(() => {});
@@ -410,8 +378,6 @@ async function executeBash(options: {
     ]);
     exitCode = code;
   } catch (error) {
-    // Do not wait for the sandbox: an abort often means it is going away.
-    void removeFullOutputFile();
     if (timedOut) {
       throw new Error(
         appendStatus({
@@ -441,18 +407,25 @@ async function executeBash(options: {
   let text = truncation.content || '(no output)';
   let details: BashToolDetails | undefined;
   if (truncation.truncated) {
+    const fullOutputPath = `/tmp/pi-bash-${toolCallId}.log`;
+    const retained = output.retained;
+    await session.writeTextFile({ path: fullOutputPath, content: retained });
+    const retainedBytes = Buffer.byteLength(retained, 'utf-8');
+    // The file holds everything only when the retained tail is the whole output.
+    const saved =
+      retainedBytes < truncation.totalBytes
+        ? `Output truncated at ${formatSize(retainedBytes)}`
+        : 'Full output';
     details = { truncation, fullOutputPath };
     const startLine = truncation.totalLines - truncation.outputLines + 1;
     const endLine = truncation.totalLines;
     if (truncation.lastLinePartial) {
-      text += `\n\n[Showing last ${formatSize(truncation.outputBytes)} of line ${endLine} (line is ${formatSize(output.lastLineBytes)}). Full output: ${fullOutputPath}]`;
+      text += `\n\n[Showing last ${formatSize(truncation.outputBytes)} of line ${endLine} (line is ${formatSize(output.lastLineBytes)}). ${saved}: ${fullOutputPath}]`;
     } else if (truncation.truncatedBy === 'lines') {
-      text += `\n\n[Showing lines ${startLine}-${endLine} of ${truncation.totalLines}. Full output: ${fullOutputPath}]`;
+      text += `\n\n[Showing lines ${startLine}-${endLine} of ${truncation.totalLines}. ${saved}: ${fullOutputPath}]`;
     } else {
-      text += `\n\n[Showing lines ${startLine}-${endLine} of ${truncation.totalLines} (${formatSize(DEFAULT_MAX_BYTES)} limit). Full output: ${fullOutputPath}]`;
+      text += `\n\n[Showing lines ${startLine}-${endLine} of ${truncation.totalLines} (${formatSize(DEFAULT_MAX_BYTES)} limit). ${saved}: ${fullOutputPath}]`;
     }
-  } else {
-    await removeFullOutputFile();
   }
 
   if (stopped) {
@@ -494,16 +467,18 @@ async function executeBash(options: {
  *
  * The tool is Pi's own bash tool with its execution replaced: a command runs
  * in the working directory with stdout and stderr combined in arrival order,
- * and the sandbox writes that output to `/tmp/pi-bash-<toolCallId>.log` while
- * the host keeps only a bounded tail of it in memory. While the command runs,
- * the output so far is reported through `onUpdate` at most every 500ms. The
- * result keeps the tail of the output within Pi's line and byte limits; when
- * that cuts output, the notice names the file that holds the full output, and
- * otherwise the file is removed. Empty output becomes `(no output)`, and a
- * nonzero exit code is an error result ending with `Command exited with code
- * N`. A command that produces more than 16MB of output is stopped with an
- * error result ending with `Command stopped after producing more than 16.0MB
- * of output`.
+ * and the host keeps only a bounded tail of the output in memory. While the
+ * command runs, the output so far is reported through `onUpdate` at most every
+ * 500ms. The result keeps the tail of the output within Pi's line and byte
+ * limits; when that cuts output, the retained tail is written to
+ * `/tmp/pi-bash-<toolCallId>.log` in the sandbox and the notice names that
+ * file, saying whether it holds the full output or only the retained tail.
+ * Until the output fills the retained tail, that file holds the full output;
+ * beyond it, only the tail is kept, because the host does not hold the rest.
+ * Empty output becomes `(no output)`, and a nonzero exit code is an error
+ * result ending with `Command exited with code N`. A command that produces
+ * more than 16MB of output is stopped with an error result ending with
+ * `Command stopped after producing more than 16.0MB of output`.
  *
  * Throws for an invalid timeout, with `Command timed out after N seconds`
  * when the timeout elapsed, and with `Command aborted` when the signal
