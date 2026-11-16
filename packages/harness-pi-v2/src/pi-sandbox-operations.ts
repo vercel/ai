@@ -178,11 +178,6 @@ export function createPiSandboxOperations(options: {
     | undefined;
 
   /**
-   * Returns the size of a file, reusing the size that `access()` or `stat()`
-   * read for the same path right before, as Pi's read tool calls `access()`
-   * before it reads.
-   */
-  /**
    * Returns the type and size of a file, reusing the stat that `access()` or
    * `stat()` read for the same path right before, as Pi's read tool calls
    * `access()` before it reads.
