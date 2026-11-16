@@ -280,8 +280,9 @@ describe('editFxFile', () => {
  * Fake sandbox session for one file, so a test controls the file's reported
  * size and its contents, and records the calls the tools make. `spawn` runs
  * the encoded read the tools use for a bounded read and streams the whole
- * file, so that the tool's capture is what bounds the read, and
- * `readBinaryFile` returns the whole file for a sandbox that cannot run it.
+ * file, so that the tool's capture is what bounds the read. It fails like a
+ * sandbox that cannot run the read, and its whole-file read throws, since
+ * the tools must not use one.
  */
 function createFakeFileSession(options: {
   size: number;
@@ -293,6 +294,23 @@ function createFakeFileSession(options: {
    * Whether the command fails, like `base64` on a file it cannot read.
    */
   fails?: boolean;
+  /**
+   * Whether starting the command fails, like an unreachable sandbox.
+   */
+  spawnFails?: boolean;
+  /**
+   * Bytes of the file, when they are not the repeated filler line.
+   */
+  raw?: Uint8Array;
+  /**
+   * Whether an abort ends the output as if it were complete, like a backend
+   * that closes its streams on abort, instead of rejecting `wait`.
+   */
+  closeOnAbort?: boolean;
+  /**
+   * Aborts the caller once the output has been pulled this many times.
+   */
+  cancelAfterChunks?: { chunks: number; abortController: AbortController };
   /**
    * Text the command prints before its output, like a shell profile would.
    */
@@ -314,7 +332,7 @@ function createFakeFileSession(options: {
   } = options;
   const line = `${'x'.repeat(lineLength - 1)}\n`;
   const calls: string[] = [];
-  const state = { sent: 0, stopped: 0 };
+  const state = { sent: 0, stopped: 0, kills: 0, pulls: 0 };
 
   /**
    * Yields the contents of the file.
@@ -322,6 +340,12 @@ function createFakeFileSession(options: {
    * @yields One chunk of the file contents.
    */
   function* contents() {
+    if (options.raw != null) {
+      for (let offset = 0; offset < options.raw.length; offset += 64 * 1024) {
+        yield options.raw.subarray(offset, offset + 64 * 1024);
+      }
+      return;
+    }
     yield prefix;
     let written = prefix.length;
     while (written < contentBytes) {
@@ -347,6 +371,7 @@ function createFakeFileSession(options: {
       abortSignal?: AbortSignal;
     }) {
       calls.push(`spawn ${command}`);
+      if (options.spawnFails) throw new Error('sandbox unavailable');
       /*
        * Models `base64 <path>`: the whole file, encoded in whole three-byte
        * groups so that the pieces decode in order and wrapped like `base64`
@@ -381,11 +406,15 @@ function createFakeFileSession(options: {
       const drained = new Promise<void>(resolve => {
         drain = resolve;
       });
-      const aborted = new Promise<never>((_, reject) => {
+      const ended = new Promise<{ exitCode: number }>((resolve, reject) => {
         abortSignal?.addEventListener(
           'abort',
           () => {
             state.stopped++;
+            if (options.closeOnAbort) {
+              resolve({ exitCode: 0 });
+              return;
+            }
             reject(abortSignal.reason);
           },
           { once: true },
@@ -403,6 +432,14 @@ function createFakeFileSession(options: {
             return;
           }
           state.sent += value.length;
+          if (options.cancelAfterChunks != null) {
+            state.pulls++;
+            if (state.pulls === options.cancelAfterChunks.chunks) {
+              options.cancelAfterChunks.abortController.abort(
+                new Error('cancelled'),
+              );
+            }
+          }
           controller.enqueue(new Uint8Array(value));
         },
       });
@@ -414,20 +451,19 @@ function createFakeFileSession(options: {
           },
         }),
         async wait() {
-          return Promise.race([drained.then(() => ({ exitCode })), aborted]);
+          return Promise.race([drained.then(() => ({ exitCode })), ended]);
         },
         async kill() {
           state.stopped++;
+          state.kills++;
         },
       };
     },
     async readBinaryFile() {
       calls.push('readBinaryFile');
-      const bytes = Buffer.concat([
-        Buffer.from(prefix),
-        Buffer.alloc(size - prefix.length, 0x78),
-      ]);
-      return new Uint8Array(bytes);
+      // A whole-file read is what the tools must not do, whatever a stat
+      // reported: a file can grow or be replaced before the read.
+      throw new Error('readBinaryFile must not be called');
     },
     async readFile() {
       calls.push('readFile');
@@ -486,24 +522,22 @@ describe('readFxFile with a file larger than a snapshot', () => {
     expect(state.stopped).toBeGreaterThan(0);
   });
 
-  test('reads a bounded file as a whole when the sandbox refuses the command', async () => {
+  test('reports a read the sandbox refuses instead of reading the file', async () => {
     const { session, calls } = createFakeFileSession({
       size: 12 * MIB,
       fails: true,
     });
 
-    const output = await readFxFile({
-      sandbox: sandbox(session),
-      input: { path: 'big.txt', start_line: 1, line_count: 3 },
-      abortSignal,
-    });
-
-    expect(calls).toEqual([
-      'stat',
-      `spawn base64 '/home/user/big.txt'`,
-      'readBinaryFile',
-    ]);
-    expect(output.text).toContain('file snapshot was capped before EOF');
+    await expect(
+      readFxFile({
+        sandbox: sandbox(session),
+        input: { path: 'big.txt', start_line: 1, line_count: 3 },
+        abortSignal,
+      }),
+    ).rejects.toThrow(
+      'could not read /home/user/big.txt: the sandbox could not run the bounded read',
+    );
+    expect(calls).toEqual(['stat', `spawn base64 '/home/user/big.txt'`]);
   });
 
   test('does not use output that is not base64 as the file', async () => {
@@ -512,18 +546,14 @@ describe('readFxFile with a file larger than a snapshot', () => {
       noise: 'warning: something printed before the read',
     });
 
-    const output = await readFxFile({
-      sandbox: sandbox(session),
-      input: { path: 'big.txt', start_line: 1, line_count: 3 },
-      abortSignal,
-    });
-
-    expect(calls).toEqual([
-      'stat',
-      `spawn base64 '/home/user/big.txt'`,
-      'readBinaryFile',
-    ]);
-    expect(output.text).toContain('file snapshot was capped before EOF');
+    await expect(
+      readFxFile({
+        sandbox: sandbox(session),
+        input: { path: 'big.txt', start_line: 1, line_count: 3 },
+        abortSignal,
+      }),
+    ).rejects.toThrow('the sandbox could not run the bounded read');
+    expect(calls).toEqual(['stat', `spawn base64 '/home/user/big.txt'`]);
   });
 
   test('does not download a huge file when the sandbox refuses the command', async () => {
@@ -562,12 +592,12 @@ describe('readFxFile with a file larger than a snapshot', () => {
     );
   });
 
-  test('reads a snapshot of a large file on the just-bash backend', async () => {
+  test('reports a large file on a sandbox that cannot run the read', async () => {
     const justBash = await createJustBashNetworkSandboxSession();
     const workDir = justBash.defaultWorkingDirectory;
     const line = `${'x'.repeat(998)}\n`;
     // One byte past the snapshot limit, so the encoded read is refused and
-    // the whole-file fallback has to keep the result capped.
+    // the tool reports it instead of reading the file as a whole.
     const content = Buffer.from(
       line.repeat(Math.ceil((10 * MIB + 1) / line.length)),
     ).subarray(0, 10 * MIB + 1);
@@ -576,14 +606,16 @@ describe('readFxFile with a file larger than a snapshot', () => {
       content: new Uint8Array(content),
     });
 
-    const output = await readFxFile({
-      sandbox: { session: justBash, workDir, home: workDir },
-      input: { path: 'big.txt', start_line: 1, line_count: 2 },
-      abortSignal,
-    });
-
-    expect(output.text).toContain('1\txxx');
-    expect(output.text).toContain('file snapshot was capped before EOF');
+    // The sandbox caps what a command may print, so the encoded read of a
+    // file this size is refused, and the tool reports that rather than
+    // reading the whole file.
+    await expect(
+      readFxFile({
+        sandbox: { session: justBash, workDir, home: workDir },
+        input: { path: 'big.txt', start_line: 1, line_count: 2 },
+        abortSignal,
+      }),
+    ).rejects.toThrow('the sandbox could not run the bounded read');
   });
 
   test('reads a file within the snapshot limit as a whole', async () => {
@@ -612,7 +644,54 @@ describe('readFxFile with a file larger than a snapshot', () => {
       abortSignal,
     });
 
-    expect(calls).toEqual(['stat', 'readBinaryFile']);
+    expect(calls).toEqual(['stat', 'spawn']);
+  });
+});
+
+describe('a file that grew after its stat', () => {
+  test('keeps a read_file snapshot bounded', async () => {
+    const { session, state } = createFakeFileSession({
+      size: 1024,
+      contentBytes: 64 * MIB,
+    });
+
+    const output = await readFxFile({
+      sandbox: {
+        session,
+        workDir: '/home/user',
+        home: '/home/user',
+      },
+      input: { path: 'growth.txt', start_line: 1, line_count: 3 },
+      abortSignal: new AbortController().signal,
+    });
+
+    expect(output.text).toContain('file snapshot was capped before EOF');
+    // The stat said 1 KiB, and the host still kept only a snapshot.
+    expect(state.sent).toBeLessThan(15 * MIB);
+    expect(state.stopped).toBeGreaterThan(0);
+  });
+
+  test('keeps an edit_file preimage bounded', async () => {
+    const { session, state } = createFakeFileSession({
+      size: 1024,
+      contentBytes: 64 * MIB,
+    });
+
+    const output = await editFxFile({
+      sandbox: {
+        session,
+        workDir: '/home/user',
+        home: '/home/user',
+      },
+      input: { path: 'growth.txt', old_string: 'a', new_string: 'b' },
+      abortSignal: new AbortController().signal,
+    });
+
+    expect(output).toEqual({
+      text: 'file mutation preparation failed: preimage exceeds the 4 MiB preparation limit',
+      isError: true,
+    });
+    expect(state.sent).toBeLessThan(7 * MIB);
   });
 });
 
@@ -702,5 +781,128 @@ describe('writeFxFile over a file of another size', () => {
 
     expect(calls).toEqual(['stat', 'writeTextFile']);
     expect(output).toEqual({ text: 'wrote big.txt (12 bytes)' });
+  });
+});
+
+describe('a read the sandbox refuses', () => {
+  test('reports an edit_file preimage it cannot read', async () => {
+    const { session } = createFakeFileSession({ size: 1024, fails: true });
+
+    const output = await editFxFile({
+      sandbox: { session, workDir: '/home/user', home: '/home/user' },
+      input: { path: 'file.txt', old_string: 'a', new_string: 'b' },
+      abortSignal: new AbortController().signal,
+    });
+
+    expect(output).toEqual({
+      text: 'file mutation preparation failed: unable to read the approved preimage',
+      isError: true,
+    });
+  });
+
+  test('writes a file it cannot compare', async () => {
+    const { session, calls } = createFakeFileSession({ size: 12, fails: true });
+
+    const output = await writeFxFile({
+      sandbox: { session, workDir: '/home/user', home: '/home/user' },
+      input: { path: 'file.txt', content: 'replacement\n' },
+      abortSignal: new AbortController().signal,
+    });
+
+    expect(calls).toContain('writeTextFile');
+    expect(output).toEqual({ text: 'wrote file.txt (12 bytes)' });
+  });
+
+  test('reports a read_file the sandbox cannot start', async () => {
+    const { session } = createFakeFileSession({
+      size: 1024,
+      spawnFails: true,
+    });
+
+    await expect(
+      readFxFile({
+        sandbox: { session, workDir: '/home/user', home: '/home/user' },
+        input: { path: 'file.txt' },
+        abortSignal: new AbortController().signal,
+      }),
+    ).rejects.toThrow('the sandbox could not run the bounded read');
+  });
+});
+
+describe('a snapshot that stops inside a character', () => {
+  test('shows the text before the cut', async () => {
+    // Three-byte characters throughout, so a snapshot that stops near the
+    // limit stops inside one of them.
+    const raw = Buffer.from('€'.repeat(3.5 * MIB));
+    const { session } = createFakeFileSession({
+      size: raw.length,
+      raw: new Uint8Array(raw),
+    });
+
+    const output = await readFxFile({
+      sandbox: { session, workDir: '/home/user', home: '/home/user' },
+      input: { path: 'text.txt', start_line: 1, line_count: 1 },
+      abortSignal: new AbortController().signal,
+    });
+
+    // A three-byte character straddles the snapshot limit, so the snapshot
+    // is cut before it rather than inside it.
+    expect(output.text).not.toContain('binary or non-utf8');
+    expect(output.text).toContain('file snapshot was capped before EOF');
+  });
+});
+
+describe('a sandbox that cannot start a read', () => {
+  test('reports an edit_file preimage it cannot read', async () => {
+    const { session } = createFakeFileSession({
+      size: 1024,
+      spawnFails: true,
+    });
+
+    const output = await editFxFile({
+      sandbox: { session, workDir: '/home/user', home: '/home/user' },
+      input: { path: 'file.txt', old_string: 'a', new_string: 'b' },
+      abortSignal: new AbortController().signal,
+    });
+
+    expect(output).toEqual({
+      text: 'file mutation preparation failed: unable to read the approved preimage',
+      isError: true,
+    });
+  });
+});
+
+describe('a read that stops early', () => {
+  test('stops the command it no longer reads', async () => {
+    const { session, state } = createFakeFileSession({
+      size: 64 * MIB,
+      contentBytes: 64 * MIB,
+    });
+
+    await readFxFile({
+      sandbox: { session, workDir: '/home/user', home: '/home/user' },
+      input: { path: 'big.txt' },
+      abortSignal: new AbortController().signal,
+    });
+
+    expect(state.kills).toBeGreaterThan(0);
+  });
+
+  test('reports an abort even when the sandbox ends its output cleanly', async () => {
+    const controller = new AbortController();
+    const { session } = createFakeFileSession({
+      size: 64 * MIB,
+      contentBytes: 64 * MIB,
+      closeOnAbort: true,
+      cancelAfterChunks: { chunks: 2, abortController: controller },
+    });
+
+    await expect(
+      readFxFile({
+        sandbox: { session, workDir: '/home/user', home: '/home/user' },
+        input: { path: 'big.txt' },
+        abortSignal: controller.signal,
+      }),
+    ).rejects.toThrow('cancelled');
   });
 });

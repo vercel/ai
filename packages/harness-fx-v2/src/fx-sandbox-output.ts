@@ -17,7 +17,7 @@ function isContinuationByte(byte: number | undefined): boolean {
  * Returns the end of a byte sequence before its last UTF-8 character when
  * that character is cut, so that the remaining bytes decode on their own.
  */
-function toUtf8BoundaryEnd(options: {
+export function toUtf8BoundaryEnd(options: {
   /**
    * Bytes to cut.
    */
