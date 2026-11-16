@@ -294,6 +294,28 @@ const model = wrapLanguageModel({
 
 Find more examples at this [link](https://github.com/minpeter/ai-sdk-tool-call-middleware/tree/main/examples/core/src).
 
+### PII masking
+
+The [newmean-pii](https://github.com/newmean-ai/pii/blob/main/js/README.md#vercel-ai-sdk) middleware masks personal information (names, phone numbers, email addresses, postal addresses, ID numbers and more) in the prompt before it is sent to the model. Detection runs locally with a small multilingual model (54 languages, 2.6 to 15.5 MB) in WebAssembly, in Node.js or in the browser, so the text is not sent to another service for masking.
+
+```ts
+import { generateText, wrapLanguageModel } from 'ai';
+import { piiMiddleware } from '@newmean-ai/pii/ai-sdk';
+
+const model = wrapLanguageModel({
+  model: yourModel,
+  middleware: piiMiddleware({ specificationVersion: 'v4' }),
+});
+
+const { text } = await generateText({
+  model,
+  prompt: 'Call Kim Minsu on 010-1234-5678',
+});
+// the provider receives "Call [PERSON] on [PHONE]"
+```
+
+By default only user messages are masked; the `roles` option adds system, assistant and tool-result text. Masked values are not restored in the response, and no model finds every piece of personal information.
+
 ## Implementing Language Model Middleware
 
 <Note>
