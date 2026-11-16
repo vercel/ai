@@ -125,7 +125,11 @@ export function createFxOutputCapture(options: {
           droppedBytes += first.length;
           continue;
         }
-        tail[0] = first.subarray(excess);
+        /*
+         * The kept part of a partially dropped chunk is copied for the same
+         * reason as the head: a large chunk must not stay alive for it.
+         */
+        tail[0] = first.slice(excess);
         tailLength -= excess;
         droppedBytes += excess;
       }

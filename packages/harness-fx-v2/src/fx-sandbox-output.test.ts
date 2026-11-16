@@ -39,6 +39,16 @@ describe('createFxOutputCapture', () => {
     expect(capture.toBytes().at(-1)).toBe(15);
   });
 
+  test('copies the kept part of a dropped chunk', () => {
+    const capture = createFxOutputCapture({ headBytes: 4, tailBytes: 4 });
+    const chunk = Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    capture.add(chunk);
+    chunk.fill(0);
+
+    // Kept bytes are copies, so a dropped chunk does not stay alive in them.
+    expect([...capture.toBytes()]).toEqual([1, 2, 3, 4, 7, 8, 9, 10]);
+  });
+
   test('cuts the kept bytes at UTF-8 character boundaries', () => {
     // 'a€bc€d', so that both cut ends fall inside a character.
     const output = new TextEncoder().encode('a\u20acbc\u20acd');
