@@ -192,16 +192,19 @@ function registeredTool(
     description,
     deferLoading,
     namespace,
+    strict,
   }: {
     description?: string;
     deferLoading?: boolean;
     namespace?: { name: string; description: string };
+    strict?: boolean;
   } = {},
 ): ResponsesTool {
   return {
     type: 'function',
     name,
     ...(description != null ? { description } : {}),
+    ...(strict != null ? { strict } : {}),
     inputSchema: {
       type: 'object',
       properties: {},
@@ -684,7 +687,10 @@ describe('convertToOpenAIResponsesInput', () => {
     it('warns when the entry sets strict differently from the registered tool', async () => {
       const { registeredTools, resolveAdditionalTool } =
         registerAdditionalTools([
-          registeredTool('list_issues', { description: 'List issues' }),
+          registeredTool('list_issues', {
+            description: 'List issues',
+            strict: false,
+          }),
         ]);
       const { input, warnings } = await convert(
         [

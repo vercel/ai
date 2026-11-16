@@ -1893,9 +1893,12 @@ function pushDefinitionMismatchWarning({
 
   const mismatchedFields: Array<string> = [];
 
+  // v6 omits `strict` from the definition when the registered tool does not set
+  // it, so only warn about an explicit difference.
   if (
     additionalTool.strict != null &&
-    additionalTool.strict !== (definition.strict ?? false)
+    definition.strict != null &&
+    additionalTool.strict !== definition.strict
   ) {
     mismatchedFields.push('strict');
   }
