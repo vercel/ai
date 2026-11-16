@@ -30,7 +30,10 @@ export const openaiAdditionalToolsAgent = new ToolLoopAgent({
       inputSchema: z.object({}),
       execute: async () => ({ issues: ['Synthetic issue'] }),
       providerOptions: {
-        openai: { omitFromRequestTools: true } satisfies OpenAIToolOptions, // This replaces activeTools: ['connection_search'].
+        // Omission only affects serialization (this replaces the original
+        // activeTools: ['connection_search']); it does not restrict which
+        // registered tools a user may run.
+        openai: { omitFromRequestTools: true } satisfies OpenAIToolOptions,
       },
     }),
   },

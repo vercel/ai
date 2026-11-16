@@ -1954,6 +1954,9 @@ the configuration update comes first.
 definition. Keep the function in `tools` and, if you use `activeTools`, include it
 there too: inactive tools cannot be executed. Use automatic tool choice for these
 functions; OpenAI cannot force or allow-list a tool absent from the top-level list.
+Omission only affects serialization: decide which tools a user may run with
+`activeTools` or by choosing which tools to register on the server, not by
+leaving them out of the request.
 
 Both `generateText` and `streamText` support this representation. For streaming,
 append `await result.responseMessages` when replaying the conversation. This
