@@ -61,6 +61,7 @@ import {
   toLanguageModelToolDefinitions,
   type SerializableToolDef,
 } from './serializable-schema.js';
+import { withServerToolFields } from './with-server-tool-fields.js';
 import type {
   GenerationSettings,
   PrepareStepCallback,
@@ -880,7 +881,12 @@ async function validateToolCallInputs({
         return toolCall;
       }
 
-      const tool = tools[toolCall.toolName];
+      const tool = Object.prototype.hasOwnProperty.call(
+        tools,
+        toolCall.toolName,
+      )
+        ? tools[toolCall.toolName]
+        : undefined;
       if (tool == null) {
         return toolCall;
       }
@@ -898,20 +904,23 @@ async function validateToolCallInputs({
             ? refineToolInput[toolCall.toolName]
             : undefined;
         if (refine == null) {
-          return toolCall;
+          return withServerToolFields(toolCall, tool);
         }
         try {
           const input = await refine(toolCall.input as never);
-          return {
-            ...toolCall,
-            input,
-            // Keep the input from before the refinement. When an approved call
-            // is validated again, the refinement runs on this value, so a
-            // refinement that is not idempotent still gives the approved input.
-            ...(isDeepEqualData(toolCall.input, input)
-              ? {}
-              : { inputSchemaInput: toolCall.input }),
-          };
+          return withServerToolFields(
+            {
+              ...toolCall,
+              input,
+              // Keep the input from before the refinement. When an approved call
+              // is validated again, the refinement runs on this value, so a
+              // refinement that is not idempotent still gives the approved input.
+              ...(isDeepEqualData(toolCall.input, input)
+                ? {}
+                : { inputSchemaInput: toolCall.input }),
+            },
+            tool,
+          );
         } catch (error) {
           // Like parseToolCall, a refinement that throws makes the call invalid.
           return { ...toolCall, dynamic: true, invalid: true, error };
