@@ -132,6 +132,55 @@ describe('createPiSandboxOperations', () => {
     expect(state.served).toBeLessThan(4 * limit);
   });
 
+  test('reports a file that changed while it was read', async () => {
+    const encoded = 8 * 1024 * 1024;
+    const session = {
+      description: 'shrinking file sandbox',
+      async stat() {
+        return { type: 'file' as const, size: 4 * 1024 * 1024 };
+      },
+      async run(options: { command: string }) {
+        if (options.command.includes('wc -c')) {
+          return { exitCode: 0, stdout: `${encoded}\n`, stderr: '' };
+        }
+        // The file shrank after its length was read.
+        return { exitCode: 0, stdout: 'QUFB', stderr: '' };
+      },
+    };
+    const operations = createPiSandboxOperations({
+      // oxlint-disable-next-line ai-sdk/no-as-unknown-as -- partial sandbox session for a test.
+      session: session as never,
+    });
+
+    await expect(operations.readFile('/home/user/log.txt')).rejects.toThrow(
+      'the file changed while it was read',
+    );
+  });
+
+  test('reports a missing file that the sandbox cannot read', async () => {
+    const session = {
+      description: 'missing file sandbox',
+      async stat() {
+        return null;
+      },
+      async run() {
+        return {
+          exitCode: 1,
+          stdout: '',
+          stderr: 'base64: no such file or directory',
+        };
+      },
+    };
+    const operations = createPiSandboxOperations({
+      // oxlint-disable-next-line ai-sdk/no-as-unknown-as -- partial sandbox session for a test.
+      session: session as never,
+    });
+
+    await expect(operations.readFile('/home/user/missing.txt')).rejects.toThrow(
+      'ENOENT',
+    );
+  });
+
   test('reads binary content byte for byte', async () => {
     const { session, root, operations } = await setup();
     const bytes = new Uint8Array(4096);
@@ -208,11 +257,13 @@ describe('findSandboxFiles', () => {
       session: session as never,
       pattern: '*.txt',
       directory: '/home/user',
-      ignore: [],
+      ignore: ['**/node_modules/**'],
       limit: 3,
     });
 
     // The sandbox stops the enumeration, so the host never holds the tree.
+    expect(command).toContain(`-name 'node_modules'`);
+    expect(command).toContain('-prune');
     expect(command).toContain('head -n 50001');
     expect(command).toContain(`head -c ${4 * 1024 * 1024 + 1}`);
     expect(paths).toHaveLength(3);
@@ -239,10 +290,36 @@ describe('findSandboxFiles', () => {
       pattern: '*',
       directory: '/home/user',
       ignore: [],
-      limit: 10,
+      limit: 1,
     });
 
     expect(paths).toEqual([longPath]);
+  });
+
+  test('reports an enumeration that reached its budget before the limit', async () => {
+    const line = `${'d'.repeat(200)}/file.txt\n`;
+    const session = {
+      description: 'huge tree sandbox',
+      async run() {
+        return {
+          exitCode: 0,
+          stdout: line.repeat(Math.ceil((5 * 1024 * 1024) / line.length)),
+          stderr: '',
+        };
+      },
+    };
+
+    // Pi cannot report a short list, so an incomplete answer is an error.
+    await expect(
+      findSandboxFiles({
+        // oxlint-disable-next-line ai-sdk/no-as-unknown-as -- partial sandbox session for a test.
+        session: session as never,
+        pattern: '*.md',
+        directory: '/home/user',
+        ignore: [],
+        limit: 3,
+      }),
+    ).rejects.toThrow('stopped after 50000 files');
   });
 
   test('matches relative paths for patterns with a slash and applies the limit', async () => {
