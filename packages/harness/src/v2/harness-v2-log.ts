@@ -8,127 +8,152 @@ import type {
 import type { HarnessV2Submission } from './harness-v2-submission';
 
 /**
+ * Records a user prompt or steering message submitted to the session.
+ */
+export type HarnessV2LogSubmissionEvent = {
+  /**
+   * A user prompt or steering message submitted to the session.
+   */
+  readonly type: 'submission';
+
+  /**
+   * Submission payload, including its turn settings when applicable.
+   */
+  readonly data: HarnessV2Submission;
+
+  /**
+   * Stable event identity within the session, used for deduplication.
+   * Independent of the event's committed log position.
+   */
+  readonly id: string;
+};
+
+/**
+ * Records the start of an effect attempt.
+ */
+export type HarnessV2LogEffectStartEvent = {
+  /**
+   * Marks the start of a host-managed effect attempt.
+   */
+  readonly type: 'effect-start';
+
+  /**
+   * Effect definition before an output has been recorded.
+   */
+  readonly data: Omit<HarnessV2Effect, 'output'>;
+
+  /**
+   * Stable event identity within the session, used for deduplication.
+   * Independent of the event's committed log position.
+   */
+  readonly id: string;
+};
+
+/**
+ * Records the completion or interruption of an effect attempt.
+ */
+export type HarnessV2LogEffectEndEvent = {
+  /**
+   * Marks completion or interruption of an effect attempt.
+   */
+  readonly type: 'effect-end';
+
+  /**
+   * Start event ID and output recorded for the effect.
+   */
+  readonly data: {
+    /**
+     * ID of the corresponding `effect-start` event.
+     */
+    readonly startId: string;
+
+    /**
+     * Final or interrupted outcome for the effect attempt.
+     */
+    readonly output: NonNullable<HarnessV2Effect['output']>;
+  };
+
+  /**
+   * Stable event identity within the session, used for deduplication.
+   * Independent of the event's committed log position.
+   */
+  readonly id: string;
+};
+
+/**
+ * Records a finished turn.
+ */
+export type HarnessV2LogFinishTurnEvent = {
+  /**
+   * Marks a finished turn. Written by the agent, either when the adapter
+   * calls `finishTurn()` or when the agent ends the turn itself, e.g.
+   * after a failed drive. A finished turn must not be resumed by a later
+   * drive.
+   */
+  readonly type: 'finish-turn';
+
+  /**
+   * Turn identity and the options the turn was finished with.
+   */
+  readonly data: {
+    /**
+     * ID of the turn.
+     */
+    readonly turnId: string;
+
+    /**
+     * Reason reported for the turn's completion.
+     */
+    readonly finishReason: HarnessV2FinishReason;
+
+    /**
+     * Aggregate usage across all steps in the turn.
+     */
+    readonly totalUsage: HarnessV2Usage;
+
+    /**
+     * Provider metadata associated with the turn, if any.
+     */
+    readonly harnessMetadata?: HarnessV2Metadata;
+  };
+
+  /**
+   * Stable event identity within the session, used for deduplication.
+   * Independent of the event's committed log position.
+   */
+  readonly id: string;
+};
+
+/**
+ * Records an adapter-defined event, the only kind an adapter can append.
+ */
+export type HarnessV2LogAdapterEvent = {
+  /**
+   * Adapter-defined event namespace accepted by the public append method.
+   */
+  readonly type: `harness:${string}`;
+
+  /**
+   * Serializable adapter-specific event payload.
+   */
+  readonly data: SerializableValue;
+
+  /**
+   * Stable event identity within the session, used for deduplication.
+   * Independent of the event's committed log position.
+   */
+  readonly id?: string;
+};
+
+/**
  * Event variants stored in a harness log and exposed to the adapter.
  */
 export type HarnessV2LogEvent =
-  | {
-      /**
-       * A user prompt or steering message submitted to the session.
-       */
-      readonly type: 'submission';
-
-      /**
-       * Submission payload, including its turn settings when applicable.
-       */
-      readonly data: HarnessV2Submission;
-
-      /**
-       * Stable event identity within the session, used for deduplication.
-       * Independent of the event's committed log position.
-       */
-      readonly id: string;
-    }
-  | {
-      /**
-       * Marks the start of a host-managed effect attempt.
-       */
-      readonly type: 'effect-start';
-
-      /**
-       * Effect definition before an output has been recorded.
-       */
-      readonly data: Omit<HarnessV2Effect, 'output'>;
-
-      /**
-       * Stable event identity within the session, used for deduplication.
-       * Independent of the event's committed log position.
-       */
-      readonly id: string;
-    }
-  | {
-      /**
-       * Marks completion or interruption of an effect attempt.
-       */
-      readonly type: 'effect-end';
-
-      /**
-       * Start event ID and output recorded for the effect.
-       */
-      readonly data: {
-        /**
-         * ID of the corresponding `effect-start` event.
-         */
-        readonly startId: string;
-
-        /**
-         * Final or interrupted outcome for the effect attempt.
-         */
-        readonly output: NonNullable<HarnessV2Effect['output']>;
-      };
-
-      /**
-       * Stable event identity within the session, used for deduplication.
-       * Independent of the event's committed log position.
-       */
-      readonly id: string;
-    }
-  | {
-      /**
-       * Marks a finished turn. Written by the agent, either when the adapter
-       * calls `finishTurn()` or when the agent ends the turn itself, e.g.
-       * after a failed drive. A finished turn must not be resumed by a later
-       * drive.
-       */
-      readonly type: 'finish-turn';
-
-      /**
-       * Turn identity and the options the turn was finished with.
-       */
-      readonly data: {
-        /**
-         * ID of the turn.
-         */
-        readonly turnId: string;
-
-        /**
-         * Reason reported for the turn's completion.
-         */
-        readonly finishReason: HarnessV2FinishReason;
-
-        /**
-         * Aggregate usage across all steps in the turn.
-         */
-        readonly totalUsage: HarnessV2Usage;
-
-        /**
-         * Provider metadata associated with the turn, if any.
-         */
-        readonly harnessMetadata?: HarnessV2Metadata;
-      };
-
-      /**
-       * Stable event identity within the session, used for deduplication.
-       * Independent of the event's committed log position.
-       */
-      readonly id: string;
-    }
-  | {
-      /**
-       * Adapter-defined event namespace accepted by the public append method.
-       */
-      readonly type: `harness:${string}`;
-
-      /**
-       * Serializable adapter-specific event payload.
-       */
-      readonly data: SerializableValue;
-
-      /**
-       * Stable event identity within the session, used for deduplication.
-       * Independent of the event's committed log position.
-       */
-      readonly id?: string;
-    };
+  | HarnessV2LogSubmissionEvent
+  | HarnessV2LogEffectStartEvent
+  | HarnessV2LogEffectEndEvent
+  | HarnessV2LogFinishTurnEvent
+  | HarnessV2LogAdapterEvent;
 
 /**
  * Append-only log interface available to a HarnessV2 adapter.

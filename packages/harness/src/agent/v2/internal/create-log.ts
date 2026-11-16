@@ -15,12 +15,287 @@ import {
 import type { JSONValue, SerializableValue } from '@ai-sdk/provider';
 import { isValidHarnessAgentLogEvent } from './is-valid-harness-agent-log-event';
 import type { HarnessAgentDriveIdentity } from './start-drive';
-import type { HarnessV2LogEvent } from '../../../v2/harness-v2-log';
+import type {
+  HarnessV2LogAdapterEvent,
+  HarnessV2LogEffectEndEvent,
+  HarnessV2LogEffectStartEvent,
+  HarnessV2LogFinishTurnEvent,
+  HarnessV2LogSubmissionEvent,
+} from '../../../v2/harness-v2-log';
 import type {
   HarnessV2FinishReason,
   HarnessV2Metadata,
   HarnessV2Usage,
 } from '../../../v2/harness-v2-stream-part';
+
+/**
+ * Records a user prompt or steering message submitted to the session.
+ */
+export type HarnessAgentLogSubmissionEvent = HarnessV2LogSubmissionEvent;
+
+/**
+ * Records the start of an effect attempt.
+ */
+export type HarnessAgentLogEffectStartEvent = HarnessV2LogEffectStartEvent;
+
+/**
+ * Records the completion or interruption of an effect attempt.
+ */
+export type HarnessAgentLogEffectEndEvent = HarnessV2LogEffectEndEvent;
+
+/**
+ * Records a finished turn.
+ */
+export type HarnessAgentLogFinishTurnEvent = HarnessV2LogFinishTurnEvent;
+
+/**
+ * Records an adapter-defined event. Unlike in the adapter-facing log, its ID
+ * is required, since every stored event has one.
+ */
+export type HarnessAgentLogAdapterEvent = HarnessV2LogAdapterEvent & {
+  /**
+   * Stable event identity within the session, used for deduplication.
+   * Independent of the event's committed log position.
+   */
+  readonly id: string;
+};
+
+/**
+ * Records a complete yielded value of an effect attempt, visible only to the
+ * agent engine.
+ */
+export type HarnessAgentLogEffectProgressEvent = {
+  /**
+   * Records a complete yielded value, visible only to the agent engine.
+   */
+  readonly type: 'effect-progress';
+
+  /**
+   * Effect attempt and its latest yielded value.
+   */
+  readonly data: {
+    /**
+     * ID of the corresponding `effect-start` event.
+     */
+    readonly startId: string;
+
+    /**
+     * Complete yielded value used as partial output on interruption.
+     */
+    readonly partial: SerializableValue;
+  };
+
+  /**
+   * Stable event identity within the session, used for deduplication.
+   * Independent of the event's committed log position.
+   */
+  readonly id: string;
+};
+
+/**
+ * Records a finished AI SDK step, visible only to the agent engine.
+ */
+export type HarnessAgentLogFinishStepEvent = {
+  /**
+   * Records a finished AI SDK step, visible only to the agent engine.
+   * Written by the drive context's `finishStep()` under the ID
+   * `finish-step:${turnId}:${stepNumber}`.
+   */
+  readonly type: 'finish-step';
+
+  /**
+   * Step identity and the options the step was finished with.
+   */
+  readonly data: {
+    /**
+     * ID of the step's turn. Currently the ID of the `prompt` submission
+     * that started the turn.
+     */
+    readonly turnId: string;
+
+    /**
+     * Zero-based number of the step within its turn.
+     */
+    readonly stepNumber: number;
+
+    /**
+     * Reason reported for the step's completion.
+     */
+    readonly finishReason: HarnessV2FinishReason;
+
+    /**
+     * Usage attributed to the step.
+     */
+    readonly usage: HarnessV2Usage;
+
+    /**
+     * Provider metadata associated with the step, if any.
+     */
+    readonly harnessMetadata?: HarnessV2Metadata;
+  };
+
+  /**
+   * Stable event identity within the session, used for deduplication.
+   * Independent of the event's committed log position.
+   */
+  readonly id: string;
+};
+
+/**
+ * Records the start of a turn, visible only to the agent engine.
+ */
+export type HarnessAgentLogTurnStartEvent = {
+  /**
+   * Records the start of a turn, visible only to the agent engine. Written
+   * by the effect function under the ID `turn-start:${turnId}`, right
+   * before the `effect-start` that first delivers the turn's `prompt`
+   * submission. From then on, that submission counts as delivered and the
+   * turn is the session's current turn.
+   */
+  readonly type: 'turn-start';
+
+  /**
+   * Turn identity.
+   */
+  readonly data: {
+    /**
+     * ID of the turn. Currently the ID of the `prompt` submission that
+     * starts the turn.
+     */
+    readonly turnId: string;
+  };
+
+  /**
+   * Stable event identity within the session, used for deduplication.
+   * Independent of the event's committed log position.
+   */
+  readonly id: string;
+};
+
+/**
+ * Records the start of a drive, visible only to the agent engine.
+ */
+export type HarnessAgentLogDriveStartEvent = {
+  /**
+   * Records the start of a drive, visible only to the agent engine.
+   * Written under the ID `drive-start:${driveId}` before the drive
+   * changes anything else in the session. Recovery uses the latest one
+   * to decide whether the drive that left attempts unfinished is gone.
+   */
+  readonly type: 'drive-start';
+
+  /**
+   * Identity of the drive.
+   */
+  readonly data: HarnessAgentDriveIdentity;
+
+  /**
+   * Stable event identity within the session, used for deduplication.
+   * Independent of the event's committed log position.
+   */
+  readonly id: string;
+};
+
+/**
+ * Asks the drive running the session's current turn to crash its process,
+ * visible only to the agent engine.
+ */
+export type HarnessAgentLogCrashRequestEvent = {
+  /**
+   * Asks the drive running the session's current turn to crash its
+   * process, visible only to the agent engine. Written by
+   * `experimental_crash()`. It applies to the latest `drive-start`
+   * before it.
+   */
+  readonly type: 'crash-request';
+
+  /**
+   * How the drive crashes.
+   */
+  readonly data: {
+    /**
+     * Whether the drive records a `drive-crash` before it crashes. If
+     * not set, the drive crashes like a real crash would, without any
+     * record.
+     */
+    readonly recordCrash?: boolean;
+  };
+
+  /**
+   * Stable event identity within the session, used for deduplication.
+   * Independent of the event's committed log position.
+   */
+  readonly id: string;
+};
+
+/**
+ * Records that a drive is about to crash its process on request, visible
+ * only to the agent engine.
+ */
+export type HarnessAgentLogDriveCrashEvent = {
+  /**
+   * Records that a drive is about to crash its process on request,
+   * visible only to the agent engine. Written under the ID
+   * `drive-crash:${driveId}` right before the process is killed, only
+   * if the request asked for it (`recordCrash`). It proves to recovery
+   * at once that the drive is gone. Its absence proves nothing: a drive
+   * may have crashed without it, which recovery then has to prove from
+   * the drive's `drive-start`.
+   */
+  readonly type: 'drive-crash';
+
+  /**
+   * Crashing drive and the request it follows.
+   */
+  readonly data: {
+    /**
+     * Identifier of the crashing drive.
+     */
+    readonly driveId: string;
+
+    /**
+     * ID of the `crash-request` event the drive follows.
+     */
+    readonly requestId: string;
+  };
+
+  /**
+   * Stable event identity within the session, used for deduplication.
+   * Independent of the event's committed log position.
+   */
+  readonly id: string;
+};
+
+/**
+ * Records that a tool call attempt is about to run its tool, visible only to
+ * the agent engine.
+ */
+export type HarnessAgentLogToolExecutionStartEvent = {
+  /**
+   * Records that a tool call attempt is about to run its tool, visible
+   * only to the agent engine. Written under the ID
+   * `tool-execution-start:${startId}` and committed right before the tool
+   * runs. An abandoned tool attempt without it provably never ran its
+   * tool, so recovery may retry it regardless of its replay policy.
+   */
+  readonly type: 'tool-execution-start';
+
+  /**
+   * Effect attempt of the tool call.
+   */
+  readonly data: {
+    /**
+     * ID of the corresponding `effect-start` event.
+     */
+    readonly startId: string;
+  };
+
+  /**
+   * Stable event identity within the session, used for deduplication.
+   * Independent of the event's committed log position.
+   */
+  readonly id: string;
+};
 
 /**
  * Event variants stored in the agent log, including events that are private to
@@ -43,218 +318,18 @@ import type {
  * are not validated by the helper.
  */
 export type HarnessAgentLogEvent =
-  | (HarnessV2LogEvent & {
-      /**
-       * Stable event identity within the session, used for deduplication.
-       * Independent of the event's committed log position.
-       */
-      readonly id: string;
-    })
-  | {
-      /**
-       * Records a complete yielded value, visible only to the agent engine.
-       */
-      readonly type: 'effect-progress';
-
-      /**
-       * Effect attempt and its latest yielded value.
-       */
-      readonly data: {
-        /**
-         * ID of the corresponding `effect-start` event.
-         */
-        readonly startId: string;
-
-        /**
-         * Complete yielded value used as partial output on interruption.
-         */
-        readonly partial: SerializableValue;
-      };
-
-      /**
-       * Stable event identity within the session, used for deduplication.
-       * Independent of the event's committed log position.
-       */
-      readonly id: string;
-    }
-  | {
-      /**
-       * Records a finished AI SDK step, visible only to the agent engine.
-       * Written by the drive context's `finishStep()` under the ID
-       * `finish-step:${turnId}:${stepNumber}`.
-       */
-      readonly type: 'finish-step';
-
-      /**
-       * Step identity and the options the step was finished with.
-       */
-      readonly data: {
-        /**
-         * ID of the step's turn. Currently the ID of the `prompt` submission
-         * that started the turn.
-         */
-        readonly turnId: string;
-
-        /**
-         * Zero-based number of the step within its turn.
-         */
-        readonly stepNumber: number;
-
-        /**
-         * Reason reported for the step's completion.
-         */
-        readonly finishReason: HarnessV2FinishReason;
-
-        /**
-         * Usage attributed to the step.
-         */
-        readonly usage: HarnessV2Usage;
-
-        /**
-         * Provider metadata associated with the step, if any.
-         */
-        readonly harnessMetadata?: HarnessV2Metadata;
-      };
-
-      /**
-       * Stable event identity within the session, used for deduplication.
-       * Independent of the event's committed log position.
-       */
-      readonly id: string;
-    }
-  | {
-      /**
-       * Records the start of a turn, visible only to the agent engine. Written
-       * by the effect function under the ID `turn-start:${turnId}`, right
-       * before the `effect-start` that first delivers the turn's `prompt`
-       * submission. From then on, that submission counts as delivered and the
-       * turn is the session's current turn.
-       */
-      readonly type: 'turn-start';
-
-      /**
-       * Turn identity.
-       */
-      readonly data: {
-        /**
-         * ID of the turn. Currently the ID of the `prompt` submission that
-         * starts the turn.
-         */
-        readonly turnId: string;
-      };
-
-      /**
-       * Stable event identity within the session, used for deduplication.
-       * Independent of the event's committed log position.
-       */
-      readonly id: string;
-    }
-  | {
-      /**
-       * Records the start of a drive, visible only to the agent engine.
-       * Written under the ID `drive-start:${driveId}` before the drive
-       * changes anything else in the session. Recovery uses the latest one
-       * to decide whether the drive that left attempts unfinished is gone.
-       */
-      readonly type: 'drive-start';
-
-      /**
-       * Identity of the drive.
-       */
-      readonly data: HarnessAgentDriveIdentity;
-
-      /**
-       * Stable event identity within the session, used for deduplication.
-       * Independent of the event's committed log position.
-       */
-      readonly id: string;
-    }
-  | {
-      /**
-       * Asks the drive running the session's current turn to crash its
-       * process, visible only to the agent engine. Written by
-       * `experimental_crash()`. It applies to the latest `drive-start`
-       * before it.
-       */
-      readonly type: 'crash-request';
-
-      /**
-       * How the drive crashes.
-       */
-      readonly data: {
-        /**
-         * Whether the drive records a `drive-crash` before it crashes. If
-         * not set, the drive crashes like a real crash would, without any
-         * record.
-         */
-        readonly recordCrash?: boolean;
-      };
-
-      /**
-       * Stable event identity within the session, used for deduplication.
-       * Independent of the event's committed log position.
-       */
-      readonly id: string;
-    }
-  | {
-      /**
-       * Records that a drive is about to crash its process on request,
-       * visible only to the agent engine. Written under the ID
-       * `drive-crash:${driveId}` right before the process is killed, only
-       * if the request asked for it (`recordCrash`). It proves to recovery
-       * at once that the drive is gone. Its absence proves nothing: a drive
-       * may have crashed without it, which recovery then has to prove from
-       * the drive's `drive-start`.
-       */
-      readonly type: 'drive-crash';
-
-      /**
-       * Crashing drive and the request it follows.
-       */
-      readonly data: {
-        /**
-         * Identifier of the crashing drive.
-         */
-        readonly driveId: string;
-
-        /**
-         * ID of the `crash-request` event the drive follows.
-         */
-        readonly requestId: string;
-      };
-
-      /**
-       * Stable event identity within the session, used for deduplication.
-       * Independent of the event's committed log position.
-       */
-      readonly id: string;
-    }
-  | {
-      /**
-       * Records that a tool call attempt is about to run its tool, visible
-       * only to the agent engine. Written under the ID
-       * `tool-execution-start:${startId}` and committed right before the tool
-       * runs. An abandoned tool attempt without it provably never ran its
-       * tool, so recovery may retry it regardless of its replay policy.
-       */
-      readonly type: 'tool-execution-start';
-
-      /**
-       * Effect attempt of the tool call.
-       */
-      readonly data: {
-        /**
-         * ID of the corresponding `effect-start` event.
-         */
-        readonly startId: string;
-      };
-
-      /**
-       * Stable event identity within the session, used for deduplication.
-       * Independent of the event's committed log position.
-       */
-      readonly id: string;
-    };
+  | HarnessAgentLogSubmissionEvent
+  | HarnessAgentLogEffectStartEvent
+  | HarnessAgentLogEffectEndEvent
+  | HarnessAgentLogFinishTurnEvent
+  | HarnessAgentLogAdapterEvent
+  | HarnessAgentLogEffectProgressEvent
+  | HarnessAgentLogFinishStepEvent
+  | HarnessAgentLogTurnStartEvent
+  | HarnessAgentLogDriveStartEvent
+  | HarnessAgentLogCrashRequestEvent
+  | HarnessAgentLogDriveCrashEvent
+  | HarnessAgentLogToolExecutionStartEvent;
 
 /**
  * Event type filters for an agent-log append listener.
