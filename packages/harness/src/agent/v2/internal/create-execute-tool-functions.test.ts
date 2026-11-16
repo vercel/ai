@@ -8,6 +8,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { z } from 'zod/v4';
+import { HarnessCapabilityUnsupportedError } from '../../../errors/harness-capability-unsupported-error';
 import type { HarnessV2ToolExecutionValue } from '../../../v2/harness-v2-drive-context';
 import { DefaultHarnessAgentSession } from '../harness-agent-session';
 import { InMemoryWorld } from '../in-memory-world';
@@ -600,6 +601,29 @@ describe('createExecuteToolFunctions', () => {
       expect(await readParts({ world })).toEqual([
         expect.objectContaining({ result: 'sunny', dynamic: true }),
       ]);
+    });
+
+    test('refuses a tool that requires approval without running it', async () => {
+      const execute = vi.fn(async () => 'sunny');
+      const needsApproval = vi.fn(() => true);
+      const { world, log, executeHostTool, getSandboxSession } = await setup({
+        tools: {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+            needsApproval,
+            execute,
+          }),
+        },
+      });
+
+      await expect(executeHostTool(call)).rejects.toThrow(
+        HarnessCapabilityUnsupportedError,
+      );
+      expect(execute).not.toHaveBeenCalled();
+      expect(needsApproval).not.toHaveBeenCalled();
+      expect((await log.read()).events).toEqual([]);
+      expect(await readStream({ world })).toEqual([]);
+      expect(getSandboxSession).not.toHaveBeenCalled();
     });
 
     test('suspends client tools without recording them', async () => {

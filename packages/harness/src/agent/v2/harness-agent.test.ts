@@ -14,6 +14,7 @@ import type { HarnessV2StreamPart } from '../../v2/harness-v2-stream-part';
 import type { HarnessAgentSettings } from '../harness-agent-settings';
 import { describe, expect, test, vi } from 'vitest';
 import { z } from 'zod/v4';
+import { HarnessCapabilityUnsupportedError } from '../../errors/harness-capability-unsupported-error';
 import {
   DefaultHarnessAgentSession,
   type HarnessAgentSession,
@@ -274,6 +275,86 @@ describe('HarnessAgent', () => {
           onSandboxSession: async () => {},
         }),
     ).toThrow('setting `onSandboxSession` is not supported');
+  });
+
+  test.each([
+    ['a boolean', true],
+    ['a function', async () => true],
+  ])(
+    'rejects a host tool whose approval requirement is %s',
+    (_kind, needsApproval) => {
+      expect(
+        () =>
+          new HarnessAgent({
+            harness,
+            getSandboxSession,
+            tools: {
+              deleteFile: tool({
+                inputSchema: z.object({ path: z.string() }),
+                needsApproval,
+                execute: async () => 'deleted',
+              }),
+            },
+          }),
+      ).toThrow(HarnessCapabilityUnsupportedError);
+    },
+  );
+
+  test('names every host tool that requires approval', () => {
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          getSandboxSession,
+          tools: {
+            deleteFile: tool({
+              inputSchema: z.object({ path: z.string() }),
+              needsApproval: true,
+              execute: async () => 'deleted',
+            }),
+            sendEmail: tool({
+              inputSchema: z.object({ to: z.string() }),
+              needsApproval: true,
+              execute: async () => 'sent',
+            }),
+          },
+        }),
+    ).toThrow("remove `needsApproval` from tools 'deleteFile', 'sendEmail'");
+  });
+
+  test('rejects the toolApproval setting', () => {
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          getSandboxSession,
+          toolApproval: { deleteFile: 'user-approval' },
+        }),
+    ).toThrow(HarnessCapabilityUnsupportedError);
+  });
+
+  test.each(['allow-reads', 'allow-edits'] as const)(
+    'rejects the approval-implying permission mode %s',
+    permissionMode => {
+      expect(
+        () =>
+          new HarnessAgent({
+            harness,
+            getSandboxSession,
+            permissionMode,
+          }),
+      ).toThrow(HarnessCapabilityUnsupportedError);
+    },
+  );
+
+  test('accepts the allow-all permission mode', () => {
+    const agent = new HarnessAgent({
+      harness,
+      getSandboxSession,
+      permissionMode: 'allow-all',
+    });
+
+    expect(agent.harnessId).toBe('mock-v2');
   });
 
   test('creates and starts a World run for a new session', async () => {
@@ -687,6 +768,43 @@ describe('HarnessAgent turns', () => {
         output: { city: 'Berlin', temperature: 20 },
       },
     ]);
+  });
+
+  test('refuses a host tool that requires approval after construction', async () => {
+    const execute = vi.fn(async () => 'sunny');
+    const tools = {
+      weather: tool({
+        inputSchema: z.object({ city: z.string() }),
+        execute,
+      }),
+    } as ToolSet;
+    const harness = createFakeHarness({
+      modelParts: [
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'weather',
+          input: '{"city":"Berlin"}',
+        },
+      ],
+      afterModel: async ({ context }) => {
+        await context.executeHostTool({
+          toolCallId: 'call-1',
+          toolName: 'weather',
+          input: { city: 'Berlin' },
+        });
+      },
+    });
+    const { agent, session } = await setup({ harness, tools });
+
+    // The agent was built without approval requirements, so this tool set
+    // changed afterwards and must be refused instead of run without consent.
+    (tools.weather as { needsApproval?: boolean }).needsApproval = true;
+
+    const result = await agent.stream({ prompt: 'weather?', session });
+
+    expect(await readPartTypes(result.fullStream)).toContain('error');
+    expect(execute).not.toHaveBeenCalled();
   });
 
   test('finishes a started turn with an error when the adapter throws', async () => {

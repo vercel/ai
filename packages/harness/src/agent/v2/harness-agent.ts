@@ -47,6 +47,8 @@ import { HarnessGenerateTextResult } from './internal/harness-generate-text-resu
 import { HarnessStreamTextResult } from './internal/harness-stream-text-result';
 import { getDriveProcess, trackRunningDrive } from './internal/drive-process';
 import { startDrive } from './internal/start-drive';
+import { assertNoToolApprovalRequirements } from './internal/tool-approval';
+import { HarnessCapabilityUnsupportedError } from '../../errors/harness-capability-unsupported-error';
 import type {
   HarnessAgentSandboxConfig,
   HarnessAgentSettings,
@@ -193,12 +195,36 @@ export class HarnessAgent<
         key !== 'tools' &&
         key !== 'world' &&
         key !== 'getSandboxSession' &&
-        key !== 'sandboxConfig',
+        key !== 'sandboxConfig' &&
+        key !== 'permissionMode' &&
+        key !== 'toolApproval',
     );
     if (unsupportedSetting !== undefined) {
       throw new Error(
         `HarnessAgent: setting \`${String(unsupportedSetting)}\` is not supported.`,
       );
+    }
+
+    /*
+     * Approval settings are rejected instead of ignored: the engine cannot
+     * request consent, so accepting them would run tools that the app expects
+     * a user to approve first.
+     */
+    if (settings.toolApproval != null) {
+      throw new HarnessCapabilityUnsupportedError({
+        message:
+          'HarnessAgent: `toolApproval` is not supported with HarnessV2; remove it or use a HarnessV1 adapter.',
+        harnessId: settings.harness.harnessId,
+      });
+    }
+    if (
+      settings.permissionMode != null &&
+      settings.permissionMode !== 'allow-all'
+    ) {
+      throw new HarnessCapabilityUnsupportedError({
+        message: `HarnessAgent: \`permissionMode: '${settings.permissionMode}'\` is not supported with HarnessV2; only 'allow-all' is supported.`,
+        harnessId: settings.harness.harnessId,
+      });
     }
 
     const sandboxConfig = settings.sandboxConfig ?? {};
@@ -219,6 +245,10 @@ export class HarnessAgent<
     this.getSandboxSession = settings.getSandboxSession;
     this.id = settings.id;
     this.harnessId = this.harness.harnessId;
+    assertNoToolApprovalRequirements({
+      harnessId: this.harnessId,
+      tools: settings.tools ?? {},
+    });
     this.userTools = settings.tools ?? {};
     this.tools = {
       ...this.harness.builtinTools,

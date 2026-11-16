@@ -14,6 +14,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { InvalidToolInputError, NoSuchToolError } from 'ai';
 import { createToolModelOutput, validateToolContext } from 'ai/internal';
+import { HarnessCapabilityUnsupportedError } from '../../../errors/harness-capability-unsupported-error';
 import { HarnessInvalidDriveStateError } from '../../../errors/harness-invalid-drive-state-error';
 import type {
   HarnessV2ExecuteBuiltinToolFunction,
@@ -25,6 +26,7 @@ import type { HarnessV2EffectContext } from '../../../v2/harness-v2-effect';
 import type { HarnessV2NetworkSandboxSession } from '../../../v2/harness-v2-network-sandbox-session';
 import type { HarnessV2ToolResult } from '../../../v2/harness-v2-stream-part';
 import { isPlainJSONValue } from './utils';
+import { requiresApproval } from './tool-approval';
 import type { HarnessAgentEffectFunction } from './create-effect-function';
 import type { HarnessAgentLog } from './create-log';
 
@@ -669,6 +671,17 @@ export function createExecuteToolFunctions(options: {
     }): Promise<HarnessV2ToolExecutionOutput<T>> {
       const { toolCallId, toolName, input: toolInput } = call;
       const tool = getTool({ tools, toolName });
+
+      /*
+       * Fails closed for a tool that asks for consent: either the agent was
+       * built before the requirement was added, or a tool set was mutated
+       * after construction.
+       */
+      if (tool != null && requiresApproval(tool)) {
+        throw new HarnessCapabilityUnsupportedError({
+          message: `HarnessAgent: tool '${toolName}' requires approval (\`needsApproval\`), which is not supported with HarnessV2.`,
+        });
+      }
 
       if (
         tool != null &&
