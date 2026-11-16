@@ -4,6 +4,8 @@ import type {
   FxGrepFilesInput,
 } from './fx-builtin-tool-specs';
 import type { FxBuiltinToolOutput, FxToolSandbox } from './fx-builtin-tools';
+import { readFileWithin } from './fx-file-tools';
+import { createFxOutputCapture, readFxChunks } from './fx-sandbox-output';
 import {
   decodeFxModelSafeText,
   getUtf8ByteLength,
@@ -26,6 +28,133 @@ const LINE_LENGTH = 2000;
 const PATTERN_BYTES = 4096;
 const CONTEXT_LINES = 5;
 const CONTEXT_FILE_BYTES = 200 * 1024;
+
+/*
+ * Bytes of a search command's output and error that the host keeps: enough
+ * for a normal repository's listing or match set, so that a larger one is
+ * reported as cut off instead of being held in host memory.
+ */
+const MiB = 1024 * 1024;
+const MAX_SEARCH_OUTPUT_BYTES = 8 * MiB;
+const MAX_SEARCH_ERROR_BYTES = 8 * 1024;
+const MAX_SEARCH_MATCHES = 20_000;
+const MAX_LIST_ENTRIES = 100_000;
+
+/**
+ * Runs a search command and keeps at most `MAX_SEARCH_OUTPUT_BYTES` of its
+ * standard output and `MAX_SEARCH_ERROR_BYTES` of its standard error,
+ * stopping the command once it prints more, so that a search over a large
+ * sandbox repository cannot fill the host's memory.
+ */
+async function runSearchCommand(options: {
+  /**
+   * Sandbox to run the command in.
+   */
+  sandbox: FxToolSandbox;
+
+  /**
+   * Command to run.
+   */
+  command: string;
+
+  /**
+   * Aborts the command.
+   */
+  abortSignal: AbortSignal;
+}): Promise<{
+  /**
+   * Standard output, at most `MAX_SEARCH_OUTPUT_BYTES` of it.
+   */
+  stdout: string;
+
+  /**
+   * Standard error, at most `MAX_SEARCH_ERROR_BYTES` of it.
+   */
+  stderr: string;
+
+  /**
+   * Exit code of the command, absent when stopping it ended it.
+   */
+  exitCode?: number;
+
+  /**
+   * Whether the command printed more than the kept output.
+   */
+  truncated: boolean;
+}> {
+  const { sandbox, command, abortSignal } = options;
+  const capture = createFxOutputCapture({
+    headBytes: MAX_SEARCH_OUTPUT_BYTES,
+    tailBytes: 0,
+  });
+  const errorCapture = createFxOutputCapture({
+    headBytes: MAX_SEARCH_ERROR_BYTES,
+    tailBytes: 0,
+  });
+  const limitController = new AbortController();
+  let truncated = false;
+  const onChunk = (chunk: Uint8Array) => {
+    capture.add(chunk);
+    if (!truncated && !capture.complete) {
+      truncated = true;
+      limitController.abort(new Error('search output limit'));
+    }
+  };
+  const onError = (chunk: Uint8Array) => {
+    errorCapture.add(chunk);
+  };
+  const commandAbortSignal = AbortSignal.any([
+    abortSignal,
+    limitController.signal,
+  ]);
+  const child = await sandbox.session.spawn({
+    command,
+    workingDirectory: sandbox.workDir,
+    abortSignal: commandAbortSignal,
+  });
+  let exitCode: number | undefined;
+  try {
+    const [result] = await Promise.all([
+      child.wait(),
+      readFxChunks({
+        stream: child.stdout,
+        onChunk,
+        abortSignal: commandAbortSignal,
+      }),
+      readFxChunks({
+        stream: child.stderr,
+        onChunk: onError,
+        abortSignal: commandAbortSignal,
+      }),
+    ]);
+    exitCode = result.exitCode;
+  } catch (error) {
+    if (abortSignal.aborted) throw error;
+    if (!truncated) throw error;
+  }
+  if (truncated) {
+    try {
+      void Promise.resolve(child.kill()).catch(() => {});
+    } catch {
+      // Ignore a sandbox that cannot stop the command.
+    }
+  }
+  const kept = capture.toBytes();
+  /*
+   * Stopping the command can cut its last line in the middle, and a partial
+   * path or match would be reported as a result, so the cut line is dropped.
+   */
+  const complete = truncated
+    ? kept.subarray(0, kept.lastIndexOf(0x0a) + 1)
+    : kept;
+  const decode = (bytes: Uint8Array) => Buffer.from(bytes).toString('utf8');
+  return {
+    stdout: decode(complete),
+    stderr: decode(errorCapture.toBytes()),
+    exitCode,
+    truncated,
+  };
+}
 
 /*
  * Directory names fx's search tools skip while walking a search root
@@ -177,7 +306,10 @@ function toShownPath(options: {
 /**
  * Lists the files below a search root in the sandbox, relative to the root,
  * skipping fx's ignored directories and, unless `includeHidden` is set,
- * hidden directories. Throws when the listing fails.
+ * hidden directories, and keeps only the files `matches` accepts. Throws
+ * when the listing fails. The listing keeps at most
+ * `MAX_SEARCH_OUTPUT_BYTES` of file names and `MAX_LIST_ENTRIES` of them,
+ * and `cutOff` says which of the two cut it off.
  */
 async function listFiles(options: {
   /**
@@ -196,30 +328,59 @@ async function listFiles(options: {
   includeHidden: boolean;
 
   /**
+   * Whether a file relative to the root is part of the listing.
+   */
+  matches: (relative: string) => boolean;
+
+  /**
    * Aborts the listing.
    */
   abortSignal: AbortSignal;
-}): Promise<string[]> {
-  const { sandbox, root, includeHidden, abortSignal } = options;
+}): Promise<{
+  /**
+   * Files of the listing, sorted.
+   */
+  files: string[];
+
+  /**
+   * What cut the listing off, if anything.
+   */
+  cutOff?: 'bytes' | 'entries';
+}> {
+  const { sandbox, root, includeHidden, matches, abortSignal } = options;
   const names = [...IGNORED_DIRECTORIES, ...(includeHidden ? [] : ['.*'])];
   const nameExpression = names
     .map(name => `-name ${shellQuote(name)}`)
     .join(' -o ');
-  const result = await sandbox.session.run({
+  const result = await runSearchCommand({
+    sandbox,
     command: `find ${shellQuote(root)} -mindepth 1 -type d \\( ${nameExpression} \\) -prune -o -type f -print`,
     abortSignal,
   });
-  if (result.exitCode !== 0) {
+  if (!result.truncated && result.exitCode !== 0) {
     throw new Error(
       result.stderr.trim() || `find failed with exit code ${result.exitCode}`,
     );
   }
   const prefix = root === '/' ? '/' : `${root}/`;
-  return result.stdout
-    .split('\n')
-    .filter(line => line.startsWith(prefix))
-    .map(line => line.slice(prefix.length))
-    .sort();
+  const files: string[] = [];
+  const stdout = result.stdout;
+  for (let at = 0; at < stdout.length; ) {
+    const end = stdout.indexOf('\n', at);
+    const line = stdout.slice(at, end === -1 ? stdout.length : end);
+    at = end === -1 ? stdout.length : end + 1;
+    if (!line.startsWith(prefix)) continue;
+    const relative = line.slice(prefix.length);
+    if (!matches(relative)) continue;
+    if (files.length >= MAX_LIST_ENTRIES) {
+      return { files: files.sort(), cutOff: 'entries' };
+    }
+    files.push(relative);
+  }
+  return {
+    files: files.sort(),
+    cutOff: result.truncated ? 'bytes' : undefined,
+  };
 }
 
 /**
@@ -280,6 +441,7 @@ export async function globFxFiles(options: {
   const matches: string[] = [];
   let count = 0;
   let truncated = false;
+  let listingCutOff: 'bytes' | 'entries' | undefined;
   if (stat.type === 'file') {
     const basename = root.rel.slice(root.rel.lastIndexOf('/') + 1);
     if (matchesFxGlob({ pattern, path: basename })) {
@@ -287,16 +449,17 @@ export async function globFxFiles(options: {
       matches.push(root.rel);
     }
   } else {
-    const files = await listFiles({
+    const listing = await listFiles({
       sandbox,
       root: root.abs,
       includeHidden:
         hasHiddenDirectory({ segments: root.rel.split('/') }) ||
         hasHiddenDirectory({ segments: pattern.split('/').slice(0, -1) }),
+      matches: relative => matchesFxGlob({ pattern, path: relative }),
       abortSignal,
     });
-    for (const relative of files) {
-      if (!matchesFxGlob({ pattern, path: relative })) continue;
+    listingCutOff = listing.cutOff;
+    for (const relative of listing.files) {
       count++;
       if (mode === 'count') continue;
       if (matches.length >= LIST_ENTRIES) {
@@ -308,14 +471,25 @@ export async function globFxFiles(options: {
   }
 
   if (mode === 'count') {
-    return { text: `[glob] count ${count} matches for ${pattern}\n` };
+    const notice =
+      listingCutOff == null ? '' : ' (at least; the file listing was cut off)';
+    return {
+      text: `[glob] count ${count} matches for ${pattern}${notice}\n`,
+    };
   }
   if (matches.length === 0) {
-    return { text: `[glob] no matches for ${pattern}\n` };
+    const notice =
+      listingCutOff == null
+        ? ''
+        : ` in the listed part; ${toListingCutOffNotice({ cutOff: listingCutOff })}`;
+    return { text: `[glob] no matches for ${pattern}${notice}\n` };
   }
   let out = `[glob] ${matches.length} matches for ${pattern}\n`;
   for (const match of matches) out += ` - ${match}\n`;
   if (truncated) out += `... truncated to first ${LIST_ENTRIES} matches\n`;
+  if (listingCutOff != null) {
+    out += `... ${toListingCutOffNotice({ cutOff: listingCutOff })}\n`;
+  }
   return { text: out };
 }
 
@@ -358,6 +532,79 @@ function clipLine(line: string): string {
 
 const RECURSIVE_GREP_LINE = /^(.*?):(\d+):(.*)$/;
 const SINGLE_FILE_GREP_LINE = /^(\d+):(.*)$/;
+
+/**
+ * Reads the lines of a file for grep's context lines: at most
+ * `CONTEXT_FILE_BYTES`, and nothing at all for a file whose stat shows more,
+ * so that a large matching file is never loaded into host memory.
+ */
+async function readContextLines(options: {
+  /**
+   * Sandbox the file is in.
+   */
+  sandbox: FxToolSandbox;
+
+  /**
+   * Absolute path of the file.
+   */
+  path: string;
+
+  /**
+   * Aborts the read.
+   */
+  abortSignal: AbortSignal;
+}): Promise<string[] | undefined> {
+  const { sandbox, path, abortSignal } = options;
+  const stat = await sandbox.session.stat({ path, abortSignal });
+  if (stat == null || stat.type !== 'file' || stat.size > CONTEXT_FILE_BYTES) {
+    return undefined;
+  }
+  const snapshot = await readFileWithin({
+    sandbox,
+    path,
+    limitBytes: CONTEXT_FILE_BYTES,
+    abortSignal,
+  });
+  if (!snapshot.complete) return undefined;
+  const text = decodeFxModelSafeText({ bytes: snapshot.bytes });
+  const lines = text?.split('\n');
+  if (lines?.at(-1) === '') lines.pop();
+  return lines;
+}
+
+/**
+ * Describes what cut a file listing off, for the result that reports it.
+ */
+function toListingCutOffNotice(options: {
+  /**
+   * What cut the listing off.
+   */
+  cutOff: 'bytes' | 'entries';
+}): string {
+  const { cutOff } = options;
+  return cutOff === 'bytes'
+    ? `the file listing was cut off after ${MAX_SEARCH_OUTPUT_BYTES} bytes; narrow the search path`
+    : `the file listing was cut off after ${MAX_LIST_ENTRIES} files; narrow the pattern or the search path`;
+}
+
+/**
+ * Returns a count as fx shows it, marked as a lower bound when the search
+ * that produced it was cut off.
+ */
+function approximate(options: {
+  /**
+   * Count of what was found.
+   */
+  count: number;
+
+  /**
+   * Whether the search was cut off.
+   */
+  cutOff: boolean;
+}): string {
+  const { count, cutOff } = options;
+  return cutOff ? `at least ${count}` : `${count}`;
+}
 
 /**
  * Runs fx's `grep_files` on the sandbox: a literal search below the search
@@ -462,87 +709,130 @@ export async function grepFxFiles(options: {
     ...(input.case_insensitive === true ? ['-i'] : []),
     '-F',
   ];
-  const result = await sandbox.session.run({
+  const result = await runSearchCommand({
+    sandbox,
     command: isFile
       ? `grep ${flags.map(shellQuote).join(' ')} -e ${shellQuote(pattern)} ${shellQuote(root.abs)}`
       : `cd ${shellQuote(root.abs)} && grep ${flags.map(shellQuote).join(' ')} -e ${shellQuote(pattern)} .`,
     abortSignal,
   });
-  if (result.exitCode > 1 && result.stdout.trim() === '') {
+  if (
+    !result.truncated &&
+    result.exitCode != null &&
+    result.exitCode > 1 &&
+    result.stdout.trim() === ''
+  ) {
     return toFxToolError({
       text: `grep_files failed: ${result.stderr.trim() || `grep exited with code ${result.exitCode}`}`,
     });
   }
-
-  const matches: GrepMatch[] = [];
-  for (const line of result.stdout.split('\n')) {
-    if (line === '' || line.includes('\u0000')) continue;
+  /**
+   * Parses one line of the grep output into a match, or returns undefined
+   * for a line that is not one.
+   */
+  const toMatch = (line: string): GrepMatch | undefined => {
+    if (line === '' || line.includes('\u0000')) return undefined;
     if (isFile) {
       const parsed = SINGLE_FILE_GREP_LINE.exec(line);
-      if (parsed == null) continue;
-      matches.push({
+      if (parsed == null) return undefined;
+      return {
         path: root.rel,
         abs: root.abs,
         relative: root.rel,
         line: Number(parsed[1]),
         text: parsed[2],
-      });
-      continue;
+      };
     }
     const parsed = RECURSIVE_GREP_LINE.exec(line);
-    if (parsed == null) continue;
+    if (parsed == null) return undefined;
     const relative = parsed[1].replace(/^\.\//, '');
-    matches.push({
+    return {
       path: toShownPath({ root, relative }),
       abs: root.abs === '/' ? `/${relative}` : `${root.abs}/${relative}`,
       relative,
       line: Number(parsed[2]),
       text: parsed[3],
-    });
+    };
+  };
+
+  const matches: GrepMatch[] = [];
+  const paths = new Set<string>();
+  let counted = 0;
+  let matchesCapped = false;
+  const stdout = result.stdout;
+  /*
+   * One pass over the output: the include filter applies while parsing, so
+   * the match limit only counts matches the tool keeps, and a count does not
+   * keep them at all.
+   */
+  for (let at = 0; at < stdout.length; ) {
+    const end = stdout.indexOf('\n', at);
+    const line = stdout.slice(at, end === -1 ? stdout.length : end);
+    at = end === -1 ? stdout.length : end + 1;
+    const match = toMatch(line);
+    if (match == null) continue;
+    if (
+      include !== undefined &&
+      !matchesFxGlob({ pattern: include, path: match.relative })
+    ) {
+      continue;
+    }
+    counted++;
+    paths.add(match.path);
+    if (mode !== 'matches') continue;
+    if (matches.length >= MAX_SEARCH_MATCHES) {
+      matchesCapped = true;
+      break;
+    }
+    matches.push(match);
   }
-  const filtered = matches
-    .filter(
-      match =>
-        include === undefined ||
-        matchesFxGlob({ pattern: include, path: match.relative }),
-    )
-    .sort((left, right) =>
-      left.path === right.path
-        ? left.line - right.line
-        : left.path < right.path
-          ? -1
-          : 1,
-    );
+  /*
+   * A stopped command and a capped match list both mean the result covers a
+   * prefix of the search's matches, so its totals are lower bounds.
+   */
+  const cutoffNotice = result.truncated
+    ? `... grep output was cut off after ${MAX_SEARCH_OUTPUT_BYTES} bytes; narrow the pattern, the include filter, or the search path\n`
+    : matchesCapped
+      ? `... more than ${MAX_SEARCH_MATCHES} matches; narrow the pattern or the include filter\n`
+      : '';
+  const cutOff = cutoffNotice !== '';
+  const filtered = [...matches].sort((left, right) =>
+    left.path === right.path
+      ? left.line - right.line
+      : left.path < right.path
+        ? -1
+        : 1,
+  );
 
   if (mode === 'count') {
-    const files = new Set(filtered.map(match => match.path)).size;
+    const notice = cutOff ? ' (at least; the grep output was cut off)' : '';
     return {
-      text: `[grep] count ${filtered.length} matching lines in ${files} files for ${pattern}\n`,
+      text: `[grep] count ${counted} matching lines in ${paths.size} files for ${pattern}${notice}\n`,
     };
   }
   const limit = Math.min(headLimit ?? LIST_ENTRIES, LIST_ENTRIES);
   const from = offset ?? 0;
 
   if (mode === 'files_with_matches') {
-    const paths = [...new Set(filtered.map(match => match.path))];
-    const start = Math.min(from, paths.length);
-    const end = Math.min(start + limit, paths.length);
+    const files = [...paths].sort();
+    const start = Math.min(from, files.length);
+    const end = Math.min(start + limit, files.length);
     let out: string;
-    if (paths.length === 0) {
+    if (files.length === 0) {
       out = `[grep] no files with matches for ${pattern}\n`;
     } else if (end === start) {
-      out = `[grep] no files with matches for ${pattern} at offset ${from} (${paths.length} total files)\n`;
+      out = `[grep] no files with matches for ${pattern} at offset ${from} (${approximate({ count: files.length, cutOff })} total files)\n`;
     } else {
       out =
-        start === 0 && end === paths.length
+        start === 0 && end === files.length
           ? `[grep] ${end - start} files with matches for ${pattern}\n`
-          : `[grep] ${end - start} files with matches for ${pattern} (showing ${start + 1}-${end} of ${paths.length})\n`;
-      for (const path of paths.slice(start, end)) out += ` - ${path}\n`;
+          : `[grep] ${end - start} files with matches for ${pattern} (showing ${start + 1}-${end} of ${approximate({ count: files.length, cutOff })})\n`;
+      for (const path of files.slice(start, end)) out += ` - ${path}\n`;
     }
-    if (end < paths.length) {
+    if (end < files.length) {
       out += `... more files available; use offset ${end} to continue\n`;
     }
-    return { text: out };
+    return { text: out + cutoffNotice };
   }
 
   const around = Math.min(contextLines ?? 0, CONTEXT_LINES);
@@ -552,28 +842,25 @@ export async function grepFxFiles(options: {
   if (filtered.length === 0) {
     out = `[grep] no matches for ${pattern}\n`;
   } else if (end === start) {
-    out = `[grep] no matches for ${pattern} at offset ${from} (${filtered.length} total matches)\n`;
+    out = `[grep] no matches for ${pattern} at offset ${from} (${approximate({ count: filtered.length, cutOff })} total matches)\n`;
   } else {
     out =
       start === 0 && end === filtered.length
         ? `[grep] ${end - start} matches for ${pattern}\n`
-        : `[grep] ${end - start} matches for ${pattern} (showing ${start + 1}-${end} of ${filtered.length})\n`;
+        : `[grep] ${end - start} matches for ${pattern} (showing ${start + 1}-${end} of ${approximate({ count: filtered.length, cutOff })})\n`;
     const fileLines = new Map<string, string[] | undefined>();
     for (const match of filtered.slice(start, end)) {
       let lines: string[] | undefined;
       if (around > 0) {
         if (!fileLines.has(match.abs)) {
-          const bytes = await sandbox.session.readBinaryFile({
-            path: match.abs,
-            abortSignal,
-          });
-          const text =
-            bytes != null && bytes.length <= CONTEXT_FILE_BYTES
-              ? decodeFxModelSafeText({ bytes })
-              : undefined;
-          const split = text?.split('\n');
-          if (split?.at(-1) === '') split.pop();
-          fileLines.set(match.abs, split);
+          fileLines.set(
+            match.abs,
+            await readContextLines({
+              sandbox,
+              path: match.abs,
+              abortSignal,
+            }),
+          );
         }
         lines = fileLines.get(match.abs);
       }
@@ -594,5 +881,5 @@ export async function grepFxFiles(options: {
   if (end < filtered.length) {
     out += `... more matches available; use offset ${end} to continue\n`;
   }
-  return { text: out };
+  return { text: out + cutoffNotice };
 }
