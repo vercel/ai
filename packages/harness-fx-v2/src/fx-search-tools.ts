@@ -306,9 +306,10 @@ function toShownPath(options: {
 /**
  * Lists the files below a search root in the sandbox, relative to the root,
  * skipping fx's ignored directories and, unless `includeHidden` is set,
- * hidden directories. Throws when the listing fails. The listing keeps at
- * most `MAX_SEARCH_OUTPUT_BYTES` of file names, and `truncated` says whether
- * the root holds more files.
+ * hidden directories, and keeps only the files `matches` accepts. Throws
+ * when the listing fails. The listing keeps at most
+ * `MAX_SEARCH_OUTPUT_BYTES` of file names and `MAX_LIST_ENTRIES` of them,
+ * and `cutOff` says which of the two cut it off.
  */
 async function listFiles(options: {
   /**
@@ -327,11 +328,26 @@ async function listFiles(options: {
   includeHidden: boolean;
 
   /**
+   * Whether a file relative to the root is part of the listing.
+   */
+  matches: (relative: string) => boolean;
+
+  /**
    * Aborts the listing.
    */
   abortSignal: AbortSignal;
-}): Promise<{ files: string[]; truncated: boolean }> {
-  const { sandbox, root, includeHidden, abortSignal } = options;
+}): Promise<{
+  /**
+   * Files of the listing, sorted.
+   */
+  files: string[];
+
+  /**
+   * What cut the listing off, if anything.
+   */
+  cutOff?: 'bytes' | 'entries';
+}> {
+  const { sandbox, root, includeHidden, matches, abortSignal } = options;
   const names = [...IGNORED_DIRECTORIES, ...(includeHidden ? [] : ['.*'])];
   const nameExpression = names
     .map(name => `-name ${shellQuote(name)}`)
@@ -354,12 +370,17 @@ async function listFiles(options: {
     const line = stdout.slice(at, end === -1 ? stdout.length : end);
     at = end === -1 ? stdout.length : end + 1;
     if (!line.startsWith(prefix)) continue;
+    const relative = line.slice(prefix.length);
+    if (!matches(relative)) continue;
     if (files.length >= MAX_LIST_ENTRIES) {
-      return { files: files.sort(), truncated: true };
+      return { files: files.sort(), cutOff: 'entries' };
     }
-    files.push(line.slice(prefix.length));
+    files.push(relative);
   }
-  return { files: files.sort(), truncated: result.truncated };
+  return {
+    files: files.sort(),
+    cutOff: result.truncated ? 'bytes' : undefined,
+  };
 }
 
 /**
@@ -420,7 +441,7 @@ export async function globFxFiles(options: {
   const matches: string[] = [];
   let count = 0;
   let truncated = false;
-  let listingTruncated = false;
+  let listingCutOff: 'bytes' | 'entries' | undefined;
   if (stat.type === 'file') {
     const basename = root.rel.slice(root.rel.lastIndexOf('/') + 1);
     if (matchesFxGlob({ pattern, path: basename })) {
@@ -434,11 +455,11 @@ export async function globFxFiles(options: {
       includeHidden:
         hasHiddenDirectory({ segments: root.rel.split('/') }) ||
         hasHiddenDirectory({ segments: pattern.split('/').slice(0, -1) }),
+      matches: relative => matchesFxGlob({ pattern, path: relative }),
       abortSignal,
     });
-    listingTruncated = listing.truncated;
+    listingCutOff = listing.cutOff;
     for (const relative of listing.files) {
-      if (!matchesFxGlob({ pattern, path: relative })) continue;
       count++;
       if (mode === 'count') continue;
       if (matches.length >= LIST_ENTRIES) {
@@ -450,24 +471,24 @@ export async function globFxFiles(options: {
   }
 
   if (mode === 'count') {
-    const notice = listingTruncated
-      ? ' (at least; the file listing was cut off)'
-      : '';
+    const notice =
+      listingCutOff == null ? '' : ' (at least; the file listing was cut off)';
     return {
       text: `[glob] count ${count} matches for ${pattern}${notice}\n`,
     };
   }
   if (matches.length === 0) {
-    const notice = listingTruncated
-      ? ` in the listed part; the file listing was cut off after ${MAX_SEARCH_OUTPUT_BYTES} bytes`
-      : '';
+    const notice =
+      listingCutOff == null
+        ? ''
+        : ` in the listed part; ${toListingCutOffNotice({ cutOff: listingCutOff })}`;
     return { text: `[glob] no matches for ${pattern}${notice}\n` };
   }
   let out = `[glob] ${matches.length} matches for ${pattern}\n`;
   for (const match of matches) out += ` - ${match}\n`;
   if (truncated) out += `... truncated to first ${LIST_ENTRIES} matches\n`;
-  if (listingTruncated) {
-    out += `... the file listing was cut off after ${MAX_SEARCH_OUTPUT_BYTES} bytes; narrow the search path\n`;
+  if (listingCutOff != null) {
+    out += `... ${toListingCutOffNotice({ cutOff: listingCutOff })}\n`;
   }
   return { text: out };
 }
@@ -549,6 +570,21 @@ async function readContextLines(options: {
   const lines = text?.split('\n');
   if (lines?.at(-1) === '') lines.pop();
   return lines;
+}
+
+/**
+ * Describes what cut a file listing off, for the result that reports it.
+ */
+function toListingCutOffNotice(options: {
+  /**
+   * What cut the listing off.
+   */
+  cutOff: 'bytes' | 'entries';
+}): string {
+  const { cutOff } = options;
+  return cutOff === 'bytes'
+    ? `the file listing was cut off after ${MAX_SEARCH_OUTPUT_BYTES} bytes; narrow the search path`
+    : `the file listing was cut off after ${MAX_LIST_ENTRIES} files; narrow the pattern or the search path`;
 }
 
 /**

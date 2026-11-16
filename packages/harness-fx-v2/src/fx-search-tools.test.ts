@@ -333,7 +333,10 @@ describe('searching a sandbox that prints without end', () => {
       abortSignal: new AbortController().signal,
     });
 
-    expect(output.text).toContain('the file listing was cut off');
+    expect(output.text).toContain(
+      'the file listing was cut off after 100000 files',
+    );
+    expect(output.text).not.toContain('cut off after 8388608 bytes');
     const listed = output.text
       .split('\n')
       .filter(line => line.startsWith(' - '))
@@ -416,6 +419,80 @@ describe('searching a sandbox that prints without end', () => {
 
     expect(output.text).toContain('of at least 20000');
     expect(output.text).toContain('more than 20000 matches');
+  });
+
+  test('counts only the matches the include filter keeps', async () => {
+    const { session } = createFakeSearchSession({
+      stat: () => ({ type: 'directory', size: 0 }),
+      command: () => ({
+        chunks: function* () {
+          // More matches than the match limit in files the filter drops, and
+          // a few it keeps.
+          for (let line = 0; line < 25_000; line++) {
+            yield new Uint8Array(Buffer.from('./other/f.ts:1:x\n', 'utf8'));
+          }
+          for (let line = 0; line < 5; line++) {
+            yield new Uint8Array(Buffer.from('./docs/f.ts:1:x\n', 'utf8'));
+          }
+        },
+      }),
+    });
+
+    const output = await grepFxFiles({
+      sandbox: testSandbox(session),
+      input: { pattern: 'x', include: 'docs/**' },
+      abortSignal: new AbortController().signal,
+    });
+
+    expect(output.text).toContain('[grep] 5 matches for x');
+    expect(output.text).not.toContain('at least');
+  });
+
+  test('counts a large number of matches exactly', async () => {
+    const { session } = createFakeSearchSession({
+      stat: () => ({ type: 'directory', size: 0 }),
+      command: () => ({
+        chunks: function* () {
+          for (let line = 0; line < 25_000; line++) {
+            yield new Uint8Array(Buffer.from('./a.ts:1:x\n', 'utf8'));
+          }
+        },
+      }),
+    });
+
+    expect(
+      await grepFxFiles({
+        sandbox: testSandbox(session),
+        input: { pattern: 'x', mode: 'count' },
+        abortSignal: new AbortController().signal,
+      }),
+    ).toEqual({
+      text: '[grep] count 25000 matching lines in 1 files for x\n',
+    });
+  });
+
+  test('lists the files of a large number of matches exactly', async () => {
+    const { session } = createFakeSearchSession({
+      stat: () => ({ type: 'directory', size: 0 }),
+      command: () => ({
+        chunks: function* () {
+          for (let line = 0; line < 25_000; line++) {
+            const file = line % 2 === 0 ? 'a.ts' : 'b.ts';
+            yield new Uint8Array(Buffer.from(`./${file}:1:x\n`, 'utf8'));
+          }
+        },
+      }),
+    });
+
+    expect(
+      await grepFxFiles({
+        sandbox: testSandbox(session),
+        input: { pattern: 'x', mode: 'files_with_matches' },
+        abortSignal: new AbortController().signal,
+      }),
+    ).toEqual({
+      text: '[grep] 2 files with matches for x\n - a.ts\n - b.ts\n',
+    });
   });
 
   test('bounds the count of grep_files for a cut-off output', async () => {
