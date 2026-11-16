@@ -121,16 +121,19 @@ async function readFileBytes(options: {
     const result = await session.run({
       command: `set -o pipefail; base64 ${quoted} | tr -d '\\n' | head -c ${start + size} | tail -c ${size}`,
     });
-    // 141 is `head` closing the pipe; anything else is a failed read.
-    if (result.exitCode !== 0 && result.exitCode !== 141) {
-      return { status: 'refused' };
-    }
     const encoded = result.stdout.replace(/\s+/g, '');
     /*
      * A window that is not the text it asked for means the file shrank or was
      * replaced after its length was read, so the content cannot be assembled.
+     * A runner that reports the closed pipe of `head` as a write error still
+     * delivers the whole window, so the exit code only matters when the window
+     * is short.
      */
-    if (encoded.length !== size) return { status: 'changed' };
+    if (encoded.length !== size) {
+      return result.exitCode === 0 || result.exitCode === 141
+        ? { status: 'changed' }
+        : { status: 'refused' };
+    }
     const chunk = Buffer.from(encoded, 'base64');
     if (chunk.byteLength === 0) return { status: 'changed' };
     chunks.push(chunk);
@@ -276,7 +279,7 @@ export async function findSandboxFiles(options: {
           .map(name => `-name ${shellQuote(name)}`)
           .join(' -o ')} \\) -prune -o`;
   const result = await session.run({
-    command: `set -o pipefail; if [ -d ${quoted} ]; then find ${quoted} ${prune} -type f -print | head -n ${MAX_FIND_ENTRIES + 1} | head -c ${MAX_FIND_BYTES + 1}; else printf '%s\\n' ${quoted}; fi`,
+    command: `set -o pipefail; if [ -d ${quoted} ]; then find ${quoted} ! -path ${quoted} ${prune} -type f -print | head -n ${MAX_FIND_ENTRIES + 1} | head -c ${MAX_FIND_BYTES + 1}; else printf '%s\\n' ${quoted}; fi`,
   });
   let entries = result.stdout.split('\n').filter(line => line.length > 0);
   const reachedBudget =
@@ -368,7 +371,7 @@ export async function listSandboxDirectory(options: {
 }): Promise<string[]> {
   const { session, directory } = options;
   const result = await session.run({
-    command: `set -o pipefail; ls -A ${shellQuote(directory)} | sort | head -n ${MAX_LIST_ENTRIES + 1} | head -c ${MAX_LIST_BYTES + 1}`,
+    command: `set -o pipefail; ls -A ${shellQuote(directory)} | LC_ALL=C sort -f | head -n ${MAX_LIST_ENTRIES + 1} | head -c ${MAX_LIST_BYTES + 1}`,
   });
   let entries = result.stdout.split('\n').filter(line => line.length > 0);
   const reachedBudget =

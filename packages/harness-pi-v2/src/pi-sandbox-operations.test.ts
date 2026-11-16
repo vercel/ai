@@ -182,6 +182,37 @@ describe('createPiSandboxOperations', () => {
     );
   });
 
+  test('accepts a full window from a runner that reports the closed pipe', async () => {
+    const encoded = Buffer.alloc(5 * 1024 * 1024, 0x61).toString('base64');
+    const session = {
+      description: 'sigpipe sandbox',
+      async stat() {
+        return { type: 'file' as const, size: 5 * 1024 * 1024 };
+      },
+      async run(options: { command: string }) {
+        if (options.command.includes('wc -c')) {
+          return { exitCode: 0, stdout: `${encoded.length}\n`, stderr: '' };
+        }
+        const start = Number(/head -c (\d+)/.exec(options.command)?.[1] ?? 0);
+        const length = Number(/tail -c (\d+)/.exec(options.command)?.[1] ?? 0);
+        // The runner reports `head` closing the pipe as a write error.
+        return {
+          exitCode: 1,
+          stdout: encoded.slice(start - length, start),
+          stderr: 'write error',
+        };
+      },
+    };
+    const operations = createPiSandboxOperations({
+      // oxlint-disable-next-line ai-sdk/no-as-unknown-as -- partial sandbox session for a test.
+      session: session as never,
+    });
+
+    expect((await operations.readFile('/home/user/five.log')).byteLength).toBe(
+      5 * 1024 * 1024,
+    );
+  });
+
   test('reads binary content byte for byte', async () => {
     const { session, root, operations } = await setup();
     const bytes = new Uint8Array(4096);
@@ -251,6 +282,20 @@ describe('createPiSandboxOperations', () => {
 });
 
 describe('findSandboxFiles', () => {
+  test('searches a directory whose own name is ignored', async () => {
+    const { session, root } = await setup();
+
+    expect(
+      await findSandboxFiles({
+        session,
+        pattern: '*.ts',
+        directory: `${root}/node_modules`,
+        ignore: ['**/node_modules/**', '**/.git/**'],
+        limit: 10,
+      }),
+    ).toEqual(['x/index.ts']);
+  });
+
   test('matches file names for patterns without a slash', async () => {
     const { session, root } = await setup();
 
