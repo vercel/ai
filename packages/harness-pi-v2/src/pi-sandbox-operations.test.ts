@@ -187,6 +187,64 @@ describe('findSandboxFiles', () => {
     ).toEqual(['src/a.ts', 'src/b.test.ts']);
   });
 
+  test('bounds the enumeration of a tree that a sandbox user filled', async () => {
+    const line = `${'d'.repeat(200)}/file.txt\n`;
+    let command = '';
+    const session = {
+      description: 'huge tree sandbox',
+      async run(options: { command: string }) {
+        command = options.command;
+        // What the capped command prints for a tree far above the budget.
+        return {
+          exitCode: 0,
+          stdout: line.repeat(Math.ceil((5 * 1024 * 1024) / line.length)),
+          stderr: '',
+        };
+      },
+    };
+
+    const paths = await findSandboxFiles({
+      // oxlint-disable-next-line ai-sdk/no-as-unknown-as -- partial sandbox session for a test.
+      session: session as never,
+      pattern: '*.txt',
+      directory: '/home/user',
+      ignore: [],
+      limit: 3,
+    });
+
+    // The sandbox stops the enumeration, so the host never holds the tree.
+    expect(command).toContain('head -n 50001');
+    expect(command).toContain(`head -c ${4 * 1024 * 1024 + 1}`);
+    expect(paths).toHaveLength(3);
+    expect(paths[0]).toBe(`${'d'.repeat(200)}/file.txt`);
+  });
+
+  test('drops a path that the byte budget cut in half', async () => {
+    const longPath = 'a'.repeat(4 * 1024 * 1024);
+    const session = {
+      description: 'cut enumeration sandbox',
+      async run() {
+        // The byte budget stops the command in the middle of a path.
+        return {
+          exitCode: 0,
+          stdout: `${longPath}\n${'b'.repeat(30)}`,
+          stderr: '',
+        };
+      },
+    };
+
+    const paths = await findSandboxFiles({
+      // oxlint-disable-next-line ai-sdk/no-as-unknown-as -- partial sandbox session for a test.
+      session: session as never,
+      pattern: '*',
+      directory: '/home/user',
+      ignore: [],
+      limit: 10,
+    });
+
+    expect(paths).toEqual([longPath]);
+  });
+
   test('matches relative paths for patterns with a slash and applies the limit', async () => {
     const { session, root } = await setup();
 

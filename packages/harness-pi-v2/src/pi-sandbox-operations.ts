@@ -172,6 +172,19 @@ function createNotFoundError(options: {
 }
 
 /**
+ * Paths that one recursive search may enumerate, so a tree with a huge number
+ * of files cannot take more than this many paths from the sandbox.
+ */
+const MAX_FIND_ENTRIES = 50_000;
+
+/**
+ * Bytes of the enumeration that the host keeps, so a tree with very long paths
+ * cannot fill the memory of the process that serves many sessions. The limit
+ * applies before Pi sees the paths and before they are filtered or sorted.
+ */
+const MAX_FIND_BYTES = 4 * 1024 * 1024;
+
+/**
  * Lists the files below a directory in the sandbox that match a glob
  * pattern, as paths relative to the directory, sorted case-insensitively.
  *
@@ -179,6 +192,10 @@ function createNotFoundError(options: {
  * matches `src/a.ts`), while a pattern with a `/` matches the whole relative
  * path. Files matching one of the `ignore` patterns are skipped, and at most
  * `limit` paths are returned. A file path lists that file.
+ *
+ * The sandbox stops the enumeration at `MAX_FIND_ENTRIES` paths and
+ * `MAX_FIND_BYTES` bytes, so a tree that a sandbox user filled cannot exhaust
+ * the host before the requested limit applies.
  */
 export async function findSandboxFiles(options: {
   /**
@@ -209,17 +226,25 @@ export async function findSandboxFiles(options: {
   const { session, pattern, directory, ignore, limit } = options;
   const quoted = shellQuote(directory);
   const result = await session.run({
-    command: `if [ -d ${quoted} ]; then find ${quoted} -type f; else printf '%s\\n' ${quoted}; fi`,
+    command: `set -o pipefail; if [ -d ${quoted} ]; then find ${quoted} -type f | head -n ${MAX_FIND_ENTRIES + 1} | head -c ${MAX_FIND_BYTES + 1}; else printf '%s\\n' ${quoted}; fi`,
   });
-  if (result.exitCode !== 0) {
+  // 141 is `head` closing the pipe once the enumeration reached its budget.
+  if (result.exitCode !== 0 && result.exitCode !== 141) {
     throw new Error(
       result.stderr.trim() || `find failed with exit code ${result.exitCode}`,
     );
   }
+  let entries = result.stdout.split('\n').filter(line => line.length > 0);
+  if (
+    entries.length > MAX_FIND_ENTRIES ||
+    Buffer.byteLength(result.stdout, 'utf-8') > MAX_FIND_BYTES
+  ) {
+    // The byte budget can cut the last path in half, so it is dropped.
+    if (!result.stdout.endsWith('\n')) entries = entries.slice(0, -1);
+    entries = entries.slice(0, MAX_FIND_ENTRIES);
+  }
   const matchesName = !pattern.includes('/');
-  return result.stdout
-    .split('\n')
-    .filter(line => line.length > 0)
+  return entries
     .map(filePath =>
       filePath === directory
         ? path.posix.basename(filePath)
