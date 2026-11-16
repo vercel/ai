@@ -6,6 +6,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { World } from '@workflow/world';
 import type { HarnessAgentSession } from '../harness-agent-session';
+import { decodeJSONRecordValue, encodeJSONRecord } from './encode-json-record';
 import type { HarnessV2EffectError } from '../../../v2/harness-v2-effect';
 import type {
   HarnessV2CallWarning,
@@ -432,20 +433,18 @@ function encodeRecord(options: {
   record: HarnessAgentStreamPartRecord;
 }): string {
   const { record } = options;
-  const encoded: {
-    version: number;
-    part: JSONValue;
-    startId?: string;
-    key?: string;
-  } = {
-    version: STREAM_RECORD_VERSION,
-    part: jsonEncodeSerializableValue({
-      value: record.part as SerializableValue,
-    }),
-  };
-  if (record.startId != null) encoded.startId = record.startId;
-  if (record.key != null) encoded.key = record.key;
-  return JSON.stringify(encoded) + '\n';
+  const envelope: Record<string, JSONValue> = Object.assign(
+    Object.create(null),
+    {
+      version: STREAM_RECORD_VERSION,
+      part: jsonEncodeSerializableValue({
+        value: record.part as SerializableValue,
+      }),
+    },
+  );
+  if (record.startId != null) envelope.startId = record.startId;
+  if (record.key != null) envelope.key = record.key;
+  return encodeJSONRecord({ record: envelope, field: 'part' }) + '\n';
 }
 
 /**
@@ -592,7 +591,9 @@ export async function decodeStreamRecords(options: {
     ) {
       throw new Error('HarnessAgentStream: invalid part record.');
     }
-    const part = jsonDecodeSerializableValue({ value: envelope.part });
+    const part = jsonDecodeSerializableValue({
+      value: decodeJSONRecordValue({ value: envelope.part }),
+    });
     if (
       part == null ||
       typeof part !== 'object' ||
