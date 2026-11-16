@@ -1,0 +1,137 @@
+---
+title: Agentgates
+description: Use the Agentgates OpenAI compatible API with the AI SDK.
+---
+
+# Agentgates Provider
+
+[Agentgates](https://agentgates.ai) serves open models through an OpenAI-compatible API, paid from a wallet's prepaid USDC balance. Its confidential models run in attested hardware (GPU TEEs), and each one's attestation is public. You can use its Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+An Agentgates API key spends a wallet's prepaid balance. Connect a wallet at [agentgates.ai/inference](https://agentgates.ai/inference), add to its balance, and create a key there. The key starts with `ag_` and is shown once. Set it as a server-side environment variable:
+
+```bash
+export AGENTGATES_API_KEY=your-api-key
+```
+
+## Provider Instance
+
+Create an Agentgates provider instance with `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const agentgates = createOpenAICompatible({
+  name: 'agentgates',
+  apiKey: process.env.AGENTGATES_API_KEY,
+  baseURL: 'https://api.agentgates.ai/api/inference/v1',
+});
+```
+
+The `apiKey` setting sends your key as a Bearer token in the `Authorization` header.
+
+## Language Models
+
+Create a language model by passing an Agentgates model ID to the provider instance:
+
+```ts
+const model = agentgates('gpt-oss-120b');
+```
+
+Set `maxOutputTokens` to what the answer needs. Without it, a request's output ceiling is 1,024 tokens, and reasoning models count their reasoning tokens toward it.
+
+### Generate Text
+
+Use `generateText` to generate text with the model:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const agentgates = createOpenAICompatible({
+  name: 'agentgates',
+  apiKey: process.env.AGENTGATES_API_KEY,
+  baseURL: 'https://api.agentgates.ai/api/inference/v1',
+});
+
+const { text } = await generateText({
+  model: agentgates('gpt-oss-120b'),
+  prompt: 'Explain what a confidential VM is in one sentence.',
+  maxOutputTokens: 300,
+});
+
+console.log(text);
+```
+
+### Stream Text
+
+Use `streamText` to stream text as it is generated:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const agentgates = createOpenAICompatible({
+  name: 'agentgates',
+  apiKey: process.env.AGENTGATES_API_KEY,
+  baseURL: 'https://api.agentgates.ai/api/inference/v1',
+});
+
+const result = streamText({
+  model: agentgates('gpt-oss-120b'),
+  prompt: 'Count from 1 to 5, separated by spaces.',
+  maxOutputTokens: 300,
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+### Tool Calling
+
+Pass `tools` the same way as with any AI SDK provider:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const agentgates = createOpenAICompatible({
+  name: 'agentgates',
+  apiKey: process.env.AGENTGATES_API_KEY,
+  baseURL: 'https://api.agentgates.ai/api/inference/v1',
+});
+
+const { toolCalls, toolResults } = await generateText({
+  model: agentgates('gpt-oss-120b'),
+  tools: {
+    weather: tool({
+      description: 'Get the weather in a city',
+      inputSchema: z.object({ city: z.string() }),
+      execute: async ({ city }) => ({ city, temperatureC: 21, sky: 'clear' }),
+    }),
+  },
+  prompt: 'What is the weather in Lisbon? Use the weather tool.',
+  maxOutputTokens: 300,
+});
+
+console.log(toolCalls, toolResults);
+```
+
+## Supported Models and Capabilities
+
+The model catalog changes over time. The public [`GET /models`](https://api.agentgates.ai/api/inference/v1/models) endpoint lists current model IDs, and each row's `x_agentgates` object gives its context length, output ceiling, prices, and whether it is confidential. A confidential model's attestation is at `https://api.agentgates.ai/api/inference/attestation?model=<model-id>`.
+
+Support for tools, reasoning, and other features depends on the selected model.
+
+## Resources
+
+- [Agentgates inference API documentation](https://api.agentgates.ai/api/inference/docs)
+- [Agentgates models list](https://api.agentgates.ai/api/inference/v1/models)
+- [AI SDK OpenAI Compatible provider](/providers/openai-compatible-providers)
