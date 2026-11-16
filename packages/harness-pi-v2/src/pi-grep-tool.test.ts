@@ -56,7 +56,7 @@ describe('createPiGrepTool', () => {
   test('reads context lines in the sandbox without loading the file', async () => {
     const { session, workDir, grep } = await setup();
     const lines = Array.from(
-      { length: 200_000 },
+      { length: 50_000 },
       (_value, index) => `line ${index + 1}`,
     );
     await session.writeTextFile({
@@ -67,13 +67,13 @@ describe('createPiGrepTool', () => {
     const readBinaryFile = vi.spyOn(session, 'readBinaryFile');
 
     const result = await grep({
-      pattern: 'line 199999$',
+      pattern: 'line 49999$',
       path: 'large.txt',
       context: 1,
     });
 
     expect(text(result)).toBe(
-      'large.txt-199998- line 199998\nlarge.txt:199999: line 199999\nlarge.txt-200000- line 200000',
+      'large.txt-49998- line 49998\nlarge.txt:49999: line 49999\nlarge.txt-50000- line 50000',
     );
     expect(readTextFile).not.toHaveBeenCalled();
     expect(readBinaryFile).not.toHaveBeenCalled();
@@ -102,12 +102,26 @@ describe('createPiGrepTool', () => {
 
   test('omits context that would exceed the per-file ranges', async () => {
     const { session, workDir, grep } = await setup();
-    const lines = Array.from({ length: 3000 }, (_value, index) =>
-      index % 5 === 0 ? 'match' : `line ${index}`,
+    // 501 matches four lines apart, so one range more than the cap allows.
+    const lines = Array.from({ length: 2001 }, (_value, index) =>
+      index % 4 === 0 ? 'match' : `line ${index}`,
     );
     await session.writeTextFile({
       path: `${workDir}/many.txt`,
       content: `${lines.join('\n')}\n`,
+    });
+
+    /*
+     * Running the cap's 500 ranges through the sandbox double takes most of a
+     * second, so the search runs for real and the context read only records
+     * the command it would run.
+     */
+    const contextCommands: string[] = [];
+    const run = session.run.bind(session);
+    vi.spyOn(session, 'run').mockImplementation(async options => {
+      if (!options.command.includes('NR>=')) return run(options);
+      contextCommands.push(options.command);
+      return { exitCode: 0, stdout: '', stderr: '' };
     });
 
     const result = await grep({
@@ -118,7 +132,9 @@ describe('createPiGrepTool', () => {
     });
 
     // Every match is still shown, while the context reads are capped.
-    expect(text(result).match(/many\.txt:\d+: match/gm)).toHaveLength(600);
+    expect(text(result).match(/many\.txt:\d+: match/gm)).toHaveLength(501);
+    expect(contextCommands).toHaveLength(1);
+    expect(contextCommands[0]!.match(/NR>=/g)).toHaveLength(500);
     expect(text(result)).toContain(
       'Some context lines omitted for large files',
     );
