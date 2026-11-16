@@ -24,7 +24,8 @@ import {
   DefaultHarnessAgentSession,
   type HarnessAgentSession,
 } from './harness-agent-session';
-import { InMemoryWorld } from './in-memory-world';
+import { registerDurableHarnessAgent } from './durable-agent-registry';
+import { InMemoryWorld, isInMemoryWorld } from './in-memory-world';
 import { createDriveContext } from './internal/create-drive-context';
 import { createEffectFunction } from './internal/create-effect-function';
 import { createExecuteToolFunctions } from './internal/create-execute-tool-functions';
@@ -40,13 +41,26 @@ import {
 } from './internal/create-stream-writer';
 import { readTurnRecordStream } from './internal/read-turn-record-stream';
 import {
+  claimSessionDrive,
+  releaseSessionDrive,
+} from './internal/session-drives';
+import {
   HarnessAfterFinishError,
   HarnessBeforeStartError,
 } from './internal/errors';
 import { HarnessGenerateTextResult } from './internal/harness-generate-text-result';
 import { HarnessStreamTextResult } from './internal/harness-stream-text-result';
 import { getDriveProcess, trackRunningDrive } from './internal/drive-process';
+import {
+  connectDurableHarnessAgentQueue,
+  DURABLE_HARNESS_AGENT_QUEUE_NAMESPACE,
+  sendDurableHarnessAgentBackstop,
+} from './internal/durable-agent-queue';
 import { startDrive } from './internal/start-drive';
+import {
+  getDurableHarnessAgentWorkflowName,
+  getNonDurableHarnessAgentWorkflowName,
+} from './internal/workflow-name';
 import type {
   HarnessAgentSandboxConfig,
   HarnessAgentSettings,
@@ -73,10 +87,11 @@ const supportedCallOptions = new Set<string | symbol>([
 ]);
 
 /**
- * Run IDs of the sessions with a call in progress in this process, per World:
- * from the moment the call is accepted until its drive ended.
+ * Characters allowed in an agent's `id`. A durable agent's queue name
+ * contains its `id`, and world-vercel replaces every other character in a
+ * queue name with `-`, so different ids could otherwise share a queue.
  */
-const busySessions = new WeakMap<World, Set<string>>();
+const AGENT_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
 
 /**
  * Additional call input required to associate work with an agent session.
@@ -99,11 +114,13 @@ type HarnessAllTools<
 /**
  * Consumer-facing agent configured with a HarnessV2 adapter.
  *
- * A supplied `World` makes the agent durable; otherwise it uses an in-memory
- * world. Every session must include a sandbox session and a stable sandbox ID.
+ * A supplied `World` other than an `InMemoryWorld` makes the agent durable,
+ * which requires an `id`; otherwise it uses an in-memory world. Every
+ * session must include a sandbox session and a stable sandbox ID.
  *
  * ```ts
  * const agent = new HarnessAgent({
+ *   id: 'support-agent',
  *   harness,
  *   world,
  *   getSandboxSession: ({ sandboxId }) => sandboxProvider.getSession({ sandboxId }),
@@ -139,6 +156,13 @@ export class HarnessAgent<
 
   private readonly harness: HarnessV2<THarness['builtinTools']>;
   private readonly world: World;
+
+  /**
+   * Whether the agent is durable: given a World other than an
+   * `InMemoryWorld`.
+   */
+  private readonly durable: boolean;
+
   private readonly getSandboxSession: NonNullable<
     HarnessAgentSettings['getSandboxSession']
   >;
@@ -192,6 +216,7 @@ export class HarnessAgent<
         key !== 'harness' &&
         key !== 'tools' &&
         key !== 'world' &&
+        key !== 'id' &&
         key !== 'getSandboxSession' &&
         key !== 'sandboxConfig',
     );
@@ -215,15 +240,44 @@ export class HarnessAgent<
         ? {}
         : { workDir: normalizeWorkDir({ workDir: sandboxConfig.workDir }) };
 
+    const { id } = settings;
+    if (id != null && !AGENT_ID_PATTERN.test(id)) {
+      throw new Error(
+        `HarnessAgent: \`id\` must only contain letters, digits, \`_\` and \`-\`, received \`${id}\`.`,
+      );
+    }
+    this.durable = settings.world != null && !isInMemoryWorld(settings.world);
+    if (this.durable && id == null) {
+      throw new Error('HarnessAgent: `id` is required with a durable `world`.');
+    }
+
     this.world = settings.world ?? new InMemoryWorld();
     this.getSandboxSession = settings.getSandboxSession;
-    this.id = settings.id;
+    this.id = id;
     this.harnessId = this.harness.harnessId;
     this.userTools = settings.tools ?? {};
     this.tools = {
       ...this.harness.builtinTools,
       ...settings.tools,
     } as HarnessAllTools<THarness, TUserTools>;
+
+    if (this.durable && id != null) {
+      registerDurableHarnessAgent({
+        id,
+        world: this.world,
+        createSession: options => this.createSession(options),
+        drive: options => this.drive(options),
+      });
+    }
+  }
+
+  /**
+   * Whether this agent runs durably: true if it was given a `world` other than
+   * an `InMemoryWorld`. A durable agent's sessions survive process restarts and
+   * crashes, and background drives continue their turns.
+   */
+  isDurable(): boolean {
+    return this.durable;
   }
 
   /**
@@ -248,6 +302,7 @@ export class HarnessAgent<
     sandboxSession?: SandboxSession | HarnessV2NetworkSandboxSession;
     runId?: string;
   }): Promise<HarnessAgentSession> {
+    this.connectQueue();
     const sandboxSession = options.sandboxSession;
     const sandboxSessionId =
       sandboxSession == null ? undefined : getSandboxId({ sandboxSession });
@@ -274,6 +329,11 @@ export class HarnessAgent<
       ) {
         throw new Error(
           `HarnessAgent.createSession: run \`${runId}\` does not hold a session of harness \`${this.harnessId}\`.`,
+        );
+      }
+      if (runInput.agentId != null && runInput.agentId !== this.id) {
+        throw new Error(
+          `HarnessAgent.createSession: run \`${runId}\` holds a session of the agent \`${String(runInput.agentId)}\`.`,
         );
       }
       if (sessionId != null && sessionId !== runInput.sessionId) {
@@ -306,50 +366,6 @@ export class HarnessAgent<
     });
     this.bindSession({ session });
     return session;
-  }
-
-  /**
-   * Creates and starts the World run of a new session and returns its ID.
-   *
-   * The run ID is minted before `run_created` is written, since some Worlds
-   * (e.g. world-vercel) require a client-generated run ID. The World's
-   * `createRunId()` is used when it implements one, which returns the bare
-   * ULID; otherwise a ULID is generated locally.
-   */
-  private async createRun(options: {
-    /**
-     * Identifier of the new session.
-     */
-    sessionId: string;
-
-    /**
-     * Stable sandbox identifier of the new session.
-     */
-    sandboxId: string;
-  }): Promise<string> {
-    const { sessionId, sandboxId } = options;
-    const runId = `wrun_${this.world.createRunId?.({}) ?? createUlid()}`;
-    await this.world.events.create(runId, {
-      eventType: 'run_created',
-      specVersion: this.world.specVersion,
-      eventData: {
-        deploymentId: await this.world.getDeploymentId(),
-        workflowName: `workflow//@ai-sdk/harness//${this.harnessId}`,
-        input: new TextEncoder().encode(
-          JSON.stringify({
-            version: 1,
-            harnessId: this.harnessId,
-            sessionId,
-            sandboxId,
-          }),
-        ),
-      },
-    });
-    await this.world.events.create(runId, {
-      eventType: 'run_started',
-      specVersion: this.world.specVersion,
-    });
-    return runId;
   }
 
   /**
@@ -454,14 +470,15 @@ export class HarnessAgent<
    * as interrupted and their output is retracted where a retry replaces it.
    * A drive is provably gone if it recorded a crash, its deadline passed,
    * its process is gone, or this call runs under a redelivery of the queue
-   * message that started it. Without that proof, the call resolves without
+   * job that started it. Without that proof, the call resolves without
    * changing the session. The harness then
    * continues the latest unfinished turn, or starts the turn of a prompt
    * that has not started one. Without either, the call resolves without
    * writing anything.
    *
    * Resolves without doing anything if this process already runs a drive of
-   * the session. Rejects like the drive of a `stream()` call.
+   * the session. Rejects like the drive of a `stream()` call. A durable agent
+   * sends a backstop before the drive starts.
    */
   async drive(options: {
     /**
@@ -470,28 +487,23 @@ export class HarnessAgent<
     session: HarnessAgentSession;
 
     /**
-     * ID of the World queue message whose delivery runs this drive (the
-     * `messageId` a queue handler receives), if a queue message started it.
-     * A later delivery of the same message proves to recovery that this
-     * drive is gone.
+     * ID of the queue job whose delivery runs this drive (the `messageId` a
+     * queue handler receives), if a queue job started it. A later delivery
+     * of the same queue job proves to recovery that this drive is gone.
      */
-    queueMessageId?: string;
+    queueJobId?: string;
   }): Promise<void> {
-    const { session, queueMessageId } = options;
+    const { session, queueJobId } = options;
     const { runId } = session;
+    this.connectQueue();
     this.bindSession({ session });
 
-    let busy = busySessions.get(this.world);
-    if (busy == null) {
-      busy = new Set();
-      busySessions.set(this.world, busy);
-    }
-    if (busy.has(runId)) return;
-    busy.add(runId);
+    if (!claimSessionDrive({ world: this.world, session })) return;
     try {
-      await this.runDrive({ session, queueMessageId });
+      await this.sendBackstop({ runId });
+      await this.runDrive({ session, queueJobId });
     } finally {
-      busy.delete(runId);
+      releaseSessionDrive({ world: this.world, session });
     }
   }
 
@@ -524,6 +536,7 @@ export class HarnessAgent<
     >
   > {
     const { session, abortSignal } = options;
+    this.connectQueue();
     const { events } = await createLog({
       world: this.world,
       runId: session.runId,
@@ -578,6 +591,7 @@ export class HarnessAgent<
     recordCrash?: boolean;
   }): Promise<void> {
     const { session, recordCrash } = options;
+    this.connectQueue();
     const log = createLog({ world: this.world, runId: session.runId });
     const { events } = await log.read({
       types: [
@@ -624,6 +638,67 @@ export class HarnessAgent<
   }
 
   /**
+   * Creates and starts the World run of a new session and returns its ID.
+   *
+   * The run ID is minted before `run_created` is written, since some Worlds
+   * (e.g. world-vercel) require a client-generated run ID. The World's
+   * `createRunId()` is used when it implements one, which returns the bare
+   * ULID; otherwise a ULID is generated locally.
+   */
+  private async createRun(options: {
+    /**
+     * Identifier of the new session.
+     */
+    sessionId: string;
+
+    /**
+     * Stable sandbox identifier of the new session.
+     */
+    sandboxId: string;
+  }): Promise<string> {
+    const { sessionId, sandboxId } = options;
+    const runId = `wrun_${this.world.createRunId?.({}) ?? createUlid()}`;
+    const agentId = this.durable ? this.id : undefined;
+    await this.world.events.create(runId, {
+      eventType: 'run_created',
+      specVersion: this.world.specVersion,
+      eventData: {
+        deploymentId: await this.world.getDeploymentId(),
+        workflowName:
+          agentId != null
+            ? getDurableHarnessAgentWorkflowName({ agentId })
+            : getNonDurableHarnessAgentWorkflowName({
+                harnessId: this.harnessId,
+              }),
+        input: new TextEncoder().encode(
+          JSON.stringify({
+            version: 1,
+            harnessId: this.harnessId,
+            ...(agentId != null && { agentId }),
+            sessionId,
+            sandboxId,
+          }),
+        ),
+        /*
+         * The World's recovery of active runs sends a durable agent's runs
+         * back on the queue namespace they record, which reaches the queue
+         * handler of every durable agent.
+         */
+        ...(agentId != null && {
+          executionContext: {
+            queueNamespace: DURABLE_HARNESS_AGENT_QUEUE_NAMESPACE,
+          },
+        }),
+      },
+    });
+    await this.world.events.create(runId, {
+      eventType: 'run_started',
+      specVersion: this.world.specVersion,
+    });
+    return runId;
+  }
+
+  /**
    * Validates the call, appends its prompt as a `prompt` submission, starts
    * a drive of the session, and returns the result reading the drive's
    * output.
@@ -655,6 +730,7 @@ export class HarnessAgent<
     const { session, abortSignal } = options;
     const { runId } = session;
     const streamName = session.getStreamName();
+    this.connectQueue();
     this.bindSession({ session });
 
     /*
@@ -663,19 +739,15 @@ export class HarnessAgent<
      * session across processes comes with the steps that add queueing,
      * recovery and fencing.
      */
-    let busy = busySessions.get(this.world);
-    if (busy == null) {
-      busy = new Set();
-      busySessions.set(this.world, busy);
-    }
     /*
      * TODO: Instead of rejecting a call while a turn is running, queue its
      * prompt: append the submission without delivering it, and let the drive
      * start its turn as soon as the running turn finished. The call's result
      * then starts reading at that turn's `start` part.
      */
-    if (busy.has(runId)) throw createTurnRunningError();
-    busy.add(runId);
+    if (!claimSessionDrive({ world: this.world, session })) {
+      throw createTurnRunningError();
+    }
 
     const submissionId = generateId();
     let driveEnd: Promise<void>;
@@ -691,6 +763,11 @@ export class HarnessAgent<
 
       startIndex =
         (await this.world.streams.getInfo(runId, streamName)).tailIndex + 1;
+      /*
+       * Sent before the submission is appended, so that a crash at any later
+       * point of the call leaves a queue job that continues the turn.
+       */
+      await this.sendBackstop({ runId });
       await log.append({
         type: 'submission',
         id: submissionId,
@@ -698,10 +775,12 @@ export class HarnessAgent<
       });
       driveEnd = this.runDrive({ session });
     } catch (error) {
-      busy.delete(runId);
+      releaseSessionDrive({ world: this.world, session });
       throw error;
     }
-    void driveEnd.finally(() => busy.delete(runId)).catch(() => {});
+    void driveEnd
+      .finally(() => releaseSessionDrive({ world: this.world, session }))
+      .catch(() => {});
 
     /*
      * The result reads the session's stream from `startIndex` on, starting
@@ -747,17 +826,39 @@ export class HarnessAgent<
     session: HarnessAgentSession;
 
     /**
-     * ID of the World queue message whose delivery runs the drive.
+     * ID of the queue job whose delivery runs the drive.
      */
-    queueMessageId?: string;
+    queueJobId?: string;
   }): Promise<void> {
     return runDrivePass({
       world: this.world,
       session: options.session,
-      queueMessageId: options.queueMessageId,
+      queueJobId: options.queueJobId,
       harness: this.harness,
       userTools: this.userTools,
       workDir: this.sandboxConfig.workDir,
+    });
+  }
+
+  /**
+   * Connects the World's queue to this process on a durable agent's first
+   * use, so that queue jobs reach the durable agent registry and the World's
+   * recovery of active runs starts.
+   */
+  private connectQueue(): void {
+    if (!this.durable) return;
+    connectDurableHarnessAgentQueue({ world: this.world });
+  }
+
+  /**
+   * Sends a backstop for a drive of the session that is about to start, if
+   * the agent is durable.
+   */
+  private async sendBackstop(options: { runId: string }): Promise<void> {
+    if (!this.durable || this.id == null) return;
+    await sendDurableHarnessAgentBackstop({
+      world: this.world,
+      queueJob: { runId: options.runId, agentId: this.id },
     });
   }
 }
@@ -872,9 +973,9 @@ async function runDrivePass(options: {
   session: HarnessAgentSession;
 
   /**
-   * ID of the World queue message whose delivery runs the drive.
+   * ID of the queue job whose delivery runs the drive.
    */
-  queueMessageId?: string;
+  queueJobId?: string;
 
   /**
    * Harness adapter that drives the session.
@@ -891,8 +992,7 @@ async function runDrivePass(options: {
    */
   workDir?: string;
 }): Promise<void> {
-  const { world, session, queueMessageId, harness, userTools, workDir } =
-    options;
+  const { world, session, queueJobId, harness, userTools, workDir } = options;
   const { runId } = session;
 
   const stopController = new AbortController();
@@ -973,7 +1073,7 @@ async function runDrivePass(options: {
           ...(runtimeDeadline != null && {
             deadline: runtimeDeadline.getTime(),
           }),
-          ...(queueMessageId != null && { queueMessageId }),
+          ...(queueJobId != null && { queueJobId }),
           ...(driveProcess != null && { process: driveProcess }),
         },
       }))

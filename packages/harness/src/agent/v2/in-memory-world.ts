@@ -228,6 +228,24 @@ type InMemoryWorldOptions = {
 };
 
 /**
+ * Registered symbol of the property that marks an `InMemoryWorld`. A
+ * registered symbol, unlike `instanceof`, also recognizes instances from
+ * another copy of this module, which bundlers may load into one process.
+ */
+const IN_MEMORY_WORLD_BRAND = Symbol.for('@ai-sdk/harness//in-memory-world');
+
+/**
+ * Returns whether `world` is an `InMemoryWorld`, from any copy of this
+ * module.
+ */
+export function isInMemoryWorld(world: World): boolean {
+  return (
+    (world as { [IN_MEMORY_WORLD_BRAND]?: unknown })[IN_MEMORY_WORLD_BRAND] ===
+    true
+  );
+}
+
+/**
  * An in-memory implementation of Workflow's `World` contract.
  *
  * Events are authoritative for run, step, hook, and wait projections. Streams,
@@ -246,6 +264,7 @@ export class InMemoryWorld implements World, Storable {
   readonly queue: World['queue'];
   readonly experimental_snapshots: NonNullable<World['experimental_snapshots']>;
 
+  private readonly [IN_MEMORY_WORLD_BRAND] = true;
   private readonly deploymentId: string;
   private readonly runRecords = new Map<string, WorkflowRun>();
   private readonly eventRecords = new Map<string, Event[]>();

@@ -432,9 +432,9 @@ describe('HarnessAgent', () => {
   test('rejects world settings when using a HarnessV1 adapter', () => {
     const { harness } = mockHarness({ script: () => [] });
 
-    expect(() => new HarnessAgent({ harness, world: {} as World })).toThrow(
-      '`world` is only supported with HarnessV2',
-    );
+    expect(
+      () => new HarnessAgent({ harness, world: {} as World, id: 'agent' }),
+    ).toThrow('`world` is only supported with HarnessV2');
   });
 
   test('rejects a sandbox session resolver when using a HarnessV1 adapter', () => {

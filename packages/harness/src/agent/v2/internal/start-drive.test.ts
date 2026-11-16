@@ -84,14 +84,14 @@ function effectStart(options: {
 function driveIdentity(options: {
   driveId: string;
   deadline?: number;
-  queueMessageId?: string;
+  queueJobId?: string;
   process?: HarnessAgentDriveProcess;
 }): HarnessAgentDriveIdentity {
   return {
     driveId: options.driveId,
     ...(options.deadline != null && { deadline: options.deadline }),
-    ...(options.queueMessageId != null && {
-      queueMessageId: options.queueMessageId,
+    ...(options.queueJobId != null && {
+      queueJobId: options.queueJobId,
     }),
     ...(options.process != null && { process: options.process }),
   };
@@ -201,7 +201,7 @@ describe('startDrive', () => {
         driveIdentity: driveIdentity({
           driveId: 'drive',
           deadline: 1_000,
-          queueMessageId: 'message',
+          queueJobId: 'message',
           process: driveProcess,
         }),
       }),
@@ -210,7 +210,7 @@ describe('startDrive', () => {
       driveStart({
         driveId: 'drive',
         deadline: 1_000,
-        queueMessageId: 'message',
+        queueJobId: 'message',
         process: driveProcess,
       }),
     ]);
@@ -221,13 +221,12 @@ describe('startDrive', () => {
       case: 'its deadline has not passed',
       drive: () =>
         driveStart({ driveId: 'old', deadline: Date.now() + 60_000 }),
-      queueMessageId: undefined,
+      queueJobId: undefined,
     },
     {
-      case: 'it ran under another queue message',
-      drive: () =>
-        driveStart({ driveId: 'old', queueMessageId: 'old-message' }),
-      queueMessageId: 'new-message',
+      case: 'it ran under another queue job',
+      drive: () => driveStart({ driveId: 'old', queueJobId: 'old-message' }),
+      queueJobId: 'new-message',
     },
     {
       case: 'it ran on another host',
@@ -236,11 +235,11 @@ describe('startDrive', () => {
           driveId: 'old',
           process: { pid: 1, bootId: 'boot', hostname: '', startedAt: 0 },
         }),
-      queueMessageId: undefined,
+      queueJobId: undefined,
     },
   ])(
     'leaves the session unchanged while the drive of abandoned attempts may still run: $case',
-    async ({ drive, queueMessageId }) => {
+    async ({ drive, queueJobId }) => {
       const events = [
         prompt,
         drive(),
@@ -255,7 +254,7 @@ describe('startDrive', () => {
           writer,
           world,
           session,
-          driveIdentity: driveIdentity({ driveId: 'drive', queueMessageId }),
+          driveIdentity: driveIdentity({ driveId: 'drive', queueJobId }),
         }),
       ).toBe(false);
       expect((await log.read()).events).toEqual(events);
@@ -315,17 +314,17 @@ describe('startDrive', () => {
     {
       proof: 'a past deadline',
       events: [driveStart({ driveId: 'old', deadline: 1 })],
-      queueMessageId: undefined,
+      queueJobId: undefined,
     },
     {
       proof: 'a drive-crash',
       events: [driveStart({ driveId: 'old' }), driveCrash({ driveId: 'old' })],
-      queueMessageId: undefined,
+      queueJobId: undefined,
     },
     {
-      proof: 'a redelivered queue message',
-      events: [driveStart({ driveId: 'old', queueMessageId: 'message' })],
-      queueMessageId: 'message',
+      proof: 'a redelivered queue job',
+      events: [driveStart({ driveId: 'old', queueJobId: 'message' })],
+      queueJobId: 'message',
     },
     ...(getDriveProcess() == null
       ? []
@@ -335,12 +334,12 @@ describe('startDrive', () => {
             events: [
               driveStart({ driveId: 'old', process: getDriveProcess() }),
             ],
-            queueMessageId: undefined,
+            queueJobId: undefined,
           },
         ]),
   ])(
     'recovers abandoned attempts given $proof',
-    async ({ events, queueMessageId }) => {
+    async ({ events, queueJobId }) => {
       const { world, log, writer } = await setup({
         events: [
           prompt,
@@ -369,7 +368,7 @@ describe('startDrive', () => {
           writer,
           world,
           session,
-          driveIdentity: driveIdentity({ driveId: 'drive', queueMessageId }),
+          driveIdentity: driveIdentity({ driveId: 'drive', queueJobId }),
         }),
       ).toBe(true);
       await writer.flush();
@@ -378,7 +377,7 @@ describe('startDrive', () => {
         types: ['drive-start', 'effect-end'],
       });
       expect(logEvents.slice(1)).toEqual([
-        driveStart({ driveId: 'drive', queueMessageId }),
+        driveStart({ driveId: 'drive', queueJobId }),
         {
           type: 'effect-end',
           id: expect.any(String),

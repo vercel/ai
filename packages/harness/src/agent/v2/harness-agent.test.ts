@@ -184,7 +184,12 @@ describe('HarnessAgent', () => {
 
   test('stores the provided world', () => {
     const world = {} as World;
-    const agent = new HarnessAgent({ harness, world, getSandboxSession });
+    const agent = new HarnessAgent({
+      id: 'stores-the-provided-world',
+      harness,
+      world,
+      getSandboxSession,
+    });
 
     expect(agent['world']).toBe(world);
   });
@@ -996,7 +1001,7 @@ describe('HarnessAgent crash recovery', () => {
     }
   });
 
-  test('recovers a turn whose drive crashed without a record under a redelivery of its queue message', async () => {
+  test('recovers a turn whose drive crashed without a record under a redelivery of its queue job', async () => {
     const { harness, started, release } = createBlockingHarness();
     const kill = vi.spyOn(process, 'kill').mockImplementation(() => true);
     try {
@@ -1012,7 +1017,7 @@ describe('HarnessAgent crash recovery', () => {
           settings: { skills: [], tools: [] },
         },
       });
-      void agent.drive({ session, queueMessageId: 'message' });
+      void agent.drive({ session, queueJobId: 'message' });
       await started.promise;
 
       await agent.experimental_crash({ session });
@@ -1034,14 +1039,14 @@ describe('HarnessAgent crash recovery', () => {
 
       await recoveryAgent.drive({
         session: restored,
-        queueMessageId: 'other-message',
+        queueJobId: 'other-message',
       });
       expect((await log.read()).events).toEqual(before);
 
       const reading = await recoveryAgent.readStream({ session: restored });
       await recoveryAgent.drive({
         session: restored,
-        queueMessageId: 'message',
+        queueJobId: 'message',
       });
 
       expect(await reading.text).toBe('Recovered');
@@ -1055,7 +1060,7 @@ describe('HarnessAgent crash recovery', () => {
         'effect-end',
         'finish-turn',
       ]);
-      expect(events[0].data).toMatchObject({ queueMessageId: 'message' });
+      expect(events[0].data).toMatchObject({ queueJobId: 'message' });
       expect(events[2].data).toMatchObject({
         output: { type: 'interrupted', retryable: true },
       });
@@ -1235,4 +1240,247 @@ describe('HarnessAgent crash recovery', () => {
       }
     },
   );
+});
+
+describe('HarnessAgent durability', () => {
+  /**
+   * Creates a World that is not an `InMemoryWorld` (so that an agent given
+   * it is durable), backed by one, with spies for the queue methods.
+   */
+  function createDurableWorld(options: { deadline?: Date } = {}) {
+    const inner = new InMemoryWorld();
+    const overrides: Record<string | symbol, unknown> = {
+      queue: vi.fn(async () => ({ messageId: 'msg_backstop' })),
+      registerHandler: vi.fn(),
+      registerRoute: vi.fn(),
+      start: vi.fn(async () => {}),
+      getRuntimeDeadline: async () => options.deadline,
+    };
+    const world = new Proxy(inner, {
+      // oxlint-disable-next-line ai-sdk/require-object-parameter -- Proxy handler signature.
+      get(target, key, receiver) {
+        if (key === Symbol.for('@ai-sdk/harness//in-memory-world')) {
+          return undefined;
+        }
+        if (Object.hasOwn(overrides, key)) return overrides[key];
+        return Reflect.get(target, key, receiver);
+      },
+    }) as never as World;
+    return {
+      world,
+      queue: overrides.queue as ReturnType<typeof vi.fn>,
+      registerHandler: overrides.registerHandler as ReturnType<typeof vi.fn>,
+      registerRoute: overrides.registerRoute as ReturnType<typeof vi.fn>,
+      start: overrides.start as ReturnType<typeof vi.fn>,
+    };
+  }
+
+  test('is not durable without a world or with an in-memory world', () => {
+    expect(new HarnessAgent({ harness, getSandboxSession }).isDurable()).toBe(
+      false,
+    );
+    expect(
+      new HarnessAgent({
+        harness,
+        world: new InMemoryWorld(),
+        getSandboxSession,
+      }).isDurable(),
+    ).toBe(false);
+  });
+
+  test('is durable with a world other than an in-memory world', () => {
+    const { world } = createDurableWorld();
+    const agent = new HarnessAgent({
+      id: 'durable-agent',
+      harness,
+      world,
+      getSandboxSession,
+    });
+
+    expect(agent.isDurable()).toBe(true);
+    expect(agent.id).toBe('durable-agent');
+  });
+
+  test('requires an id for a durable agent', () => {
+    const { world } = createDurableWorld();
+
+    expect(
+      () => new HarnessAgent({ harness, world, getSandboxSession } as never),
+    ).toThrow('`id` is required with a durable `world`');
+  });
+
+  test.each(['with space', 'with/slash', 'with.dot', ''])(
+    'rejects the id %j',
+    id => {
+      expect(
+        () => new HarnessAgent({ id, harness, getSandboxSession }),
+      ).toThrow('`id` must only contain letters, digits, `_` and `-`');
+    },
+  );
+
+  test('rejects two durable agents with the same id in one tick', () => {
+    const { world } = createDurableWorld();
+    new HarnessAgent({ id: 'same-tick', harness, world, getSandboxSession });
+
+    expect(
+      () =>
+        new HarnessAgent({
+          id: 'same-tick',
+          harness,
+          world,
+          getSandboxSession,
+        }),
+    ).toThrow('two durable HarnessAgents have the `id` `same-tick`');
+  });
+
+  test('connects the queue and starts the world once, on first use', async () => {
+    const { world, registerHandler, registerRoute, start } =
+      createDurableWorld();
+    const agent = new HarnessAgent({
+      id: 'connects-on-first-use',
+      harness,
+      world,
+      getSandboxSession,
+    });
+    expect(start).not.toHaveBeenCalled();
+
+    await agent.createSession({ sandboxId: 'sandbox-id' });
+    await agent.createSession({ sandboxId: 'sandbox-id' });
+
+    expect(registerHandler).toHaveBeenCalledTimes(1);
+    expect(registerHandler).toHaveBeenCalledWith(
+      '__harnessagent_wkf_workflow_',
+      expect.any(Function),
+    );
+    expect(registerRoute).toHaveBeenCalledTimes(1);
+    expect(registerRoute).toHaveBeenCalledWith(
+      '__harnessagent_wkf_workflow_',
+      '/.well-known/harness-agent/v1/flow',
+    );
+    expect(start).toHaveBeenCalledTimes(1);
+  });
+
+  test('records the agent on the runs of a durable agent', async () => {
+    const { world } = createDurableWorld();
+    const agent = new HarnessAgent({
+      id: 'records-the-agent',
+      harness,
+      world,
+      getSandboxSession,
+    });
+
+    const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+    const run = await world.runs.get(session.runId);
+
+    expect(run.workflowName).toBe(
+      'workflow//@ai-sdk/harness//records-the-agent',
+    );
+    expect(run.executionContext).toEqual({ queueNamespace: 'harnessagent' });
+    expect(
+      JSON.parse(new TextDecoder().decode(run.input as Uint8Array)),
+    ).toEqual({
+      version: 1,
+      harnessId: 'mock-v2',
+      agentId: 'records-the-agent',
+      sessionId: session.sessionId,
+      sandboxId: 'sandbox-id',
+    });
+  });
+
+  test('records no agent on the runs of an agent that is not durable', async () => {
+    const world = new InMemoryWorld();
+    const agent = new HarnessAgent({
+      id: 'not-durable',
+      harness,
+      world,
+      getSandboxSession,
+    });
+
+    const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+    const run = await world.runs.get(session.runId);
+
+    expect(run.workflowName).toBe('workflow//@ai-sdk/harness//mock-v2');
+    expect(run.executionContext).toBeUndefined();
+    expect(
+      JSON.parse(new TextDecoder().decode(run.input as Uint8Array)),
+    ).not.toHaveProperty('agentId');
+  });
+
+  test('rejects a run of another agent', async () => {
+    const { world } = createDurableWorld();
+    const agent = new HarnessAgent({
+      id: 'owner-agent',
+      harness,
+      world,
+      getSandboxSession,
+    });
+    const other = new HarnessAgent({
+      id: 'other-agent',
+      harness,
+      world,
+      getSandboxSession,
+    });
+    const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+
+    await expect(other.createSession({ runId: session.runId })).rejects.toThrow(
+      'holds a session of the agent `owner-agent`',
+    );
+  });
+
+  test('sends a backstop before the drive of a turn', async () => {
+    const deadline = new Date(Date.now() + 60 * 60 * 1000);
+    const { world, queue } = createDurableWorld({ deadline });
+    const agent = new HarnessAgent({
+      id: 'backstop-turn',
+      harness: fakeHarness,
+      world,
+      getSandboxSession,
+    });
+    const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+
+    const result = await agent.stream({ prompt: 'hello', session });
+    expect(await result.text).toBe('echo: hello');
+
+    expect(queue).toHaveBeenCalledTimes(1);
+    const [queueName, payload, queueOptions] = queue.mock.calls[0];
+    expect(queueName).toBe(
+      '__harnessagent_wkf_workflow_workflow//@ai-sdk/harness//backstop-turn',
+    );
+    expect(payload).toEqual({ runId: session.runId });
+    expect(queueOptions.delaySeconds).toBeGreaterThan(60 * 60);
+    expect(queueOptions.delaySeconds).toBeLessThanOrEqual(60 * 60 + 5);
+  });
+
+  test('sends a backstop before a drive', async () => {
+    const deadline = new Date(Date.now() + 60 * 60 * 1000);
+    const { world, queue } = createDurableWorld({ deadline });
+    const agent = new HarnessAgent({
+      id: 'backstop-drive',
+      harness: fakeHarness,
+      world,
+      getSandboxSession,
+    });
+    const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+
+    await agent.drive({ session, queueJobId: 'job' });
+
+    expect(queue).toHaveBeenCalledTimes(1);
+    expect(queue.mock.calls[0][1]).toEqual({ runId: session.runId });
+  });
+
+  test('sends no backstop without a runtime deadline', async () => {
+    const { world, queue } = createDurableWorld();
+    const agent = new HarnessAgent({
+      id: 'no-deadline',
+      harness: fakeHarness,
+      world,
+      getSandboxSession,
+    });
+    const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+
+    const result = await agent.stream({ prompt: 'hello', session });
+    await result.consumeStream();
+
+    expect(queue).not.toHaveBeenCalled();
+  });
 });

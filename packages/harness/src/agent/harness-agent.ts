@@ -964,6 +964,16 @@ export class HarnessAgent<
   }
 
   /**
+   * Whether this agent runs durably: true if it was given a `world` other than
+   * an `InMemoryWorld`, which is only supported with HarnessV2. A durable
+   * agent's sessions survive process restarts and crashes, and background
+   * drives continue their turns.
+   */
+  isDurable(): boolean {
+    return this.harnessAgentV2?.isDurable() ?? false;
+  }
+
+  /**
    * Runs one drive of a HarnessV2 session without submitting a prompt,
    * continuing its unfinished turn after recovering from a crash, or starting
    * the turn of a prompt that has not started one. Only supported with
@@ -971,7 +981,7 @@ export class HarnessAgent<
    */
   async drive(options: {
     session: HarnessAgentV2Session;
-    queueMessageId?: string;
+    queueJobId?: string;
   }): Promise<void> {
     if (this.harnessAgentV2 == null) {
       throw new Error(

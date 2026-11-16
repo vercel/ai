@@ -14,5 +14,11 @@ export default defineConfig(
     {
       entry: { 'bridge/index': 'bridge/index.ts' },
     },
+    {
+      entry: { 'next/index': 'next/index.ts' },
+    },
+    {
+      entry: { 'vercel/index': 'vercel/index.ts' },
+    },
   ].map(config => mergeConfig(tsdownBaseConfig, config)),
 );

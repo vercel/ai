@@ -52,7 +52,8 @@
 - **Deadline**: The point at which the platform terminates the process running a drive, for example the maximum duration of a serverless function. Once the deadline has passed, that drive is provably gone.
 - **Yield**: A drive stopping on purpose before its deadline at a safe point, so the turn continues in a later drive.
 - **Retraction**: Removing the stream parts of an interrupted attempt from a session's output, because a retry of the attempt replaces them. Consumers of the stream, such as a chat UI, drop the retracted parts they already received.
-- **Background drive**: A drive started by the system instead of by a user request, for example from a queue message to continue a turn after a yield or crash.
-- **Backstop**: A queue message sent when a drive starts and delayed until just past that drive's deadline, which starts a background drive of the same session. If the drive finished, the background drive finds nothing to do; if it yielded or crashed, the background drive continues the turn.
+- **Background drive**: A drive started by the system instead of by a user request, for example from a queue job to continue a turn after a yield or crash.
+- **Backstop**: A queue job sent when a drive starts and delayed until just past that drive's deadline, which starts a background drive of the same session. If the drive finished, the background drive finds nothing to do; if it yielded or crashed, the background drive continues the turn.
 - **Queue**: The world's mechanism for scheduling future work, such as background drives, so it still happens when no request is waiting for it.
+- **Queue job**: A unit of work delivered through a World's queue: a payload plus the queue name it was sent on. A queue job for a durable agent asks for a background drive of one session. The Workflow SDK calls a queue job a "queue message".
 - **Fencing**: Preventing a drive that lost ownership of a session from making further changes, for example by having the sandbox refuse its operations.

@@ -278,7 +278,19 @@ describe('HarnessAgentSettings tool filtering types', () => {
       },
     };
 
-    const agent = new HarnessAgent(settings);
+    /*
+     * Assigning the literal narrows `settings` to the settings branch
+     * without a `world`, which loses the `HarnessAgentSettings` alias that
+     * the constructor would infer its type parameters from, so they are
+     * passed explicitly.
+     */
+    const agent = new HarnessAgent<
+      typeof harness,
+      typeof userTools,
+      RuntimeContext,
+      never,
+      CallOptions
+    >(settings);
     expectTypeOf<
       NonNullable<Parameters<typeof agent.createSession>[0]>['runtimeContext']
     >().toEqualTypeOf<RuntimeContext | undefined>();

@@ -45,12 +45,12 @@ export type HarnessAgentDriveIdentity = {
   readonly deadline?: number;
 
   /**
-   * ID of the World queue message whose delivery runs the drive, if a queue
-   * message started it. A later delivery of the same message proves the
-   * drive is gone, since the queue only redelivers a message once its
-   * previous handler lost it.
+   * ID of the queue job whose delivery runs the drive, if a queue job
+   * started it. A later delivery of the same queue job proves the drive is
+   * gone, since the queue only redelivers a queue job once its previous
+   * handler lost it.
    */
-  readonly queueMessageId?: string;
+  readonly queueJobId?: string;
 
   /**
    * OS process that runs the drive, where it can be identified. Once that
@@ -73,8 +73,8 @@ export type HarnessAgentDriveIdentity = {
  *    gone. A `drive-crash` proves that at once, but a drive that crashed
  *    for real records none, so without one, any of these proves it from the
  *    drive's `drive-start`: its deadline passed, this drive runs under a
- *    delivery of the same queue message (which the queue only redelivers
- *    once its previous handler lost it), or its process is gone. Without
+ *    delivery of the same queue job (which the queue only redelivers once
+ *    its previous handler lost it), or its process is gone. Without
  *    any proof (including when there is no `drive-start`), this returns
  *    `false`. Attribution by log position assumes one drive at a time.
  * 2. Without abandoned attempts, an unfinished latest turn, or a `prompt`
@@ -193,7 +193,7 @@ export async function startDrive(options: {
     !isDriveGone({
       drive: latestDrive?.data,
       crashedDrives,
-      queueMessageId: driveIdentity.queueMessageId,
+      queueJobId: driveIdentity.queueJobId,
     })
   ) {
     return false;
@@ -351,16 +351,16 @@ function isDriveGone(options: {
   crashedDrives: Set<string>;
 
   /**
-   * ID of the World queue message whose delivery runs the current drive.
+   * ID of the queue job whose delivery runs the current drive.
    */
-  queueMessageId?: string;
+  queueJobId?: string;
 }): boolean {
-  const { drive, crashedDrives, queueMessageId } = options;
+  const { drive, crashedDrives, queueJobId } = options;
   if (drive == null) return false;
   return (
     crashedDrives.has(drive.driveId) ||
     (drive.deadline != null && drive.deadline <= Date.now()) ||
-    (queueMessageId != null && drive.queueMessageId === queueMessageId) ||
+    (queueJobId != null && drive.queueJobId === queueJobId) ||
     (drive.process != null &&
       isDriveProcessGone({ driveId: drive.driveId, process: drive.process }))
   );

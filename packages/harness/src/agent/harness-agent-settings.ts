@@ -42,6 +42,7 @@ import type {
 import type { ToolsContextSettings } from 'ai/internal';
 import type { HarnessAllTools } from './harness-agent-tool-types';
 import type { World } from '@workflow/world';
+import type { InMemoryWorld } from './v2/in-memory-world';
 
 export type HarnessAgentToolApprovalConfiguration = Readonly<
   Record<string, ToolApprovalStatus>
@@ -159,21 +160,9 @@ export type HarnessAgentSettings<
   readonly harness: THarness;
 
   /**
-   * Workflow world used to persist durable harness execution state. Only
-   * supported when `harness` implements `HarnessV2`.
-   */
-  readonly world?: World;
-
-  /**
    * Resolves an existing sandbox session for a HarnessV2 session.
    */
   readonly getSandboxSession?: HarnessAgentSandboxSessionResolver;
-
-  /**
-   * Stable identifier for this agent instance. Exposed via `agent.id`.
-   * If omitted, `agent.id` is `undefined`.
-   */
-  readonly id?: string;
 
   /**
    * Model identifier used by the harness adapter. Supported values are
@@ -436,5 +425,46 @@ export type HarnessAgentSettings<
    * stderr default — wire this to capture diagnostics in code.
    */
   readonly onLog?: (event: HarnessDiagnostic) => void;
-} & ToolsContextSettings<TUserTools> &
+} &
+  /*
+   * With a `world` other than an `InMemoryWorld`, the agent is durable and
+   * needs an `id`, under which it registers in the durable agent registry so
+   * that background drives find it. Keep `id` stable while sessions created
+   * with it exist: their runs record it.
+   *
+   * `InMemoryWorld` has private fields, so a World of another kind is not
+   * assignable to it and takes the first branch, which requires `id`.
+   */
+  (
+    | {
+        /**
+         * Workflow World that persists the agent's sessions, which makes the
+         * agent durable. Only supported when `harness` implements
+         * `HarnessV2`.
+         */
+        readonly world: World;
+
+        /**
+         * Stable identifier of the agent, exposed via `agent.id`. Required
+         * for a durable agent: its sessions' runs record it, and background
+         * drives look the agent up by it. Only letters, digits, `_` and `-`
+         * are allowed.
+         */
+        readonly id: string;
+      }
+    | {
+        /**
+         * In-memory World for the agent's sessions. The agent is not durable.
+         * Without a `world`, the agent creates its own `InMemoryWorld`.
+         */
+        readonly world?: InMemoryWorld;
+
+        /**
+         * Stable identifier of the agent, exposed via `agent.id`. If
+         * omitted, `agent.id` is `undefined`.
+         */
+        readonly id?: string;
+      }
+  ) &
+  ToolsContextSettings<TUserTools> &
   HarnessAgentToolFilteringSettings<HarnessAllTools<THarness, TUserTools>>;

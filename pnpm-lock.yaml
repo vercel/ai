@@ -3247,6 +3247,9 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+      '@babel/parser':
+        specifier: ^7.29.0
+        version: 7.29.8
       '@workflow/world':
         specifier: ^5.0.4
         version: 5.2.0
@@ -3272,6 +3275,9 @@ importers:
       '@vercel/ai-tsdown-config':
         specifier: workspace:*
         version: link:../../tools/tsdown-config
+      next:
+        specifier: ^16.4.1
+        version: 16.4.1(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.97.3)
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.3.21)(tsx@4.23.12)(typescript@6.0.3)

@@ -13,6 +13,8 @@
     "agent",
     "utils",
     "bridge",
+    "next",
+    "vercel",
     "!src/**/*.test.ts",
     "!src/**/*.test-d.ts",
     "!src/**/__snapshots__",
@@ -51,19 +53,34 @@
       "types": "./dist/bridge/index.d.ts",
       "import": "./dist/bridge/index.js",
       "default": "./dist/bridge/index.js"
+    },
+    "./next": {
+      "types": "./dist/next/index.d.ts",
+      "import": "./dist/next/index.js",
+      "default": "./dist/next/index.js"
+    },
+    "./vercel": {
+      "types": "./dist/vercel/index.d.ts",
+      "import": "./dist/vercel/index.js",
+      "default": "./dist/vercel/index.js"
     }
   },
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
+    "@babel/parser": "^7.29.0",
     "@workflow/world": "^5.0.4",
     "ai": "workspace:*"
   },
   "peerDependencies": {
+    "next": "^15.0.0 || ^16.0.0",
     "ws": "^8.21.0",
     "zod": "^3.25.76 || ^4.1.8"
   },
   "peerDependenciesMeta": {
+    "next": {
+      "optional": true
+    },
     "ws": {
       "optional": true
     }
@@ -75,6 +92,7 @@
     "@types/ws": "^8.5.13",
     "@vercel/ai-tsconfig": "workspace:*",
     "@vercel/ai-tsdown-config": "workspace:*",
+    "next": "^16.4.1",
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
     "ws": "^8.21.0",
