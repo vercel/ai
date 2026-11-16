@@ -6,7 +6,11 @@ import type {
   FxWriteFileInput,
 } from './fx-builtin-tool-specs';
 import type { FxBuiltinToolOutput, FxToolSandbox } from './fx-builtin-tools';
-import { createFxOutputCapture, readFxChunks } from './fx-sandbox-output';
+import {
+  createFxOutputCapture,
+  readFxChunks,
+  toUtf8BoundaryEnd,
+} from './fx-sandbox-output';
 import {
   decodeFxModelSafeText,
   getUtf8ByteLength,
@@ -32,13 +36,6 @@ const READ_SNAPSHOT_BYTES = 10 * MiB;
 const READ_OUTPUT_BYTES = 256 * 1024;
 const CONTENT_BYTES = 4 * MiB;
 const MAX_ENCODED_IMAGE_BYTES = 5 * MiB;
-
-/*
- * Largest file whose whole read the host accepts when a sandbox cannot run
- * the bounded read: a refused read must not turn into a download of whatever
- * size the sandbox reports.
- */
-const MAX_WHOLE_READ_BYTES = 2 * READ_SNAPSHOT_BYTES;
 
 /**
  * Returns the media type of an image from its leading bytes, for the image
@@ -204,17 +201,29 @@ async function readFileHead(options: {
     if (!stopped && !capture.complete) {
       stopped = true;
       limitController.abort(new Error('read limit'));
+      // Stopping is best effort: the abort ends the streams, and a sandbox
+      // that can kill the command is asked to do so as well.
+      try {
+        void Promise.resolve(child.kill()).catch(() => {});
+      } catch {}
     }
   };
   const readAbortSignal = AbortSignal.any([
     abortSignal,
     limitController.signal,
   ]);
-  const child = await session.spawn({
-    command: `base64 ${shellQuote(path)}`,
-    workingDirectory: workDir,
-    abortSignal: readAbortSignal,
-  });
+  let child: Awaited<ReturnType<typeof session.spawn>>;
+  try {
+    child = await session.spawn({
+      command: `base64 ${shellQuote(path)}`,
+      workingDirectory: workDir,
+      abortSignal: readAbortSignal,
+    });
+  } catch (error) {
+    // A sandbox that cannot start the read at all counts as a refused read.
+    if (abortSignal.aborted) throw error;
+    return undefined;
+  }
   let exitCode: number | null = null;
   try {
     const [result] = await Promise.all([
@@ -236,12 +245,18 @@ async function readFileHead(options: {
     if (!stopped) throw error;
   }
   /*
+   * A backend that ends the streams when the caller aborts would otherwise
+   * pass its partial output on as a complete read.
+   */
+  abortSignal.throwIfAborted();
+  /*
    * A sandbox can refuse the read, e.g. because it caps what a command may
-   * print, so a failed read is reported for the caller to fall back to the
-   * session's read primitive.
+   * print or because the file is missing, so a failed read is reported for
+   * the caller to report instead of reading the file as a whole.
    */
   if (!stopped && exitCode != null && exitCode !== 0) return undefined;
-  const encoded = Buffer.from(capture.toBytes())
+  const kept = capture.toBytes();
+  const encoded = Buffer.from(kept.buffer, kept.byteOffset, kept.byteLength)
     .toString('utf8')
     .replace(/\s+/g, '');
   /*
@@ -263,46 +278,8 @@ async function readFileHead(options: {
 }
 
 /**
- * Reads a whole file with the session's read primitive, which loads it into
- * host memory before it returns, and cuts it to `limitBytes`.
- */
-async function readWholeFile(options: {
-  /**
-   * Sandbox the file is in.
-   */
-  sandbox: FxToolSandbox;
-
-  /**
-   * Absolute path of the file.
-   */
-  path: string;
-
-  /**
-   * Maximum bytes to keep.
-   */
-  limitBytes: number;
-
-  /**
-   * Aborts the read.
-   */
-  abortSignal: AbortSignal;
-}): Promise<FxFileSnapshot> {
-  const { sandbox, path, limitBytes, abortSignal } = options;
-  const bytes =
-    (await sandbox.session.readBinaryFile({ path, abortSignal })) ??
-    new Uint8Array();
-  return bytes.length <= limitBytes
-    ? { bytes, complete: true, totalBytes: bytes.length }
-    : {
-        bytes: bytes.subarray(0, limitBytes),
-        complete: false,
-        totalBytes: bytes.length,
-      };
-}
-
-/**
- * Reads at most `limitBytes` of a file, with the encoded command when the
- * sandbox runs it and as a whole file, cut to the limit, when it does not.
+ * Reads at most `limitBytes` of a file with the encoded command, or resolves
+ * to `undefined` when the sandbox cannot run that read.
  */
 export async function readFileWithin(options: {
   /**
@@ -324,9 +301,9 @@ export async function readFileWithin(options: {
    * Aborts the read.
    */
   abortSignal: AbortSignal;
-}): Promise<FxFileSnapshot> {
+}): Promise<FxFileSnapshot | undefined> {
   const head = await readFileHead(options);
-  if (head == null) return readWholeFile(options);
+  if (head == null) return undefined;
   return {
     bytes: head.bytes,
     complete: !head.exceeded,
@@ -335,11 +312,11 @@ export async function readFileWithin(options: {
 }
 
 /**
- * Reads the bytes of a snapshot of a file, so that the host holds at most a
- * snapshot of it: a file larger than a snapshot is read with a bounded,
- * encoded `base64` command in the sandbox instead of being loaded as a
- * whole, and a sandbox that cannot run that command is read as a whole
- * instead.
+ * Reads the bytes of a snapshot of a file with a bounded, encoded `base64`
+ * command in the sandbox, so that the host holds at most a snapshot of it
+ * whatever size the file has when it is read. Throws when the sandbox cannot
+ * run that command, since the session's own read primitives would load the
+ * whole file instead.
  */
 async function readFileSnapshot(options: {
   /**
@@ -364,19 +341,10 @@ async function readFileSnapshot(options: {
 }): Promise<FxFileSnapshot> {
   const { sandbox, path, size, abortSignal } = options;
   /*
-   * The read of a file within the limit is bounded by the size its stat
-   * reported. A file that grew past it before the read is cut after the
-   * read; reading such a file directly is the fast path, since a bounded
-   * read costs a command in the sandbox.
+   * Every read goes through the bounded command, so the size its stat
+   * reported is only a hint: a file that grew or was replaced before the
+   * read still cannot make the host hold more than a snapshot.
    */
-  const whole = () =>
-    readWholeFile({
-      sandbox,
-      path,
-      limitBytes: READ_SNAPSHOT_BYTES,
-      abortSignal,
-    });
-  if (size <= READ_SNAPSHOT_BYTES) return whole();
   const head = await readFileHead({
     sandbox,
     path,
@@ -384,19 +352,25 @@ async function readFileSnapshot(options: {
     abortSignal,
   });
   if (head == null) {
-    if (size > MAX_WHOLE_READ_BYTES) {
-      throw new Error(
-        `could not read ${path}: the sandbox could not run the bounded read`,
-      );
-    }
-    return whole();
+    throw new Error(
+      `could not read ${path}: the sandbox could not run the bounded read (it may be missing or unreadable, or unsupported by the sandbox)`,
+    );
   }
+  /*
+   * A snapshot that stops inside a UTF-8 character is cut back to the
+   * character boundary, so that a text file decodes instead of being
+   * reported as binary.
+   */
+  const bytes = head.exceeded
+    ? head.bytes.subarray(
+        0,
+        toUtf8BoundaryEnd({ bytes: head.bytes, end: head.bytes.length }),
+      )
+    : head.bytes;
   return {
-    bytes: head.bytes,
+    bytes,
     complete: !head.exceeded,
-    totalBytes: head.exceeded
-      ? Math.max(size, head.bytes.length + 1)
-      : head.bytes.length,
+    totalBytes: head.exceeded ? Math.max(size, bytes.length + 1) : bytes.length,
   };
 }
 
@@ -619,6 +593,7 @@ export async function writeFxFile(options: {
       abortSignal,
     });
     if (
+      existing != null &&
       existing.complete &&
       existing.bytes.length === contentBytes &&
       decodeFxModelSafeText({ bytes: existing.bytes }) === content
@@ -704,6 +679,11 @@ export async function editFxFile(options: {
     limitBytes: CONTENT_BYTES,
     abortSignal,
   });
+  if (preimage == null) {
+    return toFxToolError({
+      text: 'file mutation preparation failed: unable to read the approved preimage',
+    });
+  }
   if (!preimage.complete) {
     return toFxToolError({
       text: 'file mutation preparation failed: preimage exceeds the 4 MiB preparation limit',

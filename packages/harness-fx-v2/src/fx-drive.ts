@@ -23,6 +23,7 @@ import {
   type FxBuiltinToolOutput,
 } from './fx-builtin-tools';
 import { createFxEngineTools } from './fx-engine-tools';
+import { readFxSandboxHome } from './fx-sandbox-home';
 import {
   getFxCatalogEffectKey,
   getFxModelEffectKey,
@@ -1058,13 +1059,12 @@ export class FxDrive {
   private getBuiltinToolExecutors(): Promise<FxBuiltinToolExecutors> {
     this.builtinToolExecutors ??= (async () => {
       const { session, workDir } = await this.context.sandbox();
-      const result = await session.run({ command: 'printf %s "$HOME"' });
-      const home = result.stdout.trim();
+      const home = await readFxSandboxHome({ session, workDir });
       return createFxBuiltinToolExecutors({
         sandbox: {
           session,
           workDir,
-          home: result.exitCode === 0 && home.length > 0 ? home : workDir,
+          home: home ?? workDir,
         },
       });
     })();
