@@ -241,10 +241,21 @@ async function readFileHead(options: {
    * session's read primitive.
    */
   if (!stopped && exitCode != null && exitCode !== 0) return undefined;
-  const decoded = Buffer.from(
-    Buffer.from(capture.toBytes()).toString('utf8').replace(/\s+/g, ''),
-    'base64',
-  );
+  const encoded = Buffer.from(capture.toBytes())
+    .toString('utf8')
+    .replace(/\s+/g, '');
+  /*
+   * Decoding ignores what is not base64, so a read that printed something
+   * else, or arrived short, would decode to other bytes; such a read is
+   * reported as refused rather than used as the file.
+   */
+  if (
+    !/^[A-Za-z0-9+/]*={0,2}$/.test(encoded) ||
+    (capture.complete && encoded.length % 4 !== 0)
+  ) {
+    return undefined;
+  }
+  const decoded = Buffer.from(encoded, 'base64');
   return {
     bytes: decoded.subarray(0, limitBytes),
     exceeded: !capture.complete || decoded.length > limitBytes,

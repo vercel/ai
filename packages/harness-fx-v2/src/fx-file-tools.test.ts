@@ -294,6 +294,10 @@ function createFakeFileSession(options: {
    */
   fails?: boolean;
   /**
+   * Text the command prints before its output, like a shell profile would.
+   */
+  noise?: string;
+  /**
    * Bytes at the start of the file, before the filler lines.
    */
   prefix?: Uint8Array;
@@ -352,6 +356,7 @@ function createFakeFileSession(options: {
        */
       function* encoded() {
         if (options.fails) return;
+        if (options.noise != null) yield Buffer.from(`${options.noise}\n`);
         let pending = Buffer.alloc(0);
         for (const chunk of contents()) {
           if (chunk.length === 0) continue;
@@ -480,6 +485,26 @@ describe('readFxFile with a file larger than a snapshot', () => {
     const { session, calls } = createFakeFileSession({
       size: 12 * MIB,
       fails: true,
+    });
+
+    const output = await readFxFile({
+      sandbox: sandbox(session),
+      input: { path: 'big.txt', start_line: 1, line_count: 3 },
+      abortSignal,
+    });
+
+    expect(calls).toEqual([
+      'stat',
+      `spawn base64 '/home/user/big.txt'`,
+      'readBinaryFile',
+    ]);
+    expect(output.text).toContain('file snapshot was capped before EOF');
+  });
+
+  test('does not use output that is not base64 as the file', async () => {
+    const { session, calls } = createFakeFileSession({
+      size: 12 * MIB,
+      noise: 'warning: something printed before the read',
     });
 
     const output = await readFxFile({
