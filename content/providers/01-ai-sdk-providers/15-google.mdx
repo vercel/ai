@@ -2018,7 +2018,9 @@ const { text, toolCalls } = await generateText({
 `google.tools.mcpServer` connects a remote MCP server so the model can call its
 tools. Header values are sent to the Gemini API and redacted from telemetry at
 the same time. Tool definitions that are built by hand instead of with this
-factory do not carry the provider's telemetry redaction.
+factory do not carry the provider's telemetry redaction. Google Vertex
+Interactions models use the same tool as `googleVertex.tools.mcpServer`, see
+[Remote MCP Server](/providers/ai-sdk-providers/google-vertex#remote-mcp-server).
 
 ```ts
 import { google } from '@ai-sdk/google';
