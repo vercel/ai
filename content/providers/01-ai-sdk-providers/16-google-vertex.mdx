@@ -765,7 +765,7 @@ wildcard MIME types, or MIME types outside the list above.
 
 HTTP(S) tool-result files are downloaded and sent as inline data, including when
 the file part specifies a `mediaType`. Downloads use the `fetch` option passed to
-`createGoogleVertex` and are limited to `toolResultDownloads.maxBytes` (7 MiB by
+`createVertex` and are limited to `toolResultDownloads.maxBytes` (7 MiB by
 default). The Vertex API key is not sent to those hosts. On server runtimes, pass
 a `fetch` implementation that validates DNS at connect time when tool result URLs
 are untrusted, or constrain egress at the network layer. Direct `gs://` references
