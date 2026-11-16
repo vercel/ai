@@ -164,9 +164,16 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
       ...(alibabaOptions?.thinkingBudget != null
         ? { thinking_budget: alibabaOptions.thinkingBudget }
         : {}),
+      ...(alibabaOptions?.reasoningEffort != null
+        ? { reasoning_effort: alibabaOptions.reasoningEffort }
+        : {}),
 
       ...(preserveThinking != null
         ? { preserve_thinking: preserveThinking }
+        : {}),
+
+      ...(alibabaOptions?.promptCacheOptions != null
+        ? { prompt_cache_options: alibabaOptions.promptCacheOptions }
         : {}),
 
       // Convert messages with cache control support
@@ -559,6 +566,12 @@ const alibabaUsageSchema = () =>
       .object({
         cached_tokens: z.number().nullish(),
         cache_creation_input_tokens: z.number().nullish(),
+        cache_creation: z
+          .object({
+            ephemeral_5m_input_tokens: z.number().nullish(),
+            ephemeral_1h_input_tokens: z.number().nullish(),
+          })
+          .nullish(),
       })
       .nullish(),
     completion_tokens_details: z
