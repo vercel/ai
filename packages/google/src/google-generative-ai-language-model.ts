@@ -16,6 +16,7 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  DEFAULT_MAX_DOWNLOAD_SIZE,
   generateId,
   lazySchema,
   parseProviderOptions,
@@ -87,6 +88,23 @@ type GoogleGenerativeAIConfig = {
    * The supported URLs for the model.
    */
   supportedUrls?: () => LanguageModelV3['supportedUrls'];
+
+  /**
+   * Downloads tool result files that cannot be referenced in function
+   * responses. Only set for Vertex models.
+   */
+  downloadToolResultFiles?: {
+    /**
+     * Maximum number of bytes per downloaded file.
+     */
+    maxBytes: number;
+
+    /**
+     * Transport used for the downloads. Pass the caller-configured fetch so
+     * its protections (e.g. connect-time DNS validation) stay in effect.
+     */
+    fetch?: FetchFunction;
+  };
 };
 
 export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
@@ -273,6 +291,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     const promptWithDownloadedToolResultFiles = isVertexProvider
       ? await downloadToolResultFiles(prompt, {
           abortSignal,
+          fetch: this.config.downloadToolResultFiles?.fetch,
+          maxBytes:
+            this.config.downloadToolResultFiles?.maxBytes ??
+            DEFAULT_MAX_DOWNLOAD_SIZE,
           supportedUrls: supportedFunctionResponseUrls,
         })
       : prompt;

@@ -4,6 +4,7 @@ import {
   type LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import {
   GoogleGenerativeAILanguageModel,
@@ -812,6 +813,106 @@ describe('doGenerate', () => {
         content: { answer: 'known' },
       },
     });
+  });
+
+  it('should download tool result files with the configured fetch and size limit', async () => {
+    prepareJsonResponse({ content: 'done' });
+
+    const downloadFetch = vi.fn<FetchFunction>(
+      async () =>
+        new Response(new Uint8Array([1, 2, 3]), {
+          status: 200,
+          headers: { 'content-type': 'image/png' },
+        }),
+    );
+
+    const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+      downloadToolResultFiles: { maxBytes: 1024, fetch: downloadFetch },
+    });
+
+    await vertexModel.doGenerate({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call',
+              toolName: 'view',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file-url',
+                    url: 'https://example.com/file.png',
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(downloadFetch).toHaveBeenCalledTimes(1);
+    expect(downloadFetch.mock.calls[0][0]).toBe('https://example.com/file.png');
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.contents[0].parts).toContainEqual({
+      inlineData: { mimeType: 'image/png', data: 'AQID' },
+    });
+  });
+
+  it('should reject tool result files above the configured size limit', async () => {
+    prepareJsonResponse({ content: 'done' });
+
+    const downloadFetch = vi.fn<FetchFunction>(
+      async () =>
+        new Response(new Uint8Array([1, 2, 3]), {
+          status: 200,
+          headers: { 'content-type': 'image/png' },
+        }),
+    );
+
+    const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+      downloadToolResultFiles: { maxBytes: 2, fetch: downloadFetch },
+    });
+
+    await expect(
+      vertexModel.doGenerate({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call',
+                toolName: 'view',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file-url',
+                      url: 'https://example.com/file.png',
+                      mediaType: 'image/png',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    ).rejects.toThrow(/exceeded maximum size of 2 bytes/);
   });
 
   it('should send PDF tool result data as inlineData for Gemini 2.5 legacy tool results', async () => {
