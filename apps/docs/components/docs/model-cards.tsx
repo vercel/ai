@@ -3,7 +3,6 @@ import {
   IconApi,
   IconDisplay,
   IconLogs,
-  IconSandbox,
   IconSparkles,
   IconWrench,
 } from '@vercel/geistdocs/assets/icons';
@@ -63,6 +62,10 @@ const FEATURE_BADGES: [
 
 const FeatureBadges = ({ features }: { features: ModelFeatures }) => {
   const active = FEATURE_BADGES.filter(([key]) => features[key]);
+  if (active.length === 0) {
+    return null;
+  }
+
   return (
     <div className="flex w-full flex-row flex-wrap gap-2">
       {active.map(([key, label, Icon]) => (
@@ -74,12 +77,6 @@ const FeatureBadges = ({ features }: { features: ModelFeatures }) => {
           {label}
         </Badge>
       ))}
-      {active.length === 0 ? (
-        <Badge className="gap-1 border-none bg-gray-200 font-normal text-gray-900">
-          <IconSandbox className="size-3.5" />
-          Provider Dependent
-        </Badge>
-      ) : null}
     </div>
   );
 };
