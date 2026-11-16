@@ -277,3 +277,55 @@ describe('searching a sandbox that prints without end', () => {
     expect(output.text).toContain('at least; the grep output was cut off');
   });
 });
+
+describe('grep_files context lines', () => {
+  test('skips a file over the context limit without reading it', async () => {
+    const { session, calls } = createFakeSearchSession({
+      stat: path =>
+        path === '/home/user'
+          ? { type: 'directory', size: 0 }
+          : { type: 'file', size: 4 * MIB },
+      command: () => ({
+        chunks: function* () {
+          yield new Uint8Array(Buffer.from('./big.txt:3:needle\n', 'utf8'));
+        },
+      }),
+    });
+
+    const output = await grepFxFiles({
+      sandbox: testSandbox(session),
+      input: { pattern: 'needle', context_lines: 2 },
+      abortSignal: new AbortController().signal,
+    });
+
+    expect(output.text).toContain(' - big.txt:3: needle');
+    expect(output.text).not.toContain('big.txt:2-');
+    expect(calls.filter(call => call.startsWith('base64'))).toEqual([]);
+  });
+
+  test('shows context lines of a file within the context limit', async () => {
+    const session = await createJustBashNetworkSandboxSession();
+    const workDir = session.defaultWorkingDirectory;
+    await session.writeTextFile({
+      path: `${workDir}/notes.txt`,
+      content: 'one\ntwo needle\nthree\n',
+    });
+    const sandbox: FxToolSandbox = { session, workDir, home: workDir };
+
+    expect(
+      await grepFxFiles({
+        sandbox,
+        input: { pattern: 'needle', path: 'notes.txt', context_lines: 1 },
+        abortSignal: new AbortController().signal,
+      }),
+    ).toMatchInlineSnapshot(`
+      {
+        "text": "[grep] 1 matches for needle
+         notes.txt:1- one
+       - notes.txt:2: two needle
+         notes.txt:3- three
+      ",
+      }
+    `);
+  });
+});

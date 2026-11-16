@@ -4,6 +4,7 @@ import type {
   FxGrepFilesInput,
 } from './fx-builtin-tool-specs';
 import type { FxBuiltinToolOutput, FxToolSandbox } from './fx-builtin-tools';
+import { readFileWithin } from './fx-file-tools';
 import { createFxOutputCapture, readFxChunks } from './fx-sandbox-output';
 import {
   decodeFxModelSafeText,
@@ -492,6 +493,45 @@ const RECURSIVE_GREP_LINE = /^(.*?):(\d+):(.*)$/;
 const SINGLE_FILE_GREP_LINE = /^(\d+):(.*)$/;
 
 /**
+ * Reads the lines of a file for grep's context lines: at most
+ * `CONTEXT_FILE_BYTES`, and nothing at all for a file whose stat shows more,
+ * so that a large matching file is never loaded into host memory.
+ */
+async function readContextLines(options: {
+  /**
+   * Sandbox the file is in.
+   */
+  sandbox: FxToolSandbox;
+
+  /**
+   * Absolute path of the file.
+   */
+  path: string;
+
+  /**
+   * Aborts the read.
+   */
+  abortSignal: AbortSignal;
+}): Promise<string[] | undefined> {
+  const { sandbox, path, abortSignal } = options;
+  const stat = await sandbox.session.stat({ path, abortSignal });
+  if (stat == null || stat.type !== 'file' || stat.size > CONTEXT_FILE_BYTES) {
+    return undefined;
+  }
+  const snapshot = await readFileWithin({
+    sandbox,
+    path,
+    limitBytes: CONTEXT_FILE_BYTES,
+    abortSignal,
+  });
+  if (!snapshot.complete) return undefined;
+  const text = decodeFxModelSafeText({ bytes: snapshot.bytes });
+  const lines = text?.split('\n');
+  if (lines?.at(-1) === '') lines.pop();
+  return lines;
+}
+
+/**
  * Runs fx's `grep_files` on the sandbox: a literal search below the search
  * root (skipping fx's ignored directories and binary files) with fx's
  * output modes, `include` filter, pagination and context lines.
@@ -707,17 +747,14 @@ export async function grepFxFiles(options: {
       let lines: string[] | undefined;
       if (around > 0) {
         if (!fileLines.has(match.abs)) {
-          const bytes = await sandbox.session.readBinaryFile({
-            path: match.abs,
-            abortSignal,
-          });
-          const text =
-            bytes != null && bytes.length <= CONTEXT_FILE_BYTES
-              ? decodeFxModelSafeText({ bytes })
-              : undefined;
-          const split = text?.split('\n');
-          if (split?.at(-1) === '') split.pop();
-          fileLines.set(match.abs, split);
+          fileLines.set(
+            match.abs,
+            await readContextLines({
+              sandbox,
+              path: match.abs,
+              abortSignal,
+            }),
+          );
         }
         lines = fileLines.get(match.abs);
       }

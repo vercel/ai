@@ -119,7 +119,7 @@ function toImageResult(options: {
  * File contents `read_file` works on: at most the bytes of a snapshot, and
  * whether they are the whole file.
  */
-type FxFileSnapshot = {
+export type FxFileSnapshot = {
   /**
    * Bytes read.
    */
@@ -304,7 +304,7 @@ async function readWholeFile(options: {
  * Reads at most `limitBytes` of a file, with the encoded command when the
  * sandbox runs it and as a whole file, cut to the limit, when it does not.
  */
-async function readFileWithin(options: {
+export async function readFileWithin(options: {
   /**
    * Sandbox the file is in.
    */
