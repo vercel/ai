@@ -1,0 +1,118 @@
+---
+title: SinapsAI
+description: SinapsAI provider for the AI SDK
+---
+
+# SinapsAI
+
+[SinapsAI](https://github.com/roedyrustam/sinapsai) is a high-performance in-process AI Gateway and Control Plane for Node.js and TypeScript. It implements the Vercel AI SDK Language Model Specification (`LanguageModelV1` and `EmbeddingModelV1`), allowing you to route between multiple LLM providers (OpenAI, Anthropic Claude, Google Gemini, DeepSeek, Groq, Mistral, Ollama, OpenRouter) with zero extra network hops (<10ms overhead), in-memory Circuit Breakers, automatic failover, and PII guardrails.
+
+The SinapsAI provider is a good fit if you want:
+
+- **In-process resilience**: Zero proxy containers, separate microservices, or external Redis required.
+- **In-memory Circuit Breaker**: Instantly trips during provider outages to protect serverless and edge runtimes.
+- **Lowest-latency auto-routing**: Dynamically dispatches requests to the fastest responsive LLM based on moving-average latency.
+- **Multi-provider automatic failover**: Automatically fails over to backup providers (e.g., Anthropic Claude or Google Gemini) when primary providers hit rate limits or downtime.
+- **Enterprise PII guardrails**: In-process automatic redaction for email, phone numbers, credit cards (Luhn-validated), SSN, and JWT tokens.
+- **Universal frontier reasoning**: Integrated support for reasoning parameters like `thinkingBudget` and `reasoningEffort`.
+
+Learn more in the [SinapsAI documentation](https://github.com/roedyrustam/sinapsai).
+
+## Setup
+
+The SinapsAI provider is available in the `sinapsai` package. Install it with:
+
+<InstallPackages packages="sinapsai" />
+
+## Provider Instance
+
+To create a SinapsAI provider instance with multi-provider failover and automatic routing, use the `createSinapsAI` function:
+
+```typescript
+import { createSinapsAI } from 'sinapsai/ai-sdk';
+import { GroqProvider, OpenAiProvider, AnthropicProvider } from 'sinapsai';
+
+export const sinaps = createSinapsAI({
+  strategy: 'lowest-latency',
+  providers: [
+    new GroqProvider({ apiKey: process.env.GROQ_API_KEY! }),
+    new OpenAiProvider({ apiKey: process.env.OPENAI_API_KEY! }),
+    new AnthropicProvider({ apiKey: process.env.ANTHROPIC_API_KEY! }),
+  ],
+});
+```
+
+## Language Models
+
+Create a language model with your SinapsAI provider instance and use it with `generateText` or `streamText`. You can optionally specify model-level fallbacks and reasoning settings:
+
+```typescript
+const model = sinaps('llama-3.3-70b-versatile', {
+  thinkingBudget: 1024,
+  fallbackModels: ['gpt-4o-mini', 'claude-3-7-sonnet-20250219'],
+});
+```
+
+## Examples
+
+### `generateText`
+
+```typescript
+import { generateText } from 'ai';
+import { sinaps } from '@/lib/sinaps';
+
+const { text } = await generateText({
+  model: sinaps('gpt-4o', {
+    fallbackModels: ['claude-3-7-sonnet-20250219'],
+  }),
+  prompt: 'Explain quantum computing in one sentence.',
+});
+
+console.log(text);
+```
+
+### `streamText` in Next.js Route Handlers
+
+Use SinapsAI directly with `streamText` in Next.js App Router Route Handlers:
+
+```typescript
+// app/api/chat/route.ts
+import { streamText } from 'ai';
+import { sinaps } from '@/lib/sinaps';
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const result = streamText({
+    model: sinaps('llama-3.3-70b-versatile', {
+      thinkingBudget: 1024,
+      fallbackModels: ['gpt-4o-mini', 'claude-3-7-sonnet-20250219'],
+    }),
+    messages,
+  });
+
+  return result.toDataStreamResponse();
+}
+```
+
+### Embedding Models
+
+SinapsAI provides unified text embedding models with automatic failover across providers:
+
+```typescript
+import { embed } from 'ai';
+import { sinaps } from '@/lib/sinaps';
+
+const { embedding } = await embed({
+  model: sinaps.textEmbeddingModel('text-embedding-3-small'),
+  value: 'Semantic search query',
+});
+
+console.log(embedding);
+```
+
+## Additional Resources
+
+- [SinapsAI GitHub Repository](https://github.com/roedyrustam/sinapsai)
+- [SinapsAI on npm](https://www.npmjs.com/package/sinapsai)
+- [SinapsAI Documentation & Examples](https://github.com/roedyrustam/sinapsai/tree/main/examples)
