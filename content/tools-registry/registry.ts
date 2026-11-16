@@ -1000,4 +1000,32 @@ console.log(text);`,
     websiteUrl: 'https://keenable.ai',
     npmUrl: 'https://www.npmjs.com/package/@keenable/ai-sdk',
   },
+  {
+    slug: 'datacircle',
+    name: 'Datacircle',
+    description:
+      'Find the best GTM APIs. Four tools on the open API of Datacircle: list every GTM API, see which provider ranks first on each one, search every provider\'s pricing plans and see where a provider ranks. No API key is required.',
+    packageName: '@datacircle/ai-sdk',
+    tags: ['gtm', 'data', 'api', 'pricing'],
+    installCommand: {
+      pnpm: 'pnpm add @datacircle/ai-sdk',
+      npm: 'npm install @datacircle/ai-sdk',
+      yarn: 'yarn add @datacircle/ai-sdk',
+      bun: 'bun add @datacircle/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { datacircleTools } from '@datacircle/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Who are the 3 best providers for the email-finder API?',
+  tools: datacircleTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/waynehamadi/ai-sdk-datacircle#readme',
+    websiteUrl: 'https://datacircle.dev',
+    npmUrl: 'https://www.npmjs.com/package/@datacircle/ai-sdk',
+  },
 ];
