@@ -37,6 +37,12 @@ proxy negotiation); this app owns content, configuration, and thin adapters.
   `content/docs` (v7) and pinned release SHAs (v5/v6). Do not edit it by hand;
   change the source or `scripts/sync-content-utils.mjs` transforms.
 - `dev:site` syncs only v7; set `DOCS_ALL_VERSIONS=1` to work on v5/v6 pages.
+- `/api/search` indexes `.search-index/`, which `pnpm build-search-index`
+  generates after `fumadocs-mdx` (frontmatter and search sections per version,
+  no page bodies), and builds a version's index on its first request. Keep
+  `lib/geistdocs/source.ts` out of that route's imports: it loads the compiled
+  MDX of every version, which made each function instance's first search take
+  over ten seconds.
 - Versioned Markdown routes rewrite links with
   `lib/geistdocs/version-markdown.ts`; proxy mappings in `proxy.ts` must cover
   every public docs family (`/docs`, `/providers`, `/cookbook`,

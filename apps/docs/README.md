@@ -23,8 +23,13 @@ The content sync generates `apps/docs/content/` from three reviewed sources:
 return 404. Set `DOCS_ALL_VERSIONS=1` to include them. Builds always include
 every version.
 
-Generated content, Fumadocs source files, and Next.js output are ignored by
-Git. Run the complete local validation with:
+`build-search-index` then extracts each page's frontmatter and search sections
+into `apps/docs/.search-index/`, one module per version. The search API indexes
+those modules instead of the compiled pages, so it reflects the content as of
+the last `dev:site` or `build:site` run.
+
+Generated content, Fumadocs source files, the search index, and Next.js output
+are ignored by Git. Run the complete local validation with:
 
 ```bash
 pnpm --filter ai-sdk-docs validate:site

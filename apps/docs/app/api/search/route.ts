@@ -15,29 +15,9 @@ const searches = new Map<SearchVersion, Promise<Search>>();
 const getSearch = (version: SearchVersion) => {
   let search = searches.get(version);
   if (!search) {
-    // TEMPORARY DIAGNOSTICS: report cold start phases in Server-Timing.
-    const start = performance.now();
-    search = loadSearchSources(version).then(sources => {
-      const loaded = performance.now();
-      const route = createSearchRoute({ config, sources });
-      const created = performance.now();
-      const memory = process.memoryUsage();
-      const timing = [
-        `load-index-${version};dur=${(loaded - start).toFixed(1)}`,
-        `create-${version};dur=${(created - loaded).toFixed(1)}`,
-        `uptime;dur=${(process.uptime() * 1000).toFixed(0)}`,
-        `rss;desc="${Math.round(memory.rss / 1e6)}MB"`,
-      ].join(', ');
-      let reported = false;
-      return async (request: Request) => {
-        const response = await route(request);
-        if (!reported) {
-          reported = true;
-          response.headers.set('Server-Timing', timing);
-        }
-        return response;
-      };
-    });
+    search = loadSearchSources(version).then(sources =>
+      createSearchRoute({ config, sources }),
+    );
     // Let the next request retry instead of caching a failed load.
     search.catch(() => searches.delete(version));
     searches.set(version, search);
