@@ -17,9 +17,16 @@ const GREP_MAX_LINE_LENGTH = 500;
 const EXCLUDED_DIRECTORIES = ['.git', 'node_modules'];
 
 /**
- * Bytes of matching lines that one search may transfer, so a matching line
- * that is far longer than the result shows cannot fill the host's memory. The
- * lines are truncated for display anyway.
+ * Characters of a matching line that the search transfers. The result shows
+ * 500 of them, and the path and line number come first, so a matching line
+ * that is far longer than the result shows does not fill the host's memory
+ * while every match stays in the result.
+ */
+const MATCH_LINE_MAX_CHARS = 4096;
+
+/**
+ * Bytes of matching lines that one search may transfer, as a backstop for a
+ * large `limit` over very long lines.
  */
 const MATCH_MAX_BYTES = 1024 * 1024;
 
@@ -35,6 +42,12 @@ const CONTEXT_MAX_BYTES = 256 * 1024;
  * search that matches many large files stays bounded.
  */
 const CONTEXT_BUDGET_BYTES = 1024 * 1024;
+
+/**
+ * Line ranges that one file's context read may ask for, so a large `limit`
+ * over matches in one file does not build an oversized sandbox command.
+ */
+const CONTEXT_MAX_RANGES = 500;
 
 /**
  * One matching line found by the sandbox search.
@@ -178,7 +191,12 @@ async function readLineRanges(options: {
   const conditions = ranges
     .map(({ start, end }) => `NR>=${start} && NR<=${end}`)
     .join(' || ');
-  const command = `cd ${shellQuote(directory)} && awk '${conditions} { print NR "\\t" $0 }' ${shellQuote(relativePath)} | head -c ${maxBytes + 1}`;
+  /*
+   * The absolute path keeps a name with `=` from being read as an assignment,
+   * and `pipefail` reports an unreadable file instead of the exit code of
+   * `head`.
+   */
+  const command = `set -o pipefail; awk '${conditions} { print NR "\\t" $0 }' ${shellQuote(path.posix.join(directory, relativePath))} | head -c ${maxBytes + 1}`;
 
   let result: { exitCode: number; stdout: string; stderr: string };
   try {
@@ -187,7 +205,8 @@ async function readLineRanges(options: {
     if (abortSignal?.aborted) throw new Error('Operation aborted');
     return null;
   }
-  if (result.exitCode !== 0) return null;
+  // 141 is `head` closing the pipe after it reached the byte limit.
+  if (result.exitCode !== 0 && result.exitCode !== 141) return null;
 
   const lines = new Map<number, string>();
   for (const rawLine of result.stdout.split('\n')) {
@@ -196,9 +215,13 @@ async function readLineRanges(options: {
     lines.set(Number.parseInt(match[1] ?? '', 10), match[2] ?? '');
   }
   const bytes = Buffer.byteLength(result.stdout, 'utf-8');
-  // A line that `head -c` cut keeps the beginning of its text, which is what
-  // the result shows, and a cut inside the line number cannot match.
-  return { lines, bytes, truncated: bytes > maxBytes };
+  const truncated = bytes > maxBytes;
+  if (truncated && !result.stdout.endsWith('\n')) {
+    // The cut split the last line, so it cannot be placed in the file.
+    const lastLine = [...lines.keys()].pop();
+    if (lastLine != null) lines.delete(lastLine);
+  }
+  return { lines, bytes, truncated };
 }
 
 /**
@@ -255,7 +278,7 @@ async function executeGrep(options: {
   let result: { exitCode: number; stdout: string; stderr: string };
   try {
     result = await session.run({
-      command: `set -o pipefail; cd ${shellQuote(directory)} && grep ${flags.map(shellQuote).join(' ')} -e ${shellQuote(input.pattern)} ${shellQuote(target)} | head -n ${limit} | head -c ${MATCH_MAX_BYTES}`,
+      command: `set -o pipefail; cd ${shellQuote(directory)} && grep ${flags.map(shellQuote).join(' ')} -e ${shellQuote(input.pattern)} ${shellQuote(target)} | head -n ${limit} | awk '{ print substr($0, 1, ${MATCH_LINE_MAX_CHARS}) }' | head -c ${MATCH_MAX_BYTES}`,
       abortSignal,
     });
   } catch (error) {
@@ -268,6 +291,9 @@ async function executeGrep(options: {
     output: result.stdout,
     singleFile: isDirectory ? undefined : fileName,
   }).slice(0, limit);
+  // The search output is capped in bytes, so the last match can be cut off.
+  const matchesTruncated =
+    Buffer.byteLength(result.stdout, 'utf-8') >= MATCH_MAX_BYTES;
   /*
    * grep exits with 1 when nothing matched, and with 141 when `head` closed
    * the pipe after reaching the limit. A recursive search that hit an
@@ -326,11 +352,14 @@ async function executeGrep(options: {
         contextTruncated = true;
         break;
       }
+      const merged = mergeLineRanges({ ranges });
+      const limited = merged.slice(0, CONTEXT_MAX_RANGES);
+      if (limited.length < merged.length) contextTruncated = true;
       const context = await readLineRanges({
         session,
         directory,
         relativePath,
-        ranges: mergeLineRanges({ ranges }),
+        ranges: limited,
         maxBytes: Math.min(CONTEXT_MAX_BYTES, budgetLeft),
         abortSignal,
       });
@@ -362,13 +391,18 @@ async function executeGrep(options: {
     const start = Math.max(1, match.lineNumber - contextValue);
     const end = match.lineNumber + contextValue;
     for (let current = start; current <= end; current++) {
+      if (current === match.lineNumber) {
+        // The matching line comes from the search itself, so it is complete
+        // even where the context read stopped at its byte limit.
+        outputLines.push(
+          `${match.relativePath}:${current}: ${formatLine(match.lineText)}`,
+        );
+        continue;
+      }
       const contextText = context?.get(current);
-      if (contextText == null && current !== match.lineNumber) continue;
-      const text = formatLine(contextText ?? match.lineText);
+      if (contextText == null) continue;
       outputLines.push(
-        current === match.lineNumber
-          ? `${match.relativePath}:${current}: ${text}`
-          : `${match.relativePath}-${current}- ${text}`,
+        `${match.relativePath}-${current}- ${formatLine(contextText)}`,
       );
     }
   }
@@ -397,6 +431,9 @@ async function executeGrep(options: {
   }
   if (contextTruncated) {
     notices.push('Some context lines omitted for large files');
+  }
+  if (matchesTruncated) {
+    notices.push('Some matches may be missing, the output reached its limit');
   }
   if (notices.length > 0) output += `\n\n[${notices.join('. ')}]`;
 

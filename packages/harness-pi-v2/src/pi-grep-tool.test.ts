@@ -111,6 +111,49 @@ describe('createPiGrepTool', () => {
     expect(text(result).length).toBeLessThan(1000);
   });
 
+  test('keeps the matching line complete when a long line precedes it', async () => {
+    const { session, workDir, grep } = await setup();
+    // The context read for line 1 uses up all but a few bytes of its limit.
+    await session.writeTextFile({
+      path: `${workDir}/wide.txt`,
+      content: `${'x'.repeat(262_138)}\nconst match = 1;\n`,
+    });
+
+    const result = await grep({
+      pattern: 'const match',
+      path: 'wide.txt',
+      context: 1,
+    });
+
+    expect(text(result)).toContain('wide.txt:2: const match = 1;');
+  });
+
+  test('keeps every match when the matching lines are long', async () => {
+    const { session, workDir, grep } = await setup();
+    const longLine = `match ${'a'.repeat(12_000)}`;
+    await session.writeTextFile({
+      path: `${workDir}/bundle.min.js`,
+      content: `${Array.from({ length: 120 }, () => longLine).join('\n')}\n`,
+    });
+
+    const result = await grep({ pattern: 'match', path: 'bundle.min.js' });
+
+    expect(result.details?.matchLimitReached).toBe(100);
+    expect(text(result)).not.toContain('Some matches may be missing');
+  });
+
+  test('shows context for a file whose name contains an equals sign', async () => {
+    const { session, workDir, grep } = await setup();
+    await session.writeTextFile({
+      path: `${workDir}/a=b.txt`,
+      content: 'first\nmatch me\nlast\n',
+    });
+
+    expect(
+      text(await grep({ pattern: 'match me', path: 'a=b.txt', context: 1 })),
+    ).toBe('a=b.txt-1- first\na=b.txt:2: match me\na=b.txt-3- last');
+  });
+
   test('reports the match limit', async () => {
     const { grep } = await setup();
 
