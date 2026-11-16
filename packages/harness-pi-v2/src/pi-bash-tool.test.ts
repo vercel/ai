@@ -187,6 +187,46 @@ describe('createPiBashTool', () => {
     );
   });
 
+  test('returns when a stopped command keeps its output open', async () => {
+    let sent = 0;
+    const chunk = new TextEncoder().encode('x'.repeat(64 * 1024 - 1) + '\n');
+    // A sandbox that signals only the shell leaves the command and the `tee`
+    // that holds the output open running, so `wait()` returns while the output
+    // stream stays open. The stream parks instead of closing, without spinning.
+    const floodingProcess: Experimental_SandboxProcess = {
+      stdout: new ReadableStream<Uint8Array>({
+        pull(controller) {
+          if (sent > 20 * 1024 * 1024) return new Promise(() => {});
+          controller.enqueue(chunk);
+          sent += chunk.length;
+          return undefined;
+        },
+      }),
+      stderr: new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.close();
+        },
+      }),
+      wait: async () => ({ exitCode: 143 }),
+      kill: async () => {},
+    };
+    const session = await createJustBashNetworkSandboxSession();
+    vi.spyOn(session, 'spawn').mockImplementation(async () => floodingProcess);
+    const tool = createPiBashTool({ session, workDir: '/workspace' });
+
+    const result = await tool.execute(
+      'call-1',
+      { command: 'noisy' },
+      new AbortController().signal,
+      () => {},
+    );
+
+    expect(result).toMatchObject({ isError: true });
+    expect(text(result)).toMatch(
+      /Command stopped after producing more than 16\.0MB of output$/,
+    );
+  });
+
   test('keeps the exit code and trailing comments of the command', async () => {
     const { bash } = await setup();
 

@@ -63,6 +63,9 @@ function resolveTimeoutMs(options: {
 
 /**
  * Reads a byte stream to its end, passing each decoded chunk to `onText`.
+ *
+ * Stops reading when the signal aborts, so that a stream which stays open
+ * after its command was stopped does not keep the caller waiting.
  */
 async function readStream(options: {
   /**
@@ -74,9 +77,18 @@ async function readStream(options: {
    * Receives each decoded chunk.
    */
   onText: (text: string) => void;
+
+  /**
+   * Signal that stops the read.
+   */
+  abortSignal?: AbortSignal;
 }): Promise<void> {
   const decoder = new TextDecoder();
   const reader = options.stream.getReader();
+  const onAbort = () => {
+    void reader.cancel();
+  };
+  options.abortSignal?.addEventListener('abort', onAbort, { once: true });
   try {
     for (;;) {
       const { done, value } = await reader.read();
@@ -85,6 +97,7 @@ async function readStream(options: {
     }
     options.onText(decoder.decode());
   } finally {
+    options.abortSignal?.removeEventListener('abort', onAbort);
     reader.releaseLock();
   }
 }
@@ -328,6 +341,7 @@ async function executeBash(options: {
 
   const output = new RetainedOutput();
   const fullOutputPath = `/tmp/pi-bash-${toolCallId}.log`;
+  const stopController = new AbortController();
   let stopped = false;
   let stopCommand: (() => void) | undefined;
   let lastUpdateAt = 0;
@@ -374,13 +388,24 @@ async function executeBash(options: {
     stopCommand = () => {
       if (stopped) return;
       stopped = true;
-      // Stopping is best effort: not every sandbox implementation can kill.
+      // Stop reading first: a sandbox that only signals the shell leaves the
+      // command and `tee` running, and the streams would stay open.
+      stopController.abort();
+      // Stopping the command is best effort: not every sandbox can kill.
       void Promise.resolve(child.kill()).catch(() => {});
     };
     const [{ exitCode: code }] = await Promise.all([
       child.wait(),
-      readStream({ stream: child.stdout, onText }),
-      readStream({ stream: child.stderr, onText }),
+      readStream({
+        stream: child.stdout,
+        onText,
+        abortSignal: stopController.signal,
+      }),
+      readStream({
+        stream: child.stderr,
+        onText,
+        abortSignal: stopController.signal,
+      }),
     ]);
     exitCode = code;
   } catch (error) {
