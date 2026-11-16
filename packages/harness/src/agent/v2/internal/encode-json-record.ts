@@ -20,6 +20,28 @@ function isReadableRecordText(options: {
 }
 
 /**
+ * Returns whether text can contain a key that the secure parser inspects.
+ *
+ * A dangerous key appears verbatim in the text because `JSON.stringify` only
+ * escapes quotes inside string values, and it never escapes the ASCII letters
+ * and underscores of these names. A quoted name inside a string value is
+ * preceded by a backslash, so it does not match. Skipping the full parse
+ * otherwise keeps every log write and stream part from parsing its own record
+ * again.
+ */
+function mayContainSensitiveKey(options: {
+  /**
+   * Serialized record envelope.
+   */
+  text: string;
+}): boolean {
+  return (
+    options.text.includes('"__proto__"') ||
+    options.text.includes('"constructor"')
+  );
+}
+
+/**
  * Serializes one durable record envelope, such as a log event or a stream
  * record, to the text the harness stores in the World.
  *
@@ -52,7 +74,9 @@ export function encodeJSONRecord(options: {
   field: string;
 }): string {
   const text = JSON.stringify(options.record);
-  if (isReadableRecordText({ text })) return text;
+  if (!mayContainSensitiveKey({ text }) || isReadableRecordText({ text })) {
+    return text;
+  }
 
   const escapedRecord: Record<string, JSONValue> = Object.assign(
     Object.create(null),
