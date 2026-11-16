@@ -173,20 +173,32 @@ export function createPiSandboxOperations(options: {
 }): PiSandboxOperations {
   const { session } = options;
   let lastRead: { path: string; bytes: Uint8Array } | undefined;
-  let lastStat: { path: string; size: number } | undefined;
+  let lastStat:
+    | { path: string; type: 'file' | 'directory' | 'other'; size: number }
+    | undefined;
 
   /**
    * Returns the size of a file, reusing the size that `access()` or `stat()`
    * read for the same path right before, as Pi's read tool calls `access()`
    * before it reads.
    */
-  const statSize = async (filePath: string): Promise<number | undefined> => {
+  /**
+   * Returns the type and size of a file, reusing the stat that `access()` or
+   * `stat()` read for the same path right before, as Pi's read tool calls
+   * `access()` before it reads.
+   */
+  const statFor = async (
+    filePath: string,
+  ): Promise<
+    { type: 'file' | 'directory' | 'other'; size: number } | undefined
+  > => {
     if (lastStat?.path === filePath) {
-      const { size } = lastStat;
+      const { type, size } = lastStat;
       lastStat = undefined;
-      return size;
+      return { type, size };
     }
-    return (await session.stat({ path: filePath }))?.size;
+    const stat = await session.stat({ path: filePath });
+    return stat == null ? undefined : { type: stat.type, size: stat.size };
   };
 
   const readBytes = async (filePath: string): Promise<Uint8Array> => {
@@ -195,10 +207,24 @@ export function createPiSandboxOperations(options: {
       lastRead = undefined;
       return bytes;
     }
-    const size = await statSize(filePath);
-    if (size != null && size > MAX_READ_BYTES) {
+    const stat = await statFor(filePath);
+    if (stat?.type === 'directory') {
+      throw Object.assign(
+        new Error(
+          `EISDIR: illegal operation on a directory, read '${filePath}'`,
+        ),
+        { code: 'EISDIR' },
+      );
+    }
+    if (stat != null && stat.type !== 'file') {
+      // A device or a pipe has no size to check and may never end.
       throw new Error(
-        `File is too large to read: ${filePath} is ${formatSize(size)}, the limit is ${formatSize(MAX_READ_BYTES)}. Read part of it with a bash command, for example \`sed -n '1,200p' ${filePath}\`.`,
+        `Cannot read ${filePath}: it is not a regular file. Read it with a bash command instead.`,
+      );
+    }
+    if (stat != null && stat.size > MAX_READ_BYTES) {
+      throw new Error(
+        `File is too large to read: ${filePath} is ${formatSize(stat.size)}, the limit is ${formatSize(MAX_READ_BYTES)}. Read part of it with a bash command, for example \`sed -n '1,200p' ${filePath}\`.`,
       );
     }
     const bytes = await session.readBinaryFile({ path: filePath });
@@ -213,7 +239,7 @@ export function createPiSandboxOperations(options: {
     if (stat == null) {
       throw createNotFoundError({ operation: 'stat', path: filePath });
     }
-    lastStat = { path: filePath, size: stat.size };
+    lastStat = { path: filePath, type: stat.type, size: stat.size };
     return stat;
   };
 

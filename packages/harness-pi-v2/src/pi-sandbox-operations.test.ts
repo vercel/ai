@@ -48,6 +48,12 @@ describe('createPiSandboxOperations', () => {
     );
   });
 
+  test('refuses to read a directory', async () => {
+    const { root, operations } = await setup();
+
+    await expect(operations.readFile(`${root}/src`)).rejects.toThrow('EISDIR');
+  });
+
   test('refuses to read a file above the size limit', async () => {
     const { session, root, operations } = await setup();
     const limit = 10 * 1024 * 1024;
