@@ -963,6 +963,76 @@ describe('HarnessAgent turns', () => {
     );
   });
 
+  test('keeps a session replayable when a tool result has prototype-sensitive keys', async () => {
+    /*
+     * A host tool can return JSON from an untrusted source, e.g.
+     * `await (await fetch(url)).json()`, which may contain these valid own
+     * keys. The durable log and stream must still replay afterwards.
+     */
+    const toolResult = JSON.parse(
+      '{"__proto__":{"polluted":true},"constructor":{"prototype":{"polluted":true}},"value":"kept"}',
+    );
+    const tools = {
+      fetchJson: tool({
+        inputSchema: z.object({}),
+        execute: async () => toolResult,
+      }),
+    };
+    const createHarnessWithTool = () =>
+      createFakeHarness({
+        modelParts: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'fetchJson',
+            input: '{}',
+          },
+        ],
+        afterModel: async ({ context }) => {
+          await context.executeHostTool({
+            toolCallId: 'call-1',
+            toolName: 'fetchJson',
+            input: {},
+          });
+        },
+      });
+    const world = new InMemoryWorld();
+    const { agent, session } = await setup({
+      harness: createHarnessWithTool(),
+      world,
+      tools,
+    });
+
+    const result = await agent.generate({ prompt: 'fetch', session });
+    const output = result.toolResults[0]?.output;
+    expect(Object.hasOwn(output as object, '__proto__')).toBe(true);
+    expect((output as { value: string }).value).toBe('kept');
+
+    // The stream of the turn decodes, including its stored tool result.
+    const stored = await agent.readStream({ session });
+    expect(await readPartTypes(stored.fullStream)).toContain('tool-result');
+
+    /*
+     * A new agent recreates the log from the World, as a restarted process
+     * does, and replays the recorded tool result for a later turn.
+     */
+    const restarted = new HarnessAgent({
+      harness: createHarnessWithTool(),
+      world,
+      getSandboxSession,
+      tools,
+    });
+    const restored = await restarted.createSession({ runId: session.runId });
+    await expect(
+      createLog({ world, runId: session.runId }).read(),
+    ).resolves.toMatchObject({ position: expect.any(Number) });
+    const replay = await restarted.generate({
+      prompt: 'again',
+      session: restored,
+    });
+    expect(replay.text).toBe('echo: again');
+  });
+
   test('finishes a started turn with an error when the adapter throws', async () => {
     const harness = createFakeHarness({
       afterModel: async () => {

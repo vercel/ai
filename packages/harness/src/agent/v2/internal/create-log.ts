@@ -13,6 +13,7 @@ import {
   type World,
 } from '@workflow/world';
 import type { JSONValue, SerializableValue } from '@ai-sdk/provider';
+import { decodeJSONRecordValue, encodeJSONRecord } from './encode-json-record';
 import { isValidHarnessAgentLogEvent } from './is-valid-harness-agent-log-event';
 import type { HarnessAgentDriveIdentity } from './start-drive';
 import type { HarnessV2LogEvent } from '../../../v2/harness-v2-log';
@@ -442,7 +443,9 @@ async function deserializeEvent(options: {
       'HarnessAgentLog: invalid or unsupported storage envelope.',
     );
   }
-  const value = jsonDecodeSerializableValue({ value: envelope.event });
+  const value = jsonDecodeSerializableValue({
+    value: decodeJSONRecordValue({ value: envelope.event }),
+  });
   if (!isValidHarnessAgentLogEvent(value)) {
     throw new Error('HarnessAgentLog: invalid stored event.');
   }
@@ -917,7 +920,10 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
         value: encoded,
       }) as HarnessAgentLogEvent;
       const bytes = new TextEncoder().encode(
-        JSON.stringify({ version: 1, event: encoded }),
+        encodeJSONRecord({
+          record: { version: 1, event: encoded },
+          field: 'event',
+        }),
       );
       return exclusive(() => appendUnlocked({ event: snapshot, bytes }));
     },

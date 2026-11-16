@@ -1,5 +1,6 @@
 import type { FxShellInput } from './fx-builtin-tool-specs';
 import type { FxBuiltinToolOutput, FxToolSandbox } from './fx-builtin-tools';
+import { createFxOutputCapture, readFxChunks } from './fx-sandbox-output';
 import {
   decodeFxModelSafeText,
   getUtf8ByteLength,
@@ -21,6 +22,23 @@ const OMITTED_MARKER =
   '\n... bytes omitted; use full_output_handle for exact output ...\n';
 
 /*
+ * Bytes of command output the host keeps while a command runs. The result
+ * shows at most `MAX_RESULT_BYTES`, cut to a head and a tail, and fx escapes
+ * a byte it cannot show unchanged to up to four characters, so keeping this
+ * much of both ends shows the same head and tail whatever the output size.
+ */
+const MAX_OUTPUT_HEAD_BYTES = 64 * 1024;
+const MAX_OUTPUT_TAIL_BYTES = 64 * 1024;
+const MAX_OUTPUT_BYTES = MAX_OUTPUT_HEAD_BYTES + MAX_OUTPUT_TAIL_BYTES;
+const DISCARDED_MARKER = `\n... bytes omitted: this call keeps at most ${MAX_OUTPUT_BYTES} bytes of command output and drops the rest ...\n`;
+
+/*
+ * Output past the kept bytes that is drained and dropped before the command
+ * is stopped, so that a large but finite output still completes.
+ */
+const MAX_DISCARDED_OUTPUT_BYTES = 16 * 1024 * 1024;
+
+/*
  * fx's retry guidance for failed commands (`failureRetryGuidance` in fx's
  * `tools/shell/shell.zig`).
  */
@@ -28,6 +46,10 @@ const PARSE_RETRY_GUIDANCE =
   'The shell could not parse this command (unmatched quote or syntax error), so nothing executed. Rewrite the command with corrected quoting or escaping and submit the full corrected command instead of rerunning the same text.';
 const USAGE_RETRY_GUIDANCE =
   'The command exited with a usage error (missing or invalid arguments). Rebuild the command with the required arguments explicitly set, then submit the corrected command instead of rerunning it unchanged.';
+const OUTPUT_LIMIT_RETRY_GUIDANCE =
+  'The command produced more output than this call keeps, so the middle of its output is missing. Rerun it with a narrower output: filter it, show only its head or tail, or redirect it to a file and read that file in parts.';
+const OUTPUT_LIMIT_STOPPED_RETRY_GUIDANCE =
+  'The command produced more output than this call keeps and was stopped, so its output is incomplete. Rerun it with a narrower output: filter it, show only its head or tail, or redirect it to a file and read that file in parts.';
 
 const strictUtf8Decoder = new TextDecoder('utf-8', { fatal: true });
 const lenientUtf8Decoder = new TextDecoder();
@@ -172,12 +194,18 @@ function toHeadTail(options: {
    * Maximum bytes of the result.
    */
   maxBytes: number;
+
+  /**
+   * Marker that replaces the cut text. Defaults to fx's marker, which names
+   * `full_output_handle`.
+   */
+  marker?: string;
 }): string {
-  const { text, maxBytes } = options;
+  const { text, maxBytes, marker = OMITTED_MARKER } = options;
   const bytes = Buffer.from(text, 'utf8');
   if (bytes.length <= maxBytes) return text;
-  const markerBytes = getUtf8ByteLength(OMITTED_MARKER);
-  if (maxBytes <= markerBytes) return OMITTED_MARKER.slice(0, maxBytes);
+  const markerBytes = getUtf8ByteLength(marker);
+  if (maxBytes <= markerBytes) return marker.slice(0, maxBytes);
   const retained = maxBytes - markerBytes;
   const headBytes = Math.ceil(retained / 2);
   const tailBytes = retained - headBytes;
@@ -189,35 +217,9 @@ function toHeadTail(options: {
   while (tailStart < bytes.length && isContinuation(tailStart)) tailStart++;
   return (
     bytes.subarray(0, headEnd).toString('utf8') +
-    OMITTED_MARKER +
+    marker +
     bytes.subarray(tailStart).toString('utf8')
   );
-}
-
-/**
- * Reads a byte stream to its end, passing each chunk to `onChunk`.
- */
-async function readChunks(options: {
-  /**
-   * Stream to read.
-   */
-  stream: ReadableStream<Uint8Array>;
-
-  /**
-   * Receives each chunk.
-   */
-  onChunk: (chunk: Uint8Array) => void;
-}): Promise<void> {
-  const reader = options.stream.getReader();
-  try {
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      if (value.length > 0) options.onChunk(value);
-    }
-  } finally {
-    reader.releaseLock();
-  }
 }
 
 /**
@@ -232,6 +234,12 @@ async function readChunks(options: {
  * the exact output is written to `/tmp/fx-shell-<toolCallId>.log` in the
  * sandbox, which `full_output_handle` names. A nonzero exit code or a
  * timeout makes the result an error result.
+ *
+ * The host keeps at most 128 KiB of the output, its head and its tail, so a
+ * command cannot exhaust the memory of the agent process: past that the
+ * result shows the head and tail of what the host kept, `output_incomplete`
+ * is true, and `full_output_handle` is null because the exact output is not
+ * stored. A command whose output exceeds 16 MiB past that is stopped.
  *
  * `interact` and `stop` return an error result, since no command outlives
  * its run call. Throws `Command aborted` when the call is aborted.
@@ -317,42 +325,89 @@ export async function runFxShell(options: {
           timedOut = true;
           timeoutController.abort(new Error('timeout'));
         }, timeoutMs);
-  const chunks: Uint8Array[] = [];
+  const capture = createFxOutputCapture({
+    headBytes: MAX_OUTPUT_HEAD_BYTES,
+    tailBytes: MAX_OUTPUT_TAIL_BYTES,
+  });
+  const outputLimitController = new AbortController();
+  let outputStopped = false;
+  let stopCommand: (() => void) | undefined;
   const onChunk = (chunk: Uint8Array) => {
-    chunks.push(chunk);
+    capture.add(chunk);
+    if (
+      !outputStopped &&
+      capture.totalBytes > MAX_OUTPUT_BYTES + MAX_DISCARDED_OUTPUT_BYTES
+    ) {
+      outputStopped = true;
+      /*
+       * Aborting makes the sandbox stop the command and end the streams it
+       * writes to, so that the call returns even for a command whose
+       * children keep those streams open after a kill.
+       */
+      outputLimitController.abort(new Error('output limit'));
+      stopCommand?.();
+    }
   };
   const startedAt = Date.now();
+  const commandAbortSignal = AbortSignal.any([
+    abortSignal,
+    timeoutController.signal,
+    outputLimitController.signal,
+  ]);
   let exitCode: number | null = null;
   try {
     const child = await session.spawn({
       command,
       workingDirectory: cwd.abs,
-      abortSignal: AbortSignal.any([abortSignal, timeoutController.signal]),
+      abortSignal: commandAbortSignal,
     });
+    stopCommand = () => {
+      // Stopping is best effort: not every sandbox implementation can kill.
+      try {
+        void Promise.resolve(child.kill()).catch(() => {});
+      } catch {
+        // Ignore a sandbox that cannot stop the command.
+      }
+    };
     const [result] = await Promise.all([
       child.wait(),
-      readChunks({ stream: child.stdout, onChunk }),
-      readChunks({ stream: child.stderr, onChunk }),
+      readFxChunks({
+        stream: child.stdout,
+        onChunk,
+        abortSignal: commandAbortSignal,
+      }),
+      readFxChunks({
+        stream: child.stderr,
+        onChunk,
+        abortSignal: commandAbortSignal,
+      }),
     ]);
     exitCode = result.exitCode;
   } catch (error) {
     if (abortSignal.aborted) throw new Error('Command aborted');
-    if (!timedOut) throw error;
+    if (!timedOut && !outputStopped) throw error;
   } finally {
     clearTimeout(timeout);
+    stopCommand = undefined;
   }
   if (abortSignal.aborted) throw new Error('Command aborted');
-  if (timedOut) exitCode = null;
+  // A stopped command has no exit code of its own to report.
+  if (timedOut || outputStopped) exitCode = null;
   const durationMs = Date.now() - startedAt;
 
-  const bytes = Buffer.concat(chunks);
+  const complete = capture.complete;
+  const bytes = capture.toBytes();
   const output = toFxTerminalSafeOutput({ bytes });
   const retryGuidance = timedOut
     ? null
-    : getFxShellRetryGuidance({
-        exitCode: exitCode ?? undefined,
-        output: lenientUtf8Decoder.decode(bytes),
-      });
+    : !complete
+      ? outputStopped
+        ? OUTPUT_LIMIT_STOPPED_RETRY_GUIDANCE
+        : OUTPUT_LIMIT_RETRY_GUIDANCE
+      : getFxShellRetryGuidance({
+          exitCode: exitCode ?? undefined,
+          output: lenientUtf8Decoder.decode(bytes),
+        });
   const serialize = (fields: {
     outputDelta: string;
     truncated: boolean;
@@ -360,11 +415,11 @@ export async function runFxShell(options: {
   }) =>
     JSON.stringify({
       session_id: null,
-      state: timedOut ? 'stopped' : 'completed',
+      state: timedOut || outputStopped ? 'stopped' : 'completed',
       backend: 'sandbox',
       persistence: 'none',
       output_truncated: fields.truncated,
-      output_incomplete: false,
+      output_incomplete: !complete,
       output_terminal_safe: true,
       full_output_handle: fields.fullOutputHandle ?? null,
       exit_code: exitCode,
@@ -372,13 +427,62 @@ export async function runFxShell(options: {
       termination_indeterminate: false,
       duration_ms: durationMs,
       accepted_bytes: null,
-      error: timedOut ? 'TimeoutExpired' : null,
+      error: timedOut
+        ? 'TimeoutExpired'
+        : outputStopped
+          ? 'OutputLimitExceeded'
+          : null,
       retry_guidance: retryGuidance,
       output_delta: fields.outputDelta,
     });
-  const isError = timedOut || exitCode !== 0;
+  const isError = timedOut || outputStopped || exitCode !== 0;
   const toOutput = (text: string): FxBuiltinToolOutput =>
     isError ? { text, isError: true } : { text };
+  const marker = complete ? OMITTED_MARKER : DISCARDED_MARKER;
+
+  /*
+   * Finds the largest output budget whose serialized result fits the cap.
+   * JSON escaping can grow the output, so the result is measured rather
+   * than computed, like fx's `formatSnapshotWithLimit`.
+   */
+  const fitResult = (fields: { fullOutputHandle?: string }): string => {
+    let best: string | undefined;
+    let minimum = 0;
+    let maximum = Math.min(getUtf8ByteLength(output.text), MAX_RESULT_BYTES);
+    while (minimum <= maximum) {
+      const budget = minimum + Math.floor((maximum - minimum) / 2);
+      const candidate = serialize({
+        outputDelta: toHeadTail({
+          text: output.text,
+          maxBytes: budget,
+          marker,
+        }),
+        truncated: true,
+        fullOutputHandle: fields.fullOutputHandle,
+      });
+      if (getUtf8ByteLength(candidate) <= MAX_RESULT_BYTES) {
+        best = candidate;
+        minimum = budget + 1;
+      } else {
+        if (budget === 0) break;
+        maximum = budget - 1;
+      }
+    }
+    return (
+      best ??
+      serialize({
+        outputDelta: '',
+        truncated: true,
+        fullOutputHandle: fields.fullOutputHandle,
+      })
+    );
+  };
+
+  /*
+   * Output that did not fit the kept bytes has no exact copy in the sandbox,
+   * so the result shows its head and tail and names no full output handle.
+   */
+  if (!complete) return toOutput(fitResult({}));
 
   const plain = serialize({
     outputDelta: output.text,
@@ -401,30 +505,5 @@ export async function runFxShell(options: {
   });
   if (getUtf8ByteLength(whole) <= MAX_RESULT_BYTES) return toOutput(whole);
 
-  /*
-   * Finds the largest output budget whose serialized result fits the cap.
-   * JSON escaping can grow the output, so the result is measured rather
-   * than computed, like fx's `formatSnapshotWithLimit`.
-   */
-  let best: string | undefined;
-  let minimum = 0;
-  let maximum = Math.min(getUtf8ByteLength(output.text), MAX_RESULT_BYTES);
-  while (minimum <= maximum) {
-    const budget = minimum + Math.floor((maximum - minimum) / 2);
-    const candidate = serialize({
-      outputDelta: toHeadTail({ text: output.text, maxBytes: budget }),
-      truncated: true,
-      fullOutputHandle,
-    });
-    if (getUtf8ByteLength(candidate) <= MAX_RESULT_BYTES) {
-      best = candidate;
-      minimum = budget + 1;
-    } else {
-      if (budget === 0) break;
-      maximum = budget - 1;
-    }
-  }
-  return toOutput(
-    best ?? serialize({ outputDelta: '', truncated: true, fullOutputHandle }),
-  );
+  return toOutput(fitResult({ fullOutputHandle }));
 }

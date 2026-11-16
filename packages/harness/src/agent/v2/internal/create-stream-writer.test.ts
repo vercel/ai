@@ -89,6 +89,55 @@ describe('createStreamWriter', () => {
     ]);
   });
 
+  test('decodes a part whose value has prototype-sensitive own keys', async () => {
+    const { world, writer } = setup();
+    /*
+     * JSON returned by a host tool can contain these valid own keys, e.g. from
+     * an external API. Writing them verbatim made the secure parser reject the
+     * committed record on every later read.
+     */
+    const result = JSON.parse(
+      '{"__proto__":{"polluted":true},"constructor":{"prototype":{"polluted":true}},"value":"kept"}',
+    );
+    writer.unsafeEmit({
+      type: 'tool-result',
+      toolCallId: 'call-1',
+      toolName: 'fetchJson',
+      result,
+    });
+    await writer.flush();
+
+    const records = await readRecords(world);
+    expect(records).toHaveLength(1);
+    const part = records[0].part as Extract<
+      HarnessAgentStreamPart,
+      { type: 'tool-result' }
+    >;
+    expect(Object.hasOwn(part.result as object, '__proto__')).toBe(true);
+    expect(Object.hasOwn(part.result as object, 'constructor')).toBe(true);
+    expect(
+      Object.hasOwn(
+        (part.result as { constructor: object }).constructor,
+        'prototype',
+      ),
+    ).toBe(true);
+    expect((part.result as { value: string }).value).toBe('kept');
+  });
+
+  test('stores a string that mentions a sensitive key without escaping it', async () => {
+    const { world, writer } = setup();
+    const delta = 'see "__proto__": and "constructor": in the payload';
+    writer.unsafeEmit({ type: 'text-delta', id: 'text', delta });
+    await writer.flush();
+
+    const chunks = await readChunks(world);
+    // The part stays an object: only an actual key triggers the escaped form.
+    expect(chunks[0]).toContain('"part":{"type":"text-delta"');
+    expect(await readRecords(world)).toEqual([
+      { part: { type: 'text-delta', id: 'text', delta } },
+    ]);
+  });
+
   test('batches a synchronous burst into one chunk ending with a blank line', async () => {
     const { world, writer } = setup();
     writer.unsafeEmit(part('a'));
@@ -220,6 +269,10 @@ describe('decodeStreamRecords', () => {
     ['a missing part', '{"version":1,"startId":"s"}\n'],
     ['an invalid tag', '{"version":1,"part":{"type":"reset-step"},"key":1}\n'],
     ['a part without a type', '{"version":1,"part":{}}\n'],
+    [
+      'an escaped part that is not JSON',
+      '{"version":1,"part":"not a JSON record"}\n',
+    ],
   ])('rejects %s', async (_, text) => {
     await expect(decodeStreamRecords({ text })).rejects.toThrow();
   });
