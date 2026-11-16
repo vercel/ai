@@ -3,6 +3,15 @@ import type { GrepToolInput } from '@earendil-works/pi-coding-agent';
 import { describe, expect, test, vi } from 'vitest';
 import { createPiGrepTool } from './pi-grep-tool';
 
+/**
+ * Output of a recursive search as the sandbox frames it: `path\0 line:text … \0`
+ * per file, followed by the marker that a complete search prints.
+ */
+function framedOutput(blocks: string[]): string {
+  const nul = '\u0000';
+  return `${blocks.join(nul)}${nul}/pi-grep-complete${nul}`;
+}
+
 async function setup() {
   const session = await createJustBashNetworkSandboxSession();
   const workDir = session.defaultWorkingDirectory;
@@ -223,15 +232,12 @@ describe('createPiGrepTool', () => {
   test('drops a match with an unsafe line number', async () => {
     const { session, grep } = await setup();
     const run = session.run.bind(session);
-    // The sandbox frames each file as `path\0 line:text … \0`.
-    const nul = '\u0000';
-    const framed = [
+    const framed = framedOutput([
       './crafted.txt',
       '99999999999999999999:match\n',
       './plain.txt',
       '2:ok\n',
-      '',
-    ].join(nul);
+    ]);
     vi.spyOn(session, 'run').mockImplementation(async options => {
       if (options.command.includes('NR>=')) {
         return { exitCode: 0, stdout: '', stderr: '' };
@@ -247,8 +253,7 @@ describe('createPiGrepTool', () => {
 
   test('strips the directory prefix that GNU grep prints', async () => {
     const { session, grep } = await setup();
-    const nul = '\u0000';
-    const framed = ['././src/a.ts', '1:const foo = 1;\n', ''].join(nul);
+    const framed = framedOutput(['././src/a.ts', '1:const foo = 1;\n']);
     vi.spyOn(session, 'run').mockResolvedValue({
       exitCode: 0,
       stdout: framed,
@@ -262,14 +267,12 @@ describe('createPiGrepTool', () => {
 
   test('drops a block whose path leaves the directory', async () => {
     const { session, grep } = await setup();
-    const nul = '\u0000';
-    const framed = [
+    const framed = framedOutput([
       '../../etc/hosts',
       '1:127.0.0.1 match\n',
       './plain.txt',
       '2:ok\n',
-      '',
-    ].join(nul);
+    ]);
     vi.spyOn(session, 'run').mockResolvedValue({
       exitCode: 0,
       stdout: framed,
@@ -283,10 +286,9 @@ describe('createPiGrepTool', () => {
 
   test('reports a cut file list when no match is shown', async () => {
     const { session, grep } = await setup();
-    const nul = '\u0000';
     // The search listed more files than the cap, and none of them printed a
     // `line:text`, which is what a binary file does on the Vercel sandbox.
-    const framed = ['./a.png', '', './b.png', '', ''].join(nul);
+    const framed = framedOutput(['./a.png', '', './b.png', '']);
     vi.spyOn(session, 'run').mockResolvedValue({
       exitCode: 0,
       stdout: framed,
@@ -339,7 +341,7 @@ describe('createPiGrepTool', () => {
   test('reports a recursive output that the byte cap cut', async () => {
     const { session, grep } = await setup();
     const nul = '\u0000';
-    // One frame whose match lines the byte cap cut, so it has no closing NUL.
+    // One frame whose match lines the byte cap cut, so the marker is missing.
     const body = `${`1:${'x'.repeat(2000)}`}\n`.repeat(600);
     vi.spyOn(session, 'run').mockResolvedValue({
       exitCode: 0,

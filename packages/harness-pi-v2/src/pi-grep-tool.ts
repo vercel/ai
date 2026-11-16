@@ -31,6 +31,13 @@ const LINE_MAX_CHARS = 4096;
 const MATCH_MAX_BYTES = 1024 * 1024;
 
 /**
+ * Marker that ends a search inside the capped stream. Neither a file name nor a
+ * match line can produce it, because both are stripped of NUL bytes, so its
+ * absence means the byte cap cut the output.
+ */
+const END_MARKER = '\0/pi-grep-complete\0';
+
+/**
  * Bytes of context lines that one matching file may add to the result. The
  * lines are read in the sandbox, so this bounds the transfer and the host's
  * memory for a file whose lines are very long.
@@ -150,12 +157,14 @@ function parseRecursiveOutput(options: {
    * Framed output of the search.
    */
   output: string;
-}): GrepMatch[] {
+}): { matches: GrepMatch[]; files: number } {
   const matches: GrepMatch[] = [];
+  let files = 0;
   const blocks = options.output.split('\0');
   for (let index = 0; index + 1 < blocks.length; index += 2) {
     const relativePath = (blocks[index] ?? '').replace(/^(\.\/)+/, '');
     if (!isSearchablePath({ relativePath })) continue;
+    files += 1;
     // One match at a time: a spread of a very large array can overflow the
     // stack when the search returns many lines.
     for (const match of parseMatchLines({
@@ -165,7 +174,7 @@ function parseRecursiveOutput(options: {
       matches.push(match);
     }
   }
-  return matches;
+  return { matches, files };
 }
 
 /**
@@ -377,9 +386,17 @@ async function executeGrep(options: {
    * search runs in a subshell because just-bash skips loop iterations when the
    * body pipes a command directly.
    */
+  /*
+   * A search ends with a marker that neither a file name nor a match line can
+   * produce, because both are stripped of NUL bytes. The marker proves that the
+   * byte cap did not cut the output, whatever the sandbox counts with `-c`.
+   */
+  const endMarkerCommand = `printf '\\0/pi-grep-complete\\0'`;
+  // The marker is a pipeline stage of its own so that `pipefail` still reports
+  // the status of the search, not the status of the `printf`.
   const command = isDirectory
-    ? `set -o pipefail; cd ${shellQuote(directory)} && grep ${quotedFlags(fileFlags)} -e ${quotedPattern} . | head -n ${fileLimit + 1} | while IFS= read -r file; do printf '%s\\0' "./$file"; ( grep ${quotedFlags(matchFlags)} -e ${quotedPattern} "./$file" | head -n ${limit} | awk '{ gsub("\\000", ""); print substr($0, 1, ${LINE_MAX_CHARS}) }' ); printf '\\0'; done | head -c ${MATCH_MAX_BYTES + 1}`
-    : `set -o pipefail; cd ${shellQuote(directory)} && grep ${quotedFlags(matchFlags)} -e ${quotedPattern} ${shellQuote(`./${fileName}`)} | head -n ${limit} | awk '{ gsub("\\000", ""); print substr($0, 1, ${LINE_MAX_CHARS}) }' | head -c ${MATCH_MAX_BYTES + 1}`;
+    ? `set -o pipefail; cd ${shellQuote(directory)} && grep ${quotedFlags(fileFlags)} -e ${quotedPattern} . | head -n ${fileLimit + 1} | while IFS= read -r file; do printf '%s\\0' "./$file"; ( grep ${quotedFlags(matchFlags)} -e ${quotedPattern} "./$file" | head -n ${limit} | awk '{ gsub("\\000", ""); print substr($0, 1, ${LINE_MAX_CHARS}) }' ); printf '\\0'; done | { cat; ${endMarkerCommand}; } | head -c ${MATCH_MAX_BYTES + 1}`
+    : `set -o pipefail; cd ${shellQuote(directory)} && grep ${quotedFlags(matchFlags)} -e ${quotedPattern} ${shellQuote(`./${fileName}`)} | head -n ${limit} | awk '{ gsub("\\000", ""); print substr($0, 1, ${LINE_MAX_CHARS}) }' | { cat; ${endMarkerCommand}; } | head -c ${MATCH_MAX_BYTES + 1}`;
   let result: { exitCode: number; stdout: string; stderr: string };
   try {
     result = await session.run({ command, abortSignal });
@@ -389,20 +406,16 @@ async function executeGrep(options: {
   }
   if (abortSignal?.aborted) throw new Error('Operation aborted');
 
+  const parsed = isDirectory
+    ? parseRecursiveOutput({ output: result.stdout })
+    : undefined;
   const matches = (
-    isDirectory
-      ? parseRecursiveOutput({ output: result.stdout })
-      : parseMatchLines({ output: result.stdout, relativePath: fileName })
+    parsed?.matches ??
+    parseMatchLines({ output: result.stdout, relativePath: fileName })
   ).slice(0, limit);
-  /*
-   * The search asks for one byte more than the cap, so a longer output means
-   * the byte cap cut it and the last match can be incomplete.
-   */
-  const matchesTruncated =
-    Buffer.byteLength(result.stdout, 'utf-8') > MATCH_MAX_BYTES;
-  const listedFiles = isDirectory
-    ? Math.floor((result.stdout.split('\0').length - 1) / 2)
-    : 0;
+  // Only a search that reached its end printed the marker before the byte cap.
+  const matchesTruncated = !result.stdout.endsWith(END_MARKER);
+  const listedFiles = parsed?.files ?? 0;
   // The sandbox can only say that it listed more files than the cap, so the
   // notice is only accurate when the matches themselves are below the limit.
   const filesTruncated = listedFiles > fileLimit && matches.length < limit;
