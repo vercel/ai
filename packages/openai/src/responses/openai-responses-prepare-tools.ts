@@ -629,10 +629,13 @@ export async function findAdditionalToolDefinition({
   tools,
   additionalTool,
   providerOptionsName = 'openai',
+  allowedToolNames,
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   additionalTool: Pick<OpenAIResponsesAdditionalTool, 'type' | 'name'>;
   providerOptionsName?: string;
+  /** Provider tool names that the request's `allowedTools` option permits. */
+  allowedToolNames?: ReadonlySet<string>;
 }): Promise<
   | {
       definition: OpenAIResponsesAdditionalTool | undefined;
@@ -697,8 +700,27 @@ export async function findAdditionalToolDefinition({
       );
     }
 
-    if (description == null || namespaceTools.length === 0) {
+    if (description == null) {
       return undefined;
+    }
+
+    if (allowedToolNames != null) {
+      return {
+        definition: undefined,
+        warnings: [
+          {
+            type: 'unsupported',
+            feature: `additionalTools namespace "${additionalTool.name}"`,
+            details:
+              'tool namespaces cannot be loaded while allowedTools restricts the callable tools; the entry is not loaded',
+          },
+        ],
+      };
+    }
+
+    if (namespaceTools.length === 0) {
+      // Every member was filtered out; warnings already explain why.
+      return { definition: undefined, warnings };
     }
 
     return {
@@ -722,6 +744,20 @@ export async function findAdditionalToolDefinition({
         openaiOptions?.namespace != null
       ) {
         continue;
+      }
+
+      if (allowedToolNames != null && !allowedToolNames.has(tool.name)) {
+        return {
+          definition: undefined,
+          warnings: [
+            {
+              type: 'unsupported',
+              feature: `additionalTools entry "${tool.name}"`,
+              details:
+                'the tool is not part of allowedTools for this request; the entry is not loaded',
+            },
+          ],
+        };
       }
 
       // A definition loaded from history cannot express an allowed-callers
@@ -764,6 +800,20 @@ export async function findAdditionalToolDefinition({
       tool.id === 'openai.custom' &&
       tool.name === additionalTool.name
     ) {
+      if (allowedToolNames != null && !allowedToolNames.has(tool.name)) {
+        return {
+          definition: undefined,
+          warnings: [
+            {
+              type: 'unsupported',
+              feature: `additionalTools entry "${tool.name}"`,
+              details:
+                'the tool is not part of allowedTools for this request; the entry is not loaded',
+            },
+          ],
+        };
+      }
+
       const args = await validateTypes({
         value: tool.args,
         schema: customArgsSchema,

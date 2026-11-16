@@ -3732,6 +3732,86 @@ describe('findAdditionalToolDefinition', () => {
     ]);
   });
 
+  it('does not load a tool outside allowedTools', async () => {
+    const resolved = await findAdditionalToolDefinition({
+      tools: [listIssuesTool],
+      additionalTool: { type: 'function', name: 'list_issues' },
+      allowedToolNames: new Set(['search']),
+    });
+
+    expect(resolved).toEqual({
+      definition: undefined,
+      warnings: [
+        {
+          type: 'unsupported',
+          feature: 'additionalTools entry "list_issues"',
+          details:
+            'the tool is not part of allowedTools for this request; the entry is not loaded',
+        },
+      ],
+    });
+  });
+
+  it('does not load a namespace while allowedTools restricts callable tools', async () => {
+    const tools: Array<LanguageModelV4FunctionTool> = [
+      {
+        type: 'function',
+        name: 'get_issue',
+        inputSchema: { type: 'object', properties: {} },
+        providerOptions: {
+          openai: {
+            namespace: { name: 'linear', description: 'Linear tools' },
+          },
+        },
+      },
+    ];
+    const resolved = await findAdditionalToolDefinition({
+      tools,
+      additionalTool: { type: 'namespace', name: 'linear' },
+      allowedToolNames: new Set(['search']),
+    });
+
+    expect(resolved).toEqual({
+      definition: undefined,
+      warnings: [
+        {
+          type: 'unsupported',
+          feature: 'additionalTools namespace "linear"',
+          details:
+            'tool namespaces cannot be loaded while allowedTools restricts the callable tools; the entry is not loaded',
+        },
+      ],
+    });
+  });
+
+  it('explains a namespace whose members all restrict allowed callers', async () => {
+    const namespace = { name: 'linear', description: 'Linear tools' };
+    const tools: Array<LanguageModelV4FunctionTool> = [
+      {
+        type: 'function',
+        name: 'get_issue',
+        inputSchema: { type: 'object', properties: {} },
+        providerOptions: {
+          openai: { namespace, allowedCallers: ['programmatic'] },
+        },
+      },
+    ];
+    const resolved = await findAdditionalToolDefinition({
+      tools,
+      additionalTool: { type: 'namespace', name: 'linear' },
+    });
+
+    expect(resolved?.definition).toBeUndefined();
+    expect(resolved?.warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'additionalTools namespace "linear"',
+        details:
+          'tool "get_issue" restricts allowed callers, which a definition loaded from history cannot express; it is not loaded',
+      },
+    ]);
+  });
+
   it('does not prepare tools the entry does not reference', async () => {
     const tools: Array<LanguageModelV4FunctionTool> = [
       {

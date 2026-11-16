@@ -418,6 +418,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       string,
       ReturnType<typeof findAdditionalToolDefinition>
     >();
+    const allowedToolNames =
+      openaiOptions?.allowedTools != null
+        ? new Set(
+            openaiOptions.allowedTools.toolNames.map(name =>
+              toolNameMapping.toProviderToolName(name),
+            ),
+          )
+        : undefined;
     const findAdditionalToolForRequest = ({
       type,
       name,
@@ -430,6 +438,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
           tools,
           providerOptionsName,
           additionalTool: { type, name },
+          allowedToolNames,
         });
         additionalToolResolutions.set(key, resolution);
       }

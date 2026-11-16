@@ -1898,9 +1898,11 @@ A namespace entry loads only the registered tools whose names it lists. An entry
 can also name a tool that is already part of the request tools; the provider then
 sends that tool's definition again at the named position. Tools that set
 `allowedCallers` cannot be loaded from history, because an inserted definition
-cannot carry that restriction; their entries are dropped with a warning. Register
-every tool you load this way, usually with `omitFromRequestTools: true`, and keep
-its name aligned with the entry. An empty array emits no item.
+cannot carry that restriction; their entries are dropped with a warning. When the
+request sets `allowedTools`, history can only load tools in that set, and
+namespace entries are not loaded. Register every tool you load this way, usually
+with `omitFromRequestTools: true`, and keep its name aligned with the entry. An
+empty array emits no item.
 
 ##### Load tools at any point in the conversation
 
