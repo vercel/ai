@@ -91,26 +91,6 @@ const Monogram = ({ title }: { title: string }) => (
   </span>
 );
 
-/** Cloudflare mark (no static asset; ported from the legacy docs app). */
-const CloudflareIcon = ({ size = 78 }: { size?: number }) => (
-  <svg
-    aria-hidden
-    height={size}
-    viewBox="0 0 32 32"
-    width={size}
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      d="M22.012 22.222c.197-.675.122-1.294-.206-1.754-.3-.422-.807-.666-1.416-.694l-11.545-.15c-.075 0-.14-.038-.178-.094s-.047-.13-.028-.206c.038-.113.15-.197.272-.206l11.648-.15c1.38-.066 2.88-1.182 3.404-2.55l.666-1.735a.38.38 0 0 0 .02-.225c-.75-3.395-3.78-5.927-7.4-5.927-3.34 0-6.17 2.157-7.184 5.15-.657-.488-1.5-.75-2.392-.666-1.604.16-2.9 1.444-3.048 3.048a3.58 3.58 0 0 0 .084 1.191A4.84 4.84 0 0 0 0 22.1c0 .234.02.47.047.703.02.113.113.197.225.197H21.58a.29.29 0 0 0 .272-.206l.16-.572z"
-      fill="#f38020"
-    />
-    <path
-      d="M25.688 14.803l-.32.01c-.075 0-.14.056-.17.13l-.45 1.566c-.197.675-.122 1.294.206 1.754.3.422.807.666 1.416.694l2.457.15c.075 0 .14.038.178.094s.047.14.028.206c-.038.113-.15.197-.272.206l-2.56.15c-1.388.066-2.88 1.182-3.404 2.55l-.188.478c-.038.094.028.188.13.188h8.797a.23.23 0 0 0 .225-.169A6.41 6.41 0 0 0 32 21.106a6.32 6.32 0 0 0-6.312-6.302"
-      fill="#faae40"
-    />
-  </svg>
-);
-
 /** Plus mark (mirrors Geist's `Plus` icon used by production). */
 const PlusIcon = ({ className }: { className?: string }) => (
   <svg
@@ -397,6 +377,13 @@ const OFFICIAL_MODELS: ModelCardData[] = [
 ];
 
 const COMMUNITY_MODELS: ModelCardData[] = [
+  // Active community packages with 100k+ npm downloads, 2026-10-17–2026-11-15.
+  {
+    title: 'OpenRouter',
+    href: '/providers/community-providers/openrouter',
+    color: '6366F1',
+    features: {},
+  },
   {
     title: 'Ollama',
     logo: { src: '/images/icons/ollama.png', invert: true },
@@ -405,29 +392,58 @@ const COMMUNITY_MODELS: ModelCardData[] = [
     features: {},
   },
   {
-    title: 'Anthropic Vertex',
-    // No Google Cloud mark ships in public/images/icons; reuse the Google mark.
-    logos: [
-      { src: '/images/icons/anthropic.svg', invert: true },
-      { src: '/images/icons/google.svg' },
-    ],
-    href: '/providers/community-providers/anthropic-vertex-ai',
-    color: 'F3801F',
+    title: 'React Native Apple',
+    href: '/providers/community-providers/react-native-apple',
+    color: '005AFF',
     features: {},
   },
   {
-    title: 'Portkey',
-    logo: { src: '/images/icons/portkey.png' },
-    href: '/providers/community-providers/portkey',
-    color: 'F3801F',
+    title: 'SAP AI Core',
+    href: '/providers/community-providers/sap-ai',
+    color: '0070F2',
     features: {},
   },
   {
-    title: 'Cloudflare Workers AI',
-    href: '/providers/community-providers/cloudflare-workers-ai',
-    color: 'F3801F',
+    title: 'OpenCode',
+    href: '/providers/community-providers/opencode-sdk',
+    color: '171717',
     features: {},
-    logoIcon: CloudflareIcon,
+  },
+  {
+    title: 'Dify',
+    href: '/providers/community-providers/dify',
+    color: '155EEF',
+    features: {},
+  },
+  {
+    title: 'Claude Code',
+    href: '/providers/community-providers/claude-code',
+    color: 'D97757',
+    features: {},
+  },
+  {
+    title: 'Codex CLI',
+    href: '/providers/community-providers/codex-cli',
+    color: '000000',
+    features: {},
+  },
+  {
+    title: 'Voyage AI',
+    href: '/providers/community-providers/voyage-ai',
+    color: '7B61FF',
+    features: {},
+  },
+  {
+    title: 'Mem0',
+    href: '/providers/community-providers/mem0',
+    color: '3D3061',
+    features: {},
+  },
+  {
+    title: 'Aihubmix',
+    href: '/providers/community-providers/aihubmix',
+    color: '6A5AE0',
+    features: {},
   },
   {
     title: 'Write your own',
