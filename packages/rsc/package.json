@@ -57,7 +57,7 @@
     "@types/react-dom": "^18.3.7",
     "@vercel/ai-tsconfig": "workspace:*",
     "@vercel/ai-tsdown-config": "workspace:*",
-    "@vitejs/plugin-react": "4.3.3",
+    "@vitejs/plugin-react": "^4.7.0",
     "jsdom": "^24.1.3",
     "msw": "2.6.4",
     "react": "^18.3.1",
