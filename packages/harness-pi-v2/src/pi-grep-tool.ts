@@ -173,9 +173,9 @@ function parseRecursiveOutput(options: {
 const MAX_SEARCH_FILES = 250;
 
 /**
- * Bytes of the rendered result that the host holds before it truncates. Twice
- * Pi's display limit is enough for the truncation notice to describe the same
- * output, and a large `limit` or `context` cannot grow it further.
+ * Bytes of the rendered result that the host holds before it truncates. Four
+ * times Pi's display limit leaves room for the truncation notice to describe
+ * the same output, and a large `limit` or `context` cannot grow it further.
  */
 const MAX_RENDERED_BYTES = 4 * DEFAULT_MAX_BYTES;
 
@@ -392,12 +392,14 @@ async function executeGrep(options: {
   const matchesTruncated =
     Buffer.byteLength(result.stdout, 'utf-8') >= MATCH_MAX_BYTES &&
     !result.stdout.endsWith('\n');
+  const listedFiles = isDirectory
+    ? Math.floor((result.stdout.split('\0').length - 1) / 2)
+    : 0;
   // The sandbox can only say that it listed more files than the cap, so the
   // notice is only accurate when the matches themselves are below the limit.
-  const filesTruncated =
-    isDirectory &&
-    Math.floor((result.stdout.split('\0').length - 1) / 2) > fileLimit &&
-    matches.length < limit;
+  const filesTruncated = listedFiles > fileLimit && matches.length < limit;
+  const missingMatchesNotice =
+    'Some matches may be missing, the output reached its limit';
   /*
    * grep exits with 1 when nothing matched, and with 141 when `head` closed
    * the pipe after reaching the limit. A recursive search that hit an
@@ -415,7 +417,14 @@ async function executeGrep(options: {
   }
   if (matches.length === 0) {
     return {
-      content: [{ type: 'text', text: 'No matches found' }],
+      content: [
+        {
+          type: 'text',
+          text: filesTruncated
+            ? `No matches found\n\n[${missingMatchesNotice}]`
+            : 'No matches found',
+        },
+      ],
       details: undefined,
     };
   }
@@ -583,7 +592,7 @@ async function executeGrep(options: {
     notices.push('Some context lines omitted for large files');
   }
   if (matchesTruncated || filesTruncated) {
-    notices.push('Some matches may be missing, the output reached its limit');
+    notices.push(missingMatchesNotice);
   }
   if (notices.length > 0) output += `\n\n[${notices.join('. ')}]`;
 

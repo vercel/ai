@@ -281,6 +281,25 @@ describe('createPiGrepTool', () => {
     expect(text(result)).toBe('plain.txt:2: ok');
   });
 
+  test('reports a cut file list when no match is shown', async () => {
+    const { session, grep } = await setup();
+    const nul = '\u0000';
+    // The search listed more files than the cap, and none of them printed a
+    // `line:text`, which is what a binary file does on the Vercel sandbox.
+    const framed = ['./a.png', '', './b.png', '', ''].join(nul);
+    vi.spyOn(session, 'run').mockResolvedValue({
+      exitCode: 0,
+      stdout: framed,
+      stderr: '',
+    });
+
+    const result = await grep({ pattern: 'match', limit: 1 });
+
+    expect(text(result)).toBe(
+      'No matches found\n\n[Some matches may be missing, the output reached its limit]',
+    );
+  });
+
   test('keeps a match whose line contains a NUL byte in its own file', async () => {
     const { session, workDir, grep } = await setup();
     // A file whose matching line holds a NUL byte must not be able to end the
