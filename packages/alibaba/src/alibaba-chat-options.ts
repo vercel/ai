@@ -8,6 +8,7 @@ import { z } from 'zod/v4';
 // https://www.alibabacloud.com/help/en/model-studio/models
 export type AlibabaChatModelId =
   // commercial edition - hybrid-thinking mode (disabled by default)
+  | 'qwen4-max'
   | 'qwen3.7-max'
   | 'qwen3-max'
   | 'qwen3-max-preview'

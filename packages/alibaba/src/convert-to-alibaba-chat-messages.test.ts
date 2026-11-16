@@ -3,6 +3,73 @@ import { convertToAlibabaChatMessages } from './convert-to-alibaba-chat-messages
 import { CacheControlValidator } from './get-cache-control';
 
 describe('convertToAlibabaChatMessages', () => {
+  describe('video file parts', () => {
+    it('should send a video URL as video_url', () => {
+      const result = convertToAlibabaChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'video/mp4',
+                data: new URL('https://example.com/clip.mp4'),
+              },
+            ],
+          },
+        ],
+      });
+
+      expect((result[0].content as unknown[])[0]).toEqual({
+        type: 'video_url',
+        video_url: { url: 'https://example.com/clip.mp4' },
+      });
+    });
+
+    it('should send inline video data as a base64 data URL', () => {
+      const result = convertToAlibabaChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'video/mp4',
+                data: 'AAAAGGZ0eXA=',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect((result[0].content as unknown[])[0]).toEqual({
+        type: 'video_url',
+        video_url: { url: 'data:video/mp4;base64,AAAAGGZ0eXA=' },
+      });
+    });
+
+    it('should throw for file types other than image and video', () => {
+      expect(() =>
+        convertToAlibabaChatMessages({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'application/pdf',
+                  data: 'JVBERi0=',
+                },
+              ],
+            },
+          ],
+        }),
+      ).toThrow(
+        "'Only image and video file parts are supported' functionality not supported",
+      );
+    });
+  });
+
   it('should use array format for single text user message', () => {
     const result = convertToAlibabaChatMessages({
       prompt: [

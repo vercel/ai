@@ -7,7 +7,7 @@ import { convertToBase64 } from '@ai-sdk/provider-utils';
 import type { AlibabaChatPrompt } from './alibaba-chat-prompt';
 import type { CacheControlValidator } from './get-cache-control';
 
-function formatImageUrl({
+function formatFileUrl({
   data,
   mediaType,
 }: {
@@ -95,17 +95,33 @@ export function convertToAlibabaChatMessages({
                   return {
                     type: 'image_url',
                     image_url: {
-                      url: formatImageUrl({ data: part.data, mediaType }),
+                      url: formatFileUrl({ data: part.data, mediaType }),
                     },
                     ...(partCacheControl
                       ? { cache_control: partCacheControl }
                       : {}),
                   };
-                } else {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: 'Only image file parts are supported',
-                  });
                 }
+
+                if (part.mediaType.startsWith('video/')) {
+                  return {
+                    type: 'video_url',
+                    video_url: {
+                      url: formatFileUrl({
+                        data: part.data,
+                        mediaType: part.mediaType,
+                      }),
+                    },
+                    ...(partCacheControl
+                      ? { cache_control: partCacheControl }
+                      : {}),
+                  };
+                }
+
+                throw new UnsupportedFunctionalityError({
+                  functionality:
+                    'Only image and video file parts are supported',
+                });
               }
             }
           }),

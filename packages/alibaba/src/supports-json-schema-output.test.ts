@@ -10,6 +10,7 @@ describe('supportsJsonSchemaOutput', () => {
     'qwen3.8-max',
     'qwen3.8-flash',
     'qwen3.8-flash-2026-09-01',
+    'qwen4-max',
   ])('returns true for %s', modelId => {
     expect(supportsJsonSchemaOutput(modelId)).toBe(true);
   });
