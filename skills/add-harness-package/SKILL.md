@@ -83,6 +83,7 @@ Required package basics:
 - dependency on `@ai-sdk/provider-utils` via `workspace:*` when using sandbox/auth/schema utilities
 - runtime SDK/CLI dependencies required by the harness
 - dev dependencies matching existing harness packages
+- `zod` in `devDependencies` (and in `src/bridge/package.json` when the bridge uses it) at exactly the version used in `packages/ai/package.json`, never a Zod 3 version. See `.agents/guidelines/zod-dependency-version.md`
 - `"engines": { "node": ">=22" }`
 
 For bridge packages, ensure all bridge assets under `src/bridge/` are copied into `dist/bridge/` and can be read from there. Read `.agents/guidelines/harness-bridge-assets.md` for detailed requirements.
