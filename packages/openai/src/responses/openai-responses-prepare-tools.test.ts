@@ -3630,6 +3630,108 @@ describe('findAdditionalToolDefinition', () => {
     expect(resolved?.warnings).toEqual([]);
   });
 
+  it('does not load a tool that restricts allowed callers', async () => {
+    const tools: Array<LanguageModelV4FunctionTool> = [
+      {
+        ...listIssuesTool,
+        providerOptions: {
+          openai: {
+            omitFromRequestTools: true,
+            allowedCallers: ['programmatic'],
+          },
+        },
+      },
+    ];
+    const resolved = await findAdditionalToolDefinition({
+      tools,
+      additionalTool: { type: 'function', name: 'list_issues' },
+    });
+
+    expect(resolved).toEqual({
+      definition: undefined,
+      warnings: [
+        {
+          type: 'unsupported',
+          feature: 'additionalTools entry "list_issues"',
+          details:
+            'the registered tool restricts allowed callers, which a definition loaded from history cannot express; the entry is not loaded',
+        },
+      ],
+    });
+  });
+
+  it('leaves restricted tools out of a loaded namespace', async () => {
+    const namespace = { name: 'linear', description: 'Linear tools' };
+    const tools: Array<LanguageModelV4FunctionTool> = [
+      {
+        type: 'function',
+        name: 'get_issue',
+        inputSchema: { type: 'object', properties: {} },
+        providerOptions: { openai: { namespace } },
+      },
+      {
+        type: 'function',
+        name: 'delete_issue',
+        inputSchema: { type: 'object', properties: {} },
+        providerOptions: {
+          openai: { namespace, allowedCallers: ['programmatic'] },
+        },
+      },
+    ];
+    const resolved = await findAdditionalToolDefinition({
+      tools,
+      additionalTool: { type: 'namespace', name: 'linear' },
+    });
+
+    expect(resolved?.definition).toMatchObject({
+      type: 'namespace',
+      tools: [{ name: 'get_issue' }],
+    });
+    expect(resolved?.warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'additionalTools namespace "linear"',
+        details:
+          'tool "delete_issue" restricts allowed callers, which a definition loaded from history cannot express; it is not loaded',
+      },
+    ]);
+  });
+
+  it('warns about conflicting namespace descriptions', async () => {
+    const tools: Array<LanguageModelV4FunctionTool> = [
+      {
+        type: 'function',
+        name: 'get_issue',
+        inputSchema: { type: 'object', properties: {} },
+        providerOptions: {
+          openai: { namespace: { name: 'linear', description: 'First' } },
+        },
+      },
+      {
+        type: 'function',
+        name: 'list_issues',
+        inputSchema: { type: 'object', properties: {} },
+        providerOptions: {
+          openai: { namespace: { name: 'linear', description: 'Second' } },
+        },
+      },
+    ];
+    const resolved = await findAdditionalToolDefinition({
+      tools,
+      additionalTool: { type: 'namespace', name: 'linear' },
+    });
+
+    expect(resolved?.definition).toMatchObject({ description: 'First' });
+    expect(resolved?.warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'conflicting descriptions for OpenAI tool namespace "linear"',
+        details:
+          'the first registered description is used for the loaded namespace',
+      },
+    ]);
+  });
+
   it('does not prepare tools the entry does not reference', async () => {
     const tools: Array<LanguageModelV4FunctionTool> = [
       {
@@ -3652,6 +3754,6 @@ describe('findAdditionalToolDefinition', () => {
       additionalTool: { type: 'function', name: 'list_issues' },
     });
 
-    expect(resolved?.definition.name).toBe('list_issues');
+    expect(resolved?.definition?.name).toBe('list_issues');
   });
 });

@@ -463,7 +463,7 @@ type AdditionalToolResolver = (
   additionalTool: Pick<OpenAIResponsesAdditionalTool, 'type' | 'name'>,
 ) => Promise<
   | {
-      definition: OpenAIResponsesAdditionalTool;
+      definition: OpenAIResponsesAdditionalTool | undefined;
       warnings: Array<SharedV4Warning>;
     }
   | undefined
@@ -526,6 +526,7 @@ export async function convertToOpenAIResponsesInput({
   let input: OpenAIResponsesInput = [];
   const warnings: Array<SharedV4Warning> = [];
   const seenAdditionalToolWarnings = new Set<string>();
+  const droppedAdditionalToolNames = new Set<string>();
   const processedApprovalIds = new Set<string>();
   const programmaticToolCallIds = new Set<string>();
   const parallelToolResultGroups =
@@ -598,6 +599,7 @@ export async function convertToOpenAIResponsesInput({
             additionalTools,
             findAdditionalToolDefinition,
             seenWarnings: seenAdditionalToolWarnings,
+            droppedToolNames: droppedAdditionalToolNames,
             warnings,
           });
           if (resolvedAdditionalTools != null) {
@@ -1593,6 +1595,7 @@ export async function convertToOpenAIResponsesInput({
                   providerOptionsName,
                   findAdditionalToolDefinition,
                   seenWarnings: seenAdditionalToolWarnings,
+                  droppedToolNames: droppedAdditionalToolNames,
                   warnings,
                 });
                 if (additionalTools != null) {
@@ -1914,6 +1917,7 @@ export async function convertToOpenAIResponsesInput({
             providerOptionsName,
             findAdditionalToolDefinition,
             seenWarnings: seenAdditionalToolWarnings,
+            droppedToolNames: droppedAdditionalToolNames,
             warnings,
           });
           if (additionalTools != null) {
@@ -1956,6 +1960,14 @@ export async function convertToOpenAIResponsesInput({
         item.type !== 'reasoning' ||
         item.encrypted_content != null,
     );
+  }
+
+  if (droppedAdditionalToolNames.size > 0) {
+    warnings.push({
+      type: 'unsupported',
+      feature: 'additionalTools',
+      details: `additional tool definitions are only sent for tools registered in the request; dropped the definitions of unregistered tools: ${formatDroppedToolNames(droppedAdditionalToolNames)}`,
+    });
   }
 
   return { input, warnings };
@@ -2006,12 +2018,14 @@ async function resolveAdditionalTools({
   providerOptionsName,
   findAdditionalToolDefinition,
   seenWarnings,
+  droppedToolNames,
   warnings,
 }: {
   providerOptions: SharedV4ProviderOptions | undefined;
   providerOptionsName: string;
   findAdditionalToolDefinition: AdditionalToolResolver | undefined;
   seenWarnings: Set<string>;
+  droppedToolNames: Set<string>;
   warnings: Array<SharedV4Warning>;
 }): Promise<Array<OpenAIResponsesAdditionalTool> | undefined> {
   const additionalTools = await parseToolResultAdditionalTools({
@@ -2023,6 +2037,7 @@ async function resolveAdditionalTools({
     additionalTools,
     findAdditionalToolDefinition,
     seenWarnings,
+    droppedToolNames,
     warnings,
   });
 }
@@ -2040,11 +2055,13 @@ async function filterAdditionalTools({
   additionalTools,
   findAdditionalToolDefinition,
   seenWarnings,
+  droppedToolNames,
   warnings,
 }: {
   additionalTools: Array<OpenAIResponsesAdditionalTool> | undefined;
   findAdditionalToolDefinition: AdditionalToolResolver | undefined;
   seenWarnings: Set<string>;
+  droppedToolNames: Set<string>;
   warnings: Array<SharedV4Warning>;
 }): Promise<Array<OpenAIResponsesAdditionalTool> | undefined> {
   if (additionalTools == null || additionalTools.length === 0) {
@@ -2053,7 +2070,6 @@ async function filterAdditionalTools({
 
   const resolvedTools: Array<OpenAIResponsesAdditionalTool> = [];
   const seenDefinitions = new Set<string>();
-  const droppedToolNames = new Set<string>();
 
   for (const additionalTool of additionalTools) {
     const resolved = await findAdditionalToolDefinition?.({
@@ -2073,6 +2089,10 @@ async function filterAdditionalTools({
         seenWarnings.add(signature);
         warnings.push(warning);
       }
+    }
+
+    if (resolved.definition == null) {
+      continue;
     }
 
     pushDefinitionMismatchWarning({
@@ -2101,14 +2121,6 @@ async function filterAdditionalTools({
 
     seenDefinitions.add(signature);
     resolvedTools.push(definition);
-  }
-
-  if (droppedToolNames.size > 0) {
-    warnings.push({
-      type: 'unsupported',
-      feature: 'additionalTools',
-      details: `additional tool definitions are only sent for tools registered in the request; dropped the definitions of unregistered tools: ${formatDroppedToolNames(droppedToolNames)}`,
-    });
   }
 
   return resolvedTools.length > 0 ? resolvedTools : undefined;

@@ -635,7 +635,7 @@ export async function findAdditionalToolDefinition({
   providerOptionsName?: string;
 }): Promise<
   | {
-      definition: OpenAIResponsesAdditionalTool;
+      definition: OpenAIResponsesAdditionalTool | undefined;
       warnings: Array<SharedV4Warning>;
     }
   | undefined
@@ -658,7 +658,27 @@ export async function findAdditionalToolDefinition({
         continue;
       }
 
-      description ??= namespace.description;
+      if (description == null) {
+        description = namespace.description;
+      } else if (description !== namespace.description) {
+        warnings.push({
+          type: 'unsupported',
+          feature: `conflicting descriptions for OpenAI tool namespace "${namespace.name}"`,
+          details:
+            'the first registered description is used for the loaded namespace',
+        });
+      }
+
+      // A definition loaded from history cannot express an allowed-callers
+      // restriction, so leave such tools out of the namespace.
+      if (openaiOptions?.allowedCallers != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: `additionalTools namespace "${additionalTool.name}"`,
+          details: `tool "${tool.name}" restricts allowed callers, which a definition loaded from history cannot express; it is not loaded`,
+        });
+        continue;
+      }
 
       // Tools that are part of the request tools were already prepared with
       // their warnings; only report the warnings of hidden tools here.
@@ -702,6 +722,22 @@ export async function findAdditionalToolDefinition({
         openaiOptions?.namespace != null
       ) {
         continue;
+      }
+
+      // A definition loaded from history cannot express an allowed-callers
+      // restriction, so do not load the tool at all.
+      if (openaiOptions?.allowedCallers != null) {
+        return {
+          definition: undefined,
+          warnings: [
+            {
+              type: 'unsupported',
+              feature: `additionalTools entry "${tool.name}"`,
+              details:
+                'the registered tool restricts allowed callers, which a definition loaded from history cannot express; the entry is not loaded',
+            },
+          ],
+        };
       }
 
       // Tools that are part of the request tools were already prepared with

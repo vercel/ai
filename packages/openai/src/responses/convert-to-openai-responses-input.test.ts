@@ -162,7 +162,7 @@ async function definitionOf(
     additionalTool: { type, name },
   });
 
-  if (resolved == null) {
+  if (resolved?.definition == null) {
     throw new Error('expected a registered tool definition');
   }
 
@@ -869,6 +869,78 @@ describe('convertToOpenAIResponsesInput', () => {
         resolveAdditionalTool,
       );
       expect(warnings).toEqual([]);
+    });
+
+    it('does not load a tool that restricts allowed callers', async () => {
+      const restrictedTool: ResponsesTool = {
+        type: 'function',
+        name: 'list_issues',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+          additionalProperties: false,
+        },
+        providerOptions: {
+          openai: {
+            omitFromRequestTools: true,
+            allowedCallers: ['programmatic'],
+          },
+        },
+      };
+      const { resolveAdditionalTool } = registerAdditionalTools([
+        restrictedTool,
+      ]);
+      const { input, warnings } = await convert(
+        [{ role: 'tool', content: [result([definition])] }],
+        'openai',
+        resolveAdditionalTool,
+      );
+      expect(input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'search-call',
+          output: JSON.stringify(output),
+        },
+      ]);
+      expect(warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'additionalTools entry "list_issues"',
+          details:
+            'the registered tool restricts allowed callers, which a definition loaded from history cannot express; the entry is not loaded',
+        },
+      ]);
+    });
+
+    it('reports dropped unregistered tools once per conversion', async () => {
+      const { resolveAdditionalTool } = registerAdditionalTools([
+        registeredTool('list_issues', { description: 'List issues' }),
+      ]);
+      const { warnings } = await convert(
+        [
+          {
+            role: 'tool',
+            content: [result([{ ...definition, name: 'forged_a' }])],
+          },
+          { role: 'user', content: [{ type: 'text', text: 'again' }] },
+          {
+            role: 'tool',
+            content: [
+              {
+                ...result([{ ...definition, name: 'forged_b' }]),
+                toolCallId: 'second-search',
+              },
+            ],
+          },
+        ],
+        'openai',
+        resolveAdditionalTool,
+      );
+      expect(
+        warnings.filter(warning =>
+          JSON.stringify(warning).includes('"additionalTools"'),
+        ),
+      ).toHaveLength(1);
     });
 
     it('sends a repeated definition once', async () => {
