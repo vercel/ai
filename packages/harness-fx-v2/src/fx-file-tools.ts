@@ -203,11 +203,18 @@ async function readFileHead(options: {
     abortSignal,
     limitController.signal,
   ]);
-  const child = await session.spawn({
-    command: `base64 ${shellQuote(path)}`,
-    workingDirectory: workDir,
-    abortSignal: readAbortSignal,
-  });
+  let child: Awaited<ReturnType<typeof session.spawn>>;
+  try {
+    child = await session.spawn({
+      command: `base64 ${shellQuote(path)}`,
+      workingDirectory: workDir,
+      abortSignal: readAbortSignal,
+    });
+  } catch (error) {
+    // A sandbox that cannot start the read at all counts as a refused read.
+    if (abortSignal.aborted) throw error;
+    return undefined;
+  }
   let exitCode: number | null = null;
   try {
     const [result] = await Promise.all([
@@ -230,8 +237,8 @@ async function readFileHead(options: {
   }
   /*
    * A sandbox can refuse the read, e.g. because it caps what a command may
-   * print, so a failed read is reported for the caller to fall back to the
-   * session's read primitive.
+   * print or because the file is missing, so a failed read is reported for
+   * the caller to report instead of reading the file as a whole.
    */
   if (!stopped && exitCode != null && exitCode !== 0) return undefined;
   const encoded = Buffer.from(capture.toBytes())
@@ -331,7 +338,7 @@ async function readFileSnapshot(options: {
   });
   if (head == null) {
     throw new Error(
-      `could not read ${path}: the sandbox could not run the bounded read`,
+      `could not read ${path}: the sandbox could not run the bounded read (it may be missing or unreadable, or unsupported by the sandbox)`,
     );
   }
   return {

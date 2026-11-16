@@ -295,6 +295,10 @@ function createFakeFileSession(options: {
    */
   fails?: boolean;
   /**
+   * Whether starting the command fails, like an unreachable sandbox.
+   */
+  spawnFails?: boolean;
+  /**
    * Text the command prints before its output, like a shell profile would.
    */
   noise?: string;
@@ -348,6 +352,7 @@ function createFakeFileSession(options: {
       abortSignal?: AbortSignal;
     }) {
       calls.push(`spawn ${command}`);
+      if (options.spawnFails) throw new Error('sandbox unavailable');
       /*
        * Models `base64 <path>`: the whole file, encoded in whole three-byte
        * groups so that the pieces decode in order and wrapped like `base64`
@@ -744,5 +749,50 @@ describe('writeFxFile over a file of another size', () => {
 
     expect(calls).toEqual(['stat', 'writeTextFile']);
     expect(output).toEqual({ text: 'wrote big.txt (12 bytes)' });
+  });
+});
+
+describe('a read the sandbox refuses', () => {
+  test('reports an edit_file preimage it cannot read', async () => {
+    const { session } = createFakeFileSession({ size: 1024, fails: true });
+
+    const output = await editFxFile({
+      sandbox: { session, workDir: '/home/user', home: '/home/user' },
+      input: { path: 'file.txt', old_string: 'a', new_string: 'b' },
+      abortSignal: new AbortController().signal,
+    });
+
+    expect(output).toEqual({
+      text: 'file mutation preparation failed: unable to read the approved preimage',
+      isError: true,
+    });
+  });
+
+  test('writes a file it cannot compare', async () => {
+    const { session, calls } = createFakeFileSession({ size: 12, fails: true });
+
+    const output = await writeFxFile({
+      sandbox: { session, workDir: '/home/user', home: '/home/user' },
+      input: { path: 'file.txt', content: 'replacement\n' },
+      abortSignal: new AbortController().signal,
+    });
+
+    expect(calls).toContain('writeTextFile');
+    expect(output).toEqual({ text: 'wrote file.txt (12 bytes)' });
+  });
+
+  test('reports a read_file the sandbox cannot start', async () => {
+    const { session } = createFakeFileSession({
+      size: 1024,
+      spawnFails: true,
+    });
+
+    await expect(
+      readFxFile({
+        sandbox: { session, workDir: '/home/user', home: '/home/user' },
+        input: { path: 'file.txt' },
+        abortSignal: new AbortController().signal,
+      }),
+    ).rejects.toThrow('the sandbox could not run the bounded read');
   });
 });
