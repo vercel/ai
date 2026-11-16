@@ -24,9 +24,12 @@ interface ModelFeatures {
 }
 
 interface ModelLogo {
+  /** Official alternate artwork for dark backgrounds. */
+  darkSrc?: string;
   /** Invert in dark mode (monochrome black marks). */
   invert?: boolean;
   src: string;
+  width?: number;
 }
 
 interface ModelCardData {
@@ -126,14 +129,26 @@ const ModelLogoImage = ({
   title: string;
 }) => (
   // Static brand SVGs skip the Next image optimizer deliberately.
-  // eslint-disable-next-line @next/next/no-img-element
-  <img
-    alt={`${title} logo`}
-    className={logo.invert ? 'dark:invert' : undefined}
-    height={size}
-    src={logo.src}
-    width={size}
-  />
+  <>
+    {/* eslint-disable-next-line @next/next/no-img-element */}
+    <img
+      alt={`${title} logo`}
+      className={`object-contain ${logo.darkSrc ? 'dark:hidden' : logo.invert ? 'dark:invert' : ''}`}
+      height={size}
+      src={logo.src}
+      width={logo.width ?? size}
+    />
+    {logo.darkSrc ? (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        alt={`${title} logo`}
+        className="hidden object-contain dark:block"
+        height={size}
+        src={logo.darkSrc}
+        width={logo.width ?? size}
+      />
+    ) : null}
+  </>
 );
 
 export const ModelCard = ({
@@ -380,69 +395,83 @@ const COMMUNITY_MODELS: ModelCardData[] = [
   // Active community packages with 100k+ npm downloads, 2026-10-17–2026-11-15.
   {
     title: 'OpenRouter',
+    logo: {
+      src: '/images/icons/openrouter.svg',
+      darkSrc: '/images/icons/openrouter-dark.svg',
+      width: 110,
+    },
     href: '/providers/community-providers/openrouter',
-    color: '6366F1',
+    color: '7624F4',
     features: {},
   },
   {
     title: 'Ollama',
-    logo: { src: '/images/icons/ollama.png', invert: true },
+    logo: { src: '/images/icons/ollama.svg', invert: true },
     href: '/providers/community-providers/ollama',
-    color: '020210',
+    color: '000000',
     features: {},
   },
   {
     title: 'React Native Apple',
+    logo: { src: '/images/icons/react-native-ai.svg' },
     href: '/providers/community-providers/react-native-apple',
-    color: '005AFF',
+    color: '3FAE6A',
     features: {},
   },
   {
     title: 'SAP AI Core',
+    logo: { src: '/images/icons/sap.svg', width: 156 },
     href: '/providers/community-providers/sap-ai',
-    color: '0070F2',
+    color: '0069B4',
     features: {},
   },
   {
     title: 'OpenCode',
+    logo: { src: '/images/icons/opencode.svg' },
     href: '/providers/community-providers/opencode-sdk',
-    color: '171717',
+    color: '131010',
     features: {},
   },
   {
     title: 'Dify',
+    logo: { src: '/images/icons/dify.svg' },
     href: '/providers/community-providers/dify',
-    color: '155EEF',
+    color: '0033FF',
     features: {},
   },
   {
     title: 'Claude Code',
+    logo: { src: '/images/icons/claude-code.svg' },
     href: '/providers/community-providers/claude-code',
     color: 'D97757',
     features: {},
   },
   {
     title: 'Codex CLI',
+    logo: { src: '/images/icons/codex.svg', invert: true },
     href: '/providers/community-providers/codex-cli',
     color: '000000',
     features: {},
   },
   {
     title: 'Voyage AI',
+    logo: { src: '/images/icons/voyage.svg' },
     href: '/providers/community-providers/voyage-ai',
-    color: '7B61FF',
+    color: '00ED64',
     features: {},
   },
   {
     title: 'Mem0',
+    logo: { src: '/images/icons/mem0.svg' },
     href: '/providers/community-providers/mem0',
-    color: '3D3061',
+    color: 'CBB2FF',
     features: {},
   },
   {
     title: 'Aihubmix',
+    logo: { src: '/images/icons/aihubmix.svg' },
     href: '/providers/community-providers/aihubmix',
-    color: '6A5AE0',
+    color: '2563EB',
     features: {},
   },
   {
