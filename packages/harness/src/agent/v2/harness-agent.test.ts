@@ -802,9 +802,20 @@ describe('HarnessAgent turns', () => {
     (tools.weather as { needsApproval?: boolean }).needsApproval = true;
 
     const result = await agent.stream({ prompt: 'weather?', session });
+    const parts: Array<{ type: string }> = [];
+    for await (const part of result.fullStream) parts.push(part);
 
-    expect(await readPartTypes(result.fullStream)).toContain('error');
     expect(execute).not.toHaveBeenCalled();
+    expect(parts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'tool-error',
+          toolCallId: 'call-1',
+          toolName: 'weather',
+          error: expect.stringContaining("tool 'weather' requires approval"),
+        }),
+      ]),
+    );
   });
 
   test('finishes a started turn with an error when the adapter throws', async () => {
