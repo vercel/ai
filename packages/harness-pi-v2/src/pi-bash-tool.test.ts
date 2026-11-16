@@ -132,6 +132,23 @@ describe('createPiBashTool', () => {
     expect(full!.size).toBeLessThanOrEqual(200 * 1024);
   });
 
+  test('passes the abort signal to the log file write', async () => {
+    const { session, bash } = await setup();
+    const writeTextFile = vi.spyOn(session, 'writeTextFile');
+    const abortController = new AbortController();
+
+    await bash({
+      input: { command: 'seq 1 3000' },
+      abortSignal: abortController.signal,
+    });
+
+    expect(writeTextFile).toHaveBeenCalledTimes(1);
+    expect(writeTextFile.mock.calls[0]![0]).toMatchObject({
+      path: '/tmp/pi-bash-call-1.log',
+      abortSignal: abortController.signal,
+    });
+  });
+
   test('writes no output file when the output is not truncated', async () => {
     const { session, bash } = await setup();
 

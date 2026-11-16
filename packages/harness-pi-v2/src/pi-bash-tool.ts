@@ -419,7 +419,11 @@ async function executeBash(options: {
   if (truncation.truncated) {
     const fullOutputPath = `/tmp/pi-bash-${toolCallId}.log`;
     const retained = output.retained;
-    await session.writeTextFile({ path: fullOutputPath, content: retained });
+    await session.writeTextFile({
+      path: fullOutputPath,
+      content: retained,
+      abortSignal,
+    });
     const retainedBytes = Buffer.byteLength(retained, 'utf-8');
     // The file holds everything only when the retained tail is the whole output.
     const saved =
