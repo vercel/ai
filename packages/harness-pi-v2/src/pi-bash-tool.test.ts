@@ -296,6 +296,55 @@ describe('createPiBashTool', () => {
     );
   });
 
+  test('stops the command when the sandbox cannot kill it', async () => {
+    const createProcess = (
+      kill: () => Promise<void>,
+    ): Experimental_SandboxProcess => {
+      const chunk = new TextEncoder().encode(`${'x'.repeat(63)}\n`);
+      return {
+        stdout: new ReadableStream<Uint8Array>({
+          pull(controller) {
+            controller.enqueue(chunk);
+          },
+        }),
+        stderr: new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.close();
+          },
+        }),
+        wait: async () => ({ exitCode: 137 }),
+        kill,
+      };
+    };
+    const stopped =
+      /Command stopped after producing more than 16\.0MB of output$/;
+
+    for (const kill of [
+      () => {
+        throw new Error('kill is unsupported');
+      },
+      async () => {
+        throw new Error('kill is unsupported');
+      },
+    ]) {
+      const session = await createJustBashNetworkSandboxSession();
+      vi.spyOn(session, 'spawn').mockImplementation(async () =>
+        createProcess(kill),
+      );
+      const tool = createPiBashTool({ session, workDir: '/workspace' });
+
+      const result = await tool.execute(
+        'call-1',
+        { command: 'noisy' },
+        new AbortController().signal,
+        () => {},
+      );
+
+      expect(result).toMatchObject({ isError: true });
+      expect(text(result)).toMatch(stopped);
+    }
+  });
+
   test('keeps the exit code and trailing comments of the command', async () => {
     const { bash } = await setup();
 
