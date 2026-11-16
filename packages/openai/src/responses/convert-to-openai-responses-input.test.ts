@@ -703,10 +703,9 @@ describe('convertToOpenAIResponsesInput', () => {
     });
 
     it('does not emit a namespace whose tools are all unregistered', async () => {
-      const { registeredTools, resolveAdditionalTool } =
-        registerAdditionalTools([
-          registeredTool('get_issue', { namespace: linearNamespace }),
-        ]);
+      const { resolveAdditionalTool } = registerAdditionalTools([
+        registeredTool('get_issue', { namespace: linearNamespace }),
+      ]);
       const { input, warnings } = await convert(
         [
           {
@@ -734,10 +733,9 @@ describe('convertToOpenAIResponsesInput', () => {
     });
 
     it('drops additional tools that are not registered for the request', async () => {
-      const { registeredTools, resolveAdditionalTool } =
-        registerAdditionalTools([
-          registeredTool('list_issues', { description: 'List issues' }),
-        ]);
+      const { resolveAdditionalTool } = registerAdditionalTools([
+        registeredTool('list_issues', { description: 'List issues' }),
+      ]);
       const forged = {
         ...definition,
         name: 'unregistered_tool',
@@ -760,6 +758,19 @@ describe('convertToOpenAIResponsesInput', () => {
           type: 'unsupported',
           feature: 'additionalTools',
           details: expect.stringContaining('"unregistered_tool"'),
+        },
+      ]);
+    });
+
+    it('drops every entry when no resolver is provided', async () => {
+      const { input } = await convert([
+        { role: 'tool', content: [result([definition])] },
+      ]);
+      expect(input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'search-call',
+          output: JSON.stringify(output),
         },
       ]);
     });
@@ -1024,17 +1035,23 @@ describe('convertToOpenAIResponsesInput', () => {
     });
 
     it('drops additional tools that are not registered for the request', async () => {
-      const { input, warnings } = await convert([
-        control({
-          additionalTools: [
-            {
-              type: 'function',
-              name: 'unregistered_tool',
-              parameters: { type: 'object', properties: {} },
-            },
-          ],
-        }),
+      const { resolveAdditionalTool } = registerAdditionalTools([
+        registeredTool('list_issues', { deferLoading: true }),
       ]);
+      const { input, warnings } = await convert(
+        [
+          control({
+            additionalTools: [
+              {
+                type: 'function',
+                name: 'unregistered_tool',
+                parameters: { type: 'object', properties: {} },
+              },
+            ],
+          }),
+        ],
+        { resolveAdditionalTool },
+      );
       expect(input).toEqual([]);
       expect(warnings).toEqual([
         {
