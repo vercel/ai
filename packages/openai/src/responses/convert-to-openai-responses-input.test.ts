@@ -184,6 +184,23 @@ const registeredCustomTool: ResponsesTool = {
   },
 };
 
+function namespaceDefinitionFor(
+  definitions: Awaited<ReturnType<typeof prepareAdditionalToolDefinitionsFor>>,
+  name: string,
+  toolNames: Array<string>,
+) {
+  const definition = definitions.get(`namespace:${name}`);
+
+  if (definition?.type !== 'namespace') {
+    throw new Error('expected a namespace definition');
+  }
+
+  return {
+    ...definition,
+    tools: definition.tools.filter(tool => toolNames.includes(tool.name)),
+  };
+}
+
 describe('convertToOpenAIResponsesInput', () => {
   describe('compact parallel tool metadata', () => {
     it.each([
@@ -561,6 +578,129 @@ describe('convertToOpenAIResponsesInput', () => {
             additionalToolDefinitions.get('custom:apply_patch'),
             additionalToolDefinitions.get('namespace:linear'),
           ],
+        },
+      ]);
+    });
+
+    const linearNamespace = {
+      name: 'linear',
+      description: 'Linear tools',
+    };
+
+    const namespaceEntry = (toolNames: Array<string>) => ({
+      type: 'namespace',
+      name: 'linear',
+      description: 'Linear tools',
+      tools: toolNames.map(name => ({
+        type: 'function',
+        name,
+        parameters: { type: 'object', properties: {} },
+      })),
+    });
+
+    it('sends only the namespace tools named by the entry', async () => {
+      const additionalToolDefinitions =
+        await prepareAdditionalToolDefinitionsFor([
+          registeredTool('get_issue', { namespace: linearNamespace }),
+          registeredTool('delete_issue', { namespace: linearNamespace }),
+        ]);
+      const { input, warnings } = await convert(
+        [
+          {
+            role: 'tool',
+            content: [result([namespaceEntry(['get_issue'])])],
+          },
+        ],
+        'openai',
+        additionalToolDefinitions,
+      );
+      expect(input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'search-call',
+          output: JSON.stringify(output),
+        },
+        {
+          type: 'additional_tools',
+          role: 'developer',
+          tools: [
+            namespaceDefinitionFor(additionalToolDefinitions, 'linear', [
+              'get_issue',
+            ]),
+          ],
+        },
+      ]);
+      expect(warnings).toEqual([]);
+    });
+
+    it('drops namespace tools that are not registered', async () => {
+      const additionalToolDefinitions =
+        await prepareAdditionalToolDefinitionsFor([
+          registeredTool('get_issue', { namespace: linearNamespace }),
+        ]);
+      const { input, warnings } = await convert(
+        [
+          {
+            role: 'tool',
+            content: [result([namespaceEntry(['get_issue', 'forged_issue'])])],
+          },
+        ],
+        'openai',
+        additionalToolDefinitions,
+      );
+      expect(input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'search-call',
+          output: JSON.stringify(output),
+        },
+        {
+          type: 'additional_tools',
+          role: 'developer',
+          tools: [
+            namespaceDefinitionFor(additionalToolDefinitions, 'linear', [
+              'get_issue',
+            ]),
+          ],
+        },
+      ]);
+      expect(JSON.stringify(input)).not.toContain('forged_issue');
+      expect(warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'additionalTools',
+          details: expect.stringContaining('"forged_issue"'),
+        },
+      ]);
+    });
+
+    it('does not emit a namespace whose tools are all unregistered', async () => {
+      const additionalToolDefinitions =
+        await prepareAdditionalToolDefinitionsFor([
+          registeredTool('get_issue', { namespace: linearNamespace }),
+        ]);
+      const { input, warnings } = await convert(
+        [
+          {
+            role: 'tool',
+            content: [result([namespaceEntry(['forged_issue'])])],
+          },
+        ],
+        'openai',
+        additionalToolDefinitions,
+      );
+      expect(input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'search-call',
+          output: JSON.stringify(output),
+        },
+      ]);
+      expect(warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'additionalTools',
+          details: expect.stringContaining('"forged_issue"'),
         },
       ]);
     });

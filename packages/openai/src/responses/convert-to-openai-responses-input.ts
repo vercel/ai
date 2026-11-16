@@ -2041,24 +2041,36 @@ function filterAdditionalTools({
   }
 
   const resolvedTools: Array<OpenAIResponsesAdditionalTool> = [];
-  const seenKeys = new Set<string>();
+  const seenDefinitions = new Set<string>();
   const droppedToolNames = new Set<string>();
 
   for (const additionalTool of additionalTools) {
     const key = getOpenAIResponsesAdditionalToolKey(additionalTool);
-    const definition = additionalToolDefinitions?.get(key);
+    const registeredDefinition = additionalToolDefinitions?.get(key);
 
-    if (definition == null) {
+    if (registeredDefinition == null) {
       droppedToolNames.add(additionalTool.name);
       continue;
     }
 
-    // Replayed history can repeat an entry; send each definition once.
-    if (seenKeys.has(key)) {
+    const definition = narrowNamespaceDefinition({
+      registeredDefinition,
+      additionalTool,
+      droppedToolNames,
+    });
+
+    if (definition == null) {
       continue;
     }
 
-    seenKeys.add(key);
+    // Replayed history can repeat an entry; send each definition once.
+    const signature = JSON.stringify(definition);
+
+    if (seenDefinitions.has(signature)) {
+      continue;
+    }
+
+    seenDefinitions.add(signature);
     resolvedTools.push(definition);
   }
 
@@ -2071,6 +2083,47 @@ function filterAdditionalTools({
   }
 
   return resolvedTools.length > 0 ? resolvedTools : undefined;
+}
+
+/**
+ * A namespace entry names the tools to load. Send only the registered tools of
+ * the namespace that the entry names, so an entry cannot load more of a
+ * namespace than it asked for.
+ */
+function narrowNamespaceDefinition({
+  registeredDefinition,
+  additionalTool,
+  droppedToolNames,
+}: {
+  registeredDefinition: OpenAIResponsesAdditionalTool;
+  additionalTool: OpenAIResponsesAdditionalTool;
+  droppedToolNames: Set<string>;
+}): OpenAIResponsesAdditionalTool | undefined {
+  if (
+    registeredDefinition.type !== 'namespace' ||
+    additionalTool.type !== 'namespace'
+  ) {
+    return registeredDefinition;
+  }
+
+  const requestedToolNames = new Set(
+    additionalTool.tools.map(tool => tool.name),
+  );
+  const registeredToolNames = new Set(
+    registeredDefinition.tools.map(tool => tool.name),
+  );
+
+  for (const toolName of requestedToolNames) {
+    if (!registeredToolNames.has(toolName)) {
+      droppedToolNames.add(toolName);
+    }
+  }
+
+  const tools = registeredDefinition.tools.filter(tool =>
+    requestedToolNames.has(tool.name),
+  );
+
+  return tools.length > 0 ? { ...registeredDefinition, tools } : undefined;
 }
 
 function formatDroppedToolNames(names: Set<string>): string {
