@@ -1,8 +1,21 @@
 # WebMCP shopping cart assistant
 
-Change the number of T-shirts on the page and ask what is in your cart. The model
-calls `getCart`, which reads the current quantity from the open page. Ask again
-after changing the quantity to see that the tool reads live browser state.
+Browse the three products, edit quantities, or ask the shopping companion to read
+and change your cart. Buttons and browser tools share the same state.
+
+Try a conversation:
+
+- “What's in my cart?”
+- “Add two mugs.”
+- “Make that three.”
+- “Remove the T-shirt. What's the total now?”
+
+Tools: `getCart`, `addToCart`, `updateCartItem`, and `removeFromCart`. Quantities
+must be integers from 0 to 20; adding requires at least one unit. Cart state is
+local to this tab and resets on reload. There is no checkout.
+
+The [cookbook recipe](https://ai-sdk.dev/cookbook/next/webmcp-tools) explains the
+connection and highlights `createMCPTools` on the backend.
 
 Open Chrome DevTools Console and filter for `[WebMCP]` to see registration,
 discovered definitions, the stored MCP client, tool calls, and returned results.
@@ -36,8 +49,11 @@ sequenceDiagram
     Backend->>Browser: Display answer
 ```
 
-- `page.tsx` registers the browser tool, creates the MCP client with
-  `WebMCPTransport`, and executes tool calls in `useChat.onToolCall`.
+- `cart-tools.ts` registers the site's four tools and validates their inputs.
+- `use-cart-agent.ts` connects `WebMCPTransport`, forwards definitions, and
+  executes calls in `useChat.onToolCall`. A ref makes cart writes visible to
+  the next tool call before React renders.
+- `page.tsx` renders products, editable cart items, and free-form chat.
 - `app/api/chat/webmcp/route.ts` uses `createMCPTools(definitions)` to validate
   the forwarded definitions and create the model's tools. They have no
   server-side `execute` function. Passing `{ tools }` to `convertToModelMessages`
