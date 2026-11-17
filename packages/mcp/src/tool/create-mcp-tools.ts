@@ -40,7 +40,14 @@ export function createMCPTools(
         message: `Duplicate MCP tool name "${definition.name}"`,
       });
     }
-    tools[definition.name] = dynamicTool(createMCPToolDefinition(definition));
+    try {
+      tools[definition.name] = dynamicTool(createMCPToolDefinition(definition));
+    } catch (cause) {
+      throw new MCPClientError({
+        message: `Invalid MCP tool definition "${definition.name}"`,
+        cause,
+      });
+    }
   }
   return tools;
 }
