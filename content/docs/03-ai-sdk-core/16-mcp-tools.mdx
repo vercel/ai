@@ -218,6 +218,31 @@ const mcpClient = await createMCPClient({
 
 You can also bring your own transport by implementing the `MCPTransport` interface for specific requirements not covered by the standard transports.
 
+### WebMCP Transport
+
+[`WebMCPTransport`](/docs/reference/ai-sdk-core/webmcp-transport) adapts tools
+registered with the browser's `document.modelContext` to the existing MCP client:
+
+```ts
+import { createMCPClient, WebMCPTransport } from '@ai-sdk/mcp';
+
+// Run in a browser with WebMCP enabled, after checking API availability.
+const client = await createMCPClient({
+  transport: new WebMCPTransport({ modelContext: document.modelContext }),
+});
+
+const tools = await client.tools();
+```
+
+WebMCP is an experimental browser API, not an HTTP MCP endpoint. Tool discovery
+and execution happen in the page. To keep model inference on your backend, send
+tool definitions to your API route, then execute the returned calls in
+[`useChat.onToolCall`](/docs/ai-sdk-ui/chatbot-tool-usage) and return results with
+`addToolOutput`.
+
+List tools again when the page's available tools change, and close the client
+when the consuming component or browser connection is disposed.
+
 <Note>
   The client returned by the `createMCPClient` function is a
   lightweight client intended for use in tool conversion. It currently does not

@@ -46,6 +46,11 @@ export {
   AuthorizationServerMismatchError,
 } from './error/oauth-error';
 export { MCPClientError } from './error/mcp-client-error';
+export {
+  WebMCPTransport,
+  type WebMCPModelContext,
+  type WebMCPTool,
+} from './tool/webmcp-transport';
 export type { ManagedMCPClient as Experimental_ManagedMCPClient } from './tool/mcp-client';
 export type {
   MCPEventOperations as Experimental_MCPEventOperations,
