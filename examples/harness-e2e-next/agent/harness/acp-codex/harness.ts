@@ -23,6 +23,7 @@ const codexConfigSchema = z.object({
   model_provider: z.string().optional(),
   model_providers: z
     .record(
+      z.string(),
       z.object({
         base_url: z.string().optional(),
       }),

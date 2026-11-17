@@ -1,16 +1,12 @@
-import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google';
+import { google } from '@ai-sdk/google';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
     model: google('gemini-4-hydrogen'),
+    reasoning: 'xhigh',
     prompt: 'What is AGI?',
-    providerOptions: {
-      google: {
-        thinkingConfig: { thinkingLevel: 'xhigh' },
-      } satisfies GoogleLanguageModelOptions,
-    },
   });
 
   for await (const textPart of result.textStream) {

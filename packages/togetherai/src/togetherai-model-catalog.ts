@@ -113,55 +113,55 @@ export const togetherAIProviderOptions = {
   >,
 } as const satisfies ProviderOptionDefinitions;
 
-const languageModelIds = [
-  'moonshotai/Kimi-K2.5',
-  'Qwen/Qwen3.5-397B-A17B',
-  'MiniMaxAI/MiniMax-M2.5',
-  'zai-org/GLM-5',
-  'deepseek-ai/DeepSeek-V3.1',
-  'openai/gpt-oss-120b',
-  'openai/gpt-oss-20b',
-  'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8',
-  'meta-llama/Llama-3.3-70B-Instruct-Turbo',
-  'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
-  'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
-  'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo',
-  'meta-llama/Meta-Llama-3-8B-Instruct-Turbo',
-  'meta-llama/Meta-Llama-3-70B-Instruct-Turbo',
-  'meta-llama/Llama-3.2-3B-Instruct-Turbo',
-  'meta-llama/Meta-Llama-3-8B-Instruct-Lite',
-  'meta-llama/Meta-Llama-3-70B-Instruct-Lite',
-  'meta-llama/Llama-3-8b-chat-hf',
-  'meta-llama/Llama-3-70b-chat-hf',
-  'nvidia/Llama-3.1-Nemotron-70B-Instruct-HF',
-  'Qwen/Qwen2.5-Coder-32B-Instruct',
-  'Qwen/QwQ-32B-Preview',
-  'microsoft/WizardLM-2-8x22B',
-  'google/gemma-2-27b-it',
-  'google/gemma-2-9b-it',
-  'databricks/dbrx-instruct',
-  'deepseek-ai/deepseek-llm-67b-chat',
-  'deepseek-ai/DeepSeek-V3',
-  'deepseek-ai/DeepSeek-V4-Flash-0731',
-  'google/gemma-2b-it',
-  'Gryphe/MythoMax-L2-13b',
-  'meta-llama/Llama-2-13b-chat-hf',
-  'mistralai/Mistral-7B-Instruct-v0.1',
-  'mistralai/Mistral-7B-Instruct-v0.2',
-  'mistralai/Mistral-7B-Instruct-v0.3',
-  'mistralai/Mixtral-8x7B-Instruct-v0.1',
-  'mistralai/Mixtral-8x22B-Instruct-v0.1',
-  'NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO',
-  'Qwen/Qwen2.5-7B-Instruct-Turbo',
-  'Qwen/Qwen2.5-72B-Instruct-Turbo',
-  'Qwen/Qwen2-72B-Instruct',
-  'upstage/SOLAR-10.7B-Instruct-v1.0',
-  'meta-llama/Llama-2-70b-hf',
-  'mistralai/Mistral-7B-v0.1',
-  'mistralai/Mixtral-8x7B-v0.1',
-  'Meta-Llama/Llama-Guard-7b',
-  'codellama/CodeLlama-34b-Instruct-hf',
-] as const;
+const languageDefinitions = {
+  'moonshotai/Kimi-K2.5': { endpoints: ['chat'] },
+  'Qwen/Qwen3.5-397B-A17B': { endpoints: ['chat'] },
+  'MiniMaxAI/MiniMax-M2.5': { endpoints: ['chat'] },
+  'zai-org/GLM-5': { endpoints: ['chat'] },
+  'deepseek-ai/DeepSeek-V3.1': { endpoints: ['chat'] },
+  'openai/gpt-oss-120b': { endpoints: ['chat'] },
+  'openai/gpt-oss-20b': { endpoints: ['chat'] },
+  'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8': { endpoints: ['chat'] },
+  'meta-llama/Llama-3.3-70B-Instruct-Turbo': { endpoints: ['chat'] },
+  'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo': { endpoints: ['chat'] },
+  'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo': { endpoints: ['chat'] },
+  'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo': { endpoints: ['chat'] },
+  'meta-llama/Meta-Llama-3-8B-Instruct-Turbo': { endpoints: ['chat'] },
+  'meta-llama/Meta-Llama-3-70B-Instruct-Turbo': { endpoints: ['chat'] },
+  'meta-llama/Llama-3.2-3B-Instruct-Turbo': { endpoints: ['chat'] },
+  'meta-llama/Meta-Llama-3-8B-Instruct-Lite': { endpoints: ['chat'] },
+  'meta-llama/Meta-Llama-3-70B-Instruct-Lite': { endpoints: ['chat'] },
+  'meta-llama/Llama-3-8b-chat-hf': { endpoints: ['chat'] },
+  'meta-llama/Llama-3-70b-chat-hf': { endpoints: ['chat'] },
+  'nvidia/Llama-3.1-Nemotron-70B-Instruct-HF': { endpoints: ['chat'] },
+  'Qwen/Qwen2.5-Coder-32B-Instruct': { endpoints: ['chat', 'completion'] },
+  'Qwen/QwQ-32B-Preview': { endpoints: ['chat'] },
+  'microsoft/WizardLM-2-8x22B': { endpoints: ['chat'] },
+  'google/gemma-2-27b-it': { endpoints: ['chat'] },
+  'google/gemma-2-9b-it': { endpoints: ['chat'] },
+  'databricks/dbrx-instruct': { endpoints: ['chat'] },
+  'deepseek-ai/deepseek-llm-67b-chat': { endpoints: ['chat'] },
+  'deepseek-ai/DeepSeek-V3': { endpoints: ['chat'] },
+  'deepseek-ai/DeepSeek-V4-Flash-0731': { endpoints: ['chat'] },
+  'google/gemma-2b-it': { endpoints: ['chat'] },
+  'Gryphe/MythoMax-L2-13b': { endpoints: ['chat'] },
+  'meta-llama/Llama-2-13b-chat-hf': { endpoints: ['chat'] },
+  'mistralai/Mistral-7B-Instruct-v0.1': { endpoints: ['chat'] },
+  'mistralai/Mistral-7B-Instruct-v0.2': { endpoints: ['chat'] },
+  'mistralai/Mistral-7B-Instruct-v0.3': { endpoints: ['chat'] },
+  'mistralai/Mixtral-8x7B-Instruct-v0.1': { endpoints: ['chat'] },
+  'mistralai/Mixtral-8x22B-Instruct-v0.1': { endpoints: ['chat'] },
+  'NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO': { endpoints: ['chat'] },
+  'Qwen/Qwen2.5-7B-Instruct-Turbo': { endpoints: ['chat'] },
+  'Qwen/Qwen2.5-72B-Instruct-Turbo': { endpoints: ['chat'] },
+  'Qwen/Qwen2-72B-Instruct': { endpoints: ['chat'] },
+  'upstage/SOLAR-10.7B-Instruct-v1.0': { endpoints: ['chat'] },
+  'meta-llama/Llama-2-70b-hf': { endpoints: ['completion'] },
+  'mistralai/Mistral-7B-v0.1': { endpoints: ['completion'] },
+  'mistralai/Mixtral-8x7B-v0.1': { endpoints: ['completion'] },
+  'Meta-Llama/Llama-Guard-7b': { endpoints: ['completion'] },
+  'codellama/CodeLlama-34b-Instruct-hf': { endpoints: ['completion'] },
+} as const;
 const embeddingModelIds = [
   'togethercomputer/m2-bert-80M-2k-retrieval',
   'togethercomputer/m2-bert-80M-32k-retrieval',
@@ -270,7 +270,7 @@ const documentedLanguageCapabilities: Record<
   },
 } satisfies Partial<
   Record<
-    (typeof languageModelIds)[number],
+    keyof typeof languageDefinitions,
     NonNullable<ModelCapabilities['language']>
   >
 >;
@@ -396,7 +396,7 @@ export function getTogetherAIRerankingModelEntry(_modelId: string) {
   } satisfies ModelEntry;
 }
 export const togetheraiModelCatalog = Object.fromEntries([
-  ...languageModelIds.map(
+  ...Object.keys(languageDefinitions).map(
     id => [id, getTogetherAILanguageModelEntry(id)] as const,
   ),
   ...imageModelIds.map(id => [id, getTogetherAIImageModelEntry(id)] as const),
@@ -419,3 +419,18 @@ Object.assign(
     ]),
   ),
 );
+
+type TogetherAIEndpointModelId<Endpoint extends 'chat' | 'completion'> = {
+  [ModelId in keyof typeof languageDefinitions]: Endpoint extends (typeof languageDefinitions)[ModelId]['endpoints'][number]
+    ? ModelId
+    : never;
+}[keyof typeof languageDefinitions];
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type TogetherAIModelIds = {
+  chat: TogetherAIEndpointModelId<'chat'>;
+  completion: TogetherAIEndpointModelId<'completion'>;
+  embedding: (typeof embeddingModelIds)[number];
+  image: (typeof imageModelIds)[number];
+  reranking: (typeof rerankingModelIds)[number];
+};

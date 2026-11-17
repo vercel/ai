@@ -1,46 +1,9 @@
 import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { MistralModelIds } from './mistral-model-catalog';
 
 // https://docs.mistral.ai/models
-export type MistralChatModelId =
-  | 'codestral-2508'
-  | 'codestral-latest'
-  | 'glm-5-2'
-  | 'labs-leanstral-1-5'
-  | 'labs-leanstral-1-5-1'
-  | 'magistral-medium-latest'
-  | 'magistral-small-latest'
-  | 'ministral-14b-2512'
-  | 'ministral-14b-latest'
-  | 'ministral-3b-2512'
-  | 'ministral-3b-latest'
-  | 'ministral-8b-2512'
-  | 'ministral-8b-latest'
-  | 'mistral-code-fim-latest'
-  | 'mistral-code-latest'
-  | 'mistral-large-4'
-  | 'mistral-large-4-0'
-  | 'mistral-large-latest'
-  | 'mistral-large-2512'
-  | 'mistral-medium'
-  | 'mistral-medium-latest'
-  | 'mistral-medium-2604'
-  | 'mistral-medium-3'
-  | 'mistral-medium-3-5'
-  | 'mistral-medium-3.5'
-  | 'mistral-small-2603'
-  | 'mistral-small-latest'
-  | 'mistral-vibe-cli-fast'
-  | 'mistral-vibe-cli-latest'
-  | 'mistral-vibe-cli-with-tools'
-  | 'voxtral-small-2507'
-  | 'voxtral-small-latest'
-  | 'zai-glm-5'
-  | 'zai-glm-5-2'
-  | 'zai-glm-5-3'
-  | 'zai-glm-5-3-flash'
-  | 'zai-glm-latest'
-  | (string & {});
+export type MistralChatModelId = MistralModelIds['language'] | (string & {});
 
 export const mistralLanguageModelChatOptions = () =>
   z.object({

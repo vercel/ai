@@ -13,12 +13,12 @@
     "@ai-sdk/react": "workspace:*",
     "@vercel/blob": "^0.26.0",
     "ai": "workspace:*",
-    "next": "^16.4.1",
+    "next": "^16.4.6",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-markdown": "9.0.1",
     "resumable-stream": "^2.2.12",
-    "zod": "3.25.76"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/node": "22.19.19",

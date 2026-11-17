@@ -97,6 +97,7 @@ const codexConfigSchema = z.object({
   model_provider: z.string().optional(),
   model_providers: z
     .record(
+      z.string(),
       z.object({
         base_url: z.string().optional(),
       }),
@@ -233,9 +234,13 @@ function resolveCodexACPConfig({
   const parsedConfig =
     serializedConfig == null
       ? undefined
-      : z.record(z.unknown()).safeParse(secureJsonParse(serializedConfig));
+      : z
+          .record(z.string(), z.unknown())
+          .safeParse(secureJsonParse(serializedConfig));
   const config = parsedConfig?.success ? parsedConfig.data : {};
-  const parsedFeatures = z.record(z.boolean()).safeParse(config.features);
+  const parsedFeatures = z
+    .record(z.string(), z.boolean())
+    .safeParse(config.features);
 
   return {
     ...config,

@@ -1752,7 +1752,7 @@ The following gateway provider options are available:
 
   Specifies fallback models in attempt order. String entries keep their existing behavior: the gateway tries them when the primary model fails or is unavailable. Decision requests can also start the list with one conditional `{ model, when }` entry to retry a successful but uncertain decision with another model. Only the first entry can be conditional, and only one conditional entry is allowed. If the primary model fails, the gateway also advances to the conditional entry under its existing error fallback behavior. Conditional entries are rejected on non-decision requests.
 
-  Example: `models: ['openai/gpt-5.4-nano', 'google/gemini-3.8-flash']` will try the fallback models in order if the primary model fails.
+  Example: `models: ['openai/gpt-5.4-nano', 'google/gemini-4-hydrogen']` will try the fallback models in order if the primary model fails.
 
   A direct condition uses `{ question, confidenceBelow }` for Choice and Score questions, or `{ question, probabilityBetween: [minimum, maximum] }` for Boolean questions. Leave out `question` to check every question of that type: `{ confidenceBelow: 0.6 }` matches when any Choice or Score answer is below 0.6, and a request with no Choice or Score questions never matches it. Boolean probability is P(true), not confidence in the selected Boolean outcome. Bounds are inclusive, finite, ordered, and within `[0, 1]`.
 
@@ -1880,7 +1880,7 @@ const { text } = await generateText({
   prompt: 'Write a TypeScript haiku',
   providerOptions: {
     gateway: {
-      models: ['openai/gpt-5.4-nano', 'google/gemini-3.8-flash'], // Fallback models
+      models: ['openai/gpt-5.4-nano', 'google/gemini-4-hydrogen'], // Fallback models
     } satisfies GatewayProviderOptions,
   },
 });
@@ -1888,7 +1888,7 @@ const { text } = await generateText({
 // This will:
 // 1. Try openai/gpt-6-astra first
 // 2. If it fails, try openai/gpt-5.4-nano
-// 3. If that fails, try google/gemini-3.8-flash
+// 3. If that fails, try google/gemini-4-hydrogen
 // 4. Return the result from the first model that succeeds
 ```
 
