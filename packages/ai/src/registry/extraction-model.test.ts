@@ -1,4 +1,5 @@
 import { NoSuchModelError } from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import { extract } from '../extract/extract';
@@ -25,6 +26,7 @@ class ExtractionTestProvider extends MockProviderV4 {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
 
 describe('custom extraction models', () => {
@@ -179,22 +181,64 @@ describe('extraction registry', () => {
 });
 
 describe('extraction model resolution', () => {
+  const server = createTestServer({
+    'https://ai-gateway.vercel.sh/v4/ai/extraction-model': {
+      response: {
+        type: 'json-value',
+        body: {
+          answers: { vendor: { type: 'text', value: 'Acme' } },
+          usage: { inputTokens: 10, outputTokens: 2 },
+          warnings: [],
+        },
+      },
+    },
+  });
+
   it('returns model instances unchanged', () => {
     expect(resolveExtractionModel(model)).toBe(model);
   });
 
-  it('reports that Gateway has no extraction models yet', () => {
-    vi.stubGlobal('AI_SDK_DEFAULT_PROVIDER', undefined);
-    expect(() => resolveExtractionModel('scaledown/extract')).toThrow(
-      'The default provider does not support extraction models.',
-    );
-  });
+  it.each(['string', 'alias'])(
+    'extracts through Gateway using a model %s when no default provider is configured',
+    async resolution => {
+      vi.stubGlobal('AI_SDK_DEFAULT_PROVIDER', undefined);
+      vi.stubEnv('AI_GATEWAY_API_KEY', 'test-api-key');
+      const modelId = 'scaledown/extract-1';
+      const fields = { vendor: { type: 'text' } } as const;
+
+      const result = await extract({
+        model:
+          resolution === 'string'
+            ? modelId
+            : customProvider({
+                extractionModels: { invoices: modelId },
+              }).extractionModel('invoices'),
+        state: 'Invoice from Acme.',
+        fields,
+      });
+
+      expect(result.answers.vendor.value).toBe('Acme');
+      expect(result.usage.totalTokens).toBe(12);
+      expect(server.calls).toHaveLength(1);
+      expect(server.calls[0].requestHeaders).toMatchObject({
+        authorization: 'Bearer test-api-key',
+        'ai-model-id': modelId,
+        'ai-extraction-model-specification-version': '4',
+      });
+      expect(await server.calls[0].requestBodyJson).toEqual({
+        stateParts: [{ type: 'text', text: 'Invoice from Acme.' }],
+        fields,
+        providerOptions: {},
+      });
+    },
+  );
 
   it('requires an explicitly configured default provider to support extraction', () => {
     vi.stubGlobal('AI_SDK_DEFAULT_PROVIDER', new MockProviderV4());
     expect(() => resolveExtractionModel('model')).toThrow(
       'The default provider does not support extraction models.',
     );
+    expect(server.calls).toHaveLength(0);
   });
 
   it('validates versions returned by model instances, aliases, registries, and defaults', () => {

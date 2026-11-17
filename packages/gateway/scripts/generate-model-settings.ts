@@ -38,6 +38,10 @@ const MODALITY_CONFIG: Record<
     outputFile: 'gateway-decision-model-settings.ts',
     typeName: 'GatewayDecisionModelId',
   },
+  extraction: {
+    outputFile: 'gateway-extraction-model-settings.ts',
+    typeName: 'GatewayExtractionModelId',
+  },
   image: {
     outputFile: 'gateway-image-model-settings.ts',
     typeName: 'GatewayImageModelId',
