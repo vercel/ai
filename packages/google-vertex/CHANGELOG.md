@@ -1,5 +1,21 @@
 # @ai-sdk/google-vertex
 
+## 4.0.234
+
+### Patch Changes
+
+- ccd2caa: Limit the size of Google Vertex tool result file downloads with `toolResultDownloads.maxBytes`, which defaults to 7 MiB. This is lower than the previous 2 GiB default for these downloads; raise `toolResultDownloads.maxBytes` for larger files.
+- 578c141: Keep Google Vertex tool result downloads on the built-in validated transport and stop using the provider `fetch` option for them. Set `toolResultDownloads.fetch` to choose another transport for those downloads.
+
+  The built-in transport resolves every hostname through a validating lookup hook and pins the connection to the resolved address on Node.js. Reusing the provider `fetch` option for downloads would adopt a logging, tracing, or proxy wrapper that does not validate DNS results, so tool result URLs whose hostnames resolve to private addresses could reach internal hosts. A transport set with `toolResultDownloads.fetch` must perform equivalent connect-time DNS validation, for example a guarded fetch on Bun or Deno.
+
+- Updated dependencies [d59eee0]
+- Updated dependencies [ccd2caa]
+  - @ai-sdk/provider-utils@4.0.67
+  - @ai-sdk/google@3.0.147
+  - @ai-sdk/anthropic@3.0.143
+  - @ai-sdk/openai-compatible@2.0.94
+
 ## 4.0.233
 
 ### Patch Changes

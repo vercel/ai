@@ -1,5 +1,13 @@
 # @ai-sdk/google
 
+## 3.0.147
+
+### Patch Changes
+
+- ccd2caa: Limit the size of Google Vertex tool result file downloads with `toolResultDownloads.maxBytes`, which defaults to 7 MiB. This is lower than the previous 2 GiB default for these downloads; raise `toolResultDownloads.maxBytes` for larger files.
+- Updated dependencies [d59eee0]
+  - @ai-sdk/provider-utils@4.0.67
+
 ## 3.0.146
 
 ### Patch Changes
