@@ -8,6 +8,7 @@ import {
 import {
   asArray,
   createIdGenerator,
+  delay,
   DelayedPromise,
   filterNullable,
   isAbortError,
@@ -86,6 +87,7 @@ import { mergeObjects } from '../util/merge-objects';
 import { notify } from '../util/notify';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
+import { getRetryDelayInMs } from '../util/retry-with-exponential-backoff';
 import { setAbortTimeout } from '../util/set-abort-timeout';
 import type { ActiveTools } from './active-tools';
 import { collectToolApprovals } from './collect-tool-approvals';
@@ -2802,6 +2804,11 @@ class DefaultStreamTextResult<
             initialLanguageModelCall.stream.getReader();
           let automaticStreamRetryCount = 0;
           let callbackStreamRetryCount = 0;
+          const streamRetryAbortController = new AbortController();
+          const streamRetryAbortSignal = mergeAbortSignals(
+            abortSignal,
+            streamRetryAbortController.signal,
+          );
           let bufferedAttemptParts: LanguageModelStreamPart<TOOLS>[] = [];
           const openTextParts = new Set<string>();
           const openReasoningParts = new Set<string>();
@@ -2971,8 +2978,25 @@ class DefaultStreamTextResult<
                   ReturnType<typeof callLanguageModel>
                 >;
                 try {
+                  await delay(
+                    getRetryDelayInMs({
+                      error,
+                      responseHeaders: response?.headers,
+                      exponentialBackoffDelay:
+                        2000 *
+                        2 **
+                          (automaticStreamRetryCount +
+                            callbackStreamRetryCount -
+                            1),
+                    }),
+                    { abortSignal: streamRetryAbortSignal },
+                  );
+                  streamRetryAbortSignal?.throwIfAborted();
                   retryLanguageModelCall = await callLanguageModel();
                 } catch (retryError) {
+                  if (streamRetryAbortController.signal.aborted) {
+                    return;
+                  }
                   controller.enqueue({
                     type: 'error',
                     error: retryError,
@@ -2989,6 +3013,7 @@ class DefaultStreamTextResult<
               }
             },
             cancel(reason) {
+              streamRetryAbortController.abort(reason);
               clearModelOutputTimeouts();
               return languageModelStreamReader.cancel(reason);
             },

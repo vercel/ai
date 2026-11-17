@@ -657,7 +657,7 @@ describe('streamText model output timeout boundaries', () => {
         onError: () => (retryKind === 'callback' ? { retry: true } : undefined),
       });
       const consuming = result.consumeStream();
-      await vi.advanceTimersByTimeAsync(250);
+      await vi.advanceTimersByTimeAsync(2250);
       await consuming;
       expect(attempts).toBe(2);
       expect(signal?.aborted).toBe(false);
@@ -725,7 +725,7 @@ describe('streamText model output timeout boundaries', () => {
       const consuming = (async () => {
         for await (const part of result.fullStream) parts.push(part.type);
       })();
-      await vi.advanceTimersByTimeAsync(continuation === 'step' ? 225 : 125);
+      await vi.advanceTimersByTimeAsync(continuation === 'step' ? 225 : 2125);
       expect(attempts).toBe(2);
       expect(signal?.aborted).toBe(false);
       await vi.advanceTimersByTimeAsync(50);
@@ -770,7 +770,7 @@ describe('streamText model output timeout boundaries', () => {
       onError: () => {},
     });
     const consuming = result.consumeStream();
-    await vi.advanceTimersByTimeAsync(100);
+    await vi.advanceTimersByTimeAsync(2100);
     expect(attempts).toBe(2);
     expect(signal?.reason.message).toBe('First chunk timeout of 50ms exceeded');
     await consuming;
