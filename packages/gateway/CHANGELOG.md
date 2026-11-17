@@ -1,5 +1,14 @@
 # @ai-sdk/gateway
 
+## 3.0.238
+
+### Patch Changes
+
+- 9faffa5: Map AI Gateway `access_policy_denied` error responses (HTTP 403) to the new `GatewayAccessPolicyDeniedError` instead of `GatewayInternalServerError`. Use `GatewayAccessPolicyDeniedError.isInstance(error)` to tell an access policy denial from other 403 errors. When the response includes them, the error exposes the denying policy IDs (`policyIds`) and the models and providers the policies removed (`removedModels`, `removedProviders`).
+- 3cf16af: Backport: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [d59eee0]
+  - @ai-sdk/provider-utils@4.0.67
+
 ## 3.0.237
 
 ### Patch Changes

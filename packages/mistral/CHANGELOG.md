@@ -1,5 +1,12 @@
 # @ai-sdk/mistral
 
+## 3.0.82
+
+### Patch Changes
+
+- Updated dependencies [d59eee0]
+  - @ai-sdk/provider-utils@4.0.67
+
 ## 3.0.81
 
 ### Patch Changes

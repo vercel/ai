@@ -1,5 +1,14 @@
 # @ai-sdk/langchain
 
+## 2.0.341
+
+### Patch Changes
+
+- Updated dependencies [2771b61]
+- Updated dependencies [d59eee0]
+  - ai@6.0.333
+  - @ai-sdk/provider-utils@4.0.67
+
 ## 2.0.340
 
 ### Patch Changes

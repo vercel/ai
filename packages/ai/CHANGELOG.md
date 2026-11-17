@@ -1,5 +1,16 @@
 # ai
 
+## 6.0.333
+
+### Patch Changes
+
+- 2771b61: Reduce memory and CPU usage when validating UI messages with deeply nested provider or tool metadata. `validateUIMessages` and `safeValidateUIMessages`, which the agent UI stream helpers also use, validated JSON values in `providerMetadata`, `callProviderMetadata`, `resultProviderMetadata`, and `toolMetadata` with a recursive union schema that needed several times the memory of the value. These values are now validated in a single pass and are no longer copied, except to remove `__proto__` keys.
+- Updated dependencies [9faffa5]
+- Updated dependencies [3cf16af]
+- Updated dependencies [d59eee0]
+  - @ai-sdk/gateway@3.0.238
+  - @ai-sdk/provider-utils@4.0.67
+
 ## 6.0.332
 
 ### Patch Changes

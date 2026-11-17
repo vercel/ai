@@ -1,5 +1,13 @@
 # @ai-sdk/tencent
 
+## 2.0.1
+
+### Patch Changes
+
+- Updated dependencies [d59eee0]
+  - @ai-sdk/provider-utils@4.0.67
+  - @ai-sdk/openai-compatible@2.0.94
+
 ## 2.0.0
 
 ### Major Changes
