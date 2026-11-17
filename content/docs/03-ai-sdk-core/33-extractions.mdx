@@ -12,7 +12,8 @@ string, JSON object, or an array of ordered text, file, and JSON parts, the same
 as [decisions](/docs/ai-sdk-core/decisions).
 
 This API and the extraction model specification are experimental and may change
-in patch releases. Pass an extraction model instance.
+in patch releases. Pass an extraction model instance, resolve a model through a
+provider registry, or use a string ID resolved by a configured default provider.
 
 ```ts
 import { experimental_extract, type Experimental_ExtractionModel } from 'ai';
@@ -123,6 +124,62 @@ choosing a model for a task.
 - When the provider refuses a request, the fields in that request are reported
   as refused and `experimental_extract` throws
   `Experimental_ExtractionRefusalError`.
+
+## Model aliases and registries
+
+Use `customProvider` to give extraction models application-specific names, then
+register providers with `createProviderRegistry`:
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { openai } from '@ai-sdk/openai';
+import {
+  createProviderRegistry,
+  customProvider,
+  experimental_extract,
+} from 'ai';
+
+const registry = createProviderRegistry({
+  invoices: customProvider({
+    extractionModels: {
+      fast: openai.extractionModel('gpt-6.1-sol'),
+      careful: anthropic.extractionModel('claude-sonnet-5-5'),
+    },
+    fallbackProvider: openai,
+  }),
+  anthropic,
+});
+
+const { answers } = await experimental_extract({
+  model: registry.extractionModel('invoices:fast'),
+  state: 'Invoice INV-2041, total due $1,250.00.',
+  fields: { total: { type: 'number', decimals: 2 } },
+});
+```
+
+Registry IDs use `providerId:modelId`. Custom aliases take precedence over a
+fallback provider, and a fallback only resolves unknown model IDs.
+
+String IDs passed directly to `experimental_extract` resolve through
+`globalThis.AI_SDK_DEFAULT_PROVIDER.extractionModel(id)`. Vercel AI Gateway does
+not provide extraction models yet, so configure a default provider with an
+`extractionModel` method to use strings. This exposes an alias from the registry
+above through a custom provider:
+
+```ts
+globalThis.AI_SDK_DEFAULT_PROVIDER = customProvider({
+  extractionModels: { careful: registry.extractionModel('invoices:careful') },
+});
+
+await experimental_extract({
+  model: 'careful',
+  state: 'Invoice INV-2041, total due $1,250.00.',
+  fields: { total: { type: 'number', decimals: 2 } },
+});
+```
+
+Resolution errors use `NoSuchModelError` and `NoSuchProviderError` with
+`modelType: 'extractionModel'`.
 
 ## Answers
 

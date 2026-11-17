@@ -478,3 +478,11 @@ explicitly configured default provider with a `decisionModel` method. Registry
 middleware for language and image models does not apply to decision.
 See [Decisions](/docs/ai-sdk-core/decisions#model-aliases-and-registries)
 for aliases, default-provider configuration, and capability differences.
+
+## Experimental extraction models
+
+Custom providers accept `extractionModels` aliases, and registries expose
+`extractionModel('provider:model')`. These methods return model instances for
+`experimental_extract`. Direct string IDs use an explicitly configured default
+provider with an `extractionModel` method. See
+[Extractions](/docs/ai-sdk-core/extractions#model-aliases-and-registries).
