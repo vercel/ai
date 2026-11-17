@@ -77,10 +77,6 @@ export default function WebMCPChat() {
             />{' '}
             FIELDWORK
           </Link>
-          <span className="hidden items-center gap-2 text-xs text-stone-500 sm:flex">
-            <span className="size-1.5 rounded-full bg-[#6c8056]" /> Everyday
-            goods, thoughtfully chosen.
-          </span>
         </div>
       </header>
 
@@ -232,9 +228,6 @@ export default function WebMCPChat() {
                   {money(cart.total)}
                 </span>
               </div>
-              <p className="mt-4 text-xs text-stone-400">
-                Demo cart only. Nothing is purchased or saved after a reload.
-              </p>
             </section>
           </section>
 
