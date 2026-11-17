@@ -3,13 +3,10 @@ import {
   type JSONValue,
   type SerializableValue,
 } from '@ai-sdk/provider';
-import {
-  getErrorMessage,
-  type Tool,
-  type ToolSet,
-} from '@ai-sdk/provider-utils';
+import { getErrorMessage } from '@ai-sdk/provider-utils';
 import { NoSuchToolError } from 'ai';
 import { HarnessEffectError } from '../../../errors/harness-effect-error';
+import type { HarnessV2BuiltinToolSet } from '../../../v2/harness-v2-builtin-tool';
 import type {
   HarnessV2GateBuiltinToolFunction,
   HarnessV2ToolExecutionValue,
@@ -22,10 +19,6 @@ import type {
 } from '../../../v2/harness-v2-effect';
 import type { HarnessV2ToolResult } from '../../../v2/harness-v2-stream-part';
 import { isPlainJSONValue } from './utils';
-import {
-  createToolApprovalUnsupportedError,
-  requiresApproval,
-} from './tool-approval';
 import type { HarnessAgentEffectFunction } from './create-effect-function';
 import type { HarnessAgentLog } from './create-log';
 
@@ -101,13 +94,13 @@ function getTool(options: {
   /**
    * The harness's built-in tools.
    */
-  builtinTools: ToolSet;
+  builtinTools: HarnessV2BuiltinToolSet;
 
   /**
    * Name of the tool to look up.
    */
   toolName: string;
-}): Tool | undefined {
+}): HarnessV2BuiltinToolSet[string] | undefined {
   return Object.hasOwn(options.builtinTools, options.toolName)
     ? options.builtinTools[options.toolName]
     : undefined;
@@ -256,9 +249,6 @@ function emitToolResult(options: {
  * - the tool is not one of the harness's built-in tools: the call is recorded
  *   as an `error`, so a replay is denied the same way.
  *
- * A built-in tool that sets `needsApproval` is denied and recorded as an
- * `error` effect, since the engine cannot request the consent it asks for.
- *
  * A recorded retryable interruption (a `replay: 'safe'` tool, or an attempt
  * that a crashed drive left before its `tool-execution-start` committed) lets
  * the effect start a new attempt, so a call the runtime dispatches again is
@@ -279,7 +269,7 @@ export function createGateBuiltinToolFunction(options: {
   /**
    * The harness's built-in tools.
    */
-  builtinTools: ToolSet;
+  builtinTools: HarnessV2BuiltinToolSet;
 
   /**
    * Effect function of the current drive.
@@ -351,72 +341,6 @@ export function createGateBuiltinToolFunction(options: {
   }
 
   /**
-   * Records a call to a built-in tool that requires approval as an `error`
-   * effect and denies it with the capability error message, so the adapter
-   * never runs the call and a replay is denied the same way.
-   */
-  async function denyUnsupportedApproval(options: {
-    /**
-     * ID of the tool call.
-     */
-    toolCallId: string;
-
-    /**
-     * Name of the called tool.
-     */
-    toolName: string;
-
-    /**
-     * Tool input, already parsed from the model's JSON.
-     */
-    input: JSONValue;
-
-    /**
-     * The built-in tool that requires approval.
-     */
-    tool: Tool;
-  }): Promise<HarnessV2ToolGateOutput> {
-    const { toolCallId, toolName, input, tool } = options;
-    let ran = false;
-    const output = await effect({
-      key: `tool:${toolCallId}`,
-      name: `tool.${toolName}`,
-      replay: tool.replay ?? 'never',
-      input,
-      fn: async context => {
-        ran = true;
-        const error = createToolApprovalUnsupportedError({
-          toolName,
-          kind: 'built-in tool',
-        });
-        if (!context.abortSignal.aborted) {
-          emitToolResult({
-            context,
-            toolCallId,
-            toolName,
-            result: getErrorMessage(error),
-            isError: true,
-          });
-        }
-        /*
-         * TODO: Implement built-in tool approval requests and responses before
-         * launching HarnessV2 instead of denying approval-requiring tools.
-         */
-        throw error;
-      },
-    });
-    if (ran && output.type === 'error') {
-      return { type: 'denied', reason: output.error.message };
-    }
-    return {
-      type: 'denied',
-      reason: abortSignal.aborted
-        ? stoppedReason
-        : getRecordedReason({ output }),
-    };
-  }
-
-  /**
    * Starts the effect of a built-in tool call and resolves `approved` once its
    * attempt runs, which implies its start is committed. If the effect settles
    * without running an attempt, the call is denied instead.
@@ -440,7 +364,7 @@ export function createGateBuiltinToolFunction(options: {
     /**
      * The called built-in tool.
      */
-    tool: Tool;
+    tool: HarnessV2BuiltinToolSet[string];
   }): Promise<HarnessV2ToolGateOutput> {
     const { toolCallId, toolName, input, tool } = options;
     const reports: GateReport[] = [];
@@ -622,15 +546,6 @@ export function createGateBuiltinToolFunction(options: {
 
     const tool = getTool({ builtinTools, toolName });
     if (tool == null) return denyUnknownTool({ toolCallId, toolName, input });
-
-    /*
-     * Fails closed for a built-in tool that asks for consent: the agent may
-     * have been built before the requirement was added. The call is recorded
-     * as an `error` and denied, so the adapter never runs the tool.
-     */
-    if (requiresApproval(tool)) {
-      return denyUnsupportedApproval({ toolCallId, toolName, input, tool });
-    }
 
     return startBuiltinTool({ toolCallId, toolName, input, tool });
   };

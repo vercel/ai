@@ -335,7 +335,8 @@ export class HarnessAgent<
       RUNTIME_CONTEXT,
       OUTPUT,
       CALL_OPTIONS
-    >,
+    > &
+      (THarness extends HarnessV2<any> ? { harness: HarnessV2 } : unknown),
   ) {
     // If the given harness is a `HarnessV2`, create an instance of the
     // newer `HarnessAgent` implementation under the hood and proxy through

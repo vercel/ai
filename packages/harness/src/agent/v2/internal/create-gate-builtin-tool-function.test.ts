@@ -1,7 +1,7 @@
 import type { JSONValue } from '@ai-sdk/provider';
-import { tool, type ToolSet } from '@ai-sdk/provider-utils';
 import { afterEach, describe, expect, test } from 'vitest';
 import { z } from 'zod/v4';
+import type { HarnessV2BuiltinToolSet } from '../../../v2/harness-v2-builtin-tool';
 import type { HarnessV2ToolGateOutput } from '../../../v2/harness-v2-drive-context';
 import type { HarnessV2EffectOutput } from '../../../v2/harness-v2-effect';
 import { DefaultHarnessAgentSession } from '../harness-agent-session';
@@ -37,9 +37,9 @@ const session = new DefaultHarnessAgentSession({
   runId,
 });
 
-const builtinTools: ToolSet = {
-  Bash: tool({ inputSchema: z.object({ command: z.string() }) }),
-  Read: tool({ inputSchema: z.object({ path: z.string() }), replay: 'safe' }),
+const builtinTools: HarnessV2BuiltinToolSet = {
+  Bash: { inputSchema: z.object({ command: z.string() }) },
+  Read: { inputSchema: z.object({ path: z.string() }), replay: 'safe' },
 };
 
 const call = {
@@ -54,7 +54,7 @@ const call = {
 function createDrive(options: {
   world: InMemoryWorld;
   log: HarnessAgentLog;
-  builtinTools?: ToolSet;
+  builtinTools?: HarnessV2BuiltinToolSet;
 }): {
   gateBuiltinTool: HarnessAgentGateBuiltinToolFunction;
   abortController: AbortController;
@@ -80,7 +80,7 @@ function createDrive(options: {
   return { gateBuiltinTool, abortController };
 }
 
-async function setup(options?: { builtinTools?: ToolSet }) {
+async function setup(options?: { builtinTools?: HarnessV2BuiltinToolSet }) {
   const world = new InMemoryWorld();
   await world.events.create(runId, {
     eventType: 'run_created',
@@ -199,70 +199,6 @@ describe('createGateBuiltinToolFunction', () => {
       },
     ]);
     expect(await readEffectEvents({ world, type: 'effect-end' })).toEqual([]);
-  });
-
-  test('denies a built-in tool that requires approval', async () => {
-    const customBuiltinTools: ToolSet = {
-      Bash: tool({
-        inputSchema: z.object({ command: z.string() }),
-        needsApproval: true,
-      }),
-    };
-    const { world, gateBuiltinTool } = await setup({
-      builtinTools: customBuiltinTools,
-    });
-
-    const output = await gateBuiltinTool(call);
-
-    expect(output).toEqual({
-      type: 'denied',
-      reason: expect.stringContaining(
-        "remove `needsApproval` from built-in tool 'Bash'",
-      ),
-    });
-    expect(await readEffectEvents({ world, type: 'effect-end' })).toEqual([
-      {
-        startId: expect.any(String),
-        output: {
-          type: 'error',
-          error: {
-            message: expect.stringContaining(
-              "remove `needsApproval` from built-in tool 'Bash'",
-            ),
-          },
-        },
-      },
-    ]);
-    expect(await readParts({ world })).toEqual([
-      expect.objectContaining({
-        type: 'tool-result',
-        toolCallId: 'call-1',
-        toolName: 'Bash',
-        isError: true,
-      }),
-    ]);
-    expect(
-      await readLogEvents({ world, types: ['tool-execution-start'] }),
-    ).toEqual([]);
-  });
-
-  test('denies a built-in tool that requires approval after construction', async () => {
-    const customBuiltinTools: ToolSet = {
-      Bash: tool({ inputSchema: z.object({ command: z.string() }) }),
-    };
-    const { gateBuiltinTool } = await setup({
-      builtinTools: customBuiltinTools,
-    });
-
-    (customBuiltinTools.Bash as { needsApproval?: boolean }).needsApproval =
-      true;
-
-    expect(await gateBuiltinTool(call)).toEqual({
-      type: 'denied',
-      reason: expect.stringContaining(
-        "remove `needsApproval` from built-in tool 'Bash'",
-      ),
-    });
   });
 
   test('uses the built-in tool replay policy', async () => {

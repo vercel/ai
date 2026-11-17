@@ -1,10 +1,10 @@
-import type { HarnessV2NetworkSandboxSession } from '@ai-sdk/harness';
+import type {
+  HarnessV2BuiltinTool,
+  HarnessV2NetworkSandboxSession,
+} from '@ai-sdk/harness';
 import {
   jsonSchema,
-  tool,
-  type Context,
   type Experimental_SandboxSession as SandboxSession,
-  type Tool,
 } from '@ai-sdk/provider-utils';
 import {
   FX_BUILTIN_TOOL_SPECS,
@@ -73,14 +73,14 @@ function declareBuiltinTool<NAME extends FxBuiltinToolName>(options: {
    * Whether the tool may run again after an interrupted execution.
    */
   replay: 'safe' | 'never';
-}): Tool<FxBuiltinToolInputs[NAME], FxBuiltinToolOutput, Context> {
+}): HarnessV2BuiltinTool<FxBuiltinToolInputs[NAME], FxBuiltinToolOutput> {
   const spec = FX_BUILTIN_TOOL_SPECS[options.name];
-  return tool<FxBuiltinToolInputs[NAME], FxBuiltinToolOutput, Context>({
+  return {
     description: spec.description,
     inputSchema: jsonSchema<FxBuiltinToolInputs[NAME]>(spec.inputSchema),
     outputSchema: FX_BUILTIN_TOOL_OUTPUT_SCHEMA,
     replay: options.replay,
-  });
+  };
 }
 
 /**

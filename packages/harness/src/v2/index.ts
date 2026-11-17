@@ -1,5 +1,6 @@
 export * from './harness-v2-bootstrap';
 export * from './harness-v2';
+export * from './harness-v2-builtin-tool';
 export * from './harness-v2-drive-context';
 export * from './harness-v2-log';
 export * from './harness-v2-effect';

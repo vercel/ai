@@ -15,6 +15,7 @@ import {
 import { InvalidToolInputError, NoSuchToolError } from 'ai';
 import { createToolModelOutput, validateToolContext } from 'ai/internal';
 import { HarnessInvalidDriveStateError } from '../../../errors/harness-invalid-drive-state-error';
+import type { HarnessV2BuiltinToolSet } from '../../../v2/harness-v2-builtin-tool';
 import type {
   HarnessV2ExecuteBuiltinToolFunction,
   HarnessV2ExecuteHostToolFunction,
@@ -370,9 +371,7 @@ function emitToolError(options: {
  * then as the final value. A value that is not a valid tool value, an
  * iterable that yields nothing and a thrown error become recorded `error`
  * outcomes. A call to a tool that is not one of the harness's built-in tools
- * is recorded as an `error` without running `execute`, and so is a built-in
- * tool that sets `needsApproval`, since the engine cannot request the consent
- * it asks for.
+ * is recorded as an `error` without running `execute`.
  *
  * The `tool-execution-start` event (ID `tool-execution-start:${startId}`) is
  * committed right before the tool runs. An attempt that a crashed drive left
@@ -393,7 +392,7 @@ export function createExecuteToolFunctions(options: {
   /**
    * The harness's built-in tools.
    */
-  builtinTools: ToolSet;
+  builtinTools: HarnessV2BuiltinToolSet;
 
   /**
    * Effect function of the current drive.
@@ -619,7 +618,7 @@ export function createExecuteToolFunctions(options: {
     /**
      * The called built-in tool, if it is one.
      */
-    tool?: Tool;
+    tool?: HarnessV2BuiltinToolSet[string];
 
     /**
      * Runs the tool, supplied by the adapter.
@@ -637,23 +636,6 @@ export function createExecuteToolFunctions(options: {
         throw new NoSuchToolError({
           toolName,
           availableTools: Object.keys(builtinTools),
-        });
-      }
-      /*
-       * Fails closed for an adapter built-in tool that asks for consent: the
-       * agent may have been built before the requirement was added, or the
-       * adapter's tool set may have been changed after construction. The
-       * refusal is recorded as an error tool result like any other tool
-       * failure, so `execute` never runs the tool.
-       */
-      if (requiresApproval(tool)) {
-        /*
-         * TODO: Implement built-in tool approval requests and responses before
-         * launching HarnessV2 instead of rejecting approval-requiring tools.
-         */
-        throw createToolApprovalUnsupportedError({
-          toolName,
-          kind: 'built-in tool',
         });
       }
       await markExecutionStart(context);
@@ -751,7 +733,9 @@ export function createExecuteToolFunctions(options: {
 
       assertJSONInput({ input, functionName: 'executeBuiltinTool' });
 
-      const tool = getTool({ tools: builtinTools, toolName });
+      const tool = Object.hasOwn(builtinTools, toolName)
+        ? builtinTools[toolName]
+        : undefined;
       const output = await effect({
         key: `${TOOL_EFFECT_KEY_PREFIX}${toolCallId}`,
         name: `${TOOL_EFFECT_NAME_PREFIX}${toolName}`,

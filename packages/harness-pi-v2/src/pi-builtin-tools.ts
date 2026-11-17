@@ -1,11 +1,11 @@
-import type { HarnessV2NetworkSandboxSession } from '@ai-sdk/harness';
+import type {
+  HarnessV2BuiltinTool,
+  HarnessV2NetworkSandboxSession,
+} from '@ai-sdk/harness';
 import type { JSONSchema7, JSONValue } from '@ai-sdk/provider';
 import {
   jsonSchema,
-  tool,
-  type Context,
   type Experimental_SandboxSession as SandboxSession,
-  type Tool,
 } from '@ai-sdk/provider-utils';
 import type { AgentTool, AgentToolParams } from '@earendil-works/pi-agent-core';
 import type { ImageContent, TextContent } from '@earendil-works/pi-ai';
@@ -196,15 +196,15 @@ function declareBuiltinTool<INPUT>(options: {
    * Whether the tool may run again after an interrupted execution.
    */
   replay: 'safe' | 'never';
-}): Tool<INPUT, PiBuiltinToolOutput, Context> {
-  return tool<INPUT, PiBuiltinToolOutput, Context>({
+}): HarnessV2BuiltinTool<INPUT, PiBuiltinToolOutput> {
+  return {
     description: options.definition.description,
     inputSchema: jsonSchema<INPUT>(
       toJSONSchema({ schema: options.definition.parameters }),
     ),
     outputSchema: PI_BUILTIN_TOOL_OUTPUT_SCHEMA,
     replay: options.replay,
-  });
+  };
 }
 
 /**
