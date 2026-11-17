@@ -9,6 +9,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { readUIMessageStream } from '../ui-message-stream/read-ui-message-stream';
+import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { createSteering, type SteeringOutcome } from './steering';
 import { isStepCount } from './stop-condition';
 import { streamText } from './stream-text';
@@ -160,21 +161,19 @@ describe('streamText experimental_steering interrupt', () => {
     expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 0 });
   });
 
-  it('should close text parts the ui saw before the interrupt', async () => {
+  it('should close text and reasoning parts the ui saw before the interrupt and keep them as empty ui message parts', async () => {
     const steering = createSteering();
 
-    const { model } = createModel({
+    const { model, calls } = createModel({
       first: options =>
         hangingStream({
           options,
           parts: [
             { type: 'stream-start', warnings: [] },
+            { type: 'reasoning-start', id: '0' },
             { type: 'text-start', id: '1' },
           ],
         }),
-      onFirstCall: () => {
-        void steering.steer('Use Paris, Texas instead.', { interrupt: true });
-      },
       rest: [() => textStream('It is sunny in Paris, Texas.')],
     });
 
@@ -184,19 +183,49 @@ describe('streamText experimental_steering interrupt', () => {
       experimental_steering: steering,
     });
 
-    const parts = await collect(result.fullStream);
-    const starts = parts.filter(part => part.type === 'text-start').length;
-    const ends = parts.filter(part => part.type === 'text-end').length;
-    expect(starts).toBe(ends);
-    expect(parts.filter(part => part.type === 'start-step')).toHaveLength(1);
-    expect(parts.filter(part => part.type === 'finish-step')).toHaveLength(1);
+    const chunks: Array<UIMessageChunk> = [];
+    for await (const chunk of result.toUIMessageStream()) {
+      chunks.push(chunk);
+      if (chunk.type === 'text-start' && calls.length === 1) {
+        void steering.steer('Use Paris, Texas instead.', {
+          id: 'steer-1',
+          interrupt: true,
+        });
+      }
+    }
+
+    expect(chunks.map(chunk => chunk.type)).toEqual([
+      'start',
+      'start-step',
+      'reasoning-start',
+      'text-start',
+      'text-end',
+      'reasoning-end',
+      'steering-message',
+      'text-start',
+      'text-delta',
+      'text-end',
+      'finish-step',
+      'finish',
+    ]);
 
     const messages = await collect(
-      readUIMessageStream({ stream: result.toUIMessageStream() }),
+      readUIMessageStream({ stream: convertArrayToReadableStream(chunks) }),
     );
-    expect(messages.at(-1)?.parts.some(part => part.type === 'text')).toBe(
-      true,
-    );
+    expect(messages.at(-1)?.parts).toEqual([
+      { type: 'step-start' },
+      { type: 'reasoning', id: '0', text: '', state: 'done' },
+      { type: 'text', text: '', state: 'done' },
+      {
+        type: 'steering-message',
+        id: 'steer-1',
+        parts: [{ type: 'text', text: 'Use Paris, Texas instead.' }],
+      },
+      { type: 'text', text: 'It is sunny in Paris, Texas.', state: 'done' },
+    ]);
+    expect((await result.steps)[0].content).toEqual([
+      { type: 'text', text: 'It is sunny in Paris, Texas.' },
+    ]);
   });
 
   it('should send one start-step when the interrupt arrives after the ui saw the step start', async () => {
