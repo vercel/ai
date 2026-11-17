@@ -270,6 +270,7 @@ export type GatewayModelId =
   | 'perplexity/sonar'
   | 'quiverai/arrow-2'
   | 'quiverai/arrow-2-telos'
+  | 'recursive/flint-v1.0'
   | 'reflection/beam'
   | 'reflection/beam-free'
   | 'sakana/fugu-max'
