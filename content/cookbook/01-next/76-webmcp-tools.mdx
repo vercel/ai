@@ -18,7 +18,7 @@ In a Next.js App Router application, install:
 
 <Snippet text="pnpm add ai @ai-sdk/react @ai-sdk/mcp @ai-sdk/openai zod" />
 
-Set `OPENAI_API_KEY` in `.env.local`.
+Set `OPENAI_API_KEY` in `.env.local` and run `pnpm exec next dev --hostname 127.0.0.1`.
 
 <Note>
   WebMCP is experimental. For local development, open
@@ -153,23 +153,33 @@ The [complete browser hook](https://github.com/vercel/ai/blob/main/examples/ai-e
 
 Use **[`createMCPTools`](/docs/reference/ai-sdk-core/create-mcp-tools)** to validate the browser's definitions and build the model's tools. Pass the resulting tools to both `streamText` and `convertToModelMessages`, which converts returned MCP results in the conversation history.
 
+This local demo rejects attachments and nonlocal requests. Copy the example's [local request guard](https://github.com/vercel/ai/blob/main/examples/ai-e2e-next/app/api/code-execution-files/is-local-development-request.ts) to the path imported below.
+
 ```ts filename="app/api/chat/webmcp/route.ts"
 import { createMCPTools, MCPClientError } from '@ai-sdk/mcp';
 import { openai } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
   createUIMessageStreamResponse,
+  safeValidateUIMessages,
   streamText,
   toUIMessageStream,
-  type UIMessage,
 } from 'ai';
+import { isLocalDevelopmentRequest } from '../../code-execution-files/is-local-development-request';
 
 export async function POST(request: Request) {
+  if (!isLocalDevelopmentRequest(request)) {
+    return new Response('WebMCP is only available in local development.', {
+      status: 403,
+      headers: { 'Cache-Control': 'no-store' },
+    });
+  }
+
   const {
     messages,
     tools: definitions,
   }: {
-    messages: UIMessage[];
+    messages: unknown;
     tools: unknown;
   } = await request.json();
 
@@ -185,11 +195,31 @@ export async function POST(request: Request) {
     return new Response('Invalid browser tool definitions', { status: 400 });
   }
 
+  const validatedMessages = await safeValidateUIMessages({ messages, tools });
+  // Reject attachments before conversion can reach the file downloader.
+  if (
+    !validatedMessages.success ||
+    validatedMessages.data.some(
+      message =>
+        (message.role !== 'user' && message.role !== 'assistant') ||
+        message.parts.some(
+          part =>
+            part.type !== 'text' &&
+            (message.role !== 'assistant' ||
+              (part.type !== 'step-start' && part.type !== 'dynamic-tool')),
+        ),
+    )
+  ) {
+    return new Response('Only text and browser tool results are supported.', {
+      status: 400,
+    });
+  }
+
   const result = streamText({
     model: openai('gpt-6.2-astra'),
     instructions:
       'Help the user shop. Read the cart and catalog before discussing products or totals. Only change the cart when asked. Use the tools to add, update, and remove items. Keep replies short.',
-    messages: await convertToModelMessages(messages, { tools }),
+    messages: await convertToModelMessages(validatedMessages.data, { tools }),
     tools,
     abortSignal: request.signal,
   });
@@ -275,7 +305,7 @@ const { messages, sendMessage, addToolOutput, status } = useChat({
 </form>
 ```
 
-Render `messages` alongside your cart, as in the [complete storefront page](https://github.com/vercel/ai/blob/main/examples/ai-e2e-next/app/chat/webmcp/page.tsx). The demo keeps cart state in the tab; it resets on reload. For deployment, authenticate the route and apply your own policies to browser-supplied definitions and results.
+Render `messages` alongside your cart, as in the [complete storefront page](https://github.com/vercel/ai/blob/main/examples/ai-e2e-next/app/chat/webmcp/page.tsx). The demo keeps cart state in the tab; it resets on reload. For deployment, replace the local-only guard with authentication and apply your own policies to browser-supplied definitions and results.
 
 ---
 
