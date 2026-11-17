@@ -61,6 +61,10 @@ import {
   getDurableHarnessAgentWorkflowName,
   getNonDurableHarnessAgentWorkflowName,
 } from './internal/workflow-name';
+import {
+  assertNoToolApprovalRequirements,
+  assertNoUnsupportedApprovalSettings,
+} from './internal/tool-approval';
 import type {
   HarnessAgentSandboxConfig,
   HarnessAgentSettings,
@@ -218,13 +222,26 @@ export class HarnessAgent<
         key !== 'world' &&
         key !== 'id' &&
         key !== 'getSandboxSession' &&
-        key !== 'sandboxConfig',
+        key !== 'sandboxConfig' &&
+        key !== 'permissionMode' &&
+        key !== 'toolApproval',
     );
     if (unsupportedSetting !== undefined) {
       throw new Error(
         `HarnessAgent: setting \`${String(unsupportedSetting)}\` is not supported.`,
       );
     }
+
+    /*
+     * Approval settings are rejected instead of ignored: the engine cannot
+     * request consent, so accepting them would run tools that the app expects
+     * a user to approve first.
+     */
+    assertNoUnsupportedApprovalSettings({
+      harnessId: settings.harness.harnessId,
+      permissionMode: settings.permissionMode,
+      toolApproval: settings.toolApproval,
+    });
 
     const sandboxConfig = settings.sandboxConfig ?? {};
     const unsupportedSandboxSetting = Reflect.ownKeys(sandboxConfig).find(
@@ -255,6 +272,20 @@ export class HarnessAgent<
     this.getSandboxSession = settings.getSandboxSession;
     this.id = id;
     this.harnessId = this.harness.harnessId;
+    assertNoToolApprovalRequirements({
+      harnessId: this.harnessId,
+      tools: settings.tools ?? {},
+    });
+    /*
+     * An adapter's built-in tools are part of the public `HarnessV2`
+     * interface, so a wrapper or a custom adapter can add `needsApproval` to
+     * them; they get the same check as the app's own tools.
+     */
+    assertNoToolApprovalRequirements({
+      harnessId: this.harnessId,
+      tools: this.harness.builtinTools,
+      kind: 'built-in tool',
+    });
     this.userTools = settings.tools ?? {};
     this.tools = {
       ...this.harness.builtinTools,
@@ -1069,6 +1100,7 @@ async function runDrivePass(options: {
     finishTurn = finishFunctions.finishTurn;
     const { executeHostTool, executeBuiltinTool } = createExecuteToolFunctions({
       log,
+      harnessId: harness.harnessId,
       tools: userTools,
       builtinTools: harness.builtinTools,
       effect,
@@ -1076,6 +1108,7 @@ async function runDrivePass(options: {
     });
     const gateBuiltinTool = createGateBuiltinToolFunction({
       log,
+      harnessId: harness.harnessId,
       builtinTools: harness.builtinTools,
       effect,
       abortSignal: AbortSignal.any([stopAbortSignal, yieldAbortSignal]),

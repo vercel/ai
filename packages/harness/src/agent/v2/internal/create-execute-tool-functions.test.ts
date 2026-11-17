@@ -59,6 +59,7 @@ function createDrive(options: {
   world: InMemoryWorld;
   log: HarnessAgentLog;
   tools?: ToolSet;
+  builtinTools?: ToolSet;
   yieldAbortSignal?: AbortSignal;
 }): {
   executeHostTool: HarnessAgentExecuteHostToolFunction;
@@ -82,8 +83,9 @@ function createDrive(options: {
   const getSandboxSession = vi.fn(async () => sandboxSession);
   const { executeHostTool, executeBuiltinTool } = createExecuteToolFunctions({
     log: options.log,
+    harnessId: 'mock-harness',
     tools: options.tools ?? {},
-    builtinTools,
+    builtinTools: options.builtinTools ?? builtinTools,
     effect,
     getSandboxSession,
   });
@@ -97,6 +99,7 @@ function createDrive(options: {
 
 async function setup(options?: {
   tools?: ToolSet;
+  builtinTools?: ToolSet;
   yieldAbortSignal?: AbortSignal;
 }) {
   const world = new InMemoryWorld();
@@ -646,6 +649,46 @@ describe('createExecuteToolFunctions', () => {
       ]);
     });
 
+    test('refuses a tool that requires approval without running it', async () => {
+      const execute = vi.fn(async () => 'sunny');
+      const needsApproval = vi.fn(() => true);
+      const { world, executeHostTool, getSandboxSession } = await setup({
+        tools: {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+            needsApproval,
+            execute,
+          }),
+        },
+      });
+
+      expect(await executeHostTool(call)).toMatchObject({
+        type: 'error',
+        error: {
+          message: expect.stringContaining(
+            "AI_HarnessCapabilityUnsupportedError: HarnessAgent: tool approval is not supported with HarnessV2; remove `needsApproval` from tool 'weather'",
+          ),
+        },
+      });
+      expect(execute).not.toHaveBeenCalled();
+      expect(needsApproval).not.toHaveBeenCalled();
+      expect(getSandboxSession).not.toHaveBeenCalled();
+      expect(await readParts({ world })).toEqual([
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'weather',
+          result: expect.stringContaining(
+            "remove `needsApproval` from tool 'weather'",
+          ),
+          isError: true,
+        },
+      ]);
+      expect(
+        await readLogEvents({ world, types: ['tool-execution-start'] }),
+      ).toEqual([]);
+    });
+
     test('suspends client tools without recording them', async () => {
       const { world, log, executeHostTool, getSandboxSession } = await setup({
         tools: {
@@ -719,6 +762,61 @@ describe('createExecuteToolFunctions', () => {
   });
 
   describe('executeBuiltinTool', () => {
+    test('refuses a built-in tool that requires approval without running it', async () => {
+      const execute = vi.fn(async () => ({ raw: 'file.txt' }));
+      const needsApproval = vi.fn(() => true);
+      const customBuiltinTools: ToolSet = {
+        bash: tool({
+          inputSchema: z.object({ command: z.string() }),
+          needsApproval,
+        }),
+      };
+      const { world, executeBuiltinTool } = await setup({
+        builtinTools: customBuiltinTools,
+      });
+
+      expect(await executeBuiltinTool({ ...bashCall, execute })).toMatchObject({
+        type: 'error',
+        error: {
+          message: expect.stringContaining(
+            "AI_HarnessCapabilityUnsupportedError: HarnessAgent: tool approval is not supported with HarnessV2; remove `needsApproval` from built-in tool 'bash'",
+          ),
+        },
+      });
+      expect(execute).not.toHaveBeenCalled();
+      expect(needsApproval).not.toHaveBeenCalled();
+      expect(
+        await readLogEvents({ world, types: ['tool-execution-start'] }),
+      ).toEqual([]);
+      expect(await readParts({ world })).toEqual([
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'bash',
+          result: expect.stringContaining("built-in tool 'bash'"),
+          isError: true,
+        },
+      ]);
+    });
+
+    test('refuses a built-in tool that requires approval after construction', async () => {
+      const execute = vi.fn(async () => ({ raw: 'file.txt' }));
+      const customBuiltinTools: ToolSet = {
+        bash: tool({ inputSchema: z.object({ command: z.string() }) }),
+      };
+      const { executeBuiltinTool } = await setup({
+        builtinTools: customBuiltinTools,
+      });
+
+      (customBuiltinTools.bash as { needsApproval?: boolean }).needsApproval =
+        true;
+
+      expect(await executeBuiltinTool({ ...bashCall, execute })).toMatchObject({
+        type: 'error',
+      });
+      expect(execute).not.toHaveBeenCalled();
+    });
+
     test('records the returned value as one partial and the final value, and emits the final tool result', async () => {
       const { world, log, executeBuiltinTool } = await setup();
 
