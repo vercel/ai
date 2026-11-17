@@ -228,7 +228,7 @@ async function getStoredAuthorizationServerInformation({
   tokens,
 }: {
   provider: OAuthClientProvider;
-  clientInformation: OAuthClientInformation;
+  clientInformation: OAuthClientInformation | undefined;
   tokens?: OAuthTokens;
 }): Promise<OAuthAuthorizationServerInformation | undefined> {
   const tokenAuthorizationServerInformation =
@@ -1509,6 +1509,43 @@ async function authInternal(
     }
   }
 
+  // Resolve the existing token's binding before registration can create a new one.
+  const refreshAuthorizationServerInformation = tokens?.refresh_token
+    ? await getStoredAuthorizationServerInformation({
+        provider,
+        clientInformation,
+        tokens,
+      })
+    : undefined;
+  if (tokens?.refresh_token) {
+    if (refreshAuthorizationServerInformation) {
+      assertAuthorizationServerInformationMatches({
+        storedAuthorizationServerInformation:
+          refreshAuthorizationServerInformation,
+        currentAuthorizationServerInformation,
+      });
+    } else {
+      // A later auth call must not combine stale tokens with the new flow pin.
+      if (!provider.invalidateCredentials) {
+        throw new MCPClientOAuthError({
+          message:
+            'invalidateCredentials is required to discard unbound legacy OAuth tokens; clear stored tokens before authorizing again',
+        });
+      }
+      await provider.invalidateCredentials('tokens', {
+        tokens: { ...tokens },
+      });
+      // Do not persist a new binding alongside an unbound token, even if the
+      // hook leaves tokens in storage.
+      if ((await provider.tokens())?.refresh_token) {
+        throw new MCPClientOAuthError({
+          message:
+            'Stored OAuth tokens without an authorization server binding must be cleared before starting authorization',
+        });
+      }
+    }
+  }
+
   if (!clientInformation) {
     if (authorizationCode !== undefined) {
       throw new Error(
@@ -1593,57 +1630,30 @@ async function authInternal(
     return 'AUTHORIZED';
   }
 
-  /** Refresh only when stored credentials match the current AS pin */
-  if (tokens?.refresh_token) {
-    const storedAuthorizationServerInformation =
-      await getStoredAuthorizationServerInformation({
-        provider,
-        clientInformation,
-        tokens,
-      });
-
-    if (storedAuthorizationServerInformation) {
-      assertAuthorizationServerInformationMatches({
-        storedAuthorizationServerInformation,
-        currentAuthorizationServerInformation,
-      });
-    } else {
-      // A later auth call must not combine stale tokens with the new flow pin.
-      if (!provider.invalidateCredentials) {
-        throw new MCPClientOAuthError({
-          message:
-            'invalidateCredentials is required to discard unbound legacy OAuth tokens; clear stored tokens before authorizing again',
-        });
-      }
-      await provider.invalidateCredentials('tokens', {
-        tokens: { ...tokens },
-      });
-    }
-
+  /** Refresh only when the stored token carries a matching AS pin */
+  if (tokens?.refresh_token && refreshAuthorizationServerInformation) {
     try {
-      if (storedAuthorizationServerInformation) {
-        if (refreshAttempt) {
-          refreshAttempt.tokens = { ...tokens };
-        }
-        // Attempt to refresh the token
-        const newTokens = await refreshAuthorization(authorizationServerUrl, {
-          metadata,
-          clientInformation,
-          refreshToken: tokens.refresh_token,
-          resource,
-          addClientAuthentication: provider.addClientAuthentication,
-          fetchFn,
-          trustedOrigin: trustedAuthorizationServerOrigin,
-        });
-
-        await provider.saveTokens(
-          addAuthorizationServerInformationToTokens(
-            newTokens,
-            currentAuthorizationServerInformation,
-          ),
-        );
-        return 'AUTHORIZED';
+      if (refreshAttempt) {
+        refreshAttempt.tokens = { ...tokens };
       }
+      // Attempt to refresh the token
+      const newTokens = await refreshAuthorization(authorizationServerUrl, {
+        metadata,
+        clientInformation,
+        refreshToken: tokens.refresh_token,
+        resource,
+        addClientAuthentication: provider.addClientAuthentication,
+        fetchFn,
+        trustedOrigin: trustedAuthorizationServerOrigin,
+      });
+
+      await provider.saveTokens(
+        addAuthorizationServerInformationToTokens(
+          newTokens,
+          currentAuthorizationServerInformation,
+        ),
+      );
+      return 'AUTHORIZED';
     } catch (error) {
       if (
         // If this is a ServerError, or an unknown type, log it out and try to continue. Otherwise, escalate so we can fix things and retry.

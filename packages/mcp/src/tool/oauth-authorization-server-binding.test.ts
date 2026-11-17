@@ -113,6 +113,9 @@ function transport(
 const tokenCalls = (fetchFn: ReturnType<typeof transport>) =>
   fetchFn.mock.calls.filter(([url]) => String(url).endsWith('/token'));
 
+const sentBodies = (fetchFn: ReturnType<typeof transport>) =>
+  fetchFn.mock.calls.map(([, init]) => String(init?.body ?? '')).join('\n');
+
 describe('OAuth authorization server binding', () => {
   it('persists registration, callback, and refresh bindings through validated credential stores', async () => {
     const provider = new MemoryProvider();
@@ -423,6 +426,102 @@ describe('OAuth authorization server binding', () => {
     expect(provider.client).toMatchObject(binding);
     expect(tokenCalls(fetchFn)).toHaveLength(0);
   });
+
+  it('does not authenticate an unbound stored token using a new registration', async () => {
+    const provider = new MemoryProvider();
+    provider.client = undefined;
+    provider.storedTokens = {
+      access_token: 'victim-access',
+      refresh_token: 'victim-refresh-token',
+      token_type: 'Bearer',
+    };
+    const fetchFn = transport();
+
+    expect(await auth(provider, { serverUrl, fetchFn })).toBe('REDIRECT');
+
+    expect(provider.invalidations).toEqual(['tokens']);
+    expect(provider.storedTokens).toBeUndefined();
+    expect(provider.client).toMatchObject({
+      client_id: 'registered-client',
+      ...binding,
+    });
+    expect(provider.authorizationUrl).toBeDefined();
+    expect(tokenCalls(fetchFn)).toHaveLength(0);
+    expect(sentBodies(fetchFn)).not.toContain('victim-refresh-token');
+  });
+
+  it.each([
+    { invalidation: 'missing', existingClient: false },
+    { invalidation: 'ineffective', existingClient: false },
+    { invalidation: 'missing', existingClient: true },
+    { invalidation: 'ineffective', existingClient: true },
+  ])(
+    'does not save a new binding when unbound token invalidation is $invalidation (existing client: $existingClient)',
+    async ({ invalidation, existingClient }) => {
+      const memory = new MemoryProvider();
+      memory.client = existingClient
+        ? { client_id: 'existing-client' }
+        : undefined;
+      memory.storedTokens = {
+        access_token: 'victim-access',
+        refresh_token: 'victim-refresh-token',
+        token_type: 'Bearer',
+      };
+      const provider = {
+        ...memory,
+        invalidateCredentials:
+          invalidation === 'missing' ? undefined : vi.fn(async () => {}),
+      };
+      const fetchFn = transport();
+
+      await expect(auth(provider, { serverUrl, fetchFn })).rejects.toThrow(
+        invalidation === 'missing'
+          ? 'invalidateCredentials is required'
+          : 'must be cleared before starting authorization',
+      );
+
+      expect(memory.client).toEqual(
+        existingClient ? { client_id: 'existing-client' } : undefined,
+      );
+      expect(memory.storedTokens?.refresh_token).toBe('victim-refresh-token');
+      expect(memory.authorizationUrl).toBeUndefined();
+      expect(tokenCalls(fetchFn)).toHaveLength(0);
+      expect(sentBodies(fetchFn)).not.toContain('victim-refresh-token');
+      expect(
+        fetchFn.mock.calls.every(([, init]) => init?.method !== 'POST'),
+      ).toBe(true);
+    },
+  );
+
+  it.each([
+    { authorization_server: 'https://other-login.example.com/' },
+    { token_endpoint: `${issuer}/other-token` },
+  ])(
+    'rejects a mismatched token binding before registering a client: %j',
+    async mismatch => {
+      const provider = new MemoryProvider();
+      provider.storedTokens = {
+        access_token: 'victim-access',
+        refresh_token: 'victim-refresh-token',
+        token_type: 'Bearer',
+        ...binding,
+        ...mismatch,
+      };
+      const fetchFn = transport();
+
+      await expect(auth(provider, { serverUrl, fetchFn })).rejects.toThrow(
+        'does not match the metadata that issued',
+      );
+
+      expect(provider.client).toBeUndefined();
+      expect(provider.invalidations).toEqual([]);
+      expect(tokenCalls(fetchFn)).toHaveLength(0);
+      expect(sentBodies(fetchFn)).not.toContain('victim-refresh-token');
+      expect(
+        fetchFn.mock.calls.every(([, init]) => init?.method !== 'POST'),
+      ).toBe(true);
+    },
+  );
 
   it.each(['other-state', undefined])(
     'rejects a callback with state %s before code exchange',
