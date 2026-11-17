@@ -1578,6 +1578,15 @@ class DefaultStreamTextResult<
     let stepMessagesForNextStep: Array<ModelMessage> | undefined;
     let currentStepMessages: Array<ModelMessage> = [];
     let currentStepSteeringMessages: Array<UserModelMessage> = [];
+    let interruptedStep:
+      | {
+          stepNumber: number;
+          steeringMessages: Array<UserModelMessage>;
+          deliveredSteeringMessages: Array<UserModelMessage>;
+          stepStart: { notified: boolean; enqueued: boolean };
+          stepTimeoutId: ReturnType<typeof setTimeout> | undefined;
+        }
+      | undefined;
     let isAborted = false;
     let currentStepModel = model;
 
@@ -2478,12 +2487,21 @@ class DefaultStreamTextResult<
         currentStep: number;
         usage: LanguageModelUsage;
       }) {
+        const redo =
+          interruptedStep?.stepNumber === currentStep
+            ? interruptedStep
+            : undefined;
+        interruptedStep = undefined;
+
         // Set up step timeout if configured
-        const stepTimeoutId = setAbortTimeout({
-          abortController: stepAbortController,
-          label: 'Step',
-          timeoutMs: stepTimeoutMs,
-        });
+        const stepTimeoutId =
+          redo != null
+            ? redo.stepTimeoutId
+            : setAbortTimeout({
+                abortController: stepAbortController,
+                label: 'Step',
+                timeoutMs: stepTimeoutMs,
+              });
 
         // The first-content timeout is armed when the provider response stream
         // starts and is cleared by the first semantic output chunk.
@@ -2584,7 +2602,10 @@ class DefaultStreamTextResult<
             ...initialResponseMessages,
             ...responseMessagesFromPreviousSteps,
           ];
-          const steeringMessages = steeringRun?.takeMessages() ?? [];
+          const steeringMessages = [
+            ...(redo?.steeringMessages ?? []),
+            ...(steeringRun?.takeMessages() ?? []),
+          ];
 
           const stepInputMessages = [
             ...(stepMessagesForNextStep ?? [
@@ -2673,9 +2694,10 @@ class DefaultStreamTextResult<
               stepNumber: currentStep,
               sentMessages: stepMessages,
             }) ?? [];
-          currentStepSteeringMessages = deliveredSteeringMessages.map(
-            ({ message }) => message,
-          );
+          currentStepSteeringMessages = [
+            ...(redo?.deliveredSteeringMessages ?? []),
+            ...deliveredSteeringMessages.map(({ message }) => message),
+          ];
 
           // delivered steering messages are streamed before the step output:
           if (deliveredSteeringMessages.length > 0) {
@@ -2714,7 +2736,44 @@ class DefaultStreamTextResult<
           const stepStartTimestampMs = now();
 
           const { retry } = prepareRetries({ maxRetries, abortSignal });
-          let hasNotifiedStepStart = false;
+          const stepStart = redo?.stepStart ?? {
+            notified: false,
+            enqueued: false,
+          };
+          const interruptController =
+            steeringRun == null ? undefined : new AbortController();
+          let resolveInterrupt: (() => void) | undefined;
+          const interruptRequested =
+            interruptController == null
+              ? undefined
+              : new Promise<'interrupted'>(resolve => {
+                  resolveInterrupt = () => resolve('interrupted');
+                });
+          const stopWatchingInterrupt =
+            steeringRun?.watchInterrupt(() => {
+              resolveInterrupt?.();
+              interruptController?.abort();
+            }) ?? (() => {});
+          const isInterrupted = () =>
+            interruptController?.signal.aborted === true &&
+            abortSignal?.aborted !== true;
+          const modelCallAbortSignal =
+            interruptController == null
+              ? abortSignal
+              : mergeAbortSignals(abortSignal, interruptController.signal);
+          const rememberInterruptedStep = () => {
+            interruptedStep = {
+              stepNumber: currentStep,
+              steeringMessages,
+              deliveredSteeringMessages: currentStepSteeringMessages,
+              stepStart,
+              stepTimeoutId,
+            };
+            abortSignal?.removeEventListener('abort', cleanupStepTimeouts);
+            clearModelOutputTimeouts();
+          };
+          let interruptWindowClosed = false;
+          let attemptInterrupted = false;
 
           const callLanguageModel = () =>
             runInStepTracingChannelContext(() =>
@@ -2729,7 +2788,7 @@ class DefaultStreamTextResult<
                   allowSystemInMessages,
                   repairToolCall,
                   refineToolInput,
-                  abortSignal,
+                  abortSignal: modelCallAbortSignal,
                   headers,
                   includeRawChunks: include.rawChunks,
                   providerOptions: stepProviderOptions,
@@ -2753,10 +2812,10 @@ class DefaultStreamTextResult<
                       | OnLanguageModelCallEndCallback<TOOLS>,
                   ),
                   onStart: async ({ promptMessages }) => {
-                    if (hasNotifiedStepStart) {
+                    if (stepStart.notified) {
                       return;
                     }
-                    hasNotifiedStepStart = true;
+                    stepStart.notified = true;
 
                     const stepStartEvent = {
                       callId,
@@ -2795,7 +2854,20 @@ class DefaultStreamTextResult<
               ),
             );
 
-          const initialLanguageModelCall = await callLanguageModel();
+          let initialLanguageModelCall: Awaited<
+            ReturnType<typeof callLanguageModel>
+          >;
+          try {
+            initialLanguageModelCall = await callLanguageModel();
+          } catch (error) {
+            if (!isInterrupted()) {
+              stopWatchingInterrupt();
+              throw error;
+            }
+            rememberInterruptedStep();
+            await streamStep({ currentStep, usage });
+            return;
+          }
           let request = initialLanguageModelCall.request;
           let response = initialLanguageModelCall.response;
           let languageModelStreamReader =
@@ -2853,17 +2925,57 @@ class DefaultStreamTextResult<
                 openReasoningParts.clear();
               };
 
+              const interruptAttempt = async () => {
+                await languageModelStreamReader.cancel().catch(() => {});
+                bufferedAttemptParts = [];
+                closeOpenAttemptParts();
+                clearModelOutputTimeouts();
+                attemptInterrupted = true;
+                controller.close();
+              };
+
               while (true) {
-                let result: ReadableStreamReadResult<
-                  LanguageModelStreamPart<TOOLS>
-                >;
+                let result:
+                  | ReadableStreamReadResult<LanguageModelStreamPart<TOOLS>>
+                  | 'interrupted';
                 try {
-                  result = await languageModelStreamReader.read();
+                  if (interruptRequested == null || interruptWindowClosed) {
+                    result = await languageModelStreamReader.read();
+                  } else {
+                    const read = languageModelStreamReader.read();
+                    read.catch(() => {});
+                    result = await Promise.race([read, interruptRequested]);
+                  }
                 } catch (error) {
+                  if (!interruptWindowClosed && isInterrupted()) {
+                    await interruptAttempt();
+                    return;
+                  }
+                  stopWatchingInterrupt();
                   clearModelOutputTimeouts();
                   throw error;
                 }
+
+                if (
+                  result === 'interrupted' ||
+                  (!interruptWindowClosed && isInterrupted())
+                ) {
+                  await interruptAttempt();
+                  return;
+                }
+
                 const { done, value } = result;
+
+                if (
+                  !interruptWindowClosed &&
+                  (done ||
+                    value.type === 'model-call-end' ||
+                    value.type === 'tool-input-start' ||
+                    isOutputChunk(value))
+                ) {
+                  interruptWindowClosed = true;
+                  stopWatchingInterrupt();
+                }
 
                 if (enqueueStreamRetryAttemptBoundary) {
                   controller.enqueue(
@@ -3157,11 +3269,14 @@ class DefaultStreamTextResult<
                     stepFirstChunk = false;
 
                     // Step start:
-                    enqueueStepPart(controller, {
-                      type: 'start-step',
-                      request: getStepRequest(),
-                      warnings: warnings ?? [],
-                    });
+                    if (!stepStart.enqueued) {
+                      stepStart.enqueued = true;
+                      enqueueStepPart(controller, {
+                        type: 'start-step',
+                        request: getStepRequest(),
+                        warnings: warnings ?? [],
+                      });
+                    }
                   }
 
                   const chunkType = chunk.type;
@@ -3318,6 +3433,23 @@ class DefaultStreamTextResult<
 
                 // invoke onEnd callback and resolve toolResults promise when the stream is about to close:
                 async flush(controller) {
+                  stopWatchingInterrupt();
+
+                  if (attemptInterrupted) {
+                    rememberInterruptedStep();
+
+                    try {
+                      await runInStreamTextTracingChannelContext(() =>
+                        streamStep({ currentStep, usage }),
+                      );
+                    } catch (error) {
+                      steeringRun?.end('error');
+                      enqueueStepPart(controller, { type: 'error', error });
+                      self.closeStream();
+                    }
+                    return;
+                  }
+
                   // emit an error when an incomplete model stream produced no
                   // output instead of recording an empty step. incomplete
                   // streams with partial output retain the partial result:
