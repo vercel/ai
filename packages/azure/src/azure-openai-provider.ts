@@ -32,6 +32,7 @@ import {
   isMAIImageModel,
 } from './azure-image-model-options';
 import { AzureMaiImageModel } from './azure-mai-image-model';
+import { azureMaiImageBackgroundOptions } from './azure-mai-image-model-options';
 import { azureOpenaiTools } from './azure-openai-tools';
 import {
   azureSpeechModelOptions,
@@ -604,7 +605,14 @@ class AzureImageModel implements ImageModelV3 {
         schema: azureImageModelOptions,
       })) ?? {};
     if ((api ?? (isMAIImageModel(this.modelId) ? 'mai' : 'openai')) === 'mai') {
-      return this.mai.doGenerate(options, maiOptions);
+      // Validated only here: the OpenAI route has always ignored `background`.
+      const { background } =
+        (await parseProviderOptions({
+          provider: 'azure',
+          providerOptions: options.providerOptions,
+          schema: azureMaiImageBackgroundOptions,
+        })) ?? {};
+      return this.mai.doGenerate(options, { ...maiOptions, background });
     }
 
     const result = await this.openai.doGenerate(options);
