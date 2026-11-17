@@ -123,6 +123,28 @@ describe('createMCPTools', () => {
     ).toThrow('Duplicate MCP tool name "getCart"');
   });
 
+  it.each([
+    { ui: { resourceUri: 'https://example.com/cart' } },
+    { ui: { resourceUri: 42 } },
+    { 'ui/resourceUri': 'https://example.com/cart' },
+    { 'ui/resourceUri': 42 },
+  ])('wraps invalid MCP App resource URI metadata: %j', _meta => {
+    let error: unknown;
+    try {
+      createMCPTools([{ name: 'getCart', inputSchema: {}, _meta }]);
+    } catch (cause) {
+      error = cause;
+    }
+
+    expect(MCPClientError.isInstance(error)).toBe(true);
+    expect(error).toMatchObject({
+      message: 'Invalid MCP tool definition "getCart"',
+      cause: {
+        message: expect.stringContaining('Invalid MCP App resource URI:'),
+      },
+    });
+  });
+
   it('preserves prototype-named tools without modifying the record prototype', () => {
     const names = ['__proto__', 'constructor', 'toString'];
     const tools = createMCPTools(
