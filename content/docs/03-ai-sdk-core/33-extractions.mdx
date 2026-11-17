@@ -13,7 +13,7 @@ as [decisions](/docs/ai-sdk-core/decisions).
 
 This API and the extraction model specification are experimental and may change
 in patch releases. Pass an extraction model instance, resolve a model through a
-provider registry, or use a string ID resolved by a configured default provider.
+provider registry, or use a string ID resolved by the default provider.
 
 ```ts
 import { experimental_extract, type Experimental_ExtractionModel } from 'ai';
@@ -165,11 +165,13 @@ const { answers } = await experimental_extract({
 Registry IDs use `providerId:modelId`. Custom aliases take precedence over a
 fallback provider, and a fallback only resolves unknown model IDs.
 
-String IDs passed directly to `experimental_extract` resolve through
-`globalThis.AI_SDK_DEFAULT_PROVIDER.extractionModel(id)`. Vercel AI Gateway does
-not provide extraction models yet, so configure a default provider with an
-`extractionModel` method to use strings. This exposes an alias from the registry
-above through a custom provider:
+String IDs passed directly to `experimental_extract` resolve through the default
+provider. That is the
+[AI Gateway](/providers/ai-sdk-providers/ai-gateway#extraction-models) unless
+`globalThis.AI_SDK_DEFAULT_PROVIDER` is set, so `model: 'scaledown/extract-1'`
+works without a provider import. A configured default provider must have an
+`extractionModel` method. This exposes an alias from the registry above through
+a custom provider:
 
 ```ts
 globalThis.AI_SDK_DEFAULT_PROVIDER = customProvider({
