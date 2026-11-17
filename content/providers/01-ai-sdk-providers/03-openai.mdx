@@ -391,6 +391,10 @@ The following OpenAI-specific metadata may be returned:
   Cache comparison result. Contains `type` and, when supplied by OpenAI, `reason`,
   `cache_missed_tokens`, and `comparison_reusable_tokens`. Inner field names match
   the API response. Available on generation, streaming, and batch results.
+- **inputTransformations** _(optional)_
+  Input items that OpenAI changed before generation, such as dropped reasoning
+  items. Each entry contains `type`, `action`, `reason`, and, when supplied by
+  OpenAI, `id`. Available on generation, streaming, and batch results.
 
 #### Preserving Reasoning Across Turns
 
@@ -411,6 +415,24 @@ original request settings and history, and append changes where possible:
 - Prefer [OpenAI compaction](#compaction-1) when supported. With custom compaction,
   place summary items as late in the context as possible to limit reasoning loss.
   Configuration updates have the [compaction restrictions](#compaction) below.
+
+To check whether reasoning was dropped, read
+`providerMetadata.openai.inputTransformations`:
+
+```ts
+const result = await generateText({
+  model: openai.responses('gpt-6.2-astra'),
+  messages,
+});
+
+console.log(result.providerMetadata?.openai?.inputTransformations);
+// [{ id: 'rs_...', type: 'reasoning', action: 'removed', reason: 'prefix_mismatch' }]
+```
+
+Each removed reasoning item is listed with its `id` and a `reason`, for example
+`prefix_mismatch`, `model_mismatch`, or `end_user_mismatch`. OpenAI returns an
+empty array when nothing was removed. For streams, await
+`result.providerMetadata` after consuming the stream.
 
 See [OpenAI's preserved reasoning guide](https://developers.openai.com/api/docs/guides/preserved-reasoning).
 
