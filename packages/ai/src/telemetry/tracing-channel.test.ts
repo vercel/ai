@@ -578,6 +578,64 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
     `);
   });
 
+  it('traces one step span when a steering interrupt redoes the generateText model call', async () => {
+    const steering = createSteering();
+    let calls = 0;
+
+    const sequence = await collectTracingChannelEventSequence(async () => {
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async ({ abortSignal }) => {
+            calls++;
+            if (calls === 1) {
+              void steering.steer('Use Paris, Texas instead.', {
+                interrupt: true,
+              });
+              throw abortSignal?.reason;
+            }
+            return {
+              content: [{ type: 'text', text: 'It is sunny.' }],
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: {
+                inputTokens: {
+                  total: 3,
+                  noCache: 3,
+                  cacheRead: undefined,
+                  cacheWrite: undefined,
+                },
+                outputTokens: {
+                  total: 3,
+                  text: 3,
+                  reasoning: undefined,
+                },
+              },
+              warnings: [],
+            };
+          },
+        }),
+        prompt: 'What is the weather in Paris?',
+        experimental_steering: steering,
+        telemetry: {
+          functionId: 'tracing-channel-generate-text-interrupt-test',
+        },
+      });
+    });
+
+    expect(calls).toBe(2);
+    expect(sequence).toMatchInlineSnapshot(`
+      [
+        "bindStart generateText",
+        "bindStart step",
+        "bindStart languageModelCall",
+        "asyncEnd languageModelCall",
+        "bindStart languageModelCall",
+        "asyncEnd languageModelCall",
+        "asyncEnd step",
+        "asyncEnd generateText",
+      ]
+    `);
+  });
+
   it('traces one step span when a steering interrupt redoes the streamText model call', async () => {
     const steering = createSteering();
     let calls = 0;

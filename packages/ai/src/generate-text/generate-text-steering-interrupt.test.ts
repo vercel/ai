@@ -178,10 +178,12 @@ describe('generateText experimental_steering interrupt', () => {
     expect(result.totalUsage.outputTokens).toBe(10);
   });
 
-  it('should run prepareStep again for the redo and notify onStepStart once', async () => {
+  it('should run prepareStep again for the redo, notify onStepStart once, and start two model calls', async () => {
     const steering = createSteering();
     const prepareStep = vi.fn(() => undefined);
     const onStepStart = vi.fn();
+    const onLanguageModelCallStart = vi.fn();
+    const onLanguageModelCallEnd = vi.fn();
 
     const { model } = createHangingFirstCall({
       onFirstCall: () => {
@@ -196,6 +198,8 @@ describe('generateText experimental_steering interrupt', () => {
       experimental_steering: steering,
       prepareStep,
       onStepStart,
+      onLanguageModelCallStart,
+      onLanguageModelCallEnd,
     });
 
     expect(prepareStep).toHaveBeenCalledTimes(2);
@@ -212,6 +216,8 @@ describe('generateText experimental_steering interrupt', () => {
       ],
     });
     expect(onStepStart).toHaveBeenCalledTimes(1);
+    expect(onLanguageModelCallStart).toHaveBeenCalledTimes(2);
+    expect(onLanguageModelCallEnd).toHaveBeenCalledTimes(1);
   });
 
   it('should run prepareStep for the redo with the instructions and contexts that the step started with', async () => {

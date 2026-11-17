@@ -1072,8 +1072,9 @@ export class OpenTelemetry implements Telemetry {
     const state = existingState ?? this.startDurableModelCall(event);
     if (!state?.stepContext) return;
 
-    // A retried stream may start a new attempt without ending the failed one.
-    if (state.liveDurableContext && state.inferenceSpan != null) {
+    // A stream retry or a steering interrupt starts a new model call without
+    // ending the previous one.
+    if (state.inferenceSpan != null) {
       state.inferenceSpan.setStatus({ code: SpanStatusCode.ERROR });
       state.inferenceSpan.end(getEventTime(event));
       state.inferenceSpan = undefined;

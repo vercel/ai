@@ -487,7 +487,8 @@ steering.steer('Stop, use the other file.', { interrupt: true });
 
 - When the model call has not produced any text, reasoning, tool input, or tool call yet, it is cancelled and made again in the same step with the message. The step keeps its step number and does not count toward stop conditions.
 - When output has already started, or tools are running, the message is added at the next step boundary like any other steering message. Running tools are never interrupted.
-- `prepareStep` runs again for the new model call and receives the message in `experimental_steeringMessages`. It gets the same `instructions`, `runtimeContext`, and `toolsContext` as its first call for the step. `onStepStart` is called once per step.
+- `prepareStep` runs again for the new model call and receives the message in `experimental_steeringMessages`. It gets the same `instructions`, `runtimeContext`, and `toolsContext` as its first call for the step.
+- `onStepStart` is called once per step, before the first model call, so its `messages` do not contain the interrupting message. `onLanguageModelCallStart` is called again for the new model call. `onLanguageModelCallEnd` is not called for the cancelled one.
 - `streamText` closes the text and reasoning parts of the cancelled call and streams the `steering-message` part before the new output.
 - A cancelled model call can still be billed by the provider. It is not included in `usage` and `totalUsage`.
 
