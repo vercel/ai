@@ -134,8 +134,18 @@ Raw runtime instances need their respective adapters; a custom
 The model calls the tool with `{ command: string }` and receives
 `{ stdout, stderr, exitCode }`. Nonzero exit codes are returned so the model can
 inspect failures and recover. AI SDK cancellation is forwarded to the session.
-Output truncation happens after execution and does not limit execution memory or
-duration.
+The tool retains at most `maxOutputLength` characters per output stream and
+appends a notice with the number of omitted characters. Commands still run to
+completion; producing excess output does not stop them.
+
+The Vercel Sandbox adapter collects these prefixes incrementally instead of
+buffering the entire output. just-bash buffers output inside its interpreter,
+subject to its own execution limits, then returns bounded prefixes. Older custom
+sandbox implementations remain compatible, but their output is only truncated
+after `run()` returns. To support bounded collection, implement
+`run({ maxOutputLength })` and return the original `stdoutLength` and
+`stderrLength` alongside the prefixes. Output retention does not limit command
+duration or the sandbox runtime's own memory usage.
 
 ### Command timeout
 

@@ -24,6 +24,12 @@ Implement this layer when consumers only need filesystem and process APIs.
   - `writeBinaryFile()` and `writeTextFile()` can be implemented to wrap `writeFile()`, unless dedicated methods exist in the underlying sandbox SDK
 - `spawn()`, `run()`
   - `run()` can be implemented to wrap `spawn()`, unless a dedicated method exists in the underlying sandbox SDK
+  - `run({ maxOutputLength })` requests a bounded prefix of each output stream,
+    measured in UTF-16 code units. Supporting adapters return `stdoutLength` and
+    `stderrLength` with the full counts while draining excess output until the
+    command completes. Omitting the option preserves full output. Older custom
+    implementations can ignore the option; callers must handle missing counts
+    and truncate their results. Native runtime buffering and limits still apply.
 
 ```ts
 import type { Experimental_SandboxSession } from 'ai';
