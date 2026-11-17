@@ -2784,10 +2784,10 @@ class DefaultStreamTextResult<
           const isInterrupted = () =>
             interruptController?.signal.aborted === true &&
             abortSignal?.aborted !== true;
-          const modelCallAbortSignal =
-            interruptController == null
-              ? abortSignal
-              : mergeAbortSignals(abortSignal, interruptController.signal);
+          const modelCallAbortSignal = mergeAbortSignals(
+            abortSignal,
+            interruptController?.signal,
+          );
           const rememberInterruptedStep = () => {
             interruptedStep = {
               stepNumber: currentStep,

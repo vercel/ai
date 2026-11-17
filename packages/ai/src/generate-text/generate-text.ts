@@ -1258,13 +1258,10 @@ async function generateTextInternal<
                   const stopWatchingInterrupt = steeringRun?.watchInterrupt(
                     () => interruptController?.abort(),
                   );
-                  const modelCallAbortSignal =
-                    interruptController == null
-                      ? mergedAbortSignal
-                      : mergeAbortSignals(
-                          mergedAbortSignal,
-                          interruptController.signal,
-                        );
+                  const modelCallAbortSignal = mergeAbortSignals(
+                    mergedAbortSignal,
+                    interruptController?.signal,
+                  );
 
                   try {
                     currentModelResponse = await retry(async () => {
