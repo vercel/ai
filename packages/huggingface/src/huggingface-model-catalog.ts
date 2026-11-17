@@ -178,3 +178,8 @@ export function getHuggingFaceLanguageModelEntry(modelId: string) {
 export const huggingFaceModelCatalog = Object.fromEntries(
   languageModelIds.map(id => [id, getHuggingFaceLanguageModelEntry(id)]),
 );
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type HuggingFaceModelIds = {
+  language: (typeof languageModelIds)[number];
+};

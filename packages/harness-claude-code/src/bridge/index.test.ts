@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { z } from 'zod/v4';
-import { mkdir, mkdtemp, rm, symlink } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -1198,6 +1198,103 @@ describe('Claude Code bridge configuration', () => {
     },
   );
 
+  test.each([
+    { toolName: 'Write', toolInput: { file_path: 'TEST.md' }, approved: true },
+    {
+      toolName: 'Write',
+      toolInput: { file_path: '.agents/skills/test/SKILL.md' },
+      approved: false,
+    },
+    {
+      toolName: 'Edit',
+      toolInput: { file_path: '.claude/settings.json' },
+      approved: false,
+    },
+    {
+      toolName: 'Write',
+      toolInput: { file_path: '.mcp.json' },
+      approved: false,
+    },
+    {
+      toolName: 'NotebookEdit',
+      toolInput: { notebook_path: '.claude/notebook.ipynb' },
+      approved: false,
+    },
+    {
+      toolName: 'Edit',
+      toolInput: { file_path: 'skills/test/SKILL.md' },
+      approved: false,
+    },
+    {
+      toolName: 'Read',
+      toolInput: { file_path: '.agents/skills/test/SKILL.md' },
+      approved: true,
+    },
+  ])(
+    'requires approval for $toolName writes to write-protected paths',
+    async ({ toolName, toolInput, approved }) => {
+      const directory = await mkdtemp(
+        path.join(tmpdir(), 'claude-protected-paths-'),
+      );
+      try {
+        await mkdir(path.join(directory, '.agents/skills/test'), {
+          recursive: true,
+        });
+        await writeFile(
+          path.join(directory, '.agents/skills/test/SKILL.md'),
+          'skill\n',
+        );
+        await symlink('.agents/skills', path.join(directory, 'skills'));
+        process.argv[process.argv.indexOf('--workdir') + 1] = directory;
+        state.start = { ...state.start, permissionMode: 'allow-edits' };
+        state.requestToolApproval = vi.fn(async () => ({ approved: false }));
+        await import('./index');
+        const options = state.queryArgs[0]!.options;
+        const hook = (
+          options.hooks as {
+            PreToolUse: Array<{
+              matcher?: string;
+              hooks: Array<
+                (input: Record<string, unknown>, id: string) => Promise<unknown>
+              >;
+            }>;
+          }
+        ).PreToolUse.find(entry => entry.matcher == null)!.hooks[0];
+        await expect(
+          hook(
+            {
+              hook_event_name: 'PreToolUse',
+              cwd: directory,
+              tool_name: toolName,
+              tool_input: toolInput,
+            },
+            'protected-call',
+          ),
+        ).resolves.toEqual(
+          approved
+            ? {}
+            : {
+                hookSpecificOutput: {
+                  hookEventName: 'PreToolUse',
+                  permissionDecision: 'defer',
+                },
+              },
+        );
+        const callback = options.canUseTool as (
+          name: string,
+          input: Record<string, unknown>,
+          options: { toolUseID: string },
+        ) => Promise<{ behavior: string }>;
+        expect(
+          (await callback(toolName, toolInput, { toolUseID: 'protected-call' }))
+            .behavior,
+        ).toBe(approved ? 'allow' : 'deny');
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
+    },
+  );
+
   test('omits canUseTool when bypassing permissions', async () => {
     await import('./index');
 
@@ -1879,7 +1976,7 @@ describe('Claude Code bridge configuration', () => {
     };
 
     test.each(['allow-reads', 'allow-edits'])(
-      'uses auto instead of ask rules and approval deferral for %s',
+      'uses auto instead of ask rules for %s',
       async permissionMode => {
         state.start = { ...state.start, permissionMode, autoMode: true };
         await import('./index');
@@ -1893,7 +1990,73 @@ describe('Claude Code bridge configuration', () => {
         expect(options.settings).toBeUndefined();
         expect(
           (options.hooks as Hooks).PreToolUse.map(hook => hook.matcher),
-        ).toEqual(['AskUserQuestion']);
+        ).toEqual([undefined, 'AskUserQuestion']);
+      },
+    );
+
+    test.each([
+      {
+        toolName: 'Write',
+        file: '.agents/skills/test/SKILL.md',
+        deferred: true,
+      },
+      { toolName: 'Edit', file: '.claude/settings.json', deferred: true },
+      { toolName: 'Write', file: 'TEST.md', deferred: false },
+      { toolName: 'Bash', file: undefined, deferred: false },
+      { toolName: 'Read', file: '.claude/settings.json', deferred: false },
+    ])(
+      'defers only protected writes before classification: $toolName $file',
+      async ({ toolName, file, deferred }) => {
+        const directory = await mkdtemp(
+          path.join(tmpdir(), 'claude-auto-protected-'),
+        );
+        try {
+          process.argv[process.argv.indexOf('--workdir') + 1] = directory;
+          state.start = {
+            ...state.start,
+            permissionMode: 'allow-edits',
+            autoMode: true,
+          };
+          await import('./index');
+          const hook = (
+            state.queryArgs[0]!.options.hooks as {
+              PreToolUse: Array<{
+                matcher?: string;
+                hooks: Array<
+                  (
+                    input: Record<string, unknown>,
+                    id: string,
+                  ) => Promise<unknown>
+                >;
+              }>;
+            }
+          ).PreToolUse.find(entry => entry.matcher == null)!.hooks[0];
+          await expect(
+            hook(
+              {
+                hook_event_name: 'PreToolUse',
+                cwd: directory,
+                tool_name: toolName,
+                tool_input:
+                  file == null
+                    ? { command: 'echo hi' }
+                    : { file_path: path.join(directory, file) },
+              },
+              'auto-call',
+            ),
+          ).resolves.toEqual(
+            deferred
+              ? {
+                  hookSpecificOutput: {
+                    hookEventName: 'PreToolUse',
+                    permissionDecision: 'defer',
+                  },
+                }
+              : {},
+          );
+        } finally {
+          await rm(directory, { recursive: true, force: true });
+        }
       },
     );
 

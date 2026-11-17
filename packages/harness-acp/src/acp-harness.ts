@@ -113,6 +113,14 @@ export type ACPHarnessSettings<
   readonly nonTextContentTypes?: ACPV1Settings['nonTextContentTypes'];
   readonly askUserQuestions?: TAskUserQuestions;
   readonly permissionModeMapping?: ACPV1Settings['permissionModeMapping'];
+  /**
+   * Paths relative to the session working directory (files or directories)
+   * that the ACP agent must not write to without host approval. Under the
+   * `allow-reads` and `allow-edits` permission modes, `edit`, `delete`, and
+   * `move` permission requests touching these paths always require approval.
+   * `.agents/skills` is always protected. `allow-all` is unaffected.
+   */
+  readonly writeProtectedPaths?: ACPV1Settings['writeProtectedPaths'];
   readonly session?: ACPV1Settings['session'];
   // TODO: Remove in the next major version.
   /**

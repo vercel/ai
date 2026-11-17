@@ -1,5 +1,46 @@
 # @ai-sdk/google-vertex
 
+## 5.0.141
+
+### Patch Changes
+
+- f5fc6ba: Derive known model ID suggestions from each provider's model catalog declarations so catalog updates automatically update autocomplete, while preserving existing suggestions, endpoint-specific model lists, and support for custom model IDs.
+- c8fb453: Add the missing `gemini-4-hydrogen` model ID to the Vertex catalog so model suggestions and generated capability documentation include it.
+- Updated dependencies [f5fc6ba]
+- Updated dependencies [8e60cb4]
+  - @ai-sdk/anthropic@4.0.105
+  - @ai-sdk/google@4.0.121
+
+## 5.0.140
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+  - @ai-sdk/anthropic@4.0.104
+  - @ai-sdk/google@4.0.120
+  - @ai-sdk/openai-compatible@3.0.92
+
+## 5.0.139
+
+### Patch Changes
+
+- 2ebc78b: Forward the provider's configured fetch transport when downloading file inputs. Add a `fetch` option to `createDownload` so core downloads can also use `guarded-fetch` for opt-in DNS validation on Node.js. The function returned by `createDownload` can now also be passed as `experimental_download` to `generateText` and `streamText`, and `experimental_download` now also handles generated file URLs returned by the model, so one hook covers all core downloads. Document that the default URL checks do not resolve DNS and recommend the guarded transport or network egress controls for untrusted URLs.
+
+  Keep Azure image and Vertex tool-result downloads separate from provider authentication wrappers so file hosts never receive Azure bearer tokens or Vertex Express Mode API keys.
+
+  Pass the call's abort signal to custom download requests, including prompt assets and generated files, so `experimental_download: createDownload({ fetch })` preserves cancellation and timeouts.
+
+- Updated dependencies [2ebc78b]
+- Updated dependencies [4e43721]
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/google@4.0.119
+  - @ai-sdk/openai-compatible@3.0.91
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+  - @ai-sdk/anthropic@4.0.103
+
 ## 5.0.138
 
 ### Patch Changes

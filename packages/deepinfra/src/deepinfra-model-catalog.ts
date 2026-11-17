@@ -532,3 +532,10 @@ export const deepInfraModelCatalog = Object.fromEntries([
 deepInfraModelCatalog['Qwen/Qwen-Image-Edit'] = getDeepInfraImageModelEntry(
   'Qwen/Qwen-Image-Edit',
 );
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type DeepInfraModelIds = {
+  language: (typeof languageModelIds)[number];
+  embedding: (typeof embeddingModelIds)[number];
+  image: (typeof imageModelIds)[number];
+};

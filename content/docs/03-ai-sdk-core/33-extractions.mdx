@@ -1,0 +1,175 @@
+---
+title: Extractions
+description: Extract typed field values from shared state.
+---
+
+# Extractions
+
+`experimental_extract` pulls typed values out of one shared state using an
+extraction model: an invoice number, a total, a due date, a list of names. Each
+field is described once and comes back as one typed answer. State can be a
+string, JSON object, or an array of ordered text, file, and JSON parts, the same
+as [decisions](/docs/ai-sdk-core/decisions).
+
+This API and the extraction model specification are experimental and may change
+in patch releases. Pass an extraction model instance.
+
+```ts
+import { experimental_extract, type Experimental_ExtractionModel } from 'ai';
+
+async function readInvoice(model: Experimental_ExtractionModel, text: string) {
+  return experimental_extract({
+    model,
+    state: text,
+    referenceDate: '2026-11-11',
+    fields: {
+      invoiceNumber: { type: 'text', instructions: 'The invoice number' },
+      total: {
+        type: 'number',
+        instructions: 'Total amount due',
+        unit: 'USD',
+        decimals: 2,
+      },
+      dueDate: { type: 'date', instructions: 'Payment due date' },
+      contacts: { type: 'list', items: 'text', instructions: 'Contact names' },
+    },
+  });
+}
+
+const { answers } = await readInvoice(
+  model,
+  'Invoice INV-2041, total due $1,250.00 by March 3. Contacts: Ana, Bo.',
+);
+
+answers.total.value; // number | null
+answers.dueDate.value; // string | null, e.g. '2027-03-03'
+answers.contacts.value; // string[] | null
+```
+
+`referenceDate` is an optional `YYYY-MM-DD` date that anchors relative dates and
+dates without a year.
+
+## File URLs
+
+Remote file URLs in `state` require `experimental_download`; otherwise extraction
+throws `DownloadError` before making a network request. Inline bytes and data URLs
+work without a download hook. The model's custom `fetch` does not cover these
+core downloads.
+
+For user-supplied URLs on Node.js, configure a DNS-protected transport:
+
+```ts
+import { createGuardedFetch } from 'guarded-fetch';
+import {
+  createDownload,
+  experimental_extract,
+  type Experimental_ExtractionModel,
+} from 'ai';
+
+async function readInvoiceFile(model: Experimental_ExtractionModel, url: URL) {
+  const fetch = createGuardedFetch();
+  try {
+    return await experimental_extract({
+      model,
+      state: [{ type: 'file', mediaType: 'application/pdf', data: url }],
+      fields: { invoiceNumber: { type: 'text' } },
+      experimental_download: createDownload({ fetch }),
+    });
+  } finally {
+    await fetch.close();
+  }
+}
+```
+
+See [Secure URL Fetching](/docs/advanced/secure-url-fetching#core-file-downloads)
+for installation and transport requirements on other server runtimes.
+
+## Field types
+
+Every field has a `type` and optional `instructions`. Instructions accept
+strings, JSON objects, or JSON arrays.
+
+| Type       | Value                                                 | Options                                                                                           |
+| ---------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `text`     | `string`                                              | None                                                                                              |
+| `number`   | Finite `number`                                       | `unit` (e.g. `'USD'`), `integer`, `decimals` (0 to 6)                                             |
+| `date`     | `'YYYY-MM-DD'`, a real calendar date                  | None                                                                                              |
+| `time`     | `'HH:MM'` or `'HH:MM:SS'`                             | None                                                                                              |
+| `datetime` | ISO 8601 date and time, with an offset when available | None                                                                                              |
+| `duration` | Nonnegative `number` in `unit`                        | `unit` (`seconds`, `minutes`, `hours`, `days`, `weeks`, `months`, `years`), `integer`, `decimals` |
+| `list`     | `string[]` or `number[]`                              | Required `items` (`'text'`, `'number'`, or `'date'`), `integer` and `decimals` for numbers        |
+
+Answer value types are inferred from the field definitions.
+
+## Provider models
+
+Use a provider's `extractionModel` factory:
+
+| Provider  | Example model                                    |
+| --------- | ------------------------------------------------ |
+| OpenAI    | `openai.extractionModel('gpt-6.1-sol')`          |
+| Anthropic | `anthropic.extractionModel('claude-sonnet-5-5')` |
+| Google    | `google.extractionModel('gemini-4-hydrogen')`    |
+
+These adapt structured language-model output and extract every field in one
+prompt. Anthropic sends more than 16 fields as parallel calls, see
+[Anthropic extraction models](/providers/ai-sdk-providers/anthropic#extraction-models).
+They return `null` for missing values but no `pNull`, `confidence`,
+`guess`, or `source`. Judge quality against your own labeled examples before
+choosing a model for a task.
+
+- Empty strings and empty lists are returned as `null`.
+- Numbers, durations, and number list items are rounded to `decimals`.
+- When the provider refuses a request, the fields in that request are reported
+  as refused and `experimental_extract` throws
+  `Experimental_ExtractionRefusalError`.
+
+## Answers
+
+Every answer has the field's `type` and a `value`. `value` is `null` when the
+state does not contain a value for the field. Models can add:
+
+- `pNull`: probability in [0, 1] that the state does not contain a value.
+- `confidence`: confidence in [0, 1] that `value` is correct.
+- `guess`: the most likely value, also when `value` is `null`. Not on lists.
+- `source`: where the value was found. Not on lists.
+  - `{ type: 'text', part, start, end }`: `state[part].text.slice(start, end)`,
+    with offsets in UTF-16 code units, so the slice works directly in JavaScript.
+    A string state is part `0`.
+  - `{ type: 'file', part }`: the value was read from the file at `state[part]`.
+
+List answers can include `items`, one `{ confidence?, source? }` entry per value.
+
+## Errors
+
+Unsupported field types throw `Experimental_ExtractionUnsupportedFieldTypeError`
+before provider I/O. Invalid inputs throw `InvalidArgumentError`; malformed
+answers throw `InvalidResponseDataError`. Fields the model refuses throw
+`Experimental_ExtractionRefusalError`. Invalid answers and refusals are not
+retried, and partial results are not supported.
+
+## Testing
+
+Use `Experimental_ExtractionMockModelV4` from `ai/test`:
+
+```ts
+import { experimental_extract } from 'ai';
+import { Experimental_ExtractionMockModelV4 } from 'ai/test';
+
+const result = await experimental_extract({
+  model: new Experimental_ExtractionMockModelV4({
+    doExtract: async () => ({
+      answers: { total: { type: 'number', value: 1250 } },
+      warnings: [],
+    }),
+  }),
+  state: 'Total due: $1,250.00',
+  fields: { total: { type: 'number', decimals: 2 } },
+});
+```
+
+## Provider specification
+
+`Experimental_ExtractionModelV4` is exported from `@ai-sdk/provider` and declares
+`specificationVersion: 'v4'`, `provider`, `modelId`, `supportedFieldTypes`, and
+`doExtract(options)`. Extraction models are isolated from stable `ProviderV4`.

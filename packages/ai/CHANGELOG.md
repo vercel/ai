@@ -1,5 +1,63 @@
 # ai
 
+## 7.0.173
+
+### Patch Changes
+
+- 3c09e00: Prevent in-place schema validation or input refinement from changing approved tool arguments during approval replay.
+- f43ee39: fix(workflow): log the default step limit warning when `WorkflowAgent.generate()` stops at the default limit.
+- 7ce7ffc: fix(workflow): log provider warnings in `WorkflowAgent`
+
+  `WorkflowAgent.generate()` and `WorkflowAgent.stream()` now log the warnings of every model call through the AI SDK warning logger, like `ToolLoopAgent`. The `AI_SDK_LOG_WARNINGS` global controls the output.
+
+- f6809e3: fix(workflow): align the `prepareStep` results of `WorkflowAgent` with `ToolLoopAgent`. Returned `instructions` (or the deprecated `system`) replace the instructions of the step and carry forward to later steps, returned `providerOptions` are merged with the agent options, and returned `headers` are merged over the headers of the call.
+- 2559173: feat(workflow): support `toolApproval` in `WorkflowAgent`
+
+  `WorkflowAgent` accepts a `toolApproval` configuration in the constructor and per `generate()` or `stream()` call. The configuration takes precedence over a tool's `needsApproval` setting, and its functions run in workflow context, outside of the durable model steps. Calls that the configuration approves run in the same step, and calls that it denies receive an `execution-denied` tool result without pausing the workflow.
+
+- f1de9cb: feat(workflow): support the `timeout` object in `WorkflowAgent`
+
+  `generate()` and `stream()` accept `timeout: { totalMs, stepMs, firstChunkMs, chunkMs }` in addition to a number. `stepMs` limits each model call. In `stream()`, `firstChunkMs` and `chunkMs` limit the wait for model output. Invalid timeout values are rejected with an `InvalidArgumentError`. A timeout now also ends a model step when the provider stream ignores the abort signal.
+
+- Updated dependencies [9baa2d0]
+  - @ai-sdk/gateway@4.0.146
+
+## 7.0.172
+
+### Patch Changes
+
+- 79d2004: Require an explicit `experimental_download` hook for remote file URLs in `experimental_extract` and `experimental_decide` instead of silently downloading through global fetch. Callers can use `createDownload({ fetch })` with a DNS-protected transport for untrusted URLs; inline file data continues to work without a hook.
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+  - @ai-sdk/gateway@4.0.145
+
+## 7.0.171
+
+### Patch Changes
+
+- 11323f9: Prevent excessive memory and CPU usage when validating malformed UI messages. `validateUIMessages`, `safeValidateUIMessages`, and the agent UI stream helpers reported the issues of every part schema for every invalid part, so a small request with many malformed parts could exhaust memory. Each part is now validated against the schemas for its type only, validation stops at the first invalid message or part, and an invalid JSON value in provider or tool metadata is reported as a single issue.
+- 2ebc78b: Forward the provider's configured fetch transport when downloading file inputs. Add a `fetch` option to `createDownload` so core downloads can also use `guarded-fetch` for opt-in DNS validation on Node.js. The function returned by `createDownload` can now also be passed as `experimental_download` to `generateText` and `streamText`, and `experimental_download` now also handles generated file URLs returned by the model, so one hook covers all core downloads. Document that the default URL checks do not resolve DNS and recommend the guarded transport or network egress controls for untrusted URLs.
+
+  Keep Azure image and Vertex tool-result downloads separate from provider authentication wrappers so file hosts never receive Azure bearer tokens or Vertex Express Mode API keys.
+
+  Pass the call's abort signal to custom download requests, including prompt assets and generated files, so `experimental_download: createDownload({ fetch })` preserves cancellation and timeouts.
+
+- cb4fa52: add experimental extract api and extraction model spec
+- ceeee29: Warn when a UI message stream sends a tool error text that differs from the text the model received and then sends reasoning from a later step. By default, `toUIMessageStream` sends "An error occurred." to the client for a failed tool call, while the model receives the full error text during a multi-step call. Converting the stored UI messages back with `convertToModelMessages` then changes the tool result, and models that bind reasoning to the preceding messages (for example Anthropic models with preserved thinking) reject the request. The request still fails after this change; the warning and the updated documentation explain the cause and the available options.
+- 1a94af3: Send the error text of failed tool calls to the client as the model received it.
+
+  `toUIMessageStream` and `toUIMessageChunk` replaced the error text of failed tool calls with "An error occurred." by default. The model had already received the full text during a multi-step call, so UI messages that were converted back with `convertToModelMessages` contained a different tool result. Models that bind reasoning to the preceding messages rejected that history (for example Anthropic models with preserved thinking, with HTTP 400 "The block is bound to a different conversation"), and other models continued from an error they never received.
+
+  UI messages now keep the model's error text for tool execution errors and invalid tool calls. This text reaches the client. To keep details away from the model and the client, throw an error with a safe message from the tool's `execute` function. The error text of an invalid tool call contains the generated input, the validation messages of the input schema, or the names of the available tools; `execute` does not run for it. To restore the previous behavior, set the new `redactToolErrors: true` option. A provided `onError` keeps handling failed tool calls unless you set `redactToolErrors: false`. Stream errors are still masked by default.
+
+- Updated dependencies [640569d]
+- Updated dependencies [4e43721]
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/gateway@4.0.144
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+
 ## 7.0.170
 
 ### Patch Changes

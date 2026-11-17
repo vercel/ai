@@ -1,5 +1,36 @@
 # @ai-sdk/google
 
+## 4.0.121
+
+### Patch Changes
+
+- f5fc6ba: Derive known model ID suggestions from each provider's model catalog declarations so catalog updates automatically update autocomplete, while preserving existing suggestions, endpoint-specific model lists, and support for custom model IDs.
+- 8e60cb4: Fix Google Interactions ignoring top-level `reasoning` in generation and streaming calls. Map reasoning to model-supported thinking levels, including Hydrogen's `xhigh`, preserve explicit `thinkingLevel` overrides and API defaults, and warn when reasoning is unsupported.
+
+## 4.0.120
+
+### Patch Changes
+
+- 6d50947: add experimental extraction models backed by structured language model output
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+
+## 4.0.119
+
+### Patch Changes
+
+- 2ebc78b: Forward the provider's configured fetch transport when downloading file inputs. Add a `fetch` option to `createDownload` so core downloads can also use `guarded-fetch` for opt-in DNS validation on Node.js. The function returned by `createDownload` can now also be passed as `experimental_download` to `generateText` and `streamText`, and `experimental_download` now also handles generated file URLs returned by the model, so one hook covers all core downloads. Document that the default URL checks do not resolve DNS and recommend the guarded transport or network egress controls for untrusted URLs.
+
+  Keep Azure image and Vertex tool-result downloads separate from provider authentication wrappers so file hosts never receive Azure bearer tokens or Vertex Express Mode API keys.
+
+  Pass the call's abort signal to custom download requests, including prompt assets and generated files, so `experimental_download: createDownload({ fetch })` preserves cancellation and timeouts.
+
+- 4e43721: Add the `gemini-4-hydrogen` model ID and support Hydrogen's `xhigh` thinking level in Google Generate Content and Interactions provider options. Map portable `reasoning: 'xhigh'` to `xhigh` only for Hydrogen models.
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+
 ## 4.0.118
 
 ### Patch Changes

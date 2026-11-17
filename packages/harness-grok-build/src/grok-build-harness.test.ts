@@ -24,6 +24,7 @@ describe('createGrokBuild', () => {
 
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
     expect(settings.nonTextContentTypes).toEqual(['image']);
+    expect(settings.writeProtectedPaths).toEqual(['.grok']);
     expect(settings.prepareSandbox).toBeTypeOf('function');
     expect(settings.permissionModeMapping).toBeUndefined();
     if (settings.source.type !== 'npm-locked') {

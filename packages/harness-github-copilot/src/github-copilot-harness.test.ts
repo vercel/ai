@@ -25,6 +25,16 @@ describe('createGitHubCopilot', () => {
 
     const settings = lastSettings();
     expect(settings.nonTextContentTypes).toEqual(['image']);
+    expect(settings.writeProtectedPaths).toEqual([
+      '.github/hooks',
+      '.github/copilot',
+      '.github/skills',
+      '.github/agents',
+      '.github/extensions',
+      '.claude',
+      '.mcp.json',
+      '.vscode/mcp.json',
+    ]);
     expect({
       version: settings.version,
       harnessId: settings.harnessId,

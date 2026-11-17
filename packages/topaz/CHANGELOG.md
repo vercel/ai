@@ -1,5 +1,22 @@
 # @ai-sdk/topaz
 
+## 3.0.28
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+
+## 3.0.27
+
+### Patch Changes
+
+- 3494c16: Add a Topaz image and video model catalog for model ID suggestions, API aliases, capabilities, polling defaults, and provider option metadata.
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+
 ## 3.0.26
 
 ### Patch Changes
