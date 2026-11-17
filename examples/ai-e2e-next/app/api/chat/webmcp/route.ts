@@ -3,16 +3,24 @@ import { openai } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
   createUIMessageStreamResponse,
+  safeValidateUIMessages,
   streamText,
   toUIMessageStream,
-  type UIMessage,
 } from 'ai';
+import { isLocalDevelopmentRequest } from '../../code-execution-files/is-local-development-request';
 
 export async function POST(request: Request) {
+  if (!isLocalDevelopmentRequest(request)) {
+    return new Response('WebMCP is only available in local development.', {
+      status: 403,
+      headers: { 'Cache-Control': 'no-store' },
+    });
+  }
+
   const {
     messages,
     tools: definitions,
-  }: { messages: UIMessage[]; tools: unknown } = await request.json();
+  }: { messages: unknown; tools: unknown } = await request.json();
   if (!Array.isArray(definitions) || definitions.length > 32) {
     return new Response('Invalid browser tool definitions', { status: 400 });
   }
@@ -24,11 +32,33 @@ export async function POST(request: Request) {
     if (!MCPClientError.isInstance(error)) throw error;
     return new Response('Invalid browser tool definitions', { status: 400 });
   }
+
+  const validatedMessages = await safeValidateUIMessages({ messages, tools });
+  // This chat needs only text and browser tool results. Reject attachments
+  // before message conversion can pass URLs to the model's file downloader.
+  if (
+    !validatedMessages.success ||
+    validatedMessages.data.some(
+      message =>
+        (message.role !== 'user' && message.role !== 'assistant') ||
+        message.parts.some(
+          part =>
+            part.type !== 'text' &&
+            (message.role !== 'assistant' ||
+              (part.type !== 'step-start' && part.type !== 'dynamic-tool')),
+        ),
+    )
+  ) {
+    return new Response('Only text and browser tool results are supported.', {
+      status: 400,
+    });
+  }
+
   const result = streamText({
     model: openai('gpt-6.2-astra'),
     instructions:
       'You are the Fieldwork shopping assistant. Use getCart to read the current cart and product catalog before discussing products or totals. Help users browse, add items, set quantities, and remove items using the available tools. Only change the cart when the user asks. Use the returned cart totals in your answers. Keep replies short and friendly. There is no checkout or payment in this demo.',
-    messages: await convertToModelMessages(messages, { tools }),
+    messages: await convertToModelMessages(validatedMessages.data, { tools }),
     tools,
     abortSignal: request.signal,
   });
