@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.121
+
+### Patch Changes
+
+- 1a7440b: return input transformations in responses provider metadata
+
 ## 4.0.120
 
 ### Patch Changes
