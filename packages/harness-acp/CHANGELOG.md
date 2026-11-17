@@ -1,5 +1,27 @@
 # @ai-sdk/harness-acp
 
+## 1.0.127
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.187
+
+## 1.0.126
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.186
+
+## 1.0.125
+
+### Patch Changes
+
+- f630e0d: fix(harness): update bridge zod dependency to 4.6.7 to address GHSA-mrhx-c7xc-m3w5
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/provider-utils@5.0.82
+  - @ai-sdk/harness@1.0.185
+
 ## 1.0.124
 
 ### Patch Changes

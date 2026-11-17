@@ -1,5 +1,35 @@
 # @ai-sdk/workflow
 
+## 2.0.108
+
+### Patch Changes
+
+- ai@7.0.176
+
+## 2.0.107
+
+### Patch Changes
+
+- ai@7.0.175
+
+## 2.0.106
+
+### Patch Changes
+
+- b3588dc: `WorkflowAgent` passed the assistant response that contains the tool calls to `toolApproval`, so approval functions saw pending, denied, and invalid sibling calls as if they were completed history. Approval functions now receive only the messages that were sent to the model for the step, without system messages and without the current response, as documented for `generateText` and `streamText`.
+- f3d7a10: fix(workflow): evaluate a `toolApproval` policy with the runtime context of the current step. `WorkflowAgent` now passes the `runtimeContext` returned by `prepareStep` to the approval policy for that step instead of the context from the start of the call, so a policy that tightens permissions per step denies or requires approval for the calls it restricts, as in `ToolLoopAgent`.
+- 7655f47: `WorkflowAgent` now passes the tool metadata, dynamic flag, and title defined by the server-side tool to `toolApproval` policies, both for new tool calls and for approved calls replayed from message history. Previously a policy that protects a tool through `toolCall.toolMetadata` could let the tool run, and a policy that no longer requires approval could still see the call as requiring one.
+- Updated dependencies [3bea041]
+- Updated dependencies [30d35eb]
+- Updated dependencies [fab7478]
+- Updated dependencies [10ff0b1]
+- Updated dependencies [718824c]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - ai@7.0.174
+  - @ai-sdk/provider@4.0.39
+  - @ai-sdk/provider-utils@5.0.82
+
 ## 2.0.105
 
 ### Patch Changes

@@ -22451,6 +22451,25 @@ describe('streamText', () => {
       });
     });
 
+    describe('with transformation that reads tools', () => {
+      it('should pass an empty tool set when no tools are provided', async () => {
+        let receivedTools: unknown;
+
+        const result = streamText({
+          model: createTestModel(),
+          experimental_transform: ({ tools }) => {
+            receivedTools = tools;
+            return new TransformStream();
+          },
+          prompt: 'test-input',
+        });
+
+        await result.consumeStream();
+
+        expect(receivedTools).toStrictEqual({});
+      });
+    });
+
     describe('with multiple transformations', () => {
       const toUppercaseAndAddCommaTransform =
         <TOOLS extends ToolSet>() =>

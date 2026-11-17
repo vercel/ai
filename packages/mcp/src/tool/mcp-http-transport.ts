@@ -413,6 +413,8 @@ export class HttpMCPTransport implements MCPTransport {
             .pipeThrough(new TextDecoderStream())
             .pipeThrough(new EventSourceParserStream());
           const reader = stream.getReader();
+          const requestId = 'method' in message ? message.id : undefined;
+          let receivedResponse = false;
 
           const processEvents = async () => {
             try {
@@ -423,6 +425,13 @@ export class HttpMCPTransport implements MCPTransport {
                 if (isMessageEvent(event)) {
                   try {
                     const jsonRpcMessage = await parseJSONRPCMessage(data);
+                    if (
+                      ('result' in jsonRpcMessage ||
+                        'error' in jsonRpcMessage) &&
+                      jsonRpcMessage.id === requestId
+                    ) {
+                      receivedResponse = true;
+                    }
                     this.onmessage?.(jsonRpcMessage);
                   } catch (error) {
                     const e = new MCPClientError({
@@ -442,6 +451,23 @@ export class HttpMCPTransport implements MCPTransport {
                 return;
               }
               this.onerror?.(error);
+            } finally {
+              reader.releaseLock();
+
+              if (
+                requestId !== undefined &&
+                !receivedResponse &&
+                !requestSignal?.aborted
+              ) {
+                this.onmessage?.({
+                  jsonrpc: '2.0',
+                  id: requestId,
+                  error: {
+                    code: -32000,
+                    message: `MCP HTTP Transport Error: SSE stream ended before the response for request ${requestId}`,
+                  },
+                });
+              }
             }
           };
 

@@ -2088,6 +2088,7 @@ export const responseSchema = lazySchema(() =>
       promptFeedback: z
         .object({
           blockReason: z.string().nullish(),
+          blockReasonMessage: z.string().nullish(),
           safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
         })
         .nullish(),
@@ -2143,6 +2144,7 @@ const chunkSchema = lazySchema(() =>
       promptFeedback: z
         .object({
           blockReason: z.string().nullish(),
+          blockReasonMessage: z.string().nullish(),
           safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
         })
         .nullish(),

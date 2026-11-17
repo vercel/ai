@@ -64,4 +64,25 @@ describe('Azure MAI-Image generateImage integration', () => {
     }
     expect(result.usage).toMatchObject({ inputTokens: 10, outputTokens: 2048 });
   });
+
+  it('sends a transparent background for MAI-Image-2.7 models', async () => {
+    const { azure, fetch } = setup();
+
+    const result = await generateImage({
+      model: azure.image('MAI-Image-2.7-Flash'),
+      prompt: 'A red apple',
+      providerOptions: { azure: { background: 'transparent' } },
+    });
+
+    const [url, init] = fetch.mock.calls[0];
+    expect(String(url)).toBe(
+      'https://test-resource.services.ai.azure.com/mai/v1/images/generations',
+    );
+    expect(JSON.parse(init?.body as string)).toEqual({
+      model: 'MAI-Image-2.7-Flash',
+      prompt: 'A red apple',
+      background: 'transparent',
+    });
+    expect(result.warnings).toEqual([]);
+  });
 });
