@@ -27,6 +27,7 @@ export class NoSuchProviderError extends NoSuchModelError {
       | 'rerankingModel'
       | 'videoModel'
       | 'decisionModel'
+      | 'extractionModel'
       /** @deprecated Use `decisionModel` instead. */
       | 'evaluationModel';
     providerId: string;

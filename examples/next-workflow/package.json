@@ -16,11 +16,11 @@
     "@ai-sdk/react": "workspace:*",
     "@ai-sdk/workflow": "workspace:*",
     "ai": "workspace:*",
-    "next": "^16.4.1",
+    "next": "^16.4.6",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "workflow": "5.1.0",
-    "zod": "4.4.3"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/node": "22.19.19",

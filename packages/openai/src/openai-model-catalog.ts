@@ -126,6 +126,8 @@ const configurableNonReasoning: OpenAILanguageModelDefinition = {
 // Endpoint lists define suggestions independently of optional capability metadata.
 // An undefined definition retains family rules and the custom-model fallback.
 const openaiLanguageModelDefinitions = {
+  'gpt-6.2-astra': { endpoints: ['chat', 'responses'], definition: {} },
+  'gpt-6.2-sol': { endpoints: ['chat', 'responses'], definition: {} },
   'gpt-6-astra': { endpoints: ['chat', 'responses'], definition: {} },
   'gpt-6.1-sol': { endpoints: ['chat', 'responses'], definition: {} },
   'gpt-6.1-terra': {
