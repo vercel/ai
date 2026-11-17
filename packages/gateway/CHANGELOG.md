@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 4.0.149
+
+### Patch Changes
+
+- f886264: feat(gateway): add experimental extraction model support. String model ids passed to `experimental_extract` now resolve through the AI Gateway by default.
+- d03d74a: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.148
 
 ### Patch Changes

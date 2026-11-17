@@ -110,6 +110,7 @@ Use a provider's `decisionModel` factory:
 | Anthropic   | `anthropic.decisionModel('claude-haiku-4-5-20251001')` |
 | Google      | `google.decisionModel('gemini-decision-1')`            |
 | HeyGen      | `heygen.decisionModel('heygen-decision-1')`            |
+| Liquid      | `liquid.decisionModel('d1.2')`                         |
 
 TypeSafe AI's [Jev](https://vercel.com/i/what-is-jev), OpenAI's
 [Decisions API](https://developers.openai.com/api/docs/guides/decisions),
@@ -300,6 +301,9 @@ Google exposes confidence for all three question types at
 HeyGen exposes Choice/Score confidence at
 `result.providerMetadata?.heygen?.confidence` and Score legends at
 `result.providerMetadata?.heygen?.legend`, also keyed by question ID.
+Liquid exposes Choice/Score/Box confidence at
+`result.providerMetadata?.liquid?.confidence` and Score legends at
+`result.providerMetadata?.liquid?.legend`, also keyed by question ID.
 
 Check for optional distributions before using them. For example, an application
 can route only when a provider supplies a sufficiently high selected-option

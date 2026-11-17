@@ -1,5 +1,11 @@
 # @ai-sdk/tool-bash
 
+## 1.0.30
+
+### Patch Changes
+
+- ai@7.0.176
+
 ## 1.0.29
 
 ### Patch Changes
