@@ -60,7 +60,11 @@ export class AzureMaiImageModel implements ImageModelV4 {
       headers,
       abortSignal,
     }: Parameters<ImageModelV4['doGenerate']>[0],
-    { autoAspectRatio, webGrounding }: AzureImageModelMaiOptions = {},
+    {
+      autoAspectRatio,
+      webGrounding,
+      background,
+    }: AzureImageModelMaiOptions = {},
   ): Promise<Awaited<ReturnType<ImageModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];
@@ -101,6 +105,7 @@ export class AzureMaiImageModel implements ImageModelV4 {
       height: dimensions?.height,
       auto_aspect_ratio: autoAspectRatio,
       web_grounding: webGrounding,
+      background,
     };
     const requestOptions = {
       headers: combineHeaders(await resolve(this.config.headers), headers),
