@@ -220,8 +220,9 @@ You can also bring your own transport by implementing the `MCPTransport` interfa
 
 ### WebMCP Transport
 
-[`WebMCPTransport`](/docs/reference/ai-sdk-core/webmcp-transport) adapts tools
-registered with the browser's `document.modelContext` to the existing MCP client:
+`WebMCPTransport` adapts tools registered with the browser's
+[`document.modelContext`](https://webmachinelearning.github.io/webmcp/) to the
+existing MCP client:
 
 ```ts
 import { createMCPClient, WebMCPTransport } from '@ai-sdk/mcp';
@@ -234,14 +235,27 @@ const client = await createMCPClient({
 const tools = await client.tools();
 ```
 
+The required `modelContext` provides WebMCP's `getTools` and `executeTool`
+methods. The optional `fromOrigins: string[]` constructor option discovers tools
+exposed by additional frame origins, subject to browser permissions. The package
+exports structural `WebMCPModelContext` and `WebMCPTool` types; use browser API
+typings such as `webmcp-types` to declare `document.modelContext`.
+
+Use the tool names returned by `listTools` or `tools`: duplicate names across
+frames receive stable aliases such as `getCart_2`. Results include text `content`
+and parsed `structuredContent`. WebMCP `OperationError` failures become tool
+results with `isError: true`; other failures reject the request.
+
 WebMCP is an experimental browser API, not an HTTP MCP endpoint. Tool discovery
 and execution happen in the page. To keep model inference on your backend, send
 tool definitions to your API route, then execute the returned calls in
 [`useChat.onToolCall`](/docs/ai-sdk-ui/chatbot-tool-usage) and return results with
 `addToolOutput`.
 
-List tools again when the page's available tools change, and close the client
-when the consuming component or browser connection is disposed.
+Tool lists are snapshots. List tools again when the page's available tools change,
+and close the client when the consuming component or browser connection is
+disposed. Cancellation is forwarded to tool execution. Closing the client aborts
+pending calls without unregistering the page's tools.
 
 <Note>
   The client returned by the `createMCPClient` function is a
