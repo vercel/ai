@@ -491,6 +491,15 @@ steering.steer('Stop, use the other file.', { interrupt: true });
 - `streamText` closes the text and reasoning parts of the cancelled call and streams the `steering-message` part before the new output.
 - A cancelled model call can still be billed by the provider. It is not included in `usage` and `totalUsage`.
 
+<Note type="warning">
+  Stop conditions and usage do not limit interrupts. Each interrupt makes
+  another model call in the same step, so a stop condition like `isStepCount`
+  does not count it, and `totalUsage` leaves out the cancelled calls. If your
+  users can send interrupting messages, limit how many you accept for one call
+  and set a `timeout`. The step and total timeouts keep running when a step is
+  redone.
+</Note>
+
 ### Queueing Messages
 
 `steer()` changes what the agent is doing right now. Use `queue()` for a follow-up that should wait until the agent has finished its current task:

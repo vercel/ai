@@ -78,7 +78,8 @@ export interface Steering {
    * produced any output yet, and makes it again in the same step with the
    * message. Otherwise the message is added at the next step boundary. Running
    * tools are never interrupted. A cancelled model call can still be billed by
-   * the provider, and it is not included in the usage.
+   * the provider, and it is not included in the usage. The step is not counted
+   * again, so stop conditions do not limit how often a step is redone.
    *
    * @returns The outcome of the message. It never rejects.
    */
