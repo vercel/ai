@@ -1,0 +1,65 @@
+---
+title: createMCPTools
+description: Convert MCP tool definitions into AI SDK tools without a connection.
+---
+
+# `createMCPTools()`
+
+Converts an array of MCP tool definitions into AI SDK dynamic tools without
+`execute` functions. Use it when the model runs on your backend and tools execute
+elsewhere, such as in a browser using
+[`WebMCPTransport`](/docs/reference/ai-sdk-core/webmcp-transport).
+
+```ts
+import { createMCPTools } from '@ai-sdk/mcp';
+import { convertToModelMessages, streamText } from 'ai';
+
+// In your API route, after applying application-specific request policies:
+const { messages, tools: definitions } = await request.json();
+const tools = createMCPTools(definitions);
+
+const result = streamText({
+  model,
+  messages: await convertToModelMessages(messages, { tools }),
+  tools,
+});
+```
+
+The browser obtains the definitions using `const { tools } = await client.listTools()`
+and sends that array with the chat request. It handles returned calls through
+`useChat.onToolCall` and submits results with `addToolOutput`. The helper does not
+connect to a browser or create an MCP client.
+
+## Parameters
+
+- **`definitions: unknown`** (required): an array in the format of
+  `listTools().tools`. Each item must contain `name` and `inputSchema` and can
+  include MCP fields such as `description`, `title`, `annotations`, and `_meta`.
+  Deserialized request data can be passed directly.
+
+## Returns
+
+A record of tool names to AI SDK dynamic tools. The helper:
+
+- Validates the MCP definition structure and rejects duplicate names.
+- Converts input schemas using the same automatic schema conversion as
+  `client.tools()`, including defaulting `properties` to `{}` and setting
+  `additionalProperties: false`.
+- Preserves titles, standard MCP annotations, MCP App metadata, and `_meta`.
+- Adds `toModelOutput` to convert returned MCP text and image content into model
+  content. Pass `{ tools }` to `convertToModelMessages` to use this conversion
+  for browser tool results in chat history.
+- Leaves `execute` unset. The application forwards calls and returns results.
+
+As with `client.tools()` in automatic schema mode, declared MCP output schemas
+are not used to validate results.
+
+## Errors
+
+Throws `MCPClientError` for malformed definitions or duplicate names. API routes
+can catch it and return HTTP 400. Validation checks the MCP definition structure;
+it does not establish trust, enforce application limits, or fully validate JSON
+Schema documents. Apply your own authentication and tool policies to requests.
+
+To execute tools over an MCP connection in the same runtime as the model, use
+[`client.tools()`](/docs/reference/ai-sdk-core/create-mcp-client) instead.
