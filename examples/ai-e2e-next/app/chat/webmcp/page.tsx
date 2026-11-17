@@ -35,16 +35,24 @@ export default function WebMCPChat() {
       async prepareSendMessagesRequest({ messages }) {
         // Only definitions travel to the server. The functions stay in this page.
         const { tools } = await client.current!.listTools();
+        console.log('[WebMCP] Discovered tools sent to the server', tools);
+        console.log('[WebMCP] MCP client after discovery', client.current);
         return { body: { messages, tools } };
       },
     }),
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
     async onToolCall({ toolCall }) {
       if (!toolCall.dynamic) return;
+      console.log('[WebMCP] Tool call received', toolCall);
       try {
         const output = await client.current!.callTool({
           name: toolCall.toolName,
           arguments: toolCall.input as Record<string, unknown>,
+        });
+        console.log('[WebMCP] Tool result', {
+          toolCallId: toolCall.toolCallId,
+          toolName: toolCall.toolName,
+          output,
         });
         // Do not await addToolOutput inside onToolCall.
         addToolOutput({
@@ -53,6 +61,11 @@ export default function WebMCPChat() {
           output,
         });
       } catch (error) {
+        console.error('[WebMCP] Tool call failed', {
+          toolCallId: toolCall.toolCallId,
+          toolName: toolCall.toolName,
+          error,
+        });
         addToolOutput({
           tool: toolCall.toolName,
           toolCallId: toolCall.toolCallId,
@@ -94,6 +107,7 @@ export default function WebMCPChat() {
         { signal: registration.signal },
       );
       if (registration.signal.aborted) return;
+      console.log('[WebMCP] Browser tool registered', 'getCart');
 
       mcpClient = await createMCPClient({
         transport: new WebMCPTransport({ modelContext: modelContext! }),
@@ -103,6 +117,7 @@ export default function WebMCPChat() {
         return;
       }
       client.current = mcpClient;
+      console.log('[WebMCP] MCP client stored', mcpClient);
       setReady(true);
     }
     connect().catch(error => {

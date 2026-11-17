@@ -4,6 +4,10 @@ Change the number of T-shirts on the page and ask what is in your cart. The mode
 calls `getCart`, which reads the current quantity from the open page. Ask again
 after changing the quantity to see that the tool reads live browser state.
 
+Open Chrome DevTools Console and filter for `[WebMCP]` to see registration,
+discovered definitions, the stored MCP client, tool calls, and returned results.
+Expand the client logged after discovery to inspect its transport's tool registry.
+
 ## Run
 
 1. Set `OPENAI_API_KEY` in `examples/ai-e2e-next/.env.local`.
