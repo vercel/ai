@@ -47,6 +47,7 @@ import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import type { TelemetryDispatcher } from '../telemetry/telemetry';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import { getGlobalTelemetryIntegrations } from '../telemetry/telemetry-registry';
+import type { TracingChannelContext } from '../telemetry/tracing-channel-publisher';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
 import { toTextStream } from '../text-stream/to-text-stream';
@@ -1585,6 +1586,7 @@ class DefaultStreamTextResult<
           deliveredSteeringMessages: Array<UserModelMessage>;
           stepStart: { notified: boolean; enqueued: boolean };
           stepTimeoutId: ReturnType<typeof setTimeout> | undefined;
+          stepTracingChannelContext: TracingChannelContext | undefined;
         }
       | undefined;
     let isAborted = false;
@@ -2583,14 +2585,17 @@ class DefaultStreamTextResult<
         });
 
         try {
-          stepFinish = new DelayedPromise<void>();
-
+          if (redo == null) {
+            stepFinish = new DelayedPromise<void>();
+          }
           const stepTracingChannelContext =
-            telemetryDispatcher.startTracingChannelContext?.({
-              type: 'step',
-              event: { callId, stepNumber: currentStep },
-              completion: stepFinish.promise,
-            });
+            redo != null
+              ? redo.stepTracingChannelContext
+              : telemetryDispatcher.startTracingChannelContext?.({
+                  type: 'step',
+                  event: { callId, stepNumber: currentStep },
+                  completion: stepFinish.promise,
+                });
           // Re-enter the current step before creating child spans.
           const runInStepTracingChannelContext = <T>(execute: () => T): T =>
             stepTracingChannelContext?.run(execute) ?? execute();
@@ -2768,6 +2773,7 @@ class DefaultStreamTextResult<
               deliveredSteeringMessages: currentStepSteeringMessages,
               stepStart,
               stepTimeoutId,
+              stepTracingChannelContext,
             };
             abortSignal?.removeEventListener('abort', cleanupStepTimeouts);
             clearModelOutputTimeouts();
@@ -3085,6 +3091,10 @@ class DefaultStreamTextResult<
                 try {
                   retryLanguageModelCall = await callLanguageModel();
                 } catch (retryError) {
+                  if (!interruptWindowClosed && isInterrupted()) {
+                    await interruptAttempt();
+                    return;
+                  }
                   controller.enqueue({
                     type: 'error',
                     error: retryError,
@@ -3269,12 +3279,19 @@ class DefaultStreamTextResult<
                     stepFirstChunk = false;
 
                     // Step start:
+                    const stepStartMetadata = {
+                      request: getStepRequest(),
+                      warnings: warnings ?? [],
+                    } satisfies StreamRetryBoundaryMetadata;
                     if (!stepStart.enqueued) {
                       stepStart.enqueued = true;
                       enqueueStepPart(controller, {
                         type: 'start-step',
-                        request: getStepRequest(),
-                        warnings: warnings ?? [],
+                        ...stepStartMetadata,
+                      });
+                    } else {
+                      controller.enqueue({
+                        [streamRetryBoundarySymbol]: stepStartMetadata,
                       });
                     }
                   }

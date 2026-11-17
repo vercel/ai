@@ -1,6 +1,9 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import type { LanguageModelV4GenerateResult } from '@ai-sdk/provider';
+import type {
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+} from '@ai-sdk/provider';
 import { createOpenAI, openai } from '@ai-sdk/openai';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { RetryError } from '../util/retry-error';
@@ -12,6 +15,7 @@ import { embed } from '../embed/embed';
 import { embedMany } from '../embed/embed-many';
 import { decide } from '../decide/decide';
 import { generateText } from '../generate-text';
+import { createSteering } from '../generate-text/steering';
 import { streamText } from '../generate-text/stream-text';
 import { isStepCount } from '../generate-text/stop-condition';
 import { rerank } from '../rerank/rerank';
@@ -566,6 +570,85 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
         "asyncEnd executeTool",
         "asyncEnd step",
         "bindStart step",
+        "bindStart languageModelCall",
+        "asyncEnd languageModelCall",
+        "asyncEnd step",
+        "asyncEnd streamText",
+      ]
+    `);
+  });
+
+  it('traces one step span when a steering interrupt redoes the streamText model call', async () => {
+    const steering = createSteering();
+    let calls = 0;
+
+    const sequence = await collectTracingChannelEventSequence(async () => {
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async options => {
+            calls++;
+            if (calls === 1) {
+              const stream = new ReadableStream<LanguageModelV4StreamPart>({
+                start(controller) {
+                  controller.enqueue({ type: 'stream-start', warnings: [] });
+                  options.abortSignal?.addEventListener(
+                    'abort',
+                    () => controller.error(options.abortSignal?.reason),
+                    { once: true },
+                  );
+                },
+              });
+              setTimeout(() => {
+                void steering.steer('Use Paris, Texas instead.', {
+                  interrupt: true,
+                });
+              }, 0);
+              return { stream };
+            }
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'It is sunny.' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: {
+                    inputTokens: {
+                      total: 3,
+                      noCache: 3,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: {
+                      total: 3,
+                      text: 3,
+                      reasoning: undefined,
+                    },
+                  },
+                },
+              ]),
+            };
+          },
+        }),
+        prompt: 'What is the weather in Paris?',
+        experimental_steering: steering,
+        telemetry: {
+          functionId: 'tracing-channel-stream-text-interrupt-test',
+        },
+      });
+
+      await result.consumeStream();
+    });
+
+    expect(calls).toBe(2);
+    expect(sequence).toMatchInlineSnapshot(`
+      [
+        "bindStart streamText",
+        "bindStart step",
+        "bindStart languageModelCall",
+        "asyncEnd languageModelCall",
         "bindStart languageModelCall",
         "asyncEnd languageModelCall",
         "asyncEnd step",

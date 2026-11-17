@@ -245,6 +245,135 @@ describe('streamText experimental_steering interrupt', () => {
     expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 0 });
   });
 
+  it('should use the request and warnings of the redo when the cancelled call already sent start-step', async () => {
+    const steering = createSteering();
+    let outcome: Promise<SteeringOutcome> | undefined;
+    let calls = 0;
+
+    const model = new MockLanguageModelV4({
+      doStream: async options => {
+        calls++;
+        if (calls === 1) {
+          return {
+            request: { body: 'cancelled request' },
+            stream: hangingStream({
+              options,
+              parts: [
+                {
+                  type: 'stream-start',
+                  warnings: [{ type: 'other', message: 'cancelled call' }],
+                },
+                { type: 'text-start', id: '1' },
+              ],
+            }),
+          };
+        }
+        return {
+          request: { body: 'redo request' },
+          stream: convertArrayToReadableStream([
+            {
+              type: 'stream-start',
+              warnings: [{ type: 'other', message: 'redo call' }],
+            },
+            ...textStream('It is sunny in Paris, Texas.').slice(1),
+          ]),
+        };
+      },
+    });
+
+    const result = streamText({
+      model,
+      prompt: 'What is the weather in Paris?',
+      include: { requestBody: true },
+      experimental_steering: steering,
+    });
+
+    for await (const part of result.fullStream) {
+      if (part.type === 'text-start' && outcome == null) {
+        outcome = steering.steer('Use Paris, Texas instead.', {
+          interrupt: true,
+        });
+      }
+    }
+
+    const [step] = await result.steps;
+    expect(calls).toBe(2);
+    expect(step.request.body).toBe('redo request');
+    expect(step.warnings).toEqual([{ type: 'other', message: 'redo call' }]);
+    expect(step.content).toMatchInlineSnapshot(`
+      [
+        {
+          "providerMetadata": undefined,
+          "text": "It is sunny in Paris, Texas.",
+          "type": "text",
+        },
+      ]
+    `);
+    expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 0 });
+  });
+
+  it('should redo the step when the interrupt arrives while a stream retry waits for the provider', async () => {
+    const steering = createSteering();
+    let outcome: Promise<SteeringOutcome> | undefined;
+    const calls: LanguageModelV4CallOptions[] = [];
+
+    const model = new MockLanguageModelV4({
+      doStream: async options => {
+        calls.push(options);
+        if (calls.length === 1) {
+          return {
+            stream: convertArrayToReadableStream<LanguageModelV4StreamPart>([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'error',
+                error: {
+                  message: 'overloaded',
+                  statusCode: 503,
+                  isRetryable: true,
+                },
+              },
+            ]),
+          };
+        }
+        if (calls.length === 2) {
+          const signal = options.abortSignal!;
+          outcome = steering.steer('Use Paris, Texas instead.', {
+            interrupt: true,
+          });
+          return new Promise((_, reject) => {
+            if (signal.aborted) {
+              reject(signal.reason);
+            }
+            signal.addEventListener('abort', () => reject(signal.reason), {
+              once: true,
+            });
+          });
+        }
+        return {
+          stream: convertArrayToReadableStream(
+            textStream('It is sunny in Paris, Texas.'),
+          ),
+        };
+      },
+    });
+
+    const result = streamText({
+      model,
+      prompt: 'What is the weather in Paris?',
+      streamRetries: 1,
+      experimental_steering: steering,
+      onError: () => {},
+    });
+
+    const parts = await collect(result.fullStream);
+
+    expect(calls).toHaveLength(3);
+    expect(lastUserText(calls[2])).toBe('Use Paris, Texas instead.');
+    expect(parts.some(part => part.type === 'error')).toBe(false);
+    expect(await result.text).toBe('It is sunny in Paris, Texas.');
+    expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 0 });
+  });
+
   it('should keep steering messages that the step already delivered in the redo', async () => {
     const steering = createSteering();
     const earlier = steering.steer('Answer in Celsius.');
