@@ -138,3 +138,8 @@ export function getBasetenEmbeddingModelEntry(_modelId: string) {
 export const basetenModelCatalog = Object.fromEntries(
   languageModelIds.map(id => [id, getBasetenLanguageModelEntry(id)]),
 );
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type BasetenModelIds = {
+  language: (typeof languageModelIds)[number];
+};

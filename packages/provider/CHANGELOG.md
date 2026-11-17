@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 4.0.38
+
+### Patch Changes
+
+- cb4fa52: add experimental extract api and extraction model spec
+
 ## 4.0.37
 
 ### Patch Changes

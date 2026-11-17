@@ -45,6 +45,8 @@ import {
 import {
   getRestrictedSandboxSession,
   convertHarnessToolModelOutput,
+  encodeHarnessPathSegment,
+  isSandboxWriteProtectedPath,
   resolveSandboxHomeDir,
   writeSkills,
 } from '@ai-sdk/harness/utils';
@@ -185,6 +187,14 @@ const PI_NATIVE_TOOL_KINDS: Readonly<
   find: 'readonly',
   ls: 'readonly',
 };
+
+/*
+ * Workspace paths that hold Pi configuration or skills the adapter loads from
+ * the workspace, which can change the agent's behavior in later sessions.
+ * Writes to them always require host approval unless the permission mode is
+ * `allow-all`.
+ */
+const PI_WRITE_PROTECTED_PATHS = ['.agents/skills', '.pi'];
 
 function resolveActivePiBuiltinNames(
   toolFiltering: HarnessV1BuiltinToolFiltering | undefined,
@@ -481,8 +491,12 @@ export async function createPiSession(
   assertPiMcpSettingsSupported(input.settings.mcpSettings);
   const mcpServers = resolvePiMcpServers(input.settings.mcpServers);
 
-  const safeSessionId = input.sessionId.replace(/[\\/: ]/g, '-');
-  const hostRoot = path.join(tmpdir(), 'ai-sdk-harness', 'pi', safeSessionId);
+  const hostRoot = path.join(
+    tmpdir(),
+    'ai-sdk-harness',
+    'pi',
+    encodeHarnessPathSegment(input.sessionId),
+  );
   const hostAgentDir = path.join(hostRoot, 'agent');
   const toolSafeSandboxSession = getRestrictedSandboxSession(
     input.sandboxSession,
@@ -1276,12 +1290,16 @@ export async function createPiSession(
   async function requestBuiltinToolApproval(args: {
     toolCallId: string;
     nativeName: (typeof PI_NATIVE_BUILTIN_NAMES)[number];
+    filePath?: string;
   }): Promise<{ approved: boolean; reason?: string }> {
+    const kind = PI_NATIVE_TOOL_KINDS[args.nativeName];
     if (
-      !piBuiltinToolRequiresApproval({
-        permissionMode,
-        kind: PI_NATIVE_TOOL_KINDS[args.nativeName],
-      })
+      !piBuiltinToolRequiresApproval({ permissionMode, kind }) &&
+      !(
+        permissionMode === 'allow-edits' &&
+        kind === 'edit' &&
+        (await isPiWriteProtected({ filePath: args.filePath }))
+      )
     ) {
       return { approved: true };
     }
@@ -1298,6 +1316,28 @@ export async function createPiSession(
     return new Promise(resolve => {
       pendingToolApprovals.set(args.toolCallId, { resolve });
       emitEarlyFinishStepIfReady();
+    });
+  }
+
+  async function isPiWriteProtected({
+    filePath,
+  }: {
+    filePath: string | undefined;
+  }): Promise<boolean> {
+    if (filePath == null) return true;
+    let sandboxPath: string;
+    try {
+      sandboxPath = (await resolveSandboxPaths()).remoteOps.paths.toSandboxPath(
+        filePath,
+      );
+    } catch {
+      return true;
+    }
+    return isSandboxWriteProtectedPath({
+      sandbox: toolSafeSandboxSession,
+      workDir: sessionWorkDir,
+      paths: [sandboxPath],
+      writeProtectedPaths: PI_WRITE_PROTECTED_PATHS,
     });
   }
 
@@ -2001,14 +2041,17 @@ function asPiToolResult(text: string): AgentToolResult<unknown> {
 async function maybeDenyPiBuiltinTool(input: {
   toolCallId: string;
   nativeName: (typeof PI_NATIVE_BUILTIN_NAMES)[number];
+  filePath?: string;
   requestApproval: (args: {
     toolCallId: string;
     nativeName: (typeof PI_NATIVE_BUILTIN_NAMES)[number];
+    filePath?: string;
   }) => Promise<{ approved: boolean; reason?: string }>;
 }): Promise<AgentToolResult<unknown> | undefined> {
   const decision = await input.requestApproval({
     toolCallId: input.toolCallId,
     nativeName: input.nativeName,
+    ...(input.filePath != null ? { filePath: input.filePath } : {}),
   });
   if (decision.approved) return undefined;
   return asPiToolResult(
@@ -2035,6 +2078,7 @@ function buildBuiltinToolDefinition(input: {
   requestApproval: (args: {
     toolCallId: string;
     nativeName: (typeof PI_NATIVE_BUILTIN_NAMES)[number];
+    filePath?: string;
   }) => Promise<{ approved: boolean; reason?: string }>;
 }): ToolDefinition {
   switch (input.native) {
@@ -2092,6 +2136,7 @@ function buildBuiltinToolDefinition(input: {
           const denied = await maybeDenyPiBuiltinTool({
             toolCallId,
             nativeName: 'write',
+            filePath: params.file_path,
             requestApproval: input.requestApproval,
           });
           if (denied) return denied;
@@ -2114,6 +2159,7 @@ function buildBuiltinToolDefinition(input: {
           const denied = await maybeDenyPiBuiltinTool({
             toolCallId,
             nativeName: 'edit',
+            filePath: params.file_path,
             requestApproval: input.requestApproval,
           });
           if (denied) return denied;

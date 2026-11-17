@@ -88,3 +88,8 @@ export function getGmicloudLanguageModelEntry(modelId: string) {
 export const gmicloudModelCatalog = Object.fromEntries(
   languageModelIds.map(id => [id, getGmicloudLanguageModelEntry(id)]),
 );
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type GmicloudModelIds = {
+  language: (typeof languageModelIds)[number];
+};

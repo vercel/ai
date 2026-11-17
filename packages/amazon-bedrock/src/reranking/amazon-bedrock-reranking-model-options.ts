@@ -1,10 +1,10 @@
 import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { AmazonBedrockModelIds } from '../amazon-bedrock-model-catalog';
 
 // https://docs.aws.amazon.com/bedrock/latest/userguide/rerank-supported.html
 export type AmazonBedrockRerankingModelId =
-  | 'amazon.rerank-v1:0'
-  | 'cohere.rerank-v3-5:0'
+  | AmazonBedrockModelIds['reranking']
   | (string & {});
 
 export type AmazonBedrockRerankingModelOptions = {

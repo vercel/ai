@@ -19,6 +19,7 @@ import {
 import { getGlobalTelemetryIntegrations } from './telemetry-registry';
 import type { TelemetryOptions } from './telemetry-options';
 import { filterTelemetryEvent } from './filter-telemetry-event';
+import { redactTelemetryCredentials } from './redact-telemetry-credentials';
 
 /**
  * The subset of `TelemetryDispatcher` keys whose values are Callback callbacks.
@@ -101,7 +102,9 @@ function augmentEvent<EVENT>(
     }
   }
 
-  return filterTelemetryEvent(augmentedEvent, telemetry);
+  return redactTelemetryCredentials(
+    filterTelemetryEvent(augmentedEvent, telemetry),
+  );
 }
 
 /**
@@ -275,8 +278,32 @@ export function createTelemetryDispatcher({
       let wrappedExecute = execute;
       for (const executeWrapper of executeLanguageModelCallWrappers) {
         const innerExecute = wrappedExecute;
-        wrappedExecute = () =>
-          executeWrapper({ ...augmentedEvent, execute: innerExecute });
+        wrappedExecute = async () => {
+          const originals = new Map<unknown, unknown>();
+          const redact = <T>(original: T): T => {
+            const redacted = redactTelemetryCredentials(original);
+            if (redacted !== original) originals.set(redacted, original);
+            return redacted;
+          };
+          const restore = <T>(value: T): T =>
+            (originals.has(value) ? originals.get(value) : value) as T;
+          try {
+            return restore(
+              await executeWrapper({
+                ...augmentedEvent,
+                execute: async () => {
+                  try {
+                    return redact(await innerExecute());
+                  } catch (error) {
+                    throw redact(error);
+                  }
+                },
+              }),
+            );
+          } catch (error) {
+            throw restore(error);
+          }
+        };
       }
 
       return await runWithTracingChannelSpan(

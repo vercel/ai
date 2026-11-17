@@ -1,6 +1,8 @@
+import { withTelemetryRedaction } from '@ai-sdk/provider-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { VERSION } from '../version';
 import { createTelemetryDispatcher } from './create-telemetry-dispatcher';
+import { redactTelemetryCredentials } from './redact-telemetry-credentials';
 import type { Telemetry } from './telemetry';
 import { registerTelemetry } from './telemetry-registry';
 
@@ -518,6 +520,117 @@ describe('createTelemetryDispatcher', () => {
   });
 
   describe('executeLanguageModelCall', () => {
+    it.each([1, 2])(
+      'preserves stream replacements through %s redacted integrations',
+      async integrationCount => {
+        const original = {
+          stream: new ReadableStream<string>({
+            start(controller) {
+              controller.enqueue('hello');
+              controller.close();
+            },
+          }),
+          request: {
+            body: withTelemetryRedaction(
+              { credential: 'test-token' },
+              body => ({ ...body, credential: '[redacted]' }),
+            ),
+          },
+        };
+        const observed: unknown[] = [];
+        const integration: Telemetry = {
+          executeLanguageModelCall: async ({ execute }) => {
+            const result = await execute();
+            observed.push(result);
+            if (
+              result != null &&
+              typeof result === 'object' &&
+              'stream' in result &&
+              result.stream instanceof ReadableStream
+            ) {
+              result.stream = result.stream.pipeThrough(
+                new TransformStream<string, string>({
+                  transform(chunk, controller) {
+                    controller.enqueue(`${chunk}!`);
+                  },
+                }),
+              );
+            }
+            return result;
+          },
+        };
+        const dispatcher = createTelemetryDispatcher({
+          telemetry: {
+            integrations: Array.from(
+              { length: integrationCount },
+              () => integration,
+            ),
+          },
+        });
+
+        const result = await dispatcher.executeLanguageModelCall!({
+          callId: 'call-1',
+          execute: async () => original,
+        });
+
+        expect(result).toBe(original);
+        expect(result.request.body.credential).toBe('test-token');
+        expect(observed).toHaveLength(integrationCount);
+        for (const value of observed) {
+          expect(value).toMatchObject({
+            request: { body: { credential: '[redacted]' } },
+          });
+        }
+        const reader = result.stream.getReader();
+        expect(await reader.read()).toEqual({
+          value: `hello${'!'.repeat(integrationCount)}`,
+          done: false,
+        });
+        expect(await reader.read()).toEqual({ value: undefined, done: true });
+      },
+    );
+
+    it('redacts provider error metadata for nested integrations and preserves the application error', async () => {
+      const error = Object.assign(new Error('provider failed'), {
+        requestBodyValues: withTelemetryRedaction(
+          { credential: 'test-token' },
+          body => ({ ...body, credential: '[redacted]' }),
+        ),
+      });
+      const observed: unknown[] = [];
+      const integration: Telemetry = {
+        executeLanguageModelCall: async ({ execute }) => {
+          try {
+            return await execute();
+          } catch (error) {
+            observed.push(error);
+            throw error;
+          }
+        },
+      };
+      const dispatcher = createTelemetryDispatcher({
+        telemetry: { integrations: [integration, integration] },
+      });
+
+      await expect(
+        dispatcher.executeLanguageModelCall!({
+          callId: 'call-1',
+          execute: async () => {
+            throw error;
+          },
+        }),
+      ).rejects.toBe(error);
+      expect(observed).toHaveLength(2);
+      for (const observedError of observed) {
+        expect(observedError).toBeInstanceOf(Error);
+        expect(observedError).toMatchObject({
+          message: 'provider failed',
+          requestBodyValues: { credential: '[redacted]' },
+        });
+      }
+      expect(error.requestBodyValues.credential).toBe('test-token');
+    });
+
     it('passes through when no integrations implement executeLanguageModelCall', async () => {
       const telemetry = createTelemetryDispatcher({
         telemetry: { integrations: { onStart: vi.fn() } },
@@ -830,5 +943,49 @@ describe('recordInputs / recordOutputs filtering', () => {
     expect(
       (vi.mocked(textIntegration.onEnd!).mock.calls[0][0] as any).text,
     ).toBe('generated reply');
+  });
+});
+
+describe('credential redaction', () => {
+  it('applies provider-owned views throughout SDK metadata without mutating originals', () => {
+    const rawBody = Object.freeze<{ credential: string; model: string }>({
+      credential: 'test-secret',
+      model: 'test',
+    });
+    const body = withTelemetryRedaction(rawBody, value => ({
+      ...value,
+      credential: '[redacted]',
+    }));
+    const definition = { type: 'provider', id: 'test.remote', args: body };
+    const metadata = { body };
+    const step = { request: metadata, response: metadata };
+    const original = {
+      tools: { remote: definition },
+      stepTools: [definition],
+      request: metadata,
+      response: [metadata, { body: { tools: [definition] } }],
+      steps: [step],
+      finalStep: step,
+      error: {
+        cause: {
+          errors: [{ requestBodyValues: body }],
+          lastError: { requestBodyValues: body },
+        },
+      },
+    };
+    const before = structuredClone(original);
+    const redacted = redactTelemetryCredentials(original);
+    expect(JSON.stringify(redacted)).toBe(
+      JSON.stringify(before).replaceAll('test-secret', '[redacted]'),
+    );
+    expect(original).toEqual(before);
+  });
+
+  it('omits an annotated value if its redactor throws', () => {
+    const args = withTelemetryRedaction({ credential: 'test-secret' }, () => {
+      throw new Error('broken redactor');
+    });
+    expect(redactTelemetryCredentials({ args })).toEqual({ args: undefined });
+    expect(args.credential).toBe('test-secret');
   });
 });

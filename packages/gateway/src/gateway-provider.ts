@@ -366,7 +366,7 @@ const gatewayClientSecretResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       token: z.string(),
-      expiresAt: z.number().nullish(),
+      expiresAt: z.nullish(z.number()),
     }),
   ),
 );

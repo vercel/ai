@@ -8,6 +8,7 @@ import {
 const originalFetch = globalThis.fetch;
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   globalThis.fetch = originalFetch;
   delete (globalThis as { window?: unknown }).window;
 });
@@ -31,6 +32,29 @@ function okResponse(): Response {
 }
 
 describe('fetchWithValidatedEndpoint', () => {
+  it.each(['default', 'forwarded global', 'custom'] as const)(
+    'uses the selected runtime transport (%s)',
+    async mode => {
+      const runtimeFetch = vi.fn().mockResolvedValue(okResponse());
+      const customFetch = vi.fn().mockResolvedValue(okResponse());
+      globalThis.fetch = runtimeFetch;
+      const selected = mode === 'custom' ? customFetch : runtimeFetch;
+      await fetchWithValidatedEndpoint({
+        url: 'https://files.example.com/file',
+        fetch: mode === 'default' ? undefined : selected,
+      });
+      expect(selected).toHaveBeenCalledExactlyOnceWith(
+        'https://files.example.com/file',
+        {
+          redirect: 'error',
+        },
+      );
+      expect(
+        mode === 'custom' ? runtimeFetch : customFetch,
+      ).not.toHaveBeenCalled();
+    },
+  );
+
   it('validates the URL before issuing the request', async () => {
     const fetchMock = vi.fn();
 
@@ -41,6 +65,78 @@ describe('fetchWithValidatedEndpoint', () => {
       }),
     ).rejects.toThrow(DownloadError);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('preserves the default native-fetch behavior without strict DNS validation', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(okResponse());
+    vi.stubGlobal('EdgeRuntime', 'edge-runtime');
+    vi.stubGlobal('fetch', fetchMock);
+
+    await fetchWithValidatedEndpoint({ url: 'https://example.com/metadata' });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['default', 'forwarded global'] as const)(
+    'rejects the runtime fetch with strict DNS validation enabled (%s)',
+    async mode => {
+      const fetchMock = vi.fn().mockResolvedValue(okResponse());
+      vi.stubGlobal('fetch', fetchMock);
+
+      await expect(
+        fetchWithValidatedEndpoint({
+          url: 'https://example.com/metadata',
+          fetch: mode === 'default' ? undefined : globalThis.fetch,
+          requireDnsValidation: true,
+        }),
+      ).rejects.toThrow(
+        'This server runtime requires a custom fetch with connect-time DNS validation for untrusted URLs',
+      );
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it('uses a custom fetch with strict DNS validation enabled', async () => {
+    const runtimeFetch = vi.fn();
+    const customFetch = vi.fn().mockResolvedValue(okResponse());
+    vi.stubGlobal('fetch', runtimeFetch);
+
+    await fetchWithValidatedEndpoint({
+      url: 'https://example.com/metadata',
+      fetch: customFetch,
+      requireDnsValidation: true,
+    });
+
+    expect(customFetch).toHaveBeenCalledTimes(1);
+    expect(runtimeFetch).not.toHaveBeenCalled();
+  });
+
+  it('allows the trusted origin through the runtime fetch with strict DNS validation enabled', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(okResponse());
+    vi.stubGlobal('fetch', fetchMock);
+
+    await fetchWithValidatedEndpoint({
+      url: 'http://localhost:3000/metadata',
+      trustedOrigin: 'http://localhost:3000',
+      requireDnsValidation: true,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves browser fetch with strict DNS validation enabled', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(okResponse());
+    vi.stubGlobal('EdgeRuntime', 'edge-runtime');
+    vi.stubGlobal('window', {});
+    vi.stubGlobal('document', {});
+    vi.stubGlobal('fetch', fetchMock);
+
+    await fetchWithValidatedEndpoint({
+      url: 'https://example.com/metadata',
+      requireDnsValidation: true,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('uses redirect: error for credential-bearing requests', async () => {

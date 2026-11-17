@@ -5,6 +5,7 @@ import {
   type TelemetryTracingChannelMessage,
 } from './tracing-channel';
 import { isNodeRuntime } from '../util/is-node-runtime';
+import { redactTelemetryCredentials } from './redact-telemetry-credentials';
 
 type DiagnosticsChannel = typeof diagnosticsChannelModule;
 type AsyncHooks = typeof asyncHooksModule;
@@ -104,9 +105,11 @@ export async function runWithTracingChannelSpan<T>(
     );
 
     // tracePromise publishes its resolved value on the channel. Keep the
-    // application's result separately when content recording is disabled.
+    // application's result separately from the redacted telemetry copy.
     return recordResult
-      ? executePromise
+      ? executePromise.then(redactTelemetryCredentials, error => {
+          throw redactTelemetryCredentials(error);
+        })
       : executePromise.then(
           () => undefined,
           () => {
@@ -200,13 +203,13 @@ export function openTelemetryChannelSpanContext({
 
     if (error !== undefined) {
       context.error = recordResult
-        ? error
+        ? redactTelemetryCredentials(error)
         : new Error('AI SDK operation failed');
       safePublish(() => tracingChannel.error.publish(context));
     }
 
     if (recordResult && result !== undefined) {
-      context.result = result;
+      context.result = redactTelemetryCredentials(result);
     }
 
     safePublish(() => tracingChannel.asyncEnd.publish(context));

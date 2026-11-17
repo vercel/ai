@@ -26,6 +26,11 @@ vi.mock('./google-vertex-maas-provider', () => ({
 }));
 
 vi.mock('@ai-sdk/provider-utils', async importOriginal => ({
+  fetchWithValidatedEndpoint: (
+    await importOriginal<typeof ProviderUtilsModule>()
+  ).fetchWithValidatedEndpoint,
+  isBrowserRuntime: (await importOriginal<typeof ProviderUtilsModule>())
+    .isBrowserRuntime,
   isSameOrigin: (await importOriginal<typeof ProviderUtilsModule>())
     .isSameOrigin,
   resolve: vi.fn().mockImplementation(async value => {
@@ -222,6 +227,7 @@ describe('google-vertex-maas-provider-node', () => {
 
     expect(mockFetch).toHaveBeenCalledWith('https://other.example/image.png', {
       headers: { Accept: 'image/*' },
+      redirect: 'manual',
     });
     expect(generateAuthToken).not.toHaveBeenCalled();
   });

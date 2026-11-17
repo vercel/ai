@@ -3,7 +3,10 @@ import {
   type HarnessV1NetworkSandboxSession,
   type HarnessV1Prompt,
 } from '@ai-sdk/harness';
-import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
+import {
+  convertBase64ToUint8Array,
+  safeValidateTypes,
+} from '@ai-sdk/provider-utils';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import type * as NodeFsPromises from 'node:fs/promises';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -34,8 +37,22 @@ const webSocketMocks = vi.hoisted(() => {
       calls.push({ url, headers: options?.headers });
       queueMicrotask(() => {
         this.emit('open');
-        this.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+        this.emit(
+          'message',
+          JSON.stringify({
+            type: 'bridge-auth-challenge',
+            challenge: 'a'.repeat(64),
+          }),
+        );
       });
+    }
+
+    send(frame: string): void {
+      if (JSON.parse(frame).type === 'bridge-auth-proof') {
+        queueMicrotask(() =>
+          this.emit('message', JSON.stringify({ type: 'bridge-hello' })),
+        );
+      }
     }
 
     on(type: string, listener: Listener): this {
@@ -412,13 +429,26 @@ describe('createCodex adapter', () => {
     expect(resumeFrom.data).toEqual({
       bridge: {
         port: 4319,
-        token: expect.any(String),
+        privateKey: expect.any(String),
         lastSeenEventId: 0,
       },
     });
   });
 
-  it('requires a sandbox id for custom bridge token minting', async () => {
+  it('rejects lifecycle state with a legacy bridge token', async () => {
+    const result = await safeValidateTypes({
+      value: {
+        bridge: { port: 4319, token: 'legacy-token', lastSeenEventId: 0 },
+      },
+      schema: createCodex().lifecycleStateSchema!,
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('ignores a mintBridgeToken callback and warns once at creation', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const mintBridgeToken = vi.fn((sandboxId: string) => sandboxId);
     const networkSession = fakeNetworkSandboxSessionForStartupSuccess({
       bridgePortUrl: 'ws://127.0.0.1:4319',
       runs: [],
@@ -426,17 +456,32 @@ describe('createCodex adapter', () => {
       writes: [],
     });
 
-    await expect(
-      createCodex({
+    try {
+      const harness = createCodex({
         port: 4319,
         portEndpoint: { url: 'ws://127.0.0.1:4319' },
-        mintBridgeToken: sandboxId => sandboxId,
-      }).doStart({
+        mintBridgeToken,
+      });
+      const session = await harness.doStart({
         sessionId: 's1',
         sandboxSession: networkSession.restricted(),
         sessionWorkDir: '/vercel/sandbox/codex-s1',
-      }),
-    ).rejects.toThrow(/does not expose an id/);
+      });
+      await session.doDestroy();
+
+      expect(mintBridgeToken).not.toHaveBeenCalled();
+      expect(
+        warn.mock.calls.filter(([message]) =>
+          String(message).includes('mintBridgeToken'),
+        ),
+      ).toEqual([
+        [
+          'The codex harness ignores the deprecated `mintBridgeToken` setting. Sandbox bridge authentication now uses an adapter-generated key pair.',
+        ],
+      ]);
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it('quotes dynamic startup paths in shell commands', async () => {
@@ -468,7 +513,10 @@ describe('createCodex adapter', () => {
     expect(spawnEnvs.at(0)?.AI_SDK_HARNESS_CLIENT_APP).toBe(
       'ai-sdk-harness-codex/0.0.0-test',
     );
-    expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
+    expect(spawnEnvs.at(0)?.BRIDGE_AUTH_PUBLIC_KEY).toMatch(
+      /^[A-Za-z0-9_-]{43}$/,
+    );
+    expect(spawnEnvs.at(0)).not.toHaveProperty('BRIDGE_CHANNEL_TOKEN');
     await session.doDestroy();
   });
 
@@ -976,25 +1024,23 @@ describe('createCodex adapter', () => {
     await session.doDestroy();
   });
 
-  it('uses a caller-minted bridge token and reuses it when attaching', async () => {
+  it('keeps the bridge private key on the host and reuses it when attaching', async () => {
     const runs: string[] = [];
     const spawns: string[] = [];
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
-    const mintBridgeToken = vi.fn(
-      (sandboxId: string) => `token-for-${sandboxId}`,
-    );
+    const writes: Array<{ path: string; content: string }> = [];
     const reconnect = {
       maxElapsedMs: 120_000,
       initialDelayMs: 100,
       maxDelayMs: 5_000,
     };
-    const harness = createCodex({ mintBridgeToken, reconnect });
+    const harness = createCodex({ reconnect });
     const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
       bridgePortUrl: 'ws://127.0.0.1:1',
       runs,
       spawns,
       spawnEnvs,
-      writes: [],
+      writes,
     });
     const session = await harness.doStart({
       sessionId: 's1',
@@ -1002,15 +1048,15 @@ describe('createCodex adapter', () => {
       sessionWorkDir: '/vercel/sandbox/codex-s1',
     });
 
-    expect(mintBridgeToken).toHaveBeenCalledExactlyOnceWith('test-sandbox');
-    expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toBe(
-      'token-for-test-sandbox',
-    );
-
     const resumeFrom = await session.doDetach();
-    expect(resumeFrom.data).toMatchObject({
-      bridge: { token: 'token-for-test-sandbox' },
-    });
+    const { privateKey } = (
+      resumeFrom.data as { bridge: { privateKey: string } }
+    ).bridge;
+    expect(privateKey).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(resumeFrom.data).not.toHaveProperty('bridge.token');
+    expect(JSON.stringify({ runs, spawns, spawnEnvs, writes })).not.toContain(
+      privateKey,
+    );
 
     const attachedSession = await harness.doStart({
       sessionId: 's1',
@@ -1018,15 +1064,15 @@ describe('createCodex adapter', () => {
       sessionWorkDir: '/vercel/sandbox/codex-s1',
       resumeFrom,
     });
-    expect(mintBridgeToken).toHaveBeenCalledTimes(1);
     expect(channelMocks.reconnects).toEqual([reconnect, reconnect]);
-    await attachedSession.doDetach();
+    const attachedResumeFrom = await attachedSession.doDetach();
+    expect(attachedResumeFrom.data).toMatchObject({ bridge: { privateKey } });
   });
 
   it('passes port endpoint headers to fresh and attached WebSocket connections', async () => {
     channelMocks.connectOnOpen = true;
     const headers = { 'E2B-Traffic-Access-Token': 'traffic-token' };
-    const harness = createCodex({ mintBridgeToken: () => 'bridge-token' });
+    const harness = createCodex();
     const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
       bridgePortUrl: 'wss://sandbox.example/bridge?existing=value',
       bridgePortHeaders: headers,
@@ -1052,7 +1098,7 @@ describe('createCodex adapter', () => {
     for (const call of webSocketMocks.calls) {
       expect(call.headers).toEqual(headers);
       expect(call.url).toContain('existing=value');
-      expect(call.url).toContain('agent_bridge_token=bridge-token');
+      expect(call.url).not.toContain('agent_bridge_token');
     }
     await attachedSession.doDetach();
   });

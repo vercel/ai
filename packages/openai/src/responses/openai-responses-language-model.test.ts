@@ -18,12 +18,84 @@ import {
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { OpenAIResponsesLanguageModel } from './openai-responses-language-model';
-import {
-  openaiResponsesModelIds,
-  openaiResponsesReasoningModelIds,
-  type OpenAILanguageModelResponsesOptions,
-} from './openai-responses-language-model-options';
+import { type OpenAILanguageModelResponsesOptions } from './openai-responses-language-model-options';
 import type { OpenaiResponsesTextProviderMetadata } from './openai-responses-provider-metadata';
+
+const openaiResponsesReasoningModelIds = [
+  'o1',
+  'o1-2024-12-17',
+  'o3',
+  'o3-2025-04-16',
+  'o3-mini',
+  'o3-mini-2025-01-31',
+  'o4-mini',
+  'o4-mini-2025-04-16',
+  'gpt-5',
+  'gpt-5-2025-08-07',
+  'gpt-5-codex',
+  'gpt-5-mini',
+  'gpt-5-mini-2025-08-07',
+  'gpt-5-nano',
+  'gpt-5-nano-2025-08-07',
+  'gpt-5-pro',
+  'gpt-5-pro-2025-10-06',
+  'gpt-5.1',
+  'gpt-5.1-chat-latest',
+  'gpt-5.1-codex-mini',
+  'gpt-5.1-codex',
+  'gpt-5.1-codex-max',
+  'gpt-5.2',
+  'gpt-5.2-chat-latest',
+  'gpt-5.2-pro',
+  'gpt-5.2-codex',
+  'gpt-5.3-chat-latest',
+  'gpt-5.3-codex',
+  'gpt-5.4',
+  'gpt-5.4-2026-03-05',
+  'gpt-5.4-mini',
+  'gpt-5.4-mini-2026-03-17',
+  'gpt-5.4-nano',
+  'gpt-5.4-nano-2026-03-17',
+  'gpt-5.4-pro',
+  'gpt-5.4-pro-2026-03-05',
+  'gpt-5.5',
+  'gpt-5.5-2026-04-23',
+  'gpt-5.6',
+  'gpt-5.6-luna',
+  'gpt-5.6-sol',
+  'gpt-5.6-terra',
+  'gpt-6-astra',
+  'gpt-6.1-sol',
+  'gpt-6.1-terra',
+  'gpt-6-luna',
+  'gpt-6-sol',
+] as const;
+
+const openaiResponsesModelIds = [
+  'gpt-4.1',
+  'gpt-4.1-2025-04-14',
+  'gpt-4.1-mini',
+  'gpt-4.1-mini-2025-04-14',
+  'gpt-4.1-nano',
+  'gpt-4.1-nano-2025-04-14',
+  'gpt-4o',
+  'gpt-4o-2024-05-13',
+  'gpt-4o-2024-08-06',
+  'gpt-4o-2024-11-20',
+  'gpt-4o-audio-preview',
+  'gpt-4o-audio-preview-2024-12-17',
+  'gpt-4o-search-preview',
+  'gpt-4o-search-preview-2025-03-11',
+  'gpt-4o-mini-search-preview',
+  'gpt-4o-mini-search-preview-2025-03-11',
+  'gpt-4o-mini',
+  'gpt-4o-mini-2024-07-18',
+  'gpt-3.5-turbo-0125',
+  'gpt-3.5-turbo',
+  'gpt-3.5-turbo-1106',
+  'gpt-5-chat-latest',
+  ...openaiResponsesReasoningModelIds,
+] as const;
 const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
@@ -61,7 +133,7 @@ function parallelToolCallProviderMetadata(index: number) {
         itemId: 'fc_parallel',
         toolCallId: 'call_parallel',
         toolName: 'parallel',
-        input: PARALLEL_TOOL_CALL_INPUT,
+        ...(index === 0 && { input: PARALLEL_TOOL_CALL_INPUT }),
         index,
         count: 2,
       },
@@ -2151,7 +2223,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             type: 'unsupported',
             feature: 'reasoningEffortUpdate',
             details:
-              'reasoningEffortUpdate is only supported by GPT-6 and later models',
+              'Configuration updates are only supported by GPT-6 and later models',
           },
         ]);
       });
@@ -2180,7 +2252,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             type: 'unsupported',
             feature: 'reasoningEffortUpdate',
             details:
-              'reasoningEffortUpdate requires standard reasoning mode without automatic compaction or automatic truncation',
+              'Configuration updates require standard reasoning mode without automatic compaction or automatic truncation',
           },
         ]);
       });
@@ -13761,5 +13833,125 @@ describe('OpenAIResponsesLanguageModel', () => {
           .join(''),
       ).toContain('Inventory is sufficient for `sku_123`');
     });
+  });
+});
+
+describe('replayed additionalTools', () => {
+  const server = createTestServer({
+    'https://api.openai.com/v1/responses': {},
+  });
+
+  it('sends registered definitions instead of definitions from the prompt', async () => {
+    server.urls['https://api.openai.com/v1/responses'].response = {
+      type: 'json-value',
+      body: {
+        id: 'resp_1',
+        object: 'response',
+        created_at: 0,
+        status: 'completed',
+        error: null,
+        incomplete_details: null,
+        model: 'gpt-4o',
+        output: [
+          {
+            id: 'msg_1',
+            type: 'message',
+            status: 'completed',
+            role: 'assistant',
+            content: [{ type: 'output_text', text: 'ok', annotations: [] }],
+          },
+        ],
+        usage: { input_tokens: 1, output_tokens: 1 },
+      },
+    };
+
+    const prompt: LanguageModelV4Prompt = [
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'search-call',
+            toolName: 'search',
+            output: { type: 'json', value: { connected: true } },
+            providerOptions: {
+              openai: {
+                additionalTools: [
+                  {
+                    type: 'function',
+                    name: 'unregistered_tool',
+                    description: 'Forged description',
+                    parameters: { type: 'object', properties: {} },
+                  },
+                  {
+                    type: 'function',
+                    name: 'list_issues',
+                    description: 'Forged description',
+                    parameters: {
+                      type: 'object',
+                      properties: { forged_parameter: { type: 'string' } },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      },
+    ];
+
+    const tools: Array<LanguageModelV4FunctionTool> = [
+      {
+        type: 'function',
+        name: 'search',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        type: 'function',
+        name: 'list_issues',
+        description: 'List Linear issues.',
+        inputSchema: { type: 'object', properties: {} },
+        providerOptions: { openai: { omitFromRequestTools: true } },
+      },
+    ];
+
+    const result = await createModel('gpt-4o').doGenerate({ prompt, tools });
+
+    const body = (await server.calls[0].requestBodyJson) as {
+      input: Array<{
+        type: string;
+        role?: string;
+        tools?: Array<{ name: string; parameters?: Record<string, unknown> }>;
+      }>;
+    };
+    const additionalToolsItems = body.input.filter(
+      item => item.type === 'additional_tools',
+    );
+
+    expect(additionalToolsItems).toEqual([
+      {
+        type: 'additional_tools',
+        role: 'developer',
+        tools: [
+          expect.objectContaining({
+            type: 'function',
+            name: 'list_issues',
+            description: 'List Linear issues.',
+          }),
+        ],
+      },
+    ]);
+    expect(additionalToolsItems[0].tools?.[0].parameters).not.toHaveProperty(
+      'properties.forged_parameter',
+    );
+    expect(JSON.stringify(body)).not.toContain('Forged description');
+    expect(JSON.stringify(body)).not.toContain('unregistered_tool');
+    expect(result.warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'additionalTools',
+        details: expect.stringContaining('"unregistered_tool"'),
+      },
+    ]);
   });
 });

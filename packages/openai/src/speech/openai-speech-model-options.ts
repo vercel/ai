@@ -4,16 +4,9 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { OpenAIModelIds } from '../openai-model-catalog';
 
-export type OpenAISpeechModelId =
-  | 'tts-1'
-  | 'tts-1-1106'
-  | 'tts-1-hd'
-  | 'tts-1-hd-1106'
-  | 'gpt-4o-mini-tts'
-  | 'gpt-4o-mini-tts-2025-03-20'
-  | 'gpt-4o-mini-tts-2025-12-15'
-  | (string & {});
+export type OpenAISpeechModelId = OpenAIModelIds['speech'] | (string & {});
 
 // https://platform.openai.com/docs/api-reference/audio/createSpeech
 /**

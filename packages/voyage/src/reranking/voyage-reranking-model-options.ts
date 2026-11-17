@@ -4,14 +4,10 @@ import {
   type FlexibleSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { VoyageModelIds } from '../voyage-model-catalog';
 
 export type VoyageRerankingModelId =
-  | 'rerank-2.5'
-  | 'rerank-2.5-lite'
-  | 'rerank-2'
-  | 'rerank-2-lite'
-  | 'rerank-1'
-  | 'rerank-lite-1'
+  | VoyageModelIds['reranking']
   | (string & {});
 
 export type VoyageRerankingModelOptions = {

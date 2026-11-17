@@ -30,7 +30,6 @@ Quick reference:
 
 - Enter beta mode: `pnpm changeset pre enter beta`
 - Exit beta mode: `pnpm changeset pre exit`
-- Backport fixes: add the `backport` label to the merged PR
 
 ## Pull Request Package Previews
 

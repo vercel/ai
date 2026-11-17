@@ -577,3 +577,25 @@ test('missing input errors list all supported selection modes', async context =>
     message: 'Pass --paths <path> ... or --staged or --modified.',
   });
 });
+
+test('test files never match any guideline', async context => {
+  const { getApplicableGuidelines } = await createFixture({ context });
+
+  assert.deepEqual(
+    await getApplicableGuidelines([
+      'packages/example/src/index.ts',
+      'packages/example/src/index.test.ts',
+      'packages/example/src/index.test.tsx',
+      'packages/example/src/index.test.mts',
+      'packages/example/src/index.test-d.ts',
+      'packages/example/src/index.spec.ts',
+      'packages/example/src/index.test.mjs',
+    ]),
+    [
+      {
+        guidelineFile: '.agents/guidelines/typescript.md',
+        files: ['packages/example/src/index.ts'],
+      },
+    ],
+  );
+});

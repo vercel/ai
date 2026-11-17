@@ -219,6 +219,27 @@ describe('inboundMessageSchema', () => {
     expect(parsed).not.toHaveProperty('settings');
   });
 
+  it.each([true, false, undefined])('accepts autoMode=%s', autoMode => {
+    const parsed = inboundMessageSchema.parse({
+      type: 'start',
+      prompt: 'hi',
+      thinking: { type: 'disabled' },
+      autoMode,
+    });
+    expect(parsed).toMatchObject({ autoMode });
+  });
+
+  it('rejects a non-boolean autoMode', () => {
+    expect(() =>
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: 'hi',
+        thinking: { type: 'disabled' },
+        autoMode: 'auto',
+      }),
+    ).toThrow();
+  });
+
   it('rejects a non-string resumeSessionId', () => {
     expect(() =>
       inboundMessageSchema.parse({

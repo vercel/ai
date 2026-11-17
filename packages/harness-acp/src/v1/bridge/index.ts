@@ -313,6 +313,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     workDir,
     permissionMode: start.permissionMode ?? 'allow-all',
     hasPermissionModeMapping: start.permissionModeMapping != null,
+    writeProtectedPaths: bridgeConfiguration.writeProtectedPaths,
     emitToolCall: emitStreamEvent.permissionToolCall,
     claimHostToolPermission: emitStreamEvent.claimHostToolPermission,
     onHostToolPermissionAllowed: hostToolAuthorization.authorizePermission,
@@ -898,7 +899,7 @@ function createChildEnvironment({
   home: string | undefined;
 }): NodeJS.ProcessEnv {
   const blocked = new Set([
-    'BRIDGE_CHANNEL_TOKEN',
+    'BRIDGE_AUTH_PUBLIC_KEY',
     'BRIDGE_WS_PORT',
     'AI_SDK_ACP_GATEWAY_API_KEY',
     'AI_SDK_ACP_GATEWAY_BASE_URL',

@@ -97,6 +97,7 @@ const codexConfigSchema = z.object({
   model_provider: z.string().optional(),
   model_providers: z
     .record(
+      z.string(),
       z.object({
         base_url: z.string().optional(),
       }),
@@ -107,7 +108,6 @@ const codexConfigSchema = z.object({
 export type CodexACPHarnessSettings = {
   auth?: ACPAuthenticationMode;
   mcpServers?: Record<string, unknown>;
-  mintBridgeToken?: (sandboxId: string) => string;
   port?: number;
   portEndpoint?: HarnessV1PortEndpoint;
   reasoningEffort?: 'low' | 'medium' | 'high';
@@ -118,7 +118,6 @@ export type CodexACPHarnessSettings = {
 export function createCodexACP({
   auth = 'auto',
   mcpServers,
-  mintBridgeToken,
   port,
   portEndpoint,
   reasoningEffort,
@@ -142,7 +141,6 @@ export function createCodexACP({
     clientCapabilities: {
       elicitation: { form: {} },
     },
-    mintBridgeToken,
     port,
     portEndpoint,
     source,
@@ -236,9 +234,13 @@ function resolveCodexACPConfig({
   const parsedConfig =
     serializedConfig == null
       ? undefined
-      : z.record(z.unknown()).safeParse(secureJsonParse(serializedConfig));
+      : z
+          .record(z.string(), z.unknown())
+          .safeParse(secureJsonParse(serializedConfig));
   const config = parsedConfig?.success ? parsedConfig.data : {};
-  const parsedFeatures = z.record(z.boolean()).safeParse(config.features);
+  const parsedFeatures = z
+    .record(z.string(), z.boolean())
+    .safeParse(config.features);
 
   return {
     ...config,

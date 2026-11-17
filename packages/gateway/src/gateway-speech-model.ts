@@ -420,19 +420,19 @@ function createGatewaySpeechStream({
   });
 }
 
-const providerMetadataEntrySchema = () => z.object({}).catchall(z.unknown());
+const providerMetadataEntrySchema = () => z.catchall(z.object({}), z.unknown());
 
 const gatewaySpeechWarningSchema = () =>
   z.discriminatedUnion('type', [
     z.object({
       type: z.literal('unsupported'),
       feature: z.string(),
-      details: z.string().optional(),
+      details: z.optional(z.string()),
     }),
     z.object({
       type: z.literal('compatibility'),
       feature: z.string(),
-      details: z.string().optional(),
+      details: z.optional(z.string()),
     }),
     z.object({
       type: z.literal('deprecated'),
@@ -449,11 +449,11 @@ const gatewaySpeechResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       audio: z.string(),
-      warnings: z.array(gatewaySpeechWarningSchema()).optional(),
-      usage: z.record(z.string(), z.json()).optional(),
-      providerMetadata: z
-        .record(z.string(), providerMetadataEntrySchema())
-        .optional(),
+      warnings: z.optional(z.array(gatewaySpeechWarningSchema())),
+      usage: z.optional(z.record(z.string(), z.json())),
+      providerMetadata: z.optional(
+        z.record(z.string(), providerMetadataEntrySchema()),
+      ),
     }),
   ),
 );

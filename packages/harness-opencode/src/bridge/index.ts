@@ -64,6 +64,7 @@ import {
 import { toOpenCodePromptParts } from './opencode-prompt';
 import {
   areOpenCodePermissionPathsTrusted,
+  areOpenCodePermissionPathsWriteProtected,
   type PermissionToolCall,
 } from './permission-paths';
 
@@ -1759,17 +1760,21 @@ async function selectPermissionReply({
     permissionMode === 'allow-edits'
       ? kind === 'readonly' || kind === 'edit'
       : kind === 'readonly';
+  const permissionPathOptions = {
+    action,
+    resources,
+    metadata,
+    toolCall,
+    workDir: workdir,
+    readableSkillRoots: context.readableSkillRoots,
+  };
   if (
     allowed &&
     (!filePermission ||
-      (await areOpenCodePermissionPathsTrusted({
-        action,
-        resources,
-        metadata,
-        toolCall,
-        workDir: workdir,
-        readableSkillRoots: context.readableSkillRoots,
-      })))
+      ((await areOpenCodePermissionPathsTrusted(permissionPathOptions)) &&
+        !(await areOpenCodePermissionPathsWriteProtected(
+          permissionPathOptions,
+        ))))
   )
     return { reply: 'once' };
 

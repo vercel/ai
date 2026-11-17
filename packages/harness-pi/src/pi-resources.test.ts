@@ -182,7 +182,9 @@ describe('Pi with a scripted model', () => {
         expect.objectContaining({
           type: 'tool-result',
           toolName: 'read',
-          result: expect.stringContaining('GOOG: 123.45 USD'),
+          result: expect.objectContaining({
+            structuredContent: expect.stringContaining('GOOG: 123.45 USD'),
+          }),
         }),
       );
 
@@ -197,6 +199,90 @@ describe('Pi with a scripted model', () => {
         }),
       ).toBe('GOOG: 123.45 USD');
       expect(parts.filter(part => part.type === 'error')).toEqual([]);
+    } finally {
+      await session.doDestroy();
+      await sandboxSession.destroy();
+    }
+  });
+
+  it('waits for approval only before writing to write-protected paths under allow-edits', async () => {
+    const sessionWorkDir = '/sandbox/work';
+    const sandboxSession = await createJustBashNetworkSandboxSession({
+      cwd: sessionWorkDir,
+    });
+    const skillPath = `${sessionWorkDir}/.agents/skills/test/SKILL.md`;
+    await sandboxSession.writeTextFile({
+      path: skillPath,
+      content: '---\ndescription: Test skill\n---\nOriginal.',
+    });
+    model.enqueue(
+      toolCallChunks('write', { file_path: 'notes.md', content: 'notes' }),
+      toolCallChunks('write', {
+        file_path: '.agents/skills/test/SKILL.md',
+        content: '---\ndescription: Test skill\n---\nEdited.',
+      }),
+    );
+    const session = await createFakePi(scripted.url).doStart({
+      sessionId: 'session-write-protected-approval',
+      sandboxSession,
+      sessionWorkDir,
+      permissionMode: 'allow-edits',
+    });
+    const parts: HarnessV1StreamPart[] = [];
+    type Approval = Extract<
+      HarnessV1StreamPart,
+      { type: 'tool-approval-request' }
+    >;
+    let resolveApproval!: (approval: Approval) => void;
+    const approvalRequested = new Promise<Approval>(resolve => {
+      resolveApproval = resolve;
+    });
+
+    try {
+      const control = await session.doPromptTurn({
+        prompt: 'Write the notes, then edit the skill.',
+        model: 'fake/fake-model',
+        tools: [],
+        skills: [],
+        emit: part => {
+          parts.push(part);
+          if (part.type === 'tool-approval-request') resolveApproval(part);
+        },
+      });
+      const approval = await Promise.race([
+        approvalRequested,
+        control.done.then(() => {
+          throw new Error('Expected a write approval request');
+        }),
+      ]);
+      expect(
+        await sandboxSession.readTextFile({
+          path: `${sessionWorkDir}/notes.md`,
+        }),
+      ).toBe('notes');
+      expect(await sandboxSession.readTextFile({ path: skillPath })).toContain(
+        'Original.',
+      );
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-call',
+          toolName: 'write',
+          toolCallId: approval.toolCallId,
+          input: expect.stringContaining('.agents/skills/test/SKILL.md'),
+        }),
+      );
+
+      await control.submitToolApproval!({
+        approvalId: approval.approvalId,
+        approved: true,
+      });
+      await control.done;
+      expect(
+        parts.filter(part => part.type === 'tool-approval-request'),
+      ).toHaveLength(1);
+      expect(await sandboxSession.readTextFile({ path: skillPath })).toContain(
+        'Edited.',
+      );
     } finally {
       await session.doDestroy();
       await sandboxSession.destroy();

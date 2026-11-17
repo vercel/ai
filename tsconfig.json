@@ -211,7 +211,13 @@
       "path": "packages/sandbox-vercel"
     },
     {
+      "path": "packages/scaledown"
+    },
+    {
       "path": "packages/svelte"
+    },
+    {
+      "path": "packages/tencent"
     },
     {
       "path": "packages/test-server"

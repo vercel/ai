@@ -463,6 +463,11 @@ export function createAzure(
     withoutTrailingSlash(options.maiBaseURL) ??
     `https://${getResourceName()}.services.ai.azure.com/mai/v1`;
 
+  // Always provide a raw delegate, including when no custom fetch is set, so
+  // file downloads cannot fall back to the token-injecting API fetch wrapper.
+  const downloadFetch: FetchFunction = (input, init) =>
+    (options.fetch ?? globalThis.fetch)(input, init);
+
   const createImageModel = (modelId: string) =>
     new AzureImageModel(
       modelId,
@@ -472,6 +477,7 @@ export function createAzure(
         url,
         headers: getHeaders,
         fetch,
+        downloadFetch,
         // Azure model IDs are user-defined deployment names, so OpenAI model
         // family capabilities cannot be inferred from them.
         imageInputCapabilities: {
@@ -483,6 +489,7 @@ export function createAzure(
         url: path => `${maiBaseURL()}${path}`,
         headers: () => getHeaders('mai'),
         fetch,
+        downloadFetch,
       }),
     );
 

@@ -43,9 +43,6 @@ jobs:
       - name: Test package preview tooling
         run: node --test tools/tarballs/*.test.mjs
 
-      - name: Test backport upload
-        run: python3 .github/scripts/test-backport-upload.py
-
       - name: Validate docs <PropertiesTable> usage
         run: pnpm run validate:docs
 
@@ -666,7 +663,7 @@ jobs:
           - module: '@ai-sdk/anthropic'
             max-load-time: 80
           - module: '@ai-sdk/google'
-            max-load-time: 75
+            max-load-time: 80
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

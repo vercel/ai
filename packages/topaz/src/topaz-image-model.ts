@@ -1,4 +1,8 @@
 import {
+  topazImageCapabilities,
+  topazImageRequestDefaults,
+} from './topaz-model-catalog';
+import {
   AISDKError,
   InvalidArgumentError,
   InvalidResponseDataError,
@@ -39,18 +43,15 @@ import {
   type TopazImageModelId,
 } from './topaz-image-settings';
 
-const DEFAULT_POLL_INTERVAL_MILLIS = 2000;
-const DEFAULT_POLL_TIMEOUT_MILLIS = 600_000;
-
 /**
  * Topaz enhances an image that the caller supplies, so `files` is required and
  * exactly one image is processed per call.
  */
 export class TopazImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
-  readonly maxImagesPerCall = 1;
-  readonly supportsFileInputs = true;
-  readonly supportsMaskInputs = false;
+  readonly maxImagesPerCall = topazImageCapabilities.maxImagesPerCall;
+  readonly supportsFileInputs = topazImageCapabilities.fileInput;
+  readonly supportsMaskInputs = topazImageCapabilities.maskInput;
 
   get provider(): string {
     return this.config.provider;
@@ -120,9 +121,11 @@ export class TopazImageModel implements ImageModelV4 {
         headers,
         abortSignal: options.abortSignal,
         pollIntervalMillis:
-          topazOptions?.pollIntervalMillis ?? DEFAULT_POLL_INTERVAL_MILLIS,
+          topazOptions?.pollIntervalMillis ??
+          topazImageRequestDefaults.pollIntervalMillis,
         pollTimeoutMillis:
-          topazOptions?.pollTimeoutMillis ?? DEFAULT_POLL_TIMEOUT_MILLIS,
+          topazOptions?.pollTimeoutMillis ??
+          topazImageRequestDefaults.pollTimeoutMillis,
       });
     } catch (error) {
       // Topaz charges on completion, so a job nobody will download should not
