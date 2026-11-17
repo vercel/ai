@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.145
+
+### Patch Changes
+
+- 4acbcc9: feat(openai): add GPT-6.2 Astra and GPT-6.2 Sol model support
+
 ## 3.0.144
 
 ### Patch Changes
