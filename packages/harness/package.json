@@ -92,7 +92,7 @@
     "@types/ws": "^8.5.13",
     "@vercel/ai-tsconfig": "workspace:*",
     "@vercel/ai-tsdown-config": "workspace:*",
-    "next": "^16.4.1",
+    "next": "^16.4.6",
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
     "ws": "^8.21.0",

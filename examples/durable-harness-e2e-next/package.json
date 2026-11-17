@@ -24,7 +24,7 @@
     "@workflow/world-vercel": "5.5.0",
     "ai": "workspace:*",
     "clsx": "^2.1.1",
-    "next": "^16.4.1",
+    "next": "^16.4.6",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "streamdown": "^1.6.11",

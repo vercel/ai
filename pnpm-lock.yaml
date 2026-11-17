@@ -955,8 +955,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       next:
-        specifier: ^16.4.1
-        version: 16.4.1(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.97.3)
+        specifier: ^16.4.6
+        version: 16.4.6(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.97.3)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -3278,8 +3278,8 @@ importers:
         specifier: workspace:*
         version: link:../../tools/tsdown-config
       next:
-        specifier: ^16.4.1
-        version: 16.4.1(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.97.3)
+        specifier: ^16.4.6
+        version: 16.4.6(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.97.3)
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.3.21)(tsx@4.23.12)(typescript@6.0.3)
