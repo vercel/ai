@@ -3420,6 +3420,77 @@ describe('Chat', () => {
       expect(sendAutomaticallyWhen).not.toHaveBeenCalled();
     });
 
+    // https://github.com/vercel/ai/issues/25183
+    it.each([
+      {
+        name: 'start and finish only',
+        chunks: [
+          { type: 'start' },
+          { type: 'finish' },
+        ] satisfies UIMessageChunk[],
+      },
+      { name: 'an empty stream', chunks: [] satisfies UIMessageChunk[] },
+    ])(
+      'should not automatically resend when the continuation response ($name) leaves the last message unchanged',
+      async ({ chunks }) => {
+        // Bound the loop so this test fails instead of hanging: from the 5th
+        // request on, the transport errors, which ends automatic sending.
+        const MAX_REQUESTS = 5;
+        const sendMessages = vi.fn(async () => {
+          const call = sendMessages.mock.calls.length;
+          if (call === 1) {
+            return convertArrayToReadableStream<UIMessageChunk>([
+              { type: 'start', messageId: 'assistant-1' },
+              { type: 'start-step' },
+              {
+                type: 'tool-input-available',
+                toolCallId: 'call-1',
+                toolName: 'test-tool',
+                input: {},
+              },
+              {
+                type: 'tool-approval-request',
+                toolCallId: 'call-1',
+                approvalId: 'approval-1',
+              },
+              { type: 'finish-step' },
+              { type: 'finish' },
+            ]);
+          }
+          if (call >= MAX_REQUESTS) {
+            throw new Error('request limit reached');
+          }
+          // The server answered, but could not continue the approved tool
+          // call, so nothing in the last message changes.
+          return convertArrayToReadableStream<UIMessageChunk>(chunks);
+        });
+        const chat = new TestChat({
+          transport: { sendMessages, reconnectToStream: async () => null },
+          sendAutomaticallyWhen:
+            lastAssistantMessageIsCompleteWithApprovalResponses,
+          onError: () => {},
+        });
+
+        await chat.sendMessage({ text: 'Hello' });
+        await chat.addToolApprovalResponse({
+          id: 'approval-1',
+          approved: true,
+        });
+        // The automatic sends continue after addToolApprovalResponse resolves.
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(chat.lastMessage?.parts).toContainEqual(
+          expect.objectContaining({
+            toolCallId: 'call-1',
+            state: 'approval-responded',
+          }),
+        );
+        // One request for the question, one automatic continuation for the
+        // approval. The unchanged response must not trigger another one.
+        expect(sendMessages).toHaveBeenCalledTimes(2);
+      },
+    );
+
     it('should preserve interrupted output without an error or automatic follow-up', async () => {
       const sendMessages = vi.fn(async () =>
         convertArrayToReadableStream<UIMessageChunk>([
