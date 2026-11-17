@@ -1036,9 +1036,9 @@ console.log(text);`,
     slug: 'moneytools',
     name: 'MoneyTools',
     description:
-      'Pay-per-use speech-to-text and x402 spend controls for agents. Transcribe audio or video URLs up to 3 hours (0.002 USDC per started minute) and check, cap, or verify x402 payments, paid with USDC on Base. No API key: the agent wallet pays per call.',
+      'Payment-safety checks, speech-to-text and x402 spend controls for agents. Precheck a seller URL (0.005 USDC) or score a wallet (0.02 USDC), transcribe audio or video URLs up to 3 hours (0.005 USDC per started minute), and check, cap, or verify x402 payments, paid with USDC on Base. No API key: the agent wallet pays per call.',
     packageName: '@moneytools-dev/ai-sdk',
-    tags: ['speech-to-text', 'transcription', 'payments', 'x402'],
+    tags: ['speech-to-text', 'transcription', 'payments', 'x402', 'safety'],
     apiKeyEnvName: 'MONEYTOOLS_EVM_PRIVATE_KEY',
     installCommand: {
       pnpm: 'pnpm add @moneytools-dev/ai-sdk viem',
@@ -1054,7 +1054,7 @@ const account = privateKeyToAccount(process.env.MONEYTOOLS_EVM_PRIVATE_KEY as `0
 
 const { text } = await generateText({
   model: 'openai/gpt-5-mini',
-  prompt: 'Transcribe https://example.com/standup.mp3 and list the action items.',
+  prompt: 'Precheck https://seller.example/data, then transcribe https://example.com/standup.mp3 and list the action items.',
   tools: moneytoolsTools({ account, maxUsdPerRequest: 0.5 }),
   stopWhen: isStepCount(3),
 });
