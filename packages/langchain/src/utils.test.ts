@@ -1042,6 +1042,8 @@ describe('processLangGraphEvent', () => {
     emittedImages: new Set<string>(),
     emittedReasoningIds: new Set<string>(),
     messageReasoningIds: new Map(),
+    streamedReasoningMessageIds: new Set(),
+    historicalMessageIds: undefined,
     toolCallInfoByIndex: new Map(),
     currentStepsByNamespace: new Map(),
     emittedToolCallsByKey: new Map<string, string>(),
@@ -1899,6 +1901,8 @@ describe('processLangGraphEvent', () => {
       ],
     };
 
+    // LangGraph emits the run's input state before any node runs
+    processLangGraphEvent(['values', { messages: [] }], state, controller);
     processLangGraphEvent(['values', valuesData], state, controller);
 
     expect(chunks).toContainEqual({ type: 'reasoning-start', id: 'msg-1' });
@@ -3086,6 +3090,8 @@ describe('processLangGraphEvent - sources', () => {
     emittedImages: new Set<string>(),
     emittedReasoningIds: new Set<string>(),
     messageReasoningIds: new Map(),
+    streamedReasoningMessageIds: new Set(),
+    historicalMessageIds: undefined,
     toolCallInfoByIndex: new Map(),
     currentStepsByNamespace: new Map(),
     emittedToolCallsByKey: new Map<string, string>(),
