@@ -1032,4 +1032,36 @@ console.log(text);`,
     websiteUrl: 'https://upstash.com',
     npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
   },
+  {
+    slug: 'moneytools',
+    name: 'MoneyTools',
+    description:
+      'Pay-per-use speech-to-text and x402 spend controls for agents. Transcribe audio or video URLs up to 3 hours (0.002 USDC per started minute) and check, cap, or verify x402 payments, paid with USDC on Base. No API key: the agent wallet pays per call.',
+    packageName: '@moneytools-dev/ai-sdk',
+    tags: ['speech-to-text', 'transcription', 'payments', 'x402'],
+    apiKeyEnvName: 'MONEYTOOLS_EVM_PRIVATE_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @moneytools-dev/ai-sdk viem',
+      npm: 'npm install @moneytools-dev/ai-sdk viem',
+      yarn: 'yarn add @moneytools-dev/ai-sdk viem',
+      bun: 'bun add @moneytools-dev/ai-sdk viem',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { privateKeyToAccount } from 'viem/accounts';
+import { moneytoolsTools } from '@moneytools-dev/ai-sdk';
+
+const account = privateKeyToAccount(process.env.MONEYTOOLS_EVM_PRIVATE_KEY as `0x${string}`);
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Transcribe https://example.com/standup.mp3 and list the action items.',
+  tools: moneytoolsTools({ account, maxUsdPerRequest: 0.5 }),
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://moneytools.dev/products/payment-safety/guides/vercel-ai-sdk/',
+    websiteUrl: 'https://moneytools.dev',
+    npmUrl: 'https://www.npmjs.com/package/@moneytools-dev/ai-sdk',
+  },
 ];
