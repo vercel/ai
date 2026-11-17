@@ -29,6 +29,20 @@ export function redactToolDefinition(
     };
   }
 
+  if (tool.id === 'google.mcp_server') {
+    if (!isRecord(args.headers)) return tool;
+
+    return {
+      ...tool,
+      args: {
+        ...args,
+        headers: Object.fromEntries(
+          Object.keys(args.headers).map(name => [name, '[redacted]']),
+        ),
+      },
+    };
+  }
+
   const containerKey =
     tool.id === 'openai.code_interpreter'
       ? 'container'
