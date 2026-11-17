@@ -158,6 +158,8 @@ describe('streamText experimental_steering interrupt', () => {
     ]);
     expect(await result.text).toBe('It is sunny in Paris, Texas.');
     expect(await result.steps).toHaveLength(1);
+    // the cancelled stream is left out of the usage:
+    expect((await result.totalUsage).outputTokens).toBe(10);
     expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 0 });
   });
 
@@ -450,29 +452,163 @@ describe('streamText experimental_steering interrupt', () => {
     expect(await interrupt).toMatchObject({ type: 'delivered', stepNumber: 0 });
   });
 
-  it('should leave the cancelled stream out of usage', async () => {
+  it('should redo the step for every interrupt and keep the messages in order', async () => {
     const steering = createSteering();
+    const outcomes: Array<Promise<SteeringOutcome>> = [];
+    const calls: LanguageModelV4CallOptions[] = [];
 
-    const { model } = createModel({
+    const result = streamText({
+      model: new MockLanguageModelV4({
+        doStream: async options => {
+          calls.push(options);
+          if (calls.length <= 2) {
+            const stream = hangingStream({
+              options,
+              parts: [{ type: 'stream-start', warnings: [] }],
+            });
+            outcomes.push(
+              steering.steer(`Correction ${calls.length}.`, {
+                interrupt: true,
+              }),
+            );
+            return { stream };
+          }
+          return {
+            stream: convertArrayToReadableStream(
+              textStream('It is sunny in Paris, Texas.'),
+            ),
+          };
+        },
+      }),
+      prompt: 'What is the weather in Paris?',
+      experimental_steering: steering,
+    });
+
+    const parts = await collect(result.fullStream);
+
+    expect(calls).toHaveLength(3);
+    expect(parts.filter(part => part.type === 'start-step')).toHaveLength(1);
+    expect(parts.filter(part => part.type === 'finish-step')).toHaveLength(1);
+    expect(await result.steps).toHaveLength(1);
+    expect((await result.steps)[0].experimental_steeringMessages).toEqual([
+      { role: 'user', content: 'Correction 1.' },
+      { role: 'user', content: 'Correction 2.' },
+    ]);
+    expect(await Promise.all(outcomes)).toMatchObject([
+      { type: 'delivered', stepNumber: 0 },
+      { type: 'delivered', stepNumber: 0 },
+    ]);
+  });
+
+  it('should redo a later step with the tool results of the step before it', async () => {
+    const steering = createSteering();
+    let outcome: Promise<SteeringOutcome> | undefined;
+    const calls: LanguageModelV4CallOptions[] = [];
+    const execute = vi.fn(async () => ({ temperature: 72 }));
+
+    const result = streamText({
+      model: new MockLanguageModelV4({
+        doStream: async options => {
+          calls.push(options);
+          if (calls.length === 1) {
+            return {
+              stream: convertArrayToReadableStream<LanguageModelV4StreamPart>([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'weather',
+                  input: '{ "city": "Paris" }',
+                },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+                  usage: usage(5),
+                },
+              ]),
+            };
+          }
+          if (calls.length === 2) {
+            const stream = hangingStream({
+              options,
+              parts: [{ type: 'stream-start', warnings: [] }],
+            });
+            outcome = steering.steer('Answer in Celsius.', {
+              interrupt: true,
+            });
+            return { stream };
+          }
+          return {
+            stream: convertArrayToReadableStream(
+              textStream('It is 22 degrees in Paris.'),
+            ),
+          };
+        },
+      }),
+      prompt: 'What is the weather in Paris?',
+      tools: {
+        weather: tool({
+          inputSchema: z.object({ city: z.string() }),
+          execute,
+        }),
+      },
+      stopWhen: isStepCount(3),
+      experimental_steering: steering,
+    });
+
+    await result.consumeStream();
+
+    expect(calls).toHaveLength(3);
+    expect(execute).toHaveBeenCalledTimes(1);
+    expect(calls[2].prompt.map(message => message.role)).toEqual([
+      'user',
+      'assistant',
+      'tool',
+      'user',
+    ]);
+    expect(lastUserText(calls[2])).toBe('Answer in Celsius.');
+    expect(await result.steps).toHaveLength(2);
+    expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 1 });
+  });
+
+  it('should not deliver an interrupt message that prepareStep removes on the redo', async () => {
+    const steering = createSteering();
+    let outcome: Promise<SteeringOutcome> | undefined;
+
+    const { model, calls } = createModel({
       first: options =>
         hangingStream({
           options,
           parts: [{ type: 'stream-start', warnings: [] }],
         }),
       onFirstCall: () => {
-        void steering.steer('Use Paris, Texas instead.', { interrupt: true });
+        outcome = steering.steer('Use Paris, Texas instead.', {
+          interrupt: true,
+        });
       },
-      rest: [() => textStream('It is sunny in Paris, Texas.')],
+      rest: [() => textStream('It is sunny in Paris.')],
     });
 
     const result = streamText({
       model,
       prompt: 'What is the weather in Paris?',
       experimental_steering: steering,
+      prepareStep: ({ messages }) => ({
+        messages: messages.filter(
+          message => message.content !== 'Use Paris, Texas instead.',
+        ),
+      }),
     });
 
-    await result.consumeStream();
-    expect((await result.totalUsage).outputTokens).toBe(10);
+    const parts = await collect(result.fullStream);
+
+    expect(calls).toHaveLength(2);
+    expect(lastUserText(calls[1])).toBe('What is the weather in Paris?');
+    expect(parts.some(part => part.type === 'steering-message')).toBe(false);
+    expect(await outcome).toMatchObject({
+      type: 'not-delivered',
+      reason: 'removed-by-prepare-step',
+    });
   });
 
   it('should run prepareStep again for the redo, notify onStepStart once, and start two model calls', async () => {
@@ -764,46 +900,45 @@ describe('streamText experimental_steering interrupt', () => {
   });
 
   it('should keep the step timeout running across the redo', async () => {
-    const steering = createSteering();
-    const start = Date.now();
-    let abortedAfterMs: number | undefined;
+    vi.useFakeTimers();
+    try {
+      const steering = createSteering();
+      let calls = 0;
+      let finished = false;
 
-    const model = new MockLanguageModelV4({
-      doStream: async options => {
-        options.abortSignal?.addEventListener('abort', () => {
-          abortedAfterMs ??= 0;
-        });
-        return {
-          stream: hangingStream({
-            options,
-            parts: [{ type: 'stream-start', warnings: [] }],
-          }),
-        };
-      },
-    });
-    let calls = 0;
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async options => {
+            calls++;
+            return {
+              stream: hangingStream({
+                options,
+                parts: [{ type: 'stream-start', warnings: [] }],
+              }),
+            };
+          },
+        }),
+        prompt: 'What is the weather in Paris?',
+        timeout: { stepMs: 200 },
+        experimental_steering: steering,
+      });
+      const run = result.consumeStream().then(() => {
+        finished = true;
+      });
 
-    const result = streamText({
-      model,
-      prompt: 'What is the weather in Paris?',
-      timeout: { stepMs: 200 },
-      experimental_steering: steering,
-      onLanguageModelCallStart: () => {
-        calls++;
-        if (calls === 1) {
-          setTimeout(() => {
-            void steering.steer('Use Paris, Texas instead.', {
-              interrupt: true,
-            });
-          }, 120);
-        }
-      },
-    });
+      await vi.advanceTimersByTimeAsync(120);
+      void steering.steer('Use Paris, Texas instead.', { interrupt: true });
 
-    await result.consumeStream();
-    const elapsedMs = Date.now() - start;
+      // a timeout that started again with the redo would end after 320ms:
+      await vi.advanceTimersByTimeAsync(79);
+      expect(calls).toBe(2);
+      expect(finished).toBe(false);
 
-    expect(calls).toBe(2);
-    expect(elapsedMs).toBeLessThan(290);
+      await vi.advanceTimersByTimeAsync(1);
+      await run;
+      expect(finished).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

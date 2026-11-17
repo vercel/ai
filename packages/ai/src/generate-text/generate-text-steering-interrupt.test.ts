@@ -115,6 +115,8 @@ describe('generateText experimental_steering interrupt', () => {
     expect(result.steps[0].experimental_steeringMessages).toEqual([
       { role: 'user', content: 'Use Paris, Texas instead.' },
     ]);
+    // the cancelled call is left out of the usage:
+    expect(result.totalUsage.outputTokens).toBe(10);
     expect(await outcome).toMatchObject({
       type: 'delivered',
       stepNumber: 0,
@@ -159,23 +161,86 @@ describe('generateText experimental_steering interrupt', () => {
     expect(await interrupt).toMatchObject({ type: 'delivered', stepNumber: 0 });
   });
 
-  it('should leave the cancelled call out of usage', async () => {
+  it('should redo the step for every interrupt and keep the messages in order', async () => {
     const steering = createSteering();
-
-    const { model } = createHangingFirstCall({
-      onFirstCall: () => {
-        void steering.steer('Use Paris, Texas instead.', { interrupt: true });
-      },
-      responses: [() => textResponse('It is sunny in Paris, Texas.')],
-    });
+    const outcomes: Array<Promise<SteeringOutcome>> = [];
+    const calls: LanguageModelV4CallOptions[] = [];
 
     const result = await generateText({
-      model,
+      model: new MockLanguageModelV4({
+        doGenerate: async options => {
+          calls.push(options);
+          if (calls.length <= 2) {
+            outcomes.push(
+              steering.steer(`Correction ${calls.length}.`, {
+                interrupt: true,
+              }),
+            );
+            return waitForAbort(options);
+          }
+          return textResponse('It is sunny in Paris, Texas.');
+        },
+      }),
       prompt: 'What is the weather in Paris?',
       experimental_steering: steering,
     });
 
-    expect(result.totalUsage.outputTokens).toBe(10);
+    expect(calls).toHaveLength(3);
+    expect(result.steps).toHaveLength(1);
+    expect(result.steps[0].experimental_steeringMessages).toEqual([
+      { role: 'user', content: 'Correction 1.' },
+      { role: 'user', content: 'Correction 2.' },
+    ]);
+    expect(await Promise.all(outcomes)).toMatchObject([
+      { type: 'delivered', stepNumber: 0 },
+      { type: 'delivered', stepNumber: 0 },
+    ]);
+  });
+
+  it('should redo a later step with the tool results of the step before it', async () => {
+    const steering = createSteering();
+    let outcome: Promise<SteeringOutcome> | undefined;
+    const calls: LanguageModelV4CallOptions[] = [];
+    const execute = vi.fn(async () => ({ temperature: 72 }));
+
+    const result = await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async options => {
+          calls.push(options);
+          if (calls.length === 1) {
+            return toolCallResponse;
+          }
+          if (calls.length === 2) {
+            outcome = steering.steer('Answer in Celsius.', {
+              interrupt: true,
+            });
+            return waitForAbort(options);
+          }
+          return textResponse('It is 22 degrees in Paris.');
+        },
+      }),
+      prompt: 'What is the weather in Paris?',
+      tools: {
+        weather: tool({
+          inputSchema: z.object({ city: z.string() }),
+          execute,
+        }),
+      },
+      stopWhen: isStepCount(3),
+      experimental_steering: steering,
+    });
+
+    expect(calls).toHaveLength(3);
+    expect(execute).toHaveBeenCalledTimes(1);
+    expect(calls[2].prompt.map(message => message.role)).toEqual([
+      'user',
+      'assistant',
+      'tool',
+      'user',
+    ]);
+    expect(lastUserText(calls[2])).toBe('Answer in Celsius.');
+    expect(result.steps).toHaveLength(2);
+    expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 1 });
   });
 
   it('should run prepareStep again for the redo, notify onStepStart once, and start two model calls', async () => {
@@ -479,32 +544,39 @@ describe('generateText experimental_steering interrupt', () => {
   });
 
   it('should keep the step timeout running across the redo', async () => {
-    const steering = createSteering();
-    const start = Date.now();
-    let calls = 0;
+    vi.useFakeTimers();
+    try {
+      const steering = createSteering();
+      let calls = 0;
+      let rejected = false;
 
-    await expect(
-      generateText({
+      const run = generateText({
         model: new MockLanguageModelV4({
           doGenerate: async options => {
             calls++;
-            if (calls === 1) {
-              setTimeout(() => {
-                void steering.steer('Use Paris, Texas instead.', {
-                  interrupt: true,
-                });
-              }, 120);
-            }
             return waitForAbort(options);
           },
         }),
         prompt: 'What is the weather in Paris?',
         timeout: { stepMs: 200 },
         experimental_steering: steering,
-      }),
-    ).rejects.toThrow();
+      }).catch(() => {
+        rejected = true;
+      });
 
-    expect(calls).toBe(2);
-    expect(Date.now() - start).toBeLessThan(290);
+      await vi.advanceTimersByTimeAsync(120);
+      void steering.steer('Use Paris, Texas instead.', { interrupt: true });
+
+      // a timeout that started again with the redo would end after 320ms:
+      await vi.advanceTimersByTimeAsync(79);
+      expect(calls).toBe(2);
+      expect(rejected).toBe(false);
+
+      await vi.advanceTimersByTimeAsync(1);
+      await run;
+      expect(rejected).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
