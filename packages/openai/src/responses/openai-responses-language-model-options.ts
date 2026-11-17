@@ -354,6 +354,17 @@ export type OpenAIResponsesToolResultOptions = InferSchema<
   typeof openaiResponsesToolResultOptionsSchema
 >;
 
+/**
+ * A single OpenAI-format tool definition that can be loaded at a position in
+ * the conversation. Conversation history is replayable, so these definitions
+ * are treated as references to tools registered for the current request: the
+ * provider sends its own definition for the registered tool instead of the
+ * text supplied in the history.
+ */
+export type OpenAIResponsesAdditionalTool = NonNullable<
+  OpenAIResponsesToolResultOptions['additionalTools']
+>[number];
+
 function openaiResponsesFunctionToolDefinitionSchema() {
   return z.strictObject({
     type: z.literal('function'),

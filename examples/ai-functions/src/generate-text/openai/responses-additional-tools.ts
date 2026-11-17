@@ -14,6 +14,7 @@ run(async () => {
     get_weather: tool({
       description: 'Get the weather for a city.',
       inputSchema: z.object({ city: z.string() }),
+      strict: true,
       execute: async ({ city }) => ({ city, temperature: 72 }),
       providerOptions: {
         openai: { omitFromRequestTools: true } satisfies OpenAIToolOptions,

@@ -94,9 +94,13 @@ import {
   openaiLanguageModelResponsesOptionsSchema,
   TOP_LOGPROBS_MAX,
   type OpenAILanguageModelResponsesOptions,
+  type OpenAIResponsesAdditionalTool,
   type OpenAIResponsesModelId,
 } from './openai-responses-language-model-options';
-import { prepareResponsesTools } from './openai-responses-prepare-tools';
+import {
+  findAdditionalToolDefinition,
+  prepareResponsesTools,
+} from './openai-responses-prepare-tools';
 import { normalizeOpenAIResponsesTextFormat } from './openai-responses-text-format';
 import type {
   ResponsesCompactionProviderMetadata,
@@ -406,6 +410,42 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       providerOptionsName,
     });
 
+    // Prompts can contain client-supplied conversation history. Only the tools
+    // registered for this request may be loaded from such history; each entry
+    // resolves to the definition derived from its registered tool. Cache the
+    // resolutions because replayed history can repeat an entry.
+    const additionalToolResolutions = new Map<
+      string,
+      ReturnType<typeof findAdditionalToolDefinition>
+    >();
+    const allowedToolNames =
+      openaiOptions?.allowedTools != null
+        ? new Set(
+            openaiOptions.allowedTools.toolNames.map(name =>
+              toolNameMapping.toProviderToolName(name),
+            ),
+          )
+        : undefined;
+    const findAdditionalToolForRequest = ({
+      type,
+      name,
+    }: Pick<OpenAIResponsesAdditionalTool, 'type' | 'name'>) => {
+      const key = `${type}:${name}`;
+      let resolution = additionalToolResolutions.get(key);
+
+      if (resolution == null) {
+        resolution = findAdditionalToolDefinition({
+          tools,
+          providerOptionsName,
+          additionalTool: { type, name },
+          allowedToolNames,
+        });
+        additionalToolResolutions.set(key, resolution);
+      }
+
+      return resolution;
+    };
+
     const configurationUpdateUnsupportedReason =
       getConfigurationUpdateUnsupportedReason({
         modelCapabilities,
@@ -442,6 +482,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             : undefined,
         outputSchemaToolNames:
           outputSchemaToolNames.size > 0 ? outputSchemaToolNames : undefined,
+        findAdditionalToolDefinition: findAdditionalToolForRequest,
       });
 
     warnings.push(...inputWarnings);
