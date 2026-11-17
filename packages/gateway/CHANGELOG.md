@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.239
+
+### Patch Changes
+
+- 4acbcc9: feat(openai): add GPT-6.2 Astra and GPT-6.2 Sol model support
+
 ## 3.0.238
 
 ### Patch Changes
