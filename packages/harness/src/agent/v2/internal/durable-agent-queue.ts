@@ -35,11 +35,55 @@ export const DURABLE_HARNESS_AGENT_QUEUE_PREFIX =
   `__${DURABLE_HARNESS_AGENT_QUEUE_NAMESPACE}_wkf_workflow_` as const;
 
 /**
- * Path the queue handler route is mounted at. API names use "queue"; only
- * this path value uses "flow".
+ * Default path the queue handler route is mounted at, unless
+ * `AI_SDK_DURABLE_HARNESS_AGENT_QUEUE_HANDLER_ROUTE` names another one. API
+ * names use "queue"; only this path value uses "flow".
  */
 export const DURABLE_HARNESS_AGENT_QUEUE_HANDLER_ROUTE =
   '/.well-known/harness-agent/v1/flow';
+
+/**
+ * How the World delivers queue jobs to the durable agents of this process:
+ * - `handler`: in this process, through `world.registerHandler()`;
+ * - `route`: over HTTP, to the queue handler route, through
+ *   `world.registerRoute()`;
+ * - `both`: both registrations. A World that has both uses the handler in
+ *   its own process; the route reaches the app from a queue worker that has
+ *   no handler, e.g. a world-postgres worker in another process.
+ */
+export type DurableHarnessAgentQueueDelivery = 'handler' | 'route' | 'both';
+
+/**
+ * Returns the queue delivery from `AI_SDK_DURABLE_HARNESS_AGENT_QUEUE_DELIVERY`,
+ * `handler` if it is unset: an app has no queue handler route unless it says
+ * so. Throws for any other value.
+ *
+ * The variable is read as `process.env.<name>`, never by a computed key, so
+ * that a bundler can inline the value an app's build sets (as
+ * `withDurableHarnessAgent` does through Next.js's `env` config).
+ */
+export function getDurableHarnessAgentQueueDelivery(): DurableHarnessAgentQueueDelivery {
+  const delivery = process.env.AI_SDK_DURABLE_HARNESS_AGENT_QUEUE_DELIVERY;
+  if (delivery == null || delivery === '') return 'handler';
+  if (delivery === 'handler' || delivery === 'route' || delivery === 'both') {
+    return delivery;
+  }
+  throw new Error(
+    `AI_SDK_DURABLE_HARNESS_AGENT_QUEUE_DELIVERY must be \`handler\`, \`route\` or \`both\`, received \`${delivery}\`.`,
+  );
+}
+
+/**
+ * Returns the path of the queue handler route:
+ * `AI_SDK_DURABLE_HARNESS_AGENT_QUEUE_HANDLER_ROUTE`, or
+ * `DURABLE_HARNESS_AGENT_QUEUE_HANDLER_ROUTE` if it is unset.
+ */
+export function getDurableHarnessAgentQueueHandlerRoute(): string {
+  return (
+    process.env.AI_SDK_DURABLE_HARNESS_AGENT_QUEUE_HANDLER_ROUTE ||
+    DURABLE_HARNESS_AGENT_QUEUE_HANDLER_ROUTE
+  );
+}
 
 /**
  * Seconds a backstop is delayed past the deadline of the drive it covers, so
@@ -120,13 +164,21 @@ export async function sendDurableHarnessAgentBackstop(options: {
 }
 
 /**
- * Makes `world` deliver `DURABLE_HARNESS_AGENT_QUEUE_PREFIX` to this process, once
- * per World: `world.registerHandler?.()` for queue consumers running in the
- * app's process, and `world.registerRoute?.()` with the queue handler's route
- * for queue jobs delivered over HTTP (world-postgres saves the route with
- * each queue job when it is enqueued). Then starts the World with
- * `world.start?.()`, not awaited, logging a failure, so that the World's
- * recovery runs after the prefix is registered.
+ * Makes `world` deliver `DURABLE_HARNESS_AGENT_QUEUE_PREFIX` to the durable
+ * agents of this process, once per World, as
+ * `getDurableHarnessAgentQueueDelivery()` says:
+ * `world.registerHandler?.()` to deliver in this process, and/or
+ * `world.registerRoute?.()` with the queue handler route's path to deliver
+ * over HTTP (world-postgres saves the route with each queue job when it is
+ * enqueued). Then starts the World with `world.start?.()`, not awaited,
+ * logging a failure, so that the World's recovery runs after the prefix is
+ * registered.
+ *
+ * Delivery over HTTP reaches every durable agent of the app, since the
+ * queue handler route imports every module that creates one. Delivery in
+ * this process only reaches the agents whose modules this process already
+ * loaded; a queue job for another agent is delivered again until its module
+ * loads.
  *
  * Called on first use, never on import: importing a module that creates a
  * durable agent (as `next build` does while collecting page data) must not
@@ -138,16 +190,21 @@ export function connectDurableHarnessAgentQueue(options: {
   const { world } = options;
   const { connectedWorlds } = getState();
   if (connectedWorlds.has(world)) return;
+  const delivery = getDurableHarnessAgentQueueDelivery();
   connectedWorlds.add(world);
 
-  world.registerHandler?.(
-    DURABLE_HARNESS_AGENT_QUEUE_PREFIX,
-    getDurableHarnessAgentQueueRequestHandler({ world }),
-  );
-  world.registerRoute?.(
-    DURABLE_HARNESS_AGENT_QUEUE_PREFIX,
-    DURABLE_HARNESS_AGENT_QUEUE_HANDLER_ROUTE,
-  );
+  if (delivery !== 'route') {
+    world.registerHandler?.(
+      DURABLE_HARNESS_AGENT_QUEUE_PREFIX,
+      getDurableHarnessAgentQueueRequestHandler({ world }),
+    );
+  }
+  if (delivery !== 'handler') {
+    world.registerRoute?.(
+      DURABLE_HARNESS_AGENT_QUEUE_PREFIX,
+      getDurableHarnessAgentQueueHandlerRoute(),
+    );
+  }
   world.start?.().catch(error => {
     console.error('[@ai-sdk/harness] Failed to start the World.', error);
   });

@@ -21,13 +21,21 @@ export type WithDurableHarnessAgentOptions = {
  * Wraps a Next.js config for durable HarnessAgents.
  *
  * When the dev server starts and on a production build, it writes the queue
- * handler route, `<app>/.well-known/harness-agent/v1/flow/route.js`: it
+ * handler route, `<app>/.well-known/harness-agent/v1/flow/route.js` (or at
+ * the path `AI_SDK_DURABLE_HARNESS_AGENT_QUEUE_HANDLER_ROUTE` names): it
  * imports every module that creates a durable agent, so that their agents
  * are in the durable agent registry, and serves
  * `createDurableHarnessAgentQueueHandler()`. A `.gitignore` keeps it out of
  * git. An app's own route at that path (one without the generated marker) is
  * left alone. Agent modules added while the dev server runs need a restart
  * of the dev server.
+ *
+ * It sets `AI_SDK_DURABLE_HARNESS_AGENT_QUEUE_DELIVERY` to `route` in the
+ * config's `env`, so that the World delivers every queue job over HTTP to
+ * that route, which reaches every durable agent of the app, instead of only
+ * the agents whose modules the process already loaded. A value the app sets
+ * for either variable, in its environment while building or in its own
+ * `env` config, is kept.
  *
  * ```ts
  * // next.config.ts
@@ -59,7 +67,18 @@ export function withDurableHarnessAgent(
         agents: options?.agents,
       });
     }
-    return config;
+    return {
+      ...config,
+      env: {
+        AI_SDK_DURABLE_HARNESS_AGENT_QUEUE_DELIVERY:
+          process.env.AI_SDK_DURABLE_HARNESS_AGENT_QUEUE_DELIVERY || 'route',
+        ...(process.env.AI_SDK_DURABLE_HARNESS_AGENT_QUEUE_HANDLER_ROUTE && {
+          AI_SDK_DURABLE_HARNESS_AGENT_QUEUE_HANDLER_ROUTE:
+            process.env.AI_SDK_DURABLE_HARNESS_AGENT_QUEUE_HANDLER_ROUTE,
+        }),
+        ...config.env,
+      },
+    };
   };
 }
 

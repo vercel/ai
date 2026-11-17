@@ -7,11 +7,15 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import {
   withDurableHarnessAgent,
   writeQueueHandlerRoute,
 } from './with-durable-harness-agent';
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 const agentCode = `import { HarnessAgent } from '@ai-sdk/harness/agent';
 export const agent = new HarnessAgent({ id: 'a' });`;
@@ -88,6 +92,21 @@ describe('writeQueueHandlerRoute', () => {
     );
   });
 
+  test('writes the route at the path the environment configures', () => {
+    vi.stubEnv(
+      'AI_SDK_DURABLE_HARNESS_AGENT_QUEUE_HANDLER_ROUTE',
+      '/api/harness-queue',
+    );
+    const projectDir = createProject();
+
+    writeQueueHandlerRoute({ projectDir });
+
+    expect(
+      readFileSync(join(projectDir, 'app/api/harness-queue/route.js'), 'utf8'),
+    ).toContain(`import '../../../agent/pi/basic';`);
+    expect(existsSync(routeFile(projectDir))).toBe(false);
+  });
+
   test('writes nothing without an app directory', () => {
     const projectDir = mkdtempSync(join(tmpdir(), 'harness-next-'));
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -102,13 +121,38 @@ describe('writeQueueHandlerRoute', () => {
 });
 
 describe('withDurableHarnessAgent', () => {
-  test('returns the config, resolved from a function', async () => {
+  test('returns the config, resolved from a function, with route delivery', async () => {
     const config = withDurableHarnessAgent(async () => ({
       reactStrictMode: true,
     }));
 
     expect(
       await config('phase-production-server', { defaultConfig: {} }),
-    ).toEqual({ reactStrictMode: true });
+    ).toEqual({
+      reactStrictMode: true,
+      env: { AI_SDK_DURABLE_HARNESS_AGENT_QUEUE_DELIVERY: 'route' },
+    });
+  });
+
+  test('keeps the queue settings of the environment and of the config', async () => {
+    vi.stubEnv('AI_SDK_DURABLE_HARNESS_AGENT_QUEUE_DELIVERY', 'both');
+    vi.stubEnv(
+      'AI_SDK_DURABLE_HARNESS_AGENT_QUEUE_HANDLER_ROUTE',
+      '/api/harness-queue',
+    );
+    const config = withDurableHarnessAgent({
+      env: {
+        AI_SDK_DURABLE_HARNESS_AGENT_QUEUE_HANDLER_ROUTE: '/api/own-queue',
+        OTHER: 'value',
+      },
+    });
+
+    expect(
+      (await config('phase-production-server', { defaultConfig: {} })).env,
+    ).toEqual({
+      AI_SDK_DURABLE_HARNESS_AGENT_QUEUE_DELIVERY: 'both',
+      AI_SDK_DURABLE_HARNESS_AGENT_QUEUE_HANDLER_ROUTE: '/api/own-queue',
+      OTHER: 'value',
+    });
   });
 });

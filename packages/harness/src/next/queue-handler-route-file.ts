@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { DURABLE_HARNESS_AGENT_QUEUE_HANDLER_ROUTE } from '../agent/v2/internal/durable-agent-queue';
+import { getDurableHarnessAgentQueueHandlerRoute } from '../agent/v2/internal/durable-agent-queue';
 
 /**
  * Marker in the first line of a queue handler route that
@@ -29,13 +29,14 @@ export function findNextAppDir(options: {
 }
 
 /**
- * Directory of the queue handler route in the app directory:
- * `<app>/.well-known/harness-agent/v1/flow`.
+ * Directory of the queue handler route in the app directory: the route's
+ * path from `getDurableHarnessAgentQueueHandlerRoute()` under `<app>`, by
+ * default `<app>/.well-known/harness-agent/v1/flow`.
  */
 export function getQueueHandlerRouteDir(options: { appDir: string }): string {
   return join(
     options.appDir,
-    ...DURABLE_HARNESS_AGENT_QUEUE_HANDLER_ROUTE.split('/').filter(Boolean),
+    ...getDurableHarnessAgentQueueHandlerRoute().split('/').filter(Boolean),
   );
 }
 

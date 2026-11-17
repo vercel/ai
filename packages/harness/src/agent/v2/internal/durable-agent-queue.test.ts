@@ -1,5 +1,5 @@
 import type { World } from '@workflow/world';
-import { describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import { registerDurableHarnessAgent } from '../durable-agent-registry';
 import {
   connectDurableHarnessAgentQueue,
@@ -90,6 +90,81 @@ describe('sendDurableHarnessAgentBackstop', () => {
       }),
     ).toBe(false);
     expect(queue).not.toHaveBeenCalled();
+  });
+});
+
+describe('connectDurableHarnessAgentQueue', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  const prefix = '__harnessagent_wkf_workflow_';
+
+  test('registers only the handler by default, then starts the World', () => {
+    const { world } = createWorld();
+
+    connectDurableHarnessAgentQueue({ world });
+
+    expect(world.registerHandler).toHaveBeenCalledWith(
+      prefix,
+      expect.any(Function),
+    );
+    expect(world.registerRoute).not.toHaveBeenCalled();
+    expect(world.start).toHaveBeenCalledTimes(1);
+  });
+
+  test('registers only the route with `route` delivery', () => {
+    vi.stubEnv('AI_SDK_DURABLE_HARNESS_AGENT_QUEUE_DELIVERY', 'route');
+    const { world } = createWorld();
+
+    connectDurableHarnessAgentQueue({ world });
+
+    expect(world.registerHandler).not.toHaveBeenCalled();
+    expect(world.registerRoute).toHaveBeenCalledWith(
+      prefix,
+      '/.well-known/harness-agent/v1/flow',
+    );
+  });
+
+  test('registers the handler and the route at its configured path with `both` delivery', () => {
+    vi.stubEnv('AI_SDK_DURABLE_HARNESS_AGENT_QUEUE_DELIVERY', 'both');
+    vi.stubEnv(
+      'AI_SDK_DURABLE_HARNESS_AGENT_QUEUE_HANDLER_ROUTE',
+      '/api/harness-queue',
+    );
+    const { world } = createWorld();
+
+    connectDurableHarnessAgentQueue({ world });
+
+    expect(world.registerHandler).toHaveBeenCalledWith(
+      prefix,
+      expect.any(Function),
+    );
+    expect(world.registerRoute).toHaveBeenCalledWith(
+      prefix,
+      '/api/harness-queue',
+    );
+  });
+
+  test('connects a World only once', () => {
+    const { world } = createWorld();
+
+    connectDurableHarnessAgentQueue({ world });
+    connectDurableHarnessAgentQueue({ world });
+
+    expect(world.registerHandler).toHaveBeenCalledTimes(1);
+    expect(world.start).toHaveBeenCalledTimes(1);
+  });
+
+  test('rejects an unknown delivery without connecting the World', () => {
+    vi.stubEnv('AI_SDK_DURABLE_HARNESS_AGENT_QUEUE_DELIVERY', 'http');
+    const { world } = createWorld();
+
+    expect(() => connectDurableHarnessAgentQueue({ world })).toThrow(
+      'AI_SDK_DURABLE_HARNESS_AGENT_QUEUE_DELIVERY must be `handler`, `route` or `both`, received `http`.',
+    );
+    expect(world.registerHandler).not.toHaveBeenCalled();
+    expect(world.start).not.toHaveBeenCalled();
   });
 });
 

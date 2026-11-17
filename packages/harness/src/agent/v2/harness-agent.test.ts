@@ -1658,11 +1658,7 @@ describe('HarnessAgent durability', () => {
       '__harnessagent_wkf_workflow_',
       expect.any(Function),
     );
-    expect(registerRoute).toHaveBeenCalledTimes(1);
-    expect(registerRoute).toHaveBeenCalledWith(
-      '__harnessagent_wkf_workflow_',
-      '/.well-known/harness-agent/v1/flow',
-    );
+    expect(registerRoute).not.toHaveBeenCalled();
     expect(start).toHaveBeenCalledTimes(1);
   });
 
