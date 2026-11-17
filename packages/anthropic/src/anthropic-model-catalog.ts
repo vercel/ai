@@ -15,6 +15,7 @@ type AnthropicLanguageProviderOption = keyof AnthropicLanguageModelOptions;
  */
 export const anthropicProviderOptions = {
   language: {
+    thread: { description: 'Create or continue a short-lived message thread.' },
     sendReasoning: { description: 'Whether to send reasoning to the model.' },
     includePings: { description: 'Include transient ping events in streams.' },
     structuredOutputMode: {
@@ -180,7 +181,9 @@ const runtimeRules: readonly {
     }),
   },
   {
-    matches: modelId => modelId.includes('claude-fable-5-1'),
+    matches: modelId =>
+      modelId.includes('claude-fable-5-2') ||
+      modelId.includes('claude-fable-5-1'),
     definition: defineRuntime({
       ...currentClaudeWithoutSampling,
       thinkingCanBeDisabled: false,
@@ -245,12 +248,13 @@ const runtimeRules: readonly {
   },
 ];
 
-const documentedModels: Readonly<Record<string, DocumentedCapabilities>> = {
+const languageModelDefinitions = {
   'claude-opus-5-5': { toolSearch: true, compaction: true, effort: true },
   'claude-opus-5': { toolSearch: true, compaction: true, effort: true },
   'claude-sonnet-5-5': { toolSearch: true, compaction: true, effort: true },
   'claude-sonnet-5': { toolSearch: true, compaction: true, effort: true },
   'claude-haiku-5-5': { toolSearch: true, compaction: true, effort: true },
+  'claude-fable-5-2': { toolSearch: true, compaction: true, effort: true },
   'claude-fable-5-1': { toolSearch: true, compaction: true, effort: true },
   'claude-fable-5': { toolSearch: true, compaction: true, effort: true },
   'claude-opus-4-8': { toolSearch: true, compaction: true, effort: true },
@@ -263,15 +267,25 @@ const documentedModels: Readonly<Record<string, DocumentedCapabilities>> = {
   'claude-opus-4-1': { toolSearch: false, compaction: false, effort: false },
   'claude-opus-4-0': { toolSearch: false, compaction: false, effort: false },
   'claude-sonnet-4-0': { toolSearch: false, compaction: false, effort: false },
-};
+  // Known IDs without declared capabilities retain the custom-model fallback.
+  'claude-3-haiku-20240307': undefined,
+  'claude-haiku-4-5-20251001': undefined,
+  'claude-opus-4-1-20250805': undefined,
+  'claude-opus-4-20250514': undefined,
+  'claude-opus-4-5-20251101': undefined,
+  'claude-sonnet-4-20250514': undefined,
+  'claude-sonnet-4-5-20250929': undefined,
+} satisfies Readonly<Record<string, DocumentedCapabilities | undefined>>;
 
 export const anthropicModelCatalog: Readonly<
   Record<string, AnthropicLanguageModelEntry>
 > = Object.fromEntries(
-  Object.entries(documentedModels).map(([modelId, capabilities]) => [
-    modelId,
-    createAnthropicLanguageModelEntry(modelId, capabilities),
-  ]),
+  Object.entries(languageModelDefinitions)
+    .filter(([, definition]) => definition != null)
+    .map(([modelId, capabilities]) => [
+      modelId,
+      createAnthropicLanguageModelEntry(modelId, capabilities),
+    ]),
 );
 
 export function getAnthropicLanguageModelEntry(
@@ -406,3 +420,11 @@ export function getAnthropicModelCapabilities(modelId: string) {
     isKnownModel: requestConfig.knownModel,
   };
 }
+
+// Compatibility name also exported by the Anthropic runtime adapter.
+export { getAnthropicModelCapabilities as getModelCapabilities };
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type AnthropicModelIds = {
+  language: keyof typeof languageModelDefinitions;
+};

@@ -4,13 +4,12 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { GoogleVertexModelIds } from './google-vertex-model-catalog';
 
 // Google Cloud Speech-to-Text transcription models (Speech-to-Text v2).
 // https://docs.cloud.google.com/speech-to-text/docs/transcription-model
 export type GoogleVertexTranscriptionModelId =
-  | 'chirp_2'
-  | 'chirp_3'
-  | 'telephony'
+  | GoogleVertexModelIds['transcription']
   | (string & {});
 
 export const googleVertexTranscriptionProviderOptionsSchema = lazySchema(() =>

@@ -1,5 +1,106 @@
 # @ai-sdk/tool-web-fetch
 
+## 1.0.23
+
+### Patch Changes
+
+- Updated dependencies [3c09e00]
+- Updated dependencies [f43ee39]
+- Updated dependencies [7ce7ffc]
+- Updated dependencies [f6809e3]
+- Updated dependencies [2559173]
+- Updated dependencies [f1de9cb]
+  - ai@7.0.173
+
+## 1.0.22
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+- Updated dependencies [79d2004]
+  - @ai-sdk/provider-utils@5.0.81
+  - ai@7.0.172
+
+## 1.0.21
+
+### Patch Changes
+
+- 2ebc78b: Forward the provider's configured fetch transport when downloading file inputs. Add a `fetch` option to `createDownload` so core downloads can also use `guarded-fetch` for opt-in DNS validation on Node.js. The function returned by `createDownload` can now also be passed as `experimental_download` to `generateText` and `streamText`, and `experimental_download` now also handles generated file URLs returned by the model, so one hook covers all core downloads. Document that the default URL checks do not resolve DNS and recommend the guarded transport or network egress controls for untrusted URLs.
+
+  Keep Azure image and Vertex tool-result downloads separate from provider authentication wrappers so file hosts never receive Azure bearer tokens or Vertex Express Mode API keys.
+
+  Pass the call's abort signal to custom download requests, including prompt assets and generated files, so `experimental_download: createDownload({ fetch })` preserves cancellation and timeouts.
+
+- Updated dependencies [11323f9]
+- Updated dependencies [2ebc78b]
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+- Updated dependencies [ceeee29]
+- Updated dependencies [1a94af3]
+  - ai@7.0.171
+  - @ai-sdk/provider-utils@5.0.80
+
+## 1.0.20
+
+### Patch Changes
+
+- Updated dependencies [91a67c2]
+- Updated dependencies [84b1cb0]
+  - ai@7.0.170
+
+## 1.0.19
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+- Updated dependencies [d9dd2b7]
+  - @ai-sdk/provider-utils@5.0.79
+  - ai@7.0.169
+
+## 1.0.18
+
+### Patch Changes
+
+- Updated dependencies [65aa669]
+- Updated dependencies [8585d7e]
+- Updated dependencies [88b9575]
+  - ai@7.0.168
+  - @ai-sdk/provider-utils@5.0.78
+
+## 1.0.17
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+- Updated dependencies [404ce3b]
+  - @ai-sdk/provider-utils@5.0.77
+  - ai@7.0.167
+
+## 1.0.16
+
+### Patch Changes
+
+- ai@7.0.166
+
+## 1.0.15
+
+### Patch Changes
+
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [883fcde]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [6d21e8e]
+  - @ai-sdk/provider-utils@5.0.76
+  - ai@7.0.165
+
+## 1.0.14
+
+### Patch Changes
+
+- ai@7.0.164
+
 ## 1.0.13
 
 ### Patch Changes

@@ -139,6 +139,25 @@ describe('OpenCode bridge turn settlement', () => {
     delete process.env.OPENCODE_DISABLE_PROJECT_CONFIG;
   });
 
+  it.each([
+    [['--host-disconnect-timeout-ms', '60000'], 60_000],
+    [[], undefined],
+  ])(
+    'passes the host disconnect timeout argument to the bridge (%j)',
+    async (extraArgs, expected) => {
+      const { runBridge } = await import('@ai-sdk/harness/bridge');
+      vi.mocked(runBridge).mockImplementationOnce(async () => ({}) as never);
+      setBridgeArgv();
+      process.argv.push(...extraArgs);
+
+      await import('./index');
+
+      expect(
+        vi.mocked(runBridge).mock.lastCall?.[0].hostDisconnectTimeoutMs,
+      ).toBe(expected);
+    },
+  );
+
   it('preserves native manual compaction as one normalized completion event', async () => {
     const emitted: Array<Record<string, unknown>> = [];
     const emitError = vi.fn();
@@ -1168,6 +1187,108 @@ describe('OpenCode bridge turn settlement', () => {
       },
     });
   });
+
+  it.each([
+    {
+      name: 'Google models',
+      model: 'google/gemini-3.8-flash',
+      providerID: 'google',
+      modelID: 'gemini-3.8-flash',
+      expectedNpm: '@ai-sdk/openai-compatible',
+    },
+    {
+      name: 'Mistral models',
+      model: 'mistral/mistral-large-latest',
+      providerID: 'mistral',
+      modelID: 'mistral-large-latest',
+      expectedNpm: '@ai-sdk/openai-compatible',
+    },
+    {
+      name: 'non-Google models',
+      model: 'openai/gpt-5.4-mini',
+      providerID: 'openai',
+      modelID: 'gpt-5.4-mini',
+      expectedNpm: undefined,
+    },
+  ])(
+    'selects the AI Gateway driver for $name',
+    async ({ model, providerID, modelID, expectedNpm }) => {
+      const userMessages = createUserMessages();
+      bridgeMock.start = {
+        type: 'start',
+        operation: 'prompt',
+        prompt: 'Start.',
+        model,
+      };
+      bridgeMock.turn = {
+        emit: vi.fn(),
+        requestToolResult: vi.fn(),
+        requestToolApproval: vi.fn(),
+        experimental_userMessages: userMessages,
+        abortSignal: new AbortController().signal,
+        firstTurn: true,
+        bridgeLog: vi.fn(),
+        emitWarning: vi.fn(),
+        emitError: vi.fn(),
+      };
+      sdkMock.client = {
+        mcp: { status: vi.fn(async () => ({ data: {} })) },
+        session: {
+          create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+          get: vi.fn(async () => ({ data: {} })),
+          messages: vi.fn(async () => ({ data: [] })),
+          promptAsync: vi.fn(async () => ({ data: {} })),
+        },
+        event: {
+          subscribe: vi.fn(async () => ({
+            stream: {
+              async *[Symbol.asyncIterator]() {
+                yield {
+                  type: 'session.next.step.failed',
+                  properties: {
+                    sessionID: 'session-1',
+                    error: 'model step failed',
+                  },
+                };
+              },
+            },
+          })),
+        },
+        v2: {
+          session: {
+            context: vi.fn(async () => ({ data: [] })),
+            switchModel: vi.fn(async () => ({ data: {} })),
+          },
+        },
+      };
+      vi.stubEnv('AI_GATEWAY_API_KEY', 'gateway-key');
+      vi.stubEnv('AI_GATEWAY_BASE_URL', 'https://ai-gateway.test/v1');
+      setBridgeArgv();
+
+      await import('./index');
+
+      const config = createOpencodeServerMock.mock.calls[0]?.[0]
+        .config as Record<string, unknown>;
+      const providers = config.provider as Record<
+        string,
+        Record<string, unknown>
+      >;
+      const provider = providers[providerID];
+      expect(provider).toMatchObject({
+        ...(expectedNpm ? { npm: expectedNpm } : {}),
+        options: {
+          apiKey: 'gateway-key',
+          baseURL: 'https://ai-gateway.test/v1',
+        },
+        models: {
+          [modelID]: { id: modelID, name: modelID },
+        },
+      });
+      if (expectedNpm == null) {
+        expect(provider).not.toHaveProperty('npm');
+      }
+    },
+  );
 
   it('settles when OpenCode emits session.next.step.failed', async () => {
     const emitted: Array<Record<string, unknown>> = [];

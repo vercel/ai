@@ -57,6 +57,7 @@ describe('createACP built-in tool inference', () => {
         | 'port'
         | 'portEndpoint'
         | 'startupTimeoutMs'
+        | 'hostDisconnectTimeoutMs'
         | 'reconnect'
         | 'clientApp'
       >
@@ -68,6 +69,7 @@ describe('createACP built-in tool inference', () => {
         | 'port'
         | 'portEndpoint'
         | 'startupTimeoutMs'
+        | 'hostDisconnectTimeoutMs'
         | 'reconnect'
         | 'clientApp'
       >
@@ -211,6 +213,7 @@ describe('createACP built-in tool inference', () => {
       modelMapping,
       ...toolCallSettings,
       skillsDirectory: '.claude/skills',
+      writeProtectedPaths: ['.claude'],
       instructionMapping: {
         type: 'session-meta',
         path: ['systemPrompt', 'append'],

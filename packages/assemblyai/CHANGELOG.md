@@ -1,5 +1,61 @@
 # @ai-sdk/assemblyai
 
+## 3.0.82
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+
+## 3.0.81
+
+### Patch Changes
+
+- 373b075: Add an AssemblyAI model catalog that drives transcription model ID suggestions, request policies, capability documentation, and provider option metadata.
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+
+## 3.0.80
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+
+## 3.0.79
+
+### Patch Changes
+
+- Updated dependencies [88b9575]
+  - @ai-sdk/provider-utils@5.0.78
+
+## 3.0.78
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+
+## 3.0.77
+
+### Patch Changes
+
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+
+## 3.0.76
+
+### Patch Changes
+
+- c87b19e: fix(assemblyai): surface AssemblyAI error messages from the documented flat error response shape
+
 ## 3.0.75
 
 ### Patch Changes

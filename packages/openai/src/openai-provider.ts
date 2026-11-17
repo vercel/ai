@@ -2,6 +2,7 @@ import type {
   Experimental_BatchV4 as BatchV4,
   Experimental_DecisionModelV4 as DecisionModelV4,
   EmbeddingModelV4,
+  Experimental_ExtractionModelV4 as ExtractionModelV4,
   FilesV4,
   ImageModelV4,
   LanguageModelV4,
@@ -22,6 +23,7 @@ import {
   type FetchFunction,
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
+import { Experimental_ExtractionLanguageModel as ExtractionLanguageModel } from '@ai-sdk/provider-utils/experimental-extraction';
 import {
   DecisionOpenAIModel,
   type OpenAIDecisionModelId,
@@ -61,6 +63,9 @@ export interface OpenAIProvider extends ProviderV4 {
   evaluationModel(modelId: OpenAIDecisionModelId): DecisionModelV4 & {
     doEvaluate: DecisionModelV4['doDecide'];
   };
+
+  /** Creates an experimental typed field extraction model using Responses. */
+  extractionModel(modelId: OpenAIResponsesModelId): ExtractionModelV4;
 
   /**
    * Creates an OpenAI model for text generation.
@@ -381,6 +386,11 @@ export function createOpenAI(
     });
   provider.evaluationModel =
     provider.decisionModel as OpenAIProvider['evaluationModel'];
+  provider.extractionModel = (modelId: OpenAIResponsesModelId) =>
+    new ExtractionLanguageModel({
+      model: createLanguageModel(modelId),
+      provider: `${providerName}.extraction`,
+    });
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;

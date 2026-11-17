@@ -76,6 +76,10 @@ export { normalizeBatchRequestCounts } from './normalize-batch-request-counts';
 export * from './parse-json';
 export { parseJsonEventStream } from './parse-json-event-stream';
 export { parseProviderOptions } from './parse-provider-options';
+export {
+  resolveProviderOptions,
+  type ProviderOptionsResolution,
+} from './resolve-provider-options';
 export * from './post-multipart-stream-to-api';
 export * from './post-to-api';
 export {
@@ -113,6 +117,10 @@ export {
 export { serializeModelOptions } from './serialize-model-options';
 export { SerializationError } from './serialization-error';
 export { secureJsonParse } from './secure-json-parse';
+export {
+  withTelemetryRedaction,
+  redactTelemetryValue,
+} from './telemetry-redaction';
 export {
   SPEECH_STREAM_START_FRAME_TYPE as EXPERIMENTAL_SPEECH_STREAM_START_FRAME_TYPE,
   SPEECH_STREAM_TEXT_DELTA_FRAME_TYPE as EXPERIMENTAL_SPEECH_STREAM_TEXT_DELTA_FRAME_TYPE,

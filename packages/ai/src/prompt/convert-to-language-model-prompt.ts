@@ -52,6 +52,7 @@ export async function convertToLanguageModelPrompt({
     prompt.messages,
     download ?? createDefaultDownloadFunction(undefined, abortSignal),
     supportedUrls,
+    abortSignal,
   );
 
   const messages = [
@@ -409,6 +410,7 @@ export async function downloadAssets(
   messages: ModelMessage[],
   download: DownloadFunction,
   supportedUrls: Record<string, RegExp[]>,
+  abortSignal?: AbortSignal,
 ): Promise<
   Record<string, { mediaType: string | undefined; data: Uint8Array }>
 > {
@@ -482,6 +484,7 @@ export async function downloadAssets(
     .filter((part): part is UrlTaggedFile => part.data.type === 'url')
     .map(part => ({
       url: part.data.url,
+      abortSignal,
       isUrlSupportedByModel:
         part.mediaType != null &&
         isUrlSupported({

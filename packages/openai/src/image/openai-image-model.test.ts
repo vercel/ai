@@ -797,8 +797,8 @@ describe('doGenerate - GPT Image 2.6 options', () => {
 });
 
 describe('doGenerate - image editing', () => {
-  it.each(['image', 'mask'] as const)(
-    'should forward the abort signal when downloading a URL %s',
+  it.each(['image', 'mask', 'markup'] as const)(
+    'should use the configured fetch and abort signal when downloading a URL %s',
     async downloadTarget => {
       const controller = new AbortController();
       let resolveDownloadStarted!: (
@@ -816,30 +816,31 @@ describe('doGenerate - image editing', () => {
         rejectDownload = reject;
       });
 
-      vi.stubGlobal('EdgeRuntime', 'test');
-      vi.stubGlobal(
-        'fetch',
-        (_input: RequestInfo | URL, init?: RequestInit) => {
-          const signal = init?.signal;
-          resolveDownloadStarted(signal);
+      const downloadFetch = (_input: RequestInfo | URL, init?: RequestInit) => {
+        const signal = init?.signal;
+        resolveDownloadStarted(signal);
 
-          if (signal?.aborted) {
-            rejectDownload(signal.reason);
-          } else {
-            signal?.addEventListener(
-              'abort',
-              () => rejectDownload(signal.reason),
-              { once: true },
-            );
-          }
+        if (signal?.aborted) {
+          rejectDownload(signal.reason);
+        } else {
+          signal?.addEventListener(
+            'abort',
+            () => rejectDownload(signal.reason),
+            { once: true },
+          );
+        }
 
-          return downloadResponse;
-        },
-      );
+        return downloadResponse;
+      };
+      const globalFetch = vi.fn();
+      vi.stubGlobal('fetch', globalFetch);
 
       const editModel = createOpenAI({
         apiKey: 'test-api-key',
         fetch: async (_url, init) => {
+          if (_url.toString().startsWith('https://example.com/')) {
+            return downloadFetch(_url, init);
+          }
           init?.signal?.throwIfAborted();
           return Response.json({ data: [{ b64_json: 'base64-image' }] });
         },
@@ -866,7 +867,10 @@ describe('doGenerate - image editing', () => {
           size: undefined,
           aspectRatio: undefined,
           seed: undefined,
-          providerOptions: {},
+          providerOptions:
+            downloadTarget === 'markup'
+              ? { openai: { markup: 'https://example.com/markup.png' } }
+              : {},
           abortSignal: controller.signal,
         })
         .then(
@@ -880,6 +884,7 @@ describe('doGenerate - image editing', () => {
 
         expect(downloadSignal).toBe(controller.signal);
         expect(await operation).toBe('rejected');
+        expect(globalFetch).not.toHaveBeenCalled();
       } finally {
         resolveDownload(
           new Response(new Uint8Array([137, 80, 78, 71]), {

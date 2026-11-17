@@ -61,6 +61,7 @@ export class GoogleJSONAccumulator {
       if (!rawPath || rawPath === '$') continue;
 
       const segments = parsePath(rawPath);
+      if (!normalizeAndCheckIndexes(this.accumulatedArgs, segments)) continue;
 
       const existingValue = getNestedValue(this.accumulatedArgs, segments);
       const isStringContinuation =
@@ -384,6 +385,54 @@ function getNestedValue(
     current = currentRecord[pathSegment];
   }
   return current;
+}
+
+/**
+ * Normalizes dotted array indexes in place and checks that every array index
+ * is an existing element or the next one. Arrays are streamed in order, and a
+ * sparse index would make `finalize()` serialize one `null` per hole, so a tiny
+ * response could allocate without bound.
+ * A missing or `null` parent is replaced with a new array, so it starts at 0.
+ *
+ * Input: ({items:["a"]}, ["items",1]) or ({items:["a"]}, ["items",5])
+ * Output: true or false
+ */
+function normalizeAndCheckIndexes(
+  obj: Record<string, unknown>,
+  segments: Array<string | number>,
+): boolean {
+  let current: unknown = obj;
+  for (let i = 0; i < segments.length; i++) {
+    let pathSegment = segments[i];
+    if (Array.isArray(current) && typeof pathSegment === 'string') {
+      const index = Number(pathSegment);
+      // Only canonical array-index keys affect length. Keep object keys as strings.
+      if (
+        Number.isInteger(index) &&
+        index >= 0 &&
+        index < 2 ** 32 - 1 &&
+        String(index) === pathSegment
+      ) {
+        pathSegment = index;
+        segments[i] = index;
+      }
+    }
+    if (typeof pathSegment === 'number') {
+      const length = Array.isArray(current)
+        ? current.length
+        : current == null
+          ? 0
+          : undefined;
+      if (length !== undefined && pathSegment > length) return false;
+    }
+    current =
+      current != null &&
+      typeof current === 'object' &&
+      hasOwnProperty(current as Record<string | number, unknown>, pathSegment)
+        ? (current as Record<string | number, unknown>)[pathSegment]
+        : undefined;
+  }
+  return true;
 }
 
 /**

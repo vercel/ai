@@ -94,6 +94,13 @@ const REALPATH_FRAME = '__PI_REALPATH_FRAME__';
 const BASE64_PATH_PATTERN =
   /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 
+export class PiSandboxPathResolutionError extends Error {
+  constructor({ message }: { message: string }) {
+    super(message);
+    this.name = 'PiSandboxPathResolutionError';
+  }
+}
+
 function realpathShellLines(targetVariable: string): string[] {
   return [
     'set -o pipefail',
@@ -147,6 +154,7 @@ async function resolveSandboxPaths(input: {
     mustExist: boolean;
   }>;
   env?: Record<string, string>;
+  abortSignal?: AbortSignal;
 }): Promise<string[]> {
   const result = await input.sandbox.run({
     command: input.targets
@@ -174,27 +182,32 @@ async function resolveSandboxPaths(input: {
       ])
       .join('\n'),
     ...(input.env ? { env: input.env } : {}),
+    ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
   });
   const records = result.stdout.split(REALPATH_FRAME);
   const failedTarget =
     input.targets[Math.min(records.length - 1, input.targets.length - 1)]!;
   const output = result.stdout + result.stderr;
   if (output.includes('__PI_REALPATH_NOT_FOUND__')) {
-    throw new Error(`Path not found: ${failedTarget.inputPath}`);
+    throw new PiSandboxPathResolutionError({
+      message: `Path not found: ${failedTarget.inputPath}`,
+    });
   }
   if (
     result.exitCode !== 0 ||
     records.pop() !== '' ||
     records.length !== input.targets.length
   ) {
-    throw new Error(`Unable to resolve path: ${failedTarget.inputPath}`);
+    throw new PiSandboxPathResolutionError({
+      message: `Unable to resolve path: ${failedTarget.inputPath}`,
+    });
   }
   return records.map((record, index) => {
     const resolved = parseFramedPath(record + REALPATH_FRAME);
     if (!resolved || !path.posix.isAbsolute(resolved)) {
-      throw new Error(
-        `Unable to resolve path: ${input.targets[index]!.inputPath}`,
-      );
+      throw new PiSandboxPathResolutionError({
+        message: `Unable to resolve path: ${input.targets[index]!.inputPath}`,
+      });
     }
     return resolved;
   });
@@ -205,6 +218,7 @@ export async function resolvePiSandboxPathOrParent(input: {
   remotePath: string;
   inputPath: string;
   env?: Record<string, string>;
+  abortSignal?: AbortSignal;
 }): Promise<string> {
   const [resolved] = await resolveSandboxPaths({
     sandbox: input.sandbox,
@@ -216,6 +230,7 @@ export async function resolvePiSandboxPathOrParent(input: {
       },
     ],
     ...(input.env ? { env: input.env } : {}),
+    ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
   });
   return resolved!;
 }

@@ -77,7 +77,12 @@ describe('structured outputs for models that reject forced tool use', () => {
     };
   }
 
-  it.each(['claude-sonnet-5-5', 'claude-opus-5-5', 'claude-fable-5-1'])(
+  it.each([
+    'claude-sonnet-5-5',
+    'claude-opus-5-5',
+    'claude-fable-5-1',
+    'claude-fable-5-2',
+  ])(
     'uses native structured outputs for %s when the provider disables them by default',
     async modelId => {
       respondWith([{ type: 'text', text: '{"answer":"42"}' }]);

@@ -1,5 +1,9 @@
+import type { BlackForestLabsModelIds } from './black-forest-labs-model-catalog';
+
 // https://docs.bfl.ai/api-reference/utility/generate-a-video-with-flux-3
-export type BlackForestLabsVideoModelId = 'flux-3-video' | (string & {});
+export type BlackForestLabsVideoModelId =
+  | BlackForestLabsModelIds['video']
+  | (string & {});
 
 /**
  * Aspect ratios FLUX 3 video accepts. `auto` lets the model infer the ratio

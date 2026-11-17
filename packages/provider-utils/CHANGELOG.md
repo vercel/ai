@@ -1,5 +1,55 @@
 # @ai-sdk/provider-utils
 
+## 5.0.81
+
+### Patch Changes
+
+- 6d50947: add experimental extraction models backed by structured language model output
+
+## 5.0.80
+
+### Patch Changes
+
+- 2ebc78b: Move Node.js connection-time DNS validation to the optional `guarded-fetch` package. It uses an Undici agent to validate every resolved address and pin the connection to those results, independently of global fetch wrappers. It supports explicitly trusted private origins and connection-pool cleanup.
+
+  **Security behavior change:** provider-utils now uses the configured fetch or the runtime's global fetch and no longer depends on Undici. Default URL checks still reject private IP literals, local hostnames, unsafe schemes, and unsafe redirect URLs, but do not block public-looking hostnames that resolve to private addresses or DNS rebinding. Applications fetching untrusted URLs should inject `createGuardedFetch()` on Node.js or enforce equivalent network egress restrictions.
+
+  Allow `downloadBlob` to accept a fetch transport so applications can apply the same protection to file downloads.
+
+  MCP OAuth discovery keeps its strict DNS requirement: because Node.js no longer has a DNS-pinned default transport, untrusted authorization-server, redirect, token, and registration URLs now require an explicit custom fetch with connection-time DNS validation on Node.js too. Pass `createGuardedFetch()` through `transport.fetch`. The configured MCP server origin and browser window discovery remain supported.
+
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/provider@4.0.38
+
+## 5.0.79
+
+### Patch Changes
+
+- 4311fa1: Infer Zod 3 schemas through Standard Schema to prevent recursive type comparisons between installed Zod versions, preserving tool input and streamed output inference.
+- 4311fa1: Use Zod Mini for internal validation schemas to reduce bundle size while preserving the public message schemas' classic Zod methods, error messages, and compatibility with supported Zod 3 and Zod 4 versions.
+
+## 5.0.78
+
+### Patch Changes
+
+- 88b9575: Require a DNS-pinned fetch for untrusted MCP OAuth discovery and metadata-derived token/registration URLs on server runtimes without a protected default transport. Preserve developer-configured endpoints and allow explicitly supplied fetch implementations that provide equivalent connect-time validation. Browser workers without a DOM follow the same explicit custom-fetch requirement.
+
+## 5.0.77
+
+### Patch Changes
+
+- 9f37b45: refactor: separate provider-specific credential redaction from core telemetry
+
+## 5.0.76
+
+### Patch Changes
+
+- 6400cf8: Add `resolveProviderOptions` to parse provider options that a model accepts under several `providerOptions` keys, either as aliases (`first`) or merged in order (`merge`), and use it for the existing multi-key lookups in the OpenAI, OpenAI-compatible, Anthropic, Google, and Amazon Bedrock models. Resolution behavior for these models is unchanged.
+- f608c05: Reject HTTPS-to-HTTP redirects in validated downloads before requesting the insecure target, including when it matches a configured trusted origin.
+- cab9c1f: Return undefined instead of throwing when detectMediaType receives an unsupported topLevelType that matches an inherited object property.
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider@4.0.37
+
 ## 5.0.75
 
 ### Patch Changes

@@ -310,6 +310,14 @@ export interface GatewayProviderSettings {
    * API key or Vercel access token that is being sent using the `Authorization`
    * header. It defaults to the `AI_GATEWAY_API_KEY` environment variable.
    * A callback is resolved before each request and must return a non-empty key.
+   *
+   * If neither `apiKey` nor `AI_GATEWAY_API_KEY` is set to a non-empty value,
+   * the provider authenticates with the Vercel OIDC token instead, resolved for
+   * each request. On Vercel deployments this requires no configuration. For
+   * local development, run `vercel env pull` or `vercel dev` to get a token.
+   * A non-empty configured API key is always used instead of OIDC, even if the
+   * key is invalid. If no OIDC token is available either, requests fail with a
+   * `GatewayAuthenticationError` ("No authentication provided").
    */
   apiKey?: Resolvable<string>;
 
@@ -358,7 +366,7 @@ const gatewayClientSecretResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       token: z.string(),
-      expiresAt: z.number().nullish(),
+      expiresAt: z.nullish(z.number()),
     }),
   ),
 );
@@ -792,6 +800,20 @@ export function createGateway(
 
 export const gateway = createGateway();
 
+/**
+ * Resolves the credential for a Gateway request, in this order:
+ *
+ * 1. The `apiKey` setting (a string, or a callback resolved per request).
+ * 2. The `AI_GATEWAY_API_KEY` environment variable.
+ * 3. The Vercel OIDC token from `getVercelOidcToken()`. It is available
+ *    automatically on Vercel deployments, and locally after `vercel env pull`
+ *    or under `vercel dev`.
+ *
+ * A non-empty configured API key is never replaced by OIDC, even if the key is
+ * invalid. An empty string option or environment variable falls through to
+ * OIDC; a callback must return a non-empty key. Callers wrap a failure here in a
+ * `GatewayAuthenticationError` ("No authentication provided").
+ */
 export async function getGatewayAuthToken(
   options: GatewayProviderSettings,
 ): Promise<{ token: string; authMethod: 'api-key' | 'oidc' }> {

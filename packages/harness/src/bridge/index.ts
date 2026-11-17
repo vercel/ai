@@ -1,7 +1,7 @@
 // Shared in-sandbox bridge runtime. Adapter `bridge.mjs` bundles re-bundle
 // this module (tsdown inlines it; `ws` stays external and resolves from the
 // sandbox-installed node_modules). It owns everything generic to the bridge
-// transport — the WebSocket server, token auth, the in-memory event log +
+// transport — the WebSocket server, public-key auth, the in-memory event log +
 // monotonic `seq`, resume replay, and the lifecycle/meta files. Any number of
 // hosts may be connected; exactly one of them owns the event stream, and
 // `start`/`resume` transfer that ownership. The adapter supplies only `onStart`
@@ -13,8 +13,14 @@ import { randomUUID } from 'node:crypto';
 import { env as procEnv, pid, stdout } from 'node:process';
 import type { ToolResultPart } from '@ai-sdk/provider-utils';
 import { WebSocketServer, type WebSocket } from 'ws';
+import { BRIDGE_AUTH_PUBLIC_KEY_ENV } from '../utils/bridge-auth-protocol';
+import {
+  authenticateBridgeConnection,
+  parseBridgeAuthPublicKey,
+} from './bridge-auth';
 
 export { HarnessBridgeCapabilityUnsupportedError } from './harness-bridge-capability-unsupported-error';
+export { isWriteProtectedPath } from './is-write-protected-path';
 export {
   convertHarnessToolModelOutput,
   type HarnessToolModelOutputContent,
@@ -343,8 +349,17 @@ export interface RunBridgeOptions<TStart extends { type: 'start' }> {
   onDestroy?(): void | Promise<void>;
   /** WS port. Defaults to `BRIDGE_WS_PORT` env (0 = OS-assigned). */
   port?: number;
-  /** Auth token. Defaults to `BRIDGE_CHANNEL_TOKEN` env. */
-  token?: string;
+  /**
+   * Base64url-encoded raw Ed25519 public key that verifies host connections.
+   * Defaults to the `BRIDGE_AUTH_PUBLIC_KEY` env.
+   */
+  publicKey?: string;
+  /**
+   * Abort the running turn when its host disconnects and no host reconnects
+   * within this many milliseconds. A host that suspends the turn is exempt.
+   * Unset keeps the turn running until it finishes.
+   */
+  hostDisconnectTimeoutMs?: number;
   /** Called with the bound port once the server is listening. */
   onListening?(port: number): void;
   /**
@@ -394,7 +409,23 @@ export async function runBridge<TStart extends { type: 'start' }>(
 ): Promise<BridgeHandle> {
   const { bridgeType, bridgeStateDir, onStart, onStop, onDestroy } = options;
   const teardownGraceMs = options.turnTeardownGraceMs ?? 10_000;
-  const expectedToken = options.token ?? procEnv.BRIDGE_CHANNEL_TOKEN ?? '';
+  // Only a positive finite timeout enables it. An invalid value keeps the turn
+  // running instead of aborting it on every disconnect, and longer values are
+  // capped at the largest delay setTimeout supports.
+  const hostDisconnectTimeoutMs =
+    options.hostDisconnectTimeoutMs != null &&
+    Number.isFinite(options.hostDisconnectTimeoutMs) &&
+    options.hostDisconnectTimeoutMs > 0
+      ? Math.min(options.hostDisconnectTimeoutMs, 2_147_483_647)
+      : undefined;
+  let hostDisconnectTimer: ReturnType<typeof setTimeout> | undefined;
+  const clearHostDisconnectTimer = (): void => {
+    clearTimeout(hostDisconnectTimer);
+    hostDisconnectTimer = undefined;
+  };
+  const authPublicKey = parseBridgeAuthPublicKey({
+    publicKey: options.publicKey ?? procEnv[BRIDGE_AUTH_PUBLIC_KEY_ENV],
+  });
   const bridgeWsPort =
     options.port ?? parseInt(procEnv.BRIDGE_WS_PORT ?? '0', 10);
 
@@ -766,6 +797,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
         const thisTurn = new Promise<void>(resolve => (turnFinished = resolve));
         activeTurn = thisTurn;
         activeSocket = ws; // asking for a turn claims the event stream
+        clearHostDisconnectTimer();
         const firstTurn = isFirstTurn;
         isFirstTurn = false;
         eventLog = []; // clear previous turn; keep seqCounter monotonic
@@ -856,6 +888,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
             activeTurn = undefined;
             currentTurnState = 'waiting';
             void writeBridgeMeta('waiting');
+            clearHostDisconnectTimer();
           }
           turnFinished();
         }
@@ -929,6 +962,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
         return;
       case 'resume':
         activeSocket = ws; // asking for a catch-up claims it too
+        clearHostDisconnectTimer();
         // Synchronous, so no event can slip out live ahead of the replayed tail.
         replay(ws, msg.lastSeenEventId);
         return;
@@ -997,13 +1031,15 @@ export async function runBridge<TStart extends { type: 'start' }>(
     options.onListening?.(currentBoundPort);
   });
 
-  wss.on('connection', (ws: WebSocket, req: { url?: string }) => {
-    const url = new URL(req.url ?? '/', 'http://localhost');
-    if (url.searchParams.get('agent_bridge_token') !== expectedToken) {
-      ws.close(1008, 'unauthorized');
-      return;
-    }
+  wss.on('connection', (ws: WebSocket) =>
+    authenticateBridgeConnection({
+      ws,
+      publicKey: authPublicKey,
+      onAuthenticated: () => acceptConnection(ws),
+    }),
+  );
 
+  const acceptConnection = (ws: WebSocket): void => {
     // Announce liveness the instant we accept. Some sandbox runtimes complete
     // the host-side WS handshake before the connection is forwarded here; the
     // host waits for this frame before sending `start`/`resume`.
@@ -1033,20 +1069,33 @@ export async function runBridge<TStart extends { type: 'start' }>(
       void handleInbound(parsed, ws);
     });
 
-    ws.on('close', () => {
+    ws.on('close', (_code: number, reason: Buffer) => {
       // Only the stream owner's close matters; a socket that never claimed it,
       // or that a later `start`/`resume` displaced, closes as a no-op.
       // Crucially we do NOT abort the in-flight turn: it keeps running and its
-      // events accumulate in the log for replay on reconnect.
+      // events accumulate in the log for replay on reconnect. With a host
+      // disconnect timeout, a turn whose host never comes back is aborted.
       if (activeSocket === ws) {
         activeSocket = undefined;
+        if (
+          hostDisconnectTimeoutMs != null &&
+          activeTurn != null &&
+          reason.toString() !== 'suspended'
+        ) {
+          clearHostDisconnectTimer();
+          hostDisconnectTimer = setTimeout(() => {
+            hostDisconnectTimer = undefined;
+            if (activeSocket == null) turnAbort?.abort();
+          }, hostDisconnectTimeoutMs);
+          hostDisconnectTimer.unref?.();
+        }
       }
     });
 
     ws.on('error', () => {
       // 'close' follows; nothing to do beyond keeping the process alive.
     });
-  });
+  };
 
   // Surface bridge-internal crashes to the host instead of dying silently.
   process.on('uncaughtException', err => {

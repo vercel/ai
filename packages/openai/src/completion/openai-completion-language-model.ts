@@ -14,8 +14,8 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
-  parseProviderOptions,
   postJsonToApi,
+  resolveProviderOptions,
   serializeModelOptions,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
@@ -111,18 +111,16 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
     const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
-    const openaiOptions = {
-      ...(await parseProviderOptions({
-        provider: 'openai',
-        providerOptions,
-        schema: openaiLanguageModelCompletionOptions,
-      })),
-      ...(await parseProviderOptions({
-        provider: this.providerOptionsName,
-        providerOptions,
-        schema: openaiLanguageModelCompletionOptions,
-      })),
-    };
+    // `openai` and the provider key are merged; the provider key wins.
+    const openaiOptions =
+      (
+        await resolveProviderOptions({
+          providerOptions,
+          namespaces: ['openai', this.providerOptionsName],
+          resolution: 'merge',
+          schema: openaiLanguageModelCompletionOptions,
+        })
+      ).options ?? {};
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });

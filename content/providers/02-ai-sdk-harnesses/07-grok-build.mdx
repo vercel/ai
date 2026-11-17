@@ -109,6 +109,11 @@ Settings:
 - `mcpServers`: MCP server definitions keyed by server name.
 - `port`: ACP bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the ACP bridge to start.
+- `hostDisconnectTimeoutMs`: aborts a running turn when the host disconnects
+  and no host reconnects within this many milliseconds. A suspended turn is
+  not aborted. When unset, a turn keeps running in the sandbox after its host
+  disconnects, including when the host process is gone for good, until the
+  turn finishes or the sandbox stops.
 - `reconnect`: reconnect timing after an established bridge WebSocket
   connection drops. `maxElapsedMs` controls the total retry window, including
   connection establishment and backoff delays, and defaults to 30 seconds.
@@ -116,10 +121,9 @@ Settings:
   2 seconds. These retries use exponential backoff and are separate from
   `startupTimeoutMs`. They cannot recover when the sandbox, bridge process, or
   bridge endpoint is permanently unavailable.
-- `mintBridgeToken`: synchronous function that receives the sandbox id and
-  returns the ACP bridge authentication token. By default, the adapter generates
-  a random 32-byte token. Custom implementations must return a suitably secret
-  token.
+- `mintBridgeToken`: deprecated and ignored. Passing it logs a warning. The
+  adapter generates a key pair for each bridge, passes only the public key into
+  the sandbox, and keeps the private key in host-side resume state.
 
 The adapter pins the Grok Build CLI and ACP launch command. These implementation
 details cannot be overridden through `createGrokBuild()`.
@@ -222,6 +226,11 @@ that directory require user approval; `allow-all` automatically approves them.
   these reads require user approval even inside the working directory because
   ACP cannot verify their locations. `allow-all` still approves them
   automatically.
+- Grok Build does not allow toggling whether to discover project-level skills
+  and `AGENTS.md` files individually from project-level configuration and hooks.
+  Since the adapter disables reading project-level configuration and hooks for
+  security reasons, it means Grok Build will not discover project-level skills
+  and `AGENTS.md` instructions natively.
 - ACP v1 does not expose model-step boundaries or per-step usage. The adapter
   infers boundaries and reports unknown per-step usage when Grok does not
   provide totals.

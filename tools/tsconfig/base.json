@@ -10,6 +10,7 @@
     "forceConsistentCasingInFileNames": true,
     "inlineSources": false,
     "isolatedModules": true,
+    "lib": ["ES2024", "dom", "dom.iterable"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "noUnusedLocals": false,

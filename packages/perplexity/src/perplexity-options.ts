@@ -1,11 +1,7 @@
-export type PerplexityAgentPreset =
-  | 'fast'
-  | 'low'
-  | 'medium'
-  | 'high'
-  | 'xhigh';
+import type { PerplexityModelIds } from './perplexity-model-catalog';
+
+export type PerplexityAgentPreset = PerplexityModelIds['preset'];
 
 export type PerplexityLanguageModelId =
-  | PerplexityAgentPreset
-  | 'perplexity/sonar'
+  | PerplexityModelIds['language']
   | (string & {});

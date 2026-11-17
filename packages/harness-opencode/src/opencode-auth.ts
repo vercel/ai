@@ -211,8 +211,13 @@ export type OpenCodeResolvedAuthenticationMode =
   | 'gitlab'
   | 'ai-gateway';
 
+/**
+ * OpenCode auth options. `direct` uses the selected provider's own
+ * credentials (environment variables, then a native OpenCode subscription)
+ * and ignores AI Gateway credentials such as `VERCEL_OIDC_TOKEN`.
+ */
 export type OpenCodeAuthenticationMode = HarnessV1Authentication<
-  'anthropic' | 'openai'
+  'direct' | 'anthropic' | 'openai'
 >;
 
 export function resolveOpenCodeProvider({
@@ -274,6 +279,7 @@ export function resolveOpenCodeEnv({
     environment: authenticationEnvironment,
   });
   if (
+    auth === 'direct' ||
     (selectedProvider === 'openai' && auth === 'openai') ||
     (selectedProvider === 'anthropic' && auth === 'anthropic')
   ) {
@@ -322,6 +328,9 @@ export function resolveOpenCodeAuthenticationMode({
     provider,
     environment: processEnv,
   });
+  if (auth === 'direct') {
+    return selectedProvider;
+  }
   if (selectedProvider === 'openai' && auth === 'openai') {
     return 'openai';
   }

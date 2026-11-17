@@ -1,5 +1,118 @@
 # @ai-sdk/react
 
+## 4.0.177
+
+### Patch Changes
+
+- Updated dependencies [3c09e00]
+- Updated dependencies [f43ee39]
+- Updated dependencies [7ce7ffc]
+- Updated dependencies [f6809e3]
+- Updated dependencies [2559173]
+- Updated dependencies [f1de9cb]
+  - ai@7.0.173
+
+## 4.0.176
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+- Updated dependencies [79d2004]
+  - @ai-sdk/provider-utils@5.0.81
+  - ai@7.0.172
+  - @ai-sdk/mcp@2.0.99
+
+## 4.0.175
+
+### Patch Changes
+
+- Updated dependencies [11323f9]
+- Updated dependencies [2ebc78b]
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+- Updated dependencies [ceeee29]
+- Updated dependencies [1a94af3]
+  - ai@7.0.171
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/mcp@2.0.98
+  - @ai-sdk/provider@4.0.38
+
+## 4.0.174
+
+### Patch Changes
+
+- 37dfe49: Allow MCP Apps to load scripts and styles from origins declared in `resourceDomains`.
+- 6309382: Add support for `baseUriDomains` in MCP App CSP metadata.
+- Updated dependencies [91a67c2]
+- Updated dependencies [6309382]
+- Updated dependencies [84b1cb0]
+  - ai@7.0.170
+  - @ai-sdk/mcp@2.0.97
+
+## 4.0.173
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [6141e6f]
+- Updated dependencies [4311fa1]
+- Updated dependencies [d9dd2b7]
+  - @ai-sdk/provider-utils@5.0.79
+  - @ai-sdk/mcp@2.0.96
+  - ai@7.0.169
+
+## 4.0.172
+
+### Patch Changes
+
+- 65aa669: add experimental_queue to useChat to queue messages sent while a response is in progress
+- Updated dependencies [65aa669]
+- Updated dependencies [8585d7e]
+- Updated dependencies [88b9575]
+  - ai@7.0.168
+  - @ai-sdk/mcp@2.0.95
+  - @ai-sdk/provider-utils@5.0.78
+
+## 4.0.171
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+- Updated dependencies [404ce3b]
+  - @ai-sdk/provider-utils@5.0.77
+  - ai@7.0.167
+  - @ai-sdk/mcp@2.0.94
+
+## 4.0.170
+
+### Patch Changes
+
+- ai@7.0.166
+
+## 4.0.169
+
+### Patch Changes
+
+- Updated dependencies [dc0f7f2]
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [883fcde]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [6d21e8e]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/mcp@2.0.93
+  - @ai-sdk/provider-utils@5.0.76
+  - ai@7.0.165
+  - @ai-sdk/provider@4.0.37
+
+## 4.0.168
+
+### Patch Changes
+
+- Updated dependencies [ae13fce]
+  - @ai-sdk/mcp@2.0.92
+  - ai@7.0.164
+
 ## 4.0.167
 
 ### Patch Changes

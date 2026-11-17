@@ -380,6 +380,36 @@ describe('chat', () => {
       ).toMatchInlineSnapshot(`"v1"`);
     });
 
+    it('should accept options under the azure key', async () => {
+      prepareJsonResponse();
+
+      await provider.chat('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: { azure: { user: 'azure-user' } },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        user: 'azure-user',
+      });
+    });
+
+    it('should merge openai and azure options, preferring azure', async () => {
+      prepareJsonResponse();
+
+      await provider.chat('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          openai: { user: 'openai-user', logitBias: { 50256: -100 } },
+          azure: { user: 'azure-user' },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        user: 'azure-user',
+        logit_bias: { 50256: -100 },
+      });
+    });
+
     it('should set the correct modified api version', async () => {
       prepareJsonResponse();
 

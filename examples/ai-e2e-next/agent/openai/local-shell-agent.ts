@@ -1,7 +1,8 @@
 import { openai } from '@ai-sdk/openai';
 import { Sandbox } from '@vercel/sandbox';
 import { ToolLoopAgent, type InferAgentUIMessage } from 'ai';
-// warning: this is a demo sandbox that is shared across chats on localhost
+// This sandbox is shared across local demo chats. The API route enforces local
+// development only; deployed use requires authentication and sandbox ownership.
 let globalSandboxName: string | null = null;
 async function getSandbox(): Promise<Sandbox> {
   if (globalSandboxName) {

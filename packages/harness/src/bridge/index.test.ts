@@ -1,8 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { WebSocket } from 'ws';
+import { WebSocket, type RawData } from 'ws';
+import { z } from 'zod/v4';
+import { SandboxChannel } from '../utils/sandbox-channel';
+import {
+  createBridgeAuthKeyPair,
+  createBridgeAuthProof,
+  parseBridgeAuthPrivateKey,
+} from '../utils/bridge-auth';
 import { runBridge, type BridgeHandle, type BridgeTurn } from './index';
 
-const TOKEN = 'test-token';
+const BRIDGE_AUTH = createBridgeAuthKeyPair();
 const cleanups: Array<() => Promise<void> | void> = [];
 
 afterEach(async () => {
@@ -14,19 +21,22 @@ async function startBridge({
   onStart,
   onStop,
   turnTeardownGraceMs,
+  hostDisconnectTimeoutMs,
 }: {
   onStart: (start: { type: 'start' }, turn: BridgeTurn) => Promise<void>;
   onStop?: () => unknown;
   turnTeardownGraceMs?: number;
+  hostDisconnectTimeoutMs?: number;
 }): Promise<BridgeHandle> {
   const handle = await runBridge<{ type: 'start' }>({
     bridgeType: 'test',
     bridgeStateDir: `${process.env.TMPDIR ?? '/tmp'}/harness-bridge-test-${Math.floor(performance.now())}`,
     port: 0,
-    token: TOKEN,
+    publicKey: BRIDGE_AUTH.publicKey,
     onStart,
     ...(onStop ? { onStop } : {}),
     ...(turnTeardownGraceMs != null ? { turnTeardownGraceMs } : {}),
+    ...(hostDisconnectTimeoutMs != null ? { hostDisconnectTimeoutMs } : {}),
     // Never call process.exit from a test.
     onExit: () => {},
   });
@@ -49,10 +59,11 @@ type Client = {
   close(): void;
 };
 
-function connect(port: number): Promise<Client> {
-  const ws = new WebSocket(
-    `ws://127.0.0.1:${port}/?agent_bridge_token=${TOKEN}`,
-  );
+async function connect(port: number): Promise<Client> {
+  const ws = await openAuthenticatedBridgeWebSocket({
+    url: `ws://127.0.0.1:${port}/`,
+    privateKey: BRIDGE_AUTH.privateKey,
+  });
   const frames: Array<Record<string, unknown>> = [];
   const waiters: Array<{
     pred: (f: Record<string, unknown>) => boolean;
@@ -92,7 +103,7 @@ function connect(port: number): Promise<Client> {
     },
   };
   cleanups.push(() => ws.close());
-  return new Promise(resolve => ws.on('open', () => resolve(client)));
+  return client;
 }
 
 describe('runBridge', () => {
@@ -175,7 +186,7 @@ describe('runBridge', () => {
         bridgeType: 'test',
         bridgeStateDir: `${process.env.TMPDIR ?? '/tmp'}/harness-bridge-port-conflict`,
         port: handle.port,
-        token: TOKEN,
+        publicKey: BRIDGE_AUTH.publicKey,
         onStart: async () => {},
         onExit: () => {},
       }),
@@ -277,6 +288,176 @@ describe('runBridge', () => {
     client.send({ type: 'tool-result', toolCallId: 'tc1', output: 'OK' });
     const observed = await client.waitFor(f => f.type === 'tool-observed');
     expect(observed.output).toBe('OK');
+  });
+
+  describe('host disconnect timeout', () => {
+    const runUntilAborted = (aborts: string[]) => {
+      let release!: () => void;
+      const released = new Promise<void>(resolve => {
+        release = resolve;
+      });
+      return {
+        release,
+        onStart: async (_start: { type: 'start' }, turn: BridgeTurn) => {
+          turn.emit({ type: 'turn-running' });
+          await new Promise<void>(resolve => {
+            turn.abortSignal.addEventListener('abort', () => {
+              aborts.push('aborted');
+              resolve();
+            });
+            void released.then(resolve);
+          });
+        },
+      };
+    };
+
+    it('aborts the turn when no host reconnects in time', async () => {
+      const aborts: string[] = [];
+      const turn = runUntilAborted(aborts);
+      const handle = await startBridge({
+        onStart: turn.onStart,
+        hostDisconnectTimeoutMs: 50,
+      });
+      const client = await connect(handle.port);
+      await client.waitFor(f => f.type === 'bridge-hello');
+      client.send({ type: 'start' });
+      await client.waitFor(f => f.type === 'turn-running');
+      client.close();
+      await new Promise(resolve => setTimeout(resolve, 150));
+      expect(aborts).toEqual(['aborted']);
+    });
+
+    it('keeps the turn when the host reconnects in time', async () => {
+      const aborts: string[] = [];
+      const turn = runUntilAborted(aborts);
+      const handle = await startBridge({
+        onStart: turn.onStart,
+        hostDisconnectTimeoutMs: 100,
+      });
+      const client = await connect(handle.port);
+      await client.waitFor(f => f.type === 'bridge-hello');
+      client.send({ type: 'start' });
+      await client.waitFor(f => f.type === 'turn-running');
+      client.close();
+      const reconnected = await connect(handle.port);
+      await reconnected.waitFor(f => f.type === 'bridge-hello');
+      reconnected.send({ type: 'resume', lastSeenEventId: 0 });
+      await new Promise(resolve => setTimeout(resolve, 200));
+      expect(aborts).toEqual([]);
+      turn.release();
+    });
+
+    it('keeps the turn when the host suspends it', async () => {
+      const aborts: string[] = [];
+      const turn = runUntilAborted(aborts);
+      const handle = await startBridge({
+        onStart: turn.onStart,
+        hostDisconnectTimeoutMs: 50,
+      });
+      const client = await connect(handle.port);
+      await client.waitFor(f => f.type === 'bridge-hello');
+      client.send({ type: 'start' });
+      await client.waitFor(f => f.type === 'turn-running');
+      client.ws.close(1000, 'suspended');
+      await new Promise(resolve => setTimeout(resolve, 150));
+      expect(aborts).toEqual([]);
+      turn.release();
+    });
+
+    it.each([Number.NaN, -50, 0, 3_000_000_000])(
+      'keeps the turn running when the timeout is %s',
+      async hostDisconnectTimeoutMs => {
+        const aborts: string[] = [];
+        const turn = runUntilAborted(aborts);
+        const handle = await startBridge({
+          onStart: turn.onStart,
+          hostDisconnectTimeoutMs,
+        });
+        const client = await connect(handle.port);
+        await client.waitFor(f => f.type === 'bridge-hello');
+        client.send({ type: 'start' });
+        await client.waitFor(f => f.type === 'turn-running');
+        client.close();
+        await new Promise(resolve => setTimeout(resolve, 150));
+        expect(aborts).toEqual([]);
+        turn.release();
+      },
+    );
+
+    it('ignores a host disconnect timeout set through the environment', async () => {
+      process.env.BRIDGE_HOST_DISCONNECT_TIMEOUT_MS = '50';
+      try {
+        const aborts: string[] = [];
+        const turn = runUntilAborted(aborts);
+        const handle = await startBridge({ onStart: turn.onStart });
+        const client = await connect(handle.port);
+        await client.waitFor(f => f.type === 'bridge-hello');
+        client.send({ type: 'start' });
+        await client.waitFor(f => f.type === 'turn-running');
+        client.close();
+        await new Promise(resolve => setTimeout(resolve, 150));
+        expect(aborts).toEqual([]);
+        turn.release();
+      } finally {
+        delete process.env.BRIDGE_HOST_DISCONNECT_TIMEOUT_MS;
+      }
+    });
+
+    it.each([
+      ['suspend', false],
+      ['close', true],
+    ] as const)(
+      'handles a SandboxChannel %s with a host disconnect timeout',
+      async (action, aborted) => {
+        const aborts: string[] = [];
+        const turn = runUntilAborted(aborts);
+        let started = false;
+        const handle = await startBridge({
+          onStart: async (start, bridgeTurn) => {
+            started = true;
+            await turn.onStart(start, bridgeTurn);
+          },
+          hostDisconnectTimeoutMs: 50,
+        });
+        const channel = new SandboxChannel<{ type: string }, { type: 'start' }>(
+          {
+            connect: () =>
+              openAuthenticatedBridgeWebSocket({
+                url: `ws://127.0.0.1:${handle.port}/`,
+                privateKey: BRIDGE_AUTH.privateKey,
+              }),
+            outboundSchema: z.looseObject({ type: z.string() }),
+          },
+        );
+        await channel.open();
+        channel.send({ type: 'start' });
+        await vi.waitFor(() => expect(started).toBe(true));
+
+        if (action === 'suspend') {
+          await channel.suspend();
+        } else {
+          channel.close();
+        }
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        expect(aborts).toEqual(aborted ? ['aborted'] : []);
+        turn.release();
+      },
+    );
+
+    it('keeps the turn running without a timeout', async () => {
+      const aborts: string[] = [];
+      const turn = runUntilAborted(aborts);
+      const handle = await startBridge({ onStart: turn.onStart });
+      const client = await connect(handle.port);
+      await client.waitFor(f => f.type === 'bridge-hello');
+      client.send({ type: 'start' });
+      await client.waitFor(f => f.type === 'turn-running');
+      client.close();
+      await new Promise(resolve => setTimeout(resolve, 150));
+      expect(aborts).toEqual([]);
+      turn.release();
+    });
   });
 
   it('acknowledges a user message after the adapter accepts it', async () => {
@@ -662,7 +843,7 @@ describe('runBridge', () => {
       bridgeType: 'test',
       bridgeStateDir: `${process.env.TMPDIR ?? '/tmp'}/harness-bridge-stop`,
       port: 0,
-      token: TOKEN,
+      publicKey: BRIDGE_AUTH.publicKey,
       onStart: async () => {},
       onStop: () => ({ threadId: 'th_42' }),
       onExit: () => {
@@ -762,7 +943,7 @@ describe('runBridge', () => {
       bridgeType: 'test',
       bridgeStateDir: `${process.env.TMPDIR ?? '/tmp'}/harness-bridge-destroy`,
       port: 0,
-      token: TOKEN,
+      publicKey: BRIDGE_AUTH.publicKey,
       onStart: async () => {},
       onDestroy,
       onExit: () => {
@@ -778,4 +959,99 @@ describe('runBridge', () => {
       expect(exited).toBe(true);
     });
   });
+
+  it('fails to start without a valid authentication public key', async () => {
+    await expect(
+      runBridge<{ type: 'start' }>({
+        bridgeType: 'test',
+        bridgeStateDir: `${process.env.TMPDIR ?? '/tmp'}/harness-bridge-missing-key`,
+        port: 0,
+        publicKey: 'not-a-key',
+        onStart: async () => {},
+        onExit: () => {},
+      }),
+    ).rejects.toThrow(
+      'The bridge requires a valid Ed25519 public key for authentication.',
+    );
+  });
+
+  it.each([
+    {
+      name: 'a proof signed by another key',
+      createProof: (message: string) =>
+        createBridgeAuthProof({
+          privateKey: parseBridgeAuthPrivateKey({
+            privateKey: createBridgeAuthKeyPair().privateKey,
+          }),
+          message,
+        }),
+    },
+    {
+      name: 'a command instead of a proof',
+      createProof: () => JSON.stringify({ type: 'start' }),
+    },
+  ])('rejects $name without exposing the bridge', async ({ createProof }) => {
+    const onStart = vi.fn(async () => {});
+    const handle = await startBridge({ onStart });
+    const ws = new WebSocket(
+      `ws://127.0.0.1:${handle.port}/?agent_bridge_token=legacy-token`,
+    );
+    cleanups.push(() => ws.terminate());
+    const frames: string[] = [];
+    const closed = new Promise<number>(resolve => {
+      ws.on('close', code => resolve(code));
+    });
+    ws.on('message', raw => {
+      const text = rawDataToString(raw);
+      frames.push(text);
+      if (frames.length === 1) ws.send(createProof(text));
+    });
+
+    expect(await closed).toBe(1008);
+    expect(frames).toHaveLength(1);
+    expect(JSON.parse(frames[0])).toMatchObject({
+      type: 'bridge-auth-challenge',
+    });
+    expect(onStart).not.toHaveBeenCalled();
+  });
 });
+
+/**
+ * Opens a raw bridge WebSocket and answers its authentication challenge.
+ * Resolves right after the proof is sent, so the caller still receives the
+ * `bridge-hello` frame that the bridge sends once the proof is verified.
+ */
+function openAuthenticatedBridgeWebSocket({
+  url,
+  privateKey,
+}: {
+  url: string;
+  privateKey: string;
+}): Promise<WebSocket> {
+  const key = parseBridgeAuthPrivateKey({ privateKey });
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(url);
+    ws.once('error', reject);
+    ws.once('message', (raw: RawData) => {
+      try {
+        ws.send(
+          createBridgeAuthProof({
+            privateKey: key,
+            message: rawDataToString(raw),
+          }),
+        );
+        ws.off('error', reject);
+        resolve(ws);
+      } catch (error) {
+        ws.terminate();
+        reject(error);
+      }
+    });
+  });
+}
+
+function rawDataToString(raw: RawData): string {
+  if (Array.isArray(raw)) return Buffer.concat(raw).toString('utf8');
+  if (Buffer.isBuffer(raw)) return raw.toString('utf8');
+  return Buffer.from(raw).toString('utf8');
+}

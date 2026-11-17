@@ -226,108 +226,91 @@ export type ParallelSearchOutput = ParallelSearchResponse | ParallelSearchError;
 const parallelSearchInputSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      objective: z
-        .string()
-        .describe(
-          'Natural-language description of the web research goal, including source or freshness guidance and broader context from the task. Maximum 5000 characters.',
-        ),
+      objective: z.describe(
+        z.string(),
+        'Natural-language description of the web research goal, including source or freshness guidance and broader context from the task. Maximum 5000 characters.',
+      ),
 
-      search_queries: z
-        .array(z.string())
-        .optional()
-        .describe(
-          'Provide 2-3 concise keyword queries, 3-6 words each (max 5, 200 chars each). Strongly recommended; the search runs on these queries.',
-        ),
+      search_queries: z.describe(
+        z.optional(z.array(z.string())),
+        'Provide 2-3 concise keyword queries, 3-6 words each (max 5, 200 chars each). Strongly recommended; the search runs on these queries.',
+      ),
 
-      mode: z
-        .enum(parallelSearchModes)
-        .optional()
-        .describe(
-          'Search mode: "turbo" and "fast" return quickly with shorter excerpts, "basic" is balanced (default), "advanced" is the most thorough. "turbo" supports English and Japanese only. "one-shot" and "agentic" are deprecated aliases of "basic" and "advanced".',
-        ),
+      mode: z.describe(
+        z.optional(z.enum(parallelSearchModes)),
+        'Search mode: "turbo" and "fast" return quickly with shorter excerpts, "basic" is balanced (default), "advanced" is the most thorough. "turbo" supports English and Japanese only. "one-shot" and "agentic" are deprecated aliases of "basic" and "advanced".',
+      ),
 
-      max_results: z
-        .number()
-        .optional()
-        .describe(
-          'Maximum number of results to return (1-20). Defaults to 10 if not specified.',
-        ),
+      max_results: z.describe(
+        z.optional(z.number()),
+        'Maximum number of results to return (1-20). Defaults to 10 if not specified.',
+      ),
 
-      source_policy: z
-        .object({
-          include_domains: z
-            .array(z.string())
-            .optional()
-            .describe(
+      source_policy: z.describe(
+        z.optional(
+          z.object({
+            include_domains: z.describe(
+              z.optional(z.array(z.string())),
               "Domains or domain/path prefixes to restrict results to, without scheme or port. Example: ['wikipedia.org', 'docs.python.org/3'].",
             ),
-          exclude_domains: z
-            .array(z.string())
-            .optional()
-            .describe(
+            exclude_domains: z.describe(
+              z.optional(z.array(z.string())),
               "Domains or domain/path prefixes to exclude, without scheme or port. Example: ['reddit.com'].",
             ),
-          after_date: z
-            .string()
-            .optional()
-            .describe(
+            after_date: z.describe(
+              z.optional(z.string()),
               'Only include results published on or after this date. Use an ISO 8601 calendar date formatted YYYY-MM-DD (e.g. 2025-01-01); do not include a time.',
             ),
-        })
-        .optional()
-        .describe(
-          'Source policy for controlling which domains to include/exclude and freshness.',
+          }),
         ),
+        'Source policy for controlling which domains to include/exclude and freshness.',
+      ),
 
-      excerpts: z
-        .object({
-          max_chars_per_result: z
-            .number()
-            .optional()
-            .describe('Maximum characters per result.'),
-          max_chars_total: z
-            .number()
-            .optional()
-            .describe('Deprecated: use the top-level max_chars_total.'),
-        })
-        .optional()
-        .describe('Excerpt configuration for controlling result length.'),
+      excerpts: z.describe(
+        z.optional(
+          z.object({
+            max_chars_per_result: z.describe(
+              z.optional(z.number()),
+              'Maximum characters per result.',
+            ),
+            max_chars_total: z.describe(
+              z.optional(z.number()),
+              'Deprecated: use the top-level max_chars_total.',
+            ),
+          }),
+        ),
+        'Excerpt configuration for controlling result length.',
+      ),
 
-      max_chars_total: z
-        .number()
-        .optional()
-        .describe('Maximum total characters across all result excerpts.'),
+      max_chars_total: z.describe(
+        z.optional(z.number()),
+        'Maximum total characters across all result excerpts.',
+      ),
 
-      fetch_policy: z
-        .object({
-          max_age_seconds: z
-            .number()
-            .optional()
-            .describe(
+      fetch_policy: z.describe(
+        z.optional(
+          z.object({
+            max_age_seconds: z.describe(
+              z.optional(z.number()),
               'Maximum age of cached content in seconds before a live fetch, minimum 600.',
             ),
-          timeout_seconds: z
-            .number()
-            .optional()
-            .describe(
+            timeout_seconds: z.describe(
+              z.optional(z.number()),
               'Timeout in seconds for a live fetch when content is not cached. Capped by the gateway tool timeout.',
             ),
-          disable_cache_fallback: z
-            .boolean()
-            .optional()
-            .describe(
+            disable_cache_fallback: z.describe(
+              z.optional(z.boolean()),
               'Return an error instead of older cached content when a live fetch fails.',
             ),
-        })
-        .optional()
-        .describe('Fetch policy for controlling content freshness.'),
-
-      location: z
-        .string()
-        .optional()
-        .describe(
-          'ISO 3166-1 alpha-2 country code to localize results, e.g. "us".',
+          }),
         ),
+        'Fetch policy for controlling content freshness.',
+      ),
+
+      location: z.describe(
+        z.optional(z.string()),
+        'ISO 3166-1 alpha-2 country code to localize results, e.g. "us".',
+      ),
     }),
   ),
 );
@@ -341,26 +324,32 @@ const parallelSearchOutputSchema = lazySchema(() =>
         results: z.array(
           z.object({
             url: z.string(),
-            title: z.string().nullable().optional(),
-            publish_date: z.string().nullable().optional(),
+            title: z.optional(z.nullable(z.string())),
+            publish_date: z.optional(z.nullable(z.string())),
             excerpts: z.array(z.string()),
           }),
         ),
-        warnings: z
-          .array(
-            z.object({
-              type: z.string(),
-              message: z.string(),
-              detail: z.record(z.string(), z.unknown()).nullable().optional(),
-            }),
-          )
-          .nullable()
-          .optional(),
-        usage: z
-          .array(z.object({ name: z.string(), count: z.number().optional() }))
-          .nullable()
-          .optional(),
-        session_id: z.string().optional(),
+        warnings: z.optional(
+          z.nullable(
+            z.array(
+              z.object({
+                type: z.string(),
+                message: z.string(),
+                detail: z.optional(
+                  z.nullable(z.record(z.string(), z.unknown())),
+                ),
+              }),
+            ),
+          ),
+        ),
+        usage: z.optional(
+          z.nullable(
+            z.array(
+              z.object({ name: z.string(), count: z.optional(z.number()) }),
+            ),
+          ),
+        ),
+        session_id: z.optional(z.string()),
       }),
       // Error response
       gatewayToolErrorSchema(),

@@ -468,7 +468,9 @@ export class SandboxChannel<
       // delivered to the consumer is reflected in the final cursor.
       this.enqueue(() => {
         try {
-          this.ws?.close();
+          // The bridge reads this reason to keep a suspended turn running
+          // instead of treating the close as a host that disconnected:
+          this.ws?.close(1000, 'suspended');
         } catch {
           // best-effort
         }

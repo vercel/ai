@@ -653,6 +653,30 @@ describe('transcribe', () => {
     },
   );
 
+  it('should not send word timings to telemetry when recordOutputs is false', async () => {
+    const words = [
+      { text: 'Hello', startSecond: 0, endSecond: 0.4 },
+      { text: 'world', startSecond: 0.4, endSecond: 1 },
+    ];
+    const onEnd = vi.fn();
+
+    const result = await transcribe({
+      model: new MockTranscriptionModelV4({
+        doGenerate: async () => ({
+          ...createMockResponse({ ...sampleTranscript }),
+          words,
+        }),
+      }),
+      audio: audioData,
+      telemetry: { integrations: { onEnd }, recordOutputs: false },
+    });
+
+    expect(onEnd).toHaveBeenCalledWith(
+      expect.objectContaining({ text: '', segments: [], words: [] }),
+    );
+    expect(result.words).toEqual(words);
+  });
+
   it('should preserve an empty array of provider word timings', async () => {
     const result = await transcribe({
       model: new MockTranscriptionModelV4({

@@ -789,7 +789,7 @@ describe('HarnessAgent telemetry integration', () => {
         {
           role: 'assistant',
           parts: [
-            { type: 'text', content: 'final' },
+            { type: 'text', content: 'draft' },
             {
               type: 'tool_call',
               id: 'c1',
@@ -801,6 +801,7 @@ describe('HarnessAgent telemetry integration', () => {
               id: 'c1',
               response: { output: 'ok' },
             },
+            { type: 'text', content: 'final' },
           ],
           finish_reason: 'stop',
         },

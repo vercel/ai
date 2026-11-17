@@ -1,0 +1,162 @@
+{
+  "id": "chatcmpl-Egy8HPrnDpqSlLo1bSmUVDePyECA3",
+  "object": "chat.completion",
+  "created": 1793909633,
+  "model": "gpt-4o-2024-08-06",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": null,
+        "refusal": "I'm very sorry, but I can't assist with that.",
+        "annotations": []
+      },
+      "logprobs": {
+        "content": null,
+        "refusal": [
+          {
+            "token": "I'm",
+            "logprob": -0.00045013427734375,
+            "bytes": [
+              73,
+              39,
+              109
+            ],
+            "top_logprobs": []
+          },
+          {
+            "token": " very",
+            "logprob": -0.43975067138671875,
+            "bytes": [
+              32,
+              118,
+              101,
+              114,
+              121
+            ],
+            "top_logprobs": []
+          },
+          {
+            "token": " sorry",
+            "logprob": -0.000003814697265625,
+            "bytes": [
+              32,
+              115,
+              111,
+              114,
+              114,
+              121
+            ],
+            "top_logprobs": []
+          },
+          {
+            "token": ",",
+            "logprob": -0.000011444091796875,
+            "bytes": [
+              44
+            ],
+            "top_logprobs": []
+          },
+          {
+            "token": " but",
+            "logprob": -0.000957489013671875,
+            "bytes": [
+              32,
+              98,
+              117,
+              116
+            ],
+            "top_logprobs": []
+          },
+          {
+            "token": " I",
+            "logprob": -0.00072479248046875,
+            "bytes": [
+              32,
+              73
+            ],
+            "top_logprobs": []
+          },
+          {
+            "token": " can't",
+            "logprob": -0.00662994384765625,
+            "bytes": [
+              32,
+              99,
+              97,
+              110,
+              39,
+              116
+            ],
+            "top_logprobs": []
+          },
+          {
+            "token": " assist",
+            "logprob": -0.00223541259765625,
+            "bytes": [
+              32,
+              97,
+              115,
+              115,
+              105,
+              115,
+              116
+            ],
+            "top_logprobs": []
+          },
+          {
+            "token": " with",
+            "logprob": -0.00083160400390625,
+            "bytes": [
+              32,
+              119,
+              105,
+              116,
+              104
+            ],
+            "top_logprobs": []
+          },
+          {
+            "token": " that",
+            "logprob": -0.002887725830078125,
+            "bytes": [
+              32,
+              116,
+              104,
+              97,
+              116
+            ],
+            "top_logprobs": []
+          },
+          {
+            "token": ".",
+            "logprob": -0.42346954345703125,
+            "bytes": [
+              46
+            ],
+            "top_logprobs": []
+          }
+        ]
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 74,
+    "completion_tokens": 12,
+    "total_tokens": 86,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": "fp_3bfbcbf18d"
+}

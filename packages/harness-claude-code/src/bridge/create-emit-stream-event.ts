@@ -6,6 +6,7 @@ type Emit = (message: Record<string, unknown>) => void;
 export type ClaudeMessage = {
   type?: string;
   subtype?: string;
+  permissionMode?: string;
   parent_tool_use_id?: string | null;
   model?: string;
   error?: string;
@@ -219,6 +220,25 @@ export function createEmitStreamEvent({
         ...(initModel ? { modelId: initModel } : {}),
       });
       streamStarted = true;
+    }
+
+    if (
+      type === 'system' &&
+      (msg.subtype === 'init' || msg.subtype === 'status')
+    ) {
+      // Expose the effective mode without forwarding the large init payload
+      // (tools, MCP servers, skills, plugins, and other session metadata).
+      emit({
+        type: 'raw',
+        rawValue: {
+          type,
+          subtype: msg.subtype,
+          ...(msg.permissionMode != null
+            ? { permissionMode: msg.permissionMode }
+            : {}),
+        },
+      });
+      return;
     }
 
     if (type === 'system' && msg.subtype === 'api_retry') {

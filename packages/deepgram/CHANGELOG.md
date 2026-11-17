@@ -1,5 +1,63 @@
 # @ai-sdk/deepgram
 
+## 3.1.53
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+
+## 3.1.52
+
+### Patch Changes
+
+- c2ef713: Centralize Deepgram speech and transcription model IDs, streaming capabilities, voice-family request policies, and provider option metadata in a model catalog.
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+
+## 3.1.51
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+
+## 3.1.50
+
+### Patch Changes
+
+- Updated dependencies [88b9575]
+  - @ai-sdk/provider-utils@5.0.78
+
+## 3.1.49
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+
+## 3.1.48
+
+### Patch Changes
+
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+
+## 3.1.47
+
+### Patch Changes
+
+- 5cc6dca: fix (deepgram): reject the speech `callback` provider option instead of returning Deepgram's JSON acknowledgement as audio. With a callback URL, Deepgram processes the request asynchronously and answers with `{"request_id": "..."}` instead of audio, which `generateSpeech` previously returned as corrupt audio bytes. The provider now throws an `InvalidArgumentError` before sending the request, and warns when `callbackMethod` is passed without `callback`.
+
+  If you relied on callback delivery, call Deepgram's `/v1/speak` REST API directly; `generateSpeech` always needs the audio in the response.
+
 ## 3.1.46
 
 ### Patch Changes

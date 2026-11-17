@@ -18,8 +18,8 @@ export interface GatewayToolError {
 }
 
 export const gatewayToolErrorSchema = () =>
-  z
-    .object({
+  z.catchall(
+    z.object({
       error: z.enum([
         'api_error',
         'configuration_error',
@@ -32,8 +32,9 @@ export const gatewayToolErrorSchema = () =>
         'unknown_tool',
       ]),
       message: z.string(),
-      statusCode: z.number().optional(),
-      retryAfter: z.string().optional(),
-      statusText: z.string().optional(),
-    })
-    .passthrough();
+      statusCode: z.optional(z.number()),
+      retryAfter: z.optional(z.string()),
+      statusText: z.optional(z.string()),
+    }),
+    z.unknown(),
+  );

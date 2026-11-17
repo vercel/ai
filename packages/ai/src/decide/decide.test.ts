@@ -11,7 +11,7 @@ import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import type { Telemetry } from '../telemetry/telemetry';
 import { DecisionMockModelV4 } from '../test/decision-mock-model-v4';
-import { experimental_decide as decide } from '../index';
+import { createDownload, experimental_decide as decide } from '../index';
 import { VERSION } from '../version';
 import type { DecisionStatePart } from './decision-state';
 
@@ -252,6 +252,7 @@ describe('input validation', () => {
       const { model, doDecide } = setup();
       for (const criteria of [
         undefined,
+        null,
         {},
         { true: null },
         { false: null },
@@ -270,6 +271,23 @@ describe('input validation', () => {
       expect(doDecide).not.toHaveBeenCalled();
     },
   );
+
+  it('forwards null Boolean criteria with instructions', async () => {
+    const { model, doDecide } = setup({
+      answers: { refund: answers.refund },
+      warnings: [],
+    });
+    const questions = {
+      refund: {
+        type: 'boolean',
+        instructions: 'Refund?',
+        criteria: null,
+      },
+    } as const;
+    const result = await decide({ model, state: 'text', questions });
+    expect(doDecide.mock.calls[0][0].questions).toBe(questions);
+    expect(result.answers).toEqual({ refund: answers.refund });
+  });
 
   const cyclic: Record<string, unknown> = {};
   cyclic.self = cyclic;
@@ -849,10 +867,12 @@ it('downloads image URLs and sends their bytes to the decision model', async () 
       headers: { 'content-type': 'image/png' },
     }),
   );
-  vi.stubGlobal('fetch', fetch);
+  const globalFetch = vi.fn();
+  vi.stubGlobal('fetch', globalFetch);
   await decide({
     model,
     questions,
+    experimental_download: createDownload({ fetch }),
     state: [
       {
         type: 'file',
@@ -862,6 +882,7 @@ it('downloads image URLs and sends their bytes to the decision model', async () 
     ],
   });
   expect(fetch).toHaveBeenCalledTimes(1);
+  expect(globalFetch).not.toHaveBeenCalled();
   expect(doDecide.mock.calls[0][0].state).toEqual([
     {
       type: 'file',
@@ -881,6 +902,7 @@ it('stops before provider I/O when an image download fails', async () => {
     decide({
       model,
       questions,
+      experimental_download: createDownload(),
       state: [
         {
           type: 'file',
@@ -889,7 +911,32 @@ it('stops before provider I/O when an image download fails', async () => {
         },
       ],
     }),
-  ).rejects.toMatchObject({ name: 'AI_DownloadError' });
+  ).rejects.toMatchObject({ name: 'AI_DownloadError', statusCode: 404 });
+  expect(doDecide).not.toHaveBeenCalled();
+});
+
+it('rejects remote file state without a download hook', async () => {
+  const { model, doDecide } = setup();
+  const fetch = vi.fn();
+  vi.stubGlobal('fetch', fetch);
+
+  await expect(
+    decide({
+      model,
+      questions,
+      state: [
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: new URL('https://attacker.example/package.png'),
+        },
+      ],
+    }),
+  ).rejects.toMatchObject({
+    name: 'AI_DownloadError',
+    message: expect.stringContaining('experimental_download'),
+  });
+  expect(fetch).not.toHaveBeenCalled();
   expect(doDecide).not.toHaveBeenCalled();
 });
 
@@ -1045,6 +1092,20 @@ it('preserves normalized box coordinates', async () => {
   });
   expect(result.answers.target).toEqual({ type: 'box', box: validBox });
 });
+
+it.each([{}, { instructions: undefined }, { instructions: null }])(
+  'forwards optional Box instructions: %j',
+  async instructionFields => {
+    const model = boxModel(validBox);
+    const doDecide = vi.spyOn(model, 'doDecide');
+    const questions = {
+      target: { type: 'box', ...instructionFields },
+    } as const;
+    const result = await decide({ model, state: '', questions });
+    expect(doDecide.mock.calls[0][0].questions).toBe(questions);
+    expect(result.answers.target).toEqual({ type: 'box', box: validBox });
+  },
+);
 
 it.each([
   undefined,
