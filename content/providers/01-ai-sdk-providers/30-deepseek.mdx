@@ -295,10 +295,10 @@ const result = streamText({
 });
 
 for await (const part of result.stream) {
-  if (part.type === 'reasoning') {
+  if (part.type === 'reasoning-delta') {
     // This is the reasoning text
     console.log('Reasoning:', part.text);
-  } else if (part.type === 'text') {
+  } else if (part.type === 'text-delta') {
     // This is the final answer
     console.log('Answer:', part.text);
   }

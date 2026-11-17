@@ -739,10 +739,10 @@ const result = streamText({
 });
 
 for await (const part of result.stream) {
-  if (part.type === 'reasoning') {
-    process.stdout.write(`THOUGHT: ${part.textDelta}\n`);
+  if (part.type === 'reasoning-delta') {
+    process.stdout.write(`THOUGHT: ${part.text}\n`);
   } else if (part.type === 'text-delta') {
-    process.stdout.write(part.textDelta);
+    process.stdout.write(part.text);
   }
 }
 ```
