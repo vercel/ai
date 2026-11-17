@@ -1034,6 +1034,9 @@ async function generateTextInternal<
         if (steeringMessages.length > 0) {
           messagesForNextStep = [...messagesForNextStep, ...steeringMessages];
         }
+        // A step that a steering interrupt cancelled is made again as the same
+        // step. It keeps the steering messages that it already delivered, and
+        // onStepStart is called once for it.
         let stepSteeringMessages: Array<UserModelMessage> = [];
         let hasNotifiedStepStart = false;
 
@@ -1304,6 +1307,8 @@ async function generateTextInternal<
                     });
                   } catch (error) {
                     if (interruptController?.signal.aborted === true) {
+                      // A caller abort or a timeout wins over an interrupt: the
+                      // run ends instead of making the model call again.
                       if (mergedAbortSignal?.aborted === true) {
                         throw mergedAbortSignal.reason;
                       }
@@ -1995,8 +2000,17 @@ async function executeTools<TOOLS extends ToolSet>({
   );
 }
 
+/**
+ * Thrown inside a step attempt when a steering interrupt cancelled its model
+ * call. It is not an error that callers see. It only ends the attempt so that
+ * the step is made again.
+ */
 class InterruptedStepAttempt {}
 
+/**
+ * Runs a step attempt, and runs it again for as long as steering interrupts
+ * cancel its model call.
+ */
 async function redoInterruptedStepAttempts<T>({
   attempt,
   onInterrupt,

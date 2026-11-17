@@ -158,6 +158,10 @@ class DefaultSteering implements Steering {
   private queued: Array<PendingSteer> = [];
   private taken: Array<PendingSteer> = [];
   private outcomes = new Map<string, Promise<SteeringOutcome>>();
+  // An interrupt that arrived while no model call was watching, e.g. during
+  // prepareStep or tool execution. It is dropped when the messages are taken
+  // at a step boundary, because they are then delivered without cancelling a
+  // model call.
   private interruptRequested = false;
   private onInterrupt: (() => void) | undefined;
 

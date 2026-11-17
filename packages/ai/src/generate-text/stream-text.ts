@@ -2494,6 +2494,9 @@ class DefaultStreamTextResult<
         currentStep: number;
         usage: LanguageModelUsage;
       }) {
+        // A step that a steering interrupt cancelled is made again as the same
+        // step. Its timeout keeps running and its tracing span stays open, so
+        // that the step is not timed or traced twice.
         const redo =
           interruptedStep?.stepNumber === currentStep
             ? interruptedStep
@@ -2776,6 +2779,8 @@ class DefaultStreamTextResult<
               resolveInterrupt?.();
               interruptController?.abort();
             }) ?? (() => {});
+          // A caller abort or a timeout wins over an interrupt: the run ends
+          // instead of making the model call again.
           const isInterrupted = () =>
             interruptController?.signal.aborted === true &&
             abortSignal?.aborted !== true;
@@ -2793,6 +2798,8 @@ class DefaultStreamTextResult<
               stepTracingChannelContext,
               stepStartState,
             };
+            // the redo adds its own listener for the step timeout that it
+            // takes over:
             abortSignal?.removeEventListener('abort', cleanupStepTimeouts);
             clearModelOutputTimeouts();
           };
@@ -2990,6 +2997,10 @@ class DefaultStreamTextResult<
 
                 const { done, value } = result;
 
+                // The model call can only be interrupted until it produces
+                // output. A tool input start is not an output chunk, but it
+                // ends the window as well because the UI already shows a
+                // pending tool call for it.
                 if (
                   !interruptWindowClosed &&
                   (done ||
@@ -3308,6 +3319,9 @@ class DefaultStreamTextResult<
                         ...stepStartMetadata,
                       });
                     } else {
+                      // The cancelled model call already sent the start-step
+                      // part of this step. The boundary replaces what the step
+                      // recorded for it, e.g. its request and warnings.
                       controller.enqueue({
                         [streamRetryBoundarySymbol]: stepStartMetadata,
                       });
@@ -3470,6 +3484,7 @@ class DefaultStreamTextResult<
                 async flush(controller) {
                   stopWatchingInterrupt();
 
+                  // the step is not finished, its model call is made again:
                   if (attemptInterrupted) {
                     rememberInterruptedStep();
 
