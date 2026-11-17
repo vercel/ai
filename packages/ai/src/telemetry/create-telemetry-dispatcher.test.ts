@@ -520,6 +520,76 @@ describe('createTelemetryDispatcher', () => {
   });
 
   describe('executeLanguageModelCall', () => {
+    it.each([1, 2])(
+      'preserves stream replacements through %s redacted integrations',
+      async integrationCount => {
+        const original = {
+          stream: new ReadableStream<string>({
+            start(controller) {
+              controller.enqueue('hello');
+              controller.close();
+            },
+          }),
+          request: {
+            body: withTelemetryRedaction(
+              { credential: 'test-token' },
+              body => ({ ...body, credential: '[redacted]' }),
+            ),
+          },
+        };
+        const observed: unknown[] = [];
+        const integration: Telemetry = {
+          executeLanguageModelCall: async ({ execute }) => {
+            const result = await execute();
+            observed.push(result);
+            if (
+              result != null &&
+              typeof result === 'object' &&
+              'stream' in result &&
+              result.stream instanceof ReadableStream
+            ) {
+              result.stream = result.stream.pipeThrough(
+                new TransformStream<string, string>({
+                  transform(chunk, controller) {
+                    controller.enqueue(`${chunk}!`);
+                  },
+                }),
+              );
+            }
+            return result;
+          },
+        };
+        const dispatcher = createTelemetryDispatcher({
+          telemetry: {
+            integrations: Array.from(
+              { length: integrationCount },
+              () => integration,
+            ),
+          },
+        });
+
+        const result = await dispatcher.executeLanguageModelCall!({
+          callId: 'call-1',
+          execute: async () => original,
+        });
+
+        expect(result).toBe(original);
+        expect(result.request.body.credential).toBe('test-token');
+        expect(observed).toHaveLength(integrationCount);
+        for (const value of observed) {
+          expect(value).toMatchObject({
+            request: { body: { credential: '[redacted]' } },
+          });
+        }
+        const reader = result.stream.getReader();
+        expect(await reader.read()).toEqual({
+          value: `hello${'!'.repeat(integrationCount)}`,
+          done: false,
+        });
+        expect(await reader.read()).toEqual({ value: undefined, done: true });
+      },
+    );
+
     it('redacts provider error metadata for nested integrations and preserves the application error', async () => {
       const error = Object.assign(new Error('provider failed'), {
         requestBodyValues: withTelemetryRedaction(

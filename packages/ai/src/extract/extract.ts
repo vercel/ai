@@ -12,6 +12,7 @@ import {
   prepareDecisionState,
   type DecisionState,
 } from '../decide/decision-state';
+import { isRecord } from '../decide/validate-decision';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveExtractionModel } from '../model/resolve-model';
 import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
@@ -98,13 +99,31 @@ export async function extract<
   });
 
   abortSignal?.throwIfAborted();
+  const answers = isRecord(result.answers)
+    ? Object.fromEntries(
+        Object.entries(result.answers).map(([id, answer]) => {
+          if (!isRecord(answer) || answer.type === 'refusal') {
+            return [id, answer];
+          }
+          if (
+            answer.value === '' ||
+            (Array.isArray(answer.value) && answer.value.length === 0)
+          ) {
+            const normalized = { ...answer, value: null };
+            if (normalized.type === 'list') delete normalized.items;
+            return [id, normalized];
+          }
+          return [id, answer];
+        }),
+      )
+    : result.answers;
   validateExtractionAnswers({
     fields,
     state: preparedState,
-    answers: result.answers,
+    answers,
   });
   const refusedFieldIds = Object.keys(fields).filter(
-    id => result.answers[id]?.type === 'refusal',
+    id => answers[id]?.type === 'refusal',
   );
   if (refusedFieldIds.length > 0) {
     throw new ExtractionRefusalError({
@@ -123,7 +142,7 @@ export async function extract<
   const inputTokens = result.usage?.inputTokens;
   const outputTokens = result.usage?.outputTokens;
   return {
-    answers: result.answers as ExtractionResult<FIELDS>['answers'],
+    answers: answers as ExtractionResult<FIELDS>['answers'],
     usage: {
       inputTokens,
       outputTokens,
