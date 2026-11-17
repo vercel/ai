@@ -97,6 +97,8 @@ describe('getOpenAILanguageModelCapabilities', () => {
       ['gpt-5.6-sol', true],
       ['gpt-5.6-terra', true],
       ['gpt-6-astra', false],
+      ['gpt-6.2-astra', false],
+      ['gpt-6.2-sol', false],
       ['gpt-5.99', true],
       ['gpt-5.100', true],
       ['gpt-99', false],
@@ -132,6 +134,22 @@ describe('getOpenAILanguageModelCapabilities', () => {
         supportsNonReasoningParameters: false,
       });
     });
+
+    it.each(['gpt-6.2-astra', 'gpt-6.2-sol'])(
+      'supports the documented %s capabilities',
+      modelId => {
+        expect(getOpenAILanguageModelCapabilities(modelId)).toEqual({
+          isReasoningModel: true,
+          systemMessageMode: 'developer',
+          supportsFlexProcessing: true,
+          supportsPriorityProcessing: true,
+          supportsConfigurationUpdate: true,
+          supportsAsyncToolCalling: true,
+          supportedReasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+          supportsNonReasoningParameters: false,
+        });
+      },
+    );
 
     it('supports the documented GPT-6.1 Terra capabilities', () => {
       expect(getOpenAILanguageModelCapabilities('gpt-6.1-terra')).toEqual({
