@@ -12,7 +12,6 @@ const withGeistdocs = createGeistdocs();
 
 const config: NextConfig = {
   cacheComponents: true,
-  partialPrefetching: true,
   env: {
     // Inlined at build time so `lib/geistdocs/search-sources.ts` bundles
     // either the prebuilt search index or the compiled pages, never both.

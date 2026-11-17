@@ -23,7 +23,7 @@ proxy negotiation); this app owns content, configuration, and thin adapters.
   `node_modules/@vercel/geistdocs/docs/` (start with `agents.md` and
   `sitemap.md` there).
 - Keep `createGeistdocs` as the `next.config.ts` wrapper and keep
-  `cacheComponents: true` and `partialPrefetching: true`. Do not export
+  `cacheComponents: true`. Do not export
   `dynamic`, `revalidate`, or `fetchCache` from App Router files; use
   `"use cache"` + `cacheLife` for cacheable work (see
   `components/resources/highlighted-code.tsx`).
