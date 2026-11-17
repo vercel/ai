@@ -1,7 +1,7 @@
 import { open, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 const MAX_BYTES = 50 * 1024;
 const MAX_LINES = 2000;
