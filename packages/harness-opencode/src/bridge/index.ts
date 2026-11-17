@@ -9,6 +9,7 @@ import { homedir } from 'node:os';
 import path from 'node:path';
 import { argv, env as procEnv } from 'node:process';
 import { isDeepStrictEqual } from 'node:util';
+import { pathToFileURL } from 'node:url';
 import type {
   OpenCodeBuiltinToolName,
   StartMessage,
@@ -324,6 +325,14 @@ async function ensureRuntime({
       directory: workdir,
       headers: serverAuthHeaders,
     });
+    if (start.permissionMode && start.permissionMode !== 'allow-all') {
+      const tools = await runtime.client.tool.ids({ directory: workdir });
+      if (tools.error || !tools.data?.includes('harness_read_guard')) {
+        throw new Error(
+          'OpenCode failed to load the required Harness read plugin.',
+        );
+      }
+    }
     const mcpStatus = await runtime.client.mcp.status();
     const mcpServers = asOpenCodeObject(mcpStatus.data) ?? {};
     runtime.mcpToolPrefixes = new Set(
@@ -401,6 +410,15 @@ function buildOpenCodeConfig({
     hostInstructions: start.openCodeConfig?.instructions,
   });
   if (instructions) config.instructions = instructions;
+  if (start.permissionMode && start.permissionMode !== 'allow-all') {
+    // Custom tools override native tools by name. Keep this plugin last so the
+    // native read tool cannot perform unmediated nested instruction discovery.
+    (config.permission as Record<string, unknown>).harness_read_guard = 'deny';
+    config.plugin = [
+      ...(Array.isArray(config.plugin) ? config.plugin : []),
+      pathToFileURL(path.join(bootstrapDir, 'opencode-read-plugin.mjs')).href,
+    ];
+  }
   if (start.model) config.model = start.model;
   if (skillsDir) config.skills = { paths: [skillsDir] };
   const permission = config.permission as Record<string, unknown>;
