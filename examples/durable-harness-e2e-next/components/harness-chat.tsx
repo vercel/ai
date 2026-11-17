@@ -57,7 +57,7 @@ export default function HarnessChat<MESSAGE extends UIMessage>({
   const { chatId, harness } = useChatId();
   const apiBase = `/api/${harness}`;
   const [newSessionDialogOpen, setNewSessionDialogOpen] = useState(false);
-  const [crashMessage, setCrashMessage] = useState<string | undefined>();
+  const [alertMessage, setAlertMessage] = useState<string | undefined>();
   const [restored] = useState(() => readStoredChatState<MESSAGE>({ chatId }));
   /*
    * A turn that was in progress before a reload is read again from its
@@ -153,10 +153,10 @@ export default function HarnessChat<MESSAGE extends UIMessage>({
   }, [chatId, messages, turnInProgress]);
 
   async function crash() {
-    setCrashMessage(undefined);
+    setAlertMessage(undefined);
     const stored = readStoredAgentSession({ chatId });
     if (stored == null) {
-      setCrashMessage('No current drive to crash');
+      setAlertMessage('No current drive to crash');
       return;
     }
     try {
@@ -166,13 +166,44 @@ export default function HarnessChat<MESSAGE extends UIMessage>({
         body: JSON.stringify({ runId: stored.runId }),
       });
       if (!response.ok) {
-        setCrashMessage(
+        setAlertMessage(
           (await response.text()) || `Crash failed: ${response.status}`,
         );
       }
     } catch (crashError) {
-      setCrashMessage(
+      setAlertMessage(
         crashError instanceof Error ? crashError.message : String(crashError),
+      );
+    }
+  }
+
+  /*
+   * Cancels the session's running turn. The turn's stream then ends like
+   * any finished turn, once the drive running it noticed the cancel.
+   */
+  async function cancel() {
+    setAlertMessage(undefined);
+    const stored = readStoredAgentSession({ chatId });
+    if (stored == null) {
+      setAlertMessage('No running turn to cancel');
+      return;
+    }
+    try {
+      const response = await fetch(`${apiBase}/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ runId: stored.runId }),
+      });
+      if (!response.ok) {
+        setAlertMessage(
+          (await response.text()) || `Cancel failed: ${response.status}`,
+        );
+      }
+    } catch (cancelError) {
+      setAlertMessage(
+        cancelError instanceof Error
+          ? cancelError.message
+          : String(cancelError),
       );
     }
   }
@@ -204,9 +235,9 @@ export default function HarnessChat<MESSAGE extends UIMessage>({
         <NewSessionDialog onClose={() => setNewSessionDialogOpen(false)} />
       )}
 
-      {crashMessage && (
+      {alertMessage && (
         <p role="alert" className="mb-4 text-sm text-red-500">
-          {crashMessage}
+          {alertMessage}
         </p>
       )}
 
@@ -255,6 +286,7 @@ export default function HarnessChat<MESSAGE extends UIMessage>({
       <ChatInput
         status={status}
         maxWidth="5xl"
+        cancel={() => void cancel()}
         onSubmit={parts =>
           /*
            * Text and file parts belong to every message type, which

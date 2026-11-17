@@ -37,8 +37,11 @@ export type HarnessV2EffectOptions<
 /**
  * Host-provided function that runs a keyed effect under its replay policy and
  * records its output. Terminal outputs are replayed; retryable interruptions
- * permit another attempt. Callback failures become error outputs, while
- * serialization and persistence failures reject the call.
+ * permit another attempt. Callback failures become error outputs, except a
+ * thrown `HarnessCancellationError`, which the adapter throws for work it
+ * stopped because the user cancelled the turn: it becomes an `interrupted`
+ * output (retryable for `replay: 'safe'`, with the last partial output).
+ * Serialization and persistence failures reject the call.
  */
 export type HarnessV2EffectFunction = <
   T extends SerializableValue = SerializableValue,
@@ -225,7 +228,8 @@ export type HarnessV2ExecuteHostToolFunction = <
  * `execute` is either an async function, whose return value is the final
  * value, or an async iterable, whose yielded values are recorded as partial
  * values and whose last yielded value is the final value. Every value is
- * complete, not a delta. A thrown error becomes an `error` outcome.
+ * complete, not a delta. A thrown error becomes an `error` outcome, except a
+ * `HarnessCancellationError`, which becomes `interrupted`.
  *
  * The agent emits the `tool-result` parts (preliminary, final and error) of
  * these calls itself, so the adapter must not emit them.
@@ -253,7 +257,7 @@ export type HarnessV2ExecuteBuiltinToolFunction = <
    */
   execute: (options: {
     /**
-     * Aborts the execution when its attempt is cancelled.
+     * Aborts the execution when its attempt must stop.
      */
     abortSignal: AbortSignal;
   }) =>

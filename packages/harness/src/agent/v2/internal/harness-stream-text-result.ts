@@ -35,6 +35,7 @@ import { HarnessEffectError } from '../../../errors/harness-effect-error';
 import { HarnessAfterFinishError, HarnessBeforeStartError } from './errors';
 import { getReasoningOutput } from './harness-generate-text-result';
 import {
+  translateFinishReason,
   translateStreamPart,
   type TranslatedToolCall,
 } from './translate-stream-part';
@@ -434,16 +435,15 @@ export class HarnessStreamTextResult<
         const totalUsage = asLanguageModelUsage(
           part.totalUsage as LanguageModelV4Usage,
         );
-        this.finish = {
-          finishReason: part.finishReason.unified,
-          rawFinishReason: part.finishReason.raw,
-          totalUsage,
-        };
+        const { finishReason, rawFinishReason } = translateFinishReason({
+          finishReason: part.finishReason,
+        });
+        this.finish = { finishReason, rawFinishReason, totalUsage };
         this.enqueue({
           part: {
             type: 'finish',
-            finishReason: part.finishReason.unified,
-            rawFinishReason: part.finishReason.raw,
+            finishReason,
+            rawFinishReason,
             totalUsage,
           },
         });
@@ -529,6 +529,9 @@ export class HarnessStreamTextResult<
 
     const stepNumber = this.steps_.length;
     const usage = asLanguageModelUsage(part.usage as LanguageModelV4Usage);
+    const { finishReason, rawFinishReason } = translateFinishReason({
+      finishReason: part.finishReason,
+    });
     const providerMetadata = part.harnessMetadata as
       | ProviderMetadata
       | undefined;
@@ -541,8 +544,8 @@ export class HarnessStreamTextResult<
       runtimeContext: {} as RUNTIME_CONTEXT,
       toolsContext: {} as InferToolSetContext<TOOLS>,
       content: this.stepContent,
-      finishReason: part.finishReason.unified,
-      rawFinishReason: part.finishReason.raw,
+      finishReason,
+      rawFinishReason,
       usage,
       performance,
       warnings: undefined,
@@ -563,8 +566,8 @@ export class HarnessStreamTextResult<
         response: step.response,
         usage,
         performance,
-        finishReason: part.finishReason.unified,
-        rawFinishReason: part.finishReason.raw,
+        finishReason,
+        rawFinishReason,
         providerMetadata,
       },
     });

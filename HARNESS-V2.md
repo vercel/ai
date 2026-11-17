@@ -115,8 +115,9 @@ export type HarnessV2 = {
 };
 
 /**
- * A submission as the harness sees it. Only `prompt` and `steer` reach the
- * harness; everything else is handled by the agent.
+ * A submission as the harness sees it. A `steer` or `cancel` belongs to the
+ * turn running when it was recorded; recorded while no turn runs, it is
+ * withdrawn at once.
  */
 type HarnessV2Submission =
   | {
@@ -135,6 +136,15 @@ type HarnessV2Submission =
        */
       readonly type: 'steer';
       readonly message: UserModelMessage;
+    }
+  | {
+      /**
+       * Cancels the running turn. The harness stops the turn's work and
+       * finishes the turn with finish reason `cancelled`, which delivers the
+       * cancel; a turn that finishes otherwise withdraws it. Prompts waiting
+       * for a later turn are not affected. See "Turn cancel" below.
+       */
+      readonly type: 'cancel';
     };
 
 // Ideally `T extends HarnessV2SerializableValue`; omitted because interfaces
@@ -244,7 +254,7 @@ type HarnessV2LogEvent =
       /**
        * A finished turn, written by the agent: when the harness calls
        * `finishTurn()`, or when the agent ends the turn itself (e.g. a failed
-       * drive, later a cancellation). The harness reads it when rebuilding,
+       * drive). The harness reads it when rebuilding,
        * so it never resumes a turn the agent already ended.
        */
       readonly type: 'finish-turn';
@@ -253,6 +263,10 @@ type HarnessV2LogEvent =
          * ID of the turn. Opaque to the harness.
          */
         readonly turnId: string;
+        /**
+         * `LanguageModelV4FinishReason`, whose `unified` additionally allows
+         * `cancelled` for a turn the user cancelled.
+         */
         readonly finishReason: LanguageModelV4FinishReason;
         readonly totalUsage: LanguageModelV4Usage;
         readonly harnessMetadata?: HarnessV2Metadata;
@@ -409,7 +423,7 @@ type HarnessV2ToolGateOutput =
 interface HarnessV2EffectContext {
   /**
    * Aborted when this attempt must stop, e.g. the drive is ending, ownership
-   * of the session moved to another drive, or the turn was cancelled.
+   * of the session moved to another drive.
    */
   abortSignal: AbortSignal;
   /**
@@ -488,7 +502,10 @@ interface HarnessV2DriveContext {
      */
     getSubmissions(): readonly HarnessV2LogSubmissionEvent[];
     /**
-     * Submissions that no accepted `effect-start` delivered yet.
+     * Submissions waiting for delivery: a prompt until an accepted
+     * `effect-start` delivers it, a steer until one delivers it while its
+     * turn is unfinished, and a cancel while its turn is unfinished. A
+     * waiting cancel is therefore always for the running turn.
      */
     getUndeliveredSubmissions(): readonly HarnessV2LogSubmissionEvent[];
     /**
@@ -524,8 +541,8 @@ interface HarnessV2DriveContext {
     append(event: HarnessV2LogAdapterEvent): Promise<boolean>;
     /**
      * Notifies the listener when log events arrive from outside this drive,
-     * e.g. a `steer` submission mid-turn, once the lookups include them.
-     * Returns the unsubscribe function.
+     * e.g. a `steer` or `cancel` submission mid-turn, once the lookups
+     * include them. Returns the unsubscribe function.
      */
     onAppend(listener: () => void): () => void;
   };
@@ -550,13 +567,16 @@ interface HarnessV2DriveContext {
    * `HarnessInvalidDriveStateError` thrown from `fn`, which records an
    * interruption before propagating to the agent. Serialization and storage
    * failures reject rather than becoming callback error outputs; a failed
-   * interruption write also propagates its storage failure.
+   * interruption write also propagates its storage failure. A
+   * `HarnessCancellationError` thrown from `fn`, for work the harness stopped
+   * because the user cancelled the turn, becomes an `interrupted` output too
+   * (retryable for `safe`, with the last partial result).
    *
-   * Cancellation is cooperative: a pending callback or iterator operation
+   * Stopping is cooperative: a pending callback or iterator operation
    * must settle before interruption can be recorded. The current invocation
    * returns its interruption without retrying under an aborted signal. An
    * already-aborted drive starts no attempt, while committed terminal outputs
-   * remain replayable. Cancellation cannot overwrite a committed end.
+   * remain replayable. Stopping cannot overwrite a committed end.
    *
    * `fn` is either a regular async function, whose return value is the
    * output, or an async generator, whose yielded values are recorded as
@@ -665,9 +685,9 @@ interface HarnessV2DriveContext {
    */
   unsafeEmit(part: HarnessV2StreamPart): void;
   /**
-   * Fires when this drive must stop right away, e.g. because it ended, another
-   * drive took over the session, or the turn was cancelled. Stop all work
-   * immediately and write nothing more.
+   * Fires when this drive must stop right away, e.g. because it ended or
+   * another drive took over the session. Stop all work immediately and write
+   * nothing more.
    */
   stopAbortSignal: AbortSignal;
   /**
@@ -777,6 +797,15 @@ const result = agent.stream({ prompt, session });
 - `HarnessAgent.readStream({ session, abortSignal })` reads the session's latest turn from its `start` record, across drives (dropping `yield` parts), until its `finish` part, in any process, without driving the session.
 - `HarnessAgent.experimental_crash({ session })` appends an engine-only `crash-request`. The drive of the latest `drive-start` before it, in any process, records a `drive-crash` (ID `drive-crash:${driveId}`), flushes its stream writer and kills its process with `SIGKILL`. It rejects without writing if the session has no turn, its latest turn finished, or its latest drive already crashed.
 - Limits: without a runtime deadline (e.g. a local World), a real crash without `drive-crash` is never provably gone. A lost `finish` part of a finished turn is not repaired. The repair and `readStream()` read the session's stream from its first chunk.
+
+### Turn cancel
+
+- `HarnessAgent.cancel({ session })` cancels the session's running turn, in any process. It appends a `cancel` submission and resolves once it is committed, without starting a drive or waiting for the turn to end. It rejects without writing if the session has no running turn, and resolves without writing if a cancel of the running turn is already waiting.
+- The log decides what a cancel means. A `steer` or `cancel` belongs to the turn that is current and unfinished when it is recorded, and otherwise to no turn. A cancel waits while its turn is unfinished; it counts as delivered once that turn finishes with finish reason `cancelled`, and as withdrawn if the turn finishes otherwise or it belongs to no turn. A steer whose turn finished before an effect delivered it is withdrawn too. An effect never delivers a cancel. Prompts waiting for a later turn are not affected.
+- The engine never finishes a turn because of a cancel; the harness adapter does. It registers `log.onAppend()` and checks `getUndeliveredSubmissions()` for a cancel, stops the turn's work, throws `HarnessCancellationError` from the effects it cuts off (including a built-in tool's `execute`, whose error `tool-result` part then shows the error's message), and calls `finishTurn({ finishReason: { unified: 'cancelled', raw: undefined }, ... })`. A model call the cancel cut off still finishes its step, with the same finish reason. The drive then continues with the next waiting prompt. A cancel already waiting when a drive starts finishes the unfinished turn without running it.
+- Results report `cancelled` as finish reason `other` with the raw finish reason `cancelled`; a cancelled turn is otherwise a normal finish.
+- A drive in another process notices a cancel through the log's hint stream, or at the latest through its periodic refresh (currently every 15 seconds). Without a running drive, the next drive of the session handles it.
+- Limits: host tool calls run to completion before the turn finishes. `gateBuiltinTool()` is not covered. A model call's partial output is not part of the next turn's model context. Tool calls that never ran because of the cancel have no `tool-result` part in the turn's stream. An adapter that does not handle cancels lets the turn finish normally, which withdraws the cancel.
 
 ## Open questions
 

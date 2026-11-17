@@ -2,11 +2,11 @@ import type { HarnessV2, HarnessV2DriveContext } from '@ai-sdk/harness';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { tool, type ToolSet } from '@ai-sdk/provider-utils';
 import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { FX_BUILTIN_TOOLS } from './fx-builtin-tools';
 import { FxDrive, toFxPromptInput } from './fx-drive';
-import { readFxLogState } from './fx-log-state';
+import { hasPendingCancel, readFxLogState } from './fx-log-state';
 import {
   createTestModelRuntime,
   readFixture,
@@ -56,6 +56,7 @@ async function setup(
     session,
     runtime,
     hooks,
+    log,
     readState: () => readFxLogState({ log: log() }),
     effectKeys: () =>
       log()
@@ -202,6 +203,121 @@ describe('toFxPromptInput', () => {
 });
 
 describe('FxDrive', () => {
+  describe('cancel', () => {
+    const cancelled = {
+      unified: 'cancelled',
+      raw: undefined,
+    } as const;
+
+    /**
+     * Creates a session whose host `bash` tool cancels the running turn and
+     * returns once the drive noticed the cancel.
+     */
+    async function setupCancellingTool() {
+      const holder: { cancel?: () => Promise<void> } = {};
+      const test = await setup({
+        tools: {
+          bash: bashTool(async () => {
+            await holder.cancel!();
+            return { stdout: 'LIBFX_FIXTURE' };
+          }),
+        },
+        responses: [
+          await readFixture({ name: 'gateway-host-tool-call.sse.txt' }),
+        ],
+      });
+      holder.cancel = async () => {
+        await test.agent.cancel({ session: test.session });
+        await vi.waitFor(() =>
+          expect(hasPendingCancel({ log: test.log() })).toBe(true),
+        );
+      };
+      return test;
+    }
+
+    test('finishes the turn as cancelled when a cancel arrives during a host tool call', async () => {
+      const { agent, session, runtime, log, effectKeys } =
+        await setupCancellingTool();
+
+      const result = await agent.stream({
+        prompt: 'Run printf LIBFX_FIXTURE',
+        session,
+      });
+
+      expect(await result.finishReason).toBe('other');
+      expect(await result.rawFinishReason).toBe('cancelled');
+      expect(runtime.requests).toHaveLength(1);
+      expect(effectKeys()).not.toContain('checkpoint:0');
+      expect(log().getCurrentTurn()?.finish?.data.finishReason).toEqual(
+        cancelled,
+      );
+      expect(log().getUndeliveredSubmissions()).toEqual([]);
+    });
+
+    test('runs the next prompt on the conversation rebuilt from the log', async () => {
+      const { agent, session, runtime } = await setupCancellingTool();
+      await (
+        await agent.stream({ prompt: 'Run printf LIBFX_FIXTURE', session })
+      ).consumeStream();
+
+      runtime.push(await readFixture({ name: 'gateway-text.sse.txt' }));
+      const result = await agent.generate({ prompt: 'Second prompt', session });
+
+      expect(result.text).toBe('READY');
+      expect(runtime.requests).toHaveLength(2);
+      expect(runtime.requests[1].body).toContain('LIBFX_FIXTURE');
+      expect(runtime.requests[1].body).toContain('Second prompt');
+    });
+
+    test('records a model call that a cancel cut off as interrupted', async () => {
+      const { agent, session, runtime, log, effectKeys } = await setup();
+      const fetch = runtime.fetch;
+      runtime.fetch = async (input, init) => {
+        const url = new URL(
+          input instanceof Request ? input.url : String(input),
+        );
+        if (!url.pathname.endsWith('/ai/language-model')) {
+          return fetch(input, init);
+        }
+        await agent.cancel({ session });
+        const signal = init!.signal!;
+        if (!signal.aborted) {
+          await new Promise(resolve =>
+            signal.addEventListener('abort', resolve, { once: true }),
+          );
+        }
+        throw new DOMException('The request was aborted.', 'AbortError');
+      };
+
+      const result = await agent.stream({ prompt: 'Reply READY', session });
+
+      expect(await result.rawFinishReason).toBe('cancelled');
+      expect((await result.steps).map(step => step.rawFinishReason)).toEqual([
+        'cancelled',
+      ]);
+      expect(log().getEffect({ key: 'model:0:0' })?.end?.data.output).toEqual({
+        type: 'interrupted',
+        retryable: true,
+      });
+      expect(effectKeys()).not.toContain('checkpoint:0');
+    });
+
+    test('finishes a turn whose cancel waits when the drive starts without running it', async () => {
+      const { agent, session, runtime, log } =
+        await setupStoppedAfterHostTool();
+
+      await agent.cancel({ session });
+      const reading = await agent.readStream({ session });
+      await agent.drive({ session });
+
+      expect(await reading.rawFinishReason).toBe('cancelled');
+      expect(runtime.requests).toHaveLength(1);
+      expect(log().getCurrentTurn()?.finish?.data.finishReason).toEqual(
+        cancelled,
+      );
+    });
+  });
+
   test('runs a text-only turn', async () => {
     const { agent, session, runtime, readState, effectKeys, getEffectStart } =
       await setup({

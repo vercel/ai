@@ -8,12 +8,12 @@ import { useRef, useState, type ChangeEvent } from 'react';
 export default function ChatInput({
   status,
   onSubmit,
-  stop,
+  cancel,
   maxWidth = 'md',
 }: {
   status: string;
   onSubmit: (parts: Array<TextUIPart | FileUIPart>) => void;
-  stop?: () => void;
+  cancel?: () => void;
   maxWidth?: string;
 }) {
   const [text, setText] = useState('');
@@ -127,13 +127,13 @@ export default function ChatInput({
           value={text}
           onChange={event => setText(event.target.value)}
         />
-        {stop && (status === 'streaming' || status === 'submitted') && (
+        {cancel && (status === 'streaming' || status === 'submitted') && (
           <button
             className="px-3 py-2 border border-gray-300 rounded"
             type="button"
-            onClick={stop}
+            onClick={cancel}
           >
-            Stop
+            Cancel
           </button>
         )}
       </div>

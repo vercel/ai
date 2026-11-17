@@ -121,7 +121,7 @@ export type HarnessV2Effect = {
  */
 export interface HarnessV2EffectContext {
   /**
-   * Aborts the callback when its current drive attempt is cancelled.
+   * Aborts the callback when its current drive attempt must stop.
    */
   abortSignal: AbortSignal;
 

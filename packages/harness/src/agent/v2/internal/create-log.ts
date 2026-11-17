@@ -32,7 +32,7 @@ import type {
 } from '../../../v2/harness-v2-stream-part';
 
 /**
- * Records a user prompt or steering message submitted to the session.
+ * Records a user prompt, steering message or cancel submitted to the session.
  */
 export type HarnessAgentLogSubmissionEvent = HarnessV2LogSubmissionEvent;
 
@@ -466,8 +466,17 @@ export type HarnessAgentLog = {
   getSubmissions(): readonly HarnessAgentLogSubmissionEvent[];
 
   /**
-   * Returns the submissions that no accepted `effect-start` delivered yet, in
-   * log order.
+   * Returns the submissions waiting for delivery, in log order:
+   *
+   * - a prompt until an accepted `effect-start` delivers it;
+   * - a steer until an accepted `effect-start` delivers it, as long as the
+   *   turn that was running when it was recorded has not finished;
+   * - a cancel as long as the turn that was running when it was recorded has
+   *   not finished. It counts as delivered once that turn finishes with
+   *   finish reason `cancelled`.
+   *
+   * A steer or cancel recorded while no turn was running, or whose turn
+   * finished otherwise, is withdrawn and never returned.
    */
   getUndeliveredSubmissions(): readonly HarnessAgentLogSubmissionEvent[];
 
@@ -747,6 +756,13 @@ function isRetryableInterruption(output?: HarnessV2EffectOutput): boolean {
  * listeners are notified. This is the one place that decides what log events
  * mean for the session:
  *
+ * - A `submission` is added to the submissions. A `steer` or `cancel`
+ *   submission belongs to the turn that is current at that moment if that
+ *   turn has not finished, and otherwise to no turn. A prompt or steer counts
+ *   as delivered once an accepted `effect-start` lists it. A cancel is never
+ *   delivered by an effect: it waits while its turn is unfinished, and counts
+ *   as delivered if that turn finishes with finish reason `cancelled`.
+ *   Steers and cancels without an unfinished turn are withdrawn.
  * - An `effect-start` is accepted only if its `attempt` is the next attempt
  *   of its key and the key's previous attempt, if any, ended with a
  *   retryable interruption. An accepted start becomes the latest attempt of
@@ -781,6 +797,12 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
 
   const submissions: HarnessAgentLogSubmissionEvent[] = [];
   const delivered = new Set<string>();
+
+  /**
+   * Turn each `steer` and `cancel` submission belongs to: the turn that was
+   * current and unfinished when the submission was recorded.
+   */
+  const submissionTurns = new Map<string, Mutable<HarnessAgentLogTurn>>();
 
   /**
    * Latest accepted attempt of each effect key. A key is moved to the end
@@ -877,9 +899,18 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
   }): void {
     const { event } = options;
     switch (event.type) {
-      case 'submission':
+      case 'submission': {
         submissions.push(event);
+        const currentTurn = turns.at(-1);
+        if (
+          event.data.type !== 'prompt' &&
+          currentTurn != null &&
+          currentTurn.finish == null
+        ) {
+          submissionTurns.set(event.id, currentTurn);
+        }
         return;
+      }
 
       case 'effect-start':
         applyEffectStart({ event });
@@ -1362,7 +1393,26 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
 
     getUndeliveredSubmissions() {
       checkLookups();
-      return submissions.filter(submission => !delivered.has(submission.id));
+      return submissions.filter(submission => {
+        const turn = submissionTurns.get(submission.id);
+        switch (submission.data.type) {
+          case 'prompt':
+            return !delivered.has(submission.id);
+          case 'steer':
+            /*
+             * TODO: A steer whose turn finished before any effect delivered
+             * it is withdrawn for now. Explore whether it should become a
+             * prompt for the next turn instead.
+             */
+            return (
+              turn != null &&
+              turn.finish == null &&
+              !delivered.has(submission.id)
+            );
+          case 'cancel':
+            return turn != null && turn.finish == null;
+        }
+      });
     },
 
     getEffect({ key }) {

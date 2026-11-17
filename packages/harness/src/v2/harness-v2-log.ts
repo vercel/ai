@@ -8,11 +8,11 @@ import type {
 import type { HarnessV2Submission } from './harness-v2-submission';
 
 /**
- * Records a user prompt or steering message submitted to the session.
+ * Records a user prompt, steering message or cancel submitted to the session.
  */
 export type HarnessV2LogSubmissionEvent = {
   /**
-   * A user prompt or steering message submitted to the session.
+   * A user prompt, steering message or cancel submitted to the session.
    */
   readonly type: 'submission';
 
@@ -234,8 +234,18 @@ export type HarnessV2Log = {
   getSubmissions(): readonly HarnessV2LogSubmissionEvent[];
 
   /**
-   * Returns the submissions that no accepted `effect-start` delivered yet, in
-   * log order.
+   * Returns the submissions waiting for delivery, in log order:
+   *
+   * - a prompt until an accepted `effect-start` delivers it;
+   * - a steer until an accepted `effect-start` delivers it, as long as the
+   *   turn that was running when it was recorded has not finished;
+   * - a cancel as long as the turn that was running when it was recorded has
+   *   not finished. It counts as delivered once that turn finishes with
+   *   finish reason `cancelled`, so any cancel returned here is for the
+   *   running turn.
+   *
+   * A steer or cancel recorded while no turn was running, or whose turn
+   * finished otherwise, is withdrawn and never returned.
    */
   getUndeliveredSubmissions(): readonly HarnessV2LogSubmissionEvent[];
 

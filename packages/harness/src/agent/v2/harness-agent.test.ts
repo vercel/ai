@@ -8,6 +8,7 @@ import {
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { World } from '@workflow/world';
+import { HarnessCancellationError } from '../../errors/harness-cancellation-error';
 import type { HarnessV2 } from '../../v2/harness-v2';
 import type { HarnessV2BuiltinToolSet } from '../../v2/harness-v2-builtin-tool';
 import type { HarnessV2DriveContext } from '../../v2/harness-v2-drive-context';
@@ -1784,5 +1785,153 @@ describe('HarnessAgent durability', () => {
     await result.consumeStream();
 
     expect(queue).not.toHaveBeenCalled();
+  });
+});
+
+describe('HarnessAgent cancel', () => {
+  const cancelled = { unified: 'cancelled' as const, raw: undefined };
+
+  /**
+   * Creates a session whose log holds a prompt and the start of its turn,
+   * i.e. a running turn without a drive.
+   */
+  async function setupRunningTurn() {
+    const world = new InMemoryWorld();
+    const agent = new HarnessAgent({ harness, world, getSandboxSession });
+    const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+    const log = createLog({ world, runId: session.runId });
+    await log.append({
+      type: 'submission',
+      id: 'p1',
+      data: {
+        type: 'prompt',
+        message: { role: 'user', content: 'hello' },
+        settings: { skills: [], tools: [] },
+      },
+    });
+    await log.append({
+      type: 'turn-start',
+      id: 'turn-start:p1',
+      data: { turnId: 'p1' },
+    });
+    return { world, agent, session, log };
+  }
+
+  test('rejects without writing when the session has no running turn', async () => {
+    const world = new InMemoryWorld();
+    const agent = new HarnessAgent({ harness, world, getSandboxSession });
+    const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+
+    await expect(agent.cancel({ session })).rejects.toThrow(
+      'HarnessAgent.cancel: the session has no running turn.',
+    );
+
+    const running = await setupRunningTurn();
+    await running.log.append({
+      type: 'finish-turn',
+      id: 'finish-turn:p1',
+      data: { turnId: 'p1', finishReason, totalUsage: usage },
+    });
+    await expect(
+      running.agent.cancel({ session: running.session }),
+    ).rejects.toThrow('HarnessAgent.cancel: the session has no running turn.');
+    expect(
+      (
+        await readLogEvents({
+          world: running.world,
+          runId: running.session.runId,
+          types: ['submission'],
+        })
+      ).map(event => event.id),
+    ).toEqual(['p1']);
+  });
+
+  test('appends one cancel submission while a cancel is waiting', async () => {
+    const { world, agent, session } = await setupRunningTurn();
+
+    await agent.cancel({ session });
+    await agent.cancel({ session });
+
+    const submissions = await readLogEvents({
+      world,
+      runId: session.runId,
+      types: ['submission'],
+    });
+    expect(submissions.map(event => event.data)).toEqual([
+      expect.objectContaining({ type: 'prompt' }),
+      { type: 'cancel' },
+    ]);
+  });
+
+  test('ends the turn with the finish reason the adapter reports for the cancel', async () => {
+    const started = new DelayedPromise<void>();
+    const cancelHarness: HarnessV2 = {
+      specificationVersion: 'harness-v2',
+      harnessId: 'fake-v2',
+      builtinTools: {},
+      async drive({ context }) {
+        const prompt = context.log
+          .getUndeliveredSubmissions()
+          .find(submission => submission.data.type === 'prompt');
+        if (prompt == null) return;
+        const hasCancel = () =>
+          context.log
+            .getUndeliveredSubmissions()
+            .some(submission => submission.data.type === 'cancel');
+        await context.effect({
+          key: 'model:0',
+          name: 'model',
+          replay: 'safe',
+          input: null,
+          deliveredSubmissionIds: [prompt.id],
+          fn: async ({ emit }) => {
+            emit({ type: 'text-start', id: 'text' });
+            emit({ type: 'text-delta', id: 'text', delta: 'Partial' });
+            const cancelSeen = new DelayedPromise<void>();
+            const stopListening = context.log.onAppend(() => {
+              if (hasCancel()) cancelSeen.resolve();
+            });
+            started.resolve();
+            try {
+              await cancelSeen.promise;
+            } finally {
+              stopListening();
+            }
+            throw new HarnessCancellationError();
+          },
+        });
+        await context.finishStep({
+          stepNumber: 0,
+          finishReason: cancelled,
+          usage,
+        });
+        await context.finishTurn({
+          finishReason: cancelled,
+          totalUsage: usage,
+        });
+      },
+    };
+    const world = new InMemoryWorld();
+    const agent = new HarnessAgent({
+      harness: cancelHarness,
+      world,
+      getSandboxSession,
+    });
+    const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+
+    const result = await agent.stream({ prompt: 'hello', session });
+    await started.promise;
+    await agent.cancel({ session });
+
+    expect(await result.text).toBe('Partial');
+    expect(await result.finishReason).toBe('other');
+    expect(await result.rawFinishReason).toBe('cancelled');
+    const log = createLog({ world, runId: session.runId });
+    await log.refresh();
+    expect(log.getUndeliveredSubmissions()).toEqual([]);
+    expect(log.getEffect({ key: 'model:0' })?.end?.data.output).toEqual({
+      type: 'interrupted',
+      retryable: true,
+    });
   });
 });

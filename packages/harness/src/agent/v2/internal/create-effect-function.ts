@@ -6,6 +6,7 @@ import {
   jsonDecodeSerializableValue,
   jsonEncodeSerializableValue,
 } from '@ai-sdk/provider-utils';
+import { HarnessCancellationError } from '../../../errors/harness-cancellation-error';
 import { HarnessEffectError } from '../../../errors/harness-effect-error';
 import { HarnessInvalidDriveStateError } from '../../../errors/harness-invalid-drive-state-error';
 import type {
@@ -35,7 +36,8 @@ export type HarnessAgentEffectOptions<
 /**
  * Runs a keyed effect and returns its committed output. Terminal outputs are
  * replayed; recorded retryable interruptions permit a new attempt. Callback
- * failures become error outputs, while persistence failures reject the call.
+ * failures become error outputs, except a thrown `HarnessCancellationError`,
+ * which becomes an interruption. Persistence failures reject the call.
  */
 export type HarnessAgentEffectFunction = HarnessV2EffectFunction;
 
@@ -121,6 +123,9 @@ async function executeCallback(options: {
    * failures. The caller persists the output before propagating a rebuild error.
    * A thrown `HarnessEffectError` is the throwable form of effect error data,
    * so its message is recorded unchanged instead of the error's string form.
+   * A thrown `HarnessCancellationError` means the adapter stopped the work
+   * because the user cancelled the turn, so it is recorded as an
+   * interruption.
    */
   function callbackFailure(error: unknown): CallbackOutput {
     if (HarnessInvalidDriveStateError.isInstance(error)) {
@@ -128,6 +133,9 @@ async function executeCallback(options: {
         output: interruption(attempt),
         invalidDriveStateError: error,
       };
+    }
+    if (HarnessCancellationError.isInstance(error)) {
+      return { output: interruption(attempt) };
     }
     if (abortSignal.aborted) return { output: interruption(attempt) };
     if (HarnessEffectError.isInstance(error)) {
@@ -211,6 +219,9 @@ async function executeCallback(options: {
  * Unfinished attempts require engine recovery, not an automatic retry here.
  * Cancellation is cooperative; callback rebuild errors record interruption
  * before propagating, while serialization and persistence failures reject.
+ * A `HarnessCancellationError` thrown by a callback records an interruption
+ * (retryable for `replay: 'safe'`, with the last partial output), and the
+ * call resolves with it.
  * Attempts and turns are looked up in the log, which the drive refreshes when
  * it starts and which every append brings up to date before writing.
  * Each executed attempt's callback emits through the stream writer, tagged with

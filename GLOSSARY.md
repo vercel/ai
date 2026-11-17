@@ -11,6 +11,7 @@
 - **Step**: One model call within a turn, together with the tool calls it requested and their results. A turn ends once a step requests no more tool calls or the agent stops.
 - **Prompt**: A user message that starts a new turn.
 - **Steering message**: A user message sent while a turn is running, which the agent picks up at its next safe point instead of starting a new turn.
+- **Cancel**: A submission with which the user stops a running turn. The turn finishes with finish reason `cancelled`; prompts waiting for a later turn are not affected.
 - **Instructions**: Standing guidance that shapes how the agent behaves across all turns, also called the system prompt.
 - **Skill**: A packaged set of instructions and optional resources that the agent loads when a task needs them.
 - **Tool**: A capability the model can call with structured input to act on the outside world or get information. A tool call produces a tool result that goes back to the model.
@@ -25,7 +26,7 @@
   - **Work directory**: The directory inside the sandbox where the agent works on a session's files. It may be the same directory as the sandbox's default working directory, but conceptually it's separate and may be another directory, e.g. a subdirectory of the sandbox's default working directory.
 - **Stream**: The append-only sequence of a session's output, which readers follow live or read back later.
 - **Stream part**: One unit of the output an agent streams while it works, such as a piece of text, reasoning, a tool call or a tool result.
-- **Finish reason**: Why a step or turn ended, such as a normal stop, a tool call, hitting a length limit, or an error.
+- **Finish reason**: Why a step or turn ended, such as a normal stop, a tool call, hitting a length limit, an error, or a cancel.
 
 ## Durability
 
@@ -35,7 +36,7 @@
 - **Run**: The unit of storage in a world that holds one session's log and stream.
 - **Log**: The append-only, ordered record of everything that happened in a session, and the source of truth for its state. Anything not recorded in the log has not happened as far as recovery is concerned.
 - **Log event**: One entry in the log, identified by a stable ID so the same event is never recorded twice.
-- **Submission**: Any input an application sends into a session, such as a prompt or a steering message. A submission is recorded in the log first and delivered to the agent afterwards.
+- **Submission**: Any input an application sends into a session, such as a prompt, a steering message or a cancel. A submission is recorded in the log first and delivered to the agent afterwards.
 - **Delivery**: The moment the agent actually receives a submission, for example when a prompt is passed to the model. A submission that has not been delivered yet is waiting in the session.
 - **Withdrawal**: Taking back a submission before it has been delivered to the agent. Once delivered, a submission can no longer be withdrawn.
 - **Drive**: One pass of running a session in a process: reading its log, continuing whatever work is open, and stopping when the work is done or the drive has to stop. A turn can span several drives.

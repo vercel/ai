@@ -8,6 +8,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { z } from 'zod/v4';
+import { HarnessCancellationError } from '../../../errors/harness-cancellation-error';
 import type { HarnessV2BuiltinToolSet } from '../../../v2/harness-v2-builtin-tool';
 import type { HarnessV2ToolExecutionValue } from '../../../v2/harness-v2-drive-context';
 import { DefaultHarnessAgentSession } from '../harness-agent-session';
@@ -978,6 +979,34 @@ describe('createExecuteToolFunctions', () => {
         await readEffectEvents({ world, type: 'effect-start' }),
       ).toHaveLength(1);
       expect(await readParts({ world })).toHaveLength(1);
+    });
+
+    test('records a HarnessCancellationError as interrupted and emits an error tool result', async () => {
+      const { world, executeBuiltinTool } = await setup();
+
+      const output = await executeBuiltinTool({
+        ...bashCall,
+        async *execute() {
+          yield { raw: 'partial' };
+          throw new HarnessCancellationError();
+        },
+      });
+
+      expect(output).toEqual({
+        type: 'interrupted',
+        retryable: false,
+        partial: { raw: 'partial' },
+      });
+      expect(await readEffectEvents({ world, type: 'effect-end' })).toEqual([
+        { startId: expect.any(String), output },
+      ]);
+      expect((await readParts({ world })).at(-1)).toEqual({
+        type: 'tool-result',
+        toolCallId: 'call-1',
+        toolName: 'bash',
+        result: 'The turn was cancelled.',
+        isError: true,
+      });
     });
 
     test('records an attempt as interrupted when the drive stops', async () => {

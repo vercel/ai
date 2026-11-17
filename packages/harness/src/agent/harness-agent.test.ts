@@ -467,7 +467,7 @@ describe('HarnessAgent', () => {
     );
   });
 
-  test.each(['drive', 'readStream', 'experimental_crash'] as const)(
+  test.each(['drive', 'readStream', 'experimental_crash', 'cancel'] as const)(
     'rejects %s() when using a HarnessV1 adapter',
     async method => {
       const { harness } = mockHarness({ script: () => [] });
@@ -493,6 +493,23 @@ describe('HarnessAgent', () => {
 
     await expect(agent.experimental_crash({ session })).rejects.toThrow(
       'HarnessAgent.experimental_crash: there is no current drive to crash.',
+    );
+  });
+
+  test('routes cancel() to the HarnessV2 implementation', async () => {
+    const agent = new HarnessAgent({
+      harness: {
+        specificationVersion: 'harness-v2',
+        harnessId: 'mock-v2',
+        builtinTools: {},
+        drive: async () => {},
+      },
+      getSandboxSession: async () => ({}) as SandboxSession,
+    });
+    const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+
+    await expect(agent.cancel({ session })).rejects.toThrow(
+      'HarnessAgent.cancel: the session has no running turn.',
     );
   });
 

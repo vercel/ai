@@ -269,6 +269,22 @@ function toPromptSubmissions(
 }
 
 /**
+ * Returns whether the log has a cancel waiting for delivery. A waiting cancel
+ * is always for the running turn: it counts as delivered once that turn
+ * finishes with finish reason `cancelled`, and as withdrawn otherwise.
+ */
+export function hasPendingCancel(options: {
+  /**
+   * Log of the session.
+   */
+  log: HarnessV2Log;
+}): boolean {
+  return options.log
+    .getUndeliveredSubmissions()
+    .some(submission => submission.data.type === 'cancel');
+}
+
+/**
  * Looks up the session state in the log.
  *
  * The turns are the log's turns, and a turn's index is its position among

@@ -1,8 +1,10 @@
-import type {
-  HarnessV2DriveContext,
-  HarnessV2EffectContext,
-  HarnessV2ToolExecutionValue,
-  HarnessV2TurnSettings,
+import {
+  HarnessCancellationError,
+  type HarnessV2DriveContext,
+  type HarnessV2EffectContext,
+  type HarnessV2FinishReason,
+  type HarnessV2ToolExecutionValue,
+  type HarnessV2TurnSettings,
 } from '@ai-sdk/harness';
 import { extractHarnessPromptContent } from '@ai-sdk/harness/utils';
 import type { JSONValue } from '@ai-sdk/provider';
@@ -27,6 +29,7 @@ import { readFxSandboxHome } from './fx-sandbox-home';
 import {
   getFxCatalogEffectKey,
   getFxModelEffectKey,
+  hasPendingCancel,
   readFxLogState,
   type FxCatalogEffectValue,
   type FxCheckpointValue,
@@ -53,6 +56,15 @@ import {
 } from './fx-usage';
 
 const MODEL_ATTEMPTS = 3;
+
+/**
+ * Finish reason of a turn the user cancelled, and of the step whose model
+ * call the cancel cut off.
+ */
+const CANCELLED_FINISH_REASON: HarnessV2FinishReason = {
+  unified: 'cancelled',
+  raw: undefined,
+};
 
 /*
  * Path of AI Gateway's model catalog, which libfx's core requests for the
@@ -212,6 +224,24 @@ type FxTurnRun = {
    * libfx's turn, while it runs.
    */
   engineTurn?: FxEngineTurn;
+
+  /**
+   * Whether the user cancelled the turn.
+   */
+  cancelled: boolean;
+
+  /**
+   * Aborted when the user cancels the turn, to stop its model requests,
+   * model catalog requests and built-in tools.
+   */
+  abortController: AbortController;
+
+  /**
+   * Work of a live turn that libfx may stop waiting for when its turn is
+   * cancelled: model requests, model catalog requests and tool calls. A
+   * cancelled turn only finishes once all of it settled.
+   */
+  inFlight: Set<Promise<unknown>>;
 };
 
 /**
@@ -239,6 +269,15 @@ type FxTurnRun = {
  * stop, when an effect reports that the drive is yielding, or when a drive
  * context call rejects. A rejection is rethrown from `run()` once libfx
  * settled.
+ *
+ * A cancel of the running turn, noticed through the log's `onAppend()`,
+ * cancels libfx's turn and aborts the turn's model requests and built-in
+ * tools, while host tools finish. Effects it cuts off throw
+ * `HarnessCancellationError`, so they are recorded as interrupted. Once the
+ * turn's work settled, the turn finishes with finish reason `cancelled`,
+ * without a checkpoint, so the next turn rebuilds the conversation from the
+ * log. A cancel that is already waiting when the drive starts finishes the
+ * unfinished turn without running it.
  */
 export class FxDrive {
   /**
@@ -329,12 +368,14 @@ export class FxDrive {
   async run(): Promise<void> {
     const { context } = this;
     if (context.stopAbortSignal.aborted) return;
+    const stopListening = context.log.onAppend(() => this.checkCancel());
     const onStop = () => this.halt();
     context.stopAbortSignal.addEventListener('abort', onStop);
     try {
       await this.runTurns();
     } finally {
       context.stopAbortSignal.removeEventListener('abort', onStop);
+      stopListening();
     }
     if (this.driveError != null) throw this.driveError.error;
   }
@@ -342,6 +383,8 @@ export class FxDrive {
   /**
    * Finishes or reruns the latest turn if it is unfinished, then runs a turn
    * for each pending prompt until none is left or the drive halts or yields.
+   * An unfinished turn without a checkpoint whose cancel is waiting is
+   * finished as cancelled instead of being rerun.
    */
   private async runTurns(): Promise<void> {
     this.state = this.readState();
@@ -358,6 +401,8 @@ export class FxDrive {
             totalUsage: latest.checkpoint.totalUsage,
           }),
         );
+      } else if (hasPendingCancel({ log: this.context.log })) {
+        await this.finishCancelledRecordedTurn({ turnIndex: latest.index });
       } else if (
         !(await this.runTurn({ index: latest.index, prompt: latest.prompt }))
       ) {
@@ -386,7 +431,8 @@ export class FxDrive {
    * Runs one turn live: delivers its prompt, runs libfx's turn on an engine
    * restored from the previous turn, finishes its last step, records the
    * checkpoint and finishes the turn. Returns `false` without finishing the
-   * turn when the drive halted.
+   * turn when the drive halted. A cancelled turn is finished by
+   * `finishCancelledTurn()` instead.
    */
   private async runTurn(options: {
     /**
@@ -423,10 +469,15 @@ export class FxDrive {
       settings: prompt.settings,
     });
     this.liveRun = run;
+    this.checkCancel();
     const engine = await this.createEngine({ run, base });
     try {
       const stopReason = await this.promptEngine({ run, engine, prompt });
-      if (stopReason == null) return false;
+      if (stopReason == null) {
+        return run.cancelled && !this.halted
+          ? this.finishCancelledTurn({ run })
+          : false;
+      }
 
       const lastStepNumber = run.steps.length - 1;
       if (lastStepNumber >= 0) {
@@ -469,6 +520,152 @@ export class FxDrive {
     } finally {
       this.liveRun = undefined;
       await engine.close();
+    }
+  }
+
+  /**
+   * Finishes a cancelled live turn once all its work settled: finishes its
+   * last step and the turn, with finish reason `cancelled` and the summed
+   * usage of its model calls. Records no checkpoint. Returns `false` without
+   * finishing the turn when the drive halted meanwhile.
+   */
+  private async finishCancelledTurn(options: {
+    /**
+     * The cancelled turn.
+     */
+    run: FxTurnRun;
+  }): Promise<boolean> {
+    const { run } = options;
+    await Promise.allSettled([...run.inFlight]);
+    if (this.halted) return false;
+    const lastStepNumber = run.steps.length - 1;
+    if (lastStepNumber >= 0) {
+      await this.finishStep({ run, stepNumber: lastStepNumber });
+    }
+    if (this.halted) return false;
+    await this.guard(
+      this.context.finishTurn({
+        finishReason: CANCELLED_FINISH_REASON,
+        totalUsage: run.steps.reduce(
+          (usage, step) => addHarnessUsage({ left: usage, right: step.usage }),
+          createUnknownHarnessUsage(),
+        ),
+      }),
+    );
+    return true;
+  }
+
+  /**
+   * Finishes an unfinished turn whose cancel waits when the drive starts,
+   * without running it: every recorded model call of the turn finishes its
+   * step (already finished steps record nothing new), and the turn finishes
+   * with finish reason `cancelled` and the summed usage of those calls.
+   */
+  private async finishCancelledRecordedTurn(options: {
+    /**
+     * Index of the turn.
+     */
+    turnIndex: number;
+  }): Promise<void> {
+    const steps: FxStepSummary[] = [...this.state.modelEffects.values()]
+      .filter(record => record.turnIndex === options.turnIndex)
+      .sort((left, right) => left.ordinal - right.ordinal)
+      .map(record => {
+        switch (record.output?.type) {
+          case 'result':
+            return {
+              finishReason: record.output.value.finishReason,
+              usage: record.output.value.usage,
+            };
+          case 'error':
+            return createErrorStepSummary();
+          default:
+            return {
+              finishReason: CANCELLED_FINISH_REASON,
+              usage: createUnknownHarnessUsage(),
+            };
+        }
+      });
+    for (const [stepNumber, step] of steps.entries()) {
+      await this.guard(
+        this.context.finishStep({
+          stepNumber,
+          finishReason: step.finishReason,
+          usage: step.usage,
+        }),
+      );
+    }
+    await this.guard(
+      this.context.finishTurn({
+        finishReason: CANCELLED_FINISH_REASON,
+        totalUsage: steps.reduce(
+          (usage, step) => addHarnessUsage({ left: usage, right: step.usage }),
+          createUnknownHarnessUsage(),
+        ),
+      }),
+    );
+  }
+
+  /**
+   * Cancels the live turn if the log has a cancel waiting for it: its model
+   * requests and built-in tools are aborted and libfx's turn is cancelled.
+   */
+  private checkCancel(): void {
+    const run = this.liveRun;
+    if (
+      run == null ||
+      run.cancelled ||
+      !hasPendingCancel({ log: this.context.log })
+    ) {
+      return;
+    }
+    run.cancelled = true;
+    run.abortController.abort();
+    run.engineTurn?.cancel();
+  }
+
+  /**
+   * Tracks work of a live turn until it settled, so a cancelled turn only
+   * finishes after it.
+   */
+  private track<T>(options: {
+    /**
+     * Turn the work belongs to.
+     */
+    run: FxTurnRun;
+
+    /**
+     * Work to track.
+     */
+    work: Promise<T>;
+  }): Promise<T> {
+    const { run, work } = options;
+    run.inFlight.add(work);
+    void work.catch(() => {}).finally(() => run.inFlight.delete(work));
+    return work;
+  }
+
+  /**
+   * Runs effect work, turning any failure while the turn is cancelled into a
+   * `HarnessCancellationError`, so the effect records it as interrupted.
+   */
+  private async translateCancel<T>(options: {
+    /**
+     * Turn the work belongs to.
+     */
+    run: FxTurnRun;
+
+    /**
+     * Work to run.
+     */
+    work: () => Promise<T>;
+  }): Promise<T> {
+    const { run, work } = options;
+    try {
+      return await work();
+    } catch (error) {
+      if (run.cancelled) throw new HarnessCancellationError({ cause: error });
+      throw error;
     }
   }
 
@@ -567,6 +764,9 @@ export class FxDrive {
       nextOrdinal: 0,
       nextCatalogOrdinal: 0,
       steps: [],
+      cancelled: false,
+      abortController: new AbortController(),
+      inFlight: new Set(),
     };
   }
 
@@ -607,8 +807,9 @@ export class FxDrive {
 
   /**
    * Runs libfx's turn for a prompt and returns libfx's stop reason, or
-   * `undefined` when a live drive halted. Rethrows a drive context
-   * rejection, and libfx failures that are not the result of halting.
+   * `undefined` when a live drive halted or the live turn was cancelled.
+   * Rethrows a drive context rejection, and libfx failures that are not the
+   * result of halting or cancelling.
    */
   private async promptEngine(options: {
     /**
@@ -628,22 +829,23 @@ export class FxDrive {
   }): Promise<string | undefined> {
     const { run, engine, prompt } = options;
     const live = run.mode === 'live';
+    const stopped = () => live && (this.halted || run.cancelled);
     const turn = engine.prompt(toFxPromptInput({ message: prompt.message }));
     run.engineTurn = turn;
-    if (live && this.halted) turn.cancel();
+    if (stopped()) turn.cancel();
     let stopReason: string;
     try {
       for await (const event of turn) void event;
       stopReason = (await turn.result).stopReason;
     } catch (error) {
       if (this.driveError != null) throw this.driveError.error;
-      if (live && this.halted) return undefined;
+      if (stopped()) return undefined;
       throw error;
     } finally {
       run.engineTurn = undefined;
     }
     if (this.driveError != null) throw this.driveError.error;
-    if (live && this.halted) return undefined;
+    if (stopped()) return undefined;
     return stopReason;
   }
 
@@ -655,7 +857,9 @@ export class FxDrive {
    * the request as the effect `model:${index}:${ordinal}` and gives libfx
    * the recorded response body only once the effect committed; a failed
    * effect is answered with a rejection that ends libfx's turn, and an
-   * interrupted one halts the drive. A request whose body differs from the
+   * interrupted one halts the drive, unless the turn was cancelled: then the
+   * request becomes a step with finish reason `cancelled`, and libfx's
+   * request is aborted. A request whose body differs from the
    * recorded one fails the drive. Model catalog requests are recorded the
    * same way by `fetchModelCatalog()`, since the catalog's model metadata
    * shapes later model requests. An offline run answers from the log
@@ -711,44 +915,62 @@ export class FxDrive {
         });
       }
 
-      if (this.halted) throw createAbortError();
-      if (ordinal > 0) await this.finishStep({ run, stepNumber: ordinal - 1 });
-      if (this.halted) throw createAbortError();
-      if (!matches) {
-        const error = new Error(
-          `fx harness: the model call ${key} replayed with a different request than it recorded.`,
-        );
-        this.halt({ error });
-        throw error;
-      }
-      const effectInput: FxModelEffectInput = { digest };
-      const model = new Headers(init.headers).get('ai-language-model-id');
-      if (model != null) effectInput.model = model;
-      const output = await this.guard(
-        this.context.effect<FxModelEffectValue>({
-          key,
-          name: 'model',
-          replay: 'safe',
-          input: effectInput,
-          fn: effectContext =>
-            this.callModel({ run, input, init, body, effectContext }),
-        }),
-      );
-      switch (output.type) {
-        case 'result': {
-          const { finishReason, usage } = output.value;
-          run.steps.push({ finishReason, usage });
-          return createModelResponse({ body: output.value.body });
-        }
-        case 'error':
-          run.steps.push(createErrorStepSummary());
-          return createRejectedModelResponse({
-            message: output.error.message,
-          });
-        case 'interrupted':
-          this.halt();
-          throw createAbortError();
-      }
+      return this.track({
+        run,
+        work: (async () => {
+          if (this.halted || run.cancelled) throw createAbortError();
+          if (ordinal > 0) {
+            await this.finishStep({ run, stepNumber: ordinal - 1 });
+          }
+          if (this.halted || run.cancelled) throw createAbortError();
+          if (!matches) {
+            const error = new Error(
+              `fx harness: the model call ${key} replayed with a different request than it recorded.`,
+            );
+            this.halt({ error });
+            throw error;
+          }
+          const effectInput: FxModelEffectInput = { digest };
+          const model = new Headers(init.headers).get('ai-language-model-id');
+          if (model != null) effectInput.model = model;
+          const output = await this.guard(
+            this.context.effect<FxModelEffectValue>({
+              key,
+              name: 'model',
+              replay: 'safe',
+              input: effectInput,
+              fn: effectContext =>
+                this.translateCancel({
+                  run,
+                  work: () =>
+                    this.callModel({ run, input, init, body, effectContext }),
+                }),
+            }),
+          );
+          switch (output.type) {
+            case 'result': {
+              const { finishReason, usage } = output.value;
+              run.steps.push({ finishReason, usage });
+              return createModelResponse({ body: output.value.body });
+            }
+            case 'error':
+              run.steps.push(createErrorStepSummary());
+              return createRejectedModelResponse({
+                message: output.error.message,
+              });
+            case 'interrupted':
+              if (run.cancelled) {
+                run.steps.push({
+                  finishReason: CANCELLED_FINISH_REASON,
+                  usage: createUnknownHarnessUsage(),
+                });
+              } else {
+                this.halt();
+              }
+              throw createAbortError();
+          }
+        })(),
+      });
     };
   }
 
@@ -759,8 +981,8 @@ export class FxDrive {
    * `catalog:${index}:${ordinal}`, recording the response's status and
    * body; a failed effect is answered with an HTTP 502 response, which
    * libfx treats as an unavailable catalog, and an interrupted one halts the
-   * drive. An offline run answers from the log alone, with an HTTP 502
-   * response when nothing was recorded.
+   * drive, unless the turn was cancelled. An offline run answers from the
+   * log alone, with an HTTP 502 response when nothing was recorded.
    */
   private async fetchModelCatalog(options: {
     /**
@@ -797,31 +1019,46 @@ export class FxDrive {
         ? toResponse(recorded.value)
         : unavailable();
     }
-    if (this.halted) throw createAbortError();
-    const output = await this.guard(
-      this.context.effect<FxCatalogEffectValue>({
-        key,
-        name: 'model-catalog',
-        replay: 'safe',
-        input: null,
-        fn: async ({ abortSignal }) => {
-          const response = await this.runtime.fetch(input, {
-            ...init,
-            signal: abortSignal,
-          });
-          return { status: response.status, body: await response.text() };
-        },
-      }),
-    );
-    switch (output.type) {
-      case 'result':
-        return toResponse(output.value);
-      case 'error':
-        return unavailable();
-      case 'interrupted':
-        this.halt();
-        throw createAbortError();
-    }
+    if (this.halted || run.cancelled) throw createAbortError();
+    return this.track({
+      run,
+      work: (async () => {
+        const output = await this.guard(
+          this.context.effect<FxCatalogEffectValue>({
+            key,
+            name: 'model-catalog',
+            replay: 'safe',
+            input: null,
+            fn: ({ abortSignal }) =>
+              this.translateCancel({
+                run,
+                work: async () => {
+                  const response = await this.runtime.fetch(input, {
+                    ...init,
+                    signal: AbortSignal.any([
+                      abortSignal,
+                      run.abortController.signal,
+                    ]),
+                  });
+                  return {
+                    status: response.status,
+                    body: await response.text(),
+                  };
+                },
+              }),
+          }),
+        );
+        switch (output.type) {
+          case 'result':
+            return toResponse(output.value);
+          case 'error':
+            return unavailable();
+          case 'interrupted':
+            if (!run.cancelled) this.halt();
+            throw createAbortError();
+        }
+      })(),
+    });
   }
 
   /**
@@ -862,7 +1099,10 @@ export class FxDrive {
     effectContext: HarnessV2EffectContext;
   }): Promise<FxModelEffectValue> {
     const { run, input, init, body, effectContext } = options;
-    const signal = effectContext.abortSignal;
+    const signal = AbortSignal.any([
+      effectContext.abortSignal,
+      run.abortController.signal,
+    ]);
     let errorMessage = 'The model call failed.';
     let emitted = false;
 
@@ -920,9 +1160,9 @@ export class FxDrive {
    *
    * A live run executes the call through `executeBuiltinTool()` or
    * `executeHostTool()`, which replay recorded calls; an interrupted call
-   * halts the drive when the drive is stopping or yielding. An offline run
-   * returns the call's recorded outcome. Outcomes other than results become
-   * error results.
+   * halts the drive when the drive is stopping or yielding. A call of a
+   * cancelled turn does not run. An offline run returns the call's recorded
+   * outcome. Outcomes other than results become error results.
    */
   private async executeTool(options: {
     /**
@@ -963,32 +1203,45 @@ export class FxDrive {
         text: 'The drive stopped before this call ran.',
       });
     }
+    if (run.cancelled) {
+      return toFxErrorResult({
+        text: 'The turn was cancelled before this call ran.',
+      });
+    }
 
     /*
      * libfx parses tool input from the model's JSON before calling a tool,
      * so the input is a JSON value.
      */
     const jsonInput = input as JSONValue;
-    const output = await this.guard(
-      builtin
-        ? this.context.executeBuiltinTool({
-            toolCallId: executionId,
-            toolName,
-            input: jsonInput,
-            execute: ({ abortSignal }) =>
-              this.runBuiltinTool({
-                toolName,
-                toolCallId: executionId,
-                input,
-                abortSignal,
-              }),
-          })
-        : this.context.executeHostTool({
-            toolCallId: executionId,
-            toolName,
-            input: jsonInput,
-          }),
-    );
+    const output = await this.track({
+      run,
+      work: this.guard(
+        builtin
+          ? this.context.executeBuiltinTool({
+              toolCallId: executionId,
+              toolName,
+              input: jsonInput,
+              execute: ({ abortSignal }) =>
+                this.translateCancel({
+                  run,
+                  work: () =>
+                    this.runBuiltinTool({
+                      run,
+                      toolName,
+                      toolCallId: executionId,
+                      input,
+                      abortSignal,
+                    }),
+                }),
+            })
+          : this.context.executeHostTool({
+              toolCallId: executionId,
+              toolName,
+              input: jsonInput,
+            }),
+      ),
+    });
     if (
       output.type === 'interrupted' &&
       (this.context.stopAbortSignal.aborted ||
@@ -1001,9 +1254,15 @@ export class FxDrive {
 
   /**
    * Runs a built-in tool on the drive's sandbox for a new attempt of its
-   * effect.
+   * effect. The tool is aborted when its attempt must stop or the turn is
+   * cancelled.
    */
   private async runBuiltinTool(options: {
+    /**
+     * Turn of the call.
+     */
+    run: FxTurnRun;
+
     /**
      * Name of the built-in tool.
      */
@@ -1024,7 +1283,11 @@ export class FxDrive {
      */
     abortSignal: AbortSignal;
   }): Promise<HarnessV2ToolExecutionValue> {
-    const { toolName, toolCallId, input, abortSignal } = options;
+    const { run, toolName, toolCallId, input } = options;
+    const abortSignal = AbortSignal.any([
+      options.abortSignal,
+      run.abortController.signal,
+    ]);
     if (!isFxBuiltinToolName(toolName)) {
       throw new Error(`fx harness: ${toolName} is not a built-in tool.`);
     }

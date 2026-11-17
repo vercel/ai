@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vitest';
 import { z } from 'zod/v4';
 import { HarnessEffectError } from '../../../errors/harness-effect-error';
 import {
+  translateFinishReason,
   translateStreamPart,
   type TranslatedToolCall,
 } from './translate-stream-part';
@@ -22,6 +23,24 @@ function translate(options: {
     toolCalls: options.toolCalls ?? new Map(),
   });
 }
+
+describe('translateFinishReason', () => {
+  test('translates cancelled to other with the raw reason cancelled', () => {
+    expect(
+      translateFinishReason({
+        finishReason: { unified: 'cancelled', raw: 'aborted' },
+      }),
+    ).toEqual({ finishReason: 'other', rawFinishReason: 'cancelled' });
+  });
+
+  test('passes other reasons through', () => {
+    expect(
+      translateFinishReason({
+        finishReason: { unified: 'stop', raw: 'end_turn' },
+      }),
+    ).toEqual({ finishReason: 'stop', rawFinishReason: 'end_turn' });
+  });
+});
 
 describe('translateStreamPart', () => {
   test('translates start and text parts', async () => {

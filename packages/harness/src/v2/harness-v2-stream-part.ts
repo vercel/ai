@@ -24,6 +24,7 @@ export type HarnessV2FinishReason = {
    * - `error`: the model or runtime stopped because of an error
    * - `interrupted`: the stream ended without a completion signal; output may
    *   be incomplete
+   * - `cancelled`: the user cancelled the turn
    * - `other`: the model stopped for another reason
    */
   unified:
@@ -33,6 +34,7 @@ export type HarnessV2FinishReason = {
     | 'tool-calls'
     | 'error'
     | 'interrupted'
+    | 'cancelled'
     | 'other';
 
   /**

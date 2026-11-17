@@ -31,4 +31,14 @@ export type HarnessV2Submission =
        * User message inserted into the active turn.
        */
       readonly message: UserModelMessage;
+    }
+  | {
+      /**
+       * Cancels the turn that is running when the cancel is recorded. The
+       * harness stops the turn's work and finishes the turn with finish reason
+       * `cancelled`, which delivers the cancel. A cancel recorded while no turn
+       * is running, or whose turn finishes with another reason, is withdrawn.
+       * Prompts waiting for a later turn are not affected.
+       */
+      readonly type: 'cancel';
     };

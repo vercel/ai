@@ -114,6 +114,28 @@ describe('HarnessStreamTextResult', () => {
     expect(await result.steps).toHaveLength(1);
   });
 
+  test('reports a cancelled turn as finish reason other with the raw reason cancelled', async () => {
+    const cancelled = { unified: 'cancelled' as const, raw: undefined };
+    const result = createResult({
+      parts: [
+        { type: 'start' },
+        ...textParts,
+        { type: 'finish-step', finishReason: cancelled, usage },
+        { type: 'finish', finishReason: cancelled, totalUsage: usage },
+      ],
+    });
+
+    expect(await result.finishReason).toBe('other');
+    expect(await result.rawFinishReason).toBe('cancelled');
+    const [step] = await result.steps;
+    expect(step.finishReason).toBe('other');
+    expect(step.rawFinishReason).toBe('cancelled');
+    expect(await result.turnEnd).toEqual({
+      reason: 'finished',
+      error: undefined,
+    });
+  });
+
   test('discards the content of a reset step', async () => {
     const result = createResult({
       parts: [

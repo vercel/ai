@@ -3,15 +3,16 @@ import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { tool, type ToolSet } from '@ai-sdk/provider-utils';
 import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
 import {
+  createAssistantMessageEventStream,
   fauxAssistantMessage,
   fauxToolCall,
   type Message,
 } from '@earendil-works/pi-ai';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { PI_BUILTIN_TOOLS } from './pi-builtin-tools';
 import { PiDrive, toPiUserMessage } from './pi-drive';
-import { readPiLogState } from './pi-log-state';
+import { hasPendingCancel, readPiLogState } from './pi-log-state';
 import { createTestModelRuntime } from './test-helpers';
 
 /**
@@ -52,6 +53,7 @@ async function setup(options: { tools?: ToolSet } = {}) {
     session,
     runtime,
     hooks,
+    log: () => contexts.at(-1)!.log,
     readState: () => readPiLogState({ log: contexts.at(-1)!.log }),
     readFile: (path: string) =>
       sandboxSession.readTextFile({
@@ -483,5 +485,142 @@ describe('PiDrive', () => {
       { message: expect.stringContaining('replayed with a different context') },
     ]);
     expect(runtime.faux.state.callCount).toBe(1);
+  });
+
+  describe('cancel', () => {
+    const cancelled = {
+      unified: 'cancelled',
+      raw: undefined,
+    } as const;
+
+    /**
+     * Creates a session whose host tool `slow` cancels the running turn and
+     * returns once the drive noticed the cancel.
+     */
+    async function setupCancellingTool() {
+      const holder: { cancel?: () => Promise<void> } = {};
+      const test = await setup({
+        tools: {
+          slow: tool({
+            inputSchema: z.object({}),
+            execute: async () => {
+              await holder.cancel!();
+              return 'done';
+            },
+          }),
+        },
+      });
+      holder.cancel = async () => {
+        await test.agent.cancel({ session: test.session });
+        await vi.waitFor(() =>
+          expect(hasPendingCancel({ log: test.log() })).toBe(true),
+        );
+      };
+      return test;
+    }
+
+    test('finishes the turn as cancelled when a cancel arrives during a host tool call', async () => {
+      const { agent, session, runtime, log } = await setupCancellingTool();
+      runtime.faux.setResponses([
+        fauxAssistantMessage([fauxToolCall('slow', {}, { id: 'call-1' })], {
+          stopReason: 'toolUse',
+        }),
+        fauxAssistantMessage('never'),
+      ]);
+
+      const result = await agent.stream({ prompt: 'go', session });
+
+      expect(await result.finishReason).toBe('other');
+      expect(await result.rawFinishReason).toBe('cancelled');
+      expect(runtime.faux.state.callCount).toBe(1);
+      expect(log().getCurrentTurn()?.finish?.data.finishReason).toEqual(
+        cancelled,
+      );
+      expect(log().getUndeliveredSubmissions()).toEqual([]);
+    });
+
+    test('runs the next prompt on the transcript the log recorded', async () => {
+      const { agent, session, runtime } = await setupCancellingTool();
+      let context: Message[] = [];
+      runtime.faux.setResponses([
+        fauxAssistantMessage([fauxToolCall('slow', {}, { id: 'call-1' })], {
+          stopReason: 'toolUse',
+        }),
+        request => {
+          context = request.messages;
+          return fauxAssistantMessage('Next');
+        },
+      ]);
+      await (await agent.stream({ prompt: 'go', session })).consumeStream();
+
+      const result = await agent.generate({ prompt: 'again', session });
+
+      expect(result.text).toBe('Next');
+      expect(context.map(message => message.role)).toEqual([
+        'system',
+        'user',
+        'assistant',
+        'toolResult',
+        'user',
+      ]);
+    });
+
+    test('records a model call that a cancel cut off as interrupted', async () => {
+      const { agent, session, runtime, log } = await setup();
+      runtime.streamFn = (_model, _context, options) => {
+        const out = createAssistantMessageEventStream();
+        void (async () => {
+          await agent.cancel({ session });
+          const signal = options!.signal!;
+          if (!signal.aborted) {
+            await new Promise(resolve =>
+              signal.addEventListener('abort', resolve, { once: true }),
+            );
+          }
+          out.push({
+            type: 'error',
+            reason: 'aborted',
+            error: fauxAssistantMessage('', {
+              stopReason: 'aborted',
+              errorMessage: 'aborted',
+            }),
+          });
+        })();
+        return out;
+      };
+
+      const result = await agent.stream({ prompt: 'go', session });
+
+      expect(await result.rawFinishReason).toBe('cancelled');
+      expect((await result.steps).map(step => step.rawFinishReason)).toEqual([
+        'cancelled',
+      ]);
+      expect(log().getEffect({ key: 'model:0' })?.end?.data.output).toEqual({
+        type: 'interrupted',
+        retryable: true,
+      });
+    });
+
+    test('finishes a turn whose cancel waits when the drive starts without running it', async () => {
+      const { agent, session, runtime, hooks, log } = await setup();
+      runtime.faux.setResponses([
+        fauxAssistantMessage([fauxToolCall('ls', {}, { id: 'call-1' })], {
+          stopReason: 'toolUse',
+        }),
+      ]);
+      hooks.wrapContext = stopAfterFirstStep;
+      await (await agent.stream({ prompt: 'list', session })).consumeStream();
+      hooks.wrapContext = undefined;
+
+      await agent.cancel({ session });
+      const reading = await agent.readStream({ session });
+      await agent.drive({ session });
+
+      expect(await reading.rawFinishReason).toBe('cancelled');
+      expect(runtime.faux.state.callCount).toBe(1);
+      expect(log().getCurrentTurn()?.finish?.data.finishReason).toEqual(
+        cancelled,
+      );
+    });
   });
 });

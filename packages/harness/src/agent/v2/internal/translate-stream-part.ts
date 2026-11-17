@@ -3,8 +3,9 @@ import {
   safeParseJSON,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
-import type { TextStreamPart } from 'ai';
+import type { FinishReason, TextStreamPart } from 'ai';
 import { HarnessEffectError } from '../../../errors/harness-effect-error';
+import type { HarnessV2FinishReason } from '../../../v2/harness-v2-stream-part';
 import type { HarnessAgentStreamPart } from './create-stream-writer';
 
 /**
@@ -28,6 +29,25 @@ export type TranslatedToolCall = {
    */
   dynamic: boolean;
 };
+
+/**
+ * Translates a harness finish reason into the AI SDK's finish reason and raw
+ * finish reason. `cancelled` has no AI SDK equivalent: it becomes `other` with
+ * the raw finish reason `cancelled`, replacing any raw reason the harness
+ * reported. Every other reason passes through unchanged.
+ */
+export function translateFinishReason(options: {
+  /**
+   * Finish reason reported by the harness.
+   */
+  finishReason: HarnessV2FinishReason;
+}): { finishReason: FinishReason; rawFinishReason?: string } {
+  const { unified, raw } = options.finishReason;
+  if (unified === 'cancelled') {
+    return { finishReason: 'other', rawFinishReason: 'cancelled' };
+  }
+  return { finishReason: unified, rawFinishReason: raw };
+}
 
 /**
  * Translates one engine stream part into zero or more AI SDK stream parts.

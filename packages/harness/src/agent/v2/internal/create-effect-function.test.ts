@@ -1,6 +1,7 @@
 import type { SerializableValue } from '@ai-sdk/provider';
 import { DelayedPromise } from '@ai-sdk/provider-utils';
 import { afterEach, describe, expect, test, vi } from 'vitest';
+import { HarnessCancellationError } from '../../../errors/harness-cancellation-error';
 import { HarnessEffectError } from '../../../errors/harness-effect-error';
 import { HarnessInvalidDriveStateError } from '../../../errors/harness-invalid-drive-state-error';
 import type {
@@ -547,6 +548,34 @@ describe('createEffectFunction', () => {
         },
       }),
     ).toEqual({ type: 'error', error: { message: 'command failed' } });
+  });
+
+  test('records a thrown HarnessCancellationError as an interruption', async () => {
+    const { effect, log } = await setup();
+    expect(
+      await effect({
+        key: 'promise',
+        ...effectOptions,
+        fn: async () => {
+          throw new HarnessCancellationError();
+        },
+      }),
+    ).toEqual({ type: 'interrupted', retryable: true });
+    expect(
+      await effect({
+        key: 'iterator',
+        ...effectOptions,
+        replay: 'never',
+        fn: async function* () {
+          yield 'partial';
+          throw new HarnessCancellationError();
+        },
+      }),
+    ).toEqual({ type: 'interrupted', retryable: false, partial: 'partial' });
+    expect(log.getEffect({ key: 'promise' })?.end?.data.output).toEqual({
+      type: 'interrupted',
+      retryable: true,
+    });
   });
 
   test('keeps undefined results, ignores generator returns, and allows zero yields', async () => {

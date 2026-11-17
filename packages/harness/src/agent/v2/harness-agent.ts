@@ -581,6 +581,53 @@ export class HarnessAgent<
   }
 
   /**
+   * Cancels the session's running turn, in any process.
+   *
+   * Appends a `cancel` submission to the session's log and resolves once it
+   * is committed, without waiting for the turn to end and without starting a
+   * drive. The harness adapter of the drive running the turn, in any process,
+   * stops the turn's work and finishes the turn with finish reason
+   * `cancelled`, which results report as `other` with the raw finish reason
+   * `cancelled`. If no drive runs the turn right now, the next drive of the
+   * session does so. A drive in another process notices the cancel through
+   * the log's hint stream, or at the latest through the log's periodic
+   * refresh. An adapter that does not handle cancels lets the turn finish
+   * normally, and the cancel is withdrawn. Prompts waiting for a later turn
+   * are not affected.
+   *
+   * Rejects without writing if the session has no running turn. Resolves
+   * without writing if a cancel of the running turn is already waiting.
+   */
+  async cancel(options: {
+    /**
+     * Session whose running turn is cancelled.
+     */
+    session: HarnessAgentSession;
+  }): Promise<void> {
+    const { session } = options;
+    this.connectQueue();
+    const log = createLog({ world: this.world, runId: session.runId });
+    await log.refresh();
+    const turn = log.getCurrentTurn();
+    if (turn == null || turn.finish != null) {
+      throw new Error('HarnessAgent.cancel: the session has no running turn.');
+    }
+    if (
+      log
+        .getUndeliveredSubmissions()
+        .some(submission => submission.data.type === 'cancel')
+    ) {
+      return;
+    }
+
+    await log.append({
+      type: 'submission',
+      id: generateId(),
+      data: { type: 'cancel' },
+    });
+  }
+
+  /**
    * Crashes the process of the drive that runs the session's current turn,
    * for testing crash recovery. Experimental.
    *

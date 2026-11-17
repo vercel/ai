@@ -1015,6 +1015,19 @@ export class HarnessAgent<
   }
 
   /**
+   * Cancels the running turn of a HarnessV2 session, in any process. Only
+   * supported with HarnessV2.
+   */
+  async cancel(options: { session: HarnessAgentV2Session }): Promise<void> {
+    if (this.harnessAgentV2 == null) {
+      throw new Error(
+        'HarnessAgent: cancel() is only supported with HarnessV2.',
+      );
+    }
+    return this.harnessAgentV2.cancel(options);
+  }
+
+  /**
    * Crashes the process of the drive running a HarnessV2 session's current
    * turn, for testing crash recovery. Only supported with HarnessV2.
    */

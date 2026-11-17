@@ -1,7 +1,9 @@
 import {
+  HarnessCancellationError,
   type HarnessV2DriveContext,
   type HarnessV2EffectContext,
   type HarnessV2EffectOutput,
+  type HarnessV2FinishReason,
   type HarnessV2ToolExecutionOutput,
   type HarnessV2ToolExecutionValue,
   type HarnessV2TurnSettings,
@@ -37,12 +39,14 @@ import {
 } from './pi-builtin-tools';
 import { createPiHostAgentTool, type PiHostAgentTool } from './pi-host-tools';
 import {
+  hasPendingCancel,
   readPiLogState,
   restorePiTranscript,
   type PiLogState,
   type PiModelEffectInput,
   type PiPromptSubmission,
   type PiRecorded,
+  type PiRestoredTranscript,
 } from './pi-log-state';
 import { DEFAULT_PI_MODEL_ID, type PiModelRuntime } from './pi-model-runtime';
 import { createPiStreamPartTranslator } from './pi-stream-parts';
@@ -60,6 +64,15 @@ import {
 import { toJSONValue } from './to-json-value';
 
 const MODEL_ATTEMPTS = 3;
+
+/**
+ * Finish reason of a turn the user cancelled, and of the step whose model
+ * call the cancel cut off.
+ */
+const CANCELLED_FINISH_REASON: HarnessV2FinishReason = {
+  unified: 'cancelled',
+  raw: undefined,
+};
 
 /**
  * Waits before retrying a failed model request, resolving early when the
@@ -213,6 +226,15 @@ function getErrorMessage(error: unknown): string {
  * context call rejects. A rejection is rethrown from `run()` once Pi
  * settled, because Pi itself turns errors thrown by tools and stream
  * functions into model-visible results.
+ *
+ * A cancel of the running turn, noticed through the log's `onAppend()`,
+ * aborts Pi's run and the turn's built-in tools, while host tools finish.
+ * Effects it cuts off throw `HarnessCancellationError`, so they are recorded
+ * as interrupted. Once Pi settled, the turn finishes with finish reason
+ * `cancelled` and Pi's agent is rebuilt from the log, so the next turn
+ * starts from exactly what the log recorded. A cancel that is already
+ * waiting when the drive starts finishes the resumed turn without running
+ * it.
  */
 export class PiDrive {
   /**
@@ -234,6 +256,11 @@ export class PiDrive {
    * Pi's agent, created once the log was read.
    */
   private agent: Agent | undefined;
+
+  /**
+   * Unsubscribes from the events of the current Pi agent.
+   */
+  private unsubscribeAgent: (() => void) | undefined;
 
   /**
    * Session state read from the log, refreshed before each new prompt.
@@ -301,6 +328,23 @@ export class PiDrive {
   private halted = false;
 
   /**
+   * Whether the user cancelled the current turn.
+   */
+  private turnCancelled = false;
+
+  /**
+   * Aborted when the user cancels the current turn, to stop its built-in
+   * tools.
+   */
+  private turnAbortController = new AbortController();
+
+  /**
+   * Whether the stream function refused the latest model call without
+   * running it, so Pi's step end for it records no step.
+   */
+  private stepRefused = false;
+
+  /**
    * First drive context rejection, rethrown from `run()`.
    */
   private driveError: { error: unknown } | undefined;
@@ -343,41 +387,13 @@ export class PiDrive {
     const { context } = this;
     if (context.stopAbortSignal.aborted) return;
 
-    this.state = this.readState();
-    const { currentTurn } = this.state;
-    const resumedSettings =
-      currentTurn != null && !currentTurn.ended
-        ? currentTurn.prompt.settings
-        : undefined;
-    const initialSettings =
-      resumedSettings ?? this.state.pendingPrompts[0]?.settings;
-    this.hostToolNames = new Set(initialSettings?.tools.map(spec => spec.name));
-    const restored = restorePiTranscript({
-      state: this.state,
-      isBuiltinTool: toolName => this.isBuiltinTool(toolName),
-    });
-    this.recorded = restored.recorded;
-    this.nextModelOrdinal = restored.nextModelOrdinal;
-
-    const agent = new Agent({
-      initialState: {
-        systemPrompt: initialSettings?.instructions ?? '',
-        model: this.resolveModel({ settings: initialSettings }),
-        thinkingLevel: 'off',
-        tools: this.createAgentTools({ settings: initialSettings }),
-        messages: restored.messages,
-      },
-      streamFn: this.stream,
-      sessionId: this.sessionId,
-      toolExecution: 'sequential',
-      followUpMode: 'one-at-a-time',
-    });
-    this.agent = agent;
-    const unsubscribe = agent.subscribe(event => this.onAgentEvent(event));
+    const stopListening = context.log.onAppend(() => this.checkCancel());
     const onStop = () => this.halt();
     context.stopAbortSignal.addEventListener('abort', onStop);
 
     try {
+      const restored = this.restoreAgent();
+      const { currentTurn } = this.state;
       if (restored.resume && currentTurn != null) {
         this.startTurn({ firstOrdinal: currentTurn.firstModelOrdinal });
         this.turnUsage = this.state.modelEffects
@@ -396,7 +412,7 @@ export class PiDrive {
                 : usage,
             createUnknownHarnessUsage(),
           );
-        await agent.continue();
+        if (!this.turnCancelled) await this.agent!.continue();
         if (!(await this.finishRun())) return;
       }
 
@@ -412,8 +428,50 @@ export class PiDrive {
       }
     } finally {
       context.stopAbortSignal.removeEventListener('abort', onStop);
-      unsubscribe();
+      stopListening();
+      this.unsubscribeAgent?.();
     }
+  }
+
+  /**
+   * Rebuilds Pi's agent from the log: reads the session state, restores the
+   * transcript and creates a new agent on it, replacing the previous one.
+   * Returns the restored transcript.
+   */
+  private restoreAgent(): PiRestoredTranscript {
+    this.state = this.readState();
+    const { currentTurn } = this.state;
+    const resumedSettings =
+      currentTurn != null && !currentTurn.ended
+        ? currentTurn.prompt.settings
+        : undefined;
+    const initialSettings =
+      resumedSettings ?? this.state.pendingPrompts[0]?.settings;
+    this.hostToolNames = new Set(initialSettings?.tools.map(spec => spec.name));
+    const restored = restorePiTranscript({
+      state: this.state,
+      isBuiltinTool: toolName => this.isBuiltinTool(toolName),
+    });
+    this.recorded = restored.recorded;
+    this.nextModelOrdinal = restored.nextModelOrdinal;
+
+    this.unsubscribeAgent?.();
+    const agent = new Agent({
+      initialState: {
+        systemPrompt: initialSettings?.instructions ?? '',
+        model: this.resolveModel({ settings: initialSettings }),
+        thinkingLevel: 'off',
+        tools: this.createAgentTools({ settings: initialSettings }),
+        messages: restored.messages,
+      },
+      streamFn: this.stream,
+      sessionId: this.sessionId,
+      toolExecution: 'sequential',
+      followUpMode: 'one-at-a-time',
+    });
+    this.agent = agent;
+    this.unsubscribeAgent = agent.subscribe(event => this.onAgentEvent(event));
+    return restored;
   }
 
   /**
@@ -450,7 +508,7 @@ export class PiDrive {
 
   /**
    * Resets the step and usage tracking for a turn whose first model call has
-   * the given ordinal.
+   * the given ordinal, and checks whether the turn is already cancelled.
    */
   private startTurn(options: {
     /**
@@ -461,16 +519,28 @@ export class PiDrive {
     this.turnFirstOrdinal = options.firstOrdinal;
     this.turnUsage = createUnknownHarnessUsage();
     this.lastResponse = undefined;
+    this.turnCancelled = false;
+    this.turnAbortController = new AbortController();
+    this.checkCancel();
   }
 
   /**
    * Finishes the current turn after Pi's run settled. Rethrows a drive
    * context rejection, and returns `false` without finishing the turn when
-   * the drive halted.
+   * the drive halted. A cancelled turn finishes with finish reason
+   * `cancelled`, after which Pi's agent is rebuilt from the log.
    */
   private async finishRun(): Promise<boolean> {
     if (this.driveError != null) throw this.driveError.error;
     if (this.halted) return false;
+    if (this.turnCancelled) {
+      await this.context.finishTurn({
+        finishReason: CANCELLED_FINISH_REASON,
+        totalUsage: this.turnUsage,
+      });
+      this.restoreAgent();
+      return true;
+    }
     await this.context.finishTurn({
       finishReason:
         this.lastResponse == null
@@ -494,6 +564,38 @@ export class PiDrive {
   }
 
   /**
+   * Cancels the current turn if the log has a cancel waiting for it: Pi's
+   * run and the turn's built-in tools are aborted, and the turn finishes
+   * once Pi settled.
+   */
+  private checkCancel(): void {
+    if (
+      this.halted ||
+      this.turnCancelled ||
+      !hasPendingCancel({ log: this.context.log })
+    ) {
+      return;
+    }
+    this.turnCancelled = true;
+    this.turnAbortController.abort();
+    this.agent?.abort();
+  }
+
+  /**
+   * Runs effect work, turning any failure while the turn is cancelled into a
+   * `HarnessCancellationError`, so the effect records it as interrupted.
+   */
+  private async translateCancel<T>(work: () => Promise<T>): Promise<T> {
+    try {
+      return await work();
+    } catch (error) {
+      if (this.turnCancelled)
+        throw new HarnessCancellationError({ cause: error });
+      throw error;
+    }
+  }
+
+  /**
    * Awaits a drive context call, halting the drive when it rejects.
    */
   private async guard<T>(promise: Promise<T>): Promise<T> {
@@ -506,11 +608,15 @@ export class PiDrive {
   }
 
   /**
-   * Throws when the drive halted, so Pi starts no further tool call.
+   * Throws when the drive halted or the turn was cancelled, so Pi starts no
+   * further tool call.
    */
   private throwIfHalted(): void {
     if (this.halted) {
       throw new Error('The drive stopped before this call ran.');
+    }
+    if (this.turnCancelled) {
+      throw new Error('The turn was cancelled before this call ran.');
     }
   }
 
@@ -596,6 +702,7 @@ export class PiDrive {
       prepareArguments: definition.prepareArguments,
       execute: async (toolCallId, input) => {
         this.throwIfHalted();
+        const turnSignal = this.turnAbortController.signal;
         const output = await this.guard(
           this.context.executeBuiltinTool({
             toolCallId,
@@ -606,7 +713,7 @@ export class PiDrive {
                 toolName,
                 toolCallId,
                 input,
-                abortSignal,
+                abortSignal: AbortSignal.any([abortSignal, turnSignal]),
               }),
           }),
         );
@@ -617,7 +724,8 @@ export class PiDrive {
 
   /**
    * Runs a built-in tool for a new attempt of its effect, yielding each
-   * partial result as it arrives and the final result last.
+   * partial result as it arrives and the final result last. A failure while
+   * the turn is cancelled throws `HarnessCancellationError`.
    *
    * @yields The tool's partial results, followed by its final result.
    */
@@ -683,9 +791,13 @@ export class PiDrive {
       notify = undefined;
     }
     if (outcome?.type !== 'result') {
-      throw outcome?.type === 'error'
-        ? outcome.error
-        : new Error(`${options.toolName} returned no result`);
+      const error =
+        outcome?.type === 'error'
+          ? outcome.error
+          : new Error(`${options.toolName} returned no result`);
+      throw this.turnCancelled
+        ? new HarnessCancellationError({ cause: error })
+        : error;
     }
     yield toBuiltinToolValue({ result: outcome.result });
   }
@@ -768,10 +880,12 @@ export class PiDrive {
   /**
    * Finishes a step at Pi's `turn_end` event: one model response plus the
    * tool calls resulting from it. Step numbers count from the turn's first
-   * model call. Nothing is recorded once the drive halted.
+   * model call. Nothing is recorded once the drive halted, or for a model
+   * call the stream function refused. A model call that a cancel cut off
+   * finishes its step with finish reason `cancelled`.
    */
   private async onAgentEvent(event: AgentEvent): Promise<void> {
-    if (event.type !== 'turn_end' || this.halted) return;
+    if (event.type !== 'turn_end' || this.halted || this.stepRefused) return;
     const message = event.message;
     if (message.role !== 'assistant') return;
     this.lastResponse = message;
@@ -780,7 +894,10 @@ export class PiDrive {
     try {
       await this.context.finishStep({
         stepNumber: this.stepOrdinal - this.turnFirstOrdinal,
-        finishReason: toHarnessFinishReason({ message }),
+        finishReason:
+          this.turnCancelled && message.stopReason === 'aborted'
+            ? CANCELLED_FINISH_REASON
+            : toHarnessFinishReason({ message }),
         usage,
       });
     } catch (error) {
@@ -823,21 +940,28 @@ export class PiDrive {
    * recorded, so Pi never sees a response finish that the log does not have.
    * A replayed call is checked against the recorded request size; a
    * different size means the transcript diverged, which fails the drive.
+   * Once the drive halted or the turn was cancelled, a call is refused
+   * without running it, and a call that a cancel cut off ends Pi's run
+   * without halting the drive.
    */
   private readonly stream: StreamFn = (model, context, options) => {
     const out = createAssistantMessageEventStream();
     const ordinal = this.nextModelOrdinal++;
     this.stepOrdinal = ordinal;
+    this.stepRefused = false;
     const key = `model:${ordinal}`;
     const { messages } = context;
 
-    if (this.halted) {
+    if (this.halted || this.turnCancelled) {
+      this.stepRefused = true;
       out.push({
         type: 'error',
         reason: 'aborted',
         error: createErrorResponse({
           model,
-          message: 'The drive stopped.',
+          message: this.halted
+            ? 'The drive stopped.'
+            : 'The turn was cancelled.',
           aborted: true,
         }),
       });
@@ -869,7 +993,9 @@ export class PiDrive {
           input: toJSONValue({ value: input }),
           deliveredSubmissionIds,
           fn: effectContext =>
-            this.callModel({ model, context, options, effectContext, out }),
+            this.translateCancel(() =>
+              this.callModel({ model, context, options, effectContext, out }),
+            ),
         });
       } catch (error) {
         this.halt({ error });
@@ -921,6 +1047,18 @@ export class PiDrive {
             model,
             message: output.error.message,
             aborted: false,
+          }),
+        });
+        return;
+      }
+      if (this.turnCancelled) {
+        out.push({
+          type: 'error',
+          reason: 'aborted',
+          error: createErrorResponse({
+            model,
+            message: 'The turn was cancelled.',
+            aborted: true,
           }),
         });
         return;

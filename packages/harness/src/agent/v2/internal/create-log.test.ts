@@ -1242,6 +1242,45 @@ const usage = {
   outputTokens: { total: undefined, text: undefined, reasoning: undefined },
 };
 
+function cancel(id: string): HarnessAgentLogSubmissionEvent {
+  return { type: 'submission', id, data: { type: 'cancel' } };
+}
+
+function steer(id: string): HarnessAgentLogSubmissionEvent {
+  return {
+    type: 'submission',
+    id,
+    data: { type: 'steer', message: { role: 'user', content: id } },
+  };
+}
+
+function turnStart(turnId: string): HarnessAgentLogEvent {
+  return {
+    type: 'turn-start',
+    id: `turn-start:${turnId}`,
+    data: { turnId },
+  };
+}
+
+function finishTurn(options: {
+  turnId: string;
+  unified: 'stop' | 'cancelled';
+}): HarnessAgentLogEvent {
+  return {
+    type: 'finish-turn',
+    id: `finish-turn:${options.turnId}`,
+    data: {
+      turnId: options.turnId,
+      finishReason: { unified: options.unified, raw: undefined },
+      totalUsage: usage,
+    },
+  };
+}
+
+function undeliveredIds(log: HarnessAgentLog): string[] {
+  return log.getUndeliveredSubmissions().map(submission => submission.id);
+}
+
 describe('createLog lookups', () => {
   test('accepts a start only as the next attempt after a retryable interruption', async () => {
     const log = await logOf([
@@ -1368,6 +1407,92 @@ describe('createLog lookups', () => {
     expect(
       log.getUndeliveredSubmissions().map(submission => submission.id),
     ).toEqual(['p2', 'p3']);
+  });
+
+  test('keeps a cancel waiting while its turn runs and drops it once the turn finished', async () => {
+    const { log } = await setup();
+    for (const event of [
+      prompt('p1'),
+      turnStart('p1'),
+      start({ id: 'm0', key: 'model:0', delivered: ['p1'] }),
+      cancel('c1'),
+    ]) {
+      await log.append(event);
+    }
+    expect(undeliveredIds(log)).toEqual(['c1']);
+
+    await log.append(finishTurn({ turnId: 'p1', unified: 'cancelled' }));
+    expect(undeliveredIds(log)).toEqual([]);
+
+    const withdrawn = await logOf([
+      prompt('p1'),
+      turnStart('p1'),
+      start({ id: 'm0', key: 'model:0', delivered: ['p1'] }),
+      cancel('c1'),
+      finishTurn({ turnId: 'p1', unified: 'stop' }),
+    ]);
+    expect(undeliveredIds(withdrawn)).toEqual([]);
+  });
+
+  test('withdraws a cancel recorded while no turn runs', async () => {
+    const log = await logOf([
+      cancel('before-any-turn'),
+      prompt('p1'),
+      turnStart('p1'),
+      start({ id: 'm0', key: 'model:0', delivered: ['p1'] }),
+      finishTurn({ turnId: 'p1', unified: 'stop' }),
+      cancel('after-finish'),
+      prompt('p2'),
+      turnStart('p2'),
+    ]);
+
+    expect(undeliveredIds(log)).toEqual(['p2']);
+  });
+
+  test('never delivers a cancel through an effect start', async () => {
+    const log = await logOf([
+      prompt('p1'),
+      turnStart('p1'),
+      cancel('c1'),
+      start({ id: 'm0', key: 'model:0', delivered: ['p1', 'c1'] }),
+    ]);
+
+    expect(undeliveredIds(log)).toEqual(['c1']);
+  });
+
+  test('keeps a prompt recorded during a cancelled turn waiting', async () => {
+    const log = await logOf([
+      prompt('p1'),
+      turnStart('p1'),
+      start({ id: 'm0', key: 'model:0', delivered: ['p1'] }),
+      prompt('p2'),
+      cancel('c1'),
+      finishTurn({ turnId: 'p1', unified: 'cancelled' }),
+    ]);
+
+    expect(undeliveredIds(log)).toEqual(['p2']);
+  });
+
+  test('withdraws a steer once its turn finished or when no turn runs', async () => {
+    const { world, runId, log } = await setup();
+    for (const event of [
+      steer('before-any-turn'),
+      prompt('p1'),
+      turnStart('p1'),
+      steer('s1'),
+      steer('s2'),
+      start({ id: 'm0', key: 'model:0', delivered: ['p1', 's2'] }),
+    ]) {
+      await log.append(event);
+    }
+    expect(undeliveredIds(log)).toEqual(['s1']);
+
+    await log.append(finishTurn({ turnId: 'p1', unified: 'stop' }));
+    expect(undeliveredIds(log)).toEqual([]);
+
+    const replayed = createLog({ world, runId });
+    await replayed.refresh();
+    expect(undeliveredIds(replayed)).toEqual([]);
   });
 
   test('builds turns and files accepted attempts under the current turn', async () => {

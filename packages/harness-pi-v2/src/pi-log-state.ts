@@ -263,6 +263,22 @@ export function readPiLogState(options: {
 }
 
 /**
+ * Returns whether the log has a cancel waiting for delivery. A waiting cancel
+ * is always for the running turn: it counts as delivered once that turn
+ * finishes with finish reason `cancelled`, and as withdrawn otherwise.
+ */
+export function hasPendingCancel(options: {
+  /**
+   * Log of the session.
+   */
+  log: HarnessV2Log;
+}): boolean {
+  return options.log
+    .getUndeliveredSubmissions()
+    .some(submission => submission.data.type === 'cancel');
+}
+
+/**
  * Transcript rebuilt from the log, and where Pi continues from it.
  */
 export type PiRestoredTranscript = {

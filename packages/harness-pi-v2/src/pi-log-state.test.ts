@@ -6,6 +6,7 @@ import type {
 } from '@ai-sdk/harness';
 import { describe, expect, test } from 'vitest';
 import {
+  hasPendingCancel,
   readPiLogState,
   restorePiTranscript,
   type PiLogState,
@@ -146,6 +147,23 @@ function state(options: Partial<PiLogState>): PiLogState {
 }
 
 describe('readPiLogState', () => {
+  test('reports whether a cancel waits for delivery', () => {
+    const cancel: HarnessV2LogSubmissionEvent = {
+      type: 'submission',
+      id: 'c1',
+      data: { type: 'cancel' },
+    };
+
+    expect(
+      hasPendingCancel({
+        log: createStubLog({ undelivered: [prompt('p2'), cancel] }),
+      }),
+    ).toBe(true);
+    expect(
+      hasPendingCancel({ log: createStubLog({ undelivered: [prompt('p2')] }) }),
+    ).toBe(false);
+  });
+
   test('reads prompts, pending prompts, model effects and tool outputs', () => {
     const steer: HarnessV2LogSubmissionEvent = {
       type: 'submission',

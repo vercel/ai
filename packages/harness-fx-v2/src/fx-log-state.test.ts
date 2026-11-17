@@ -8,7 +8,11 @@ import type {
 } from '@ai-sdk/harness';
 import type { SerializableValue } from '@ai-sdk/provider';
 import { describe, expect, test } from 'vitest';
-import { getFxModelEffectKey, readFxLogState } from './fx-log-state';
+import {
+  getFxModelEffectKey,
+  hasPendingCancel,
+  readFxLogState,
+} from './fx-log-state';
 import { createUnknownHarnessUsage } from './fx-usage';
 
 /**
@@ -98,6 +102,23 @@ describe('getFxModelEffectKey', () => {
 });
 
 describe('readFxLogState', () => {
+  test('reports whether a cancel waits for delivery', () => {
+    const cancel: HarnessV2LogSubmissionEvent = {
+      type: 'submission',
+      id: 'c1',
+      data: { type: 'cancel' },
+    };
+
+    expect(
+      hasPendingCancel({
+        log: createStubLog({ undelivered: [prompt('p2'), cancel] }),
+      }),
+    ).toBe(true);
+    expect(
+      hasPendingCancel({ log: createStubLog({ undelivered: [prompt('p2')] }) }),
+    ).toBe(false);
+  });
+
   test('reads turns, pending prompts and recorded effects', () => {
     const checkpoint = {
       data: new Uint8Array([1, 2, 3]).buffer,

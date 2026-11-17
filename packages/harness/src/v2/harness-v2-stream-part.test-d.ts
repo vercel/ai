@@ -20,7 +20,6 @@ import type {
 } from './harness-v2-stream-part';
 
 test('redeclares language model types without changing their shape', () => {
-  expectTypeOf<HarnessV2FinishReason>().toEqualTypeOf<LanguageModelV4FinishReason>();
   expectTypeOf<HarnessV2Usage>().toEqualTypeOf<LanguageModelV4Usage>();
   expectTypeOf<HarnessV2ToolInputStart>().toEqualTypeOf<
     Extract<LanguageModelV4StreamPart, { type: 'tool-input-start' }>
@@ -36,6 +35,13 @@ test('redeclares language model types without changing their shape', () => {
   expectTypeOf<Omit<HarnessV2ToolResult, 'result'>>().toEqualTypeOf<
     Omit<LanguageModelV4ToolResult, 'result'>
   >();
+});
+
+test('extends the language model finish reason with `cancelled`', () => {
+  expectTypeOf<HarnessV2FinishReason>().toEqualTypeOf<{
+    unified: LanguageModelV4FinishReason['unified'] | 'cancelled';
+    raw: LanguageModelV4FinishReason['raw'];
+  }>();
 });
 
 test('allows a null tool result', () => {

@@ -36,7 +36,7 @@ export type HarnessV2<
 
   /**
    * Drives one session using the host-provided effects, tools, streams, and
-   * cancellation signals.
+   * abort signals.
    */
   drive(options: {
     sessionId: string;

@@ -14,6 +14,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { InvalidToolInputError, NoSuchToolError } from 'ai';
 import { createToolModelOutput, validateToolContext } from 'ai/internal';
+import { HarnessCancellationError } from '../../../errors/harness-cancellation-error';
 import { HarnessInvalidDriveStateError } from '../../../errors/harness-invalid-drive-state-error';
 import type { HarnessV2BuiltinToolSet } from '../../../v2/harness-v2-builtin-tool';
 import type {
@@ -281,6 +282,8 @@ function emitToolResult(options: {
 /**
  * Emits the error `tool-result` part of a failed attempt, unless the attempt
  * was aborted or the drive state is invalid, which are not tool failures.
+ * A `HarnessCancellationError` emits its message unchanged, so the call shows
+ * as ended by the cancel.
  */
 function emitToolError(options: {
   /**
@@ -317,7 +320,9 @@ function emitToolError(options: {
   }
   let message: string;
   try {
-    message = getErrorMessage(error) ?? String(error);
+    message = HarnessCancellationError.isInstance(error)
+      ? error.message
+      : (getErrorMessage(error) ?? String(error));
   } catch {
     message = 'Unknown effect error';
   }
