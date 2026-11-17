@@ -1602,6 +1602,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         ...(response.prompt_cache_diagnostics != null
           ? { promptCacheDiagnostics: response.prompt_cache_diagnostics }
           : {}),
+        ...(response.input_transformations != null
+          ? { inputTransformations: response.input_transformations }
+          : {}),
       } satisfies ResponsesProviderMetadata,
     };
 
@@ -1773,6 +1776,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     let serviceTier: string | undefined;
     let reasoningContext: ResponsesProviderMetadata['reasoningContext'];
     let promptCacheDiagnostics: ResponsesProviderMetadata['promptCacheDiagnostics'];
+    let inputTransformations: ResponsesProviderMetadata['inputTransformations'];
     const hostedToolSearchCallIds: string[] = [];
     let encounteredStreamError = false;
 
@@ -2984,6 +2988,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               usage = value.response.usage ?? undefined;
               promptCacheDiagnostics =
                 value.response.prompt_cache_diagnostics ?? undefined;
+              inputTransformations =
+                value.response.input_transformations ?? undefined;
               if (typeof value.response.service_tier === 'string') {
                 serviceTier = value.response.service_tier;
               }
@@ -2993,6 +2999,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             } else if (isResponseFailedChunk(value)) {
               promptCacheDiagnostics =
                 value.response.prompt_cache_diagnostics ?? undefined;
+              inputTransformations =
+                value.response.input_transformations ?? undefined;
               const incompleteReason =
                 value.response.incomplete_details?.reason;
               finishReason = {
@@ -3099,6 +3107,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 ...(reasoningContext !== undefined ? { reasoningContext } : {}),
                 ...(promptCacheDiagnostics !== undefined
                   ? { promptCacheDiagnostics }
+                  : {}),
+                ...(inputTransformations !== undefined
+                  ? { inputTransformations }
                   : {}),
               } satisfies ResponsesProviderMetadata,
             };
