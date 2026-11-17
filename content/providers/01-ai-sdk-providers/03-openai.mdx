@@ -250,7 +250,8 @@ The following provider options are available:
 <Note>
   Supported reasoning efforts vary by model. GPT-5.6, GPT-6 Sol, GPT-6 Luna, and
   GPT-6.1 Terra support `'none'`, `'low'`, `'medium'`, `'high'`, `'xhigh'`, and
-  `'max'`. GPT-6 Astra and GPT-6.1 Sol do not support `'none'`.
+  `'max'`. GPT-6 Astra, GPT-6.1 Sol, GPT-6.2 Astra, and GPT-6.2 Sol do not
+  support `'none'`.
 </Note>
 
 <Note type="warning">
@@ -3456,6 +3457,8 @@ The following optional provider options are available for OpenAI completion mode
 
 | Model                 | Image Input | Audio Input | Object Generation | Tool Usage |
 | --------------------- | ----------- | ----------- | ----------------- | ---------- |
+| `gpt-6.2-astra`       | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-6.2-sol`         | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-6-astra`         | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-6.1-sol`         | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-6.1-terra`       | <Check />   | <Cross />   | <Check />         | <Check />  |
@@ -3510,6 +3513,8 @@ is supported.
 
 | Model                 | Reasoning | Reasoning Efforts                               | Temperature                                      | Top P                                            |
 | --------------------- | --------- | ----------------------------------------------- | ------------------------------------------------ | ------------------------------------------------ |
+| `gpt-6.2-astra`       | <Check /> | `low`, `medium`, `high`, `xhigh`, `max`         | <Cross />                                        | <Cross />                                        |
+| `gpt-6.2-sol`         | <Check /> | `low`, `medium`, `high`, `xhigh`, `max`         | <Cross />                                        | <Cross />                                        |
 | `gpt-6-astra`         | <Check /> | `low`, `medium`, `high`, `xhigh`, `max`         | <Cross />                                        | <Cross />                                        |
 | `gpt-6.1-sol`         | <Check /> | `low`, `medium`, `high`, `xhigh`, `max`         | <Cross />                                        | <Cross />                                        |
 | `gpt-6.1-terra`       | <Check /> | `none`, `low`, `medium`, `high`, `xhigh`, `max` | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
