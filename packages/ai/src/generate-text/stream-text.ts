@@ -33,7 +33,7 @@ import type { LanguageModelCallOptions } from '../prompt/language-model-call-opt
 import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
 import { prepareToolChoice } from '../prompt/prepare-tool-choice';
 import { prepareTools } from '../prompt/prepare-tools';
-import type { Prompt } from '../prompt/prompt';
+import type { Instructions, Prompt } from '../prompt/prompt';
 import {
   getChunkTimeoutMs,
   getFirstChunkTimeoutMs,
@@ -1587,6 +1587,11 @@ class DefaultStreamTextResult<
           stepStart: { notified: boolean; enqueued: boolean };
           stepTimeoutId: ReturnType<typeof setTimeout> | undefined;
           stepTracingChannelContext: TracingChannelContext | undefined;
+          stepStartState: {
+            instructions: Instructions | undefined;
+            runtimeContext: RUNTIME_CONTEXT;
+            toolsContext: InferToolSetContext<TOOLS>;
+          };
         }
       | undefined;
     let isAborted = false;
@@ -2612,6 +2617,18 @@ class DefaultStreamTextResult<
             ...(steeringRun?.takeMessages() ?? []),
           ];
 
+          // prepareStep runs again when the step is redone. It must get the
+          // instructions and contexts that the step started with, not the ones
+          // that it returned for the cancelled model call:
+          const stepStartState = redo?.stepStartState ?? {
+            instructions: instructionsForNextStep,
+            runtimeContext,
+            toolsContext,
+          };
+          instructionsForNextStep = stepStartState.instructions;
+          runtimeContext = stepStartState.runtimeContext;
+          toolsContext = stepStartState.toolsContext;
+
           const stepInputMessages = [
             ...(stepMessagesForNextStep ?? [
               ...initialMessages,
@@ -2774,6 +2791,7 @@ class DefaultStreamTextResult<
               stepStart,
               stepTimeoutId,
               stepTracingChannelContext,
+              stepStartState,
             };
             abortSignal?.removeEventListener('abort', cleanupStepTimeouts);
             clearModelOutputTimeouts();

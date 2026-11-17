@@ -3,8 +3,10 @@ import type {
   LanguageModelV4StreamPart,
   LanguageModelV4Usage,
 } from '@ai-sdk/provider';
+import { tool } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it, vi } from 'vitest';
+import { z } from 'zod/v4';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { readUIMessageStream } from '../ui-message-stream/read-ui-message-stream';
 import { createSteering, type SteeringOutcome } from './steering';
@@ -485,6 +487,62 @@ describe('streamText experimental_steering interrupt', () => {
       ],
     });
     expect(onStepStart).toHaveBeenCalledTimes(1);
+  });
+
+  it('should run prepareStep for the redo with the instructions and contexts that the step started with', async () => {
+    const steering = createSteering();
+    const prepareStepInputs: Array<unknown> = [];
+
+    const { model, calls } = createModel({
+      first: options =>
+        hangingStream({
+          options,
+          parts: [{ type: 'stream-start', warnings: [] }],
+        }),
+      onFirstCall: () => {
+        void steering.steer('Use Paris, Texas instead.', { interrupt: true });
+      },
+      rest: [() => textStream('It is sunny in Paris, Texas.')],
+    });
+
+    const result = streamText({
+      model,
+      instructions: 'Answer briefly.',
+      prompt: 'What is the weather in Paris?',
+      tools: {
+        weather: tool({
+          inputSchema: z.object({ city: z.string() }),
+          contextSchema: z.object({ unit: z.string() }),
+          execute: async () => ({ temperature: 72 }),
+        }),
+      },
+      runtimeContext: { prepareStepCalls: 0 },
+      toolsContext: { weather: { unit: 'fahrenheit' } },
+      experimental_steering: steering,
+      prepareStep: ({ instructions, runtimeContext, toolsContext }) => {
+        prepareStepInputs.push({ instructions, runtimeContext, toolsContext });
+        return {
+          instructions: `${instructions} Use Celsius.`,
+          runtimeContext: {
+            prepareStepCalls: runtimeContext.prepareStepCalls + 1,
+          },
+          toolsContext: { weather: { unit: 'celsius' } },
+        };
+      },
+    });
+
+    await result.consumeStream();
+
+    const stepStartState = {
+      instructions: 'Answer briefly.',
+      runtimeContext: { prepareStepCalls: 0 },
+      toolsContext: { weather: { unit: 'fahrenheit' } },
+    };
+    expect(prepareStepInputs).toEqual([stepStartState, stepStartState]);
+    expect(calls[1].prompt[0]).toEqual({
+      role: 'system',
+      content: 'Answer briefly. Use Celsius.',
+    });
   });
 
   it('should fall back to the next step when output already started', async () => {

@@ -214,6 +214,55 @@ describe('generateText experimental_steering interrupt', () => {
     expect(onStepStart).toHaveBeenCalledTimes(1);
   });
 
+  it('should run prepareStep for the redo with the instructions and contexts that the step started with', async () => {
+    const steering = createSteering();
+    const prepareStepInputs: Array<unknown> = [];
+
+    const { model, calls } = createHangingFirstCall({
+      onFirstCall: () => {
+        void steering.steer('Use Paris, Texas instead.', { interrupt: true });
+      },
+      responses: [() => textResponse('It is sunny in Paris, Texas.')],
+    });
+
+    await generateText({
+      model,
+      instructions: 'Answer briefly.',
+      prompt: 'What is the weather in Paris?',
+      tools: {
+        weather: tool({
+          inputSchema: z.object({ city: z.string() }),
+          contextSchema: z.object({ unit: z.string() }),
+          execute: async () => ({ temperature: 72 }),
+        }),
+      },
+      runtimeContext: { prepareStepCalls: 0 },
+      toolsContext: { weather: { unit: 'fahrenheit' } },
+      experimental_steering: steering,
+      prepareStep: ({ instructions, runtimeContext, toolsContext }) => {
+        prepareStepInputs.push({ instructions, runtimeContext, toolsContext });
+        return {
+          instructions: `${instructions} Use Celsius.`,
+          runtimeContext: {
+            prepareStepCalls: runtimeContext.prepareStepCalls + 1,
+          },
+          toolsContext: { weather: { unit: 'celsius' } },
+        };
+      },
+    });
+
+    const stepStartState = {
+      instructions: 'Answer briefly.',
+      runtimeContext: { prepareStepCalls: 0 },
+      toolsContext: { weather: { unit: 'fahrenheit' } },
+    };
+    expect(prepareStepInputs).toEqual([stepStartState, stepStartState]);
+    expect(calls[1].prompt[0]).toEqual({
+      role: 'system',
+      content: 'Answer briefly. Use Celsius.',
+    });
+  });
+
   it('should not deliver an interrupt message that prepareStep removes on the redo', async () => {
     const steering = createSteering();
     let outcome: Promise<SteeringOutcome> | undefined;

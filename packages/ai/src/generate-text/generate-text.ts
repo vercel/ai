@@ -1037,6 +1037,12 @@ async function generateTextInternal<
         let stepSteeringMessages: Array<UserModelMessage> = [];
         let hasNotifiedStepStart = false;
 
+        // prepareStep runs again when the step is redone. It must get the
+        // contexts that the step started with, not the ones that it returned
+        // for the cancelled model call:
+        const stepStartRuntimeContext = runtimeContext;
+        const stepStartToolsContext = toolsContext;
+
         try {
           await runInTracingChannelSpan({
             type: 'step',
@@ -1044,6 +1050,9 @@ async function generateTextInternal<
             execute: () =>
               redoInterruptedStepAttempts({
                 onInterrupt: () => {
+                  runtimeContext = stepStartRuntimeContext;
+                  toolsContext = stepStartToolsContext;
+
                   const interruptMessages = steeringRun?.takeMessages() ?? [];
                   steeringMessages = [
                     ...steeringMessages,
