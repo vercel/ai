@@ -477,6 +477,20 @@ prepareStep: ({ initialMessages, steps, experimental_steeringMessages }) => ({
 }),
 ```
 
+### Interrupting the Current Model Call
+
+A steering message waits for the current step by default. Pass `interrupt: true` to cut the current model call short when the model has not produced any output yet, e.g. for a correction like "stop, use the other file":
+
+```ts
+steering.steer('Stop, use the other file.', { interrupt: true });
+```
+
+- When the model call has not produced any text, reasoning, tool input, or tool call yet, it is cancelled and made again in the same step with the message. The step keeps its step number and does not count toward stop conditions.
+- When output has already started, or tools are running, the message is added at the next step boundary like any other steering message. Running tools are never interrupted.
+- `prepareStep` runs again for the new model call and receives the message in `experimental_steeringMessages`. `onStepStart` is called once per step.
+- `streamText` closes the text and reasoning parts of the cancelled call and streams the `steering-message` part before the new output.
+- A cancelled model call can still be billed by the provider. It is not included in `usage` and `totalUsage`.
+
 ### Queueing Messages
 
 `steer()` changes what the agent is doing right now. Use `queue()` for a follow-up that should wait until the agent has finished its current task:
