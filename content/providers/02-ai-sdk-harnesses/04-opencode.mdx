@@ -238,12 +238,6 @@ Approvals apply only to the current tool call, not subsequent calls.
 `allow-all` remains unrestricted. These approval rules are not a filesystem
 sandbox, and approved shell commands can access paths outside the workdir.
 
-In `allow-reads` and `allow-edits`, the adapter supplies a permission-gated
-`read` implementation that does not discover nested `AGENTS.md`, `CLAUDE.md`,
-or `CONTEXT.md` files. Read those files explicitly when needed; they follow
-the same approval rules as other files. `allow-all` keeps OpenCode's native
-read behavior. This does not change root or host-configured instructions.
-
 Under `allow-edits`, file changes that touch `.agents/skills`, `.opencode`,
 `opencode.json`, `opencode.jsonc`, or `.claude/skills` in the session workdir
 always require host approval. These paths hold configuration and skills that
