@@ -142,6 +142,9 @@
       "path": "packages/langchain"
     },
     {
+      "path": "packages/liquid"
+    },
+    {
       "path": "packages/llamaindex"
     },
     {
@@ -260,9 +263,6 @@
     },
     {
       "path": "packages/zai"
-    },
-    {
-      "path": "tools/integration-tests"
     }
   ],
   "include": [],

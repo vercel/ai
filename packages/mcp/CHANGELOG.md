@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 2.0.101
+
+### Patch Changes
+
+- 95b78c9: Reject pending HTTP MCP requests when their SSE response stream closes or disconnects before delivering the matching JSON-RPC response, preventing tool calls from hanging indefinitely.
+
 ## 2.0.100
 
 ### Patch Changes

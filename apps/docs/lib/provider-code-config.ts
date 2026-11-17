@@ -173,6 +173,16 @@ export const providerCodeConfigs: Record<string, ProviderCodeConfig> = {
       'minimax/minimax-m3': 'MiniMaxAI/MiniMax-M3',
     },
   },
+  liquid: {
+    title: 'Liquid',
+    pkg: 'liquid',
+    export: 'liquid',
+    kinds: ['decision'],
+    models: {
+      'liquid/d1.2': 'd1.2',
+      'liquid/d1.2-ultra': 'd1.2-ultra',
+    },
+  },
   'typesafe-ai': {
     title: 'TypeSafe',
     pkg: 'typesafe-ai',
