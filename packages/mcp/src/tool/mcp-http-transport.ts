@@ -345,12 +345,15 @@ export class HttpMCPTransport implements MCPTransport {
               () => undefined,
             );
             if (jsonRpcMessage != null && 'error' in jsonRpcMessage) {
-              this.onmessage?.(
-                jsonRpcMessage.id == null
-                  ? { ...jsonRpcMessage, id: message.id }
-                  : jsonRpcMessage,
-              );
-              return;
+              throw new MCPClientError({
+                message: jsonRpcMessage.error.message,
+                code: jsonRpcMessage.error.code,
+                data: jsonRpcMessage.error.data,
+                cause: jsonRpcMessage.error,
+                statusCode: response.status,
+                url: this.url.href,
+                responseBody: text,
+              });
             }
           }
 

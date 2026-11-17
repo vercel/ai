@@ -859,6 +859,45 @@ describe('HttpMCPTransport', () => {
     expect(error.message).toContain('does not support HTTP transport');
   });
 
+  it('should expose HTTP status, URL, and response body on a JSON-RPC error from POST', async () => {
+    transport = new HttpMCPTransport({ url: 'http://localhost:4000/mcp' });
+
+    const body = JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      error: {
+        code: -32000,
+        message: 'Unauthorized: token expired',
+        data: { reason: 'expired' },
+      },
+    });
+    server.urls['http://localhost:4000/mcp'].response = {
+      type: 'error',
+      status: 401,
+      headers: { 'content-type': 'application/json' },
+      body,
+    };
+
+    await transport.start();
+
+    const error = await transport
+      .send({
+        jsonrpc: '2.0' as const,
+        method: 'initialize',
+        id: 1,
+        params: {},
+      })
+      .catch(error => error);
+
+    expect(error).toBeInstanceOf(MCPClientError);
+    expect(error.message).toBe('Unauthorized: token expired');
+    expect(error.code).toBe(-32000);
+    expect(error.data).toEqual({ reason: 'expired' });
+    expect(error.statusCode).toBe(401);
+    expect(error.url).toBe('http://localhost:4000/mcp');
+    expect(error.responseBody).toBe(body);
+  });
+
   it('should expose HTTP status and URL on GET SSE failure', async () => {
     transport = new HttpMCPTransport({ url: 'http://localhost:4000/mcp' });
 
