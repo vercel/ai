@@ -386,11 +386,6 @@ export function createExecuteToolFunctions(options: {
   log: HarnessAgentLog;
 
   /**
-   * Identifier of the harness adapter, recorded on capability errors.
-   */
-  harnessId: string;
-
-  /**
    * The agent's own tools, without the harness's built-in tools.
    */
   tools: ToolSet;
@@ -416,8 +411,7 @@ export function createExecuteToolFunctions(options: {
   executeHostTool: HarnessAgentExecuteHostToolFunction;
   executeBuiltinTool: HarnessAgentExecuteBuiltinToolFunction;
 } {
-  const { log, tools, builtinTools, effect, getSandboxSession, harnessId } =
-    options;
+  const { log, tools, builtinTools, effect, getSandboxSession } = options;
 
   /**
    * Commits the `tool-execution-start` event of an attempt, right before its
@@ -479,7 +473,11 @@ export function createExecuteToolFunctions(options: {
        * result like any other tool failure, so the call never runs the tool.
        */
       if (tool != null && requiresApproval(tool)) {
-        throw createToolApprovalUnsupportedError({ harnessId, toolName });
+        /*
+         * TODO: Implement host-tool approval requests and responses before
+         * launching HarnessV2 instead of rejecting approval-requiring tools.
+         */
+        throw createToolApprovalUnsupportedError({ toolName });
       }
 
       if (tool == null || isProviderExecuted(tool) || !isExecutableTool(tool)) {
@@ -649,8 +647,11 @@ export function createExecuteToolFunctions(options: {
        * failure, so `execute` never runs the tool.
        */
       if (requiresApproval(tool)) {
+        /*
+         * TODO: Implement built-in tool approval requests and responses before
+         * launching HarnessV2 instead of rejecting approval-requiring tools.
+         */
         throw createToolApprovalUnsupportedError({
-          harnessId,
           toolName,
           kind: 'built-in tool',
         });

@@ -73,7 +73,6 @@ function createDrive(options: {
   });
   const gateBuiltinTool = createGateBuiltinToolFunction({
     log: options.log,
-    harnessId: 'mock-harness',
     builtinTools: options.builtinTools ?? builtinTools,
     effect,
     abortSignal: abortController.signal,

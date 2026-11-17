@@ -83,7 +83,6 @@ function createDrive(options: {
   const getSandboxSession = vi.fn(async () => sandboxSession);
   const { executeHostTool, executeBuiltinTool } = createExecuteToolFunctions({
     log: options.log,
-    harnessId: 'mock-harness',
     tools: options.tools ?? {},
     builtinTools: options.builtinTools ?? builtinTools,
     effect,

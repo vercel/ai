@@ -277,11 +277,6 @@ export function createGateBuiltinToolFunction(options: {
   log: HarnessAgentLog;
 
   /**
-   * Identifier of the harness adapter, recorded on capability errors.
-   */
-  harnessId: string;
-
-  /**
    * The harness's built-in tools.
    */
   builtinTools: ToolSet;
@@ -296,7 +291,7 @@ export function createGateBuiltinToolFunction(options: {
    */
   abortSignal: AbortSignal;
 }): HarnessAgentGateBuiltinToolFunction {
-  const { log, harnessId, builtinTools, effect, abortSignal } = options;
+  const { log, builtinTools, effect, abortSignal } = options;
 
   /**
    * Records a call to a tool that is not a built-in tool as an `error` effect
@@ -391,7 +386,6 @@ export function createGateBuiltinToolFunction(options: {
       fn: async context => {
         ran = true;
         const error = createToolApprovalUnsupportedError({
-          harnessId,
           toolName,
           kind: 'built-in tool',
         });
@@ -404,6 +398,10 @@ export function createGateBuiltinToolFunction(options: {
             isError: true,
           });
         }
+        /*
+         * TODO: Implement built-in tool approval requests and responses before
+         * launching HarnessV2 instead of denying approval-requiring tools.
+         */
         throw error;
       },
     });

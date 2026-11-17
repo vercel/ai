@@ -1100,7 +1100,6 @@ async function runDrivePass(options: {
     finishTurn = finishFunctions.finishTurn;
     const { executeHostTool, executeBuiltinTool } = createExecuteToolFunctions({
       log,
-      harnessId: harness.harnessId,
       tools: userTools,
       builtinTools: harness.builtinTools,
       effect,
@@ -1108,7 +1107,6 @@ async function runDrivePass(options: {
     });
     const gateBuiltinTool = createGateBuiltinToolFunction({
       log,
-      harnessId: harness.harnessId,
       builtinTools: harness.builtinTools,
       effect,
       abortSignal: AbortSignal.any([stopAbortSignal, yieldAbortSignal]),
