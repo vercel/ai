@@ -18,7 +18,15 @@ export const azureImageModelOptions = lazySchema(() =>
   ),
 );
 
-export type AzureImageModelOptions = InferSchema<typeof azureImageModelOptions>;
+export type AzureImageModelOptions = InferSchema<
+  typeof azureImageModelOptions
+> & {
+  /**
+   * Output background. `transparent` returns a PNG with an alpha channel.
+   * Defaults to `opaque`. MAI-Image-2.7 models only; ignored on the OpenAI API.
+   */
+  background?: 'transparent' | 'opaque';
+};
 
 // Lowercase model IDs served by the MAI image API.
 const maiImageModels = new Set([
@@ -27,6 +35,8 @@ const maiImageModels = new Set([
   'mai-image-2.5-pro',
   'mai-image-2.6',
   'mai-image-2.6-flash',
+  'mai-image-2.7',
+  'mai-image-2.7-flash',
 ]);
 
 export function isMAIImageModel(modelId: string) {

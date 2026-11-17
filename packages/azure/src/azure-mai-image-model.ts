@@ -54,7 +54,11 @@ export class AzureMaiImageModel implements ImageModelV3 {
       headers,
       abortSignal,
     }: Parameters<ImageModelV3['doGenerate']>[0],
-    { autoAspectRatio, webGrounding }: AzureImageModelMaiOptions = {},
+    {
+      autoAspectRatio,
+      webGrounding,
+      background,
+    }: AzureImageModelMaiOptions = {},
   ): Promise<Awaited<ReturnType<ImageModelV3['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV3Warning[] = [];
@@ -67,6 +71,16 @@ export class AzureMaiImageModel implements ImageModelV3 {
         type: 'unsupported',
         feature: 'mask',
         details: 'MAI image edits do not support masks.',
+      });
+    }
+
+    // `auto` is an OpenAI image value; the MAI API rejects it.
+    if (background === 'auto') {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.azure.background',
+        details:
+          "The MAI image API supports 'transparent' and 'opaque' backgrounds.",
       });
     }
 
@@ -95,6 +109,7 @@ export class AzureMaiImageModel implements ImageModelV3 {
       height: dimensions?.height,
       auto_aspect_ratio: autoAspectRatio,
       web_grounding: webGrounding,
+      background: background === 'auto' ? undefined : background,
     };
     const requestOptions = {
       headers: combineHeaders(this.config.headers(), headers),

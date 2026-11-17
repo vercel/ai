@@ -89,9 +89,12 @@ describe('API routing', () => {
     ['MAI-Image-2.6', undefined, 'mai'],
     ['mai-image-2.6-flash', undefined, 'mai'],
     ['MAI-Image-2.5-Pro', undefined, 'mai'],
+    ['MAI-Image-2.7', undefined, 'mai'],
+    ['mai-image-2.7-flash', undefined, 'mai'],
     ['gpt-image-1', undefined, 'openai'],
     ['mai-image-custom', undefined, 'openai'],
     ['MAI-Image-2.6', 'openai', 'openai'],
+    ['MAI-Image-2.7', 'openai', 'openai'],
     ['my-mai-deployment', 'mai', 'mai'],
   ] as const)('routes %s with api=%s to %s', async (id, api, expected) => {
     const { provider, request } = setup({}, () =>
@@ -135,6 +138,115 @@ describe('API routing', () => {
       details: 'This option requires the MAI image API.',
     });
   });
+
+  it.each([
+    ['gpt-image-1', undefined, 'auto'],
+    ['gpt-image-1', undefined, 'transparent'],
+    ['MAI-Image-2.7', 'openai', 'auto'],
+    ['MAI-Image-2.7', 'openai', 'opaque'],
+  ] as const)(
+    'accepts azure background on the OpenAI API without warnings (%s, api=%s, %s)',
+    async (id, api, background) => {
+      const { provider, request } = setup({}, () =>
+        jsonResponse({ data: [{ b64_json: 'aGk=' }] }),
+      );
+
+      const result = await provider.image(id).doGenerate(
+        callOptions({
+          providerOptions: { azure: { api, background } },
+        }),
+      );
+
+      expect(request().url).toContain('openai.azure.com');
+      expect(result.warnings).toEqual([]);
+      // OpenAI image options are read from providerOptions.openai.
+      expect(request().json()).not.toHaveProperty('background');
+    },
+  );
+
+  // The OpenAI route never read `azure.background`; any value is still ignored.
+  describe.each([
+    ['gpt-image-1', undefined],
+    ['MAI-Image-2.7', 'openai'],
+  ] as const)(
+    'ignores azure background on the OpenAI API (%s, api=%s)',
+    (id, api) => {
+      const openaiRequest = async (
+        background: unknown,
+        files?: ImageModelV3CallOptions['files'],
+      ) => {
+        const { provider, request } = setup({}, () =>
+          jsonResponse({ data: [{ b64_json: 'aGk=' }] }),
+        );
+        const azure: Record<string, unknown> = {};
+        if (api != null) azure.api = api;
+        if (background !== undefined) azure.background = background;
+        const result = await provider
+          .image(id)
+          .doGenerate(
+            callOptions({ files, providerOptions: { azure } as never }),
+          );
+        const { url, body } = request();
+        return {
+          url,
+          warnings: result.warnings,
+          body:
+            body instanceof FormData
+              ? [...body.entries()].map(([key, value]) => [
+                  key,
+                  typeof value === 'string' ? value : value.type,
+                ])
+              : JSON.parse(body as string),
+        };
+      };
+      const editFiles: ImageModelV3CallOptions['files'] = [
+        { type: 'file', data: new Uint8Array([1]), mediaType: 'image/png' },
+      ];
+
+      it.each(['foo', '', null, 42])(
+        'leaves generations unchanged for %j',
+        async background => {
+          const baseline = await openaiRequest(undefined);
+          const result = await openaiRequest(background);
+
+          expect(result.url).toContain('openai.azure.com');
+          expect(result).toEqual(baseline);
+        },
+      );
+
+      it.each(['foo', '', null, 42])(
+        'leaves edits unchanged for %j',
+        async background => {
+          const baseline = await openaiRequest(undefined, editFiles);
+          const result = await openaiRequest(background, editFiles);
+
+          expect(result.url).toContain('/images/edits');
+          expect(result).toEqual(baseline);
+        },
+      );
+    },
+  );
+
+  it.each(['auto', 'transparent'] as const)(
+    'sends openai background %s to the OpenAI API',
+    async background => {
+      const { provider, request } = setup({}, () =>
+        jsonResponse({ data: [{ b64_json: 'aGk=' }] }),
+      );
+
+      const result = await provider.image('gpt-image-1').doGenerate(
+        callOptions({
+          providerOptions: {
+            openai: { background },
+            azure: { background: 'auto' },
+          },
+        }),
+      );
+
+      expect(request().json()).toMatchObject({ background });
+      expect(result.warnings).toEqual([]);
+    },
+  );
 
   it.each(['MAI-Image-2.6', 'gpt-image-1'])(
     'accepts unrelated azure provider options for %s',
@@ -182,6 +294,79 @@ describe('generations', () => {
       web_grounding: false,
     });
   });
+
+  it.each(['transparent', 'opaque'] as const)(
+    'sends background %s',
+    async background => {
+      const { provider, request } = setup();
+
+      const result = await provider
+        .image('MAI-Image-2.7')
+        .doGenerate(
+          callOptions({ providerOptions: { azure: { background } } }),
+        );
+
+      expect(request().json()).toEqual({
+        model: 'MAI-Image-2.7',
+        prompt: 'A red apple',
+        background,
+      });
+      expect(result.warnings).toEqual([]);
+    },
+  );
+
+  it.each([
+    ['MAI-Image-2.7-Flash', undefined],
+    ['my-mai-deployment', 'mai'],
+  ] as const)(
+    'drops background auto with a warning (%s, api=%s)',
+    async (id, api) => {
+      const { provider, request } = setup();
+
+      const result = await provider.image(id).doGenerate(
+        callOptions({
+          providerOptions: { azure: { api, background: 'auto' } },
+        }),
+      );
+
+      expect(request().url).toBe(generationsUrl);
+      expect(request().json()).not.toHaveProperty('background');
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'providerOptions.azure.background',
+          details:
+            "The MAI image API supports 'transparent' and 'opaque' backgrounds.",
+        },
+      ]);
+    },
+  );
+
+  it.each([
+    ['MAI-Image-2.7', undefined, 'foo'],
+    ['MAI-Image-2.7', undefined, ''],
+    ['my-mai-deployment', 'mai', null],
+  ] as const)(
+    'rejects invalid background values (%s, api=%s, %j)',
+    async (id, api, background) => {
+      const { provider, fetch } = setup();
+
+      await expect(
+        provider.image(id).doGenerate(
+          callOptions({
+            providerOptions: { azure: { api, background } } as never,
+          }),
+        ),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        argument: 'providerOptions',
+        cause: expect.objectContaining({
+          message: expect.stringContaining('background'),
+        }),
+      });
+      expect(fetch).not.toHaveBeenCalled();
+    },
+  );
 
   it('omits dimensions when neither size nor aspect ratio is set', async () => {
     const { provider, request } = setup();
@@ -403,6 +588,44 @@ describe('edits', () => {
       type: 'unsupported',
       feature: 'mask',
       details: 'MAI image edits do not support masks.',
+    });
+  });
+
+  it('sends background as a form field', async () => {
+    const { provider, request } = setup();
+
+    await provider.image('MAI-Image-2.7').doGenerate(
+      callOptions({
+        files: [
+          { type: 'file', data: new Uint8Array([1]), mediaType: 'image/png' },
+        ],
+        providerOptions: { azure: { background: 'transparent' } },
+      }),
+    );
+
+    const { url, body } = request();
+    expect(url).toBe(editsUrl);
+    expect((body as FormData).get('background')).toBe('transparent');
+  });
+
+  it('drops background auto from edits with a warning', async () => {
+    const { provider, request } = setup();
+
+    const result = await provider.image('MAI-Image-2.7').doGenerate(
+      callOptions({
+        files: [
+          { type: 'file', data: new Uint8Array([1]), mediaType: 'image/png' },
+        ],
+        providerOptions: { azure: { background: 'auto' } },
+      }),
+    );
+
+    expect((request().body as FormData).has('background')).toBe(false);
+    expect(result.warnings).toContainEqual({
+      type: 'unsupported',
+      feature: 'providerOptions.azure.background',
+      details:
+        "The MAI image API supports 'transparent' and 'opaque' backgrounds.",
     });
   });
 
