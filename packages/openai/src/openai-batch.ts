@@ -748,6 +748,7 @@ async function convertOpenAIBatchResult(
   const content: LanguageModelV4GenerateResult['content'] = [];
   const logprobs: Array<NonNullable<OpenAIResponsesLogprobs>> = [];
   let hasFunctionCall = false;
+  let hasRefusal = false;
 
   for (const part of response.output) {
     switch (part.type) {
@@ -774,6 +775,12 @@ async function convertOpenAIBatchResult(
 
       case 'message': {
         for (const contentPart of part.content) {
+          if (contentPart.type === 'refusal') {
+            hasRefusal = true;
+            content.push({ type: 'text', text: contentPart.refusal });
+            continue;
+          }
+
           content.push({ type: 'text', text: contentPart.text });
           if (contentPart.logprobs != null) {
             logprobs.push(contentPart.logprobs);
@@ -905,6 +912,9 @@ async function convertOpenAIBatchResult(
       ...(response.reasoning?.context != null
         ? { reasoningContext: response.reasoning.context }
         : {}),
+      ...(response.prompt_cache_diagnostics != null
+        ? { promptCacheDiagnostics: response.prompt_cache_diagnostics }
+        : {}),
     },
   };
 
@@ -916,6 +926,7 @@ async function convertOpenAIBatchResult(
         unified: mapOpenAIResponseFinishReason({
           finishReason: response.incomplete_details?.reason,
           hasFunctionCall,
+          hasRefusal,
         }),
         raw: response.incomplete_details?.reason ?? undefined,
       },

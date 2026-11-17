@@ -63,6 +63,14 @@ function convertToOpenAICompatibleContentPart(
           };
         }
         case 'text': {
+          if (getTopLevelMediaType(part.mediaType) === 'text') {
+            return {
+              type: 'text',
+              text: part.data.text,
+              ...partMetadata,
+            };
+          }
+
           throw new UnsupportedFunctionalityError({
             functionality: 'text file parts',
           });

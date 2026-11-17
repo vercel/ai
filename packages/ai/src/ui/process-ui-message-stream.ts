@@ -961,6 +961,16 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               break;
             }
 
+            case 'steering-message': {
+              state.message.parts.push({
+                type: 'steering-message',
+                id: chunk.id,
+                parts: chunk.parts,
+              });
+              write();
+              break;
+            }
+
             case 'start-step': {
               // add a step boundary part to the message
               state.message.parts.push({ type: 'step-start' });

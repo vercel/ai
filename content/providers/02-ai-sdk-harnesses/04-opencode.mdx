@@ -95,8 +95,8 @@ const harness = createOpenCode({
 
 Settings:
 
-- `auth`: authentication mode (`auto`, `anthropic`, `openai`, or `ai-gateway`)
-  or an isolated authentication environment.
+- `auth`: authentication mode (`auto`, `direct`, `anthropic`, `openai`, or
+  `ai-gateway`) or an isolated authentication environment.
 - `credentialForwarding`: optional synchronous or asynchronous callback that
   customizes each credential immediately before the harness adapter forwards it
   into a sandbox process. It receives the credential value that would otherwise
@@ -115,6 +115,11 @@ Settings:
   such as `low`, `medium`, or `high`.
 - `port`: bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the bridge to start.
+- `hostDisconnectTimeoutMs`: aborts a running turn when the host disconnects
+  and no host reconnects within this many milliseconds. A suspended turn is
+  not aborted. When unset, a turn keeps running in the sandbox after its host
+  disconnects, including when the host process is gone for good, until the
+  turn finishes or the sandbox stops.
 - `reconnect`: reconnect timing after an established bridge WebSocket
   connection drops. `maxElapsedMs` controls the total retry window, including
   connection establishment and backoff delays, and defaults to 30 seconds.
@@ -122,10 +127,9 @@ Settings:
   2 seconds. These retries use exponential backoff and are separate from
   `startupTimeoutMs`. They cannot recover when the sandbox, bridge process, or
   bridge endpoint is permanently unavailable.
-- `mintBridgeToken`: synchronous function that receives the sandbox id and
-  returns the bridge authentication token. By default, the adapter generates a
-  random 32-byte token. Custom implementations must return a suitably secret
-  token.
+- `mintBridgeToken`: deprecated and ignored. Passing it logs a warning. The
+  adapter generates a key pair for each bridge, passes only the public key into
+  the sandbox, and keeps the private key in host-side resume state.
 
 ## Structured Output
 
@@ -140,6 +144,7 @@ environment:
 
 - `auto` (default): use AI Gateway credentials when available, then use the
   credentials for the selected model provider.
+- `direct`: use the credentials for the selected model provider.
 - `anthropic`: use Anthropic credentials.
 - `openai`: use OpenAI credentials.
 - `ai-gateway`: use AI Gateway credentials.
@@ -169,6 +174,7 @@ authentication is selected.
 Select a specific authentication mode when you do not want automatic detection:
 
 ```ts
+const directHarness = createOpenCode({ auth: 'direct' });
 const anthropicHarness = createOpenCode({ auth: 'anthropic' });
 const openAIHarness = createOpenCode({ auth: 'openai' });
 const gatewayHarness = createOpenCode({ auth: 'ai-gateway' });
@@ -223,6 +229,24 @@ not fit a common tool shape.
 
 OpenCode supports built-in tool approval requests when `permissionMode` is
 `allow-reads` or `allow-edits`. Host-executed AI SDK tool approvals also work.
+
+In these modes, file reads are automatically approved only within the session
+workdir or an active skill's directory. `allow-edits` automatically approves
+file changes only within the workdir. Paths outside those directories, including
+symlink targets, and paths that cannot be resolved require host approval.
+Approvals apply only to the current tool call, not subsequent calls.
+`allow-all` remains unrestricted. These approval rules are not a filesystem
+sandbox, and approved shell commands can access paths outside the workdir.
+
+Under `allow-edits`, file changes that touch `.agents/skills`, `.opencode`,
+`opencode.json`, `opencode.jsonc`, or `.claude/skills` in the session workdir
+always require host approval. These paths hold configuration and skills that
+can run code or change the agent's behavior in later sessions. A path matches
+when it is a protected path, lies inside one, or is a parent of one. Symlinks
+are resolved in both directions: writes through an alias that points into a
+protected path match, as do writes to targets of symlinks inside protected
+directories. While a protected path exists, writes to hard-linked files also
+require approval. Reads of protected paths follow the usual rules.
 
 ## Built-in Tool Filtering
 

@@ -3,6 +3,8 @@ import {
   type JSONObject,
   type JSONValue,
   type LanguageModelV4FilePart,
+  type LanguageModelV4FunctionTool,
+  type LanguageModelV4ProviderTool,
   type SharedV4Warning,
   type LanguageModelV4Message,
   type LanguageModelV4Prompt,
@@ -30,6 +32,7 @@ import {
   type AnthropicPrompt,
   type AnthropicSystemMessage,
   type AnthropicTextContent,
+  type AnthropicTool,
   type AnthropicToolChangeContent,
   type AnthropicToolCallCaller,
   type AnthropicToolResultContent,
@@ -89,6 +92,66 @@ export type AnthropicMediaPartConverter = (
   | undefined
 >;
 
+// The computer use tools cannot be defined in a message (the API rejects
+// them), they must be declared in `tools` and added by reference.
+function isComputerTool(
+  tool: LanguageModelV4FunctionTool | LanguageModelV4ProviderTool,
+): boolean {
+  return tool.type === 'provider' && tool.id.startsWith('anthropic.computer_');
+}
+
+/**
+ * Collects the tools that mid-conversation tool changes add by value, so they
+ * can take part in tool name mapping like the tools of the `tools` option.
+ * Tools that cannot be added by value are left out because they are ignored.
+ */
+export async function getInlineToolsFromPrompt(
+  prompt: LanguageModelV4Prompt,
+): Promise<Array<LanguageModelV4FunctionTool | LanguageModelV4ProviderTool>> {
+  const inlineTools: Array<
+    LanguageModelV4FunctionTool | LanguageModelV4ProviderTool
+  > = [];
+
+  for (const message of prompt) {
+    if (message.role !== 'system' || message.providerOptions == null) {
+      continue;
+    }
+
+    const options = await parseProviderOptions({
+      provider: 'anthropic',
+      providerOptions: message.providerOptions,
+      schema: anthropicSystemMessageProviderOptions,
+    });
+
+    for (const toolChange of options?.toolChanges ?? []) {
+      if ('tool' in toolChange) {
+        const tool = toolChange.tool as
+          | LanguageModelV4FunctionTool
+          | LanguageModelV4ProviderTool;
+
+        if (!isComputerTool(tool)) {
+          inlineTools.push(tool);
+        }
+      }
+    }
+  }
+
+  return inlineTools;
+}
+
+/**
+ * Converts a tool that is defined by value in a mid-conversation tool change
+ * into the Anthropic tool definition, the same way entries of the top-level
+ * `tools` option are converted.
+ */
+export type AnthropicInlineToolConverter = (
+  tool: LanguageModelV4FunctionTool | LanguageModelV4ProviderTool,
+) => Promise<{
+  definition: AnthropicTool | undefined;
+  warnings: SharedV4Warning[];
+  betas: Set<string>;
+}>;
+
 export async function convertToAnthropicPrompt({
   prompt,
   sendReasoning,
@@ -97,6 +160,7 @@ export async function convertToAnthropicPrompt({
   toolNameMapping,
   toolsetNames = {},
   convertMediaPart,
+  convertInlineTool,
 }: {
   prompt: LanguageModelV4Prompt;
   sendReasoning: boolean;
@@ -111,6 +175,12 @@ export async function convertToAnthropicPrompt({
    * serialized as toolset member calls.
    */
   toolsetNames?: Record<string, string>;
+
+  /**
+   * Converts tools that are added by value in mid-conversation tool changes.
+   * Required when the prompt contains such additions.
+   */
+  convertInlineTool?: AnthropicInlineToolConverter;
 }): Promise<{
   prompt: AnthropicPrompt;
   betas: Set<string>;
@@ -174,6 +244,7 @@ export async function convertToAnthropicPrompt({
           clearAt?: 'next_user_message';
           effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
           toolChangeCount: number;
+          hasInlineToolDefinition: boolean;
         }> = [];
 
         for (const { content: text, providerOptions } of block.messages) {
@@ -203,7 +274,56 @@ export async function convertToAnthropicPrompt({
             });
           }
 
+          let toolChangeCount = 0;
+          let hasInlineToolDefinition = false;
+
           for (const toolChange of toolChanges) {
+            if ('tool' in toolChange) {
+              if (convertInlineTool == null) {
+                throw new UnsupportedFunctionalityError({
+                  functionality:
+                    'tool additions by value in mid-conversation tool changes',
+                });
+              }
+
+              const tool = toolChange.tool as
+                | LanguageModelV4FunctionTool
+                | LanguageModelV4ProviderTool;
+
+              if (isComputerTool(tool)) {
+                warnings.push({
+                  type: 'other',
+                  message:
+                    `The tool '${tool.name}' cannot be added by value in a tool change. ` +
+                    'Declare it in the tools option and add it by reference with toolName. ' +
+                    'The tool change has been ignored.',
+                });
+                continue;
+              }
+
+              const {
+                definition,
+                warnings: toolWarnings,
+                betas: toolBetas,
+              } = await convertInlineTool(tool);
+              warnings.push(...toolWarnings);
+              for (const beta of toolBetas) {
+                betas.add(beta);
+              }
+
+              if (definition == null) {
+                continue;
+              }
+
+              content.push({
+                type: 'tool_addition',
+                tool: { type: 'tool_definition', definition },
+              } satisfies AnthropicToolChangeContent);
+              toolChangeCount++;
+              hasInlineToolDefinition = true;
+              continue;
+            }
+
             content.push({
               type: toolChange.type,
               tool: {
@@ -211,13 +331,24 @@ export async function convertToAnthropicPrompt({
                 name: toolNameMapping.toProviderToolName(toolChange.toolName),
               },
             } satisfies AnthropicToolChangeContent);
+            toolChangeCount++;
+          }
+
+          // Every change was ignored and nothing else is left to send.
+          if (
+            content.length === 0 &&
+            systemMessageOptions?.clearAt == null &&
+            systemMessageOptions?.effort == null
+          ) {
+            continue;
           }
 
           convertedMessages.push({
             content,
             clearAt: systemMessageOptions?.clearAt,
             effort: systemMessageOptions?.effort,
-            toolChangeCount: toolChanges.length,
+            toolChangeCount,
+            hasInlineToolDefinition,
           });
         }
 
@@ -285,7 +416,10 @@ export async function convertToAnthropicPrompt({
               }),
             });
 
-            if (message.toolChangeCount > 0) {
+            // The inline tools beta also covers changes by reference.
+            if (message.hasInlineToolDefinition) {
+              betas.add('inline-tools-2026-09-15');
+            } else if (message.toolChangeCount > 0) {
               betas.add('mid-conversation-tool-changes-2026-07-01');
             }
             if (message.clearAt != null) {

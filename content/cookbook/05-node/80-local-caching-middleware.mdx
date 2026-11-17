@@ -16,6 +16,7 @@ This approach is particularly useful in two scenarios:
 ## Implementation
 
 In this implementation, you create a JSON file to store responses. When a request is made, you first check if you have already seen this exact request. If you have, you return the cached response immediately (as a one-off generation or chunks of tokens). If not, you trigger the generation, save the response, and return it.
+Cache keys include the provider and model ID so models with the same name on different providers have separate entries.
 
 <Note>
   Make sure to add the path of your local cache to your `.gitignore` so you do
@@ -136,6 +137,7 @@ export const cacheMiddleware: LanguageModelV4Middleware = {
       ...params,
       prompt: cleanPrompt(params.prompt),
       _function: 'generate',
+      provider: model.provider,
       model: model.modelId,
     });
 
@@ -165,6 +167,7 @@ export const cacheMiddleware: LanguageModelV4Middleware = {
       ...params,
       prompt: cleanPrompt(params.prompt),
       _function: 'stream',
+      provider: model.provider,
       model: model.modelId,
     });
 

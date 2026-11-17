@@ -7,17 +7,27 @@ export async function areFileToolPathsTrusted(options: {
   paths: readonly string[];
   access: 'read' | 'write';
   readableSkillRoots: readonly string[];
+  additionalDirectories?: readonly string[];
 }): Promise<boolean> {
   if (options.paths.length === 0) return false;
   try {
     const roots = [await realpath(options.workDir)];
-    if (options.access === 'read') {
-      for (const root of options.readableSkillRoots) {
-        try {
-          roots.push(await realpath(root));
-        } catch {
-          continue;
-        }
+    /*
+     * Additional directories are granted to Claude Code for reading and
+     * writing, like the working directory. Only absolute paths are trusted so
+     * a relative entry cannot widen trust relative to an unknown directory.
+     */
+    const trustedRoots = [
+      ...(options.additionalDirectories ?? []).filter(root =>
+        path.posix.isAbsolute(root),
+      ),
+      ...(options.access === 'read' ? options.readableSkillRoots : []),
+    ];
+    for (const root of trustedRoots) {
+      try {
+        roots.push(await realpath(root));
+      } catch {
+        continue;
       }
     }
     for (const filePath of options.paths) {

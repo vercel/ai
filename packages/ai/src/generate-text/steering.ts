@@ -121,12 +121,13 @@ export type SteeringRun = {
 
   /**
    * Resolves the taken messages as delivered when they are part of the
-   * messages that are sent to the model, and returns the delivered messages.
+   * messages that are sent to the model, and returns the delivered messages
+   * with their ids.
    */
   resolveTakenMessages(options: {
     stepNumber: number;
     sentMessages: ReadonlyArray<ModelMessage>;
-  }): Array<UserModelMessage>;
+  }): Array<{ id: string; message: UserModelMessage }>;
 
   end(reason: SteeringNotDeliveredReason): void;
 };
@@ -235,11 +236,11 @@ class DefaultSteering implements Steering {
         const taken = this.taken;
         this.taken = [];
 
-        const delivered: Array<UserModelMessage> = [];
+        const delivered: Array<{ id: string; message: UserModelMessage }> = [];
 
         for (const { id, message, resolve } of taken) {
           if (isSent({ message, sentMessages })) {
-            delivered.push(message);
+            delivered.push({ id, message });
             resolve({ type: 'delivered', id, message, stepNumber });
           } else {
             resolve({

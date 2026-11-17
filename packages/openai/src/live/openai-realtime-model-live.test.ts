@@ -22,6 +22,17 @@ describe('OpenAIRealtimeModelLive', () => {
     'gpt-live-1',
   );
 
+  it('rejects a transcription intent across connection and serialization helpers', () => {
+    const intent = { intent: 'transcription' } as const;
+    expect(() => model.getServerWebSocketConfig(intent)).toThrow(
+      /not supported/,
+    );
+    expect(() =>
+      model.serializeClientEvent({ type: 'response-create' }, intent),
+    ).toThrow(/not supported/);
+    expect(() => model.buildSessionConfig({}, intent)).toThrow(/not supported/);
+  });
+
   it('implements the existing v4 spec and declares continuous transports', () => {
     const realtime: RealtimeModelV4 = model;
     expect(realtime.specificationVersion).toBe('v4');

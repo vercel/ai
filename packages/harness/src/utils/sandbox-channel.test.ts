@@ -29,11 +29,13 @@ type FakeSocket = {
   drop(code?: number): void;
   setReadyState(readyState: number): void;
   sent: string[];
+  closes: Array<{ code: number; reason: string }>;
 };
 
 function makeFakeSocket(): FakeSocket {
   const handlers: Record<string, Array<(...args: unknown[]) => void>> = {};
   const sent: string[] = [];
+  const closes: Array<{ code: number; reason: string }> = [];
   const fake = {
     OPEN: 1,
     readyState: 1,
@@ -43,9 +45,10 @@ function makeFakeSocket(): FakeSocket {
     send(data: string) {
       sent.push(data);
     },
-    close(code = 1000) {
+    close(code = 1000, reason = '') {
+      closes.push({ code, reason });
       fake.readyState = 3;
-      for (const h of handlers.close ?? []) h(code, Buffer.from(''));
+      for (const h of handlers.close ?? []) h(code, Buffer.from(reason));
     },
   };
   return {
@@ -63,6 +66,7 @@ function makeFakeSocket(): FakeSocket {
       fake.readyState = readyState;
     },
     sent,
+    closes,
   };
 }
 
@@ -304,6 +308,10 @@ describe('SandboxChannel', () => {
     expect(cursor).toBe(2);
     expect(closeReason).toBe('suspended');
     expect(channel.lastSeenEventId).toBe(2);
+    // the bridge reads the reason off the wire to tell a suspend from a drop:
+    expect(connector.current().closes).toEqual([
+      { code: 1000, reason: 'suspended' },
+    ]);
 
     // Frames arriving after suspend are ignored — the cursor must not advance
     // past what was delivered (the bridge replays the rest to the next slice).

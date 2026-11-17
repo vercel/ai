@@ -26,7 +26,8 @@ import {
   applyCredentialForwarding,
   classifyDiskLog,
   resolveSandboxCredentialEnvironment,
-  createBridgeToken,
+  BRIDGE_AUTH_PUBLIC_KEY_ENV,
+  createBridgeAuthKeyPair,
   createBridgeWebSocketConnect,
   experimental_createBridgeUserMessageSubmitter,
   createBridgeErrorHandler,
@@ -43,6 +44,7 @@ import {
   shellQuote,
   validateBridgeSandboxSettings,
   warnCredentialBrokeringUnavailable,
+  warnMintBridgeTokenIgnored,
   waitForBridgeReady,
   writeSkills,
   type BridgeHello,
@@ -90,6 +92,13 @@ const CLAUDE_CODE_CLIENT_APP = `ai-sdk-harness-claude-code/${VERSION}`;
 export type ClaudeCodeHarnessSettings = {
   readonly auth?: ClaudeCodeAuthenticationMode;
   /**
+   * Requests Claude Code's classifier-based `auto` permission mode for
+   * `allow-reads` and `allow-edits`. Only escalated calls ask the host.
+   * Defaults to false; `allow-all` continues to bypass permissions.
+   * Observe raw init/status parts for the effective permission mode.
+   */
+  readonly autoMode?: boolean;
+  /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can
    * discover, read, or otherwise access in the host process.
@@ -134,6 +143,11 @@ export type ClaudeCodeHarnessSettings = {
    * the query stops and the turn ends with an error. Unset means no limit.
    */
   readonly maxBudgetUsd?: number;
+  /**
+   * Absolute paths of directories Claude can access in addition to the session
+   * working directory.
+   */
+  readonly additionalDirectories?: ReadonlyArray<string>;
   /**
    * Only use the MCP servers configured with `mcpServers`, and ignore any other
    * MCP configuration such as a project `.mcp.json` or user settings.
@@ -192,6 +206,12 @@ export type ClaudeCodeHarnessSettings = {
   /** Maximum milliseconds to wait for the first turn event. Defaults to 120000. */
   readonly turnStartTimeoutMs?: number;
   /**
+   * Abort a running turn when its host disconnects and does not reconnect
+   * within this many milliseconds, so the turn stops spending. A suspended
+   * turn is exempt. Unset keeps the turn running until it finishes.
+   */
+  readonly hostDisconnectTimeoutMs?: number;
+  /**
    * Configures reconnection attempts after an established bridge connection
    * drops. The reconnect window includes connection establishment and
    * backoff delays. Defaults to 30 seconds with exponential backoff from 50
@@ -206,9 +226,10 @@ export type ClaudeCodeHarnessSettings = {
    * contain connection details, so avoid logging it as is.
    */
   readonly onDebug?: (event: SandboxChannelDebugEvent) => void;
+  // TODO: Remove in the next major version.
   /**
-   * Creates the authentication token used by the sandbox bridge. Defaults to
-   * a random 32-byte hexadecimal token.
+   * @deprecated Sandbox bridge authentication now uses adapter-generated
+   * Ed25519 keys. This setting is ignored and emits a warning.
    */
   readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
@@ -859,8 +880,9 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
  */
 const claudeCodeBridgeCoordsSchema = z.object({
   port: z.number(),
-  token: z.string(),
+  privateKey: z.string(),
   lastSeenEventId: z.number(),
+  startId: z.string().optional(),
   sandboxId: z.string().optional(),
 });
 
@@ -894,6 +916,10 @@ type ClaudeCodeBridgeCoords = z.infer<typeof claudeCodeBridgeCoordsSchema>;
 export function createClaudeCode(
   settings: ClaudeCodeHarnessSettings = {},
 ): HarnessV1<typeof CLAUDE_CODE_BUILTIN_TOOLS> {
+  warnMintBridgeTokenIgnored({
+    harnessId: 'claude-code',
+    mintBridgeToken: settings.mintBridgeToken,
+  });
   if (
     settings.mcpServers != null &&
     Object.prototype.hasOwnProperty.call(settings.mcpServers, 'harness-tools')
@@ -922,10 +948,8 @@ export function createClaudeCode(
       const sandboxId = 'id' in sandboxSession ? sandboxSession.id : undefined;
       validateBridgeSandboxSettings({
         sandboxSession,
-        sandboxId,
         portOverride: settings.port,
         portEndpointOverride: settings.portEndpoint,
-        mintBridgeToken: settings.mintBridgeToken,
       });
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
@@ -1064,7 +1088,7 @@ export function createClaudeCode(
        * Rung 1 — ATTACH. When lifecycle state carries live bridge coordinates,
        * try to reopen a socket to the still-running bridge. Parked sessions wait
        * for the next `start`; suspended turns request replay of everything past
-       * the persisted cursor. No spawn, no fresh token (the existing bridge
+       * the persisted cursor. No spawn, no fresh key (the existing bridge
        * still authorises the persisted one). If the bridge is gone the open
        * throws and we fall through to a spawn-based recovery.
        */
@@ -1074,11 +1098,11 @@ export function createClaudeCode(
             sandboxSession,
             port: coords.port,
             portEndpointOverride: settings.portEndpoint,
-            token: coords.token,
           });
           const attachChannel: ClaudeCodeChannel = new SandboxChannel({
             connect: createBridgeWebSocketConnect({
               endpoint: attachEndpoint,
+              privateKey: coords.privateKey,
               webSocketConstructor: WebSocket,
               onHello,
             }),
@@ -1101,6 +1125,7 @@ export function createClaudeCode(
           return createSession({
             sessionId: startOpts.sessionId,
             channel: attachChannel,
+            startId: coords.startId,
             finishListenerAttachment,
             ...(resumeSessionId ? { resumeSessionId } : {}),
             // The live bridge was spawned by another process; this one owns no
@@ -1110,7 +1135,9 @@ export function createClaudeCode(
             maxTurns: settings.maxTurns,
             skillOverrides: settings.skillOverrides,
             maxBudgetUsd: settings.maxBudgetUsd,
+            additionalDirectories: settings.additionalDirectories,
             strictMcpConfig: settings.strictMcpConfig,
+            autoMode: settings.autoMode,
             questionTimeoutMs: settings.questionTimeoutMs,
             excludeDynamicSections: settings.excludeDynamicSections,
             agentProgressSummaries: settings.agentProgressSummaries,
@@ -1122,7 +1149,7 @@ export function createClaudeCode(
             continueOnFirstPrompt: false,
             rerunContinue: false,
             bridgePort: coords.port,
-            bridgeToken: coords.token,
+            bridgePrivateKey: coords.privateKey,
             sandboxId,
             sandboxCredentialEnvironment,
             debug: startOpts.observability?.debug,
@@ -1169,12 +1196,9 @@ export function createClaudeCode(
         sandboxSession,
         portOverride: settings.port,
       });
-      const token =
-        settings.mintBridgeToken == null
-          ? createBridgeToken()
-          : settings.mintBridgeToken(sandboxId!);
+      const bridgeAuth = createBridgeAuthKeyPair();
       const env = {
-        BRIDGE_CHANNEL_TOKEN: token,
+        [BRIDGE_AUTH_PUBLIC_KEY_ENV]: bridgeAuth.publicKey,
         BRIDGE_WS_PORT: String(port),
         ...(respawnStrategy === 'replay'
           ? { BRIDGE_REPLAY_FROM_DISK: '1' }
@@ -1184,7 +1208,7 @@ export function createClaudeCode(
       /*
        * On a fresh start the workdir and bridge-state directory must be
        * created. The env is sent fresh on every spawn —
-       * `BRIDGE_CHANNEL_TOKEN` rotates per start.
+       * the bridge authentication key pair rotates per start.
        */
       if (respawnStrategy === undefined) {
         await toolSafeSandboxSession.run({
@@ -1201,7 +1225,7 @@ export function createClaudeCode(
       });
 
       const proc = await toolSafeSandboxSession.spawn({
-        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)}`,
+        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)}${settings.hostDisconnectTimeoutMs !== undefined ? ` --host-disconnect-timeout-ms ${shellQuote(String(settings.hostDisconnectTimeoutMs))}` : ''}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
@@ -1244,12 +1268,12 @@ export function createClaudeCode(
         sandboxSession,
         port: boundPort,
         portEndpointOverride: settings.portEndpoint,
-        token,
       });
 
       const channel: ClaudeCodeChannel = new SandboxChannel({
         connect: createBridgeWebSocketConnect({
           endpoint: bridgeEndpoint,
+          privateKey: bridgeAuth.privateKey,
           webSocketConstructor: WebSocket,
           openRetryTimeoutMs: timeoutMs,
           startAbortSignal: startOpts.abortSignal,
@@ -1284,11 +1308,14 @@ export function createClaudeCode(
         sessionId: startOpts.sessionId,
         channel,
         finishListenerAttachment,
+        startId: respawnStrategy === 'replay' ? coords?.startId : undefined,
         proc,
         maxTurns: settings.maxTurns,
         skillOverrides: settings.skillOverrides,
         maxBudgetUsd: settings.maxBudgetUsd,
+        additionalDirectories: settings.additionalDirectories,
         strictMcpConfig: settings.strictMcpConfig,
+        autoMode: settings.autoMode,
         questionTimeoutMs: settings.questionTimeoutMs,
         excludeDynamicSections: settings.excludeDynamicSections,
         agentProgressSummaries: settings.agentProgressSummaries,
@@ -1310,7 +1337,7 @@ export function createClaudeCode(
             }
           : {}),
         bridgePort: boundPort,
-        bridgeToken: token,
+        bridgePrivateKey: bridgeAuth.privateKey,
         sandboxId,
         sandboxCredentialEnvironment,
         debug: startOpts.observability?.debug,
@@ -1338,12 +1365,15 @@ export function createClaudeCode(
 function createSession({
   sessionId,
   channel,
+  startId,
   finishListenerAttachment,
   proc,
   maxTurns,
   skillOverrides,
   maxBudgetUsd,
+  additionalDirectories,
   strictMcpConfig,
+  autoMode,
   questionTimeoutMs,
   excludeDynamicSections,
   agentProgressSummaries,
@@ -1357,7 +1387,7 @@ function createSession({
   rerunContinue,
   deferredToolUseId,
   bridgePort,
-  bridgeToken,
+  bridgePrivateKey,
   sandboxId,
   sandboxCredentialEnvironment,
   debug,
@@ -1373,13 +1403,16 @@ function createSession({
 }: {
   sessionId: string;
   channel: ClaudeCodeChannel;
+  startId?: string;
   finishListenerAttachment: (() => void) | undefined;
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
   maxTurns: number | undefined;
   skillOverrides: ClaudeCodeHarnessSettings['skillOverrides'];
   maxBudgetUsd: number | undefined;
+  additionalDirectories: ReadonlyArray<string> | undefined;
   strictMcpConfig: boolean | undefined;
+  autoMode: boolean | undefined;
   questionTimeoutMs: number | undefined;
   excludeDynamicSections: boolean | undefined;
   agentProgressSummaries: boolean | undefined;
@@ -1403,7 +1436,7 @@ function createSession({
    */
   deferredToolUseId?: string;
   bridgePort: number;
-  bridgeToken: string;
+  bridgePrivateKey: string;
   sandboxId: string | undefined;
   sandboxCredentialEnvironment: Record<string, string> | undefined;
   debug: HarnessV1DebugConfig | undefined;
@@ -1435,6 +1468,7 @@ function createSession({
    * stop/detach must record for exact resume.
    */
   let lastClaudeSessionId = resumeSessionId;
+  let activeStartId = startId;
 
   /*
    * Wire the channel into one turn's worth of events and return the control
@@ -1446,10 +1480,23 @@ function createSession({
   const wireTurn = (turnOpts: {
     emit: (event: HarnessV1StreamPart) => void;
     abortSignal?: AbortSignal;
+    startId?: string;
   }): {
     control: HarnessV1PromptControl;
     sendStart: (message: Extract<InboundMessage, { type: 'start' }>) => void;
   } => {
+    activeStartId = turnOpts.startId;
+    let expectedStartId = turnOpts.startId;
+    let isSettled = false;
+    const belongsToTurn = (event: { startId?: string }): boolean => {
+      if (isSettled) return false;
+      if (event.startId == null) return true;
+      if (expectedStartId == null) {
+        expectedStartId = event.startId;
+        activeStartId = event.startId;
+      }
+      return event.startId === expectedStartId;
+    };
     let pendingResolve: (() => void) | undefined;
     let pendingReject: ((err: unknown) => void) | undefined;
     const done = new Promise<void>((resolve, reject) => {
@@ -1465,14 +1512,19 @@ function createSession({
       pendingStart = undefined;
       clearTimeout(startTimer);
     };
-    const forward = (event: HarnessV1StreamPart) => {
+    const forward = (event: HarnessV1StreamPart & { startId?: string }) => {
       clearPendingStart();
+      /*
+       * Keep the event object: the channel attaches a non-enumerable replay
+       * checkpoint that must reach the consumer for step-boundary suspension.
+       * Only the adapter's wire-level turn identifier is removed.
+       */
+      delete event.startId;
       try {
         turnOpts.emit(event);
       } catch {}
     };
 
-    let isSettled = false;
     const settleSuccess = () => {
       if (isSettled) return;
       isSettled = true;
@@ -1516,6 +1568,10 @@ function createSession({
       channel.onReconnect(() => {
         if (pendingStart == null || isSettled || awaitingStartSend) return;
         const hello = getBridgeHello();
+        if (hello?.capabilities?.idempotentStart === true) {
+          sendPendingStart();
+          return;
+        }
         if (
           hello?.state !== 'waiting' ||
           hello.lastSeq == null ||
@@ -1523,15 +1579,11 @@ function createSession({
         ) {
           return;
         }
-        if (hello?.capabilities?.idempotentStart === true) {
-          sendPendingStart();
-        } else {
-          failStart(
-            new Error(
-              'claude-code bridge is waiting for a start after reconnect and does not support safe start retries.',
-            ),
-          );
-        }
+        failStart(
+          new Error(
+            'claude-code bridge is waiting for a start after reconnect and does not support safe start retries.',
+          ),
+        );
       }),
     );
 
@@ -1567,12 +1619,14 @@ function createSession({
     for (const type of eventTypes) {
       unsubs.push(
         channel.on(type, msg => {
+          if (!belongsToTurn(msg)) return;
           forward(msg);
         }),
       );
     }
     unsubs.push(
       channel.on('finish', msg => {
+        if (!belongsToTurn(msg)) return;
         const metadata = (
           msg as {
             harnessMetadata?: { 'claude-code'?: { sessionId?: unknown } };
@@ -1587,6 +1641,7 @@ function createSession({
     );
     unsubs.push(
       channel.on('error', msg => {
+        if (!belongsToTurn(msg)) return;
         forward(msg);
         settleError(msg.error);
       }),
@@ -1669,7 +1724,7 @@ function createSession({
           channel.lastSeenEventId ?? 0,
           getBridgeHello()?.lastSeq ?? 0,
         );
-        pendingStart = { ...message, startId: generateId() };
+        pendingStart = { ...message, startId: expectedStartId };
         startTimer = setTimeout(() => {
           if (isSettled || pendingStart == null) return;
           failStart(
@@ -1697,6 +1752,7 @@ function createSession({
     skills: ReadonlyArray<HarnessV1Skill>;
     emit: (event: HarnessV1StreamPart) => void;
     abortSignal?: AbortSignal;
+    startId?: string;
   }): Promise<ReturnType<typeof wireTurn>> => {
     if (
       turnOpts.responseFormat?.type === 'json' &&
@@ -1723,6 +1779,7 @@ function createSession({
     return wireTurn({
       emit: turnOpts.emit,
       abortSignal: turnOpts.abortSignal,
+      startId: turnOpts.startId,
     });
   };
 
@@ -1730,7 +1787,10 @@ function createSession({
     sessionId,
     isResume,
     doPromptTurn: async promptOpts => {
-      const { control, sendStart } = await prepareTurn(promptOpts);
+      const { control, sendStart } = await prepareTurn({
+        ...promptOpts,
+        startId: generateId(),
+      });
 
       /*
        * A signal that was already aborted has settled the turn inside
@@ -1762,7 +1822,11 @@ function createSession({
         maxTurns,
         ...(skillOverrides !== undefined ? { skillOverrides } : {}),
         ...(maxBudgetUsd !== undefined ? { maxBudgetUsd } : {}),
+        ...(additionalDirectories !== undefined
+          ? { additionalDirectories: [...additionalDirectories] }
+          : {}),
         ...(strictMcpConfig !== undefined ? { strictMcpConfig } : {}),
+        ...(autoMode !== undefined ? { autoMode } : {}),
         ...(questionTimeoutMs !== undefined ? { questionTimeoutMs } : {}),
         ...(excludeDynamicSections !== undefined
           ? { excludeDynamicSections }
@@ -1801,7 +1865,10 @@ function createSession({
       return control;
     },
     doContinueTurn: async continueOpts => {
-      const { control, sendStart } = await prepareTurn(continueOpts);
+      const { control, sendStart } = await prepareTurn({
+        ...continueOpts,
+        startId: rerunContinue ? generateId() : activeStartId,
+      });
 
       /*
        * attach / replay: the still-running (or disk-replayed) turn streams into
@@ -1846,7 +1913,11 @@ function createSession({
           maxTurns,
           ...(skillOverrides !== undefined ? { skillOverrides } : {}),
           ...(maxBudgetUsd !== undefined ? { maxBudgetUsd } : {}),
+          ...(additionalDirectories !== undefined
+            ? { additionalDirectories: [...additionalDirectories] }
+            : {}),
           ...(strictMcpConfig !== undefined ? { strictMcpConfig } : {}),
+          ...(autoMode !== undefined ? { autoMode } : {}),
           ...(questionTimeoutMs !== undefined ? { questionTimeoutMs } : {}),
           ...(excludeDynamicSections !== undefined
             ? { excludeDynamicSections }
@@ -1912,8 +1983,9 @@ function createSession({
             : { sandboxCredentialEnvironment }),
           bridge: {
             port: bridgePort,
-            token: bridgeToken,
+            privateKey: bridgePrivateKey,
             lastSeenEventId,
+            ...(activeStartId == null ? {} : { startId: activeStartId }),
             ...(sandboxId == null ? {} : { sandboxId }),
           },
           ...(lastClaudeSessionId
@@ -2071,8 +2143,9 @@ function createSession({
             : { sandboxCredentialEnvironment }),
           bridge: {
             port: bridgePort,
-            token: bridgeToken,
+            privateKey: bridgePrivateKey,
             lastSeenEventId,
+            ...(activeStartId == null ? {} : { startId: activeStartId }),
             ...(sandboxId == null ? {} : { sandboxId }),
           },
           ...(lastClaudeSessionId

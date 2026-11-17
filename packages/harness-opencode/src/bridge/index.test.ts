@@ -139,6 +139,25 @@ describe('OpenCode bridge turn settlement', () => {
     delete process.env.OPENCODE_DISABLE_PROJECT_CONFIG;
   });
 
+  it.each([
+    [['--host-disconnect-timeout-ms', '60000'], 60_000],
+    [[], undefined],
+  ])(
+    'passes the host disconnect timeout argument to the bridge (%j)',
+    async (extraArgs, expected) => {
+      const { runBridge } = await import('@ai-sdk/harness/bridge');
+      vi.mocked(runBridge).mockImplementationOnce(async () => ({}) as never);
+      setBridgeArgv();
+      process.argv.push(...extraArgs);
+
+      await import('./index');
+
+      expect(
+        vi.mocked(runBridge).mock.lastCall?.[0].hostDisconnectTimeoutMs,
+      ).toBe(expected);
+    },
+  );
+
   it('preserves native manual compaction as one normalized completion event', async () => {
     const emitted: Array<Record<string, unknown>> = [];
     const emitError = vi.fn();
@@ -619,6 +638,155 @@ describe('OpenCode bridge turn settlement', () => {
     });
   });
 
+  it.each(['observed', 'recovered'] as const)(
+    'scopes %s file approvals to one operation',
+    async source => {
+      const directory = mkdtempSync(
+        path.join(tmpdir(), 'opencode-call-permissions-'),
+      );
+      tempDirectories.push(directory);
+      const workDir = path.join(directory, 'workspace');
+      mkdirSync(workDir);
+      const input = {
+        filePath: path.join(directory, 'other-session', 'file.txt'),
+      };
+      const part = {
+        type: 'tool',
+        sessionID: 'session-1',
+        callID: 'file-call',
+        tool: 'read',
+        state: { status: 'running', input },
+      };
+      const requestToolApproval = vi.fn(async () => ({ approved: true }));
+      const emit = vi.fn();
+      const message = vi.fn(async () => ({ data: { parts: [part] } }));
+      bridgeMock.start = {
+        type: 'start',
+        operation: 'prompt',
+        prompt: 'Inspect files.',
+        permissionMode: 'allow-reads',
+      };
+      bridgeMock.turn = {
+        emit,
+        requestToolResult: vi.fn(),
+        requestToolApproval,
+        experimental_userMessages: createUserMessages(),
+        abortSignal: new AbortController().signal,
+        firstTurn: true,
+        bridgeLog: vi.fn(),
+        emitWarning: vi.fn(),
+        emitError: vi.fn(),
+      };
+      sdkMock.client = {
+        mcp: { status: vi.fn(async () => ({ data: {} })) },
+        session: {
+          create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+          get: vi.fn(async () => ({ data: {} })),
+          messages: vi.fn(async () => ({ data: [] })),
+          message,
+          promptAsync: vi.fn(async () => ({ data: {} })),
+        },
+        event: {
+          subscribe: vi.fn(async () => ({
+            stream: {
+              async *[Symbol.asyncIterator]() {
+                if (source === 'observed') {
+                  yield { type: 'message.part.updated', properties: { part } };
+                }
+                yield {
+                  type: 'permission.v2.asked',
+                  properties: {
+                    id: 'file-request',
+                    sessionID: 'session-1',
+                    action: 'read',
+                    resources: ['file.txt'],
+                    source: { callID: 'file-call', messageID: 'message-1' },
+                  },
+                };
+                await vi.waitFor(() =>
+                  expect(permissionReplyMock).toHaveBeenCalledTimes(1),
+                );
+                yield {
+                  type: 'permission.v2.asked',
+                  properties: {
+                    id: 'external-request',
+                    sessionID: 'session-1',
+                    action: 'external_directory',
+                    resources: [directory],
+                    source: { callID: 'file-call', messageID: 'message-1' },
+                  },
+                };
+                await vi.waitFor(() =>
+                  expect(permissionReplyMock).toHaveBeenCalledTimes(2),
+                );
+                yield {
+                  type: 'message.part.updated',
+                  properties: { part: { ...part, callID: 'next-call' } },
+                };
+                yield {
+                  type: 'permission.v2.asked',
+                  properties: {
+                    id: 'next-request',
+                    sessionID: 'session-1',
+                    action: 'read',
+                    resources: ['file.txt'],
+                    source: { callID: 'next-call' },
+                  },
+                };
+                await vi.waitFor(() =>
+                  expect(permissionReplyMock).toHaveBeenCalledTimes(3),
+                );
+                yield {
+                  type: 'session.next.step.failed',
+                  properties: {
+                    sessionID: 'session-1',
+                    error: 'end test turn',
+                  },
+                };
+              },
+            },
+          })),
+        },
+        v2: {
+          session: {
+            context: vi.fn(async () => ({ data: [] })),
+            permission: { reply: permissionReplyMock },
+            switchModel: vi.fn(async () => ({ data: {} })),
+          },
+        },
+      };
+      setBridgeArgv(workDir);
+      await import('./index');
+      expect(
+        permissionReplyMock.mock.calls.map(([value]) => value.reply),
+      ).toEqual(['once', 'once', 'once']);
+      expect(requestToolApproval.mock.calls).toEqual([
+        ['file-request'],
+        ['next-request'],
+      ]);
+      expect(message).toHaveBeenCalledTimes(source === 'recovered' ? 1 : 0);
+      if (source === 'recovered') {
+        expect(message).toHaveBeenCalledWith({
+          sessionID: 'session-1',
+          messageID: 'message-1',
+          directory: workDir,
+        });
+      }
+      const relevant = emit.mock.calls
+        .map(([value]) => value)
+        .filter(value =>
+          ['tool-call', 'tool-approval-request'].includes(value.type),
+        );
+      expect(relevant.map(value => value.type)).toEqual([
+        'tool-call',
+        'tool-approval-request',
+        'tool-call',
+        'tool-approval-request',
+      ]);
+      expect(relevant[0].input).toBe(JSON.stringify(input));
+    },
+  );
+
   it('uses canonical paths and accepts dot-prefixed children in restrictive modes', async () => {
     const tempDirectory = mkdtempSync(
       path.join(tmpdir(), 'opencode-permissions-'),
@@ -642,7 +810,10 @@ describe('OpenCode bridge turn settlement', () => {
     bridgeMock.turn = {
       emit: vi.fn(),
       requestToolResult: vi.fn(),
-      requestToolApproval: vi.fn(),
+      requestToolApproval: vi.fn(async () => ({
+        approved: false,
+        reason: 'Host rejected',
+      })),
       experimental_userMessages: createUserMessages(),
       abortSignal: new AbortController().signal,
       firstTurn: true,
@@ -684,6 +855,30 @@ describe('OpenCode bridge turn settlement', () => {
                   source: { callID: 'dot-prefixed-read-call' },
                 },
               };
+              await vi.waitFor(() =>
+                expect(permissionReplyMock).toHaveBeenCalledTimes(2),
+              );
+              yield {
+                type: 'message.part.updated',
+                properties: {
+                  part: {
+                    type: 'tool',
+                    sessionID: 'session-1',
+                    callID: 'outside-read-call',
+                    tool: 'read',
+                    state: {
+                      status: 'running',
+                      input: {
+                        filePath: path.join(
+                          linkedWorkdir,
+                          'escape',
+                          'outside.txt',
+                        ),
+                      },
+                    },
+                  },
+                },
+              };
               yield {
                 type: 'permission.v2.asked',
                 properties: {
@@ -696,6 +891,9 @@ describe('OpenCode bridge turn settlement', () => {
                   source: { callID: 'outside-read-call' },
                 },
               };
+              await vi.waitFor(() =>
+                expect(permissionReplyMock).toHaveBeenCalledTimes(3),
+              );
               yield {
                 type: 'session.next.step.failed',
                 properties: {
@@ -719,21 +917,22 @@ describe('OpenCode bridge turn settlement', () => {
 
     await import('./index');
 
-    expect(permissionReplyMock).toHaveBeenNthCalledWith(1, {
+    expect(permissionReplyMock).toHaveBeenCalledTimes(3);
+    expect(permissionReplyMock).toHaveBeenCalledWith({
       sessionID: 'session-1',
       requestID: 'canonical-workdir-request',
-      reply: 'always',
+      reply: 'once',
     });
-    expect(permissionReplyMock).toHaveBeenNthCalledWith(2, {
+    expect(permissionReplyMock).toHaveBeenCalledWith({
       sessionID: 'session-1',
       requestID: 'dot-prefixed-directory-request',
-      reply: 'always',
+      reply: 'once',
     });
-    expect(permissionReplyMock).toHaveBeenNthCalledWith(3, {
+    expect(permissionReplyMock).toHaveBeenCalledWith({
       sessionID: 'session-1',
       requestID: 'symlink-escape-request',
       reply: 'reject',
-      message: 'External directory access rejected.',
+      message: 'Host rejected',
     });
   });
 
@@ -988,6 +1187,108 @@ describe('OpenCode bridge turn settlement', () => {
       },
     });
   });
+
+  it.each([
+    {
+      name: 'Google models',
+      model: 'google/gemini-3.8-flash',
+      providerID: 'google',
+      modelID: 'gemini-3.8-flash',
+      expectedNpm: '@ai-sdk/openai-compatible',
+    },
+    {
+      name: 'Mistral models',
+      model: 'mistral/mistral-large-latest',
+      providerID: 'mistral',
+      modelID: 'mistral-large-latest',
+      expectedNpm: '@ai-sdk/openai-compatible',
+    },
+    {
+      name: 'non-Google models',
+      model: 'openai/gpt-5.4-mini',
+      providerID: 'openai',
+      modelID: 'gpt-5.4-mini',
+      expectedNpm: undefined,
+    },
+  ])(
+    'selects the AI Gateway driver for $name',
+    async ({ model, providerID, modelID, expectedNpm }) => {
+      const userMessages = createUserMessages();
+      bridgeMock.start = {
+        type: 'start',
+        operation: 'prompt',
+        prompt: 'Start.',
+        model,
+      };
+      bridgeMock.turn = {
+        emit: vi.fn(),
+        requestToolResult: vi.fn(),
+        requestToolApproval: vi.fn(),
+        experimental_userMessages: userMessages,
+        abortSignal: new AbortController().signal,
+        firstTurn: true,
+        bridgeLog: vi.fn(),
+        emitWarning: vi.fn(),
+        emitError: vi.fn(),
+      };
+      sdkMock.client = {
+        mcp: { status: vi.fn(async () => ({ data: {} })) },
+        session: {
+          create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+          get: vi.fn(async () => ({ data: {} })),
+          messages: vi.fn(async () => ({ data: [] })),
+          promptAsync: vi.fn(async () => ({ data: {} })),
+        },
+        event: {
+          subscribe: vi.fn(async () => ({
+            stream: {
+              async *[Symbol.asyncIterator]() {
+                yield {
+                  type: 'session.next.step.failed',
+                  properties: {
+                    sessionID: 'session-1',
+                    error: 'model step failed',
+                  },
+                };
+              },
+            },
+          })),
+        },
+        v2: {
+          session: {
+            context: vi.fn(async () => ({ data: [] })),
+            switchModel: vi.fn(async () => ({ data: {} })),
+          },
+        },
+      };
+      vi.stubEnv('AI_GATEWAY_API_KEY', 'gateway-key');
+      vi.stubEnv('AI_GATEWAY_BASE_URL', 'https://ai-gateway.test/v1');
+      setBridgeArgv();
+
+      await import('./index');
+
+      const config = createOpencodeServerMock.mock.calls[0]?.[0]
+        .config as Record<string, unknown>;
+      const providers = config.provider as Record<
+        string,
+        Record<string, unknown>
+      >;
+      const provider = providers[providerID];
+      expect(provider).toMatchObject({
+        ...(expectedNpm ? { npm: expectedNpm } : {}),
+        options: {
+          apiKey: 'gateway-key',
+          baseURL: 'https://ai-gateway.test/v1',
+        },
+        models: {
+          [modelID]: { id: modelID, name: modelID },
+        },
+      });
+      if (expectedNpm == null) {
+        expect(provider).not.toHaveProperty('npm');
+      }
+    },
+  );
 
   it('settles when OpenCode emits session.next.step.failed', async () => {
     const emitted: Array<Record<string, unknown>> = [];

@@ -1,5 +1,6 @@
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
+import type { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { createFireworks } from './fireworks-provider';
@@ -141,4 +142,53 @@ describe('Fireworks chat reasoning', () => {
       expect(result.warnings).toEqual([]);
     },
   );
+});
+
+describe('Fireworks chat prepareRequest', () => {
+  const chatModel = fireworks.chatModel(
+    'accounts/fireworks/models/gpt-oss-120b',
+  ) as OpenAICompatibleChatLanguageModel;
+
+  it('should apply the Fireworks request body transform', async () => {
+    const { body } = await chatModel.prepareRequest({
+      prompt,
+      providerOptions: {
+        fireworks: {
+          promptCacheKey: 'cache-key',
+          serviceTier: 'priority',
+          thinking: { type: 'enabled', budgetTokens: 1024 },
+          reasoningHistory: 'interleaved',
+        },
+      },
+    });
+
+    expect(body).toMatchObject({
+      prompt_cache_key: 'cache-key',
+      service_tier: 'priority',
+      thinking: { type: 'enabled', budget_tokens: 1024 },
+      reasoning_history: 'interleaved',
+    });
+    expect(body).not.toHaveProperty('promptCacheKey');
+    expect(body).not.toHaveProperty('serviceTier');
+    expect(body).not.toHaveProperty('reasoningHistory');
+    expect(server.calls).toHaveLength(0);
+  });
+
+  it('should map reasoning with the compatibility warning', async () => {
+    const { body, warnings } = await chatModel.prepareRequest({
+      prompt,
+      reasoning: 'none',
+    });
+
+    expect(body.reasoning_effort).toBe('minimal');
+    expect(warnings).toEqual([
+      {
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "none" is not directly supported by this model. mapped to effort "minimal".',
+      },
+    ]);
+    expect(server.calls).toHaveLength(0);
+  });
 });

@@ -2,6 +2,8 @@
  * Integration test workflows for WorkflowAgent telemetry.
  */
 import { getWritable } from 'workflow';
+import { jsonSchema, withTelemetryRedaction } from '@ai-sdk/provider-utils';
+import { tool } from 'ai';
 import { z } from 'zod/v4';
 import { mockSequenceModel, mockTextModel } from '../providers/mock.js';
 import { WorkflowAgent } from '../workflow-agent.js';
@@ -9,6 +11,77 @@ import { WorkflowAgent } from '../workflow-agent.js';
 async function addNumbers(input: { a: number; b: number }): Promise<number> {
   'use step';
   return input.a + input.b;
+}
+
+export async function agentWithClientToolTelemetry(
+  mode: 'generate' | 'stream',
+) {
+  'use workflow';
+  let stepEndCallbacks = 0;
+  const agent = new WorkflowAgent({
+    model: mockSequenceModel([
+      {
+        type: 'tool-call',
+        toolName: 'addNumbers',
+        input: '{"a":2,"b":3}',
+      },
+      {
+        type: 'tool-call',
+        toolName: 'askUser',
+        input: '{"question":"Continue?"}',
+      },
+    ]),
+    tools: {
+      addNumbers: {
+        inputSchema: z.object({ a: z.number(), b: z.number() }),
+        execute: addNumbers,
+      },
+      askUser: {
+        inputSchema: z.object({ question: z.string() }),
+      },
+    },
+    onStepEnd: () => {
+      stepEndCallbacks++;
+    },
+  });
+  const result =
+    mode === 'generate'
+      ? await agent.generate({ prompt: 'Add 2 and 3, then ask to continue.' })
+      : await agent.stream({
+          prompt: 'Add 2 and 3, then ask to continue.',
+          writable: getWritable(),
+        });
+  return {
+    stepCount: result.steps.length,
+    lastTool: result.steps.at(-1)?.toolCalls.at(-1)?.toolName,
+    stepEndCallbacks,
+  };
+}
+
+export async function agentWithRedactedProviderTools(
+  mode: 'generate' | 'stream',
+) {
+  'use workflow';
+  const agent = new WorkflowAgent({
+    model: mockTextModel('done'),
+    tools: {
+      remote: tool({
+        type: 'provider',
+        id: 'test.remote',
+        isProviderExecuted: true,
+        args: withTelemetryRedaction(
+          { credential: 'workflow-test-secret', region: 'test' },
+          value => ({ ...value, credential: '[redacted]' }),
+        ),
+        inputSchema: jsonSchema({ type: 'object', properties: {} }),
+      }),
+    },
+  });
+  const result =
+    mode === 'generate'
+      ? await agent.generate({ prompt: 'hello' })
+      : await agent.stream({ prompt: 'hello', writable: getWritable() });
+  return result.steps.at(-1)?.text;
 }
 
 /**

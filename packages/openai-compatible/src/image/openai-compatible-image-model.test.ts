@@ -143,7 +143,7 @@ describe.each(['generations', 'edits'])(
       fetch.mockResolvedValueOnce(
         new Response(null, {
           status: 302,
-          headers: { location: 'http://127.0.0.1/image.png' },
+          headers: { location: 'https://127.0.0.1/image.png' },
         }),
       );
 

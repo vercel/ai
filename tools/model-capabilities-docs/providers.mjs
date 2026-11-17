@@ -1,9 +1,85 @@
+import { typeSafeAiDocs } from './providers/typesafe-ai.mjs';
+import { parallelDocs } from './providers/parallel.mjs';
+import { topazDocs } from './providers/topaz.mjs';
+import { quiveraiDocs } from './providers/quiverai.mjs';
+import { tencentDocs } from './providers/tencent.mjs';
+import { revaiDocs } from './providers/revai.mjs';
+import { humeDocs } from './providers/hume.mjs';
+import { gladiaDocs } from './providers/gladia.mjs';
+import { fishAudioDocs } from './providers/fish-audio.mjs';
+import { elevenLabsDocs } from './providers/elevenlabs.mjs';
+import { deepgramDocs } from './providers/deepgram.mjs';
+import { cartesiaDocs } from './providers/cartesia.mjs';
+import { assemblyaiDocs } from './providers/assemblyai.mjs';
+import { prodiaDocs } from './providers/prodia.mjs';
+import { heygenDocs } from './providers/heygen.mjs';
+import { gmicloudDocs } from './providers/gmicloud.mjs';
+import { bytedanceDocs } from './providers/bytedance.mjs';
+import { klingaiDocs } from './providers/klingai.mjs';
+import { lumaDocs } from './providers/luma.mjs';
+import { blackForestLabsDocs } from './providers/black-forest-labs.mjs';
+import { replicateDocs } from './providers/replicate.mjs';
+import { falDocs } from './providers/fal.mjs';
+import { voyageDocs } from './providers/voyage.mjs';
+import { huggingfaceDocs } from './providers/huggingface.mjs';
+import { basetenDocs } from './providers/baseten.mjs';
+import { deepinfraDocs } from './providers/deepinfra.mjs';
+import { fireworksDocs } from './providers/fireworks.mjs';
+import { togetheraiDocs } from './providers/togetherai.mjs';
+import { zaiDocs } from './providers/zai.mjs';
+import { moonshotaiDocs } from './providers/moonshotai.mjs';
+import { minimaxDocs } from './providers/minimax.mjs';
+import { alibabaDocs } from './providers/alibaba.mjs';
+import { openResponsesDocs } from './providers/open-responses.mjs';
+import { openaiCompatibleDocs } from './providers/openai-compatible.mjs';
+import { anthropicAwsDocs } from './providers/anthropic-aws.mjs';
+import { googleVertexDocs } from './providers/google-vertex.mjs';
+import { amazonBedrockDocs } from './providers/amazon-bedrock.mjs';
+import { azureDocs } from './providers/azure.mjs';
 import { formatSupport } from './render-tables.mjs';
 
 // Register a provider here to generate its docs from its source catalog.
 // Table IDs match the model-capabilities markers in the provider's MDX file.
 // Columns are [heading, capability path, optional formatter].
 export const providers = [
+  typeSafeAiDocs,
+  parallelDocs,
+  topazDocs,
+  quiveraiDocs,
+  tencentDocs,
+  revaiDocs,
+  humeDocs,
+  gladiaDocs,
+  fishAudioDocs,
+  elevenLabsDocs,
+  deepgramDocs,
+  cartesiaDocs,
+  assemblyaiDocs,
+  prodiaDocs,
+  heygenDocs,
+  gmicloudDocs,
+  bytedanceDocs,
+  klingaiDocs,
+  lumaDocs,
+  blackForestLabsDocs,
+  replicateDocs,
+  falDocs,
+  voyageDocs,
+  huggingfaceDocs,
+  basetenDocs,
+  deepinfraDocs,
+  fireworksDocs,
+  togetheraiDocs,
+  zaiDocs,
+  moonshotaiDocs,
+  minimaxDocs,
+  alibabaDocs,
+  openResponsesDocs,
+  openaiCompatibleDocs,
+  anthropicAwsDocs,
+  googleVertexDocs,
+  amazonBedrockDocs,
+  azureDocs,
   {
     catalogPath: 'packages/perplexity/src/perplexity-model-catalog.ts',
     catalogExport: 'perplexityModelCatalog',
@@ -46,33 +122,37 @@ export const providers = [
     catalogPath: 'packages/cerebras/src/cerebras-model-catalog.ts',
     catalogExport: 'cerebrasModelCatalog',
     docsPath: 'content/providers/01-ai-sdk-providers/40-cerebras.mdx',
-    tables: [{
-      id: 'cerebras-language',
-      capability: 'language',
-      columns: [
-        ['Image Input', 'inputs.image'],
-        ['Object Generation', 'objectGeneration'],
-        ['Tool Usage', 'tools.usage'],
-        ['Tool Streaming', 'tools.streaming'],
-        ['Reasoning', 'reasoning.support'],
-      ],
-    }],
+    tables: [
+      {
+        id: 'cerebras-language',
+        capability: 'language',
+        columns: [
+          ['Image Input', 'inputs.image'],
+          ['Object Generation', 'objectGeneration'],
+          ['Tool Usage', 'tools.usage'],
+          ['Tool Streaming', 'tools.streaming'],
+          ['Reasoning', 'reasoning.support'],
+        ],
+      },
+    ],
   },
   {
     catalogPath: 'packages/deepseek/src/deepseek-model-catalog.ts',
     catalogExport: 'deepseekModelCatalog',
     docsPath: 'content/providers/01-ai-sdk-providers/30-deepseek.mdx',
-    tables: [{
-      id: 'deepseek-language',
-      capability: 'language',
-      columns: [
-        ['Text Generation', 'textGeneration'],
-        ['Object Generation', 'objectGeneration'],
-        ['Image Input', 'inputs.image'],
-        ['Tool Usage', 'tools.usage'],
-        ['Tool Streaming', 'tools.streaming'],
-      ],
-    }],
+    tables: [
+      {
+        id: 'deepseek-language',
+        capability: 'language',
+        columns: [
+          ['Text Generation', 'textGeneration'],
+          ['Object Generation', 'objectGeneration'],
+          ['Image Input', 'inputs.image'],
+          ['Tool Usage', 'tools.usage'],
+          ['Tool Streaming', 'tools.streaming'],
+        ],
+      },
+    ],
   },
   {
     catalogPath: 'packages/cohere/src/cohere-model-catalog.ts',

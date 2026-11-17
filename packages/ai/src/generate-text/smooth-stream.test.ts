@@ -26,6 +26,23 @@ describe('smoothStream', () => {
   }
 
   describe('word chunking', () => {
+    it('forwards pings without flushing a partial word', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { type: 'text-delta', id: '1', text: 'Hel' },
+        { type: 'ping' },
+        { type: 'text-delta', id: '1', text: 'lo ' },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(smoothStream({ delayInMs: null })({ tools: {} }));
+      await consumeStream(stream);
+      expect(events).toEqual([
+        { type: 'text-start', id: '1' },
+        { type: 'ping' },
+        { type: 'text-delta', id: '1', text: 'Hello ' },
+        { type: 'text-end', id: '1' },
+      ]);
+    });
+
     it('should combine partial words', async () => {
       const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
         { type: 'text-start', id: '1' },

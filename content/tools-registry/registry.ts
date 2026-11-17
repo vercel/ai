@@ -686,7 +686,7 @@ const { text } = await generateText({
 console.log(text);`,
     docsUrl: 'https://pushary.com/docs/agents/build/vercel-ai-sdk',
     apiKeyUrl: 'https://pushary.com/onboarding/partner',
-    websiteUrl: 'https://pushary.com/human-in-the-loop',
+    websiteUrl: 'https://pushary.com/human-in-the-loop-vercel-ai-sdk',
     npmUrl: 'https://www.npmjs.com/package/@pushary/ai-sdk',
   },
   {
@@ -927,5 +927,109 @@ console.log(text);`,
     docsUrl: 'https://cleave.fi/docs/agents/ai-sdk',
     websiteUrl: 'https://cleave.fi',
     npmUrl: 'https://www.npmjs.com/package/@cleave-protocol/ai-sdk',
+  },
+  {
+    slug: 'redis-agent-memory',
+    name: 'Redis Agent Memory',
+    description:
+      'Give agents persistent memory with Redis Agent Memory. Tools to search and save long-term memories, read and write session history, and recall user preferences across conversations, scoped to a user and session.',
+    packageName: '@redis/vercel-ai-sdk',
+    tags: ['memory', 'session-history', 'semantic-search', 'redis'],
+    apiKeyEnvName: 'AGENT_MEMORY_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @redis/vercel-ai-sdk',
+      npm: 'npm install @redis/vercel-ai-sdk',
+      yarn: 'yarn add @redis/vercel-ai-sdk',
+      bun: 'bun add @redis/vercel-ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createRedisAgentMemory, instructions } from '@redis/vercel-ai-sdk';
+
+const memory = createRedisAgentMemory({
+  serverUrl: process.env.AGENT_MEMORY_URL,
+  storeId: process.env.AGENT_MEMORY_STORE_ID,
+  apiKey: process.env.AGENT_MEMORY_API_KEY,
+});
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5.5',
+  system: \`\${instructions}
+Current user and memory owner: user-123
+Current session: conversation-456
+Current assistant actor: assistant-1\`,
+  prompt: 'Remember that my favorite editor is Neovim.',
+  tools: memory.tools({
+    scope: { userId: 'user-123', sessionId: 'conversation-456' },
+  }),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/redis/vercel-ai-sdk/blob/main/TOOLS.md',
+    apiKeyUrl: 'https://cloud.redis.io/#/agent-memory',
+    websiteUrl: 'https://redis.io/agent-memory/',
+    npmUrl: 'https://www.npmjs.com/package/@redis/vercel-ai-sdk',
+  },
+  {
+    slug: 'keenable',
+    name: 'Keenable',
+    description:
+      'Keenable is a web search API built for AI agents. Search returns ranked pages with their text already extracted, and the fetch tool reads any URL as clean markdown. No API key is required.',
+    packageName: '@keenable/ai-sdk',
+    tags: ['search', 'web', 'extraction'],
+    apiKeyEnvName: 'KEENABLE_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @keenable/ai-sdk',
+      npm: 'npm install @keenable/ai-sdk',
+      yarn: 'yarn add @keenable/ai-sdk',
+      bun: 'bun add @keenable/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { keenableTools } from '@keenable/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'What changed in the latest Bun release? Cite the pages you used.',
+  tools: keenableTools(),
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.keenable.ai/integrations/vercel',
+    apiKeyUrl: 'https://keenable.ai/console',
+    websiteUrl: 'https://keenable.ai',
+    npmUrl: 'https://www.npmjs.com/package/@keenable/ai-sdk',
+  },
+  {
+    slug: 'upstash-agentkit',
+    name: 'Upstash AgentKit',
+    description:
+      'Give agents long-term memory on Upstash Redis. Tools to save and recall memories scoped to a user, backed by Upstash Redis Search, so no separate vector database is needed. The same package has search tools for RAG, chat history, rate limiting, and tool caching.',
+    packageName: '@upstash/agentkit-ai-sdk',
+    tags: ['memory', 'rag', 'semantic-search', 'redis'],
+    apiKeyEnvName: 'UPSTASH_REDIS_REST_TOKEN',
+    installCommand: {
+      pnpm: 'pnpm add @upstash/agentkit-ai-sdk',
+      npm: 'npm install @upstash/agentkit-ai-sdk',
+      yarn: 'yarn add @upstash/agentkit-ai-sdk',
+      bun: 'bun add @upstash/agentkit-ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createMemoryTools } from '@upstash/agentkit-ai-sdk';
+
+// reads UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Remember that my favorite editor is Neovim.',
+  tools: createMemoryTools({ userId: 'user-123' }),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl:
+      'https://ai-sdk.dev/providers/community-providers/upstash-agentkit',
+    apiKeyUrl: 'https://console.upstash.com',
+    websiteUrl: 'https://upstash.com',
+    npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
   },
 ];

@@ -5,6 +5,7 @@ import type {
   ProviderOptionDefinition,
   ProviderOptionDefinitions,
 } from '@ai-sdk/provider';
+import type { PerplexityDecisionModelOptions } from './perplexity-decision-model-options';
 import type { PerplexityEmbeddingModelOptions } from './perplexity-embedding-model-options';
 import type { PerplexityLanguageModelOptions } from './perplexity-language-model-options';
 import type { PerplexityAgentPreset } from './perplexity-options';
@@ -45,8 +46,13 @@ export const perplexityProviderOptions = {
     keyof PerplexityEmbeddingModelOptions,
     ProviderOptionDefinition
   >,
-  // Decisions has no provider-specific options; the adapter warns and omits them.
-  decision: {},
+  decision: {
+    mode: { description: 'Ground decisions in web search results.' },
+    maxStaleness: { description: 'Maximum fetched-page age in seconds.' },
+  } satisfies Record<
+    keyof PerplexityDecisionModelOptions,
+    ProviderOptionDefinition
+  >,
 } as const satisfies ProviderOptionDefinitions;
 
 type LanguageCapabilities = NonNullable<ModelCapabilities['language']> & {
@@ -112,7 +118,9 @@ type PerplexityEmbeddingModelEntry = {
 
 type PerplexityDecisionModelEntry = {
   capabilities: { decision: DecisionCapabilities };
-  providerOptions: { decision: Record<string, never> };
+  providerOptions: {
+    decision: Record<keyof PerplexityDecisionModelOptions, ModelCapability>;
+  };
 };
 
 type PerplexityModelEntry = ModelEntry<{
@@ -127,7 +135,7 @@ type PerplexityModelEntry = ModelEntry<{
   providerOptions?: {
     language?: Record<keyof LanguageOptions, ModelCapability>;
     embedding?: Record<keyof PerplexityEmbeddingModelOptions, ModelCapability>;
-    decision?: Record<string, never>;
+    decision?: Record<keyof PerplexityDecisionModelOptions, ModelCapability>;
   };
 };
 
@@ -225,21 +233,23 @@ function createDecisionModelEntry(
         ...perplexityDecisionModelLimits,
       },
     },
-    providerOptions: { decision: {} },
+    providerOptions: {
+      decision: declareProviderOptions(
+        perplexityProviderOptions.decision,
+        support,
+        {},
+      ),
+    },
   };
 }
 
 // Preserve the documented preset and embedding sets and all existing decision IDs.
-export const perplexityModelCatalog: Readonly<
-  Record<string, PerplexityModelEntry>
-> = {
-  fast: createLanguageModelEntry('fast', 'fast'),
-  low: createLanguageModelEntry('low', 'low'),
-  medium: createLanguageModelEntry('medium', 'medium'),
-  high: createLanguageModelEntry('high', 'high'),
-  xhigh: createLanguageModelEntry('xhigh', 'xhigh'),
+const perplexityEmbeddingModelEntries = {
   'pplx-embed-v1-0.6b': createEmbeddingModelEntry(1024),
   'pplx-embed-v1-4b': createEmbeddingModelEntry(2560),
+};
+
+const perplexityDecisionModelEntries = {
   'pplx-decider-v1.2': createDecisionModelEntry(true),
   'pplx-decider-flash-v1.2': createDecisionModelEntry(true),
   'pplx-decider-latest': createDecisionModelEntry(true),
@@ -248,6 +258,34 @@ export const perplexityModelCatalog: Readonly<
   'perplexity/pplx-decider-flash-latest': createDecisionModelEntry(true),
   'pplx-decider-v1.1-27b': createDecisionModelEntry(true),
   'pplx-decider-v1-27b': createDecisionModelEntry(true),
+};
+
+const languageModelDefinitions = {
+  fast: 'fast',
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+  xhigh: 'xhigh',
+  // Direct model selection is not an Agent API preset.
+  'perplexity/sonar': undefined,
+} as const;
+
+const perplexityLanguageModelEntries = Object.fromEntries(
+  Object.entries(languageModelDefinitions)
+    .filter(([, preset]) => preset != null)
+    .map(([modelId, preset]) => [
+      modelId,
+      createLanguageModelEntry(modelId, preset),
+    ]),
+);
+
+export const perplexityModelCatalog: Readonly<
+  Record<string, PerplexityModelEntry>
+> = {
+  ...perplexityLanguageModelEntries,
+  ...perplexityEmbeddingModelEntries,
+
+  ...perplexityDecisionModelEntries,
 };
 
 function findModelEntry(modelId: string) {
@@ -304,7 +342,15 @@ export function getPerplexityDecisionModelEntry(
   return entry?.capabilities.decision != null
     ? {
         capabilities: { decision: entry.capabilities.decision },
-        providerOptions: { decision: {} },
+        providerOptions: {
+          decision:
+            entry.providerOptions?.decision ??
+            declareProviderOptions(
+              perplexityProviderOptions.decision,
+              'unknown',
+              {},
+            ),
+        },
       }
     : createDecisionModelEntry(false);
 }
@@ -321,3 +367,14 @@ function declareProviderOptions<Option extends string>(
     ]),
   ) as Record<Option, ModelCapability>;
 }
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type PerplexityModelIds = {
+  embedding: keyof typeof perplexityEmbeddingModelEntries;
+  decision: keyof typeof perplexityDecisionModelEntries;
+  language: keyof typeof languageModelDefinitions;
+  preset: Exclude<
+    (typeof languageModelDefinitions)[keyof typeof languageModelDefinitions],
+    undefined
+  >;
+};

@@ -36,7 +36,10 @@ describe('createSteering', () => {
 
     expect(
       run.resolveTakenMessages({ stepNumber: 0, sentMessages: taken }),
-    ).toEqual(taken);
+    ).toEqual([
+      { id: 'steer-1', message: taken[0] },
+      { id: 'steer-2', message: taken[1] },
+    ]);
     expect(await Promise.all([first, second])).toMatchInlineSnapshot(`
       [
         {
@@ -76,7 +79,7 @@ describe('createSteering', () => {
 
     expect(
       run.resolveTakenMessages({ stepNumber: 1, sentMessages: [keptMessage] }),
-    ).toEqual([keptMessage]);
+    ).toEqual([{ id: 'steer-1', message: keptMessage }]);
     expect(await kept).toMatchObject({ type: 'delivered', stepNumber: 1 });
     expect(await removed).toMatchInlineSnapshot(`
       {

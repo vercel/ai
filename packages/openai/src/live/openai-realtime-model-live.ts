@@ -2,6 +2,7 @@ import {
   type Experimental_RealtimeModelV4 as RealtimeModelV4,
   type Experimental_RealtimeModelV4ClientEvent as RealtimeModelV4ClientEvent,
   type Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
+  type Experimental_RealtimeModelV4SessionIntent as RealtimeModelV4SessionIntent,
 } from '@ai-sdk/provider';
 import {
   resolveWith,
@@ -54,7 +55,10 @@ export class OpenAIRealtimeModelLive implements RealtimeModelV4 {
     return { dataChannelLabel: 'oai-events' };
   }
 
-  getServerWebSocketConfig() {
+  getServerWebSocketConfig(options?: {
+    intent?: RealtimeModelV4SessionIntent;
+  }) {
+    this.assertConversationIntent(options);
     return resolveWith(this.config.headers, configHeaders => {
       const url = new URL(`${this.config.baseURL}/live/sessions`);
       url.protocol = url.protocol === 'http:' ? 'ws:' : 'wss:';
@@ -103,13 +107,28 @@ export class OpenAIRealtimeModelLive implements RealtimeModelV4 {
     return createOpenAILiveServerEventParser();
   }
 
-  serializeClientEvent(event: RealtimeModelV4ClientEvent): unknown {
+  private assertConversationIntent(options?: {
+    intent?: RealtimeModelV4SessionIntent;
+  }): void {
+    if (options?.intent != null && options.intent !== 'conversation')
+      throw new Error(
+        `OpenAI Live session intent '${options.intent}' is not supported.`,
+      );
+  }
+
+  serializeClientEvent(
+    event: RealtimeModelV4ClientEvent,
+    options?: { intent?: RealtimeModelV4SessionIntent },
+  ): unknown {
+    this.assertConversationIntent(options);
     return serializeOpenAILiveClientEvent(event, this.modelId);
   }
 
   buildSessionConfig(
     config: RealtimeModelV4SessionConfig,
+    options?: { intent?: RealtimeModelV4SessionIntent },
   ): Record<string, unknown> {
+    this.assertConversationIntent(options);
     return buildOpenAILiveSessionConfig(config, this.modelId);
   }
 }

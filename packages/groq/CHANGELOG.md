@@ -1,5 +1,83 @@
 # @ai-sdk/groq
 
+## 4.0.84
+
+### Patch Changes
+
+- f5fc6ba: Derive known model ID suggestions from each provider's model catalog declarations so catalog updates automatically update autocomplete, while preserving existing suggestions, endpoint-specific model lists, and support for custom model IDs.
+
+## 4.0.83
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+
+## 4.0.82
+
+### Patch Changes
+
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+
+## 4.0.81
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+
+## 4.0.80
+
+### Patch Changes
+
+- Updated dependencies [88b9575]
+  - @ai-sdk/provider-utils@5.0.78
+
+## 4.0.79
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+
+## 4.0.78
+
+### Patch Changes
+
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+
+## 4.0.77
+
+### Patch Changes
+
+- 821cbe3: Migrate Groq language and transcription models to a shared capability catalog, preserving request behavior and generating their model capability tables from the catalog.
+- 36802d4: Support native URL transcription with an optional provider capability, keeping existing file-generation contracts unchanged. Groq sends HTTP(S) audio URLs through its `url` parameter without downloading and re-uploading them, avoiding the attachment upload limit. Supplying a custom `download` function retains local download behavior.
+
+  For telemetry integrations, `TranscriptionEndEvent.audio.byteLength` and `audio.mediaType` can now be `undefined` when a provider fetches the audio URL natively. Check for missing values before using them as a number or string. Downloaded and inline audio continue to report their metadata; streaming transcription metadata is unchanged.
+
+  Strip media fragments before sending URLs to Groq. If Groq rejects a redirect, fall back to the existing secure local downloader and file upload rather than failing previously working URL inputs. Other provider errors are preserved.
+
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
 ## 4.0.76
 
 ### Patch Changes

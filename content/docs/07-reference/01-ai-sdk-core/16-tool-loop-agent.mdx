@@ -605,7 +605,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: 'DownloadFunction | undefined',
       isOptional: true,
       description:
-        'Experimental: Custom download function for fetching files/URLs for tool or model use. By default, files are downloaded if the model does not support the URL for a given media type.',
+        'Experimental: Custom download function for fetching files/URLs for tool or model use. By default, files are downloaded if the model does not support the URL for a given media type. Use `createDownload({ fetch, maxBytes })` from `ai` to keep the default behavior with a custom fetch transport or size limit. For untrusted URLs, see [Secure URL Fetching](/docs/advanced/secure-url-fetching#core-file-downloads).',
     },
     {
       name: 'maxOutputTokens',

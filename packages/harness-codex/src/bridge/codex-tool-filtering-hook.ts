@@ -123,7 +123,7 @@ function canonicalize(value: unknown): unknown {
   return value;
 }
 
-function toTomlInline(value: unknown): string {
+export function toTomlInline(value: unknown): string {
   if (typeof value === 'string') return JSON.stringify(value);
   if (typeof value === 'boolean') return String(value);
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -138,7 +138,7 @@ function toTomlInline(value: unknown): string {
       .map(([key, item]) => `${JSON.stringify(key)}=${toTomlInline(item)}`)
       .join(',')}}`;
   }
-  throw new Error('Codex hook configuration contains an unsupported value.');
+  throw new Error('Codex configuration contains an unsupported value.');
 }
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {

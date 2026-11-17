@@ -425,6 +425,19 @@ data: {"type":"tool-output-denied","toolCallId":"call_fJdQDqnXeGxTmr4E3YPSR7Ar"}
 
 ```
 
+### Steering Message Part
+
+Experimental. A user message that was added to the run with [steering](/docs/agents/loop-control#steering). It is sent before the `start-step` part of the step that received it, and `useChat` adds it to the assistant message as a `steering-message` part.
+
+Format: Server-Sent Event with JSON object
+
+Example:
+
+```
+data: {"type":"steering-message","id":"steer-1","parts":[{"type":"text","text":"I meant Paris, Texas."}]}
+
+```
+
 ### Start Step Part
 
 A part indicating the start of a step.

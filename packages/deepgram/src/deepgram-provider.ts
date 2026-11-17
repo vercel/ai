@@ -10,6 +10,7 @@ import {
   loadApiKey,
   withUserAgentSuffix,
   type FetchFunction,
+  type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { DeepgramTranscriptionModel } from './deepgram-transcription-model';
 import type { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
@@ -58,6 +59,9 @@ export interface DeepgramProviderSettings {
    * or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
+
+  /** Custom WebSocket implementation for streaming transcription. */
+  webSocket?: WebSocketConstructor;
 }
 
 /**
@@ -87,6 +91,7 @@ export function createDeepgram(
       url: ({ path }) => `https://api.deepgram.com${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      webSocket: options.webSocket,
     });
 
   const createSpeechModel = (modelId: DeepgramSpeechModelId) =>

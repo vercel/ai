@@ -18,6 +18,7 @@ export const cerebrasProviderOptions = {
     },
     logitBias: { description: 'Bias token selection by token ID.' },
     serviceTier: { description: 'Request processing tier.' },
+    queueThreshold: { description: 'Maximum acceptable flex queue time.' },
     reasoningEffort: {
       description: 'Reasoning effort for configurable models.',
     },
@@ -42,10 +43,10 @@ type CerebrasLanguageModelEntry = ModelEntry & {
 };
 
 // Preserve the provider page's model set and image-input exception.
-const languageDefinitions: Record<string, boolean> = {
+const languageDefinitions = {
   'gpt-oss-120b': false,
   'gemma-4-31b': true,
-};
+} satisfies Record<string, boolean>;
 
 function createLanguageModelEntry(image?: boolean): CerebrasLanguageModelEntry {
   const support = image != null ? true : 'unknown';
@@ -69,7 +70,11 @@ function createLanguageModelEntry(image?: boolean): CerebrasLanguageModelEntry {
             condition: 'Requires a JSON schema response format.',
           },
           serviceTier: {
-            condition: 'Availability depends on the account and endpoint.',
+            condition: 'Requires a preview-enabled dedicated endpoint.',
+          },
+          queueThreshold: {
+            condition:
+              'Requires flex/auto on a preview-enabled dedicated endpoint.',
           },
           reasoningEffort:
             image != null
@@ -116,3 +121,8 @@ function declareProviderOptions<Option extends string>(
     ]),
   ) as Record<Option, ModelCapability>;
 }
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type CerebrasModelIds = {
+  language: keyof typeof languageDefinitions;
+};

@@ -85,11 +85,6 @@ async function processMessages(
       model: openai('gpt-6-luna'),
       tools,
       stopWhen: isStepCount(10),
-      onStepFinish: async ({ toolResults }) => {
-        if (toolResults.length > 0) {
-          console.log('TOOL RESULTS:', JSON.stringify(toolResults, null, 2));
-        }
-      },
       instructions:
         'You are a helpful assistant. When asked to register a user, use the register_user tool.',
       messages: await convertToModelMessages(messages),

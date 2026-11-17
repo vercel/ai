@@ -7,6 +7,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { OpenAIResponsesToolResultOptions } from './openai-responses-language-model-options';
+import type { OpenAIResponsesTextFormat } from './openai-responses-text-format';
 
 let cachedJsonValueSchema: z.ZodType<JSONValue> | undefined;
 const jsonValueSchema = (): z.ZodType<JSONValue> =>
@@ -23,6 +24,18 @@ const jsonValueSchema = (): z.ZodType<JSONValue> =>
 
 const jsonObjectSchema = () =>
   z.record(z.string(), jsonValueSchema().optional());
+
+const openaiResponsesPromptCacheDiagnosticsSchema = () =>
+  z.object({
+    type: z.string(),
+    reason: z.string().nullish(),
+    cache_missed_tokens: z.number().nullish(),
+    comparison_reusable_tokens: z.number().nullish(),
+  });
+
+export type OpenAIResponsesPromptCacheDiagnostics = z.infer<
+  ReturnType<typeof openaiResponsesPromptCacheDiagnosticsSchema>
+>;
 
 const openaiResponsesUsageSchema = () =>
   z.intersection(
@@ -524,9 +537,10 @@ export type OpenAIResponsesCompactionItem = {
 
 export type OpenAIResponsesConfigurationUpdate = {
   type: 'configuration_update';
-  reasoning: {
+  reasoning?: {
     effort: 'none' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
   };
+  text?: { format: OpenAIResponsesTextFormat };
 };
 
 export type OpenAIResponsesCompactionTrigger = {
@@ -647,7 +661,24 @@ export type OpenAIResponsesTool =
     }
   | {
       type: 'code_interpreter';
-      container: string | { type: 'auto'; file_ids: string[] | undefined };
+      container:
+        | string
+        | {
+            type: 'auto';
+            file_ids: string[] | undefined;
+            memory_limit?: '1g' | '4g' | '16g' | '64g';
+            network_policy?:
+              | { type: 'disabled' }
+              | {
+                  type: 'allowlist';
+                  allowed_domains: string[];
+                  domain_secrets?: Array<{
+                    domain: string;
+                    name: string;
+                    value: string;
+                  }>;
+                };
+          };
     }
   | {
       type: 'file_search';
@@ -712,6 +743,7 @@ export type OpenAIResponsesTool =
         | undefined;
       server_description: string | undefined;
       server_url: string | undefined;
+      tunnel_id: string | undefined;
     }
   | {
       type: 'custom';
@@ -851,6 +883,8 @@ const openaiResponsesModeledChunkTypes = new Set([
   'response.output_item.done',
   'response.output_text.annotation.added',
   'response.output_text.delta',
+  'response.refusal.delta',
+  'response.refusal.done',
   'response.reasoning_summary_part.added',
   'response.reasoning_summary_part.done',
   'response.reasoning_summary_text.delta',
@@ -931,8 +965,24 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
           .nullish(),
       }),
       z.object({
+        type: z.literal('response.refusal.delta'),
+        item_id: z.string(),
+        output_index: z.number().nullish(),
+        content_index: z.number().nullish(),
+        delta: z.string(),
+      }),
+      z.object({
+        type: z.literal('response.refusal.done'),
+        item_id: z.string(),
+        output_index: z.number().nullish(),
+        content_index: z.number().nullish(),
+        refusal: z.string(),
+      }),
+      z.object({
         type: z.enum(['response.completed', 'response.incomplete']),
         response: z.object({
+          prompt_cache_diagnostics:
+            openaiResponsesPromptCacheDiagnosticsSchema().nullish(),
           incomplete_details: z.object({ reason: z.string() }).nullish(),
           usage: openaiResponsesUsageSchema().nullish(),
           reasoning: z
@@ -947,6 +997,8 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
         type: z.literal('response.failed'),
         sequence_number: z.number(),
         response: z.object({
+          prompt_cache_diagnostics:
+            openaiResponsesPromptCacheDiagnosticsSchema().nullish(),
           error: z
             .object({
               code: z.string().nullish(),
@@ -1530,55 +1582,62 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               role: z.literal('assistant'),
               id: z.string(),
               phase: z.enum(['commentary', 'final_answer']).nullish(),
+              // the API returns either text or a refusal as content parts:
               content: z.array(
-                z.object({
-                  type: z.literal('output_text'),
-                  text: z.string(),
-                  logprobs: z
-                    .array(
-                      z.object({
-                        token: z.string(),
-                        logprob: z.number(),
-                        top_logprobs: z.array(
-                          z.object({
-                            token: z.string(),
-                            logprob: z.number(),
-                          }),
-                        ),
-                      }),
-                    )
-                    .nullish(),
-                  annotations: z.array(
-                    z.discriminatedUnion('type', [
-                      z.object({
-                        type: z.literal('url_citation'),
-                        start_index: z.number(),
-                        end_index: z.number(),
-                        url: z.string(),
-                        title: z.string(),
-                      }),
-                      z.object({
-                        type: z.literal('file_citation'),
-                        file_id: z.string(),
-                        filename: z.string(),
-                        index: z.number(),
-                      }),
-                      z.object({
-                        type: z.literal('container_file_citation'),
-                        container_id: z.string(),
-                        file_id: z.string(),
-                        filename: z.string(),
-                        start_index: z.number(),
-                        end_index: z.number(),
-                      }),
-                      z.object({
-                        type: z.literal('file_path'),
-                        file_id: z.string(),
-                        index: z.number(),
-                      }),
-                    ]),
-                  ),
-                }),
+                z.discriminatedUnion('type', [
+                  z.object({
+                    type: z.literal('output_text'),
+                    text: z.string(),
+                    logprobs: z
+                      .array(
+                        z.object({
+                          token: z.string(),
+                          logprob: z.number(),
+                          top_logprobs: z.array(
+                            z.object({
+                              token: z.string(),
+                              logprob: z.number(),
+                            }),
+                          ),
+                        }),
+                      )
+                      .nullish(),
+                    annotations: z.array(
+                      z.discriminatedUnion('type', [
+                        z.object({
+                          type: z.literal('url_citation'),
+                          start_index: z.number(),
+                          end_index: z.number(),
+                          url: z.string(),
+                          title: z.string(),
+                        }),
+                        z.object({
+                          type: z.literal('file_citation'),
+                          file_id: z.string(),
+                          filename: z.string(),
+                          index: z.number(),
+                        }),
+                        z.object({
+                          type: z.literal('container_file_citation'),
+                          container_id: z.string(),
+                          file_id: z.string(),
+                          filename: z.string(),
+                          start_index: z.number(),
+                          end_index: z.number(),
+                        }),
+                        z.object({
+                          type: z.literal('file_path'),
+                          file_id: z.string(),
+                          index: z.number(),
+                        }),
+                      ]),
+                    ),
+                  }),
+                  z.object({
+                    type: z.literal('refusal'),
+                    refusal: z.string(),
+                  }),
+                ]),
               ),
             }),
             z.object({
@@ -1821,6 +1880,8 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
         )
         .optional(),
       service_tier: z.string().nullish(),
+      prompt_cache_diagnostics:
+        openaiResponsesPromptCacheDiagnosticsSchema().nullish(),
       reasoning: z
         .object({
           context: z.string().nullish(),

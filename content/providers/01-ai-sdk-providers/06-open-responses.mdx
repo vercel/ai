@@ -555,3 +555,16 @@ with extensions throws a `SerializationError`.
 - AI SDK function tools and registered Open Responses extensions are supported.
   Other provider-specific tools and options require a dedicated provider
   implementation.
+
+## Provider Option Reference
+
+The following option definitions are generated from the provider catalog.
+
+{/* model-capabilities:open-responses-provider-options:start */}
+
+| Operation | Option             | Description                                                                                                                                |
+| --------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| language  | `reasoningEffort`  | Provider-native reasoning effort. The value is passed through to the endpoint and takes precedence over the top-level `reasoning` setting. |
+| language  | `reasoningSummary` | Controls reasoning summary output from the model. Valid values: 'concise', 'detailed', 'auto'.                                             |
+
+{/* model-capabilities:open-responses-provider-options:end */}

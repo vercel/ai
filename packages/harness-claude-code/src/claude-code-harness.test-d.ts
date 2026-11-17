@@ -93,6 +93,18 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
     ).toExtend<HarnessAgentAdapter<any>>();
   });
 
+  test('createClaudeCode accepts an optional boolean autoMode', () => {
+    expectTypeOf<ClaudeCodeHarnessSettings['autoMode']>().toEqualTypeOf<
+      boolean | undefined
+    >();
+    assertType<HarnessAgentSettings['harness']>(
+      createClaudeCode({ autoMode: true }),
+    );
+    createClaudeCode({ autoMode: false });
+    // @ts-expect-error - autoMode must be a boolean, not a permission mode
+    createClaudeCode({ autoMode: 'auto' });
+  });
+
   test('createClaudeCode accepts asynchronous credential forwarding', () => {
     expectTypeOf(
       createClaudeCode({
