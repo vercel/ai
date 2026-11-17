@@ -86,7 +86,9 @@ An MCP client created with `document.modelContext` runs in that browser. For
 backend model inference, forward descriptions and schemas to your API route,
 convert them using
 [`createMCPTools`](/docs/reference/ai-sdk-core/create-mcp-tools), execute tool
-calls in `useChat.onToolCall`, and submit results using `addToolOutput`.
+calls in `useChat.onToolCall`, and submit results using `addToolOutput`. See the
+[shopping cart example](https://github.com/vercel/ai/tree/main/examples/ai-e2e-next/app/chat/webmcp)
+for a complete implementation.
 
 Tool lists are snapshots. Call `client.listTools()` or `client.tools()` again
 after a WebMCP `toolchange` event, or before each model request. Updating a list
