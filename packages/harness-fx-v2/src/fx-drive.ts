@@ -343,7 +343,7 @@ export class FxDrive {
    * for each pending prompt until none is left or the drive halts or yields.
    */
   private async runTurns(): Promise<void> {
-    this.state = await this.readState();
+    this.state = this.readState();
     const latest = this.state.turns.at(-1);
     if (latest != null && !latest.ended) {
       if (latest.checkpoint != null) {
@@ -365,7 +365,7 @@ export class FxDrive {
     }
     for (;;) {
       if (this.halted || this.context.yieldAbortSignal.aborted) return;
-      this.state = await this.readState();
+      this.state = this.readState();
       const prompt = this.state.pendingPrompts[0];
       if (prompt == null) return;
       if (!(await this.runTurn({ index: this.state.turns.length, prompt }))) {
@@ -375,11 +375,10 @@ export class FxDrive {
   }
 
   /**
-   * Reads the session state from the log.
+   * Looks up the session state in the log.
    */
-  private async readState(): Promise<FxLogState> {
-    const { events } = await this.context.log.read();
-    return readFxLogState({ events });
+  private readState(): FxLogState {
+    return readFxLogState({ log: this.context.log });
   }
 
   /**

@@ -1,6 +1,5 @@
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import type { HarnessV2LogEvent } from '../../../v2/harness-v2-log';
 import type { HarnessV2NetworkSandboxSession } from '../../../v2/harness-v2-network-sandbox-session';
 import type { HarnessAgentSession } from '../harness-agent-session';
 import { InMemoryWorld } from '../in-memory-world';
@@ -241,53 +240,49 @@ describe('createDriveContext', () => {
   });
 
   describe('log', () => {
-    test('reads only HarnessV2 events and keeps the engine position', async () => {
+    test('looks up the adapter-facing shapes without what only the engine sees', async () => {
       const { log, context } = await setup();
       await appendAll({ log });
-      const engineRead = await log.read();
+      const turn = { submissions: [allEvents[0]], finish: allEvents[6] };
+      const attempt = { start: allEvents[2], end: allEvents[4] };
 
-      const result = await context.log.read();
-
-      expect(result.events.map(event => event.id)).toEqual([
-        'prompt-1',
-        'start-1',
-        'end-1',
-        'finish-turn:prompt-1',
-        'journal-1',
-      ]);
-      expect(result.position).toBe(engineRead.position);
+      expect(context.log.getSubmissions()).toEqual([allEvents[0]]);
+      expect(context.log.getUndeliveredSubmissions()).toEqual([]);
+      expect(context.log.getEffect({ key: 'model:1' })).toEqual(attempt);
+      expect(context.log.getEffect({ key: 'model:2' })).toBeUndefined();
+      expect(context.log.getEffects()).toEqual([attempt]);
+      expect(context.log.getEffects({ keyPrefix: 'tool:' })).toEqual([]);
+      expect(context.log.getCurrentTurn()).toEqual(turn);
+      expect(context.log.getTurns()).toEqual([turn]);
+      expect(context.log.getAdapterEvents()).toEqual([allEvents[7]]);
+      expect(context.log.getAdapterEvents({ type: 'harness:other' })).toEqual(
+        [],
+      );
     });
 
-    test('applies requested types and never returns engine-internal events', async () => {
+    test('leaves out an unfinished attempt end and turn finish', async () => {
+      const { log, context } = await setup();
+      for (const event of allEvents.slice(0, 4)) await log.append(event);
+
+      expect(context.log.getEffect({ key: 'model:1' })).toEqual({
+        start: allEvents[2],
+      });
+      expect(context.log.getCurrentTurn()).toEqual({
+        submissions: [allEvents[0]],
+      });
+    });
+
+    test('returns copies that do not change the engine log', async () => {
       const { log, context } = await setup();
       await appendAll({ log });
 
-      expect(
-        (
-          await context.log.read({
-            // oxlint-disable-next-line ai-sdk/no-as-unknown-as -- intentionally invalid value for a runtime validation test.
-            types: [
-              'effect-progress',
-            ] as unknown as HarnessV2LogEvent['type'][],
-          })
-        ).events,
-      ).toEqual([]);
-      expect(
-        (await context.log.read({ types: ['effect-end'] })).events.map(
-          event => event.id,
-        ),
-      ).toEqual(['end-1']);
-    });
+      const attempt = context.log.getEffect({ key: 'model:1' })!;
+      (attempt.start.data as { key: string }).key = 'changed';
+      const [submission] = context.log.getSubmissions();
+      (submission as { id: string }).id = 'changed';
 
-    test('reads events after a position', async () => {
-      const { log, context } = await setup();
-      await log.append(allEvents[0]);
-      const { position } = await context.log.read();
-      await log.append(allEvents[7]);
-
-      const result = await context.log.read({ after: position });
-
-      expect(result.events.map(event => event.id)).toEqual(['journal-1']);
+      expect(log.getEffect({ key: 'model:1' })?.start.data.key).toBe('model:1');
+      expect(log.getSubmissions()[0].id).toBe('prompt-1');
     });
 
     test('appends harness events and generates a missing ID', async () => {
@@ -297,7 +292,7 @@ describe('createDriveContext', () => {
         context.log.append({ type: 'harness:journal', data: { entry: 2 } }),
       ).resolves.toBe(true);
 
-      const { events } = await log.read();
+      const events = log.getAdapterEvents();
       expect(events).toHaveLength(1);
       expect(events[0]).toMatchObject({
         type: 'harness:journal',
@@ -324,7 +319,8 @@ describe('createDriveContext', () => {
       await expect(context.log.append(allEvents[0] as never)).rejects.toThrow(
         'only `harness:` events can be appended',
       );
-      expect((await log.read()).events).toEqual([]);
+      await log.refresh();
+      expect(log.getSubmissions()).toEqual([]);
     });
 
     test('rejects appending after the drive aborted without writing', async () => {
@@ -335,7 +331,8 @@ describe('createDriveContext', () => {
       await expect(
         context.log.append({ type: 'harness:journal', data: null }),
       ).rejects.toBe(reason);
-      expect((await log.read()).events).toEqual([]);
+      await log.refresh();
+      expect(log.getAdapterEvents()).toEqual([]);
     });
 
     test('notifies listeners only for engine-written HarnessV2 events', async () => {

@@ -11,7 +11,12 @@ import {
   createGateBuiltinToolFunction,
   type HarnessAgentGateBuiltinToolFunction,
 } from './create-gate-builtin-tool-function';
-import { createLog, type HarnessAgentLog } from './create-log';
+import {
+  createLog,
+  decodeLogEvent,
+  type HarnessAgentLog,
+  type HarnessAgentLogEvent,
+} from './create-log';
 import {
   createStreamWriter,
   decodeStreamRecords,
@@ -82,6 +87,42 @@ async function setup() {
 }
 
 /**
+ * Creates `gateBuiltinTool()` for a later drive of the session, on a new log
+ * refreshed like a drive's log at its start.
+ */
+async function createNextDrive(options: { world: InMemoryWorld }) {
+  const log = createLog({ world: options.world, runId });
+  await log.refresh();
+  return createDrive({ world: options.world, log });
+}
+
+/**
+ * Reads the agent log events stored in the World, in log order, keeping the
+ * first event of each ID.
+ */
+async function readLogEvents(options: {
+  world: InMemoryWorld;
+  types?: HarnessAgentLogEvent['type'][];
+}): Promise<HarnessAgentLogEvent[]> {
+  const { data } = await options.world.events.list({
+    runId,
+    pagination: { sortOrder: 'asc', limit: 10_000 },
+    resolveData: 'all',
+  });
+  const events: HarnessAgentLogEvent[] = [];
+  const ids = new Set<string>();
+  for (const worldEvent of data) {
+    const event = await decodeLogEvent({ event: worldEvent });
+    if (event == null || ids.has(event.id)) continue;
+    ids.add(event.id);
+    if (options.types == null || options.types.includes(event.type)) {
+      events.push(event);
+    }
+  }
+  return events;
+}
+
+/**
  * Returns the stream parts written so far, without their record tags.
  */
 async function readParts(options: { world: InMemoryWorld }) {
@@ -100,12 +141,12 @@ async function readParts(options: { world: InMemoryWorld }) {
  * Returns the data of every committed event of the given effect event type.
  */
 async function readEffectEvents(options: {
-  log: HarnessAgentLog;
+  world: InMemoryWorld;
   type: 'effect-start' | 'effect-progress' | 'effect-end';
 }) {
-  return (await options.log.read({ types: [options.type] })).events.map(
-    event => event.data,
-  );
+  return (
+    await readLogEvents({ world: options.world, types: [options.type] })
+  ).map(event => event.data);
 }
 
 /**
@@ -122,13 +163,13 @@ function getApproved(
 
 describe('createGateBuiltinToolFunction', () => {
   test('commits tool-execution-start before approving a call', async () => {
-    const { log, gateBuiltinTool } = await setup();
+    const { log, gateBuiltinTool, world } = await setup();
 
     getApproved(await gateBuiltinTool(call));
 
-    const [start] = (await log.read({ types: ['effect-start'] })).events;
+    const [start] = await readLogEvents({ world, types: ['effect-start'] });
     expect(
-      (await log.read({ types: ['tool-execution-start'] })).events,
+      await readLogEvents({ world, types: ['tool-execution-start'] }),
     ).toEqual([
       {
         type: 'tool-execution-start',
@@ -139,11 +180,11 @@ describe('createGateBuiltinToolFunction', () => {
   });
 
   test('approves a built-in tool call once its start is committed', async () => {
-    const { log, gateBuiltinTool } = await setup();
+    const { log, gateBuiltinTool, world } = await setup();
 
     expect((await gateBuiltinTool(call)).type).toBe('approved');
 
-    expect(await readEffectEvents({ log, type: 'effect-start' })).toEqual([
+    expect(await readEffectEvents({ world, type: 'effect-start' })).toEqual([
       {
         key: 'tool:call-1',
         attempt: 1,
@@ -153,11 +194,11 @@ describe('createGateBuiltinToolFunction', () => {
         deliveredSubmissionIds: [],
       },
     ]);
-    expect(await readEffectEvents({ log, type: 'effect-end' })).toEqual([]);
+    expect(await readEffectEvents({ world, type: 'effect-end' })).toEqual([]);
   });
 
   test('uses the built-in tool replay policy', async () => {
-    const { log, gateBuiltinTool } = await setup();
+    const { log, gateBuiltinTool, world } = await setup();
 
     await gateBuiltinTool({
       toolCallId: 'call-1',
@@ -165,7 +206,7 @@ describe('createGateBuiltinToolFunction', () => {
       input: { path: 'file.txt' },
     });
 
-    expect(await readEffectEvents({ log, type: 'effect-start' })).toEqual([
+    expect(await readEffectEvents({ world, type: 'effect-start' })).toEqual([
       expect.objectContaining({ name: 'tool.Read', replay: 'safe' }),
     ]);
   });
@@ -179,7 +220,7 @@ describe('createGateBuiltinToolFunction', () => {
       modelOutput: { type: 'text', value: 'file.txt' },
     });
 
-    expect(await readEffectEvents({ log, type: 'effect-end' })).toEqual([
+    expect(await readEffectEvents({ world, type: 'effect-end' })).toEqual([
       {
         startId: expect.any(String),
         output: {
@@ -206,7 +247,7 @@ describe('createGateBuiltinToolFunction', () => {
     const approved = getApproved(await gateBuiltinTool(call));
 
     await approved.partial({ raw: 'a' });
-    expect(await readEffectEvents({ log, type: 'effect-progress' })).toEqual([
+    expect(await readEffectEvents({ world, type: 'effect-progress' })).toEqual([
       { startId: expect.any(String), partial: { raw: 'a' } },
     ]);
 
@@ -217,7 +258,7 @@ describe('createGateBuiltinToolFunction', () => {
     await approved.result({ raw: 'abcd' });
 
     expect(
-      (await log.read({ types: ['effect-progress'] })).events.map(event =>
+      (await readLogEvents({ world, types: ['effect-progress'] })).map(event =>
         event.type === 'effect-progress' ? event.data.partial : undefined,
       ),
     ).toEqual([{ raw: 'a' }, { raw: 'ab' }, { raw: 'abc' }, { raw: 'abcd' }]);
@@ -244,7 +285,7 @@ describe('createGateBuiltinToolFunction', () => {
 
     await approved.error({ message: 'command failed' });
 
-    expect(await readEffectEvents({ log, type: 'effect-end' })).toEqual([
+    expect(await readEffectEvents({ world, type: 'effect-end' })).toEqual([
       {
         startId: expect.any(String),
         output: { type: 'error', error: { message: 'command failed' } },
@@ -272,7 +313,7 @@ describe('createGateBuiltinToolFunction', () => {
     ]);
     await approved.result({ raw: 'fourth' });
 
-    expect(await readEffectEvents({ log, type: 'effect-end' })).toEqual([
+    expect(await readEffectEvents({ world, type: 'effect-end' })).toEqual([
       {
         startId: expect.any(String),
         output: { type: 'result', value: { raw: 'first' } },
@@ -289,7 +330,7 @@ describe('createGateBuiltinToolFunction', () => {
   });
 
   test('records an approved call as interrupted when the drive stops', async () => {
-    const { log, gateBuiltinTool, abortController } = await setup();
+    const { log, gateBuiltinTool, abortController, world } = await setup();
     const approved = getApproved(await gateBuiltinTool(call));
     await approved.partial({ raw: 'partial' });
 
@@ -297,7 +338,7 @@ describe('createGateBuiltinToolFunction', () => {
     await approved.result({ raw: 'late' });
     await approved.partial({ raw: 'later' });
 
-    expect(await readEffectEvents({ log, type: 'effect-end' })).toEqual([
+    expect(await readEffectEvents({ world, type: 'effect-end' })).toEqual([
       {
         startId: expect.any(String),
         output: {
@@ -369,11 +410,12 @@ describe('createGateBuiltinToolFunction', () => {
         id: 'end',
         data: { startId: 'start', output },
       });
+      await log.refresh();
 
       expect(await gateBuiltinTool(call)).toEqual({ type: 'denied', reason });
 
       expect(
-        await readEffectEvents({ log, type: 'effect-start' }),
+        await readEffectEvents({ world, type: 'effect-start' }),
       ).toHaveLength(1);
       expect(await readParts({ world })).toEqual([]);
     },
@@ -384,18 +426,18 @@ describe('createGateBuiltinToolFunction', () => {
     getApproved(await gateBuiltinTool(call));
     abortController.abort();
     await expect
-      .poll(() => readEffectEvents({ log, type: 'effect-end' }))
+      .poll(() => readEffectEvents({ world, type: 'effect-end' }))
       .toHaveLength(1);
 
-    const nextDrive = createDrive({ world, log: createLog({ world, runId }) });
+    const nextDrive = await createNextDrive({ world });
     expect(await nextDrive.gateBuiltinTool(call)).toEqual({
       type: 'denied',
       reason:
         'This call was interrupted in an earlier attempt and may or may not have taken effect.',
     });
-    expect(await readEffectEvents({ log, type: 'effect-start' })).toHaveLength(
-      1,
-    );
+    expect(
+      await readEffectEvents({ world, type: 'effect-start' }),
+    ).toHaveLength(1);
   });
 
   test('approves a safe-replay call that an earlier drive left interrupted as a new attempt', async () => {
@@ -408,18 +450,18 @@ describe('createGateBuiltinToolFunction', () => {
     getApproved(await gateBuiltinTool(readCall));
     abortController.abort();
     await expect
-      .poll(() => readEffectEvents({ log, type: 'effect-end' }))
+      .poll(() => readEffectEvents({ world, type: 'effect-end' }))
       .toHaveLength(1);
 
-    const nextDrive = createDrive({ world, log: createLog({ world, runId }) });
+    const nextDrive = await createNextDrive({ world });
     const approved = getApproved(await nextDrive.gateBuiltinTool(readCall));
     await approved.result({ raw: 'contents' });
 
-    expect(await readEffectEvents({ log, type: 'effect-start' })).toEqual([
+    expect(await readEffectEvents({ world, type: 'effect-start' })).toEqual([
       expect.objectContaining({ attempt: 1 }),
       expect.objectContaining({ attempt: 2 }),
     ]);
-    expect(await readEffectEvents({ log, type: 'effect-end' })).toEqual([
+    expect(await readEffectEvents({ world, type: 'effect-end' })).toEqual([
       {
         startId: expect.any(String),
         output: { type: 'interrupted', retryable: true },
@@ -445,7 +487,7 @@ describe('createGateBuiltinToolFunction', () => {
       type: 'denied',
       reason: message,
     });
-    expect(await readEffectEvents({ log, type: 'effect-end' })).toEqual([
+    expect(await readEffectEvents({ world, type: 'effect-end' })).toEqual([
       {
         startId: expect.any(String),
         output: { type: 'error', error: { message } },
@@ -461,18 +503,18 @@ describe('createGateBuiltinToolFunction', () => {
       },
     ]);
 
-    const nextDrive = createDrive({ world, log: createLog({ world, runId }) });
+    const nextDrive = await createNextDrive({ world });
     expect(await nextDrive.gateBuiltinTool(weatherCall)).toEqual({
       type: 'denied',
       reason: `This call already ran in this session. Its recorded result: ${message}`,
     });
-    expect(await readEffectEvents({ log, type: 'effect-start' })).toHaveLength(
-      1,
-    );
+    expect(
+      await readEffectEvents({ world, type: 'effect-start' }),
+    ).toHaveLength(1);
   });
 
   test('denies calls once the drive stopped without recording them', async () => {
-    const { log, gateBuiltinTool, abortController } = await setup();
+    const { log, gateBuiltinTool, abortController, world } = await setup();
     abortController.abort();
 
     expect(await gateBuiltinTool(call)).toEqual({
@@ -480,16 +522,15 @@ describe('createGateBuiltinToolFunction', () => {
       reason: 'This call was not run because the drive stopped.',
     });
     expect(
-      (
-        await log.read({
-          types: ['effect-start', 'effect-progress', 'effect-end'],
-        })
-      ).events,
+      await readLogEvents({
+        world,
+        types: ['effect-start', 'effect-progress', 'effect-end'],
+      }),
     ).toEqual([]);
   });
 
   test('rejects input that is not a JSON value without recording it', async () => {
-    const { log, gateBuiltinTool } = await setup();
+    const { log, gateBuiltinTool, world } = await setup();
 
     await expect(
       gateBuiltinTool({
@@ -500,11 +541,11 @@ describe('createGateBuiltinToolFunction', () => {
     ).rejects.toThrow(
       'HarnessAgent.gateBuiltinTool: `input` must be a JSON value.',
     );
-    expect(await readEffectEvents({ log, type: 'effect-start' })).toEqual([]);
+    expect(await readEffectEvents({ world, type: 'effect-start' })).toEqual([]);
   });
 
   test('rejects reported values that cannot be recorded and keeps the call open', async () => {
-    const { log, gateBuiltinTool } = await setup();
+    const { log, gateBuiltinTool, world } = await setup();
     const approved = getApproved(await gateBuiltinTool(call));
 
     await expect(
@@ -525,12 +566,12 @@ describe('createGateBuiltinToolFunction', () => {
     ).rejects.toThrow(
       'HarnessAgent.gateBuiltinTool: `modelOutput` must be serializable.',
     );
-    expect(await readEffectEvents({ log, type: 'effect-progress' })).toEqual(
+    expect(await readEffectEvents({ world, type: 'effect-progress' })).toEqual(
       [],
     );
 
     await approved.result({ raw: 'value' });
-    expect(await readEffectEvents({ log, type: 'effect-end' })).toEqual([
+    expect(await readEffectEvents({ world, type: 'effect-end' })).toEqual([
       {
         startId: expect.any(String),
         output: { type: 'result', value: { raw: 'value' } },

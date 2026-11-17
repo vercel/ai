@@ -1,12 +1,16 @@
 import { posix } from 'node:path';
+import type { SerializableValue } from '@ai-sdk/provider';
 import {
+  cloneSerializableValue,
   generateId,
   type Experimental_SandboxSession as SandboxSession,
 } from '@ai-sdk/provider-utils';
 import type { HarnessV2DriveContext } from '../../../v2/harness-v2-drive-context';
 import type {
   HarnessV2Log,
+  HarnessV2LogEffectAttempt,
   HarnessV2LogEvent,
+  HarnessV2LogTurn,
 } from '../../../v2/harness-v2-log';
 import type { HarnessV2NetworkSandboxSession } from '../../../v2/harness-v2-network-sandbox-session';
 import type { HarnessAgentSession } from '../harness-agent-session';
@@ -20,16 +24,19 @@ import type {
   HarnessAgentFinishTurnFunction,
 } from './create-finish-functions';
 import type { HarnessAgentGateBuiltinToolFunction } from './create-gate-builtin-tool-function';
-import type { HarnessAgentLog, HarnessAgentLogEvent } from './create-log';
+import type {
+  HarnessAgentLog,
+  HarnessAgentLogEffectAttempt,
+  HarnessAgentLogTurn,
+} from './create-log';
 import type { HarnessAgentStreamWriter } from './create-stream-writer';
 
 /**
  * Engine-written event types of `HarnessV2LogEvent`: every named type except
- * the adapter's own `harness:` namespace. The adapter-facing log allowlists
- * these (plus `harness:` events), so every engine-internal event of
- * `HarnessAgentLogEvent` stays hidden from the adapter, including ones added
- * later. Adding a named type to `HarnessV2LogEvent` requires updating this
- * table.
+ * the adapter's own `harness:` namespace. The adapter-facing log's `onAppend()`
+ * allowlists these, so engine-internal events of `HarnessAgentLogEvent` never
+ * fire it, including ones added later. Adding a named type to
+ * `HarnessV2LogEvent` requires updating this table.
  */
 const engineEventTypes = {
   submission: true,
@@ -56,25 +63,42 @@ function isHarnessEventType(type: string): type is `harness:${string}` {
 }
 
 /**
- * Returns whether an engine log event is part of `HarnessV2LogEvent`: one of
- * its engine-written types or a `harness:` event.
+ * Returns an independent copy of a log value, so the adapter cannot modify
+ * the engine log's own objects.
  */
-function isHarnessV2LogEvent(
-  event: HarnessAgentLogEvent,
-): event is Extract<HarnessAgentLogEvent, HarnessV2LogEvent> {
-  return (
-    Object.hasOwn(engineEventTypes, event.type) ||
-    isHarnessEventType(event.type)
-  );
+function clone<T>(value: T): T {
+  return cloneSerializableValue({ value: value as SerializableValue }) as T;
+}
+
+/**
+ * Maps an engine effect attempt to its adapter-facing shape, without the
+ * engine-only progress.
+ */
+function toEffectAttempt(
+  attempt: HarnessAgentLogEffectAttempt,
+): HarnessV2LogEffectAttempt {
+  return attempt.end == null
+    ? { start: clone(attempt.start) }
+    : { start: clone(attempt.start), end: clone(attempt.end) };
+}
+
+/**
+ * Maps an engine turn to its adapter-facing shape, without the engine-only
+ * turn start and steps.
+ */
+function toTurn(turn: HarnessAgentLogTurn): HarnessV2LogTurn {
+  const submissions = turn.submissions.map(clone);
+  return turn.finish == null
+    ? { submissions }
+    : { submissions, finish: clone(turn.finish) };
 }
 
 /**
  * Narrows the engine log to the adapter-facing `HarnessV2Log` of one drive.
  *
- * - `read()` returns only `HarnessV2LogEvent` events (`submission`,
- *   `effect-start`, `effect-end`, `finish-turn` and `harness:` events), even
- *   when other types are requested through `types`. Hidden events still
- *   advance the returned `position`.
+ * - The lookups delegate to the engine log's lookups and return copies in
+ *   the adapter-facing shapes, leaving out what only the engine sees (effect
+ *   progress, turn starts and steps).
  * - `append()` accepts only `harness:` events and assigns a generated ID when
  *   none is given, so such an event is always written. Once the drive is
  *   aborted it rejects with the abort reason without writing.
@@ -98,14 +122,6 @@ function adaptHarnessV2Log(options: {
   const { log, abortSignal } = options;
 
   return {
-    async read(readOptions) {
-      const { events, position } = await log.read({
-        after: readOptions?.after,
-        types: readOptions?.types,
-      });
-      return { events: events.filter(isHarnessV2LogEvent), position };
-    },
-
     async append(event) {
       if (typeof event.type !== 'string' || !isHarnessEventType(event.type)) {
         throw new Error(
@@ -132,6 +148,38 @@ function adaptHarnessV2Log(options: {
       };
       abortSignal.addEventListener('abort', release, { once: true });
       return release;
+    },
+
+    getSubmissions() {
+      return log.getSubmissions().map(clone);
+    },
+
+    getUndeliveredSubmissions() {
+      return log.getUndeliveredSubmissions().map(clone);
+    },
+
+    getEffect({ key }) {
+      const attempt = log.getEffect({ key });
+      return attempt == null ? undefined : toEffectAttempt(attempt);
+    },
+
+    getEffects(effectsOptions) {
+      return log
+        .getEffects({ keyPrefix: effectsOptions?.keyPrefix })
+        .map(toEffectAttempt);
+    },
+
+    getCurrentTurn() {
+      const turn = log.getCurrentTurn();
+      return turn == null ? undefined : toTurn(turn);
+    },
+
+    getTurns() {
+      return log.getTurns().map(toTurn);
+    },
+
+    getAdapterEvents(eventsOptions) {
+      return log.getAdapterEvents({ type: eventsOptions?.type }).map(clone);
     },
   };
 }

@@ -17,7 +17,12 @@ import {
   type HarnessAgentExecuteBuiltinToolFunction,
   type HarnessAgentExecuteHostToolFunction,
 } from './create-execute-tool-functions';
-import { createLog, type HarnessAgentLog } from './create-log';
+import {
+  createLog,
+  decodeLogEvent,
+  type HarnessAgentLog,
+  type HarnessAgentLogEvent,
+} from './create-log';
 import {
   createStreamWriter,
   decodeStreamRecords,
@@ -104,6 +109,42 @@ async function setup(options?: {
 }
 
 /**
+ * Creates the tool functions for a later drive of the session, on a new log
+ * refreshed like a drive's log at its start.
+ */
+async function createNextDrive(options: { world: InMemoryWorld }) {
+  const log = createLog({ world: options.world, runId });
+  await log.refresh();
+  return createDrive({ world: options.world, log });
+}
+
+/**
+ * Reads the agent log events stored in the World, in log order, keeping the
+ * first event of each ID.
+ */
+async function readLogEvents(options: {
+  world: InMemoryWorld;
+  types?: HarnessAgentLogEvent['type'][];
+}): Promise<HarnessAgentLogEvent[]> {
+  const { data } = await options.world.events.list({
+    runId,
+    pagination: { sortOrder: 'asc', limit: 10_000 },
+    resolveData: 'all',
+  });
+  const events: HarnessAgentLogEvent[] = [];
+  const ids = new Set<string>();
+  for (const worldEvent of data) {
+    const event = await decodeLogEvent({ event: worldEvent });
+    if (event == null || ids.has(event.id)) continue;
+    ids.add(event.id);
+    if (options.types == null || options.types.includes(event.type)) {
+      events.push(event);
+    }
+  }
+  return events;
+}
+
+/**
  * Reads every record written to the session's stream so far.
  */
 async function readStream(options: {
@@ -132,12 +173,12 @@ async function readParts(options: { world: InMemoryWorld }) {
  * Returns the data of every committed event of the given effect event type.
  */
 async function readEffectEvents(options: {
-  log: HarnessAgentLog;
+  world: InMemoryWorld;
   type: 'effect-start' | 'effect-progress' | 'effect-end';
 }) {
-  return (await options.log.read({ types: [options.type] })).events.map(
-    event => event.data,
-  );
+  return (
+    await readLogEvents({ world: options.world, types: [options.type] })
+  ).map(event => event.data);
 }
 
 /**
@@ -201,7 +242,7 @@ describe('createExecuteToolFunctions', () => {
         context: undefined,
         experimental_sandbox: sandboxSession,
       });
-      const starts = (await log.read({ types: ['effect-start'] })).events;
+      const starts = await readLogEvents({ world, types: ['effect-start'] });
       expect(starts).toEqual([
         expect.objectContaining({
           data: expect.objectContaining({
@@ -226,7 +267,7 @@ describe('createExecuteToolFunctions', () => {
     });
 
     test('uses the tool replay policy', async () => {
-      const { log, executeHostTool } = await setup({
+      const { log, executeHostTool, world } = await setup({
         tools: {
           weather: tool({
             inputSchema: z.object({ city: z.string() }),
@@ -237,7 +278,7 @@ describe('createExecuteToolFunctions', () => {
       });
       await executeHostTool(call);
       expect(
-        (await log.read({ types: ['effect-start'] })).events[0],
+        (await readLogEvents({ world, types: ['effect-start'] }))[0],
       ).toMatchObject({ data: { replay: 'safe' } });
     });
 
@@ -361,7 +402,7 @@ describe('createExecuteToolFunctions', () => {
         value: { raw: { status: 'done', temperature: 21 } },
       });
       expect(
-        (await log.read({ types: ['effect-progress'] })).events.map(
+        (await readLogEvents({ world, types: ['effect-progress'] })).map(
           event => event.type === 'effect-progress' && event.data.partial,
         ),
       ).toEqual([
@@ -499,9 +540,9 @@ describe('createExecuteToolFunctions', () => {
       });
 
       expect(getSandboxSession).not.toHaveBeenCalled();
-      expect((await log.read({ types: ['effect-end'] })).events).toHaveLength(
-        2,
-      );
+      expect(
+        await readLogEvents({ world, types: ['effect-end'] }),
+      ).toHaveLength(2);
       expect((await readParts({ world }))[0]).toEqual({
         type: 'tool-result',
         toolCallId: 'call-1',
@@ -514,7 +555,7 @@ describe('createExecuteToolFunctions', () => {
 
     test('records input that does not match the input schema as an error', async () => {
       const execute = vi.fn(async () => 'sunny');
-      const { log, executeHostTool } = await setup({
+      const { log, executeHostTool, world } = await setup({
         tools: {
           weather: tool({
             inputSchema: z.object({ city: z.string() }),
@@ -529,36 +570,39 @@ describe('createExecuteToolFunctions', () => {
         'Invalid input for tool weather',
       );
       expect(execute).not.toHaveBeenCalled();
-      expect((await log.read({ types: ['effect-start'] })).events).toHaveLength(
-        1,
-      );
       expect(
-        (await log.read({ types: ['tool-execution-start'] })).events,
+        await readLogEvents({ world, types: ['effect-start'] }),
+      ).toHaveLength(1);
+      expect(
+        await readLogEvents({ world, types: ['tool-execution-start'] }),
       ).toEqual([]);
     });
 
     test('commits tool-execution-start after resolving the sandbox and before executing the tool', async () => {
       const committedBeforeExecute: unknown[] = [];
-      let log!: HarnessAgentLog;
+      let world!: InMemoryWorld;
       const setupResult = await setup({
         tools: {
           weather: tool({
             inputSchema: z.object({ city: z.string() }),
             execute: async () => {
               committedBeforeExecute.push(
-                ...(await log.read({ types: ['tool-execution-start'] })).events,
+                ...(await readLogEvents({
+                  world,
+                  types: ['tool-execution-start'],
+                })),
               );
               return 'sunny';
             },
           }),
         },
       });
-      log = setupResult.log;
+      world = setupResult.world;
       const { getSandboxSession, executeHostTool } = setupResult;
 
       await executeHostTool(call);
 
-      const [start] = (await log.read({ types: ['effect-start'] })).events;
+      const [start] = await readLogEvents({ world, types: ['effect-start'] });
       expect(getSandboxSession).toHaveBeenCalledTimes(1);
       expect(committedBeforeExecute).toEqual([
         {
@@ -616,13 +660,13 @@ describe('createExecuteToolFunctions', () => {
         type: 'suspended',
         reason: 'client-tool',
       });
-      expect((await log.read()).events).toEqual([]);
+      expect(await readLogEvents({ world })).toEqual([]);
       expect(await readStream({ world })).toEqual([]);
       expect(getSandboxSession).not.toHaveBeenCalled();
     });
 
     test('rejects input that is not a JSON value without recording it', async () => {
-      const { log, executeHostTool } = await setup({
+      const { log, executeHostTool, world } = await setup({
         tools: {
           weather: tool({
             inputSchema: z.object({ city: z.string() }),
@@ -640,7 +684,7 @@ describe('createExecuteToolFunctions', () => {
       ).rejects.toThrow(
         'HarnessAgent.executeHostTool: `input` must be a JSON value.',
       );
-      expect((await log.read()).events).toEqual([]);
+      expect(await readLogEvents({ world })).toEqual([]);
     });
 
     test('replays a recorded call without executing or emitting again', async () => {
@@ -691,7 +735,7 @@ describe('createExecuteToolFunctions', () => {
         modelOutput: { type: 'text', value: 'file.txt' },
       };
       expect(output).toEqual({ type: 'result', value });
-      expect(await readEffectEvents({ log, type: 'effect-start' })).toEqual([
+      expect(await readEffectEvents({ world, type: 'effect-start' })).toEqual([
         {
           key: 'tool:call-1',
           attempt: 1,
@@ -701,10 +745,10 @@ describe('createExecuteToolFunctions', () => {
           deliveredSubmissionIds: [],
         },
       ]);
-      expect(await readEffectEvents({ log, type: 'effect-progress' })).toEqual([
-        { startId: expect.any(String), partial: value },
-      ]);
-      expect(await readEffectEvents({ log, type: 'effect-end' })).toEqual([
+      expect(
+        await readEffectEvents({ world, type: 'effect-progress' }),
+      ).toEqual([{ startId: expect.any(String), partial: value }]);
+      expect(await readEffectEvents({ world, type: 'effect-end' })).toEqual([
         { startId: expect.any(String), output: { type: 'result', value } },
       ]);
       expect(await readParts({ world })).toEqual([
@@ -718,20 +762,21 @@ describe('createExecuteToolFunctions', () => {
     });
 
     test('commits tool-execution-start before running execute', async () => {
-      const { log, executeBuiltinTool } = await setup();
+      const { log, executeBuiltinTool, world } = await setup();
       let committedBeforeExecute: unknown[] = [];
 
       await executeBuiltinTool({
         ...bashCall,
         execute: async () => {
-          committedBeforeExecute = (
-            await log.read({ types: ['tool-execution-start'] })
-          ).events;
+          committedBeforeExecute = await readLogEvents({
+            world,
+            types: ['tool-execution-start'],
+          });
           return { raw: 'file.txt' };
         },
       });
 
-      const [start] = (await log.read({ types: ['effect-start'] })).events;
+      const [start] = await readLogEvents({ world, types: ['effect-start'] });
       expect(committedBeforeExecute).toEqual([
         {
           type: 'tool-execution-start',
@@ -742,7 +787,7 @@ describe('createExecuteToolFunctions', () => {
     });
 
     test('runs a never-replay attempt again when its interruption was recorded as retryable', async () => {
-      const { log, executeBuiltinTool } = await setup();
+      const { log, executeBuiltinTool, world } = await setup();
       await log.append({
         type: 'effect-start',
         id: 'abandoned',
@@ -770,7 +815,7 @@ describe('createExecuteToolFunctions', () => {
           execute: async () => ({ raw: 'file.txt' }),
         }),
       ).toEqual({ type: 'result', value: { raw: 'file.txt' } });
-      expect(await readEffectEvents({ log, type: 'effect-start' })).toEqual([
+      expect(await readEffectEvents({ world, type: 'effect-start' })).toEqual([
         expect.objectContaining({ attempt: 1 }),
         expect.objectContaining({ attempt: 2 }),
       ]);
@@ -788,7 +833,9 @@ describe('createExecuteToolFunctions', () => {
       });
 
       expect(output).toEqual({ type: 'result', value: { raw: 'ab' } });
-      expect(await readEffectEvents({ log, type: 'effect-progress' })).toEqual([
+      expect(
+        await readEffectEvents({ world, type: 'effect-progress' }),
+      ).toEqual([
         { startId: expect.any(String), partial: { raw: 'a' } },
         { startId: expect.any(String), partial: { raw: 'ab' } },
       ]);
@@ -828,14 +875,14 @@ describe('createExecuteToolFunctions', () => {
     });
 
     test('uses the built-in tool replay policy', async () => {
-      const { log, executeBuiltinTool } = await setup();
+      const { log, executeBuiltinTool, world } = await setup();
 
       await executeBuiltinTool({
         ...readCall,
         execute: async () => ({ raw: 'contents' }),
       });
 
-      expect(await readEffectEvents({ log, type: 'effect-start' })).toEqual([
+      expect(await readEffectEvents({ world, type: 'effect-start' })).toEqual([
         expect.objectContaining({ name: 'tool.read', replay: 'safe' }),
       ]);
     });
@@ -854,7 +901,7 @@ describe('createExecuteToolFunctions', () => {
         type: 'error',
         error: { message: 'Error: command failed' },
       });
-      expect(await readEffectEvents({ log, type: 'effect-end' })).toEqual([
+      expect(await readEffectEvents({ world, type: 'effect-end' })).toEqual([
         { startId: expect.any(String), output },
       ]);
       expect(await readParts({ world })).toEqual([
@@ -876,10 +923,7 @@ describe('createExecuteToolFunctions', () => {
       });
 
       const execute = vi.fn(async () => ({ raw: 'second' }));
-      const nextDrive = createDrive({
-        world,
-        log: createLog({ world, runId }),
-      });
+      const nextDrive = await createNextDrive({ world });
       const output = await nextDrive.executeBuiltinTool({
         ...bashCall,
         execute,
@@ -888,13 +932,13 @@ describe('createExecuteToolFunctions', () => {
       expect(output).toEqual({ type: 'result', value: { raw: 'first' } });
       expect(execute).not.toHaveBeenCalled();
       expect(
-        await readEffectEvents({ log, type: 'effect-start' }),
+        await readEffectEvents({ world, type: 'effect-start' }),
       ).toHaveLength(1);
       expect(await readParts({ world })).toHaveLength(1);
     });
 
     test('records an attempt as interrupted when the drive stops', async () => {
-      const { log, executeBuiltinTool, abortController } = await setup();
+      const { log, executeBuiltinTool, abortController, world } = await setup();
 
       const pending = executeBuiltinTool({
         ...bashCall,
@@ -904,7 +948,7 @@ describe('createExecuteToolFunctions', () => {
         },
       });
       await expect
-        .poll(() => readEffectEvents({ log, type: 'effect-progress' }))
+        .poll(() => readEffectEvents({ world, type: 'effect-progress' }))
         .toHaveLength(1);
       abortController.abort();
 
@@ -914,7 +958,7 @@ describe('createExecuteToolFunctions', () => {
         partial: { raw: 'partial' },
       };
       expect(await pending).toEqual(output);
-      expect(await readEffectEvents({ log, type: 'effect-end' })).toEqual([
+      expect(await readEffectEvents({ world, type: 'effect-end' })).toEqual([
         { startId: expect.any(String), output },
       ]);
     });
@@ -926,16 +970,13 @@ describe('createExecuteToolFunctions', () => {
         execute: executeUntilAborted,
       });
       await expect
-        .poll(() => readEffectEvents({ log, type: 'effect-start' }))
+        .poll(() => readEffectEvents({ world, type: 'effect-start' }))
         .toHaveLength(1);
       abortController.abort();
       await pending;
 
       const execute = vi.fn(async () => ({ raw: 'second' }));
-      const nextDrive = createDrive({
-        world,
-        log: createLog({ world, runId }),
-      });
+      const nextDrive = await createNextDrive({ world });
 
       expect(
         await nextDrive.executeBuiltinTool({ ...bashCall, execute }),
@@ -950,22 +991,19 @@ describe('createExecuteToolFunctions', () => {
         execute: executeUntilAborted,
       });
       await expect
-        .poll(() => readEffectEvents({ log, type: 'effect-start' }))
+        .poll(() => readEffectEvents({ world, type: 'effect-start' }))
         .toHaveLength(1);
       abortController.abort();
       await pending;
 
-      const nextDrive = createDrive({
-        world,
-        log: createLog({ world, runId }),
-      });
+      const nextDrive = await createNextDrive({ world });
       const output = await nextDrive.executeBuiltinTool({
         ...readCall,
         execute: async () => ({ raw: 'contents' }),
       });
 
       expect(output).toEqual({ type: 'result', value: { raw: 'contents' } });
-      expect(await readEffectEvents({ log, type: 'effect-start' })).toEqual([
+      expect(await readEffectEvents({ world, type: 'effect-start' })).toEqual([
         expect.objectContaining({ attempt: 1 }),
         expect.objectContaining({ attempt: 2 }),
       ]);
@@ -987,11 +1025,7 @@ describe('createExecuteToolFunctions', () => {
       expect(output).toEqual({ type: 'error', error: { message } });
       expect(execute).not.toHaveBeenCalled();
       expect(
-        (
-          await createLog({ world, runId }).read({
-            types: ['tool-execution-start'],
-          })
-        ).events,
+        await readLogEvents({ world, types: ['tool-execution-start'] }),
       ).toEqual([]);
       expect(await readParts({ world })).toEqual([
         {
@@ -1036,7 +1070,7 @@ describe('createExecuteToolFunctions', () => {
     test('starts no attempt once the yield signal fired', async () => {
       const yieldController = new AbortController();
       yieldController.abort();
-      const { log, executeBuiltinTool } = await setup({
+      const { log, executeBuiltinTool, world } = await setup({
         yieldAbortSignal: yieldController.signal,
       });
       const execute = vi.fn(async () => ({ raw: null }));
@@ -1046,11 +1080,13 @@ describe('createExecuteToolFunctions', () => {
         retryable: true,
       });
       expect(execute).not.toHaveBeenCalled();
-      expect(await readEffectEvents({ log, type: 'effect-start' })).toEqual([]);
+      expect(await readEffectEvents({ world, type: 'effect-start' })).toEqual(
+        [],
+      );
     });
 
     test('rejects input that is not a JSON value without recording it', async () => {
-      const { log, executeBuiltinTool } = await setup();
+      const { log, executeBuiltinTool, world } = await setup();
 
       await expect(
         executeBuiltinTool({
@@ -1062,7 +1098,9 @@ describe('createExecuteToolFunctions', () => {
       ).rejects.toThrow(
         'HarnessAgent.executeBuiltinTool: `input` must be a JSON value.',
       );
-      expect(await readEffectEvents({ log, type: 'effect-start' })).toEqual([]);
+      expect(await readEffectEvents({ world, type: 'effect-start' })).toEqual(
+        [],
+      );
     });
   });
 });

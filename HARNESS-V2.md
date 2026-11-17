@@ -199,8 +199,8 @@ type HarnessV2Effect = {
  *
  * This type only lists the log events relevant to the adapter. The agent may
  * write further framework-internal log events (e.g. finished AI SDK steps for
- * `stopWhen`), typed by its own superset of this type; `read()` never returns
- * them to the adapter.
+ * `stopWhen`), typed by its own superset of this type; the log's lookups never
+ * return them to the adapter.
  *
  * Every `data` is a `HarnessV2SerializableValue`. The internal layer encodes
  * it; without a World it should still round-trip it, so a value that cannot
@@ -277,6 +277,21 @@ type HarnessV2LogEvent =
        */
       readonly id?: string;
     };
+
+/**
+ * Each variant of `HarnessV2LogEvent` is also exported on its own, e.g.
+ * `HarnessV2LogSubmissionEvent` and `HarnessV2LogAdapterEvent` (the
+ * `harness:` variant). The log's lookups return them grouped:
+ */
+type HarnessV2LogEffectAttempt = {
+  readonly start: HarnessV2LogEffectStartEvent;
+  readonly end?: HarnessV2LogEffectEndEvent;
+};
+
+type HarnessV2LogTurn = {
+  readonly submissions: readonly HarnessV2LogSubmissionEvent[];
+  readonly finish?: HarnessV2LogFinishTurnEvent;
+};
 
 /**
  * What `executeHostTool()` resolves with: what to send back to the model for the
@@ -456,15 +471,13 @@ interface HarnessV2DriveContext {
    */
   log: {
     /**
-     * Returns the session's log events in log order, optionally only those
-     * after `after` and of the given `types`, plus the `position` where this
-     * read ended. Used to rebuild state on every drive and to read what's new.
-     *
-     * `position` is always a position in the whole log, never a count within
-     * one type: it means "every event of `types` up to here has been seen".
-     * Pass it as `after` to the next read with the same `types` (or a subset);
-     * reusing it with other types can skip events. The harness's own appended
-     * events are returned too, in their actual place among external ones.
+     * The log is the source of truth of the session. Its lookups answer
+     * synchronously from the events the agent has read or written so far,
+     * which the agent keeps current while the drive runs, and return copies.
+     * They apply one set of rules to all events: an `effect-start` is
+     * accepted only as the next attempt of its key after a retryable
+     * interruption, only the first `effect-end` of an attempt counts, and a
+     * turn starts with the first delivery of its prompt.
      *
      * Submissions are log events too. A `prompt` submission carries the turn
      * settings the agent evaluated for it (model, instructions, skills, tools,
@@ -473,10 +486,32 @@ interface HarnessV2DriveContext {
      * if there is one), and a resumed turn keeps them. A `steer` submission
      * joins the running turn and carries none.
      */
-    read(options?: {
-      after?: number;
-      types?: HarnessV2LogEvent['type'][];
-    }): Promise<{ events: HarnessV2LogEvent[]; position: number }>;
+    getSubmissions(): readonly HarnessV2LogSubmissionEvent[];
+    /**
+     * Submissions that no accepted `effect-start` delivered yet.
+     */
+    getUndeliveredSubmissions(): readonly HarnessV2LogSubmissionEvent[];
+    /**
+     * Latest accepted attempt of an effect key: `{ start, end? }`.
+     */
+    getEffect(options: { key: string }): HarnessV2LogEffectAttempt | undefined;
+    /**
+     * Latest accepted attempt of each effect key, ordered by their starts.
+     */
+    getEffects(options?: {
+      keyPrefix?: string;
+    }): readonly HarnessV2LogEffectAttempt[];
+    /**
+     * Latest turn, finished or not: `{ submissions, finish? }`.
+     */
+    getCurrentTurn(): HarnessV2LogTurn | undefined;
+    getTurns(): readonly HarnessV2LogTurn[];
+    /**
+     * The harness's own events, in log order.
+     */
+    getAdapterEvents(options?: {
+      type?: `harness:${string}`;
+    }): readonly HarnessV2LogAdapterEvent[];
     /**
      * Appends one of the harness's own events, such as a journal record.
      * Resolves `true` once the event is accepted, or `false` if an event with
@@ -486,13 +521,11 @@ interface HarnessV2DriveContext {
      * waits for them before a `never` effect and before the drive ends. In
      * durable mode a write can be refused by the fence; the drive must stop.
      */
-    append(
-      event: Extract<HarnessV2LogEvent, { type: `harness:${string}` }>,
-    ): Promise<boolean>;
+    append(event: HarnessV2LogAdapterEvent): Promise<boolean>;
     /**
      * Notifies the listener when log events arrive from outside this drive,
-     * e.g. a `steer` submission mid-turn. The listener reads them with
-     * `read({ after })`. Returns the unsubscribe function.
+     * e.g. a `steer` submission mid-turn, once the lookups include them.
+     * Returns the unsubscribe function.
      */
     onAppend(listener: () => void): () => void;
   };
@@ -735,7 +768,7 @@ const result = agent.stream({ prompt, session });
 ### Crash recovery
 
 - Every drive appends an engine-only `drive-start` event (ID `drive-start:${driveId}`, with the runtime deadline in epoch milliseconds if the World reports one) before it changes anything else in the session.
-- At its start, a drive reads the log. Abandoned attempts are the latest `effect-start` of each effect key without an `effect-end`. If there are any, the drive of the latest `drive-start` must provably be gone: it recorded a `drive-crash`, or its recorded deadline passed. Otherwise the drive ends without changing the session. Attribution by log position assumes one drive at a time, until fencing.
+- At its start, a drive refreshes its log; the rest of the drive looks up the log without refreshing it again, since every append brings the log up to date before writing. Abandoned attempts are the latest accepted attempt of each effect key without an end. If there are any, the drive of the latest `drive-start` must provably be gone: it recorded a `drive-crash`, or its recorded deadline passed. Otherwise the drive ends without changing the session. Attributing the attempts to the latest drive assumes one drive at a time, until fencing.
 - Each abandoned attempt gets an `effect-end` with an `interrupted` output and its last committed partial. It is retryable if its `replay` is `safe`, or if it is a tool call attempt without a `tool-execution-start` event.
 - `executeHostTool()` and `executeBuiltinTool()` commit an engine-only `tool-execution-start` event (ID `tool-execution-start:${startId}`) right before the tool runs, after validation and sandbox resolution. `gateBuiltinTool()` commits it right before approving the call, since gate effects share the `tool:` key with `executeBuiltinTool()` effects. An abandoned tool attempt without it provably never ran its tool. Known gap: a crash after the gate approved but before the runtime started the tool counts as possibly executed.
 - A recorded interruption permits a new attempt whenever it is marked `retryable`, independent of the effect's `replay` policy.
@@ -832,7 +865,7 @@ After a crash, a new drive reruns the harness from the log. Any stream part emit
 - Both finish calls are recorded in the log (`finish-step` and `finish-turn`), which is the source of truth; the stream parts are only emitted after a new append. The events store the call's options plus the turn's `turnId`. `finish-step` is engine-internal (only in `HarnessAgentLogEvent`). `finish-turn` is part of `HarnessV2LogEvent`, readable but not appendable by the adapter: the engine can end a turn without the adapter (e.g. after a failed drive), and an adapter rebuilding from the log must not resume such a turn. The adapter needs no `finish-step` events, since it derives step numbers from its own model call effects and a replayed `finishStep()` call records nothing.
 - A session has at most one turn at a time, so the engine identifies it without input from the adapter: the current turn is the one of the latest `turn-start` event, whether that turn is finished or not. A finished turn stays current until the next turn starts, so a drive that re-enters a finished turn's last step resolves its replayed finish calls to that turn.
 - Log event IDs, which double as the stream record keys, are `finish-step:${turnId}:${stepNumber}` and `finish-turn:${turnId}`.
-- `turnId` (on `turn-start`, `finish-step` and `finish-turn`) is currently the ID of the `prompt` submission that started the turn, and the engine relies on that. To adapters it is an opaque string: an adapter must never use it, let alone assume it is a submission ID, so the submission-to-turn relationship can change (e.g. several prompts merged into one turn) without affecting adapters. An adapter only uses a `finish-turn` event's position in the log.
+- `turnId` (on `turn-start`, `finish-step` and `finish-turn`) is currently the ID of the `prompt` submission that started the turn, and the engine relies on that. To adapters it is an opaque string: an adapter must never use it, let alone assume it is a submission ID, so the submission-to-turn relationship can change (e.g. several prompts merged into one turn) without affecting adapters. An adapter learns which turn a `finish-turn` event finished from the log's turn lookups.
 - `finishStep()` checks `stepNumber` (a non-negative integer) against the steps recorded for the current turn: lower is a replay, equal is a new step. A higher number, a new step for a finished turn, or a call before any turn started rejects with `HarnessInvalidDriveStateError`. `finishTurn()` on a finished turn is a replay; before any turn started it rejects. `finishTurn()` does not check that the turn's steps were finished.
 - Limit: an adapter that replays finish calls of turns older than the current one would misattribute them. Adapters must therefore rebuild from the log and re-enter at most the latest step, never replaying older turns.
 - Crash between the log append and the stream write of a turn boundary part: the part is lost. At the start of a drive in an unfinished turn, the engine writes the turn's `start` and latest `finish-step` parts under their keys if the stream has no record with that key (see "Crash recovery").
@@ -881,7 +914,7 @@ type HarnessAgentStreamWriter = {
 
 - `effectContext.emit` is built by `createEffectFunction()` per attempt, as `writer.emit({ part, startId })`, and drops parts once the attempt ended. The writer is flushed before the attempt's end is committed, so a committed end implies its parts were written or failed.
 - The drive context's `unsafeEmit` is built where the drive context is assembled, as `writer.unsafeEmit(part)`, fenced by the drive's `stopAbortSignal`.
-- `finishStep()` and `finishTurn()` are built together by `createFinishFunctions()`, which reads the log once per drive and keeps their shared turn state current via `onAppend`, so calls never read the log. They call `writer.emit({ part, key })` after their log append returned `true`, with the step key or turn key as `key`.
+- `finishStep()` and `finishTurn()` are built together by `createFinishFunctions()`. Each call looks up the current turn in the log, without a read or subscription of its own. They call `writer.emit({ part, key })` after their log append returned `true`, with the step key or turn key as `key`.
 
 ### Error representation (`HarnessV2EffectError`)
 

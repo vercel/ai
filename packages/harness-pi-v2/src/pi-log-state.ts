@@ -1,7 +1,8 @@
 import type {
   HarnessV2EffectOutput,
   HarnessV2ToolExecutionValue,
-  HarnessV2LogEvent,
+  HarnessV2Log,
+  HarnessV2LogSubmissionEvent,
   HarnessV2TurnSettings,
 } from '@ai-sdk/harness';
 import type { UserModelMessage } from '@ai-sdk/provider-utils';
@@ -114,7 +115,7 @@ export type PiCurrentTurn = {
   firstModelOrdinal: number;
 
   /**
-   * Whether a `finish-turn` event was recorded after the turn started.
+   * Whether the turn finished.
    */
   ended: boolean;
 };
@@ -154,31 +155,46 @@ const MODEL_KEY_PATTERN = /^model:(\d+)$/;
 const TOOL_KEY_PREFIX = 'tool:';
 
 /**
- * Folds the adapter-visible log events into the session state.
+ * Returns the prompt of a submission, or `undefined` for other submissions.
+ */
+function toPromptSubmission(
+  submission: HarnessV2LogSubmissionEvent,
+): PiPromptSubmission | undefined {
+  if (submission.data.type !== 'prompt') return undefined;
+  return {
+    id: submission.id,
+    message: submission.data.message,
+    settings: submission.data.settings,
+  };
+}
+
+/**
+ * Returns the prompts among submissions, in their order.
+ */
+function toPromptSubmissions(
+  submissions: readonly HarnessV2LogSubmissionEvent[],
+): PiPromptSubmission[] {
+  return submissions.flatMap(submission => {
+    const prompt = toPromptSubmission(submission);
+    return prompt == null ? [] : [prompt];
+  });
+}
+
+/**
+ * Looks up the session state in the log.
  *
- * A turn has ended once a `finish-turn` event is recorded after the first
- * effect start that delivered its prompt. Only log positions are compared:
- * the turn ID of a `finish-turn` event is opaque to the adapter. Steering
- * submissions are ignored.
+ * The current turn is the log's current turn. Its first step is the model
+ * effect with the lowest ordinal that delivered its prompt; a turn whose
+ * prompt no model effect delivered is not a current turn of this adapter.
+ * Steering submissions are ignored.
  */
 export function readPiLogState(options: {
   /**
-   * Log events in log order.
+   * Log of the session.
    */
-  events: ReadonlyArray<HarnessV2LogEvent>;
+  log: HarnessV2Log;
 }): PiLogState {
-  const prompts: PiPromptSubmission[] = [];
-  const firstDelivery = new Map<
-    string,
-    { position: number; modelOrdinal?: number }
-  >();
-  const startKeys = new Map<string, string>();
-  const modelEffects = new Map<number, PiModelEffectRecord>();
-  const toolOutputs = new Map<
-    string,
-    HarnessV2EffectOutput<HarnessV2ToolExecutionValue>
-  >();
-  const finishTurnPositions: number[] = [];
+  const { log } = options;
 
   /*
    * The log types effect inputs and outputs as any serializable value, since
@@ -188,87 +204,59 @@ export function readPiLogState(options: {
    * `executeHostTool()` and `executeBuiltinTool()` record each tool effect's
    * results and partials as `HarnessV2ToolExecutionValue`s.
    */
-  options.events.forEach((event, position) => {
-    switch (event.type) {
-      case 'submission':
-        if (event.data.type === 'prompt') {
-          prompts.push({
-            id: event.id,
-            message: event.data.message,
-            settings: event.data.settings,
-          });
-        }
-        return;
-      case 'effect-start': {
-        const { key, input, deliveredSubmissionIds } = event.data;
-        startKeys.set(event.id, key);
-        const modelOrdinal = MODEL_KEY_PATTERN.exec(key)?.[1];
-        const ordinal =
-          modelOrdinal == null ? undefined : Number.parseInt(modelOrdinal, 10);
-        if (ordinal != null) {
-          modelEffects.set(ordinal, {
-            ordinal,
-            input: input as PiRecorded<PiModelEffectInput>,
-            deliveredSubmissionIds,
-          });
-        }
-        for (const submissionId of deliveredSubmissionIds) {
-          if (!firstDelivery.has(submissionId)) {
-            firstDelivery.set(submissionId, {
-              position,
-              modelOrdinal: ordinal,
-            });
-          }
-        }
-        return;
-      }
-      case 'effect-end': {
-        const key = startKeys.get(event.data.startId);
-        if (key == null) return;
-        const modelOrdinal = MODEL_KEY_PATTERN.exec(key)?.[1];
-        if (modelOrdinal != null) {
-          const record = modelEffects.get(Number.parseInt(modelOrdinal, 10));
-          if (record != null) {
-            record.output = event.data.output as HarnessV2EffectOutput<
-              PiRecorded<AssistantMessage>
-            >;
-          }
-        } else if (key.startsWith(TOOL_KEY_PREFIX)) {
-          toolOutputs.set(
-            key.slice(TOOL_KEY_PREFIX.length),
-            event.data
-              .output as HarnessV2EffectOutput<HarnessV2ToolExecutionValue>,
-          );
-        }
-        return;
-      }
-      case 'finish-turn':
-        finishTurnPositions.push(position);
+  const modelEffects: PiModelEffectRecord[] = [];
+  for (const { start, end } of log.getEffects({ keyPrefix: 'model:' })) {
+    const modelOrdinal = MODEL_KEY_PATTERN.exec(start.data.key)?.[1];
+    if (modelOrdinal == null) continue;
+    const record: PiModelEffectRecord = {
+      ordinal: Number.parseInt(modelOrdinal, 10),
+      input: start.data.input as PiRecorded<PiModelEffectInput>,
+      deliveredSubmissionIds: start.data.deliveredSubmissionIds,
+    };
+    if (end != null) {
+      record.output = end.data.output as HarnessV2EffectOutput<
+        PiRecorded<AssistantMessage>
+      >;
     }
-  });
+    modelEffects.push(record);
+  }
+  modelEffects.sort((left, right) => left.ordinal - right.ordinal);
+
+  const toolOutputs = new Map<
+    string,
+    HarnessV2EffectOutput<HarnessV2ToolExecutionValue>
+  >();
+  for (const { start, end } of log.getEffects({ keyPrefix: TOOL_KEY_PREFIX })) {
+    if (end == null) continue;
+    toolOutputs.set(
+      start.data.key.slice(TOOL_KEY_PREFIX.length),
+      end.data.output as HarnessV2EffectOutput<HarnessV2ToolExecutionValue>,
+    );
+  }
 
   let currentTurn: PiCurrentTurn | undefined;
-  let latestDelivery = -1;
-  for (const prompt of prompts) {
-    const delivery = firstDelivery.get(prompt.id);
-    if (delivery == null || delivery.modelOrdinal == null) continue;
-    if (delivery.position < latestDelivery) continue;
-    latestDelivery = delivery.position;
+  const turn = log.getCurrentTurn();
+  const turnSubmission = turn?.submissions[0];
+  const prompt =
+    turnSubmission == null ? undefined : toPromptSubmission(turnSubmission);
+  const firstModelEffect =
+    prompt == null
+      ? undefined
+      : modelEffects.find(record =>
+          record.deliveredSubmissionIds.includes(prompt.id),
+        );
+  if (turn != null && prompt != null && firstModelEffect != null) {
     currentTurn = {
       prompt,
-      firstModelOrdinal: delivery.modelOrdinal,
-      ended: finishTurnPositions.some(
-        finishPosition => finishPosition > delivery.position,
-      ),
+      firstModelOrdinal: firstModelEffect.ordinal,
+      ended: turn.finish != null,
     };
   }
 
   return {
-    prompts,
-    pendingPrompts: prompts.filter(prompt => !firstDelivery.has(prompt.id)),
-    modelEffects: [...modelEffects.values()].sort(
-      (left, right) => left.ordinal - right.ordinal,
-    ),
+    prompts: toPromptSubmissions(log.getSubmissions()),
+    pendingPrompts: toPromptSubmissions(log.getUndeliveredSubmissions()),
+    modelEffects,
     toolOutputs,
     currentTurn,
   };

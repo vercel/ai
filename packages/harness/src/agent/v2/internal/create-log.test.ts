@@ -4,8 +4,16 @@ import {
 } from '@ai-sdk/provider-utils';
 import { slotToEventId, type EventResult } from '@workflow/world';
 import { afterEach, describe, expect, test, vi } from 'vitest';
+import type { HarnessV2EffectOutput } from '../../../v2/harness-v2-effect';
 import { InMemoryWorld } from '../in-memory-world';
-import { createLog, type HarnessAgentLogEvent } from './create-log';
+import {
+  createLog,
+  type HarnessAgentLog,
+  type HarnessAgentLogEffectEndEvent,
+  type HarnessAgentLogEffectStartEvent,
+  type HarnessAgentLogEvent,
+  type HarnessAgentLogSubmissionEvent,
+} from './create-log';
 
 afterEach(() => vi.useRealTimers());
 
@@ -36,8 +44,26 @@ async function settle(): Promise<void> {
   for (let index = 0; index < 100; index++) await Promise.resolve();
 }
 
+/**
+ * Refreshes a log and returns its adapter events, the event type most of
+ * these tests append.
+ */
+async function readAdapterEvents(log: HarnessAgentLog) {
+  await log.refresh();
+  return log.getAdapterEvents();
+}
+
+/**
+ * Creates a log of a new session with the given events appended.
+ */
+async function logOf(events: HarnessAgentLogEvent[]) {
+  const { log } = await setup();
+  for (const event of events) await log.append(event);
+  return log;
+}
+
 describe('createLog', () => {
-  test('replays host-owned event variants and filters by committed positions', async () => {
+  test('replays host-owned event variants into the lookups', async () => {
     const { world, runId, log } = await setup();
     const events: HarnessAgentLogEvent[] = [
       {
@@ -72,17 +98,15 @@ describe('createLog', () => {
     ];
     for (const event of events)
       await expect(log.append(event)).resolves.toBe(true);
-    await expect(createLog({ world, runId }).read()).resolves.toEqual({
-      events,
-      position: 4,
+    const replayed = createLog({ world, runId });
+    await replayed.refresh();
+    expect(replayed.getSubmissions()).toEqual([events[0]]);
+    expect(replayed.getUndeliveredSubmissions()).toEqual([]);
+    expect(replayed.getEffect({ key: 'tool' })).toEqual({
+      start: events[1],
+      end: events[2],
     });
-    await expect(
-      log.read({ after: 2, types: ['effect-start'] }),
-    ).resolves.toEqual({ events: [events[1]], position: 4 });
-    await expect(log.read({ after: 4 })).resolves.toEqual({
-      events: [],
-      position: 4,
-    });
+    expect(log.getEffects()).toEqual(replayed.getEffects());
   });
 
   test('counts sealed no-op records without exposing them as agent events', async () => {
@@ -108,14 +132,25 @@ describe('createLog', () => {
         { ...page.data[1], eventId: slotToEventId(3) },
       ],
     });
-    await expect(log.read({ after: 2 })).resolves.toEqual({
-      events: [event],
-      position: 3,
-    });
-    await expect(log.read({ after: 3 })).resolves.toEqual({
-      events: [],
-      position: 3,
-    });
+    expect(await readAdapterEvents(log)).toEqual([event]);
+    expect(await readAdapterEvents(log)).toEqual([event]);
+  });
+
+  test('looks up events from other instances only once a refresh or append fetched them', async () => {
+    const { world, runId, log } = await setup();
+    const other = createLog({ world, runId });
+    const first = { type: 'harness:journal', id: 'first', data: 1 } as const;
+    const second = { type: 'harness:journal', id: 'second', data: 2 } as const;
+    const own = { type: 'harness:journal', id: 'own', data: 3 } as const;
+
+    await other.append(first);
+    expect(log.getAdapterEvents()).toEqual([]);
+    await log.refresh();
+    expect(log.getAdapterEvents()).toEqual([first]);
+
+    await other.append(second);
+    await log.append(own);
+    expect(log.getAdapterEvents()).toEqual([first, second, own]);
   });
 
   test.each([
@@ -145,15 +180,15 @@ describe('createLog', () => {
     'refuses malformed reserved records without poisoning the previously cached prefix',
     async bytes => {
       const { world, runId, log } = await setup();
-      await log.read();
+      await log.refresh();
       await world.events.create(runId, {
         eventType: 'step_created',
         correlationId: 'malformed',
         eventData: { stepName: 'harness-agent-log', input: bytes },
       });
       const list = vi.spyOn(world.events, 'list');
-      await expect(log.read()).rejects.toThrow();
-      await expect(log.read()).rejects.toThrow();
+      await expect(log.refresh()).rejects.toThrow();
+      await expect(log.refresh()).rejects.toThrow();
       expect(list.mock.calls.map(call => call[0].pagination?.cursor)).toEqual([
         slotToEventId(1),
         slotToEventId(1),
@@ -161,7 +196,7 @@ describe('createLog', () => {
     },
   );
 
-  test('reads all event types with a whole-log position and deduplicates IDs', async () => {
+  test('deduplicates IDs and filters adapter events by type', async () => {
     const { log } = await setup();
     const firstEvent = {
       type: 'harness:journal',
@@ -182,12 +217,12 @@ describe('createLog', () => {
     await expect(log.append(firstEvent)).resolves.toBe(false);
     await expect(log.append(secondEvent)).resolves.toBe(true);
 
-    await expect(
-      log.read({ after: 2, types: ['harness:journal'] }),
-    ).resolves.toEqual({ events: [secondEvent], position: 3 });
-    await expect(
-      log.read({ after: 2, types: ['effect-start'] }),
-    ).resolves.toEqual({ events: [], position: 3 });
+    expect(log.getAdapterEvents()).toEqual([firstEvent, secondEvent]);
+    expect(log.getAdapterEvents({ type: 'harness:journal' })).toEqual([
+      firstEvent,
+      secondEvent,
+    ]);
+    expect(log.getAdapterEvents({ type: 'harness:other' })).toEqual([]);
   });
 
   test('filters live append notifications and observes writes from another log', async () => {
@@ -196,7 +231,7 @@ describe('createLog', () => {
     const writer = createLog({ world, runId: 'session-id' });
     const listener = vi.fn();
 
-    await observer.read();
+    await observer.refresh();
     const unsubscribe = observer.onAppend({
       listener,
       config: {
@@ -272,7 +307,7 @@ describe('createLog', () => {
     try {
       await expect(log.append(event)).resolves.toBe(true);
       expect(listener).toHaveBeenCalledExactlyOnceWith(event);
-      expect((await log.read()).events).toEqual([event]);
+      expect(await readAdapterEvents(log)).toEqual([event]);
       expect(data.nested.count).toBe(1);
       expect(data.date.getTime()).toBe(0);
       expect(data.bytes).toEqual(new Uint8Array([1]));
@@ -296,9 +331,9 @@ describe('createLog', () => {
     const listener = vi.fn();
     const unsubscribe = log.onAppend({ listener });
     try {
-      expect((await log.read()).events).toEqual([cached, discovered]);
+      expect(await readAdapterEvents(log)).toEqual([cached, discovered]);
       expect(listener).toHaveBeenCalledExactlyOnceWith(discovered);
-      await log.read();
+      await log.refresh();
       await expect(log.append(discovered)).resolves.toBe(false);
       expect(listener).toHaveBeenCalledTimes(1);
       unsubscribe();
@@ -337,7 +372,7 @@ describe('createLog', () => {
       false,
       true,
     ]);
-    expect((await log.read()).events).toEqual([
+    expect(await readAdapterEvents(log)).toEqual([
       event,
       { type: 'harness:journal', id: 'event', data: { value: 2 } },
     ]);
@@ -386,13 +421,14 @@ describe('createLog', () => {
             .sort(),
         ).toEqual([true, true]);
       expect((await world.events.list({ runId })).data).toHaveLength(3);
-      const canonical = await log.read();
-      expect(canonical.events).toHaveLength(1);
-      expect(canonical.position).toBe(3);
-      expect(await other.read()).toEqual(canonical);
-      expect(await createLog({ world, runId }).read()).toEqual(canonical);
+      const canonical = await readAdapterEvents(log);
+      expect(canonical).toHaveLength(1);
+      expect(await readAdapterEvents(other)).toEqual(canonical);
+      expect(await readAdapterEvents(createLog({ world, runId }))).toEqual(
+        canonical,
+      );
       await expect(
-        createLog({ world, runId }).append(canonical.events[0]),
+        createLog({ world, runId }).append(canonical[0]),
       ).resolves.toBe(false);
     },
   );
@@ -409,7 +445,7 @@ describe('createLog', () => {
         other.append({ ...event, id: 'two' }),
       ]),
     ).resolves.toEqual([true, true, true, true]);
-    expect((await log.read()).events).toHaveLength(4);
+    expect(await readAdapterEvents(log)).toHaveLength(4);
   });
 
   test('adds and delivers repeated physical records for one event ID only once', async () => {
@@ -438,14 +474,8 @@ describe('createLog', () => {
     const listener = vi.fn();
     const unsubscribe = log.onAppend({ listener });
     try {
-      await expect(log.read()).resolves.toEqual({
-        events: [event],
-        position: 3,
-      });
-      await expect(log.read({ after: 2 })).resolves.toEqual({
-        events: [],
-        position: 3,
-      });
+      expect(await readAdapterEvents(log)).toEqual([event]);
+      expect(await readAdapterEvents(log)).toEqual([event]);
       expect(listener).toHaveBeenCalledExactlyOnceWith(event);
     } finally {
       unsubscribe();
@@ -475,11 +505,10 @@ describe('createLog', () => {
     expect(write).toHaveBeenCalledTimes(2);
     await original!();
     expect((await world.events.list({ runId })).data).toHaveLength(3);
-    await expect(log.read()).resolves.toEqual({ events: [event], position: 3 });
-    await expect(createLog({ world, runId }).read()).resolves.toEqual({
-      events: [event],
-      position: 3,
-    });
+    expect(await readAdapterEvents(log)).toEqual([event]);
+    expect(await readAdapterEvents(createLog({ world, runId }))).toEqual([
+      event,
+    ]);
   });
 
   test('returns false for an existing identical ID and rejects conflicting reuse without writing', async () => {
@@ -515,7 +544,7 @@ describe('createLog', () => {
     } as const;
     await expect(log.append(event)).resolves.toBe(true);
     expect(write).toHaveBeenCalledTimes(1);
-    expect((await log.read()).events).toEqual([event]);
+    expect(await readAdapterEvents(log)).toEqual([event]);
   });
 
   test('confirms a concurrent matching event after an uncertain write without resending', async () => {
@@ -534,10 +563,7 @@ describe('createLog', () => {
       });
     await expect(log.append(event)).resolves.toBe(true);
     expect(write).toHaveBeenCalledTimes(2);
-    await expect(log.read()).resolves.toEqual({
-      events: [event],
-      position: 2,
-    });
+    expect(await readAdapterEvents(log)).toEqual([event]);
     await expect(log.append(event)).resolves.toBe(false);
     expect(write).toHaveBeenCalledTimes(2);
   });
@@ -569,7 +595,7 @@ describe('createLog', () => {
         }),
       ),
     });
-    expect((await log.read()).events).toEqual([event]);
+    expect(await readAdapterEvents(log)).toEqual([event]);
   });
 
   test('does not resend while reconciliation fails and latches exhausted recovery', async () => {
@@ -604,7 +630,7 @@ describe('createLog', () => {
     ]);
     expect(write).toHaveBeenCalledTimes(1);
     writing = false;
-    await expect(log.read()).resolves.toEqual({ events: [], position: 1 });
+    expect(await readAdapterEvents(log)).toEqual([]);
     await expect(
       log.append({ type: 'harness:journal', id: 'event-3', data: 3 }),
     ).rejects.toThrow('recreate the log');
@@ -654,7 +680,7 @@ describe('createLog', () => {
     response.reject(new Error('late response'));
     await settle();
     expect(write).toHaveBeenCalledTimes(1);
-    expect((await log.read()).events).toEqual([event]);
+    expect(await readAdapterEvents(log)).toEqual([event]);
     expect(vi.getTimerCount()).toBe(0);
   });
 
@@ -711,10 +737,9 @@ describe('createLog', () => {
         log.append({ type: 'harness:journal', id: 'event-1', data: 1 }),
       ).resolves.toBe(true);
       expect(list.mock.calls.length).toBe(report === 'complete' ? 1 : 2);
-      await expect(log.read()).resolves.toEqual({
-        events: [{ type: 'harness:journal', id: 'event-1', data: 1 }],
-        position: 3,
-      });
+      expect(await readAdapterEvents(log)).toEqual([
+        { type: 'harness:journal', id: 'event-1', data: 1 },
+      ]);
     },
   );
 
@@ -737,16 +762,13 @@ describe('createLog', () => {
           pagination: { ...params.pagination, limit: 2 },
         });
       });
-    await expect(log.read()).rejects.toThrow('page failed');
-    await expect(log.read()).resolves.toEqual({
-      events: [
-        { type: 'harness:journal', id: 'one', data: 1 },
-        { type: 'harness:journal', id: 'two', data: 2 },
-      ],
-      position: 3,
-    });
+    await expect(log.refresh()).rejects.toThrow('page failed');
+    expect(await readAdapterEvents(log)).toEqual([
+      { type: 'harness:journal', id: 'one', data: 1 },
+      { type: 'harness:journal', id: 'two', data: 2 },
+    ]);
     calls.mockClear();
-    await log.read();
+    await log.refresh();
     expect(calls.mock.calls[0][0].pagination?.cursor).toBe(slotToEventId(3));
   });
 
@@ -761,8 +783,8 @@ describe('createLog', () => {
       },
     });
     const list = vi.spyOn(world.events, 'list');
-    await expect(log.read()).rejects.toThrow('unsupported storage envelope');
-    await expect(log.read()).rejects.toThrow('unsupported storage envelope');
+    await expect(log.refresh()).rejects.toThrow('unsupported storage envelope');
+    await expect(log.refresh()).rejects.toThrow('unsupported storage envelope');
     expect(list.mock.calls.map(call => call[0].pagination?.cursor)).toEqual([
       undefined,
       undefined,
@@ -785,14 +807,15 @@ describe('createLog', () => {
       const page = await list(params);
       return { ...page, data: page.data.slice(1) };
     });
-    await expect(log.read()).rejects.toThrow('incomplete World event prefix');
-    await expect(log.read()).resolves.toEqual({
-      events: [{ type: 'harness:journal', id: 'event-1', data: 1 }],
-      position: 2,
-    });
+    await expect(log.refresh()).rejects.toThrow(
+      'incomplete World event prefix',
+    );
+    expect(await readAdapterEvents(log)).toEqual([
+      { type: 'harness:journal', id: 'event-1', data: 1 },
+    ]);
   });
 
-  test('round-trips rich values and protects cached records across checkpoint restoration', async () => {
+  test('round-trips rich values across checkpoint restoration', async () => {
     const { world, runId, log } = await setup();
     const event: HarnessAgentLogEvent = {
       type: 'harness:journal',
@@ -811,15 +834,12 @@ describe('createLog', () => {
       },
     };
     await log.append(event);
-    const read = await log.read();
-    expect(read.events).toEqual([event]);
-    (read.events[0] as { data: unknown }).data = null;
-    expect((await log.read()).events).toEqual([event]);
+    expect(await readAdapterEvents(log)).toEqual([event]);
     const restored = new InMemoryWorld();
     await restored.seedJson({ runId, data: await world.exportJson({ runId }) });
-    await expect(createLog({ world: restored, runId }).read()).resolves.toEqual(
-      { events: [event], position: 2 },
-    );
+    expect(
+      await readAdapterEvents(createLog({ world: restored, runId })),
+    ).toEqual([event]);
     const replay = createLog({ world: restored, runId });
     await expect(replay.append(event)).resolves.toBe(false);
     await expect(
@@ -829,7 +849,7 @@ describe('createLog', () => {
 
   test('isolates callback exceptions and hint publishing failures from committed appends', async () => {
     const { world, log } = await setup();
-    await log.read();
+    await log.refresh();
     vi.spyOn(world.streams, 'write').mockRejectedValue(
       new Error('hint unavailable'),
     );
@@ -845,7 +865,9 @@ describe('createLog', () => {
         log.append({ type: 'harness:journal', id: 'event-1', data: 1 }),
       ).resolves.toBe(true);
       expect(listener).toHaveBeenCalledTimes(1);
-      expect((await log.read()).position).toBe(2);
+      expect(await readAdapterEvents(log)).toEqual([
+        { type: 'harness:journal', id: 'event-1', data: 1 },
+      ]);
     } finally {
       unsubscribeThrowing();
       unsubscribe();
@@ -864,7 +886,7 @@ describe('createLog', () => {
       });
     const writer = createLog({ world, runId });
     const listener = vi.fn();
-    await log.read();
+    await log.refresh();
     const unsubscribe = log.onAppend({ listener });
     try {
       await settle();
@@ -885,12 +907,12 @@ describe('createLog', () => {
 
   test('handles listener reentrancy, asynchronous rejection and unsubscribe during notification', async () => {
     const { log } = await setup();
-    await log.read();
-    let read: ReturnType<typeof log.read> | undefined;
+    await log.refresh();
+    let read: Promise<void> | undefined;
     let unsubscribeOther = () => {};
     const unsubscribeFirst = log.onAppend({
       listener: () => {
-        read = log.read();
+        read = log.refresh();
         unsubscribeOther();
       },
     });
@@ -905,10 +927,10 @@ describe('createLog', () => {
       await expect(
         log.append({ type: 'harness:journal', id: 'event-1', data: 1 }),
       ).resolves.toBe(true);
-      await expect(read).resolves.toEqual({
-        events: [{ type: 'harness:journal', id: 'event-1', data: 1 }],
-        position: 2,
-      });
+      await expect(read).resolves.toBeUndefined();
+      expect(log.getAdapterEvents()).toEqual([
+        { type: 'harness:journal', id: 'event-1', data: 1 },
+      ]);
       expect(other).not.toHaveBeenCalled();
       await settle();
     } finally {
@@ -940,7 +962,7 @@ describe('createLog', () => {
     vi.spyOn(world.streams, 'get').mockRejectedValue(new Error('disconnected'));
     vi.spyOn(world.streams, 'write').mockRejectedValue(new Error('lost hint'));
     const listener = vi.fn();
-    await log.read();
+    await log.refresh();
     const unsubscribe = log.onAppend({ listener });
     try {
       await settle();
@@ -999,7 +1021,7 @@ describe('createLog', () => {
       }),
     );
     const listener = vi.fn();
-    await log.read();
+    await log.refresh();
     const unsubscribe = log.onAppend({ listener });
     try {
       await settle();
@@ -1035,7 +1057,7 @@ describe('createLog', () => {
       }),
     );
     const listener = vi.fn();
-    await log.read();
+    await log.refresh();
     const unsubscribe = log.onAppend({ listener });
     try {
       await settle();
@@ -1098,7 +1120,7 @@ describe('createLog', () => {
     vi.spyOn(world.streams, 'getInfo').mockImplementation((_runId, ...args) =>
       info('global', ...args),
     );
-    await log.read();
+    await log.refresh();
     const listener = vi.fn();
     const unsubscribe = log.onAppend({ listener });
     try {
@@ -1117,11 +1139,310 @@ describe('createLog', () => {
       });
       await vi.waitFor(() => expect(listener).toHaveBeenCalledTimes(1));
       expect(new Set(writes.mock.calls.map(call => call[1])).size).toBe(2);
-      expect((await log.read()).events).toEqual([
+      expect(await readAdapterEvents(log)).toEqual([
         { type: 'harness:journal', id: 'event', data: 'this' },
       ]);
     } finally {
       unsubscribe();
     }
+  });
+});
+
+function prompt(id: string): HarnessAgentLogSubmissionEvent {
+  return {
+    type: 'submission',
+    id,
+    data: {
+      type: 'prompt',
+      message: { role: 'user', content: id },
+      settings: { skills: [], tools: [] },
+    },
+  };
+}
+
+function start(options: {
+  id: string;
+  key: string;
+  attempt?: number;
+  delivered?: string[];
+}): HarnessAgentLogEffectStartEvent {
+  return {
+    type: 'effect-start',
+    id: options.id,
+    data: {
+      key: options.key,
+      attempt: options.attempt ?? 1,
+      name: 'test',
+      replay: 'safe',
+      input: null,
+      deliveredSubmissionIds: options.delivered ?? [],
+    },
+  };
+}
+
+function end(options: {
+  id: string;
+  startId: string;
+  output?: HarnessV2EffectOutput;
+}): HarnessAgentLogEffectEndEvent {
+  return {
+    type: 'effect-end',
+    id: options.id,
+    data: {
+      startId: options.startId,
+      output: options.output ?? { type: 'result', value: options.id },
+    },
+  };
+}
+
+const retryable: HarnessV2EffectOutput = {
+  type: 'interrupted',
+  retryable: true,
+};
+
+const usage = {
+  inputTokens: {
+    total: undefined,
+    noCache: undefined,
+    cacheRead: undefined,
+    cacheWrite: undefined,
+  },
+  outputTokens: { total: undefined, text: undefined, reasoning: undefined },
+};
+
+describe('createLog lookups', () => {
+  test('accepts a start only as the next attempt after a retryable interruption', async () => {
+    const log = await logOf([
+      start({ id: 'a1', key: 'a' }),
+      start({ id: 'a1-again', key: 'a' }),
+      start({ id: 'a2-early', key: 'a', attempt: 2 }),
+      end({ id: 'a1-end', startId: 'a1', output: retryable }),
+      start({ id: 'a3', key: 'a', attempt: 3 }),
+      start({ id: 'a2', key: 'a', attempt: 2 }),
+      end({ id: 'a2-end', startId: 'a2' }),
+      start({ id: 'a3-late', key: 'a', attempt: 3 }),
+      start({ id: 'b2', key: 'b', attempt: 2 }),
+    ]);
+
+    expect(log.getEffect({ key: 'a' })).toEqual({
+      start: start({ id: 'a2', key: 'a', attempt: 2 }),
+      end: end({ id: 'a2-end', startId: 'a2' }),
+    });
+    expect(log.getEffect({ key: 'b' })).toBeUndefined();
+  });
+
+  test('does not accept a new attempt after a non-retryable interruption', async () => {
+    const log = await logOf([
+      start({ id: 'a1', key: 'a' }),
+      end({
+        id: 'a1-end',
+        startId: 'a1',
+        output: { type: 'interrupted', retryable: false },
+      }),
+      start({ id: 'a2', key: 'a', attempt: 2 }),
+    ]);
+
+    expect(log.getEffect({ key: 'a' })?.start.id).toBe('a1');
+  });
+
+  test('applies progress and the first end only to the open latest attempt', async () => {
+    const log = await logOf([
+      start({ id: 'a1', key: 'a' }),
+      {
+        type: 'effect-progress',
+        id: 'p1',
+        data: { startId: 'a1', partial: 1 },
+      },
+      {
+        type: 'effect-progress',
+        id: 'p2',
+        data: { startId: 'a1', partial: 2 },
+      },
+      end({ id: 'a1-end', startId: 'a1', output: retryable }),
+      end({ id: 'a1-late-end', startId: 'a1' }),
+      {
+        type: 'effect-progress',
+        id: 'p3',
+        data: { startId: 'a1', partial: 3 },
+      },
+      start({ id: 'a2', key: 'a', attempt: 2 }),
+      end({ id: 'a1-stale-end', startId: 'a1' }),
+      end({ id: 'unknown-end', startId: 'unknown' }),
+    ]);
+
+    expect(log.getEffect({ key: 'a' })).toEqual({
+      start: start({ id: 'a2', key: 'a', attempt: 2 }),
+    });
+    expect(
+      (
+        await logOf([
+          start({ id: 'a1', key: 'a' }),
+          {
+            type: 'effect-progress',
+            id: 'p1',
+            data: { startId: 'a1', partial: 1 },
+          },
+          {
+            type: 'effect-progress',
+            id: 'p2',
+            data: { startId: 'a1', partial: 2 },
+          },
+          end({ id: 'a1-end', startId: 'a1' }),
+          end({ id: 'a1-late-end', startId: 'a1', output: retryable }),
+        ])
+      ).getEffect({ key: 'a' }),
+    ).toEqual({
+      start: start({ id: 'a1', key: 'a' }),
+      progress: {
+        type: 'effect-progress',
+        id: 'p2',
+        data: { startId: 'a1', partial: 2 },
+      },
+      end: end({ id: 'a1-end', startId: 'a1' }),
+    });
+  });
+
+  test('orders effects by the start of their latest attempt and filters them', async () => {
+    const log = await logOf([
+      start({ id: 'a1', key: 'tool:a' }),
+      end({ id: 'a1-end', startId: 'a1', output: retryable }),
+      start({ id: 'b1', key: 'model:0' }),
+      start({ id: 'a2', key: 'tool:a', attempt: 2 }),
+    ]);
+
+    expect(log.getEffects().map(attempt => attempt.start.id)).toEqual([
+      'b1',
+      'a2',
+    ]);
+    expect(
+      log.getEffects({ keyPrefix: 'tool:' }).map(attempt => attempt.start.id),
+    ).toEqual(['a2']);
+  });
+
+  test('counts only submissions delivered by accepted starts', async () => {
+    const log = await logOf([
+      prompt('p1'),
+      prompt('p2'),
+      prompt('p3'),
+      start({ id: 'a1', key: 'a', delivered: ['p1'] }),
+      start({ id: 'a1-again', key: 'a', delivered: ['p2'] }),
+    ]);
+
+    expect(log.getSubmissions().map(submission => submission.id)).toEqual([
+      'p1',
+      'p2',
+      'p3',
+    ]);
+    expect(
+      log.getUndeliveredSubmissions().map(submission => submission.id),
+    ).toEqual(['p2', 'p3']);
+  });
+
+  test('builds turns and files accepted attempts under the current turn', async () => {
+    const log = await logOf([
+      prompt('p1'),
+      start({ id: 'before', key: 'before' }),
+      { type: 'turn-start', id: 'turn-start:p1', data: { turnId: 'p1' } },
+      start({ id: 'm0', key: 'model:0', delivered: ['p1'] }),
+      {
+        type: 'finish-step',
+        id: 'finish-step:p1:0',
+        data: {
+          turnId: 'p1',
+          stepNumber: 0,
+          finishReason: { unified: 'stop', raw: undefined },
+          usage,
+        },
+      },
+      {
+        type: 'finish-turn',
+        id: 'finish-turn:p1',
+        data: {
+          turnId: 'p1',
+          finishReason: { unified: 'stop', raw: undefined },
+          totalUsage: usage,
+        },
+      },
+      prompt('p2'),
+      { type: 'turn-start', id: 'turn-start:p2', data: { turnId: 'p2' } },
+      start({ id: 'm1', key: 'model:1', delivered: ['p2'] }),
+    ]);
+
+    const turns = log.getTurns();
+    expect(turns).toHaveLength(2);
+    expect(turns[0]).toMatchObject({
+      start: { id: 'turn-start:p1' },
+      submissions: [{ id: 'p1' }],
+      steps: [{ id: 'finish-step:p1:0' }],
+      finish: { id: 'finish-turn:p1' },
+    });
+    expect(log.getCurrentTurn()).toBe(turns[1]);
+    expect(log.getCurrentTurn()).toMatchObject({
+      submissions: [{ id: 'p2' }],
+      steps: [],
+    });
+    expect(log.getCurrentTurn()?.finish).toBeUndefined();
+    expect(
+      log.getEffects({ turnId: 'p1' }).map(attempt => attempt.start.id),
+    ).toEqual(['m0']);
+    expect(
+      log.getEffects({ turnId: 'p2' }).map(attempt => attempt.start.id),
+    ).toEqual(['m1']);
+  });
+
+  test('attaches recorded crashes to their drives', async () => {
+    const log = await logOf([
+      {
+        type: 'drive-crash',
+        id: 'drive-crash:d1',
+        data: { driveId: 'd1', requestId: 'r1' },
+      },
+      { type: 'drive-start', id: 'drive-start:d1', data: { driveId: 'd1' } },
+      { type: 'drive-start', id: 'drive-start:d2', data: { driveId: 'd2' } },
+    ]);
+
+    expect(log.getLatestDrive()).toEqual({
+      start: {
+        type: 'drive-start',
+        id: 'drive-start:d2',
+        data: { driveId: 'd2' },
+      },
+    });
+
+    await log.append({
+      type: 'drive-crash',
+      id: 'drive-crash:d2',
+      data: { driveId: 'd2', requestId: 'r2' },
+    });
+    expect(log.getLatestDrive()?.crash?.id).toBe('drive-crash:d2');
+  });
+
+  test('tracks tool execution starts and adapter events, ignoring crash requests', async () => {
+    const log = await logOf([
+      start({ id: 't1', key: 'tool:call-1' }),
+      {
+        type: 'tool-execution-start',
+        id: 'tool-execution-start:t1',
+        data: { startId: 't1' },
+      },
+      { type: 'crash-request', id: 'crash-1', data: {} },
+      { type: 'harness:a', id: 'a', data: 1 },
+      { type: 'harness:b', id: 'b', data: 2 },
+    ]);
+
+    expect(log.hasToolExecutionStart({ startId: 't1' })).toBe(true);
+    expect(log.hasToolExecutionStart({ startId: 't2' })).toBe(false);
+    expect(log.getAdapterEvents().map(event => event.id)).toEqual(['a', 'b']);
+    expect(
+      log.getAdapterEvents({ type: 'harness:b' }).map(event => event.id),
+    ).toEqual(['b']);
+  });
+
+  test('returns arrays that do not change the lookups', async () => {
+    const log = await logOf([prompt('p1')]);
+
+    (log.getSubmissions() as HarnessAgentLogSubmissionEvent[]).length = 0;
+
+    expect(log.getSubmissions()).toHaveLength(1);
   });
 });

@@ -1,84 +1,146 @@
-import type { HarnessV2LogEvent, HarnessV2ToolSpec } from '@ai-sdk/harness';
+import type { HarnessV2, HarnessV2DriveContext } from '@ai-sdk/harness';
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { tool, type ToolSet } from '@ai-sdk/provider-utils';
+import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
 import { describe, expect, test } from 'vitest';
+import { z } from 'zod/v4';
+import { FX_BUILTIN_TOOLS } from './fx-builtin-tools';
 import { FxDrive, toFxPromptInput } from './fx-drive';
 import { readFxLogState } from './fx-log-state';
 import {
-  createTestDriveContext,
   createTestModelRuntime,
   readFixture,
-  type TestDriveContext,
-  type TestModelRuntime,
+  type TestModelResponse,
 } from './test-helpers';
 
-const BASH_TOOL: HarnessV2ToolSpec = {
-  name: 'bash',
-  description: 'Runs a shell command.',
-  inputSchema: {
-    type: 'object',
-    properties: { command: { type: 'string' } },
-    required: ['command'],
-  },
-};
-
-async function drive(options: {
-  test: TestDriveContext;
-  runtime: TestModelRuntime;
-}) {
-  await new FxDrive({
-    sessionId: 'session-1',
-    context: options.test.context,
-    runtime: options.runtime,
-  }).run();
+/**
+ * Creates a session of a `HarnessAgent` whose drives run `FxDrive` with
+ * scripted model responses. The agent, its log and its effects are real;
+ * `wrapContext` lets a test change what the adapter sees of a drive's
+ * context, e.g. to stop the drive midway, which the agent itself only does
+ * once a drive ended.
+ */
+async function setup(
+  options: { tools?: ToolSet; responses?: TestModelResponse[] } = {},
+) {
+  const runtime = createTestModelRuntime({ responses: options.responses });
+  const contexts: HarnessV2DriveContext[] = [];
+  const hooks: {
+    wrapContext?: (context: HarnessV2DriveContext) => HarnessV2DriveContext;
+  } = {};
+  const harness: HarnessV2<typeof FX_BUILTIN_TOOLS> = {
+    specificationVersion: 'harness-v2',
+    harnessId: 'fx',
+    builtinTools: FX_BUILTIN_TOOLS,
+    async drive({ sessionId, context }) {
+      const driveContext = hooks.wrapContext?.(context) ?? context;
+      contexts.push(driveContext);
+      await new FxDrive({ sessionId, context: driveContext, runtime }).run();
+    },
+  };
+  const sandboxSession = await createJustBashNetworkSandboxSession({
+    sandboxId: 'sandbox-1',
+  });
+  const agent = new HarnessAgent({
+    harness,
+    tools: options.tools ?? {},
+    sandboxConfig: { workDir: 'project' },
+    getSandboxSession: async () => sandboxSession,
+  });
+  const session = await agent.createSession({ sandboxSession });
+  const projectPath = (path: string) =>
+    `${sandboxSession.defaultWorkingDirectory}/project/${path}`;
+  const log = () => contexts.at(-1)!.log;
+  return {
+    agent,
+    session,
+    runtime,
+    hooks,
+    readState: () => readFxLogState({ log: log() }),
+    effectKeys: () =>
+      log()
+        .getEffects()
+        .map(attempt => attempt.start.data.key),
+    getEffectStart: (key: string) => log().getEffect({ key })?.start.data,
+    readFile: (path: string) =>
+      sandboxSession.readTextFile({ path: projectPath(path) }),
+    writeFile: (options: { path: string; content: string }) =>
+      sandboxSession.writeTextFile({
+        path: projectPath(options.path),
+        content: options.content,
+      }),
+  };
 }
 
-function effectStarts(options: { test: TestDriveContext; name?: string }) {
-  return options.test.events.filter(
-    (event): event is Extract<HarnessV2LogEvent, { type: 'effect-start' }> =>
-      event.type === 'effect-start' &&
-      (options.name == null || event.data.name === options.name),
-  );
+/**
+ * Returns a drive context whose drive the adapter sees stop once `stopAbortSignal`
+ * aborts.
+ */
+function withStop(options: {
+  context: HarnessV2DriveContext;
+  stopAbortSignal: AbortSignal;
+}): HarnessV2DriveContext {
+  return {
+    ...options.context,
+    stopAbortSignal: AbortSignal.any([
+      options.context.stopAbortSignal,
+      options.stopAbortSignal,
+    ]),
+  };
 }
 
-function effectKeys(test: TestDriveContext): string[] {
-  return effectStarts({ test }).map(event => event.data.key);
+/**
+ * Returns the messages of the `error` parts of a stream.
+ */
+async function readErrors(result: {
+  fullStream: AsyncIterable<{ type: string; error?: unknown }>;
+}): Promise<unknown[]> {
+  const errors: unknown[] = [];
+  for await (const part of result.fullStream) {
+    if (part.type === 'error') errors.push(part.error);
+  }
+  return errors;
 }
 
-function emittedText(test: TestDriveContext): string {
-  return test.parts
-    .flatMap(({ part }) => (part.type === 'text-delta' ? [part.delta] : []))
-    .join('');
+/**
+ * Returns a host `bash` tool that runs `execute`.
+ */
+function bashTool(execute: () => unknown) {
+  return tool({
+    description: 'Runs a shell command.',
+    inputSchema: z.object({ command: z.string() }),
+    execute: async () => execute(),
+  });
 }
 
-function toolOutput(options: { test: TestDriveContext; toolCallId: string }) {
-  return readFxLogState({ events: options.test.events }).toolOutputs.get(
-    options.toolCallId,
-  );
-}
-
-/*
- * Runs a first drive whose host `bash` tool call yields the drive, so the
+/**
+ * Runs a first drive whose host `bash` tool call stops the drive, so the
  * turn halts before its second model call: the log holds the turn's
  * delivery, its catalog and first model effect, and the tool effect.
  */
-async function driveUntilYield() {
+async function setupStoppedAfterHostTool() {
+  const stop = new AbortController();
   let toolRuns = 0;
-  const test = createTestDriveContext({
-    hostTools: {
-      bash: () => {
+  const test = await setup({
+    tools: {
+      bash: bashTool(() => {
         toolRuns++;
-        test.yieldAbortController.abort();
+        stop.abort();
         return { stdout: 'LIBFX_FIXTURE' };
-      },
+      }),
     },
-  });
-  const runtime = createTestModelRuntime({
     responses: [await readFixture({ name: 'gateway-host-tool-call.sse.txt' })],
   });
-  test.submitPrompt({ text: 'Run printf LIBFX_FIXTURE', tools: [BASH_TOOL] });
-
-  await drive({ test, runtime });
-
-  return { test, runtime, getToolRuns: () => toolRuns };
+  test.hooks.wrapContext = context =>
+    withStop({ context, stopAbortSignal: stop.signal });
+  await (
+    await test.agent.stream({
+      prompt: 'Run printf LIBFX_FIXTURE',
+      session: test.session,
+    })
+  ).consumeStream();
+  test.hooks.wrapContext = undefined;
+  return { ...test, getToolRuns: () => toolRuns };
 }
 
 describe('toFxPromptInput', () => {
@@ -141,119 +203,67 @@ describe('toFxPromptInput', () => {
 
 describe('FxDrive', () => {
   test('runs a text-only turn', async () => {
-    const test = createTestDriveContext();
-    const runtime = createTestModelRuntime({
-      responses: [await readFixture({ name: 'gateway-text.sse.txt' })],
-    });
-    const promptId = test.submitPrompt({ text: 'Reply READY' });
+    const { agent, session, runtime, readState, effectKeys, getEffectStart } =
+      await setup({
+        responses: [await readFixture({ name: 'gateway-text.sse.txt' })],
+      });
 
-    await drive({ test, runtime });
+    const result = await agent.generate({ prompt: 'Reply READY', session });
 
-    expect(test.parts.map(({ part }) => part)).toMatchInlineSnapshot(`
-      [
-        {
-          "id": "0",
-          "type": "text-start",
-        },
-        {
-          "delta": "READY",
-          "id": "0",
-          "type": "text-delta",
-        },
-        {
-          "id": "0",
-          "type": "text-end",
-        },
-      ]
-    `);
-    expect(test.steps).toMatchInlineSnapshot(`
-      [
-        {
-          "finishReason": {
-            "raw": "end_turn",
-            "unified": "stop",
-          },
-          "stepNumber": 0,
-          "usage": {
-            "inputTokens": {
-              "cacheRead": 0,
-              "cacheWrite": 0,
-              "noCache": 1714,
-              "total": 1714,
-            },
-            "outputTokens": {
-              "reasoning": undefined,
-              "text": undefined,
-              "total": 5,
-            },
-            "raw": {
-              "cache_creation": {
-                "ephemeral_1h_input_tokens": 0,
-                "ephemeral_5m_input_tokens": 0,
-              },
-              "cache_creation_input_tokens": 0,
-              "cache_read_input_tokens": 0,
-              "inference_geo": "not_available",
-              "input_tokens": 1714,
-              "output_tokens": 5,
-              "service_tier": "standard",
-            },
-          },
-        },
-      ]
-    `);
-    expect(test.turns).toMatchInlineSnapshot(`
-      [
-        {
-          "finishReason": {
-            "raw": "end_turn",
-            "unified": "stop",
-          },
-          "totalUsage": {
-            "inputTokens": {
-              "cacheRead": 0,
-              "cacheWrite": 0,
-              "noCache": 1714,
-              "total": 1714,
-            },
-            "outputTokens": {
-              "reasoning": undefined,
-              "text": undefined,
-              "total": 5,
-            },
-          },
-        },
-      ]
-    `);
-    expect(effectKeys(test)).toEqual([
+    expect(result.text).toBe('READY');
+    expect(result.steps.map(step => step.finishReason)).toEqual(['stop']);
+    expect(result.usage).toMatchObject({ inputTokens: 1714, outputTokens: 5 });
+    expect(effectKeys()).toEqual([
       'turn:0',
       'catalog:0:0',
       'model:0:0',
       'checkpoint:0',
     ]);
-    expect(effectStarts({ test, name: 'turn' })[0].data).toMatchObject({
-      deliveredSubmissionIds: [promptId],
+    const state = readState();
+    expect(getEffectStart('turn:0')).toMatchObject({
+      deliveredSubmissionIds: [state.prompts[0].id],
     });
-    expect(effectStarts({ test, name: 'model' })[0].data.input).toMatchObject({
+    expect(getEffectStart('model:0:0')?.input).toMatchObject({
       model: 'spacexai/grok-4.7',
     });
     expect(runtime.requests).toHaveLength(1);
     expect(runtime.catalogRequests).toHaveLength(1);
-    expect(readFxLogState({ events: test.events }).pendingPrompts).toEqual([]);
+    expect(state.pendingPrompts).toEqual([]);
+    expect(state.turns).toMatchObject([{ index: 0, ended: true }]);
   });
 
   test('sends the turn model and instructions to AI Gateway', async () => {
-    const test = createTestDriveContext();
-    const runtime = createTestModelRuntime({
+    const { agent, session, runtime, hooks } = await setup({
       responses: [await readFixture({ name: 'gateway-text.sse.txt' })],
     });
-    test.submitPrompt({
-      text: 'Reply READY',
-      model: 'anthropic/claude-haiku-4.5',
-      instructions: 'Answer in capital letters.',
+    /*
+     * `HarnessAgent` submits prompts without a model or instructions, so the
+     * drive sees its prompt with both added to the turn settings.
+     */
+    hooks.wrapContext = context => ({
+      ...context,
+      log: {
+        ...context.log,
+        getUndeliveredSubmissions: () =>
+          context.log.getUndeliveredSubmissions().map(submission =>
+            submission.data.type === 'prompt'
+              ? {
+                  ...submission,
+                  data: {
+                    ...submission.data,
+                    settings: {
+                      ...submission.data.settings,
+                      model: 'anthropic/claude-haiku-4.5',
+                      instructions: 'Answer in capital letters.',
+                    },
+                  },
+                }
+              : submission,
+          ),
+      },
     });
 
-    await drive({ test, runtime });
+    await agent.generate({ prompt: 'Reply READY', session });
 
     expect(runtime.requests[0].headers.get('ai-language-model-id')).toBe(
       'anthropic/claude-haiku-4.5',
@@ -262,27 +272,20 @@ describe('FxDrive', () => {
   });
 
   test('runs a host tool across steps', async () => {
-    const inputs: unknown[] = [];
-    const test = createTestDriveContext({
-      hostTools: {
-        bash: input => {
-          inputs.push(input);
-          return { stdout: 'LIBFX_FIXTURE' };
-        },
-      },
-    });
-    const runtime = createTestModelRuntime({
+    const { agent, session, runtime, effectKeys } = await setup({
+      tools: { bash: bashTool(() => ({ stdout: 'LIBFX_FIXTURE' })) },
       responses: [
         await readFixture({ name: 'gateway-host-tool-call.sse.txt' }),
         await readFixture({ name: 'gateway-text.sse.txt' }),
       ],
     });
-    test.submitPrompt({ text: 'Run printf LIBFX_FIXTURE', tools: [BASH_TOOL] });
 
-    await drive({ test, runtime });
+    const result = await agent.generate({
+      prompt: 'Run printf LIBFX_FIXTURE',
+      session,
+    });
 
-    expect(inputs).toEqual([{ command: 'printf LIBFX_FIXTURE' }]);
-    expect(effectKeys(test)).toEqual([
+    expect(effectKeys()).toEqual([
       'turn:0',
       'catalog:0:0',
       'model:0:0',
@@ -290,81 +293,40 @@ describe('FxDrive', () => {
       'model:0:1',
       'checkpoint:0',
     ]);
-    expect(
-      test.parts
-        .map(({ part }) => part)
-        .filter(part => part.type === 'tool-call'),
-    ).toMatchInlineSnapshot(`
-      [
-        {
-          "input": "{"command": "printf LIBFX_FIXTURE"}",
-          "providerMetadata": {
-            "anthropic": {
-              "caller": {
-                "type": "direct",
-              },
-            },
-          },
-          "toolCallId": "toolu_01KswTwrpijqi88ffraLQVsY",
-          "toolName": "bash",
-          "type": "tool-call",
-        },
-      ]
-    `);
-    expect(
-      test.steps.map(({ stepNumber, finishReason }) => ({
-        stepNumber,
-        finishReason,
-      })),
-    ).toMatchInlineSnapshot(`
-      [
-        {
-          "finishReason": {
-            "raw": "tool_use",
-            "unified": "tool-calls",
-          },
-          "stepNumber": 0,
-        },
-        {
-          "finishReason": {
-            "raw": "end_turn",
-            "unified": "stop",
-          },
-          "stepNumber": 1,
-        },
-      ]
-    `);
-    expect(test.turns.map(turn => turn.finishReason)).toEqual([
-      { unified: 'stop', raw: 'end_turn' },
+    expect(result.steps.flatMap(step => step.toolCalls)).toMatchObject([
+      {
+        toolCallId: 'toolu_01KswTwrpijqi88ffraLQVsY',
+        toolName: 'bash',
+        input: { command: 'printf LIBFX_FIXTURE' },
+      },
+    ]);
+    expect(result.steps.map(step => step.finishReason)).toEqual([
+      'tool-calls',
+      'stop',
     ]);
     expect(runtime.requests).toHaveLength(2);
     expect(runtime.requests[1].body).toContain('LIBFX_FIXTURE');
   });
 
   test('runs the built-in read_file tool on the sandbox', async () => {
-    const test = createTestDriveContext();
-    const session = await test.getSandboxSession();
-    await session.writeTextFile({
-      path: `${session.defaultWorkingDirectory}/notes.txt`,
+    const { agent, session, runtime, readState, getEffectStart, writeFile } =
+      await setup({
+        responses: [
+          await readFixture({ name: 'gateway-read-file-0.sse.txt' }),
+          await readFixture({ name: 'gateway-read-file-1.sse.txt' }),
+        ],
+      });
+    await writeFile({
+      path: 'notes.txt',
       content: 'FIRST LINE\nsecond line\n',
     });
-    const runtime = createTestModelRuntime({
-      responses: [
-        await readFixture({ name: 'gateway-read-file-0.sse.txt' }),
-        await readFixture({ name: 'gateway-read-file-1.sse.txt' }),
-      ],
-    });
-    test.submitPrompt({ text: 'Read notes.txt' });
 
-    await drive({ test, runtime });
+    const result = await agent.generate({ prompt: 'Read notes.txt', session });
 
-    const toolStart = effectStarts({ test, name: 'tool.read_file' })[0];
-    expect(toolStart.data).toMatchObject({
-      key: 'tool:toolu_01BEfCB8M29YcjDxsHPQxXER',
-      replay: 'safe',
-      input: { path: 'notes.txt' },
-    });
-    expect(toolOutput({ test, toolCallId: 'toolu_01BEfCB8M29YcjDxsHPQxXER' }))
+    expect(getEffectStart('tool:toolu_01BEfCB8M29YcjDxsHPQxXER')).toMatchObject(
+      { name: 'tool.read_file', replay: 'safe', input: { path: 'notes.txt' } },
+    );
+    expect(readState().toolOutputs.get('toolu_01BEfCB8M29YcjDxsHPQxXER'))
       .toMatchInlineSnapshot(`
       {
         "type": "result",
@@ -379,208 +341,140 @@ describe('FxDrive', () => {
         },
       }
     `);
-    expect(
-      test.parts
-        .map(({ part }) => part)
-        .filter(part => part.type === 'tool-call'),
-    ).toMatchObject([{ toolName: 'read_file', providerExecuted: true }]);
+    expect(result.toolCalls).toMatchObject([
+      { toolName: 'read_file', providerExecuted: true },
+    ]);
     expect(runtime.requests[1].body).toContain('FIRST LINE');
-    expect(emittedText(test)).toContain('FIRST LINE');
+    expect(result.text).toContain('FIRST LINE');
   });
 
   test('runs the built-in shell tool on the sandbox', async () => {
-    const test = createTestDriveContext();
-    const runtime = createTestModelRuntime({
+    const { agent, session, getEffectStart, readFile } = await setup({
       responses: [
         await readFixture({ name: 'gateway-shell-0.sse.txt' }),
         await readFixture({ name: 'gateway-shell-1.sse.txt' }),
       ],
     });
-    test.submitPrompt({ text: 'Append to runs.txt' });
 
-    await drive({ test, runtime });
-
-    const session = await test.getSandboxSession();
-    expect(
-      await session.readTextFile({
-        path: `${session.defaultWorkingDirectory}/runs.txt`,
-      }),
-    ).toBe('run\n');
-    expect(effectStarts({ test, name: 'tool.shell' })[0].data).toMatchObject({
-      key: 'tool:toolu_011oy9fvwfHVh3aDtkRYxpPn',
-      replay: 'never',
+    const result = await agent.generate({
+      prompt: 'Append to runs.txt',
+      session,
     });
-    expect(emittedText(test)).toBe('DONE');
-    expect(test.turns.map(turn => turn.finishReason)).toEqual([
-      { unified: 'stop', raw: 'end_turn' },
-    ]);
+
+    expect(await readFile('runs.txt')).toBe('run\n');
+    expect(getEffectStart('tool:toolu_011oy9fvwfHVh3aDtkRYxpPn')).toMatchObject(
+      { name: 'tool.shell', replay: 'never' },
+    );
+    expect(result.text).toBe('DONE');
+    expect(result.finishReason).toBe('stop');
   });
 
   test('retries a failing model call three times, then ends the turn with an error', async () => {
-    const test = createTestDriveContext();
     const failure = () => new Response('upstream failed', { status: 500 });
-    const runtime = createTestModelRuntime({
+    const { agent, session, runtime } = await setup({
       responses: [failure, failure, failure],
     });
-    test.submitPrompt({ text: 'Reply READY' });
 
-    await drive({ test, runtime });
+    const result = await agent.stream({ prompt: 'Reply READY', session });
 
+    expect(await readErrors(result)).toMatchObject([
+      {
+        message: 'AI Gateway request failed with HTTP 500: upstream failed',
+      },
+    ]);
     expect(runtime.requests).toHaveLength(3);
-    expect(test.parts.map(({ part }) => part)).toMatchInlineSnapshot(`
-      [
-        {
-          "error": {
-            "message": "AI Gateway request failed with HTTP 500: upstream failed",
-          },
-          "type": "error",
-        },
-      ]
-    `);
-    expect(test.steps.map(step => step.finishReason)).toEqual([
-      { unified: 'error', raw: undefined },
+    expect((await result.steps).map(step => step.finishReason)).toEqual([
+      'error',
     ]);
-    expect(test.turns.map(turn => turn.finishReason)).toEqual([
-      { unified: 'error', raw: undefined },
-    ]);
+    expect(await result.finishReason).toBe('error');
   });
 
-  test('halts on a yield and resumes the turn in the next drive', async () => {
-    const { test, runtime, getToolRuns } = await driveUntilYield();
+  test('halts when the drive stops and resumes the turn in the next drive', async () => {
+    const { agent, session, runtime, readState, effectKeys, getToolRuns } =
+      await setupStoppedAfterHostTool();
 
-    expect(test.turns).toEqual([]);
+    expect(readState().turns).toMatchObject([{ ended: false }]);
     expect(runtime.requests).toHaveLength(1);
-    expect(effectKeys(test)).toEqual([
+    expect(effectKeys()).toEqual([
       'turn:0',
       'catalog:0:0',
       'model:0:0',
       'tool:toolu_01KswTwrpijqi88ffraLQVsY',
     ]);
 
-    const next = test.nextDrive();
-    const nextRuntime = createTestModelRuntime({
-      responses: [await readFixture({ name: 'gateway-text.sse.txt' })],
-    });
-    await drive({ test: next, runtime: nextRuntime });
+    runtime.push(await readFixture({ name: 'gateway-text.sse.txt' }));
+    const reading = await agent.readStream({ session });
+    await agent.drive({ session });
 
     expect(getToolRuns()).toBe(1);
-    expect(nextRuntime.requests).toHaveLength(1);
-    expect(nextRuntime.catalogRequests).toHaveLength(0);
-    expect(nextRuntime.requests[0].body).toContain('LIBFX_FIXTURE');
-    expect(next.steps.map(step => step.stepNumber)).toEqual([0, 1]);
-    expect(next.turns.map(turn => turn.finishReason)).toEqual([
-      { unified: 'stop', raw: 'end_turn' },
+    expect(runtime.requests).toHaveLength(2);
+    expect(runtime.catalogRequests).toHaveLength(1);
+    expect(runtime.requests[1].body).toContain('LIBFX_FIXTURE');
+    expect((await reading.steps).map(step => step.finishReason)).toEqual([
+      'tool-calls',
+      'stop',
     ]);
-    expect(emittedText(next)).toBe('READY');
+    expect(await reading.finishReason).toBe('stop');
+    expect(await reading.text).toBe('READY');
   });
 
   test('halts without finishing the turn when the drive stops during a model call', async () => {
-    const test = createTestDriveContext();
-    const runtime = createTestModelRuntime({
-      responses: [
-        () => {
-          test.stopAbortController.abort();
-          throw new DOMException('The request was aborted.', 'AbortError');
-        },
-      ],
-    });
-    test.submitPrompt({ text: 'Reply READY' });
+    const stop = new AbortController();
+    const { agent, session, runtime, hooks, readState, effectKeys } =
+      await setup({
+        responses: [
+          () => {
+            stop.abort();
+            throw new DOMException('The request was aborted.', 'AbortError');
+          },
+        ],
+      });
+    hooks.wrapContext = context =>
+      withStop({ context, stopAbortSignal: stop.signal });
 
-    await drive({ test, runtime });
+    const result = await agent.stream({ prompt: 'Reply READY', session });
+    await result.consumeStream();
 
     expect(runtime.requests).toHaveLength(1);
-    expect(test.steps).toEqual([]);
-    expect(test.turns).toEqual([]);
-    expect(effectKeys(test)).toEqual(['turn:0', 'catalog:0:0', 'model:0:0']);
-  });
-
-  test('runs a turn for each pending prompt, continuing from the checkpoint', async () => {
-    const test = createTestDriveContext();
-    const runtime = createTestModelRuntime({
-      responses: [
-        await readFixture({ name: 'gateway-text.sse.txt' }),
-        await readFixture({ name: 'gateway-text.sse.txt' }),
-      ],
-    });
-    test.submitPrompt({ text: 'First prompt' });
-    test.submitPrompt({ text: 'Second prompt' });
-
-    await drive({ test, runtime });
-
-    expect(test.turns).toHaveLength(2);
-    expect(effectKeys(test)).toEqual([
-      'turn:0',
-      'catalog:0:0',
-      'model:0:0',
-      'checkpoint:0',
-      'turn:1',
-      'catalog:1:0',
-      'model:1:0',
-      'checkpoint:1',
-    ]);
-    expect(runtime.requests[1].body).toContain('First prompt');
-    expect(runtime.requests[1].body).toContain('READY');
-    expect(runtime.requests[1].body).toContain('Second prompt');
+    expect(readState().turns).toMatchObject([{ ended: false }]);
+    expect(effectKeys()).toEqual(['turn:0', 'catalog:0:0', 'model:0:0']);
   });
 
   test('continues a later drive from the recorded checkpoint', async () => {
-    const test = createTestDriveContext();
-    const runtime = createTestModelRuntime({
-      responses: [await readFixture({ name: 'gateway-text.sse.txt' })],
+    const { agent, session, runtime } = await setup({
+      responses: [
+        await readFixture({ name: 'gateway-text.sse.txt' }),
+        await readFixture({ name: 'gateway-text.sse.txt' }),
+      ],
     });
-    test.submitPrompt({ text: 'First prompt' });
-    await drive({ test, runtime });
 
-    const next = test.nextDrive();
-    const nextRuntime = createTestModelRuntime({
-      responses: [await readFixture({ name: 'gateway-text.sse.txt' })],
-    });
-    next.submitPrompt({ text: 'Second prompt' });
-    await drive({ test: next, runtime: nextRuntime });
+    await agent.generate({ prompt: 'First prompt', session });
+    const result = await agent.generate({ prompt: 'Second prompt', session });
 
-    expect(nextRuntime.requests).toHaveLength(1);
-    expect(nextRuntime.requests[0].body).toContain('First prompt');
-    expect(nextRuntime.requests[0].body).toContain('Second prompt');
-    expect(next.turns).toHaveLength(1);
-    expect(next.steps.map(step => step.stepNumber)).toEqual([0]);
+    expect(runtime.requests).toHaveLength(2);
+    expect(runtime.requests[1].body).toContain('First prompt');
+    expect(runtime.requests[1].body).toContain('READY');
+    expect(runtime.requests[1].body).toContain('Second prompt');
+    expect(result.steps).toHaveLength(1);
   });
 
   test('rebuilds a turn the agent ended without a checkpoint from the log', async () => {
-    const { test } = await driveUntilYield();
-    test.events.push({
-      type: 'finish-turn',
-      id: 'agent-finish-turn',
-      data: {
-        turnId: 'turn',
-        finishReason: { unified: 'error', raw: undefined },
-        totalUsage: {
-          inputTokens: {
-            total: undefined,
-            noCache: undefined,
-            cacheRead: undefined,
-            cacheWrite: undefined,
-          },
-          outputTokens: {
-            total: undefined,
-            text: undefined,
-            reasoning: undefined,
-          },
-        },
-      },
-    });
+    const { agent, session, runtime, hooks, effectKeys } =
+      await setupStoppedAfterHostTool();
+    hooks.wrapContext = () => {
+      throw new Error('drive failed');
+    };
+    await agent.drive({ session });
+    hooks.wrapContext = undefined;
 
-    const next = test.nextDrive();
-    const nextRuntime = createTestModelRuntime({
-      responses: [await readFixture({ name: 'gateway-text.sse.txt' })],
-    });
-    next.submitPrompt({ text: 'Second prompt', tools: [BASH_TOOL] });
-    await drive({ test: next, runtime: nextRuntime });
+    runtime.push(await readFixture({ name: 'gateway-text.sse.txt' }));
+    const result = await agent.generate({ prompt: 'Second prompt', session });
 
-    expect(nextRuntime.requests).toHaveLength(1);
-    expect(nextRuntime.requests[0].body).toContain('LIBFX_FIXTURE');
-    expect(nextRuntime.requests[0].body).toContain('Second prompt');
-    expect(next.turns).toHaveLength(1);
-    expect(effectKeys(next).slice(4)).toEqual([
+    expect(result.text).toBe('READY');
+    expect(runtime.requests).toHaveLength(2);
+    expect(runtime.requests[1].body).toContain('LIBFX_FIXTURE');
+    expect(runtime.requests[1].body).toContain('Second prompt');
+    expect(effectKeys().slice(4)).toEqual([
       'turn:1',
       'catalog:1:0',
       'model:1:0',
@@ -589,76 +483,90 @@ describe('FxDrive', () => {
   });
 
   test('only finishes a turn whose checkpoint was recorded before the drive ended', async () => {
-    const test = createTestDriveContext();
-    const runtime = createTestModelRuntime({
+    const { agent, session, runtime, hooks, readState } = await setup({
       responses: [await readFixture({ name: 'gateway-text.sse.txt' })],
     });
-    test.submitPrompt({ text: 'Reply READY' });
-    await drive({ test, runtime });
-    const finishIndex = test.events.findIndex(
-      event => event.type === 'finish-turn',
-    );
-    test.events.splice(finishIndex, 1);
+    /*
+     * The first drive ends after recording the turn's checkpoint, before
+     * finishing the turn, as if its process had crashed there.
+     */
+    hooks.wrapContext = context => ({ ...context, finishTurn: async () => {} });
+    await (
+      await agent.stream({ prompt: 'Reply READY', session })
+    ).consumeStream();
+    hooks.wrapContext = undefined;
 
-    const next = test.nextDrive();
-    const nextRuntime = createTestModelRuntime();
-    await drive({ test: next, runtime: nextRuntime });
+    expect(readState().turns).toMatchObject([
+      { ended: false, checkpoint: { finishReason: { unified: 'stop' } } },
+    ]);
 
-    expect(nextRuntime.requests).toEqual([]);
-    expect(next.parts).toEqual([]);
-    expect(next.steps).toEqual([]);
-    expect(next.turns).toEqual(test.turns);
+    const reading = await agent.readStream({ session });
+    await agent.drive({ session });
+
+    expect(runtime.requests).toHaveLength(1);
+    expect(await reading.text).toBe('READY');
+    expect(await reading.finishReason).toBe('stop');
+    expect(readState().turns).toMatchObject([{ ended: true }]);
   });
 
   test('fails the drive when a replayed model request differs from the recorded one', async () => {
-    const { test } = await driveUntilYield();
-    const modelStart = effectStarts({ test, name: 'model' })[0];
-    test.events[test.events.indexOf(modelStart)] = {
-      ...modelStart,
-      data: {
-        ...modelStart.data,
-        input: { digest: 'tampered', model: 'spacexai/grok-4.7' },
+    const { agent, session, runtime, hooks } =
+      await setupStoppedAfterHostTool();
+    /*
+     * The second drive sees a recorded digest for the first model request
+     * that differs from the request it rebuilds, as if the recorded
+     * conversation had diverged.
+     */
+    hooks.wrapContext = context => ({
+      ...context,
+      log: {
+        ...context.log,
+        getEffects: effectsOptions =>
+          context.log.getEffects(effectsOptions).map(attempt =>
+            attempt.start.data.key === 'model:0:0'
+              ? {
+                  ...attempt,
+                  start: {
+                    ...attempt.start,
+                    data: {
+                      ...attempt.start.data,
+                      input: { digest: 'tampered', model: 'spacexai/grok-4.7' },
+                    },
+                  },
+                }
+              : attempt,
+          ),
       },
-    };
+    });
+    const reading = await agent.readStream({ session });
+    await agent.drive({ session });
 
-    const next = test.nextDrive();
-    const nextRuntime = createTestModelRuntime();
-
-    await expect(drive({ test: next, runtime: nextRuntime })).rejects.toThrow(
-      'replayed with a different request',
-    );
-    expect(nextRuntime.requests).toEqual([]);
-    expect(next.turns).toEqual([]);
+    expect(await readErrors(reading)).toMatchObject([
+      { message: expect.stringContaining('replayed with a different request') },
+    ]);
+    expect(runtime.requests).toHaveLength(1);
   });
 
   test('runs a host tool that overrides a built-in tool of the same name', async () => {
-    const test = createTestDriveContext({
-      hostTools: { read_file: () => ({ text: 'FIRST LINE from the host' }) },
-    });
-    const runtime = createTestModelRuntime({
+    const { agent, session, runtime, getEffectStart } = await setup({
+      tools: {
+        read_file: tool({
+          description: 'Reads a file from the host.',
+          inputSchema: z.object({ path: z.string() }),
+          execute: async () => ({ text: 'FIRST LINE from the host' }),
+        }),
+      },
       responses: [
         await readFixture({ name: 'gateway-read-file-0.sse.txt' }),
         await readFixture({ name: 'gateway-read-file-1.sse.txt' }),
       ],
     });
-    test.submitPrompt({
-      text: 'Read notes.txt',
-      tools: [
-        {
-          name: 'read_file',
-          description: 'Reads a file from the host.',
-          inputSchema: {
-            type: 'object',
-            properties: { path: { type: 'string' } },
-          },
-        },
-      ],
-    });
 
-    await drive({ test, runtime });
+    const result = await agent.generate({ prompt: 'Read notes.txt', session });
 
-    const toolStart = effectStarts({ test, name: 'tool.read_file' })[0];
-    expect(toolStart.data.replay).toBe('never');
+    expect(getEffectStart('tool:toolu_01BEfCB8M29YcjDxsHPQxXER')?.replay).toBe(
+      'never',
+    );
     const requestTools = (
       JSON.parse(runtime.requests[0].body) as {
         tools: Array<{ name: string; description: string }>;
@@ -667,30 +575,28 @@ describe('FxDrive', () => {
     expect(requestTools).toMatchObject([
       { description: 'Reads a file from the host.' },
     ]);
-    expect(
-      test.parts
-        .map(({ part }) => part)
-        .find(part => part.type === 'tool-call'),
-    ).not.toHaveProperty('providerExecuted');
+    expect(result.toolCalls[0].providerExecuted).toBeFalsy();
     expect(runtime.requests[1].body).toContain('FIRST LINE from the host');
   });
 
   test('rethrows a rejected finishStep() call', async () => {
-    const test = createTestDriveContext({
-      hostTools: { bash: () => ({ stdout: 'LIBFX_FIXTURE' }) },
-    });
-    test.context.finishStep = async () => {
-      throw new Error('finishStep failed');
-    };
-    const runtime = createTestModelRuntime({
+    const { agent, session, runtime, hooks, readState } = await setup({
+      tools: { bash: bashTool(() => ({ stdout: 'LIBFX_FIXTURE' })) },
       responses: [
         await readFixture({ name: 'gateway-host-tool-call.sse.txt' }),
       ],
     });
-    test.submitPrompt({ text: 'Run printf LIBFX_FIXTURE', tools: [BASH_TOOL] });
+    hooks.wrapContext = context => ({
+      ...context,
+      finishStep: async () => {
+        throw new Error('finishStep failed');
+      },
+    });
 
-    await expect(drive({ test, runtime })).rejects.toThrow('finishStep failed');
+    await expect(
+      agent.generate({ prompt: 'Run printf LIBFX_FIXTURE', session }),
+    ).rejects.toThrow('finishStep failed');
     expect(runtime.requests).toHaveLength(1);
-    expect(test.turns).toEqual([]);
+    expect(readState().turns.map(turn => turn.checkpoint)).toEqual([undefined]);
   });
 });

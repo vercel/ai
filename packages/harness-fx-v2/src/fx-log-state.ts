@@ -1,7 +1,8 @@
 import type {
   HarnessV2EffectOutput,
   HarnessV2FinishReason,
-  HarnessV2LogEvent,
+  HarnessV2Log,
+  HarnessV2LogSubmissionEvent,
   HarnessV2ToolExecutionValue,
   HarnessV2TurnSettings,
   HarnessV2Usage,
@@ -119,7 +120,7 @@ export type FxTurnRecord = {
   prompt: FxPromptSubmission;
 
   /**
-   * Whether a `finish-turn` event was recorded after the turn started.
+   * Whether the turn finished.
    */
   ended: boolean;
 
@@ -190,10 +191,8 @@ export type FxLogState = {
   toolOutputs: Map<string, HarnessV2EffectOutput<HarnessV2ToolExecutionValue>>;
 };
 
-const TURN_KEY_PATTERN = /^turn:(\d+)$/;
 const MODEL_KEY_PATTERN = /^model:(\d+):(\d+)$/;
 const CATALOG_KEY_PATTERN = /^catalog:\d+:\d+$/;
-const CHECKPOINT_KEY_PATTERN = /^checkpoint:(\d+)$/;
 const TOOL_KEY_PREFIX = 'tool:';
 
 /**
@@ -244,38 +243,46 @@ function toUint8Array(data: unknown): Uint8Array {
 }
 
 /**
- * Folds the adapter-visible log events into the session state.
+ * Returns the prompt of a submission, or `undefined` for other submissions.
+ */
+function toPromptSubmission(
+  submission: HarnessV2LogSubmissionEvent,
+): FxPromptSubmission | undefined {
+  if (submission.data.type !== 'prompt') return undefined;
+  return {
+    id: submission.id,
+    message: submission.data.message,
+    settings: submission.data.settings,
+  };
+}
+
+/**
+ * Returns the prompts among submissions, in their order.
+ */
+function toPromptSubmissions(
+  submissions: readonly HarnessV2LogSubmissionEvent[],
+): FxPromptSubmission[] {
+  return submissions.flatMap(submission => {
+    const prompt = toPromptSubmission(submission);
+    return prompt == null ? [] : [prompt];
+  });
+}
+
+/**
+ * Looks up the session state in the log.
  *
- * A turn exists once its `turn:${index}` effect started, and its prompt is
- * the submission that effect delivered. It has ended once a `finish-turn`
- * event is recorded after that start; only log positions are compared, since
- * the turn ID of a `finish-turn` event is opaque to the adapter. Steering
- * submissions are ignored.
+ * The turns are the log's turns, and a turn's index is its position among
+ * them: the drive's `turn:${index}` effect delivers each turn's prompt, which
+ * is what starts the turn. A turn's checkpoint is the result of its
+ * `checkpoint:${index}` effect. Steering submissions are ignored.
  */
 export function readFxLogState(options: {
   /**
-   * Log events in log order.
+   * Log of the session.
    */
-  events: ReadonlyArray<HarnessV2LogEvent>;
+  log: HarnessV2Log;
 }): FxLogState {
-  const prompts: FxPromptSubmission[] = [];
-  const delivered = new Set<string>();
-  const startKeys = new Map<string, string>();
-  const turnStarts = new Map<
-    number,
-    { position: number; submissionId?: string }
-  >();
-  const checkpoints = new Map<number, FxCheckpointValue>();
-  const modelEffects = new Map<string, FxModelEffectRecord>();
-  const catalogOutputs = new Map<
-    string,
-    HarnessV2EffectOutput<FxCatalogEffectValue>
-  >();
-  const toolOutputs = new Map<
-    string,
-    HarnessV2EffectOutput<HarnessV2ToolExecutionValue>
-  >();
-  const finishTurnPositions: number[] = [];
+  const { log } = options;
 
   /*
    * The log types effect inputs and outputs as any serializable value, since
@@ -286,109 +293,69 @@ export function readFxLogState(options: {
    * `FxCheckpointValue`, and the agent records tool effects with
    * `HarnessV2ToolExecutionValue`s.
    */
-  options.events.forEach((event, position) => {
-    switch (event.type) {
-      case 'submission':
-        if (event.data.type === 'prompt') {
-          prompts.push({
-            id: event.id,
-            message: event.data.message,
-            settings: event.data.settings,
-          });
-        }
-        return;
-      case 'effect-start': {
-        const { key, input, deliveredSubmissionIds } = event.data;
-        startKeys.set(event.id, key);
-        for (const submissionId of deliveredSubmissionIds) {
-          delivered.add(submissionId);
-        }
-        const turn = TURN_KEY_PATTERN.exec(key);
-        if (turn != null) {
-          const index = Number(turn[1]);
-          if (!turnStarts.has(index)) {
-            turnStarts.set(index, {
-              position,
-              submissionId: deliveredSubmissionIds[0],
-            });
-          }
-          return;
-        }
-        const model = MODEL_KEY_PATTERN.exec(key);
-        if (model != null) {
-          modelEffects.set(key, {
-            turnIndex: Number(model[1]),
-            ordinal: Number(model[2]),
-            input: input as FxModelEffectInput,
-          });
-        }
-        return;
-      }
-      case 'effect-end': {
-        const key = startKeys.get(event.data.startId);
-        if (key == null) return;
-        const { output } = event.data;
-        const model = modelEffects.get(key);
-        if (model != null) {
-          model.output = output as HarnessV2EffectOutput<FxModelEffectValue>;
-          return;
-        }
-        if (CATALOG_KEY_PATTERN.test(key)) {
-          catalogOutputs.set(
-            key,
-            output as HarnessV2EffectOutput<FxCatalogEffectValue>,
-          );
-          return;
-        }
-        const checkpoint = CHECKPOINT_KEY_PATTERN.exec(key);
-        if (checkpoint != null) {
-          if (output.type === 'result') {
-            const value = output.value as FxCheckpointValue;
-            checkpoints.set(Number(checkpoint[1]), {
-              ...value,
-              data: toUint8Array(value.data),
-            });
-          }
-          return;
-        }
-        if (key.startsWith(TOOL_KEY_PREFIX)) {
-          toolOutputs.set(
-            key.slice(TOOL_KEY_PREFIX.length),
-            output as HarnessV2EffectOutput<HarnessV2ToolExecutionValue>,
-          );
-        }
-        return;
-      }
-      case 'finish-turn':
-        finishTurnPositions.push(position);
-    }
-  });
-
-  const promptsById = new Map(prompts.map(prompt => [prompt.id, prompt]));
   const turns: FxTurnRecord[] = [];
-  for (const [index, start] of [...turnStarts].sort(
-    ([left], [right]) => left - right,
-  )) {
+  for (const [index, logTurn] of log.getTurns().entries()) {
+    const submission = logTurn.submissions[0];
     const prompt =
-      start.submissionId == null
-        ? undefined
-        : promptsById.get(start.submissionId);
-    if (prompt == null || index !== turns.length) continue;
-    const checkpoint = checkpoints.get(index);
+      submission == null ? undefined : toPromptSubmission(submission);
+    if (prompt == null) break;
     const turn: FxTurnRecord = {
       index,
       prompt,
-      ended: finishTurnPositions.some(
-        finishPosition => finishPosition > start.position,
-      ),
+      ended: logTurn.finish != null,
     };
-    if (checkpoint != null) turn.checkpoint = checkpoint;
+    const output = log.getEffect({ key: `checkpoint:${index}` })?.end?.data
+      .output;
+    if (output?.type === 'result') {
+      const value = output.value as FxCheckpointValue;
+      turn.checkpoint = { ...value, data: toUint8Array(value.data) };
+    }
     turns.push(turn);
   }
 
+  const modelEffects = new Map<string, FxModelEffectRecord>();
+  for (const { start, end } of log.getEffects({ keyPrefix: 'model:' })) {
+    const model = MODEL_KEY_PATTERN.exec(start.data.key);
+    if (model == null) continue;
+    const record: FxModelEffectRecord = {
+      turnIndex: Number(model[1]),
+      ordinal: Number(model[2]),
+      input: start.data.input as FxModelEffectInput,
+    };
+    if (end != null) {
+      record.output = end.data
+        .output as HarnessV2EffectOutput<FxModelEffectValue>;
+    }
+    modelEffects.set(start.data.key, record);
+  }
+
+  const catalogOutputs = new Map<
+    string,
+    HarnessV2EffectOutput<FxCatalogEffectValue>
+  >();
+  for (const { start, end } of log.getEffects({ keyPrefix: 'catalog:' })) {
+    if (end == null || !CATALOG_KEY_PATTERN.test(start.data.key)) continue;
+    catalogOutputs.set(
+      start.data.key,
+      end.data.output as HarnessV2EffectOutput<FxCatalogEffectValue>,
+    );
+  }
+
+  const toolOutputs = new Map<
+    string,
+    HarnessV2EffectOutput<HarnessV2ToolExecutionValue>
+  >();
+  for (const { start, end } of log.getEffects({ keyPrefix: TOOL_KEY_PREFIX })) {
+    if (end == null) continue;
+    toolOutputs.set(
+      start.data.key.slice(TOOL_KEY_PREFIX.length),
+      end.data.output as HarnessV2EffectOutput<HarnessV2ToolExecutionValue>,
+    );
+  }
+
   return {
-    prompts,
-    pendingPrompts: prompts.filter(prompt => !delivered.has(prompt.id)),
+    prompts: toPromptSubmissions(log.getSubmissions()),
+    pendingPrompts: toPromptSubmissions(log.getUndeliveredSubmissions()),
     turns,
     modelEffects,
     catalogOutputs,

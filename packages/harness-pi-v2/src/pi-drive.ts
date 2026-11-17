@@ -343,7 +343,7 @@ export class PiDrive {
     const { context } = this;
     if (context.stopAbortSignal.aborted) return;
 
-    this.state = await this.readState();
+    this.state = this.readState();
     const { currentTurn } = this.state;
     const resumedSettings =
       currentTurn != null && !currentTurn.ended
@@ -402,7 +402,7 @@ export class PiDrive {
 
       for (;;) {
         if (this.halted || context.yieldAbortSignal.aborted) return;
-        this.state = await this.readState();
+        this.state = this.readState();
         const prompt = this.state.pendingPrompts.find(
           pending => !this.given.has(pending.id),
         );
@@ -417,11 +417,10 @@ export class PiDrive {
   }
 
   /**
-   * Reads the session state from the log.
+   * Looks up the session state in the log.
    */
-  private async readState(): Promise<PiLogState> {
-    const { events } = await this.context.log.read();
-    return readPiLogState({ events });
+  private readState(): PiLogState {
+    return readPiLogState({ log: this.context.log });
   }
 
   /**

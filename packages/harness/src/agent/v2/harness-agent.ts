@@ -56,7 +56,7 @@ import {
   DURABLE_HARNESS_AGENT_QUEUE_NAMESPACE,
   sendDurableHarnessAgentBackstop,
 } from './internal/durable-agent-queue';
-import { startDrive } from './internal/start-drive';
+import { hasWaitingPrompt, startDrive } from './internal/start-drive';
 import {
   getDurableHarnessAgentWorkflowName,
   getNonDurableHarnessAgentWorkflowName,
@@ -537,12 +537,10 @@ export class HarnessAgent<
   > {
     const { session, abortSignal } = options;
     this.connectQueue();
-    const { events } = await createLog({
-      world: this.world,
-      runId: session.runId,
-    }).read({ types: ['turn-start'] });
-    const turnStart = events.at(-1);
-    if (turnStart?.type !== 'turn-start') {
+    const log = createLog({ world: this.world, runId: session.runId });
+    await log.refresh();
+    const turnId = log.getCurrentTurn()?.start.data.turnId;
+    if (turnId == null) {
       throw new Error('HarnessAgent.readStream: the session has no turn.');
     }
 
@@ -550,7 +548,7 @@ export class HarnessAgent<
       records: readTurnRecordStream({
         world: this.world,
         session,
-        turnId: turnStart.data.turnId,
+        turnId,
         startIndex: 0,
         abortSignal,
       }),
@@ -573,9 +571,8 @@ export class HarnessAgent<
    * drive gone, e.g. because its process is gone. With `recordCrash`, the
    * drive first records a `drive-crash` and flushes its stream writer,
    * which proves to a later drive at once that it is gone. Rejects without
-   * writing if the session has no turn, its latest turn finished, its
-   * latest drive recorded a crash, or a crash of its latest drive was
-   * already requested.
+   * writing if the session has no turn, its latest turn finished, or its
+   * latest drive recorded a crash.
    */
   async experimental_crash(options: {
     /**
@@ -593,37 +590,14 @@ export class HarnessAgent<
     const { session, recordCrash } = options;
     this.connectQueue();
     const log = createLog({ world: this.world, runId: session.runId });
-    const { events } = await log.read({
-      types: [
-        'turn-start',
-        'finish-turn',
-        'drive-start',
-        'drive-crash',
-        'crash-request',
-      ],
-    });
-
-    let turnId: string | undefined;
-    let driveId: string | undefined;
-    let crashRequested = false;
-    const finishedTurns = new Set<string>();
-    const crashedDrives = new Set<string>();
-    for (const event of events) {
-      if (event.type === 'turn-start') turnId = event.data.turnId;
-      if (event.type === 'finish-turn') finishedTurns.add(event.data.turnId);
-      if (event.type === 'drive-start') {
-        driveId = event.data.driveId;
-        crashRequested = false;
-      }
-      if (event.type === 'crash-request') crashRequested = true;
-      if (event.type === 'drive-crash') crashedDrives.add(event.data.driveId);
-    }
+    await log.refresh();
+    const turn = log.getCurrentTurn();
+    const drive = log.getLatestDrive();
     if (
-      turnId == null ||
-      finishedTurns.has(turnId) ||
-      driveId == null ||
-      crashedDrives.has(driveId) ||
-      crashRequested
+      turn == null ||
+      turn.finish != null ||
+      drive == null ||
+      drive.crash != null
     ) {
       throw new Error(
         'HarnessAgent.experimental_crash: there is no current drive to crash.',
@@ -1180,18 +1154,11 @@ async function failCurrentTurn(options: {
   error: unknown;
 }): Promise<void> {
   const { log, writer, finishTurn, error } = options;
-  const { events } = await log.read({ types: ['turn-start', 'finish-turn'] });
-
-  let turnId: string | undefined;
-  const finished = new Set<string>();
-  for (const event of events) {
-    if (event.type === 'turn-start') turnId = event.data.turnId;
-    if (event.type === 'finish-turn') finished.add(event.data.turnId);
-  }
-  if (turnId == null) {
+  const turn = log.getCurrentTurn();
+  if (turn == null) {
     throw new HarnessBeforeStartError({ cause: error });
   }
-  if (finished.has(turnId)) {
+  if (turn.finish != null) {
     throw new HarnessAfterFinishError({ cause: error });
   }
 
@@ -1206,8 +1173,9 @@ async function failCurrentTurn(options: {
 }
 
 /**
- * Returns whether the session's log shows a running turn: a turn that has
- * not finished, or a `prompt` submission that has not started its turn.
+ * Returns whether the session's log shows a running turn: a current turn
+ * that has not finished, or an undelivered `prompt` submission that has not
+ * started a turn.
  */
 async function hasRunningTurn(options: {
   /**
@@ -1215,22 +1183,10 @@ async function hasRunningTurn(options: {
    */
   log: HarnessAgentLog;
 }): Promise<boolean> {
-  const { events } = await options.log.read({
-    types: ['submission', 'turn-start', 'finish-turn'],
-  });
-  const started = new Set<string>();
-  const finished = new Set<string>();
-  for (const event of events) {
-    if (event.type === 'turn-start') started.add(event.data.turnId);
-    if (event.type === 'finish-turn') finished.add(event.data.turnId);
-  }
-  return events.some(
-    event =>
-      (event.type === 'submission' &&
-        event.data.type === 'prompt' &&
-        !started.has(event.id)) ||
-      (event.type === 'turn-start' && !finished.has(event.data.turnId)),
-  );
+  const { log } = options;
+  await log.refresh();
+  const turn = log.getCurrentTurn();
+  return (turn != null && turn.finish == null) || hasWaitingPrompt({ log });
 }
 
 /**

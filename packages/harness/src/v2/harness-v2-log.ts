@@ -156,17 +156,61 @@ export type HarnessV2LogEvent =
   | HarnessV2LogAdapterEvent;
 
 /**
+ * An accepted effect attempt: its `effect-start` event and its first
+ * `effect-end` event.
+ *
+ * An `effect-start` is accepted only if it is the next attempt of its effect
+ * and the previous attempt, if any, ended with a retryable interruption.
+ * Starts that were not accepted, and every end after the first, have no
+ * effect.
+ */
+export type HarnessV2LogEffectAttempt = {
+  /**
+   * Start of the attempt.
+   */
+  readonly start: HarnessV2LogEffectStartEvent;
+
+  /**
+   * First committed end of the attempt, if it ended.
+   */
+  readonly end?: HarnessV2LogEffectEndEvent;
+};
+
+/**
+ * A turn: the prompt submissions whose delivery started it, and its finish.
+ */
+export type HarnessV2LogTurn = {
+  /**
+   * Prompt submissions whose delivery started the turn. Currently a turn is
+   * always started by exactly one prompt.
+   */
+  readonly submissions: readonly HarnessV2LogSubmissionEvent[];
+
+  /**
+   * Finish of the turn, if it finished. A finished turn must not be resumed
+   * by a later drive.
+   */
+  readonly finish?: HarnessV2LogFinishTurnEvent;
+};
+
+/**
  * Append-only log interface available to a HarnessV2 adapter.
+ *
+ * The log is the source of truth of the session. Its lookups answer from the
+ * events the agent has read or written so far, which the agent keeps current
+ * while the drive runs. Lookups are synchronous and return copies, so they can
+ * be called whenever the adapter needs to know what the log recorded.
+ *
+ * ```ts
+ * const prompt = context.log
+ *   .getUndeliveredSubmissions()
+ *   .find(submission => submission.data.type === 'prompt');
+ * const turn = context.log.getCurrentTurn();
+ * const resume = turn != null && turn.finish == null;
+ * const recorded = context.log.getEffect({ key: 'model:3' })?.end?.data.output;
+ * ```
  */
 export type HarnessV2Log = {
-  /**
-   * Reads events after a numeric position, optionally filtering by event type.
-   */
-  read(options?: {
-    after?: number;
-    types?: HarnessV2LogEvent['type'][];
-  }): Promise<{ events: HarnessV2LogEvent[]; position: number }>;
-
   /**
    * Appends an adapter-namespaced event; host-owned event types are not writable.
    * Resolves once the matching event is confirmed committed. Returns false if
@@ -175,13 +219,64 @@ export type HarnessV2Log = {
    * when a concurrent append committed it. Conflicting content under the same
    * ID is rejected.
    */
-  append(
-    event: Extract<HarnessV2LogEvent, { type: `harness:${string}` }>,
-  ): Promise<boolean>;
+  append(event: HarnessV2LogAdapterEvent): Promise<boolean>;
 
   /**
-   * Registers a listener called when an event is appended and returns its
+   * Registers a listener called when the agent recorded a new event that the
+   * adapter did not append itself, once all lookups include it. Returns the
    * unsubscribe function.
    */
   onAppend(listener: () => void): () => void;
+
+  /**
+   * Returns the submissions, in log order.
+   */
+  getSubmissions(): readonly HarnessV2LogSubmissionEvent[];
+
+  /**
+   * Returns the submissions that no accepted `effect-start` delivered yet, in
+   * log order.
+   */
+  getUndeliveredSubmissions(): readonly HarnessV2LogSubmissionEvent[];
+
+  /**
+   * Returns the latest accepted attempt of an effect key.
+   */
+  getEffect(options: {
+    /**
+     * Key of the effect.
+     */
+    key: string;
+  }): HarnessV2LogEffectAttempt | undefined;
+
+  /**
+   * Returns the latest accepted attempt of each effect key, ordered by the
+   * log position of those attempts' starts.
+   */
+  getEffects(options?: {
+    /**
+     * Only effect keys starting with this prefix.
+     */
+    keyPrefix?: string;
+  }): readonly HarnessV2LogEffectAttempt[];
+
+  /**
+   * Returns the latest turn, finished or not.
+   */
+  getCurrentTurn(): HarnessV2LogTurn | undefined;
+
+  /**
+   * Returns all turns, in start order.
+   */
+  getTurns(): readonly HarnessV2LogTurn[];
+
+  /**
+   * Returns the adapter's own events, in log order.
+   */
+  getAdapterEvents(options?: {
+    /**
+     * Only events of this type.
+     */
+    type?: `harness:${string}`;
+  }): readonly HarnessV2LogAdapterEvent[];
 };

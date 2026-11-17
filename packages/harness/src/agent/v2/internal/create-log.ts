@@ -15,12 +15,14 @@ import {
 import type { JSONValue, SerializableValue } from '@ai-sdk/provider';
 import { isValidHarnessAgentLogEvent } from './is-valid-harness-agent-log-event';
 import type { HarnessAgentDriveIdentity } from './start-drive';
+import type { HarnessV2EffectOutput } from '../../../v2/harness-v2-effect';
 import type {
   HarnessV2LogAdapterEvent,
   HarnessV2LogEffectEndEvent,
   HarnessV2LogEffectStartEvent,
   HarnessV2LogFinishTurnEvent,
   HarnessV2LogSubmissionEvent,
+  HarnessV2LogTurn,
 } from '../../../v2/harness-v2-log';
 import type {
   HarnessV2FinishReason,
@@ -347,43 +349,82 @@ export type HarnessAgentLogListenerConfig = {
 };
 
 /**
+ * An accepted effect attempt: its `effect-start` event and the log events
+ * referring to it.
+ *
+ * An `effect-start` is accepted only if it is the next attempt of its effect
+ * key and the previous attempt, if any, ended with a retryable interruption.
+ * Progress and end events only apply to an accepted attempt that is still the
+ * latest of its key and has not ended; every other one has no effect.
+ */
+export type HarnessAgentLogEffectAttempt = {
+  /**
+   * Start of the attempt.
+   */
+  readonly start: HarnessAgentLogEffectStartEvent;
+
+  /**
+   * Latest committed progress of the attempt, if any.
+   */
+  readonly progress?: HarnessAgentLogEffectProgressEvent;
+
+  /**
+   * First committed end of the attempt, if it ended.
+   */
+  readonly end?: HarnessAgentLogEffectEndEvent;
+};
+
+/**
+ * A turn as the adapter sees it, plus the log events only the engine sees.
+ */
+export type HarnessAgentLogTurn = HarnessV2LogTurn & {
+  /**
+   * Start of the turn.
+   */
+  readonly start: HarnessAgentLogTurnStartEvent;
+
+  /**
+   * Finished steps of the turn, in step order.
+   */
+  readonly steps: readonly HarnessAgentLogFinishStepEvent[];
+};
+
+/**
+ * A drive: its `drive-start` event and the log events referring to its
+ * `driveId`.
+ */
+export type HarnessAgentLogDrive = {
+  /**
+   * Start of the drive.
+   */
+  readonly start: HarnessAgentLogDriveStartEvent;
+
+  /**
+   * Recorded crash of the drive, if any.
+   */
+  readonly crash?: HarnessAgentLogDriveCrashEvent;
+};
+
+/**
  * Append-only log used by the HarnessAgent engine. The harness adapter
- * receives a wrapped version of this (`HarnessV2Log`) with limited access.
+ * receives a narrower version of this (`HarnessV2Log`).
+ *
+ * The log in the World is the source of truth. A log instance keeps the
+ * events it has read or written in memory, in log order, and its lookups
+ * answer synchronously from them, applying one set of rules to all events.
+ * New events from other processes only arrive through `refresh()`, through an
+ * `append()`, or while a listener is registered (on hints and periodically).
+ * Lookups return the log's own objects, which callers must not modify.
  */
 export type HarnessAgentLog = {
-  /**
-   * Refreshes the committed log and returns canonical events after a World
-   * position, optionally filtered by type. Infrastructure and duplicate records
-   * advance the position without appearing in the returned events.
-   */
-  read(options?: {
-    /**
-     * Position after which to return events, independent of type filters.
-     */
-    after?: number;
-
-    /**
-     * Event types to include in the returned events.
-     */
-    types?: HarnessAgentLogEvent['type'][];
-  }): Promise<{
-    /**
-     * Canonical events matching the requested position and event types.
-     */
-    events: HarnessAgentLogEvent[];
-    /**
-     * Last verified committed World slot, including non-harness records.
-     */
-    position: number;
-  }>;
-
   /**
    * Appends an event and waits for its canonical durable outcome. Returns false
    * if an identical event is found before writing. Returns true when a matching
    * event is confirmed after attempting a write, including when a concurrent
    * append committed it. Conflicting content under the same ID is rejected.
    * Exhausted uncertain-outcome recovery refuses further appends on this
-   * instance; reads and reconstruction through a new log remain available.
+   * instance; lookups and reconstruction through a new log remain available.
+   * The lookups include the event once this resolves.
    */
   append(event: HarnessAgentLogEvent): Promise<boolean>;
 
@@ -391,13 +432,13 @@ export type HarnessAgentLog = {
    * Registers a callback for matching new events and returns an unsubscribe
    * function. Each matching canonical event first observed while registered is
    * delivered once, in committed order, with an independent payload snapshot.
-   * The callback is called synchronously as soon as a read or write adds the
-   * event to the log's in-memory copy, before that read or write resolves.
-   * Previously cached events are not replayed; events first observed after
-   * registration may also appear in a subsequent read's history.
+   * The callback is called synchronously as soon as a refresh or write adds
+   * the event to the log's in-memory copy, after the lookups include it and
+   * before that refresh or write resolves. Previously cached events are not
+   * replayed.
    * Callback failures are isolated from persistence and other listeners, and
    * asynchronous callback work is not awaited. External writes are discovered
-   * through advisory hints, polling, reads, or append reconciliation.
+   * through advisory hints, polling, refreshes, or append reconciliation.
    */
   onAppend(options: {
     /**
@@ -410,6 +451,96 @@ export type HarnessAgentLog = {
      */
     config?: HarnessAgentLogListenerConfig;
   }): () => void;
+
+  /**
+   * Fetches the events committed since the last fetch from the World and adds
+   * them to the in-memory copy. Called where a decision depends on what other
+   * processes may have written, e.g. at the start of a drive.
+   */
+  refresh(): Promise<void>;
+
+  /**
+   * Returns the submissions, in log order.
+   */
+  getSubmissions(): readonly HarnessAgentLogSubmissionEvent[];
+
+  /**
+   * Returns the submissions that no accepted `effect-start` delivered yet, in
+   * log order.
+   */
+  getUndeliveredSubmissions(): readonly HarnessAgentLogSubmissionEvent[];
+
+  /**
+   * Returns the latest accepted attempt of an effect key.
+   */
+  getEffect(options: {
+    /**
+     * Key of the effect.
+     */
+    key: string;
+  }): HarnessAgentLogEffectAttempt | undefined;
+
+  /**
+   * Returns the latest accepted attempt of each effect key, ordered by the
+   * log position of those attempts' starts.
+   */
+  getEffects(options?: {
+    /**
+     * Only effect keys starting with this prefix.
+     */
+    keyPrefix?: string;
+
+    /**
+     * Only attempts started during this turn, i.e. accepted while it was the
+     * current turn.
+     */
+    turnId?: string;
+  }): readonly HarnessAgentLogEffectAttempt[];
+
+  /**
+   * Returns the turn of the latest `turn-start`, finished or not.
+   */
+  getCurrentTurn(): HarnessAgentLogTurn | undefined;
+
+  /**
+   * Returns all turns, in start order.
+   */
+  getTurns(): readonly HarnessAgentLogTurn[];
+
+  /**
+   * Returns the drive of the latest `drive-start`.
+   */
+  getLatestDrive(): HarnessAgentLogDrive | undefined;
+
+  /**
+   * Returns the adapter's own events, in log order. Backs the adapter-facing
+   * log's `getAdapterEvents()`.
+   */
+  getAdapterEvents(options?: {
+    /**
+     * Only events of this type.
+     */
+    type?: `harness:${string}`;
+  }): readonly HarnessAgentLogAdapterEvent[];
+
+  /**
+   * Returns whether the tool call attempt with the given start ID committed
+   * its `tool-execution-start` event, i.e. whether its tool may have started
+   * running. Recovery uses this to retry an abandoned tool call attempt
+   * regardless of its replay policy when its tool provably never ran.
+   *
+   * This is a narrowly scoped helper for that one recovery rule, and only
+   * applies to tool call attempts.
+   *
+   * TODO: Consider a cleaner way to represent the start of a tool's
+   * execution, so that tool-specific state does not need its own lookup.
+   */
+  hasToolExecutionStart(options: {
+    /**
+     * ID of the attempt's `effect-start` event.
+     */
+    startId: string;
+  }): boolean;
 };
 
 const LOG_STEP_NAME = 'harness-agent-log';
@@ -487,15 +618,16 @@ type LogWatcher = {
 };
 
 /**
- * Decodes a namespaced World event. Unrelated events carry no agent state;
- * malformed records in the reserved namespace must not be skipped by replay.
+ * Decodes a World event into an agent log event. Returns `undefined` for World
+ * events that are not agent log events. Throws for malformed records in the
+ * agent log's namespace, since replay must not skip them.
  */
-async function deserializeEvent(options: {
+export async function decodeLogEvent(options: {
   /**
    * Committed World event.
    */
   event: Event;
-}): Promise<LogRecord | undefined> {
+}): Promise<HarnessAgentLogEvent | undefined> {
   const { event } = options;
   if (
     event.eventType !== 'step_created' ||
@@ -521,10 +653,21 @@ async function deserializeEvent(options: {
   if (!isValidHarnessAgentLogEvent(value)) {
     throw new Error('HarnessAgentLog: invalid stored event.');
   }
-  return {
-    event: value as HarnessAgentLogEvent,
-    position: requireEventSlot(event.eventId),
-  };
+  return value as HarnessAgentLogEvent;
+}
+
+/**
+ * Decodes a World event into an agent log event and its committed World slot.
+ */
+async function deserializeEvent(options: {
+  /**
+   * Committed World event.
+   */
+  event: Event;
+}): Promise<LogRecord | undefined> {
+  const decoded = await decodeLogEvent({ event: options.event });
+  if (decoded == null) return;
+  return { event: decoded, position: requireEventSlot(options.event.eventId) };
 }
 
 /**
@@ -576,6 +719,19 @@ function delay(options: {
 }
 
 /**
+ * Writable version of a lookup type, used while the log updates its lookups.
+ */
+type Mutable<T> = { -readonly [KEY in keyof T]: T[KEY] };
+
+/**
+ * Returns whether an effect output is an interruption that permits another
+ * attempt.
+ */
+function isRetryableInterruption(output?: HarnessV2EffectOutput): boolean {
+  return output?.type === 'interrupted' && output.retryable;
+}
+
+/**
  * Creates a log stored as ordered events in the given existing World run.
  * World slots are whole-log positions, including infrastructure records and
  * physical duplicates. Reads expose only the first committed logical event.
@@ -583,10 +739,30 @@ function delay(options: {
  * resending, and exhausted recovery refuses further writes on this instance.
  * Append listeners follow advisory hints and periodically refresh the log, so
  * stream loss or transport chunk boundaries never determine durable state.
+ *
+ * The lookups are updated once for each new event, in log order, before
+ * listeners are notified. This is the one place that decides what log events
+ * mean for the session:
+ *
+ * - An `effect-start` is accepted only if its `attempt` is the next attempt
+ *   of its key and the key's previous attempt, if any, ended with a
+ *   retryable interruption. An accepted start becomes the latest attempt of
+ *   its key, is filed under the turn that is current at that moment, and
+ *   marks the submissions it delivers as delivered.
+ * - `effect-progress` and `effect-end` events only apply to an accepted
+ *   attempt that is still the latest of its key and has not ended. Progress
+ *   replaces earlier progress; only the first end counts.
+ * - A `turn-start` adds a turn and makes it current. Its submissions are the
+ *   prompt submission whose ID is the turn ID, which is currently how turns
+ *   are identified. `finish-step` events add steps to their turn, and the
+ *   first `finish-turn` event of a turn finishes it.
+ * - A `drive-start` adds a drive and makes it the latest one; a
+ *   `drive-crash` is attached to the drive it names.
+ * - `tool-execution-start` events mark the tool call attempt they name.
+ *   `crash-request` events do not affect the lookups.
  */
 export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
   const listeners = new Set<LogListener>();
-  const records: LogRecord[] = [];
   const byId = new Map<string, LogRecord>();
   const hintStreamName = runId + '_harness_agent_log_hints';
   let position = 0;
@@ -596,8 +772,185 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
   let refreshRequested = false;
   let watcher: LogWatcher | undefined;
   let writeFailure: Error | undefined;
+  let lookupFailure: Error | undefined;
   let publishingHint = false;
   let hintRequested = false;
+
+  const submissions: HarnessAgentLogSubmissionEvent[] = [];
+  const delivered = new Set<string>();
+
+  /**
+   * Latest accepted attempt of each effect key. A key is moved to the end
+   * whenever it gets a new attempt, so iteration follows the log position of
+   * the latest attempts' starts.
+   */
+  const latestAttempts = new Map<
+    string,
+    Mutable<HarnessAgentLogEffectAttempt>
+  >();
+  const attemptsByStartId = new Map<
+    string,
+    Mutable<HarnessAgentLogEffectAttempt>
+  >();
+  const attemptTurns = new Map<string, string>();
+  const toolExecutionStarts = new Set<string>();
+  const turns: Mutable<HarnessAgentLogTurn>[] = [];
+  const turnsById = new Map<string, Mutable<HarnessAgentLogTurn>>();
+  const drives = new Map<string, Mutable<HarnessAgentLogDrive>>();
+  const crashes = new Map<string, HarnessAgentLogDriveCrashEvent>();
+  let latestDrive: HarnessAgentLogDrive | undefined;
+  const adapterEvents: HarnessAgentLogAdapterEvent[] = [];
+
+  /**
+   * Throws if an event could not be applied to the lookups. They would no
+   * longer reflect the log, so this log instance must not be used anymore.
+   */
+  function checkLookups(): void {
+    if (lookupFailure) throw lookupFailure;
+  }
+
+  /**
+   * Returns the attempt a progress or end event applies to, if any.
+   */
+  function getOpenAttempt(options: {
+    /**
+     * ID of the attempt's `effect-start` event.
+     */
+    startId: string;
+  }): Mutable<HarnessAgentLogEffectAttempt> | undefined {
+    const attempt = attemptsByStartId.get(options.startId);
+    if (
+      attempt == null ||
+      attempt.end != null ||
+      latestAttempts.get(attempt.start.data.key) !== attempt
+    ) {
+      return undefined;
+    }
+    return attempt;
+  }
+
+  /**
+   * Applies an `effect-start` to the lookups, if it is accepted.
+   */
+  function applyEffectStart(options: {
+    /**
+     * Start event to apply.
+     */
+    event: HarnessAgentLogEffectStartEvent;
+  }): void {
+    const { event } = options;
+    const { key, attempt, deliveredSubmissionIds } = event.data;
+    const previous = latestAttempts.get(key);
+    if (attempt !== (previous?.start.data.attempt ?? 0) + 1) return;
+    if (
+      previous != null &&
+      !isRetryableInterruption(previous.end?.data.output)
+    ) {
+      return;
+    }
+
+    const accepted: Mutable<HarnessAgentLogEffectAttempt> = { start: event };
+    latestAttempts.delete(key);
+    latestAttempts.set(key, accepted);
+    attemptsByStartId.set(event.id, accepted);
+    const currentTurn = turns.at(-1);
+    if (currentTurn != null) {
+      attemptTurns.set(event.id, currentTurn.start.data.turnId);
+    }
+    for (const submissionId of deliveredSubmissionIds) {
+      delivered.add(submissionId);
+    }
+  }
+
+  /**
+   * Applies one new event to the lookups. Events must be applied once each,
+   * in log order.
+   */
+  function applyEvent(options: {
+    /**
+     * New event, the first committed one with its ID.
+     */
+    event: HarnessAgentLogEvent;
+  }): void {
+    const { event } = options;
+    switch (event.type) {
+      case 'submission':
+        submissions.push(event);
+        return;
+
+      case 'effect-start':
+        applyEffectStart({ event });
+        return;
+
+      case 'effect-progress': {
+        const attempt = getOpenAttempt({ startId: event.data.startId });
+        if (attempt != null) attempt.progress = event;
+        return;
+      }
+
+      case 'effect-end': {
+        const attempt = getOpenAttempt({ startId: event.data.startId });
+        if (attempt != null) attempt.end = event;
+        return;
+      }
+
+      case 'tool-execution-start':
+        toolExecutionStarts.add(event.data.startId);
+        return;
+
+      case 'turn-start': {
+        const { turnId } = event.data;
+        if (turnsById.has(turnId)) return;
+        const submission = submissions.find(item => item.id === turnId);
+        const turn: Mutable<HarnessAgentLogTurn> = {
+          start: event,
+          submissions: submission?.data.type === 'prompt' ? [submission] : [],
+          steps: [],
+        };
+        turns.push(turn);
+        turnsById.set(turnId, turn);
+        return;
+      }
+
+      case 'finish-step': {
+        const turn = turnsById.get(event.data.turnId);
+        if (turn != null) turn.steps = [...turn.steps, event];
+        return;
+      }
+
+      case 'finish-turn': {
+        const turn = turnsById.get(event.data.turnId);
+        if (turn != null && turn.finish == null) turn.finish = event;
+        return;
+      }
+
+      case 'drive-start': {
+        const { driveId } = event.data;
+        if (drives.has(driveId)) return;
+        const drive: Mutable<HarnessAgentLogDrive> = { start: event };
+        const crash = crashes.get(driveId);
+        if (crash != null) drive.crash = crash;
+        drives.set(driveId, drive);
+        latestDrive = drive;
+        return;
+      }
+
+      case 'drive-crash': {
+        const { driveId } = event.data;
+        if (crashes.has(driveId)) return;
+        crashes.set(driveId, event);
+        const drive = drives.get(driveId);
+        if (drive != null) drive.crash = event;
+        return;
+      }
+
+      case 'crash-request':
+        return;
+
+      default:
+        adapterEvents.push(event);
+    }
+  }
 
   /**
    * Serializes every mutation of the committed prefix and canonical indexes.
@@ -666,6 +1019,7 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
      */
     nextCursor?: string;
   }): Promise<void> {
+    checkLookups();
     let nextPosition = position;
     const decoded: LogRecord[] = [];
     for (const event of options.events) {
@@ -683,11 +1037,23 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
     for (const record of decoded) {
       if (byId.has(record.event.id)) continue;
       byId.set(record.event.id, record);
-      records.push(record);
       fresh.push(record);
     }
     position = nextPosition;
     if (options.nextCursor != null) cursor = options.nextCursor;
+    for (const record of fresh) {
+      try {
+        applyEvent({ event: record.event });
+      } catch (error) {
+        lookupFailure = Object.assign(
+          new Error(
+            'HarnessAgentLog: event could not be applied; recreate the log.',
+          ),
+          { cause: error },
+        );
+        throw lookupFailure;
+      }
+    }
     notify({ fresh });
   }
 
@@ -851,6 +1217,7 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
     bytes: Uint8Array;
   }): Promise<boolean> {
     if (writeFailure) throw writeFailure;
+    checkLookups();
     await refreshUnlocked();
     if (isCommitted({ event: options.event })) return false;
     let cause: unknown;
@@ -958,28 +1325,6 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
   }
 
   return {
-    read(options) {
-      return exclusive(async () => {
-        await refreshUnlocked();
-        return {
-          events: records
-            .filter(
-              record =>
-                record.position > Math.max(0, options?.after ?? 0) &&
-                (options?.types == null ||
-                  options.types.includes(record.event.type)),
-            )
-            .map(
-              record =>
-                cloneSerializableValue({
-                  value: record.event as SerializableValue,
-                }) as HarnessAgentLogEvent,
-            ),
-          position,
-        };
-      });
-    },
-
     async append(event) {
       const encoded = jsonEncodeSerializableValue({
         value: {
@@ -995,6 +1340,62 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
         JSON.stringify({ version: 1, event: encoded }),
       );
       return exclusive(() => appendUnlocked({ event: snapshot, bytes }));
+    },
+
+    refresh() {
+      return exclusive(async () => {
+        checkLookups();
+        await refreshUnlocked();
+      });
+    },
+
+    getSubmissions() {
+      checkLookups();
+      return [...submissions];
+    },
+
+    getUndeliveredSubmissions() {
+      checkLookups();
+      return submissions.filter(submission => !delivered.has(submission.id));
+    },
+
+    getEffect({ key }) {
+      checkLookups();
+      return latestAttempts.get(key);
+    },
+
+    getEffects({ keyPrefix, turnId } = {}) {
+      checkLookups();
+      return [...latestAttempts.values()].filter(
+        attempt =>
+          (keyPrefix == null || attempt.start.data.key.startsWith(keyPrefix)) &&
+          (turnId == null || attemptTurns.get(attempt.start.id) === turnId),
+      );
+    },
+
+    getCurrentTurn() {
+      checkLookups();
+      return turns.at(-1);
+    },
+
+    getTurns() {
+      checkLookups();
+      return [...turns];
+    },
+
+    getLatestDrive() {
+      checkLookups();
+      return latestDrive;
+    },
+
+    getAdapterEvents({ type } = {}) {
+      checkLookups();
+      return adapterEvents.filter(event => type == null || event.type === type);
+    },
+
+    hasToolExecutionStart({ startId }) {
+      checkLookups();
+      return toolExecutionStarts.has(startId);
     },
 
     onAppend({ listener, config }) {

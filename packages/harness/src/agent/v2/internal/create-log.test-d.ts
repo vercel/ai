@@ -2,14 +2,21 @@ import { expectTypeOf, test } from 'vitest';
 import type { SerializableValue } from '@ai-sdk/provider';
 import type {
   HarnessV2Log,
+  HarnessV2LogEffectAttempt,
   HarnessV2LogEvent,
+  HarnessV2LogTurn,
 } from '../../../v2/harness-v2-log';
 import type {
   HarnessV2FinishReason,
   HarnessV2Metadata,
   HarnessV2Usage,
 } from '../../../v2/harness-v2-stream-part';
-import type { HarnessAgentLog, HarnessAgentLogEvent } from './create-log';
+import type {
+  HarnessAgentLog,
+  HarnessAgentLogEffectAttempt,
+  HarnessAgentLogEvent,
+  HarnessAgentLogTurn,
+} from './create-log';
 
 test('delivers internal events while accepting zero-argument listeners', () => {
   /**
@@ -64,6 +71,21 @@ test('exposes turn finish events to the adapter', () => {
     };
     readonly id: string;
   }>();
+});
+
+test('extends the adapter-facing lookup shapes for the agent engine', () => {
+  expectTypeOf<HarnessAgentLogTurn>().toMatchTypeOf<HarnessV2LogTurn>();
+  expectTypeOf<HarnessAgentLogEffectAttempt>().toMatchTypeOf<HarnessV2LogEffectAttempt>();
+});
+
+test('offers lookups instead of reading events', () => {
+  expectTypeOf<HarnessAgentLog>().not.toHaveProperty('read');
+  expectTypeOf<HarnessV2Log>().not.toHaveProperty('read');
+  expectTypeOf<HarnessV2Log>().not.toHaveProperty('refresh');
+  expectTypeOf<HarnessV2Log>().not.toHaveProperty('hasToolExecutionStart');
+  expectTypeOf<HarnessAgentLog['refresh']>().toEqualTypeOf<
+    () => Promise<void>
+  >();
 });
 
 test('keeps progress events internal to the agent', () => {

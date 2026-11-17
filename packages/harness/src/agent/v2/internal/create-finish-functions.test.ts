@@ -161,8 +161,16 @@ async function readEventIds(options: {
   log: HarnessAgentLog;
   type: 'finish-step' | 'finish-turn';
 }) {
-  const { events } = await options.log.read({ types: [options.type] });
-  return events.map(event => event.id);
+  await options.log.refresh();
+  return options.log
+    .getTurns()
+    .flatMap(turn =>
+      options.type === 'finish-step'
+        ? turn.steps.map(step => step.id)
+        : turn.finish == null
+          ? []
+          : [turn.finish.id],
+    );
 }
 
 describe('createFinishFunctions', () => {
@@ -178,7 +186,7 @@ describe('createFinishFunctions', () => {
         harnessMetadata: { test: { value: 1 } },
       });
 
-      const { events } = await log.read({ types: ['finish-step'] });
+      const events = log.getTurns().flatMap(turn => turn.steps);
       expect(events).toEqual<HarnessAgentLogEvent[]>([
         {
           type: 'finish-step',
@@ -341,7 +349,9 @@ describe('createFinishFunctions', () => {
         harnessMetadata: { test: { value: 1 } },
       });
 
-      const { events } = await log.read({ types: ['finish-turn'] });
+      const events = log
+        .getTurns()
+        .flatMap(turn => (turn.finish == null ? [] : [turn.finish]));
       expect(events).toEqual<HarnessAgentLogEvent[]>([
         {
           type: 'finish-turn',
@@ -449,9 +459,9 @@ describe('createFinishFunctions', () => {
       ]);
     });
 
-    test('reads the log once and applies later events from onAppend', async () => {
+    test('looks up the current turn without refreshing the log', async () => {
       const { log, finishStep, finishTurn } = await setup();
-      const read = vi.spyOn(log, 'read');
+      const refresh = vi.spyOn(log, 'refresh');
       await deliverPrompt({ log, submissionId: 'p1' });
 
       await finishStep({ stepNumber: 0, finishReason, usage });
@@ -460,7 +470,12 @@ describe('createFinishFunctions', () => {
       await finishStep({ stepNumber: 1, finishReason, usage });
       await finishTurn({ finishReason, totalUsage: usage });
 
-      expect(read).toHaveBeenCalledTimes(1);
+      expect(refresh).not.toHaveBeenCalled();
+      expect(await readEventIds({ log, type: 'finish-step' })).toEqual([
+        'finish-step:p1:0',
+        'finish-step:p2:0',
+        'finish-step:p2:1',
+      ]);
     });
 
     test('records and emits nothing after abort', async () => {

@@ -1,7 +1,11 @@
 import { afterEach, describe, expect, test } from 'vitest';
 import { DefaultHarnessAgentSession } from '../harness-agent-session';
 import { InMemoryWorld } from '../in-memory-world';
-import { createLog, type HarnessAgentLogEvent } from './create-log';
+import {
+  createLog,
+  decodeLogEvent,
+  type HarnessAgentLogEvent,
+} from './create-log';
 import {
   createStreamWriter,
   decodeStreamRecords,
@@ -140,6 +144,32 @@ async function setup(options: { events: HarnessAgentLogEvent[] }) {
 }
 
 /**
+ * Reads the agent log events stored in the World, in log order, keeping the
+ * first event of each ID.
+ */
+async function readLogEvents(options: {
+  world: InMemoryWorld;
+  types?: HarnessAgentLogEvent['type'][];
+}): Promise<HarnessAgentLogEvent[]> {
+  const { data } = await options.world.events.list({
+    runId,
+    pagination: { sortOrder: 'asc', limit: 10_000 },
+    resolveData: 'all',
+  });
+  const events: HarnessAgentLogEvent[] = [];
+  const ids = new Set<string>();
+  for (const worldEvent of data) {
+    const event = await decodeLogEvent({ event: worldEvent });
+    if (event == null || ids.has(event.id)) continue;
+    ids.add(event.id);
+    if (options.types == null || options.types.includes(event.type)) {
+      events.push(event);
+    }
+  }
+  return events;
+}
+
+/**
  * Reads every record written to the session's stream so far.
  */
 async function readRecords(options: {
@@ -179,8 +209,39 @@ describe('startDrive', () => {
       }),
     ).toBe(false);
     await writer.flush();
-    expect((await log.read()).events).toHaveLength(3);
+    expect(await readLogEvents({ world })).toHaveLength(3);
     expect(await readRecords({ world })).toEqual([]);
+  });
+
+  test('does not treat a start that was not accepted as an abandoned attempt', async () => {
+    const events: HarnessAgentLogEvent[] = [
+      prompt,
+      turnStart,
+      effectStart({ id: 'model', key: 'model:0', replay: 'safe' }),
+      {
+        type: 'effect-end',
+        id: 'model-end',
+        data: { startId: 'model', output: { type: 'result', value: null } },
+      },
+      effectStart({ id: 'duplicate', key: 'model:0', replay: 'safe' }),
+      {
+        type: 'finish-turn',
+        id: 'finish-turn:turn',
+        data: { turnId: 'turn', finishReason, totalUsage: usage },
+      },
+    ];
+    const { world, log, writer } = await setup({ events });
+
+    expect(
+      await startDrive({
+        log,
+        writer,
+        world,
+        session,
+        driveIdentity: { driveId: 'drive' },
+      }),
+    ).toBe(false);
+    expect(await readLogEvents({ world })).toEqual(events);
   });
 
   test('starts a drive for a prompt without a turn, recording its identity', async () => {
@@ -206,7 +267,7 @@ describe('startDrive', () => {
         }),
       }),
     ).toBe(true);
-    expect((await log.read({ types: ['drive-start'] })).events).toEqual([
+    expect(await readLogEvents({ world, types: ['drive-start'] })).toEqual([
       driveStart({
         driveId: 'drive',
         deadline: 1_000,
@@ -257,7 +318,7 @@ describe('startDrive', () => {
           driveIdentity: driveIdentity({ driveId: 'drive', queueJobId }),
         }),
       ).toBe(false);
-      expect((await log.read()).events).toEqual(events);
+      expect(await readLogEvents({ world })).toEqual(events);
     },
   );
 
@@ -283,7 +344,7 @@ describe('startDrive', () => {
             driveIdentity: { driveId: 'drive' },
           }),
         ).toBe(false);
-        expect((await log.read()).events).toEqual(events);
+        expect(await readLogEvents({ world })).toEqual(events);
       } finally {
         untrack();
       }
@@ -373,7 +434,8 @@ describe('startDrive', () => {
       ).toBe(true);
       await writer.flush();
 
-      const { events: logEvents } = await log.read({
+      const logEvents = await readLogEvents({
+        world,
         types: ['drive-start', 'effect-end'],
       });
       expect(logEvents.slice(1)).toEqual([

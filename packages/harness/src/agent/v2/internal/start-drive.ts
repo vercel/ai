@@ -4,7 +4,7 @@ import type { World } from '@workflow/world';
 import type { HarnessAgentSession } from '../harness-agent-session';
 import type { HarnessV2EffectOutput } from '../../../v2/harness-v2-effect';
 import { parseToolEffect } from './create-execute-tool-functions';
-import type { HarnessAgentLog, HarnessAgentLogEvent } from './create-log';
+import type { HarnessAgentLog, HarnessAgentLogDrive } from './create-log';
 import {
   decodeStreamRecords,
   type HarnessAgentStreamPart,
@@ -14,19 +14,6 @@ import {
   isDriveProcessGone,
   type HarnessAgentDriveProcess,
 } from './drive-process';
-
-/**
- * Log event of the given type.
- */
-type LogEventOf<TYPE extends HarnessAgentLogEvent['type']> = Extract<
-  HarnessAgentLogEvent,
-  {
-    /**
-     * Type of the event.
-     */
-    type: TYPE;
-  }
->;
 
 /**
  * Identity of a drive, recorded on its `drive-start`: what tells the drive
@@ -65,10 +52,10 @@ export type HarnessAgentDriveIdentity = {
  * should run the harness. Returns `false` without changing the session when
  * it must not drive.
  *
- * Steps, decided from one read of the log:
+ * Steps, decided from the log after one refresh:
  *
- * 1. Abandoned attempts are the latest `effect-start` of each effect key
- *    without an `effect-end`. If there are any, the drive that may still run
+ * 1. Abandoned attempts are the latest accepted attempts of each effect key
+ *    without an end. If there are any, the drive that may still run
  *    them is the one of the latest `drive-start`, and it must provably be
  *    gone. A `drive-crash` proves that at once, but a drive that crashed
  *    for real records none, so without one, any of these proves it from the
@@ -76,10 +63,11 @@ export type HarnessAgentDriveIdentity = {
  *    delivery of the same queue job (which the queue only redelivers once
  *    its previous handler lost it), or its process is gone. Without
  *    any proof (including when there is no `drive-start`), this returns
- *    `false`. Attribution by log position assumes one drive at a time.
- * 2. Without abandoned attempts, an unfinished latest turn, or a `prompt`
- *    submission that has not started its turn, there is nothing to drive and
- *    this returns `false`.
+ *    `false`. Attributing the attempts to the latest drive assumes one
+ *    drive at a time.
+ * 2. Without abandoned attempts, an unfinished current turn, or an
+ *    undelivered `prompt` submission that has not started a turn, there is
+ *    nothing to drive and this returns `false`.
  * 3. The drive's `drive-start` is appended (ID `drive-start:${driveId}`),
  *    with the drive's identity as its data.
  * 4. Each abandoned attempt gets an `effect-end` with an `interrupted` output
@@ -87,7 +75,7 @@ export type HarnessAgentDriveIdentity = {
  *    policy is `safe`, or if it is a tool call attempt (key `tool:...`)
  *    without a `tool-execution-start` event, which provably never ran its
  *    tool.
- * 5. If the latest turn is unfinished, its stream is repaired: its `start`
+ * 5. If the current turn is unfinished, its stream is repaired: its `start`
  *    part and its latest `finish-step` part are written under their log keys
  *    if no record with that key is in the stream (a crash between the log
  *    append and the stream write loses the part), and a `retract` part
@@ -127,80 +115,22 @@ export async function startDrive(options: {
   driveIdentity: HarnessAgentDriveIdentity;
 }): Promise<boolean> {
   const { log, writer, world, session, driveIdentity } = options;
-  const { events } = await log.read();
+  await log.refresh();
 
-  const latestStarts = new Map<string, LogEventOf<'effect-start'>>();
-  const outputs = new Map<string, HarnessV2EffectOutput>();
-  const partials = new Map<string, SerializableValue>();
-  const executed = new Set<string>();
-  const crashedDrives = new Set<string>();
-  const startedTurns = new Set<string>();
-  const finishedTurns = new Set<string>();
-  const prompts: string[] = [];
-  const startPositions = new Map<string, number>();
-  let latestDrive: LogEventOf<'drive-start'> | undefined;
-  let turnId: string | undefined;
-  let turnPosition = -1;
-  let latestFinishStep: LogEventOf<'finish-step'> | undefined;
-
-  for (const [position, event] of events.entries()) {
-    switch (event.type) {
-      case 'submission':
-        if (event.data.type === 'prompt') prompts.push(event.id);
-        break;
-      case 'turn-start':
-        startedTurns.add(event.data.turnId);
-        turnId = event.data.turnId;
-        turnPosition = position;
-        latestFinishStep = undefined;
-        break;
-      case 'finish-step':
-        if (event.data.turnId === turnId) latestFinishStep = event;
-        break;
-      case 'finish-turn':
-        finishedTurns.add(event.data.turnId);
-        break;
-      case 'effect-start':
-        latestStarts.set(event.data.key, event);
-        startPositions.set(event.id, position);
-        break;
-      case 'effect-progress':
-        partials.set(event.data.startId, event.data.partial);
-        break;
-      case 'effect-end':
-        if (!outputs.has(event.data.startId)) {
-          outputs.set(event.data.startId, event.data.output);
-        }
-        break;
-      case 'tool-execution-start':
-        executed.add(event.data.startId);
-        break;
-      case 'drive-start':
-        latestDrive = event;
-        break;
-      case 'drive-crash':
-        crashedDrives.add(event.data.driveId);
-        break;
-      default:
-    }
-  }
-
-  const abandoned = [...latestStarts.values()].filter(
-    start => !outputs.has(start.id),
-  );
+  const abandoned = log.getEffects().filter(attempt => attempt.end == null);
   if (
     abandoned.length > 0 &&
     !isDriveGone({
-      drive: latestDrive?.data,
-      crashedDrives,
+      drive: log.getLatestDrive(),
       queueJobId: driveIdentity.queueJobId,
     })
   ) {
     return false;
   }
 
-  const turnUnfinished = turnId != null && !finishedTurns.has(turnId);
-  const promptWaiting = prompts.some(prompt => !startedTurns.has(prompt));
+  const turn = log.getCurrentTurn();
+  const turnUnfinished = turn != null && turn.finish == null;
+  const promptWaiting = hasWaitingPrompt({ log });
   if (abandoned.length === 0 && !turnUnfinished && !promptWaiting) {
     return false;
   }
@@ -211,22 +141,23 @@ export async function startDrive(options: {
     data: driveIdentity,
   });
 
-  for (const start of abandoned) {
+  for (const { start, progress } of abandoned) {
     const retryable =
       start.data.replay === 'safe' ||
-      (parseToolEffect(start.data) != null && !executed.has(start.id));
-    const output: HarnessV2EffectOutput = partials.has(start.id)
-      ? { type: 'interrupted', retryable, partial: partials.get(start.id) }
+      (parseToolEffect(start.data) != null &&
+        !log.hasToolExecutionStart({ startId: start.id }));
+    const output: HarnessV2EffectOutput = progress
+      ? { type: 'interrupted', retryable, partial: progress.data.partial }
       : { type: 'interrupted', retryable };
     await log.append({
       type: 'effect-end',
       id: generateId(),
       data: { startId: start.id, output },
     });
-    outputs.set(start.id, output);
   }
 
-  if (turnId == null || !turnUnfinished) return true;
+  if (turn == null || !turnUnfinished) return true;
+  const { turnId } = turn.start.data;
 
   const keys = new Set<string>();
   const { runId } = session;
@@ -254,18 +185,16 @@ export async function startDrive(options: {
     writer.emit({ part: { type: 'start' }, key: startKey });
   }
 
-  const retracted = [...latestStarts.values()]
-    .filter(start => {
-      const output = outputs.get(start.id);
-      return (
-        (startPositions.get(start.id) ?? -1) > turnPosition &&
-        output?.type === 'interrupted' &&
-        output.retryable
-      );
+  const turnAttempts = log.getEffects({ turnId });
+  const retracted = turnAttempts
+    .filter(attempt => {
+      const output = attempt.end?.data.output;
+      return output?.type === 'interrupted' && output.retryable;
     })
-    .map(start => start.id);
+    .map(attempt => attempt.start.id);
   if (retracted.length > 0) writer.retract({ startIds: retracted });
 
+  const latestFinishStep = turn.steps.at(-1);
   if (latestFinishStep != null && !keys.has(latestFinishStep.id)) {
     const part: Extract<HarnessAgentStreamPart, { type: 'finish-step' }> = {
       type: 'finish-step',
@@ -278,12 +207,11 @@ export async function startDrive(options: {
     writer.emit({ part, key: latestFinishStep.id });
   }
 
-  for (const start of latestStarts.values()) {
-    const output = outputs.get(start.id);
+  for (const { start, end } of turnAttempts) {
+    const output = end?.data.output;
     const toolEffect = parseToolEffect(start.data);
     const key = `tool-interrupted:${start.id}`;
     if (
-      (startPositions.get(start.id) ?? -1) <= turnPosition ||
       toolEffect == null ||
       output?.type !== 'interrupted' ||
       output.retryable ||
@@ -307,6 +235,32 @@ export async function startDrive(options: {
   }
 
   return true;
+}
+
+/**
+ * Returns whether the log has an undelivered `prompt` submission that has not
+ * started a turn. A prompt whose turn started counts as started even if no
+ * effect delivered it, e.g. when its turn failed before its first effect
+ * start committed.
+ */
+export function hasWaitingPrompt(options: {
+  /**
+   * Engine log of the session.
+   */
+  log: HarnessAgentLog;
+}): boolean {
+  const { log } = options;
+  const startedPrompts = new Set(
+    log
+      .getTurns()
+      .flatMap(turn => turn.submissions.map(submission => submission.id)),
+  );
+  return log
+    .getUndeliveredSubmissions()
+    .some(
+      submission =>
+        submission.data.type === 'prompt' && !startedPrompts.has(submission.id),
+    );
 }
 
 /**
@@ -336,29 +290,25 @@ function describeInterruptedToolCall(options: {
 
 /**
  * Returns whether the drive with the given identity is provably gone,
- * checking the synthetic `drive-crash` record first and then what the
- * drive's identity recorded. Returns `false` without a drive.
+ * checking its recorded crash first and then what the drive's identity
+ * recorded. Returns `false` without a drive.
  */
 function isDriveGone(options: {
   /**
-   * Identity of the session's latest drive, from its `drive-start`.
+   * Latest drive of the session.
    */
-  drive?: HarnessAgentDriveIdentity;
-
-  /**
-   * IDs of the drives that recorded a `drive-crash`.
-   */
-  crashedDrives: Set<string>;
+  drive?: HarnessAgentLogDrive;
 
   /**
    * ID of the queue job whose delivery runs the current drive.
    */
   queueJobId?: string;
 }): boolean {
-  const { drive, crashedDrives, queueJobId } = options;
-  if (drive == null) return false;
+  const { queueJobId } = options;
+  if (options.drive == null) return false;
+  if (options.drive.crash != null) return true;
+  const drive = options.drive.start.data;
   return (
-    crashedDrives.has(drive.driveId) ||
     (drive.deadline != null && drive.deadline <= Date.now()) ||
     (queueJobId != null && drive.queueJobId === queueJobId) ||
     (drive.process != null &&

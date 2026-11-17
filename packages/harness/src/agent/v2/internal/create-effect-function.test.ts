@@ -16,6 +16,7 @@ import {
 } from './create-effect-function';
 import {
   createLog,
+  decodeLogEvent,
   type HarnessAgentLog,
   type HarnessAgentLogEvent,
 } from './create-log';
@@ -27,10 +28,50 @@ import {
 
 const abortControllers = new Set<AbortController>();
 
+/**
+ * Reads the agent log events stored in the World, in log order, keeping the
+ * first event of each ID.
+ */
+async function readLogEvents(options: {
+  world: InMemoryWorld;
+  runId: string;
+  types?: HarnessAgentLogEvent['type'][];
+}): Promise<HarnessAgentLogEvent[]> {
+  const { data } = await options.world.events.list({
+    runId: options.runId,
+    pagination: { sortOrder: 'asc', limit: 10_000 },
+    resolveData: 'all',
+  });
+  const events: HarnessAgentLogEvent[] = [];
+  const ids = new Set<string>();
+  for (const worldEvent of data) {
+    const event = await decodeLogEvent({ event: worldEvent });
+    if (event == null || ids.has(event.id)) continue;
+    ids.add(event.id);
+    if (options.types == null || options.types.includes(event.type)) {
+      events.push(event);
+    }
+  }
+  return events;
+}
+
 afterEach(() => {
   for (const controller of abortControllers) controller.abort();
   abortControllers.clear();
 });
+
+/**
+ * Creates a log of the session refreshed like a drive's log at its start, as
+ * a later drive would use it.
+ */
+async function createRefreshedLog(options: {
+  world: InMemoryWorld;
+  runId: string;
+}): Promise<HarnessAgentLog> {
+  const log = createLog(options);
+  await log.refresh();
+  return log;
+}
 
 function createAbortController(): AbortController {
   const controller = new AbortController();
@@ -137,7 +178,7 @@ function startEvent(
 }
 
 describe('createEffectFunction', () => {
-  test('reads history once across execution, progress, and replay', async () => {
+  test('looks up history in the log without refreshing it', async () => {
     const { effect, log, world, runId } = await setup();
     const writer = createLog({ world, runId });
     await writer.append(startEvent());
@@ -146,7 +187,8 @@ describe('createEffectFunction', () => {
       id: 'existing-end',
       data: { startId: 'start', output: { type: 'result', value: 'existing' } },
     });
-    const read = vi.spyOn(log, 'read');
+    await log.refresh();
+    const refresh = vi.spyOn(log, 'refresh');
     const replacement = vi.fn(async () => 'unexpected');
     expect(
       await effect({ key: 'key', ...effectOptions, fn: replacement }),
@@ -169,23 +211,14 @@ describe('createEffectFunction', () => {
     for (let index = 0; index < 8; index++) {
       await effect({ key: `key-${index}`, ...effectOptions, fn: replacement });
     }
-    expect(read).toHaveBeenCalledExactlyOnceWith({
-      types: [
-        'submission',
-        'turn-start',
-        'finish-turn',
-        'effect-start',
-        'effect-progress',
-        'effect-end',
-      ],
-    });
-    expect((await createLog({ world, runId }).read()).events).toHaveLength(34);
+    expect(refresh).not.toHaveBeenCalled();
+    expect(await readLogEvents({ world, runId })).toHaveLength(34);
     expect(replacement).not.toHaveBeenCalled();
   });
 
-  test('ignores unrelated events without rereading history', async () => {
+  test('ignores unrelated events', async () => {
     const { effect, log, world, runId } = await setup();
-    const read = vi.spyOn(log, 'read');
+    const refresh = vi.spyOn(log, 'refresh');
     const fn = vi.fn(async () => 'value');
     await effect({ key: 'key', ...effectOptions, fn });
     await createLog({ world, runId }).append({
@@ -200,26 +233,15 @@ describe('createEffectFunction', () => {
     });
     await effect({ key: 'other', ...effectOptions, fn });
     await effect({ key: 'key', ...effectOptions, fn });
-    expect(read).toHaveBeenCalledTimes(1);
+    expect(refresh).not.toHaveBeenCalled();
     expect(fn).toHaveBeenCalledTimes(2);
   });
 
-  test('shares initialization without serializing callbacks for different keys', async () => {
-    const { effect, log } = await setup();
-    const read = log.read.bind(log);
-    const reading = new DelayedPromise<void>();
-    const releaseRead = new DelayedPromise<void>();
+  test('does not serialize callbacks for different keys', async () => {
+    const { effect } = await setup();
     const firstEntered = new DelayedPromise<void>();
     const secondEntered = new DelayedPromise<void>();
     const releaseCallbacks = new DelayedPromise<string>();
-    const reads = vi
-      .spyOn(log, 'read')
-      .mockImplementationOnce(async options => {
-        const result = await read(options);
-        reading.resolve();
-        await releaseRead.promise;
-        return result;
-      });
     const first = effect({
       key: 'first',
       ...effectOptions,
@@ -228,7 +250,6 @@ describe('createEffectFunction', () => {
         return releaseCallbacks.promise;
       },
     });
-    await reading.promise;
     const second = effect({
       key: 'second',
       ...effectOptions,
@@ -237,8 +258,6 @@ describe('createEffectFunction', () => {
         return releaseCallbacks.promise;
       },
     });
-    const initialReads = reads.mock.calls.length;
-    releaseRead.resolve();
     try {
       await Promise.all([firstEntered.promise, secondEntered.promise]);
     } finally {
@@ -248,23 +267,14 @@ describe('createEffectFunction', () => {
       { type: 'result', value: 'result' },
       { type: 'result', value: 'result' },
     ]);
-    expect(initialReads).toBe(1);
-    expect(reads).toHaveBeenCalledTimes(1);
   });
 
   test('preserves winning attempts and outputs across incremental external writes', async () => {
-    const { effect, log, world, runId, abortController } = await setup();
+    const { effect, log, world, runId } = await setup();
     const writer = createLog({ world, runId });
-    const read = vi.spyOn(log, 'read');
-    const observed = new Set<string>();
-    const unsubscribe = log.onAppend({
-      listener: event => observed.add(event.id),
-    });
-    abortController.signal.addEventListener('abort', unsubscribe, {
-      once: true,
-    });
     const fn = vi.fn(async () => 'unexpected');
     await writer.append(startEvent());
+    await log.refresh();
     await expect(
       effect({ key: 'key', ...effectOptions, fn }),
     ).rejects.toBeInstanceOf(HarnessInvalidDriveStateError);
@@ -278,7 +288,7 @@ describe('createEffectFunction', () => {
         output: { type: 'result', value: 'loser' },
       },
     });
-    await vi.waitFor(() => expect(observed.has('losing-end')).toBe(true));
+    await log.refresh();
     await expect(
       effect({ key: 'key', ...effectOptions, fn }),
     ).rejects.toBeInstanceOf(HarnessInvalidDriveStateError);
@@ -291,7 +301,7 @@ describe('createEffectFunction', () => {
       },
     });
     await writer.append(startEvent({ id: 'retry', attempt: 2 }));
-    await vi.waitFor(() => expect(observed.has('retry')).toBe(true));
+    await log.refresh();
     await expect(
       effect({ key: 'key', ...effectOptions, fn }),
     ).rejects.toBeInstanceOf(HarnessInvalidDriveStateError);
@@ -310,7 +320,7 @@ describe('createEffectFunction', () => {
       id: 'retry-end',
       data: { startId: 'retry', output: { type: 'result', value: 'winner' } },
     });
-    await vi.waitFor(() => expect(observed.has('retry-end')).toBe(true));
+    await log.refresh();
     expect(await effect({ key: 'key', ...effectOptions, fn })).toEqual({
       type: 'result',
       value: 'winner',
@@ -320,13 +330,17 @@ describe('createEffectFunction', () => {
       id: 'losing-retry-end',
       data: { startId: 'retry', output: { type: 'result', value: 'loser' } },
     });
-    await vi.waitFor(() => expect(observed.has('losing-retry-end')).toBe(true));
+    await log.refresh();
     expect(await effect({ key: 'key', ...effectOptions, fn })).toEqual({
       type: 'result',
       value: 'winner',
     });
     expect(fn).not.toHaveBeenCalled();
-    expect(read).toHaveBeenCalledTimes(1);
+    expect(
+      (await readLogEvents({ world, runId, types: ['effect-start'] })).map(
+        event => event.id,
+      ),
+    ).toEqual(['start', 'losing-start', 'invalid-retry', 'retry']);
   });
 
   test('does not replace newer committed progress when a local append returns', async () => {
@@ -360,17 +374,9 @@ describe('createEffectFunction', () => {
     ).toEqual({ type: 'interrupted', retryable: true, partial: 'external' });
   });
 
-  test('uses committed notifications without confirmation reads', async () => {
+  test('replays a committed output without refreshing the log', async () => {
     const { effect, log } = await setup();
-    const read = vi.spyOn(log, 'read');
-    const append = log.append.bind(log);
-    vi.spyOn(log, 'append').mockImplementation(async event => {
-      const result = await append(event);
-      if (event.type === 'effect-end') {
-        read.mockRejectedValue(new Error('unexpected confirmation read'));
-      }
-      return result;
-    });
+    const refresh = vi.spyOn(log, 'refresh');
     const fn = vi.fn(async () => 'committed');
     expect(await effect({ key: 'key', ...effectOptions, fn })).toEqual({
       type: 'result',
@@ -380,14 +386,14 @@ describe('createEffectFunction', () => {
       type: 'result',
       value: 'committed',
     });
-    expect(read).toHaveBeenCalledTimes(1);
+    expect(refresh).not.toHaveBeenCalled();
     expect(fn).toHaveBeenCalledTimes(1);
   });
 
   test.each(['result', 'interrupted'] as const)(
     'isolates returned %s values from retained state on the same factory',
     async type => {
-      const { effect, log, abortController } = await setup();
+      const { effect, log, abortController, world, runId } = await setup();
       const value = {
         nested: { count: 1 },
         date: new Date(0),
@@ -423,8 +429,8 @@ describe('createEffectFunction', () => {
         returned!.map.get('key')!.add('changed');
       }
       expect(fn).toHaveBeenCalledTimes(1);
-      const ends = await log.read({ types: ['effect-end'] });
-      expect(ends.events[0].data).toEqual({
+      const ends = await readLogEvents({ world, runId, types: ['effect-end'] });
+      expect(ends[0].data).toEqual({
         startId: expect.any(String),
         output: expected,
       });
@@ -435,7 +441,7 @@ describe('createEffectFunction', () => {
     const { effect, log, world, runId, abortController } = await setup();
     const fn = vi.fn(async context => {
       expect(context.abortSignal).toBe(abortController.signal);
-      expect((await log.read()).events).toEqual([
+      expect(await readLogEvents({ world, runId })).toEqual([
         {
           type: 'effect-start',
           id: context.startId,
@@ -454,7 +460,7 @@ describe('createEffectFunction', () => {
     if (output.type === 'result') output.value.answer = 0;
 
     const replay = createTestEffectFunction({
-      log: createLog({ world, runId }),
+      log: await createRefreshedLog({ world, runId }),
       stopAbortSignal: AbortSignal.abort(),
     });
     const replacement = vi.fn(async () => 'changed');
@@ -468,10 +474,9 @@ describe('createEffectFunction', () => {
     ).toEqual({ type: 'result', value: { answer: 42 } });
     expect(fn).toHaveBeenCalledTimes(1);
     expect(replacement).not.toHaveBeenCalled();
-    expect((await log.read()).events.map(event => event.type)).toEqual([
-      'effect-start',
-      'effect-end',
-    ]);
+    expect(
+      (await readLogEvents({ world, runId })).map(event => event.type),
+    ).toEqual(['effect-start', 'effect-end']);
   });
 
   test.each([
@@ -494,17 +499,17 @@ describe('createEffectFunction', () => {
       const replacement = vi.fn(async () => 'unexpected');
       expect(
         await createTestEffectFunction({
-          log: createLog({ world, runId }),
+          log: await createRefreshedLog({ world, runId }),
           stopAbortSignal: createAbortController().signal,
         })({ key: 'key', ...effectOptions, fn: replacement }),
       ).toEqual(output);
       expect(replacement).not.toHaveBeenCalled();
-      expect((await log.read()).events).toHaveLength(2);
+      expect(await readLogEvents({ world, runId })).toHaveLength(2);
     },
   );
 
   test('records rejected promises and iterator failures as callback errors', async () => {
-    const { effect, log } = await setup();
+    const { effect, log, world, runId } = await setup();
     expect(
       await effect({
         key: 'promise',
@@ -525,7 +530,7 @@ describe('createEffectFunction', () => {
       }),
     ).toEqual({ type: 'error', error: { message: 'Error: iterator failed' } });
     expect(
-      (await log.read({ types: ['effect-progress'] })).events.map(
+      (await readLogEvents({ world, runId, types: ['effect-progress'] })).map(
         event => event.data,
       ),
     ).toEqual([{ startId: expect.any(String), partial: 'partial' }]);
@@ -545,7 +550,7 @@ describe('createEffectFunction', () => {
   });
 
   test('keeps undefined results, ignores generator returns, and allows zero yields', async () => {
-    const { effect, log } = await setup();
+    const { effect, log, world, runId } = await setup();
     expect(
       await effect({
         key: 'promise',
@@ -577,12 +582,12 @@ describe('createEffectFunction', () => {
       }),
     ).toEqual({ type: 'result', value: undefined });
     expect(
-      (await log.read({ types: ['effect-progress'] })).events,
+      await readLogEvents({ world, runId, types: ['effect-progress'] }),
     ).toHaveLength(1);
   });
 
   test('persists yielded snapshots and uses the last snapshot as the result', async () => {
-    const { effect, log } = await setup();
+    const { effect, log, world, runId } = await setup();
     const value = { count: 1 };
     expect(
       await effect({
@@ -598,7 +603,7 @@ describe('createEffectFunction', () => {
       }),
     ).toEqual({ type: 'result', value: { count: 2 } });
     expect(
-      (await log.read({ types: ['effect-progress'] })).events.map(
+      (await readLogEvents({ world, runId, types: ['effect-progress'] })).map(
         event => event.data,
       ),
     ).toEqual([
@@ -610,7 +615,7 @@ describe('createEffectFunction', () => {
   test.each([false, true])(
     'waits for committed progress before advancing the iterator, cancellation: %s',
     async cancel => {
-      const { effect, log, abortController } = await setup();
+      const { effect, log, abortController, world, runId } = await setup();
       const writing = new DelayedPromise<void>();
       const release = new DelayedPromise<void>();
       const resumed = vi.fn();
@@ -632,9 +637,9 @@ describe('createEffectFunction', () => {
       });
       await writing.promise;
       expect(resumed).not.toHaveBeenCalled();
-      expect((await log.read({ types: ['effect-progress'] })).events).toEqual(
-        [],
-      );
+      expect(
+        await readLogEvents({ world, runId, types: ['effect-progress'] }),
+      ).toEqual([]);
       if (cancel) abortController.abort();
       release.resolve();
       expect(await running).toEqual(
@@ -665,7 +670,7 @@ describe('createEffectFunction', () => {
         },
       }),
     ).toEqual({ type: 'result', value });
-    const records = (await createLog({ world, runId }).read()).events;
+    const records = await readLogEvents({ world, runId });
     expect(records[0]).toEqual({
       ...startEvent(),
       id: expect.any(String),
@@ -682,13 +687,13 @@ describe('createEffectFunction', () => {
       fn: async () => null,
     });
     expect(replay).toEqual({ type: 'result', value });
-    expect((await log.read()).events).toEqual(records);
+    expect(await readLogEvents({ world, runId })).toEqual(records);
   });
 
   test.each(['safe', 'never'] as const)(
     'does not consume an attempt when already aborted: %s',
     async replay => {
-      const { effect, log, abortController } = await setup();
+      const { effect, log, abortController, world, runId } = await setup();
       abortController.abort();
       const fn = vi.fn(async () => 'value');
       expect(
@@ -698,7 +703,7 @@ describe('createEffectFunction', () => {
         retryable: replay === 'safe',
       });
       expect(fn).not.toHaveBeenCalled();
-      expect((await log.read()).events).toEqual([]);
+      expect(await readLogEvents({ world, runId })).toEqual([]);
       expect(
         await createTestEffectFunction({
           log,
@@ -709,7 +714,7 @@ describe('createEffectFunction', () => {
   );
 
   test('records interruption without invoking work if cancelled during the start append', async () => {
-    const { log, effect, abortController } = await setup();
+    const { log, effect, abortController, world, runId } = await setup();
     const append = log.append.bind(log);
     vi.spyOn(log, 'append').mockImplementation(async event => {
       const result = await append(event);
@@ -722,14 +727,13 @@ describe('createEffectFunction', () => {
       retryable: true,
     });
     expect(fn).not.toHaveBeenCalled();
-    expect((await log.read()).events.map(event => event.type)).toEqual([
-      'effect-start',
-      'effect-end',
-    ]);
+    expect(
+      (await readLogEvents({ world, runId })).map(event => event.type),
+    ).toEqual(['effect-start', 'effect-end']);
   });
 
   test('waits for callback work to settle after cancellation', async () => {
-    const { effect, log, abortController } = await setup();
+    const { effect, log, abortController, world, runId } = await setup();
     const entered = new DelayedPromise<void>();
     const pending = new DelayedPromise<string>();
     const running = effect({
@@ -746,7 +750,9 @@ describe('createEffectFunction', () => {
     });
     await entered.promise;
     abortController.abort();
-    expect((await log.read({ types: ['effect-end'] })).events).toEqual([]);
+    expect(
+      await readLogEvents({ world, runId, types: ['effect-end'] }),
+    ).toEqual([]);
     expect(settled).toBe(false);
     pending.resolve('too late');
     expect(await running).toEqual({ type: 'interrupted', retryable: true });
@@ -755,7 +761,7 @@ describe('createEffectFunction', () => {
   test.each(['safe', 'never'] as const)(
     'interrupts with the last committed partial and cleans up iteration: %s',
     async replay => {
-      const { effect, log, abortController } = await setup();
+      const { effect, log, abortController, world, runId } = await setup();
       const cleanup = vi.fn();
       const output = await effect({
         key: 'key',
@@ -778,7 +784,7 @@ describe('createEffectFunction', () => {
       });
       expect(cleanup).toHaveBeenCalledTimes(1);
       expect(
-        (await log.read({ types: ['effect-progress'] })).events,
+        await readLogEvents({ world, runId, types: ['effect-progress'] }),
       ).toHaveLength(1);
       const retry = vi.fn(async () => 'retry');
       expect(
@@ -830,7 +836,7 @@ describe('createEffectFunction', () => {
   test.each(['safe', 'never'] as const)(
     'records interruption before propagating a drive-rebuild error: %s',
     async replay => {
-      const { effect, log } = await setup();
+      const { effect, log, world, runId } = await setup();
       const error = new HarnessInvalidDriveStateError({ message: 'rebuild' });
       await expect(
         effect({
@@ -843,7 +849,9 @@ describe('createEffectFunction', () => {
           },
         }),
       ).rejects.toBe(error);
-      expect((await log.read({ types: ['effect-end'] })).events).toEqual([
+      expect(
+        await readLogEvents({ world, runId, types: ['effect-end'] }),
+      ).toEqual([
         {
           type: 'effect-end',
           id: expect.any(String),
@@ -874,7 +882,7 @@ describe('createEffectFunction', () => {
   test.each(['safe', 'never'] as const)(
     'requires engine recovery for an unfinished attempt: %s',
     async replay => {
-      const { effect, log } = await setup();
+      const { effect, log, world, runId } = await setup();
       const start = startEvent({ replay });
       await log.append(start);
       const fn = vi.fn(async () => 'unexpected');
@@ -882,12 +890,12 @@ describe('createEffectFunction', () => {
         effect({ key: 'key', ...effectOptions, replay, fn }),
       ).rejects.toBeInstanceOf(HarnessInvalidDriveStateError);
       expect(fn).not.toHaveBeenCalled();
-      expect((await log.read()).events).toEqual([start]);
+      expect(await readLogEvents({ world, runId })).toEqual([start]);
     },
   );
 
   test('increments retry attempts and retains previously delivered submission IDs', async () => {
-    const { effect, log } = await setup();
+    const { effect, log, world, runId } = await setup();
     await log.append(startEvent({ deliveredSubmissionIds: ['submission'] }));
     await log.append({
       type: 'effect-end',
@@ -903,7 +911,11 @@ describe('createEffectFunction', () => {
       type: 'result',
       value: 'retried',
     });
-    const starts = (await log.read({ types: ['effect-start'] })).events;
+    const starts = await readLogEvents({
+      world,
+      runId,
+      types: ['effect-start'],
+    });
     expect(starts[1]).toEqual({
       type: 'effect-start',
       id: expect.any(String),
@@ -987,9 +999,9 @@ describe('createEffectFunction', () => {
     expect(settled.filter(result => result.status === 'rejected')).toEqual([
       { status: 'rejected', reason: expect.any(HarnessInvalidDriveStateError) },
     ]);
-    expect((await log.read({ types: ['effect-start'] })).events).toHaveLength(
-      2,
-    );
+    expect(
+      await readLogEvents({ world, runId, types: ['effect-start'] }),
+    ).toHaveLength(2);
   });
 
   test.each<HarnessV2EffectOutput>([
@@ -999,7 +1011,7 @@ describe('createEffectFunction', () => {
   ])(
     'keeps an end that commits ahead of the local end: $type',
     async output => {
-      const { effect, log } = await setup();
+      const { effect, log, world, runId } = await setup();
       const append = log.append.bind(log);
       vi.spyOn(log, 'append').mockImplementation(async event => {
         if (event.type === 'effect-end') {
@@ -1014,14 +1026,14 @@ describe('createEffectFunction', () => {
       expect(
         await effect({ key: 'key', ...effectOptions, fn: async () => 'local' }),
       ).toEqual(output);
-      expect((await log.read({ types: ['effect-end'] })).events).toHaveLength(
-        2,
-      );
+      expect(
+        await readLogEvents({ world, runId, types: ['effect-end'] }),
+      ).toHaveLength(2);
     },
   );
 
   test('ignores losing starts, invalid retry numbers, and late events from earlier attempts', async () => {
-    const { effect, log } = await setup();
+    const { effect, log, world, runId } = await setup();
     const events: HarnessAgentLogEvent[] = [
       startEvent(),
       startEvent({ id: 'losing-start' }),
@@ -1066,11 +1078,11 @@ describe('createEffectFunction', () => {
       value: 'winner',
     });
     expect(fn).not.toHaveBeenCalled();
-    expect((await log.read()).events).toEqual(events);
+    expect(await readLogEvents({ world, runId })).toEqual(events);
   });
 
   test('replays an outcome recorded while the start append was being acknowledged', async () => {
-    const { log, effect } = await setup();
+    const { log, effect, world, runId } = await setup();
     const append = log.append.bind(log);
     vi.spyOn(log, 'append').mockImplementation(async event => {
       const result = await append(event);
@@ -1092,11 +1104,11 @@ describe('createEffectFunction', () => {
       value: 'recorded',
     });
     expect(fn).not.toHaveBeenCalled();
-    expect((await log.read()).events).toHaveLength(2);
+    expect(await readLogEvents({ world, runId })).toHaveLength(2);
   });
 
   test('keeps a committed result ahead of a late recovery interruption', async () => {
-    const { log, effect } = await setup();
+    const { log, effect, world, runId } = await setup();
     expect(
       await effect({
         key: 'key',
@@ -1108,7 +1120,9 @@ describe('createEffectFunction', () => {
       type: 'result',
       value: 'first',
     });
-    const start = (await log.read({ types: ['effect-start'] })).events[0];
+    const start = (
+      await readLogEvents({ world, runId, types: ['effect-start'] })
+    )[0];
     await log.append({
       type: 'effect-end',
       id: 'late-interruption',
@@ -1128,7 +1142,7 @@ describe('createEffectFunction', () => {
   test.each(['effect-start', 'effect-progress', 'effect-end'] as const)(
     'propagates append failure without recording it as callback failure: %s',
     async failedType => {
-      const { effect, log } = await setup();
+      const { effect, log, world, runId } = await setup();
       const failure = new Error('storage failed');
       const append = log.append.bind(log);
       vi.spyOn(log, 'append').mockImplementation(event =>
@@ -1161,7 +1175,9 @@ describe('createEffectFunction', () => {
       expect(cleanup).toHaveBeenCalledTimes(
         failedType === 'effect-start' ? 0 : 1,
       );
-      expect((await log.read({ types: ['effect-end'] })).events).toEqual([]);
+      expect(
+        await readLogEvents({ world, runId, types: ['effect-end'] }),
+      ).toEqual([]);
       if (failedType !== 'effect-start') {
         const fn = vi.fn(async () => 'unexpected');
         await expect(
@@ -1172,23 +1188,22 @@ describe('createEffectFunction', () => {
     },
   );
 
-  test('propagates read failures before invoking the callback', async () => {
-    const { effect, log } = await setup();
-    const failure = new Error('read failed');
-    vi.spyOn(log, 'read').mockRejectedValueOnce(failure);
+  test('propagates start append failures before invoking the callback', async () => {
+    const { effect, log, world, runId } = await setup();
+    const failure = new Error('append failed');
+    vi.spyOn(log, 'append').mockRejectedValueOnce(failure);
     const fn = vi.fn(async () => 'unexpected');
     await expect(effect({ key: 'key', ...effectOptions, fn })).rejects.toBe(
       failure,
     );
     expect(fn).not.toHaveBeenCalled();
-    expect((await log.read()).events).toEqual([]);
+    expect(await readLogEvents({ world, runId })).toEqual([]);
   });
 
   test('replays a committed result after append reports failure without rerunning work', async () => {
     const { log, effect, world, runId } = await setup();
     const failure = new Error('acknowledgement failed');
     const append = log.append.bind(log);
-    const read = vi.spyOn(log, 'read');
     vi.spyOn(log, 'append').mockImplementation(async event => {
       const result = await append(event);
       if (event.type === 'effect-end') throw failure;
@@ -1202,10 +1217,11 @@ describe('createEffectFunction', () => {
       type: 'result',
       value: 'committed',
     });
-    expect(read).toHaveBeenCalledTimes(1);
+    const restored = createLog({ world, runId });
+    await restored.refresh();
     expect(
       await createTestEffectFunction({
-        log: createLog({ world, runId }),
+        log: restored,
         stopAbortSignal: createAbortController().signal,
       })({ key: 'key', ...effectOptions, fn }),
     ).toEqual({ type: 'result', value: 'committed' });
@@ -1233,7 +1249,7 @@ describe('createEffectFunction', () => {
   test.each(['input', 'progress', 'result'] as const)(
     'rejects nonserializable %s without manufacturing an error output',
     async location => {
-      const { effect, log } = await setup();
+      const { effect, log, world, runId } = await setup();
       // oxlint-disable-next-line ai-sdk/no-as-unknown-as -- intentionally invalid value for a runtime validation test.
       const invalid = (() => {}) as unknown as SerializableValue;
       const fn = vi.fn(async () => invalid);
@@ -1254,7 +1270,9 @@ describe('createEffectFunction', () => {
             });
       await expect(running).rejects.toBeInstanceOf(TypeError);
       expect(fn).toHaveBeenCalledTimes(location === 'result' ? 1 : 0);
-      expect((await log.read({ types: ['effect-end'] })).events).toEqual([]);
+      expect(
+        await readLogEvents({ world, runId, types: ['effect-end'] }),
+      ).toEqual([]);
     },
   );
 
@@ -1329,33 +1347,13 @@ describe('createEffectFunction', () => {
     ).toEqual({ type: 'interrupted', retryable: true });
   });
 
-  test('reconciles overlapping history and events arriving after its snapshot', async () => {
+  test('uses events the log recorded after earlier lookups', async () => {
     const { effect, log } = await setup();
-    await log.append(startEvent());
-    await log.append({
-      type: 'effect-progress',
-      id: 'progress',
-      data: { startId: 'start', partial: 'before snapshot' },
-    });
-    const snapshotReady = new DelayedPromise<void>();
-    const release = new DelayedPromise<void>();
-    const read = log.read.bind(log);
-    const reads = vi
-      .spyOn(log, 'read')
-      .mockImplementationOnce(async options => {
-        const result = await read(options);
-        snapshotReady.resolve();
-        await release.promise;
-        return result;
-      });
     const fn = vi.fn(async () => 'unexpected');
-    const running = effect({ key: 'key', ...effectOptions, fn });
-    await snapshotReady.promise;
-    await log.append({
-      type: 'effect-progress',
-      id: 'new-progress',
-      data: { startId: 'start', partial: 'after snapshot' },
-    });
+    expect(
+      await effect({ key: 'other', ...effectOptions, fn: async () => 'other' }),
+    ).toEqual({ type: 'result', value: 'other' });
+    await log.append(startEvent());
     await log.append({
       type: 'effect-end',
       id: 'end',
@@ -1370,110 +1368,15 @@ describe('createEffectFunction', () => {
       id: 'retry-end',
       data: { startId: 'retry', output: { type: 'result', value: 'recorded' } },
     });
-    release.resolve();
-    await expect(running).resolves.toEqual({
-      type: 'result',
-      value: 'recorded',
-    });
     expect(await effect({ key: 'key', ...effectOptions, fn })).toEqual({
       type: 'result',
       value: 'recorded',
     });
-    expect(reads).toHaveBeenCalledTimes(1);
     expect(fn).not.toHaveBeenCalled();
   });
 
-  test('retries failed initialization without losing buffered notifications', async () => {
-    const { effect, log } = await setup();
-    const failure = new Error('initial read failed');
-    const read = log.read.bind(log);
-    const reads = vi
-      .spyOn(log, 'read')
-      .mockImplementationOnce(async options => {
-        await read(options);
-        await log.append(startEvent());
-        await log.append({
-          type: 'effect-end',
-          id: 'end',
-          data: {
-            startId: 'start',
-            output: { type: 'result', value: 'recorded' },
-          },
-        });
-        throw failure;
-      });
-    const fn = vi.fn(async () => 'unexpected');
-    await expect(effect({ key: 'key', ...effectOptions, fn })).rejects.toBe(
-      failure,
-    );
-    expect(await effect({ key: 'key', ...effectOptions, fn })).toEqual({
-      type: 'result',
-      value: 'recorded',
-    });
-    expect(await effect({ key: 'key', ...effectOptions, fn })).toEqual({
-      type: 'result',
-      value: 'recorded',
-    });
-    expect(reads).toHaveBeenCalledTimes(2);
-    expect(fn).not.toHaveBeenCalled();
-  });
-
-  test.each(['idle', 'already-aborted'] as const)(
-    'unsubscribes exactly once when %s',
-    async state => {
-      const { log } = await setup();
-      await log.append(startEvent());
-      await log.append({
-        type: 'effect-end',
-        id: 'end',
-        data: {
-          startId: 'start',
-          output: { type: 'result', value: 'recorded' },
-        },
-      });
-      const onAppend = log.onAppend.bind(log);
-      const registrations = vi
-        .spyOn(log, 'onAppend')
-        .mockImplementation(options => vi.fn(onAppend(options)));
-      const abortController = createAbortController();
-      if (state === 'already-aborted') abortController.abort();
-      const replay = createTestEffectFunction({
-        log,
-        stopAbortSignal: abortController.signal,
-      });
-      const unsubscribe = registrations.mock.results[0].value;
-      if (state === 'idle') {
-        expect(unsubscribe).not.toHaveBeenCalled();
-        abortController.abort();
-      }
-      expect(unsubscribe).toHaveBeenCalledTimes(1);
-      const fn = vi.fn(async () => 'unexpected');
-      expect(await replay({ key: 'key', ...effectOptions, fn })).toEqual({
-        type: 'result',
-        value: 'recorded',
-      });
-      expect(await replay({ key: 'missing', ...effectOptions, fn })).toEqual({
-        type: 'interrupted',
-        retryable: true,
-      });
-      abortController.abort();
-      expect(unsubscribe).toHaveBeenCalledTimes(1);
-      expect(fn).not.toHaveBeenCalled();
-    },
-  );
-
-  test('retains its subscription through initialization and all in-flight interruption writes', async () => {
-    const { log } = await setup();
-    const onAppend = log.onAppend.bind(log);
-    const registrations = vi
-      .spyOn(log, 'onAppend')
-      .mockImplementation(options => vi.fn(onAppend(options)));
-    const abortController = createAbortController();
-    const effect = createTestEffectFunction({
-      log,
-      stopAbortSignal: abortController.signal,
-    });
-    const unsubscribe = registrations.mock.results[0].value;
+  test('records the interruption of every in-flight attempt after a stop', async () => {
+    const { effect, abortController, world, runId } = await setup();
     const firstEntered = new DelayedPromise<void>();
     const secondEntered = new DelayedPromise<void>();
     const releaseFirst = new DelayedPromise<void>();
@@ -1498,176 +1401,36 @@ describe('createEffectFunction', () => {
     });
     await Promise.all([firstEntered.promise, secondEntered.promise]);
     abortController.abort();
-    expect(unsubscribe).not.toHaveBeenCalled();
     releaseFirst.resolve();
     expect(await first).toEqual({
       type: 'interrupted',
       retryable: true,
       partial: 'first partial',
     });
-    expect(unsubscribe).not.toHaveBeenCalled();
     releaseSecond.resolve();
     expect(await second).toEqual({
       type: 'interrupted',
       retryable: true,
       partial: 'second partial',
     });
-    expect(unsubscribe).toHaveBeenCalledTimes(1);
-    expect((await log.read({ types: ['effect-end'] })).events).toHaveLength(2);
+    expect(
+      await readLogEvents({ world, runId, types: ['effect-end'] }),
+    ).toHaveLength(2);
   });
 
-  test('does not unsubscribe while an aborted invocation is initializing', async () => {
-    const { log } = await setup();
-    const onAppend = log.onAppend.bind(log);
-    const registrations = vi
-      .spyOn(log, 'onAppend')
-      .mockImplementation(options => vi.fn(onAppend(options)));
-    const abortController = createAbortController();
-    const effect = createTestEffectFunction({
-      log,
-      stopAbortSignal: abortController.signal,
-    });
-    const unsubscribe = registrations.mock.results[0].value;
-    const ready = new DelayedPromise<void>();
-    const release = new DelayedPromise<void>();
-    const read = log.read.bind(log);
-    vi.spyOn(log, 'read').mockImplementationOnce(async options => {
-      const result = await read(options);
-      ready.resolve();
-      await release.promise;
-      return result;
+  test('rejects without writing or running the callback when a lookup fails', async () => {
+    const { effect, log, world, runId } = await setup();
+    const failure = new Error('lookup failed');
+    vi.spyOn(log, 'getEffect').mockImplementation(() => {
+      throw failure;
     });
     const fn = vi.fn(async () => 'unexpected');
-    const running = effect({ key: 'key', ...effectOptions, fn });
-    await ready.promise;
-    abortController.abort();
-    expect(unsubscribe).not.toHaveBeenCalled();
-    await log.append(startEvent());
-    await log.append({
-      type: 'effect-end',
-      id: 'end',
-      data: { startId: 'start', output: { type: 'result', value: 'recorded' } },
-    });
-    release.resolve();
-    expect(await running).toEqual({ type: 'result', value: 'recorded' });
-    expect(unsubscribe).toHaveBeenCalledTimes(1);
+    await expect(effect({ key: 'key', ...effectOptions, fn })).rejects.toBe(
+      failure,
+    );
     expect(fn).not.toHaveBeenCalled();
+    expect(await readLogEvents({ world, runId })).toEqual([]);
   });
-
-  test.each(['history', 'buffer'] as const)(
-    'does not retry an error from applying the initial %s',
-    async source => {
-      const failure =
-        source === 'history'
-          ? new Error('applying the event failed')
-          : undefined;
-      const event = {
-        type: 'effect-start',
-        id: 'invalid',
-        get data(): never {
-          throw failure;
-        },
-      } as const;
-      const log: HarnessAgentLog = {
-        read: vi.fn(async () => ({
-          events: source === 'history' ? [event] : [],
-          position: 1,
-        })),
-        append: vi.fn(async () => true),
-        onAppend({ listener }) {
-          if (source === 'buffer') listener(event);
-          return () => {};
-        },
-      };
-      const effect = createTestEffectFunction({
-        log,
-        stopAbortSignal: createAbortController().signal,
-      });
-      const fn = vi.fn(async () => 'unexpected');
-      await expect(effect({ key: 'key', ...effectOptions, fn })).rejects.toBe(
-        failure,
-      );
-      await expect(effect({ key: 'key', ...effectOptions, fn })).rejects.toBe(
-        failure,
-      );
-      expect(log.read).toHaveBeenCalledTimes(1);
-      expect(log.append).not.toHaveBeenCalled();
-      expect(fn).not.toHaveBeenCalled();
-    },
-  );
-
-  test.each(['effect-start', 'effect-progress', 'callback'] as const)(
-    'rethrows errors from applying events during %s without recording callback errors',
-    async failureAt => {
-      const failure = new Error('applying the event failed');
-      let notify: (event: HarnessAgentLogEvent) => void = () => {};
-      const fail = () =>
-        notify({
-          type: 'effect-start',
-          id: 'invalid',
-          get data(): never {
-            throw failure;
-          },
-        });
-      const log: HarnessAgentLog = {
-        read: vi.fn(async () => ({ events: [], position: 0 })),
-        append: vi.fn(async event => {
-          notify(event);
-          if (event.type === failureAt) fail();
-          return true;
-        }),
-        onAppend({ listener }) {
-          notify = listener;
-          return () => {};
-        },
-      };
-      const effect = createTestEffectFunction({
-        log,
-        stopAbortSignal: createAbortController().signal,
-      });
-      const entered = vi.fn();
-      const resumed = vi.fn();
-      const cleanup = vi.fn();
-      await expect(
-        effect({
-          key: 'key',
-          ...effectOptions,
-          fn: async function* () {
-            entered();
-            try {
-              if (failureAt === 'callback') fail();
-              yield 'partial';
-              resumed();
-            } finally {
-              cleanup();
-            }
-          },
-        }),
-      ).rejects.toBe(failure);
-      expect(entered).toHaveBeenCalledTimes(
-        failureAt === 'effect-start' ? 0 : 1,
-      );
-      expect(resumed).not.toHaveBeenCalled();
-      expect(cleanup).toHaveBeenCalledTimes(
-        failureAt === 'effect-start' ? 0 : 1,
-      );
-      expect(
-        vi.mocked(log.append).mock.calls.map(([event]) => event.type),
-      ).toEqual(
-        failureAt === 'effect-progress'
-          ? ['effect-start', 'effect-progress']
-          : ['effect-start'],
-      );
-      await expect(
-        effect({
-          key: 'other',
-          ...effectOptions,
-          fn: async () => 'unexpected',
-        }),
-      ).rejects.toBe(failure);
-      expect(log.read).toHaveBeenCalledTimes(1);
-    },
-  );
 
   test.each([1, 2])(
     'reconciles a lost write acknowledgement at write %s without rerunning the callback',
@@ -1707,7 +1470,11 @@ describe('createEffectFunction', () => {
           return 'done';
         },
       });
-      const [start] = (await log.read({ types: ['effect-start'] })).events;
+      const [start] = await readLogEvents({
+        world,
+        runId,
+        types: ['effect-start'],
+      });
       expect(await readStream({ world, runId })).toEqual([
         { part: part('a'), startId: start.id },
         { part: part('b'), startId: start.id },
@@ -1755,7 +1522,9 @@ describe('createEffectFunction', () => {
           expect.any(String),
         ),
       );
-      expect((await log.read({ types: ['effect-end'] })).events).toEqual([]);
+      expect(
+        await readLogEvents({ world, runId, types: ['effect-end'] }),
+      ).toEqual([]);
       pending.resolve();
       expect(await running).toEqual({ type: 'result', value: 'done' });
       expect(await readStream({ world, runId })).toHaveLength(1);
@@ -1777,7 +1546,7 @@ describe('createEffectFunction', () => {
       });
       expect(
         await createTestEffectFunction({
-          log: createLog({ world, runId }),
+          log: await createRefreshedLog({ world, runId }),
           stopAbortSignal: createAbortController().signal,
           world,
           runId,
@@ -1805,7 +1574,7 @@ describe('createEffectFunction', () => {
       ).toEqual({ type: 'interrupted', retryable: true });
       expect(
         await createTestEffectFunction({
-          log: createLog({ world, runId }),
+          log: await createRefreshedLog({ world, runId }),
           stopAbortSignal: createAbortController().signal,
           world,
           runId,
@@ -1818,7 +1587,11 @@ describe('createEffectFunction', () => {
           },
         }),
       ).toEqual({ type: 'result', value: 'done' });
-      const starts = (await log.read({ types: ['effect-start'] })).events;
+      const starts = await readLogEvents({
+        world,
+        runId,
+        types: ['effect-start'],
+      });
       expect(starts).toHaveLength(2);
       expect(await readStream({ world, runId })).toEqual([
         { part: part('cut off'), startId: starts[0].id },
@@ -1830,7 +1603,7 @@ describe('createEffectFunction', () => {
   describe('yield', () => {
     test('refuses a new attempt without recording anything once the yield signal fired', async () => {
       const yieldController = createAbortController();
-      const { effect, log } = await setup({
+      const { effect, log, world, runId } = await setup({
         yieldAbortSignal: yieldController.signal,
       });
       yieldController.abort();
@@ -1840,7 +1613,7 @@ describe('createEffectFunction', () => {
         retryable: true,
       });
       expect(fn).not.toHaveBeenCalled();
-      expect((await log.read()).events).toEqual([]);
+      expect(await readLogEvents({ world, runId })).toEqual([]);
     });
 
     test('still replays a recorded output once the yield signal fired', async () => {
@@ -1888,7 +1661,9 @@ describe('createEffectFunction', () => {
         deliveredSubmissionIds: ['prompt-1'],
         fn: async () => 'done',
       });
-      const { events } = await log.read({
+      const events = await readLogEvents({
+        world,
+        runId,
         types: ['turn-start', 'effect-start'],
       });
       expect(events.map(event => event.type)).toEqual([
@@ -1919,8 +1694,10 @@ describe('createEffectFunction', () => {
           },
         }),
       ).toEqual({ type: 'interrupted', retryable: true });
+      const retryLog = createLog({ world, runId });
+      await retryLog.refresh();
       const retry = createTestEffectFunction({
-        log: createLog({ world, runId }),
+        log: retryLog,
         stopAbortSignal: createAbortController().signal,
         world,
         runId,
@@ -1932,9 +1709,9 @@ describe('createEffectFunction', () => {
         deliveredSubmissionIds: ['prompt-1'],
         fn: async () => 'done',
       });
-      expect((await log.read({ types: ['turn-start'] })).events).toHaveLength(
-        1,
-      );
+      expect(
+        await readLogEvents({ world, runId, types: ['turn-start'] }),
+      ).toHaveLength(1);
       expect(
         (await readStream({ world, runId })).filter(
           record => 'part' in record && record.part.type === 'start',
@@ -1951,12 +1728,14 @@ describe('createEffectFunction', () => {
         deliveredSubmissionIds: ['steer-1', 'unknown'],
         fn: async () => 'done',
       });
-      expect((await log.read({ types: ['turn-start'] })).events).toEqual([]);
+      expect(
+        await readLogEvents({ world, runId, types: ['turn-start'] }),
+      ).toEqual([]);
       expect(await readStream({ world, runId })).toEqual([]);
     });
 
     test('rejects an effect that delivers more than one waiting prompt', async () => {
-      const { effect, log } = await setup();
+      const { effect, log, world, runId } = await setup();
       await appendSubmission({ log, id: 'prompt-1', type: 'prompt' });
       await appendSubmission({ log, id: 'prompt-2', type: 'prompt' });
       const fn = vi.fn(async () => 'done');
@@ -1971,12 +1750,16 @@ describe('createEffectFunction', () => {
       ).rejects.toSatisfy(HarnessInvalidDriveStateError.isInstance);
       expect(fn).not.toHaveBeenCalled();
       expect(
-        (await log.read({ types: ['turn-start', 'effect-start'] })).events,
+        await readLogEvents({
+          world,
+          runId,
+          types: ['turn-start', 'effect-start'],
+        }),
       ).toEqual([]);
     });
 
     test('rejects a prompt while the latest turn has not finished', async () => {
-      const { effect, log } = await setup();
+      const { effect, log, world, runId } = await setup();
       await appendSubmission({ log, id: 'prompt-1', type: 'prompt' });
       await effect({
         key: 'first',
@@ -1997,14 +1780,18 @@ describe('createEffectFunction', () => {
       ).rejects.toSatisfy(HarnessInvalidDriveStateError.isInstance);
       expect(fn).not.toHaveBeenCalled();
       expect(
-        (await log.read({ types: ['turn-start', 'effect-start'] })).events.map(
-          event => event.type,
-        ),
+        (
+          await readLogEvents({
+            world,
+            runId,
+            types: ['turn-start', 'effect-start'],
+          })
+        ).map(event => event.type),
       ).toEqual(['turn-start', 'effect-start']);
     });
 
     test('starts the next turn once the latest turn finished', async () => {
-      const { effect, log } = await setup();
+      const { effect, log, world, runId } = await setup();
       await appendSubmission({ log, id: 'prompt-1', type: 'prompt' });
       await effect({
         key: 'first',
@@ -2039,14 +1826,14 @@ describe('createEffectFunction', () => {
       });
 
       expect(
-        (await log.read({ types: ['turn-start'] })).events.map(
+        (await readLogEvents({ world, runId, types: ['turn-start'] })).map(
           event => event.id,
         ),
       ).toEqual(['turn-start:prompt-1', 'turn-start:prompt-2']);
     });
 
     test('lets only one of two concurrent effects start a turn', async () => {
-      const { effect, log } = await setup();
+      const { effect, log, world, runId } = await setup();
       await appendSubmission({ log, id: 'prompt-1', type: 'prompt' });
       await appendSubmission({ log, id: 'prompt-2', type: 'prompt' });
 
@@ -2069,9 +1856,9 @@ describe('createEffectFunction', () => {
         'fulfilled',
         'rejected',
       ]);
-      expect((await log.read({ types: ['turn-start'] })).events).toHaveLength(
-        1,
-      );
+      expect(
+        await readLogEvents({ world, runId, types: ['turn-start'] }),
+      ).toHaveLength(1);
     });
   });
 });

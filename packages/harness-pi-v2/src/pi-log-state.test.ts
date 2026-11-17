@@ -1,6 +1,16 @@
-import type { HarnessV2LogEvent } from '@ai-sdk/harness';
+import type {
+  HarnessV2Log,
+  HarnessV2LogEffectAttempt,
+  HarnessV2LogSubmissionEvent,
+  HarnessV2LogTurn,
+} from '@ai-sdk/harness';
 import { describe, expect, test } from 'vitest';
-import { readPiLogState, restorePiTranscript } from './pi-log-state';
+import {
+  readPiLogState,
+  restorePiTranscript,
+  type PiLogState,
+  type PiModelEffectRecord,
+} from './pi-log-state';
 
 const settings = { skills: [], tools: [] };
 const system = { role: 'system', content: '', timestamp: 1 };
@@ -13,27 +23,70 @@ const assistant = ({
   stopReason?: string;
 }) => ({ role: 'assistant', content, stopReason, timestamp: 3 });
 
-function prompt({ id, text }: { id: string; text: string }): HarnessV2LogEvent {
+const finishTurn = {
+  type: 'finish-turn',
+  id: 'finish',
+  data: {
+    turnId: 'opaque',
+    finishReason: { unified: 'stop', raw: 'stop' },
+    totalUsage: {
+      inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
+      outputTokens: { total: 0, text: 0, reasoning: 0 },
+    },
+  },
+} as const;
+
+/**
+ * Returns a log whose lookups return the given values as they are.
+ */
+function createStubLog(options: {
+  submissions?: HarnessV2LogSubmissionEvent[];
+  undelivered?: HarnessV2LogSubmissionEvent[];
+  effects?: HarnessV2LogEffectAttempt[];
+  currentTurn?: HarnessV2LogTurn;
+}): HarnessV2Log {
+  const { submissions = [], effects = [], currentTurn } = options;
+  return {
+    append: async () => {
+      throw new Error('appending is not supported');
+    },
+    onAppend: () => () => {},
+    getSubmissions: () => submissions,
+    getUndeliveredSubmissions: () => options.undelivered ?? [],
+    getEffect: ({ key }) =>
+      effects.find(attempt => attempt.start.data.key === key),
+    getEffects: ({ keyPrefix } = {}) =>
+      effects.filter(
+        attempt =>
+          keyPrefix == null || attempt.start.data.key.startsWith(keyPrefix),
+      ),
+    getCurrentTurn: () => currentTurn,
+    getTurns: () => (currentTurn == null ? [] : [currentTurn]),
+    getAdapterEvents: () => [],
+  };
+}
+
+function prompt(id: string): HarnessV2LogSubmissionEvent {
   return {
     type: 'submission',
     id,
     data: {
       type: 'prompt',
-      message: { role: 'user', content: text },
+      message: { role: 'user', content: id },
       settings,
     },
   };
 }
 
-function start(options: {
-  id: string;
+function attempt(options: {
   key: string;
   appended?: unknown[];
   delivered?: string[];
-}): HarnessV2LogEvent {
-  return {
+  value?: unknown;
+}): HarnessV2LogEffectAttempt {
+  const start = {
     type: 'effect-start',
-    id: options.id,
+    id: `start-${options.key}`,
     data: {
       key: options.key,
       attempt: 1,
@@ -48,120 +101,159 @@ function start(options: {
         : {},
       deliveredSubmissionIds: options.delivered ?? [],
     },
-  };
-}
-
-function end({
-  startId,
-  value,
-}: {
-  startId: string;
-  value: unknown;
-}): HarnessV2LogEvent {
+  } as const;
+  if (!Object.hasOwn(options, 'value')) return { start };
   return {
-    type: 'effect-end',
-    id: `end-${startId}`,
-    data: { startId, output: { type: 'result', value: value as never } },
+    start,
+    end: {
+      type: 'effect-end',
+      id: `end-${options.key}`,
+      data: {
+        startId: start.id,
+        output: { type: 'result', value: options.value as never },
+      },
+    },
   };
 }
 
-const finishTurn: HarnessV2LogEvent = {
-  type: 'finish-turn',
-  id: 'finish',
-  data: {
-    turnId: 'opaque',
-    finishReason: { unified: 'stop', raw: 'stop' },
-    totalUsage: {
-      inputTokens: {
-        total: 0,
-        noCache: 0,
-        cacheRead: 0,
-        cacheWrite: 0,
-      },
-      outputTokens: { total: 0, text: 0, reasoning: 0 },
+function modelEffect(options: {
+  ordinal: number;
+  appended: unknown[];
+  output?: unknown;
+}): PiModelEffectRecord {
+  return {
+    ordinal: options.ordinal,
+    input: {
+      appended: options.appended as never,
+      contextLength: 0,
+      model: 'faux/faux-1',
     },
-  },
-};
+    deliveredSubmissionIds: [],
+    ...(options.output !== undefined && {
+      output: { type: 'result', value: options.output as never },
+    }),
+  };
+}
+
+function state(options: Partial<PiLogState>): PiLogState {
+  return {
+    prompts: [],
+    pendingPrompts: [],
+    modelEffects: [],
+    toolOutputs: new Map(),
+    ...options,
+  };
+}
 
 describe('readPiLogState', () => {
   test('reads prompts, pending prompts, model effects and tool outputs', () => {
-    const state = readPiLogState({
-      events: [
-        prompt({ id: 'p1', text: 'first' }),
-        start({
-          id: 's0',
-          key: 'model:0',
-          appended: [user('first')],
-          delivered: ['p1'],
-        }),
-        end({
-          startId: 's0',
-          value: assistant({
-            content: [
-              { type: 'toolCall', id: 'c1', name: 'read', arguments: {} },
-            ],
-            stopReason: 'toolUse',
+    const steer: HarnessV2LogSubmissionEvent = {
+      type: 'submission',
+      id: 's1',
+      data: { type: 'steer', message: { role: 'user', content: 'faster' } },
+    };
+    const toolUse = assistant({
+      content: [{ type: 'toolCall', id: 'c1', name: 'read', arguments: {} }],
+      stopReason: 'toolUse',
+    });
+    const result = readPiLogState({
+      log: createStubLog({
+        submissions: [prompt('p1'), steer, prompt('p2')],
+        undelivered: [steer, prompt('p2')],
+        effects: [
+          attempt({
+            key: 'model:1',
+            appended: [{ role: 'toolResult', toolCallId: 'c1' }],
           }),
-        }),
-        start({ id: 's1', key: 'tool:c1' }),
-        end({ startId: 's1', value: { raw: 'file' } }),
-        prompt({ id: 'p2', text: 'second' }),
-      ],
+          attempt({
+            key: 'model:0',
+            appended: [user('p1')],
+            delivered: ['p1'],
+            value: toolUse,
+          }),
+          attempt({ key: 'tool:c1', value: { raw: 'file' } }),
+          attempt({ key: 'tool:c2' }),
+          attempt({ key: 'model:summary' }),
+        ],
+        currentTurn: { submissions: [prompt('p1')] },
+      }),
     });
 
-    expect(state.prompts.map(p => p.id)).toEqual(['p1', 'p2']);
-    expect(state.pendingPrompts.map(p => p.id)).toEqual(['p2']);
-    expect(state.modelEffects).toMatchObject([
+    expect(result.prompts.map(item => item.id)).toEqual(['p1', 'p2']);
+    expect(result.pendingPrompts.map(item => item.id)).toEqual(['p2']);
+    expect(result.modelEffects).toEqual([
       {
         ordinal: 0,
+        input: {
+          appended: [user('p1')],
+          contextLength: 0,
+          model: 'faux/faux-1',
+        },
         deliveredSubmissionIds: ['p1'],
-        output: { type: 'result' },
+        output: { type: 'result', value: toolUse },
+      },
+      {
+        ordinal: 1,
+        input: {
+          appended: [{ role: 'toolResult', toolCallId: 'c1' }],
+          contextLength: 0,
+          model: 'faux/faux-1',
+        },
+        deliveredSubmissionIds: [],
       },
     ]);
-    expect(state.toolOutputs.get('c1')).toEqual({
-      type: 'result',
-      value: { raw: 'file' },
-    });
-    expect(state.currentTurn).toMatchObject({
-      prompt: { id: 'p1' },
+    expect(result.toolOutputs).toEqual(
+      new Map([['c1', { type: 'result', value: { raw: 'file' } }]]),
+    );
+    expect(result.currentTurn).toEqual({
+      prompt: {
+        id: 'p1',
+        message: { role: 'user', content: 'p1' },
+        settings,
+      },
       firstModelOrdinal: 0,
       ended: false,
     });
   });
 
-  test('treats a turn as ended once a finish-turn event follows its start', () => {
-    const state = readPiLogState({
-      events: [
-        prompt({ id: 'p1', text: 'first' }),
-        start({ id: 's0', key: 'model:0', delivered: ['p1'] }),
-        end({ startId: 's0', value: assistant({ content: [] }) }),
-        finishTurn,
-      ],
+  test('marks the current turn ended once it finished', () => {
+    const result = readPiLogState({
+      log: createStubLog({
+        submissions: [prompt('p1')],
+        effects: [attempt({ key: 'model:0', delivered: ['p1'] })],
+        currentTurn: { submissions: [prompt('p1')], finish: finishTurn },
+      }),
     });
 
-    expect(state.currentTurn?.ended).toBe(true);
+    expect(result.currentTurn?.ended).toBe(true);
   });
 
-  test('keeps the latest attempt of a model effect', () => {
-    const state = readPiLogState({
-      events: [
-        prompt({ id: 'p1', text: 'first' }),
-        start({ id: 's0', key: 'model:0', delivered: ['p1'] }),
-        {
-          type: 'effect-end',
-          id: 'e0',
-          data: {
-            startId: 's0',
-            output: { type: 'interrupted', retryable: true },
-          },
-        },
-        start({ id: 's1', key: 'model:0', delivered: ['p1'] }),
-        end({ startId: 's1', value: assistant({ content: [] }) }),
-      ],
+  test('starts the current turn at the first model effect that delivered its prompt', () => {
+    const result = readPiLogState({
+      log: createStubLog({
+        submissions: [prompt('p1'), prompt('p2')],
+        effects: [
+          attempt({ key: 'model:0', delivered: ['p1'] }),
+          attempt({ key: 'model:3', delivered: ['p2'] }),
+          attempt({ key: 'model:2', delivered: ['p2'] }),
+        ],
+        currentTurn: { submissions: [prompt('p2')] },
+      }),
     });
 
-    expect(state.modelEffects).toHaveLength(1);
-    expect(state.modelEffects[0].output).toMatchObject({ type: 'result' });
+    expect(result.currentTurn?.firstModelOrdinal).toBe(2);
+  });
+
+  test('has no current turn while no model effect delivered its prompt', () => {
+    const result = readPiLogState({
+      log: createStubLog({
+        submissions: [prompt('p1')],
+        effects: [attempt({ key: 'tool:c1', delivered: ['p1'] })],
+        currentTurn: { submissions: [prompt('p1')] },
+      }),
+    });
+
+    expect(result.currentTurn).toBeUndefined();
   });
 });
 
@@ -169,12 +261,7 @@ describe('restorePiTranscript', () => {
   const isBuiltinTool = () => true;
 
   test('starts empty without model effects', () => {
-    expect(
-      restorePiTranscript({
-        state: readPiLogState({ events: [prompt({ id: 'p1', text: 'hi' })] }),
-        isBuiltinTool,
-      }),
-    ).toEqual({
+    expect(restorePiTranscript({ state: state({}), isBuiltinTool })).toEqual({
       messages: [],
       recorded: 0,
       nextModelOrdinal: 0,
@@ -189,18 +276,24 @@ describe('restorePiTranscript', () => {
     });
     const result = { role: 'toolResult', toolCallId: 'c1', timestamp: 4 };
     const restored = restorePiTranscript({
-      state: readPiLogState({
-        events: [
-          prompt({ id: 'p1', text: 'first' }),
-          start({
-            id: 's0',
-            key: 'model:0',
+      state: state({
+        modelEffects: [
+          modelEffect({
+            ordinal: 0,
             appended: [system, user('first')],
-            delivered: ['p1'],
+            output: toolUse,
           }),
-          end({ startId: 's0', value: toolUse }),
-          start({ id: 's1', key: 'model:1', appended: [result] }),
+          modelEffect({ ordinal: 1, appended: [result] }),
         ],
+        currentTurn: {
+          prompt: {
+            id: 'p1',
+            message: { role: 'user', content: 'first' },
+            settings,
+          },
+          firstModelOrdinal: 0,
+          ended: false,
+        },
       }),
       isBuiltinTool,
     });
@@ -222,23 +315,32 @@ describe('restorePiTranscript', () => {
       stopReason: 'toolUse',
     });
     const restored = restorePiTranscript({
-      state: readPiLogState({
-        events: [
-          prompt({ id: 'p1', text: 'first' }),
-          start({
-            id: 's0',
-            key: 'model:0',
+      state: state({
+        modelEffects: [
+          modelEffect({
+            ordinal: 0,
             appended: [system, user('first')],
-            delivered: ['p1'],
+            output: toolUse,
           }),
-          end({ startId: 's0', value: toolUse }),
-          start({ id: 's1', key: 'tool:c1' }),
-          end({
-            startId: 's1',
-            value: { raw: { content: [{ type: 'text', text: 'contents' }] } },
-          }),
-          finishTurn,
         ],
+        toolOutputs: new Map([
+          [
+            'c1',
+            {
+              type: 'result',
+              value: { raw: { content: [{ type: 'text', text: 'contents' }] } },
+            },
+          ],
+        ]),
+        currentTurn: {
+          prompt: {
+            id: 'p1',
+            message: { role: 'user', content: 'first' },
+            settings,
+          },
+          firstModelOrdinal: 0,
+          ended: true,
+        },
       }),
       isBuiltinTool,
     });
