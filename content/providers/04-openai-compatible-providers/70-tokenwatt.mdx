@@ -1,0 +1,96 @@
+---
+title: TokenWatt
+description: Use the TokenWatt OpenAI compatible API with the AI SDK.
+---
+
+# TokenWatt Provider
+
+[TokenWatt](https://www.tokenwatt.io) serves open-weight models through an OpenAI-compatible API. Endpoints are sized from published benchmarks and checked every 60 seconds on the [status page](https://status.tokenwatt.io). You can use its Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+The TokenWatt provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API. You can install it with:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+## Provider Instance
+
+To use TokenWatt, create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const tokenwatt = createOpenAICompatible({
+  name: 'tokenwatt',
+  baseURL: 'https://api.tokenwatt.io/v1',
+  apiKey: process.env.TOKENWATT_API_KEY,
+  includeUsage: true,
+});
+```
+
+<Note>
+  Create an API key on the [TokenWatt API
+  page](https://www.tokenwatt.io/api.html) and set the `TOKENWATT_API_KEY`
+  environment variable. The model catalog is public at
+  `https://api.tokenwatt.io/v1/models` (GET) and does not require a key.
+</Note>
+
+## Language Models
+
+You can create TokenWatt models using the provider instance. The first argument is a model ID from the [model catalog](https://api.tokenwatt.io/v1/models), for example `qwen/qwen3-coder-30b-a3b-instruct`.
+
+```ts
+const model = tokenwatt('qwen/qwen3-coder-30b-a3b-instruct');
+```
+
+The catalog lists each model's context size, maximum output, and capabilities. The example model above has a 131,072 token context, a 65,536 token maximum output, and supports tool calling and JSON-schema structured outputs. To use structured outputs, set `supportsStructuredOutputs: true` on the provider instance.
+
+### Example
+
+You can use TokenWatt language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const tokenwatt = createOpenAICompatible({
+  name: 'tokenwatt',
+  baseURL: 'https://api.tokenwatt.io/v1',
+  apiKey: process.env.TOKENWATT_API_KEY,
+  includeUsage: true,
+});
+
+const { text } = await generateText({
+  model: tokenwatt('qwen/qwen3-coder-30b-a3b-instruct'),
+  prompt: 'Reply with the single word: ready',
+});
+
+console.log(text);
+```
+
+TokenWatt language models can also generate text in a streaming fashion with the `streamText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const tokenwatt = createOpenAICompatible({
+  name: 'tokenwatt',
+  baseURL: 'https://api.tokenwatt.io/v1',
+  apiKey: process.env.TOKENWATT_API_KEY,
+  includeUsage: true,
+});
+
+const result = streamText({
+  model: tokenwatt('qwen/qwen3-coder-30b-a3b-instruct'),
+  prompt: 'Count from 1 to 5, separated by spaces.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+`includeUsage: true` includes token usage in streaming responses.
+
+See the [TokenWatt AI SDK guide](https://www.tokenwatt.io/api.html#ai-sdk) for more details.
