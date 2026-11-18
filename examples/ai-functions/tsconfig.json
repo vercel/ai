@@ -150,6 +150,9 @@
       "path": "../../packages/hume"
     },
     {
+      "path": "../../packages/inference-coop"
+    },
+    {
       "path": "../../packages/klingai"
     },
     {
