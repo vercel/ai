@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21919,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21919-deferred-tool-result-replay.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-21919-deferred-tool-result-replay.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE 21919 REPRODUCED: replay moved the deferred provider result next to its earlier call"
+  }
+}
