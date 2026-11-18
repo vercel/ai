@@ -763,6 +763,16 @@ const result = agent.stream({ prompt, session });
 
 ## `HarnessAgent`'s internal engine
 
+### Storage encryption
+
+- The engine encrypts session run input, complete log event envelopes, and complete output stream batches before writing them to the World. Readers decrypt before deserializing, including session restore, log reconciliation, live output, and recovery scans. Adapter checkpoints and tool inputs, results, and errors are covered by log encryption.
+- Key retrieval and derivation belong to `World.getEncryptionKeyForRun(runId, { deploymentId })`. New runs use their deployment ID; restored sessions always use the run's original deployment ID. An absent hook or an undefined key leaves payloads unencrypted, as in Workflow. The default `InMemoryWorld` supplies no key.
+- Encryption uses Workflow's public AES-256-GCM helpers from `@workflow/core/encryption`, retaining the engine's JSON serializers. Binary ciphertext is the helper's nonce, ciphertext, and authentication tag. Each stream batch is base64-framed on one line followed by a blank line, preserving one boundary per World chunk. Base64 alone provides no encryption.
+- A session handle shares a process-local imported key across engine operations. Keys are never passed to adapters or included in session serialization, World exports, or queue jobs. Ciphertext for a log append is generated once and reused unchanged for physical resends; deduplication still compares decoded event content.
+- Key retrieval, key import, encryption, and decryption failures reject without plaintext fallback. Stream transport write failures remain best effort, but encryption failures are retained and surfaced by emissions and flushes. A drive never records an encryption failure as an ordinary tool or turn failure.
+- Infrastructure metadata remains readable: run and deployment IDs, workflow names, event types, correlation IDs, stream names, and queue routing. Queue jobs contain only run IDs; advisory log hints contain only newlines. This protects persisted payloads, not application-managed storage, sandbox files, logs, or data sent to models and tools.
+- There is no migration or backwards-compatibility guarantee for sessions stored before this format.
+
 ### Non-durable execution
 
 - Without a `world`, the engine uses an `InMemoryWorld`, so `HarnessV2` adapters and the log format are identical in both modes.

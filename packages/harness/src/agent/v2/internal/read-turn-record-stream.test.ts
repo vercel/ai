@@ -1,5 +1,10 @@
 import { DelayedPromise } from '@ai-sdk/provider-utils';
-import { afterEach, describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
+import type { World } from '@workflow/world';
+import {
+  createStorageEncryption,
+  type HarnessAgentStorageEncryption,
+} from './create-storage-encryption';
 import { DefaultHarnessAgentSession } from '../harness-agent-session';
 import { InMemoryWorld } from '../in-memory-world';
 import {
@@ -8,6 +13,11 @@ import {
   type HarnessAgentStreamPartRecord,
 } from './create-stream-writer';
 import { readTurnRecordStream } from './read-turn-record-stream';
+
+const encryption = {
+  encrypt: async ({ data }: { data: Uint8Array }) => data,
+  decrypt: async ({ data }: { data: Uint8Array }) => data,
+};
 
 const abortControllers = new Set<AbortController>();
 
@@ -45,12 +55,14 @@ const finishPart: HarnessAgentStreamPart = {
  * Writes records to the session's stream, one chunk per call.
  */
 async function writeRecords(options: {
+  encryption?: HarnessAgentStorageEncryption;
   world: InMemoryWorld;
   records: HarnessAgentStreamPartRecord[];
 }): Promise<void> {
   const abortController = new AbortController();
   abortControllers.add(abortController);
   const writer = createStreamWriter({
+    encryption: options.encryption ?? encryption,
     world: options.world,
     session,
     abortSignal: abortController.signal,
@@ -75,6 +87,95 @@ async function readAll(
 }
 
 describe('readTurnRecordStream', () => {
+  test('decrypts fragmented and combined frames while resuming at a World chunk index', async () => {
+    const world = new InMemoryWorld();
+    const keyedWorld: World = world;
+    keyedWorld.getEncryptionKeyForRun = async () => new Uint8Array(32).fill(7);
+    const encryption = await createStorageEncryption({
+      world,
+      runId,
+      deploymentId: 'test',
+    });
+    await writeRecords({
+      world,
+      encryption,
+      records: [{ part: finishPart, key: 'finish-turn:previous' }],
+    });
+    await writeRecords({
+      world,
+      encryption,
+      records: [{ part: { type: 'start' }, key: 'turn-start:turn' }],
+    });
+    await writeRecords({
+      world,
+      encryption,
+      records: [
+        {
+          part: { type: 'text-delta', id: 'text', delta: 'secret' },
+          startId: 'attempt',
+        },
+        { part: finishPart, key: 'finish-turn:turn' },
+      ],
+    });
+    const { data } = await world.streams.getChunks(
+      runId,
+      session.getStreamName(),
+      { limit: 1000 },
+    );
+    const bytes = new TextEncoder().encode(
+      data
+        .slice(1)
+        .map(chunk => new TextDecoder().decode(chunk.data))
+        .join(''),
+    );
+    const get = vi.spyOn(world.streams, 'get').mockResolvedValue(
+      new ReadableStream({
+        start(controller) {
+          for (let index = 0; index < bytes.length; index += 3)
+            controller.enqueue(bytes.slice(index, index + 3));
+          controller.close();
+        },
+      }),
+    );
+    expect(
+      await readAll(
+        readTurnRecordStream({
+          world,
+          session,
+          encryption,
+          turnId: 'turn',
+          startIndex: 1,
+          driveEnd: Promise.resolve(),
+        }),
+      ),
+    ).toEqual([
+      { part: { type: 'start' }, key: 'turn-start:turn' },
+      {
+        part: { type: 'text-delta', id: 'text', delta: 'secret' },
+        startId: 'attempt',
+      },
+      { part: finishPart, key: 'finish-turn:turn' },
+    ]);
+    expect(get).toHaveBeenCalledWith(runId, session.getStreamName(), 1);
+  });
+
+  test('rejects a truncated frame at the end of a stored stream', async () => {
+    const world = new InMemoryWorld();
+    await world.streams.write(runId, session.getStreamName(), 'incomplete');
+    await world.streams.close(runId, session.getStreamName());
+    await expect(
+      readAll(
+        readTurnRecordStream({
+          world,
+          session,
+          encryption,
+          turnId: 'turn',
+          startIndex: 0,
+        }),
+      ),
+    ).rejects.toThrow('truncated storage frame');
+  });
+
   test('drops records before the turn start and closes once the drive ended and its output was read', async () => {
     const world = new InMemoryWorld();
     await writeRecords({
@@ -90,6 +191,7 @@ describe('readTurnRecordStream', () => {
 
     const records = await readAll(
       readTurnRecordStream({
+        encryption,
         world,
         session,
         turnId: 'turn',
@@ -112,6 +214,7 @@ describe('readTurnRecordStream', () => {
     await expect(
       readAll(
         readTurnRecordStream({
+          encryption,
           world,
           session,
           turnId: 'turn',
@@ -133,7 +236,13 @@ describe('readTurnRecordStream', () => {
       ],
     });
     const reading = readAll(
-      readTurnRecordStream({ world, session, turnId: 'turn', startIndex: 0 }),
+      readTurnRecordStream({
+        encryption,
+        world,
+        session,
+        turnId: 'turn',
+        startIndex: 0,
+      }),
     );
 
     await writeRecords({
@@ -162,6 +271,7 @@ describe('readTurnRecordStream', () => {
     const abortController = new AbortController();
     const firstRecord = new DelayedPromise<void>();
     const stream = readTurnRecordStream({
+      encryption,
       world,
       session,
       turnId: 'turn',

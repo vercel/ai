@@ -441,6 +441,11 @@ export type HarnessAgentSettings<
          * Workflow World that persists the agent's sessions, which makes the
          * agent durable. Only supported when `harness` implements
          * `HarnessV2`.
+         *
+         * Run input, log payloads and output stream batches are encrypted
+         * with the key returned by `world.getEncryptionKeyForRun()`. If the
+         * World does not supply a key, they are stored unencrypted. Key and
+         * encryption failures reject instead of falling back to plaintext.
          */
         readonly world: World;
 

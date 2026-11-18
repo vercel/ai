@@ -18,6 +18,11 @@ import {
 } from './drive-process';
 import { startDrive, type HarnessAgentDriveIdentity } from './start-drive';
 
+const encryption = {
+  encrypt: async ({ data }: { data: Uint8Array }) => data,
+  decrypt: async ({ data }: { data: Uint8Array }) => data,
+};
+
 const abortControllers = new Set<AbortController>();
 
 afterEach(() => {
@@ -131,11 +136,12 @@ async function setup(options: { events: HarnessAgentLogEvent[] }) {
     eventType: 'run_created',
     eventData: { deploymentId: 'test', workflowName: 'harness', input: [] },
   });
-  const log = createLog({ world, runId });
+  const log = createLog({ encryption, world, runId });
   for (const event of options.events) await log.append(event);
   const abortController = new AbortController();
   abortControllers.add(abortController);
   const writer = createStreamWriter({
+    encryption,
     world,
     session,
     abortSignal: abortController.signal,
@@ -159,7 +165,7 @@ async function readLogEvents(options: {
   const events: HarnessAgentLogEvent[] = [];
   const ids = new Set<string>();
   for (const worldEvent of data) {
-    const event = await decodeLogEvent({ event: worldEvent });
+    const event = await decodeLogEvent({ encryption, event: worldEvent });
     if (event == null || ids.has(event.id)) continue;
     ids.add(event.id);
     if (options.types == null || options.types.includes(event.type)) {
@@ -181,6 +187,7 @@ async function readRecords(options: {
     { limit: 1000 },
   );
   return decodeStreamRecords({
+    encryption,
     text: data.map(chunk => new TextDecoder().decode(chunk.data)).join(''),
   });
 }
@@ -201,6 +208,7 @@ describe('startDrive', () => {
 
     expect(
       await startDrive({
+        encryption,
         log,
         writer,
         world,
@@ -234,6 +242,7 @@ describe('startDrive', () => {
 
     expect(
       await startDrive({
+        encryption,
         log,
         writer,
         world,
@@ -255,6 +264,7 @@ describe('startDrive', () => {
 
     expect(
       await startDrive({
+        encryption,
         log,
         writer,
         world,
@@ -311,6 +321,7 @@ describe('startDrive', () => {
 
       expect(
         await startDrive({
+          encryption,
           log,
           writer,
           world,
@@ -337,6 +348,7 @@ describe('startDrive', () => {
 
         expect(
           await startDrive({
+            encryption,
             log,
             writer,
             world,
@@ -362,6 +374,7 @@ describe('startDrive', () => {
 
     expect(
       await startDrive({
+        encryption,
         log,
         writer,
         world,
@@ -425,6 +438,7 @@ describe('startDrive', () => {
 
       expect(
         await startDrive({
+          encryption,
           log,
           writer,
           world,
@@ -523,6 +537,7 @@ describe('startDrive', () => {
     for (const driveId of ['drive-1', 'drive-2']) {
       expect(
         await startDrive({
+          encryption,
           log,
           writer,
           world,
@@ -567,6 +582,7 @@ describe('startDrive', () => {
 
     expect(
       await startDrive({
+        encryption,
         log,
         writer,
         world,
@@ -604,6 +620,7 @@ describe('startDrive', () => {
 
     expect(
       await startDrive({
+        encryption,
         log,
         writer,
         world,

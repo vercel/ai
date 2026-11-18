@@ -2,6 +2,7 @@ import type { SerializableValue } from '@ai-sdk/provider';
 import { generateId } from '@ai-sdk/provider-utils';
 import type { World } from '@workflow/world';
 import type { HarnessAgentSession } from '../harness-agent-session';
+import type { HarnessAgentStorageEncryption } from './create-storage-encryption';
 import type { HarnessV2EffectOutput } from '../../../v2/harness-v2-effect';
 import { parseToolEffect } from './create-execute-tool-functions';
 import type { HarnessAgentLog, HarnessAgentLogDrive } from './create-log';
@@ -89,6 +90,7 @@ export type HarnessAgentDriveIdentity = {
  *    finished turn is not repaired.
  */
 export async function startDrive(options: {
+  encryption: HarnessAgentStorageEncryption;
   /**
    * Engine log of the session.
    */
@@ -114,7 +116,7 @@ export async function startDrive(options: {
    */
   driveIdentity: HarnessAgentDriveIdentity;
 }): Promise<boolean> {
-  const { log, writer, world, session, driveIdentity } = options;
+  const { log, writer, world, session, driveIdentity, encryption } = options;
   await log.refresh();
 
   const abandoned = log.getEffects().filter(attempt => attempt.end == null);
@@ -171,6 +173,7 @@ export async function startDrive(options: {
     });
     for (const chunk of page.data) {
       for (const record of await decodeStreamRecords({
+        encryption,
         text: decoder.decode(chunk.data),
       })) {
         if (record.key != null) keys.add(record.key);

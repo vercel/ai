@@ -31,6 +31,11 @@ import {
   type HarnessAgentStreamPartRecord,
 } from './create-stream-writer';
 
+const encryption = {
+  encrypt: async ({ data }: { data: Uint8Array }) => data,
+  decrypt: async ({ data }: { data: Uint8Array }) => data,
+};
+
 const abortControllers = new Set<AbortController>();
 
 afterEach(() => {
@@ -72,6 +77,7 @@ function createDrive(options: {
   const abortController = new AbortController();
   abortControllers.add(abortController);
   const writer = createStreamWriter({
+    encryption,
     world: options.world,
     session,
     abortSignal: abortController.signal,
@@ -108,7 +114,7 @@ async function setup(options?: {
     eventType: 'run_created',
     eventData: { deploymentId: 'test', workflowName: 'harness', input: [] },
   });
-  const log = createLog({ world, runId });
+  const log = createLog({ encryption, world, runId });
   return { world, log, ...createDrive({ world, log, ...options }) };
 }
 
@@ -117,7 +123,7 @@ async function setup(options?: {
  * refreshed like a drive's log at its start.
  */
 async function createNextDrive(options: { world: InMemoryWorld }) {
-  const log = createLog({ world: options.world, runId });
+  const log = createLog({ encryption, world: options.world, runId });
   await log.refresh();
   return createDrive({ world: options.world, log });
 }
@@ -138,7 +144,7 @@ async function readLogEvents(options: {
   const events: HarnessAgentLogEvent[] = [];
   const ids = new Set<string>();
   for (const worldEvent of data) {
-    const event = await decodeLogEvent({ event: worldEvent });
+    const event = await decodeLogEvent({ encryption, event: worldEvent });
     if (event == null || ids.has(event.id)) continue;
     ids.add(event.id);
     if (options.types == null || options.types.includes(event.type)) {
@@ -160,6 +166,7 @@ async function readStream(options: {
     { limit: 1000 },
   );
   return decodeStreamRecords({
+    encryption,
     text: data.map(chunk => new TextDecoder().decode(chunk.data)).join(''),
   });
 }

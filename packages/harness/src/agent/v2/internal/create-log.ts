@@ -15,6 +15,8 @@ import {
 import type { JSONValue, SerializableValue } from '@ai-sdk/provider';
 import { decodeJSONRecordValue, encodeJSONRecord } from './encode-json-record';
 import { isValidHarnessAgentLogEvent } from './is-valid-harness-agent-log-event';
+import type { HarnessAgentStorageEncryption } from './create-storage-encryption';
+import { HarnessStorageEncryptionError } from './errors';
 import type { HarnessAgentDriveIdentity } from './start-drive';
 import type { HarnessV2EffectOutput } from '../../../v2/harness-v2-effect';
 import type {
@@ -564,6 +566,10 @@ const REFRESH_INTERVAL_MS = 15_000;
  */
 type CreateLogOptions = {
   /**
+   * Run-scoped encryption shared with the session's other storage boundaries.
+   */
+  encryption: HarnessAgentStorageEncryption;
+  /**
    * World that stores the session's authoritative event history.
    */
   world: World;
@@ -633,6 +639,7 @@ type LogWatcher = {
  * agent log's namespace, since replay must not skip them.
  */
 export async function decodeLogEvent(options: {
+  encryption: HarnessAgentStorageEncryption;
   /**
    * Committed World event.
    */
@@ -648,7 +655,9 @@ export async function decodeLogEvent(options: {
     throw new Error('HarnessAgentLog: invalid storage envelope.');
   }
   const parsed = await parseJSON({
-    text: new TextDecoder().decode(event.eventData.input),
+    text: new TextDecoder().decode(
+      await options.encryption.decrypt({ data: event.eventData.input }),
+    ),
   });
   if (parsed == null || typeof parsed !== 'object' || Array.isArray(parsed)) {
     throw new Error('HarnessAgentLog: invalid storage envelope.');
@@ -672,12 +681,13 @@ export async function decodeLogEvent(options: {
  * Decodes a World event into an agent log event and its committed World slot.
  */
 async function deserializeEvent(options: {
+  encryption: HarnessAgentStorageEncryption;
   /**
    * Committed World event.
    */
   event: Event;
 }): Promise<LogRecord | undefined> {
-  const decoded = await decodeLogEvent({ event: options.event });
+  const decoded = await decodeLogEvent(options);
   if (decoded == null) return;
   return { event: decoded, position: requireEventSlot(options.event.eventId) };
 }
@@ -780,7 +790,11 @@ function isRetryableInterruption(output?: HarnessV2EffectOutput): boolean {
  * - `tool-execution-start` events mark the tool call attempt they name.
  *   `crash-request` events do not affect the lookups.
  */
-export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
+export function createLog({
+  world,
+  runId,
+  encryption,
+}: CreateLogOptions): HarnessAgentLog {
   const listeners = new Set<LogListener>();
   const byId = new Map<string, LogRecord>();
   const hintStreamName = runId + '_harness_agent_log_hints';
@@ -1063,7 +1077,14 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
       if (slot <= nextPosition) continue;
       if (slot !== nextPosition + 1)
         throw new Error('HarnessAgentLog: incomplete World event prefix.');
-      const record = await deserializeEvent({ event });
+      let record: LogRecord | undefined;
+      try {
+        record = await deserializeEvent({ event, encryption });
+      } catch (error) {
+        if (HarnessStorageEncryptionError.isInstance(error))
+          lookupFailure = error;
+        throw error;
+      }
       if (record) decoded.push(record);
       nextPosition = slot;
     }
@@ -1274,6 +1295,7 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
         });
         if (result) await foldWrite({ result });
       } catch (error) {
+        if (HarnessStorageEncryptionError.isInstance(error)) throw error;
         cause = error;
       }
       let reconciled = false;
@@ -1287,6 +1309,7 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
           reconciled = true;
           break;
         } catch (error) {
+          if (HarnessStorageEncryptionError.isInstance(error)) throw error;
           cause = error;
           if (lookup < MAX_RESENDS)
             await delay({ ms: Math.min(50 * (lookup + 1), 500) });
@@ -1376,7 +1399,19 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
           field: 'event',
         }),
       );
-      return exclusive(() => appendUnlocked({ event: snapshot, bytes }));
+      return exclusive(async () => {
+        if (writeFailure) throw writeFailure;
+        checkLookups();
+        let encrypted: Uint8Array;
+        try {
+          encrypted = await encryption.encrypt({ data: bytes });
+        } catch (error) {
+          if (HarnessStorageEncryptionError.isInstance(error))
+            writeFailure = error;
+          throw error;
+        }
+        return appendUnlocked({ event: snapshot, bytes: encrypted });
+      });
     },
 
     refresh() {

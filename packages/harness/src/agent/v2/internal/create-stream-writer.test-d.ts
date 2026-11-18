@@ -6,7 +6,21 @@ import type {
   HarnessV2EffectError,
 } from '../../../v2/harness-v2-effect';
 import type { HarnessV2StreamPart } from '../../../v2/harness-v2-stream-part';
-import type { HarnessAgentStreamPart } from './create-stream-writer';
+import type {
+  HarnessAgentStreamPart,
+  createStreamWriter,
+  decodeStreamRecords,
+} from './create-stream-writer';
+import type { HarnessAgentStorageEncryption } from './create-storage-encryption';
+
+test('requires explicit encryption at stream storage boundaries', () => {
+  expectTypeOf<Parameters<typeof createStreamWriter>[0]>().toMatchTypeOf<{
+    encryption: HarnessAgentStorageEncryption;
+  }>();
+  expectTypeOf<Parameters<typeof decodeStreamRecords>[0]>().toMatchTypeOf<{
+    encryption: HarnessAgentStorageEncryption;
+  }>();
+});
 
 test('keeps turn boundary parts out of the adapter stream parts', () => {
   expectTypeOf<

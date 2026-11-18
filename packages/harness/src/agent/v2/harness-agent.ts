@@ -36,6 +36,10 @@ import {
 import { createGateBuiltinToolFunction } from './internal/create-gate-builtin-tool-function';
 import { createLog, type HarnessAgentLog } from './internal/create-log';
 import {
+  createStorageEncryption,
+  type HarnessAgentStorageEncryption,
+} from './internal/create-storage-encryption';
+import {
   createStreamWriter,
   type HarnessAgentStreamWriter,
 } from './internal/create-stream-writer';
@@ -47,6 +51,7 @@ import {
 import {
   HarnessAfterFinishError,
   HarnessBeforeStartError,
+  HarnessStorageEncryptionError,
 } from './internal/errors';
 import { HarnessGenerateTextResult } from './internal/harness-generate-text-result';
 import { HarnessStreamTextResult } from './internal/harness-stream-text-result';
@@ -160,6 +165,10 @@ export class HarnessAgent<
 
   private readonly harness: HarnessV2<THarness['builtinTools']>;
   private readonly world: World;
+  private readonly storageEncryption = new WeakMap<
+    HarnessAgentSession,
+    Promise<HarnessAgentStorageEncryption>
+  >();
 
   /**
    * Whether the agent is durable: given a World other than an
@@ -340,9 +349,15 @@ export class HarnessAgent<
     let sessionId = options.sessionId;
     let sandboxId = sandboxSessionId ?? options.sandboxId;
     let runId = options.runId;
+    let encryption: HarnessAgentStorageEncryption;
     if (runId != null) {
       const run = await this.world.runs.get(runId);
-      const runInput = await parseRunInput({ input: run.input });
+      encryption = await createStorageEncryption({
+        world: this.world,
+        runId,
+        deploymentId: run.deploymentId,
+      });
+      const runInput = await parseRunInput({ input: run.input, encryption });
       if (
         runInput?.harnessId !== this.harnessId ||
         typeof runInput.sessionId !== 'string' ||
@@ -377,7 +392,9 @@ export class HarnessAgent<
       );
     }
     sessionId ??= generateId();
-    runId ??= await this.createRun({ sessionId, sandboxId });
+    if (runId == null) {
+      ({ runId, encryption } = await this.createRun({ sessionId, sandboxId }));
+    }
 
     const session = new DefaultHarnessAgentSession({
       sessionId,
@@ -386,7 +403,37 @@ export class HarnessAgent<
       sandboxSession,
     });
     this.bindSession({ session });
+    this.storageEncryption.set(session, Promise.resolve(encryption!));
     return session;
+  }
+
+  /**
+   * Session handles deserialized by Workflow can bypass createSession().
+   * Resolve their key from stored deployment metadata on first use, sharing
+   * the pending lookup without retaining a failed lookup indefinitely.
+   */
+  private getStorageEncryption(options: {
+    session: HarnessAgentSession;
+  }): Promise<HarnessAgentStorageEncryption> {
+    const { session } = options;
+    let pending = this.storageEncryption.get(session);
+    if (pending == null) {
+      pending = (async () => {
+        const run = await this.world.runs.get(session.runId, {
+          resolveData: 'none',
+        });
+        return createStorageEncryption({
+          world: this.world,
+          runId: session.runId,
+          deploymentId: run.deploymentId,
+        });
+      })().catch(error => {
+        this.storageEncryption.delete(session);
+        throw error;
+      });
+      this.storageEncryption.set(session, pending);
+    }
+    return pending;
   }
 
   /**
@@ -558,7 +605,12 @@ export class HarnessAgent<
   > {
     const { session, abortSignal } = options;
     this.connectQueue();
-    const log = createLog({ world: this.world, runId: session.runId });
+    const encryption = await this.getStorageEncryption({ session });
+    const log = createLog({
+      world: this.world,
+      runId: session.runId,
+      encryption,
+    });
     await log.refresh();
     const turnId = log.getCurrentTurn()?.start.data.turnId;
     if (turnId == null) {
@@ -567,6 +619,7 @@ export class HarnessAgent<
 
     return new HarnessStreamTextResult({
       records: readTurnRecordStream({
+        encryption,
         world: this.world,
         session,
         turnId,
@@ -606,7 +659,12 @@ export class HarnessAgent<
   }): Promise<void> {
     const { session } = options;
     this.connectQueue();
-    const log = createLog({ world: this.world, runId: session.runId });
+    const encryption = await this.getStorageEncryption({ session });
+    const log = createLog({
+      world: this.world,
+      runId: session.runId,
+      encryption,
+    });
     await log.refresh();
     const turn = log.getCurrentTurn();
     if (turn == null || turn.finish != null) {
@@ -657,7 +715,12 @@ export class HarnessAgent<
   }): Promise<void> {
     const { session, recordCrash } = options;
     this.connectQueue();
-    const log = createLog({ world: this.world, runId: session.runId });
+    const encryption = await this.getStorageEncryption({ session });
+    const log = createLog({
+      world: this.world,
+      runId: session.runId,
+      encryption,
+    });
     await log.refresh();
     const turn = log.getCurrentTurn();
     const drive = log.getLatestDrive();
@@ -686,6 +749,8 @@ export class HarnessAgent<
    * (e.g. world-vercel) require a client-generated run ID. The World's
    * `createRunId()` is used when it implements one, which returns the bare
    * ULID; otherwise a ULID is generated locally.
+   * The result also retains the run's process-local encryption object so
+   * subsequent storage operations do not resolve or import its key again.
    */
   private async createRun(options: {
     /**
@@ -697,30 +762,39 @@ export class HarnessAgent<
      * Stable sandbox identifier of the new session.
      */
     sandboxId: string;
-  }): Promise<string> {
+  }): Promise<{ runId: string; encryption: HarnessAgentStorageEncryption }> {
     const { sessionId, sandboxId } = options;
     const runId = `wrun_${this.world.createRunId?.({}) ?? createUlid()}`;
     const agentId = this.durable ? this.id : undefined;
+    const deploymentId = await this.world.getDeploymentId();
+    const encryption = await createStorageEncryption({
+      world: this.world,
+      runId,
+      deploymentId,
+    });
+    const input = await encryption.encrypt({
+      data: new TextEncoder().encode(
+        JSON.stringify({
+          version: 1,
+          harnessId: this.harnessId,
+          ...(agentId != null && { agentId }),
+          sessionId,
+          sandboxId,
+        }),
+      ),
+    });
     await this.world.events.create(runId, {
       eventType: 'run_created',
       specVersion: this.world.specVersion,
       eventData: {
-        deploymentId: await this.world.getDeploymentId(),
+        deploymentId,
         workflowName:
           agentId != null
             ? getDurableHarnessAgentWorkflowName({ agentId })
             : getNonDurableHarnessAgentWorkflowName({
                 harnessId: this.harnessId,
               }),
-        input: new TextEncoder().encode(
-          JSON.stringify({
-            version: 1,
-            harnessId: this.harnessId,
-            ...(agentId != null && { agentId }),
-            sessionId,
-            sandboxId,
-          }),
-        ),
+        input,
         /*
          * The World's recovery of active runs sends a durable agent's runs
          * back on the queue namespace they record, which reaches the queue
@@ -737,7 +811,7 @@ export class HarnessAgent<
       eventType: 'run_started',
       specVersion: this.world.specVersion,
     });
-    return runId;
+    return { runId, encryption };
   }
 
   /**
@@ -794,13 +868,15 @@ export class HarnessAgent<
     const submissionId = generateId();
     let driveEnd: Promise<void>;
     let startIndex: number;
+    let encryption: HarnessAgentStorageEncryption;
     try {
       const message = resolvePromptMessage({
         prompt: options.prompt,
         messages: options.messages,
       });
       const settings = await this.getTurnSettings();
-      const log = createLog({ world: this.world, runId });
+      encryption = await this.getStorageEncryption({ session });
+      const log = createLog({ world: this.world, runId, encryption });
       if (await hasRunningTurn({ log })) throw createTurnRunningError();
 
       startIndex =
@@ -833,6 +909,7 @@ export class HarnessAgent<
      */
     return new HarnessStreamTextResult({
       records: readTurnRecordStream({
+        encryption,
         world: this.world,
         session,
         turnId: submissionId,
@@ -861,7 +938,7 @@ export class HarnessAgent<
    * what the harness or the engine threw if the drive failed without an
    * unfinished turn to report the error in.
    */
-  private runDrive(options: {
+  private async runDrive(options: {
     /**
      * Session to drive.
      */
@@ -873,6 +950,7 @@ export class HarnessAgent<
     queueJobId?: string;
   }): Promise<void> {
     return runDrivePass({
+      encryption: await this.getStorageEncryption({ session: options.session }),
       world: this.world,
       session: options.session,
       queueJobId: options.queueJobId,
@@ -916,8 +994,10 @@ const DEADLINE_MARGIN_MS = 15_000;
  * Decodes the JSON input recorded on a session's run. Returns `undefined`
  * if the input is not encoded JSON. The decoded value is not validated, so
  * callers must check the properties they read.
+ * Encrypted input is decrypted before parsing; crypto failures propagate.
  */
 async function parseRunInput(options: {
+  encryption: HarnessAgentStorageEncryption;
   /**
    * Input of the run, as returned by the World.
    */
@@ -925,7 +1005,9 @@ async function parseRunInput(options: {
 }): Promise<Record<string, unknown> | null | undefined> {
   if (!(options.input instanceof Uint8Array)) return undefined;
   const parsed = await safeParseJSON({
-    text: new TextDecoder().decode(options.input),
+    text: new TextDecoder().decode(
+      await options.encryption.decrypt({ data: options.input }),
+    ),
   });
   return parsed.success
     ? (parsed.value as Record<string, unknown> | null)
@@ -1004,6 +1086,7 @@ const unknownUsage: HarnessV2Usage = {
  * finished).
  */
 async function runDrivePass(options: {
+  encryption: HarnessAgentStorageEncryption;
   /**
    * World that stores the session.
    */
@@ -1034,7 +1117,15 @@ async function runDrivePass(options: {
    */
   workDir?: string;
 }): Promise<void> {
-  const { world, session, queueJobId, harness, userTools, workDir } = options;
+  const {
+    world,
+    session,
+    queueJobId,
+    harness,
+    userTools,
+    workDir,
+    encryption,
+  } = options;
   const { runId } = session;
 
   const stopController = new AbortController();
@@ -1063,8 +1154,9 @@ async function runDrivePass(options: {
       (yieldTimer as { unref?: () => void }).unref?.();
     }
 
-    log = createLog({ world, runId });
+    log = createLog({ world, runId, encryption });
     writer = createStreamWriter({
+      encryption,
       world,
       session,
       abortSignal: stopAbortSignal,
@@ -1106,6 +1198,7 @@ async function runDrivePass(options: {
     const driveProcess = getDriveProcess();
     if (
       !(await startDrive({
+        encryption,
         log,
         writer,
         world,
@@ -1168,6 +1261,7 @@ async function runDrivePass(options: {
     await harness.drive({ sessionId: session.sessionId, context });
     if (yieldAbortSignal.aborted) writer.unsafeEmit({ type: 'yield' });
   } catch (error) {
+    if (HarnessStorageEncryptionError.isInstance(error)) throw error;
     /*
      * The log, the stream writer and the turn finish function are created
      * at the start of the drive, e.g. after asking the World for its runtime
@@ -1184,8 +1278,11 @@ async function runDrivePass(options: {
     try {
       stopCrashListener?.();
       clearTimeout(yieldTimer);
-      await writer?.flush();
-      stopController.abort(new Error('HarnessAgent: the drive ended.'));
+      try {
+        await writer?.flush();
+      } finally {
+        stopController.abort(new Error('HarnessAgent: the drive ended.'));
+      }
     } finally {
       untrackDrive?.();
     }

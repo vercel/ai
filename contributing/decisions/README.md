@@ -20,3 +20,4 @@ An Architecture Decision Record (ADR) captures an important architecture decisio
 
 - [Adopt architecture decision records](2026-03-11-adopt-architecture-decision-records.md) (2026-03-11)
 - [Keep tool error text unchanged in UI messages](2026-11-12-keep-tool-error-text-unchanged-in-ui-messages.md) (2026-11-12)
+- [Encrypt HarnessAgent payloads at World storage boundaries](2026-11-18-encrypt-harness-world-payloads.md) (2026-11-18)

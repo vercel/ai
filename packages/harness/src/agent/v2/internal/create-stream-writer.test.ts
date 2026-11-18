@@ -1,13 +1,27 @@
 import type { SerializableValue } from '@ai-sdk/provider';
-import { DelayedPromise } from '@ai-sdk/provider-utils';
+import {
+  DelayedPromise,
+  convertBase64ToUint8Array,
+  convertUint8ArrayToBase64,
+} from '@ai-sdk/provider-utils';
 import { describe, expect, test, vi } from 'vitest';
 import { DefaultHarnessAgentSession } from '../harness-agent-session';
 import { InMemoryWorld } from '../in-memory-world';
+import type { World } from '@workflow/world';
+import {
+  createStorageEncryption,
+  type HarnessAgentStorageEncryption,
+} from './create-storage-encryption';
 import {
   createStreamWriter,
   decodeStreamRecords,
   type HarnessAgentStreamPart,
 } from './create-stream-writer';
+
+const encryption = {
+  encrypt: async ({ data }: { data: Uint8Array }) => data,
+  decrypt: async ({ data }: { data: Uint8Array }) => data,
+};
 
 const runId = 'stream-session';
 const session = new DefaultHarnessAgentSession({
@@ -21,10 +35,11 @@ function part(delta: string): HarnessAgentStreamPart {
   return { type: 'text-delta', id: 'text', delta };
 }
 
-function setup() {
+function setup(options: { encryption?: HarnessAgentStorageEncryption } = {}) {
   const world = new InMemoryWorld();
   const abortController = new AbortController();
   const writer = createStreamWriter({
+    encryption: options.encryption ?? encryption,
     world,
     session,
     abortSignal: abortController.signal,
@@ -40,7 +55,10 @@ async function readChunks(world: InMemoryWorld): Promise<string[]> {
 }
 
 async function readRecords(world: InMemoryWorld) {
-  return decodeStreamRecords({ text: (await readChunks(world)).join('') });
+  return decodeStreamRecords({
+    encryption,
+    text: (await readChunks(world)).join(''),
+  });
 }
 
 /**
@@ -74,6 +92,85 @@ function holdWrites(world: InMemoryWorld) {
 }
 
 describe('createStreamWriter', () => {
+  test('encrypts complete batches and preserves tags and snapshots', async () => {
+    const keyedWorld: World = new InMemoryWorld();
+    keyedWorld.getEncryptionKeyForRun = async () => new Uint8Array(32).fill(7);
+    const encryption = await createStorageEncryption({
+      world: keyedWorld,
+      runId,
+      deploymentId: 'test',
+    });
+    const { world, writer } = setup({ encryption });
+    const result = { secret: 'private tool result' };
+    writer.unsafeEmit({
+      type: 'tool-result',
+      toolCallId: 'call',
+      toolName: 'test',
+      result,
+    });
+    writer.emit({
+      part: part('private model output'),
+      key: 'step',
+      startId: 'attempt',
+    });
+    result.secret = 'mutated';
+    await writer.flush();
+    const chunks = await readChunks(world);
+    expect(chunks).toHaveLength(1);
+    const ciphertext = convertBase64ToUint8Array(chunks[0].trim());
+    expect(new TextDecoder().decode(ciphertext)).not.toContain('private');
+    expect(
+      await decodeStreamRecords({ encryption, text: chunks.join('') }),
+    ).toEqual([
+      {
+        part: {
+          type: 'tool-result',
+          toolCallId: 'call',
+          toolName: 'test',
+          result: { secret: 'private tool result' },
+        },
+      },
+      { part: part('private model output'), key: 'step', startId: 'attempt' },
+    ]);
+  });
+
+  test('latches asynchronous encryption failures and never sends plaintext', async () => {
+    const failure = new Error('encryption unavailable');
+    const { world, writer } = setup({
+      encryption: {
+        ...encryption,
+        encrypt: async () => {
+          throw failure;
+        },
+      },
+    });
+    const write = vi.spyOn(world.streams, 'write');
+    writer.unsafeEmit(part('secret'));
+    await expect(writer.flush()).rejects.toBe(failure);
+    expect(() => writer.unsafeEmit(part('later'))).toThrow(failure);
+    await expect(writer.flush()).rejects.toBe(failure);
+    await expect(writer.close()).rejects.toBe(failure);
+    expect(write).not.toHaveBeenCalled();
+  });
+
+  test('does not send a batch when aborted during encryption', async () => {
+    const release = new DelayedPromise<void>();
+    const encrypt = vi.fn(async ({ data }: { data: Uint8Array }) => {
+      await release.promise;
+      return data;
+    });
+    const { world, writer, abortController } = setup({
+      encryption: { ...encryption, encrypt },
+    });
+    const write = vi.spyOn(world.streams, 'write');
+    writer.unsafeEmit(part('secret'));
+    await vi.waitFor(() => expect(encrypt).toHaveBeenCalledTimes(1));
+    abortController.abort();
+    release.resolve();
+    await writer.flush();
+    expect(write).not.toHaveBeenCalled();
+  });
+
   test('writes records in emit order with their tags', async () => {
     const { world, writer } = setup();
     writer.emit({ part: part('a'), startId: 'start-1' });
@@ -132,7 +229,9 @@ describe('createStreamWriter', () => {
 
     const chunks = await readChunks(world);
     // The part stays an object: only an actual key triggers the escaped form.
-    expect(chunks[0]).toContain('"part":{"type":"text-delta"');
+    expect(
+      new TextDecoder().decode(convertBase64ToUint8Array(chunks[0].trim())),
+    ).toContain('"part":{"type":"text-delta"');
     expect(await readRecords(world)).toEqual([
       { part: { type: 'text-delta', id: 'text', delta } },
     ]);
@@ -146,7 +245,7 @@ describe('createStreamWriter', () => {
     await writer.flush();
     const chunks = await readChunks(world);
     expect(chunks).toHaveLength(1);
-    expect(chunks[0].endsWith('}\n\n')).toBe(true);
+    expect(chunks[0].endsWith('\n\n')).toBe(true);
     expect(await readRecords(world)).toHaveLength(3);
   });
 
@@ -253,9 +352,20 @@ describe('decodeStreamRecords', () => {
   test('decodes records across chunk boundaries', async () => {
     expect(
       await decodeStreamRecords({
+        encryption,
         text:
-          '{"version":1,"part":{"type":"retract","startIds":["a"]}}\n\n' +
-          '{"version":1,"part":{"type":"reset-step"},"startId":"s"}\n\n',
+          convertUint8ArrayToBase64(
+            new TextEncoder().encode(
+              '{"version":1,"part":{"type":"retract","startIds":["a"]}}\n',
+            ),
+          ) +
+          '\n\n' +
+          convertUint8ArrayToBase64(
+            new TextEncoder().encode(
+              '{"version":1,"part":{"type":"reset-step"},"startId":"s"}\n',
+            ),
+          ) +
+          '\n\n',
       }),
     ).toEqual([
       { part: { type: 'retract', startIds: ['a'] } },
@@ -274,6 +384,11 @@ describe('decodeStreamRecords', () => {
       '{"version":1,"part":"not a JSON record"}\n',
     ],
   ])('rejects %s', async (_, text) => {
-    await expect(decodeStreamRecords({ text })).rejects.toThrow();
+    await expect(
+      decodeStreamRecords({
+        encryption,
+        text: convertUint8ArrayToBase64(new TextEncoder().encode(text)),
+      }),
+    ).rejects.toThrow();
   });
 });

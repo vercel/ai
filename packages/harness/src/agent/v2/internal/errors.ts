@@ -1,6 +1,42 @@
 import { AISDKError } from '@ai-sdk/provider';
 import { HarnessError } from '../../../errors/harness-error';
 
+const storageEncryptionName = 'AI_HarnessStorageEncryptionError';
+const storageEncryptionMarker = `vercel.ai.error.${storageEncryptionName}`;
+const storageEncryptionSymbol = Symbol.for(storageEncryptionMarker);
+
+/**
+ * Marks storage crypto failures so a drive cannot turn them into an ordinary
+ * persisted turn failure or retry them as transport failures.
+ */
+export class HarnessStorageEncryptionError extends HarnessError {
+  private readonly [storageEncryptionSymbol] = true;
+  readonly operation: 'resolve-key' | 'encrypt' | 'decrypt';
+
+  /**
+   * Retains the original failure without including payloads or key material
+   * in the error's message.
+   */
+  constructor(options: {
+    operation: 'resolve-key' | 'encrypt' | 'decrypt';
+    cause: unknown;
+  }) {
+    super({
+      message: `HarnessAgent: storage encryption failed (${options.operation}).`,
+      cause: options.cause,
+    });
+    this.operation = options.operation;
+    Object.defineProperty(this, 'name', { value: storageEncryptionName });
+  }
+
+  /**
+   * Recognizes failures across separately bundled copies of the engine.
+   */
+  static isInstance(error: unknown): error is HarnessStorageEncryptionError {
+    return AISDKError.hasMarker(error, storageEncryptionMarker);
+  }
+}
+
 const beforeStartName = 'AI_HarnessBeforeStartError';
 const beforeStartMarker = `vercel.ai.error.${beforeStartName}`;
 const beforeStartSymbol = Symbol.for(beforeStartMarker);

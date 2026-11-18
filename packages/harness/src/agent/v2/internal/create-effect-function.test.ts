@@ -27,6 +27,11 @@ import {
   type HarnessAgentStreamPartRecord,
 } from './create-stream-writer';
 
+const encryption = {
+  encrypt: async ({ data }: { data: Uint8Array }) => data,
+  decrypt: async ({ data }: { data: Uint8Array }) => data,
+};
+
 const abortControllers = new Set<AbortController>();
 
 /**
@@ -46,7 +51,7 @@ async function readLogEvents(options: {
   const events: HarnessAgentLogEvent[] = [];
   const ids = new Set<string>();
   for (const worldEvent of data) {
-    const event = await decodeLogEvent({ event: worldEvent });
+    const event = await decodeLogEvent({ encryption, event: worldEvent });
     if (event == null || ids.has(event.id)) continue;
     ids.add(event.id);
     if (options.types == null || options.types.includes(event.type)) {
@@ -69,7 +74,7 @@ async function createRefreshedLog(options: {
   world: InMemoryWorld;
   runId: string;
 }): Promise<HarnessAgentLog> {
-  const log = createLog(options);
+  const log = createLog({ ...options, encryption });
   await log.refresh();
   return log;
 }
@@ -97,6 +102,7 @@ function createTestEffectFunction(options: {
     yieldAbortSignal:
       options.yieldAbortSignal ?? createAbortController().signal,
     writer: createStreamWriter({
+      encryption,
       world: options.world ?? new InMemoryWorld(),
       session: createSession({ runId: options.runId ?? 'effect-session' }),
       abortSignal: options.stopAbortSignal,
@@ -128,6 +134,7 @@ async function readStream(options: {
     { limit: 1000 },
   );
   return decodeStreamRecords({
+    encryption,
     text: data.map(chunk => new TextDecoder().decode(chunk.data)).join(''),
   });
 }
@@ -145,7 +152,7 @@ async function setup(options: { yieldAbortSignal?: AbortSignal } = {}) {
     eventType: 'run_created',
     eventData: { deploymentId: 'test', workflowName: 'harness', input: [] },
   });
-  const log = createLog({ world, runId });
+  const log = createLog({ encryption, world, runId });
   const abortController = createAbortController();
   const effect = createTestEffectFunction({
     log,
@@ -181,7 +188,7 @@ function startEvent(
 describe('createEffectFunction', () => {
   test('looks up history in the log without refreshing it', async () => {
     const { effect, log, world, runId } = await setup();
-    const writer = createLog({ world, runId });
+    const writer = createLog({ encryption, world, runId });
     await writer.append(startEvent());
     await writer.append({
       type: 'effect-end',
@@ -222,7 +229,7 @@ describe('createEffectFunction', () => {
     const refresh = vi.spyOn(log, 'refresh');
     const fn = vi.fn(async () => 'value');
     await effect({ key: 'key', ...effectOptions, fn });
-    await createLog({ world, runId }).append({
+    await createLog({ encryption, world, runId }).append({
       type: 'harness:journal',
       id: 'unrelated',
       data: null,
@@ -272,7 +279,7 @@ describe('createEffectFunction', () => {
 
   test('preserves winning attempts and outputs across incremental external writes', async () => {
     const { effect, log, world, runId } = await setup();
-    const writer = createLog({ world, runId });
+    const writer = createLog({ encryption, world, runId });
     const fn = vi.fn(async () => 'unexpected');
     await writer.append(startEvent());
     await log.refresh();
@@ -987,7 +994,7 @@ describe('createEffectFunction', () => {
 
   test('only executes the first committed start across competing factories', async () => {
     const { world, runId, log } = await setup();
-    const secondLog = createLog({ world, runId });
+    const secondLog = createLog({ encryption, world, runId });
     const startsReady = new DelayedPromise<void>();
     const entered = new DelayedPromise<void>();
     const contended = new DelayedPromise<void>();
@@ -1246,7 +1253,7 @@ describe('createEffectFunction', () => {
       type: 'result',
       value: 'committed',
     });
-    const restored = createLog({ world, runId });
+    const restored = createLog({ encryption, world, runId });
     await restored.refresh();
     expect(
       await createTestEffectFunction({
@@ -1723,7 +1730,7 @@ describe('createEffectFunction', () => {
           },
         }),
       ).toEqual({ type: 'interrupted', retryable: true });
-      const retryLog = createLog({ world, runId });
+      const retryLog = createLog({ encryption, world, runId });
       await retryLog.refresh();
       const retry = createTestEffectFunction({
         log: retryLog,

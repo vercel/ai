@@ -21,6 +21,11 @@ import type {
 import type { HarnessAgentGateBuiltinToolFunction } from './create-gate-builtin-tool-function';
 import type { HarnessAgentStreamWriter } from './create-stream-writer';
 
+const encryption = {
+  encrypt: async ({ data }: { data: Uint8Array }) => data,
+  decrypt: async ({ data }: { data: Uint8Array }) => data,
+};
+
 const abortControllers = new Set<AbortController>();
 
 afterEach(() => {
@@ -142,7 +147,7 @@ async function setup(options?: {
     eventType: 'run_created',
     eventData: { deploymentId: 'test', workflowName: 'harness', input: [] },
   });
-  const log = createLog({ world, runId });
+  const log = createLog({ encryption, world, runId });
   const abortController = new AbortController();
   abortControllers.add(abortController);
   const yieldController = new AbortController();

@@ -1,5 +1,6 @@
 import type { World } from '@workflow/world';
 import type { HarnessAgentSession } from '../harness-agent-session';
+import type { HarnessAgentStorageEncryption } from './create-storage-encryption';
 import {
   decodeStreamRecords,
   type HarnessAgentStreamPartRecord,
@@ -27,6 +28,7 @@ import {
  * World stream ends, or when it is cancelled. Reading never affects a drive.
  */
 export function readTurnRecordStream(options: {
+  encryption: HarnessAgentStorageEncryption;
   /**
    * World that stores the session's stream.
    */
@@ -58,7 +60,15 @@ export function readTurnRecordStream(options: {
    */
   driveEnd?: Promise<void>;
 }): ReadableStream<HarnessAgentStreamPartRecord> {
-  const { world, session, turnId, startIndex, abortSignal, driveEnd } = options;
+  const {
+    world,
+    session,
+    turnId,
+    startIndex,
+    abortSignal,
+    driveEnd,
+    encryption,
+  } = options;
   const { runId } = session;
   const streamName = session.getStreamName();
   const startKey = `turn-start:${turnId}`;
@@ -173,10 +183,16 @@ export function readTurnRecordStream(options: {
               closeIfDrained();
               continue;
             }
-            for (const record of await decodeStreamRecords({ text: line })) {
+            for (const record of await decodeStreamRecords({
+              text: line,
+              encryption,
+            })) {
               if (!isEnded()) deliver(record);
             }
           }
+        }
+        if (!isEnded() && buffer.length > 0) {
+          throw new Error('HarnessAgentStream: truncated storage frame.');
         }
         close();
       })().catch(fail);

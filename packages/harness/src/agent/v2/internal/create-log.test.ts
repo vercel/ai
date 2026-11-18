@@ -2,10 +2,12 @@ import {
   DelayedPromise,
   jsonEncodeSerializableValue,
 } from '@ai-sdk/provider-utils';
-import { slotToEventId, type EventResult } from '@workflow/world';
+import { slotToEventId, type EventResult, type World } from '@workflow/world';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import type { HarnessV2EffectOutput } from '../../../v2/harness-v2-effect';
 import { InMemoryWorld } from '../in-memory-world';
+import { createStorageEncryption } from './create-storage-encryption';
+import { HarnessStorageEncryptionError } from './errors';
 import {
   createLog,
   type HarnessAgentLog,
@@ -34,7 +36,7 @@ async function setup(
     eventType: 'run_created',
     eventData: { deploymentId: 'test', workflowName: 'harness', input: [] },
   });
-  return { world, runId, log: createLog({ world, runId }) };
+  return { world, runId, log: createLog({ encryption, world, runId }) };
 }
 
 /**
@@ -63,6 +65,132 @@ async function logOf(events: HarnessAgentLogEvent[]) {
 }
 
 describe('createLog', () => {
+  test('encrypts complete snapshots once and reuses ciphertext on physical resend', async () => {
+    const { world, runId } = await setup();
+    const keyedWorld: World = world;
+    keyedWorld.getEncryptionKeyForRun = async () => new Uint8Array(32).fill(3);
+    const encryption = await createStorageEncryption({
+      world,
+      runId,
+      deploymentId: 'test',
+    });
+    const encrypt = vi.spyOn(encryption, 'encrypt');
+    const log = createLog({ world, runId, encryption });
+    const create = world.events.create.bind(world.events);
+    const writes = vi
+      .spyOn(world.events, 'create')
+      .mockRejectedValueOnce(new Error('unavailable'))
+      .mockImplementation(create);
+    const data = { secret: 'private checkpoint' };
+    const appending = log.append({
+      type: 'harness:journal',
+      id: 'secret',
+      data,
+    });
+    data.secret = 'mutated';
+    await appending;
+    expect(encrypt).toHaveBeenCalledTimes(1);
+    expect(writes).toHaveBeenCalledTimes(2);
+    for (const call of writes.mock.calls) {
+      expect(call[1]).toEqual(
+        expect.objectContaining({
+          eventData: {
+            stepName: 'harness-agent-log',
+            input: await encrypt.mock.results[0].value,
+          },
+        }),
+      );
+    }
+    const events = await world.events.list({ runId });
+    const stored = events.data.find(
+      event => event.eventType === 'step_created',
+    );
+    expect(
+      new TextDecoder().decode(
+        stored?.eventType === 'step_created'
+          ? (stored.eventData.input as Uint8Array)
+          : undefined,
+      ),
+    ).not.toContain('private checkpoint');
+    const replayed = createLog({ world, runId, encryption });
+    await replayed.refresh();
+    expect(replayed.getAdapterEvents()).toEqual([
+      {
+        type: 'harness:journal',
+        id: 'secret',
+        data: { secret: 'private checkpoint' },
+      },
+    ]);
+    expect(
+      await replayed.append({
+        type: 'harness:journal',
+        id: 'secret',
+        data: { secret: 'private checkpoint' },
+      }),
+    ).toBe(false);
+  });
+
+  test('latches failed decryption without exposing stale lookups or writing', async () => {
+    const { world, runId } = await setup();
+    const keyedWorld: World = world;
+    keyedWorld.getEncryptionKeyForRun = async () => new Uint8Array(32).fill(3);
+    const encryption = await createStorageEncryption({
+      world,
+      runId,
+      deploymentId: 'test',
+    });
+    await createLog({ world, runId, encryption }).append({
+      type: 'harness:journal',
+      id: 'secret',
+      data: 'private',
+    });
+    keyedWorld.getEncryptionKeyForRun = async () => new Uint8Array(32).fill(4);
+    const wrong = await createStorageEncryption({
+      world,
+      runId,
+      deploymentId: 'test',
+    });
+    const log = createLog({ world, runId, encryption: wrong });
+    const write = vi.spyOn(world.events, 'create');
+    await expect(log.refresh()).rejects.toBeInstanceOf(
+      HarnessStorageEncryptionError,
+    );
+    expect(() => log.getAdapterEvents()).toThrow(HarnessStorageEncryptionError);
+    await expect(
+      log.append({ type: 'harness:journal', id: 'later', data: null }),
+    ).rejects.toBeInstanceOf(HarnessStorageEncryptionError);
+    expect(write).not.toHaveBeenCalled();
+  });
+
+  test('preserves append order and snapshots while encryption is pending', async () => {
+    const { world, runId } = await setup();
+    const release = new DelayedPromise<void>();
+    const encrypt = vi.fn(async ({ data }: { data: Uint8Array }) => {
+      await release.promise;
+      return data;
+    });
+    const log = createLog({
+      world,
+      runId,
+      encryption: { ...encryption, encrypt },
+    });
+    const data = { value: 'snapshot' };
+    const first = log.append({ type: 'harness:journal', id: 'first', data });
+    const second = log.append({
+      type: 'harness:journal',
+      id: 'second',
+      data: null,
+    });
+    data.value = 'mutated';
+    await vi.waitFor(() => expect(encrypt).toHaveBeenCalledTimes(1));
+    release.resolve();
+    await Promise.all([first, second]);
+    expect(log.getAdapterEvents()).toEqual([
+      { type: 'harness:journal', id: 'first', data: { value: 'snapshot' } },
+      { type: 'harness:journal', id: 'second', data: null },
+    ]);
+  });
+
   test('replays host-owned event variants into the lookups', async () => {
     const { world, runId, log } = await setup();
     const events: HarnessAgentLogEvent[] = [
@@ -98,7 +226,7 @@ describe('createLog', () => {
     ];
     for (const event of events)
       await expect(log.append(event)).resolves.toBe(true);
-    const replayed = createLog({ world, runId });
+    const replayed = createLog({ encryption, world, runId });
     await replayed.refresh();
     expect(replayed.getSubmissions()).toEqual([events[0]]);
     expect(replayed.getUndeliveredSubmissions()).toEqual([]);
@@ -116,7 +244,7 @@ describe('createLog', () => {
       id: 'event',
       data: 'after sealed slot',
     } as const;
-    await createLog({ world, runId }).append(event);
+    await createLog({ encryption, world, runId }).append(event);
     const page = await world.events.list({ runId });
     vi.spyOn(world.events, 'list').mockResolvedValue({
       ...page,
@@ -138,7 +266,7 @@ describe('createLog', () => {
 
   test('looks up events from other instances only once a refresh or append fetched them', async () => {
     const { world, runId, log } = await setup();
-    const other = createLog({ world, runId });
+    const other = createLog({ encryption, world, runId });
     const first = { type: 'harness:journal', id: 'first', data: 1 } as const;
     const second = { type: 'harness:journal', id: 'second', data: 2 } as const;
     const own = { type: 'harness:journal', id: 'own', data: 3 } as const;
@@ -227,8 +355,8 @@ describe('createLog', () => {
 
   test('filters live append notifications and observes writes from another log', async () => {
     const { world } = await setup();
-    const observer = createLog({ world, runId: 'session-id' });
-    const writer = createLog({ world, runId: 'session-id' });
+    const observer = createLog({ encryption, world, runId: 'session-id' });
+    const writer = createLog({ encryption, world, runId: 'session-id' });
     const listener = vi.fn();
 
     await observer.refresh();
@@ -274,7 +402,7 @@ describe('createLog', () => {
     } as const;
     const own = { type: 'harness:journal', id: 'own', data: 2 } as const;
     try {
-      await createLog({ world, runId }).append(earlier);
+      await createLog({ encryption, world, runId }).append(earlier);
       await log.append(own).then(() => order.push('resolved'));
       expect(order).toEqual(['earlier', 'own', 'resolved']);
       expect(finished).not.toHaveBeenCalled();
@@ -327,7 +455,7 @@ describe('createLog', () => {
       data: 1,
     } as const;
     await log.append(cached);
-    await createLog({ world, runId }).append(discovered);
+    await createLog({ encryption, world, runId }).append(discovered);
     const listener = vi.fn();
     const unsubscribe = log.onAppend({ listener });
     try {
@@ -383,7 +511,7 @@ describe('createLog', () => {
     'arbitrates cross-instance appends, conflicting=%s',
     async conflicting => {
       const { world, runId, log } = await setup();
-      const other = createLog({ world, runId });
+      const other = createLog({ encryption, world, runId });
       const create = world.events.create.bind(world.events);
       const barrier = new DelayedPromise<void>();
       let arrivals = 0;
@@ -424,18 +552,18 @@ describe('createLog', () => {
       const canonical = await readAdapterEvents(log);
       expect(canonical).toHaveLength(1);
       expect(await readAdapterEvents(other)).toEqual(canonical);
-      expect(await readAdapterEvents(createLog({ world, runId }))).toEqual(
-        canonical,
-      );
+      expect(
+        await readAdapterEvents(createLog({ encryption, world, runId })),
+      ).toEqual(canonical);
       await expect(
-        createLog({ world, runId }).append(canonical[0]),
+        createLog({ encryption, world, runId }).append(canonical[0]),
       ).resolves.toBe(false);
     },
   );
 
   test('keeps distinct concurrent IDs even with identical payloads', async () => {
     const { world, runId, log } = await setup();
-    const other = createLog({ world, runId });
+    const other = createLog({ encryption, world, runId });
     const event = { type: 'harness:journal', id: 'event', data: null } as const;
     await expect(
       Promise.all([
@@ -506,9 +634,9 @@ describe('createLog', () => {
     await original!();
     expect((await world.events.list({ runId })).data).toHaveLength(3);
     expect(await readAdapterEvents(log)).toEqual([event]);
-    expect(await readAdapterEvents(createLog({ world, runId }))).toEqual([
-      event,
-    ]);
+    expect(
+      await readAdapterEvents(createLog({ encryption, world, runId })),
+    ).toEqual([event]);
   });
 
   test('returns false for an existing identical ID and rejects conflicting reuse without writing', async () => {
@@ -549,7 +677,7 @@ describe('createLog', () => {
 
   test('confirms a concurrent matching event after an uncertain write without resending', async () => {
     const { world, runId, log } = await setup();
-    const other = createLog({ world, runId });
+    const other = createLog({ encryption, world, runId });
     const event = {
       type: 'harness:journal',
       id: 'stable',
@@ -654,7 +782,7 @@ describe('createLog', () => {
     expect(write).toHaveBeenCalledTimes(4);
     write.mockRestore();
     await expect(
-      createLog({ world, runId }).append({
+      createLog({ encryption, world, runId }).append({
         type: 'harness:journal',
         id: 'stable',
         data: null,
@@ -745,7 +873,7 @@ describe('createLog', () => {
 
   test('retries a failed page without losing events and retains opaque tail cursors', async () => {
     const { world, runId, log } = await setup();
-    const writer = createLog({ world, runId });
+    const writer = createLog({ encryption, world, runId });
     await writer.append({ type: 'harness:journal', id: 'one', data: 1 });
     await writer.append({ type: 'harness:journal', id: 'two', data: 2 });
     const list = world.events.list.bind(world.events);
@@ -797,7 +925,7 @@ describe('createLog', () => {
 
   test('rejects a gapped prefix without advancing past its missing slot', async () => {
     const { world, runId, log } = await setup();
-    await createLog({ world, runId }).append({
+    await createLog({ encryption, world, runId }).append({
       type: 'harness:journal',
       id: 'event-1',
       data: 1,
@@ -838,9 +966,11 @@ describe('createLog', () => {
     const restored = new InMemoryWorld();
     await restored.seedJson({ runId, data: await world.exportJson({ runId }) });
     expect(
-      await readAdapterEvents(createLog({ world: restored, runId })),
+      await readAdapterEvents(
+        createLog({ encryption, world: restored, runId }),
+      ),
     ).toEqual([event]);
-    const replay = createLog({ world: restored, runId });
+    const replay = createLog({ encryption, world: restored, runId });
     await expect(replay.append(event)).resolves.toBe(false);
     await expect(
       replay.append({ ...event, data: { date: new Date(1) } }),
@@ -865,7 +995,9 @@ describe('createLog', () => {
 
     await expect(log.append(event)).resolves.toBe(true);
 
-    const replay = await readAdapterEvents(createLog({ world, runId }));
+    const replay = await readAdapterEvents(
+      createLog({ encryption, world, runId }),
+    );
     expect(replay).toHaveLength(1);
     const replayed = (replay[0].data as Record<string, unknown>)
       .output as Record<string, unknown>;
@@ -916,7 +1048,7 @@ describe('createLog', () => {
         await write(...args);
         await acknowledgment.promise;
       });
-    const writer = createLog({ world, runId });
+    const writer = createLog({ encryption, world, runId });
     const listener = vi.fn();
     await log.refresh();
     const unsubscribe = log.onAppend({ listener });
@@ -998,7 +1130,7 @@ describe('createLog', () => {
     const unsubscribe = log.onAppend({ listener });
     try {
       await settle();
-      await createLog({ world, runId }).append({
+      await createLog({ encryption, world, runId }).append({
         type: 'harness:journal',
         id: 'event-1',
         data: 1,
@@ -1060,7 +1192,7 @@ describe('createLog', () => {
       controller.enqueue(new Uint8Array([0xf0]));
       await settle();
       expect(listener).not.toHaveBeenCalled();
-      await createLog({ world, runId }).append({
+      await createLog({ encryption, world, runId }).append({
         type: 'harness:journal',
         id: 'event-1',
         data: 1,
@@ -1095,7 +1227,7 @@ describe('createLog', () => {
       await settle();
       controller.error(new Error('disconnect'));
       await settle();
-      await createLog({ world, runId }).append({
+      await createLog({ encryption, world, runId }).append({
         type: 'harness:journal',
         id: 'event-1',
         data: 1,
@@ -1113,7 +1245,7 @@ describe('createLog', () => {
   test('refreshes events appended during watcher initialization without requiring a prior read', async () => {
     const { world, runId, log } = await setup();
     const info = world.streams.getInfo.bind(world.streams);
-    const writer = createLog({ world, runId });
+    const writer = createLog({ encryption, world, runId });
     vi.spyOn(world.streams, 'getInfo').mockImplementationOnce(
       async (...args) => {
         await writer.append({
@@ -1157,14 +1289,14 @@ describe('createLog', () => {
     const unsubscribe = log.onAppend({ listener });
     try {
       await settle();
-      await createLog({ world, runId: otherRun }).append({
+      await createLog({ encryption, world, runId: otherRun }).append({
         type: 'harness:journal',
         id: 'event',
         data: 'other',
       });
       await settle();
       expect(listener).not.toHaveBeenCalled();
-      await createLog({ world, runId }).append({
+      await createLog({ encryption, world, runId }).append({
         type: 'harness:journal',
         id: 'event',
         data: 'this',
@@ -1226,6 +1358,11 @@ function end(options: {
     },
   };
 }
+
+const encryption = {
+  encrypt: async ({ data }: { data: Uint8Array }) => data,
+  decrypt: async ({ data }: { data: Uint8Array }) => data,
+};
 
 const retryable: HarnessV2EffectOutput = {
   type: 'interrupted',
@@ -1490,7 +1627,7 @@ describe('createLog lookups', () => {
     await log.append(finishTurn({ turnId: 'p1', unified: 'stop' }));
     expect(undeliveredIds(log)).toEqual([]);
 
-    const replayed = createLog({ world, runId });
+    const replayed = createLog({ encryption, world, runId });
     await replayed.refresh();
     expect(undeliveredIds(replayed)).toEqual([]);
   });

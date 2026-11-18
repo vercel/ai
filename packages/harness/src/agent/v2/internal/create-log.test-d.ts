@@ -12,11 +12,23 @@ import type {
   HarnessV2Usage,
 } from '../../../v2/harness-v2-stream-part';
 import type {
+  createLog,
+  decodeLogEvent,
   HarnessAgentLog,
   HarnessAgentLogEffectAttempt,
   HarnessAgentLogEvent,
   HarnessAgentLogTurn,
 } from './create-log';
+import type { HarnessAgentStorageEncryption } from './create-storage-encryption';
+
+test('requires explicit encryption at log storage boundaries', () => {
+  expectTypeOf<Parameters<typeof createLog>[0]>().toMatchTypeOf<{
+    encryption: HarnessAgentStorageEncryption;
+  }>();
+  expectTypeOf<Parameters<typeof decodeLogEvent>[0]>().toMatchTypeOf<{
+    encryption: HarnessAgentStorageEncryption;
+  }>();
+});
 
 test('delivers internal events while accepting zero-argument listeners', () => {
   /**

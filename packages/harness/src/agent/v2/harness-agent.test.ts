@@ -1,4 +1,5 @@
 import {
+  convertBase64ToUint8Array,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
   DelayedPromise,
@@ -27,6 +28,8 @@ import {
   decodeLogEvent,
   type HarnessAgentLogEvent,
 } from './internal/create-log';
+import { createStorageEncryption } from './internal/create-storage-encryption';
+import { HarnessStorageEncryptionError } from './internal/errors';
 
 /**
  * Reads the agent log events of a session stored in the World, in log order,
@@ -45,7 +48,7 @@ async function readLogEvents(options: {
   const events: HarnessAgentLogEvent[] = [];
   const ids = new Set<string>();
   for (const worldEvent of data) {
-    const event = await decodeLogEvent({ event: worldEvent });
+    const event = await decodeLogEvent({ encryption, event: worldEvent });
     if (event == null || ids.has(event.id)) continue;
     ids.add(event.id);
     if (options.types == null || options.types.includes(event.type)) {
@@ -54,6 +57,11 @@ async function readLogEvents(options: {
   }
   return events;
 }
+
+const encryption = {
+  encrypt: async ({ data }: { data: Uint8Array }) => data,
+  decrypt: async ({ data }: { data: Uint8Array }) => data,
+};
 
 const harness: HarnessV2 = {
   specificationVersion: 'harness-v2',
@@ -771,7 +779,7 @@ describe('HarnessAgent turns', () => {
     const world = new InMemoryWorld();
     const first = await setup({ world });
     const session = first.session;
-    await createLog({ world, runId: session.runId }).append({
+    await createLog({ encryption, world, runId: session.runId }).append({
       type: 'submission',
       id: 'waiting',
       data: {
@@ -949,7 +957,7 @@ describe('HarnessAgent turns', () => {
     });
     const restored = await restarted.createSession({ runId: session.runId });
     await expect(
-      createLog({ world, runId: session.runId }).refresh(),
+      createLog({ encryption, world, runId: session.runId }).refresh(),
     ).resolves.toBeUndefined();
     const replay = await restarted.generate({
       prompt: 'again',
@@ -1275,7 +1283,7 @@ describe('HarnessAgent crash recovery', () => {
       const world = new InMemoryWorld();
       const agent = new HarnessAgent({ harness, world, getSandboxSession });
       const session = await agent.createSession({ sandboxId: 'sandbox-id' });
-      await createLog({ world, runId: session.runId }).append({
+      await createLog({ encryption, world, runId: session.runId }).append({
         type: 'submission',
         id: 'prompt',
         data: {
@@ -1396,7 +1404,7 @@ describe('HarnessAgent crash recovery', () => {
     const world = new InMemoryWorld();
     const agent = new HarnessAgent({ harness, world, getSandboxSession });
     const session = await agent.createSession({ sandboxId: 'sandbox-id' });
-    const log = createLog({ world, runId: session.runId });
+    const log = createLog({ encryption, world, runId: session.runId });
     await log.append({
       type: 'submission',
       id: 'prompt',
@@ -1799,7 +1807,7 @@ describe('HarnessAgent cancel', () => {
     const world = new InMemoryWorld();
     const agent = new HarnessAgent({ harness, world, getSandboxSession });
     const session = await agent.createSession({ sandboxId: 'sandbox-id' });
-    const log = createLog({ world, runId: session.runId });
+    const log = createLog({ encryption, world, runId: session.runId });
     await log.append({
       type: 'submission',
       id: 'p1',
@@ -1926,12 +1934,347 @@ describe('HarnessAgent cancel', () => {
     expect(await result.text).toBe('Partial');
     expect(await result.finishReason).toBe('other');
     expect(await result.rawFinishReason).toBe('cancelled');
-    const log = createLog({ world, runId: session.runId });
+    const log = createLog({ encryption, world, runId: session.runId });
     await log.refresh();
     expect(log.getUndeliveredSubmissions()).toEqual([]);
     expect(log.getEffect({ key: 'model:0' })?.end?.data.output).toEqual({
       type: 'interrupted',
       retryable: true,
     });
+  });
+});
+
+describe('HarnessAgent storage encryption', () => {
+  const secret = 'encrypted-storage-sentinel';
+  const rawKey = new Uint8Array(32).fill(7);
+  const finishReason = { unified: 'stop' as const, raw: 'stop' };
+  const usage = {
+    inputTokens: {
+      total: 1,
+      noCache: 1,
+      cacheRead: undefined,
+      cacheWrite: undefined,
+    },
+    outputTokens: { total: 1, text: 1, reasoning: undefined },
+  };
+
+  function setup(options: { pauseAfterTool?: boolean } = {}) {
+    const inner = new InMemoryWorld({ deploymentId: 'original' });
+    const world: World = inner;
+    const resolveKey = vi.fn(async () => rawKey);
+    world.getEncryptionKeyForRun = resolveKey;
+    const execute = vi.fn(async () => ({ value: secret }));
+    const harness: HarnessV2 = {
+      specificationVersion: 'harness-v2',
+      harnessId: 'encryption-test',
+      builtinTools: {},
+      async drive({ context }) {
+        const finished = new Set(
+          context.log
+            .getTurns()
+            .filter(turn => turn.finish != null)
+            .flatMap(turn => turn.submissions.map(submission => submission.id)),
+        );
+        for (const prompt of context.log.getSubmissions()) {
+          if (prompt.data.type !== 'prompt' || finished.has(prompt.id))
+            continue;
+          await context.effect({
+            key: `model:${prompt.id}`,
+            name: 'model',
+            replay: 'safe',
+            input: secret,
+            deliveredSubmissionIds: [prompt.id],
+            fn: async ({ emit }) => {
+              emit({ type: 'text-start', id: prompt.id });
+              emit({ type: 'text-delta', id: prompt.id, delta: secret });
+              emit({ type: 'text-end', id: prompt.id });
+              return secret;
+            },
+          });
+          await context.executeHostTool({
+            toolCallId: prompt.id,
+            toolName: 'readSecret',
+            input: {},
+          });
+          await context.log.append({
+            type: 'harness:journal',
+            id: `checkpoint:${prompt.id}`,
+            data: { checkpoint: secret },
+          });
+          if (options.pauseAfterTool) return;
+          await context.finishStep({ stepNumber: 0, finishReason, usage });
+          await context.finishTurn({ finishReason, totalUsage: usage });
+        }
+      },
+    };
+    const settings = {
+      harness,
+      world,
+      tools: { readSecret: tool({ inputSchema: z.object({}), execute }) },
+      getSandboxSession: async () => ({}) as SandboxSession,
+    };
+    return { inner, world, resolveKey, execute, settings };
+  }
+
+  test('encrypts cancel submissions without resolving the session key again', async () => {
+    const { world, settings, resolveKey } = setup({ pauseAfterTool: true });
+    const agent = new HarnessAgent({ ...settings, id: 'cancel-encrypted' });
+    const session = await agent.createSession({ sandboxId: 'sandbox' });
+    await (await agent.stream({ session, prompt: secret })).consumeStream();
+    await agent.cancel({ session });
+    expect(resolveKey).toHaveBeenCalledTimes(1);
+    const encryption = await createStorageEncryption({
+      world,
+      runId: session.runId,
+      deploymentId: 'original',
+    });
+    const log = createLog({ world, runId: session.runId, encryption });
+    await log.refresh();
+    expect(
+      log.getUndeliveredSubmissions().map(submission => submission.data.type),
+    ).toContain('cancel');
+  });
+
+  test('encrypts run input, log envelopes, and output while restoring and reading normally', async () => {
+    const { inner, world, resolveKey, settings } = setup();
+    const agent = new HarnessAgent({ ...settings, id: 'encrypted' });
+    const session = await agent.createSession({
+      sandboxId: secret,
+      sessionId: secret,
+    });
+    expect((await agent.generate({ session, prompt: secret })).text).toBe(
+      secret,
+    );
+    expect(resolveKey).toHaveBeenCalledExactlyOnceWith(session.runId, {
+      deploymentId: 'original',
+    });
+    const run = await world.runs.get(session.runId);
+    expect(new TextDecoder().decode(run.input as Uint8Array)).not.toContain(
+      secret,
+    );
+    const events = await world.events.list({
+      runId: session.runId,
+      pagination: { limit: 1000 },
+    });
+    const payloads = events.data.flatMap(event =>
+      event.eventType === 'step_created' ? [event.eventData.input] : [],
+    );
+    expect(payloads.length).toBeGreaterThan(5);
+    for (const payload of payloads)
+      expect(new TextDecoder().decode(payload as Uint8Array)).not.toContain(
+        secret,
+      );
+    const chunks = await world.streams.getChunks(
+      session.runId,
+      session.getStreamName(),
+      { limit: 1000 },
+    );
+    for (const chunk of chunks.data) {
+      expect(
+        new TextDecoder().decode(
+          convertBase64ToUint8Array(
+            new TextDecoder().decode(chunk.data).trim(),
+          ),
+        ),
+      ).not.toContain(secret);
+    }
+    const data = await inner.export({ runId: session.runId });
+    expect(JSON.stringify(data)).not.toContain(secret);
+    const next = new InMemoryWorld({ deploymentId: 'later' });
+    await next.seed({ runId: session.runId, data });
+    const nextWorld: World = next;
+    const nextKey = vi.fn(async () => rawKey);
+    nextWorld.getEncryptionKeyForRun = nextKey;
+    const restoredAgent = new HarnessAgent({
+      ...settings,
+      world: nextWorld,
+      id: 'encrypted',
+    });
+    const restored = await restoredAgent.createSession({
+      runId: session.runId,
+    });
+    expect(restored.sessionId).toBe(secret);
+    const result = await restoredAgent.readStream({ session: restored });
+    expect(await result.text).toBe(secret);
+    expect(
+      (await restoredAgent.generate({ session: restored, prompt: 'next' }))
+        .text,
+    ).toBe(secret);
+    expect(nextKey).toHaveBeenCalledExactlyOnceWith(session.runId, {
+      deploymentId: 'original',
+    });
+    expect(
+      DefaultHarnessAgentSession[WORKFLOW_SERIALIZE](
+        restored as DefaultHarnessAgentSession,
+      ),
+    ).toEqual({ runId: session.runId, sessionId: secret, sandboxId: secret });
+  });
+
+  test('resolves encryption for deserialized handles using original deployment metadata', async () => {
+    const { world, resolveKey, settings } = setup();
+    const agent = new HarnessAgent({ ...settings, id: 'serialized-encrypted' });
+    const session = await agent.createSession({ sandboxId: 'sandbox' });
+    const restored = DefaultHarnessAgentSession[WORKFLOW_DESERIALIZE]({
+      runId: session.runId,
+      sandboxId: session.sandboxId,
+      sessionId: session.sessionId,
+    });
+    vi.spyOn(world, 'getDeploymentId').mockResolvedValue('later');
+    resolveKey.mockClear();
+    const get = vi.spyOn(world.runs, 'get');
+    expect(
+      (await agent.generate({ session: restored, prompt: secret })).text,
+    ).toBe(secret);
+    expect(get).toHaveBeenCalledWith(session.runId, { resolveData: 'none' });
+    expect(resolveKey).toHaveBeenCalledExactlyOnceWith(session.runId, {
+      deploymentId: 'original',
+    });
+  });
+
+  test('shares pending key lookups and retries failed resolution for deserialized handles', async () => {
+    const { settings, resolveKey } = setup();
+    const agent = new HarnessAgent({ ...settings, id: 'retry-key' });
+    const session = await agent.createSession({ sandboxId: 'sandbox' });
+    const restored = DefaultHarnessAgentSession[WORKFLOW_DESERIALIZE]({
+      runId: session.runId,
+      sessionId: session.sessionId,
+      sandboxId: session.sandboxId,
+    });
+    resolveKey.mockClear();
+    resolveKey.mockRejectedValueOnce(new Error('key temporarily unavailable'));
+    const failed = await Promise.allSettled([
+      agent.readStream({ session: restored }),
+      agent.cancel({ session: restored }),
+    ]);
+    expect(failed.map(result => result.status)).toEqual([
+      'rejected',
+      'rejected',
+    ]);
+    expect(resolveKey).toHaveBeenCalledTimes(1);
+    expect(
+      (await agent.generate({ session: restored, prompt: secret })).text,
+    ).toBe(secret);
+    expect(resolveKey).toHaveBeenCalledTimes(2);
+  });
+
+  test('recovers encrypted output without rerunning a completed host tool', async () => {
+    const options = { pauseAfterTool: true };
+    const { settings, execute } = setup(options);
+    const agent = new HarnessAgent({ ...settings, id: 'recovery-encrypted' });
+    const session = await agent.createSession({ sandboxId: 'sandbox' });
+    const result = await agent.stream({ session, prompt: secret });
+    await result.consumeStream();
+    expect(execute).toHaveBeenCalledTimes(1);
+    options.pauseAfterTool = false;
+    const restoredAgent = new HarnessAgent({
+      ...settings,
+      id: 'recovery-encrypted',
+    });
+    const restored = await restoredAgent.createSession({
+      runId: session.runId,
+    });
+    await restoredAgent.drive({ session: restored });
+    expect(
+      await (
+        await restoredAgent.readStream({ session: restored })
+      ).text,
+    ).toBe(secret);
+    expect(execute).toHaveBeenCalledTimes(1);
+  });
+
+  test('restores encrypted sessions through the background queue callback', async () => {
+    const { world, settings } = setup({ pauseAfterTool: true });
+    Object.defineProperty(
+      world,
+      Symbol.for('@ai-sdk/harness//in-memory-world'),
+      { value: undefined },
+    );
+    let callback: Parameters<World['createQueueHandler']>[1] | undefined;
+    world.createQueueHandler = (...args) => {
+      callback = args[1];
+      return async () => new Response(null);
+    };
+    world.start = async () => {};
+    world.registerHandler = () => {};
+    const agent = new HarnessAgent({ ...settings, id: 'queue-encrypted' });
+    const session = await agent.createSession({ sandboxId: 'sandbox' });
+    await (await agent.stream({ session, prompt: secret })).consumeStream();
+    const queueName =
+      '__harnessagent_wkf_workflow_workflow//@ai-sdk/harness//queue-encrypted';
+    const queued = await world.queue(queueName, { runId: session.runId });
+    const harness = { ...settings.harness, drive: async () => {} };
+    const background = new HarnessAgent({
+      ...settings,
+      harness,
+      id: 'queue-encrypted',
+    });
+    const drive = vi.spyOn(background, 'drive');
+    await callback!(
+      { runId: session.runId },
+      { queueName, messageId: queued.messageId!, attempt: 1 },
+    );
+    expect(drive).toHaveBeenCalledTimes(1);
+    expect(drive.mock.calls[0][0].session.runId).toBe(session.runId);
+  });
+
+  test('fails before creating a run when key resolution fails and permits a later retry', async () => {
+    const { world, resolveKey, settings } = setup();
+    resolveKey.mockRejectedValueOnce(new Error('key service offline'));
+    const create = vi.spyOn(world.events, 'create');
+    const agent = new HarnessAgent({ ...settings, id: 'key-failure' });
+    await expect(
+      agent.createSession({ sandboxId: 'sandbox' }),
+    ).rejects.toBeInstanceOf(HarnessStorageEncryptionError);
+    expect(create).not.toHaveBeenCalled();
+    await expect(
+      agent.createSession({ sandboxId: 'sandbox' }),
+    ).resolves.toBeDefined();
+  });
+
+  test('rejects wrong or missing keys on restoration', async () => {
+    const { world, settings } = setup();
+    const agent = new HarnessAgent({ ...settings, id: 'wrong-key' });
+    const session = await agent.createSession({ sandboxId: 'sandbox' });
+    world.getEncryptionKeyForRun = async () => new Uint8Array(32).fill(8);
+    await expect(
+      agent.createSession({ runId: session.runId }),
+    ).rejects.toBeInstanceOf(HarnessStorageEncryptionError);
+    world.getEncryptionKeyForRun = async () => undefined;
+    await expect(
+      agent.createSession({ runId: session.runId }),
+    ).rejects.toThrow();
+  });
+
+  test('propagates stream encryption failure without committing a successful effect', async () => {
+    const { world, settings } = setup();
+    const agent = new HarnessAgent({ ...settings, id: 'stream-failure' });
+    const session = await agent.createSession({ sandboxId: 'sandbox' });
+    const encrypt = globalThis.crypto.subtle.encrypt.bind(
+      globalThis.crypto.subtle,
+    );
+    const spy = vi
+      .spyOn(globalThis.crypto.subtle, 'encrypt')
+      .mockImplementation(async (...args) => {
+        const bytes = args[2] as Uint8Array;
+        if (new TextDecoder().decode(bytes).includes('"part":'))
+          throw new Error('crypto unavailable');
+        return encrypt(...args);
+      });
+    try {
+      await expect(
+        agent.generate({ session, prompt: secret }),
+      ).rejects.toThrow();
+    } finally {
+      spy.mockRestore();
+    }
+    const encryption = await createStorageEncryption({
+      world,
+      runId: session.runId,
+      deploymentId: 'original',
+    });
+    const log = createLog({ world, runId: session.runId, encryption });
+    await log.refresh();
+    expect(log.getCurrentTurn()?.finish).toBeUndefined();
+    expect(log.getEffects().every(effect => effect.end == null)).toBe(true);
   });
 });

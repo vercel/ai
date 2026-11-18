@@ -1,5 +1,7 @@
 import type { JSONValue, SerializableValue } from '@ai-sdk/provider';
 import {
+  convertBase64ToUint8Array,
+  convertUint8ArrayToBase64,
   jsonDecodeSerializableValue,
   jsonEncodeSerializableValue,
   parseJSON,
@@ -7,6 +9,7 @@ import {
 import type { World } from '@workflow/world';
 import type { HarnessAgentSession } from '../harness-agent-session';
 import { decodeJSONRecordValue, encodeJSONRecord } from './encode-json-record';
+import type { HarnessAgentStorageEncryption } from './create-storage-encryption';
 import type { HarnessV2EffectError } from '../../../v2/harness-v2-effect';
 import type {
   HarnessV2CallWarning,
@@ -461,8 +464,13 @@ function encodeRecord(options: {
  * session state. When the drive's abort signal fires, records not yet sent are
  * discarded and new records are dropped; a write already in flight cannot be
  * recalled.
+ *
+ * Encryption failures are retained and surfaced by emission and flush, not
+ * treated as best-effort transport failures. A storage chunk contains one
+ * base64-framed encrypted batch; the blank-line chunk delimiter is plaintext.
  */
 export function createStreamWriter(options: {
+  encryption: HarnessAgentStorageEncryption;
   /**
    * World that stores the session's stream.
    */
@@ -476,12 +484,14 @@ export function createStreamWriter(options: {
    */
   abortSignal: AbortSignal;
 }): HarnessAgentStreamWriter {
-  const { world, session, abortSignal } = options;
+  const { world, session, abortSignal, encryption } = options;
   const { runId } = session;
   const name = session.getStreamName();
   let buffer = '';
   let sending: Promise<void> | undefined;
   let closing: Promise<void> | undefined;
+  let encryptionFailure: unknown;
+  let encryptionFailed = false;
 
   const discardUnsent = () => {
     buffer = '';
@@ -496,12 +506,24 @@ export function createStreamWriter(options: {
     try {
       await Promise.resolve();
       while (buffer.length > 0) {
-        const chunk = buffer + '\n';
+        const chunk = buffer;
         buffer = '';
+        const encrypted = await encryption.encrypt({
+          data: new TextEncoder().encode(chunk),
+        });
+        if (abortSignal.aborted) return;
+        const framed = convertUint8ArrayToBase64(encrypted) + '\n\n';
         await Promise.resolve()
-          .then(() => world.streams.write(runId, name, chunk))
+          .then(() => {
+            if (!abortSignal.aborted)
+              return world.streams.write(runId, name, framed);
+          })
           .catch(() => {});
       }
+    } catch (error) {
+      encryptionFailed = true;
+      encryptionFailure = error;
+      discardUnsent();
     } finally {
       sending = undefined;
     }
@@ -513,6 +535,7 @@ export function createStreamWriter(options: {
    */
   function push(record: HarnessAgentStreamPartRecord): void {
     if (closing != null || abortSignal.aborted) return;
+    if (encryptionFailed) throw encryptionFailure;
     buffer += encodeRecord({ record });
     sending ??= send();
   }
@@ -524,6 +547,7 @@ export function createStreamWriter(options: {
     for (let current = sending; current != null; current = sending) {
       await current;
     }
+    if (encryptionFailed) throw encryptionFailure;
   }
 
   return {
@@ -565,48 +589,63 @@ export function createStreamWriter(options: {
  * boundaries. Accepts text concatenated from several chunks. Throws on a
  * malformed record or an unsupported version, since skipping a record would make
  * readers misattribute or lose output.
+ *
+ * Each nonblank storage line holds one base64-framed batch. Decryption
+ * precedes JSON parsing; the decrypted batch contains the record lines.
  */
 export async function decodeStreamRecords(options: {
+  encryption: HarnessAgentStorageEncryption;
   /**
    * Stream text, possibly spanning several chunks.
    */
   text: string;
 }): Promise<HarnessAgentStreamPartRecord[]> {
   const records: HarnessAgentStreamPartRecord[] = [];
-  for (const text of options.text.split('\n')) {
-    if (text === '') continue;
-    const parsed = await parseJSON({ text });
-    if (parsed == null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      throw new Error('HarnessAgentStream: invalid or unsupported record.');
-    }
-    const envelope = parsed as Record<string, JSONValue>;
-    if (envelope.version !== STREAM_RECORD_VERSION) {
-      throw new Error('HarnessAgentStream: invalid or unsupported record.');
-    }
-    const { startId, key } = envelope;
-    if (
-      !Object.hasOwn(envelope, 'part') ||
-      (startId !== undefined && typeof startId !== 'string') ||
-      (key !== undefined && typeof key !== 'string')
-    ) {
-      throw new Error('HarnessAgentStream: invalid part record.');
-    }
-    const part = jsonDecodeSerializableValue({
-      value: decodeJSONRecordValue({ value: envelope.part }),
+  for (const frame of options.text.split('\n')) {
+    if (frame === '') continue;
+    const data = await options.encryption.decrypt({
+      data: convertBase64ToUint8Array(frame),
     });
-    if (
-      part == null ||
-      typeof part !== 'object' ||
-      typeof (part as { type?: unknown }).type !== 'string'
-    ) {
-      throw new Error('HarnessAgentStream: invalid stream part.');
+    const batch = new TextDecoder().decode(data);
+    for (const text of batch.split('\n')) {
+      if (text === '') continue;
+      const parsed = await parseJSON({ text });
+      if (
+        parsed == null ||
+        typeof parsed !== 'object' ||
+        Array.isArray(parsed)
+      ) {
+        throw new Error('HarnessAgentStream: invalid or unsupported record.');
+      }
+      const envelope = parsed as Record<string, JSONValue>;
+      if (envelope.version !== STREAM_RECORD_VERSION) {
+        throw new Error('HarnessAgentStream: invalid or unsupported record.');
+      }
+      const { startId, key } = envelope;
+      if (
+        !Object.hasOwn(envelope, 'part') ||
+        (startId !== undefined && typeof startId !== 'string') ||
+        (key !== undefined && typeof key !== 'string')
+      ) {
+        throw new Error('HarnessAgentStream: invalid part record.');
+      }
+      const part = jsonDecodeSerializableValue({
+        value: decodeJSONRecordValue({ value: envelope.part }),
+      });
+      if (
+        part == null ||
+        typeof part !== 'object' ||
+        typeof (part as { type?: unknown }).type !== 'string'
+      ) {
+        throw new Error('HarnessAgentStream: invalid stream part.');
+      }
+      const record: HarnessAgentStreamPartRecord = {
+        part: part as HarnessAgentStreamPart,
+      };
+      if (startId !== undefined) record.startId = startId as string;
+      if (key !== undefined) record.key = key as string;
+      records.push(record);
     }
-    const record: HarnessAgentStreamPartRecord = {
-      part: part as HarnessAgentStreamPart,
-    };
-    if (startId !== undefined) record.startId = startId as string;
-    if (key !== undefined) record.key = key as string;
-    records.push(record);
   }
   return records;
 }
