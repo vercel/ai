@@ -124,20 +124,6 @@ export function opaPolicy<
   };
 
   return ({ toolCall, tools, toolsContext, runtimeContext, messages }) => {
-    let response = responses.get(messages);
-    if (response == null) {
-      response = { toolCalls: [], lastEvaluation: Promise.resolve() };
-      responses.set(messages, response);
-    }
-
-    const earlierToolCalls = [...response.toolCalls];
-    const currentToolCall: EvaluatedToolCall = {
-      toolCallId: toolCall.toolCallId,
-      toolName: toolCall.toolName,
-      input: toolCall.input,
-    };
-    response.toolCalls.push(currentToolCall);
-
     const toOpaInput = (inputMessages: ModelMessage[]) =>
       toInput?.({
         toolCall,
@@ -152,6 +138,27 @@ export function opaPolicy<
         messages: inputMessages,
         runtimeContext,
       } satisfies DefaultOpaInput);
+
+    // The SDK checks a tool call that a user approved once more before it runs
+    // it. `messages` then contain the response with that tool call and with
+    // the other tool calls of the response, so there is nothing to append.
+    if (containsToolCallWithoutResult(messages, toolCall)) {
+      return (async () => decide(toOpaInput(messages)))();
+    }
+
+    let response = responses.get(messages);
+    if (response == null) {
+      response = { toolCalls: [], lastEvaluation: Promise.resolve() };
+      responses.set(messages, response);
+    }
+
+    const earlierToolCalls = [...response.toolCalls];
+    const currentToolCall: EvaluatedToolCall = {
+      toolCallId: toolCall.toolCallId,
+      toolName: toolCall.toolName,
+      input: toolCall.input,
+    };
+    response.toolCalls.push(currentToolCall);
 
     const evaluate = async (): Promise<PolicyDecision> => {
       const opaInput = toOpaInput(messages);
@@ -214,28 +221,10 @@ function appendEarlierToolCalls(
 ): ModelMessage[] {
   if (earlierToolCalls.length === 0) return messages;
 
-  // Calls that are already in `messages` must not count twice. That is the
-  // case when the SDK checks an approved call again before it runs it, because
-  // the conversation then contains the response with that call.
-  const knownToolCallIds = new Set<string>();
-  for (const message of messages) {
-    if (message.role !== 'assistant' || !Array.isArray(message.content)) {
-      continue;
-    }
-    for (const part of message.content) {
-      if (part.type === 'tool-call') knownToolCallIds.add(part.toolCallId);
-    }
-  }
-
-  const toolCalls = earlierToolCalls.filter(
-    earlierToolCall => !knownToolCallIds.has(earlierToolCall.toolCallId),
-  );
-  if (toolCalls.length === 0) return messages;
-
   const appended: ModelMessage[] = [
     {
       role: 'assistant',
-      content: toolCalls.map(({ toolCallId, toolName, input }) => ({
+      content: earlierToolCalls.map(({ toolCallId, toolName, input }) => ({
         type: 'tool-call',
         toolCallId,
         toolName,
@@ -244,7 +233,7 @@ function appendEarlierToolCalls(
     },
   ];
 
-  const deniedToolCalls = toolCalls.filter(
+  const deniedToolCalls = earlierToolCalls.filter(
     earlierToolCall => earlierToolCall.decision?.type === 'denied',
   );
   if (deniedToolCalls.length > 0) {
@@ -265,6 +254,44 @@ function appendEarlierToolCalls(
   }
 
   return [...messages, ...appended];
+}
+
+/**
+ * Returns whether `messages` contain the tool call and no result for it yet.
+ *
+ * A tool call of a new response is not in `messages`. A tool call ID that an
+ * earlier response used as well does not count: that earlier tool call has a
+ * result. The messages are read in order, so a result only completes a tool
+ * call that precedes it.
+ */
+function containsToolCallWithoutResult(
+  messages: ModelMessage[],
+  toolCall: { toolCallId: string; toolName: string },
+): boolean {
+  let withoutResult = false;
+
+  for (const message of messages) {
+    if (
+      (message.role !== 'assistant' && message.role !== 'tool') ||
+      !Array.isArray(message.content)
+    ) {
+      continue;
+    }
+
+    for (const part of message.content) {
+      if (!('toolCallId' in part) || part.toolCallId !== toolCall.toolCallId) {
+        continue;
+      }
+
+      if (part.type === 'tool-call') {
+        withoutResult = part.toolName === toolCall.toolName;
+      } else if (part.type === 'tool-result') {
+        withoutResult = false;
+      }
+    }
+  }
+
+  return withoutResult;
 }
 
 const decisionRestrictiveness: Record<PolicyDecision['type'], number> = {

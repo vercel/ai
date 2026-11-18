@@ -325,13 +325,20 @@ describe.each(['generateText', 'streamText', 'ToolLoopAgent'] as const)(
       input: { amount },
     });
 
-    /** One inner array is one model response. */
-    function modelEmittingToolCalls(responses: ToolCall[][]) {
+    /**
+     * One inner array is one model response. With `repeatToolCallIds`, every
+     * response numbers its tool calls from zero, as some providers do.
+     */
+    function modelEmittingToolCalls(
+      responses: ToolCall[][],
+      { repeatToolCallIds = false }: { repeatToolCallIds?: boolean } = {},
+    ) {
       let step = 0;
 
       const nextToolCalls = () => {
         const toolCalls = responses[step] ?? [];
-        const prefix = `call-${step++}`;
+        const prefix = repeatToolCallIds ? 'call' : `call-${step}`;
+        step++;
         return toolCalls.map(({ toolName, input }, index) => ({
           type: 'tool-call' as const,
           toolCallId: `${prefix}-${index}`,
@@ -397,9 +404,11 @@ describe.each(['generateText', 'streamText', 'ToolLoopAgent'] as const)(
     async function run({
       responses,
       policy,
+      repeatToolCallIds,
     }: {
       responses: ToolCall[][];
       policy: (input: DefaultOpaInput) => unknown;
+      repeatToolCallIds?: boolean;
     }) {
       const executed: string[] = [];
       const emptyInput = jsonSchema<object>({ type: 'object', properties: {} });
@@ -433,7 +442,7 @@ describe.each(['generateText', 'streamText', 'ToolLoopAgent'] as const)(
       };
 
       const options = {
-        model: modelEmittingToolCalls(responses),
+        model: modelEmittingToolCalls(responses, { repeatToolCallIds }),
         stopWhen: isStepCount(responses.length),
         tools,
         toolApproval: opaPolicy<typeof tools>({
@@ -509,6 +518,19 @@ describe.each(['generateText', 'streamText', 'ToolLoopAgent'] as const)(
         }),
       ).toEqual({
         executed: ['charge(40)', 'charge(40)'],
+        pendingApprovals: 0,
+      });
+    });
+
+    it('enforces a running total when tool call IDs repeat in every response', async () => {
+      expect(
+        await run({
+          responses: [[charge(60)], [charge(30), charge(30)]],
+          policy: budgetPolicy,
+          repeatToolCallIds: true,
+        }),
+      ).toEqual({
+        executed: ['charge(60)', 'charge(30)'],
         pendingApprovals: 0,
       });
     });
