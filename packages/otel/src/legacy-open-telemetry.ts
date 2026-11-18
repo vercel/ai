@@ -1569,9 +1569,6 @@ export class LegacyOpenTelemetry implements Telemetry {
         },
         'ai.usage.inputTokens': event.usage?.inputTokens,
         'ai.usage.outputTokens': event.usage?.outputTokens,
-        'ai.response.providerMetadata': event.providerMetadata
-          ? JSON.stringify(event.providerMetadata)
-          : undefined,
       }),
     );
     state.extractionSpan.span.end();

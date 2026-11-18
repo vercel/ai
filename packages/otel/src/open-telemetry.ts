@@ -2431,11 +2431,6 @@ export class OpenTelemetry implements Telemetry {
                 output: () => JSON.stringify(event.answers),
               },
             },
-            providerMetadata: {
-              'ai.response.providerMetadata': event.providerMetadata
-                ? JSON.stringify(event.providerMetadata)
-                : undefined,
-            },
           },
         ),
       }),

@@ -22,6 +22,7 @@ import {
 } from '@opentelemetry/api';
 import { z } from 'zod/v4';
 import {
+  DownloadError,
   embed,
   embedMany,
   experimental_decide,
@@ -2821,6 +2822,65 @@ describe('LegacyOpenTelemetry integration with extract', () => {
         '{"invoiceNumber":{"type":"text","value":"INV-2041"}}',
       );
     }
+  });
+
+  it('keeps file urls and provider metadata out of extraction spans', async () => {
+    const tracer = new IntegrationMockTracer();
+    const url = 'https://files.example.com/invoice.pdf?X-Amz-Signature=secret';
+    const download = async () => [
+      { data: new Uint8Array([1, 2, 3]), mediaType: 'application/pdf' },
+    ];
+    const model = new Experimental_ExtractionMockModelV4({
+      doExtract: async () => ({
+        answers: { invoiceNumber: { type: 'text', value: 'INV-2041' } },
+        warnings: [],
+        providerMetadata: { scaledown: { ocrText: 'secret document text' } },
+      }),
+    });
+
+    await experimental_extract({
+      model,
+      state: [
+        { type: 'file', mediaType: 'application/pdf', data: new URL(url) },
+      ],
+      fields,
+      experimental_download: download,
+      telemetry: { integrations: new LegacyOpenTelemetry({ tracer }) },
+    });
+
+    expect(tracer.jsonSpans).toHaveLength(2);
+    expect(JSON.stringify(tracer.jsonSpans)).not.toContain('secret');
+    expect(tracer.jsonSpans[0].attributes['ai.extraction.state']).toBe(
+      '[{"type":"file","mediaType":"application/pdf","data":"[redacted]"}]',
+    );
+  });
+
+  it('keeps the url of a failed download out of extraction spans', async () => {
+    const tracer = createMockTracer();
+    const url = 'https://files.example.com/invoice.pdf?X-Amz-Signature=secret';
+
+    const error = await experimental_extract({
+      model: new Experimental_ExtractionMockModelV4(),
+      state: [
+        { type: 'file', mediaType: 'application/pdf', data: new URL(url) },
+      ],
+      fields,
+      experimental_download: async () => {
+        throw new DownloadError({
+          url,
+          message: `Download of ${url} exceeded maximum size of 10 bytes.`,
+        });
+      },
+      telemetry: { integrations: new LegacyOpenTelemetry({ tracer }) },
+    }).catch(error => error);
+
+    expect(error.url).toBe(url);
+    expect(tracer.spans).toHaveLength(1);
+    const [span] = tracer.spans;
+    expect(span.ended).toBe(true);
+    expect(span.status?.code).toBe(SpanStatusCode.ERROR);
+    expect(JSON.stringify(span.exceptions)).not.toContain('secret');
+    expect(JSON.stringify(span.status)).not.toContain('secret');
   });
 
   it('ends both spans with error status when extraction fails', async () => {
