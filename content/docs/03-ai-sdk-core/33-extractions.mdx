@@ -214,6 +214,19 @@ field. Invalid inputs throw `InvalidArgumentError`; malformed answers throw
 [`Experimental_ExtractionRefusalError`](/docs/reference/ai-sdk-errors/ai-extraction-refusal-error). Invalid answers and refusals are not
 retried, and partial results are not supported.
 
+## Telemetry
+
+`experimental_extract` accepts the standard `telemetry` option, `runtimeContext`,
+and [`onStart` and `onEnd` callbacks](/docs/ai-sdk-core/lifecycle-callbacks#experimental_extract).
+Because extraction is experimental, custom integrations receive its lifecycle
+through `experimental_onExtractStart`, `experimental_onExtractionModelCallStart`,
+`experimental_onExtractionModelCallEnd`, and `experimental_onExtractEnd`; errors
+use `onError`. With `recordInputs: false`, integrations do not receive the state,
+fields, or reference date, and with `recordOutputs: false` they do not receive
+answers. Request headers and provider options are never sent to telemetry
+because they can contain credentials; `onStart` and `onEnd` still receive them. See [Telemetry](/docs/ai-sdk-core/telemetry#experimental_extract) for
+the OpenTelemetry spans.
+
 ## Testing
 
 Use `Experimental_ExtractionMockModelV4` from `ai/test`:
