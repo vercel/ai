@@ -12,9 +12,75 @@ import {
 } from '../util/async-iterable-stream';
 import { consumeStream } from '../util/consume-stream';
 
-function createUIMessageSnapshot<UI_MESSAGE extends UIMessage>(
-  message: UI_MESSAGE,
-): UI_MESSAGE {
+const notPlainJson = Symbol('notPlainJson');
+
+/**
+ * Deep-clones plain objects, dense arrays and primitives, which is what UI
+ * messages normally contain. This is several times faster than
+ * `structuredClone`, which matters because a snapshot is cloned per chunk.
+ * Throws `notPlainJson` for any other value (Date, Map, class instance,
+ * sparse array, function, ...) so the caller can fall back to
+ * `structuredClone` and keep its exact semantics.
+ */
+function clonePlainValue(value: unknown, seen: Map<object, unknown>): unknown {
+  if (typeof value !== 'object' || value === null) {
+    if (typeof value === 'function' || typeof value === 'symbol') {
+      throw notPlainJson;
+    }
+    return value;
+  }
+
+  const existing = seen.get(value);
+  if (existing !== undefined) {
+    return existing;
+  }
+
+  const prototype = Object.getPrototypeOf(value);
+
+  if (Array.isArray(value)) {
+    if (prototype !== Array.prototype) {
+      throw notPlainJson;
+    }
+
+    const length = value.length;
+    const result = new Array(length);
+    seen.set(value, result);
+
+    for (let i = 0; i < length; i++) {
+      if (!(i in value)) {
+        throw notPlainJson;
+      }
+      result[i] = clonePlainValue(value[i], seen);
+    }
+
+    // non-index properties on arrays are preserved by structuredClone
+    if (Object.keys(value).length !== length) {
+      throw notPlainJson;
+    }
+
+    return result;
+  }
+
+  if (prototype !== Object.prototype && prototype !== null) {
+    throw notPlainJson;
+  }
+
+  const result: Record<string, unknown> = {};
+  seen.set(value, result);
+
+  for (const key of Object.keys(value)) {
+    result[key] = clonePlainValue(
+      (value as Record<string, unknown>)[key],
+      seen,
+    );
+  }
+
+  return result;
+}
+
+function createUIMessageSnapshotWithStructuredClone<
+  UI_MESSAGE extends UIMessage,
+>(message: UI_MESSAGE): UI_MESSAGE {
   const textByPartIndex = new Map<number, string>();
   const messageWithoutText = {
     ...message,
@@ -39,6 +105,16 @@ function createUIMessageSnapshot<UI_MESSAGE extends UIMessage>(
   }
 
   return snapshot;
+}
+
+function createUIMessageSnapshot<UI_MESSAGE extends UIMessage>(
+  message: UI_MESSAGE,
+): UI_MESSAGE {
+  try {
+    return clonePlainValue(message, new Map()) as UI_MESSAGE;
+  } catch {
+    return createUIMessageSnapshotWithStructuredClone(message);
+  }
 }
 
 /**

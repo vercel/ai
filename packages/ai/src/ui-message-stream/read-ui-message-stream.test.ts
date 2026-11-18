@@ -526,7 +526,7 @@ describe('readUIMessageStream', () => {
     });
   });
 
-  it('should exclude accumulated text from structured cloning', async () => {
+  it('should exclude accumulated text from structured cloning when falling back to structuredClone', async () => {
     const originalStructuredClone = globalThis.structuredClone;
     let clonedTextLength = 0;
     const structuredCloneSpy = vi
@@ -552,6 +552,8 @@ describe('readUIMessageStream', () => {
       const snapshots = await convertAsyncIterableToArray(
         readUIMessageStream({
           stream: createUIMessageStream([
+            // a Date is not plain JSON and forces the structuredClone fallback
+            { type: 'start', messageMetadata: { createdAt: new Date(0) } },
             { type: 'text-start', id: 'text-1' },
             ...Array.from({ length: 10 }, () => ({
               type: 'text-delta' as const,
@@ -642,6 +644,65 @@ describe('readUIMessageStream', () => {
     });
     expect(seedData).toEqual({ value: 'seed' });
     expect(chunkData).toEqual({ value: 'chunk' });
+  });
+
+  it('should clone plain snapshots without structuredClone', async () => {
+    const structuredCloneSpy = vi.spyOn(globalThis, 'structuredClone');
+    const shared = { value: 'shared' };
+
+    try {
+      const snapshots = await convertAsyncIterableToArray(
+        readUIMessageStream({
+          stream: createUIMessageStream([
+            { type: 'start', messageMetadata: { a: shared, b: shared } },
+            { type: 'data-test', data: { list: [1, { nested: true }] } },
+            { type: 'text-start', id: 'text-1' },
+            { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+            { type: 'text-end', id: 'text-1' },
+          ]),
+        }),
+      );
+
+      expect(structuredCloneSpy).not.toHaveBeenCalled();
+
+      const metadata = snapshots[0].metadata as Record<string, unknown>;
+      expect(metadata.a).toEqual(shared);
+      expect(metadata.a).not.toBe(shared);
+      expect(metadata.a).toBe(metadata.b);
+      expect(snapshots[1].parts[0]).not.toBe(snapshots[2].parts[0]);
+      expect(snapshots.at(-1)?.parts).toEqual([
+        { type: 'data-test', data: { list: [1, { nested: true }] } },
+        { type: 'text', text: 'Hello', state: 'done' },
+      ]);
+    } finally {
+      structuredCloneSpy.mockRestore();
+    }
+  });
+
+  it('should fall back to structuredClone semantics for non-plain values', async () => {
+    const createdAt = new Date(0);
+    const tags = new Map([['key', 'value']]);
+
+    const snapshots = await convertAsyncIterableToArray(
+      readUIMessageStream({
+        stream: createUIMessageStream([
+          { type: 'start', messageMetadata: { createdAt, tags } },
+          { type: 'text-start', id: 'text-1' },
+        ]),
+      }),
+    );
+
+    const metadata = snapshots[1].metadata as {
+      createdAt: Date;
+      tags: Map<string, string>;
+    };
+
+    expect(metadata.createdAt).toBeInstanceOf(Date);
+    expect(metadata.createdAt).not.toBe(createdAt);
+    expect(metadata.createdAt.getTime()).toBe(0);
+    expect(metadata.tags).toBeInstanceOf(Map);
+    expect(metadata.tags).not.toBe(tags);
+    expect(metadata.tags.get('key')).toBe('value');
   });
 
   it('should throw an error when encountering an error UI stream part', async () => {
