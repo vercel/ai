@@ -387,6 +387,8 @@ In-process lifecycle callbacks—and durable execution engines like [`WorkflowAg
 
 For operations with external side-effects, pass an idempotency key to your external payment, database, or email service. Using `toolCallId` (provided to `execute`) deduplicates replays of the same tool call after a crash, whereas a key derived from the business operation (for example, `refund:<ticketId>`) covers both crash replays and new tool calls issued when the model retries after a timeout.
 
+If persisted history ends with an `approved` response and no `tool-result` for that `toolCallId`—for example, because the process stopped while the tool was running—treat it as an unknown outcome, not an unexecuted call: the external write may already have happened. Check the external system, or rely on the idempotency key, before running the call again.
+
 ## Related APIs
 
 - Use `toolApproval` with `ToolLoopAgent`, `generateText`, and `streamText`.
