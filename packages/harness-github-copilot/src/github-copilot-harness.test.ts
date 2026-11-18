@@ -27,6 +27,7 @@ describe('createGitHubCopilot', () => {
     expect(settings.nonTextContentTypes).toEqual(['image']);
     expect(settings.writeProtectedPaths).toEqual([
       '.github/hooks',
+      '.github/mcp.json',
       '.github/copilot',
       '.github/skills',
       '.github/agents',
