@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 16753,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-16753-stream-text-retention.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-16753-stream-text-retention.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_16753_REPRODUCED: streamText textStream exhausted the constrained heap while direct provider streaming completed"
+  }
+}
