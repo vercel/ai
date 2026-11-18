@@ -220,12 +220,16 @@ You can also bring your own transport by implementing the `MCPTransport` interfa
 
 ### WebMCP Transport
 
-`WebMCPTransport` adapts tools registered with the browser's
+`Experimental_WebMCPTransport` (aliased below as `WebMCPTransport`) adapts tools
+registered with the browser's
 [`document.modelContext`](https://webmachinelearning.github.io/webmcp/) to the
 existing MCP client:
 
 ```ts
-import { createMCPClient, WebMCPTransport } from '@ai-sdk/mcp';
+import {
+  createMCPClient,
+  Experimental_WebMCPTransport as WebMCPTransport,
+} from '@ai-sdk/mcp';
 
 // Run in a browser with WebMCP enabled, after checking API availability.
 const client = await createMCPClient({
@@ -238,7 +242,8 @@ const tools = await client.tools();
 The required `modelContext` provides WebMCP's `getTools` and `executeTool`
 methods. The optional `fromOrigins: string[]` constructor option discovers tools
 exposed by additional frame origins, subject to browser permissions. The package
-exports structural `WebMCPModelContext` and `WebMCPTool` types; use browser API
+exports structural `Experimental_WebMCPModelContext` and
+`Experimental_WebMCPTool` types; use browser API
 typings such as `webmcp-types` to declare `document.modelContext`.
 
 Use the tool names returned by `listTools` or `tools`: duplicate names across

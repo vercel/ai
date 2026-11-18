@@ -2,10 +2,10 @@
 
 import {
   createMCPClient,
-  WebMCPTransport,
+  Experimental_WebMCPTransport as WebMCPTransport,
   type MCPClient,
-  type WebMCPModelContext,
-  type WebMCPTool,
+  type Experimental_WebMCPModelContext as WebMCPModelContext,
+  type Experimental_WebMCPTool as WebMCPTool,
 } from '@ai-sdk/mcp';
 import { useChat } from '@ai-sdk/react';
 import {
