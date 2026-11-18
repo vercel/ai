@@ -442,8 +442,13 @@ function createVertexLiveTranscriptionStream({
       let lastVoiceActivity:
         | { type: string; audioOffsetMs: number | undefined }
         | undefined;
+      // a segment opens with `ACTIVITY_START` and closes when the server
+      // completes it (e.g. `generationComplete`), in either message order
+      let speechSegmentOpen = false;
       let sentAudioBytes = 0;
       let firstAudioSentAt: number | undefined;
+      // whether the audio was sent at about real time, measured when it ended
+      let audioSentInRealtime = false;
 
       const segmentId = () => `google-segment-${segmentCounter}`;
 
@@ -486,6 +491,7 @@ function createVertexLiveTranscriptionStream({
       };
 
       const completeSegment = () => {
+        speechSegmentOpen = false;
         // A finished segment supersedes any interim text it revises.
         if (segmentBuffer === '') {
           if (latestInterim === '') return;
@@ -502,26 +508,27 @@ function createVertexLiveTranscriptionStream({
         segmentCounter++;
       };
 
+      const getSentAudioMs = () =>
+        (sentAudioBytes / (inputAudioRate * 2)) * 1000;
+
       // Once the audio has ended, the server has transcribed all of it when
-      // server VAD ended the last speech, its segment is complete, and the
-      // server has caught up with the sent audio: either that speech ended at
-      // the end of the audio, or the audio was streamed in real time (so the
-      // server is not still processing buffered audio, which can hold further
-      // segments). No further messages arrive in that case.
+      // server VAD ended the last speech, the server completed that segment,
+      // and the server has caught up with the sent audio: either that speech
+      // ended at the end of the audio, or the audio was streamed in real time
+      // (so the server is not still processing buffered audio, which can hold
+      // further segments). No further messages arrive in that case.
       const isTranscriptionComplete = () => {
         if (
           lastVoiceActivity?.type !== 'ACTIVITY_END' ||
+          speechSegmentOpen ||
           segmentBuffer !== '' ||
           latestInterim !== ''
         ) {
           return false;
         }
-        const sentAudioMs = (sentAudioBytes / (inputAudioRate * 2)) * 1000;
-        const elapsedMs = Date.now() - (firstAudioSentAt ?? Date.now());
         return (
           (lastVoiceActivity.audioOffsetMs ?? 0) >=
-            sentAudioMs - audioEndToleranceMs ||
-          sentAudioMs <= elapsedMs + realtimeAudioToleranceMs
+            getSentAudioMs() - audioEndToleranceMs || audioSentInRealtime
         );
       };
 
@@ -578,6 +585,11 @@ function createVertexLiveTranscriptionStream({
             JSON.stringify({ realtimeInput: { audioStreamEnd: true } }),
           );
           audioEnded = true;
+          audioSentInRealtime =
+            getSentAudioMs() <=
+            Date.now() -
+              (firstAudioSentAt ?? Date.now()) +
+              realtimeAudioToleranceMs;
           if (isTranscriptionComplete()) {
             finish();
           } else {
@@ -630,6 +642,9 @@ function createVertexLiveTranscriptionStream({
                   ? audioOffsetSeconds * 1000
                   : undefined,
             };
+            if (message.voiceActivity.type === 'ACTIVITY_START') {
+              speechSegmentOpen = true;
+            }
           }
 
           if (message.error != null) {
