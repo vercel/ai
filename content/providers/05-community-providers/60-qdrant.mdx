@@ -1,0 +1,197 @@
+---
+title: Qdrant
+description: Learn how to use Qdrant with the AI SDK for agent memory and RAG with semantic search.
+---
+
+# Qdrant
+
+[Qdrant](https://qdrant.tech) is an open-source vector search engine built for high-performance and massive scale.
+The [`qdrant-ai-sdk`](https://www.npmjs.com/package/qdrant-ai-sdk) package gives AI SDK agents semantic search and long-term memory in a Qdrant collection.
+It provides two tools that work with `generateText`, `streamText`, `ToolLoopAgent`, and any model:
+
+| Tool           | Description                                                       |
+| -------------- | ----------------------------------------------------------------- |
+| `qdrant-find`  | Searches the collection for text that is relevant to a query.     |
+| `qdrant-store` | Adds text and optional metadata to the collection as a new point. |
+
+The package has these exports:
+
+| Export              | Description                                                                         |
+| ------------------- | ----------------------------------------------------------------------------------- |
+| `createQdrantTools` | Returns the `qdrant-find` and `qdrant-store` tools for one collection.              |
+| `qdrantFindTool`    | Returns only the find tool. Use it to give the model search access only.            |
+| `qdrantStoreTool`   | Returns only the store tool. Use it to give the model write access only.            |
+| `createQdrantStore` | Adds documents to a collection and searches it from your own code, without a model. |
+
+The package is ESM-only and requires Node.js 22 or later and AI SDK 7.
+
+## Setup
+
+<InstallPackages packages="qdrant-ai-sdk @qdrant/js-client-rest" />
+
+Start Qdrant on your computer with Docker, or create a free cluster in [Qdrant Cloud](https://cloud.qdrant.io):
+
+```bash
+docker run -p 6333:6333 qdrant/qdrant
+```
+
+Create a client for your Qdrant server:
+
+```ts
+import { QdrantClient } from '@qdrant/js-client-rest';
+
+const client = new QdrantClient({
+  url: process.env.QDRANT_URL,
+  apiKey: process.env.QDRANT_API_KEY,
+});
+```
+
+Create the collection once before you use the tools. Its vector size must match your embedding model:
+
+```ts
+if (!(await client.collectionExists('memories')).exists) {
+  await client.createCollection('memories', {
+    vectors: { size: 1536, distance: 'Cosine' },
+  });
+}
+```
+
+The `openai/text-embedding-3-small` model makes vectors with 1536 dimensions.
+
+## Agent Memory
+
+`createQdrantTools` returns the `qdrant-find` and `qdrant-store` tools. The model decides when to store information and when to search for it.
+
+```ts
+import { generateText, isStepCount } from 'ai';
+import { createQdrantTools } from 'qdrant-ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5.5',
+  tools: createQdrantTools({
+    client,
+    collectionName: 'memories',
+    embeddingModel: 'openai/text-embedding-3-small',
+    scope: { userId: 'user-123' },
+  }),
+  stopWhen: isStepCount(5),
+  prompt: 'Remember that my favorite editor is Neovim.',
+});
+```
+
+The tool names contain a hyphen, so use brackets to get one tool: `tools['qdrant-find']`.
+
+## User Scoping
+
+Set `scope` to the values that identify the current user, agent, or tenant.
+The store tool writes these values into the metadata of each point.
+The find tool adds them as required conditions to each search.
+The model cannot change the scope. If the model sends metadata with the same key, the scope value replaces it.
+
+Read the scope values from a verified server-side session, and create the tools for each request.
+The package throws an error when a scope value is `undefined`, `null`, or an empty string.
+Without a scope, the tools read and write all points in the collection.
+
+Create a payload index on each scope key. Scope keys are stored under `metadata`, so the index for `userId` is on `metadata.userId`:
+
+```ts
+await client.createPayloadIndex('memories', {
+  field_name: 'metadata.userId',
+  field_schema: { type: 'keyword', is_tenant: true },
+});
+```
+
+Qdrant Cloud turns on strict mode for new collections. Strict mode rejects a search that filters on a field with no index.
+Use a `keyword` index for a string value, an `integer` index for an integer value, and a `bool` index for a boolean value.
+The [multitenancy guide](https://qdrant.tech/documentation/manage-data/multitenancy/) explains `is_tenant` and other tenant settings.
+
+## Qdrant Cloud Inference
+
+Set `cloudInference` instead of `embeddingModel` to let your Qdrant Cloud cluster create the vectors.
+The tools then send text to Qdrant, and your application needs no embedding provider.
+
+```ts
+const tools = createQdrantTools({
+  client,
+  collectionName: 'memories',
+  cloudInference: { model: 'sentence-transformers/all-minilm-l6-v2' },
+  scope: { userId: 'user-123' },
+});
+```
+
+The `sentence-transformers/all-minilm-l6-v2` model makes vectors with 384 dimensions, so create the collection with `size: 384`.
+The Inference tab of your cluster in the Qdrant Cloud Console lists the models and their dimensions.
+Learn more in the [Cloud Inference documentation](https://qdrant.tech/documentation/inference/cloud-inference/).
+
+## RAG
+
+Use `createQdrantStore` to load your documents. Then give the model the find tool only, with a description that tells it when to search.
+
+```ts
+import { generateText, isStepCount } from 'ai';
+import { createQdrantStore, qdrantFindTool } from 'qdrant-ai-sdk';
+
+const settings = {
+  client,
+  collectionName: 'menu',
+  embeddingModel: 'openai/text-embedding-3-small',
+};
+
+const store = createQdrantStore(settings);
+
+await store.store([
+  { content: 'A burrito costs 9 dollars.', metadata: { category: 'food' } },
+  { content: 'A taco costs 4 dollars.', metadata: { category: 'food' } },
+]);
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5.5',
+  tools: {
+    search: qdrantFindTool({
+      ...settings,
+      description: 'Search the menu for prices.',
+    }),
+  },
+  stopWhen: isStepCount(3),
+  prompt: 'What is the price of a burrito?',
+});
+```
+
+`store` sends large loads in requests of 256 points. Set `batchSize` in its second argument when the strict mode of your collection allows fewer points per request.
+Give each entry an `id`, such as a UUID, so that a retry replaces the points instead of adding copies.
+`store.find(query, { limit })` searches the collection from your own code.
+
+## Settings
+
+All functions take these settings:
+
+| Setting          | Description                                                                             |
+| ---------------- | --------------------------------------------------------------------------------------- |
+| `client`         | Required. The `QdrantClient` from `@qdrant/js-client-rest`.                             |
+| `collectionName` | Required. The collection that holds the points.                                         |
+| `embeddingModel` | An AI SDK embedding model. Set this or `cloudInference`.                                |
+| `cloudInference` | A Qdrant Cloud Inference model as `{ model, options }`. Set this or `embeddingModel`.   |
+| `vectorName`     | The name of the vector to use. Leave it empty for a collection with one unnamed vector. |
+| `scope`          | Values that the tools store in the metadata of each point and require in each search.   |
+
+The find tool and `createQdrantTools` also take these settings:
+
+| Setting          | Description                                                                                                                     |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `limit`          | The maximum number of results. Defaults to `5`.                                                                                 |
+| `scoreThreshold` | The minimum score of a result. For Euclid and Manhattan collections, it is the maximum distance.                                |
+| `filter`         | A [Qdrant filter](https://qdrant.tech/documentation/search/filtering/) that applies to each search. The model cannot change it. |
+
+`createQdrantTools` takes `findDescription` and `storeDescription`. `qdrantFindTool` and `qdrantStoreTool` take `description`.
+
+## Qdrant MCP Server
+
+Each point has a payload with the text in `document` and the metadata in `metadata`.
+The [Qdrant MCP server](https://github.com/qdrant/mcp-server-qdrant) uses the same format and the same tool names.
+To share a collection with it, use the same embedding model and set `vectorName` to the vector name that the MCP server uses.
+
+## More Information
+
+- [`qdrant-ai-sdk` on GitHub](https://github.com/qdrant-labs/qdrant-ai-sdk)
+- [Qdrant documentation](https://qdrant.tech/documentation/)
+- [Qdrant Cloud](https://cloud.qdrant.io)
