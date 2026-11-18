@@ -12,7 +12,7 @@ const writeDb = (dbPath: string, runs: Array<Record<string, unknown>>) => {
   fs.writeFileSync(dbPath, JSON.stringify({ runs, steps: [] }));
 };
 
-describe('devtools db path validation', () => {
+describe('devtools db', () => {
   let db: typeof DbModule;
   let tempDir: string;
 
@@ -33,6 +33,27 @@ describe('devtools db path validation', () => {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
     tempDirs = [];
+  });
+
+  describe.skipIf(process.platform === 'win32')('storage permissions', () => {
+    it.each(['new', 'existing'])(
+      'restricts %s storage to owner-only permissions',
+      async storage => {
+        const dbDir = path.join(tempDir, '.devtools');
+        const dbPath = path.join(dbDir, 'generations.json');
+        const originalUmask = process.umask(0o022);
+        try {
+          if (storage === 'existing') writeDb(dbPath, []);
+
+          await db.createRun('run-1');
+
+          expect(fs.statSync(dbDir).mode & 0o777).toBe(0o700);
+          expect(fs.statSync(dbPath).mode & 0o777).toBe(0o600);
+        } finally {
+          process.umask(originalUmask);
+        }
+      },
+    );
   });
 
   it('accepts real .devtools/generations.json files', () => {

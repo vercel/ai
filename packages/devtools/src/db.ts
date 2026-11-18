@@ -123,11 +123,17 @@ const writeDb = (db: Database): void => {
   const isFirstRun = !fs.existsSync(DB_DIR);
 
   if (isFirstRun) {
-    fs.mkdirSync(DB_DIR, { recursive: true });
+    fs.mkdirSync(DB_DIR, { recursive: true, mode: 0o700 });
     ensureGitignore();
   }
 
-  fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
+  // Creation modes do not restrict existing storage. Tighten it before writing.
+  fs.chmodSync(DB_DIR, 0o700);
+  if (fs.existsSync(DB_PATH)) {
+    fs.chmodSync(DB_PATH, 0o600);
+  }
+
+  fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2), { mode: 0o600 });
 };
 
 // In-memory cache for performance
