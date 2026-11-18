@@ -112,7 +112,7 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
       input.fps = options.fps;
     }
 
-    if (options.seed) {
+    if (options.seed != null) {
       input.seed = options.seed;
     }
 
@@ -356,3 +356,4 @@ const replicateVideoModelOptionsSchema = lazySchema(() =>
       .loose(),
   ),
 );
+

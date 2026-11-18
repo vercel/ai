@@ -85,7 +85,7 @@ export class GatewayVideoModel implements Experimental_VideoModelV3 {
           ...(resolution && { resolution }),
           ...(duration && { duration }),
           ...(fps && { fps }),
-          ...(seed && { seed }),
+          ...(seed != null && { seed }),
           ...(generateAudio !== undefined && { generateAudio }),
           ...(providerOptions && { providerOptions }),
           ...(image && { image: maybeEncodeVideoFile(image) }),
@@ -288,3 +288,4 @@ const gatewayVideoEventSchema = lazySchema(() =>
     ]),
   ),
 );
+
