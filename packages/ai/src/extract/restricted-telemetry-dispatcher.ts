@@ -1,4 +1,4 @@
-import type { Context } from '@ai-sdk/provider-utils';
+import { isProviderReference, type Context } from '@ai-sdk/provider-utils';
 import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
 import { filterIncludedContext } from '../telemetry/filter-included-context';
 import type { TelemetryDispatcher } from '../telemetry/telemetry';
@@ -39,10 +39,11 @@ function isFileLocation(data: unknown): boolean {
     }
   }
   return (
-    data != null &&
-    typeof data === 'object' &&
-    'type' in data &&
-    (data.type === 'url' || data.type === 'reference')
+    isProviderReference(data) ||
+    (data != null &&
+      typeof data === 'object' &&
+      'type' in data &&
+      (data.type === 'url' || data.type === 'reference'))
   );
 }
 

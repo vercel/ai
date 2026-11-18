@@ -1053,6 +1053,11 @@ describe('telemetry', () => {
         mediaType: 'application/pdf',
         data: { type: 'reference', reference: { openai: 'secret-reference' } },
       },
+      {
+        type: 'file',
+        mediaType: 'application/pdf',
+        data: { openai: 'secret-bare-reference' },
+      },
     ];
 
     await extract({
@@ -1075,6 +1080,7 @@ describe('telemetry', () => {
     expect(JSON.stringify(event)).not.toContain('secret');
     expect(event.state).toEqual([
       { type: 'text', text: 'Invoice' },
+      { type: 'file', mediaType: 'application/pdf', data: '[redacted]' },
       { type: 'file', mediaType: 'application/pdf', data: '[redacted]' },
       { type: 'file', mediaType: 'application/pdf', data: '[redacted]' },
       { type: 'file', mediaType: 'application/pdf', data: '[redacted]' },
