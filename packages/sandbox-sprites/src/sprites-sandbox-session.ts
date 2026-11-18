@@ -43,19 +43,21 @@ exit_missing() {
 const STAT_SCRIPT = `${EXIT_MISSING_FUNCTION}
 [ -e "$1" ] || exit_missing "$1"
 if [ -f "$1" ]; then type=file; elif [ -d "$1" ]; then type=directory; else type=other; fi
-size=$(stat -L -c %s -- "$1") || exit 1
+size=$(stat -L -c %s -- "$1" 2>/dev/null || stat -L -f %z -- "$1") || exit 1
 printf '%s %s' "$type" "$size"
 `;
 
-// `cd -P` so that `link/..` lists the same directory `[ -d ]` checked.
-// `nullglob` would list an unreadable directory as empty, so check `-r` first.
+// `cd -P` so that `link/..` lists the same directory `[ -d ]` checked, and
+// `./` so that `CDPATH` and a directory named `-` are not special. `nullglob`
+// would list an unreadable directory as empty, so check `-r` first.
 const LIST_DIRECTORY_SCRIPT = `${EXIT_MISSING_FUNCTION}
 if [ ! -d "$1" ]; then
   [ -e "$1" ] || exit_missing "$1"
   echo "Not a directory" >&2
   exit ${WRONG_TYPE_EXIT_CODE}
 fi
-cd -P -- "$1" || exit 1
+case $1 in /*) dir=$1 ;; *) dir=./$1 ;; esac
+cd -P -- "$dir" || exit 1
 [ -r . ] || { echo "Permission denied" >&2; exit 1; }
 shopt -s dotglob nullglob
 for name in *; do

@@ -1,5 +1,17 @@
+import { spawnSync } from 'node:child_process';
+import {
+  chmod,
+  mkdir,
+  mkdtemp,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import type { Experimental_SandboxProcess as SandboxProcess } from '@ai-sdk/provider-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { SpritesApiClient } from './sprites-api-client';
+import { SpritesApiClient, type SpriteExecOptions } from './sprites-api-client';
 import { SpritesSandboxSession } from './sprites-sandbox-session';
 
 const decoder = new TextDecoder();
@@ -796,5 +808,272 @@ describe('SpritesSandboxSession.deleteFile', () => {
     await expect(makeSession().deleteFile({ path: 'x' })).rejects.toThrow(
       'Failed to delete x: Permission denied',
     );
+  });
+});
+
+// Runs the session's path scripts with the local bash instead of a Sprite, so
+// the scripts themselves are tested.
+function createLocalClient(directory: string): SpritesApiClient {
+  return {
+    exec: async (
+      _name: string,
+      { argv, cwd }: SpriteExecOptions,
+    ): Promise<SandboxProcess> => {
+      const [command, ...args] = argv;
+      const result = spawnSync(command, args, {
+        cwd: cwd ?? directory,
+        encoding: 'utf8',
+      });
+      const toStream = (text: string) =>
+        new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(text));
+            controller.close();
+          },
+        });
+      return {
+        stdout: toStream(result.stdout),
+        stderr: toStream(result.stderr),
+        wait: async () => ({ exitCode: result.status ?? 1 }),
+        kill: async () => {},
+      };
+    },
+  } as unknown as SpritesApiClient;
+}
+
+describe('SpritesSandboxSession path methods', () => {
+  let directory: string;
+  let session: SpritesSandboxSession;
+
+  beforeEach(async () => {
+    directory = await mkdtemp(join(tmpdir(), 'sprites-sandbox-session-'));
+    session = new SpritesSandboxSession(
+      createLocalClient(directory),
+      's',
+      'https://s',
+      directory,
+    );
+
+    await writeFile(join(directory, 'file.txt'), 'hello');
+    await mkdir(join(directory, 'dir'));
+    await writeFile(join(directory, 'dir', 'nested.txt'), '');
+    await writeFile(join(directory, '.hidden'), '');
+    await writeFile(join(directory, 'with space\nand newline'), '');
+    await symlink(join(directory, 'file.txt'), join(directory, 'file-link'));
+    await symlink(join(directory, 'dir'), join(directory, 'dir-link'));
+    await symlink(join(directory, 'missing'), join(directory, 'broken-link'));
+    spawnSync('mkfifo', [join(directory, 'fifo')]);
+  });
+
+  afterEach(async () => {
+    await rm(directory, { recursive: true, force: true });
+  });
+
+  describe('stat', () => {
+    it('returns the type and size of a file', async () => {
+      expect(await session.stat({ path: 'file.txt' })).toEqual({
+        type: 'file',
+        size: 5,
+      });
+    });
+
+    it('returns directory for a directory', async () => {
+      expect(await session.stat({ path: join(directory, 'dir') })).toEqual({
+        type: 'directory',
+        size: expect.any(Number),
+      });
+    });
+
+    it('follows symbolic links', async () => {
+      expect(await session.stat({ path: 'file-link' })).toEqual({
+        type: 'file',
+        size: 5,
+      });
+    });
+
+    it('returns null for a missing path', async () => {
+      expect(await session.stat({ path: 'missing.txt' })).toBeNull();
+      expect(await session.stat({ path: 'file.txt/child' })).toBeNull();
+    });
+
+    it('returns null for a broken symbolic link', async () => {
+      expect(await session.stat({ path: 'broken-link' })).toBeNull();
+    });
+
+    it('returns other for a named pipe', async () => {
+      expect(await session.stat({ path: 'fifo' })).toEqual({
+        type: 'other',
+        size: 0,
+      });
+    });
+
+    // Root can search any directory, so the check cannot fail as root.
+    it.skipIf(process.getuid?.() === 0)(
+      'rejects instead of returning null when a parent directory is not searchable',
+      async () => {
+        await mkdir(join(directory, 'locked'));
+        await writeFile(join(directory, 'locked', 'secret.txt'), '');
+        await chmod(join(directory, 'locked'), 0o000);
+        try {
+          await expect(
+            session.stat({ path: 'locked/secret.txt' }),
+          ).rejects.toThrow('Permission denied');
+          await expect(
+            session.listDirectory({ path: 'locked/missing' }),
+          ).rejects.toThrow('Permission denied');
+          await expect(
+            session.deleteFile({ path: 'locked/secret.txt' }),
+          ).rejects.toThrow('Permission denied');
+        } finally {
+          await chmod(join(directory, 'locked'), 0o755);
+        }
+      },
+    );
+
+    it('rejects for a symbolic link loop', async () => {
+      await symlink(join(directory, 'loop'), join(directory, 'loop'));
+      await expect(session.stat({ path: 'loop' })).rejects.toThrow(
+        'Too many levels of symbolic links',
+      );
+      await expect(session.listDirectory({ path: 'loop' })).rejects.toThrow(
+        'Too many levels of symbolic links',
+      );
+    });
+  });
+
+  describe('listDirectory', () => {
+    it('lists entries with their types, including hidden entries', async () => {
+      const entries = await session.listDirectory({ path: '.' });
+
+      expect(entries?.sort((a, b) => a.name.localeCompare(b.name))).toEqual([
+        { name: '.hidden', type: 'file' },
+        { name: 'broken-link', type: 'symlink' },
+        { name: 'dir', type: 'directory' },
+        { name: 'dir-link', type: 'symlink' },
+        { name: 'fifo', type: 'other' },
+        { name: 'file-link', type: 'symlink' },
+        { name: 'file.txt', type: 'file' },
+        { name: 'with space\nand newline', type: 'file' },
+      ]);
+    });
+
+    it('resolves `..` after a symbolic link in the filesystem', async () => {
+      await mkdir(join(directory, 'deep', 'inner'), { recursive: true });
+      await symlink(
+        join(directory, 'deep', 'inner'),
+        join(directory, 'inner-link'),
+      );
+
+      expect(await session.listDirectory({ path: 'inner-link/..' })).toEqual([
+        { name: 'inner', type: 'directory' },
+      ]);
+    });
+
+    it('returns an empty array for an empty directory', async () => {
+      await mkdir(join(directory, 'empty'));
+      expect(await session.listDirectory({ path: 'empty' })).toEqual([]);
+    });
+
+    it('returns null for a missing directory', async () => {
+      expect(await session.listDirectory({ path: 'missing' })).toBeNull();
+    });
+
+    it('rejects for a file', async () => {
+      await expect(session.listDirectory({ path: 'file.txt' })).rejects.toThrow(
+        'Not a directory',
+      );
+    });
+
+    it('lists a directory through a symbolic link', async () => {
+      expect(await session.listDirectory({ path: 'dir-link' })).toEqual([
+        { name: 'nested.txt', type: 'file' },
+      ]);
+    });
+
+    it('returns null for a broken symbolic link', async () => {
+      expect(await session.listDirectory({ path: 'broken-link' })).toBeNull();
+    });
+
+    it.skipIf(process.getuid?.() === 0)(
+      'rejects for a directory that can be entered but not read',
+      async () => {
+        await chmod(join(directory, 'dir'), 0o311);
+        try {
+          await expect(session.listDirectory({ path: 'dir' })).rejects.toThrow(
+            'Permission denied',
+          );
+        } finally {
+          await chmod(join(directory, 'dir'), 0o755);
+        }
+      },
+    );
+
+    it('lists a directory named `-`', async () => {
+      await mkdir(join(directory, '-'));
+      await writeFile(join(directory, '-', 'inside.txt'), '');
+      expect(await session.listDirectory({ path: '-' })).toEqual([
+        { name: 'inside.txt', type: 'file' },
+      ]);
+    });
+  });
+
+  describe('deleteFile', () => {
+    it('deletes a file', async () => {
+      expect(await session.deleteFile({ path: 'file.txt' })).toBe(true);
+      expect(await session.stat({ path: 'file.txt' })).toBeNull();
+    });
+
+    it('returns false for a missing file', async () => {
+      expect(await session.deleteFile({ path: 'missing.txt' })).toBe(false);
+    });
+
+    it('rejects for a directory', async () => {
+      await expect(session.deleteFile({ path: 'dir' })).rejects.toThrow(
+        'it is a directory',
+      );
+      expect(await session.stat({ path: 'dir' })).not.toBeNull();
+    });
+
+    it.each(['dir-link', 'file-link', 'broken-link'])(
+      'deletes the symbolic link %s itself',
+      async link => {
+        expect(await session.deleteFile({ path: link })).toBe(true);
+        expect(await session.listDirectory({ path: '.' })).not.toContainEqual({
+          name: link,
+          type: 'symlink',
+        });
+      },
+    );
+
+    it('keeps the target of a deleted symbolic link', async () => {
+      await session.deleteFile({ path: 'dir-link' });
+      expect(await session.listDirectory({ path: 'dir' })).toEqual([
+        { name: 'nested.txt', type: 'file' },
+      ]);
+    });
+
+    it('rejects for a symbolic link to a directory with a trailing slash', async () => {
+      await expect(session.deleteFile({ path: 'dir-link/' })).rejects.toThrow(
+        'it is a directory',
+      );
+      expect(await session.stat({ path: 'dir-link' })).not.toBeNull();
+      expect(await session.stat({ path: 'dir/nested.txt' })).not.toBeNull();
+    });
+
+    it('deletes a file in a symbolically linked directory', async () => {
+      expect(await session.deleteFile({ path: 'dir-link/nested.txt' })).toBe(
+        true,
+      );
+      expect(await session.stat({ path: 'dir/nested.txt' })).toBeNull();
+    });
+  });
+
+  it('passes paths as arguments instead of interpolating them', async () => {
+    const path = '$(touch injected)';
+
+    expect(await session.stat({ path })).toBeNull();
+    expect(await session.listDirectory({ path })).toBeNull();
+    expect(await session.deleteFile({ path })).toBe(false);
+    expect(await session.stat({ path: 'injected' })).toBeNull();
   });
 });
