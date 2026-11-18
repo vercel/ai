@@ -253,6 +253,8 @@ export function convertToOpenAICompatibleChatMessages(
       case 'assistant': {
         let text = '';
         let reasoning = '';
+        let reasoningSignature: string | undefined;
+        let reasoningParts = 0;
         const toolCalls: Array<{
           id: string;
           type: 'function';
@@ -273,6 +275,15 @@ export function convertToOpenAICompatibleChatMessages(
             }
             case 'reasoning': {
               reasoning += part.text;
+              reasoningParts++;
+              // A gateway fronting a model with signed thinking emits the
+              // signature next to the text. Replaying the text without it
+              // loses the plan the model formed before its tool calls.
+              const signature =
+                part.providerOptions?.[provider]?.reasoningSignature;
+              if (typeof signature === 'string') {
+                reasoningSignature = signature;
+              }
               break;
             }
             case 'tool-call': {
@@ -308,6 +319,13 @@ export function convertToOpenAICompatibleChatMessages(
           role: 'assistant',
           content: toolCalls.length > 0 ? text || null : text,
           ...(reasoning.length > 0 ? { reasoning_content: reasoning } : {}),
+          // One signature authenticates one block. With several reasoning
+          // parts the text below is a concatenation of all of them, so no
+          // single signature matches it; sending one would ask the backend to
+          // verify a signature against text it never signed.
+          ...(reasoningSignature !== undefined && reasoningParts === 1
+            ? { reasoning_signature: reasoningSignature }
+            : {}),
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
           ...metadata,
         });
