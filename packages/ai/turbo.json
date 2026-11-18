@@ -7,6 +7,12 @@
       "outputs": [
         "**/dist/**"
       ]
+    },
+    "test": {
+      "tags": [
+        "$TURBO_EXTENDS$",
+        "ci:cpus:8"
+      ]
     }
   }
 }

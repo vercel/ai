@@ -108,25 +108,31 @@ describe('exceptions and serialization', () => {
     };
 
     it('names the tool for unawaited calls', async () => {
-      const error = await runCodeMode({
+      const result = runCodeMode({
         js: 'tools.createSlide({}); return 1;',
         tools,
-      }).catch(error => error);
+      });
 
-      expect(error).toBeInstanceOf(CodeModeDetachedBridgeRequestError);
-      expect(error.message).toBe(
+      await expect(result).rejects.toBeInstanceOf(
+        CodeModeDetachedBridgeRequestError,
+      );
+      await expect(result).rejects.toHaveProperty(
+        'message',
         'JavaScript runtime created an unawaited hostFunction bridge request: tools.createSlide.',
       );
     });
 
     it('names the tool for calls still pending on return', async () => {
-      const error = await runCodeMode({
+      const result = runCodeMode({
         js: "try { await Promise.all([tools.fail({}), tools['update-slide']({})]); } catch {} return 1;",
         tools,
-      }).catch(error => error);
+      });
 
-      expect(error).toBeInstanceOf(CodeModeDetachedBridgeRequestError);
-      expect(error.message).toBe(
+      await expect(result).rejects.toBeInstanceOf(
+        CodeModeDetachedBridgeRequestError,
+      );
+      await expect(result).rejects.toHaveProperty(
+        'message',
         'JavaScript runtime returned while a hostFunction bridge request was still pending: tools["update-slide"].',
       );
     });

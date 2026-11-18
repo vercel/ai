@@ -1,0 +1,13 @@
+{
+  "name": "ai-sdk-bundler-tests",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:bundlers": "node run.mjs"
+  },
+  "devDependencies": {
+    "@ai-sdk/openai": "workspace:*",
+    "ai": "workspace:*"
+  }
+}
