@@ -199,9 +199,7 @@ function createGoogleLanguageModelEntry(
       ? 'level'
       : 'budget';
   const isHydrogen = /(^|[/.])gemini-4-hydrogen(?:-|$)/i.test(modelId);
-  const minLevel = isHydrogen
-    ? 'low'
-    : getMinimumThinkingLevelForGemini3Model(modelId);
+  const minLevel = getMinimumThinkingLevelForGemini3Model(modelId);
   const language: GoogleLanguageCapabilities = {
     inputs: { image: documented?.image ?? 'unknown', audio: 'unknown' },
     objectGeneration: documented?.objectGeneration ?? 'unknown',
@@ -326,7 +324,10 @@ function getMinimumThinkingLevelForGemini3Model(
     .exec(modelId)?.[1]
     .toLowerCase();
 
-  if (modelName === 'gemini-flash-latest') {
+  if (
+    modelName === 'gemini-flash-latest' ||
+    modelName?.startsWith('gemini-4-')
+  ) {
     return 'low';
   }
 
