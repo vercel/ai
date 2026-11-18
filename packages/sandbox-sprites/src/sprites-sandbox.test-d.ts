@@ -3,7 +3,11 @@ import type {
   HarnessV1NetworkSandboxSession,
   HarnessV1SandboxTemplate,
 } from '@ai-sdk/harness';
-import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
+import type {
+  Experimental_SandboxProcess as SandboxProcess,
+  Experimental_SandboxSession as SandboxSession,
+  Experimental_WritableSandboxProcess as WritableSandboxProcess,
+} from '@ai-sdk/provider-utils';
 import type { SpritesNetworkSandboxSession } from './sprites-network-sandbox-session';
 import type { SpritesSandboxSession } from './sprites-sandbox-session';
 import type {
@@ -101,3 +105,22 @@ expectTypeOf<SpritesSandboxSession>().toExtend<SandboxSession>();
 expectTypeOf<
   SpritesNetworkSandboxSession['restricted']
 >().returns.toEqualTypeOf<SandboxSession>();
+
+declare const session: SpritesSandboxSession;
+declare const stdin: boolean;
+
+const writable = session.spawn({ command: 'cat', stdin: true });
+const regular = session.spawn({ command: 'cat' });
+const disabled = session.spawn({ command: 'cat', stdin: false });
+const dynamic = session.spawn({ command: 'cat', stdin });
+
+expectTypeOf<
+  Awaited<typeof writable>
+>().toEqualTypeOf<WritableSandboxProcess>();
+expectTypeOf<Awaited<typeof regular>>().toEqualTypeOf<SandboxProcess>();
+expectTypeOf<Awaited<typeof disabled>>().toEqualTypeOf<SandboxProcess>();
+expectTypeOf<Awaited<typeof regular>>().not.toHaveProperty('stdin');
+expectTypeOf<Awaited<typeof disabled>>().not.toHaveProperty('stdin');
+expectTypeOf<Awaited<typeof dynamic>>().toEqualTypeOf<
+  SandboxProcess | WritableSandboxProcess
+>();

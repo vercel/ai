@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import {
   safeParseJSON,
   type Experimental_SandboxProcess,
+  type Experimental_WritableSandboxProcess,
 } from '@ai-sdk/provider-utils';
 
 /**
@@ -45,6 +46,8 @@ export interface SpriteExecOptions {
   cwd?: string;
   /** Extra environment variables, merged over the Sprite's defaults. */
   env?: Record<string, string>;
+  /** Keep standard input open and expose it on the returned process. */
+  stdin?: boolean;
   abortSignal?: AbortSignal;
 }
 
@@ -98,9 +101,11 @@ export class SpritesApiError extends Error {
   }
 }
 
+const WS_FRAME_STDIN = 0x00;
 const WS_FRAME_STDOUT = 0x01;
 const WS_FRAME_STDERR = 0x02;
 const WS_FRAME_EXIT = 0x03;
+const WS_FRAME_STDIN_EOF = 0x04;
 
 /**
  * Thin client over the Sprites control-plane API. Lifecycle (create/get/
@@ -329,6 +334,10 @@ export class SpritesApiClient {
    * exit code via `wait()` (also surfaced as a JSON `{ type: 'exit' }` control
    * message). `kill()` terminates the in-Sprite session.
    *
+   * With {@link SpriteExecOptions.stdin} the handle also has a writable `stdin`
+   * stream, sent the same way: `0x00` carries input and `0x04` delivers EOF.
+   * Without it standard input is closed.
+   *
    * Environment variables ({@link SpriteExecOptions.env}) are **not** sent on
    * the WS query string. A WebSocket handshake is an HTTP GET whose full URL —
    * query included — is routinely captured in server/proxy access logs, so
@@ -341,7 +350,9 @@ export class SpritesApiClient {
   async exec(
     name: string,
     options: SpriteExecOptions,
-  ): Promise<Experimental_SandboxProcess> {
+  ): Promise<
+    Experimental_SandboxProcess | Experimental_WritableSandboxProcess
+  > {
     options.abortSignal?.throwIfAborted();
 
     let argv: ReadonlyArray<string> = options.argv;
@@ -370,20 +381,28 @@ export class SpritesApiClient {
       ];
     }
 
-    return this.connectExec(name, argv, options.cwd, options.abortSignal);
+    return this.connectExec(
+      name,
+      argv,
+      options.cwd,
+      options.stdin === true,
+      options.abortSignal,
+    );
   }
 
   private connectExec(
     name: string,
     argv: ReadonlyArray<string>,
     cwd: string | undefined,
+    stdin: boolean,
     abortSignal: AbortSignal | undefined,
-  ): Experimental_SandboxProcess {
+  ): Experimental_SandboxProcess | Experimental_WritableSandboxProcess {
     const WebSocketCtor = getWebSocketCtor();
 
     const query = new URLSearchParams();
     for (const arg of argv) query.append('cmd', arg);
     if (cwd != null) query.set('dir', cwd);
+    if (stdin) query.set('stdin', 'true');
 
     const wsBase = this.baseUrl.replace(/^http(s?):\/\//, 'ws$1://');
     const url = `${wsBase}/v1/sprites/${encodeURIComponent(name)}/exec?${query.toString()}`;
@@ -425,6 +444,10 @@ export class SpritesApiClient {
     const closed = new Promise<void>(resolve => {
       resolveClosed = resolve;
     });
+    let resolveOpened!: () => void;
+    const opened = new Promise<void>(resolve => {
+      resolveOpened = resolve;
+    });
 
     // The full `url` carries `cmd`/`dir` (the command text, potentially
     // sensitive) in its query string; never embed it in a user-facing error.
@@ -433,6 +456,9 @@ export class SpritesApiClient {
 
     const ws = new WebSocketCtor(url, { headers: this.authHeaders() });
     ws.binaryType = 'arraybuffer';
+    ws.onopen = () => {
+      resolveOpened();
+    };
 
     const finish = (): void => {
       if (settled) return;
@@ -530,7 +556,7 @@ export class SpritesApiClient {
       }
     }
 
-    return {
+    const sandboxProcess: Experimental_SandboxProcess = {
       stdout,
       stderr,
       async wait(): Promise<{ exitCode: number }> {
@@ -556,6 +582,42 @@ export class SpritesApiClient {
       async kill(): Promise<void> {
         await killSession();
       },
+    };
+    if (!stdin) return sandboxProcess;
+
+    // A socket throws on `send` while it is still connecting.
+    const waitForSocket = () => Promise.race([opened, closed]);
+
+    return {
+      ...sandboxProcess,
+      stdin: new WritableStream<Uint8Array>({
+        async write(chunk) {
+          if (chunk.byteLength === 0) return;
+          await waitForSocket();
+          abortSignal?.throwIfAborted();
+          if (settled) {
+            throw (
+              socketError ??
+              new Error(
+                `Sprites exec connection closed before stdin was written (${safeUrl}).`,
+              )
+            );
+          }
+          const frame = new Uint8Array(chunk.byteLength + 1);
+          frame[0] = WS_FRAME_STDIN;
+          frame.set(chunk, 1);
+          ws.send(frame);
+        },
+        // EOF has nothing left to reach once the process is gone.
+        async close() {
+          await waitForSocket();
+          if (!settled) ws.send(Uint8Array.of(WS_FRAME_STDIN_EOF));
+        },
+        async abort() {
+          await waitForSocket();
+          if (!settled) ws.send(Uint8Array.of(WS_FRAME_STDIN_EOF));
+        },
+      }),
     };
   }
 }

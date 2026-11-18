@@ -45,6 +45,8 @@ class FakeWebSocket {
     | ((ev: { message?: string; error?: { message?: string } }) => void)
     | null = null;
   onclose: ((ev: { code: number; reason: string }) => void) | null = null;
+  sent: Array<string | Uint8Array> = [];
+  isOpen = false;
 
   constructor(url: string, opts?: { headers?: Record<string, string> }) {
     FakeWebSocket.last = this;
@@ -62,6 +64,7 @@ class FakeWebSocket {
         done();
         return;
       }
+      this.isOpen = true;
       this.onopen?.({});
       for (const message of execMessages) this.onmessage?.({ data: message });
       if (execEmitError != null) this.onerror?.({ message: execEmitError });
@@ -70,7 +73,11 @@ class FakeWebSocket {
     }, 0);
   }
 
-  send(): void {}
+  // Like a real socket, throw on a send that comes before the socket is open.
+  send(data: string | Uint8Array): void {
+    if (!this.isOpen) throw new Error('InvalidStateError: still connecting');
+    this.sent.push(data);
+  }
   close(): void {
     this.onclose?.({ code: 1000, reason: '' });
   }
@@ -489,6 +496,253 @@ describe('SpritesSandboxSession filesystem', () => {
     expect(stream).not.toBeNull();
     expect(await collect(stream as ReadableStream<Uint8Array>)).toBe(
       'streamed',
+    );
+  });
+});
+
+function execParams(): URLSearchParams {
+  return new URL(lastWsUrl).searchParams;
+}
+
+describe('SpritesSandboxSession.spawn with stdin', () => {
+  it('sends input and EOF as exec frames, waiting for the socket to open', async () => {
+    execStayOpen = true;
+    const proc = await makeSession().spawn({ command: 'cat', stdin: true });
+
+    expect(execParams().get('stdin')).toBe('true');
+
+    const writer = proc.stdin.getWriter();
+    await writer.write(new Uint8Array([104, 105]));
+    await writer.close();
+
+    expect(FakeWebSocket.last?.sent).toEqual([
+      Uint8Array.of(0, 104, 105),
+      Uint8Array.of(4),
+    ]);
+  });
+
+  it('keeps the process running when stdin closes', async () => {
+    execStayOpen = true;
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const proc = await makeSession().spawn({ command: 'cat', stdin: true });
+
+    await proc.stdin.close();
+
+    expect(FakeWebSocket.last?.sent).toEqual([Uint8Array.of(4)]);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('delivers EOF when stdin is aborted', async () => {
+    execStayOpen = true;
+    const proc = await makeSession().spawn({ command: 'cat', stdin: true });
+
+    await proc.stdin.abort();
+
+    expect(FakeWebSocket.last?.sent).toEqual([Uint8Array.of(4)]);
+  });
+
+  it('does not send an empty input frame', async () => {
+    execStayOpen = true;
+    const proc = await makeSession().spawn({ command: 'cat', stdin: true });
+
+    const writer = proc.stdin.getWriter();
+    await writer.write(new Uint8Array());
+
+    expect(FakeWebSocket.last?.sent).toEqual([]);
+  });
+
+  it('rejects a write after the process has gone and closes quietly', async () => {
+    execMessages = [frame(3, [0])];
+    const proc = await makeSession().spawn({ command: 'true', stdin: true });
+    await proc.wait();
+
+    await expect(
+      proc.stdin.getWriter().write(new Uint8Array([1])),
+    ).rejects.toThrow(/closed before stdin was written/);
+  });
+
+  it('sends no EOF after the process has gone', async () => {
+    execMessages = [frame(3, [0])];
+    const proc = await makeSession().spawn({ command: 'true', stdin: true });
+    await proc.wait();
+
+    await proc.stdin.close();
+
+    expect(FakeWebSocket.last?.sent).toEqual([]);
+  });
+
+  it('rejects a write once aborted', async () => {
+    execStayOpen = true;
+    const controller = new AbortController();
+    const proc = await makeSession().spawn({
+      command: 'cat',
+      stdin: true,
+      abortSignal: controller.signal,
+    });
+    const reason = new Error('stop');
+    controller.abort(reason);
+
+    await expect(
+      proc.stdin.getWriter().write(new Uint8Array([1])),
+    ).rejects.toBe(reason);
+  });
+
+  it.each([{}, { stdin: false }])(
+    'leaves standard input closed with %j',
+    async options => {
+      execMessages = [frame(3, [0])];
+      const proc = await makeSession().spawn({ command: 'cat', ...options });
+
+      expect(execParams().has('stdin')).toBe(false);
+      expect(proc).not.toHaveProperty('stdin');
+    },
+  );
+});
+
+describe('SpritesSandboxSession relative paths', () => {
+  it.each([
+    ['sub', '/home/sprite/sub'],
+    ['/abs', '/abs'],
+  ])('resolves the run workingDirectory %s', async (workingDirectory, dir) => {
+    execMessages = [frame(3, [0])];
+    await makeSession().run({ command: 'pwd', workingDirectory });
+
+    expect(execParams().get('dir')).toBe(dir);
+  });
+
+  it('resolves the spawn workingDirectory against the same base', async () => {
+    execMessages = [frame(3, [0])];
+    await makeSession().spawn({ command: 'pwd', workingDirectory: 'sub' });
+
+    expect(execParams().get('dir')).toBe('/home/sprite/sub');
+  });
+
+  it('keeps `link/..` so that the sandbox follows the link', async () => {
+    execMessages = [frame(3, [0])];
+    await makeSession().stat({ path: 'link/../file' });
+
+    expect(execParams().getAll('cmd').at(-1)).toBe('/home/sprite/link/../file');
+  });
+
+  it('resolves against a root working directory', async () => {
+    execMessages = [frame(3, [0])];
+    const client = new SpritesApiClient({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+    });
+    await new SpritesSandboxSession(client, 's', 'https://s', '/').stat({
+      path: 'file',
+    });
+
+    expect(execParams().getAll('cmd').at(-1)).toBe('/file');
+  });
+});
+
+describe('SpritesSandboxSession.stat', () => {
+  it('returns the type and size, passing the path as an argument', async () => {
+    execMessages = [frame(1, 'file 12'), frame(3, [0])];
+
+    await expect(makeSession().stat({ path: 'a b.txt' })).resolves.toEqual({
+      type: 'file',
+      size: 12,
+    });
+    expect(execParams().getAll('cmd').slice(0, 2)).toEqual(['bash', '-c']);
+    expect(execParams().getAll('cmd').slice(3)).toEqual([
+      'bash',
+      '/home/sprite/a b.txt',
+    ]);
+  });
+
+  it('resolves to null when the path does not exist', async () => {
+    execMessages = [frame(3, [3])];
+
+    await expect(makeSession().stat({ path: 'nope' })).resolves.toBeNull();
+  });
+
+  it('rejects with the message from stderr', async () => {
+    execMessages = [frame(2, 'Permission denied\n'), frame(3, [1])];
+
+    await expect(makeSession().stat({ path: 'x' })).rejects.toThrow(
+      'Failed to stat x: Permission denied',
+    );
+  });
+
+  it('rejects with a message Sprites replayed as stdout', async () => {
+    execMessages = [frame(1, 'Permission denied\n'), frame(3, [1])];
+
+    await expect(makeSession().stat({ path: 'x' })).rejects.toThrow(
+      'Failed to stat x: Permission denied',
+    );
+  });
+});
+
+describe('SpritesSandboxSession.listDirectory', () => {
+  it('parses names containing spaces and newlines', async () => {
+    execMessages = [
+      frame(1, 'file a b\0directory c\nd\0symlink e\0other f\0'),
+      frame(3, [0]),
+    ];
+
+    await expect(makeSession().listDirectory({ path: '.' })).resolves.toEqual([
+      { name: 'a b', type: 'file' },
+      { name: 'c\nd', type: 'directory' },
+      { name: 'e', type: 'symlink' },
+      { name: 'f', type: 'other' },
+    ]);
+  });
+
+  it('returns an empty list for an empty directory', async () => {
+    execMessages = [frame(3, [0])];
+
+    await expect(makeSession().listDirectory({ path: 'dir' })).resolves.toEqual(
+      [],
+    );
+  });
+
+  it('resolves to null when the directory does not exist', async () => {
+    execMessages = [frame(3, [3])];
+
+    await expect(
+      makeSession().listDirectory({ path: 'nope' }),
+    ).resolves.toBeNull();
+  });
+
+  it('rejects when the path is not a directory', async () => {
+    execMessages = [frame(2, 'Not a directory\n'), frame(3, [4])];
+
+    await expect(makeSession().listDirectory({ path: 'file' })).rejects.toThrow(
+      'Failed to list file: Not a directory',
+    );
+  });
+});
+
+describe('SpritesSandboxSession.deleteFile', () => {
+  it('resolves to true when the file was deleted', async () => {
+    execMessages = [frame(3, [0])];
+
+    await expect(makeSession().deleteFile({ path: 'x' })).resolves.toBe(true);
+  });
+
+  it('resolves to false when the file does not exist', async () => {
+    execMessages = [frame(3, [3])];
+
+    await expect(makeSession().deleteFile({ path: 'x' })).resolves.toBe(false);
+  });
+
+  it('rejects when the path is a directory', async () => {
+    execMessages = [frame(2, 'Is a directory\n'), frame(3, [4])];
+
+    await expect(makeSession().deleteFile({ path: 'dir' })).rejects.toThrow(
+      'Cannot delete dir: it is a directory.',
+    );
+  });
+
+  it('rejects on any other failure', async () => {
+    execMessages = [frame(2, 'Permission denied\n'), frame(3, [1])];
+
+    await expect(makeSession().deleteFile({ path: 'x' })).rejects.toThrow(
+      'Failed to delete x: Permission denied',
     );
   });
 });
