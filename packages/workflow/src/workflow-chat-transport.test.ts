@@ -328,6 +328,215 @@ describe('WorkflowChatTransport', () => {
     });
   });
 
+  describe('connectivity-controlled reconnection', () => {
+    function response(...chunks: UIMessageChunk[]) {
+      return new Response(
+        chunks.map(chunk => `data: ${JSON.stringify(chunk)}\n\n`).join(''),
+        { headers: { 'x-workflow-run-id': 'test-run' } },
+      );
+    }
+
+    function deferred() {
+      let resolve!: () => void;
+      const promise = new Promise<void>(resolvePromise => {
+        resolve = resolvePromise;
+      });
+      return { promise, resolve };
+    }
+
+    it('waits without requests and resumes an interrupted POST from its cursor', async () => {
+      const permission = deferred();
+      let reconnectAllowed = false;
+      const waitUntilReconnectAllowed = vi.fn(() =>
+        reconnectAllowed ? undefined : permission.promise,
+      );
+      const onChatEnd = vi.fn();
+
+      mockFetch
+        .mockResolvedValueOnce(
+          response({ type: 'start-step' }, { type: 'finish-step' }),
+        )
+        .mockResolvedValueOnce(response({ type: 'finish' }));
+
+      const transport = new WorkflowChatTransport({
+        fetch: mockFetch,
+        onChatEnd,
+        waitUntilReconnectAllowed,
+      });
+      const stream = await transport.sendMessages({
+        trigger: 'submit-message',
+        chatId: 'test-chat',
+        messages: [],
+      });
+      const reader = stream.getReader();
+
+      await expect(reader.read()).resolves.toMatchObject({
+        value: { type: 'start-step' },
+      });
+      await expect(reader.read()).resolves.toMatchObject({
+        value: { type: 'finish-step' },
+      });
+
+      const finishRead = reader.read();
+      await vi.waitFor(() => {
+        expect(waitUntilReconnectAllowed).toHaveBeenCalledTimes(1);
+      });
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(onChatEnd).not.toHaveBeenCalled();
+
+      reconnectAllowed = true;
+      permission.resolve();
+
+      await expect(finishRead).resolves.toMatchObject({
+        value: { type: 'finish' },
+      });
+      await expect(reader.read()).resolves.toMatchObject({ done: true });
+      expect(mockFetch).toHaveBeenNthCalledWith(
+        2,
+        '/api/chat/test-run/stream?startIndex=2',
+        expect.any(Object),
+      );
+      expect(onChatEnd).toHaveBeenCalledExactlyOnceWith({
+        chatId: 'test-chat',
+        chunkIndex: 3,
+      });
+    });
+
+    it('does not consume the consecutive error budget while paused between retries', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const permission = deferred();
+      let permissionChecks = 0;
+      const waitUntilReconnectAllowed = vi.fn(() => {
+        permissionChecks++;
+        return permissionChecks === 1 ? undefined : permission.promise;
+      });
+
+      mockFetch
+        .mockResolvedValueOnce(response())
+        .mockResolvedValueOnce(response({ type: 'finish' }));
+
+      const transport = new WorkflowChatTransport({
+        fetch: mockFetch,
+        maxConsecutiveErrors: 2,
+        waitUntilReconnectAllowed,
+      });
+      const stream = await transport.reconnectToStream({
+        chatId: 'test-chat',
+      });
+      const reader = stream!.getReader();
+      const finishRead = reader.read();
+
+      await vi.waitFor(() => {
+        expect(waitUntilReconnectAllowed).toHaveBeenCalledTimes(2);
+      });
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(waitUntilReconnectAllowed).toHaveBeenCalledTimes(2);
+
+      permission.resolve();
+
+      await expect(finishRead).resolves.toMatchObject({
+        value: { type: 'finish' },
+      });
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+
+    it('aborts a pending permission wait without ending the chat', async () => {
+      const controller = new AbortController();
+      const onChatEnd = vi.fn();
+      const waitUntilReconnectAllowed = vi.fn(
+        () => new Promise<void>(() => {}),
+      );
+      const transport = new WorkflowChatTransport({
+        fetch: mockFetch,
+        onChatEnd,
+        waitUntilReconnectAllowed,
+      });
+      const stream = await transport.reconnectToStream({
+        chatId: 'test-chat',
+        abortSignal: controller.signal,
+      });
+      const reader = stream!.getReader();
+      const read = reader.read();
+
+      await vi.waitFor(() => {
+        expect(waitUntilReconnectAllowed).toHaveBeenCalledTimes(1);
+      });
+      controller.abort();
+
+      await expect(read).rejects.toMatchObject({ name: 'AbortError' });
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(onChatEnd).not.toHaveBeenCalled();
+    });
+
+    it('cancels a pending permission wait when the returned stream is cancelled', async () => {
+      let callbackSignal: AbortSignal | undefined;
+      const onChatEnd = vi.fn();
+      const waitUntilReconnectAllowed = vi.fn(
+        ({ abortSignal }: { abortSignal: AbortSignal }) => {
+          callbackSignal = abortSignal;
+          return new Promise<void>(() => {});
+        },
+      );
+      const transport = new WorkflowChatTransport({
+        fetch: mockFetch,
+        onChatEnd,
+        waitUntilReconnectAllowed,
+      });
+      const stream = await transport.reconnectToStream({
+        chatId: 'test-chat',
+      });
+      const reader = stream!.getReader();
+      void reader.read();
+
+      await vi.waitFor(() => {
+        expect(waitUntilReconnectAllowed).toHaveBeenCalledTimes(1);
+      });
+      await expect(reader.cancel()).resolves.toBeUndefined();
+
+      expect(callbackSignal?.aborted).toBe(true);
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(onChatEnd).not.toHaveBeenCalled();
+    });
+
+    it('propagates permission callback errors without using the reconnect budget', async () => {
+      const permissionError = new Error('Connectivity policy failed');
+      const onChatEnd = vi.fn();
+      const waitUntilReconnectAllowed = vi
+        .fn()
+        .mockRejectedValue(permissionError);
+      const transport = new WorkflowChatTransport({
+        fetch: mockFetch,
+        maxConsecutiveErrors: 1,
+        onChatEnd,
+        waitUntilReconnectAllowed,
+      });
+      const stream = await transport.reconnectToStream({
+        chatId: 'test-chat',
+      });
+
+      await expect(stream!.getReader().read()).rejects.toBe(permissionError);
+      expect(waitUntilReconnectAllowed).toHaveBeenCalledTimes(1);
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(onChatEnd).not.toHaveBeenCalled();
+    });
+
+    it('reconnects immediately when no permission callback is configured', async () => {
+      mockFetch.mockResolvedValueOnce(response({ type: 'finish' }));
+      const transport = new WorkflowChatTransport({ fetch: mockFetch });
+      const stream = await transport.reconnectToStream({
+        chatId: 'test-chat',
+      });
+
+      await expect(stream!.getReader().read()).resolves.toMatchObject({
+        value: { type: 'finish' },
+      });
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('transformed WorkflowAgent stream resumption', () => {
     function streamFrom<T>(values: readonly T[]): ReadableStream<T> {
       return new ReadableStream({
