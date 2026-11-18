@@ -336,6 +336,7 @@ Every serverless instance that might handle a request needs the same secret, sin
 **Behavior when configured:**
 
 - Approval requests without a valid signature are rejected (fail-closed)
+- Approval requests for tool calls that the approval policy denied automatically are not signed, so a client cannot send a denied tool call back as approved
 - No secret configured: approvals work as before (backward compatible)
 - The secret is never sent to the client or included in the stream
 
