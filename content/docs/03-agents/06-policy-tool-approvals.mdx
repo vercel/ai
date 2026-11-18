@@ -66,7 +66,7 @@ The policy is consulted before every tool dispatch and maps to one of the standa
 
 A model can return several tool calls in one response. `generateText`, `streamText`, and `ToolLoopAgent` decide on all of them before they run any of them, and `messages` is the same for each call: it does not contain the response itself. A rule that counts earlier tool calls would see none of the other calls of that response.
 
-`opaPolicy` therefore evaluates every tool call after the first one of a response twice:
+`opaPolicy` therefore evaluates every tool call after the first one of a response twice, unless the first evaluation already denies it:
 
 1. With `messages` as they were sent to the model.
 2. With the earlier tool calls of the same response appended as an assistant message. Tool calls that the policy denied are followed by a tool message with their `execution-denied` result. The other tool calls have no result yet.
@@ -78,6 +78,10 @@ The more restrictive decision applies: `deny` before `requires-approval`, before
 - Base a limit that must hold within one response on tool calls, not on tool results. The earlier tool calls of a response have no results when the policy is evaluated.
 - OPA receives two queries for such a tool call, so it appears twice in OPA decision logs. A custom `toInput` is called twice as well. When it returns the same input both times, for example because it does not use `messages`, the policy is evaluated once.
 - `opaPolicy` recognizes the tool calls of one response by the `messages` array they are evaluated with. `generateText`, `streamText`, and `ToolLoopAgent` pass the same array for all tool calls of a response. When a caller passes a separate array for each tool call, `opaPolicy` evaluates each tool call once, with `messages` as passed.
+
+### Tool calls that a user approved
+
+When the policy returns `requires-approval` and the user approves, the policy is evaluated for that tool call once more before the tool runs. In this evaluation, `messages` include the response with the tool call and the approval. A `deny` blocks the tool call. Any other decision lets it run, and `requires-approval` does not ask the user again.
 
 ## Quick start
 
@@ -139,7 +143,7 @@ decision := { "decision": "requires-approval", "reason": "kubectl by oncall" } {
 Notes:
 
 - The legacy boolean shape (`{ "allow": true | false, "reason": "..." }`) is also accepted, so existing rules migrate without rewriting.
-- The default OPA `input` shape is `{ tool: { name }, args, messages, runtimeContext }`. `messages` does not contain the response with the tool call. See [Several tool calls in one response](#several-tool-calls-in-one-response).
+- The default OPA `input` shape is `{ tool: { name }, args, messages, runtimeContext }`. `messages` does not contain the response with the tool call, except when a tool call that a user approved is evaluated again. See [Several tool calls in one response](#several-tool-calls-in-one-response) and [Tool calls that a user approved](#tool-calls-that-a-user-approved).
 - Override the input shape with `toInput`:
 
 ```ts

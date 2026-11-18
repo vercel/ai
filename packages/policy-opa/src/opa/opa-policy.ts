@@ -22,6 +22,10 @@ export interface DefaultOpaInput {
    * contains the tool call. They do not include that response. For a tool call
    * that follows other tool calls in the same response, the policy is also
    * evaluated with those earlier calls appended (see {@link opaPolicy}).
+   *
+   * A tool call that a user approved is evaluated once more before it runs.
+   * The messages then include the response with the tool call and the
+   * approval.
    */
   messages: ReadonlyArray<ModelMessage>;
   runtimeContext: unknown;
