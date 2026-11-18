@@ -1,5 +1,15 @@
 # @ai-sdk/harness-github-copilot
 
+## 1.0.85
+
+### Patch Changes
+
+- 7acc5a3: fix(harness-github-copilot): require approval for `.github/mcp.json` changes under `allow-edits`
+- Updated dependencies [679b5b5]
+- Updated dependencies [e845694]
+  - @ai-sdk/harness@1.0.188
+  - @ai-sdk/harness-acp@1.0.128
+
 ## 1.0.84
 
 ### Patch Changes

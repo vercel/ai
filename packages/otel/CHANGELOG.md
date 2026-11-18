@@ -1,5 +1,14 @@
 # @ai-sdk/otel
 
+## 1.0.177
+
+### Patch Changes
+
+- e403988: fix(otel): end the span of a model call when a stream retry or a steering interrupt starts a new one
+- Updated dependencies [e403988]
+- Updated dependencies [b792b56]
+  - ai@7.0.177
+
 ## 1.0.176
 
 ### Patch Changes
