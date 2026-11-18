@@ -2970,9 +2970,10 @@ class DefaultStreamTextResult<
                   if (interruptRequested == null || interruptWindowClosed) {
                     result = await languageModelStreamReader.read();
                   } else {
-                    const read = languageModelStreamReader.read();
-                    read.catch(() => {});
-                    result = await Promise.race([read, interruptRequested]);
+                    result = await Promise.race([
+                      languageModelStreamReader.read(),
+                      interruptRequested,
+                    ]);
                   }
                 } catch (error) {
                   if (!interruptWindowClosed && isInterrupted()) {
