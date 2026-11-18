@@ -110,7 +110,13 @@ function getApprovalId({ events }: { events: BridgeEvent[] }): string {
 describe('ACP permission controller', () => {
   describe('location resolution', () => {
     beforeEach(async () => {
-      await mkdir(path.join(workDir, 'nested'));
+      await mkdir(path.join(workDir, 'nested/deep'), { recursive: true });
+      await symlink('nested/deep', path.join(workDir, 'deep-internal'), 'dir');
+      await symlink(
+        path.join(workDir, 'nested'),
+        path.join(sandboxDir, 'alias'),
+        'dir',
+      );
       await mkdir(path.join(otherWorkDir, 'nested'));
       await symlink(otherWorkDir, path.join(workDir, 'external'), 'dir');
       await symlink(
@@ -137,6 +143,17 @@ describe('ACP permission controller', () => {
       { location: '..config', trusted: true },
       { location: 'new/nested/file.txt', trusted: true },
       { location: 'internal/new/file.txt', trusted: true },
+      { location: 'deep-internal/../file.txt', trusted: true },
+      { location: 'file with spaces.txt', trusted: true },
+      { location: '~file.txt', trusted: true },
+      { location: 'deep-internal/../../session-2/file.txt', trusted: false },
+      { location: '../alias/../session-2/file.txt', trusted: false },
+      { location: '~', trusted: false },
+      { location: '~/file.txt', trusted: false },
+      { location: ' file.txt', trusted: false },
+      { location: 'file.txt ', trusted: false },
+      { location: '\tfile.txt', trusted: false },
+      { location: 'file.txt\n', trusted: false },
       { location: '../session-2/file.txt', trusted: false },
       { location: '../session-1-other/file.txt', trusted: false },
       { location: 'external/file.txt', trusted: false },
@@ -165,6 +182,22 @@ describe('ACP permission controller', () => {
         ).resolves.toBe(trusted);
       },
     );
+
+    it.each([
+      'deep-internal/../../session-2/file.txt',
+      '../alias/../session-2/file.txt',
+    ])('requires approval for absolute ambiguous path %s', async location => {
+      await expect(
+        areACPToolLocationsTrusted({
+          workDir,
+          toolCall: {
+            toolCallId: 'call-1',
+            kind: 'search',
+            locations: [{ path: `${workDir}/${location}` }],
+          },
+        }),
+      ).resolves.toBe(false);
+    });
 
     it.each([
       {
@@ -446,6 +479,51 @@ describe('ACP permission controller', () => {
   ] as const)(
     '$permissionMode $kind location checks',
     ({ permissionMode, kind }) => {
+      it.each([
+        'internal/../../session-2/file.txt',
+        '../alias/../session-2/file.txt',
+        '~',
+        '~/file.txt',
+        ' ../session-2/file.txt',
+        'file.txt ',
+        '\tfile.txt',
+        'file.txt\n',
+      ])('requires approval for ambiguous location %j', async location => {
+        await mkdir(path.join(workDir, 'nested/deep'), { recursive: true });
+        await symlink('nested/deep', path.join(workDir, 'internal'), 'dir');
+        await symlink(
+          path.join(workDir, 'nested'),
+          path.join(sandboxDir, 'alias'),
+          'dir',
+        );
+        const fake = createFakeTurn();
+        const controller = createACPPermissionController({
+          turn: fake.turn,
+          workDir,
+          sessionId: 'session-1',
+          permissionMode,
+          hasPermissionModeMapping: false,
+          emitToolCall: () => {},
+          claimHostToolPermission: async () => undefined,
+        });
+        const request = controller.requestPermission(
+          permissionRequest({
+            toolCallId: 'call-1',
+            kind,
+            toolCall: {
+              locations: [{ path: 'file.txt' }, { path: location }],
+            },
+          }),
+        );
+        const approvalId = await vi.waitFor(() =>
+          getApprovalId({ events: fake.events }),
+        );
+        fake.respond({ approvalId, approved: false });
+        await expect(request).resolves.toEqual({
+          outcome: { outcome: 'selected', optionId: 'reject-once' },
+        });
+      });
+
       it.each(['absolute', 'relative', 'mixed'] as const)(
         'requires approval for %s locations outside the workspace',
         async locationType => {
