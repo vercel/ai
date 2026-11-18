@@ -91,6 +91,16 @@ test('run options preserve command fields without stdin', () => {
   expectTypeOf<SandboxRunOptions>().not.toHaveProperty('stdin');
 });
 
+test('run result includes optional original output lengths', () => {
+  expectTypeOf<Awaited<ReturnType<SandboxSession['run']>>>().toEqualTypeOf<{
+    exitCode: number;
+    stdout: string;
+    stderr: string;
+    stdoutLength?: number;
+    stderrLength?: number;
+  }>();
+});
+
 test('file read options preserve path, signal, and text fields', () => {
   expectTypeOf<SandboxReadFileOptions>().toEqualTypeOf<{
     path: string;

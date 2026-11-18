@@ -46,6 +46,18 @@ type SandboxRunResult = {
   stdout: string;
   /** Standard error produced by the command. */
   stderr: string;
+  /**
+   * Original stdout length in UTF-16 code units. Returned by implementations
+   * that support `maxOutputLength` when that option is set. If omitted,
+   * stdout contains the full output.
+   */
+  stdoutLength?: number;
+  /**
+   * Original stderr length in UTF-16 code units. Returned by implementations
+   * that support `maxOutputLength` when that option is set. If omitted,
+   * stderr contains the full output.
+   */
+  stderrLength?: number;
 };
 
 export type SandboxSpawnOptions = SandboxProcessOptions & {
@@ -297,23 +309,7 @@ export type SandboxSession = {
   /**
    * Run a command in the sandbox.
    */
-  readonly run: {
-    (options: SandboxRunOptions & { maxOutputLength: number }): PromiseLike<
-      SandboxRunResult & {
-        /**
-         * Original stdout length in UTF-16 code units. If omitted by an older
-         * implementation, stdout contains the full output.
-         */
-        stdoutLength?: number;
-        /**
-         * Original stderr length in UTF-16 code units. If omitted by an older
-         * implementation, stderr contains the full output.
-         */
-        stderrLength?: number;
-      }
-    >;
-    (options: SandboxRunOptions): PromiseLike<SandboxRunResult>;
-  };
+  readonly run: (options: SandboxRunOptions) => PromiseLike<SandboxRunResult>;
 };
 
 /**
