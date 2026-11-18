@@ -77,7 +77,7 @@ The more restrictive decision applies: `deny` before `requires-approval`, before
 - A rule that allows a tool call only after another one, such as "deploy only after the tests ran", is not satisfied by a tool call of the same response, because that call has not run yet.
 - Base a limit that must hold within one response on tool calls, not on tool results. The earlier tool calls of a response have no results when the policy is evaluated.
 - OPA receives two queries for such a tool call, so it appears twice in OPA decision logs. A custom `toInput` is called twice as well. When it returns the same input both times, for example because it does not use `messages`, the policy is evaluated once.
-- `opaPolicy` recognizes the tool calls of one response by the `messages` array they are evaluated with. `generateText`, `streamText`, and `ToolLoopAgent` pass the same array for all tool calls of a response. When a caller passes a separate array for each tool call, `opaPolicy` evaluates each tool call once, with `messages` as passed.
+- `opaPolicy` recognizes the tool calls of one response by the `messages` array they are evaluated with. `generateText`, `streamText`, and `ToolLoopAgent` pass the same array for all tool calls of a response and a new array for every response. When a caller passes a separate array for each tool call, `opaPolicy` evaluates each tool call once, with `messages` as passed. A caller must not pass one array for several responses: the tool calls of the earlier responses would count as earlier tool calls of the later ones.
 
 ### Tool calls that a user approved
 

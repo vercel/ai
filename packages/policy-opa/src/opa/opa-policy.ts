@@ -101,15 +101,15 @@ export function opaPolicy<
 }): ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT> {
   const { client, path, toInput } = opts;
 
-  // The SDK passes the same `messages` array for every tool call of one model
-  // response and a new array for the next response, so the array identifies
-  // the response. Calls that reach this function with another array are not
-  // related to each other and are evaluated once, as before.
+  // `generateText` and `streamText` create a `messages` array for every model
+  // response and pass it for all tool calls of that response, so the array
+  // identifies the response. Calls that reach this function with another
+  // array are not related to each other and are evaluated once, as before.
   //
-  // The evaluation with the earlier tool calls can only make a decision more
-  // restrictive. A caller that reuses one array for several responses gets
-  // decisions that count more tool calls than necessary, never fewer than the
-  // evaluation without them.
+  // Another caller has to do the same. If it passes one array for several
+  // responses, the tool calls of the earlier responses count as earlier tool
+  // calls of the later ones. The evaluation with the earlier tool calls can
+  // only make a decision more restrictive than the evaluation without them.
   const responses = new WeakMap<ModelMessage[], ResponseEvaluations>();
 
   const decide = async (opaInput: unknown): Promise<PolicyDecision> => {
