@@ -440,8 +440,9 @@ async function generateTextInternal<
 
       /**
        * Secret for HMAC-signing tool approval requests. When set, the server
-       * signs each approval request at issuance and verifies the signature when
+       * signs approval requests at issuance and verifies the signature when
        * the approval is replayed, preventing client-forged approvals.
+       * Approval requests for automatically denied tool calls are not signed.
        */
       experimental_toolApprovalSecret?: string | Uint8Array;
 

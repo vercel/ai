@@ -302,7 +302,7 @@ If your tools perform sensitive operations (modifying data, spending money, call
 
 ### Signing approvals with `experimental_toolApprovalSecret`
 
-When you provide a secret, the server HMAC-signs each approval request at issuance and verifies the signature when the approval is replayed. A forged or tampered approval is rejected before the tool executes. Configure the secret on `ToolLoopAgent` (or pass it directly to `generateText` or `streamText`).
+When you provide a secret, the server HMAC-signs approval requests at issuance, except for automatic denials, and verifies the signature when the approval is replayed. A forged or tampered approval is rejected before the tool executes. Configure the secret on `ToolLoopAgent` (or pass it directly to `generateText` or `streamText`).
 
 ```ts highlight="6"
 const agent = new ToolLoopAgent({
