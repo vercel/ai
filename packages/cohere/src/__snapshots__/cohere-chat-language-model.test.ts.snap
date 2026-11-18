@@ -208,13 +208,13 @@ exports[`doGenerate > citations > should extract citations from response 1`] = `
       "content-length": "1175",
       "content-type": "application/json",
     },
-    "id": undefined,
+    "id": "68475c80-574b-4c65-98a4-e81cebab5dce",
   },
   "usage": {
     "inputTokens": {
-      "cacheRead": undefined,
+      "cacheRead": 992,
       "cacheWrite": undefined,
-      "noCache": 1683,
+      "noCache": 691,
       "total": 1683,
     },
     "outputTokens": {
@@ -324,13 +324,13 @@ exports[`doGenerate > reasoning > should extract reasoning from response 1`] = `
       "content-length": "411",
       "content-type": "application/json",
     },
-    "id": undefined,
+    "id": "53bcb235-5179-4a91-a578-cb372b5430bc",
   },
   "usage": {
     "inputTokens": {
-      "cacheRead": undefined,
+      "cacheRead": 1344,
       "cacheWrite": undefined,
-      "noCache": 1394,
+      "noCache": 50,
       "total": 1394,
     },
     "outputTokens": {
@@ -421,13 +421,13 @@ exports[`doGenerate > text > should extract text response 1`] = `
       "content-length": "304",
       "content-type": "application/json",
     },
-    "id": undefined,
+    "id": "e7592632-1e3d-424f-b129-bd5f9f980f7b",
   },
   "usage": {
     "inputTokens": {
-      "cacheRead": undefined,
+      "cacheRead": 448,
       "cacheWrite": undefined,
-      "noCache": 507,
+      "noCache": 59,
       "total": 507,
     },
     "outputTokens": {
@@ -560,13 +560,13 @@ exports[`doGenerate > tool call > should extract tool calls 1`] = `
       "content-length": "693",
       "content-type": "application/json",
     },
-    "id": undefined,
+    "id": "f201af17-e24a-4396-8f6a-98e8bf9c3432",
   },
   "usage": {
     "inputTokens": {
-      "cacheRead": undefined,
+      "cacheRead": 992,
       "cacheWrite": undefined,
-      "noCache": 1549,
+      "noCache": 557,
       "total": 1549,
     },
     "outputTokens": {
@@ -623,9 +623,9 @@ exports[`doStream > empty tool call > should handle empty tool call arguments 1`
     "type": "finish",
     "usage": {
       "inputTokens": {
-        "cacheRead": undefined,
+        "cacheRead": 704,
         "cacheWrite": undefined,
-        "noCache": 1445,
+        "noCache": 741,
         "total": 1445,
       },
       "outputTokens": {
@@ -943,9 +943,9 @@ exports[`doStream > reasoning > should stream reasoning deltas 1`] = `
     "type": "finish",
     "usage": {
       "inputTokens": {
-        "cacheRead": undefined,
+        "cacheRead": 1360,
         "cacheWrite": undefined,
-        "noCache": 1394,
+        "noCache": 34,
         "total": 1394,
       },
       "outputTokens": {
@@ -1191,9 +1191,9 @@ exports[`doStream > text > should stream text deltas 1`] = `
     "type": "finish",
     "usage": {
       "inputTokens": {
-        "cacheRead": undefined,
+        "cacheRead": 448,
         "cacheWrite": undefined,
-        "noCache": 507,
+        "noCache": 59,
         "total": 507,
       },
       "outputTokens": {
@@ -1335,9 +1335,9 @@ exports[`doStream > tool call > should stream tool deltas 1`] = `
     "type": "finish",
     "usage": {
       "inputTokens": {
-        "cacheRead": undefined,
+        "cacheRead": 1504,
         "cacheWrite": undefined,
-        "noCache": 1549,
+        "noCache": 45,
         "total": 1549,
       },
       "outputTokens": {

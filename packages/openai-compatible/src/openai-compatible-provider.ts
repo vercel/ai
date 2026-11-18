@@ -5,6 +5,8 @@ import type {
   ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  resolveWith,
+  type Resolvable,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -61,8 +63,9 @@ export interface OpenAICompatibleProviderSettings {
    * API key for authenticating requests. If specified, adds an `Authorization`
    * header to request headers with the value `Bearer <apiKey>`. This will be added
    * before any headers potentially specified in the `headers` option.
+   * A function is called before each request and may return a promise.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Optional custom headers to include in requests. These will be added to request headers
@@ -103,8 +106,9 @@ export interface OpenAICompatibleProviderSettings {
    * Optional function to transform the request body before sending it to the API.
    * This is useful for proxy providers that may require a different request format
    * than the official OpenAI API.
+   * The optional warnings array can be used to report request transformations.
    */
-  transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
+  transformRequestBody?: OpenAICompatibleChatConfig['transformRequestBody'];
 
   /**
    * Optional metadata extractor to capture provider-specific metadata from API responses.
@@ -147,17 +151,20 @@ export function createOpenAICompatible<
   interface CommonModelConfig {
     provider: string;
     url: ({ path }: { path: string }) => string;
-    headers: () => Record<string, string>;
+    headers: Resolvable<Record<string, string>>;
     fetch?: FetchFunction;
   }
 
-  const headers = {
-    ...(options.apiKey && { Authorization: `Bearer ${options.apiKey}` }),
-    ...options.headers,
-  };
+  const configuredApiKey = options.apiKey;
+  const headers = { ...options.headers };
 
   const getHeaders = () =>
-    withUserAgentSuffix(headers, `ai-sdk-openai-compatible/${VERSION}`);
+    resolveWith(configuredApiKey, apiKey =>
+      withUserAgentSuffix(
+        { ...(apiKey && { Authorization: `Bearer ${apiKey}` }), ...headers },
+        `ai-sdk-openai-compatible/${VERSION}`,
+      ),
+    );
 
   const getCommonModelConfig = (modelType: string): CommonModelConfig => ({
     provider: `${providerName}.${modelType}`,

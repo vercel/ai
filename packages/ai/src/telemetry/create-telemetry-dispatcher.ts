@@ -1,5 +1,6 @@
 import { asArray, type Context } from '@ai-sdk/provider-utils';
 import type { Callback } from '../util/callback';
+import { VERSION } from '../version';
 import {
   filterIncludedContext,
   filterToolContext,
@@ -17,6 +18,8 @@ import {
 } from './tracing-channel-publisher';
 import { getGlobalTelemetryIntegrations } from './telemetry-registry';
 import type { TelemetryOptions } from './telemetry-options';
+import { filterTelemetryEvent } from './filter-telemetry-event';
+import { redactTelemetryCredentials } from './redact-telemetry-credentials';
 
 /**
  * The subset of `TelemetryDispatcher` keys whose values are Callback callbacks.
@@ -61,6 +64,7 @@ function augmentEvent<EVENT>(
       recordInputs: telemetry.recordInputs,
       recordOutputs: telemetry.recordOutputs,
       functionId: telemetry.functionId,
+      aiVersion: VERSION,
     },
   );
 
@@ -98,7 +102,9 @@ function augmentEvent<EVENT>(
     }
   }
 
-  return augmentedEvent;
+  return redactTelemetryCredentials(
+    filterTelemetryEvent(augmentedEvent, telemetry),
+  );
 }
 
 /**
@@ -139,13 +145,24 @@ export function createTelemetryDispatcher({
     includeRuntimeContext: telemetry?.includeRuntimeContext,
     includeToolsContext: telemetry?.includeToolsContext,
   };
+  // Raw operation results may contain both inputs and outputs.
+  const recordResult =
+    telemetry?.recordInputs !== false && telemetry?.recordOutputs !== false;
 
   const mergeTelemetryCallback = <KEY extends TelemetryCallbackKey>(
     key: KEY,
+    deprecatedKey?: keyof Telemetry,
   ): Callback<TelemetryEvent<KEY>> | undefined => {
     const integrationCallbacks = (
       integrations
-        .map(integration => integration[key]?.bind(integration))
+        .map(integration => {
+          const callback =
+            integration[key] ??
+            (deprecatedKey == null ? undefined : integration[deprecatedKey]);
+          return typeof callback === 'function'
+            ? callback.bind(integration)
+            : undefined;
+        })
         .filter(Boolean) as Array<
         Callback<InferTelemetryEvent<TelemetryEvent<KEY>>>
       >
@@ -189,6 +206,7 @@ export function createTelemetryDispatcher({
           event: augmentEvent(event, telemetryMetadata, true),
         },
         execute,
+        recordResult,
       ),
 
     startTracingChannelContext: ({ type, event, completion }) =>
@@ -198,6 +216,7 @@ export function createTelemetryDispatcher({
           event: augmentEvent(event, telemetryMetadata, true),
         },
         completion,
+        recordResult,
       }),
 
     onStart: mergeTelemetryCallback('onStart'),
@@ -216,22 +235,27 @@ export function createTelemetryDispatcher({
       onStepEnd == null && onStepFinish == null
         ? undefined
         : mergeCallbacks(onStepEnd, onStepFinish),
+    onStepError: mergeTelemetryCallback('onStepError'),
     onObjectStepStart: mergeTelemetryCallback('onObjectStepStart'),
     onObjectStepEnd: mergeTelemetryCallback('onObjectStepEnd'),
     onEmbedStart: mergeTelemetryCallback('onEmbedStart'),
     onEmbedEnd: mergeTelemetryCallback('onEmbedEnd'),
     onRerankStart: mergeTelemetryCallback('onRerankStart'),
     onRerankEnd: mergeTelemetryCallback('onRerankEnd'),
-    experimental_onEvaluateStart: mergeTelemetryCallback(
+    experimental_onDecideStart: mergeTelemetryCallback(
+      'experimental_onDecideStart',
       'experimental_onEvaluateStart',
     ),
-    experimental_onEvaluationModelCallStart: mergeTelemetryCallback(
+    experimental_onDecisionModelCallStart: mergeTelemetryCallback(
+      'experimental_onDecisionModelCallStart',
       'experimental_onEvaluationModelCallStart',
     ),
-    experimental_onEvaluationModelCallEnd: mergeTelemetryCallback(
+    experimental_onDecisionModelCallEnd: mergeTelemetryCallback(
+      'experimental_onDecisionModelCallEnd',
       'experimental_onEvaluationModelCallEnd',
     ),
-    experimental_onEvaluateEnd: mergeTelemetryCallback(
+    experimental_onDecideEnd: mergeTelemetryCallback(
+      'experimental_onDecideEnd',
       'experimental_onEvaluateEnd',
     ),
     experimental_onStreamTranscriptionStart: mergeTelemetryCallback(
@@ -254,13 +278,38 @@ export function createTelemetryDispatcher({
       let wrappedExecute = execute;
       for (const executeWrapper of executeLanguageModelCallWrappers) {
         const innerExecute = wrappedExecute;
-        wrappedExecute = () =>
-          executeWrapper({ ...augmentedEvent, execute: innerExecute });
+        wrappedExecute = async () => {
+          const originals = new Map<unknown, unknown>();
+          const redact = <T>(original: T): T => {
+            const redacted = redactTelemetryCredentials(original);
+            if (redacted !== original) originals.set(redacted, original);
+            return redacted;
+          };
+          const restore = <T>(value: T): T =>
+            (originals.has(value) ? originals.get(value) : value) as T;
+          try {
+            return restore(
+              await executeWrapper({
+                ...augmentedEvent,
+                execute: async () => {
+                  try {
+                    return redact(await innerExecute());
+                  } catch (error) {
+                    throw redact(error);
+                  }
+                },
+              }),
+            );
+          } catch (error) {
+            throw restore(error);
+          }
+        };
       }
 
       return await runWithTracingChannelSpan(
         { type: 'languageModelCall', event: augmentedEvent },
         wrappedExecute,
+        recordResult,
       );
     },
 

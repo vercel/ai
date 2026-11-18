@@ -225,7 +225,9 @@ describe('GatewayFetchMetadata', () => {
     it('should preserve all known modelType values', async () => {
       const knownTypes = [
         'embedding',
+        'decision',
         'evaluation',
+        'extraction',
         'image',
         'language',
         'realtime',

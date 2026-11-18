@@ -16,6 +16,9 @@ export class NoSuchModelError extends AISDKError {
     | 'speechModel'
     | 'rerankingModel'
     | 'videoModel'
+    | 'decisionModel'
+    | 'extractionModel'
+    /** @deprecated Use `decisionModel` instead. */
     | 'evaluationModel';
 
   constructor({
@@ -34,6 +37,9 @@ export class NoSuchModelError extends AISDKError {
       | 'speechModel'
       | 'rerankingModel'
       | 'videoModel'
+      | 'decisionModel'
+      | 'extractionModel'
+      /** @deprecated Use `decisionModel` instead. */
       | 'evaluationModel';
     message?: string;
   }) {

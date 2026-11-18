@@ -124,6 +124,9 @@ describe('MiniMaxVideoModel', () => {
     [POLL_URL]: {
       response: { type: 'json-value', body: succeededStatusResponse },
     },
+    [`${TEST_BASE_URL}/v2/query/video_generation/abc%2F..%2F..%2Finternal`]: {
+      response: { type: 'json-value', body: succeededStatusResponse },
+    },
   });
 
   describe('constructor', () => {
@@ -519,6 +522,26 @@ describe('MiniMaxVideoModel', () => {
       });
     });
 
+    it.each([
+      { taskId: '.', encodedTaskId: '%252E' },
+      { taskId: '..', encodedTaskId: '%252E%252E' },
+    ])(
+      'should preserve the $taskId task ID as a URL path segment',
+      async ({ taskId, encodedTaskId }) => {
+        const calls: string[] = [];
+        const model = createModel({
+          fetch: async url => {
+            calls.push(new URL(url.toString()).pathname);
+            return Response.json(succeededStatusResponse);
+          },
+        });
+
+        await model.doStatus({ operation: { ...operation, taskId } });
+
+        expect(calls).toEqual([`/v2/query/video_generation/${encodedTaskId}`]);
+      },
+    );
+
     it('should encode the task ID and forward each abort signal to the custom fetch', async () => {
       const calls: Array<{ url: string; init?: RequestInit }> = [];
       const taskId = 'task/with?query=value#fragment';
@@ -601,6 +624,21 @@ describe('MiniMaxVideoModel', () => {
   });
 
   describe('doGenerate', () => {
+    it('should encode the task ID as a single URL path segment', async () => {
+      const model = createModel();
+
+      server.urls[CREATE_URL].response = {
+        type: 'json-value',
+        body: { task_id: 'abc/../../internal' },
+      };
+
+      await model.doGenerate({ ...defaultOptions });
+
+      expect(server.calls.map(call => call.requestUrl)).toContain(
+        `${TEST_BASE_URL}/v2/query/video_generation/abc%2F..%2F..%2Finternal`,
+      );
+    });
+
     it('should send a text-to-video request with required fields', async () => {
       const model = createModel();
 

@@ -56,6 +56,50 @@ const stubDefaultEnv = () => {
 };
 
 describe('createAnthropicAws', () => {
+  it.each(['create', 'continue'] as const)(
+    'supports thread %s requests',
+    async type => {
+      const fetchMock = vi.fn(
+        async (_url: RequestInfo | URL, _init?: RequestInit) =>
+          createSuccessfulResponse(),
+      );
+      const model = createAnthropicAws({
+        region: 'us-east-1',
+        workspaceId: 'wrkspc_test',
+        apiKey: 'test-api-key',
+        fetch: fetchMock,
+      })('claude-sonnet-4-6');
+      await model.doGenerate({
+        prompt: [{ role: 'system', content: 'Be concise.' }, ...TEST_PROMPT],
+        providerOptions: {
+          anthropic: {
+            thread:
+              type === 'create'
+                ? { type: 'create' }
+                : { type: 'continue', previousMessageId: 'msg_previous' },
+          },
+        },
+      });
+      const [url, init] = fetchMock.mock.calls[0]!;
+      expect(url).toBe(
+        'https://aws-external-anthropic.us-east-1.api.aws/v1/messages',
+      );
+      const body = JSON.parse(init!.body as string);
+      expect(body.thread).toEqual(
+        type === 'create'
+          ? { type: 'create' }
+          : { type: 'continue', previous_message_id: 'msg_previous' },
+      );
+      expect(new Headers(init!.headers).get('anthropic-beta')).toContain(
+        'message-threads-2026-08-12',
+      );
+      expect(new Headers(init!.headers).get('anthropic-workspace-id')).toBe(
+        'wrkspc_test',
+      );
+      if (type === 'continue') expect(body).not.toHaveProperty('system');
+    },
+  );
+
   describe('baseURL configuration', () => {
     beforeEach(() => {
       vi.restoreAllMocks();

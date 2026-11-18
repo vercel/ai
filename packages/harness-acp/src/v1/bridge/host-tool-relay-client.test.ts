@@ -13,10 +13,12 @@ describe('postHostToolRelay', () => {
       markInvocationStarted = resolve;
     });
     const turn: HostToolRelayTurn = {
+      waitForToolCallAuthorization: async () => true,
       emitToolCall: markInvocationStarted,
       emitToolResult: vi.fn(),
       requestToolResult: () => pendingResult,
       registerCorrelationInvocation: vi.fn(),
+      emitWarning: vi.fn(),
       removeCorrelationInvocation: vi.fn(),
     };
     const relay = await startHostToolRelay({

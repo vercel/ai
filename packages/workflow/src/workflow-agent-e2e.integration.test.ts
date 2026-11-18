@@ -12,6 +12,8 @@ import { start } from 'workflow/api';
 
 import {
   agentBasicE2e,
+  agentGenerateE2e,
+  agentGenerateUndefinedFailureE2e,
   agentErrorToolE2e,
   agentInstructionsStringE2e,
   agentModelRetriesE2e,
@@ -62,6 +64,33 @@ describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
   // ==========================================================================
 
   describe('core', () => {
+    it.each([false, true])(
+      'generates through durable model and tool steps (repair: %s)',
+      async repair => {
+        const run = await start(agentGenerateE2e, [repair]);
+        await expect(run.returnValue).resolves.toMatchObject({
+          text: 'The sum is 10',
+          output: 'The sum is 10',
+          toolOutputs: [10],
+          events: ['step', 'step', 'end'],
+          responseMessages: [
+            { role: 'assistant' },
+            { role: 'tool' },
+            { role: 'assistant' },
+          ],
+          usage: { inputTokens: 10, outputTokens: 20 },
+        });
+      },
+    );
+
+    it('preserves undefined generation failures across the durable step boundary', async () => {
+      const run = await start(agentGenerateUndefinedFailureE2e, []);
+      await expect(run.returnValue).resolves.toEqual({
+        rejected: true,
+        wasUndefined: true,
+      });
+    });
+
     it('basic text response', async () => {
       const run = await start(agentBasicE2e, ['hello world']);
       const rv = await run.returnValue;

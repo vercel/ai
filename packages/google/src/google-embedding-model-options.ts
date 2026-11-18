@@ -11,21 +11,22 @@ export type GoogleEmbeddingModelId =
   | 'gemini-embedding-2-preview'
   | (string & {});
 
-const googleEmbeddingContentPartSchema = z.union([
-  z.object({ text: z.string() }),
-  z.object({
-    inlineData: z.object({
-      mimeType: z.string(),
-      data: z.string(),
+const googleEmbeddingContentPartSchema = () =>
+  z.union([
+    z.object({ text: z.string() }),
+    z.object({
+      inlineData: z.object({
+        mimeType: z.string(),
+        data: z.string(),
+      }),
     }),
-  }),
-  z.object({
-    fileData: z.object({
-      fileUri: z.string(),
-      mimeType: z.string(),
+    z.object({
+      fileData: z.object({
+        fileUri: z.string(),
+        mimeType: z.string(),
+      }),
     }),
-  }),
-]);
+  ]);
 
 export const googleEmbeddingModelOptions = lazySchema(() =>
   zodSchema(
@@ -71,7 +72,7 @@ export const googleEmbeddingModelOptions = lazySchema(() =>
        * the case of a single embedding, the array length must be 1.
        */
       content: z
-        .array(z.array(googleEmbeddingContentPartSchema).min(1).nullable())
+        .array(z.array(googleEmbeddingContentPartSchema()).min(1).nullable())
         .optional(),
     }),
   ),

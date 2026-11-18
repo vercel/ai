@@ -1014,6 +1014,14 @@ describe('detectMediaType', () => {
     ).toBeUndefined();
   });
 
+  it.each(['constructor', '__proto__', 'toString', 'hasOwnProperty'])(
+    'returns undefined for inherited property name %s',
+    topLevelType => {
+      const data = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+      expect(detectMediaType({ data, topLevelType })).toBeUndefined();
+    },
+  );
+
   it('returns undefined when data does not match any signature in the segment table', () => {
     const garbage = new Uint8Array([0x00, 0x01, 0x02, 0x03]);
     expect(

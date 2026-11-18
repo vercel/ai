@@ -1,11 +1,20 @@
-import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import { getBlackForestLabsImageModelEntry } from './black-forest-labs-model-catalog';
 import {
+  APICallError,
+  UnsupportedFunctionalityError,
+  type ImageModelV4,
+  type SharedV4Warning,
+} from '@ai-sdk/provider';
+import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createBinaryResponseHandler,
   createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
   delay,
   getFromApi,
+  isSameOrigin,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -17,10 +26,15 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
+  bflErrorSchema,
   bflFailedResponseHandler,
   isTrustedUrl,
 } from './black-forest-labs-api';
-import { blackForestLabsImageModelOptionsSchema } from './black-forest-labs-image-model-options';
+import {
+  blackForestLabsFlux3ImageModelOptionsSchema,
+  blackForestLabsImageModelOptionsSchema,
+  blackForestLabsLatestImageModelOptionsSchema,
+} from './black-forest-labs-image-model-options';
 import type {
   BlackForestLabsAspectRatio,
   BlackForestLabsImageModelId,
@@ -28,6 +42,11 @@ import type {
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;
 const DEFAULT_POLL_TIMEOUT_MILLIS = 60000;
+// Webhook jobs can answer `get_result` with "Task not found" for a moment after
+// submission. Cap those retries separately from the overall poll timeout: at the
+// default 500ms interval this gives the job roughly 10s to register, and a task
+// that stays unknowable fails with a clear error instead of a generic timeout.
+const MAX_TASK_NOT_FOUND_ATTEMPTS = 20;
 
 interface BlackForestLabsImageModelConfig {
   provider: string;
@@ -49,30 +68,26 @@ interface BlackForestLabsImageModelConfig {
 
 export class BlackForestLabsImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
-  readonly maxImagesPerCall = 1;
+  get maxImagesPerCall(): number {
+    return getBlackForestLabsImageModelEntry(this.modelId).capabilities.image
+      .maxImagesPerCall;
+  }
+
+  private get modelApi(): 'legacy' | 'flux-3-image' | 'latest' {
+    return getBlackForestLabsImageModelEntry(this.modelId).requestConfig.image
+      .modelApi;
+  }
 
   get supportsFileInputs(): boolean | undefined {
-    if (
-      ['flux-kontext-pro', 'flux-kontext-max', 'flux-pro-1.0-fill'].includes(
-        this.modelId,
-      )
-    ) {
-      return true;
-    }
-
-    if (['flux-pro-1.1-ultra', 'flux-pro-1.1'].includes(this.modelId)) {
-      return false;
-    }
-
-    return undefined;
+    const support = getBlackForestLabsImageModelEntry(this.modelId).capabilities
+      .image.fileInput;
+    return support === 'unknown' ? undefined : support;
   }
 
   get supportsMaskInputs(): boolean | undefined {
-    if (this.modelId === 'flux-pro-1.0-fill') {
-      return true;
-    }
-
-    return this.supportsFileInputs == null ? undefined : false;
+    const support = getBlackForestLabsImageModelEntry(this.modelId).capabilities
+      .image.maskInput;
+    return support === 'unknown' ? undefined : support;
   }
 
   get provider(): string {
@@ -108,33 +123,53 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
     providerOptions,
   }: Parameters<ImageModelV4['doGenerate']>[0]) {
     const warnings: Array<SharedV4Warning> = [];
+    const modelApi = this.modelApi;
 
     const finalAspectRatio =
       aspectRatio ?? (size ? convertSizeToAspectRatio(size) : undefined);
 
-    if (size && !aspectRatio) {
+    if (size && !aspectRatio && modelApi !== 'latest') {
       warnings.push({
         type: 'unsupported',
         feature: 'size',
         details:
-          'Deriving aspect_ratio from size. Use the width and height provider options to specify dimensions for models that support them.',
+          modelApi === 'flux-3-image'
+            ? 'Deriving aspect_ratio from size. FLUX 3 uses the resolution provider option to select output resolution.'
+            : 'Deriving aspect_ratio from size. Use the width and height provider options to specify dimensions for models that support them.',
       });
-    } else if (size && aspectRatio) {
+    } else if (size && aspectRatio && modelApi !== 'latest') {
       warnings.push({
         type: 'unsupported',
         feature: 'size',
         details:
-          'Black Forest Labs ignores size when aspectRatio is provided. Use the width and height provider options to specify dimensions for models that support them',
+          modelApi === 'flux-3-image'
+            ? 'FLUX 3 ignores size when aspectRatio is provided. Use the resolution provider option to select output resolution.'
+            : 'Black Forest Labs ignores size when aspectRatio is provided. Use the width and height provider options to specify dimensions for models that support them',
       });
     }
 
+    const [widthStr, heightStr] = size?.split('x') ?? [];
+
     const bflOptions = await parseProviderOptions({
       provider: 'blackForestLabs',
-      providerOptions,
-      schema: blackForestLabsImageModelOptionsSchema,
+      providerOptions:
+        modelApi === 'latest' && size != null
+          ? {
+              ...providerOptions,
+              blackForestLabs: {
+                width: Number(widthStr),
+                height: Number(heightStr),
+                ...providerOptions.blackForestLabs,
+              },
+            }
+          : providerOptions,
+      schema:
+        modelApi === 'latest'
+          ? blackForestLabsLatestImageModelOptionsSchema
+          : modelApi === 'flux-3-image'
+            ? blackForestLabsFlux3ImageModelOptionsSchema
+            : blackForestLabsImageModelOptionsSchema,
     });
-
-    const [widthStr, heightStr] = size?.split('x') ?? [];
 
     const inputImages: string[] =
       files?.map(file => {
@@ -153,8 +188,107 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
       throw new Error('Black Forest Labs supports up to 10 input images.');
     }
 
-    const inputImageField =
-      this.modelId === 'flux-pro-1.0-fill' ? 'image' : 'input_image';
+    if (modelApi !== 'legacy') {
+      const hasDimensions = modelApi === 'latest' && bflOptions?.width != null;
+      // The endpoint uses 21:9 and 9:21 instead of their reduced forms.
+      let flux3AspectRatio = hasDimensions
+        ? undefined
+        : finalAspectRatio === '7:3'
+          ? '21:9'
+          : finalAspectRatio === '3:7'
+            ? '9:21'
+            : finalAspectRatio;
+      if (
+        flux3AspectRatio != null &&
+        ![
+          '21:9',
+          '2:1',
+          '16:9',
+          '3:2',
+          '7:5',
+          '4:3',
+          '5:4',
+          '1:1',
+          '4:5',
+          '3:4',
+          '5:7',
+          '2:3',
+          '9:16',
+          '1:2',
+          '9:21',
+        ].includes(flux3AspectRatio)
+      ) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'aspectRatio',
+          details: `FLUX 3 does not support aspect ratio ${finalAspectRatio}. Using the endpoint's default auto aspect ratio.`,
+        });
+        flux3AspectRatio = undefined;
+      }
+      if (mask != null) {
+        throw new UnsupportedFunctionalityError({
+          functionality: 'FLUX 3 image masks',
+        });
+      }
+      if (seed != null && modelApi !== 'latest') {
+        warnings.push({ type: 'unsupported', feature: 'seed' });
+      }
+      const supportedOptions =
+        modelApi === 'latest'
+          ? [
+              'height',
+              'outputFormat',
+              'pollIntervalMillis',
+              'pollTimeoutMillis',
+              'resolution',
+              'safetyTolerance',
+              'steps',
+              'width',
+            ]
+          : [
+              'grounding',
+              'pollIntervalMillis',
+              'pollTimeoutMillis',
+              'resolution',
+              'safetyTolerance',
+              'version',
+            ];
+      for (const [key, value] of Object.entries(bflOptions ?? {})) {
+        if (value != null && !supportedOptions.includes(key)) {
+          warnings.push({
+            type: 'unsupported',
+            feature: `blackForestLabs.${key}`,
+          });
+        }
+      }
+
+      return {
+        body: {
+          prompt,
+          aspect_ratio: flux3AspectRatio,
+          images: inputImages.length > 0 ? inputImages : undefined,
+          resolution: hasDimensions ? undefined : bflOptions?.resolution,
+          safety_tolerance: bflOptions?.safetyTolerance,
+          ...(modelApi === 'latest'
+            ? {
+                width: bflOptions?.width,
+                height: bflOptions?.height,
+                seed,
+                steps: bflOptions?.steps,
+                output_format: bflOptions?.outputFormat,
+              }
+            : {
+                grounding: bflOptions?.grounding,
+                version: bflOptions?.version,
+              }),
+        },
+        warnings,
+        bflOptions,
+      };
+    }
+
+    const inputImageField = getBlackForestLabsImageModelEntry(this.modelId)
+      .requestConfig.image.inputImageKey;
     const inputImagesObj: Record<string, string> = inputImages.reduce<
       Record<string, string>
     >((acc, img, index) => {
@@ -225,10 +359,9 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
     } as Parameters<ImageModelV4['doGenerate']>[0]);
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const combinedHeaders = combineHeaders(
-      await resolve(this.config.headers),
-      headers,
-    );
+    const getHeaders = async () =>
+      combineHeaders(await resolve(this.config.headers), headers);
+    const combinedHeaders = await getHeaders();
 
     const submit = await postJsonToApi({
       url: `${this.config.baseURL}/${this.modelId}`,
@@ -240,7 +373,12 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
       fetch: this.config.fetch,
     });
 
-    const pollUrl = submit.value.polling_url;
+    // BFL responds with a webhook-shaped object (no `polling_url`) when a
+    // webhook is registered for the request. The task can still be polled via
+    // the documented `get_result` endpoint using the configured base URL.
+    const pollingUrl = submit.value.polling_url;
+    const usesGetResultFallback = pollingUrl == null;
+    const pollUrl = pollingUrl ?? `${this.config.baseURL}/get_result`;
     const requestId = submit.value.id;
 
     const {
@@ -252,7 +390,8 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
     } = await this.pollForImageUrl({
       pollUrl,
       requestId,
-      headers: combinedHeaders,
+      allowTaskNotFound: usesGetResultFallback,
+      headers: getHeaders,
       abortSignal,
       pollOverrides: {
         pollIntervalMillis: bflOptions?.pollIntervalMillis,
@@ -260,17 +399,23 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
       },
     });
 
+    const baseHostname = new URL(this.config.baseURL).hostname;
+    const useCustomDownloadHeaders =
+      isSameOrigin(imageUrl, this.config.baseURL) &&
+      baseHostname !== 'bfl.ai' &&
+      !baseHostname.endsWith('.bfl.ai');
     const { value: imageBytes, responseHeaders } = await getFromApi({
       url: imageUrl,
       // imageUrl comes from the provider response body; validate it.
       validateUrl: true,
       trustedOrigin: this.config.baseURL,
-      // Only send credentials if the response-supplied URL points back at the
-      // provider; the image is typically delivered from a CDN, so the API key
-      // must not travel to a foreign host.
-      headers: isTrustedUrl(imageUrl, this.config.baseURL)
-        ? combinedHeaders
+      credentialedOrigin: useCustomDownloadHeaders
+        ? this.config.baseURL
         : undefined,
+      // Signed BFL downloads need no credentials; custom proxies may need them.
+      headers: useCustomDownloadHeaders
+        ? await getHeaders()
+        : { 'user-agent': combinedHeaders['user-agent'] },
       abortSignal,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),
@@ -310,13 +455,15 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
   private async pollForImageUrl({
     pollUrl,
     requestId,
+    allowTaskNotFound = false,
     headers,
     abortSignal,
     pollOverrides,
   }: {
     pollUrl: string;
     requestId: string;
-    headers: Record<string, string | undefined>;
+    allowTaskNotFound?: boolean;
+    headers: Resolvable<Record<string, string | undefined>>;
     abortSignal: AbortSignal | undefined;
     pollOverrides?: {
       pollIntervalMillis?: number;
@@ -354,24 +501,64 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
         ? timeoutController.signal
         : AbortSignal.any([abortSignal, timeoutController.signal]);
 
+    const fetchPollResult = async () => {
+      const { value } = await getFromApi({
+        url: url.toString(),
+        // The URL is the provider-supplied polling URL or, for the webhook
+        // `get_result` fallback, built from the configured base URL; validate
+        // it against the base URL (trustedOrigin) either way.
+        validateUrl: true,
+        trustedOrigin: this.config.baseURL,
+        // Only send credentials when it stays on a trusted provider host.
+        headers: isTrustedUrl(url.toString(), this.config.baseURL)
+          ? await resolve(headers)
+          : undefined,
+        failedResponseHandler: bflFailedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(bflPollSchema),
+        abortSignal: pollingAbortSignal,
+        fetch: this.config.fetch,
+      });
+      return value;
+    };
+
+    const taskNotFoundError = () =>
+      new Error(
+        `Black Forest Labs task ${requestId} was not found via get_result before timing out`,
+      );
+
+    let lastStatus: string | undefined;
+    let taskNotFoundAttempts = 0;
+
+    // Record "Task not found" answers so that a task that never appears is
+    // reported as such instead of as a generic poll timeout.
+    const trackTaskNotFound = () => {
+      lastStatus = 'Task not found';
+      taskNotFoundAttempts += 1;
+      if (taskNotFoundAttempts >= MAX_TASK_NOT_FOUND_ATTEMPTS) {
+        throw taskNotFoundError();
+      }
+    };
+
     try {
       while (true) {
-        const { value } = await getFromApi({
-          url: url.toString(),
-          // The polling URL comes from the provider response; validate it.
-          validateUrl: true,
-          trustedOrigin: this.config.baseURL,
-          // Only send credentials when it stays on a trusted provider host.
-          headers: isTrustedUrl(url.toString(), this.config.baseURL)
-            ? headers
-            : undefined,
-          failedResponseHandler: bflFailedResponseHandler,
-          successfulResponseHandler: createJsonResponseHandler(bflPollSchema),
-          abortSignal: pollingAbortSignal,
-          fetch: this.config.fetch,
-        });
+        let value: Awaited<ReturnType<typeof fetchPollResult>>;
+        try {
+          value = await fetchPollResult();
+        } catch (error) {
+          // Webhook jobs are registered asynchronously: `get_result` can
+          // briefly answer HTTP 404 "Task not found" after submission.
+          if (allowTaskNotFound && isTaskNotFoundError(error)) {
+            trackTaskNotFound();
+            await delay(pollIntervalMillis, {
+              abortSignal: pollingAbortSignal,
+            });
+            continue;
+          }
+          throw error;
+        }
 
         const status = value.status;
+        lastStatus = status;
         if (status === 'Ready') {
           if (typeof value.result?.sample === 'string') {
             return {
@@ -386,8 +573,20 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
             'Black Forest Labs poll response is Ready but missing result.sample',
           );
         }
+        if (status === 'Task not found' && allowTaskNotFound) {
+          trackTaskNotFound();
+          await delay(pollIntervalMillis, { abortSignal: pollingAbortSignal });
+          continue;
+        }
         if (status === 'Error' || status === 'Failed') {
           throw new Error('Black Forest Labs generation failed.');
+        }
+        if (
+          status === 'Request Moderated' ||
+          status === 'Content Moderated' ||
+          status === 'Task not found'
+        ) {
+          throw new Error(`Black Forest Labs generation failed: ${status}.`);
         }
 
         await delay(pollIntervalMillis, {
@@ -396,7 +595,9 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
       }
     } catch (error) {
       if (didTimeout) {
-        throw new Error('Black Forest Labs generation timed out.');
+        throw lastStatus === 'Task not found'
+          ? taskNotFoundError()
+          : new Error('Black Forest Labs generation timed out.');
       }
       throw error;
     } finally {
@@ -434,41 +635,67 @@ function gcd(a: number, b: number): number {
   return x;
 }
 
-const bflSubmitSchema = z.object({
-  id: z.string(),
-  polling_url: z.url(),
-  cost: z.number().nullish(),
-  input_mp: z.number().nullish(),
-  output_mp: z.number().nullish(),
-});
+function isTaskNotFoundError(error: unknown): boolean {
+  if (!APICallError.isInstance(error) || error.statusCode !== 404) {
+    return false;
+  }
 
-const bflStatus = z.union([
-  z.literal('Pending'),
-  z.literal('Ready'),
-  z.literal('Error'),
-  z.literal('Failed'),
-  z.literal('Request Moderated'),
-]);
+  const parsed = bflErrorSchema.safeParse(error.data);
+  return (
+    parsed.success &&
+    (parsed.data.status ?? parsed.data.state) === 'Task not found'
+  );
+}
 
-const bflPollSchema = z
-  .object({
-    status: bflStatus.optional(),
-    state: bflStatus.optional(),
-    details: z.unknown().optional(),
-    result: z
+const bflSubmitSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      id: z.string(),
+      // Absent for webhook-shaped responses (`AsyncWebhookResponse`).
+      polling_url: z.url().nullish(),
+      cost: z.number().nullish(),
+      input_mp: z.number().nullish(),
+      output_mp: z.number().nullish(),
+    }),
+  ),
+);
+
+const bflStatus = () =>
+  z.union([
+    z.literal('Content Moderated'),
+    z.literal('Generating'),
+    z.literal('Pending'),
+    z.literal('Reasoning'),
+    z.literal('Ready'),
+    z.literal('Error'),
+    z.literal('Failed'),
+    z.literal('Request Moderated'),
+    z.literal('Task not found'),
+  ]);
+
+const bflPollSchema = lazySchema(() =>
+  zodSchema(
+    z
       .object({
-        sample: z.url(),
-        seed: z.number().optional(),
-        start_time: z.number().optional(),
-        end_time: z.number().optional(),
-        duration: z.number().optional(),
+        status: bflStatus().optional(),
+        state: bflStatus().optional(),
+        details: z.unknown().optional(),
+        result: z
+          .object({
+            sample: z.url(),
+            seed: z.number().optional(),
+            start_time: z.number().optional(),
+            end_time: z.number().optional(),
+            duration: z.number().optional(),
+          })
+          .nullish(),
       })
-      .nullish(),
-  })
-  .refine(v => v.status != null || v.state != null, {
-    message: 'Missing status in Black Forest Labs poll response',
-  })
-  .transform(v => ({
-    status: (v.status ?? v.state)!,
-    result: v.result,
-  }));
+      .refine(v => v.status != null || v.state != null, {
+        message: 'Missing status in Black Forest Labs poll response',
+      })
+      .transform(v => ({
+        status: (v.status ?? v.state)!,
+        result: v.result,
+      })),
+  ),
+);

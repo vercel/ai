@@ -27,7 +27,7 @@ The Language Model Specification V4 creates a robust abstraction layer that work
 
 ### Architecture
 
-At its heart, the V4 specification defines three main interfaces:
+The V4 specification includes the following interfaces:
 
 1. **ProviderV4**: The top-level interface that serves as a factory for different model types
 2. **LanguageModelV4**: The primary interface for text generation models
@@ -285,6 +285,7 @@ The streaming system uses typed events for different stages:
    - `response-metadata`: Model information and response headers
    - `finish`: Final event with usage statistics and finish reason
    - `error`: Error events that can occur at any point
+   - `ping`: Optional transient heartbeat with no generated content or usage; SDK consumers must support this stream part before a provider enables it
 
 2. **Content Events**:
    - All content types (`text`, `file`, `reasoning`, `source`, `tool-call`) stream directly

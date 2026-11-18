@@ -15,6 +15,17 @@ type LegacyRedirectTuple = readonly [
 ];
 
 const legacyRedirectData = [
+  ['/docs/ai-sdk-core/evaluation', '/docs/ai-sdk-core/decisions', true],
+  [
+    '/docs/reference/ai-sdk-core/evaluate',
+    '/docs/reference/ai-sdk-core/decide',
+    true,
+  ],
+  [
+    '/docs/reference/ai-sdk-errors/ai-evaluation-unsupported-question-type-error',
+    '/docs/reference/ai-sdk-errors/ai-decision-unsupported-question-type-error',
+    true,
+  ],
   ['/docs/guides/rag-chatbot', '/cookbook/guides/rag-chatbot', true],
   [
     '/docs/guides/multi-modal-chatbot',

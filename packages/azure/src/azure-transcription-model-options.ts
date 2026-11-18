@@ -3,17 +3,25 @@ import {
   zodSchema,
   type InferSchema,
 } from '@ai-sdk/provider-utils';
+import { openAITranscriptionModelOptionsShape } from '@ai-sdk/openai/internal';
 import { z } from 'zod/v4';
+import { getAzureModelEntry } from './azure-model-catalog';
+import { azureMaiTranscriptionModelOptionsShape } from './azure-mai-transcription-model-options';
 import { azureSpeechTranscriptionModelOptionsShape } from './azure-speech-transcription-model-options';
 
 export const azureTranscriptionModelOptions = lazySchema(() =>
   zodSchema(
     z.strictObject({
       /**
-       * API to use. Defaults to Speech for MAI-Transcribe models, OpenAI otherwise.
+       * API to use. Defaults to Speech for MAI-Transcribe models, MAI for
+       * MAI-Transcribe-2-Streaming, and OpenAI otherwise.
        */
-      api: z.enum(['openai', 'speech']).optional(),
+      api: z.enum(['openai', 'speech', 'mai']).optional(),
+      // OpenAI API options for Azure OpenAI deployments. Listed first so the
+      // shared `language` key keeps the MAI validation.
+      ...openAITranscriptionModelOptionsShape(),
       ...azureSpeechTranscriptionModelOptionsShape(),
+      ...azureMaiTranscriptionModelOptionsShape(),
     }),
   ),
 );
@@ -22,16 +30,15 @@ export type AzureTranscriptionModelOptions = InferSchema<
   typeof azureTranscriptionModelOptions
 >;
 
-// Azure Speech model names by lowercase model ID. MAI-Transcribe-1.5 only
-// accepts Azure's default timestamps (`none`).
-const maiTranscribeModels = new Map([
-  ['mai-transcribe-2', { name: 'MAI-Transcribe-2', supportsTimestamps: true }],
-  [
-    'mai-transcribe-1.5',
-    { name: 'MAI-Transcribe-1.5', supportsTimestamps: false },
-  ],
-]);
-
 export function getMAITranscribeModel(modelId: string) {
-  return maiTranscribeModels.get(modelId.toLowerCase());
+  const config = getAzureModelEntry(modelId)?.requestConfig?.transcription;
+  return config?.api === 'speech'
+    ? { name: config.name, supportsTimestamps: config.supportsTimestamps }
+    : undefined;
+}
+
+export function isMAITranscribeStreaming(modelId: string): boolean {
+  return (
+    getAzureModelEntry(modelId)?.requestConfig?.transcription?.api === 'mai'
+  );
 }

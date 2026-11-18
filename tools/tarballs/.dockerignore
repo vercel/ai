@@ -1,0 +1,4 @@
+*
+!Dockerfile.smoke
+!smoke.mjs
+!shared.mjs

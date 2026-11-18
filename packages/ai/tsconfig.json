@@ -2,11 +2,6 @@
   "extends": "./node_modules/@vercel/ai-tsconfig/base.json",
   "compilerOptions": {
     "stripInternal": true,
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
     "types": [
       "@types/node"
     ],

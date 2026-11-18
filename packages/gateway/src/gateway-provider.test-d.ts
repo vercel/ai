@@ -37,7 +37,7 @@ const providerMetadata = { asyncJob } satisfies GatewayProviderMetadata;
 void providerMetadata;
 
 // Routing metadata passes through untyped, under the index signature.
-const evaluationFallbackMetadata = {
+const decisionFallbackMetadata = {
   generationId: 'gen_fallback',
   routing: {
     originalModelId: 'typesafe-ai/jev',
@@ -65,7 +65,7 @@ const evaluationFallbackMetadata = {
     ],
   },
 } satisfies GatewayProviderMetadata;
-void evaluationFallbackMetadata;
+void decisionFallbackMetadata;
 
 createGateway({ apiKey: 'vck_test-key' });
 createGateway({ apiKey: 'vca_test-token' });

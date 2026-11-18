@@ -12,6 +12,7 @@ import {
   postToApi,
   resolve,
   zodSchema,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import {
   buildProdiaProviderMetadata,
@@ -83,6 +84,7 @@ export class ProdiaVideoModel implements VideoModelV4 {
       const imageData = await resolveVideoFileData(
         options.image,
         options.abortSignal,
+        this.config.fetch,
       );
       const formData = new FormData();
       formData.append(
@@ -92,7 +94,9 @@ export class ProdiaVideoModel implements VideoModelV4 {
       );
       formData.append(
         'input',
-        new Blob([imageData.bytes], { type: imageData.mediaType }),
+        new Blob([imageData.bytes as Uint8Array<ArrayBuffer>], {
+          type: imageData.mediaType,
+        }),
         'input' + getExtension(imageData.mediaType),
       );
 
@@ -205,7 +209,7 @@ function createVideoMultipartResponseHandler() {
         const jsonStr = new TextDecoder().decode(part.body);
         jobResult = await parseJSON({
           text: jsonStr,
-          schema: zodSchema(prodiaJobResultSchema),
+          schema: zodSchema(prodiaJobResultSchema()),
         });
       } else if (contentDisposition.includes('name="output"')) {
         videoBytes = part.body;
@@ -237,6 +241,7 @@ async function resolveVideoFileData(
     Parameters<NonNullable<VideoModelV4['doGenerate']>>[0]['image']
   >,
   abortSignal?: AbortSignal,
+  fetch?: FetchFunction,
 ): Promise<{ bytes: Uint8Array; mediaType: string }> {
   if (file.type === 'file') {
     const data =
@@ -248,7 +253,7 @@ async function resolveVideoFileData(
   // URL type - download via downloadBlob so the user-supplied URL is routed
   // through the SSRF guard (validateDownloadUrl) instead of being fetched
   // directly, preventing requests to private/internal addresses.
-  const blob = await downloadBlob(file.url, { abortSignal });
+  const blob = await downloadBlob(file.url, { abortSignal, fetch });
   const arrayBuffer = await blob.arrayBuffer();
   const mediaType = blob.type || 'application/octet-stream';
   return { bytes: new Uint8Array(arrayBuffer), mediaType };

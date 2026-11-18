@@ -4,6 +4,8 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   validateBaseURL,
   withoutTrailingSlash,
@@ -21,7 +23,7 @@ export interface ReplicateProviderSettings {
    * API token that is being send using the `Authorization` header.
    * It defaults to the `REPLICATE_API_TOKEN` environment variable.
    */
-  apiToken?: string;
+  apiToken?: Resolvable<string>;
 
   /**
    * Use a different URL prefix for API calls, e.g. to use proxy servers.
@@ -79,23 +81,25 @@ export function createReplicate(
     'https://api.replicate.com/v1';
 
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiToken,
-          environmentVariableName: 'REPLICATE_API_TOKEN',
-          description: 'Replicate',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk-replicate/${VERSION}`,
+    resolveWith(options.apiToken, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'REPLICATE_API_TOKEN',
+            description: 'Replicate',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-replicate/${VERSION}`,
+      ),
     );
 
   const createImageModel = (modelId: ReplicateImageModelId) =>
     new ReplicateImageModel(modelId, {
       provider: 'replicate',
       baseURL,
-      headers: getHeaders(),
+      headers: getHeaders,
       fetch: options.fetch,
     });
 

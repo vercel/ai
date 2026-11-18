@@ -1,0 +1,77 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "role": "model",
+        "parts": [
+          {
+            "text": "# Chapter 1: Subsurface Brine Infiltration in Reclaimed Salt-Pan Basins\n\n## 1.1 Municipal Context an"
+          }
+        ]
+      },
+      "finishReason": "CONTINUATION",
+      "continuationToken": "checkpoint-1",
+      "groundingMetadata": {
+        "webSearchQueries": [
+          "ADA accessibility standards outdoor walking trails clear width slope"
+        ],
+        "groundingChunks": [
+          {
+            "web": {
+              "uri": "https://aoda.ca",
+              "title": "aoda.ca"
+            }
+          },
+          {
+            "web": {
+              "uri": "https://canada.ca",
+              "title": "canada.ca"
+            }
+          },
+          {
+            "web": {
+              "uri": "https://northmiddlesex.on.ca",
+              "title": "northmiddlesex.on.ca"
+            }
+          },
+          {
+            "web": {
+              "uri": "https://romexhardscapes.com",
+              "title": "romexhardscapes.com"
+            }
+          },
+          {
+            "web": {
+              "uri": "https://ontario.ca",
+              "title": "ontario.ca"
+            }
+          },
+          {
+            "web": {
+              "uri": "https://safesidewalks.com",
+              "title": "safesidewalks.com"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 363,
+    "candidatesTokenCount": 32794,
+    "totalTokenCount": 33157,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 363
+      }
+    ],
+    "candidatesTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 32794
+      }
+    ]
+  },
+  "modelVersion": "gemini-4-argon"
+}

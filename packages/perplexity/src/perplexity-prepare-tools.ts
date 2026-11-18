@@ -17,6 +17,10 @@ export function preparePerplexityTools({
   const preparedTools: PerplexityAgentTool[] = [];
   const warnings: SharedV4Warning[] = [];
 
+  if (toolChoice?.type === 'none') {
+    return { tools: preparedTools, warnings };
+  }
+
   for (const tool of tools ?? []) {
     if (tool.type === 'provider') {
       warnings.push({

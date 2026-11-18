@@ -19,8 +19,25 @@ The content sync generates `apps/docs/content/` from three reviewed sources:
 - v5 documentation from the commit pinned in
   `scripts/sync-content.mjs`.
 
-Generated content, Fumadocs source files, and Next.js output are ignored by
-Git. Run the complete local validation with:
+`dev:site` syncs only v7 so the dev server starts faster; v5 and v6 pages
+return 404. Set `DOCS_ALL_VERSIONS=1` to include them. Builds always include
+every version.
+
+On production deployments (`VERCEL_ENV=production`), `build:site` also runs
+`build-search-index`, which extracts each page's frontmatter and search sections
+into `apps/docs/.search-index/`, one module per version. The search API indexes
+those modules instead of the compiled pages, so the first search on a new
+function instance does not load every page. Preview deployments and local
+builds skip that step and search the compiled pages. To exercise the production
+search path locally:
+
+```bash
+VERCEL_ENV=production pnpm --filter ai-sdk-docs build:site
+pnpm --filter ai-sdk-docs start:site
+```
+
+Generated content, Fumadocs source files, the search index, and Next.js output
+are ignored by Git. Run the complete local validation with:
 
 ```bash
 pnpm --filter ai-sdk-docs validate:site
@@ -30,7 +47,7 @@ To run the versioned-search browser regression, start the docs server on port
 3217, then run the test from the repository root (requires Playwright Chromium):
 
 ```bash
-pnpm --filter ai-sdk-docs dev:site --port 3217
+DOCS_ALL_VERSIONS=1 pnpm --filter ai-sdk-docs dev:site --port 3217
 node --test apps/docs/scripts/search.e2e.mjs
 ```
 
@@ -62,6 +79,17 @@ rendered by `app/[lang]/og/[...slug]/route.tsx`, which serves both the
 Geistdocs URL shape (`/og/<slugs>/image.png`) and the legacy production
 shape (`/og/docs?title=…&description=…`).
 
+The homepage and docs share `lib/geistdocs/og.tsx` and its local Geist Sans and
+Geist Mono fonts, copied from the Geistdocs 2.15.3 template (`1efeba6`). The
+1200×630 cards use a black background, Vercel triangle, white title, and a gray
+monospace description. The text uses the card's full padded width and is centered
+between the logo and the bottom of the card. Satori measures the wrapped text
+with the bundled fonts; oversized text scales down and reflows automatically,
+without line limits or ellipses. Keep our route's source lookup and cache headers
+when adopting future template updates. Bump the image
+URL version in `lib/og.ts` when changing the design so immutable query-based
+cards refresh.
+
 Mirroring production, every cookbook recipe is served on two URL surfaces:
 `/cookbook/...` and `/resources/recipes/...`. The sitemap, llms.txt, and
 search canonicalize on `/cookbook`.
@@ -77,3 +105,33 @@ logos (all ported from the previous ai-sdk.dev app). The marks belong to
 their respective owners and are not covered by this repository's license.
 The public-domain paintings in `public/images/*.jpg` illustrate the
 generative UI demos.
+
+## Landing page
+
+`components/home/` restores the landing page from `vercel/ai-studio`
+(`8bf26cccd9d29f65460435388b25f170bbbb0fb1`), using the public Geistdocs
+controls in a full-width layout that aligns with the navbar (following
+flags-sdk.dev and vercel.com/ai-sdk). The existing site layout supplies
+navigation, search, Ask AI, analytics, and the footer. Framework and model
+provider marks come from the Geistdocs logo assets (vendored from
+`@vercel/geistcn-assets`); the testimonial wordmarks in
+`components/home/company-logos.tsx` are copied from the same package. All are
+third-party logos covered by the notice above.
+
+The demos display example code and prerecorded media; they do not make AI
+generation requests. The hero demo in `components/home/hero-interactive/` is
+the original interactive section (simulated generation progress, custom audio
+player, animated transcription and provider carousel) and uses `motion`.
+The Core/UI section in `components/home/code-examples/` mirrors the one on
+vercel.com/ai-sdk, with a live preview for each example and a Code view.
+Image/video previews use the existing public Blob store,
+and speech uses the original ElevenLabs audio sample.
+Stats are cached hourly and fall back to conservative counts if public npm or
+GitHub requests fail. Starter prompts live in `lib/home/prompt-templates.ts`.
+
+After updating examples, validate the displayed strings against the current
+workspace SDK (in addition to the normal site validation):
+
+```bash
+pnpm --filter ai-sdk-docs exec node scripts/home-examples.typecheck.mjs
+```

@@ -1,4 +1,7 @@
-import type { BridgeTurn } from '@ai-sdk/harness/bridge';
+import {
+  convertHarnessToolModelOutput,
+  type BridgeTurn,
+} from '@ai-sdk/harness/bridge';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import type { StartMessage } from '../codex-bridge-protocol';
@@ -17,6 +20,7 @@ import { isDeepStrictEqual } from 'node:util';
 import {
   assertTrustedApplyPatchHook,
   createTrustedApplyPatchHook,
+  toTomlInline,
 } from './codex-tool-filtering-hook';
 
 type Emit = (message: Record<string, unknown>) => void;
@@ -24,6 +28,7 @@ type Emit = (message: Record<string, unknown>) => void;
 const CODEX_CLI_PATH = fileURLToPath(
   new URL('./node_modules/@openai/codex/bin/codex.js', import.meta.url),
 );
+const BACKGROUND_TERMINAL_POLL_INTERVAL_MS = 1_000;
 
 type RunTurnOptions = {
   start: StartMessage;
@@ -52,6 +57,15 @@ export function createCodexAppServerRuntime(): {
 } {
   let client: CodexAppServerClient | undefined;
   let loadedThreadId: string | undefined;
+  /*
+   * The model Codex reported in the `thread/start` / `thread/resume` response
+   * for the loaded thread, keyed by the model the bridge requested. Turns on an
+   * already-loaded thread skip those requests, so the reported model is reused
+   * while the requested model is unchanged.
+   */
+  let loadedThreadModel:
+    | { requestedModel: string | undefined; modelId: string | undefined }
+    | undefined;
   let loadedConfig: Record<string, unknown> | undefined;
   let activeTurn: ActiveTurn | undefined;
 
@@ -59,13 +73,16 @@ export function createCodexAppServerRuntime(): {
     const previous = client;
     client = undefined;
     loadedThreadId = undefined;
+    loadedThreadModel = undefined;
     loadedConfig = undefined;
     await previous?.close();
   };
 
   const runTurn = async (options: RunTurnOptions): Promise<void> => {
-    const { start, turn, emit, workdir, threadId, codexModel, codexConfig } =
-      options;
+    const { start, turn, emit, workdir, threadId, codexModel } = options;
+    const { codexConfig, providerCliOverrides } = splitModelProviderConfig(
+      options.codexConfig,
+    );
     if (activeTurn != null) throw new Error('A Codex turn is already active.');
     const toolPolicy = resolveCodexBuiltinToolPolicy({
       builtinToolFiltering: start.builtinToolFiltering,
@@ -87,9 +104,13 @@ export function createCodexAppServerRuntime(): {
           }
         : {}),
     };
+    const cliOverrides = [
+      ...providerCliOverrides,
+      ...(trustedHook?.cliOverrides ?? []),
+    ];
     const processConfig = {
       thread: nextConfig,
-      cliOverrides: trustedHook?.cliOverrides ?? [],
+      cliOverrides,
     };
     if (client != null && !isDeepStrictEqual(loadedConfig, processConfig)) {
       await close();
@@ -118,9 +139,7 @@ export function createCodexAppServerRuntime(): {
     if (client == null) {
       const created = new CodexAppServerClient({
         executable: process.execPath,
-        args: createCodexAppServerArgs({
-          cliOverrides: trustedHook?.cliOverrides,
-        }),
+        args: createCodexAppServerArgs({ cliOverrides }),
         cwd: workdir,
         env: process.env,
         onNotification: notification => {
@@ -157,6 +176,7 @@ export function createCodexAppServerRuntime(): {
             dynamicTools: active.dynamicTools,
             emit: active.options.emit,
             requestToolResult: active.options.turn.requestToolResult,
+            stepTracker: active.options.stepTracker,
           }).catch(error => {
             active.fail(error);
             throw error;
@@ -219,6 +239,33 @@ export function createCodexAppServerRuntime(): {
         clientFailure,
         exitFailure,
       ]);
+    const waitForBackgroundTerminals = async (): Promise<void> => {
+      while (true) {
+        const response = await raceWithProcess({
+          operation: runningClient.request({
+            method: 'thread/backgroundTerminals/list',
+            params: { threadId: currentTurn.threadId!, limit: 1 },
+          }),
+        });
+        const terminals = asRecord(response)?.data;
+        if (!Array.isArray(terminals)) {
+          throw new Error(
+            'Codex app-server thread/backgroundTerminals/list returned an invalid response.',
+          );
+        }
+        if (terminals.length === 0) return;
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        try {
+          await raceWithProcess({
+            operation: new Promise<void>(resolve => {
+              timer = setTimeout(resolve, BACKGROUND_TERMINAL_POLL_INTERVAL_MS);
+            }),
+          });
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+    };
     let stopSteering = () => {};
     const steeringStopped = new Promise<void>(resolve => {
       stopSteering = resolve;
@@ -275,6 +322,7 @@ export function createCodexAppServerRuntime(): {
           }),
         });
         loadedThreadId = undefined;
+        loadedThreadModel = undefined;
       }
       if (trustedHook != null) {
         const hooks = await raceWithProcess({
@@ -324,9 +372,23 @@ export function createCodexAppServerRuntime(): {
           method: threadMethod,
         });
         loadedThreadId = currentTurn.threadId;
+        loadedThreadModel = {
+          requestedModel: codexModel,
+          modelId: readOptionalString(asRecord(threadResponse)?.model),
+        };
       }
       handler.announceThread(currentTurn.threadId!);
-      emit({ type: 'stream-start' });
+      const threadModel = loadedThreadModel;
+      const streamStartModelId =
+        threadModel != null &&
+        threadModel.requestedModel === codexModel &&
+        threadModel.modelId != null
+          ? threadModel.modelId
+          : codexModel;
+      emit({
+        type: 'stream-start',
+        ...(streamStartModelId ? { modelId: streamStartModelId } : {}),
+      });
       const turnResponse = await raceWithProcess({
         operation: runningClient.request({
           method: 'turn/start',
@@ -348,8 +410,19 @@ export function createCodexAppServerRuntime(): {
       const result = await raceWithProcess({
         operation: handler.waitForCompletion(),
       });
+      if (result.status !== 'completed') {
+        keepClient = true;
+        assertSuccessfulTurn(result);
+      }
+      /*
+       * Codex reports turn completion while background terminals started by
+       * the turn may still be running. They belong to this app-server process,
+       * so the turn stays open until they exit. The client is kept only after
+       * this wait; an app-server failure or invalid response while waiting
+       * closes it, while an abort keeps it through the abort handling below.
+       */
+      await waitForBackgroundTerminals();
       keepClient = true;
-      assertSuccessfulTurn(result);
     } catch (error) {
       if (turn.abortSignal.aborted && currentTurn.turnId != null) {
         let timer: ReturnType<typeof setTimeout> | undefined;
@@ -398,6 +471,36 @@ export function createCodexAppServerArgs({
   ];
 }
 
+/*
+ * Codex app-server admits turn input only when a thread's provider matches
+ * the provider resolved from process-level configuration, which ignores
+ * per-thread config overrides. Provider selection and definitions therefore
+ * go on the app-server command line so threads and process agree.
+ */
+export function splitModelProviderConfig(
+  codexConfig: Record<string, unknown>,
+): {
+  codexConfig: Record<string, unknown>;
+  providerCliOverrides: string[];
+} {
+  const {
+    model_provider: modelProvider,
+    model_providers: modelProviders,
+    ...threadConfig
+  } = codexConfig;
+  return {
+    codexConfig: threadConfig,
+    providerCliOverrides: [
+      ...(modelProvider === undefined
+        ? []
+        : [`model_provider=${toTomlInline(modelProvider)}`]),
+      ...(modelProviders === undefined
+        ? []
+        : [`model_providers=${toTomlInline(modelProviders)}`]),
+    ],
+  };
+}
+
 export function createThreadParams({
   start,
   workdir,
@@ -409,6 +512,13 @@ export function createThreadParams({
   codexModel: string | undefined;
   codexConfig: Record<string, unknown>;
 }): Record<string, unknown> {
+  /*
+   * Codex app-server does not expose an option to skip reading project
+   * configuration. Project configuration is trust-gated, but the full-access
+   * permissions below can grant project trust automatically. Repository hooks
+   * still require separate per-hook trust before execution, so this is an
+   * accepted limitation rather than complete project configuration isolation.
+   */
   return {
     ...(codexModel == null ? {} : { model: codexModel }),
     cwd: workdir,
@@ -436,7 +546,17 @@ export function createTurnParams({
   return {
     threadId,
     ...(disableEnvironments ? { environments: [] } : {}),
-    input: [{ type: 'text', text: start.prompt, text_elements: [] }],
+    input:
+      typeof start.prompt === 'string'
+        ? [{ type: 'text', text: start.prompt, text_elements: [] }]
+        : start.prompt.map(part =>
+            part.type === 'text'
+              ? { type: 'text', text: part.text, text_elements: [] }
+              : {
+                  type: 'image',
+                  url: `data:${part.mediaType};base64,${part.data}`,
+                },
+          ),
     approvalPolicy: 'never',
     sandboxPolicy: {
       type: 'externalSandbox',
@@ -526,11 +646,13 @@ export async function handleAppServerRequest({
   dynamicTools,
   emit,
   requestToolResult,
+  stepTracker,
 }: {
   request: CodexAppServerRequest;
   dynamicTools: ReturnType<typeof createDynamicTools>;
   emit: Emit;
   requestToolResult: BridgeTurn['requestToolResult'];
+  stepTracker: CodexStepTracker;
 }): Promise<unknown> {
   if (request.method !== 'item/tool/call') {
     throw new Error(
@@ -558,7 +680,11 @@ export async function handleAppServerRequest({
     input: JSON.stringify(params.arguments ?? {}),
     providerExecuted: false,
   });
-  const result = await requestToolResult(params.callId);
+  const callId = params.callId;
+  stepTracker.awaitHostInput({ itemId: callId });
+  const result = await requestToolResult(callId).finally(() =>
+    stepTracker.resolveHostInput({ itemId: callId }),
+  );
   emit({
     type: 'tool-result',
     toolCallId: params.callId,
@@ -566,6 +692,22 @@ export async function handleAppServerRequest({
     result: result.output ?? null,
     isError: result.isError === true,
   });
+  if (result.toolResult != null) {
+    const converted = convertHarnessToolModelOutput({
+      output: result.toolResult.output,
+    });
+    return {
+      contentItems: converted.content.map(part =>
+        part.type === 'text'
+          ? { type: 'inputText', text: part.text }
+          : {
+              type: 'inputImage',
+              imageUrl: `data:${part.mediaType};base64,${part.data}`,
+            },
+      ),
+      success: result.isError !== true && !converted.isError,
+    };
+  }
   return {
     contentItems: [
       { type: 'inputText', text: serializeToolOutput(result.output) },
@@ -614,4 +756,8 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
   return value != null && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : undefined;
+}
+
+function readOptionalString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
 }

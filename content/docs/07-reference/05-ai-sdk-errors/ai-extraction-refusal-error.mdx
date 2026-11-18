@@ -1,0 +1,33 @@
+---
+title: AI_ExtractionRefusalError
+description: Identify extraction fields that a model declined to extract.
+---
+
+# AI_ExtractionRefusalError
+
+This experimental error identifies fields that an extraction model declined to
+extract, such as a field the provider's safety policy refuses. It is exported
+from `ai` and `@ai-sdk/provider` as `Experimental_ExtractionRefusalError`.
+
+Extraction models report a refusal as an answer with `type: 'refusal'`.
+`experimental_extract` throws this error when any answer is a refusal, after the
+provider call and without retrying it.
+
+## Properties
+
+- `fieldIds`: The IDs of the refused fields.
+- `provider`: The provider of the extraction model.
+- `modelId`: The extraction model ID.
+- `message`: A description of the refused fields and model.
+
+## Checking for this Error
+
+Use the marker-based `isInstance` check, which works across package copies:
+
+```typescript
+import { Experimental_ExtractionRefusalError as ExtractionRefusalError } from 'ai';
+
+if (ExtractionRefusalError.isInstance(error)) {
+  console.log(error.fieldIds, error.modelId);
+}
+```

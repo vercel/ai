@@ -21,6 +21,7 @@ export const config = defineConfig({
   siteId,
   siteUrl: isSiteUrlConfigured ? siteUrl.toString() : undefined,
   github: { owner: 'vercel', repo: 'ai' },
+  navbarActiveProduct: 'ai-sdk',
   agent: {
     product: {
       name: 'AI SDK',

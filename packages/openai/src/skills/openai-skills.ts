@@ -1,5 +1,7 @@
 import type { SkillsV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
   combineHeaders,
   convertInlineFileDataToUint8Array,
   createJsonResponseHandler,
@@ -12,7 +14,7 @@ import { openaiSkillResponseSchema } from './openai-skills-api';
 interface OpenAISkillsConfig {
   provider: string;
   url: (options: { path: string }) => string;
-  headers: () => Record<string, string | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 }
 
@@ -41,12 +43,16 @@ export class OpenAISkills implements SkillsV4 {
 
     for (const file of params.files) {
       const content = convertInlineFileDataToUint8Array(file.data);
-      formData.append('files[]', new Blob([content]), file.path);
+      formData.append(
+        'files[]',
+        new Blob([content as Uint8Array<ArrayBuffer>]),
+        file.path,
+      );
     }
 
     const { value: response } = await postFormDataToApi({
       url: this.config.url({ path: '/skills' }),
-      headers: combineHeaders(this.config.headers()),
+      headers: combineHeaders(await resolve(this.config.headers)),
       formData,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

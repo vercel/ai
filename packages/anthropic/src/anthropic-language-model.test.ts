@@ -1,5 +1,7 @@
 import {
   APICallError,
+  InvalidArgumentError,
+  InvalidResponseDataError,
   NoSuchProviderReferenceError,
   LanguageModelV4,
   type LanguageModelV4GenerateResult,
@@ -17,7 +19,11 @@ import fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import type { AnthropicLanguageModelOptions } from './anthropic-language-model-options';
-import { getModelCapabilities } from './anthropic-language-model';
+import {
+  AnthropicLanguageModel,
+  getModelCapabilities,
+} from './anthropic-language-model';
+import type { AnthropicTextProviderMetadata } from './anthropic-provider-metadata';
 import { anthropic, createAnthropic } from './anthropic-provider';
 
 vi.mock('./version', () => ({
@@ -60,6 +66,18 @@ describe('AnthropicLanguageModel', () => {
       chunks,
     };
   }
+
+  it('ignores typed ping opt-in for non-streaming requests', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: { anthropic: { includePings: true } },
+    });
+    expect(result.content.some(part => part.type === 'text')).toBe(true);
+    expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+      'includePings',
+    );
+  });
 
   describe('initial per-message effort', () => {
     it.each([
@@ -195,7 +213,913 @@ describe('AnthropicLanguageModel', () => {
     );
   });
 
+  describe.each(['generate', 'stream'] as const)(
+    'JSON response tool with manual thinking (%s)',
+    method => {
+      it.each([
+        { modelId: 'claude-sonnet-4-20250514', structuredOutputMode: 'auto' },
+        { modelId: 'claude-sonnet-4-5', structuredOutputMode: 'jsonTool' },
+      ] as const)(
+        'should fall back to auto tool choice for $modelId in $structuredOutputMode mode',
+        async ({ modelId, structuredOutputMode }) => {
+          const options = {
+            prompt: TEST_PROMPT,
+            maxOutputTokens: 1000,
+            providerOptions: {
+              anthropic: {
+                structuredOutputMode,
+                thinking: { type: 'enabled', budgetTokens: 5000 },
+              },
+            },
+            responseFormat: {
+              type: 'json' as const,
+              schema: { type: 'object' as const, properties: {} },
+            },
+          };
+          const warnings = [
+            {
+              type: 'unsupported',
+              feature: 'toolChoice',
+              details: expect.stringContaining(
+                'not supported with this model or thinking configuration',
+              ),
+            },
+          ];
+
+          if (method === 'generate') {
+            prepareJsonFixtureResponse('anthropic-json-tool.1');
+            const result = await provider(modelId).doGenerate(options);
+            expect(result.warnings).toEqual(warnings);
+            expect(result.content).toEqual([
+              { type: 'text', text: expect.stringContaining('"elements"') },
+            ]);
+            expect(result.finishReason.unified).toBe('stop');
+          } else {
+            prepareChunksFixtureResponse('anthropic-json-tool.1');
+            const result = await provider(modelId).doStream(options);
+            const chunks = await convertReadableStreamToArray(result.stream);
+            expect(chunks[0]).toEqual({ type: 'stream-start', warnings });
+            expect(chunks.some(chunk => chunk.type === 'error')).toBe(false);
+          }
+
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.thinking).toEqual({
+            type: 'enabled',
+            budget_tokens: 5000,
+          });
+          expect(body.tool_choice).toEqual({
+            type: 'auto',
+            disable_parallel_tool_use: true,
+          });
+          expect(body.tools).toMatchObject([
+            {
+              name: 'json',
+              description: 'Respond with a JSON object.',
+              input_schema: options.responseFormat.schema,
+            },
+          ]);
+        },
+      );
+    },
+  );
+
+  describe.each(['generate', 'stream'] as const)(
+    'MCP tools with JSON response tool (%s)',
+    method => {
+      const mcpServers = [
+        { type: 'url', name: 'default', url: 'https://default.invalid/mcp' },
+        {
+          type: 'url',
+          name: 'enabled',
+          url: 'https://enabled.invalid/mcp',
+          toolConfiguration: { enabled: true, allowedTools: ['selected'] },
+        },
+        {
+          type: 'url',
+          name: 'disabled',
+          url: 'https://disabled.invalid/mcp',
+          toolConfiguration: { enabled: false, allowedTools: ['other'] },
+        },
+        {
+          type: 'url',
+          name: 'allowlist',
+          url: 'https://allowlist.invalid/mcp',
+          toolConfiguration: { allowedTools: ['selected'] },
+        },
+      ];
+      const tools = [
+        {
+          type: 'function' as const,
+          name: 'selected',
+          inputSchema: { type: 'object' as const, properties: {} },
+        },
+        {
+          type: 'function' as const,
+          name: 'other',
+          inputSchema: { type: 'object' as const, properties: {} },
+        },
+      ];
+
+      beforeEach(() => {
+        if (method === 'generate') {
+          prepareJsonFixtureResponse('anthropic-json-tool.1');
+        } else {
+          prepareChunksFixtureResponse('anthropic-json-tool.1');
+        }
+      });
+
+      describe.each(['auto', 'jsonTool'] as const)(
+        'structured output mode %s',
+        structuredOutputMode => {
+          it.each([
+            { type: 'none' },
+            { type: 'tool', toolName: 'selected' },
+          ] as const)(
+            'should disable all MCP tools for $type tool choice',
+            async toolChoice => {
+              const options = {
+                prompt: TEST_PROMPT,
+                tools,
+                toolChoice,
+                responseFormat: {
+                  type: 'json' as const,
+                  schema: {
+                    type: 'object' as const,
+                    additionalProperties: true,
+                  },
+                },
+                providerOptions: {
+                  anthropic: { mcpServers, structuredOutputMode },
+                },
+              };
+
+              if (method === 'generate') {
+                await provider('claude-sonnet-4-5').doGenerate(options);
+              } else {
+                const result =
+                  await provider('claude-sonnet-4-5').doStream(options);
+                const chunks = await convertReadableStreamToArray(
+                  result.stream,
+                );
+                expect(chunks.some(chunk => chunk.type === 'error')).toBe(
+                  false,
+                );
+              }
+
+              const body = await server.calls[0].requestBodyJson;
+              expect(body.mcp_servers).toEqual([
+                {
+                  type: 'url',
+                  name: 'default',
+                  url: 'https://default.invalid/mcp',
+                  tool_configuration: { enabled: false },
+                },
+                {
+                  type: 'url',
+                  name: 'enabled',
+                  url: 'https://enabled.invalid/mcp',
+                  tool_configuration: {
+                    enabled: false,
+                    allowed_tools: ['selected'],
+                  },
+                },
+                {
+                  type: 'url',
+                  name: 'disabled',
+                  url: 'https://disabled.invalid/mcp',
+                  tool_configuration: {
+                    enabled: false,
+                    allowed_tools: ['other'],
+                  },
+                },
+                {
+                  type: 'url',
+                  name: 'allowlist',
+                  url: 'https://allowlist.invalid/mcp',
+                  tool_configuration: {
+                    enabled: false,
+                    allowed_tools: ['selected'],
+                  },
+                },
+              ]);
+              expect(
+                body.tools.map((tool: { name: string }) => tool.name),
+              ).toEqual(
+                toolChoice.type === 'none' ? ['json'] : ['selected', 'json'],
+              );
+              expect(body.tool_choice).toEqual({
+                type: 'any',
+                disable_parallel_tool_use: true,
+              });
+            },
+          );
+        },
+      );
+
+      it.each([undefined, { type: 'auto' }, { type: 'required' }] as const)(
+        'should preserve MCP configuration for unrestricted choice %j',
+        async toolChoice => {
+          const options = {
+            prompt: TEST_PROMPT,
+            tools,
+            toolChoice,
+            responseFormat: {
+              type: 'json' as const,
+              schema: { type: 'object' as const, additionalProperties: true },
+            },
+            providerOptions: { anthropic: { mcpServers } },
+          };
+          if (method === 'generate') {
+            await provider('claude-sonnet-4-5').doGenerate(options);
+          } else {
+            const result =
+              await provider('claude-sonnet-4-5').doStream(options);
+            await convertReadableStreamToArray(result.stream);
+          }
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.mcp_servers).toEqual([
+            {
+              type: 'url',
+              name: 'default',
+              url: 'https://default.invalid/mcp',
+            },
+            {
+              type: 'url',
+              name: 'enabled',
+              url: 'https://enabled.invalid/mcp',
+              tool_configuration: {
+                enabled: true,
+                allowed_tools: ['selected'],
+              },
+            },
+            {
+              type: 'url',
+              name: 'disabled',
+              url: 'https://disabled.invalid/mcp',
+              tool_configuration: { enabled: false, allowed_tools: ['other'] },
+            },
+            {
+              type: 'url',
+              name: 'allowlist',
+              url: 'https://allowlist.invalid/mcp',
+              tool_configuration: { allowed_tools: ['selected'] },
+            },
+          ]);
+        },
+      );
+    },
+  );
+
+  describe.each(['generate', 'stream'] as const)(
+    'MCP tools with named tool choice fallback (%s)',
+    method => {
+      it.each([
+        { modelId: 'claude-opus-5-5', thinking: undefined },
+        {
+          modelId: 'claude-sonnet-4-5',
+          thinking: { type: 'enabled', budgetTokens: 1024 },
+        },
+      ] as const)(
+        'should disable MCP tools for $modelId with thinking $thinking',
+        async ({ modelId, thinking }) => {
+          const options = {
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'function' as const,
+                name: 'selected',
+                inputSchema: { type: 'object' as const },
+              },
+              {
+                type: 'function' as const,
+                name: 'other',
+                inputSchema: { type: 'object' as const },
+              },
+            ],
+            toolChoice: { type: 'tool' as const, toolName: 'selected' },
+            providerOptions: {
+              anthropic: {
+                thinking,
+                mcpServers: [
+                  {
+                    type: 'url',
+                    name: 'echo',
+                    url: 'https://echo.invalid/mcp',
+                  },
+                ],
+              },
+            },
+          };
+          if (method === 'generate') {
+            prepareJsonFixtureResponse('anthropic-text');
+            await provider(modelId).doGenerate(options);
+          } else {
+            prepareChunksFixtureResponse('anthropic-text');
+            const result = await provider(modelId).doStream(options);
+            await convertReadableStreamToArray(result.stream);
+          }
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.tool_choice).toEqual({ type: 'auto' });
+          expect(body.tools.map((tool: { name: string }) => tool.name)).toEqual(
+            ['selected'],
+          );
+          expect(body.mcp_servers).toEqual([
+            {
+              type: 'url',
+              name: 'echo',
+              url: 'https://echo.invalid/mcp',
+              tool_configuration: { enabled: false },
+            },
+          ]);
+        },
+      );
+    },
+  );
+
+  describe.each(['generate', 'stream'] as const)(
+    'MCP tools with provider-enforced tool choice (%s)',
+    method => {
+      describe.each([false, true])(
+        'native structured output %s',
+        useStructuredOutput => {
+          it.each([
+            { type: 'none' },
+            { type: 'tool', toolName: 'selected' },
+          ] as const)(
+            'should preserve MCP configuration for $type',
+            async toolChoice => {
+              const options = {
+                prompt: TEST_PROMPT,
+                tools: [
+                  {
+                    type: 'function' as const,
+                    name: 'selected',
+                    inputSchema: { type: 'object' as const },
+                  },
+                ],
+                toolChoice,
+                ...(useStructuredOutput && {
+                  responseFormat: {
+                    type: 'json' as const,
+                    schema: {
+                      type: 'object' as const,
+                      properties: {},
+                      additionalProperties: false,
+                    },
+                  },
+                }),
+                providerOptions: {
+                  anthropic: {
+                    mcpServers: [
+                      {
+                        type: 'url',
+                        name: 'echo',
+                        url: 'https://echo.invalid/mcp',
+                        toolConfiguration: {
+                          enabled: true,
+                          allowedTools: ['selected'],
+                        },
+                      },
+                    ],
+                  },
+                },
+              };
+              if (method === 'generate') {
+                prepareJsonFixtureResponse('anthropic-text');
+                await provider('claude-sonnet-4-5').doGenerate(options);
+              } else {
+                prepareChunksFixtureResponse('anthropic-text');
+                const result =
+                  await provider('claude-sonnet-4-5').doStream(options);
+                await convertReadableStreamToArray(result.stream);
+              }
+              const body = await server.calls[0].requestBodyJson;
+              expect(body.tool_choice).toEqual(
+                toolChoice.type === 'none'
+                  ? { type: 'none' }
+                  : { type: 'tool', name: 'selected' },
+              );
+              expect(
+                body.tools.map((tool: { name: string }) => tool.name),
+              ).toEqual(['selected']);
+              expect(body.output_config?.format?.type).toEqual(
+                useStructuredOutput ? 'json_schema' : undefined,
+              );
+              expect(body.mcp_servers).toEqual([
+                {
+                  type: 'url',
+                  name: 'echo',
+                  url: 'https://echo.invalid/mcp',
+                  tool_configuration: {
+                    enabled: true,
+                    allowed_tools: ['selected'],
+                  },
+                },
+              ]);
+            },
+          );
+        },
+      );
+    },
+  );
+
+  describe.each(['generate', 'stream'] as const)(
+    'named tool choice with inline tools (%s)',
+    method => {
+      const selectedTool = {
+        type: 'function' as const,
+        name: 'selected',
+        inputSchema: { type: 'object' as const },
+      };
+      const thinking = { type: 'enabled', budgetTokens: 1024 };
+
+      it.each([false, true])(
+        'should keep ignoring initial system tool additions with JSON tool %s',
+        async useJsonTool => {
+          prepareJsonFixtureResponse(
+            useJsonTool ? 'anthropic-json-tool.1' : 'anthropic-text',
+          );
+          const options = {
+            prompt: [
+              {
+                role: 'system',
+                content: 'Initial instructions',
+                providerOptions: {
+                  anthropic: {
+                    toolChanges: [
+                      {
+                        type: 'tool_addition',
+                        tool: { ...selectedTool, name: 'other' },
+                      },
+                    ],
+                  },
+                },
+              },
+              ...TEST_PROMPT,
+            ] satisfies LanguageModelV4Prompt,
+            tools: [selectedTool],
+            toolChoice: { type: 'tool' as const, toolName: 'selected' },
+            providerOptions: {
+              anthropic: { thinking, structuredOutputMode: 'jsonTool' },
+            },
+            ...(useJsonTool && {
+              responseFormat: {
+                type: 'json' as const,
+                schema: { type: 'object' as const, properties: {} },
+              },
+            }),
+          };
+
+          if (method === 'stream') {
+            prepareChunksFixtureResponse(
+              useJsonTool
+                ? 'anthropic-json-tool.1'
+                : 'anthropic-message-delta-input-tokens',
+            );
+          }
+          const result =
+            method === 'generate'
+              ? await provider('claude-haiku-4-5').doGenerate(options)
+              : await provider('claude-haiku-4-5').doStream(options);
+          const warnings =
+            'stream' in result
+              ? (await convertReadableStreamToArray(result.stream)).find(
+                  part => part.type === 'stream-start',
+                )?.warnings
+              : result.warnings;
+
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.system).toEqual([
+            { type: 'text', text: 'Initial instructions' },
+          ]);
+          expect(body.messages).toHaveLength(1);
+          expect(body.messages[0].role).toBe('user');
+          expect(warnings).toContainEqual({
+            type: 'other',
+            message:
+              'tool changes on the initial system message are not supported by Anthropic. ' +
+              'Configure the initial tool set via the tools option instead. ' +
+              'The tool changes have been ignored.',
+          });
+        },
+      );
+
+      describe.each([
+        { ...selectedTool, name: 'other' },
+        {
+          type: 'provider' as const,
+          id: 'anthropic.web_search_20250305',
+          name: 'web_search',
+          args: {},
+        },
+        {
+          type: 'provider' as const,
+          id: 'anthropic.web_fetch_20250910',
+          name: 'web_fetch',
+          args: {},
+        },
+        {
+          type: 'provider' as const,
+          id: 'anthropic.web_search_20250305',
+          name: 'selected',
+          args: {},
+        },
+      ])('$name', inlineTool => {
+        it.each([
+          { modelId: 'claude-haiku-4-5', source: 'providerOptions' },
+          { modelId: 'claude-haiku-4-5', source: 'reasoning' },
+          { modelId: 'claude-opus-5-5', source: 'model' },
+          { modelId: 'claude-haiku-4-5', source: 'inlineOnly' },
+        ])(
+          'should reject conflicting additions before sending a request for $modelId via $source',
+          async ({ modelId, source }) => {
+            prepareJsonFixtureResponse('anthropic-text');
+
+            const options = {
+              prompt: [
+                ...TEST_PROMPT,
+                {
+                  role: 'system',
+                  content: '',
+                  providerOptions: {
+                    anthropic: {
+                      toolChanges: [
+                        { type: 'tool_addition', tool: inlineTool },
+                      ],
+                    },
+                  },
+                },
+                // Also check definitions replayed from earlier turns.
+                ...(source === 'providerOptions'
+                  ? []
+                  : [
+                      {
+                        role: 'assistant' as const,
+                        content: [{ type: 'text' as const, text: 'OK.' }],
+                      },
+                      ...TEST_PROMPT,
+                    ]),
+              ] satisfies LanguageModelV4Prompt,
+              ...(source !== 'inlineOnly' && { tools: [selectedTool] }),
+              toolChoice: { type: 'tool' as const, toolName: 'selected' },
+              ...(source === 'reasoning'
+                ? { reasoning: 'low' as const }
+                : source !== 'model'
+                  ? { providerOptions: { anthropic: { thinking } } }
+                  : {}),
+            };
+
+            await expect(
+              method === 'generate'
+                ? provider(modelId).doGenerate(options)
+                : provider(modelId).doStream(options),
+            ).rejects.toThrow(InvalidArgumentError);
+            expect(server.calls).toHaveLength(0);
+          },
+        );
+      });
+
+      it.each([
+        {
+          modelId: 'claude-haiku-4-5',
+          thinking,
+          toolName: 'selected',
+          choice: 'tool',
+        },
+        {
+          modelId: 'claude-haiku-4-5',
+          thinking,
+          toolName: 'other',
+          choice: 'auto',
+        },
+        {
+          modelId: 'claude-haiku-4-5',
+          thinking,
+          toolName: 'other',
+          choice: 'required',
+        },
+        {
+          modelId: 'claude-sonnet-4-6',
+          thinking: { type: 'adaptive' },
+          toolName: 'other',
+          choice: 'tool',
+        },
+        {
+          modelId: 'claude-haiku-5-5',
+          thinking,
+          toolName: 'other',
+          choice: 'tool',
+        },
+      ] as const)(
+        'should preserve inline $toolName with $choice choice on $modelId',
+        async ({ modelId, thinking, toolName, choice }) => {
+          const options = {
+            prompt: [
+              ...TEST_PROMPT,
+              {
+                role: 'system',
+                content: '',
+                providerOptions: {
+                  anthropic: {
+                    toolChanges: [
+                      {
+                        type: 'tool_addition',
+                        tool: { ...selectedTool, name: toolName },
+                      },
+                    ],
+                  },
+                },
+              },
+            ] satisfies LanguageModelV4Prompt,
+            toolChoice:
+              choice === 'tool'
+                ? { type: 'tool' as const, toolName: 'selected' }
+                : { type: choice },
+            providerOptions: { anthropic: { thinking } },
+          };
+
+          if (method === 'generate') {
+            prepareJsonFixtureResponse('anthropic-text');
+            await provider(modelId).doGenerate(options);
+          } else {
+            prepareChunksFixtureResponse(
+              'anthropic-message-delta-input-tokens',
+            );
+            const result = await provider(modelId).doStream(options);
+            await convertReadableStreamToArray(result.stream);
+          }
+
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.tools).toBeUndefined();
+          expect(body.messages[1].content[0]).toMatchObject({
+            type: 'tool_addition',
+            tool: { type: 'tool_definition', definition: { name: toolName } },
+          });
+          expect(body.tool_choice).toEqual(
+            choice === 'tool' && modelId !== 'claude-haiku-4-5'
+              ? { type: 'tool', name: 'selected' }
+              : { type: 'auto' },
+          );
+        },
+      );
+
+      describe.each([false, true])(
+        'JSON response tool (thinking %s)',
+        useThinking => {
+          const responseFormat = {
+            type: 'json' as const,
+            schema: { type: 'object' as const, properties: {} },
+          };
+
+          it.each([
+            { choice: 'tool', providerAlias: false, reuseSelectedName: false },
+            { choice: 'none', providerAlias: false, reuseSelectedName: false },
+            { choice: 'tool', providerAlias: true, reuseSelectedName: false },
+            { choice: 'tool', providerAlias: false, reuseSelectedName: true },
+            { choice: 'tool', providerAlias: true, reuseSelectedName: true },
+          ] as const)(
+            'should reject conflicting inline tools with $choice choice, providerAlias=$providerAlias and reuseSelectedName=$reuseSelectedName before sending a request',
+            async ({ choice, providerAlias, reuseSelectedName }) => {
+              prepareJsonFixtureResponse('anthropic-json-tool.1');
+
+              const providerTool = {
+                type: 'provider' as const,
+                id: 'anthropic.web_fetch_20250910' as const,
+                name: 'selected',
+                args: {},
+              };
+              const options = {
+                prompt: [
+                  ...TEST_PROMPT,
+                  {
+                    role: 'system',
+                    content: '',
+                    providerOptions: {
+                      anthropic: {
+                        toolChanges: [
+                          {
+                            type: 'tool_addition',
+                            tool: {
+                              ...providerTool,
+                              ...(reuseSelectedName
+                                ? { id: 'anthropic.web_search_20250305' }
+                                : {}),
+                              name: reuseSelectedName
+                                ? 'selected'
+                                : providerAlias
+                                  ? 'other'
+                                  : 'web_fetch',
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  },
+                ] satisfies LanguageModelV4Prompt,
+                tools: [providerAlias ? providerTool : selectedTool],
+                toolChoice:
+                  choice === 'tool'
+                    ? { type: 'tool' as const, toolName: 'selected' }
+                    : { type: choice },
+                responseFormat,
+                providerOptions: {
+                  anthropic: {
+                    structuredOutputMode: 'jsonTool',
+                    ...(useThinking && { thinking }),
+                  },
+                },
+              };
+
+              await expect(
+                method === 'generate'
+                  ? provider('claude-opus-4-8').doGenerate(options)
+                  : provider('claude-opus-4-8').doStream(options),
+              ).rejects.toThrow(InvalidArgumentError);
+              expect(server.calls).toHaveLength(0);
+            },
+          );
+
+          it.each([
+            { choice: 'tool', providerAlias: false, inlineOnly: false },
+            { choice: 'auto', providerAlias: false, inlineOnly: false },
+            { choice: 'required', providerAlias: false, inlineOnly: false },
+            { choice: 'tool', providerAlias: true, inlineOnly: false },
+            { choice: 'tool', providerAlias: false, inlineOnly: true },
+            { choice: 'tool', providerAlias: true, inlineOnly: true },
+          ] as const)(
+            'should preserve allowed inline tools with $choice choice, providerAlias=$providerAlias and inlineOnly=$inlineOnly',
+            async ({ choice, providerAlias, inlineOnly }) => {
+              const inlineTool = providerAlias
+                ? {
+                    type: 'provider' as const,
+                    id: 'anthropic.web_search_20250305' as const,
+                    name: 'selected',
+                    args: {},
+                  }
+                : {
+                    ...selectedTool,
+                    name: choice === 'tool' ? 'selected' : 'other',
+                  };
+              const options = {
+                prompt: [
+                  ...TEST_PROMPT,
+                  {
+                    role: 'system',
+                    content: '',
+                    providerOptions: {
+                      anthropic: {
+                        toolChanges: [
+                          { type: 'tool_addition', tool: inlineTool },
+                        ],
+                      },
+                    },
+                  },
+                ] satisfies LanguageModelV4Prompt,
+                tools: inlineOnly
+                  ? []
+                  : [providerAlias ? inlineTool : selectedTool],
+                toolChoice:
+                  choice === 'tool'
+                    ? { type: 'tool' as const, toolName: 'selected' }
+                    : { type: choice },
+                responseFormat,
+                providerOptions: {
+                  anthropic: {
+                    structuredOutputMode: 'jsonTool',
+                    ...(useThinking && { thinking }),
+                  },
+                },
+              };
+
+              if (method === 'generate') {
+                prepareJsonFixtureResponse('anthropic-json-tool.1');
+                await provider('claude-opus-4-8').doGenerate(options);
+              } else {
+                prepareChunksFixtureResponse('anthropic-json-tool.1');
+                const result =
+                  await provider('claude-opus-4-8').doStream(options);
+                await convertReadableStreamToArray(result.stream);
+              }
+
+              const body = await server.calls[0].requestBodyJson;
+              expect(body.tool_choice).toEqual({
+                type: useThinking ? 'auto' : 'any',
+                disable_parallel_tool_use: true,
+              });
+              expect(
+                body.tools.map((tool: { name: string }) => tool.name),
+              ).toEqual(
+                inlineOnly
+                  ? ['json']
+                  : [providerAlias ? 'web_search' : 'selected', 'json'],
+              );
+              expect(body.messages[1].content[0]).toMatchObject({
+                type: 'tool_addition',
+                tool: {
+                  type: 'tool_definition',
+                  definition: {
+                    name: providerAlias ? 'web_search' : inlineTool.name,
+                  },
+                },
+              });
+            },
+          );
+        },
+      );
+    },
+  );
+
   describe('doGenerate', () => {
+    describe('forced tool choice with thinking', () => {
+      const tools = ['lookup', 'other'].map(name => ({
+        type: 'function' as const,
+        name,
+        inputSchema: { type: 'object' as const, properties: {} },
+      }));
+
+      describe.each([
+        { type: 'required' as const },
+        { type: 'tool' as const, toolName: 'lookup' },
+      ])('$type', toolChoice => {
+        it.each(['providerOptions', 'reasoning'] as const)(
+          'should fall back to auto for manual thinking set through %s',
+          async source => {
+            prepareJsonFixtureResponse('anthropic-text');
+
+            const result = await provider('claude-haiku-4-5').doGenerate({
+              prompt: TEST_PROMPT,
+              tools,
+              toolChoice,
+              ...(source === 'reasoning'
+                ? { reasoning: 'low' as const }
+                : {
+                    providerOptions: {
+                      anthropic: {
+                        thinking: { type: 'enabled', budgetTokens: 5000 },
+                      },
+                    },
+                  }),
+            });
+
+            const body = await server.calls[0].requestBodyJson;
+            expect(body.thinking.type).toBe('enabled');
+            expect(body.tool_choice).toEqual({ type: 'auto' });
+            expect(
+              body.tools.map((tool: { name: string }) => tool.name),
+            ).toEqual(
+              toolChoice.type === 'tool' ? ['lookup'] : ['lookup', 'other'],
+            );
+            expect(result.warnings).toEqual([
+              {
+                type: 'unsupported',
+                feature: 'toolChoice',
+                details: expect.stringContaining(
+                  'not supported with this model or thinking configuration',
+                ),
+              },
+            ]);
+          },
+        );
+
+        it.each([
+          { modelId: 'claude-haiku-4-5', thinkingType: 'disabled' },
+          { modelId: 'claude-sonnet-4-6', thinkingType: 'adaptive' },
+          // Budget thinking is normalized to adaptive on this model.
+          { modelId: 'claude-haiku-5-5', thinkingType: 'enabled' },
+        ])(
+          'should preserve forced tool choice for $modelId with $thinkingType thinking',
+          async ({ modelId, thinkingType }) => {
+            prepareJsonFixtureResponse('anthropic-text');
+
+            const result = await provider(modelId).doGenerate({
+              prompt: TEST_PROMPT,
+              tools,
+              toolChoice,
+              providerOptions: {
+                anthropic: {
+                  thinking: { type: thinkingType },
+                },
+              },
+            });
+
+            const body = await server.calls[0].requestBodyJson;
+            expect(body.thinking.type).toBe(
+              thinkingType === 'disabled' ? 'disabled' : 'adaptive',
+            );
+            expect(body.tool_choice).toEqual(
+              toolChoice.type === 'tool'
+                ? { type: 'tool', name: 'lookup' }
+                : { type: 'any' },
+            );
+            expect(body.tools).toHaveLength(2);
+            expect(result.warnings).not.toContainEqual(
+              expect.objectContaining({ feature: 'toolChoice' }),
+            );
+          },
+        );
+      });
+    });
+
     describe('reasoning (thinking enabled)', () => {
       it('should pass thinking config; add budget tokens; clear out temperature, top_p, top_k; and return warnings', async () => {
         prepareJsonFixtureResponse('anthropic-text');
@@ -518,7 +1442,7 @@ describe('AnthropicLanguageModel', () => {
         expect(result.warnings).toEqual([]);
       });
 
-      it('should map reasoning "xhigh" to adaptive thinking with effort "max"', async () => {
+      it('should map reasoning "xhigh" to adaptive thinking with effort "high"', async () => {
         prepareJsonFixtureResponse('anthropic-text');
 
         const result = await provider('claude-sonnet-4-6').doGenerate({
@@ -529,14 +1453,30 @@ describe('AnthropicLanguageModel', () => {
         const requestBody = await server.calls[0].requestBodyJson;
         expect(requestBody).toMatchObject({
           thinking: { type: 'adaptive', display: 'summarized' },
-          output_config: { effort: 'max' },
+          output_config: { effort: 'high' },
         });
         expect(result.warnings).toContainEqual({
           type: 'compatibility',
           feature: 'reasoning',
           details:
-            'reasoning "xhigh" is not directly supported by this model. mapped to effort "max".',
+            'reasoning "xhigh" is not directly supported by this model. mapped to effort "high".',
         });
+      });
+
+      it('should map reasoning "max" directly to adaptive thinking with effort "max"', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'max',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: { type: 'adaptive', display: 'summarized' },
+          output_config: { effort: 'max' },
+        });
+        expect(result.warnings).toEqual([]);
       });
 
       it('should map reasoning "minimal" to adaptive thinking with effort "low" and emit compatibility warning', async () => {
@@ -2077,6 +3017,52 @@ describe('AnthropicLanguageModel', () => {
         ).toBeUndefined();
       });
 
+      it('should add the fallback beta when replaying a fallback block without a fallback chain', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-opus-4-8').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'question' }],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'custom',
+                  kind: 'anthropic.fallback',
+                  providerOptions: {
+                    anthropic: {
+                      type: 'fallback',
+                      from: { model: 'claude-opus-5-5' },
+                      to: { model: 'claude-opus-4-8' },
+                    },
+                  },
+                },
+                { type: 'text', text: 'the answer' },
+              ],
+            },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'follow-up' }],
+            },
+          ],
+          maxOutputTokens: 16,
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.fallbacks).toBeUndefined();
+        expect(body.messages[1].content[0]).toEqual({
+          type: 'fallback',
+          from: { model: 'claude-opus-5-5' },
+          to: { model: 'claude-opus-4-8' },
+        });
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
+          'server-side-fallback-2026-06-01',
+        );
+      });
+
       it('should preserve the fallback content block and surface the fallback iteration', async () => {
         prepareJsonFixtureResponse('anthropic-fallback');
 
@@ -2944,6 +3930,43 @@ describe('AnthropicLanguageModel', () => {
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
+            "citations": [
+              {
+                "citedText": "Revenue increased by 25% year over year",
+                "source": {
+                  "filename": "financial-report.pdf",
+                  "id": "0",
+                  "mediaType": "application/pdf",
+                  "providerMetadata": {
+                    "anthropic": {
+                      "cited_text": "Revenue increased by 25% year over year",
+                      "document_index": 0,
+                      "document_title": "Financial Report 2023",
+                      "end_page_number": 6,
+                      "start_page_number": 5,
+                      "type": "page_location",
+                    },
+                  },
+                  "sourceType": "document",
+                  "title": "Financial Report 2023",
+                  "type": "source",
+                },
+              },
+            ],
+            "providerMetadata": {
+              "anthropic": {
+                "citations": [
+                  {
+                    "cited_text": "Revenue increased by 25% year over year",
+                    "document_index": 0,
+                    "document_title": "Financial Report 2023",
+                    "end_page_number": 6,
+                    "start_page_number": 5,
+                    "type": "page_location",
+                  },
+                ],
+              },
+            },
             "text": "Based on the document, the results show positive growth.",
             "type": "text",
           },
@@ -3033,6 +4056,43 @@ describe('AnthropicLanguageModel', () => {
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
+            "citations": [
+              {
+                "citedText": "important information",
+                "source": {
+                  "filename": "test.txt",
+                  "id": "0",
+                  "mediaType": "text/plain",
+                  "providerMetadata": {
+                    "anthropic": {
+                      "cited_text": "important information",
+                      "document_index": 0,
+                      "document_title": "Test Document",
+                      "end_char_index": 35,
+                      "start_char_index": 15,
+                      "type": "char_location",
+                    },
+                  },
+                  "sourceType": "document",
+                  "title": "Test Document",
+                  "type": "source",
+                },
+              },
+            ],
+            "providerMetadata": {
+              "anthropic": {
+                "citations": [
+                  {
+                    "cited_text": "important information",
+                    "document_index": 0,
+                    "document_title": "Test Document",
+                    "end_char_index": 35,
+                    "start_char_index": 15,
+                    "type": "char_location",
+                  },
+                ],
+              },
+            },
             "text": "The text shows important information.",
             "type": "text",
           },
@@ -3466,6 +4526,31 @@ describe('AnthropicLanguageModel', () => {
 
         it('should include web search tool call and result in content', async () => {
           expect(result.content).toMatchSnapshot();
+        });
+
+        it('should expose search results as sources and keep citations in text metadata', () => {
+          const sources = result.content.filter(
+            part => part.type === 'source' && part.sourceType === 'url',
+          );
+          const textParts = result.content.filter(part => part.type === 'text');
+
+          expect(
+            result.content
+              .filter(part => part.type === 'text')
+              .flatMap(part => part.citations ?? []),
+          ).toHaveLength(3);
+          expect(sources).toHaveLength(10);
+          expect(new Set(sources.map(source => source.url)).size).toBe(10);
+          expect(
+            textParts.flatMap(
+              part =>
+                (
+                  part.providerMetadata as
+                    | AnthropicTextProviderMetadata
+                    | undefined
+                )?.anthropic.citations ?? [],
+            ),
+          ).toHaveLength(3);
         });
       });
 
@@ -7138,6 +8223,431 @@ describe('AnthropicLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it.each([
+      'empty',
+      'metadata-only',
+      'empty-text',
+      'empty-reasoning',
+      'empty-tool-input',
+      'later-message',
+      'partial-text',
+      'partial-reasoning',
+      'partial-tool-input',
+      'tool-call',
+    ] as const)(
+      'only emits an interrupted finish after output (%s)',
+      async scenario => {
+        const messageStart = (id: string, content: unknown[] = []) => ({
+          type: 'message_start',
+          message: {
+            id,
+            type: 'message',
+            role: 'assistant',
+            content,
+            model: 'claude-3-haiku-20240307',
+            stop_reason: null,
+            usage: { input_tokens: 10, output_tokens: 1 },
+          },
+        });
+        const textStart = {
+          type: 'content_block_start',
+          index: 0,
+          content_block: { type: 'text', text: '' },
+        };
+        const textDelta = (text: string) => ({
+          type: 'content_block_delta',
+          index: 0,
+          delta: { type: 'text_delta', text },
+        });
+        const events: unknown[] = [];
+        if (scenario === 'later-message') {
+          events.push(
+            messageStart('msg-previous'),
+            textStart,
+            textDelta('Previous answer'),
+            { type: 'content_block_stop', index: 0 },
+            {
+              type: 'message_delta',
+              delta: { stop_reason: 'end_turn', stop_sequence: null },
+              usage: { output_tokens: 3 },
+            },
+            { type: 'message_stop' },
+          );
+        }
+        if (scenario !== 'empty') {
+          events.push(
+            messageStart(
+              'msg-current',
+              scenario === 'tool-call'
+                ? [
+                    {
+                      type: 'tool_use',
+                      id: 'tool-1',
+                      name: 'test-tool',
+                      input: {},
+                    },
+                  ]
+                : [],
+            ),
+          );
+        }
+        if (scenario === 'empty-text' || scenario === 'partial-text') {
+          events.push(
+            textStart,
+            textDelta(scenario === 'partial-text' ? 'Partial' : ''),
+          );
+        }
+        if (
+          scenario === 'empty-reasoning' ||
+          scenario === 'partial-reasoning'
+        ) {
+          events.push(
+            {
+              type: 'content_block_start',
+              index: 0,
+              content_block: { type: 'thinking', thinking: '' },
+            },
+            {
+              type: 'content_block_delta',
+              index: 0,
+              delta: {
+                type: 'thinking_delta',
+                thinking: scenario === 'partial-reasoning' ? 'Thinking' : '',
+              },
+            },
+          );
+        }
+        if (
+          scenario === 'empty-tool-input' ||
+          scenario === 'partial-tool-input'
+        ) {
+          events.push(
+            {
+              type: 'content_block_start',
+              index: 0,
+              content_block: {
+                type: 'tool_use',
+                id: 'tool-1',
+                name: 'test-tool',
+                input: {},
+              },
+            },
+            {
+              type: 'content_block_delta',
+              index: 0,
+              delta: {
+                type: 'input_json_delta',
+                partial_json: scenario === 'partial-tool-input' ? '{' : '',
+              },
+            },
+          );
+        }
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: events.map(event => `data: ${JSON.stringify(event)}\n\n`),
+        };
+
+        const { stream } = await model.doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks: true,
+        });
+        const parts = await convertReadableStreamToArray(stream);
+        expect(parts.filter(part => part.type === 'error')).toEqual([]);
+        expect(
+          parts
+            .filter(part => part.type === 'finish')
+            .map(part => part.finishReason),
+        ).toEqual(
+          scenario === 'later-message'
+            ? [{ unified: 'stop', raw: 'end_turn' }]
+            : [
+                  'partial-text',
+                  'partial-reasoning',
+                  'partial-tool-input',
+                  'tool-call',
+                ].includes(scenario)
+              ? [{ unified: 'interrupted', raw: undefined }]
+              : [],
+        );
+      },
+    );
+
+    it('reports interruption for a later message even when an earlier message completed', async () => {
+      const messageStart = (id: string) => ({
+        type: 'message_start',
+        message: {
+          id,
+          type: 'message',
+          role: 'assistant',
+          content: [],
+          model: 'claude-3-haiku-20240307',
+          stop_reason: null,
+          usage: { input_tokens: 10, output_tokens: 1 },
+        },
+      });
+      const events = [
+        messageStart('msg1'),
+        {
+          type: 'message_delta',
+          delta: { stop_reason: 'end_turn', stop_sequence: null },
+          usage: { output_tokens: 3 },
+        },
+        { type: 'message_stop' },
+        messageStart('msg2'),
+        {
+          type: 'content_block_start',
+          index: 0,
+          content_block: { type: 'text', text: '' },
+        },
+        {
+          type: 'content_block_delta',
+          index: 0,
+          delta: { type: 'text_delta', text: 'Partial answer' },
+        },
+      ];
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: events.map(event => `data: ${JSON.stringify(event)}\n\n`),
+      };
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts.filter(part => part.type === 'error')).toEqual([]);
+      expect(
+        parts
+          .filter(part => part.type === 'finish')
+          .map(part => part.finishReason),
+      ).toEqual([
+        { unified: 'stop', raw: 'end_turn' },
+        { unified: 'interrupted', raw: undefined },
+      ]);
+      const finishes = parts.filter(part => part.type === 'finish');
+      expect(finishes[1].usage).toEqual(finishes[0].usage);
+      expect(finishes[1].providerMetadata).toEqual(
+        finishes[0].providerMetadata,
+      );
+    });
+
+    it.each([
+      [undefined, false, 'interrupted'],
+      [null, false, 'interrupted'],
+      ['end_turn', false, 'interrupted'],
+      ['end_turn', true, 'stop'],
+      [undefined, true, 'other'],
+      ['unknown_reason', true, 'other'],
+    ] as const)(
+      'maps stop_reason %j and message_stop %s to %s',
+      async (stopReason, messageStop, unified) => {
+        const events = [
+          {
+            type: 'message_start',
+            message: {
+              id: 'msg1',
+              type: 'message',
+              role: 'assistant',
+              content: [],
+              model: 'claude-3-haiku-20240307',
+              stop_reason: null,
+              usage: { input_tokens: 10, output_tokens: 1 },
+            },
+          },
+          {
+            type: 'content_block_start',
+            index: 0,
+            content_block: { type: 'text', text: '' },
+          },
+          {
+            type: 'content_block_delta',
+            index: 0,
+            delta: { type: 'text_delta', text: 'Partial answer' },
+          },
+          ...(stopReason === undefined
+            ? []
+            : [
+                {
+                  type: 'message_delta',
+                  delta: { stop_reason: stopReason, stop_sequence: null },
+                  usage: { output_tokens: 3 },
+                },
+              ]),
+          ...(messageStop ? [{ type: 'message_stop' }] : []),
+        ];
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: events.map(event => `data: ${JSON.stringify(event)}\n\n`),
+        };
+        const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+        const parts = await convertReadableStreamToArray(stream);
+        expect(parts).toContainEqual(
+          expect.objectContaining({
+            type: 'text-delta',
+            delta: 'Partial answer',
+          }),
+        );
+        expect(parts.filter(part => part.type === 'error')).toEqual([]);
+        expect(parts.filter(part => part.type === 'finish')).toEqual([
+          expect.objectContaining({
+            finishReason: {
+              unified,
+              raw: messageStop ? stopReason : undefined,
+            },
+            usage: expect.objectContaining({
+              inputTokens: expect.objectContaining({
+                total: messageStop ? 10 : undefined,
+              }),
+            }),
+          }),
+        ]);
+        if (!messageStop) {
+          expect(parts.find(part => part.type === 'finish')).not.toHaveProperty(
+            'providerMetadata',
+          );
+        }
+      },
+    );
+
+    it.each([
+      {
+        type: 'page_location',
+        cited_text: 'Supporting passage',
+        document_index: 0,
+        document_title: 'Report',
+        start_page_number: 1,
+        end_page_number: 2,
+      },
+      {
+        type: 'char_location',
+        cited_text: 'Supporting passage',
+        document_index: 0,
+        document_title: 'Report',
+        start_char_index: 0,
+        end_char_index: 18,
+      },
+      {
+        type: 'content_block_location',
+        cited_text: 'Supporting passage',
+        document_index: 0,
+        document_title: 'Report',
+        start_block_index: 0,
+        end_block_index: 1,
+        file_id: null,
+      },
+      {
+        type: 'web_search_result_location',
+        cited_text: 'Supporting passage',
+        title: 'Report',
+        url: 'https://example.com/report',
+        encrypted_index: 'opaque',
+      },
+      {
+        type: 'search_result_location',
+        cited_text: 'Supporting passage',
+        title: 'Report',
+        source: 'https://example.com/report',
+        search_result_index: 0,
+        start_block_index: 0,
+        end_block_index: 1,
+      },
+    ])(
+      'preserves $type citations on streamed text with generation parity',
+      async citation => {
+        const prompt: LanguageModelV4Prompt = [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: { type: 'data', data: 'base64PDFdata' },
+                mediaType: 'application/pdf',
+                filename: 'report.pdf',
+                providerOptions: {
+                  anthropic: { citations: { enabled: true } },
+                },
+              },
+            ],
+          },
+        ];
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            id: 'msg_citations',
+            type: 'message',
+            role: 'assistant',
+            model: 'claude-3-haiku-20240307',
+            content: [{ type: 'text', text: 'Answer', citations: [citation] }],
+            stop_reason: 'end_turn',
+            stop_sequence: null,
+            usage: { input_tokens: 1, output_tokens: 1 },
+          },
+        };
+        const generated = await model.doGenerate({ prompt });
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            {
+              type: 'message_start',
+              message: {
+                id: 'msg_citations',
+                model: 'claude-3-haiku-20240307',
+                usage: { input_tokens: 1, output_tokens: 0 },
+              },
+            },
+            {
+              type: 'content_block_start',
+              index: 0,
+              content_block: { type: 'text', text: '' },
+            },
+            {
+              type: 'content_block_delta',
+              index: 0,
+              delta: { type: 'text_delta', text: 'Answer' },
+            },
+            {
+              type: 'content_block_delta',
+              index: 0,
+              delta: { type: 'citations_delta', citation },
+            },
+            { type: 'content_block_stop', index: 0 },
+            {
+              type: 'message_delta',
+              delta: { stop_reason: 'end_turn', stop_sequence: null },
+              usage: { output_tokens: 1 },
+            },
+            { type: 'message_stop' },
+          ].map(event => `data: ${JSON.stringify(event)}\n\n`),
+        };
+        const { stream } = await model.doStream({ prompt });
+        const events = await convertReadableStreamToArray(stream);
+        expect(events.filter(event => event.type === 'error')).toEqual([]);
+        const end = events.find(event => event.type === 'text-end');
+        const text = generated.content.find(part => part.type === 'text');
+        expect(end?.citations).toEqual(text?.citations);
+        expect(end?.citations).toEqual([
+          expect.objectContaining({
+            citedText: 'Supporting passage',
+            source: expect.objectContaining({ title: 'Report' }),
+          }),
+        ]);
+        expect(end?.providerMetadata).toEqual({
+          anthropic: { citations: [citation] },
+        });
+        if (citation.type === 'web_search_result_location') {
+          const expectedMetadata = {
+            anthropic: {
+              citedText: 'Supporting passage',
+              encryptedIndex: 'opaque',
+            },
+          };
+          expect(
+            events.find(event => event.type === 'source')?.providerMetadata,
+          ).toEqual(expectedMetadata);
+          expect(
+            generated.content.find(part => part.type === 'source')
+              ?.providerMetadata,
+          ).toEqual(expectedMetadata);
+        }
+      },
+    );
+
     describe('json schema response format (unsupported model)', () => {
       let result: Array<LanguageModelV4StreamPart>;
 
@@ -7221,6 +8731,27 @@ describe('AnthropicLanguageModel', () => {
               "type": "response-metadata",
             },
             {
+              "kind": "anthropic.message_start",
+              "providerMetadata": {
+                "anthropic": {
+                  "id": "msg_01K2JbSUMYhez5RHoK9ZCj9U",
+                  "model": "claude-haiku-4-5-20251001",
+                  "usage": {
+                    "cache_creation": {
+                      "ephemeral_1h_input_tokens": 0,
+                      "ephemeral_5m_input_tokens": 0,
+                    },
+                    "cache_creation_input_tokens": 0,
+                    "cache_read_input_tokens": 0,
+                    "input_tokens": 849,
+                    "output_tokens": 10,
+                    "service_tier": "standard",
+                  },
+                },
+              },
+              "type": "custom",
+            },
+            {
               "id": "0",
               "type": "text-start",
             },
@@ -7248,6 +8779,7 @@ describe('AnthropicLanguageModel', () => {
                   "container": null,
                   "contextManagement": null,
                   "iterations": null,
+                  "serviceTier": "standard",
                   "stopSequence": null,
                   "usage": {
                     "cache_creation": {
@@ -7376,6 +8908,27 @@ describe('AnthropicLanguageModel', () => {
               "type": "response-metadata",
             },
             {
+              "kind": "anthropic.message_start",
+              "providerMetadata": {
+                "anthropic": {
+                  "id": "msg_01K2JbSUMYhez5RHoK9ZCj9U",
+                  "model": "claude-haiku-4-5-20251001",
+                  "usage": {
+                    "cache_creation": {
+                      "ephemeral_1h_input_tokens": 0,
+                      "ephemeral_5m_input_tokens": 0,
+                    },
+                    "cache_creation_input_tokens": 0,
+                    "cache_read_input_tokens": 0,
+                    "input_tokens": 849,
+                    "output_tokens": 10,
+                    "service_tier": "standard",
+                  },
+                },
+              },
+              "type": "custom",
+            },
+            {
               "id": "1",
               "type": "text-start",
             },
@@ -7403,6 +8956,7 @@ describe('AnthropicLanguageModel', () => {
                   "container": null,
                   "contextManagement": null,
                   "iterations": null,
+                  "serviceTier": "standard",
                   "stopSequence": null,
                   "usage": {
                     "cache_creation": {
@@ -7569,6 +9123,27 @@ describe('AnthropicLanguageModel', () => {
                 "type": "response-metadata",
               },
               {
+                "kind": "anthropic.message_start",
+                "providerMetadata": {
+                  "anthropic": {
+                    "id": "msg_01CD3XaZfhNabxRt1SG5ybtK",
+                    "model": "claude-haiku-4-5-20251001",
+                    "usage": {
+                      "cache_creation": {
+                        "ephemeral_1h_input_tokens": 0,
+                        "ephemeral_5m_input_tokens": 0,
+                      },
+                      "cache_creation_input_tokens": 0,
+                      "cache_read_input_tokens": 0,
+                      "input_tokens": 843,
+                      "output_tokens": 16,
+                      "service_tier": "standard",
+                    },
+                  },
+                },
+                "type": "custom",
+              },
+              {
                 "id": "toolu_019Zvehfe1XQWweT1pm7okyt",
                 "toolName": "weather",
                 "type": "tool-input-start",
@@ -7604,6 +9179,7 @@ describe('AnthropicLanguageModel', () => {
                     "container": null,
                     "contextManagement": null,
                     "iterations": null,
+                    "serviceTier": "standard",
                     "stopSequence": null,
                     "usage": {
                       "cache_creation": {
@@ -7781,6 +9357,20 @@ describe('AnthropicLanguageModel', () => {
             "type": "response-metadata",
           },
           {
+            "kind": "anthropic.message_start",
+            "providerMetadata": {
+              "anthropic": {
+                "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+                "model": "claude-3-haiku-20240307",
+                "usage": {
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
+              },
+            },
+            "type": "custom",
+          },
+          {
             "id": "0",
             "type": "text-start",
           },
@@ -7842,6 +9432,95 @@ describe('AnthropicLanguageModel', () => {
         ]
       `);
     });
+
+    it.each([2, 0, undefined])(
+      'should emit raw message-start usage with output tokens %s by default',
+      async outputTokens => {
+        const initialUsage = {
+          input_tokens: 10,
+          output_tokens: outputTokens,
+          cache_read_input_tokens: 20,
+          cache_creation_input_tokens: 30,
+          service_tier: 'standard',
+        };
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            {
+              type: 'message_start',
+              message: {
+                id: 'msg_initial_usage',
+                model: 'claude-haiku-4-5',
+                usage: initialUsage,
+              },
+            },
+            {
+              type: 'message_delta',
+              delta: { stop_reason: 'end_turn', stop_sequence: null },
+              usage: {
+                input_tokens: 12,
+                output_tokens: 7,
+                cache_read_input_tokens: 22,
+                cache_creation_input_tokens: 32,
+              },
+            },
+            { type: 'message_stop' },
+          ].map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+        };
+
+        const { stream } = await model.doStream({
+          prompt: TEST_PROMPT,
+        });
+        const reader = stream.getReader();
+        try {
+          expect((await reader.read()).value?.type).toBe('stream-start');
+          expect((await reader.read()).value).toEqual({
+            type: 'response-metadata',
+            id: 'msg_initial_usage',
+            modelId: 'claude-haiku-4-5',
+          });
+          const start = (await reader.read()).value;
+          const expectedUsage = {
+            input_tokens: 10,
+            ...(outputTokens != null ? { output_tokens: outputTokens } : {}),
+            cache_read_input_tokens: 20,
+            cache_creation_input_tokens: 30,
+            service_tier: 'standard',
+          };
+          expect(start).toEqual({
+            type: 'custom',
+            kind: 'anthropic.message_start',
+            providerMetadata: {
+              anthropic: {
+                id: 'msg_initial_usage',
+                model: 'claude-haiku-4-5',
+                usage: expectedUsage,
+              },
+            },
+          });
+          expect((await reader.read()).value).toMatchObject({
+            type: 'finish',
+            usage: {
+              inputTokens: {
+                total: 66,
+                noCache: 12,
+                cacheRead: 22,
+                cacheWrite: 32,
+              },
+              outputTokens: { total: 7 },
+            },
+          });
+          expect((await reader.read()).done).toBe(true);
+          // Terminal deltas must not mutate the initial snapshot.
+          expect(
+            start?.type === 'custom' &&
+              start.providerMetadata?.anthropic?.usage,
+          ).toEqual(expectedUsage);
+        } finally {
+          reader.releaseLock();
+        }
+      },
+    );
 
     it('should use input_tokens from message_delta when different from message_start', async () => {
       // Fixture has message_start.usage.input_tokens=43, message_delta.usage.input_tokens=61
@@ -8019,6 +9698,20 @@ describe('AnthropicLanguageModel', () => {
             "type": "response-metadata",
           },
           {
+            "kind": "anthropic.message_start",
+            "providerMetadata": {
+              "anthropic": {
+                "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+                "model": "claude-3-haiku-20240307",
+                "usage": {
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
+              },
+            },
+            "type": "custom",
+          },
+          {
             "id": "0",
             "type": "reasoning-start",
           },
@@ -8193,6 +9886,20 @@ describe('AnthropicLanguageModel', () => {
             "type": "response-metadata",
           },
           {
+            "kind": "anthropic.message_start",
+            "providerMetadata": {
+              "anthropic": {
+                "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+                "model": "claude-3-haiku-20240307",
+                "usage": {
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
+              },
+            },
+            "type": "custom",
+          },
+          {
             "id": "0",
             "providerMetadata": {
               "anthropic": {
@@ -8286,6 +9993,20 @@ describe('AnthropicLanguageModel', () => {
             "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
             "modelId": "claude-3-haiku-20240307",
             "type": "response-metadata",
+          },
+          {
+            "kind": "anthropic.message_start",
+            "providerMetadata": {
+              "anthropic": {
+                "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+                "model": "claude-3-haiku-20240307",
+                "usage": {
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
+              },
+            },
+            "type": "custom",
           },
           {
             "id": "0",
@@ -8849,6 +10570,20 @@ describe('AnthropicLanguageModel', () => {
             "type": "response-metadata",
           },
           {
+            "kind": "anthropic.message_start",
+            "providerMetadata": {
+              "anthropic": {
+                "id": "msg_01GouTqNCGXzrj5LQ5jEkw67",
+                "model": "claude-3-haiku-20240307",
+                "usage": {
+                  "input_tokens": 441,
+                  "output_tokens": 2,
+                },
+              },
+            },
+            "type": "custom",
+          },
+          {
             "id": "0",
             "type": "text-start",
           },
@@ -8972,6 +10707,20 @@ describe('AnthropicLanguageModel', () => {
             "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
             "modelId": "claude-3-haiku-20240307",
             "type": "response-metadata",
+          },
+          {
+            "kind": "anthropic.message_start",
+            "providerMetadata": {
+              "anthropic": {
+                "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+                "model": "claude-3-haiku-20240307",
+                "usage": {
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
+              },
+            },
+            "type": "custom",
           },
           {
             "id": "0",
@@ -9276,6 +11025,22 @@ describe('AnthropicLanguageModel', () => {
             "type": "response-metadata",
           },
           {
+            "kind": "anthropic.message_start",
+            "providerMetadata": {
+              "anthropic": {
+                "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+                "model": "claude-3-haiku-20240307",
+                "usage": {
+                  "cache_creation_input_tokens": 10,
+                  "cache_read_input_tokens": 5,
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
+              },
+            },
+            "type": "custom",
+          },
+          {
             "id": "0",
             "type": "text-start",
           },
@@ -9365,6 +11130,26 @@ describe('AnthropicLanguageModel', () => {
             "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
             "modelId": "claude-3-haiku-20240307",
             "type": "response-metadata",
+          },
+          {
+            "kind": "anthropic.message_start",
+            "providerMetadata": {
+              "anthropic": {
+                "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+                "model": "claude-3-haiku-20240307",
+                "usage": {
+                  "cache_creation": {
+                    "ephemeral_1h_input_tokens": 10,
+                    "ephemeral_5m_input_tokens": 0,
+                  },
+                  "cache_creation_input_tokens": 10,
+                  "cache_read_input_tokens": 5,
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
+              },
+            },
+            "type": "custom",
           },
           {
             "id": "0",
@@ -9462,6 +11247,20 @@ describe('AnthropicLanguageModel', () => {
             "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
             "modelId": "claude-3-haiku-20240307",
             "type": "response-metadata",
+          },
+          {
+            "kind": "anthropic.message_start",
+            "providerMetadata": {
+              "anthropic": {
+                "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+                "model": "claude-3-haiku-20240307",
+                "usage": {
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
+              },
+            },
+            "type": "custom",
           },
           {
             "id": "0",
@@ -9696,6 +11495,67 @@ describe('AnthropicLanguageModel', () => {
         `);
     });
 
+    it.each(
+      [undefined, false, true].flatMap(includePings =>
+        [false, true].flatMap(includeRawChunks =>
+          ['anthropic', 'vertex'].map(providerKey => ({
+            includePings,
+            includeRawChunks,
+            providerKey,
+          })),
+        ),
+      ),
+    )(
+      'only emits typed pings when enabled ($includePings, raw: $includeRawChunks, key: $providerKey)',
+      async ({ includePings, includeRawChunks, providerKey }) => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+            `data: {"type":"ping"}\n\n`,
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n`,
+            `data: {"type":"content_block_stop","index":0}\n\n`,
+            `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":2}}\n\n`,
+            `data: {"type":"message_stop"}\n\n`,
+          ],
+        };
+
+        const currentModel =
+          providerKey === 'anthropic'
+            ? model
+            : new AnthropicLanguageModel('claude-3-haiku-20240307', {
+                provider: 'vertex.anthropic',
+                baseURL: 'https://api.anthropic.com/v1',
+                headers: {},
+              });
+        const { stream } = await currentModel.doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks,
+          providerOptions: { [providerKey]: { includePings } },
+        });
+
+        const chunks = await convertReadableStreamToArray(stream);
+
+        expect(chunks.filter(chunk => chunk.type === 'ping')).toEqual(
+          includePings ? [{ type: 'ping' }] : [],
+        );
+        expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+          'includePings',
+        );
+        expect(
+          chunks.filter(
+            chunk =>
+              chunk.type === 'raw' &&
+              chunk.rawValue != null &&
+              typeof chunk.rawValue === 'object' &&
+              'type' in chunk.rawValue &&
+              chunk.rawValue.type === 'ping',
+          ),
+        ).toHaveLength(includeRawChunks ? 1 : 0);
+      },
+    );
+
     describe('raw chunks', () => {
       it('should include raw chunks when includeRawChunks is enabled', async () => {
         server.urls['https://api.anthropic.com/v1/messages'].response = {
@@ -9828,8 +11688,8 @@ describe('AnthropicLanguageModel', () => {
             `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
             `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Based on the document"}}\n\n`,
             `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":", results show growth."}}\n\n`,
-            `data: {"type":"content_block_stop","index":0}\n\n`,
             `data: {"type":"content_block_delta","index":0,"delta":{"type":"citations_delta","citation":{"type":"page_location","cited_text":"Revenue increased by 25% year over year","document_index":0,"document_title":"Financial Report 2023","start_page_number":5,"end_page_number":6}}}\n\n`,
+            `data: {"type":"content_block_stop","index":0}\n\n`,
             `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}}\n\n`,
             `data: {"type":"message_stop"}\n\n`,
           ],
@@ -9874,6 +11734,20 @@ describe('AnthropicLanguageModel', () => {
               "type": "response-metadata",
             },
             {
+              "kind": "anthropic.message_start",
+              "providerMetadata": {
+                "anthropic": {
+                  "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+                  "model": "claude-3-haiku-20240307",
+                  "usage": {
+                    "input_tokens": 17,
+                    "output_tokens": 1,
+                  },
+                },
+              },
+              "type": "custom",
+            },
+            {
               "id": "0",
               "type": "text-start",
             },
@@ -9886,10 +11760,6 @@ describe('AnthropicLanguageModel', () => {
               "delta": ", results show growth.",
               "id": "0",
               "type": "text-delta",
-            },
-            {
-              "id": "0",
-              "type": "text-end",
             },
             {
               "filename": "financial-report.pdf",
@@ -9905,6 +11775,47 @@ describe('AnthropicLanguageModel', () => {
               "sourceType": "document",
               "title": "Financial Report 2023",
               "type": "source",
+            },
+            {
+              "citations": [
+                {
+                  "citedText": "Revenue increased by 25% year over year",
+                  "source": {
+                    "filename": "financial-report.pdf",
+                    "id": "0",
+                    "mediaType": "application/pdf",
+                    "providerMetadata": {
+                      "anthropic": {
+                        "cited_text": "Revenue increased by 25% year over year",
+                        "document_index": 0,
+                        "document_title": "Financial Report 2023",
+                        "end_page_number": 6,
+                        "start_page_number": 5,
+                        "type": "page_location",
+                      },
+                    },
+                    "sourceType": "document",
+                    "title": "Financial Report 2023",
+                    "type": "source",
+                  },
+                },
+              ],
+              "id": "0",
+              "providerMetadata": {
+                "anthropic": {
+                  "citations": [
+                    {
+                      "cited_text": "Revenue increased by 25% year over year",
+                      "document_index": 0,
+                      "document_title": "Financial Report 2023",
+                      "end_page_number": 6,
+                      "start_page_number": 5,
+                      "type": "page_location",
+                    },
+                  ],
+                },
+              },
+              "type": "text-end",
             },
             {
               "finishReason": {
@@ -10227,6 +12138,20 @@ describe('AnthropicLanguageModel', () => {
                 "type": "response-metadata",
               },
               {
+                "kind": "anthropic.message_start",
+                "providerMetadata": {
+                  "anthropic": {
+                    "id": "msg_01GouTqNCGXzrj5LQ5jEkw67",
+                    "model": "claude-3-haiku-20240307",
+                    "usage": {
+                      "input_tokens": 441,
+                      "output_tokens": 2,
+                    },
+                  },
+                },
+                "type": "custom",
+              },
+              {
                 "id": "0",
                 "type": "text-start",
               },
@@ -10358,6 +12283,27 @@ describe('AnthropicLanguageModel', () => {
                 "type": "response-metadata",
               },
               {
+                "kind": "anthropic.message_start",
+                "providerMetadata": {
+                  "anthropic": {
+                    "id": "msg_01GE2RKp1VYsPzdFs3sS9z5S",
+                    "model": "claude-sonnet-4-5-20250929",
+                    "usage": {
+                      "cache_creation": {
+                        "ephemeral_1h_input_tokens": 0,
+                        "ephemeral_5m_input_tokens": 0,
+                      },
+                      "cache_creation_input_tokens": 0,
+                      "cache_read_input_tokens": 0,
+                      "input_tokens": 565,
+                      "output_tokens": 7,
+                      "service_tier": "standard",
+                    },
+                  },
+                },
+                "type": "custom",
+              },
+              {
                 "id": "0",
                 "type": "text-start",
               },
@@ -10401,6 +12347,7 @@ describe('AnthropicLanguageModel', () => {
                     "container": null,
                     "contextManagement": null,
                     "iterations": null,
+                    "serviceTier": "standard",
                     "stopSequence": null,
                     "usage": {
                       "cache_creation": {
@@ -11467,6 +13414,31 @@ describe('AnthropicLanguageModel', () => {
       }
     });
 
+    it.each([false, true])(
+      'preserves startup error handling after pings (raw: %s)',
+      async includeRawChunks => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            'data: {"type":"ping"}\n\n',
+            'data: {"type":"ping"}\n\n',
+            'data: {"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}\n\n',
+          ],
+        };
+        await expect(
+          model.doStream({
+            prompt: TEST_PROMPT,
+            includeRawChunks,
+            providerOptions: { anthropic: { includePings: true } },
+          }),
+        ).rejects.toMatchObject({
+          name: 'AI_APICallError',
+          isRetryable: true,
+          message: 'Overloaded',
+        });
+      },
+    );
+
     it('should throw an api error when the first stream chunk is an overloaded error', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',
@@ -11579,6 +13551,7 @@ describe('AnthropicLanguageModel', () => {
             id: 'msg_01KfpJoAEabmH2iHRRFjQMAG',
             modelId: 'claude-3-haiku-20240307',
           },
+          { type: 'custom', kind: 'anthropic.message_start' },
           { type: 'text-start', id: '0' },
           { type: 'text-delta', id: '0', delta: 'Hello' },
           { type: 'error' },
@@ -11768,6 +13741,90 @@ describe('AnthropicLanguageModel', () => {
         model: 'claude-3-haiku-20240307',
       });
       expect(requestBody).not.toHaveProperty('custom_field');
+    });
+  });
+
+  describe('legacy custom provider options names', () => {
+    function createGoogleVertexNamedModel() {
+      return createAnthropic({
+        apiKey: 'test-api-key',
+        name: 'googleVertex',
+        generateId: mockId({ prefix: 'id' }),
+      })('claude-3-haiku-20240307');
+    }
+
+    function prepareResponse() {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'json-value',
+        body: {
+          id: 'msg_legacy_test',
+          type: 'message',
+          role: 'assistant',
+          content: [{ type: 'text', text: 'Hello, World!' }],
+          model: 'claude-3-haiku-20240307',
+          stop_reason: 'end_turn',
+          stop_sequence: null,
+          usage: { input_tokens: 10, output_tokens: 20 },
+        },
+      };
+    }
+
+    const tools = [
+      {
+        type: 'function' as const,
+        name: 'testTool',
+        inputSchema: { type: 'object' as const, properties: {} },
+      },
+    ];
+
+    it('reads the legacy "vertex" key when "googleVertex" is absent', async () => {
+      prepareResponse();
+
+      const result = await createGoogleVertexNamedModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          vertex: { disableParallelToolUse: true },
+        },
+        tools,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        tool_choice: { type: 'auto', disable_parallel_tool_use: true },
+      });
+      expect(Object.keys(result.providerMetadata ?? {})).toStrictEqual([
+        'anthropic',
+      ]);
+    });
+
+    it('ignores the legacy "vertex" key when "googleVertex" is present', async () => {
+      prepareResponse();
+
+      await createGoogleVertexNamedModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          googleVertex: { disableParallelToolUse: false },
+          vertex: { disableParallelToolUse: true },
+        },
+        tools,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.tool_choice?.disable_parallel_tool_use).not.toBe(true);
+    });
+
+    it('ignores Vertex-only keys such as labels under "vertex"', async () => {
+      prepareResponse();
+
+      await createGoogleVertexNamedModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          vertex: { labels: { team: 'ai' } },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'labels',
+      );
     });
   });
 
@@ -12036,6 +14093,7 @@ describe('getModelCapabilities', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": false,
         "rejectsForcedToolUse": false,
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": false,
@@ -12053,6 +14111,7 @@ describe('getModelCapabilities', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": true,
         "rejectsForcedToolUse": false,
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": true,
@@ -12070,6 +14129,25 @@ describe('getModelCapabilities', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": true,
+        "rejectsForcedToolUse": true,
+        "rejectsSamplingParameters": true,
+        "rejectsThinkingDisabled": true,
+        "rejectsThinkingDisabledAboveHighEffort": false,
+        "supportsAdaptiveThinking": true,
+        "supportsBetweenToolsThinking": false,
+        "supportsStructuredOutput": true,
+        "supportsXhighEffort": true,
+      }
+    `);
+  });
+
+  it('should return correct capabilities for claude-fable-5-2', () => {
+    expect(getModelCapabilities('claude-fable-5-2')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": true,
         "rejectsForcedToolUse": true,
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": true,
@@ -12087,6 +14165,7 @@ describe('getModelCapabilities', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": false,
         "rejectsForcedToolUse": false,
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": false,
@@ -12104,6 +14183,7 @@ describe('getModelCapabilities', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": false,
         "rejectsForcedToolUse": false,
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": false,
@@ -12135,6 +14215,7 @@ describe('getModelCapabilities', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": false,
         "rejectsForcedToolUse": false,
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": false,
@@ -12152,6 +14233,7 @@ describe('getModelCapabilities', () => {
       {
         "isKnownModel": false,
         "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": false,
         "rejectsForcedToolUse": false,
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": false,
@@ -12170,6 +14252,7 @@ describe('getModelCapabilities', () => {
         {
           "isKnownModel": false,
           "maxOutputTokens": 128000,
+          "rejectsBudgetThinking": false,
           "rejectsForcedToolUse": false,
           "rejectsSamplingParameters": true,
           "rejectsThinkingDisabled": false,
@@ -12194,6 +14277,7 @@ describe('getModelCapabilities', () => {
         {
           "isKnownModel": false,
           "maxOutputTokens": 4096,
+          "rejectsBudgetThinking": false,
           "rejectsForcedToolUse": false,
           "rejectsSamplingParameters": false,
           "rejectsThinkingDisabled": false,
@@ -12212,6 +14296,7 @@ describe('getModelCapabilities', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 64000,
+        "rejectsBudgetThinking": false,
         "rejectsForcedToolUse": false,
         "rejectsSamplingParameters": false,
         "rejectsThinkingDisabled": false,
@@ -12240,6 +14325,7 @@ describe('getModelCapabilities', () => {
         {
           "isKnownModel": false,
           "maxOutputTokens": 4096,
+          "rejectsBudgetThinking": false,
           "rejectsForcedToolUse": false,
           "rejectsSamplingParameters": false,
           "rejectsThinkingDisabled": false,
@@ -12394,6 +14480,395 @@ describe('mid-conversation tool changes', () => {
     );
   });
 
+  it('should send tools added by value as tool definitions with the inline tools beta', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const { warnings } = await provider('claude-opus-4-8').doGenerate({
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Say OK.' }] },
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            anthropic: {
+              toolChanges: [
+                {
+                  type: 'tool_addition',
+                  tool: {
+                    type: 'function',
+                    name: 'get_forecast',
+                    description: 'Get forecast',
+                    inputSchema: {
+                      type: 'object',
+                      properties: { city: { type: 'string' } },
+                    },
+                    providerOptions: { anthropic: { deferLoading: true } },
+                  },
+                },
+                {
+                  type: 'tool_addition',
+                  tool: {
+                    type: 'provider',
+                    id: 'anthropic.web_search_20260209',
+                    name: 'search',
+                    args: { maxUses: 3 },
+                  },
+                },
+                { type: 'tool_removal', toolName: 'get_weather' },
+              ],
+            },
+          },
+        },
+      ],
+      tools: [
+        {
+          type: 'function',
+          name: 'get_weather',
+          description: 'Get weather',
+          inputSchema: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+          },
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.messages[1]).toMatchInlineSnapshot(`
+      {
+        "content": [
+          {
+            "tool": {
+              "definition": {
+                "defer_loading": true,
+                "description": "Get forecast",
+                "input_schema": {
+                  "properties": {
+                    "city": {
+                      "type": "string",
+                    },
+                  },
+                  "type": "object",
+                },
+                "name": "get_forecast",
+              },
+              "type": "tool_definition",
+            },
+            "type": "tool_addition",
+          },
+          {
+            "tool": {
+              "definition": {
+                "max_uses": 3,
+                "name": "web_search",
+                "type": "web_search_20260209",
+              },
+              "type": "tool_definition",
+            },
+            "type": "tool_addition",
+          },
+          {
+            "tool": {
+              "name": "get_weather",
+              "type": "tool_reference",
+            },
+            "type": "tool_removal",
+          },
+        ],
+        "role": "system",
+      }
+    `);
+    // the definitions live in the message, not in the top-level tools:
+    expect(
+      requestBody.tools.map((tool: { name: string }) => tool.name),
+    ).toEqual(['get_weather']);
+
+    const betas = server.calls[0].requestHeaders['anthropic-beta'];
+    expect(betas).toContain('inline-tools-2026-09-15');
+    expect(betas).not.toContain('mid-conversation-tool-changes-2026-07-01');
+    expect(warnings).toEqual([]);
+  });
+
+  it('should send the same definition for streaming and non-streaming requests', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const prompt: LanguageModelV4Prompt = [
+      { role: 'user', content: [{ type: 'text', text: 'Say OK.' }] },
+      {
+        role: 'system',
+        content: '',
+        providerOptions: {
+          anthropic: {
+            toolChanges: [
+              {
+                type: 'tool_addition',
+                tool: {
+                  type: 'function',
+                  name: 'get_forecast',
+                  inputSchema: { type: 'object' },
+                },
+              },
+            ],
+          },
+        },
+      },
+    ];
+
+    await provider('claude-opus-4-8').doGenerate({ prompt });
+    const generateBody = await server.calls[0].requestBodyJson;
+
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"type":"message_start","message":{"id":"msg_1","type":"message","role":"assistant","content":[],"model":"claude-opus-4-8","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":1,"output_tokens":1}}}\n\n`,
+        `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":1}}\n\n`,
+        `data: {"type":"message_stop"}\n\n`,
+      ],
+    };
+    const { stream } = await provider('claude-opus-4-8').doStream({ prompt });
+    await convertReadableStreamToArray(stream);
+    const streamBody = await server.calls[1].requestBodyJson;
+
+    expect(streamBody.messages).toEqual(generateBody.messages);
+    expect(JSON.stringify(streamBody.messages)).not.toContain(
+      'eager_input_streaming',
+    );
+  });
+
+  it('should warn and ignore computer tools added by value', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const { warnings } = await provider('claude-opus-4-8').doGenerate({
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Say OK.' }] },
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            anthropic: {
+              toolChanges: [
+                {
+                  type: 'tool_addition',
+                  tool: {
+                    type: 'provider',
+                    id: 'anthropic.computer_20251124',
+                    name: 'computer',
+                    args: {
+                      displayWidthPx: 1024,
+                      displayHeightPx: 768,
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.messages).toHaveLength(1);
+    expect(
+      server.calls[0].requestHeaders['anthropic-beta'] ?? '',
+    ).not.toContain('inline-tools-2026-09-15');
+    expect(warnings).toContainEqual(
+      expect.objectContaining({
+        type: 'other',
+        message: expect.stringContaining('cannot be added by value'),
+      }),
+    );
+  });
+
+  it('should keep the response name of a declared computer toolset when an inline computer tool is ignored', async () => {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      body: {
+        id: 'msg_1',
+        type: 'message',
+        role: 'assistant',
+        model: 'claude-opus-4-8',
+        content: [
+          {
+            type: 'tool_use',
+            id: 'toolu_1',
+            name: 'left_click',
+            input: { coordinate: [1, 2] },
+            toolset_name: 'computer',
+          },
+        ],
+        stop_reason: 'tool_use',
+        stop_sequence: null,
+        usage: { input_tokens: 1, output_tokens: 1 },
+      },
+    };
+
+    const { content } = await provider('claude-opus-4-8').doGenerate({
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Click.' }] },
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            anthropic: {
+              toolChanges: [
+                {
+                  type: 'tool_addition',
+                  tool: {
+                    type: 'provider',
+                    id: 'anthropic.computer_20251124',
+                    name: 'otherComputer',
+                    args: { displayWidthPx: 1024, displayHeightPx: 768 },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      ],
+      tools: [
+        {
+          type: 'provider',
+          id: 'anthropic.computer_toolset_20260801',
+          name: 'myComputer',
+          args: {},
+        },
+      ],
+    });
+
+    expect(content).toMatchObject([
+      { type: 'tool-call', toolName: 'myComputer' },
+    ]);
+  });
+
+  it('should keep the response name of a declared provider tool when an inline provider tool has the same provider name', async () => {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      body: {
+        id: 'msg_1',
+        type: 'message',
+        role: 'assistant',
+        model: 'claude-opus-4-8',
+        content: [
+          {
+            type: 'server_tool_use',
+            id: 'srvtoolu_1',
+            name: 'web_search',
+            input: { query: 'weather' },
+          },
+        ],
+        stop_reason: 'pause_turn',
+        stop_sequence: null,
+        usage: { input_tokens: 1, output_tokens: 1 },
+      },
+    };
+
+    const { content } = await provider('claude-opus-4-8').doGenerate({
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Search.' }] },
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            anthropic: {
+              toolChanges: [
+                {
+                  type: 'tool_addition',
+                  tool: {
+                    type: 'provider',
+                    id: 'anthropic.web_search_20260209',
+                    name: 'inlineSearch',
+                    args: {},
+                  },
+                },
+              ],
+            },
+          },
+        },
+      ],
+      tools: [
+        {
+          type: 'provider',
+          id: 'anthropic.web_search_20260209',
+          name: 'declaredSearch',
+          args: {},
+        },
+      ],
+    });
+
+    expect(content).toMatchObject([
+      { type: 'tool-call', toolName: 'declaredSearch' },
+    ]);
+  });
+
+  it('should send the tool choice and disabled parallel tool use when all tools are added by value', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const inlineToolChange = {
+      role: 'system' as const,
+      content: '',
+      providerOptions: {
+        anthropic: {
+          toolChanges: [
+            {
+              type: 'tool_addition',
+              tool: {
+                type: 'function',
+                name: 'get_forecast',
+                inputSchema: { type: 'object' },
+              },
+            },
+          ],
+        },
+      },
+    };
+    const prompt: LanguageModelV4Prompt = [
+      { role: 'user', content: [{ type: 'text', text: 'Say OK.' }] },
+      inlineToolChange,
+    ];
+
+    await provider('claude-opus-4-8').doGenerate({
+      prompt,
+      toolChoice: { type: 'none' },
+    });
+    await provider('claude-opus-4-8').doGenerate({
+      prompt,
+      providerOptions: { anthropic: { disableParallelToolUse: true } },
+    });
+    await provider('claude-opus-4-8').doGenerate({
+      prompt,
+      toolChoice: { type: 'tool', toolName: 'get_forecast' },
+    });
+
+    const bodies = await Promise.all(
+      server.calls.map(call => call.requestBodyJson),
+    );
+
+    // the tools only exist in the message, so there is no top-level list:
+    expect(bodies.map(body => body.tools)).toEqual([
+      undefined,
+      undefined,
+      undefined,
+    ]);
+    expect(bodies.map(body => body.tool_choice)).toEqual([
+      { type: 'none' },
+      { type: 'auto', disable_parallel_tool_use: true },
+      { type: 'tool', name: 'get_forecast' },
+    ]);
+  });
+
+  it('should not send a tool choice without any tools', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    await provider('claude-opus-4-8').doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Say OK.' }] }],
+      toolChoice: { type: 'none' },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.tool_choice).toBeUndefined();
+    expect(requestBody.tools).toBeUndefined();
+  });
+
   it('should send separate effort updates and turn-scoped reminders with their beta headers', async () => {
     prepareJsonFixtureResponse('anthropic-text');
 
@@ -12525,7 +15000,7 @@ describe('claude-opus-4-7 specific behavior', () => {
     expect(requestBody.output_config?.effort).toBe('xhigh');
   });
 
-  it('should map xhigh reasoning effort to max for claude-opus-4-6', async () => {
+  it('should map xhigh reasoning effort to high for claude-opus-4-6', async () => {
     prepareJsonFixtureResponse('anthropic-text');
 
     await provider('claude-opus-4-6').doGenerate({
@@ -12534,7 +15009,7 @@ describe('claude-opus-4-7 specific behavior', () => {
     });
 
     const requestBody = await server.calls[0].requestBodyJson;
-    expect(requestBody.output_config?.effort).toBe('max');
+    expect(requestBody.output_config?.effort).toBe('high');
   });
 
   it('should include task_budget in output_config and add beta header', async () => {
@@ -12724,6 +15199,7 @@ describe('claude-opus-5-5 specific behavior', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": true,
         "rejectsForcedToolUse": true,
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": true,
@@ -12907,7 +15383,7 @@ describe('claude-opus-5-5 specific behavior', () => {
     expect(result.warnings).toMatchInlineSnapshot(`
       [
         {
-          "details": "toolChoice 'required' is not supported by this model because it rejects forced tool use. Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.",
+          "details": "toolChoice 'required' is not supported with this model or thinking configuration. Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.",
           "feature": "toolChoice",
           "type": "unsupported",
         },
@@ -12932,7 +15408,7 @@ describe('claude-opus-5-5 specific behavior', () => {
     expect(result.warnings).toMatchInlineSnapshot(`
       [
         {
-          "details": "toolChoice 'tool' is not supported by this model because it rejects forced tool use. Only the 'otherTool' tool is sent with 'auto' tool choice. Instruct the model to use the tool in the prompt and verify that a tool call was made.",
+          "details": "toolChoice 'tool' is not supported with this model or thinking configuration. Only the 'otherTool' tool is sent with 'auto' tool choice. Instruct the model to use the tool in the prompt and verify that a tool call was made.",
           "feature": "toolChoice",
           "type": "unsupported",
         },
@@ -12984,18 +15460,44 @@ describe('claude-opus-5-5 specific behavior', () => {
     `);
   });
 
-  it('should use auto tool choice for claude-fable-5-1 when tool choice is "required"', async () => {
+  it.each(['claude-fable-5-1', 'claude-fable-5-2'])(
+    'should use auto tool choice for %s when tool choice is "required"',
+    async modelId => {
+      prepareJsonFixtureResponse('anthropic-text');
+
+      const result = await provider(modelId).doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [TEST_TOOL],
+        toolChoice: { type: 'required' },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.tool_choice).toEqual({ type: 'auto' });
+      expect(result.warnings).toHaveLength(1);
+    },
+  );
+
+  it('should remove disabled thinking for claude-fable-5-2 and warn', async () => {
     prepareJsonFixtureResponse('anthropic-text');
 
-    const result = await provider('claude-fable-5-1').doGenerate({
+    const result = await provider('claude-fable-5-2').doGenerate({
       prompt: TEST_PROMPT,
-      tools: [TEST_TOOL],
-      toolChoice: { type: 'required' },
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'disabled' },
+          effort: 'xhigh',
+        } satisfies AnthropicLanguageModelOptions,
+      },
     });
 
     const requestBody = await server.calls[0].requestBodyJson;
-    expect(requestBody.tool_choice).toEqual({ type: 'auto' });
+    expect(requestBody.thinking).toBeUndefined();
+    expect(requestBody.max_tokens).toBe(128000);
+    expect(requestBody.output_config).toEqual({ effort: 'xhigh' });
     expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toMatchObject({
+      feature: 'providerOptions.anthropic.thinking',
+    });
   });
 
   it('should still send forced tool choice for claude-opus-5', async () => {
@@ -13043,6 +15545,7 @@ describe('claude-sonnet-5-5 specific behavior', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": true,
         "rejectsForcedToolUse": true,
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": true,
@@ -13189,7 +15692,7 @@ describe('claude-sonnet-5-5 specific behavior', () => {
     });
   });
 
-  it('should map reasoning "none" to between_tools thinking', async () => {
+  it('should map reasoning "none" to between_tools thinking with a compatibility warning', async () => {
     prepareJsonFixtureResponse('anthropic-text');
 
     const result = await provider('claude-sonnet-5-5').doGenerate({
@@ -13200,7 +15703,14 @@ describe('claude-sonnet-5-5 specific behavior', () => {
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.thinking).toEqual({ type: 'between_tools' });
     expect(requestBody.output_config).toBeUndefined();
-    expect(result.warnings).toEqual([]);
+    expect(result.warnings).toEqual([
+      {
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          "reasoning 'none' is not supported by claude-sonnet-5-5; thinking cannot be disabled. Using 'between_tools' thinking, the lowest thinking setting, instead.",
+      },
+    ]);
   });
 
   it('should map reasoning "xhigh" to adaptive thinking with effort "xhigh"', async () => {
@@ -13284,6 +15794,179 @@ describe('claude-sonnet-5-5 specific behavior', () => {
   });
 });
 
+describe('claude-haiku-5-5 specific behavior', () => {
+  const server = createTestServer({
+    'https://api.anthropic.com/v1/messages': {},
+  });
+
+  function prepareJsonFixtureResponse(filename: string) {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+      ),
+    };
+  }
+
+  it('should return known capabilities that allow disabling thinking up to high effort', () => {
+    expect(getModelCapabilities('claude-haiku-5-5')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": true,
+        "rejectsForcedToolUse": false,
+        "rejectsSamplingParameters": true,
+        "rejectsThinkingDisabled": false,
+        "rejectsThinkingDisabledAboveHighEffort": true,
+        "supportsAdaptiveThinking": true,
+        "supportsBetweenToolsThinking": false,
+        "supportsStructuredOutput": true,
+        "supportsXhighEffort": true,
+      }
+    `);
+  });
+
+  it('should not warn about an unknown model and use the 128k output limit', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-haiku-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.max_tokens).toBe(128000);
+    expect(requestBody.thinking).toBeUndefined();
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should send disabled thinking at low effort', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-haiku-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'disabled' },
+          effort: 'low',
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({ type: 'disabled' });
+    expect(requestBody.output_config).toEqual({ effort: 'low' });
+    expect(result.warnings).toEqual([]);
+  });
+
+  it.each(['xhigh', 'max'] as const)(
+    'should lower effort "%s" to "high" when thinking is disabled',
+    async effort => {
+      prepareJsonFixtureResponse('anthropic-text');
+
+      const result = await provider('claude-haiku-5-5').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            thinking: { type: 'disabled' },
+            effort,
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.thinking).toEqual({ type: 'disabled' });
+      expect(requestBody.output_config).toEqual({ effort: 'high' });
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'providerOptions.anthropic.effort',
+          details: `effort '${effort}' is not supported by claude-haiku-5-5 when thinking is disabled. The effort has been lowered to 'high'.`,
+        },
+      ]);
+    },
+  );
+
+  it('should send adaptive thinking with xhigh effort', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-haiku-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'adaptive' },
+          effort: 'xhigh',
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({ type: 'adaptive' });
+    expect(requestBody.output_config).toEqual({ effort: 'xhigh' });
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should convert budget-based thinking to adaptive thinking', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-haiku-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'enabled', budgetTokens: 4000 },
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({ type: 'adaptive' });
+    expect(requestBody.thinking.budget_tokens).toBeUndefined();
+    expect(result.warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'providerOptions.anthropic.thinking',
+        details:
+          "budget-based thinking is not supported by claude-haiku-5-5. Using adaptive thinking instead. Use 'effort' to control how much the model thinks.",
+      },
+    ]);
+  });
+
+  it('should map reasoning "none" to disabled thinking', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-haiku-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'none',
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({ type: 'disabled' });
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should use native structured outputs', async () => {
+    prepareJsonFixtureResponse('anthropic-json-output-format.1');
+
+    await provider('claude-haiku-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+          required: ['name'],
+          additionalProperties: false,
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.output_config?.format).toMatchObject({
+      type: 'json_schema',
+    });
+    expect(requestBody.tools).toBeUndefined();
+  });
+});
+
 describe('computer toolset', () => {
   const server = createTestServer({
     'https://api.anthropic.com/v1/messages': {},
@@ -13295,6 +15978,226 @@ describe('computer toolset', () => {
     name: 'computer',
     args: {},
   };
+
+  function prepareMemberResponse({
+    streaming,
+    memberName = 'screenshot',
+    toolsetName = 'computer',
+    input = {},
+    partialJson = JSON.stringify(input),
+  }: {
+    streaming: boolean;
+    memberName?: string;
+    toolsetName?: string;
+    input?: Record<string, unknown>;
+    partialJson?: string;
+  }) {
+    const member = {
+      type: 'tool_use',
+      id: 'toolu_member',
+      name: memberName,
+      toolset_name: toolsetName,
+      input: streaming ? {} : input,
+    };
+    const message = {
+      id: 'msg_toolset',
+      type: 'message',
+      role: 'assistant',
+      content: streaming ? [] : [member],
+      model: 'claude-opus-5-5',
+      stop_reason: streaming ? null : 'tool_use',
+      stop_sequence: null,
+      usage: { input_tokens: 4, output_tokens: 30 },
+    };
+
+    server.urls['https://api.anthropic.com/v1/messages'].response = streaming
+      ? {
+          type: 'stream-chunks',
+          chunks: [
+            { type: 'message_start', message },
+            { type: 'content_block_start', index: 0, content_block: member },
+            {
+              type: 'content_block_delta',
+              index: 0,
+              delta: { type: 'input_json_delta', partial_json: partialJson },
+            },
+            { type: 'content_block_stop', index: 0 },
+            {
+              type: 'message_delta',
+              delta: { stop_reason: 'tool_use', stop_sequence: null },
+              usage: { output_tokens: 30 },
+            },
+            { type: 'message_stop' },
+          ].map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+        }
+      : { type: 'json-value', body: message };
+  }
+
+  it.each([false, true])(
+    'should preserve the returned member action (streaming: %s)',
+    async streaming => {
+      prepareMemberResponse({
+        streaming,
+        input: { action: 'wait', duration: 0 },
+      });
+      const options = {
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            ...computerToolset,
+            args: { configs: { wait: { enabled: false } } },
+          },
+        ],
+      };
+      const parts = streaming
+        ? await convertReadableStreamToArray(
+            (await provider('claude-opus-5-5').doStream(options)).stream,
+          )
+        : (await provider('claude-opus-5-5').doGenerate(options)).content;
+      const calls = parts.filter(part => part.type === 'tool-call');
+
+      expect(calls).toHaveLength(1);
+      expect(JSON.parse(calls[0].input)).toEqual({
+        action: 'screenshot',
+        duration: 0,
+      });
+      if (streaming) {
+        expect(parts.filter(part => part.type === 'tool-input-delta')).toEqual([
+          expect.objectContaining({ delta: calls[0].input }),
+        ]);
+      }
+    },
+  );
+
+  it.each(
+    [false, true].flatMap(streaming =>
+      ['disabled', 'unknown member', 'unknown toolset', 'undeclared'].map(
+        scenario => ({ streaming, scenario }),
+      ),
+    ),
+  )(
+    'should reject $scenario members (streaming: $streaming)',
+    async ({ streaming, scenario }) => {
+      prepareMemberResponse({
+        streaming,
+        memberName: scenario === 'unknown member' ? 'unknown' : 'screenshot',
+        toolsetName: scenario === 'unknown toolset' ? 'other' : 'computer',
+      });
+      const options = {
+        prompt: TEST_PROMPT,
+        tools:
+          scenario === 'undeclared'
+            ? []
+            : [
+                {
+                  ...computerToolset,
+                  args: {
+                    configs: {
+                      screenshot: { enabled: scenario !== 'disabled' },
+                    },
+                  },
+                },
+              ],
+      };
+
+      if (streaming) {
+        const { stream } = await provider('claude-opus-5-5').doStream(options);
+        const parts: LanguageModelV4StreamPart[] = [];
+        const reader = stream.getReader();
+        const consume = async () => {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) return;
+            parts.push(value);
+          }
+        };
+        await expect(consume()).rejects.toBeInstanceOf(
+          InvalidResponseDataError,
+        );
+        expect(parts.some(part => part.type.startsWith('tool-'))).toBe(false);
+      } else {
+        await expect(
+          provider('claude-opus-5-5').doGenerate(options),
+        ).rejects.toBeInstanceOf(InvalidResponseDataError);
+      }
+    },
+  );
+
+  it.each(['{', 'null', '[]', '"text"', '1'])(
+    'should reject invalid streamed member input (%s)',
+    async partialJson => {
+      prepareMemberResponse({ streaming: true, partialJson });
+      const { stream } = await provider('claude-opus-5-5').doStream({
+        prompt: TEST_PROMPT,
+        tools: [computerToolset],
+      });
+      await expect(convertReadableStreamToArray(stream)).rejects.toBeInstanceOf(
+        InvalidResponseDataError,
+      );
+    },
+  );
+
+  it.each([false, true])(
+    'should preserve custom tool names on thread continuation (streaming: %s)',
+    async streaming => {
+      prepareMemberResponse({ streaming });
+      const options = {
+        prompt: TEST_PROMPT,
+        tools: [{ ...computerToolset, name: 'desktop' }],
+        providerOptions: {
+          anthropic: {
+            thread: {
+              type: 'continue' as const,
+              previousMessageId: 'msg_previous',
+            },
+          },
+        },
+      };
+      const parts = streaming
+        ? await convertReadableStreamToArray(
+            (await provider('claude-opus-5-5').doStream(options)).stream,
+          )
+        : (await provider('claude-opus-5-5').doGenerate(options)).content;
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        expect.objectContaining({
+          toolName: 'desktop',
+          input: '{"action":"screenshot"}',
+        }),
+      ]);
+      expect((await server.calls[0].requestBodyJson).tools).toBeUndefined();
+    },
+  );
+
+  it.each([false, true])(
+    'should reject disabled members on thread continuation (streaming: %s)',
+    async streaming => {
+      prepareMemberResponse({ streaming });
+      const options = {
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            ...computerToolset,
+            args: { configs: { screenshot: { enabled: false } } },
+          },
+        ],
+        providerOptions: {
+          anthropic: {
+            thread: {
+              type: 'continue' as const,
+              previousMessageId: 'msg_previous',
+            },
+          },
+        },
+      };
+      const call = async () =>
+        streaming
+          ? convertReadableStreamToArray(
+              (await provider('claude-opus-5-5').doStream(options)).stream,
+            )
+          : provider('claude-opus-5-5').doGenerate(options);
+      await expect(call()).rejects.toBeInstanceOf(InvalidResponseDataError);
+    },
+  );
 
   it('should send the toolset definition without a name and map member calls to the computer tool', async () => {
     server.urls['https://api.anthropic.com/v1/messages'].response = {
@@ -13350,7 +16253,7 @@ describe('computer toolset', () => {
           "type": "text",
         },
         {
-          "input": "{"action":"left_click","coordinate":[640,60]}",
+          "input": "{"coordinate":[640,60],"action":"left_click"}",
           "providerMetadata": {
             "anthropic": {
               "toolsetName": "computer",
@@ -13361,7 +16264,7 @@ describe('computer toolset', () => {
           "type": "tool-call",
         },
         {
-          "input": "{"action":"type","text":"pictures of cats"}",
+          "input": "{"text":"pictures of cats","action":"type"}",
           "providerMetadata": {
             "anthropic": {
               "toolsetName": "computer",
@@ -13628,7 +16531,7 @@ describe('computer toolset', () => {
           "type": "tool-input-start",
         },
         {
-          "delta": "{"action":"left_click","coordinate":[640,60]}",
+          "delta": "{"coordinate":[640,60],"action":"left_click"}",
           "id": "toolu_click",
           "type": "tool-input-delta",
         },
@@ -13637,7 +16540,7 @@ describe('computer toolset', () => {
           "type": "tool-input-end",
         },
         {
-          "input": "{"action":"left_click","coordinate":[640,60]}",
+          "input": "{"coordinate":[640,60],"action":"left_click"}",
           "providerExecuted": undefined,
           "providerMetadata": {
             "anthropic": {

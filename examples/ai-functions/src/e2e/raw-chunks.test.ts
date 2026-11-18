@@ -10,8 +10,8 @@ describe('Raw Chunks E2E Tests', () => {
 
   const providers = [
     { name: 'OpenAI', model: openai('gpt-4o-mini') },
-    { name: 'Anthropic', model: anthropic('claude-haiku-4-5') },
-    { name: 'Google', model: google('gemini-2.5-flash') },
+    { name: 'Anthropic', model: anthropic('claude-haiku-5-5') },
+    { name: 'Google', model: google('gemini-4-hydrogen') },
   ];
 
   providers.forEach(({ name, model }) => {

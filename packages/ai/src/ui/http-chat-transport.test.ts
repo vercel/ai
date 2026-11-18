@@ -389,8 +389,16 @@ describe('HttpChatTransport', () => {
         api: '/api/chat#section',
         expectedApi: '/api/chat/c123/stream#section',
       },
+      {
+        api: '/api/chat/',
+        expectedApi: '/api/chat/c123/stream',
+      },
+      {
+        api: '/api/chat/?mode=demo#section',
+        expectedApi: '/api/chat/c123/stream?mode=demo#section',
+      },
     ])(
-      'should append the reconnect path before query parameters and fragments for $api',
+      'should append the reconnect path to $api without duplicate slashes',
       async ({ api, expectedApi }) => {
         let receivedApi: RequestInfo | URL | undefined;
         const transport = new MockHttpChatTransport({

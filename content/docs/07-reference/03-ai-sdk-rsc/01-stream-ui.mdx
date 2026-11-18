@@ -517,6 +517,7 @@ To see `streamUI` in action, check out [these examples](#examples).
             {
               name: 'response',
               type: 'Response',
+              isOptional: true,
               description: 'Optional response data.',
               properties: [
                 {
@@ -648,7 +649,7 @@ To see `streamUI` in action, check out [these examples](#examples).
             },
             {
               name: 'finishReason',
-              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'",
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'interrupted' | 'other'",
               description: 'The reason the model finished generating the text.',
             },
             {

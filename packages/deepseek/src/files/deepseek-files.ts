@@ -5,6 +5,8 @@ import {
   type FilesV4UploadFileResult,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
   combineHeaders,
   convertInlineFileDataToUint8Array,
   createJsonErrorResponseHandler,
@@ -25,7 +27,7 @@ import {
 interface DeepSeekFilesConfig {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 }
 
@@ -89,7 +91,9 @@ export class DeepSeekFiles implements FilesV4 {
     const fileBytes = convertInlineFileDataToUint8Array(data);
     validateFileUpload({ fileBytes, mediaType, filename });
 
-    const blob = new Blob([fileBytes], { type: mediaType });
+    const blob = new Blob([fileBytes as Uint8Array<ArrayBuffer>], {
+      type: mediaType,
+    });
 
     const formData = new FormData();
     if (filename != null) {
@@ -109,7 +113,7 @@ export class DeepSeekFiles implements FilesV4 {
 
     const { value: response } = await postFormDataToApi({
       url: `${this.config.baseURL}/files`,
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       formData,
       failedResponseHandler: deepSeekFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

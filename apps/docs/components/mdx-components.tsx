@@ -1,5 +1,5 @@
 import { createMdxComponents } from '@vercel/geistdocs/mdx';
-import { LogoIconVercel } from '@vercel/geistdocs/assets/logos';
+import { LogoIconVercelSvg } from '@vercel/geistdocs/assets/logos';
 import type { MDXComponents } from 'mdx/types';
 import type { ComponentProps, ComponentType, JSX } from 'react';
 import { ExampleLinks } from '@/components/docs/example-links';
@@ -98,7 +98,7 @@ export const getMdxComponents = ({
       <QuickstartFrameworkCards {...props} resolveHref={resolveVersionedHref} />
     ),
     Support: props => <Support {...props} resolveHref={resolveVersionedHref} />,
-    VercelIcon: LogoIconVercel,
+    VercelIcon: LogoIconVercelSvg,
     Snippet,
     Tabs,
     Tab,

@@ -75,6 +75,11 @@ describe('GoogleVertexImageModel', () => {
         supportsMaskInputs: false,
       },
       {
+        modelId: 'gemini-nano-banana-2.1',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
         modelId: 'gemini-2.5-pro',
         supportsFileInputs: undefined,
         supportsMaskInputs: undefined,

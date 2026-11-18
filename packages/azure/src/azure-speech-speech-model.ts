@@ -4,11 +4,15 @@ import {
   type SpeechModelV4,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createBinaryResponseHandler,
   extractResponseHeaders,
   postToApi,
   safeParseJSON,
+  resolve,
+  type Resolvable,
   type FetchFunction,
   type ResponseHandler,
 } from '@ai-sdk/provider-utils';
@@ -18,8 +22,8 @@ import type { AzureSpeechModelSpeechOptions } from './azure-speech-speech-model-
 
 const DEFAULT_VOICE = 'en-US-Harper';
 
-// Default voice per ISO 639-1 language; available on MAI-Voice-2 and
-// MAI-Voice-2-Flash.
+// Default voice per ISO 639-1 language; available on MAI-Voice-2,
+// MAI-Voice-2.1, and their Flash variants.
 const DEFAULT_VOICES = new Map([
   ['de', 'de-DE-Mia'],
   ['en', DEFAULT_VOICE],
@@ -62,7 +66,7 @@ export class AzureSpeechSpeechModel implements SpeechModelV4 {
     readonly modelId: string,
     private readonly config: {
       url: () => string;
-      headers: () => Record<string, string | undefined>;
+      headers: Resolvable<Record<string, string | undefined>>;
       fetch?: FetchFunction;
       _internal?: { currentDate?: () => Date };
     },
@@ -137,7 +141,7 @@ export class AzureSpeechSpeechModel implements SpeechModelV4 {
     } = await postToApi({
       url: this.config.url(),
       headers: combineHeaders(
-        this.config.headers(),
+        await resolve(this.config.headers),
         {
           'Content-Type': 'application/ssml+xml',
           'X-Microsoft-OutputFormat': outputFormat,
@@ -244,12 +248,16 @@ function resolveVoice(
     : { voice };
 }
 
-const errorSchema = z.object({
-  error: z.object({ message: z.string() }),
-});
+const errorSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      error: z.object({ message: z.string() }),
+    }),
+  ),
+);
 
-// Azure Speech answers invalid requests (unknown voice, style, or output
-// format) with an empty 400 body.
+// Azure Speech answers invalid requests (unknown voice, unsupported style, or
+// output format) with an empty 400 body.
 const failedResponseHandler: ResponseHandler<APICallError> = async ({
   response,
   url,
@@ -261,7 +269,6 @@ const failedResponseHandler: ResponseHandler<APICallError> = async ({
     text: responseBody,
     schema: errorSchema,
   });
-
   const message = parsed.success
     ? parsed.value.error.message
     : response.status === 400

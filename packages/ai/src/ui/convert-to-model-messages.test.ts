@@ -780,6 +780,107 @@ describe('convertToModelMessages', () => {
       `);
     });
 
+    it('should omit persisted output when a static tool is no longer available', async () => {
+      const historicalTool = tool({
+        inputSchema: z.object({ query: z.string() }),
+        outputSchema: z.object({
+          summary: z.string(),
+          privateMetadata: z.string(),
+        }),
+        toModelOutput: ({ output }) => ({
+          type: 'text',
+          value: output.summary,
+        }),
+      });
+
+      const history: UIMessage[] = [
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-search',
+              toolCallId: 'call-1',
+              state: 'output-available',
+              input: { query: 'weather' },
+              output: {
+                summary: 'sunny',
+                privateMetadata: 'must-not-reach-the-model',
+              },
+            },
+          ],
+        },
+      ];
+
+      const before = await convertToModelMessages(
+        await validateUIMessages({
+          messages: history,
+          tools: { search: historicalTool },
+        }),
+        { tools: { search: historicalTool } },
+      );
+
+      const validatedWithoutTool = await validateUIMessages({
+        messages: history,
+        tools: {},
+      });
+
+      expect(validatedWithoutTool[0].parts[0]).toMatchObject({
+        type: 'dynamic-tool',
+        dynamic: false,
+      });
+
+      const reloadedMessages = [
+        JSON.parse(JSON.stringify(validatedWithoutTool)) as UIMessage[],
+        structuredClone(validatedWithoutTool),
+      ];
+
+      for (const messages of reloadedMessages) {
+        const revalidatedMessages = await validateUIMessages({
+          messages,
+          tools: {},
+        });
+
+        await expect(
+          convertToModelMessages(revalidatedMessages, { tools: {} }),
+        ).resolves.toEqual([
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'search',
+                input: { query: 'weather' },
+                providerExecuted: undefined,
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'search',
+                output: {
+                  type: 'text',
+                  value:
+                    'Tool output omitted because the tool is no longer available.',
+                },
+              },
+            ],
+          },
+        ]);
+
+        await expect(
+          convertToModelMessages(revalidatedMessages, {
+            tools: { search: historicalTool },
+          }),
+        ).resolves.toEqual(before);
+      }
+    });
+
     describe('tool output error', () => {
       it('should preserve result provider metadata on a failed tool call when call metadata is unavailable', async () => {
         const result = await convertToModelMessages([
@@ -1388,6 +1489,149 @@ describe('convertToModelMessages', () => {
       ]);
 
       expect(result).toMatchSnapshot();
+    });
+  });
+
+  describe('steering messages', () => {
+    it('should add steering messages as user messages between the steps of an assistant message', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'user',
+          parts: [{ type: 'text', text: 'What is the weather in Paris?' }],
+        },
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'tool-weather',
+              state: 'output-available',
+              toolCallId: 'call-1',
+              input: { city: 'Paris' },
+              output: 'sunny',
+            },
+            {
+              type: 'steering-message',
+              id: 'steer-1',
+              parts: [
+                { type: 'text', text: 'I meant Paris, Texas.' },
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  url: 'https://example.com/map.png',
+                },
+                {
+                  type: 'file',
+                  mediaType: 'application/pdf',
+                  url: '',
+                  providerReference: { openai: 'file-1' },
+                },
+              ],
+            },
+            { type: 'step-start' },
+            { type: 'text', text: 'It is hot in Texas.', state: 'done' },
+          ],
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather in Paris?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Paris",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "text",
+                  "value": "sunny",
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+          {
+            "content": [
+              {
+                "text": "I meant Paris, Texas.",
+                "type": "text",
+              },
+              {
+                "data": {
+                  "type": "url",
+                  "url": "https://example.com/map.png",
+                },
+                "filename": undefined,
+                "mediaType": "image/png",
+                "type": "file",
+              },
+              {
+                "data": {
+                  "reference": {
+                    "openai": "file-1",
+                  },
+                  "type": "reference",
+                },
+                "filename": undefined,
+                "mediaType": "application/pdf",
+                "type": "file",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "text": "It is hot in Texas.",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should add a steering message that was received before the first step', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            {
+              type: 'steering-message',
+              id: 'steer-1',
+              parts: [{ type: 'text', text: 'Use Celsius.' }],
+            },
+            { type: 'step-start' },
+            { type: 'text', text: 'It is 20 degrees.', state: 'done' },
+          ],
+        },
+      ]);
+
+      expect(result.map(({ role }) => role)).toEqual(['user', 'assistant']);
     });
   });
 

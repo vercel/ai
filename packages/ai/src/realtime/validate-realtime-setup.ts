@@ -2,29 +2,33 @@ import { z } from '../util/zod';
 import type { RealtimeSetupResponse } from './realtime-types';
 
 const setupSchema = z.object({
-  token: z.string().refine(value => value.trim().length > 0),
-  url: z.string().refine(value => {
-    try {
-      const url = new URL(value);
-      return (
-        (url.protocol === 'ws:' || url.protocol === 'wss:') &&
-        url.hostname !== ''
-      );
-    } catch {
-      return false;
-    }
-  }),
-  expiresAt: z.number().positive().max(Number.MAX_SAFE_INTEGER).optional(),
-  tools: z
-    .array(
+  token: z.string().check(z.refine(value => value.trim().length > 0)),
+  url: z.string().check(
+    z.refine(value => {
+      try {
+        const url = new URL(value);
+        return (
+          (url.protocol === 'ws:' || url.protocol === 'wss:') &&
+          url.hostname !== ''
+        );
+      } catch {
+        return false;
+      }
+    }),
+  ),
+  expiresAt: z.optional(
+    z.number().check(z.positive()).check(z.maximum(Number.MAX_SAFE_INTEGER)),
+  ),
+  tools: z.optional(
+    z.array(
       z.object({
         type: z.literal('function'),
-        name: z.string().min(1),
-        description: z.string().optional(),
+        name: z.string().check(z.minLength(1)),
+        description: z.optional(z.string()),
         parameters: z.record(z.string(), z.unknown()),
       }),
-    )
-    .optional(),
+    ),
+  ),
 });
 
 export function validateRealtimeSetup(payload: unknown): RealtimeSetupResponse {

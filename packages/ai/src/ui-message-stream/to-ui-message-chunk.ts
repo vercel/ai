@@ -1,12 +1,21 @@
-import type { ToolSet } from '@ai-sdk/provider-utils';
+import {
+  convertUint8ArrayToBase64,
+  type ToolSet,
+  type UserModelMessage,
+} from '@ai-sdk/provider-utils';
 import type { TextStreamPart } from '../generate-text/stream-text-result';
 import { getToolCallInputSchemaInput } from '../generate-text/tool-call';
+import { convertDataContentToBase64String } from '../prompt/data-content';
+import { convertToLanguageModelV4FilePart } from '../prompt/file-part-data';
 import type {
+  FileUIPart,
   InferUIMessageData,
   InferUIMessageMetadata,
+  TextUIPart,
   UIMessage,
 } from '../ui/ui-messages';
 import { isDeepEqualData } from '../util/is-deep-equal-data';
+import { getModelToolErrorText } from './get-model-tool-error-text';
 import type { InferUIMessageChunk, UIMessageChunk } from './ui-message-chunks';
 
 export type ToUIMessageChunkOptions<
@@ -19,11 +28,17 @@ export type ToUIMessageChunkOptions<
   sendStart?: boolean;
   sendFinish?: boolean;
   /**
-   * Formats stream errors, invalid tool calls, and application-executed tool
-   * errors. Provider-executed tool execution errors bypass this callback so
-   * their original error data survives model-message round trips.
+   * Formats stream errors. Also formats invalid tool calls and
+   * application-executed tool errors when `redactToolErrors` is enabled.
+   * Provider-executed tool execution errors bypass this callback so their
+   * original error data survives model-message round trips.
    */
   onError?: (error: unknown) => string;
+  /**
+   * Replace the error text of failed tool calls with the result of `onError`.
+   * Defaults to `true` when `onError` is provided and to `false` otherwise.
+   */
+  redactToolErrors?: boolean;
   messageMetadata?: InferUIMessageMetadata<UI_MESSAGE>;
   responseMessageId?: string;
 };
@@ -45,11 +60,47 @@ export function toUIMessageChunk<
     sendSources = false,
     sendStart = true,
     sendFinish = true,
-    onError = () => 'An error occurred.', // masks errors except provider-executed tool execution errors
+    onError: onErrorOption,
+    // an existing `onError` keeps handling tool errors, as it did before
+    // tool errors stopped being redacted by default
+    redactToolErrors = onErrorOption != null,
     messageMetadata,
     responseMessageId,
   }: ToUIMessageChunkOptions<TOOLS, UI_MESSAGE> = {},
 ): InferUIMessageChunk<UI_MESSAGE> | undefined {
+  // Stream errors never reach the model, so they are masked by default.
+  const onError = onErrorOption ?? (() => 'An error occurred.');
+
+  // The error text of a failed tool call is not altered by default.
+  //
+  // In a multi-step call, the model has already received this text
+  // (`getErrorMessage(error)`, see `createToolModelOutput`) and may have
+  // reasoned about it and repeated it in its answer. The UI message is the
+  // record that `convertToModelMessages` sends back to the model on the next
+  // request. Replacing the text here
+  //
+  // - changes the message history after the fact. Models that bind reasoning
+  //   to the preceding messages (for example Anthropic models with preserved
+  //   thinking) reject such a history, and other models continue from an
+  //   error that they never received.
+  // - does not keep the text from the client, because the model's reasoning
+  //   and answer are sent to the client as well.
+  //
+  // When the call ends with the failed tool call, the model has not received
+  // the text yet, and replacing it would not change the history. The two
+  // cases cannot be told apart here: whether another step follows is decided
+  // after this chunk has been sent. Both cases use the same default.
+  //
+  // To keep error details away from the model and the client, throw a safe
+  // error from the tool's `execute` function. `redactToolErrors` restores the
+  // replacement for applications that need it.
+  //
+  // ADR: contributing/decisions/2026-11-12-keep-tool-error-text-unchanged-in-ui-messages.md
+  const getToolErrorText = (error: unknown) =>
+    redactToolErrors
+      ? onError(error)
+      : (getModelToolErrorText(error) ?? onError(error));
+
   // TODO simplify once dynamic is no longer needed for invalid tool inputs
   const isDynamic = (toolPart: { toolName: string; dynamic?: boolean }) => {
     const tool = tools?.[toolPart.toolName];
@@ -89,6 +140,7 @@ export function toUIMessageChunk<
       return {
         type: 'text-end',
         id: part.id,
+        ...(part.citations != null ? { citations: part.citations } : {}),
         ...(part.providerMetadata != null
           ? { providerMetadata: part.providerMetadata }
           : {}),
@@ -191,6 +243,9 @@ export function toUIMessageChunk<
         type: 'tool-input-start',
         toolCallId: part.id,
         toolName: part.toolName,
+        ...(part.inputEncoding != null
+          ? { inputEncoding: part.inputEncoding }
+          : {}),
         ...(part.providerExecuted != null
           ? { providerExecuted: part.providerExecuted }
           : {}),
@@ -232,7 +287,11 @@ export function toUIMessageChunk<
             ? { toolMetadata: part.toolMetadata }
             : {}),
           ...(dynamic != null ? { dynamic } : {}),
-          errorText: onError(part.error),
+          // streamText sends the model a tool result for an invalid tool call
+          // only when the tool is not provider-executed
+          errorText: part.providerExecuted
+            ? onError(part.error)
+            : getToolErrorText(part.error),
           ...(part.title != null ? { title: part.title } : {}),
         };
       }
@@ -311,8 +370,9 @@ export function toUIMessageChunk<
       const dynamic = isDynamic(part);
 
       // Preserve provider error codes for model-message round trips and harness
-      // runtime error messages. These execution errors intentionally bypass
-      // onError; invalid tool calls and stream errors still go through it.
+      // runtime error messages. Provider-executed execution errors always
+      // bypass onError. Application-executed errors keep the text that the
+      // model received unless tool errors are redacted (see getToolErrorText).
       return {
         type: 'tool-output-error',
         toolCallId: part.toolCallId,
@@ -320,7 +380,7 @@ export function toUIMessageChunk<
           ? typeof part.error === 'string'
             ? part.error
             : JSON.stringify(part.error)
-          : onError(part.error),
+          : getToolErrorText(part.error),
         ...(part.providerExecuted != null
           ? { providerExecuted: part.providerExecuted }
           : {}),
@@ -345,6 +405,14 @@ export function toUIMessageChunk<
       return {
         type: 'error',
         errorText: onError(part.error),
+      };
+    }
+
+    case 'steering-message': {
+      return {
+        type: 'steering-message',
+        id: part.id,
+        parts: convertUserMessageToUIParts(part.message),
       };
     }
 
@@ -391,6 +459,7 @@ export function toUIMessageChunk<
     }
 
     case 'tool-input-end':
+    case 'ping':
     case 'raw': {
       return undefined;
     }
@@ -400,4 +469,58 @@ export function toUIMessageChunk<
       throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
     }
   }
+}
+
+function convertUserMessageToUIParts(
+  message: UserModelMessage,
+): Array<TextUIPart | FileUIPart> {
+  if (typeof message.content === 'string') {
+    return [{ type: 'text', text: message.content }];
+  }
+
+  return message.content.map((part): TextUIPart | FileUIPart => {
+    const providerMetadata =
+      part.providerOptions != null
+        ? { providerMetadata: part.providerOptions }
+        : {};
+
+    if (part.type === 'text') {
+      return { type: 'text', text: part.text, ...providerMetadata };
+    }
+
+    const { data, mediaType: dataUrlMediaType } =
+      convertToLanguageModelV4FilePart(
+        part.type === 'image' ? part.image : part.data,
+      );
+    const mediaType = dataUrlMediaType ?? part.mediaType ?? 'image';
+    const filename = part.type === 'file' ? part.filename : undefined;
+    const file = {
+      type: 'file' as const,
+      mediaType,
+      ...(filename != null ? { filename } : {}),
+      ...providerMetadata,
+    };
+
+    switch (data.type) {
+      case 'url': {
+        return { ...file, url: data.url.toString() };
+      }
+      case 'data': {
+        return {
+          ...file,
+          url: `data:${mediaType};base64,${convertDataContentToBase64String(data.data)}`,
+        };
+      }
+      case 'text': {
+        return {
+          ...file,
+          url: `data:${mediaType};base64,${convertUint8ArrayToBase64(new TextEncoder().encode(data.text))}`,
+        };
+      }
+      case 'reference': {
+        // the provider reference takes precedence over the url in model messages:
+        return { ...file, url: '', providerReference: data.reference };
+      }
+    }
+  });
 }

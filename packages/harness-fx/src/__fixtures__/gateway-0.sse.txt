@@ -1,0 +1,23 @@
+data: {"type":"stream-start","warnings":[]}
+
+data: {"type":"response-metadata","id":"msg_011Cg2f4wGtxT8DH1q4Gd5nV","modelId":"claude-haiku-4-5-20251001"}
+
+data: {"type":"custom","kind":"anthropic.message_start","providerMetadata":{"anthropic":{"id":"msg_011Cg2f4wGtxT8DH1q4Gd5nV","model":"claude-haiku-4-5-20251001","usage":{"input_tokens":1624,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":0},"output_tokens":20,"service_tier":"standard","inference_geo":"not_available"}}}}
+
+data: {"type":"tool-input-start","id":"toolu_01KswTwrpijqi88ffraLQVsY","toolName":"bash"}
+
+data: {"type":"tool-input-delta","id":"toolu_01KswTwrpijqi88ffraLQVsY","delta":"{\"command\": \"printf"}
+
+data: {"type":"tool-input-delta","id":"toolu_01KswTwrpijqi88ffraLQVsY","delta":" LIBFX_FIXTURE"}
+
+data: {"type":"tool-input-delta","id":"toolu_01KswTwrpijqi88ffraLQVsY","delta":"\"}"}
+
+data: {"type":"tool-input-end","id":"toolu_01KswTwrpijqi88ffraLQVsY"}
+
+data: {"type":"tool-call","toolCallId":"toolu_01KswTwrpijqi88ffraLQVsY","toolName":"bash","input":"{\"command\": \"printf LIBFX_FIXTURE\"}","providerMetadata":{"anthropic":{"caller":{"type":"direct"}}}}
+
+data: {"type":"finish","finishReason":{"unified":"tool-calls","raw":"tool_use"},"usage":{"inputTokens":{"total":1624,"noCache":1624,"cacheRead":0,"cacheWrite":0},"outputTokens":{"total":59},"raw":{"input_tokens":1624,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":0},"output_tokens":59,"service_tier":"standard","inference_geo":"not_available"}},"providerMetadata":{"anthropic":{"usage":{"input_tokens":1624,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":0},"output_tokens":59,"service_tier":"standard","inference_geo":"not_available"},"stopSequence":null,"iterations":null,"container":null,"contextManagement":null},"gateway":{"routing":{"originalModelId":"anthropic/claude-haiku-4-5","resolvedProvider":"anthropic","fallbacksAvailable":["bedrock","vertexAnthropic","claudeaws"],"planningReasoning":"System credentials planned for: anthropic, bedrock, vertexAnthropic. Total execution order: anthropic(system) → bedrock(system) → vertexAnthropic(system)","canonicalSlug":"anthropic/claude-haiku-4.5","finalProvider":"anthropic","modelAttemptCount":1,"modelAttempts":[{"canonicalSlug":"anthropic/claude-haiku-4.5","success":true,"providerAttemptCount":1,"providerAttempts":[{"provider":"anthropic","credentialType":"system","success":true,"startTime":1792004981122,"endTime":1792004982131,"providerRequestId":"req_011Cg2f4vk9MAmzmUKWQXCis","statusCode":200,"providerResponseId":"msg_011Cg2f4wGtxT8DH1q4Gd5nV"}]}],"totalProviderAttemptCount":1,"affinity":{"outcome":"no_pin"},"clientSessionId":"UhLcYKQu0rR3","clientSessionIdSource":"explicit"},"cost":"0.001919","marketCost":"0.001919","surchargeCost":"0.0001","gatewayCost":"0.002019","inferenceCost":"0.001919","inputInferenceCost":"0.001624","outputInferenceCost":"0.000295","providerAllowlistCost":"0.0001","generationId":"gen_01M4XX407VPJPVS8VKBHQQTP60"}}}
+
+DONE
+
+

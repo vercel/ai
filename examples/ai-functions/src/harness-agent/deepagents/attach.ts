@@ -7,7 +7,6 @@ import {
   createVercelNetworkSandboxSession,
   resumeVercelNetworkSandboxSession,
 } from '@ai-sdk/sandbox-vercel';
-import { mintBridgeToken } from '../../lib/mint-bridge-token';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
@@ -15,7 +14,7 @@ import { run } from '../../lib/run';
 // coordinates; a fresh HarnessAgent reattaches and continues mid-conversation
 // (the in-memory conversation survives because the bridge stays alive).
 run(async () => {
-  const harness = createDeepAgents({ mintBridgeToken });
+  const harness = createDeepAgents();
   const sandboxName = `harness-${crypto.randomUUID()}`;
   const sandboxSession = await createVercelNetworkSandboxSession({
     sandboxId: sandboxName,

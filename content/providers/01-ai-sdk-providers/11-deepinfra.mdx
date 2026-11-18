@@ -1,17 +1,64 @@
 ---
 title: DeepInfra
-description: Learn how to use DeepInfra's models with the AI SDK.
+description: Learn how to use DeepInfra with AI Gateway and the direct provider.
 ---
 
 # DeepInfra Provider
 
 The [DeepInfra](https://deepinfra.com) provider contains support for state-of-the-art models through the DeepInfra API, including Llama 3, Mixtral, Qwen, and many other popular open-source models.
+Start with [AI Gateway](/providers/ai-sdk-providers/ai-gateway) for models in its catalog (recommended), or use `@ai-sdk/deepinfra` to connect directly to DeepInfra.
 
-## Setup
+```ts provider="deepinfra" model="meta/llama-4-scout"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
 
-The DeepInfra provider is available via the `@ai-sdk/deepinfra` module. You can install it with:
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  __GATEWAY_OPTIONS__,
+});
 
-<InstallPackages packages="@ai-sdk/deepinfra" />
+console.log(text);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+The example sets `providerOptions.gateway.order` to `['deepinfra']`. This sends the request to DeepInfra first, then falls back to other available providers of the same model if DeepInfra is unavailable or the request fails. `order` sets a preference; it does not restrict fallback to DeepInfra. See [provider ordering](https://vercel.com/docs/ai-gateway/models-and-providers/provider-filtering-and-ordering).
+
+The dropdown lists models served by DeepInfra through Gateway with a corresponding direct-provider example. Provider availability depends on the model and your team's [Provider Allowlist](https://vercel.com/docs/ai-gateway/models-and-providers/provider-filtering-and-ordering).
+
+## Using `@ai-sdk/deepinfra`
+
+For direct access to DeepInfra, install `ai` and `@ai-sdk/deepinfra`:
+
+<InstallPackages packages="ai @ai-sdk/deepinfra" />
+
+Set your DeepInfra API credential in the `DEEPINFRA_API_KEY` environment variable:
+
+```bash
+export DEEPINFRA_API_KEY=your_api_key_here
+```
+
+AI Gateway does not expose every API in `@ai-sdk/deepinfra`. Use the direct provider for provider-specific APIs or custom connection settings.
+
+<Note>
+  The following sections document the direct `@ai-sdk/deepinfra` provider,
+  including its model factories and settings. Gateway model and feature
+  availability can differ.
+</Note>
 
 ## Provider Instance
 
@@ -41,10 +88,13 @@ You can use the following optional settings to customize the DeepInfra provider 
   Note: Language models and embeddings use OpenAI-compatible endpoints at `{baseURL}/openai`,
   while image models use `{baseURL}/inference`.
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
 
   API key that is being sent using the `Authorization` header. It defaults to
   the `DEEPINFRA_API_KEY` environment variable.
+
+  A function is called before each request and may return a promise. Use it to
+  supply refreshed credentials; a promise value resolves to the same key each time.
 
 - **headers** _Record&lt;string,string&gt;_
 
@@ -75,32 +125,36 @@ DeepInfra language models can also be used in the `streamText` function (see [AI
 
 ## Model Capabilities
 
+{/* model-capabilities:deepinfra-language:start */}
+
 | Model                                               | Image Input | Object Generation | Tool Usage | Tool Streaming |
 | --------------------------------------------------- | ----------- | ----------------- | ---------- | -------------- |
-| `meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8` | <Check />   | <Cross />         | <Cross />  | <Cross />      |
-| `meta-llama/Llama-4-Scout-17B-16E-Instruct`         | <Check />   | <Cross />         | <Cross />  | <Cross />      |
+| `deepseek-ai/DeepSeek-V3`                           | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `deepseek-ai/DeepSeek-R1`                           | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
+| `deepseek-ai/DeepSeek-R1-Distill-Llama-70B`         | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
+| `deepseek-ai/DeepSeek-R1-Turbo`                     | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
+| `google/codegemma-7b-it`                            | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
+| `google/gemma-2-9b-it`                              | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
+| `meta-llama/Llama-3.2-11B-Vision-Instruct`          | <Check />   | <Check />         | <Cross />  | <Cross />      |
+| `meta-llama/Llama-3.2-90B-Vision-Instruct`          | <Check />   | <Check />         | <Cross />  | <Cross />      |
 | `meta-llama/Llama-3.3-70B-Instruct-Turbo`           | <Cross />   | <Check />         | <Check />  | <Check />      |
 | `meta-llama/Llama-3.3-70B-Instruct`                 | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8` | <Check />   | <Cross />         | <Cross />  | <Cross />      |
+| `meta-llama/Llama-4-Scout-17B-16E-Instruct`         | <Check />   | <Cross />         | <Cross />  | <Cross />      |
 | `meta-llama/Meta-Llama-3.1-405B-Instruct`           | <Cross />   | <Check />         | <Check />  | <Check />      |
 | `meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo`      | <Cross />   | <Check />         | <Check />  | <Check />      |
 | `meta-llama/Meta-Llama-3.1-70B-Instruct`            | <Cross />   | <Check />         | <Check />  | <Check />      |
 | `meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo`       | <Cross />   | <Check />         | <Check />  | <Cross />      |
 | `meta-llama/Meta-Llama-3.1-8B-Instruct`             | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `meta-llama/Llama-3.2-11B-Vision-Instruct`          | <Check />   | <Check />         | <Cross />  | <Cross />      |
-| `meta-llama/Llama-3.2-90B-Vision-Instruct`          | <Check />   | <Check />         | <Cross />  | <Cross />      |
+| `microsoft/WizardLM-2-8x22B`                        | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
 | `mistralai/Mixtral-8x7B-Instruct-v0.1`              | <Cross />   | <Check />         | <Check />  | <Cross />      |
-| `deepseek-ai/DeepSeek-V3`                           | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `deepseek-ai/DeepSeek-R1`                           | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
-| `deepseek-ai/DeepSeek-R1-Distill-Llama-70B`         | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
-| `deepseek-ai/DeepSeek-R1-Turbo`                     | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
 | `nvidia/Llama-3.1-Nemotron-70B-Instruct`            | <Cross />   | <Check />         | <Check />  | <Cross />      |
 | `Qwen/Qwen2-7B-Instruct`                            | <Cross />   | <Check />         | <Cross />  | <Cross />      |
 | `Qwen/Qwen2.5-72B-Instruct`                         | <Cross />   | <Check />         | <Check />  | <Check />      |
 | `Qwen/Qwen2.5-Coder-32B-Instruct`                   | <Cross />   | <Check />         | <Cross />  | <Cross />      |
 | `Qwen/QwQ-32B-Preview`                              | <Cross />   | <Check />         | <Cross />  | <Cross />      |
-| `google/codegemma-7b-it`                            | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
-| `google/gemma-2-9b-it`                              | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
-| `microsoft/WizardLM-2-8x22B`                        | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
+
+{/* model-capabilities:deepinfra-language:end */}
 
 <Note>
   The table above lists popular models. Please see the [DeepInfra
@@ -197,6 +251,13 @@ type them with `DeepInfraImageModelOptions`.
 
 DeepInfra supports image editing through models like `Qwen/Qwen-Image-Edit`. Pass input images via `prompt.images` to transform or edit existing images.
 
+<Note type="warning">
+  The provider downloads remote input images and masks before uploading them to
+  DeepInfra, using the `fetch` option of `createDeepInfra`. For untrusted URLs
+  on Node.js, pass a `guarded-fetch` transport there. See [Secure URL
+  Fetching](/docs/advanced/secure-url-fetching#opt-in-dns-protection-on-nodejs).
+</Note>
+
 #### Basic Image Editing
 
 Transform an existing image using text prompts:
@@ -266,17 +327,22 @@ For models supporting size parameters, dimensions must typically be:
 - Width and height between 256 and 1440 pixels
 - Default size is 1024x1024
 
-| Model                                  | Dimensions Specification | Notes                                                    |
-| -------------------------------------- | ------------------------ | -------------------------------------------------------- |
-| `stabilityai/sd3.5`                    | Aspect Ratio             | Premium quality base model, 8B parameters                |
-| `black-forest-labs/FLUX-1.1-pro`       | Size                     | Latest state-of-art model with superior prompt following |
-| `black-forest-labs/FLUX-1-schnell`     | Size                     | Fast generation in 1-4 steps                             |
-| `black-forest-labs/FLUX-1-dev`         | Size                     | Optimized for anatomical accuracy                        |
-| `black-forest-labs/FLUX-pro`           | Size                     | Flagship Flux model                                      |
-| `black-forest-labs/FLUX.1-Kontext-dev` | Size                     | Image editing and transformation model                   |
-| `black-forest-labs/FLUX.1-Kontext-pro` | Size                     | Professional image editing and transformation            |
-| `stabilityai/sd3.5-medium`             | Aspect Ratio             | Balanced 2.5B parameter model                            |
-| `stabilityai/sdxl-turbo`               | Aspect Ratio             | Optimized for fast generation                            |
+{/* model-capabilities:deepinfra-image:start */}
+
+| Model                                  | Dimensions Specification | Notes                                                    | Image Editing | Mask Input | Max Images Per Call |
+| -------------------------------------- | ------------------------ | -------------------------------------------------------- | ------------- | ---------- | ------------------- |
+| `stabilityai/sd3.5`                    | Aspect Ratio             | Premium quality base model, 8B parameters                | <Check />     | <Check />  | 1                   |
+| `black-forest-labs/FLUX-1.1-pro`       | Size                     | Latest state-of-art model with superior prompt following | <Check />     | <Check />  | 1                   |
+| `black-forest-labs/FLUX-1-schnell`     | Size                     | Fast generation in 1-4 steps                             | <Check />     | <Check />  | 1                   |
+| `black-forest-labs/FLUX-1-dev`         | Size                     | Optimized for anatomical accuracy                        | <Check />     | <Check />  | 1                   |
+| `black-forest-labs/FLUX-pro`           | Size                     | Flagship Flux model                                      | <Check />     | <Check />  | 1                   |
+| `black-forest-labs/FLUX.1-Kontext-dev` | Size                     | Image editing and transformation model                   | <Check />     | <Check />  | 1                   |
+| `black-forest-labs/FLUX.1-Kontext-pro` | Size                     | Professional image editing and transformation            | <Check />     | <Check />  | 1                   |
+| `stabilityai/sd3.5-medium`             | Aspect Ratio             | Balanced 2.5B parameter model                            | <Check />     | <Check />  | 1                   |
+| `stabilityai/sdxl-turbo`               | Aspect Ratio             | Optimized for fast generation                            | <Check />     | <Check />  | 1                   |
+| `Qwen/Qwen-Image-Edit`                 | Not declared             | Not declared                                             | <Check />     | <Check />  | 1                   |
+
+{/* model-capabilities:deepinfra-image:end */}
 
 For more details and pricing information, see the [DeepInfra text-to-image models page](https://deepinfra.com/models/text-to-image).
 
@@ -297,6 +363,8 @@ const { embedding } = await embed({
 
 ### Model Capabilities
 
+{/* model-capabilities:deepinfra-embedding:start */}
+
 | Model                                                 | Dimensions | Max Tokens |
 | ----------------------------------------------------- | ---------- | ---------- |
 | `BAAI/bge-base-en-v1.5`                               | 768        | 512        |
@@ -316,7 +384,37 @@ const { embedding } = await embed({
 | `thenlper/gte-base`                                   | 768        | 512        |
 | `thenlper/gte-large`                                  | 1024       | 512        |
 
+{/* model-capabilities:deepinfra-embedding:end */}
+
 <Note>
   For a complete list of available embedding models, see the [DeepInfra
   embeddings page](https://deepinfra.com/models/embeddings).
 </Note>
+
+## Provider Option Reference
+
+The following option definitions are generated from the provider catalog.
+
+{/* model-capabilities:deepinfra-provider-options:start */}
+
+| Operation | Option                | Description                                                                                                                                                                                                    |
+| --------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| embedding | `dimensions`          | The number of dimensions the resulting output embeddings should have. Only supported in text-embedding-3 and later models.                                                                                     |
+| embedding | `user`                | A unique identifier representing your end-user, which can help providers to monitor and detect abuse.                                                                                                          |
+| language  | `user`                | A unique identifier representing your end-user, which can help providers to monitor and detect abuse.                                                                                                          |
+| language  | `reasoningEffort`     | Reasoning effort for reasoning models. Defaults to `medium`. Set to `null` to send `"reasoning_effort": null`, for providers that treat an explicit `null` differently from an omitted field.                  |
+| language  | `textVerbosity`       | Controls the verbosity of the generated text. Defaults to `medium`.                                                                                                                                            |
+| language  | `strictJsonSchema`    | Whether to use strict JSON schema validation. When true, the model uses constrained decoding to guarantee schema compliance. Only used when the provider supports structured outputs and a schema is provided. |
+| language  | `echo`                | Echo back the prompt in addition to the completion.                                                                                                                                                            |
+| language  | `logitBias`           | Modify the likelihood of specified tokens appearing in the completion. Accepts a JSON object that maps tokens (specified by their token ID in the GPT tokenizer) to an associated bias value from -100 to 100. |
+| language  | `suffix`              | The suffix that comes after a completion of inserted text.                                                                                                                                                     |
+| image     | `negative_prompt`     | negative_prompt                                                                                                                                                                                                |
+| image     | `num_inference_steps` | num_inference_steps                                                                                                                                                                                            |
+| image     | `guidance_scale`      | guidance_scale                                                                                                                                                                                                 |
+| image     | `guidance`            | guidance                                                                                                                                                                                                       |
+| image     | `response_format`     | response_format                                                                                                                                                                                                |
+| image     | `quality`             | quality                                                                                                                                                                                                        |
+| image     | `style`               | style                                                                                                                                                                                                          |
+| image     | `user`                | user                                                                                                                                                                                                           |
+
+{/* model-capabilities:deepinfra-provider-options:end */}

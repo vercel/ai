@@ -15,6 +15,7 @@ import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import type { EmbedEndEvent, EmbedStartEvent } from './embed-events';
+import { validateEmbeddingDimensions } from './validate-embedding-dimensions';
 import type { EmbedResult } from './embed-result';
 
 const originalGenerateCallId = createIdGenerator({
@@ -27,6 +28,8 @@ const originalGenerateCallId = createIdGenerator({
  *
  * @param model - The embedding model to use.
  * @param value - The value that should be embedded.
+ *
+ * @param dimensions - Requested output dimensions. Must be a positive integer. Requires provider support.
  *
  * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
@@ -44,6 +47,7 @@ const originalGenerateCallId = createIdGenerator({
 export async function embed<RUNTIME_CONTEXT extends Context = Context>({
   model: modelArg,
   value,
+  dimensions,
   providerOptions,
   maxRetries: maxRetriesArg,
   abortSignal,
@@ -66,6 +70,13 @@ export async function embed<RUNTIME_CONTEXT extends Context = Context>({
    * The value that should be embedded.
    */
   value: string;
+
+  /**
+   * The requested number of dimensions for the output embeddings.
+   * Must be a positive integer. Support and allowed values depend on the model
+   * and provider implementation.
+   */
+  dimensions?: number;
 
   /**
    * Maximum number of retries per embedding model call. Set to 0 to disable retries.
@@ -144,6 +155,8 @@ export async function embed<RUNTIME_CONTEXT extends Context = Context>({
     generateCallId?: () => string;
   };
 }): Promise<EmbedResult> {
+  validateEmbeddingDimensions(dimensions);
+
   const model = resolveEmbeddingModel(modelArg);
 
   const { maxRetries, retry } = prepareRetries({
@@ -176,6 +189,7 @@ export async function embed<RUNTIME_CONTEXT extends Context = Context>({
     provider: model.provider,
     modelId: model.modelId,
     value,
+    dimensions,
     maxRetries,
     headers: headersWithUserAgent,
     providerOptions,
@@ -203,12 +217,14 @@ export async function embed<RUNTIME_CONTEXT extends Context = Context>({
                 provider: model.provider,
                 modelId: model.modelId,
                 values: [value],
+                dimensions,
               },
               callbacks: [telemetryDispatcher.onEmbedStart],
             });
 
             const modelResponse = await model.doEmbed({
               values: [value],
+              dimensions,
               abortSignal,
               headers: headersWithUserAgent,
               providerOptions,

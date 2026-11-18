@@ -2,9 +2,9 @@ import {
   sandboxAgent,
   type SandboxAgentUIMessage,
 } from '@/agent/openai/sandbox-agent';
+import { createVercelNetworkSandboxSessionFromNativeSandbox } from '@ai-sdk/sandbox-vercel';
 import { createAgentUIStreamResponse } from 'ai';
 import { Sandbox } from '@vercel/sandbox';
-import { VercelSandboxSession } from '@/sandbox/vercel-sandbox';
 
 async function getSandbox(sandboxName?: string) {
   if (sandboxName != null) {
@@ -31,7 +31,8 @@ export async function POST(req: Request) {
 
   const vercelSandbox = await getSandbox(getLatestSandboxName(messages));
 
-  const sandbox = new VercelSandboxSession(vercelSandbox);
+  const sandbox =
+    createVercelNetworkSandboxSessionFromNativeSandbox(vercelSandbox);
 
   return createAgentUIStreamResponse({
     agent: sandboxAgent,

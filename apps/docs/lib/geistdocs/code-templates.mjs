@@ -1,4 +1,8 @@
-import { hasCodeTemplate, renderGatewayCode } from '../code-template.mjs';
+import {
+  hasCodeTemplate,
+  parseCodeTemplateOptions,
+  renderGatewayCode,
+} from '../code-template.mjs';
 
 const visit = (node, transform) => {
   transform(node);
@@ -17,7 +21,7 @@ export const remarkCodeTemplates = () => tree => {
       'data-code-language': node.lang ?? 'typescript',
       'data-code-meta': node.meta ?? '',
     };
-    node.value = renderGatewayCode(node.value);
+    node.value = renderGatewayCode(node.value, parseCodeTemplateOptions(node.meta));
   });
 };
 

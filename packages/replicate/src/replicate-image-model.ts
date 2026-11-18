@@ -1,9 +1,16 @@
 import {
+  getReplicateImageModelEntry,
+  MAX_FLUX_2_INPUT_IMAGES,
+} from './replicate-model-catalog';
+import {
   InvalidResponseDataError,
   type ImageModelV4,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   combineHeaders,
   convertImageModelFileToDataUri,
   createBinaryResponseHandler,
@@ -20,6 +27,7 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { cancelReplicatePrediction } from './cancel-prediction';
 import { replicateFailedResponseHandler } from './replicate-error';
 import { replicateImageModelOptionsSchema } from './replicate-image-model-options';
 import type { ReplicateImageModelId } from './replicate-image-settings';
@@ -38,39 +46,25 @@ interface ReplicateImageModelConfig {
 }
 
 // Flux-2 models support up to 8 input images with input_image, input_image_2, etc.
-const FLUX_2_MODEL_PATTERN = /^black-forest-labs\/flux-2-/;
-const MAX_FLUX_2_INPUT_IMAGES = 8;
 
 export class ReplicateImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
 
   get maxImagesPerCall(): number {
-    // Flux-2 models support up to 8 input images
-    return this.isFlux2Model ? MAX_FLUX_2_INPUT_IMAGES : 1;
+    return getReplicateImageModelEntry(this.modelId).capabilities.image
+      .maxImagesPerCall;
   }
 
   get supportsFileInputs(): boolean | undefined {
-    if (
-      this.modelId === 'black-forest-labs/flux-2-pro' ||
-      this.modelId === 'black-forest-labs/flux-2-dev' ||
-      this.modelId === 'black-forest-labs/flux-fill-pro' ||
-      this.modelId === 'black-forest-labs/flux-fill-dev'
-    ) {
-      return true;
-    }
-
-    return undefined;
+    const support = getReplicateImageModelEntry(this.modelId).capabilities.image
+      .fileInput;
+    return support === 'unknown' ? undefined : support;
   }
 
   get supportsMaskInputs(): boolean | undefined {
-    if (
-      this.modelId === 'black-forest-labs/flux-fill-pro' ||
-      this.modelId === 'black-forest-labs/flux-fill-dev'
-    ) {
-      return true;
-    }
-
-    return this.supportsFileInputs === true ? false : undefined;
+    const support = getReplicateImageModelEntry(this.modelId).capabilities.image
+      .maskInput;
+    return support === 'unknown' ? undefined : support;
   }
 
   get provider(): string {
@@ -78,7 +72,8 @@ export class ReplicateImageModel implements ImageModelV4 {
   }
 
   private get isFlux2Model(): boolean {
-    return FLUX_2_MODEL_PATTERN.test(this.modelId);
+    return getReplicateImageModelEntry(this.modelId).requestConfig.image
+      .isFlux2Model;
   }
 
   static [WORKFLOW_SERIALIZE](model: ReplicateImageModel) {
@@ -189,9 +184,8 @@ export class ReplicateImageModel implements ImageModelV4 {
         ? { prefer: `wait=${maxWaitTimeInSeconds}` }
         : { prefer: 'wait' };
 
-    const resolvedHeaders = this.config.headers
-      ? await resolve(this.config.headers)
-      : undefined;
+    const getHeaders = async () =>
+      combineHeaders(await resolve(this.config.headers), headers);
 
     const { value: initialPrediction, responseHeaders } = await postJsonToApi({
       url:
@@ -200,7 +194,7 @@ export class ReplicateImageModel implements ImageModelV4 {
           ? `${this.config.baseURL}/predictions`
           : `${this.config.baseURL}/models/${modelId}/predictions`,
 
-      headers: combineHeaders(resolvedHeaders, headers, preferHeader),
+      headers: combineHeaders(await getHeaders(), preferHeader),
 
       body: {
         input: {
@@ -227,7 +221,7 @@ export class ReplicateImageModel implements ImageModelV4 {
 
     const prediction = await this.pollPrediction({
       prediction: initialPrediction,
-      headers: combineHeaders(resolvedHeaders, headers),
+      headers: getHeaders,
       pollIntervalMillis: pollIntervalMillis ?? DEFAULT_POLL_INTERVAL_MILLIS,
       maxPollAttempts: maxPollAttempts ?? DEFAULT_MAX_POLL_ATTEMPTS,
       abortSignal,
@@ -279,7 +273,7 @@ export class ReplicateImageModel implements ImageModelV4 {
     abortSignal,
   }: {
     prediction: ReplicateImagePrediction;
-    headers: Record<string, string | undefined>;
+    headers: Resolvable<Record<string, string | undefined>>;
     pollIntervalMillis: number;
     maxPollAttempts: number;
     abortSignal: AbortSignal | undefined;
@@ -293,23 +287,33 @@ export class ReplicateImageModel implements ImageModelV4 {
         return completedPrediction;
       }
 
-      const { value } = await getFromApi({
-        url: currentPrediction.urls.get,
-        validateUrl: true,
-        credentialedOrigin: this.config.baseURL,
-        trustedOrigin: this.config.baseURL,
-        headers,
-        successfulResponseHandler: createJsonResponseHandler(
-          replicateImageResponseSchema,
-        ),
-        failedResponseHandler: replicateFailedResponseHandler,
-        abortSignal,
-        fetch: this.config.fetch,
-      });
-      currentPrediction = value;
+      try {
+        const { value } = await getFromApi({
+          url: currentPrediction.urls.get,
+          validateUrl: true,
+          credentialedOrigin: this.config.baseURL,
+          trustedOrigin: this.config.baseURL,
+          headers: await resolve(headers),
+          successfulResponseHandler: createJsonResponseHandler(
+            replicateImageResponseSchema,
+          ),
+          failedResponseHandler: replicateFailedResponseHandler,
+          abortSignal,
+          fetch: this.config.fetch,
+        });
+        currentPrediction = value;
 
-      if (i < maxPollAttempts - 1) {
-        await delay(pollIntervalMillis, { abortSignal });
+        if (i < maxPollAttempts - 1) {
+          await delay(pollIntervalMillis, { abortSignal });
+        }
+      } catch (error) {
+        // The caller aborted: cancel the prediction so it does not keep
+        // running (and billing) on Replicate after we return.
+        if (abortSignal?.aborted) {
+          this.cancelPrediction(currentPrediction);
+        }
+
+        throw error;
       }
     }
 
@@ -318,9 +322,23 @@ export class ReplicateImageModel implements ImageModelV4 {
       return completedPrediction;
     }
 
+    // Polling gave up: cancel the prediction instead of leaving it running.
+    this.cancelPrediction(currentPrediction);
+
     throw new Error(
       `Replicate image generation did not complete after ${maxPollAttempts} polling attempts.`,
     );
+  }
+
+  private cancelPrediction(prediction: ReplicateImagePrediction): void {
+    // Fire-and-forget: cancellation must never mask, replace, or delay the
+    // abort or timeout error that is about to be thrown.
+    void cancelReplicatePrediction({
+      baseURL: this.config.baseURL,
+      predictionId: prediction.id,
+      headers: this.config.headers,
+      fetch: this.config.fetch,
+    }).catch(() => {});
   }
 
   private getCompletedPrediction(
@@ -339,13 +357,26 @@ export class ReplicateImageModel implements ImageModelV4 {
   }
 }
 
-const replicateImageResponseSchema = z.object({
-  status: z.enum(['starting', 'processing', 'succeeded', 'failed', 'canceled']),
-  output: z.union([z.array(z.string()), z.string()]).nullish(),
-  error: z.string().nullish(),
-  urls: z.object({
-    get: z.string(),
-  }),
-});
+const replicateImageResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      id: z.string(),
+      status: z.enum([
+        'starting',
+        'processing',
+        'succeeded',
+        'failed',
+        'canceled',
+      ]),
+      output: z.union([z.array(z.string()), z.string()]).nullish(),
+      error: z.string().nullish(),
+      urls: z.object({
+        get: z.string(),
+      }),
+    }),
+  ),
+);
 
-type ReplicateImagePrediction = z.infer<typeof replicateImageResponseSchema>;
+type ReplicateImagePrediction = InferSchema<
+  typeof replicateImageResponseSchema
+>;

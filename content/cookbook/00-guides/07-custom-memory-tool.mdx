@@ -239,7 +239,7 @@ import { ToolLoopAgent } from 'ai';
 const today = new Date().toISOString().slice(0, 10);
 
 const memoryAgent = new ToolLoopAgent({
-  model: 'anthropic/claude-haiku-4.5',
+  model: 'anthropic/claude-haiku-5.5',
   tools: { memory: memoryTool },
   prepareCall: async settings => {
     // user-defined function fetches the contents of /.memory/core.md on every turn

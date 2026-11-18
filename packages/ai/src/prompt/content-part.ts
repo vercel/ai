@@ -1,5 +1,7 @@
 import {
   isBuffer,
+  isUint8Array,
+  isArrayBuffer,
   type CustomPart,
   type DataContent,
   type FilePart,
@@ -15,12 +17,12 @@ import {
 } from '@ai-sdk/provider-utils';
 import { jsonValueSchema } from '../types/json-value';
 import { providerMetadataSchema } from '../types/provider-metadata';
-import { z, type ZodType } from '../util/zod';
+import { z, type ZodType } from '../util/classic-zod';
 
 const fileInlineDataSchema: ZodType<DataContent> = z.union([
   z.string(),
-  z.instanceof(Uint8Array),
-  z.instanceof(ArrayBuffer),
+  z.custom<Uint8Array>(isUint8Array, { message: 'Must be a Uint8Array' }),
+  z.custom<ArrayBuffer>(isArrayBuffer, { message: 'Must be an ArrayBuffer' }),
   z.custom<Buffer>(isBuffer, { message: 'Must be a Buffer' }),
 ]);
 

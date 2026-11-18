@@ -1,183 +1,54 @@
 import type {
-  JSONObject,
-  LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
-  LanguageModelV4Source,
-  LanguageModelV4StreamPart,
   SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
-import { asArray, isAbortError } from '@ai-sdk/provider-utils';
 import {
   experimental_streamLanguageModelCall as streamModelCall,
   gateway,
-  wrapLanguageModel,
-  type Experimental_LanguageModelStreamPart,
-  type FinishReason,
+  NoOutputGeneratedError,
   type LanguageModel,
-  type LanguageModelUsage,
-  type ModelMessage,
-  type StopCondition,
-  type ToolCallRepairFunction,
-  type ToolChoice,
   type ToolSet,
 } from 'ai';
-import { prepareRetries } from 'ai/internal';
-import type { ProviderOptions, StreamTextTransform } from './workflow-agent.js';
+import { isOutputChunk, logWarnings, prepareRetries } from 'ai/internal';
+import { languageModelPromptToModelMessages } from './language-model-prompt-to-model-messages.js';
+import {
+  createModelCallTimeouts,
+  readUntilAborted,
+} from './model-call-timeouts.js';
 import {
   resolveSerializableTools,
   type SerializableToolDef,
 } from './serializable-schema.js';
+import {
+  runModelCallWithTelemetry,
+  type LanguageModelCallTelemetry,
+} from './model-call-telemetry.js';
 
-export type ModelCallStreamPart<TTools extends ToolSet = ToolSet> =
-  | Experimental_LanguageModelStreamPart<TTools>
-  | {
-      type: 'tool-approval-request';
-      approvalId: string;
-      toolCallId: string;
-      signature?: string;
-    }
-  | { type: 'reset-step' };
+import type {
+  ModelCallFinish as StreamFinish,
+  ModelCallOptions as DoStreamStepOptions,
+  ModelCallPerformance,
+  ModelCallRawContentPart as DoStreamStepRawContentPart,
+  ModelCallResult as DoStreamStepResult,
+  ModelCallStreamPart,
+  ParsedToolCall,
+  ProviderExecutedToolResult,
+  ToolInputLifecycleEvent,
+} from './model-call.js';
 
-export type ModelStopCondition = StopCondition<NoInfer<ToolSet>, any>;
-
-/**
- * Provider-executed tool result captured from the stream.
- */
-export interface ProviderExecutedToolResult {
-  toolCallId: string;
-  toolName: string;
-  result: unknown;
-  isError?: boolean;
-  dynamic?: boolean;
-  providerMetadata?: SharedV4ProviderMetadata;
-}
-
-/**
- * Options for the doStreamStep function.
- */
-export interface DoStreamStepOptions {
-  maxOutputTokens?: number;
-  temperature?: number;
-  topP?: number;
-  topK?: number;
-  presencePenalty?: number;
-  frequencyPenalty?: number;
-  stopSequences?: string[];
-  seed?: number;
-  maxRetries?: number;
-  abortSignal?: AbortSignal;
-  timeoutAt?: number;
-  headers?: Record<string, string | undefined>;
-  reasoning?: LanguageModelV4CallOptions['reasoning'];
-  providerOptions?: ProviderOptions;
-  toolChoice?: ToolChoice<ToolSet>;
-  includeRawChunks?: boolean;
-  repairToolCall?: ToolCallRepairFunction<ToolSet>;
-  responseFormat?: LanguageModelV4CallOptions['responseFormat'];
-  experimental_transform?:
-    | StreamTextTransform<ToolSet>
-    | Array<StreamTextTransform<ToolSet>>;
-}
-
-/**
- * Parsed tool call from the stream (parsed by streamModelCall's transform).
- */
-export interface ParsedToolCall {
-  type: 'tool-call';
-  toolCallId: string;
-  toolName: string;
-  input: unknown;
-  providerExecuted?: boolean;
-  providerMetadata?: SharedV4ProviderMetadata;
-  title?: string;
-  toolMetadata?: JSONObject;
-  dynamic?: boolean;
-  invalid?: boolean;
-  error?: unknown;
-}
-
-/**
- * Finish metadata from the stream.
- */
-export interface StreamFinish {
-  finishReason: FinishReason;
-  rawFinishReason: string | undefined;
-  usage: LanguageModelUsage;
-  providerMetadata?: Record<string, unknown>;
-}
-
-export type DoStreamStepRawContentPart =
-  | {
-      type: 'text';
-      text: string;
-      providerMetadata?: SharedV4ProviderMetadata;
-    }
-  | {
-      type: 'reasoning';
-      reasoningIndex: number;
-    }
-  | {
-      type: 'file';
-      data: string;
-      mediaType: string;
-      providerMetadata?: SharedV4ProviderMetadata;
-    }
-  | LanguageModelV4Source
-  | {
-      type: 'tool-call';
-      toolCallIndex: number;
-    }
-  | {
-      type: 'provider-tool-result';
-      toolCallId: string;
-    };
-
-/**
- * Compact callback replay data. The start event establishes the tool name for
- * a call, so delta events do not repeat it and available events reuse the
- * parsed input already present in `toolCalls`.
- */
-export type ToolInputLifecycleEvent =
-  | ['start', toolCallId: string, toolName: string]
-  | ['delta', toolCallId: string, inputTextDelta: string]
-  | ['available', toolCallId: string];
-
-/**
- * Minimal aggregates needed to reconstruct a `StepResult` outside the step
- * boundary. By returning only these fields (instead of a fully-populated
- * StepResult plus the raw `chunks[]` array), the durable event log doesn't
- * carry StepResult's redundant derived fields — duplicate tool-call lists,
- * `text`, `files`, `sources`, `reasoningText`, or the tool-result arrays
- * populated after execution. It also avoids the per-chunk `chunks[]` snapshot
- * the iterator never reads. The caller reconstructs the full StepResult via
- * `buildStepResult`.
- */
-export interface DoStreamStepRawResult {
-  content: DoStreamStepRawContentPart[];
-  reasoning: Array<{
-    text: string;
-    providerMetadata?: SharedV4ProviderMetadata;
-  }>;
-  responseMetadata?: { id?: string; timestamp?: Date; modelId?: string };
-  warnings?: unknown[];
-}
-
-export type DoStreamStepResult =
-  | { aborted: true }
-  | {
-      aborted?: false;
-      toolCalls: ParsedToolCall[];
-      finish: StreamFinish | undefined;
-      raw: DoStreamStepRawResult;
-      providerExecutedToolResults: Map<string, ProviderExecutedToolResult>;
-      /**
-       * Optional for compatibility with model-step results persisted before
-       * tool input lifecycle callback replay was added.
-       */
-      toolInputLifecycleEvents?: ToolInputLifecycleEvent[];
-      /** Present when the model stream emitted an error part. */
-      terminalError?: unknown;
-    };
+// Preserve existing imports while the durable step keeps its name and payload.
+export type {
+  ModelCallFinish as StreamFinish,
+  ModelCallOptions as DoStreamStepOptions,
+  ModelCallRawContentPart as DoStreamStepRawContentPart,
+  ModelCallRawResult as DoStreamStepRawResult,
+  ModelCallResult as DoStreamStepResult,
+  ModelCallStreamPart,
+  ModelStopCondition,
+  ParsedToolCall,
+  ProviderExecutedToolResult,
+  ToolInputLifecycleEvent,
+} from './model-call.js';
 
 export async function doStreamStep(
   conversationPrompt: LanguageModelV4Prompt,
@@ -188,6 +59,33 @@ export async function doStreamStep(
 ): Promise<DoStreamStepResult> {
   'use step';
 
+  return runModelCallWithTelemetry({
+    telemetry: options?.telemetry,
+    serializedTools,
+    execute: languageModelCallTelemetry =>
+      streamModelStep(
+        conversationPrompt,
+        modelInit,
+        writable,
+        serializedTools,
+        options,
+        languageModelCallTelemetry,
+      ),
+  });
+}
+
+// Model-call retries are handled below so the workflow runtime must not add
+// another retry layer around the durable step.
+doStreamStep.maxRetries = 0;
+
+async function streamModelStep(
+  conversationPrompt: LanguageModelV4Prompt,
+  modelInit: LanguageModel,
+  writable: WritableStream<ModelCallStreamPart<ToolSet>> | undefined,
+  serializedTools: Record<string, SerializableToolDef> | undefined,
+  options: DoStreamStepOptions | undefined,
+  languageModelCallTelemetry: LanguageModelCallTelemetry | undefined,
+): Promise<DoStreamStepResult> {
   const timeout =
     options?.timeoutAt == null ? undefined : options.timeoutAt - Date.now();
 
@@ -198,12 +96,21 @@ export async function doStreamStep(
     return { aborted: true };
   }
 
-  const abortSignal =
+  const callAbortSignal =
     timeout == null
       ? options?.abortSignal
       : options?.abortSignal == null
         ? AbortSignal.timeout(timeout)
         : AbortSignal.any([options.abortSignal, AbortSignal.timeout(timeout)]);
+
+  // The step, first-chunk, and chunk timeouts apply to this model call only.
+  const timeouts = createModelCallTimeouts({
+    abortSignal: callAbortSignal,
+    stepTimeoutMs: options?.stepTimeoutMs,
+    firstChunkTimeoutMs: options?.firstChunkTimeoutMs,
+    chunkTimeoutMs: options?.chunkTimeoutMs,
+  });
+  const abortSignal = timeouts.abortSignal;
 
   // Resolve model inside step (must happen here for serialization boundary)
   const model =
@@ -215,31 +122,20 @@ export async function doStreamStep(
   // Tools are serialized before crossing the step boundary because zod schemas
   // contain functions that can't be serialized by the workflow runtime.
   const toolInputLifecycleEvents: ToolInputLifecycleEvent[] = [];
+  const repairedToolCallIds = new Set<string>();
+  const repairToolCall = options?.repairToolCall;
+  const trackedRepairToolCall = repairToolCall
+    ? async (repairOptions: Parameters<typeof repairToolCall>[0]) => {
+        const repaired = await repairToolCall(repairOptions);
+        if (repaired != null) {
+          repairedToolCallIds.add(repairOptions.toolCall.toolCallId);
+        }
+        return repaired;
+      }
+    : undefined;
   const tools = serializedTools
     ? resolveSerializableTools(serializedTools)
     : undefined;
-  const modelWithTransforms =
-    options?.experimental_transform == null
-      ? model
-      : wrapLanguageModel({
-          model,
-          middleware: {
-            specificationVersion: 'v4',
-            wrapStream: async ({ doStream }) => {
-              const { stream, ...result } = await doStream();
-
-              return {
-                ...result,
-                stream: applyStreamTransforms({
-                  stream,
-                  transforms: asArray(options.experimental_transform!),
-                  tools: tools ?? {},
-                }),
-              };
-            },
-          },
-        });
-
   // streamModelCall derives the model responseFormat from its output spec.
   // WorkflowAgent parses output outside the model-call helper, so this minimal
   // output spec only carries the responseFormat across the step boundary.
@@ -269,18 +165,21 @@ export async function doStreamStep(
     maxRetries: options?.maxRetries,
     abortSignal,
   });
+  // The step timeout covers dispatch, SDK retries, and stream consumption.
+  timeouts.startStepTimeout();
   const modelStream = await (async () => {
     try {
       const { stream } = await retry(() =>
         streamModelCall({
-          model: modelWithTransforms,
+          model,
           // streamModelCall expects Prompt (ModelMessage[]) but we pass the
           // pre-converted LanguageModelV4Prompt. standardizePrompt inside
           // streamModelCall handles both formats.
-          messages: conversationPrompt as unknown as ModelMessage[],
+          messages: languageModelPromptToModelMessages(conversationPrompt),
           allowSystemInMessages: true,
           tools,
           toolChoice: options?.toolChoice,
+          toolOrder: options?.toolOrder,
           includeRawChunks: options?.includeRawChunks,
           providerOptions: options?.providerOptions,
           abortSignal,
@@ -295,13 +194,19 @@ export async function doStreamStep(
           frequencyPenalty: options?.frequencyPenalty,
           stopSequences: options?.stopSequences,
           seed: options?.seed,
-          repairToolCall: options?.repairToolCall,
+          repairToolCall: trackedRepairToolCall,
+          download: options?.download,
+          ...languageModelCallTelemetry,
         }),
       );
 
       return stream;
     } catch (error) {
-      if (abortSignal?.aborted && isAbortError(error)) {
+      timeouts.clear();
+
+      // An abort reason is an ordinary error, so the aborted signal decides
+      // whether the failure is an abort.
+      if (abortSignal?.aborted) {
         return undefined;
       }
 
@@ -333,20 +238,37 @@ export async function doStreamStep(
     | { id?: string; timestamp?: Date; modelId?: string }
     | undefined;
   let warnings: unknown[] | undefined;
+  let performance: ModelCallPerformance | undefined;
   let terminalError: unknown;
   let hasTerminalError = false;
+  let hasReceivedOutputChunk = false;
   const ongoingToolCallToolNames = new Map<string, string>();
 
-  // Acquire writer once before the loop to avoid per-chunk lock overhead
-  const writer = writable?.getWriter();
+  let writer:
+    | WritableStreamDefaultWriter<ModelCallStreamPart<ToolSet>>
+    | undefined;
+
+  // The provider response stream has started. Like in streamText, the wait
+  // for its first output chunk starts here.
+  timeouts.startFirstChunkTimeout();
 
   try {
+    // Acquire writer once before the loop to avoid per-chunk lock overhead
+    writer = writable?.getWriter();
+
     // A workflow step can be retried after already writing partial output.
     // Reset the current UI step before every attempt so a retry invalidates
     // chunks left behind by an earlier execution.
     await writer?.write({ type: 'reset-step' });
 
-    for await (const part of modelStream) {
+    for await (const part of readUntilAborted(modelStream, abortSignal)) {
+      // Only model output counts for the first-chunk and chunk timeouts.
+      // Metadata, start and end markers, and empty deltas do not.
+      if (isOutputChunk(part)) {
+        hasReceivedOutputChunk = true;
+        timeouts.onOutputChunk();
+      }
+
       switch (part.type) {
         case 'tool-input-start':
           ongoingToolCallToolNames.set(part.id, part.toolName);
@@ -434,7 +356,15 @@ export async function doStreamStep(
           });
           break;
         case 'source':
+        case 'custom':
           content.push(part);
+          break;
+        case 'tool-approval-request':
+          content.push({
+            type: 'tool-approval-request',
+            approvalId: part.approvalId,
+            toolCallId: part.toolCall.toolCallId,
+          });
           break;
         case 'tool-call': {
           // parseToolCall adds dynamic/invalid/error at runtime
@@ -444,10 +374,10 @@ export async function doStreamStep(
             toolCallPart.toolCallId,
           );
           ongoingToolCallToolNames.delete(toolCallPart.toolCallId);
-          if (
-            lifecycleToolName != null &&
-            serializedTools?.[lifecycleToolName]?.hasOnInputAvailable
-          ) {
+          // A provider can send the tool call without streaming the input
+          // first, so the tool name does not always come from a start event.
+          const availableToolName = lifecycleToolName ?? toolCallPart.toolName;
+          if (serializedTools?.[availableToolName]?.hasOnInputAvailable) {
             toolInputLifecycleEvents.push([
               'available',
               toolCallPart.toolCallId,
@@ -506,6 +436,7 @@ export async function doStreamStep(
           break;
         }
         case 'model-call-end':
+          timeouts.clearOutputTimeouts();
           finish = {
             finishReason: part.finishReason,
             rawFinishReason: part.rawFinishReason,
@@ -514,6 +445,7 @@ export async function doStreamStep(
               | Record<string, unknown>
               | undefined,
           };
+          performance = part.performance;
           break;
         case 'model-call-start':
           warnings = part.warnings;
@@ -532,7 +464,21 @@ export async function doStreamStep(
             toolCallId: part.toolCall.toolCallId,
             ...(part.signature != null ? { signature: part.signature } : {}),
           });
-        } else {
+        } else if (
+          // The original schema must validate and normalize these calls outside
+          // the step before they become available to UI stream consumers. The
+          // matching `tool-error` for an invalid call (emitted by
+          // streamModelCall immediately after the `tool-call`) is deferred as
+          // well, so `writeDeferredToolCalls` stays the sole emitter.
+          // Otherwise the UI stream would receive a duplicate `tool-error`
+          // chunk, and the one written here would arrive before its deferred
+          // `tool-call`.
+          !(
+            (part.type === 'tool-call' ||
+              (part.type === 'tool-error' && !part.providerExecuted)) &&
+            serializedTools?.[part.toolName]?.hasOwnValidator
+          )
+        ) {
           await writer.write(part);
         }
       }
@@ -547,12 +493,13 @@ export async function doStreamStep(
       }
     }
   } catch (error) {
-    if (abortSignal?.aborted && isAbortError(error)) {
+    if (abortSignal?.aborted) {
       return { aborted: true };
     }
 
     throw error;
   } finally {
+    timeouts.clear();
     writer?.releaseLock();
   }
 
@@ -563,6 +510,20 @@ export async function doStreamStep(
     return { aborted: true };
   }
 
+  if (finish == null && !hasReceivedOutputChunk && !hasTerminalError) {
+    terminalError = new NoOutputGeneratedError({
+      message:
+        'No output generated. The model stream ended without a finish chunk.',
+    });
+    hasTerminalError = true;
+  }
+
+  logWarnings({
+    warnings: (warnings ?? []) as Parameters<typeof logWarnings>[0]['warnings'],
+    provider: model.provider,
+    model: model.modelId,
+  });
+
   return {
     toolCalls,
     finish,
@@ -570,71 +531,15 @@ export async function doStreamStep(
       content,
       reasoning: reasoningParts,
       responseMetadata,
+      performance,
       warnings,
     },
+    model: { provider: model.provider, modelId: model.modelId },
     providerExecutedToolResults,
     toolInputLifecycleEvents,
+    repairedToolCallIds: [...repairedToolCallIds],
     ...(hasTerminalError ? { terminalError } : {}),
   };
-}
-
-// Model-call retries are handled above so the workflow runtime must not add
-// another retry layer around the durable step.
-doStreamStep.maxRetries = 0;
-
-function applyStreamTransforms({
-  stream,
-  transforms,
-  tools,
-}: {
-  stream: ReadableStream<LanguageModelV4StreamPart>;
-  transforms: Array<StreamTextTransform<ToolSet>>;
-  tools: ToolSet;
-}): ReadableStream<LanguageModelV4StreamPart> {
-  const sourceReader = stream.getReader();
-  let stopped = false;
-
-  const stopStream = () => {
-    if (stopped) {
-      return;
-    }
-
-    stopped = true;
-    void sourceReader.cancel().catch(() => {});
-  };
-
-  let transformedStream = new ReadableStream<LanguageModelV4StreamPart>(
-    {
-      async pull(controller) {
-        if (stopped) {
-          controller.close();
-          return;
-        }
-
-        const { done, value } = await sourceReader.read();
-
-        if (done || stopped) {
-          controller.close();
-          return;
-        }
-
-        controller.enqueue(value);
-      },
-      cancel(reason) {
-        stopped = true;
-        return sourceReader.cancel(reason);
-      },
-    },
-    { highWaterMark: 0 },
-  );
-
-  for (const transform of transforms) {
-    transformedStream = transformedStream.pipeThrough(
-      transform({ tools, stopStream }),
-    );
-  }
-
-  return transformedStream;
 }
 
 function upsertTextContentPart({
@@ -696,7 +601,6 @@ function upsertReasoningContentPart({
   providerMetadata?: SharedV4ProviderMetadata;
 }) {
   let partIndex = reasoningPartIndexes.get(id);
-
   if (partIndex == null) {
     partIndex =
       reasoningParts.push({
@@ -706,14 +610,7 @@ function upsertReasoningContentPart({
     reasoningPartIndexes.set(id, partIndex);
     content.push({ type: 'reasoning', reasoningIndex: partIndex });
   }
-
   const part = reasoningParts[partIndex];
-
-  if (textDelta != null) {
-    part.text += textDelta;
-  }
-
-  if (providerMetadata != null) {
-    part.providerMetadata = providerMetadata;
-  }
+  if (textDelta != null) part.text += textDelta;
+  if (providerMetadata != null) part.providerMetadata = providerMetadata;
 }

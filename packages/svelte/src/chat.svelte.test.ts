@@ -7,6 +7,8 @@ import {
   DefaultChatTransport,
   isStaticToolUIPart,
   TextStreamChatTransport,
+  type ChatTransport,
+  type UIMessage,
   type UIMessageChunk,
 } from 'ai';
 import { flushSync } from 'svelte';
@@ -182,7 +184,7 @@ describe('data protocol stream', () => {
       isDisconnect: false,
       isError: false,
       message: {
-        id: 'id-2',
+        id: 'id-1',
         metadata: {
           example: 'metadata',
         },
@@ -197,7 +199,7 @@ describe('data protocol stream', () => {
       },
       messages: [
         {
-          id: 'id-1',
+          id: 'id-0',
           metadata: undefined,
           parts: [
             {
@@ -208,7 +210,7 @@ describe('data protocol stream', () => {
           role: 'user',
         },
         {
-          id: 'id-2',
+          id: 'id-1',
           metadata: {
             example: 'metadata',
           },
@@ -239,10 +241,10 @@ describe('data protocol stream', () => {
 
       expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
         {
-          "id": "id-0",
+          "id": "id-2",
           "messages": [
             {
-              "id": "id-1",
+              "id": "id-0",
               "parts": [
                 {
                   "text": "hi",
@@ -287,7 +289,7 @@ describe('text stream', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "id": "id-1",
+          "id": "id-0",
           "metadata": undefined,
           "parts": [
             {
@@ -298,7 +300,7 @@ describe('text stream', () => {
           "role": "user",
         },
         {
-          "id": "id-2",
+          "id": "id-1",
           "metadata": undefined,
           "parts": [
             {
@@ -822,7 +824,7 @@ describe('file attachments with data url', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "id": "id-1",
+          "id": "id-0",
           "metadata": undefined,
           "parts": [
             {
@@ -839,7 +841,7 @@ describe('file attachments with data url', () => {
           "role": "user",
         },
         {
-          "id": "id-2",
+          "id": "id-1",
           "metadata": undefined,
           "parts": [
             {
@@ -856,10 +858,10 @@ describe('file attachments with data url', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "id": "id-2",
         "messages": [
           {
-            "id": "id-1",
+            "id": "id-0",
             "parts": [
               {
                 "filename": "test.txt",
@@ -912,7 +914,7 @@ describe('file attachments with data url', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "id": "id-1",
+          "id": "id-0",
           "metadata": undefined,
           "parts": [
             {
@@ -929,7 +931,7 @@ describe('file attachments with data url', () => {
           "role": "user",
         },
         {
-          "id": "id-2",
+          "id": "id-1",
           "metadata": undefined,
           "parts": [
             {
@@ -946,10 +948,10 @@ describe('file attachments with data url', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "id": "id-2",
         "messages": [
           {
-            "id": "id-1",
+            "id": "id-0",
             "parts": [
               {
                 "filename": "test.png",
@@ -1012,7 +1014,7 @@ describe('file attachments with url', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "id": "id-1",
+          "id": "id-0",
           "metadata": undefined,
           "parts": [
             {
@@ -1029,7 +1031,7 @@ describe('file attachments with url', () => {
           "role": "user",
         },
         {
-          "id": "id-2",
+          "id": "id-1",
           "metadata": undefined,
           "parts": [
             {
@@ -1046,10 +1048,10 @@ describe('file attachments with url', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "id": "id-2",
         "messages": [
           {
-            "id": "id-1",
+            "id": "id-0",
             "parts": [
               {
                 "filename": "test.png",
@@ -1113,7 +1115,7 @@ describe('file attachments with empty text content', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "id": "id-1",
+          "id": "id-0",
           "metadata": undefined,
           "parts": [
             {
@@ -1126,7 +1128,7 @@ describe('file attachments with empty text content', () => {
           "role": "user",
         },
         {
-          "id": "id-2",
+          "id": "id-1",
           "metadata": undefined,
           "parts": [
             {
@@ -1143,10 +1145,10 @@ describe('file attachments with empty text content', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "id": "id-2",
         "messages": [
           {
-            "id": "id-1",
+            "id": "id-0",
             "parts": [
               {
                 "filename": "test.png",
@@ -1227,10 +1229,10 @@ describe('reload', () => {
 
     expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "id": "id-2",
         "messages": [
           {
-            "id": "id-1",
+            "id": "id-0",
             "parts": [
               {
                 "text": "hi",
@@ -1288,10 +1290,10 @@ describe('test sending additional fields during message submission', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "id": "id-2",
         "messages": [
           {
-            "id": "id-1",
+            "id": "id-0",
             "metadata": {
               "test": "example",
             },
@@ -1337,7 +1339,7 @@ describe('generateId function', () => {
     expect(chatWithCustomId.messages).toMatchInlineSnapshot(`
       [
         {
-          "id": "testid-1",
+          "id": "testid-0",
           "metadata": undefined,
           "parts": [
             {
@@ -1371,5 +1373,43 @@ describe('reactivity', () => {
     // If this isn't handled correctly, it'd show a `state_unsafe_mutation` error.
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     chat.messages;
+  });
+});
+
+describe('experimental_queue', () => {
+  it('should expose queued messages and send them after the response finishes', async () => {
+    const controllers: ReadableStreamDefaultController<UIMessageChunk>[] = [];
+    const transport: ChatTransport<UIMessage> = {
+      sendMessages: async () =>
+        new ReadableStream<UIMessageChunk>({
+          start(controller) {
+            controllers.push(controller);
+          },
+        }),
+      reconnectToStream: async () => null,
+    };
+    const chat = new Chat({ transport, experimental_queue: true });
+    const text = (message: UIMessage) =>
+      message.parts
+        .map(part => (part.type === 'text' ? part.text : ''))
+        .join('');
+
+    const sent = chat.sendMessage({ text: 'first' });
+    await vi.waitFor(() => expect(controllers).toHaveLength(1));
+    await chat.sendMessage({ text: 'second' });
+
+    expect(chat.experimental_queuedMessages.map(text)).toEqual(['second']);
+
+    controllers[0].enqueue({ type: 'start' });
+    controllers[0].enqueue({ type: 'finish' });
+    controllers[0].close();
+    await vi.waitFor(() => expect(controllers).toHaveLength(2));
+
+    expect(chat.experimental_queuedMessages).toEqual([]);
+
+    controllers[1].enqueue({ type: 'start' });
+    controllers[1].enqueue({ type: 'finish' });
+    controllers[1].close();
+    await sent;
   });
 });

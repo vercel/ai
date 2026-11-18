@@ -30,8 +30,10 @@ class ReactChatState<
   #messages: UI_MESSAGE[];
   #status: ChatStatus = 'ready';
   #error: Error | undefined = undefined;
+  #queuedMessages: UI_MESSAGE[] = [];
 
   #messagesCallbacks = new Set<() => void>();
+  #queuedMessagesCallbacks = new Set<() => void>();
   #statusCallbacks = new Set<() => void>();
   #errorCallbacks = new Set<() => void>();
 
@@ -55,6 +57,15 @@ class ReactChatState<
   set error(newError: Error | undefined) {
     this.#error = newError;
     this.#callErrorCallbacks();
+  }
+
+  get experimental_queuedMessages(): UI_MESSAGE[] {
+    return this.#queuedMessages;
+  }
+
+  set experimental_queuedMessages(newQueuedMessages: UI_MESSAGE[]) {
+    this.#queuedMessages = newQueuedMessages;
+    this.#queuedMessagesCallbacks.forEach(callback => callback());
   }
 
   get messages(): UI_MESSAGE[] {
@@ -135,6 +146,13 @@ class ReactChatState<
     };
   };
 
+  '~registerQueuedMessagesCallback' = (onChange: () => void): (() => void) => {
+    this.#queuedMessagesCallbacks.add(onChange);
+    return () => {
+      this.#queuedMessagesCallbacks.delete(onChange);
+    };
+  };
+
   #callMessagesCallbacks = () => {
     this.#messagesCallbacks.forEach(callback => callback());
   };
@@ -170,4 +188,7 @@ export class Chat<
 
   '~registerErrorCallback' = (onChange: () => void): (() => void) =>
     this.#state['~registerErrorCallback'](onChange);
+
+  '~registerQueuedMessagesCallback' = (onChange: () => void): (() => void) =>
+    this.#state['~registerQueuedMessagesCallback'](onChange);
 }

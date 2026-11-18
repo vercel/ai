@@ -16,7 +16,7 @@ run(async () => {
       {
         id: 'capital-france',
         type: 'text',
-        model: 'claude-haiku-4-5',
+        model: 'claude-haiku-5-5',
         prompt: 'What is the capital of France?',
       },
     ],

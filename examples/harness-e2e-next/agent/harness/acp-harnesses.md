@@ -11,24 +11,19 @@ credential environment variables and its AI Gateway configuration:
 - Set `auth` to `direct` or `ai-gateway` when a caller must override automatic
   selection.
 
-The profiles pin the exact implementations exercised by this matrix:
+The profiles install these ACP agents:
 
-| Profile           | Package                                        | Executable         |
-| ----------------- | ---------------------------------------------- | ------------------ |
-| `acp-claude-code` | `@agentclientprotocol/claude-agent-acp@0.61.0` | `claude-agent-acp` |
-| `acp-codex`       | `@agentclientprotocol/codex-acp@1.1.4`         | `codex-acp`        |
-| `acp-grok-build`  | `@xai-official/grok@0.2.111`                   | `grok agent stdio` |
+| Profile          | Source                                                                           | Executable         |
+| ---------------- | -------------------------------------------------------------------------------- | ------------------ |
+| `acp-codex`      | `npm-locked` from `acp-codex/bridge` with `@agentclientprotocol/codex-acp@1.1.4` | `codex-acp`        |
+| `acp-grok-build` | `install-command` with the official Grok Build installer                         | `grok agent stdio` |
 
-Claude Code uses the pinned implementation's Anthropic launch environment and
-the Gateway root endpoint. Codex uses its API-key launch environment and a
-configured OpenAI-compatible Gateway provider ending in `/v1`. Codex ACP
-supports only `permissionMode: 'allow-all'` because restrictive Codex modes
-enable its internal sandbox.
+Codex uses its API-key launch environment and a configured OpenAI-compatible
+Gateway provider ending in `/v1`. Codex ACP supports only
+`permissionMode: 'allow-all'` because restrictive Codex modes enable its
+internal sandbox.
 
-The installed Grok package's npm trampoline can reuse an older binary already
-present in the default Grok home. Verification therefore used an isolated
-`GROK_HOME`; `grok --version` reported `0.2.111 (94172f2aa4e5)`. That exact
-binary exposes `XAI_API_KEY` for direct authentication,
+Grok Build exposes `XAI_API_KEY` for direct authentication,
 `GROK_XAI_API_BASE_URL` and `GROK_MODELS_BASE_URL` for its
 OpenAI-compatible inference and model endpoints, and `GROK_CLIENT_NAME` plus
 `GROK_CLIENT_VERSION` for attribution. The Gateway launch route maps both

@@ -3,7 +3,6 @@ import type {
   HarnessV1ContinueTurnState,
   HarnessV1NetworkSandboxSession,
   HarnessV1PromptTurnOptions,
-  HarnessV1SandboxProvider,
   HarnessV1Session,
   HarnessV1StreamPart,
 } from '@ai-sdk/harness';
@@ -116,13 +115,13 @@ function createOutputHarness(text: string): HarnessV1 {
   };
 }
 
-function createSandboxProvider(): HarnessV1SandboxProvider {
+function createSandboxSession(): HarnessV1NetworkSandboxSession {
   const run = vi.fn(async () => ({
     exitCode: 0,
     stdout: '',
     stderr: '',
   }));
-  const session = {
+  return {
     id: 'sandbox-1',
     defaultWorkingDirectory: '/work',
     ports: [],
@@ -133,19 +132,11 @@ function createSandboxProvider(): HarnessV1SandboxProvider {
     destroy: vi.fn(async () => {}),
     restricted: () => ({ run }) as never,
   } as unknown as HarnessV1NetworkSandboxSession;
-
-  return {
-    specificationVersion: 'harness-sandbox-v1',
-    providerId: 'mock-sandbox',
-    createSession: async () => session,
-    resumeSession: async () => session,
-  };
 }
 
 function createScoreAgent(text: string) {
   return new HarnessAgent({
     harness: createOutputHarness(text),
-    sandbox: createSandboxProvider(),
     output: Output.object({
       schema: jsonSchema<ScoreOutput>(
         {
@@ -258,6 +249,7 @@ describe('runHarnessAgentStep output', () => {
 
     const state = await runHarnessAgentStep({
       agent: createScoreAgent('{"score":3}'),
+      sandboxSession: createSandboxSession(),
       state: createHarnessWorkflowState({
         prompt: 'Score this.',
         sessionId: 'session-1',
@@ -290,6 +282,7 @@ describe('runHarnessAgentStep output', () => {
 
     const state = await runHarnessAgentStep({
       agent: createScoreAgent(text),
+      sandboxSession: createSandboxSession(),
       state: createHarnessWorkflowState({
         prompt: 'Score this.',
         sessionId: 'session-1',
@@ -338,7 +331,7 @@ describe('runHarnessAgentStep output', () => {
         stream: vi.fn(async () => result),
         continueStream: vi.fn(async () => result),
       };
-      const sandboxSession = await createSandboxProvider().createSession();
+      const sandboxSession = createSandboxSession();
       const resumeFrom = {
         type: 'resume-session' as const,
         harnessId: 'mock',
@@ -376,11 +369,11 @@ describe('runHarnessAgentStep output', () => {
   test('finishes a text-only HarnessAgent turn without reading output', async () => {
     const agent = new HarnessAgent({
       harness: createOutputHarness('Hello.'),
-      sandbox: createSandboxProvider(),
     });
 
     const state = await runHarnessAgentStep({
       agent,
+      sandboxSession: createSandboxSession(),
       state: createHarnessWorkflowState({
         prompt: 'Say hello.',
         sessionId: 'session-1',

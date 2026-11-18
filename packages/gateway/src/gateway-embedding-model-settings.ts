@@ -4,6 +4,8 @@ export type GatewayEmbeddingModelId =
   | 'alibaba/qwen3-embedding-8b'
   | 'amazon/titan-embed-text-v2'
   | 'cohere/embed-v4.0'
+  | 'cohere/embed-v5.0-fast'
+  | 'cohere/embed-v5.0-pro'
   | 'google/gemini-embedding-001'
   | 'google/gemini-embedding-2'
   | 'google/text-embedding-005'

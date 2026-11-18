@@ -83,8 +83,8 @@ export default function WeatherOpenCodeHarnessChat({
                     <img
                       key={index}
                       src={part.url}
-                      alt="Generated image"
-                      className="mb-2"
+                      alt="Image attachment"
+                      className="mb-2 max-w-full max-h-64 rounded"
                     />
                   );
                 }
@@ -213,7 +213,7 @@ export default function WeatherOpenCodeHarnessChat({
       <ChatInput
         status={status}
         maxWidth="5xl"
-        onSubmit={text => sendMessage({ text })}
+        onSubmit={parts => sendMessage({ parts })}
       />
     </div>
   );

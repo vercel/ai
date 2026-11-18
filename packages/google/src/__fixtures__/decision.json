@@ -1,0 +1,44 @@
+{
+  "answers": {
+    "requestsRefund": {
+      "confidence": 0.6375181188885488,
+      "noul": 0.36248188111145113,
+      "type": "noul"
+    },
+    "department": {
+      "confidence": 0.8624268048164867,
+      "choice": "billing",
+      "probabilities": {
+        "billing": 0.8624268048164867,
+        "technical": 0.13757319518351327
+      },
+      "type": "choice"
+    },
+    "severity": {
+      "confidence": 0.5849037405969755,
+      "score": 0.8093588003103453,
+      "probabilities": {
+        "0": 0.3028687295463396,
+        "1": 0.5849037405969755,
+        "2": 0.11222752985668494
+      },
+      "legend": {
+        "0": "Low",
+        "1": "Medium",
+        "2": "High"
+      },
+      "type": "score"
+    }
+  },
+  "usage": {
+    "total_tokens": 193,
+    "total_input_tokens": 193,
+    "input_tokens_by_modality": [
+      {
+        "modality": "text",
+        "tokens": 193
+      }
+    ],
+    "total_output_tokens": 0
+  }
+}

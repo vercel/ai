@@ -230,6 +230,7 @@ export function createEmitStreamEvent({
           toolCallId: id,
           toolName,
           result: extractMcpToolCallResult(item),
+          ...(item.status === 'failed' ? { isError: true } : {}),
           dynamic: true,
         });
       }

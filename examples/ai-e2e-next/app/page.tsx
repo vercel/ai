@@ -2,12 +2,16 @@
 
 import { useChat } from '@ai-sdk/react';
 import ChatInput from '@/components/chat-input';
+import Link from 'next/link';
 
 export default function Chat() {
   const { error, status, sendMessage, messages, regenerate, stop } = useChat();
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+      <Link href="/chat/websocket" className="mb-6 text-blue-500 underline">
+        Try chat over WebSocket
+      </Link>
       {messages.map(m => (
         <div key={m.id} className="whitespace-pre-wrap">
           {m.role === 'user' ? 'User: ' : 'AI: '}

@@ -495,7 +495,7 @@ describe('QuiverAI language model', () => {
   );
 
   it.each(['doGenerate', 'doStream'] as const)(
-    'validates native reasoning and warns for unsupported top-level reasoning in %s',
+    'validates native reasoning and maps unsupported top-level reasoning in %s',
     async method => {
       const model = createQuiverAI({ apiKey: 'test-api-key' })('arrow-2');
       for (const quiverai of [
@@ -518,10 +518,14 @@ describe('QuiverAI language model', () => {
             )?.warnings
           : result.warnings;
       expect(warnings).toContainEqual({
-        type: 'unsupported',
-        feature: 'reasoning effort none',
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "none" is not directly supported by this model. mapped to effort "low".',
       });
-      expect((await server.calls[0].requestBodyJson).reasoning).toBeUndefined();
+      expect((await server.calls[0].requestBodyJson).reasoning).toMatchObject({
+        effort: 'low',
+      });
     },
   );
 

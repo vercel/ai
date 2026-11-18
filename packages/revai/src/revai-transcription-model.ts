@@ -1,14 +1,19 @@
+import { getRevaiTranscriptionModelEntry } from './revai-model-catalog';
 import {
   AISDKError,
   type TranscriptionModelV4,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
   mediaTypeToExtension,
   delay,
+  encodePathSegment,
   getFromApi,
   parseProviderOptions,
   postFormDataToApi,
@@ -73,7 +78,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
     const formData = new FormData();
     const blob =
       audio instanceof Uint8Array
-        ? new Blob([audio])
+        ? new Blob([audio as Uint8Array<ArrayBuffer>])
         : new Blob([convertBase64ToUint8Array(audio)]);
 
     const fileExtension = mediaTypeToExtension(mediaType);
@@ -147,7 +152,10 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
         path: '/speechtotext/v1/jobs',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       formData,
       failedResponseHandler: revaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -166,9 +174,10 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
     }
 
     const jobId = submissionResponse.id;
-    const timeoutMs = 60 * 1000; // 60 seconds timeout
+    const { timeoutMs, pollingInterval } = getRevaiTranscriptionModelEntry(
+      this.modelId,
+    ).requestConfig.transcription;
     const startTime = Date.now();
-    const pollingInterval = 1000;
     let jobResponse = submissionResponse;
 
     while (jobResponse.status !== 'transcribed') {
@@ -184,11 +193,14 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
       // Poll for job status
       const pollingResult = await getFromApi({
         url: this.config.url({
-          path: `/speechtotext/v1/jobs/${jobId}`,
+          path: `/speechtotext/v1/jobs/${encodePathSegment(jobId ?? '')}`,
           modelId: this.modelId,
         }),
         validateUrl: false,
-        headers: combineHeaders(this.config.headers?.(), options.headers),
+        headers: combineHeaders(
+          await resolve(this.config.headers),
+          options.headers,
+        ),
         failedResponseHandler: revaiFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(
           revaiTranscriptionJobResponseSchema,
@@ -219,11 +231,14 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
       rawValue: rawResponse,
     } = await getFromApi({
       url: this.config.url({
-        path: `/speechtotext/v1/jobs/${jobId}/transcript`,
+        path: `/speechtotext/v1/jobs/${encodePathSegment(jobId ?? '')}/transcript`,
         modelId: this.modelId,
       }),
       validateUrl: false,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       failedResponseHandler: revaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         revaiTranscriptionResponseSchema,
@@ -315,27 +330,35 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
   }
 }
 
-const revaiTranscriptionJobResponseSchema = z.object({
-  id: z.string().nullish(),
-  status: z.string().nullish(),
-  language: z.string().nullish(),
-});
+const revaiTranscriptionJobResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      id: z.string().nullish(),
+      status: z.string().nullish(),
+      language: z.string().nullish(),
+    }),
+  ),
+);
 
-const revaiTranscriptionResponseSchema = z.object({
-  monologues: z
-    .array(
-      z.object({
-        elements: z
-          .array(
-            z.object({
-              type: z.string().nullish(),
-              value: z.string().nullish(),
-              ts: z.number().nullish(),
-              end_ts: z.number().nullish(),
-            }),
-          )
-          .nullish(),
-      }),
-    )
-    .nullish(),
-});
+const revaiTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      monologues: z
+        .array(
+          z.object({
+            elements: z
+              .array(
+                z.object({
+                  type: z.string().nullish(),
+                  value: z.string().nullish(),
+                  ts: z.number().nullish(),
+                  end_ts: z.number().nullish(),
+                }),
+              )
+              .nullish(),
+          }),
+        )
+        .nullish(),
+    }),
+  ),
+);

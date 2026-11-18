@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   createGatewayErrorFromResponse,
+  GatewayAccessPolicyDeniedError,
   GatewayAuthenticationError,
   GatewayInvalidRequestError,
   GatewayRateLimitError,
@@ -104,6 +105,138 @@ describe('Valid error responses', () => {
 
     expect(error).toBeInstanceOf(GatewayForbiddenError);
     expect((error as GatewayForbiddenError).ruleId).toBeUndefined();
+  });
+
+  describe('access_policy_denied', () => {
+    const message =
+      'Access policy denied: model openai/gpt-5 is not allowed by the access policies that apply to this request (policies: ap_1).';
+
+    it('creates GatewayAccessPolicyDeniedError with the policy ids and removed values', async () => {
+      const response: GatewayErrorResponse = {
+        error: {
+          message,
+          type: 'access_policy_denied',
+          param: {
+            policyIds: ['ap_1', 'ap_2'],
+            removedModels: ['openai/gpt-5'],
+            removedProviders: ['openai'],
+          },
+        },
+        generationId: 'gen_123',
+      };
+
+      const error = await createGatewayErrorFromResponse({
+        response,
+        statusCode: 403,
+      });
+
+      expect(error).toBeInstanceOf(GatewayAccessPolicyDeniedError);
+      expect(GatewayAccessPolicyDeniedError.isInstance(error)).toBe(true);
+      expect(GatewayForbiddenError.isInstance(error)).toBe(false);
+      expect(error.type).toBe('access_policy_denied');
+      expect(error.statusCode).toBe(403);
+      expect(error.isRetryable).toBe(false);
+      expect(error.message).toBe(`${message} [gen_123]`);
+      expect(error.generationId).toBe('gen_123');
+      const denied = error as GatewayAccessPolicyDeniedError;
+      expect(denied.policyIds).toEqual(['ap_1', 'ap_2']);
+      expect(denied.removedModels).toEqual(['openai/gpt-5']);
+      expect(denied.removedProviders).toEqual(['openai']);
+    });
+
+    it('ignores extra keys in param', async () => {
+      const response: GatewayErrorResponse = {
+        error: {
+          message,
+          type: 'access_policy_denied',
+          param: {
+            name: 'AccessPolicyDeniedError',
+            type: 'access_policy_denied',
+            statusCode: 403,
+            message,
+            policyIds: ['ap_1'],
+            removedModels: [],
+            removedProviders: ['openai'],
+          },
+        },
+      };
+
+      const error = await createGatewayErrorFromResponse({
+        response,
+        statusCode: 403,
+      });
+
+      expect(error).toBeInstanceOf(GatewayAccessPolicyDeniedError);
+      const denied = error as GatewayAccessPolicyDeniedError;
+      expect(denied.policyIds).toEqual(['ap_1']);
+      expect(denied.removedModels).toEqual([]);
+      expect(denied.removedProviders).toEqual(['openai']);
+    });
+
+    it('leaves the arrays undefined when the response has no param', async () => {
+      const response: GatewayErrorResponse = {
+        error: { message, type: 'access_policy_denied' },
+      };
+
+      const error = await createGatewayErrorFromResponse({
+        response,
+        statusCode: 403,
+      });
+
+      expect(error).toBeInstanceOf(GatewayAccessPolicyDeniedError);
+      expect(error.statusCode).toBe(403);
+      expect(error.message).toBe(message);
+      const denied = error as GatewayAccessPolicyDeniedError;
+      expect(denied.policyIds).toBeUndefined();
+      expect(denied.removedModels).toBeUndefined();
+      expect(denied.removedProviders).toBeUndefined();
+    });
+
+    it('keeps the arrays that are present when others are missing', async () => {
+      const response: GatewayErrorResponse = {
+        error: {
+          message,
+          type: 'access_policy_denied',
+          param: { policyIds: ['ap_1'] },
+        },
+      };
+
+      const error = await createGatewayErrorFromResponse({
+        response,
+        statusCode: 403,
+      });
+
+      const denied = error as GatewayAccessPolicyDeniedError;
+      expect(denied).toBeInstanceOf(GatewayAccessPolicyDeniedError);
+      expect(denied.policyIds).toEqual(['ap_1']);
+      expect(denied.removedModels).toBeUndefined();
+      expect(denied.removedProviders).toBeUndefined();
+    });
+
+    it.each([
+      ['a string', 'model'],
+      ['null', null],
+      ['an array field with non-string entries', { policyIds: [1, 2] }],
+    ])(
+      'leaves the arrays undefined when param is %s',
+      async (_label, param) => {
+        const response: GatewayErrorResponse = {
+          error: { message, type: 'access_policy_denied', param },
+        };
+
+        const error = await createGatewayErrorFromResponse({
+          response,
+          statusCode: 403,
+        });
+
+        expect(error).toBeInstanceOf(GatewayAccessPolicyDeniedError);
+        expect(error.statusCode).toBe(403);
+        const denied = error as GatewayAccessPolicyDeniedError;
+        expect(denied.policyIds).toBeUndefined();
+        expect(denied.removedModels).toBeUndefined();
+        expect(denied.removedProviders).toBeUndefined();
+      },
+    );
   });
 
   it('should create GatewayRateLimitError for rate_limit_exceeded type', async () => {

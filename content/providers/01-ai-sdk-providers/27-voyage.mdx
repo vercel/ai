@@ -1,17 +1,61 @@
 ---
 title: Voyage AI
-description: Learn how to use the Voyage AI provider for embedding and reranking with the AI SDK.
+description: Learn how to use Voyage AI with AI Gateway and the direct provider.
 ---
 
 # Voyage AI Provider
 
 The [Voyage AI](https://www.voyageai.com/) provider contains embedding and reranking model support for the Voyage AI API.
+You can use Voyage AI models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended) or connect directly with `@ai-sdk/voyage`.
 
-## Setup
+```ts provider="voyage" model="voyage/voyage-4"
+import { embed } from 'ai';
+__PROVIDER_IMPORT__;
 
-The Voyage AI provider is available in the `@ai-sdk/voyage` module. You can install it with
+const { embedding } = await embed({
+  model: __EMBEDDING_MODEL__,
+  value: 'A vegetarian lasagna recipe.',
+});
 
-<InstallPackages packages="@ai-sdk/voyage" />
+console.log(embedding);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+Gateway feature and provider-option support depends on the model and the provider serving the request. See [Gateway provider options](https://vercel.com/docs/ai-gateway/models-and-providers/provider-options).
+
+## Using `@ai-sdk/voyage`
+
+For direct access to Voyage AI, install `ai` and `@ai-sdk/voyage`:
+
+<InstallPackages packages="ai @ai-sdk/voyage" />
+
+Set your Voyage AI API credential in the `VOYAGE_API_KEY` environment variable:
+
+```bash
+export VOYAGE_API_KEY=your_api_key_here
+```
+
+AI Gateway does not expose every API in `@ai-sdk/voyage`. Use the direct provider for provider-specific APIs or custom connection settings.
+
+<Note>
+  The following sections document the direct `@ai-sdk/voyage` provider,
+  including its model factories and settings. Gateway model and feature
+  availability can differ.
+</Note>
 
 ## Provider Instance
 
@@ -39,7 +83,11 @@ You can use the following optional settings to customize the Voyage AI provider 
   Use a different URL prefix for API calls, e.g. to use proxy servers.
   The default prefix is `https://api.voyageai.com/v1`.
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
+
+  Pass a function to resolve credentials before each request, including when keys
+  rotate. The function can return a string or a promise. Credential caching and
+  refresh are managed by the function.
 
   API key that is being sent using the `Authorization` header.
   It defaults to the `VOYAGE_API_KEY` environment variable.
@@ -122,23 +170,21 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model                   | Default Dimensions | Context Length |
-| ----------------------- | ------------------ | -------------- |
-| `voyage-4-large`        | 1024               | 32,000         |
-| `voyage-4`              | 1024               | 32,000         |
-| `voyage-4-lite`         | 1024               | 32,000         |
-| `voyage-4-nano`         | 1024               | 32,000         |
-| `voyage-code-3.5`       | 1024               | 32,000         |
-| `voyage-code-3`         | 1024               | 32,000         |
-| `voyage-3-large`        | 1024               | 32,000         |
-| `voyage-3.5`            | 1024               | 32,000         |
-| `voyage-3.5-lite`       | 1024               | 32,000         |
-| `voyage-3`              | 1024               | 32,000         |
-| `voyage-3-lite`         | 512                | 32,000         |
-| `voyage-finance-2`      | 1024               | 32,000         |
-| `voyage-multilingual-2` | 1024               | 32,000         |
-| `voyage-law-2`          | 1024               | 16,000         |
-| `voyage-code-2`         | 1536               | 16,000         |
+{/* model-capabilities:voyage-embedding:start */}
+
+| Model             | Default Dimensions | Context Length | Custom Dimensions | Max Values per Call |
+| ----------------- | ------------------ | -------------- | ----------------- | ------------------- |
+| `voyage-4-large`  | 1024               | 32,000         | <Check />         | 128                 |
+| `voyage-4`        | 1024               | 32,000         | <Check />         | 128                 |
+| `voyage-4-lite`   | 1024               | 32,000         | <Check />         | 128                 |
+| `voyage-4-nano`   | 1024               | 32,000         | <Check />         | 128                 |
+| `voyage-code-3.5` | 1024               | 32,000         | <Check />         | 128                 |
+| `voyage-code-3`   | 1024               | 32,000         | <Check />         | 128                 |
+| `voyage-3-large`  | 1024               | 32,000         | <Check />         | 128                 |
+| `voyage-3.5`      | 1024               | 32,000         | <Check />         | 128                 |
+| `voyage-3.5-lite` | 1024               | 32,000         | <Check />         | 128                 |
+
+{/* model-capabilities:voyage-embedding:end */}
 
 <Note>
   The table above lists popular models. Please see the [Voyage AI
@@ -209,11 +255,32 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model             | Context Length |
-| ----------------- | -------------- |
-| `rerank-2.5`      | 32,000         |
-| `rerank-2.5-lite` | 32,000         |
-| `rerank-2`        | 16,000         |
-| `rerank-2-lite`   | 8,000          |
-| `rerank-1`        | 8,000          |
-| `rerank-lite-1`   | 4,000          |
+{/* model-capabilities:voyage-reranking:start */}
+
+| Model             | Context Length | Text Documents | Object Documents | Top N     |
+| ----------------- | -------------- | -------------- | ---------------- | --------- |
+| `rerank-2.5`      | 32,000         | <Check />      | <Check />        | <Check /> |
+| `rerank-2.5-lite` | 32,000         | <Check />      | <Check />        | <Check /> |
+| `rerank-2`        | 16,000         | <Check />      | <Check />        | <Check /> |
+| `rerank-2-lite`   | 8,000          | <Check />      | <Check />        | <Check /> |
+| `rerank-1`        | 8,000          | <Check />      | <Check />        | <Check /> |
+| `rerank-lite-1`   | 4,000          | <Check />      | <Check />        | <Check /> |
+
+{/* model-capabilities:voyage-reranking:end */}
+
+## Provider Option Reference
+
+The following option definitions are generated from the provider catalog.
+
+{/* model-capabilities:voyage-provider-options:start */}
+
+| Operation | Option            | Description     |
+| --------- | ----------------- | --------------- |
+| embedding | `inputType`       | inputType       |
+| embedding | `truncation`      | truncation      |
+| embedding | `outputDimension` | outputDimension |
+| embedding | `outputDtype`     | outputDtype     |
+| reranking | `returnDocuments` | returnDocuments |
+| reranking | `truncation`      | truncation      |
+
+{/* model-capabilities:voyage-provider-options:end */}

@@ -58,6 +58,8 @@ describe('API routing', () => {
     ['MAI-Voice-2-Flash', undefined, 'speech', 'MAI-Voice-2-Flash'],
     ['mai-voice-2', undefined, 'speech', 'MAI-Voice-2'],
     ['MaI-vOiCe-2', undefined, 'speech', 'MAI-Voice-2'],
+    ['mai-voice-2.1-flash', undefined, 'speech', 'MAI-Voice-2.1-Flash'],
+    ['MAI-Voice-2.1', undefined, 'speech', 'MAI-Voice-2.1'],
     ['tts-1', undefined, 'openai'],
     ['mai-voice-2-custom', undefined, 'openai'],
     ['constructor', undefined, 'openai'],
@@ -119,6 +121,36 @@ describe('API routing', () => {
         details: 'This option requires the Azure Speech API.',
       },
     ]);
+  });
+
+  it('accepts OpenAI options under the azure key on the OpenAI API', async () => {
+    const { provider, request } = setup();
+    const result = await provider.speech('tts-1').doGenerate({
+      text: 'Hello',
+      providerOptions: {
+        openai: { speed: 2 },
+        azure: { instructions: 'Speak calmly', speed: 1.5 },
+      },
+    });
+    expect(JSON.parse(request().body)).toMatchObject({
+      instructions: 'Speak calmly',
+      speed: 1.5,
+    });
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('warns about OpenAI-only options on the Speech API', async () => {
+    const { provider, request } = setup();
+    const result = await provider.speech('mai-voice-2').doGenerate({
+      text: 'Hello',
+      providerOptions: { azure: { speed: 1.5 } },
+    });
+    expect(request().url).toBe(speechUrl);
+    expect(result.warnings).toContainEqual({
+      type: 'unsupported',
+      feature: 'providerOptions.azure.speed',
+      details: 'This option requires the OpenAI speech API.',
+    });
   });
 
   it.each([
@@ -462,6 +494,7 @@ describe('Speech errors', () => {
   });
 
   it.each([
+    'upstream connect error or disconnect/reset before headers. reset reason: protocol error',
     'upstream connect error or disconnect/reset before headers. reset reason: connection termination',
     'unavailable',
   ])('keeps 502 responses retryable (%s)', async body => {

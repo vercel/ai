@@ -85,7 +85,7 @@ describe('refreshHostToolCatalog', () => {
     });
   });
 
-  it('fails precisely when an implementation does not refresh', async () => {
+  it('fails precisely when an agent does not refresh', async () => {
     const promise = refreshHostToolCatalog({
       relay: {
         updateCatalog: () => ({ changed: true, revision: 6 }),
@@ -104,7 +104,7 @@ describe('refreshHostToolCatalog', () => {
         name: 'AI_HarnessBridgeCapabilityUnsupportedError',
         harnessId: 'generic-acp',
         message:
-          'The ACP implementation did not load the active harness-owned MCP tool catalog to revision 6 before the next prompt, so host tools cannot be exposed safely.',
+          'The ACP agent did not load the active harness-owned MCP tool catalog to revision 6 before the next prompt, so host tools cannot be exposed safely.',
       });
       return true;
     });

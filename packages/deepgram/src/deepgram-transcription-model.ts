@@ -1,5 +1,8 @@
 import type { SharedV4Warning, TranscriptionModelV4 } from '@ai-sdk/provider';
 import {
+  resolve,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createJsonResponseHandler,
   parseProviderOptions,
@@ -14,6 +17,7 @@ import type { DeepgramConfig } from './deepgram-config';
 import { deepgramFailedResponseHandler } from './deepgram-error';
 import { deepgramTranscriptionModelOptionsSchema } from './deepgram-transcription-model-options';
 import type { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
+import { streamDeepgramTranscription } from './deepgram-streaming-transcription';
 
 interface DeepgramTranscriptionModelConfig extends DeepgramConfig {
   _internal?: {
@@ -59,6 +63,15 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
       schema: deepgramTranscriptionModelOptionsSchema,
     });
 
+    if (deepgramOptions?.streaming != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.deepgram.streaming',
+        details:
+          'Deepgram batch transcription does not support streaming options.',
+      });
+    }
+
     const body: DeepgramTranscriptionAPITypes = {
       model: this.modelId,
     };
@@ -99,6 +112,14 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
     };
   }
 
+  async doStream(
+    options: Parameters<NonNullable<TranscriptionModelV4['doStream']>>[0],
+  ): Promise<
+    Awaited<ReturnType<NonNullable<TranscriptionModelV4['doStream']>>>
+  > {
+    return streamDeepgramTranscription(this.modelId, this.config, options);
+  }
+
   async doGenerate(
     options: Parameters<TranscriptionModelV4['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
@@ -118,7 +139,7 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
         '?' +
         queryParams.toString(),
       headers: {
-        ...combineHeaders(this.config.headers?.(), options.headers),
+        ...combineHeaders(await resolve(this.config.headers), options.headers),
         'Content-Type': options.mediaType,
       },
       body: {
@@ -160,31 +181,35 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
   }
 }
 
-const deepgramTranscriptionResponseSchema = z.object({
-  metadata: z
-    .object({
-      duration: z.number(),
-    })
-    .nullish(),
-  results: z
-    .object({
-      channels: z.array(
-        z.object({
-          detected_language: z.string().nullish(),
-          alternatives: z.array(
+const deepgramTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      metadata: z
+        .object({
+          duration: z.number(),
+        })
+        .nullish(),
+      results: z
+        .object({
+          channels: z.array(
             z.object({
-              transcript: z.string(),
-              words: z.array(
+              detected_language: z.string().nullish(),
+              alternatives: z.array(
                 z.object({
-                  word: z.string(),
-                  start: z.number(),
-                  end: z.number(),
+                  transcript: z.string(),
+                  words: z.array(
+                    z.object({
+                      word: z.string(),
+                      start: z.number(),
+                      end: z.number(),
+                    }),
+                  ),
                 }),
               ),
             }),
           ),
-        }),
-      ),
-    })
-    .nullish(),
-});
+        })
+        .nullish(),
+    }),
+  ),
+);

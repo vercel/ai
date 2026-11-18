@@ -1,9 +1,12 @@
+import { getMoonshotAILanguageModelEntry } from './moonshotai-model-catalog';
 import {
   NoSuchModelError,
   type LanguageModelV4,
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolveWith,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
@@ -19,8 +22,9 @@ export interface MoonshotAIProviderSettings {
   /**
    * Moonshot API key. Default value is taken from the `MOONSHOT_API_KEY`
    * environment variable.
+   * A function is called before each request and may return a promise.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
   /**
    * Base URL for the API calls.
    */
@@ -58,16 +62,10 @@ const defaultBaseURL = 'https://api.moonshot.ai/v1';
 export function getModelStructuredOutputSupport(
   modelId: MoonshotAIChatModelId,
 ): boolean {
-  return (
-    modelId.startsWith('kimi-k') ||
-    modelId === 'moonshot-v1-8k' ||
-    modelId === 'moonshot-v1-32k' ||
-    modelId === 'moonshot-v1-128k' ||
-    modelId === 'moonshot-v1-auto' ||
-    modelId === 'moonshot-v1-8k-vision-preview' ||
-    modelId === 'moonshot-v1-32k-vision-preview' ||
-    modelId === 'moonshot-v1-128k-vision-preview'
-  );
+  // All known Moonshot models support structured output. Future IDs inherit
+  // that support instead of depending on a specific family name.
+  return getMoonshotAILanguageModelEntry(modelId).requestConfig.language
+    .supportsStructuredOutputs;
 }
 
 export function createMoonshotAI(
@@ -75,16 +73,18 @@ export function createMoonshotAI(
 ): MoonshotAIProvider {
   const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'MOONSHOT_API_KEY',
-          description: 'Moonshot API key',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk-moonshotai/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'MOONSHOT_API_KEY',
+            description: 'Moonshot API key',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-moonshotai/${VERSION}`,
+      ),
     );
 
   const createChatModel = (modelId: MoonshotAIChatModelId) => {

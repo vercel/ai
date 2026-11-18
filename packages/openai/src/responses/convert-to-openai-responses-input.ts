@@ -8,6 +8,11 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  secureJsonParse,
+  stringifyWithBigIntAndCycles,
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   convertToBase64,
   getTopLevelMediaType,
   isNonNullable,
@@ -15,11 +20,17 @@ import {
   parseProviderOptions,
   resolveFullMediaType,
   resolveProviderReference,
+  safeValidateTypes,
   validateTypes,
   type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { openaiResponsesSystemMessageOptionsSchema } from './openai-responses-language-model-options';
+import {
+  openaiResponsesSystemMessageOptionsSchema,
+  openaiResponsesToolResultOptionsSchema,
+  type OpenAIResponsesAdditionalTool,
+} from './openai-responses-language-model-options';
+import { normalizeOpenAIResponsesTextFormat } from './openai-responses-text-format';
 import {
   applyPatchInputSchema,
   applyPatchOutputSchema,
@@ -35,8 +46,10 @@ import type {
   OpenAIResponsesCustomToolCallOutput,
   OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
+  OpenAIResponsesPromptCacheBreakpoint,
   OpenAIResponsesReasoning,
   OpenAIResponsesToolCaller,
+  OpenAIResponsesWebSearchCall,
 } from './openai-responses-api';
 import {
   toolSearchInputSchema,
@@ -46,13 +59,22 @@ import {
   programmaticToolCallingInputSchema,
   programmaticToolCallingOutputSchema,
 } from '../tool/programmatic-tool-calling';
+import { webSearchOutputSchema } from '../tool/web-search';
 import {
   getParallelToolCallMetadata,
   type ParallelToolCallMetadata,
 } from './expand-parallel-tool-call';
 
 function serializeToolCallArguments(input: unknown): string {
-  return JSON.stringify(input === undefined ? {} : input);
+  if (typeof input === 'string') {
+    try {
+      secureJsonParse(input);
+      return input;
+    } catch {
+      return stringifyWithBigIntAndCycles(input);
+    }
+  }
+  return stringifyWithBigIntAndCycles(input === undefined ? {} : input);
 }
 
 function mapToolCaller(
@@ -68,6 +90,65 @@ function mapToolCaller(
       : caller;
 }
 
+async function convertWebSearchToolResultOutput({
+  output,
+  id,
+}: {
+  output: LanguageModelV4ToolResultOutput;
+  id: string;
+}): Promise<OpenAIResponsesWebSearchCall | undefined> {
+  if (output.type !== 'json') {
+    return undefined;
+  }
+
+  const validation = await safeValidateTypes({
+    value: output.value,
+    schema: webSearchOutputSchema,
+  });
+
+  if (!validation.success || validation.value.action == null) {
+    return undefined;
+  }
+
+  const { action, sources } = validation.value;
+
+  switch (action.type) {
+    case 'search':
+      return {
+        type: 'web_search_call',
+        id,
+        status: 'completed',
+        action: {
+          type: 'search',
+          ...(action.query != null && { query: action.query }),
+          ...(action.queries != null && { queries: action.queries }),
+          ...(sources != null && { sources }),
+        },
+      };
+    case 'openPage':
+      return {
+        type: 'web_search_call',
+        id,
+        status: 'completed',
+        action: {
+          type: 'open_page',
+          url: action.url,
+        },
+      };
+    case 'findInPage':
+      return {
+        type: 'web_search_call',
+        id,
+        status: 'completed',
+        action: {
+          type: 'find_in_page',
+          url: action.url,
+          pattern: action.pattern,
+        },
+      };
+  }
+}
+
 async function convertFunctionToolResultOutput({
   output,
   toolName,
@@ -79,7 +160,7 @@ async function convertFunctionToolResultOutput({
   output: LanguageModelV4ToolResultOutput;
   toolName: string;
   outputSchemaToolNames: Set<string> | undefined;
-  promptCacheBreakpoint?: OpenAIPromptCacheBreakpoint;
+  promptCacheBreakpoint?: OpenAIResponsesPromptCacheBreakpoint;
   providerOptionsName: string;
   warnings: Array<SharedV4Warning>;
 }): Promise<OpenAIResponsesFunctionCallOutput['output']> {
@@ -102,19 +183,24 @@ async function convertFunctionToolResultOutput({
 
   switch (output.type) {
     case 'text':
-    case 'error-text':
       return convertScalarOutput(
-        hasOutputSchema ? JSON.stringify(output.value) : output.value,
+        hasOutputSchema
+          ? stringifyWithBigIntAndCycles(output.value)
+          : output.value,
+      );
+    case 'error-text':
+    case 'error-json':
+      return convertScalarOutput(
+        stringifyWithBigIntAndCycles({ error: output.value }),
       );
     case 'execution-denied': {
       const reason = output.reason ?? 'Tool call execution denied.';
       return convertScalarOutput(
-        hasOutputSchema ? JSON.stringify(reason) : reason,
+        hasOutputSchema ? stringifyWithBigIntAndCycles(reason) : reason,
       );
     }
     case 'json':
-    case 'error-json':
-      return convertScalarOutput(JSON.stringify(output.value));
+      return convertScalarOutput(stringifyWithBigIntAndCycles(output.value));
     case 'content':
       return output.value
         .map(item => {
@@ -227,7 +313,7 @@ async function convertFunctionToolResultOutput({
 }
 
 type ParallelToolResultGroup = {
-  metadata: ParallelToolCallMetadata;
+  metadata: ParallelToolCallMetadata & { input: string };
   results: Array<LanguageModelV4ToolResultPart>;
 };
 
@@ -239,7 +325,9 @@ function hasSameParallelToolCall(
     first.itemId === second.itemId &&
     first.toolCallId === second.toolCallId &&
     first.toolName === second.toolName &&
-    first.input === second.input &&
+    (first.input === undefined ||
+      second.input === undefined ||
+      first.input === second.input) &&
     first.count === second.count
   );
 }
@@ -297,6 +385,12 @@ function collectCompleteParallelToolResultGroups({
         continue;
       }
 
+      if (
+        existing.metadata.input === undefined &&
+        metadata.input !== undefined
+      ) {
+        existing.metadata = metadata;
+      }
       existing.results.set(metadata.index, part);
     }
   }
@@ -304,7 +398,11 @@ function collectCompleteParallelToolResultGroups({
   const completeGroups = new Map<string, ParallelToolResultGroup>();
 
   for (const [toolCallId, group] of pendingGroups) {
-    if (group.invalid || group.results.size !== group.metadata.count) {
+    if (
+      group.invalid ||
+      group.results.size !== group.metadata.count ||
+      group.metadata.input === undefined
+    ) {
       continue;
     }
 
@@ -314,7 +412,7 @@ function collectCompleteParallelToolResultGroups({
 
     if (results.every(isNonNullable)) {
       completeGroups.set(toolCallId, {
-        metadata: group.metadata,
+        metadata: { ...group.metadata, input: group.metadata.input },
         results,
       });
     }
@@ -323,14 +421,12 @@ function collectCompleteParallelToolResultGroups({
   return completeGroups;
 }
 
-type OpenAIPromptCacheBreakpoint = { mode: 'explicit' };
-
 function getPromptCacheBreakpoint(
   providerOptions: SharedV4ProviderOptions | undefined,
   providerOptionsName: string,
-): OpenAIPromptCacheBreakpoint | undefined {
+): OpenAIResponsesPromptCacheBreakpoint | undefined {
   return providerOptions?.[providerOptionsName]?.promptCacheBreakpoint as
-    | OpenAIPromptCacheBreakpoint
+    | OpenAIResponsesPromptCacheBreakpoint
     | undefined;
 }
 
@@ -342,7 +438,7 @@ function getScalarToolResultPromptCacheBreakpoint({
   output: LanguageModelV4ToolResultOutput;
   toolResultProviderOptions: SharedV4ProviderOptions | undefined;
   providerOptionsName: string;
-}): OpenAIPromptCacheBreakpoint | undefined {
+}): OpenAIResponsesPromptCacheBreakpoint | undefined {
   return output.type === 'content'
     ? undefined
     : (getPromptCacheBreakpoint(output.providerOptions, providerOptionsName) ??
@@ -363,6 +459,16 @@ function isFileId(data: string, prefixes?: readonly string[]): boolean {
   return prefixes.some(prefix => data.startsWith(prefix));
 }
 
+type AdditionalToolResolver = (
+  additionalTool: Pick<OpenAIResponsesAdditionalTool, 'type' | 'name'>,
+) => Promise<
+  | {
+      definition: OpenAIResponsesAdditionalTool | undefined;
+      warnings: Array<SharedV4Warning>;
+    }
+  | undefined
+>;
+
 export async function convertToOpenAIResponsesInput({
   prompt,
   toolNameMapping,
@@ -372,6 +478,7 @@ export async function convertToOpenAIResponsesInput({
   fileIdPrefixes,
   passThroughUnsupportedFiles = false,
   store,
+  isReasoningModel = false,
   hasConversation = false,
   hasPreviousResponseId = false,
   hasLocalShellTool = false,
@@ -381,6 +488,7 @@ export async function convertToOpenAIResponsesInput({
   toolSearchToolName,
   customProviderToolNames,
   outputSchemaToolNames,
+  findAdditionalToolDefinition,
   configurationUpdateUnsupportedReason,
 }: {
   prompt: LanguageModelV4Prompt;
@@ -392,6 +500,7 @@ export async function convertToOpenAIResponsesInput({
   fileIdPrefixes?: readonly string[];
   passThroughUnsupportedFiles?: boolean;
   store: boolean;
+  isReasoningModel?: boolean; // when true, stored assistant messages are only referenced together with their reasoning
   hasConversation?: boolean; // when true, skip assistant messages that already have item IDs
   hasPreviousResponseId?: boolean; // when true, skip reasoning and function-call items that already exist in the previous response chain
   hasLocalShellTool?: boolean;
@@ -401,6 +510,14 @@ export async function convertToOpenAIResponsesInput({
   toolSearchToolName?: string;
   customProviderToolNames?: Set<string>;
   outputSchemaToolNames?: Set<string>;
+  /**
+   * Resolves an `additionalTools` entry from the prompt to the definition of
+   * the tool registered for this request. Entries come from replayable
+   * conversation history, so they only select a registered tool: the resolver
+   * returns the registered definition, and entries it cannot resolve are
+   * dropped.
+   */
+  findAdditionalToolDefinition?: AdditionalToolResolver;
   configurationUpdateUnsupportedReason?: string;
 }): Promise<{
   input: OpenAIResponsesInput;
@@ -408,6 +525,8 @@ export async function convertToOpenAIResponsesInput({
 }> {
   let input: OpenAIResponsesInput = [];
   const warnings: Array<SharedV4Warning> = [];
+  const seenAdditionalToolWarnings = new Set<string>();
+  const droppedAdditionalToolNames = new Set<string>();
   const processedApprovalIds = new Set<string>();
   const programmaticToolCallIds = new Set<string>();
   const parallelToolResultGroups =
@@ -438,24 +557,59 @@ export async function convertToOpenAIResponsesInput({
           });
         }
         const effort = options?.reasoningEffortUpdate;
-        if (effort != null) {
+        const textFormat = options?.textFormatUpdate;
+        const additionalTools = options?.additionalTools;
+        if (effort != null || textFormat != null || additionalTools != null) {
+          const hasConfigurationUpdate = effort != null || textFormat != null;
+          const feature =
+            effort != null
+              ? 'reasoningEffortUpdate'
+              : textFormat != null
+                ? 'textFormatUpdate'
+                : 'additionalTools';
           const unsupportedReason =
             content !== ''
-              ? 'Message-level reasoningEffortUpdate requires empty system message content.'
-              : configurationUpdateUnsupportedReason;
+              ? `Message-level ${feature} requires empty system message content.`
+              : hasConfigurationUpdate
+                ? configurationUpdateUnsupportedReason
+                : undefined;
 
           if (unsupportedReason != null) {
             throw new UnsupportedFunctionalityError({
-              functionality: 'Message-level reasoningEffortUpdate',
+              functionality: `Message-level ${feature}`,
               message: unsupportedReason,
             });
           }
 
-          input.push({
-            type: 'configuration_update',
-            reasoning: { effort },
+          if (hasConfigurationUpdate) {
+            input.push({
+              type: 'configuration_update',
+              ...(effort != null && { reasoning: { effort } }),
+              ...(textFormat != null && {
+                text: {
+                  format: normalizeOpenAIResponsesTextFormat(
+                    textFormat,
+                    warnings,
+                  ),
+                },
+              }),
+            });
+          }
+          const resolvedAdditionalTools = await filterAdditionalTools({
+            additionalTools,
+            findAdditionalToolDefinition,
+            seenWarnings: seenAdditionalToolWarnings,
+            droppedToolNames: droppedAdditionalToolNames,
+            warnings,
           });
-          // The control is independent of systemMessageMode's text handling.
+          if (resolvedAdditionalTools != null) {
+            input.push({
+              type: 'additional_tools',
+              role: 'developer',
+              tools: resolvedAdditionalTools,
+            });
+          }
+          // The controls are independent of systemMessageMode's text handling.
           break;
         }
 
@@ -649,6 +803,14 @@ export async function convertToOpenAIResponsesInput({
 
       case 'assistant': {
         const reasoningMessages: Record<string, OpenAIResponsesReasoning> = {};
+        const emittedTextItemIds = new Set<string>();
+
+        // Stored messages of reasoning models are bound to the reasoning item
+        // that produced them. When the reasoning has been removed (e.g. with
+        // `pruneMessages`), referencing the message fails with "Item 'msg_...'
+        // of type 'message' was provided without its required 'reasoning'
+        // item", so it is sent with its content instead.
+        let hasPrecedingReasoning = false;
 
         for (const part of content) {
           switch (part.type) {
@@ -668,8 +830,15 @@ export async function convertToOpenAIResponsesInput({
               }
 
               // item references reduce the payload size
-              if (store && id != null) {
-                input.push({ type: 'item_reference', id });
+              if (
+                store &&
+                id != null &&
+                (!isReasoningModel || hasPrecedingReasoning)
+              ) {
+                if (!emittedTextItemIds.has(id)) {
+                  emittedTextItemIds.add(id);
+                  input.push({ type: 'item_reference', id });
+                }
                 break;
               }
 
@@ -989,7 +1158,7 @@ export async function convertToOpenAIResponsesInput({
                   input:
                     typeof part.input === 'string'
                       ? part.input
-                      : JSON.stringify(part.input),
+                      : stringifyWithBigIntAndCycles(part.input),
                   ...(isAsync != null && { async: isAsync }),
                   id,
                 });
@@ -1033,6 +1202,33 @@ export async function convertToOpenAIResponsesInput({
               const resolvedResultToolName = toolNameMapping.toProviderToolName(
                 part.toolName,
               );
+
+              if (
+                resolvedResultToolName === 'web_search' ||
+                resolvedResultToolName === 'web_search_preview'
+              ) {
+                const itemId =
+                  (
+                    part.providerOptions?.[providerOptionsName] as
+                      | { itemId?: string }
+                      | undefined
+                  )?.itemId ?? part.toolCallId;
+
+                if (store) {
+                  input.push({ type: 'item_reference', id: itemId });
+                  break;
+                }
+
+                const webSearchCall = await convertWebSearchToolResultOutput({
+                  output: part.output,
+                  id: itemId,
+                });
+
+                if (webSearchCall != null) {
+                  input.push(webSearchCall);
+                  break;
+                }
+              }
 
               if (part.toolName === toolSearchToolName) {
                 const itemId = (part.providerOptions?.[providerOptionsName]
@@ -1114,6 +1310,9 @@ export async function convertToOpenAIResponsesInput({
                   input.push({
                     type: 'shell_call_output',
                     call_id: part.toolCallId,
+                    ...(parsedOutput.maxOutputLength != null && {
+                      max_output_length: parsedOutput.maxOutputLength,
+                    }),
                     output: parsedOutput.output.map(item => ({
                       stdout: item.stdout,
                       stderr: item.stderr,
@@ -1149,6 +1348,8 @@ export async function convertToOpenAIResponsesInput({
             }
 
             case 'reasoning': {
+              hasPrecedingReasoning = true;
+
               const providerOptions = await parseProviderOptions({
                 provider: providerOptionsName,
                 providerOptions: part.providerOptions,
@@ -1194,7 +1395,7 @@ export async function convertToOpenAIResponsesInput({
                   } else if (reasoningMessage !== undefined) {
                     warnings.push({
                       type: 'other',
-                      message: `Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: ${JSON.stringify(part)}.`,
+                      message: `Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: ${stringifyWithBigIntAndCycles(part)}.`,
                     });
                   }
 
@@ -1245,7 +1446,7 @@ export async function convertToOpenAIResponsesInput({
                 } else {
                   warnings.push({
                     type: 'other',
-                    message: `Non-OpenAI reasoning parts are not supported. Skipping reasoning part: ${JSON.stringify(part)}.`,
+                    message: `Non-OpenAI reasoning parts are not supported. Skipping reasoning part: ${stringifyWithBigIntAndCycles(part)}.`,
                   });
                 }
               }
@@ -1363,7 +1564,9 @@ export async function convertToOpenAIResponsesInput({
                 }),
               );
               const serializedToolOutputs = toolOutputs.map(({ output }) =>
-                typeof output === 'string' ? output : JSON.stringify(output),
+                typeof output === 'string'
+                  ? output
+                  : stringifyWithBigIntAndCycles(output),
               );
               const hasPromptCacheBreakpoint = toolOutputs.some(
                 ({ promptCacheBreakpoint }) => promptCacheBreakpoint != null,
@@ -1385,6 +1588,24 @@ export async function convertToOpenAIResponsesInput({
                     }))
                   : serializedToolOutputs.join('\n'),
               });
+
+              for (const result of parallelToolResultGroup.results) {
+                const additionalTools = await resolveAdditionalTools({
+                  providerOptions: result.providerOptions,
+                  providerOptionsName,
+                  findAdditionalToolDefinition,
+                  seenWarnings: seenAdditionalToolWarnings,
+                  droppedToolNames: droppedAdditionalToolNames,
+                  warnings,
+                });
+                if (additionalTools != null) {
+                  input.push({
+                    type: 'additional_tools',
+                    role: 'developer',
+                    tools: additionalTools,
+                  });
+                }
+              }
             }
             continue;
           }
@@ -1453,6 +1674,9 @@ export async function convertToOpenAIResponsesInput({
             input.push({
               type: 'shell_call_output',
               call_id: part.toolCallId,
+              ...(parsedOutput.maxOutputLength != null && {
+                max_output_length: parsedOutput.maxOutputLength,
+              }),
               output: parsedOutput.output.map(item => ({
                 stdout: item.stdout,
                 stderr: item.stderr,
@@ -1538,8 +1762,13 @@ export async function convertToOpenAIResponsesInput({
             let outputValue: OpenAIResponsesCustomToolCallOutput['output'];
             switch (output.type) {
               case 'text':
-              case 'error-text':
                 outputValue = convertScalarOutput(output.value);
+                break;
+              case 'error-text':
+              case 'error-json':
+                outputValue = convertScalarOutput(
+                  stringifyWithBigIntAndCycles({ error: output.value }),
+                );
                 break;
               case 'execution-denied':
                 outputValue = convertScalarOutput(
@@ -1547,8 +1776,9 @@ export async function convertToOpenAIResponsesInput({
                 );
                 break;
               case 'json':
-              case 'error-json':
-                outputValue = convertScalarOutput(JSON.stringify(output.value));
+                outputValue = convertScalarOutput(
+                  stringifyWithBigIntAndCycles(output.value),
+                );
                 break;
               case 'content':
                 outputValue = output.value
@@ -1681,6 +1911,22 @@ export async function convertToOpenAIResponsesInput({
             output: contentValue,
             ...(caller != null && { caller }),
           });
+
+          const additionalTools = await resolveAdditionalTools({
+            providerOptions: part.providerOptions,
+            providerOptionsName,
+            findAdditionalToolDefinition,
+            seenWarnings: seenAdditionalToolWarnings,
+            droppedToolNames: droppedAdditionalToolNames,
+            warnings,
+          });
+          if (additionalTools != null) {
+            input.push({
+              type: 'additional_tools',
+              role: 'developer',
+              tools: additionalTools,
+            });
+          }
         }
 
         break;
@@ -1716,14 +1962,278 @@ export async function convertToOpenAIResponsesInput({
     );
   }
 
+  if (droppedAdditionalToolNames.size > 0) {
+    warnings.push({
+      type: 'unsupported',
+      feature: 'additionalTools',
+      details: `additional tool definitions are only sent for tools registered in the request; dropped the definitions of unregistered tools: ${formatDroppedToolNames(droppedAdditionalToolNames)}`,
+    });
+  }
+
   return { input, warnings };
 }
 
-const openaiResponsesReasoningProviderOptionsSchema = z.object({
-  itemId: z.string().nullish(),
-  reasoningEncryptedContent: z.string().nullish(),
-});
+const openaiResponsesReasoningProviderOptionsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      itemId: z.string().nullish(),
+      reasoningEncryptedContent: z.string().nullish(),
+    }),
+  ),
+);
 
-export type OpenAIResponsesReasoningProviderOptions = z.infer<
+export type OpenAIResponsesReasoningProviderOptions = InferSchema<
   typeof openaiResponsesReasoningProviderOptionsSchema
 >;
+
+async function parseToolResultAdditionalTools({
+  providerOptions,
+  providerOptionsName,
+}: {
+  providerOptions: SharedV4ProviderOptions | undefined;
+  providerOptionsName: string;
+}) {
+  const options = await parseProviderOptions({
+    provider: providerOptionsName,
+    providerOptions,
+    schema: openaiResponsesToolResultOptionsSchema,
+  });
+  if (options?.additionalTools != null || providerOptionsName === 'openai') {
+    return options?.additionalTools;
+  }
+  const openaiOptions = await parseProviderOptions({
+    provider: 'openai',
+    providerOptions,
+    schema: openaiResponsesToolResultOptionsSchema,
+  });
+  return openaiOptions?.additionalTools;
+}
+
+/**
+ * Replaces `additionalTools` entries from a tool result with the definitions of
+ * the tools registered for this request.
+ */
+async function resolveAdditionalTools({
+  providerOptions,
+  providerOptionsName,
+  findAdditionalToolDefinition,
+  seenWarnings,
+  droppedToolNames,
+  warnings,
+}: {
+  providerOptions: SharedV4ProviderOptions | undefined;
+  providerOptionsName: string;
+  findAdditionalToolDefinition: AdditionalToolResolver | undefined;
+  seenWarnings: Set<string>;
+  droppedToolNames: Set<string>;
+  warnings: Array<SharedV4Warning>;
+}): Promise<Array<OpenAIResponsesAdditionalTool> | undefined> {
+  const additionalTools = await parseToolResultAdditionalTools({
+    providerOptions,
+    providerOptionsName,
+  });
+
+  return filterAdditionalTools({
+    additionalTools,
+    findAdditionalToolDefinition,
+    seenWarnings,
+    droppedToolNames,
+    warnings,
+  });
+}
+
+/**
+ * Replaces `additionalTools` entries from the prompt with the definitions of
+ * the tools registered for this request.
+ *
+ * Prompts can contain replayed conversation history, so their tool definitions
+ * are not trusted. An entry only selects a registered tool: the provider sends
+ * the definition derived from the registered tool, and entries for tools that
+ * are not registered are dropped.
+ */
+async function filterAdditionalTools({
+  additionalTools,
+  findAdditionalToolDefinition,
+  seenWarnings,
+  droppedToolNames,
+  warnings,
+}: {
+  additionalTools: Array<OpenAIResponsesAdditionalTool> | undefined;
+  findAdditionalToolDefinition: AdditionalToolResolver | undefined;
+  seenWarnings: Set<string>;
+  droppedToolNames: Set<string>;
+  warnings: Array<SharedV4Warning>;
+}): Promise<Array<OpenAIResponsesAdditionalTool> | undefined> {
+  if (additionalTools == null || additionalTools.length === 0) {
+    return undefined;
+  }
+
+  const resolvedTools: Array<OpenAIResponsesAdditionalTool> = [];
+  const seenDefinitions = new Set<string>();
+
+  for (const additionalTool of additionalTools) {
+    const resolved = await findAdditionalToolDefinition?.({
+      type: additionalTool.type,
+      name: additionalTool.name,
+    });
+
+    if (resolved == null) {
+      droppedToolNames.add(additionalTool.name);
+      continue;
+    }
+
+    for (const warning of resolved.warnings) {
+      const signature = JSON.stringify(warning);
+
+      if (!seenWarnings.has(signature)) {
+        seenWarnings.add(signature);
+        warnings.push(warning);
+      }
+    }
+
+    if (resolved.definition == null) {
+      continue;
+    }
+
+    pushDefinitionMismatchWarning({
+      additionalTool,
+      definition: resolved.definition,
+      seenWarnings,
+      warnings,
+    });
+
+    const definition = narrowNamespaceDefinition({
+      registeredDefinition: resolved.definition,
+      additionalTool,
+      droppedToolNames,
+    });
+
+    if (definition == null) {
+      continue;
+    }
+
+    // Replayed history can repeat an entry; send each definition once.
+    const signature = JSON.stringify(definition);
+
+    if (seenDefinitions.has(signature)) {
+      continue;
+    }
+
+    seenDefinitions.add(signature);
+    resolvedTools.push(definition);
+  }
+
+  return resolvedTools.length > 0 ? resolvedTools : undefined;
+}
+
+/**
+ * A namespace entry names the tools to load. Send only the registered tools of
+ * the namespace that the entry names, so an entry cannot load more of a
+ * namespace than it asked for.
+ */
+function narrowNamespaceDefinition({
+  registeredDefinition,
+  additionalTool,
+  droppedToolNames,
+}: {
+  registeredDefinition: OpenAIResponsesAdditionalTool;
+  additionalTool: OpenAIResponsesAdditionalTool;
+  droppedToolNames: Set<string>;
+}): OpenAIResponsesAdditionalTool | undefined {
+  if (
+    registeredDefinition.type !== 'namespace' ||
+    additionalTool.type !== 'namespace'
+  ) {
+    return registeredDefinition;
+  }
+
+  const requestedToolNames = new Set(
+    additionalTool.tools.map(tool => tool.name),
+  );
+  const registeredToolNames = new Set(
+    registeredDefinition.tools.map(tool => tool.name),
+  );
+
+  for (const toolName of requestedToolNames) {
+    if (!registeredToolNames.has(toolName)) {
+      droppedToolNames.add(toolName);
+    }
+  }
+
+  const tools = registeredDefinition.tools.filter(tool =>
+    requestedToolNames.has(tool.name),
+  );
+
+  return tools.length > 0 ? { ...registeredDefinition, tools } : undefined;
+}
+
+/**
+ * The entry in the history is not sent, so a `strict` or `defer_loading` value
+ * that differs from the registered tool is ignored. Warn instead of silently
+ * changing the behavior the entry asks for.
+ */
+function pushDefinitionMismatchWarning({
+  additionalTool,
+  definition,
+  seenWarnings,
+  warnings,
+}: {
+  additionalTool: OpenAIResponsesAdditionalTool;
+  definition: OpenAIResponsesAdditionalTool;
+  seenWarnings: Set<string>;
+  warnings: Array<SharedV4Warning>;
+}) {
+  if (additionalTool.type !== 'function' || definition.type !== 'function') {
+    return;
+  }
+
+  const mismatchedFields: Array<string> = [];
+
+  if (
+    additionalTool.strict != null &&
+    additionalTool.strict !== definition.strict
+  ) {
+    mismatchedFields.push('strict');
+  }
+
+  if (
+    additionalTool.defer_loading != null &&
+    additionalTool.defer_loading !== (definition.defer_loading ?? false)
+  ) {
+    mismatchedFields.push('defer_loading');
+  }
+
+  if (mismatchedFields.length === 0) {
+    return;
+  }
+
+  const warning: SharedV4Warning = {
+    type: 'unsupported',
+    feature: `additionalTools entry "${definition.name}"`,
+    details: `the history entry sets ${mismatchedFields.join(' and ')} differently from the registered tool; the registered definition is sent`,
+  };
+  const signature = JSON.stringify(warning);
+
+  if (!seenWarnings.has(signature)) {
+    seenWarnings.add(signature);
+    warnings.push(warning);
+  }
+}
+
+function formatDroppedToolNames(names: Set<string>): string {
+  const maxNames = 5;
+  const maxNameLength = 80;
+  const formattedNames = [...names]
+    .slice(0, maxNames)
+    .map(name =>
+      JSON.stringify(
+        name.length > maxNameLength
+          ? `${name.slice(0, maxNameLength)}...`
+          : name,
+      ),
+    );
+
+  return names.size > maxNames
+    ? `${formattedNames.join(', ')} and ${names.size - maxNames} more`
+    : formattedNames.join(', ');
+}

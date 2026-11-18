@@ -52,7 +52,23 @@ describe('getGoogleModelCapabilities', () => {
       },
     },
     {
+      modelId: 'eu.gemini-2.5-flash',
+      expected: {
+        supportsGemini2Tools: true,
+        supportsFileSearch: true,
+        usesGemini3Features: false,
+      },
+    },
+    {
       modelId: 'gemini-3.1-pro-preview',
+      expected: {
+        supportsGemini2Tools: true,
+        supportsFileSearch: true,
+        usesGemini3Features: true,
+      },
+    },
+    {
+      modelId: 'au.gemini-3.5-flash',
       expected: {
         supportsGemini2Tools: true,
         supportsFileSearch: true,

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   gatewayHighlightedLines,
+  parseCodeTemplateOptions,
   parseHighlightedLines,
   renderGatewayCode,
 } from '../lib/code-template.mjs';
@@ -86,4 +87,45 @@ test('keeps line highlights on the same code when the provider import is removed
   assert.deepEqual(gatewayHighlightedLines(template, lines), [4, 5]);
   assert.deepEqual(gatewayHighlightedLines('first\nsecond\nthird', [1, 3]), [1, 3]);
   assert.deepEqual(parseHighlightedLines(''), []);
+});
+
+test('provider-scoped samples keep a runnable Google default in Markdown and their selector options in HTML', () => {
+  const meta = 'provider="google" model="google/gemini-4-argon" {5}';
+  const options = parseCodeTemplateOptions(meta);
+  assert.deepEqual(options, { provider: 'google', defaultModelId: 'google/gemini-4-argon' });
+  const node = { type: 'code', lang: 'ts', meta, value: template };
+  remarkCodeTemplates()({ type: 'root', children: [node] });
+  assert.equal(node.value, `import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: "google/gemini-4-argon",
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});`);
+  assert.equal(node.data.hProperties['data-code-template'], template);
+  assert.equal(node.data.hProperties['data-code-meta'], meta);
+  const pre = { type: 'element', tagName: 'pre', children: [
+    { type: 'element', tagName: 'code', properties: node.data.hProperties },
+  ] };
+  rehypeCodeTemplates()({ type: 'root', children: [pre] });
+  const props = Object.fromEntries(pre.attributes.map(({ name, value }) => [name, value]));
+  assert.deepEqual(parseCodeTemplateOptions(props.meta), options);
+  assert.deepEqual(gatewayHighlightedLines(props.code, parseHighlightedLines(props.meta)), [4]);
+});
+
+test('accepts either quote style and keeps non-text model defaults in scoped templates', () => {
+  const options = parseCodeTemplateOptions("provider='google' model='google/gemini-4-argon'");
+  assert.deepEqual(options, { provider: 'google', defaultModelId: 'google/gemini-4-argon' });
+  assert.equal(renderGatewayCode('text: __MODEL__\nimage: __IMAGE_MODEL__\nvideo: __VIDEO_MODEL__', options), `text: "google/gemini-4-argon"
+image: "openai/gpt-image-2.5-sunburst"
+video: "google/veo-3.1-generate-001"`);
+});
+
+test('uses the original default models for fences without metadata', () => {
+  const emptyOptions = { provider: undefined, defaultModelId: undefined };
+  assert.deepEqual(parseCodeTemplateOptions(), emptyOptions);
+  assert.deepEqual(parseCodeTemplateOptions(null), emptyOptions);
+
+  const node = { type: 'code', lang: 'ts', meta: null, value: template };
+  remarkCodeTemplates()({ type: 'root', children: [node] });
+  assert.equal(node.value, renderGatewayCode(template));
 });

@@ -123,3 +123,34 @@ export type ACPToolCall = {
   rawOutput?: unknown;
   _meta?: ACPMetadata | null;
 };
+
+/**
+ * A tool call from the ACP agent, resolved to one of the host tools that the
+ * harness exposes through its own MCP server.
+ */
+export type ACPResolvedHostToolCall = {
+  /**
+   * Name of the host tool. Must be one of the `toolNames` passed to the
+   * resolver.
+   */
+  readonly toolName: string;
+
+  /**
+   * Input for the host tool, with any agent-specific wrapper removed.
+   */
+  readonly input: Readonly<Record<string, unknown>>;
+};
+
+/**
+ * Resolves an ACP tool call to the host tool it invokes.
+ *
+ * Called with the merged snapshot of all updates seen so far for a tool call,
+ * and with standalone permission-request tool calls. Return `undefined` if the
+ * tool call does not invoke a host tool, or cannot be resolved from the data
+ * available so far.
+ */
+export type ACPResolveHostToolCall = (options: {
+  readonly toolCall: ACPToolCall;
+  readonly serverName: string;
+  readonly toolNames: ReadonlyArray<string>;
+}) => ACPResolvedHostToolCall | undefined;

@@ -55,8 +55,9 @@ const createTestModel = (
   config: Partial<
     GatewayConfig & { o11yHeaders?: Record<string, string> }
   > = {},
+  modelId = 'openai/gpt-4o-transcribe',
 ) =>
-  new GatewayTranscriptionModel('openai/gpt-4o-transcribe', {
+  new GatewayTranscriptionModel(modelId, {
     provider: 'gateway',
     baseURL: 'https://api.test.com',
     headers: () => ({
@@ -170,6 +171,67 @@ describe('GatewayTranscriptionModel', () => {
       });
     });
 
+    it('should warn about shared timestamp granularities without changing the request body', async () => {
+      server.urls['https://api.test.com/transcription-model'].response = {
+        type: 'json-value',
+        body: {
+          text: 'Hello world',
+          words: [{ text: 'Hello', startSecond: 0, endSecond: 0.5 }],
+          warnings: [{ type: 'other', message: 'test warning' }],
+        },
+      };
+
+      const result = await createTestModel().doGenerate({
+        audio: new Uint8Array([1, 2, 3]),
+        mediaType: 'audio/wav',
+        timestampGranularities: ['word', 'segment'],
+        providerOptions: {
+          openai: { timestampGranularities: ['segment'] },
+          gateway: { order: ['openai'] },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        audio: 'AQID',
+        mediaType: 'audio/wav',
+        providerOptions: {
+          openai: { timestampGranularities: ['segment'] },
+          gateway: { order: ['openai'] },
+        },
+      });
+      expect(result.warnings).toStrictEqual([
+        { type: 'other', message: 'test warning' },
+        {
+          type: 'unsupported',
+          feature: 'timestampGranularities',
+          details:
+            'The AI Gateway adapter does not forward the shared timestampGranularities option.',
+        },
+      ]);
+    });
+
+    it.each([
+      { name: 'omitted', timestampGranularities: undefined },
+      { name: 'empty', timestampGranularities: [] },
+    ])(
+      'should not warn about $name shared timestamp granularities',
+      async ({ timestampGranularities }) => {
+        prepareJsonResponse();
+
+        const result = await createTestModel().doGenerate({
+          audio: 'base64-audio',
+          mediaType: 'audio/wav',
+          ...(timestampGranularities != null && { timestampGranularities }),
+        });
+
+        expect(result.warnings).toStrictEqual([]);
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          audio: 'base64-audio',
+          mediaType: 'audio/wav',
+        });
+      },
+    );
+
     it.each(['speech', 'openai'])(
       'passes the Azure %s API override unchanged',
       async api => {
@@ -239,6 +301,112 @@ describe('GatewayTranscriptionModel', () => {
       expect(result.language).toBeUndefined();
       expect(result.durationInSeconds).toBeUndefined();
       expect(result.warnings).toStrictEqual([]);
+    });
+
+    it.each([
+      { name: 'missing', words: undefined },
+      { name: 'null', words: null },
+      { name: 'empty', words: [] },
+      {
+        name: 'populated',
+        words: [
+          { text: 'Hello', startSecond: 0, endSecond: 0.5 },
+          { text: 'world', startSecond: 0.5, endSecond: 1 },
+        ],
+      },
+    ])('should handle $name word timings', async ({ words }) => {
+      const segments = [{ text: 'Hello world', startSecond: 0, endSecond: 1 }];
+      const body = {
+        text: 'Hello world',
+        segments,
+        ...(words !== undefined && { words }),
+      };
+      server.urls['https://api.test.com/transcription-model'].response = {
+        type: 'json-value',
+        body,
+      };
+
+      const result = await createTestModel().doGenerate({
+        audio: 'base64-audio',
+        mediaType: 'audio/wav',
+      });
+
+      expect(result.words).toStrictEqual(words ?? undefined);
+      expect(result.segments).toStrictEqual(segments);
+      expect(result.response.body).toStrictEqual(body);
+      expect(result.warnings).toStrictEqual([]);
+      if (words == null) {
+        expect(result).not.toHaveProperty('words');
+      }
+    });
+
+    it.each(['xai', 'spacexai'])(
+      'should warn when xAI diarization from the %s option namespace is unavailable',
+      async provider => {
+        prepareJsonResponse();
+
+        const result = await createTestModel(
+          {},
+          'spacexai/grok-stt',
+        ).doGenerate({
+          audio: 'base64-audio',
+          mediaType: 'audio/wav',
+          providerOptions: {
+            [provider]: {
+              diarize: true,
+            },
+          },
+        });
+
+        expect(result.warnings).toContainEqual({
+          type: 'unsupported',
+          feature: 'providerOptions.xai.diarize',
+          details:
+            'AI Gateway does not currently expose xAI speaker diarization metadata.',
+        });
+      },
+    );
+
+    it('should not warn when xAI diarization metadata is available', async () => {
+      server.urls['https://api.test.com/transcription-model'].response = {
+        type: 'json-value',
+        body: {
+          text: 'Hello world',
+          providerMetadata: {
+            xai: {
+              words: [
+                {
+                  text: 'Hello',
+                  start: 0,
+                  end: 0.5,
+                  speaker: 0,
+                },
+              ],
+            },
+          },
+        },
+      };
+
+      const result = await createTestModel({}, 'spacexai/grok-stt').doGenerate({
+        audio: 'base64-audio',
+        mediaType: 'audio/wav',
+        providerOptions: {
+          xai: {
+            diarize: true,
+          },
+        },
+      });
+
+      expect(result.warnings).toStrictEqual([]);
+      expect(result.providerMetadata).toMatchObject({
+        xai: {
+          words: [
+            {
+              speaker: 0,
+            },
+          ],
+        },
+      });
     });
   });
 
@@ -846,6 +1014,34 @@ describe('GatewayTranscriptionModel', () => {
       );
       expect(ws.close).toHaveBeenCalled();
     });
+
+    it.each(['AbortError', 'TimeoutError'])(
+      'should propagate an upstream audio %s unchanged',
+      async name => {
+        const error = new DOMException('Audio stream cancelled', name);
+        let audioController!: ReadableStreamDefaultController<Uint8Array>;
+        const result = await createStreamingTestModel().doStream({
+          audio: new ReadableStream<Uint8Array>({
+            start(controller) {
+              audioController = controller;
+            },
+          }),
+          inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+        });
+        const ws = MockWebSocket.instances[0];
+        ws.open();
+        await flush();
+
+        const reader = result.stream.getReader();
+        const rejection = expect(reader.read()).rejects.toBe(error);
+        audioController.error(error);
+
+        await rejection;
+        await expect(reader.read()).rejects.toBe(error);
+        await flush();
+        expect(ws.close).toHaveBeenCalled();
+      },
+    );
 
     it('should cancel the audio stream when the connection fails before open', async () => {
       const model = createStreamingTestModel();
