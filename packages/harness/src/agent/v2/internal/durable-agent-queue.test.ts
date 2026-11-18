@@ -1,4 +1,4 @@
-import type { World } from '@workflow/world';
+import { MessageId, type World } from '@workflow/world';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { registerDurableHarnessAgent } from '../durable-agent-registry';
 import {
@@ -30,8 +30,9 @@ function createWorld() {
     deliver: (options: { payload: unknown; queueName: string }) => {
       if (callback == null) throw new Error('No queue handler was created.');
       return callback(options.payload, {
+        attempt: 1,
         queueName: options.queueName,
-        messageId: 'msg_1',
+        messageId: MessageId.parse('msg_1'),
       });
     },
   };
