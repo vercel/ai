@@ -101,18 +101,18 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
     constructor({
       connect,
       reconnect,
-      keepaliveMs,
+      keepAliveMs,
     }: {
       connect: (options: {
         abortSignal: AbortSignal;
         reason: 'open' | 'reconnect';
       }) => Promise<unknown>;
       reconnect?: unknown;
-      keepaliveMs?: number;
+      keepAliveMs?: number;
     }) {
       channelMocks.connects.push(connect);
       channelMocks.reconnects.push(reconnect);
-      channelMocks.keepalives.push(keepaliveMs);
+      channelMocks.keepalives.push(keepAliveMs);
       channelMocks.channels.push(this);
     }
     async open(): Promise<void> {
@@ -1039,7 +1039,7 @@ describe('createCodex adapter', () => {
       initialDelayMs: 100,
       maxDelayMs: 5_000,
     };
-    const harness = createCodex({ reconnect, keepaliveMs: 100 });
+    const harness = createCodex({ reconnect, keepAliveMs: 100 });
     const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
       bridgePortUrl: 'ws://127.0.0.1:1',
       runs,

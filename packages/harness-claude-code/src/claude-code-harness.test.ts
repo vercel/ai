@@ -117,7 +117,7 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
     constructor({
       connect,
       reconnect,
-      keepaliveMs,
+      keepAliveMs,
       onDebug,
     }: {
       connect: (options: {
@@ -125,12 +125,12 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
         reason: 'open' | 'reconnect';
       }) => Promise<unknown>;
       reconnect?: unknown;
-      keepaliveMs?: number;
+      keepAliveMs?: number;
       onDebug?: unknown;
     }) {
       this.connect = connect;
       reconnects.push(reconnect);
-      keepalives.push(keepaliveMs);
+      keepalives.push(keepAliveMs);
       debugHooks.push(onDebug);
     }
 
@@ -1022,7 +1022,7 @@ describe('createClaudeCode adapter', () => {
       initialDelayMs: 100,
       maxDelayMs: 5_000,
     };
-    const harness = createClaudeCode({ reconnect, keepaliveMs: 100 });
+    const harness = createClaudeCode({ reconnect, keepAliveMs: 100 });
     const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
       bridgePortUrl: 'ws://127.0.0.1:1',
       spawnEnvs,

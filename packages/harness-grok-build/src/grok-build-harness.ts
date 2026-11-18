@@ -90,7 +90,7 @@ export type GrokBuildHarnessSettings = {
    * WebSocket ping interval in milliseconds. Defaults to 20_000. Set to 0 to
    * disable. Two unanswered pings terminate the socket and trigger reconnect.
    */
-  readonly keepaliveMs?: number;
+  readonly keepAliveMs?: number;
   /**
    * MCP server definitions keyed by server name. Each definition uses the
    * underlying runtime's native MCP server configuration format.
@@ -330,7 +330,7 @@ export function createGrokBuild(
     startupTimeoutMs: settings.startupTimeoutMs,
     hostDisconnectTimeoutMs: settings.hostDisconnectTimeoutMs,
     reconnect: settings.reconnect,
-    keepaliveMs: settings.keepaliveMs,
+    keepAliveMs: settings.keepAliveMs,
     mcpServers: settings.mcpServers,
     modelMapping: {
       type: 'session-model',

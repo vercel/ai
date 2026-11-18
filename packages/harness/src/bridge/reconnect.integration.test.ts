@@ -134,7 +134,7 @@ describe('SandboxChannel ↔ runBridge reconnect', () => {
             privateKey: BRIDGE_AUTH.privateKey,
           }),
         outboundSchema,
-        keepaliveMs: 50,
+        keepAliveMs: 50,
         reconnect: { maxElapsedMs: 200, initialDelayMs: 10, maxDelayMs: 20 },
         onDebug: event => debug.push(event.event),
       });

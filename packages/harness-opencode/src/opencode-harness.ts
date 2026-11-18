@@ -144,7 +144,7 @@ export type OpenCodeHarnessSettings = {
    * WebSocket ping interval in milliseconds. Defaults to 20_000. Set to 0 to
    * disable. Two unanswered pings terminate the socket and trigger reconnect.
    */
-  readonly keepaliveMs?: number;
+  readonly keepAliveMs?: number;
   // TODO: Remove in the next major version.
   /**
    * @deprecated Sandbox bridge authentication now uses adapter-generated
@@ -481,7 +481,7 @@ export function createOpenCode(
             onDiagnostic,
             onBridgeError,
             reconnect: settings.reconnect,
-            keepaliveMs: settings.keepaliveMs,
+            keepAliveMs: settings.keepAliveMs,
           });
           await attachChannel.open(isContinue ? { resume: true } : undefined);
           return createSession({
@@ -654,7 +654,7 @@ export function createOpenCode(
         onDiagnostic,
         onBridgeError,
         reconnect: settings.reconnect,
-        keepaliveMs: settings.keepaliveMs,
+        keepAliveMs: settings.keepAliveMs,
         ...(respawnStrategy === 'replay'
           ? { initialLastSeenEventId: coords?.lastSeenEventId ?? 0 }
           : {}),

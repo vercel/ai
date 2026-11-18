@@ -101,18 +101,18 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
     constructor({
       connect,
       reconnect,
-      keepaliveMs,
+      keepAliveMs,
     }: {
       connect: (options: {
         abortSignal: AbortSignal;
         reason: 'open' | 'reconnect';
       }) => Promise<unknown>;
       reconnect?: unknown;
-      keepaliveMs?: number;
+      keepAliveMs?: number;
     }) {
       channelMocks.connects.push(connect);
       channelMocks.reconnects.push(reconnect);
-      channelMocks.keepalives.push(keepaliveMs);
+      channelMocks.keepalives.push(keepAliveMs);
     }
     async open(): Promise<void> {
       if (channelMocks.connectOnOpen) {
@@ -752,7 +752,7 @@ describe('createDeepAgents', () => {
       mintBridgeToken,
       portEndpoint,
       reconnect,
-      keepaliveMs: 100,
+      keepAliveMs: 100,
     });
     expect(
       warn.mock.calls.filter(([message]) =>

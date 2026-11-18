@@ -27,7 +27,7 @@ const channels: SandboxChannel<z.infer<typeof outboundSchema>>[] = [];
 
 function makeChannel(
   options: {
-    keepaliveMs?: number;
+    keepAliveMs?: number;
     connect?: () => Promise<WebSocket>;
   } = {},
 ) {
@@ -42,7 +42,7 @@ function makeChannel(
   const channel = new SandboxChannel({
     connect,
     outboundSchema,
-    keepaliveMs: options.keepaliveMs,
+    keepAliveMs: options.keepAliveMs,
     reconnect: { maxElapsedMs: 200, initialDelayMs: 50, maxDelayMs: 50 },
     onDebug: event => debug.push(event),
   });
@@ -70,7 +70,7 @@ describe('SandboxChannel keepalive', () => {
   });
 
   it('keeps a responsive socket connected at the configured interval', async () => {
-    const { channel, sockets, debug } = makeChannel({ keepaliveMs: 100 });
+    const { channel, sockets, debug } = makeChannel({ keepAliveMs: 100 });
     await channel.open();
     for (let interval = 0; interval < 5; interval++) {
       await vi.advanceTimersByTimeAsync(100);
@@ -82,7 +82,7 @@ describe('SandboxChannel keepalive', () => {
   });
 
   it('terminates after two unanswered pings and starts a fresh heartbeat on reconnect', async () => {
-    const { channel, sockets, debug } = makeChannel({ keepaliveMs: 100 });
+    const { channel, sockets, debug } = makeChannel({ keepAliveMs: 100 });
     await channel.open();
     sockets[0].emit('message', JSON.stringify({ type: 'finish', seq: 7 }));
     await vi.advanceTimersByTimeAsync(200);
@@ -111,7 +111,7 @@ describe('SandboxChannel keepalive', () => {
     const socket = new HeartbeatSocket();
     let attempts = 0;
     const { channel, debug } = makeChannel({
-      keepaliveMs: 100,
+      keepAliveMs: 100,
       connect: async () => {
         if (attempts++ === 0) return socket as unknown as WebSocket;
         throw new Error('peer unavailable');
@@ -129,8 +129,8 @@ describe('SandboxChannel keepalive', () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
-  it('disables keepalive when keepaliveMs is zero', async () => {
-    const { channel, sockets } = makeChannel({ keepaliveMs: 0 });
+  it('disables keepalive when keepAliveMs is zero', async () => {
+    const { channel, sockets } = makeChannel({ keepAliveMs: 0 });
     await channel.open();
     await vi.advanceTimersByTimeAsync(100_000);
     expect(sockets[0].ping).not.toHaveBeenCalled();
@@ -152,7 +152,7 @@ describe('SandboxChannel keepalive', () => {
   it.each(['close', 'suspend', 'beginClose'] as const)(
     'cleans up keepalive on %s',
     async method => {
-      const { channel, sockets, connect } = makeChannel({ keepaliveMs: 100 });
+      const { channel, sockets, connect } = makeChannel({ keepAliveMs: 100 });
       await channel.open();
       await channel[method]();
       await vi.advanceTimersByTimeAsync(1_000);
@@ -167,7 +167,7 @@ describe('SandboxChannel keepalive', () => {
   it.each(['close', 'error'])(
     'cleans up a dropped socket on %s',
     async event => {
-      const { channel, sockets } = makeChannel({ keepaliveMs: 100 });
+      const { channel, sockets } = makeChannel({ keepAliveMs: 100 });
       await channel.open();
       sockets[0].emit(event, 1006, Buffer.from(''));
       await vi.advanceTimersByTimeAsync(100);
@@ -178,7 +178,7 @@ describe('SandboxChannel keepalive', () => {
   );
 
   it('does not ping sockets that are no longer open', async () => {
-    const { channel, sockets } = makeChannel({ keepaliveMs: 100 });
+    const { channel, sockets } = makeChannel({ keepAliveMs: 100 });
     await channel.open();
     sockets[0].readyState = 2;
     await vi.advanceTimersByTimeAsync(500);
@@ -187,7 +187,7 @@ describe('SandboxChannel keepalive', () => {
   });
 
   it('reconnects if sending a ping throws', async () => {
-    const { channel, sockets } = makeChannel({ keepaliveMs: 100 });
+    const { channel, sockets } = makeChannel({ keepAliveMs: 100 });
     await channel.open();
     sockets[0].ping.mockImplementation(() => {
       throw new Error('socket error');

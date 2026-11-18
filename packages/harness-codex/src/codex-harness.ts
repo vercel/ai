@@ -156,7 +156,7 @@ export type CodexHarnessSettings = {
    * WebSocket ping interval in milliseconds. Defaults to 20_000. Set to 0 to
    * disable. Two unanswered pings terminate the socket and trigger reconnect.
    */
-  readonly keepaliveMs?: number;
+  readonly keepAliveMs?: number;
   // TODO: Remove in the next major version.
   /**
    * @deprecated Sandbox bridge authentication now uses adapter-generated
@@ -410,7 +410,7 @@ export function createCodex(
             onDiagnostic,
             onBridgeError,
             reconnect: settings.reconnect,
-            keepaliveMs: settings.keepaliveMs,
+            keepAliveMs: settings.keepAliveMs,
           });
           await attachChannel.open(isContinue ? { resume: true } : undefined);
           return createSession({
@@ -569,7 +569,7 @@ export function createCodex(
         onDiagnostic,
         onBridgeError,
         reconnect: settings.reconnect,
-        keepaliveMs: settings.keepaliveMs,
+        keepAliveMs: settings.keepAliveMs,
         // In replay mode the respawned bridge reloaded the finished turn from
         // disk; seed the cursor and resume so it streams the tail (incl.
         // `finish`).

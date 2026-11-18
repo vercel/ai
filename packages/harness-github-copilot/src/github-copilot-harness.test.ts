@@ -338,7 +338,7 @@ describe('createGitHubCopilot', () => {
       startupTimeoutMs: 45_000,
       hostDisconnectTimeoutMs: 60_000,
       reconnect,
-      keepaliveMs: 100,
+      keepAliveMs: 100,
       mintBridgeToken,
     });
 
@@ -352,7 +352,7 @@ describe('createGitHubCopilot', () => {
       startupTimeoutMs: 45_000,
       hostDisconnectTimeoutMs: 60_000,
       reconnect,
-      keepaliveMs: 100,
+      keepAliveMs: 100,
       mintBridgeToken,
     });
     await settings.credentialForwarding?.({

@@ -7,7 +7,7 @@ import {
 
 test('accepts sandbox bridge connection settings', () => {
   const settings: GrokBuildHarnessSettings = {
-    keepaliveMs: 100,
+    keepAliveMs: 100,
     reconnect: {
       maxElapsedMs: 120_000,
       initialDelayMs: 100,
@@ -15,7 +15,7 @@ test('accepts sandbox bridge connection settings', () => {
     },
   };
   createGrokBuild(settings);
-  expectTypeOf(settings.keepaliveMs).toEqualTypeOf<number | undefined>();
+  expectTypeOf(settings.keepAliveMs).toEqualTypeOf<number | undefined>();
   expectTypeOf(settings.reconnect).toEqualTypeOf<
     SandboxChannelReconnectOptions | undefined
   >();

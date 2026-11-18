@@ -66,7 +66,7 @@ export interface SandboxChannelOptions<TOut> {
    * reconnection can begin. Default 20_000. Set to 0 to disable. Sockets without
    * ping support are left unchanged.
    */
-  keepaliveMs?: number;
+  keepAliveMs?: number;
 
   onDebug?: (event: SandboxChannelDebugEvent) => void;
 
@@ -253,7 +253,7 @@ export class SandboxChannel<
   private readonly initialDelayMs: number;
   private readonly maxDelayMs: number;
 
-  private readonly keepaliveMs: number;
+  private readonly keepAliveMs: number;
   private stopKeepalive: (() => void) | undefined;
 
   private ws: WebSocket | undefined;
@@ -287,7 +287,7 @@ export class SandboxChannel<
     this.maxElapsedMs = options.reconnect?.maxElapsedMs ?? 30_000;
     this.initialDelayMs = options.reconnect?.initialDelayMs ?? 50;
     this.maxDelayMs = options.reconnect?.maxDelayMs ?? 2_000;
-    this.keepaliveMs = options.keepaliveMs ?? 20_000;
+    this.keepAliveMs = options.keepAliveMs ?? 20_000;
     this._lastSeenEventId = options.initialLastSeenEventId ?? 0;
   }
 
@@ -532,7 +532,7 @@ export class SandboxChannel<
   }
 
   private keepalive(ws: WebSocket, onTimeout: () => void): () => void {
-    if (!(this.keepaliveMs > 0) || typeof ws.ping !== 'function') {
+    if (!(this.keepAliveMs > 0) || typeof ws.ping !== 'function') {
       return () => {};
     }
     let unansweredPings = 0;
@@ -552,7 +552,7 @@ export class SandboxChannel<
       } catch {
         onTimeout();
       }
-    }, this.keepaliveMs);
+    }, this.keepAliveMs);
     (timer as { unref?: () => void }).unref?.();
     return () => {
       clearInterval(timer);
