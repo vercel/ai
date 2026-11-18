@@ -2,9 +2,11 @@ import { tool } from 'ai';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import {
+  CodeModeDetachedBridgeRequestError,
   CodeModeToolApprovalRequiredError,
   experimental_runCodeMode as runCodeMode,
 } from '../dist/index.js';
+import { delay } from './utils/test-helpers.js';
 
 describe('exceptions and serialization', () => {
   it('fails clearly for unknown tools', async () => {
@@ -78,6 +80,67 @@ describe('exceptions and serialization', () => {
         },
       }),
     ).rejects.toThrow('Host tool failed.');
+  });
+
+  describe('detached tool calls', () => {
+    const tools = {
+      createSlide: tool({
+        inputSchema: z.object({}),
+        execute: async () => ({ ok: true }),
+      }),
+      fail: tool({
+        inputSchema: z.object({}),
+        execute: async (): Promise<unknown> => {
+          throw new Error('tool exploded');
+        },
+      }),
+      'update-slide': tool({
+        inputSchema: z.object({}),
+        execute: async () => {
+          await delay(50);
+          return { ok: true };
+        },
+      }),
+      'slide$&': tool({
+        inputSchema: z.object({}),
+        execute: async () => ({ ok: true }),
+      }),
+    };
+
+    it('names the tool for unawaited calls', async () => {
+      const error = await runCodeMode({
+        js: 'tools.createSlide({}); return 1;',
+        tools,
+      }).catch(error => error);
+
+      expect(error).toBeInstanceOf(CodeModeDetachedBridgeRequestError);
+      expect(error.message).toBe(
+        'JavaScript runtime created an unawaited hostFunction bridge request: tools.createSlide.',
+      );
+    });
+
+    it('names the tool for calls still pending on return', async () => {
+      const error = await runCodeMode({
+        js: "try { await Promise.all([tools.fail({}), tools['update-slide']({})]); } catch {} return 1;",
+        tools,
+      }).catch(error => error);
+
+      expect(error).toBeInstanceOf(CodeModeDetachedBridgeRequestError);
+      expect(error.message).toBe(
+        'JavaScript runtime returned while a hostFunction bridge request was still pending: tools["update-slide"].',
+      );
+    });
+
+    it('inserts tool names containing $ patterns literally', async () => {
+      await expect(
+        runCodeMode({
+          js: "tools['slide$&']({}); return 1;",
+          tools,
+        }),
+      ).rejects.toThrow(
+        'JavaScript runtime created an unawaited hostFunction bridge request: tools["slide$&"].',
+      );
+    });
   });
 
   it('propagates syntax errors from the sandbox', async () => {

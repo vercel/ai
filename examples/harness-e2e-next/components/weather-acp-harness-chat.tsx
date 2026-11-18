@@ -1,6 +1,6 @@
 'use client';
 
-import type { WeatherClaudeCodeACPHarnessAgentMessage } from '@/agent/harness/acp-claude-code/weather-agent';
+import type { WeatherClaudeCodeHarnessAgentMessage } from '@/agent/harness/claude-code/weather-agent';
 import { Response } from '@/components/ai-elements/response';
 import { useChatId } from '@/components/chat-id-provider';
 import ChatInput from '@/components/chat-input';
@@ -29,7 +29,7 @@ export default function WeatherACPHarnessChat({
     messages,
     regenerate,
     addToolApprovalResponse,
-  } = useChat<WeatherClaudeCodeACPHarnessAgentMessage>({
+  } = useChat<WeatherClaudeCodeHarnessAgentMessage>({
     id: chatId,
     transport: new DefaultChatTransport({
       api: apiRoute,
@@ -70,8 +70,18 @@ export default function WeatherACPHarnessChat({
                   </Response>
                 );
               case 'file':
-              case 'reasoning-file':
-                return null;
+              case 'reasoning-file': {
+                if (!part.mediaType.startsWith('image/')) return null;
+                return (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    key={index}
+                    src={part.url}
+                    alt="Image attachment"
+                    className="mb-2 max-w-full max-h-64 rounded"
+                  />
+                );
+              }
               case 'tool-get_weather':
                 return (
                   <WeatherView
@@ -117,7 +127,7 @@ export default function WeatherACPHarnessChat({
       <ChatInput
         status={status}
         maxWidth="5xl"
-        onSubmit={text => sendMessage({ text })}
+        onSubmit={parts => sendMessage({ parts })}
       />
     </div>
   );

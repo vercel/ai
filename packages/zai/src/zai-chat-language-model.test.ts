@@ -176,8 +176,8 @@ describe('ZaiChatLanguageModel', () => {
     const result = await model.doGenerate({ prompt: TEST_PROMPT });
 
     expect(result.content).toEqual([
-      { type: 'text', text: 'The answer is 42.' },
       { type: 'reasoning', text: 'I should calculate the answer.' },
+      { type: 'text', text: 'The answer is 42.' },
       {
         type: 'tool-call',
         toolCallId: 'call-1',

@@ -18,6 +18,7 @@ import {
 } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockTranscriptionModelV4 } from '../test/mock-transcription-model-v4';
+import { VERSION } from '../version';
 import { streamTranscribe } from './stream-transcribe';
 import type { StreamTranscriptionEndEvent } from './transcription-events';
 
@@ -389,6 +390,7 @@ describe('experimental_streamTranscribe', () => {
       expect(onStart).toHaveBeenCalledOnce();
       expect(onEnd).not.toHaveBeenCalled();
       expect(onError).toHaveBeenCalledExactlyOnceWith({
+        aiVersion: VERSION,
         callId: 'call-1',
         error,
       });
@@ -445,6 +447,7 @@ describe('experimental_streamTranscribe', () => {
       expect(onEnd).not.toHaveBeenCalled();
       expect(onError).toHaveBeenCalledOnce();
       expect(onError).toHaveBeenCalledWith({
+        aiVersion: VERSION,
         callId: 'call-1',
         error: expect.anything(),
       });

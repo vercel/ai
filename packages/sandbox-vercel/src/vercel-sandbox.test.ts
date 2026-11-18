@@ -141,6 +141,15 @@ describe('new Vercel sandbox sessions', () => {
     const { sandbox } = makeMockSandbox();
     const prepare = vi.fn(async () => {});
     const preparedNames = new Set<string>();
+    snapshotListMock.mockResolvedValue({
+      async *[Symbol.asyncIterator]() {
+        yield {
+          id: 'derived-snapshot',
+          status: 'created',
+          creationMethod: 'manual',
+        };
+      },
+    });
     getOrCreateMock.mockImplementation(
       async (opts: {
         name: string;
@@ -150,7 +159,7 @@ describe('new Vercel sandbox sessions', () => {
           await opts.onCreate(sandbox);
           preparedNames.add(opts.name);
         }
-        return { ...sandbox, currentSnapshotId: 'derived-snapshot' };
+        return sandbox;
       },
     );
     createMock.mockResolvedValue(sandbox);
@@ -167,7 +176,7 @@ describe('new Vercel sandbox sessions', () => {
     await create('base', 'recipe-two');
     const calls = getOrCreateMock.mock.calls.map(([opts]) => opts);
     expect(calls[0].source).toEqual({ type: 'snapshot', snapshotId: 'base' });
-    expect(calls[0].name).toMatch(/^ai-sdk-harness-v2-[a-f0-9]{24}$/);
+    expect(calls[0].name).toMatch(/^ai-sdk-harness-v3-[a-f0-9]{24}$/);
     expect(calls[0].name).toBe(calls[1].name);
     expect(calls[0].name).not.toBe(calls[2].name);
     expect(calls[0].name).not.toBe(calls[3].name);
@@ -194,11 +203,14 @@ describe('new Vercel sandbox sessions', () => {
   });
 });
 
-const { createMock, getMock, getOrCreateMock } = vi.hoisted(() => ({
-  createMock: vi.fn(),
-  getMock: vi.fn(),
-  getOrCreateMock: vi.fn(),
-}));
+const { createMock, getMock, getOrCreateMock, snapshotListMock } = vi.hoisted(
+  () => ({
+    createMock: vi.fn(),
+    getMock: vi.fn(),
+    getOrCreateMock: vi.fn(),
+    snapshotListMock: vi.fn(),
+  }),
+);
 
 vi.mock('@vercel/sandbox', () => ({
   Sandbox: {
@@ -206,6 +218,7 @@ vi.mock('@vercel/sandbox', () => ({
     get: getMock,
     getOrCreate: getOrCreateMock,
   },
+  Snapshot: { list: snapshotListMock },
 }));
 
 type MockSpies = {
@@ -228,6 +241,7 @@ function makeMockSandbox(overrides: Partial<MockSpies> = {}) {
   const networkPolicy = overrides.networkPolicy;
   const sandbox = {
     name: 'sbx_harness',
+    snapshot: vi.fn(async () => ({ snapshotId: 'derived-snapshot' })),
     domain,
     update,
     runCommand,

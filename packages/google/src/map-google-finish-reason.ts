@@ -11,6 +11,9 @@ export function mapGoogleFinishReason({
     case 'STOP':
       return hasToolCalls ? 'tool-calls' : 'stop';
     case 'MAX_TOKENS':
+    // Gemini 4 long decode: the per-request cap was reached while budget
+    // remains. Continued automatically; only surfaced if continuing fails.
+    case 'CONTINUATION':
       return 'length';
     case 'IMAGE_SAFETY':
     case 'RECITATION':

@@ -7,7 +7,12 @@ describe('createEmitStreamEvent', () => {
     const emitted: Record<string, unknown>[] = [];
     const emitStreamEvent = createEmitStreamEvent({
       send: event => emitted.push(event),
-      stepTracker: { observeEvent() {}, finishTurn() {} } as CodexStepTracker,
+      stepTracker: {
+        observeEvent() {},
+        finishTurn() {},
+        awaitHostInput() {},
+        resolveHostInput() {},
+      },
       setTurnUsage() {},
       setThreadId() {},
       emitWarning() {},
@@ -97,6 +102,8 @@ describe('createEmitStreamEvent', () => {
     const stepTracker = {
       observeEvent: input => observed.push(input),
       finishTurn: () => observed.push('finish'),
+      awaitHostInput: () => {},
+      resolveHostInput: () => {},
     } as CodexStepTracker;
     const emitStreamEvent = createEmitStreamEvent({
       send: event => emitted.push(event),
@@ -206,6 +213,8 @@ describe('createEmitStreamEvent', () => {
     const stepTracker = {
       observeEvent: () => {},
       finishTurn: () => {},
+      awaitHostInput: () => {},
+      resolveHostInput: () => {},
     } as CodexStepTracker;
     const emitStreamEvent = createEmitStreamEvent({
       send: event => emitted.push(event),
@@ -262,6 +271,8 @@ describe('createEmitStreamEvent', () => {
     const stepTracker = {
       observeEvent: () => {},
       finishTurn: () => {},
+      awaitHostInput: () => {},
+      resolveHostInput: () => {},
     } as CodexStepTracker;
     const emitStreamEvent = createEmitStreamEvent({
       send: event => emitted.push(event),
@@ -337,6 +348,8 @@ describe('createEmitStreamEvent', () => {
     const stepTracker = {
       observeEvent: () => {},
       finishTurn: () => {},
+      awaitHostInput: () => {},
+      resolveHostInput: () => {},
     } as CodexStepTracker;
     const emitStreamEvent = createEmitStreamEvent({
       send: event => emitted.push(event),
@@ -412,6 +425,8 @@ describe('createEmitStreamEvent', () => {
     const stepTracker = {
       observeEvent: input => observed.push(input),
       finishTurn: () => {},
+      awaitHostInput: () => {},
+      resolveHostInput: () => {},
     } as CodexStepTracker;
     const emitStreamEvent = createEmitStreamEvent({
       send: event => emitted.push(event),
@@ -466,6 +481,8 @@ describe('createEmitStreamEvent', () => {
     const stepTracker = {
       observeEvent: () => {},
       finishTurn: () => {},
+      awaitHostInput: () => {},
+      resolveHostInput: () => {},
     } as CodexStepTracker;
     const emitStreamEvent = createEmitStreamEvent({
       send: event => emitted.push(event),
@@ -520,6 +537,8 @@ describe('createEmitStreamEvent', () => {
     const stepTracker = {
       observeEvent: () => {},
       finishTurn: () => {},
+      awaitHostInput: () => {},
+      resolveHostInput: () => {},
     } as CodexStepTracker;
     const emitStreamEvent = createEmitStreamEvent({
       send: event => emitted.push(event),
@@ -581,6 +600,8 @@ describe('createEmitStreamEvent', () => {
     const stepTracker = {
       observeEvent: () => {},
       finishTurn: () => {},
+      awaitHostInput: () => {},
+      resolveHostInput: () => {},
     } as CodexStepTracker;
     const emitStreamEvent = createEmitStreamEvent({
       send: event => emitted.push(event),

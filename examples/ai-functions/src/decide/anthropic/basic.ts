@@ -5,6 +5,8 @@ import { run } from '../../lib/run';
 run(async () => {
   const result = await experimental_decide({
     model: anthropic.decisionModel('claude-haiku-4-5-20251001'),
+    maxOutputTokens: 512,
+    reasoning: 'low',
     state: {
       message:
         'I was charged twice. A refund is pending, so I can keep working.',

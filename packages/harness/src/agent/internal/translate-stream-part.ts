@@ -30,6 +30,17 @@ export function translateStreamPart<TOOLS extends ToolSet>(
   event: HarnessV1StreamPart,
   options: {
     /**
+     * Returns the parsed tool call that produced a result. Harness tool-result
+     * events only carry the output, so their input and execution origin must
+     * be restored from the originating call.
+     */
+    getToolCall?: (toolCallId: string) =>
+      | {
+          input: unknown;
+          providerExecuted?: boolean;
+        }
+      | undefined;
+    /**
      * Whether the tool call that produced this event ran inside the harness
      * runtime. Host tools travel the same `tool-result` events and their
      * failures are echoed back with `isError`, so the event alone cannot say
@@ -119,22 +130,26 @@ export function translateStreamPart<TOOLS extends ToolSet>(
       return [];
 
     case 'tool-result':
+      const toolCall = options.getToolCall?.(event.toolCallId);
       if (
         event.isError === true &&
-        (options.isProviderExecuted?.(event.toolCallId) ?? true)
+        (toolCall?.providerExecuted ??
+          options.isProviderExecuted?.(event.toolCallId) ??
+          true)
       ) {
         /*
-         * `providerExecuted` decides whether the message survives:
-         * `toUIMessageChunk` forwards the real error text only for
+         * `providerExecuted` decides whether the message survives when the
+         * application redacts tool errors (`redactToolErrors`):
+         * `toUIMessageChunk` then forwards the real error text only for
          * provider-executed errors, and replaces every other one with the
-         * generic `onError` string.
+         * `onError` string.
          */
         return [
           {
             type: 'tool-error',
             toolCallId: event.toolCallId,
             toolName: event.toolName,
-            input: undefined,
+            input: toolCall?.input,
             error: event.result,
             providerExecuted: true,
             ...(event.dynamic !== undefined ? { dynamic: event.dynamic } : {}),
@@ -150,8 +165,11 @@ export function translateStreamPart<TOOLS extends ToolSet>(
           type: 'tool-result',
           toolCallId: event.toolCallId,
           toolName: event.toolName,
-          input: undefined,
+          input: toolCall?.input,
           output: event.result,
+          ...(toolCall?.providerExecuted !== undefined
+            ? { providerExecuted: toolCall.providerExecuted }
+            : {}),
           ...(event.preliminary !== undefined
             ? { preliminary: event.preliminary }
             : {}),

@@ -2,10 +2,12 @@
 
 `HarnessV1` adapter backed by [`@earendil-works/pi-coding-agent`](https://www.npmjs.com/package/@earendil-works/pi-coding-agent). Pi runs in the host Node.js process and uses the sandbox as a remote filesystem + shell — no bridge process is installed inside the sandbox.
 
+-> **Note**: This package is experimental.
+
 ## Setup
 
 ```bash
-npm i @ai-sdk/harness-pi @ai-sdk/harness @ai-sdk/sandbox-vercel
+npm i ai @ai-sdk/harness-pi @ai-sdk/harness @ai-sdk/sandbox-vercel zod
 ```
 
 ## Usage
@@ -52,44 +54,4 @@ try {
 }
 ```
 
-Pi has no in-sandbox bridge, so the supplied sandbox session does not need
-exposed ports. Vercel and just-bash sessions both work.
-
-## Stateless session configuration
-
-By default, a suspended turn can reuse its live Pi session in the same process.
-For stateless or multi-replica applications, set `reattachInProcess: false` so
-continuations restore persisted state using the current request's settings.
-Application-managed credentials can be supplied through a `PiCredentialStore`;
-this replaces Pi's file-backed `auth.json` storage.
-
-```ts
-import { createPi, type PiCredentialStore } from '@ai-sdk/harness-pi';
-
-declare const credentials: PiCredentialStore;
-
-const harness = createPi({
-  credentials,
-  reattachInProcess: false,
-});
-```
-
-## Inline extensions
-
-Use `extensionFactories` to load trusted inline Pi extensions for each harness session:
-
-```ts
-import { createPi } from '@ai-sdk/harness-pi';
-
-const harness = createPi({
-  extensionFactories: [
-    pi => {
-      pi.on('agent_start', () => {
-        console.log('Pi agent started');
-      });
-    },
-  ],
-});
-```
-
-Routine resource refreshes between turns do not reinitialize extension factories. If the underlying Pi session is rebuilt, factories initialize for the new Pi runtime. Extension factories execute in the host Node.js process, so only pass factories you trust. This option does not enable filesystem extension discovery: user, project, personal, and settings-based Pi extensions remain disabled. Themes and prompt templates also remain disabled.
+See the [Pi Harness documentation](https://ai-sdk.dev/providers/ai-sdk-harnesses/pi) for more information.

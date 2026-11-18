@@ -54,6 +54,17 @@ export interface MCPTransport {
   supportsProtocolVersionDiscovery?: boolean;
 
   /**
+   * Whether the client waits for the `server/discover` response instead of
+   * treating a slow response as a legacy server.
+   *
+   * Transports that always deliver a response, such as Streamable HTTP, set
+   * this so a slow modern server is not downgraded to `initialize`. Other
+   * transports keep a short probe timeout because a legacy server may never
+   * answer the unknown method.
+   */
+  waitsForProtocolVersionDiscovery?: boolean;
+
+  /**
    * Whether this transport mirrors x-mcp-header tool parameters into request
    * headers.
    */

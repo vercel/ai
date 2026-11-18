@@ -23,6 +23,7 @@ import {
   type UIMessageChunk,
 } from 'ai';
 import React, { act, useRef, useState } from 'react';
+import { renderToString } from 'react-dom/server';
 import { Chat } from './chat.react';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
@@ -44,6 +45,67 @@ const server = createTestServer({
 });
 
 describe('use-chat', () => {
+  describe('id generation', () => {
+    afterEach(cleanup);
+
+    it('does not generate an id during server rendering when it is not read', () => {
+      const generateId = vi.fn(() => {
+        throw new Error('IDs must not be generated during prerendering');
+      });
+
+      function TestComponent() {
+        const { messages } = useChat({ generateId });
+        return <p>{messages.length} messages</p>;
+      }
+
+      expect(renderToString(<TestComponent />)).toContain('0');
+      expect(generateId).not.toHaveBeenCalled();
+    });
+
+    it('generates a stable id when read after rendering', () => {
+      const generateId = vi.fn(mockId());
+      let helpers: ReturnType<typeof useChat>;
+
+      function TestComponent() {
+        helpers = useChat({ generateId });
+        return null;
+      }
+
+      const view = render(<TestComponent />);
+      expect(generateId).not.toHaveBeenCalled();
+      expect(helpers!.id).toBe('id-0');
+      view.rerender(<TestComponent />);
+      expect(helpers!.id).toBe('id-0');
+      expect(generateId).toHaveBeenCalledOnce();
+    });
+
+    it('generates the id for automatic resume after rendering', async () => {
+      const generateId = vi.fn(mockId());
+      const reconnectToStream = vi.fn(async () => null);
+
+      function TestComponent() {
+        useChat({
+          generateId,
+          resume: true,
+          transport: {
+            sendMessages: async () => new ReadableStream<UIMessageChunk>(),
+            reconnectToStream,
+          },
+        });
+        expect(generateId).not.toHaveBeenCalled();
+        return null;
+      }
+
+      render(<TestComponent />);
+      await waitFor(() => {
+        expect(reconnectToStream).toHaveBeenCalledWith(
+          expect.objectContaining({ chatId: 'id-0' }),
+        );
+      });
+      expect(generateId).toHaveBeenCalledOnce();
+    });
+  });
+
   describe('transport lifecycle', () => {
     afterEach(cleanup);
 
@@ -948,7 +1010,7 @@ describe('use-chat', () => {
           "isDisconnect": false,
           "isError": false,
           "message": {
-            "id": "id-2",
+            "id": "id-1",
             "metadata": undefined,
             "parts": [
               {
@@ -965,7 +1027,7 @@ describe('use-chat', () => {
           },
           "messages": [
             {
-              "id": "id-1",
+              "id": "id-0",
               "metadata": undefined,
               "parts": [
                 {
@@ -976,7 +1038,7 @@ describe('use-chat', () => {
               "role": "user",
             },
             {
-              "id": "id-2",
+              "id": "id-1",
               "metadata": undefined,
               "parts": [
                 {
@@ -1084,11 +1146,11 @@ describe('use-chat', () => {
           "header-key": "header-value",
           "request-header-key": "request-header-value",
         },
-        "id": "id-0",
+        "id": "id-2",
         "messageId": undefined,
         "messages": [
           {
-            "id": "id-1",
+            "id": "id-0",
             "metadata": undefined,
             "parts": [
               {
@@ -1593,7 +1655,7 @@ describe('use-chat', () => {
           JSON.parse(screen.getByTestId('messages').textContent ?? ''),
         ).toStrictEqual([
           {
-            id: 'id-1',
+            id: 'id-0',
             parts: [
               {
                 text: 'hi',
@@ -1603,7 +1665,7 @@ describe('use-chat', () => {
             role: 'user',
           },
           {
-            id: 'id-2',
+            id: 'id-1',
             parts: [
               {
                 type: 'step-start',
@@ -1712,7 +1774,7 @@ describe('use-chat', () => {
           JSON.parse(screen.getByTestId('messages').textContent ?? ''),
         ).toStrictEqual([
           {
-            id: 'id-1',
+            id: 'id-0',
             role: 'user',
             parts: [
               {
@@ -1728,7 +1790,7 @@ describe('use-chat', () => {
             ],
           },
           {
-            id: 'id-2',
+            id: 'id-1',
             parts: [
               {
                 text: 'Response to message with text attachment',
@@ -1743,10 +1805,10 @@ describe('use-chat', () => {
 
       expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "id": "id-2",
         "messages": [
           {
-            "id": "id-1",
+            "id": "id-0",
             "parts": [
               {
                 "filename": "test.txt",
@@ -1803,7 +1865,7 @@ describe('use-chat', () => {
         ).toStrictEqual([
           {
             role: 'user',
-            id: 'id-1',
+            id: 'id-0',
             parts: [
               {
                 type: 'file',
@@ -1819,7 +1881,7 @@ describe('use-chat', () => {
           },
           {
             role: 'assistant',
-            id: 'id-2',
+            id: 'id-1',
             parts: [
               {
                 type: 'text',
@@ -1833,10 +1895,10 @@ describe('use-chat', () => {
 
       expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "id": "id-2",
         "messages": [
           {
-            "id": "id-1",
+            "id": "id-0",
             "parts": [
               {
                 "filename": "test.png",
@@ -1928,7 +1990,7 @@ describe('use-chat', () => {
         ).toStrictEqual([
           {
             role: 'user',
-            id: 'id-1',
+            id: 'id-0',
             parts: [
               {
                 type: 'file',
@@ -1943,7 +2005,7 @@ describe('use-chat', () => {
           },
           {
             role: 'assistant',
-            id: 'id-2',
+            id: 'id-1',
             parts: [
               {
                 type: 'text',
@@ -1957,10 +2019,10 @@ describe('use-chat', () => {
 
       expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "id": "id-2",
         "messages": [
           {
-            "id": "id-1",
+            "id": "id-0",
             "parts": [
               {
                 "mediaType": "image/png",
@@ -2036,7 +2098,7 @@ describe('use-chat', () => {
           JSON.parse(screen.getByTestId('messages').textContent ?? ''),
         ).toStrictEqual([
           {
-            id: 'id-1',
+            id: 'id-0',
             role: 'user',
             parts: [
               {
@@ -2048,7 +2110,7 @@ describe('use-chat', () => {
             ],
           },
           {
-            id: 'id-2',
+            id: 'id-1',
             role: 'assistant',
             parts: [
               {
@@ -2063,10 +2125,10 @@ describe('use-chat', () => {
 
       expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "id": "id-2",
         "messages": [
           {
-            "id": "id-1",
+            "id": "id-0",
             "parts": [
               {
                 "filename": "test.png",
@@ -2144,7 +2206,7 @@ describe('use-chat', () => {
           JSON.parse(screen.getByTestId('messages').textContent ?? ''),
         ).toStrictEqual([
           {
-            id: 'id-1',
+            id: 'id-0',
             parts: [
               {
                 mediaType: 'image/png',
@@ -2159,7 +2221,7 @@ describe('use-chat', () => {
             role: 'user',
           },
           {
-            id: 'id-2',
+            id: 'id-1',
             parts: [
               {
                 state: 'done',
@@ -2174,10 +2236,10 @@ describe('use-chat', () => {
 
       expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "id": "id-2",
         "messages": [
           {
-            "id": "id-1",
+            "id": "id-0",
             "parts": [
               {
                 "mediaType": "image/png",
@@ -2275,10 +2337,10 @@ describe('use-chat', () => {
 
       expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "id": "id-2",
         "messages": [
           {
-            "id": "id-1",
+            "id": "id-0",
             "parts": [
               {
                 "text": "hi",
@@ -2359,10 +2421,10 @@ describe('use-chat', () => {
 
       expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "id": "id-2",
         "messages": [
           {
-            "id": "id-1",
+            "id": "id-0",
             "metadata": {
               "test": "example",
             },
@@ -4120,6 +4182,287 @@ describe('use-chat', () => {
           }),
         );
       });
+    });
+  });
+
+  describe('experimental_queue', () => {
+    afterEach(cleanup);
+
+    it('should cancel pending send-now work when switching chats during a tool callback', async () => {
+      let releaseTool: () => void = () => {};
+      const toolGate = new Promise<void>(resolve => {
+        releaseTool = resolve;
+      });
+      let toolStarted: () => void = () => {};
+      const toolEntered = new Promise<void>(resolve => {
+        toolStarted = resolve;
+      });
+      const oldSendMessages = vi.fn(
+        async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controller.enqueue({ type: 'start' });
+              controller.enqueue({ type: 'start-step' });
+              controller.enqueue({
+                type: 'tool-input-available',
+                toolCallId: 'call-1',
+                toolName: 'hold',
+                input: {},
+              });
+              controller.close();
+            },
+          }),
+      );
+      const newSendMessages = vi.fn(
+        async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controller.close();
+            },
+          }),
+      );
+      let helpers: ReturnType<typeof useChat>;
+      function Test({ tenant }: { tenant: 'old' | 'new' }) {
+        helpers = useChat({
+          id: tenant,
+          transport: {
+            sendMessages: tenant === 'old' ? oldSendMessages : newSendMessages,
+            reconnectToStream: async () => null,
+          },
+          experimental_queue: true,
+          onToolCall: async () => {
+            toolStarted();
+            await toolGate;
+          },
+        });
+        return null;
+      }
+
+      const view = render(<Test tenant="old" />);
+      let sent: Promise<void>;
+      await act(async () => {
+        sent = helpers.sendMessage({ text: 'old tenant private history' });
+        await toolEntered;
+      });
+      await act(async () => {
+        await helpers.sendMessage({ text: 'queued private message' });
+      });
+      let sendingNow: Promise<void>;
+      await act(async () => {
+        sendingNow = helpers.experimental_sendQueuedMessageNow(
+          helpers.experimental_queuedMessages[0].id,
+        );
+      });
+
+      view.rerender(<Test tenant="new" />);
+      await act(async () => {
+        releaseTool();
+        await Promise.all([sent, sendingNow]);
+      });
+
+      expect(oldSendMessages).toHaveBeenCalledOnce();
+      expect(newSendMessages).not.toHaveBeenCalled();
+      expect(helpers!.id).toBe('new');
+      expect(helpers!.messages).toEqual([]);
+    });
+
+    it('should not send the old queue through a new transport after switching chats', async () => {
+      const oldControllers: ReadableStreamDefaultController<UIMessageChunk>[] =
+        [];
+      const newTransportRequests: string[] = [];
+      const oldTransport: ChatTransport<UIMessage> = {
+        sendMessages: async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              oldControllers.push(controller);
+            },
+          }),
+        reconnectToStream: async () => null,
+      };
+      const newTransport: ChatTransport<UIMessage> = {
+        sendMessages: async ({ messages }) => {
+          newTransportRequests.push(
+            messages
+              .map(message =>
+                message.parts
+                  .map(part => (part.type === 'text' ? part.text : ''))
+                  .join(''),
+              )
+              .join('|'),
+          );
+          return new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controller.close();
+            },
+          });
+        },
+        reconnectToStream: async () => null,
+      };
+
+      let resolveDecision: (value: boolean) => void = () => {};
+      const decision = new Promise<boolean>(resolve => {
+        resolveDecision = resolve;
+      });
+      let decisionRequested = false;
+
+      const Test = () => {
+        const [tenant, setTenant] = useState<'old' | 'new'>('old');
+        const { sendMessage } = useChat({
+          id: tenant,
+          transport: tenant === 'old' ? oldTransport : newTransport,
+          experimental_queue: true,
+          sendAutomaticallyWhen: () => {
+            decisionRequested = true;
+            return decision;
+          },
+        });
+
+        return (
+          <div>
+            <button
+              data-testid="send-private"
+              onClick={() => sendMessage({ text: 'private' })}
+            />
+            <button
+              data-testid="send-queued"
+              onClick={() => sendMessage({ text: 'queued private' })}
+            />
+            <button data-testid="switch" onClick={() => setTenant('new')} />
+          </div>
+        );
+      };
+
+      render(<Test />);
+
+      await userEvent.click(screen.getByTestId('send-private'));
+      await vi.waitFor(() => expect(oldControllers).toHaveLength(1));
+      await userEvent.click(screen.getByTestId('send-queued'));
+
+      await act(async () => {
+        oldControllers[0].enqueue({ type: 'start' });
+        oldControllers[0].enqueue({ type: 'finish' });
+        oldControllers[0].close();
+      });
+      await vi.waitFor(() => expect(decisionRequested).toBe(true));
+
+      await userEvent.click(screen.getByTestId('switch'));
+      await act(async () => {
+        resolveDecision(false);
+        await new Promise(resolve => setTimeout(resolve, 50));
+      });
+
+      expect(newTransportRequests).toEqual([]);
+      expect(oldControllers).toHaveLength(1);
+    });
+
+    it('should render queued messages and send them after the response finishes', async () => {
+      const controllers: ReadableStreamDefaultController<UIMessageChunk>[] = [];
+      const transport: ChatTransport<UIMessage> = {
+        sendMessages: async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controllers.push(controller);
+            },
+          }),
+        reconnectToStream: async () => null,
+      };
+
+      const Test = () => {
+        const {
+          messages,
+          experimental_queuedMessages,
+          sendMessage,
+          experimental_removeQueuedMessage,
+        } = useChat({ transport, experimental_queue: true });
+
+        return (
+          <div>
+            <div data-testid="messages">
+              {messages
+                .map(message =>
+                  message.parts
+                    .map(part => (part.type === 'text' ? part.text : ''))
+                    .join(''),
+                )
+                .join('|')}
+            </div>
+            <div data-testid="queued">
+              {experimental_queuedMessages
+                .map(message =>
+                  message.parts
+                    .map(part => (part.type === 'text' ? part.text : ''))
+                    .join(''),
+                )
+                .join('|')}
+            </div>
+            <button
+              data-testid="send-first"
+              onClick={() => sendMessage({ text: 'first' })}
+            />
+            <button
+              data-testid="send-second"
+              onClick={() => sendMessage({ text: 'second' })}
+            />
+            <button
+              data-testid="send-third"
+              onClick={() => sendMessage({ text: 'third' })}
+            />
+            <button
+              data-testid="remove-third"
+              onClick={() =>
+                experimental_removeQueuedMessage(
+                  experimental_queuedMessages[1].id,
+                )
+              }
+            />
+          </div>
+        );
+      };
+
+      render(<Test />);
+
+      const answer = (index: number, text: string) => {
+        const controller = controllers[index];
+        controller.enqueue({ type: 'start' });
+        controller.enqueue({ type: 'text-start', id: `t-${index}` });
+        controller.enqueue({
+          type: 'text-delta',
+          id: `t-${index}`,
+          delta: text,
+        });
+        controller.enqueue({ type: 'text-end', id: `t-${index}` });
+        controller.enqueue({ type: 'finish' });
+        controller.close();
+      };
+
+      await userEvent.click(screen.getByTestId('send-first'));
+      await vi.waitFor(() => expect(controllers).toHaveLength(1));
+
+      await userEvent.click(screen.getByTestId('send-second'));
+      await userEvent.click(screen.getByTestId('send-third'));
+
+      await vi.waitFor(() =>
+        expect(screen.getByTestId('queued')).toHaveTextContent('second|third'),
+      );
+
+      await userEvent.click(screen.getByTestId('remove-third'));
+      await vi.waitFor(() =>
+        expect(screen.getByTestId('queued')).toHaveTextContent(/^second$/),
+      );
+
+      await act(async () => answer(0, 'one'));
+      await vi.waitFor(() => expect(controllers).toHaveLength(2));
+      await vi.waitFor(() =>
+        expect(screen.getByTestId('queued')).toBeEmptyDOMElement(),
+      );
+
+      await act(async () => answer(1, 'two'));
+      await vi.waitFor(() =>
+        expect(screen.getByTestId('messages')).toHaveTextContent(
+          'first|one|second|two',
+        ),
+      );
+      expect(controllers).toHaveLength(2);
     });
   });
 });

@@ -46,6 +46,70 @@ describe('Completion', () => {
     expect(completion.completion).toBe('Hello, world.');
   });
 
+  it('should send custom headers', async () => {
+    server.urls['/api/completion'].response = {
+      type: 'stream-chunks',
+      chunks: [],
+    };
+
+    const completion = new Completion({
+      headers: {
+        Authorization: 'Bearer TEST_TOKEN',
+        'X-Custom-Header': 'CustomValue',
+      },
+    });
+    await completion.complete('hi');
+    expect(server.calls[0].requestHeaders).toStrictEqual({
+      'content-type': 'application/json',
+      authorization: 'Bearer TEST_TOKEN',
+      'x-custom-header': 'CustomValue',
+    });
+  });
+
+  it('should send custom headers from a Headers instance', async () => {
+    server.urls['/api/completion'].response = {
+      type: 'stream-chunks',
+      chunks: [],
+    };
+
+    const completion = new Completion({
+      headers: new Headers({
+        Authorization: 'Bearer TEST_TOKEN',
+        'X-Custom-Header': 'CustomValue',
+      }),
+    });
+    await completion.complete('hi');
+    expect(server.calls[0].requestHeaders).toStrictEqual({
+      'content-type': 'application/json',
+      authorization: 'Bearer TEST_TOKEN',
+      'x-custom-header': 'CustomValue',
+    });
+  });
+
+  it('should override hook headers with per-request headers', async () => {
+    server.urls['/api/completion'].response = {
+      type: 'stream-chunks',
+      chunks: [],
+    };
+
+    const completion = new Completion({
+      headers: new Headers({
+        'X-Custom-Header': 'HookValue',
+        'X-Keep-Header': 'KeepValue',
+      }),
+    });
+    await completion.complete('hi', {
+      headers: new Headers({
+        'X-Custom-Header': 'RequestValue',
+      }),
+    });
+    expect(server.calls[0].requestHeaders).toStrictEqual({
+      'content-type': 'application/json',
+      'x-custom-header': 'RequestValue',
+      'x-keep-header': 'KeepValue',
+    });
+  });
+
   it('should call `onFinish` callback', async () => {
     server.urls['/api/completion'].response = {
       type: 'stream-chunks',

@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { useObject } from './use-object';
 import { z } from 'zod/v4';
-import { ref, reactive } from 'vue';
+
+const props = defineProps<{
+  headers?: Record<string, string> | Headers;
+  credentials?: RequestCredentials;
+}>();
 
 const { object, error, submit, isLoading, stop, clear } = useObject({
   api: '/api/use-object',
   schema: z.object({ content: z.string() }),
-  headers: {
-    Authorization: 'Bearer TEST_TOKEN',
-    'X-Custom-Header': 'CustomValue',
-  },
-  credentials: 'include',
+  headers: props.headers,
+  credentials: props.credentials,
 });
 </script>
 

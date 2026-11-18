@@ -22,3 +22,12 @@ export function loadWeatherApprovalFixture({
     ),
   );
 }
+
+export function loadGrokBuildWeatherFixture(): Array<{
+  type: 'update';
+  value: SessionUpdate;
+}> {
+  return JSON.parse(
+    readFileSync(new URL('./grok-build-weather.json', import.meta.url), 'utf8'),
+  );
+}

@@ -5,7 +5,7 @@ import {
   SimpleSpanProcessor,
 } from '@opentelemetry/sdk-trace-base';
 import { tool } from '@ai-sdk/provider-utils';
-import type { Telemetry } from 'ai';
+import { registerTelemetry, type Telemetry } from 'ai';
 import { describe, expect, test } from 'vitest';
 import { z } from 'zod/v4';
 import type {
@@ -161,6 +161,32 @@ function recordingIntegration(): {
 }
 
 describe('HarnessAgent telemetry integration', () => {
+  test('delivers global telemetry without per-call settings', async () => {
+    const { integration, calls } = recordingIntegration();
+    registerTelemetry(integration);
+    const agent = new HarnessAgent({
+      harness: scriptedHarness(completedTurnScript('global-model')),
+    });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
+    try {
+      const result = await agent.generate({ session, prompt: 'go' });
+      expect(result.text).toBe('done');
+      expect(calls.map(call => call.method)).toEqual([
+        'onStart',
+        'onStepStart',
+        'onLanguageModelCallStart',
+        'onLanguageModelCallEnd',
+        'onStepFinish',
+        'onEnd',
+      ]);
+    } finally {
+      globalThis.AI_SDK_TELEMETRY_INTEGRATIONS = undefined;
+      await session.destroy();
+    }
+  });
+
   test.each([
     {
       name: 'when inclusion is omitted',
@@ -789,7 +815,7 @@ describe('HarnessAgent telemetry integration', () => {
         {
           role: 'assistant',
           parts: [
-            { type: 'text', content: 'final' },
+            { type: 'text', content: 'draft' },
             {
               type: 'tool_call',
               id: 'c1',
@@ -801,6 +827,7 @@ describe('HarnessAgent telemetry integration', () => {
               id: 'c1',
               response: { output: 'ok' },
             },
+            { type: 'text', content: 'final' },
           ],
           finish_reason: 'stop',
         },

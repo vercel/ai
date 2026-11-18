@@ -3,6 +3,10 @@ import {
   type EmbeddingModelV4,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createJsonResponseHandler,
   parseProviderOptions,
@@ -22,7 +26,7 @@ import { mistralFailedResponseHandler } from './mistral-error';
 type MistralEmbeddingConfig = {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 };
 
@@ -91,7 +95,7 @@ export class MistralEmbeddingModel implements EmbeddingModelV4 {
       rawValue,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/embeddings`,
-      headers: combineHeaders(this.config.headers?.(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       body: {
         model: this.modelId,
         input: values,
@@ -121,7 +125,11 @@ export class MistralEmbeddingModel implements EmbeddingModelV4 {
 
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const MistralTextEmbeddingResponseSchema = z.object({
-  data: z.array(z.object({ embedding: z.array(z.number()) })),
-  usage: z.object({ prompt_tokens: z.number() }).nullish(),
-});
+const MistralTextEmbeddingResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      data: z.array(z.object({ embedding: z.array(z.number()) })),
+      usage: z.object({ prompt_tokens: z.number() }).nullish(),
+    }),
+  ),
+);

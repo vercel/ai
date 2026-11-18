@@ -1,3 +1,4 @@
+import { getMoonshotAILanguageModelEntry } from './moonshotai-model-catalog';
 import {
   UnsupportedFunctionalityError,
   type LanguageModelV4CallOptions,
@@ -67,9 +68,8 @@ export function prepareTools({
       return { tools: moonshotTools, toolChoice: type, toolWarnings };
     case 'required':
       if (
-        modelId === 'kimi-k2.6' ||
-        modelId === 'kimi-k2.7-code' ||
-        modelId === 'kimi-k2.7-code-highspeed'
+        !getMoonshotAILanguageModelEntry(modelId).capabilities.language.tools
+          .required
       ) {
         toolWarnings.push({
           type: 'unsupported',

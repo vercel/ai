@@ -346,3 +346,54 @@ describe('buildGoogleInteractionsStreamTransform — errors', () => {
     });
   });
 });
+
+describe('interrupted interactions', () => {
+  it.each([
+    [undefined, 'interrupted'],
+    ['in_progress', 'interrupted'],
+    ['requires_action', 'tool-calls'],
+    ['completed', 'stop'],
+    ['cancelled', 'other'],
+    ['unknown_status', 'other'],
+  ] as const)('handles the last status %s as %s', async (status, unified) => {
+    const parts = await runTransform([
+      {
+        event_type: 'interaction.created',
+        interaction: { id: 'i1', status: 'in_progress' },
+      },
+      { event_type: 'step.start', index: 0, step: { type: 'model_output' } },
+      {
+        event_type: 'step.delta',
+        index: 0,
+        delta: { type: 'text', text: 'Partial answer' },
+      },
+      ...(status == null
+        ? []
+        : [{ event_type: 'interaction.status_update', status }]),
+    ] as Array<GoogleInteractionsEvent>);
+    expect(parts).toContainEqual(
+      expect.objectContaining({ type: 'text-delta', delta: 'Partial answer' }),
+    );
+    expect(parts.filter(part => part.type === 'error')).toEqual([]);
+    expect(parts.filter(part => part.type === 'finish')).toEqual([
+      expect.objectContaining({
+        finishReason: {
+          unified,
+          raw: unified === 'interrupted' ? undefined : status,
+        },
+      }),
+    ]);
+  });
+
+  it('preserves an explicit completion event without a status', async () => {
+    const parts = await runTransform([
+      { event_type: 'interaction.completed', interaction: { id: 'i1' } },
+    ] as Array<GoogleInteractionsEvent>);
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        type: 'finish',
+        finishReason: { unified: 'other', raw: undefined },
+      }),
+    );
+  });
+});

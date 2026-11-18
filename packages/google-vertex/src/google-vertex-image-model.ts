@@ -1,3 +1,5 @@
+import { getGoogleVertexRequestConfig } from './google-vertex-model-catalog-config';
+import { getGoogleVertexImageModelEntry } from './google-vertex-model-catalog';
 import type { GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { GoogleLanguageModel } from '@ai-sdk/google/internal';
 import type {
@@ -26,13 +28,6 @@ interface GoogleVertexImageModelConfig {
   };
 }
 
-const googleVertexImageModelsWithFileInputSupport = new Set<string>([
-  'gemini-2.5-flash-image',
-  'gemini-3-pro-image-preview',
-  'gemini-3.1-flash-image-preview',
-  'gemini-nano-banana-2.1',
-]);
-
 export class GoogleVertexImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
 
@@ -53,7 +48,8 @@ export class GoogleVertexImageModel implements ImageModelV4 {
   readonly maxImagesPerCall = 1;
 
   get supportsFileInputs(): boolean | undefined {
-    return googleVertexImageModelsWithFileInputSupport.has(this.modelId)
+    return getGoogleVertexImageModelEntry(this.modelId).capabilities.image
+      ?.fileInput === true
       ? true
       : undefined;
   }
@@ -74,7 +70,7 @@ export class GoogleVertexImageModel implements ImageModelV4 {
   async doGenerate(
     options: Parameters<ImageModelV4['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<ImageModelV4['doGenerate']>>> {
-    if (!this.modelId.startsWith('gemini-')) {
+    if (!getGoogleVertexRequestConfig(this.modelId).image?.gemini) {
       throw new Error(
         'Google image models other than Gemini are no longer supported. Use a model ID that starts with `gemini-`.',
       );

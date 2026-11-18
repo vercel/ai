@@ -1,19 +1,63 @@
 ---
 title: Alibaba
-description: Learn how to use Alibaba Cloud Model Studio (Qwen) models with the AI SDK.
+description: Learn how to use Alibaba with AI Gateway and the direct provider.
 ---
 
 # Alibaba Provider
 
 [Alibaba Cloud Model Studio](https://modelstudio.console.alibabacloud.com/) provides access to the Qwen model series, including advanced reasoning capabilities.
+You can use Alibaba models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended) or connect directly with `@ai-sdk/alibaba`.
+
+```ts provider="alibaba" model="alibaba/qwen3.7-max"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
+
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+
+console.log(text);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+Gateway feature and provider-option support depends on the model and the provider serving the request. See [Gateway provider options](https://vercel.com/docs/ai-gateway/models-and-providers/provider-options).
+
+## Using `@ai-sdk/alibaba`
+
+For direct access to Alibaba, install `ai` and `@ai-sdk/alibaba`:
+
+<InstallPackages packages="ai @ai-sdk/alibaba" />
+
+Set your Alibaba API credential in the `ALIBABA_API_KEY` environment variable:
+
+```bash
+export ALIBABA_API_KEY=your_api_key_here
+```
+
+AI Gateway does not expose every API in `@ai-sdk/alibaba`. Use the direct provider for provider-specific APIs or custom connection settings.
+
+<Note>
+  The following sections document the direct `@ai-sdk/alibaba` provider,
+  including its model factories and settings. Gateway model and feature
+  availability can differ.
+</Note>
 
 API keys can be obtained from the [Console](https://modelstudio.console.alibabacloud.com/).
-
-## Setup
-
-The Alibaba provider is available via the `@ai-sdk/alibaba` module. You can install it with:
-
-<InstallPackages packages="@ai-sdk/alibaba" />
 
 ## Provider Instance
 
@@ -52,10 +96,13 @@ You can use the following optional settings to customize the Alibaba provider in
   native endpoint (not the OpenAI-compatible endpoint).
   The default prefix is `https://dashscope-intl.aliyuncs.com/api/v1`.
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
 
   API key that is being sent using the `Authorization` header. It defaults to
   the `ALIBABA_API_KEY` environment variable.
+
+  A function is called before each request and may return a promise. Use it to
+  supply refreshed credentials; a promise value resolves to the same key each time.
 
 - **headers** _Record&lt;string,string&gt;_
 
@@ -369,10 +416,14 @@ Alibaba embedding models support additional provider options that can be passed 
 
 ### Embedding Model Capabilities
 
+{/* model-capabilities:alibaba-embedding:start */}
+
 | Model               | Default Dimensions | Flexible Dimensions                      | Max Values per Call |
 | ------------------- | ------------------ | ---------------------------------------- | ------------------- |
 | `text-embedding-v4` | 1024               | 64, 128, 256, 512, 768, 1024, 1536, 2048 | 10                  |
 | `text-embedding-v3` | 1024               | 512, 768, 1024                           | 10                  |
+
+{/* model-capabilities:alibaba-embedding:end */}
 
 <Note>
   The tables above list currently documented Alibaba text embedding models. You
@@ -611,6 +662,8 @@ The following provider options are available via `providerOptions.alibaba`:
 
 #### Text-to-Video
 
+{/* model-capabilities:alibaba-video-t2v:start */}
+
 | Model                   | Audio | Resolution        | Duration |
 | ----------------------- | ----- | ----------------- | -------- |
 | `wan2.6-t2v`            | Yes   | 720P, 1080P       | 2-15s    |
@@ -618,21 +671,31 @@ The following provider options are available via `providerOptions.alibaba`:
 | `wan2.7-t2v`            | Yes   | 720P, 1080P       | 2-15s    |
 | `wan2.7-t2v-2026-06-12` | Yes   | 720P, 1080P       | 2-15s    |
 
+{/* model-capabilities:alibaba-video-t2v:end */}
+
 #### Image-to-Video (First Frame)
+
+{/* model-capabilities:alibaba-video-i2v:start */}
 
 | Model              | Audio    | Resolution  | Duration |
 | ------------------ | -------- | ----------- | -------- |
-| `wan2.6-i2v-flash` | Optional | 720P, 1080P | 2-15s    |
 | `wan2.6-i2v`       | Yes      | 720P, 1080P | 2-15s    |
+| `wan2.6-i2v-flash` | Optional | 720P, 1080P | 2-15s    |
+
+{/* model-capabilities:alibaba-video-i2v:end */}
 
 #### Reference-to-Video
 
+{/* model-capabilities:alibaba-video-r2v:start */}
+
 | Model                   | Audio    | Resolution  | Duration                      |
 | ----------------------- | -------- | ----------- | ----------------------------- |
-| `wan2.6-r2v-flash`      | Optional | 720P, 1080P | 2-10s                         |
 | `wan2.6-r2v`            | Yes      | 720P, 1080P | 2-10s                         |
+| `wan2.6-r2v-flash`      | Optional | 720P, 1080P | 2-10s                         |
 | `wan2.7-r2v`            | Yes      | 720P, 1080P | 2-10s (with video ref), 2-15s |
 | `wan2.7-r2v-2026-06-12` | Yes      | 720P, 1080P | 2-10s (with video ref), 2-15s |
+
+{/* model-capabilities:alibaba-video-r2v:end */}
 
 <Note>
   The tables above list models available in the Singapore International region.
@@ -644,3 +707,58 @@ The following provider options are available via `providerOptions.alibaba`:
 Please see the [Alibaba Cloud Model Studio docs](https://www.alibabacloud.com/help/en/model-studio/models) for a full
 list of available models. You can also pass any available provider model ID as
 a string if needed.
+
+## Language Model Capabilities
+
+{/* model-capabilities:alibaba-language:start */}
+
+{/* model-capabilities:alibaba-language:end */}
+
+## Video Capability Reference
+
+{/* model-capabilities:alibaba-video-all:start */}
+
+| Model                   | Text Input | Image Input | First Frame | Last Frame | Reference Images | Reference Video | Audio     | Aspect Ratio | Resolution | Duration  | FPS       | Seed      |
+| ----------------------- | ---------- | ----------- | ----------- | ---------- | ---------------- | --------------- | --------- | ------------ | ---------- | --------- | --------- | --------- |
+| `wan2.6-t2v`            | <Check />  | <Cross />   | <Cross />   | <Cross />  | <Cross />        | <Cross />       | <Check /> | <Cross />    | <Check />  | <Check /> | <Cross /> | <Check /> |
+| `wan2.5-t2v-preview`    | <Check />  | <Cross />   | <Cross />   | <Cross />  | <Cross />        | <Cross />       | <Check /> | <Cross />    | <Check />  | <Check /> | <Cross /> | <Check /> |
+| `wan2.7-t2v`            | <Check />  | <Cross />   | <Cross />   | <Cross />  | <Cross />        | <Cross />       | <Check /> | <Check />    | <Check />  | <Check /> | <Cross /> | <Check /> |
+| `wan2.7-t2v-2026-06-12` | <Check />  | <Cross />   | <Cross />   | <Cross />  | <Cross />        | <Cross />       | <Check /> | <Check />    | <Check />  | <Check /> | <Cross /> | <Check /> |
+| `wan2.6-i2v`            | <Check />  | <Check />   | <Check />   | <Cross />  | <Cross />        | <Cross />       | <Check /> | <Cross />    | <Check />  | <Check /> | <Cross /> | <Check /> |
+| `wan2.6-i2v-flash`      | <Check />  | <Check />   | <Check />   | <Cross />  | <Cross />        | <Cross />       | <Check /> | <Cross />    | <Check />  | <Check /> | <Cross /> | <Check /> |
+| `wan2.6-r2v`            | <Check />  | <Cross />   | <Cross />   | <Cross />  | <Check />        | <Check />       | <Check /> | <Cross />    | <Check />  | <Check /> | <Cross /> | <Check /> |
+| `wan2.6-r2v-flash`      | <Check />  | <Cross />   | <Cross />   | <Cross />  | <Check />        | <Check />       | <Check /> | <Cross />    | <Check />  | <Check /> | <Cross /> | <Check /> |
+| `wan2.7-r2v`            | <Check />  | <Cross />   | <Check />   | <Cross />  | <Check />        | <Check />       | <Check /> | <Check />    | <Check />  | <Check /> | <Cross /> | <Check /> |
+| `wan2.7-r2v-2026-06-12` | <Check />  | <Cross />   | <Check />   | <Cross />  | <Check />        | <Check />       | <Check /> | <Check />    | <Check />  | <Check /> | <Cross /> | <Check /> |
+| `wan3.0-video`          | <Check />  | <Check />   | <Check />   | <Check />  | <Check />        | <Check />       | <Check /> | <Check />    | <Check />  | <Check /> | <Cross /> | <Check /> |
+
+{/* model-capabilities:alibaba-video-all:end */}
+
+## Provider Option Reference
+
+The following option definitions are generated from the provider catalog.
+
+{/* model-capabilities:alibaba-provider-options:start */}
+
+| Operation | Option              | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| --------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| language  | `enableThinking`    | Enable thinking/reasoning mode for supported models. When enabled, the model generates reasoning content before the response.                                                                                                                                                                                                                                                                                                                                                 |
+| language  | `thinkingBudget`    | Maximum number of reasoning tokens to generate.                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| language  | `preserveThinking`  | Whether to preserve reasoning from previous assistant messages. When enabled, historical reasoning is sent separately as `reasoning_content` and Alibaba receives `preserve_thinking: true`. Defaults to `true` for models that support preserved thinking; set to `false` to opt out.                                                                                                                                                                                        |
+| language  | `parallelToolCalls` | Whether to enable parallel function calling during tool use.                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| embedding | `textType`          | Differentiates query text from document text for asymmetric retrieval tasks. Defaults to `document`.                                                                                                                                                                                                                                                                                                                                                                          |
+| embedding | `dimension`         | The dimension of the output embedding vectors. Defaults to 1024. `text-embedding-v4` also supports 1536 and 2048 dimensions.                                                                                                                                                                                                                                                                                                                                                  |
+| embedding | `outputType`        | The output vector type. Defaults to `dense`. Sparse-only output is not supported by the AI SDK embedding interface, which requires dense number arrays.                                                                                                                                                                                                                                                                                                                       |
+| video     | `negativePrompt`    | Negative prompt to specify what to avoid (max 500 chars).                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| video     | `audioUrl`          | URL to audio file for audio-video sync (WAV/MP3, 3-30s, max 15MB).                                                                                                                                                                                                                                                                                                                                                                                                            |
+| video     | `promptExtend`      | Enable prompt extension/rewriting for better generation. Defaults to true.                                                                                                                                                                                                                                                                                                                                                                                                    |
+| video     | `shotType`          | Shot type: 'single' for single-shot or 'multi' for multi-shot narrative (wan2.6 and earlier; wan2.7 models describe shot structure in the prompt).                                                                                                                                                                                                                                                                                                                            |
+| video     | `watermark`         | Whether to add watermark to generated video. Defaults to false.                                                                                                                                                                                                                                                                                                                                                                                                               |
+| video     | `audio`             | Enable audio generation (wan2.6 I2V/R2V and wan3 models; wan2.7 models always generate audio). Defaults to true on wan3.                                                                                                                                                                                                                                                                                                                                                      |
+| video     | `referenceUrls`     | Reference URLs for reference-to-video mode (wan2.6 models). Array of URLs to images (0-5) and/or videos (0-3), max 5 total. Use character identifiers (character1, character2) in prompts to reference them.                                                                                                                                                                                                                                                                  |
+| video     | `media`             | Explicit media array (wan2.7 and wan3 models). Overrides the automatic mapping from `inputReferences` and `frameImages`. Use `Image 1`, `Video 1`, etc. in prompts to reference media items (images, videos, and audio are counted separately, in array order). `reference_audio`, `file`, and `link` are wan3-only and have no top-level call option, so they can only be passed here. wan3 also rejects mixing `reference_*`/`file`/`link` with `first_frame`/`last_frame`. |
+| video     | `ratio`             | Aspect ratio (wan2.7 text-to-video and reference-to-video models, and every wan3 generation). `adaptive` is wan3-only, and is its default.                                                                                                                                                                                                                                                                                                                                    |
+| video     | `pollIntervalMs`    | Polling interval in milliseconds. Defaults to 5000 (5 seconds).                                                                                                                                                                                                                                                                                                                                                                                                               |
+| video     | `pollTimeoutMs`     | Maximum wait time in milliseconds for video generation. Defaults to 600000 (10 minutes).                                                                                                                                                                                                                                                                                                                                                                                      |
+
+{/* model-capabilities:alibaba-provider-options:end */}

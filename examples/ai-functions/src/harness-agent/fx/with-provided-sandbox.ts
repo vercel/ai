@@ -10,7 +10,6 @@ const fx = createFx();
 run(async () => {
   const sandbox = await Sandbox.create({
     runtime: 'node24',
-    ports: [4000],
     timeout: 10 * 60 * 1000,
   });
 

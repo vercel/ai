@@ -10,12 +10,19 @@
  * `~standard.jsonSchema` (Standard Schema v2), extraction can be simplified
  * to use that interface directly.
  */
-import type { JSONObject, JSONSchema7 } from '@ai-sdk/provider';
+import type {
+  JSONObject,
+  JSONSchema7,
+  LanguageModelV4FunctionTool,
+  LanguageModelV4ProviderTool,
+} from '@ai-sdk/provider';
 import {
   asSchema,
   type Experimental_SandboxSession as SandboxSession,
   type InferToolSetContext,
   jsonSchema,
+  redactTelemetryValue,
+  withTelemetryRedaction,
   type Tool,
 } from '@ai-sdk/provider-utils';
 import { dynamicTool, tool, type ToolSet } from 'ai';
@@ -36,6 +43,8 @@ export type SerializableToolDef = {
   inputExamples?: Array<{ input: unknown }>;
   /** Provider-specific options attached to the tool definition. */
   providerOptions?: Tool['providerOptions'];
+  /** Whether the original input schema has its own runtime validator. */
+  hasOwnValidator?: boolean;
   /** Input lifecycle callbacks that must be invoked outside the step. */
   hasOnInputStart?: boolean;
   hasOnInputDelta?: boolean;
@@ -50,7 +59,52 @@ export type SerializableToolDef = {
   id?: `${string}.${string}`;
   /** Provider tool configuration args (maxUses, allowedDomains, etc.). */
   args?: Record<string, unknown>;
+  /** Safe telemetry view retained when serialization drops redaction callbacks. */
+  telemetryArgs?: Record<string, unknown>;
 };
+
+/**
+ * Returns the tool definitions sent to the language model for serialized
+ * tools, matching `prepareTools` in the model step. Map keys are the tool
+ * names.
+ */
+export function toLanguageModelToolDefinitions(
+  tools: Record<string, SerializableToolDef> | undefined,
+):
+  | Array<LanguageModelV4FunctionTool | LanguageModelV4ProviderTool>
+  | undefined {
+  if (tools == null || Object.keys(tools).length === 0) {
+    return undefined;
+  }
+
+  return Object.entries(tools).map(([name, tool]) =>
+    tool.type === 'provider'
+      ? {
+          type: 'provider' as const,
+          name,
+          id: tool.id!,
+          args: resolveProviderToolArgs(tool),
+        }
+      : {
+          type: 'function' as const,
+          name,
+          inputSchema: tool.inputSchema,
+          ...(tool.description != null
+            ? { description: tool.description }
+            : {}),
+          ...(tool.inputExamples != null
+            ? {
+                inputExamples:
+                  tool.inputExamples as LanguageModelV4FunctionTool['inputExamples'],
+              }
+            : {}),
+          ...(tool.providerOptions != null
+            ? { providerOptions: tool.providerOptions }
+            : {}),
+          ...(tool.strict != null ? { strict: tool.strict } : {}),
+        },
+  );
+}
 
 /**
  * Converts a ToolSet (with Zod/standard schemas and execute functions) to a
@@ -69,6 +123,7 @@ export function serializeToolSet<TOOLS extends ToolSet>(
 ): Record<string, SerializableToolDef> {
   return Object.fromEntries(
     Object.entries(tools).map(([name, t]) => {
+      const inputSchema = asSchema(t.inputSchema);
       const def: SerializableToolDef = {
         title: t.title,
         metadata: t.metadata,
@@ -78,11 +133,15 @@ export function serializeToolSet<TOOLS extends ToolSet>(
           toolsContext,
           experimental_sandbox: sandbox,
         }),
-        inputSchema: asSchema(t.inputSchema).jsonSchema as JSONSchema7,
+        inputSchema: inputSchema.jsonSchema as JSONSchema7,
         strict: t.strict,
         inputExamples: t.inputExamples,
         providerOptions: t.providerOptions,
       };
+
+      if (inputSchema.validate != null) {
+        def.hasOwnValidator = true;
+      }
 
       if (t.type === 'dynamic') {
         def.type = 'dynamic';
@@ -105,11 +164,26 @@ export function serializeToolSet<TOOLS extends ToolSet>(
         def.supportsDeferredResults = t.supportsDeferredResults;
         def.id = t.id;
         def.args = t.args;
+        const telemetryArgs = redactTelemetryValue(t.args);
+        if (telemetryArgs !== t.args) {
+          // An unsuccessful redactor must not fall back to the raw arguments.
+          def.telemetryArgs = telemetryArgs ?? {};
+        }
       }
 
       return [name, def];
     }),
   );
+}
+
+function resolveProviderToolArgs(
+  def: SerializableToolDef,
+): Record<string, unknown> {
+  const args = def.args ?? {};
+  const telemetryArgs = def.telemetryArgs;
+  return telemetryArgs == null
+    ? args
+    : withTelemetryRedaction(args, () => telemetryArgs);
 }
 
 function resolveToolDescription<TOOLS extends ToolSet>({
@@ -159,9 +233,9 @@ function formatAjvError(error: ErrorObject): string {
 /**
  * Reconstructs tool objects from serializable tool definitions inside a step.
  *
- * Wraps each tool's JSON Schema with `jsonSchema()` and validates tool call
- * arguments against the schema using Ajv. This provides runtime type safety
- * equivalent to using zod schemas directly with the AI SDK.
+ * Wraps each tool's JSON Schema with `jsonSchema()`. Tools without their own
+ * validator are validated with Ajv. Tools with their own validator are
+ * validated after the workflow step, where the original schema is available.
  */
 export function resolveSerializableTools(
   tools: Record<string, SerializableToolDef>,
@@ -198,6 +272,11 @@ export function resolveSerializableTools(
     });
   };
 
+  const createInputSchema = (tool: SerializableToolDef) =>
+    tool.hasOwnValidator
+      ? jsonSchema(tool.inputSchema)
+      : createValidatedInputSchema(tool.inputSchema);
+
   return Object.fromEntries(
     Object.entries(tools).map(([name, t]) => {
       // Provider tools are executed server-side — pass them through
@@ -208,7 +287,7 @@ export function resolveSerializableTools(
           title: t.title,
           metadata: t.metadata,
           id: t.id!,
-          args: t.args ?? {},
+          args: resolveProviderToolArgs(t),
           inputSchema: jsonSchema(t.inputSchema),
           providerOptions: t.providerOptions,
         };
@@ -232,10 +311,12 @@ export function resolveSerializableTools(
         return [
           name,
           dynamicTool({
+            title: t.title,
+            metadata: t.metadata,
             description: t.description,
             inputExamples: t.inputExamples,
             providerOptions: t.providerOptions,
-            inputSchema: createValidatedInputSchema(t.inputSchema),
+            inputSchema: createInputSchema(t),
           }),
         ];
       }
@@ -247,7 +328,7 @@ export function resolveSerializableTools(
         strict: t.strict,
         inputExamples: t.inputExamples,
         providerOptions: t.providerOptions,
-        inputSchema: createValidatedInputSchema(t.inputSchema),
+        inputSchema: createInputSchema(t),
       };
 
       return [

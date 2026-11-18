@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   assertCodexThreadPermissions,
   createCodexAppServerRuntime,
@@ -10,7 +10,7 @@ import {
 } from './codex-app-server-driver';
 import type { StartMessage } from '../codex-bridge-protocol';
 import type { BridgeTurn } from '@ai-sdk/harness/bridge';
-import { createCodexStepTracker } from './codex-step-tracker';
+import { createCodexStepTracker, defaultUsage } from './codex-step-tracker';
 import { createTrustedApplyPatchHook } from './codex-tool-filtering-hook';
 
 const server = vi.hoisted(() => ({
@@ -33,9 +33,11 @@ const server = vi.hoisted(() => ({
   nextTurn: 0,
   autoComplete: true,
   hookResponse: undefined as unknown,
+  threadModel: undefined as string | undefined,
   steerResponse: undefined as
     | ((params: unknown) => Promise<unknown> | unknown)
     | undefined,
+  backgroundTerminalResponses: [] as unknown[],
 }));
 
 vi.mock('./codex-app-server-client', () => ({
@@ -98,6 +100,7 @@ vi.mock('./codex-app-server-client', () => ({
           },
           approvalPolicy: 'never',
           sandbox: { type: 'dangerFullAccess' },
+          ...(server.threadModel == null ? {} : { model: server.threadModel }),
         };
       }
       if (method === 'turn/start') {
@@ -121,6 +124,14 @@ vi.mock('./codex-app-server-client', () => ({
         return (
           server.steerResponse?.(params) ?? {
             turnId: `turn-${server.nextTurn}`,
+          }
+        );
+      }
+      if (method === 'thread/backgroundTerminals/list') {
+        return (
+          server.backgroundTerminalResponses.shift() ?? {
+            data: [],
+            nextCursor: null,
           }
         );
       }
@@ -203,12 +214,15 @@ describe('Codex app-server runtime lifecycle', () => {
     server.nextTurn = 0;
     server.autoComplete = true;
     server.hookResponse = undefined;
+    server.threadModel = undefined;
     server.steerResponse = undefined;
+    server.backgroundTerminalResponses = [];
   });
 
   function createOptions({
     threadId,
     codexConfig = {},
+    codexModel = 'gpt-5.3-codex',
     start = {},
     abortSignal = new AbortController().signal,
     emit = () => {},
@@ -216,6 +230,7 @@ describe('Codex app-server runtime lifecycle', () => {
   }: {
     threadId?: string;
     codexConfig?: Record<string, unknown>;
+    codexModel?: string;
     start?: Partial<StartMessage>;
     abortSignal?: AbortSignal;
     emit?: (event: Record<string, unknown>) => void;
@@ -240,7 +255,7 @@ describe('Codex app-server runtime lifecycle', () => {
       emit,
       workdir: '/workspace',
       threadId,
-      codexModel: 'gpt-5.3-codex',
+      codexModel,
       codexConfig,
       stepTracker: createCodexStepTracker({ send }),
       emitStreamEvent: vi.fn(),
@@ -266,7 +281,9 @@ describe('Codex app-server runtime lifecycle', () => {
       'initialize',
       'thread/start',
       'turn/start',
+      'thread/backgroundTerminals/list',
       'turn/start',
+      'thread/backgroundTerminals/list',
     ]);
     expect(
       server.clients[0]!.calls.find(call => call.method === 'thread/start')
@@ -278,6 +295,94 @@ describe('Codex app-server runtime lifecycle', () => {
     });
     await runtime.close();
     expect(server.clients[0]?.closed).toBe(1);
+  });
+
+  describe('stream-start model', () => {
+    function streamStarts(emit: ReturnType<typeof vi.fn>) {
+      return emit.mock.calls
+        .map(([event]) => event as Record<string, unknown>)
+        .filter(event => event.type === 'stream-start');
+    }
+
+    it('reports the model from the thread/start response', async () => {
+      server.threadModel = 'gpt-5.3-codex-resolved';
+      const runtime = createCodexAppServerRuntime();
+      const emit = vi.fn();
+      await runtime.runTurn(createOptions({ emit }));
+
+      expect(streamStarts(emit)).toEqual([
+        { type: 'stream-start', modelId: 'gpt-5.3-codex-resolved' },
+      ]);
+      await runtime.close();
+    });
+
+    it('reuses the reported model for turns on the loaded thread', async () => {
+      server.threadModel = 'gpt-5.3-codex-resolved';
+      const runtime = createCodexAppServerRuntime();
+      await runtime.runTurn(createOptions());
+      server.threadModel = 'unexpected-model';
+      const emit = vi.fn();
+      await runtime.runTurn(createOptions({ threadId: 'thread-1', emit }));
+
+      expect(methods(server.clients[0]!)).toEqual([
+        'initialize',
+        'thread/start',
+        'turn/start',
+        'thread/backgroundTerminals/list',
+        'turn/start',
+        'thread/backgroundTerminals/list',
+      ]);
+      expect(streamStarts(emit)).toEqual([
+        { type: 'stream-start', modelId: 'gpt-5.3-codex-resolved' },
+      ]);
+      await runtime.close();
+    });
+
+    it('falls back to the requested model when the thread response has none', async () => {
+      const runtime = createCodexAppServerRuntime();
+      const emit = vi.fn();
+      await runtime.runTurn(createOptions({ emit }));
+
+      expect(streamStarts(emit)).toEqual([
+        { type: 'stream-start', modelId: 'gpt-5.3-codex' },
+      ]);
+      await runtime.close();
+    });
+
+    it('reports a turn-level model override on the loaded thread', async () => {
+      server.threadModel = 'gpt-5.3-codex-resolved';
+      const runtime = createCodexAppServerRuntime();
+      await runtime.runTurn(createOptions());
+      const emit = vi.fn();
+      await runtime.runTurn(
+        createOptions({
+          threadId: 'thread-1',
+          codexModel: 'gpt-5.5',
+          emit,
+        }),
+      );
+
+      expect(streamStarts(emit)).toEqual([
+        { type: 'stream-start', modelId: 'gpt-5.5' },
+      ]);
+      await runtime.close();
+    });
+
+    it('re-reads the model after the thread restarts', async () => {
+      server.threadModel = 'first-model';
+      const runtime = createCodexAppServerRuntime();
+      await runtime.runTurn(createOptions());
+      server.threadModel = 'second-model';
+      const emit = vi.fn();
+      await runtime.runTurn(
+        createOptions({ start: { restartThread: true }, emit }),
+      );
+
+      expect(streamStarts(emit)).toEqual([
+        { type: 'stream-start', modelId: 'second-model' },
+      ]);
+      await runtime.close();
+    });
   });
 
   it('restarts a thread inside the same app-server process', async () => {
@@ -294,10 +399,43 @@ describe('Codex app-server runtime lifecycle', () => {
       'initialize',
       'thread/start',
       'turn/start',
+      'thread/backgroundTerminals/list',
       'thread/unsubscribe',
       'thread/start',
       'turn/start',
+      'thread/backgroundTerminals/list',
     ]);
+    await runtime.close();
+  });
+
+  it('selects model providers on the app-server command line', async () => {
+    const runtime = createCodexAppServerRuntime();
+    await runtime.runTurn(
+      createOptions({
+        codexConfig: {
+          model_provider: 'agent_bridge_openai',
+          model_providers: {
+            agent_bridge_openai: {
+              base_url: 'https://api.openai.com/v1',
+              env_key: 'CODEX_API_KEY',
+            },
+          },
+          model_verbosity: 'low',
+        },
+      }),
+    );
+
+    const client = server.clients[0]!;
+    expect(client.args).toContain('model_provider="agent_bridge_openai"');
+    expect(client.args).toContain(
+      'model_providers={"agent_bridge_openai"={"base_url"="https://api.openai.com/v1","env_key"="CODEX_API_KEY"}}',
+    );
+    const { config: threadConfig } = client.calls.find(
+      call => call.method === 'thread/start',
+    )!.params as { config: Record<string, unknown> };
+    expect(threadConfig).not.toHaveProperty('model_provider');
+    expect(threadConfig).not.toHaveProperty('model_providers');
+    expect(threadConfig.model_verbosity).toBe('low');
     await runtime.close();
   });
 
@@ -330,6 +468,7 @@ describe('Codex app-server runtime lifecycle', () => {
       'initialize',
       'thread/resume',
       'turn/start',
+      'thread/backgroundTerminals/list',
     ]);
     expect(
       server.clients[1]!.calls.find(call => call.method === 'thread/resume')
@@ -343,6 +482,7 @@ describe('Codex app-server runtime lifecycle', () => {
       'initialize',
       'thread/resume',
       'turn/start',
+      'thread/backgroundTerminals/list',
     ]);
     await runtime.close();
   });
@@ -396,6 +536,7 @@ describe('Codex app-server runtime lifecycle', () => {
       'initialize',
       'thread/resume',
       'turn/start',
+      'thread/backgroundTerminals/list',
     ]);
     const resumeParams = resumed.calls.find(
       call => call.method === 'thread/resume',
@@ -435,7 +576,9 @@ describe('Codex app-server runtime lifecycle', () => {
       'initialize',
       'thread/start',
       'turn/start',
+      'thread/backgroundTerminals/list',
       'turn/start',
+      'thread/backgroundTerminals/list',
     ]);
     const turnParams = client.calls
       .filter(call => call.method === 'turn/start')
@@ -511,8 +654,10 @@ describe('Codex app-server runtime lifecycle', () => {
       'hooks/list',
       'thread/start',
       'turn/start',
+      'thread/backgroundTerminals/list',
       'hooks/list',
       'turn/start',
+      'thread/backgroundTerminals/list',
     ]);
     await runtime.close();
   });
@@ -761,6 +906,7 @@ describe('Codex app-server runtime lifecycle', () => {
       'initialize',
       'thread/resume',
       'turn/start',
+      'thread/backgroundTerminals/list',
     ]);
     await runtime.close();
   });
@@ -795,6 +941,96 @@ describe('Codex app-server runtime lifecycle', () => {
     await runtime.runTurn(createOptions({ threadId: 'thread-1' }));
     expect(server.clients).toHaveLength(1);
     await runtime.close();
+  });
+
+  describe('background terminals', () => {
+    const runningTerminal = {
+      itemId: 'item-1',
+      processId: '1000',
+      command: 'sleep 45',
+      cwd: '/workspace',
+      osPid: null,
+      cpuPercent: null,
+      rssKb: null,
+    };
+
+    function backgroundTerminalListCalls(
+      client: (typeof server.clients)[number],
+    ) {
+      return client.calls.filter(
+        call => call.method === 'thread/backgroundTerminals/list',
+      );
+    }
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('resolves a completed turn only after its background terminals exit', async () => {
+      server.backgroundTerminalResponses = [
+        { data: [runningTerminal], nextCursor: null },
+      ];
+      const runtime = createCodexAppServerRuntime();
+      let settled = false;
+      const pending = runtime.runTurn(createOptions()).then(() => {
+        settled = true;
+      });
+      await vi.waitFor(() =>
+        expect(backgroundTerminalListCalls(server.clients[0]!)).toHaveLength(1),
+      );
+      const client = server.clients[0]!;
+      expect(backgroundTerminalListCalls(client)).toEqual([
+        {
+          method: 'thread/backgroundTerminals/list',
+          params: { threadId: 'thread-1', limit: 1 },
+        },
+      ]);
+      expect(settled).toBe(false);
+
+      await vi.advanceTimersByTimeAsync(1_000);
+      await pending;
+
+      expect(backgroundTerminalListCalls(client)).toHaveLength(2);
+      expect(client.closed).toBe(0);
+      await runtime.close();
+    });
+
+    it('stops waiting for background terminals when the turn is aborted', async () => {
+      server.backgroundTerminalResponses = [
+        { data: [runningTerminal], nextCursor: null },
+      ];
+      const runtime = createCodexAppServerRuntime();
+      const controller = new AbortController();
+      const pending = runtime.runTurn(
+        createOptions({ abortSignal: controller.signal }),
+      );
+      await vi.waitFor(() =>
+        expect(backgroundTerminalListCalls(server.clients[0]!)).toHaveLength(1),
+      );
+      const client = server.clients[0]!;
+
+      controller.abort();
+
+      await expect(pending).rejects.toThrow();
+      expect(vi.getTimerCount()).toBe(0);
+      expect(methods(client)).not.toContain('thread/backgroundTerminals/clean');
+      expect(client.closed).toBe(0);
+      await runtime.close();
+    });
+
+    it('closes the app-server when the background terminal list is invalid', async () => {
+      server.backgroundTerminalResponses = [{}];
+      const runtime = createCodexAppServerRuntime();
+
+      await expect(runtime.runTurn(createOptions())).rejects.toThrow(
+        'Codex app-server thread/backgroundTerminals/list returned an invalid response.',
+      );
+      expect(server.clients[0]!.closed).toBe(1);
+    });
   });
 });
 
@@ -866,6 +1102,34 @@ describe('Codex app-server sandbox configuration', () => {
       effort: 'high',
       outputSchema: { type: 'object' },
     });
+  });
+
+  it('maps text and inline images to Codex turn input in order', () => {
+    const startWithImage = {
+      ...start,
+      prompt: [
+        { type: 'text', text: 'What is in this image?' },
+        { type: 'image', mediaType: 'image/png', data: 'iVBORw0KGgo=' },
+      ],
+    } as StartMessage;
+
+    expect(
+      createTurnParams({
+        threadId: 'thread-1',
+        start: startWithImage,
+        codexModel: 'gpt-5.3-codex',
+      }).input,
+    ).toEqual([
+      {
+        type: 'text',
+        text: 'What is in this image?',
+        text_elements: [],
+      },
+      {
+        type: 'image',
+        url: 'data:image/png;base64,iVBORw0KGgo=',
+      },
+    ]);
   });
 
   it('fails before a turn if Codex did not disable its sandbox', () => {
@@ -971,6 +1235,9 @@ describe('Codex app-server dynamic tools', () => {
         dynamicTools,
         emit: event => emitted.push(event),
         requestToolResult,
+        stepTracker: createCodexStepTracker({
+          send: event => emitted.push(event),
+        }),
       }),
     ).resolves.toEqual({
       contentItems: [{ type: 'inputText', text: '{"temperature":21}' }],
@@ -986,6 +1253,12 @@ describe('Codex app-server dynamic tools', () => {
         providerExecuted: false,
       },
       {
+        type: 'finish-step',
+        finishReason: { unified: 'tool-calls', raw: 'host-input' },
+        usage: defaultUsage(),
+        harnessMetadata: { codex: { inferredStep: true } },
+      },
+      {
         type: 'tool-result',
         toolCallId: 'call-1',
         toolName: 'get_weather',
@@ -993,6 +1266,50 @@ describe('Codex app-server dynamic tools', () => {
         isError: false,
       },
     ]);
+  });
+
+  it('returns model-facing text and inline images as native content items', async () => {
+    const dynamicTools = createDynamicTools([
+      { name: 'inspect', inputSchema: { type: 'object' } },
+    ]);
+
+    await expect(
+      handleAppServerRequest({
+        request: {
+          id: 1,
+          method: 'item/tool/call',
+          params: { callId: 'call-1', tool: 'inspect', arguments: {} },
+        },
+        dynamicTools,
+        emit: () => {},
+        stepTracker: createCodexStepTracker({ send: () => {} }),
+        requestToolResult: async () => ({
+          output: { status: 'ready' },
+          toolResult: {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'inspect',
+            output: {
+              type: 'content',
+              value: [
+                { type: 'text', text: 'marker' },
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  data: { type: 'data', data: 'iVBORw==' },
+                },
+              ],
+            },
+          },
+        }),
+      }),
+    ).resolves.toEqual({
+      contentItems: [
+        { type: 'inputText', text: 'marker' },
+        { type: 'inputImage', imageUrl: 'data:image/png;base64,iVBORw==' },
+      ],
+      success: true,
+    });
   });
 
   it('reports host tool errors through dynamic tool success', async () => {
@@ -1021,6 +1338,7 @@ describe('Codex app-server dynamic tools', () => {
           output: 'failed',
           isError: true,
         }),
+        stepTracker: createCodexStepTracker({ send: () => {} }),
       }),
     ).resolves.toEqual({
       contentItems: [{ type: 'inputText', text: 'failed' }],

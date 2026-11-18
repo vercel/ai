@@ -3,6 +3,112 @@ import { GoogleRealtimeModel } from './google-realtime-model';
 import type { GoogleRealtimeModelOptions } from './google-realtime-model-options';
 
 describe('GoogleRealtimeModel', () => {
+  it.each([
+    {
+      name: 'object',
+      headers: { authorization: 'Bearer test-key', omitted: undefined },
+    },
+    {
+      name: 'promise',
+      headers: Promise.resolve({
+        authorization: 'Bearer test-key',
+        omitted: undefined,
+      }),
+    },
+    {
+      name: 'callback',
+      headers: () => ({ authorization: 'Bearer test-key', omitted: undefined }),
+    },
+    {
+      name: 'async callback',
+      headers: async () => ({
+        authorization: 'Bearer test-key',
+        omitted: undefined,
+      }),
+    },
+  ])(
+    'resolves $name credentials for server connections',
+    async ({ headers }) => {
+      const model = new GoogleRealtimeModel('gemini-3.8-live', {
+        provider: 'google.realtime',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers,
+      });
+      expect((await model.getServerWebSocketConfig()).headers).toEqual({
+        authorization: 'Bearer test-key',
+      });
+    },
+  );
+
+  it('rejects unsupported intents during serialization as well as connection setup', () => {
+    const target = new GoogleRealtimeModel('gemini-3.8-live', {
+      provider: 'google.realtime',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: {},
+    });
+    const options = { intent: 'transcription' } as const;
+    expect(() =>
+      target.serializeClientEvent({ type: 'response-create' }, options),
+    ).toThrow(/does not support/);
+    expect(() => target.buildSessionConfig({}, options)).toThrow(
+      /does not support/,
+    );
+  });
+
+  it('isolates usage and turn state between server connections', () => {
+    const model = new GoogleRealtimeModel('gemini-3.8-live', {
+      provider: 'google.realtime',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: {},
+    });
+    const first = model.createServerEventParser();
+    const second = model.createServerEventParser();
+    const firstUsage = first({
+      usageMetadata: {
+        promptTokensDetails: [{ modality: 'TEXT', tokenCount: 12 }],
+      },
+    });
+    const secondDone = second({ serverContent: { turnComplete: true } });
+    expect(
+      Array.isArray(secondDone) ? secondDone : [secondDone],
+    ).toContainEqual(
+      expect.objectContaining({
+        type: 'response-done',
+        responseId: 'google-resp-0',
+      }),
+    );
+    expect(
+      Array.isArray(secondDone) ? secondDone : [secondDone],
+    ).not.toContainEqual(expect.objectContaining({ usage: expect.anything() }));
+    expect(firstUsage).toMatchObject({
+      type: 'custom',
+      rawType: 'usageMetadata',
+      usage: { inputTextTokens: 12 },
+    });
+    const firstDone = first({ serverContent: { turnComplete: true } });
+    expect(
+      Array.isArray(firstDone) ? firstDone : [firstDone],
+    ).not.toContainEqual(expect.objectContaining({ usage: expect.anything() }));
+    first({
+      serverContent: {
+        modelTurn: { parts: [{ text: 'next' }] },
+        turnComplete: true,
+      },
+    });
+    first({ serverContent: { modelTurn: { parts: [{ text: 'third' }] } } });
+    const secondTurn = second({
+      serverContent: { modelTurn: { parts: [{ text: 'independent' }] } },
+    });
+    expect(
+      Array.isArray(secondTurn) ? secondTurn : [secondTurn],
+    ).toContainEqual(
+      expect.objectContaining({
+        type: 'text-delta',
+        responseId: 'google-resp-1',
+      }),
+    );
+  });
+
   describe('doCreateClientSecret', () => {
     it('calls auth_tokens endpoint with correct payload', async () => {
       const mockFetch = vi.fn().mockResolvedValue({
@@ -222,8 +328,42 @@ describe('GoogleRealtimeModel', () => {
     });
   });
 
+  describe('getServerWebSocketConfig', () => {
+    it('connects to the unconstrained Bidi endpoint with the API key header', async () => {
+      const model = new GoogleRealtimeModel('gemini-2.0-flash-live-001', {
+        provider: 'google.realtime',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: () => ({
+          'x-goog-api-key': 'test-key',
+          'x-undefined': undefined,
+        }),
+      });
+
+      expect(await model.getServerWebSocketConfig()).toMatchInlineSnapshot(`
+        {
+          "headers": {
+            "x-goog-api-key": "test-key",
+          },
+          "url": "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent",
+        }
+      `);
+    });
+
+    it('rejects unsupported endpoint intents', async () => {
+      const model = new GoogleRealtimeModel('gemini-2.0-flash-live-001', {
+        provider: 'google.realtime',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: () => ({ 'x-goog-api-key': 'test-key' }),
+      });
+
+      expect(() =>
+        model.getServerWebSocketConfig({ intent: 'transcription' }),
+      ).toThrow("does not support the 'transcription' session intent");
+    });
+  });
+
   describe('getWebSocketConfig', () => {
-    it('returns URL with access_token query param', () => {
+    it('returns URL with access_token query param', async () => {
       const model = new GoogleRealtimeModel('gemini-2.0-flash-live-001', {
         provider: 'google.realtime',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
@@ -241,7 +381,7 @@ describe('GoogleRealtimeModel', () => {
   });
 
   describe('parseServerEvent', () => {
-    it('delegates to mapper', () => {
+    it('delegates to mapper', async () => {
       const model = new GoogleRealtimeModel('gemini-2.0-flash-live-001', {
         provider: 'google.realtime',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
@@ -257,7 +397,7 @@ describe('GoogleRealtimeModel', () => {
   });
 
   describe('serializeClientEvent', () => {
-    it('delegates to mapper', () => {
+    it('delegates to mapper', async () => {
       const model = new GoogleRealtimeModel('gemini-2.0-flash-live-001', {
         provider: 'google.realtime',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
@@ -275,7 +415,7 @@ describe('GoogleRealtimeModel', () => {
       });
     });
 
-    it('labels input audio with the configured capture rate', () => {
+    it('labels input audio with the configured capture rate', async () => {
       const model = new GoogleRealtimeModel('gemini-2.0-flash-live-001', {
         provider: 'google.realtime',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',

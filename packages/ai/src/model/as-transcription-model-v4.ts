@@ -19,6 +19,31 @@ export function asTranscriptionModelV4(
   return new Proxy(v3Model, {
     get(target, prop: keyof TranscriptionModelV3) {
       if (prop === 'specificationVersion') return 'v4';
+      if (prop === 'doGenerate') {
+        return async ({
+          timestampGranularities,
+          ...options
+        }: Parameters<TranscriptionModelV4['doGenerate']>[0]) => {
+          // Bind to the original model, including when target is a v2 proxy.
+          const result = await target.doGenerate.call(model, options);
+
+          if (!timestampGranularities?.length) {
+            return result;
+          }
+
+          return {
+            ...result,
+            warnings: [
+              ...result.warnings,
+              {
+                type: 'unsupported' as const,
+                feature: 'timestampGranularities',
+                details: `Shared timestamp granularities are not supported by ${model.specificationVersion} transcription models.`,
+              },
+            ],
+          };
+        };
+      }
       return target[prop];
     },
   }) as unknown as TranscriptionModelV4;

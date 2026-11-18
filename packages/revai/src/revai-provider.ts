@@ -4,6 +4,8 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   withUserAgentSuffix,
   type FetchFunction,
@@ -33,9 +35,10 @@ export interface RevaiProvider extends ProviderV4 {
 
 export interface RevaiProviderSettings {
   /**
-   * API key for authenticating requests.
+   * API key for authenticating requests. May be a string, promise, or a
+   * synchronous/asynchronous callback called before each request.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Custom headers to include in the requests.
@@ -56,16 +59,18 @@ export function createRevai(
   options: RevaiProviderSettings = {},
 ): RevaiProvider {
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'REVAI_API_KEY',
-          description: 'Rev.ai',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk-revai/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'REVAI_API_KEY',
+            description: 'Rev.ai',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-revai/${VERSION}`,
+      ),
     );
 
   const createTranscriptionModel = (modelId: RevaiTranscriptionModelId) =>

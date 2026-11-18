@@ -62,6 +62,8 @@ export class DecisionLanguageModel implements DecisionModelV4 {
   async doDecide({
     state,
     questions,
+    maxOutputTokens,
+    reasoning,
     abortSignal,
     headers,
     providerOptions,
@@ -78,7 +80,7 @@ export class DecisionLanguageModel implements DecisionModelV4 {
       }
     }
     const entries = Object.entries(questions).map(([id, question]) => {
-      if (!this.supportedQuestionTypes.includes(question.type)) {
+      if (!this.supportedQuestionTypes.some(type => type === question.type)) {
         throw new DecisionUnsupportedQuestionTypeError({
           questionId: id,
           questionType: question.type,
@@ -148,7 +150,8 @@ export class DecisionLanguageModel implements DecisionModelV4 {
       ]),
     );
     const result = await this.model.doGenerate({
-      reasoning: 'none',
+      reasoning: reasoning ?? 'none',
+      maxOutputTokens,
       prompt: [
         {
           role: 'system',

@@ -152,20 +152,6 @@ const HARNESSES = [
     ],
   },
   {
-    slug: 'acp-claude-code',
-    label: 'ACP: Claude Code',
-    variants: [
-      'basic',
-      'basic-with-stop',
-      'ai-sdk-coding',
-      'weather',
-      'weather-only',
-      'weather-approval',
-      'workflow-timed',
-      'workflow-stepped',
-    ],
-  },
-  {
     slug: 'acp-codex',
     label: 'ACP: Codex',
     variants: [
