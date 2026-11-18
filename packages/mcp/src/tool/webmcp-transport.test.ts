@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createMCPClient,
-  WebMCPTransport,
+  Experimental_WebMCPTransport as WebMCPTransport,
   type MCPClient,
   type CallToolResult,
-  type WebMCPModelContext,
-  type WebMCPTool,
+  type Experimental_WebMCPModelContext as WebMCPModelContext,
+  type Experimental_WebMCPTool as WebMCPTool,
 } from '../index';
 
 const cart: WebMCPTool = {
