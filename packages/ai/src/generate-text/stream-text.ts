@@ -351,7 +351,7 @@ type StreamTextOptions<
  * @param seed - The seed (integer) to use for random sampling.
  * If set and supported by the model, calls will generate deterministic results.
  *
- * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
+ * @param maxRetries - Maximum number of retries when starting a model call. Set to 0 to disable request retries. Default: 2.
  * @param streamRetries - Maximum number of retries for provider errors received after streaming starts. Set to 0 to disable automatic stream retries while allowing `onError` to request retries. Omit to disable all stream retry behavior. Default: 0.
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
  * @param timeout - An optional timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout.
@@ -721,6 +721,8 @@ function streamTextInternal<
        * Maximum number of automatic retries for provider errors received after
        * response streaming has started. Each retry reruns only the current model
        * step. Completed earlier steps and their tool results are preserved.
+       * The initial call and each recovery get a fresh `maxRetries` budget for
+       * failures while starting the stream.
        *
        * Partial output from a failed attempt that was already emitted cannot be
        * retracted and remains in consumer-facing streams. It is excluded from
