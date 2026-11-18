@@ -1,0 +1,133 @@
+---
+title: Fikra
+description: Use the Fikra OpenAI compatible API with the AI SDK.
+---
+
+# Fikra Provider
+
+[Fikra](https://fikraapi.co.ke) is an OpenAI-compatible inference gateway that
+serves open-weight models from multiple labs through a single `/v1` endpoint.
+You can use its Chat Completions endpoint with the AI SDK through the
+`@ai-sdk/openai-compatible` module.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Create a [Fikra API key](https://fikraapi.co.ke/dashboard) and set it as a
+server-side environment variable:
+
+```bash
+export FIKRA_API_KEY=your-api-key
+```
+
+See the [Fikra authentication guide](https://docs.fikraapi.co.ke/authentication)
+for key creation and handling.
+
+## Provider Instance
+
+Create a Fikra provider instance with `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const fikra = createOpenAICompatible({
+  name: 'fikra',
+  apiKey: process.env.FIKRA_API_KEY,
+  baseURL: 'https://api.fikraapi.co.ke/v1',
+  includeUsage: true,
+});
+```
+
+The `apiKey` setting sends the key as a Bearer token in the `Authorization`
+header. `includeUsage: true` requests usage information in streaming responses.
+
+## Language Models
+
+Create a language model by passing a Fikra model ID to the provider instance:
+
+```ts
+const model = fikra('deepseek-v4.1-flash');
+```
+
+### Example
+
+Use `generateText` to generate text with a Fikra model:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const fikra = createOpenAICompatible({
+  name: 'fikra',
+  apiKey: process.env.FIKRA_API_KEY,
+  baseURL: 'https://api.fikraapi.co.ke/v1',
+  includeUsage: true,
+});
+
+const { text } = await generateText({
+  model: fikra('deepseek-v4.1-flash'),
+  prompt: 'Explain what an OpenAI-compatible endpoint does in one sentence.',
+});
+
+console.log(text);
+```
+
+You can also use Fikra language models with `streamText`.
+
+## Supported Models and Capabilities
+
+Fikra exposes the following text model IDs through its OpenAI-compatible Chat
+Completions endpoint:
+
+| Family   | Model IDs                                                                                                                                                       |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DeepSeek | `deepseek-v4.1-flash`, `deepseek-v4.1-flash-1017`, `deepseek-v4.1-flash-pinned`, `deepseek-v4-flash-0731`, `deepseek-v4-flash-pinned`, `deepseek-v4-pro-pinned` |
+| Zhipu AI | `glm-5.3`, `glm-5.3-flash`, `glm-5.2`                                                                                                                           |
+| Moonshot | `kimi-k3`                                                                                                                                                       |
+| StepFun  | `step-5-preview`                                                                                                                                                |
+| Qwen     | `qwen3.8-27b`, `qwen3.8-max`                                                                                                                                    |
+| Xiaomi   | `mimo-v2.6-pro`                                                                                                                                                 |
+| NVIDIA   | `nvidia-nemotron-3.5-super-vl`                                                                                                                                  |
+| Google   | `gemini-4-argon`                                                                                                                                                |
+
+The catalog changes as models are added and removed. Use the public
+[`GET /v1/models`](https://api.fikraapi.co.ke/v1/models) endpoint or the
+[Fikra model catalog](https://docs.fikraapi.co.ke/models) for the current model
+IDs.
+
+Supported capabilities depend on the selected model and include:
+
+- text generation and streaming;
+- tool calling, including multi-step tool use with `stopWhen`;
+- reasoning content for reasoning-tier models, selected through the model
+  rather than a client-side flag; and
+- structured output through `response_format` for models that support JSON
+  Schema.
+
+To send JSON Schema structured-output requests, enable
+`supportsStructuredOutputs`:
+
+```ts
+const fikra = createOpenAICompatible({
+  name: 'fikra',
+  apiKey: process.env.FIKRA_API_KEY,
+  baseURL: 'https://api.fikraapi.co.ke/v1',
+  supportsStructuredOutputs: true,
+});
+```
+
+This guide covers Fikra's OpenAI-compatible Chat Completions endpoint. See the
+[Fikra endpoint reference](https://docs.fikraapi.co.ke/endpoints) for the full
+list of supported request parameters.
+
+## Resources
+
+- [Fikra](https://fikraapi.co.ke)
+- [Fikra authentication guide](https://docs.fikraapi.co.ke/authentication)
+- [Fikra model catalog](https://docs.fikraapi.co.ke/models)
+- [Fikra endpoint reference](https://docs.fikraapi.co.ke/endpoints)
+- [Fikra pricing](https://fikraapi.co.ke/pricing)
+- [AI SDK OpenAI Compatible provider](/providers/openai-compatible-providers)
