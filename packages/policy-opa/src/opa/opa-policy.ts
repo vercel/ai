@@ -177,7 +177,9 @@ export function opaPolicy<
           );
 
           // A custom `toInput` that does not use `messages` produces the same
-          // input twice. Evaluating it again cannot change the decision.
+          // input twice. OPA receives its input as JSON, so two inputs with
+          // the same JSON are one input, and evaluating it again cannot change
+          // the decision.
           if (
             toInput == null ||
             !isSameInput(opaInput, opaInputWithEarlierToolCalls)
