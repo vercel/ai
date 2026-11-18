@@ -38,6 +38,7 @@ export type GoogleGenerativeAIModelId =
   | 'gemini-4-argon'
   | 'gemini-4-carbon'
   | 'gemini-4-hydrogen'
+  | 'gemini-4-neon'
   | 'gemini-nano-banana-2.1'
   // latest version
   // https://ai.google.dev/gemini-api/docs/models#latest
