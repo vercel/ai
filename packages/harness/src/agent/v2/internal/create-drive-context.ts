@@ -5,7 +5,10 @@ import {
   generateId,
   type Experimental_SandboxSession as SandboxSession,
 } from '@ai-sdk/provider-utils';
-import type { HarnessV2DriveContext } from '../../../v2/harness-v2-drive-context';
+import type {
+  HarnessV2DriveContext,
+  HarnessV2ExecuteMcpToolFunction,
+} from '../../../v2/harness-v2-drive-context';
 import type {
   HarnessV2Log,
   HarnessV2LogEffectAttempt,
@@ -240,6 +243,8 @@ export function createDriveContext(options: {
    */
   executeBuiltinTool: HarnessAgentExecuteBuiltinToolFunction;
 
+  executeMcpTool: HarnessV2ExecuteMcpToolFunction;
+
   /**
    * Built-in tool gate function of the drive.
    */
@@ -275,6 +280,7 @@ export function createDriveContext(options: {
     finishTurn,
     executeHostTool,
     executeBuiltinTool,
+    executeMcpTool,
     gateBuiltinTool,
     harnessId,
     workDir,
@@ -306,6 +312,7 @@ export function createDriveContext(options: {
     effect,
     executeHostTool,
     executeBuiltinTool,
+    executeMcpTool,
     gateBuiltinTool,
     sandbox() {
       if (sandbox == null) {

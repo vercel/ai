@@ -620,6 +620,21 @@ interface HarnessV2DriveContext {
       | AsyncIterable<HarnessV2ToolExecutionValue<T>>;
   }): Promise<HarnessV2ToolExecutionOutput<T>>;
   /**
+   * Runs an adapter-managed MCP tool inside `tool:${toolCallId}` with
+   * `replay: 'never'`. The engine emits dynamic results, including returned
+   * MCP errors with content. No sandbox is resolved for remote execution.
+   */
+  executeMcpTool<T extends JSONValue = JSONValue>(call: {
+    toolCallId: string;
+    toolName: string;
+    input: JSONValue;
+    execute: (options: {
+      abortSignal: AbortSignal;
+    }) =>
+      | PromiseLike<HarnessV2ToolExecutionValue<T>>
+      | AsyncIterable<HarnessV2ToolExecutionValue<T>>;
+  }): Promise<HarnessV2ToolExecutionOutput<T>>;
+  /**
    * Called from the runtime's permission point before a built-in tool runs.
    * Resolves with `approved` (start event written; the adapter reports the
    * outcome through `result()` or `error()`), `denied` (a reason to report
@@ -1005,6 +1020,44 @@ An in-process runtime (e.g. Pi) runs its built-in tools through callbacks the ad
 - A thrown error, a value that is not a valid tool value, or an iterable that yields nothing becomes an `error` outcome. A tool that is not one of the harness's built-in tools is recorded as an `error` without running `execute`.
 - The engine emits the call's `tool-result` parts (preliminary, final and error) through the attempt's `emit()`. The adapter emits the call's `tool-call` part, but never its results.
 - Not supported yet: tool approvals (`suspended`) and active tool filtering.
+
+### MCP configuration and execution (`executeMcpTool()`)
+
+`HarnessAgentSettings.mcpServers` is a construction-time map of server names to
+`HarnessAgentMcpServerConfig`: `{ type?: 'http'; url: string; headers?: Readonly<Record<string, string>> }`.
+The agent declares this type independently of the adapter layer's structurally
+identical `HarnessV2McpServerConfig`.
+Stdio servers are currently unsupported. HarnessV1 rejects the top-level setting
+and retains its per-harness configuration. HarnessV2 passes a copied declaration
+through `HarnessV2TurnSettings.mcpServers`; this does not add public per-turn
+overrides. Credentials are protected at the existing World encryption boundaries
+when the World supplies a key, not by individual adapters.
+
+Adapters record a replay-safe `mcp-discovery:${submissionId}` effect before
+exposing tools, including definitions, resolved names, and initialization
+instructions. The catalog stays fixed within a turn and is rediscovered for
+the next turn. A discovery failure fails the turn, including before any model
+step. Restoring a catalog does not connect to servers; new calls connect lazily.
+Connections are local to one turn and close on every exit path.
+
+`HarnessV2DriveContext.executeMcpTool({ toolCallId, toolName, input, execute })`
+runs the adapter's callback in `tool:${toolCallId}`, named `tool.${toolName}`,
+with `replay: 'never'`, without a built-in or host-tool lookup or sandbox
+resolution. It uses the same execution-start marker, cancellation, partial/final
+value recording, and recovery rules as other tool effects. The engine emits
+dynamic preliminary, final, and error results. A returned MCP error retains its
+content through `HarnessV2ToolExecutionValue.isError`; adapters must not emit
+duplicate results or trust MCP replay-safety annotations.
+
+Pi uses `@earendil-works/pi-mcp` and its filesystem-free `toLlmContent()` mapping,
+not the coding-agent MCP extension. The extension writes overflow and binary
+outputs to host files without a public output-writer hook; those paths cannot be
+read by sandbox tools or recovered on another worker. Text is not truncated,
+images remain inline, and unsupported binary content becomes a placeholder.
+fx uses `@ai-sdk/mcp` for HTTP connections and `libfx/mcp.createMcpAdapter` for
+native naming and content conversion. Neither adapter reads implicit host MCP
+configuration or starts server processes. Host tools override matching exposed
+MCP names; any remaining collision with other servers or built-ins is rejected.
 
 ### Built-in tool gating (`gateBuiltinTool()`)
 

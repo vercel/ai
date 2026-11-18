@@ -71,6 +71,11 @@ export type HarnessV2ToolExecutionValue<T extends JSONValue = JSONValue> = {
    * adapter sends `raw` to its runtime.
    */
   readonly modelOutput?: HarnessV2ToolResultOutput;
+
+  /**
+   * Whether the tool returned an error with content, rather than throwing.
+   */
+  readonly isError?: boolean;
 };
 
 /**
@@ -266,6 +271,32 @@ export type HarnessV2ExecuteBuiltinToolFunction = <
 }) => Promise<HarnessV2ToolExecutionOutput<T>>;
 
 /**
+ * Executes an adapter-managed MCP tool as a durable `tool:${toolCallId}`
+ * effect named `tool.${toolName}`. Calls use `replay: 'never'`: a recorded
+ * outcome is returned without invoking the callback again, and an execution
+ * interrupted after it started is not retried automatically. MCP annotations
+ * do not change this policy.
+ *
+ * The callback receives the attempt's abort signal and returns a final value
+ * or yields complete partial values followed by the final value. Returned
+ * MCP errors retain their content through `isError`. The engine emits all
+ * dynamic tool results; the adapter must not emit them again. No sandbox is
+ * resolved for remote MCP execution.
+ */
+export type HarnessV2ExecuteMcpToolFunction = <
+  T extends JSONValue = JSONValue,
+>(call: {
+  toolCallId: string;
+  toolName: string;
+  input: JSONValue;
+  execute: (options: {
+    abortSignal: AbortSignal;
+  }) =>
+    | PromiseLike<HarnessV2ToolExecutionValue<T>>
+    | AsyncIterable<HarnessV2ToolExecutionValue<T>>;
+}) => Promise<HarnessV2ToolExecutionOutput<T>>;
+
+/**
  * Gates one of the harness's built-in tools, called from the runtime's
  * permission point before the tool runs.
  *
@@ -392,6 +423,11 @@ export interface HarnessV2DriveContext {
    * adapter runs itself, and returns its outcome.
    */
   executeBuiltinTool: HarnessV2ExecuteBuiltinToolFunction;
+
+  /**
+   * Executes an adapter-managed MCP tool with durable, non-retrying execution.
+   */
+  executeMcpTool: HarnessV2ExecuteMcpToolFunction;
 
   /**
    * Gates one of the harness's built-in tools, called from the runtime's

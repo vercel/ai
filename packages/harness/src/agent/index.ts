@@ -2,6 +2,7 @@ export { HarnessAgent } from './harness-agent';
 export { createHarnessSandboxTemplate } from './create-harness-sandbox-template';
 export type { HarnessAllTools } from './harness-agent-tool-types';
 export type {
+  HarnessAgentMcpServerConfig,
   HarnessAgentSandboxConfig,
   HarnessAgentSandboxCreator,
   HarnessAgentSettings,

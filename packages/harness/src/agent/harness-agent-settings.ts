@@ -49,6 +49,25 @@ export type HarnessAgentToolApprovalConfiguration = Readonly<
 >;
 
 /**
+ * Remote MCP server connected through Streamable HTTP. Stdio servers are
+ * currently unsupported. Headers may contain credentials and must not be logged.
+ */
+export type HarnessAgentMcpServerConfig = {
+  /**
+   * Streamable HTTP is the only supported transport and is the default.
+   */
+  readonly type?: 'http';
+  /**
+   * Endpoint used for the MCP initialization and subsequent requests.
+   */
+  readonly url: string;
+  /**
+   * Request headers, including any server-specific authentication credentials.
+   */
+  readonly headers?: Readonly<Record<string, string>>;
+};
+
+/**
  * Creates the sandbox session for `HarnessAgent.createSession()` when it is
  * needed instead of upfront.
  *
@@ -181,6 +200,14 @@ export type HarnessAgentSettings<
    * declare a tool with the same name as a builtin to override.
    */
   readonly tools?: TUserTools;
+
+  /**
+   * Remote MCP servers available to HarnessV2. Configured once for the agent,
+   * like tools, rather than through call options. Stdio servers are currently
+   * unsupported. HarnessV1 rejects this setting; configure its MCP servers
+   * on the individual harness instead.
+   */
+  readonly mcpServers?: Readonly<Record<string, HarnessAgentMcpServerConfig>>;
 
   /**
    * Per-tool context passed to host-executed tools. Each entry is validated

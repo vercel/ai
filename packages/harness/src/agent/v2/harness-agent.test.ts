@@ -171,6 +171,53 @@ function captureError(fn: () => unknown): Error {
 }
 
 describe('HarnessAgent', () => {
+  test('copies static MCP settings into persisted submissions', async () => {
+    const mcpServers = {
+      remote: {
+        url: 'https://mcp.example.com',
+        headers: { authorization: 'secret' },
+      },
+    };
+    let received: unknown;
+    const agent = new HarnessAgent({
+      harness: createFakeHarness({
+        beforeModel: async ({ context }) => {
+          received = context.log.getUndeliveredSubmissions()[0].data;
+        },
+      }),
+      getSandboxSession,
+      mcpServers,
+    });
+    mcpServers.remote.headers.authorization = 'changed';
+    const session = await agent.createSession({ sandboxId: 'sandbox' });
+    await agent.generate({ session, prompt: 'hello' });
+    expect((received as { settings: unknown }).settings).toEqual({
+      skills: [],
+      tools: [],
+      mcpServers: {
+        remote: {
+          url: 'https://mcp.example.com',
+          headers: { authorization: 'secret' },
+        },
+      },
+    });
+  });
+
+  test.each([
+    { url: '' },
+    { command: 'server', type: 'stdio' },
+    { url: 'https://secret.example', type: 'sse' },
+  ])('rejects unsupported MCP configuration without exposing it', config => {
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          getSandboxSession,
+          mcpServers: { remote: config as never },
+        }),
+    ).toThrow('must contain Streamable HTTP servers with a URL');
+  });
+
   test('rejects a harness adapter with a different specification version', () => {
     expect(
       () =>
@@ -2037,7 +2084,17 @@ describe('HarnessAgent storage encryption', () => {
 
   test('encrypts run input, log envelopes, and output while restoring and reading normally', async () => {
     const { inner, world, resolveKey, settings } = setup();
-    const agent = new HarnessAgent({ ...settings, id: 'encrypted' });
+    const mcpServers = {
+      remote: {
+        url: 'https://mcp.example.com',
+        headers: { authorization: secret },
+      },
+    };
+    const agent = new HarnessAgent({
+      ...settings,
+      id: 'encrypted',
+      mcpServers,
+    });
     const session = await agent.createSession({
       sandboxId: secret,
       sessionId: secret,
@@ -2089,6 +2146,7 @@ describe('HarnessAgent storage encryption', () => {
       ...settings,
       world: nextWorld,
       id: 'encrypted',
+      mcpServers,
     });
     const restored = await restoredAgent.createSession({
       runId: session.runId,

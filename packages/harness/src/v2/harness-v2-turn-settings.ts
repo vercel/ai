@@ -1,6 +1,25 @@
 import type { JSONSchema7 } from '@ai-sdk/provider';
 
 /**
+ * Remote MCP server connected through Streamable HTTP. Stdio servers are
+ * currently unsupported. Headers may contain credentials and must not be logged.
+ */
+export type HarnessV2McpServerConfig = {
+  /**
+   * Streamable HTTP is the only supported transport and is the default.
+   */
+  readonly type?: 'http';
+  /**
+   * Endpoint used for the MCP initialization and subsequent requests.
+   */
+  readonly url: string;
+  /**
+   * Request headers, including any server-specific authentication credentials.
+   */
+  readonly headers?: Readonly<Record<string, string>>;
+};
+
+/**
  * Tool declaration supplied to an adapter for one user turn.
  */
 export type HarnessV2ToolSpec = {
@@ -64,6 +83,12 @@ export type HarnessV2Skill = {
  * Adapter-facing configuration applied to a single prompt submission.
  */
 export type HarnessV2TurnSettings = {
+  /**
+   * MCP servers supplied by the agent's construction-time configuration.
+   * This is not a public per-turn override.
+   */
+  readonly mcpServers?: Readonly<Record<string, HarnessV2McpServerConfig>>;
+
   /**
    * Optional model identifier requested for this turn.
    */

@@ -1,10 +1,17 @@
 'use client';
 
-import type { FxHarnessAgentMessage } from '@/agent/fx/basic';
+import type { FxHarnessAgentMessage as FxBasicHarnessAgentMessage } from '@/agent/fx/basic';
+import type { FxHarnessAgentMessage as FxMcpContext7HarnessAgentMessage } from '@/agent/fx/mcp-context7';
 import HarnessChat, { CommonPartView } from '@/components/harness-chat';
 import HarnessBashToolView from '@/components/tool/harness-bash-tool-view';
 import HarnessFileToolView from '@/components/tool/harness-file-tool-view';
 import HarnessToolView from '@/components/tool/harness-tool-view';
+import type { AgentConfigurationName } from '@/lib/harness';
+
+type FxHarnessAgentMessage = {
+  basic: FxBasicHarnessAgentMessage;
+  'mcp-context7': FxMcpContext7HarnessAgentMessage;
+}[AgentConfigurationName];
 
 const FILE_TOOL_LABELS = {
   'tool-read_file': 'Read',

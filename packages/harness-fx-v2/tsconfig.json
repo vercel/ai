@@ -12,9 +12,20 @@
     "tsdown.config.ts"
   ],
   "references": [
-    { "path": "../harness" },
-    { "path": "../provider" },
-    { "path": "../provider-utils" },
-    { "path": "../sandbox-just-bash" }
+    {
+      "path": "../harness"
+    },
+    {
+      "path": "../mcp"
+    },
+    {
+      "path": "../provider"
+    },
+    {
+      "path": "../provider-utils"
+    },
+    {
+      "path": "../sandbox-just-bash"
+    }
   ]
 }

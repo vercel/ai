@@ -49,6 +49,11 @@ import {
   type PiRestoredTranscript,
 } from './pi-log-state';
 import { DEFAULT_PI_MODEL_ID, type PiModelRuntime } from './pi-model-runtime';
+import {
+  createPiMcpRuntime,
+  toPiMcpToolValue,
+  type PiMcpRuntime,
+} from './pi-mcp';
 import { createPiStreamPartTranslator } from './pi-stream-parts';
 import {
   describeToolFailure,
@@ -218,7 +223,7 @@ function getErrorMessage(error: unknown): string {
  * of that turn replay against recorded effects and the rest runs for real.
  * Every model call is the effect `model:${ordinal}` with `replay: 'safe'`,
  * and every tool call goes through `executeBuiltinTool()` or
- * `executeHostTool()`. A step ends at Pi's `turn_end` event, a turn when
+ * `executeHostTool()` or `executeMcpTool()`. A step ends at Pi's `turn_end` event, a turn when
  * Pi's run for its prompt settled.
  *
  * The drive halts, without finishing the current turn, when the drive must
@@ -310,6 +315,15 @@ export class PiDrive {
   private hostToolNames = new Set<string>();
 
   /**
+   * Connections of the current turn, never shared with another session.
+   */
+  private mcpRuntime: PiMcpRuntime | undefined;
+  /**
+   * Executable tools reconstructed from the current turn's recorded catalog.
+   */
+  private mcpTools: PiHostAgentTool[] = [];
+
+  /**
    * Pi messages of prompts handed to Pi whose delivery no model call
    * recorded yet, by submission ID.
    */
@@ -394,26 +408,38 @@ export class PiDrive {
     try {
       const restored = this.restoreAgent();
       const { currentTurn } = this.state;
-      if (restored.resume && currentTurn != null) {
-        this.startTurn({ firstOrdinal: currentTurn.firstModelOrdinal });
-        this.turnUsage = this.state.modelEffects
-          .filter(
-            record =>
-              record.ordinal >= currentTurn.firstModelOrdinal &&
-              record.ordinal < restored.nextModelOrdinal,
-          )
-          .reduce(
-            (usage, record) =>
-              record.output?.type === 'result'
-                ? addHarnessUsage({
-                    left: usage,
-                    right: toHarnessUsage({ usage: record.output.value.usage }),
-                  })
-                : usage,
-            createUnknownHarnessUsage(),
-          );
-        if (!this.turnCancelled) await this.agent!.continue();
-        if (!(await this.finishRun())) return;
+      if (currentTurn != null && !currentTurn.ended) {
+        if (!restored.resume) {
+          await this.runPrompt({ prompt: currentTurn.prompt });
+          if (!(await this.finishRun())) return;
+        } else {
+          this.startTurn({ firstOrdinal: currentTurn.firstModelOrdinal });
+          this.turnUsage = this.state.modelEffects
+            .filter(
+              record =>
+                record.ordinal >= currentTurn.firstModelOrdinal &&
+                record.ordinal < restored.nextModelOrdinal,
+            )
+            .reduce(
+              (usage, record) =>
+                record.output?.type === 'result'
+                  ? addHarnessUsage({
+                      left: usage,
+                      right: toHarnessUsage({
+                        usage: record.output.value.usage,
+                      }),
+                    })
+                  : usage,
+              createUnknownHarnessUsage(),
+            );
+          if (
+            !this.turnCancelled &&
+            (await this.prepareMcp({ prompt: currentTurn.prompt }))
+          ) {
+            await this.agent!.continue();
+          }
+          if (!(await this.finishRun())) return;
+        }
       }
 
       for (;;) {
@@ -430,6 +456,7 @@ export class PiDrive {
       context.stopAbortSignal.removeEventListener('abort', onStop);
       stopListening();
       this.unsubscribeAgent?.();
+      await this.mcpRuntime?.close();
     }
   }
 
@@ -493,6 +520,9 @@ export class PiDrive {
   }): Promise<void> {
     const agent = this.agent!;
     const { prompt } = options;
+    this.startTurn({ firstOrdinal: this.nextModelOrdinal });
+    this.given.add(prompt.id);
+    if (!(await this.prepareMcp({ prompt }))) return;
     const message = toPiUserMessage({
       message: prompt.message,
       timestamp: Date.now(),
@@ -500,10 +530,139 @@ export class PiDrive {
     this.hostToolNames = new Set(prompt.settings.tools.map(spec => spec.name));
     agent.state.model = this.resolveModel({ settings: prompt.settings });
     agent.state.tools = this.createAgentTools({ settings: prompt.settings });
-    this.given.add(prompt.id);
-    this.handed.set(prompt.id, message);
-    this.startTurn({ firstOrdinal: this.nextModelOrdinal });
+    if (Object.keys(prompt.settings.mcpServers ?? {}).length === 0)
+      this.handed.set(prompt.id, message);
     await agent.prompt(message);
+  }
+
+  /**
+   * Records or restores discovery before Pi sees tools. Discovery delivers
+   * the prompt so failures and cancellation can finish a zero-step turn.
+   */
+  private async prepareMcp(options: {
+    prompt: PiPromptSubmission;
+  }): Promise<boolean> {
+    await this.mcpRuntime?.close();
+    this.mcpRuntime = undefined;
+    this.mcpTools = [];
+    const { prompt } = options;
+    const { mcpServers } = prompt.settings;
+    if (mcpServers == null || Object.keys(mcpServers).length === 0) {
+      this.setMcpInstructions({ instructions: '' });
+      this.agent!.state.tools = this.createAgentTools({
+        settings: prompt.settings,
+      });
+      return true;
+    }
+    const runtime = createPiMcpRuntime({
+      mcpServers,
+      abortSignal: AbortSignal.any([
+        this.context.stopAbortSignal,
+        this.turnAbortController.signal,
+      ]),
+    });
+    this.mcpRuntime = runtime;
+    const output = await this.guard(
+      this.context.effect({
+        key: `mcp-discovery:${prompt.id}`,
+        name: 'mcp.discovery',
+        replay: 'safe',
+        input: {
+          submissionId: prompt.id,
+          firstModelOrdinal: this.turnFirstOrdinal,
+        },
+        deliveredSubmissionIds: [prompt.id],
+        fn: ({ abortSignal }) =>
+          this.translateCancel(() =>
+            runtime.discover({
+              abortSignal: AbortSignal.any([
+                abortSignal,
+                this.turnAbortController.signal,
+              ]),
+            }),
+          ),
+      }),
+    );
+    if (output.type === 'error') throw new Error(output.error.message);
+    if (output.type === 'interrupted') {
+      if (!this.turnCancelled) this.halt();
+      return false;
+    }
+    const hostNames = new Set(prompt.settings.tools.map(tool => tool.name));
+    const names = new Set<string>();
+    this.mcpTools = runtime
+      .createTools({ catalog: output.value })
+      .filter(tool => !hostNames.has(tool.name))
+      .map(tool => {
+        if (isPiBuiltinToolName(tool.name) || names.has(tool.name))
+          throw new Error('Pi MCP tool names collide with another tool.');
+        names.add(tool.name);
+        return {
+          ...tool,
+          execute: async (toolCallId, input) => {
+            this.throwIfHalted();
+            const result = await this.guard(
+              this.context.executeMcpTool({
+                toolCallId,
+                toolName: tool.name,
+                input: toJSONValue({ value: input }),
+                execute: ({ abortSignal }) =>
+                  this.translateCancel(async () =>
+                    toPiMcpToolValue({
+                      result: await tool.execute(
+                        toolCallId,
+                        input,
+                        AbortSignal.any([
+                          abortSignal,
+                          this.turnAbortController.signal,
+                        ]),
+                      ),
+                    }),
+                  ),
+              }),
+            );
+            return this.toToolResult({
+              output: result,
+              toolName: tool.name,
+              builtin: false,
+            });
+          },
+        };
+      });
+    const instructions = output.value.servers
+      .map(server => server.instructions ?? '')
+      .filter(Boolean)
+      .join('\n\n');
+    this.setMcpInstructions({ instructions });
+    this.agent!.state.tools = this.createAgentTools({
+      settings: prompt.settings,
+    });
+    return true;
+  }
+
+  /**
+   * Replaces a named system section instead of appending duplicate server
+   * instructions on every turn or when re-entering a recorded model call.
+   */
+  private setMcpInstructions(options: { instructions: string }): void {
+    const messages = this.agent!.state.messages;
+    const current = messages.findLast(
+      message =>
+        message.role === 'system' && message.sections?.mcp !== undefined,
+    );
+    const previous =
+      current?.role === 'system' ? current.sections?.mcp : undefined;
+    const next = options.instructions || null;
+    if ((previous ?? null) === next) return;
+    this.agent!.state.messages = [
+      ...messages,
+      {
+        role: 'system',
+        content: '',
+        sections: { mcp: next },
+        timestamp: Date.now(),
+      },
+    ];
   }
 
   /**
@@ -533,6 +692,9 @@ export class PiDrive {
   private async finishRun(): Promise<boolean> {
     if (this.driveError != null) throw this.driveError.error;
     if (this.halted) return false;
+    await this.mcpRuntime?.close();
+    this.mcpRuntime = undefined;
+    this.mcpTools = [];
     if (this.turnCancelled) {
       await this.context.finishTurn({
         finishReason: CANCELLED_FINISH_REASON,
@@ -679,7 +841,7 @@ export class PiDrive {
         },
       }),
     );
-    return [...builtinTools, ...hostTools];
+    return [...builtinTools, ...hostTools, ...this.mcpTools];
   }
 
   /**

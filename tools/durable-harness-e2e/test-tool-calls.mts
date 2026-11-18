@@ -486,7 +486,7 @@ async function verify(): Promise<void> {
   }
   const replay = await (
     await fetch(
-      `${baseUrl}/api/${harnessId}/chat/${encodeURIComponent(finished.chatId)}/stream?runId=${encodeURIComponent(finished.runId)}`,
+      `${baseUrl}/api/harness/${harnessId}/basic/chat/${encodeURIComponent(finished.chatId)}/stream?runId=${encodeURIComponent(finished.runId)}`,
     )
   ).text();
   const count = (type: string) => replay.split(`"type":"${type}"`).length - 1;

@@ -30,6 +30,16 @@ import { HarnessAgentSession } from './harness-agent-session';
 import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-unsupported-error';
 import { hashHarnessBootstrap } from './internal/bootstrap-recipe';
 
+test.each<Record<string, { url: string }>>([
+  {},
+  { remote: { url: 'https://mcp.example.com' } },
+])('rejects defined top-level MCP servers with HarnessV1', mcpServers => {
+  const { harness } = mockHarness({ script: () => [] });
+  expect(() => new HarnessAgent({ harness, mcpServers })).toThrow(
+    'top-level `mcpServers` is only supported with HarnessV2',
+  );
+});
+
 /**
  * Build a mock harness whose session emits a canned event script. Each
  * event is emitted synchronously; the `done` promise resolves once the

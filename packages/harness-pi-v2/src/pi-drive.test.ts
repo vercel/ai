@@ -1,4 +1,8 @@
-import type { HarnessV2, HarnessV2DriveContext } from '@ai-sdk/harness';
+import type {
+  HarnessV2,
+  HarnessV2DriveContext,
+  HarnessV2TurnSettings,
+} from '@ai-sdk/harness';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { tool, type ToolSet } from '@ai-sdk/provider-utils';
 import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
@@ -13,7 +17,7 @@ import { z } from 'zod/v4';
 import { PI_BUILTIN_TOOLS } from './pi-builtin-tools';
 import { PiDrive, toPiUserMessage } from './pi-drive';
 import { hasPendingCancel, readPiLogState } from './pi-log-state';
-import { createTestModelRuntime } from './test-helpers';
+import { createTestModelRuntime, createTestMcpServer } from './test-helpers';
 
 /**
  * Creates a session of a `HarnessAgent` whose drives run `PiDrive` with a
@@ -22,7 +26,12 @@ import { createTestModelRuntime } from './test-helpers';
  * stop the drive midway, which the agent itself only does once a drive
  * ended.
  */
-async function setup(options: { tools?: ToolSet } = {}) {
+async function setup(
+  options: {
+    tools?: ToolSet;
+    mcpServers?: HarnessV2TurnSettings['mcpServers'];
+  } = {},
+) {
   const runtime = createTestModelRuntime();
   const contexts: HarnessV2DriveContext[] = [];
   const hooks: {
@@ -44,6 +53,7 @@ async function setup(options: { tools?: ToolSet } = {}) {
   const agent = new HarnessAgent({
     harness,
     tools: options.tools ?? {},
+    mcpServers: options.mcpServers,
     sandboxConfig: { workDir: 'project' },
     getSandboxSession: async () => sandboxSession,
   });
@@ -170,6 +180,201 @@ describe('toPiUserMessage', () => {
 });
 
 describe('PiDrive', () => {
+  test('prefers a host tool over a matching MCP name and rediscovers each turn', async () => {
+    const server = await createTestMcpServer();
+    const execute = vi.fn(async () => 'host result');
+    try {
+      const { agent, session, runtime } = await setup({
+        mcpServers: { remote: { url: server.url } },
+        tools: {
+          mcp__remote__lookup: tool({
+            inputSchema: z.object({ query: z.string() }),
+            execute,
+          }),
+        },
+      });
+      runtime.faux.setResponses([
+        fauxAssistantMessage(
+          [fauxToolCall('mcp__remote__lookup', { query: 'test' })],
+          { stopReason: 'toolUse' },
+        ),
+        fauxAssistantMessage('done'),
+        fauxAssistantMessage('next'),
+      ]);
+      const result = await agent.generate({ prompt: 'lookup', session });
+      expect(result.text).toBe('done');
+      expect(execute).toHaveBeenCalledOnce();
+      expect(
+        server.requests.filter(request => request.method === 'tools/call'),
+      ).toHaveLength(0);
+      await agent.generate({ prompt: 'next', session });
+      expect(
+        server.requests.filter(request => request.method === 'tools/list'),
+      ).toHaveLength(2);
+      expect(server.deletes).toBe(2);
+    } finally {
+      await server.close();
+    }
+  });
+
+  test.each(['tools/list', 'tools/call'])(
+    'cancels MCP work during %s',
+    async method => {
+      let cancel!: () => Promise<void>;
+      const server = await createTestMcpServer({
+        handle: async request => {
+          if (request.method === method) {
+            await cancel();
+            return new Promise(() => {});
+          }
+        },
+      });
+      try {
+        const { agent, session, runtime, log } = await setup({
+          mcpServers: { remote: { url: server.url } },
+        });
+        cancel = () => agent.cancel({ session });
+        runtime.faux.setResponses([
+          fauxAssistantMessage(
+            [
+              fauxToolCall(
+                'mcp__remote__lookup',
+                { query: 'test' },
+                { id: 'mcp-1' },
+              ),
+            ],
+            { stopReason: 'toolUse' },
+          ),
+        ]);
+        const result = await agent.stream({ prompt: 'lookup', session });
+        if (method === 'tools/call')
+          expect(await result.rawFinishReason).toBe('cancelled');
+        else await result.consumeStream();
+        const key = method === 'tools/list' ? 'mcp-discovery:' : 'tool:';
+        const effect = log().getEffects({ keyPrefix: key })[0];
+        expect(effect.end?.data.output).toEqual({
+          type: 'interrupted',
+          retryable: method === 'tools/list',
+        });
+        expect(log().getCurrentTurn()?.finish?.data.finishReason.unified).toBe(
+          'cancelled',
+        );
+      } finally {
+        await server.close();
+      }
+    },
+  );
+
+  test('replays MCP discovery and calls without reconnecting after a stopped step', async () => {
+    const server = await createTestMcpServer();
+    try {
+      const { agent, session, runtime, hooks, log } = await setup({
+        mcpServers: { remote: { url: server.url } },
+      });
+      runtime.faux.setResponses([
+        fauxAssistantMessage(
+          [
+            fauxToolCall(
+              'mcp__remote__lookup',
+              { query: 'test' },
+              { id: 'mcp-1' },
+            ),
+          ],
+          { stopReason: 'toolUse' },
+        ),
+      ]);
+      hooks.wrapContext = stopAfterFirstStep;
+      await (await agent.stream({ prompt: 'lookup', session })).consumeStream();
+      expect(
+        log().getEffect({ key: 'tool:mcp-1' })?.end?.data.output.type,
+      ).toBe('result');
+      expect(
+        server.requests.filter(request => request.method === 'tools/call')
+          .length,
+      ).toBe(1);
+      await server.close();
+      hooks.wrapContext = undefined;
+      runtime.faux.setResponses([
+        context => {
+          expect(JSON.stringify(context.messages)).toContain('remote result');
+          expect(JSON.stringify(context.messages)).toContain(
+            'Test MCP instructions',
+          );
+          return fauxAssistantMessage('done');
+        },
+      ]);
+      const reading = await agent.readStream({ session });
+      await agent.drive({ session });
+      expect(await reading.text).toBe('done');
+      expect(
+        (await reading.steps)
+          .flatMap(step => step.toolCalls)
+          .map(call => call.dynamic),
+      ).toEqual([true]);
+      expect(
+        server.requests.filter(request => request.method === 'tools/list')
+          .length,
+      ).toBe(1);
+    } finally {
+      await server.close();
+    }
+  });
+
+  test('resumes after discovery committed but before the first model call', async () => {
+    const server = await createTestMcpServer();
+    try {
+      const { agent, session, runtime, hooks, readState } = await setup({
+        mcpServers: { remote: { url: server.url } },
+      });
+      const stop = new AbortController();
+      hooks.wrapContext = context => ({
+        ...withStop({ context, stopAbortSignal: stop.signal }),
+        effect: async options => {
+          const output = await context.effect(options);
+          if (options.name === 'mcp.discovery') stop.abort();
+          return output;
+        },
+      });
+      await (await agent.stream({ prompt: 'hello', session })).consumeStream();
+      expect(readState().currentTurn?.ended).toBe(false);
+      expect(readState().modelEffects).toHaveLength(0);
+      await server.close();
+      hooks.wrapContext = undefined;
+      runtime.faux.setResponses([fauxAssistantMessage('resumed')]);
+      const reading = await agent.readStream({ session });
+      await agent.drive({ session });
+      expect(await reading.text).toBe('resumed');
+      expect(readState().currentTurn?.ended).toBe(true);
+    } finally {
+      await server.close();
+    }
+  });
+
+  test('finishes failed discovery without a model step and accepts the next prompt', async () => {
+    let fail = true;
+    const server = await createTestMcpServer({
+      handle: request => {
+        if (fail && request.method === 'tools/list')
+          throw new Error('MCP unavailable');
+      },
+    });
+    try {
+      const { agent, session, runtime, readState } = await setup({
+        mcpServers: { remote: { url: server.url } },
+      });
+      await (await agent.stream({ prompt: 'first', session })).consumeStream();
+      expect(readState().currentTurn?.ended).toBe(true);
+      expect(readState().modelEffects).toHaveLength(0);
+      fail = false;
+      runtime.faux.setResponses([fauxAssistantMessage('next')]);
+      expect((await agent.generate({ prompt: 'second', session })).text).toBe(
+        'next',
+      );
+    } finally {
+      await server.close();
+    }
+  });
+
   test('runs a text-only turn', async () => {
     const { agent, session, runtime, readState } = await setup();
     runtime.faux.setResponses([fauxAssistantMessage('Hello there')]);

@@ -11,6 +11,24 @@ export const HARNESSES = [
  */
 export type HarnessName = (typeof HARNESSES)[number]['name'];
 
+export const AGENT_CONFIGURATIONS = Object.assign(
+  Object.create(null) as object,
+  {
+    basic: { name: 'basic', label: 'Basic' },
+    'mcp-context7': { name: 'mcp-context7', label: 'MCP (context7)' },
+  } as const,
+);
+
+export type AgentConfigurationName = keyof typeof AGENT_CONFIGURATIONS;
+
+export function isAgentConfigurationName(
+  value: unknown,
+): value is AgentConfigurationName {
+  return (
+    typeof value === 'string' && Object.hasOwn(AGENT_CONFIGURATIONS, value)
+  );
+}
+
 const DEFAULT_HARNESS: HarnessName = 'pi';
 
 const PREFERENCE_STORAGE_KEY = 'durable-harness-preferred-harness';

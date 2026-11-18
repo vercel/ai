@@ -6,10 +6,12 @@ import {
   readChatHarness,
   readHarnessPreference,
   writeChatHarness,
+  type AgentConfigurationName,
   type HarnessName,
 } from '@/lib/harness';
 import {
   clearStoredAgentSession,
+  readStoredAgentSession,
   writeStoredAgentSession,
 } from '@/lib/stored-agent-session';
 import { clearStoredChatState } from '@/lib/stored-chat-state';
@@ -24,7 +26,11 @@ import {
 type ChatIdContextValue = {
   chatId: string;
   harness: HarnessName;
-  startNewSession: (options: { harness: HarnessName }) => Promise<void>;
+  configuration: AgentConfigurationName;
+  startNewSession: (options: {
+    harness: HarnessName;
+    configuration: AgentConfigurationName;
+  }) => Promise<void>;
 };
 
 const ChatIdContext = createContext<ChatIdContextValue | null>(null);
@@ -51,7 +57,12 @@ export default function ChatIdProvider({
   children: ReactNode;
 }) {
   const [chat, setChat] = useState<
-    { chatId: string; harness: HarnessName } | undefined
+    | {
+        chatId: string;
+        harness: HarnessName;
+        configuration: AgentConfigurationName;
+      }
+    | undefined
   >(undefined);
 
   useEffect(() => {
@@ -65,7 +76,9 @@ export default function ChatIdProvider({
       harness = readHarnessPreference();
       writeChatHarness({ chatId, harness });
     }
-    setChat({ chatId, harness });
+    const configuration =
+      readStoredAgentSession({ chatId })?.configuration ?? 'basic';
+    setChat({ chatId, harness, configuration });
   }, [storageKey]);
 
   if (chat === undefined) {
@@ -80,9 +93,13 @@ export default function ChatIdProvider({
          * Creates the new chat's agent session before switching to it, so
          * that a failure leaves the current chat untouched.
          */
-        startNewSession: async ({ harness }) => {
+        startNewSession: async ({ harness, configuration }) => {
           const chatId = crypto.randomUUID();
-          const session = await createAgentSession({ harness, chatId });
+          const session = await createAgentSession({
+            harness,
+            chatId,
+            configuration,
+          });
 
           clearStoredAgentSession({ chatId: chat.chatId });
           clearStoredChatState({ chatId: chat.chatId });

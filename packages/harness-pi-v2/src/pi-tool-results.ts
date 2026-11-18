@@ -89,7 +89,7 @@ export function toAgentToolResult(options: {
       ),
       details: undefined,
     };
-    if (converted.isError) result.isError = true;
+    if (converted.isError || value.isError) result.isError = true;
     return result;
   }
   return {

@@ -1,4 +1,4 @@
-import type { HarnessName } from '@/lib/harness';
+import type { AgentConfigurationName, HarnessName } from '@/lib/harness';
 import {
   isStoredAgentSession,
   type StoredAgentSession,
@@ -11,15 +11,20 @@ import {
 export async function createAgentSession({
   harness,
   chatId,
+  configuration,
 }: {
   harness: HarnessName;
   chatId: string;
+  configuration: AgentConfigurationName;
 }): Promise<StoredAgentSession> {
-  const response = await fetch(`/api/${harness}/session`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chatId }),
-  });
+  const response = await fetch(
+    `/api/harness/${harness}/${configuration}/session`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chatId }),
+    },
+  );
   if (!response.ok) {
     throw new Error(
       `Failed to create a session: ${response.status} ${await response.text()}`,
@@ -29,5 +34,5 @@ export async function createAgentSession({
   if (!isStoredAgentSession(session)) {
     throw new Error('Failed to create a session: invalid response.');
   }
-  return session;
+  return { ...session, configuration };
 }

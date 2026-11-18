@@ -103,7 +103,7 @@ The steps are below:
 
 18. [x] Add durable cancel of a running turn: `HarnessAgent.cancel({ session })` appends a `cancel` submission to the session's log, rejecting if the session has no running turn. The harness adapter of the drive running the turn, in any process, notices it through its log, stops the turn's work (effects it cuts off throw `HarnessCancellationError`, which `effect()` records as `interrupted`) and finishes the turn with the new finish reason `cancelled`, which `HarnessAgent` results report as `other` with the raw finish reason `cancelled`. A cancel belongs to the turn running when it was recorded; it counts as delivered once that turn finishes as `cancelled`, and as withdrawn otherwise. Prompts waiting for a later turn are not affected. A call's `abortSignal` stays a local control that only ends that call's result.
 
-19. [ ] Add support for top-level MCP configuration to the new `HarnessAgent` and the two adapters.
+19. [x] Add support for top-level MCP configuration to the new `HarnessAgent` and the two adapters.
 
 20. [ ] Add support for approval of host tools (the app's own tools run through `executeHostTool()`) to the new `HarnessAgent` and the two adapters.
 

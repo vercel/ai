@@ -1,4 +1,4 @@
-import { tool } from '@ai-sdk/provider-utils';
+import { dynamicTool, tool } from '@ai-sdk/provider-utils';
 import { describe, expect, test } from 'vitest';
 import { z } from 'zod/v4';
 import { HarnessEffectError } from '../../../errors/harness-effect-error';
@@ -11,6 +11,9 @@ import type { HarnessAgentStreamPart } from './create-stream-writer';
 
 const tools = {
   weather: tool({ inputSchema: z.object({ city: z.string() }) }),
+  dynamicWeather: dynamicTool({
+    inputSchema: z.object({ city: z.string() }),
+  }),
 };
 
 function translate(options: {
@@ -43,6 +46,63 @@ describe('translateFinishReason', () => {
 });
 
 describe('translateStreamPart', () => {
+  test.each([
+    { toolName: 'weather', dynamic: undefined },
+    { toolName: 'dynamicWeather', dynamic: true },
+    { toolName: 'mcp__context7__query_docs', dynamic: true },
+  ])(
+    'keeps $toolName dynamic classification consistent from input start to result',
+    async ({ toolName, dynamic }) => {
+      const toolCalls = new Map<string, TranslatedToolCall>();
+      const start = await translate({
+        part: { type: 'tool-input-start', id: 'call-1', toolName },
+        toolCalls,
+      });
+      const call = await translate({
+        part: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName,
+          input: '{"city":"Berlin"}',
+        },
+        toolCalls,
+      });
+      const result = await translate({
+        part: {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName,
+          result: 'sunny',
+        },
+        toolCalls,
+      });
+
+      expect([start, call, result].map(parts => parts[0])).toEqual([
+        {
+          type: 'tool-input-start',
+          id: 'call-1',
+          toolName,
+          dynamic,
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName,
+          input: { city: 'Berlin' },
+          dynamic,
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName,
+          input: { city: 'Berlin' },
+          output: 'sunny',
+          dynamic,
+        },
+      ]);
+    },
+  );
+
   test('translates start and text parts', async () => {
     expect(await translate({ part: { type: 'start' } })).toEqual([
       { type: 'start' },

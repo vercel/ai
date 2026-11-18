@@ -1,4 +1,8 @@
-import type { HarnessV2, HarnessV2DriveContext } from '@ai-sdk/harness';
+import type {
+  HarnessV2,
+  HarnessV2DriveContext,
+  HarnessV2TurnSettings,
+} from '@ai-sdk/harness';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { tool, type ToolSet } from '@ai-sdk/provider-utils';
 import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
@@ -9,6 +13,7 @@ import { FxDrive, toFxPromptInput } from './fx-drive';
 import { hasPendingCancel, readFxLogState } from './fx-log-state';
 import {
   createTestModelRuntime,
+  createTestMcpServer,
   readFixture,
   type TestModelResponse,
 } from './test-helpers';
@@ -21,7 +26,11 @@ import {
  * once a drive ended.
  */
 async function setup(
-  options: { tools?: ToolSet; responses?: TestModelResponse[] } = {},
+  options: {
+    tools?: ToolSet;
+    responses?: TestModelResponse[];
+    mcpServers?: HarnessV2TurnSettings['mcpServers'];
+  } = {},
 ) {
   const runtime = createTestModelRuntime({ responses: options.responses });
   const contexts: HarnessV2DriveContext[] = [];
@@ -44,6 +53,7 @@ async function setup(
   const agent = new HarnessAgent({
     harness,
     tools: options.tools ?? {},
+    mcpServers: options.mcpServers,
     sandboxConfig: { workDir: 'project' },
     getSandboxSession: async () => sandboxSession,
   });
@@ -203,6 +213,196 @@ describe('toFxPromptInput', () => {
 });
 
 describe('FxDrive', () => {
+  test('prefers a host tool over a matching MCP name', async () => {
+    const server = await createTestMcpServer();
+    const execute = vi.fn(async () => 'host result');
+    try {
+      const { agent, session } = await setup({
+        mcpServers: { remote: { url: server.url } },
+        tools: {
+          mcp_remote_lookup: tool({
+            inputSchema: z.object({ command: z.string() }),
+            execute,
+          }),
+        },
+        responses: [
+          (
+            await readFixture({ name: 'gateway-host-tool-call.sse.txt' })
+          ).replaceAll('"bash"', '"mcp_remote_lookup"'),
+          await readFixture({ name: 'gateway-text.sse.txt' }),
+        ],
+      });
+      const result = await agent.generate({ prompt: 'lookup', session });
+      expect(result.text).toBe('READY');
+      expect(execute).toHaveBeenCalledOnce();
+      expect(
+        server.requests.filter(request => request.method === 'tools/call'),
+      ).toHaveLength(0);
+      expect(server.deletes).toBe(1);
+    } finally {
+      await server.close();
+    }
+  });
+
+  test('rejects cross-server exposed-name collisions instead of dropping a tool', async () => {
+    const server = await createTestMcpServer();
+    try {
+      const { agent, session, readState } = await setup({
+        mcpServers: {
+          'remote.a': { url: server.url },
+          remote_a: { url: server.url },
+        },
+      });
+      await (await agent.stream({ prompt: 'lookup', session })).consumeStream();
+      expect(readState().turns[0].ended).toBe(true);
+      expect(readState().modelEffects.size).toBe(0);
+      expect(readState().turns[0].checkpoint).toBeUndefined();
+      expect(server.deletes).toBe(2);
+    } finally {
+      await server.close();
+    }
+  });
+
+  test('replays MCP work without reconnecting to an unavailable server', async () => {
+    const server = await createTestMcpServer();
+    try {
+      const response = (
+        await readFixture({ name: 'gateway-host-tool-call.sse.txt' })
+      ).replaceAll('"bash"', '"mcp_remote_lookup"');
+      const { agent, session, runtime, hooks, readState } = await setup({
+        mcpServers: { remote: { url: server.url } },
+        responses: [response],
+      });
+      const stop = new AbortController();
+      hooks.wrapContext = context => ({
+        ...withStop({ context, stopAbortSignal: stop.signal }),
+        finishStep: async step => {
+          await context.finishStep(step);
+          stop.abort();
+        },
+      });
+      await (await agent.stream({ prompt: 'lookup', session })).consumeStream();
+      expect(readState().turns[0].ended).toBe(false);
+      expect(
+        server.requests.filter(request => request.method === 'tools/call')
+          .length,
+      ).toBe(1);
+      await server.close();
+      hooks.wrapContext = undefined;
+      runtime.push(await readFixture({ name: 'gateway-text.sse.txt' }));
+      const reading = await agent.readStream({ session });
+      await agent.drive({ session });
+      expect(await reading.text).toBe('READY');
+      expect(readState().turns[0].ended).toBe(true);
+      expect(
+        server.requests.filter(request => request.method === 'tools/list')
+          .length,
+      ).toBe(1);
+    } finally {
+      await server.close();
+    }
+  });
+
+  test.each(['tools/list', 'tools/call'])(
+    'cancels MCP work during %s',
+    async method => {
+      let cancel!: () => Promise<void>;
+      const server = await createTestMcpServer({
+        handle: async request => {
+          if (request.method === method) {
+            await cancel();
+            return new Promise(() => {});
+          }
+        },
+      });
+      try {
+        const { agent, session, runtime, log } = await setup({
+          mcpServers: { remote: { url: server.url } },
+        });
+        cancel = () => agent.cancel({ session });
+        runtime.push(
+          (
+            await readFixture({ name: 'gateway-host-tool-call.sse.txt' })
+          ).replaceAll('"bash"', '"mcp_remote_lookup"'),
+        );
+        const result = await agent.stream({ prompt: 'lookup', session });
+        if (method === 'tools/call')
+          expect(await result.rawFinishReason).toBe('cancelled');
+        else await result.consumeStream();
+        const key = method === 'tools/list' ? 'mcp-discovery:' : 'tool:';
+        const effect = log().getEffects({ keyPrefix: key })[0];
+        expect(effect.end?.data.output).toEqual({
+          type: 'interrupted',
+          retryable: method === 'tools/list',
+        });
+        expect(log().getCurrentTurn()?.finish?.data.finishReason.unified).toBe(
+          'cancelled',
+        );
+      } finally {
+        await server.close();
+      }
+    },
+  );
+
+  test('runs MCP tools through durable execution and continues a later turn', async () => {
+    const server = await createTestMcpServer();
+    try {
+      const response = (
+        await readFixture({ name: 'gateway-host-tool-call.sse.txt' })
+      ).replaceAll('"bash"', '"mcp_remote_lookup"');
+      const text = await readFixture({ name: 'gateway-text.sse.txt' });
+      const { agent, session, runtime, log } = await setup({
+        mcpServers: { remote: { url: server.url } },
+        responses: [response, text],
+      });
+      const result = await agent.generate({ prompt: 'lookup', session });
+      expect(
+        result.steps.flatMap(step => step.toolCalls).map(call => call.dynamic),
+      ).toEqual([true]);
+      expect(
+        server.requests.filter(request => request.method === 'tools/call')
+          .length,
+      ).toBe(1);
+      expect(
+        log().getEffects({ keyPrefix: 'tool:' })[0].start.data.replay,
+      ).toBe('never');
+      runtime.push(text);
+      await agent.generate({ prompt: 'next', session });
+      expect(
+        server.requests.filter(request => request.method === 'tools/list')
+          .length,
+      ).toBe(2);
+    } finally {
+      await server.close();
+    }
+  });
+
+  test('finishes discovery failure without a checkpoint and leaves the next turn usable', async () => {
+    let fail = true;
+    const server = await createTestMcpServer({
+      handle: request => {
+        if (fail && request.method === 'tools/list')
+          throw new Error('MCP unavailable');
+      },
+    });
+    try {
+      const { agent, session, runtime, readState } = await setup({
+        mcpServers: { remote: { url: server.url } },
+      });
+      await (await agent.stream({ prompt: 'first', session })).consumeStream();
+      expect(readState().turns[0].ended).toBe(true);
+      expect(readState().turns[0].checkpoint).toBeUndefined();
+      expect(readState().modelEffects.size).toBe(0);
+      fail = false;
+      runtime.push(await readFixture({ name: 'gateway-text.sse.txt' }));
+      expect((await agent.generate({ prompt: 'second', session })).text).toBe(
+        'READY',
+      );
+    } finally {
+      await server.close();
+    }
+  });
+
   describe('cancel', () => {
     const cancelled = {
       unified: 'cancelled',

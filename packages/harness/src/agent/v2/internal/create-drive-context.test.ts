@@ -174,6 +174,7 @@ async function setup(options?: {
   const executeHostTool: HarnessAgentExecuteHostToolFunction = vi.fn();
   const gateBuiltinTool: HarnessAgentGateBuiltinToolFunction = vi.fn();
   const executeBuiltinTool: HarnessAgentExecuteBuiltinToolFunction = vi.fn();
+  const executeMcpTool = vi.fn();
   const finishStep: HarnessAgentFinishStepFunction = vi.fn();
   const finishTurn: HarnessAgentFinishTurnFunction = vi.fn();
   const context = createDriveContext({
@@ -185,6 +186,7 @@ async function setup(options?: {
     finishTurn,
     executeHostTool,
     executeBuiltinTool,
+    executeMcpTool,
     gateBuiltinTool,
     harnessId: 'mock-harness',
     workDir: options?.workDir,
@@ -201,6 +203,7 @@ async function setup(options?: {
     effect,
     executeHostTool,
     executeBuiltinTool,
+    executeMcpTool,
     gateBuiltinTool,
     finishStep,
     finishTurn,
@@ -220,6 +223,7 @@ describe('createDriveContext', () => {
       effect,
       executeHostTool,
       executeBuiltinTool,
+      executeMcpTool,
       gateBuiltinTool,
       finishStep,
       finishTurn,
@@ -228,6 +232,7 @@ describe('createDriveContext', () => {
     expect(context.effect).toBe(effect);
     expect(context.executeHostTool).toBe(executeHostTool);
     expect(context.executeBuiltinTool).toBe(executeBuiltinTool);
+    expect(context.executeMcpTool).toBe(executeMcpTool);
     expect(context.gateBuiltinTool).toBe(gateBuiltinTool);
     expect(context.finishStep).toBe(finishStep);
     expect(context.finishTurn).toBe(finishTurn);

@@ -54,6 +54,8 @@ export function translateFinishReason(options: {
  *
  * - `start`, `text-*`, `reasoning-*`, `tool-input-*` and `raw` map one to one;
  *   `harnessMetadata` becomes `providerMetadata` and `delta` becomes `text`.
+ *   `tool-input-start` is marked dynamic for dynamic tools so
+ *   the UI uses the same tool part for streamed input and the final result.
  * - `tool-call` parses its JSON input (empty input counts as `{}`). The call is
  *   dynamic if the part says so, the tool is not in `tools`, or the input is
  *   not valid JSON, in which case it is also marked `invalid`. The call is
@@ -110,7 +112,19 @@ export async function translateStreamPart<TOOLS extends ToolSet>(options: {
         }) as TextStreamPart<TOOLS>,
       ];
 
-    case 'tool-input-start':
+    case 'tool-input-start': {
+      const dynamic =
+        part.dynamic === true ||
+        !Object.hasOwn(tools, part.toolName) ||
+        tools[part.toolName].type === 'dynamic';
+      return [
+        withOptionalProperties({
+          part: { ...part },
+          optional: { dynamic: dynamic ? true : undefined },
+        }) as TextStreamPart<TOOLS>,
+      ];
+    }
+
     case 'tool-input-delta':
     case 'tool-input-end':
       return [part as TextStreamPart<TOOLS>];
@@ -122,6 +136,7 @@ export async function translateStreamPart<TOOLS extends ToolSet>(options: {
       const dynamic =
         part.dynamic === true ||
         !Object.hasOwn(tools, part.toolName) ||
+        tools[part.toolName].type === 'dynamic' ||
         !parsed.success;
       const input = parsed.success ? parsed.value : part.input;
       const call: TranslatedToolCall = { input, dynamic };

@@ -1,10 +1,17 @@
 'use client';
 
-import type { PiHarnessAgentMessage } from '@/agent/pi/basic';
+import type { PiHarnessAgentMessage as PiBasicHarnessAgentMessage } from '@/agent/pi/basic';
+import type { PiHarnessAgentMessage as PiMcpContext7HarnessAgentMessage } from '@/agent/pi/mcp-context7';
 import HarnessChat, { CommonPartView } from '@/components/harness-chat';
 import HarnessBashToolView from '@/components/tool/harness-bash-tool-view';
 import HarnessFileToolView from '@/components/tool/harness-file-tool-view';
 import HarnessToolView from '@/components/tool/harness-tool-view';
+import type { AgentConfigurationName } from '@/lib/harness';
+
+type PiHarnessAgentMessage = {
+  basic: PiBasicHarnessAgentMessage;
+  'mcp-context7': PiMcpContext7HarnessAgentMessage;
+}[AgentConfigurationName];
 
 const FILE_TOOL_LABELS = {
   'tool-read': 'Read',

@@ -146,7 +146,7 @@ function toFxValueResult(options: {
         )
         .slice(0, MAX_RESULT_IMAGES),
     };
-    if (converted.isError) result.isError = true;
+    if (converted.isError || value.isError) result.isError = true;
     return result;
   }
   return value.raw;

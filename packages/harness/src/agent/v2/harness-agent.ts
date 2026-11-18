@@ -187,6 +187,11 @@ export class HarnessAgent<
   private readonly userTools: ToolSet;
 
   /**
+   * Independent construction-time copy, persisted with each prompt's settings.
+   */
+  private readonly mcpServers: HarnessV2TurnSettings['mcpServers'];
+
+  /**
    * Turn settings for every `prompt` submission, built once on first use.
    */
   private turnSettings: Promise<HarnessV2TurnSettings> | undefined;
@@ -228,6 +233,7 @@ export class HarnessAgent<
       key =>
         key !== 'harness' &&
         key !== 'tools' &&
+        key !== 'mcpServers' &&
         key !== 'world' &&
         key !== 'id' &&
         key !== 'getSandboxSession' &&
@@ -286,6 +292,21 @@ export class HarnessAgent<
       tools: settings.tools ?? {},
     });
     this.userTools = settings.tools ?? {};
+    if (settings.mcpServers !== undefined) {
+      for (const server of Object.values(settings.mcpServers)) {
+        if (
+          server == null ||
+          typeof server.url !== 'string' ||
+          server.url.length === 0 ||
+          (server.type !== undefined && server.type !== 'http')
+        ) {
+          throw new Error(
+            'HarnessAgent: `mcpServers` must contain Streamable HTTP servers with a URL. Stdio servers are currently unsupported.',
+          );
+        }
+      }
+      this.mcpServers = structuredClone(settings.mcpServers);
+    }
     this.tools = {
       ...this.harness.builtinTools,
       ...settings.tools,
@@ -929,7 +950,10 @@ export class HarnessAgent<
    * user tools as tool specs, without skills, instructions or model.
    */
   private getTurnSettings(): Promise<HarnessV2TurnSettings> {
-    this.turnSettings ??= createTurnSettings({ tools: this.userTools });
+    this.turnSettings ??= createTurnSettings({
+      tools: this.userTools,
+      mcpServers: this.mcpServers,
+    });
     return this.turnSettings;
   }
 
@@ -1228,13 +1252,14 @@ async function runDrivePass(options: {
       abortSignal: stopAbortSignal,
     });
     finishTurn = finishFunctions.finishTurn;
-    const { executeHostTool, executeBuiltinTool } = createExecuteToolFunctions({
-      log,
-      tools: userTools,
-      builtinTools: harness.builtinTools,
-      effect,
-      getSandboxSession: () => session.getSandboxSession(),
-    });
+    const { executeHostTool, executeBuiltinTool, executeMcpTool } =
+      createExecuteToolFunctions({
+        log,
+        tools: userTools,
+        builtinTools: harness.builtinTools,
+        effect,
+        getSandboxSession: () => session.getSandboxSession(),
+      });
     const gateBuiltinTool = createGateBuiltinToolFunction({
       log,
       builtinTools: harness.builtinTools,
@@ -1251,6 +1276,7 @@ async function runDrivePass(options: {
       finishTurn,
       executeHostTool,
       executeBuiltinTool,
+      executeMcpTool,
       gateBuiltinTool,
       harnessId: harness.harnessId,
       workDir,
@@ -1377,6 +1403,7 @@ async function createTurnSettings(options: {
    * The app's own tools.
    */
   tools: ToolSet;
+  mcpServers?: HarnessV2TurnSettings['mcpServers'];
 }): Promise<HarnessV2TurnSettings> {
   const tools: HarnessV2ToolSpec[] = [];
   for (const [name, tool] of Object.entries(options.tools)) {
@@ -1397,7 +1424,10 @@ async function createTurnSettings(options: {
     }
     tools.push(spec);
   }
-  return { skills: [], tools };
+  const settings: HarnessV2TurnSettings = { skills: [], tools };
+  return options.mcpServers === undefined
+    ? settings
+    : { ...settings, mcpServers: options.mcpServers };
 }
 
 /**

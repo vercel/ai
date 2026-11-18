@@ -384,6 +384,12 @@ export class HarnessAgent<
       return;
     }
 
+    if (inputSettings.mcpServers !== undefined) {
+      throw new Error(
+        'HarnessAgent: top-level `mcpServers` is only supported with HarnessV2. Configure MCP servers on the individual harness instead.',
+      );
+    }
+
     if (inputSettings.world !== undefined) {
       throw new Error(
         'HarnessAgent: `world` is only supported with HarnessV2.',

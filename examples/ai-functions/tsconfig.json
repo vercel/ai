@@ -129,6 +129,9 @@
       "path": "../../packages/harness-fx"
     },
     {
+      "path": "../../packages/harness-fx-v2"
+    },
+    {
       "path": "../../packages/harness-github-copilot"
     },
     {
@@ -139,6 +142,9 @@
     },
     {
       "path": "../../packages/harness-pi"
+    },
+    {
+      "path": "../../packages/harness-pi-v2"
     },
     {
       "path": "../../packages/heygen"

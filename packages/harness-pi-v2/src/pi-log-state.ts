@@ -109,8 +109,8 @@ export type PiCurrentTurn = {
   prompt: PiPromptSubmission;
 
   /**
-   * Ordinal of the model effect that delivered the prompt, i.e. the turn's
-   * first step.
+   * Ordinal reserved for the turn's first model call. MCP discovery can
+   * deliver the prompt before that call exists.
    */
   firstModelOrdinal: number;
 
@@ -183,10 +183,10 @@ function toPromptSubmissions(
 /**
  * Looks up the session state in the log.
  *
- * The current turn is the log's current turn. Its first step is the model
- * effect with the lowest ordinal that delivered its prompt; a turn whose
- * prompt no model effect delivered is not a current turn of this adapter.
- * Steering submissions are ignored.
+ * The current turn is the log's current turn. Its first model ordinal comes
+ * from the model effect that delivered its prompt, or from MCP discovery,
+ * which delivers the prompt before a model call and records the reserved
+ * ordinal. Steering submissions are ignored.
  */
 export function readPiLogState(options: {
   /**
@@ -245,10 +245,18 @@ export function readPiLogState(options: {
       : modelEffects.find(record =>
           record.deliveredSubmissionIds.includes(prompt.id),
         );
-  if (turn != null && prompt != null && firstModelEffect != null) {
+  const discovery =
+    prompt == null
+      ? undefined
+      : log.getEffect({ key: `mcp-discovery:${prompt.id}` });
+  const firstModelOrdinal =
+    firstModelEffect?.ordinal ??
+    (discovery?.start.data.input as { firstModelOrdinal?: number } | undefined)
+      ?.firstModelOrdinal;
+  if (turn != null && prompt != null && firstModelOrdinal != null) {
     currentTurn = {
       prompt,
-      firstModelOrdinal: firstModelEffect.ordinal,
+      firstModelOrdinal,
       ended: turn.finish != null,
     };
   }
@@ -336,7 +344,11 @@ export function restorePiTranscript(options: {
   const { state, isBuiltinTool } = options;
   const { modelEffects, currentTurn } = state;
   const last = modelEffects.at(-1);
-  const resume = last != null && currentTurn != null && !currentTurn.ended;
+  const resume =
+    last != null &&
+    currentTurn != null &&
+    !currentTurn.ended &&
+    last.ordinal >= currentTurn.firstModelOrdinal;
 
   const messages: Message[] = [];
   modelEffects.forEach((record, index) => {

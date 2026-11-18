@@ -64,6 +64,8 @@ export function parseHarnessArg(): HarnessSelection | undefined {
  * the page shows the new chat. Selects the given harness in the dialog, or
  * keeps the one it preselects if none is given. Returns the ID of the
  * harness the session was started on.
+ * Selects the requested configuration, defaulting to `basic` so existing
+ * scenarios remain independent of the configuration used by another test.
  *
  * The dialog stays open, showing an error, if starting the session fails,
  * and the page reloads into the new chat once it succeeds, so the new chat
@@ -72,10 +74,12 @@ export function parseHarnessArg(): HarnessSelection | undefined {
 export async function startNewSession({
   runBrowserCommand,
   harness,
+  configuration = 'basic',
   log,
 }: {
   runBrowserCommand: RunBrowserCommand;
   harness: HarnessSelection | undefined;
+  configuration?: string;
   log: (message: string) => void;
 }): Promise<string> {
   runBrowserCommand([
@@ -98,8 +102,9 @@ export async function startNewSession({
     }
   }
   const harnessId = runBrowserCommand(['get', 'value', HARNESS_SELECT]);
+  runBrowserCommand(['select', '#new-session-configuration', configuration]);
   log(
-    `Starting a new session on the ${harnessId} harness${harness == null ? ' (preselected)' : ` (${harness.packageName})`}.`,
+    `Starting a new ${configuration} session on the ${harnessId} harness${harness == null ? ' (preselected)' : ` (${harness.packageName})`}.`,
   );
   runBrowserCommand([
     'find',

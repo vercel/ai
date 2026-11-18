@@ -10,7 +10,10 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { HarnessCancellationError } from '../../../errors/harness-cancellation-error';
 import type { HarnessV2BuiltinToolSet } from '../../../v2/harness-v2-builtin-tool';
-import type { HarnessV2ToolExecutionValue } from '../../../v2/harness-v2-drive-context';
+import type {
+  HarnessV2ToolExecutionValue,
+  HarnessV2ExecuteMcpToolFunction,
+} from '../../../v2/harness-v2-drive-context';
 import { DefaultHarnessAgentSession } from '../harness-agent-session';
 import { InMemoryWorld } from '../in-memory-world';
 import { createEffectFunction } from './create-effect-function';
@@ -71,6 +74,7 @@ function createDrive(options: {
 }): {
   executeHostTool: HarnessAgentExecuteHostToolFunction;
   executeBuiltinTool: HarnessAgentExecuteBuiltinToolFunction;
+  executeMcpTool: HarnessV2ExecuteMcpToolFunction;
   abortController: AbortController;
   getSandboxSession: ReturnType<typeof vi.fn>;
 } {
@@ -89,16 +93,18 @@ function createDrive(options: {
     writer,
   });
   const getSandboxSession = vi.fn(async () => sandboxSession);
-  const { executeHostTool, executeBuiltinTool } = createExecuteToolFunctions({
-    log: options.log,
-    tools: options.tools ?? {},
-    builtinTools: options.builtinTools ?? builtinTools,
-    effect,
-    getSandboxSession,
-  });
+  const { executeHostTool, executeBuiltinTool, executeMcpTool } =
+    createExecuteToolFunctions({
+      log: options.log,
+      tools: options.tools ?? {},
+      builtinTools: options.builtinTools ?? builtinTools,
+      effect,
+      getSandboxSession,
+    });
   return {
     executeHostTool,
     executeBuiltinTool,
+    executeMcpTool,
     abortController,
     getSandboxSession,
   };
@@ -226,6 +232,131 @@ const readCall = {
 };
 
 describe('createExecuteToolFunctions', () => {
+  describe('executeMcpTool', () => {
+    test('records dynamic MCP results without resolving the sandbox and replays them', async () => {
+      const { executeMcpTool, world, log, getSandboxSession } = await setup();
+      const execute = vi.fn(async () => ({ raw: { text: 'remote' } }));
+      const call = {
+        toolCallId: 'mcp-1',
+        toolName: 'mcp__server__tool',
+        input: { query: 'hello' },
+        execute,
+      };
+      expect(await executeMcpTool(call)).toEqual({
+        type: 'result',
+        value: { raw: { text: 'remote' } },
+      });
+      expect(log.getEffect({ key: 'tool:mcp-1' })?.start.data.replay).toBe(
+        'never',
+      );
+      expect(
+        (await readLogEvents({ world, types: ['tool-execution-start'] }))
+          .length,
+      ).toBe(1);
+      const next = await createNextDrive({ world });
+      expect(await next.executeMcpTool(call)).toEqual({
+        type: 'result',
+        value: { raw: { text: 'remote' } },
+      });
+      expect(execute).toHaveBeenCalledTimes(1);
+      expect(getSandboxSession).not.toHaveBeenCalled();
+      expect(await readParts({ world })).toEqual([
+        {
+          type: 'tool-result',
+          toolCallId: 'mcp-1',
+          toolName: 'mcp__server__tool',
+          result: { text: 'remote' },
+          dynamic: true,
+        },
+      ]);
+    });
+
+    test('preserves returned MCP errors and complete partial values', async () => {
+      const { executeMcpTool, world } = await setup();
+      const output = await executeMcpTool({
+        toolCallId: 'mcp-1',
+        toolName: 'remote',
+        input: {},
+        execute:
+          async function* (): AsyncGenerator<HarnessV2ToolExecutionValue> {
+            yield { raw: 'working' };
+            yield { raw: { content: 'failed' }, isError: true };
+          },
+      });
+      expect(output).toEqual({
+        type: 'result',
+        value: { raw: { content: 'failed' }, isError: true },
+      });
+      expect(
+        (await readParts({ world })).map(part => [
+          part.type,
+          'preliminary' in part ? part.preliminary : undefined,
+          'isError' in part ? part.isError : undefined,
+        ]),
+      ).toEqual([
+        ['tool-result', true, undefined],
+        ['tool-result', true, true],
+        ['tool-result', undefined, true],
+      ]);
+    });
+
+    test('rejects non-JSON input without recording it', async () => {
+      const { executeMcpTool, log } = await setup();
+      await expect(
+        executeMcpTool({
+          toolCallId: 'mcp-1',
+          toolName: 'remote',
+          input: new Date() as never,
+          execute: async () => ({ raw: null }),
+        }),
+      ).rejects.toThrow('executeMcpTool: `input` must be a JSON value');
+      expect(log.getEffects()).toEqual([]);
+    });
+
+    test('records thrown MCP failures as dynamic errors', async () => {
+      const { executeMcpTool, world } = await setup();
+      const output = await executeMcpTool({
+        toolCallId: 'mcp-1',
+        toolName: 'remote',
+        input: {},
+        execute: async () => {
+          throw new Error('remote failure');
+        },
+      });
+      expect(output.type).toBe('error');
+      expect(await readParts({ world })).toEqual([
+        {
+          type: 'tool-result',
+          toolCallId: 'mcp-1',
+          toolName: 'remote',
+          result: 'Error: remote failure',
+          isError: true,
+          dynamic: true,
+        },
+      ]);
+    });
+
+    test('does not invoke the remote callback while yielding', async () => {
+      const controller = new AbortController();
+      controller.abort();
+      const { executeMcpTool } = await setup({
+        yieldAbortSignal: controller.signal,
+      });
+      const execute = vi.fn(async () => ({ raw: null }));
+      expect(
+        (
+          await executeMcpTool({
+            toolCallId: 'mcp-1',
+            toolName: 'remote',
+            input: {},
+            execute,
+          })
+        ).type,
+      ).toBe('interrupted');
+      expect(execute).not.toHaveBeenCalled();
+    });
+  });
+
   describe('executeHostTool', () => {
     test('executes the tool as a recorded effect and emits its result', async () => {
       let executionOptions: ToolExecutionOptions<unknown> | undefined;

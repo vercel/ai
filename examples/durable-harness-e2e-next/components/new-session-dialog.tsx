@@ -3,10 +3,13 @@
 import { useChatId } from '@/components/chat-id-provider';
 import {
   HARNESSES,
+  AGENT_CONFIGURATIONS,
+  isAgentConfigurationName,
   isHarnessName,
   readHarnessPreference,
   writeHarnessPreference,
   type HarnessName,
+  type AgentConfigurationName,
 } from '@/lib/harness';
 import { useEffect, useState, type FormEvent } from 'react';
 
@@ -17,6 +20,8 @@ import { useEffect, useState, type FormEvent } from 'react';
 export default function NewSessionDialog({ onClose }: { onClose: () => void }) {
   const { startNewSession } = useChatId();
   const [harness, setHarness] = useState<HarnessName>(readHarnessPreference);
+  const [configuration, setConfiguration] =
+    useState<AgentConfigurationName>('basic');
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | undefined>();
 
@@ -33,7 +38,7 @@ export default function NewSessionDialog({ onClose }: { onClose: () => void }) {
     setStarting(true);
     setError(undefined);
     try {
-      await startNewSession({ harness });
+      await startNewSession({ harness, configuration });
     } catch (startError) {
       setError(
         startError instanceof Error ? startError.message : String(startError),
@@ -80,6 +85,29 @@ export default function NewSessionDialog({ onClose }: { onClose: () => void }) {
           }}
         >
           {HARNESSES.map(({ name, label }) => (
+            <option key={name} value={name}>
+              {label}
+            </option>
+          ))}
+        </select>
+
+        <label
+          htmlFor="new-session-configuration"
+          className="block mb-1 text-sm font-medium"
+        >
+          Configuration
+        </label>
+        <select
+          id="new-session-configuration"
+          className="w-full p-2 mb-4 border border-gray-300 rounded"
+          value={configuration}
+          disabled={starting}
+          onChange={event => {
+            const value = event.target.value;
+            if (isAgentConfigurationName(value)) setConfiguration(value);
+          }}
+        >
+          {Object.values(AGENT_CONFIGURATIONS).map(({ name, label }) => (
             <option key={name} value={name}>
               {label}
             </option>

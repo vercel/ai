@@ -5,6 +5,7 @@ import { useChatId } from '@/components/chat-id-provider';
 import ChatInput from '@/components/chat-input';
 import NewSessionDialog from '@/components/new-session-dialog';
 import DynamicToolView from '@/components/tool/dynamic-tool-view';
+import HarnessToolView from '@/components/tool/harness-tool-view';
 import { createAgentSession } from '@/lib/create-agent-session';
 import { getHarnessLabel } from '@/lib/harness';
 import {
@@ -18,6 +19,8 @@ import {
 import { useChat } from '@ai-sdk/react';
 import {
   DefaultChatTransport,
+  getStaticToolName,
+  isStaticToolUIPart,
   lastAssistantMessageIsCompleteWithToolCalls,
   type UIMessage,
 } from 'ai';
@@ -45,7 +48,8 @@ function isDisconnectError(error: Error | undefined): boolean {
 
 /**
  * Chat with the agent session of the current browser tab, on the harness
- * the session runs on. The harness's routes live under `/api/<harness>`.
+ * the session runs on. Each agent configuration has its own routes under
+ * `/api/harness/<harness>/<configuration>`.
  */
 export default function HarnessChat<MESSAGE extends UIMessage>({
   exampleLabel,
@@ -54,8 +58,8 @@ export default function HarnessChat<MESSAGE extends UIMessage>({
   exampleLabel: string;
   PartView: ComponentType<{ part: MESSAGE['parts'][number] }>;
 }) {
-  const { chatId, harness } = useChatId();
-  const apiBase = `/api/${harness}`;
+  const { chatId, harness, configuration } = useChatId();
+  const apiBase = `/api/harness/${harness}/${configuration}`;
   const [newSessionDialogOpen, setNewSessionDialogOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState<string | undefined>();
   const [restored] = useState(() => readStoredChatState<MESSAGE>({ chatId }));
@@ -87,12 +91,17 @@ export default function HarnessChat<MESSAGE extends UIMessage>({
          * Every later prompt reuses the session from session storage.
          */
         body: async () => {
-          const stored = readStoredAgentSession({ chatId });
-          if (stored != null) return { session: stored };
-
-          const session = await createAgentSession({ harness, chatId });
-          writeStoredAgentSession({ chatId, session });
-          return { session };
+          let session = readStoredAgentSession({ chatId });
+          if (session == null) {
+            session = await createAgentSession({
+              harness,
+              chatId,
+              configuration,
+            });
+            writeStoredAgentSession({ chatId, session });
+          }
+          const { sessionId, sandboxId, runId } = session;
+          return { session: { sessionId, sandboxId, runId } };
         },
         /*
          * Reconnecting reads the session's latest turn from its start, so
@@ -301,7 +310,8 @@ export default function HarnessChat<MESSAGE extends UIMessage>({
 
 /**
  * Renders the message parts that look the same on every harness: text,
- * reasoning, images and dynamic tools. Returns `null` for any other part.
+ * reasoning, images and dynamic tools. Static tools without a specialized
+ * view use a generic tool view. Returns `null` for any other part.
  */
 export function CommonPartView({ part }: { part: UIMessage['parts'][number] }) {
   switch (part.type) {
@@ -333,6 +343,19 @@ export function CommonPartView({ part }: { part: UIMessage['parts'][number] }) {
       return <DynamicToolView invocation={part} />;
     }
     default: {
+      if (isStaticToolUIPart(part)) {
+        return (
+          <HarnessToolView
+            toolName={getStaticToolName(part)}
+            input={part.input}
+            state={part.state}
+            output={part.state === 'output-available' ? part.output : undefined}
+            errorText={
+              part.state === 'output-error' ? part.errorText : undefined
+            }
+          />
+        );
+      }
       return null;
     }
   }

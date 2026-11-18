@@ -607,6 +607,9 @@ importers:
       '@ai-sdk/harness-fx':
         specifier: workspace:*
         version: link:../../packages/harness-fx
+      '@ai-sdk/harness-fx-v2':
+        specifier: workspace:*
+        version: link:../../packages/harness-fx-v2
       '@ai-sdk/harness-github-copilot':
         specifier: workspace:*
         version: link:../../packages/harness-github-copilot
@@ -619,6 +622,9 @@ importers:
       '@ai-sdk/harness-pi':
         specifier: workspace:*
         version: link:../../packages/harness-pi
+      '@ai-sdk/harness-pi-v2':
+        specifier: workspace:*
+        version: link:../../packages/harness-pi-v2
       '@ai-sdk/heygen':
         specifier: workspace:*
         version: link:../../packages/heygen
@@ -3602,6 +3608,9 @@ importers:
       '@ai-sdk/harness':
         specifier: workspace:*
         version: link:../harness
+      '@ai-sdk/mcp':
+        specifier: workspace:*
+        version: link:../mcp
       '@ai-sdk/provider':
         specifier: workspace:*
         version: link:../provider
@@ -3817,6 +3826,9 @@ importers:
       '@earendil-works/pi-coding-agent':
         specifier: ^1.5.0
         version: 1.5.0(@aws-sdk/credential-provider-node@3.972.84)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.2.2)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@10.2.2)(ws@8.21.3)(zod@4.6.7)
+      '@earendil-works/pi-mcp':
+        specifier: ^1.5.0
+        version: 1.5.0
     devDependencies:
       '@ai-sdk/sandbox-just-bash':
         specifier: workspace:*

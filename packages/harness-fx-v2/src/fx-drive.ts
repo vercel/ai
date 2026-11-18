@@ -7,7 +7,7 @@ import {
   type HarnessV2TurnSettings,
 } from '@ai-sdk/harness';
 import { extractHarnessPromptContent } from '@ai-sdk/harness/utils';
-import type { JSONValue } from '@ai-sdk/provider';
+import type { JSONValue, SerializableValue } from '@ai-sdk/provider';
 import type { UserModelMessage } from '@ai-sdk/provider-utils';
 import {
   createFxEngine,
@@ -15,6 +15,7 @@ import {
   type FxEngineTurn,
   type FxNodeEngineOptions,
   type FxPromptInput,
+  type FxHostTool,
 } from 'libfx/node';
 import { createHash } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -25,6 +26,12 @@ import {
   type FxBuiltinToolOutput,
 } from './fx-builtin-tools';
 import { createFxEngineTools } from './fx-engine-tools';
+import {
+  createFxMcpRuntime,
+  executeFxMcpTool,
+  type FxMcpCatalog,
+  type FxMcpRuntime,
+} from './fx-mcp';
 import { readFxSandboxHome } from './fx-sandbox-home';
 import {
   getFxCatalogEffectKey,
@@ -242,6 +249,18 @@ type FxTurnRun = {
    * cancelled turn only finishes once all of it settled.
    */
   inFlight: Set<Promise<unknown>>;
+  /**
+   * Connections owned by this turn, including while discovery is pending.
+   */
+  mcpRuntime?: FxMcpRuntime;
+  /**
+   * Native MCP tools indexed by their recorded, model-facing names.
+   */
+  mcpTools: Map<string, FxHostTool>;
+  /**
+   * Initialization instructions restored alongside the tool catalog.
+   */
+  mcpInstructions?: string;
 };
 
 /**
@@ -256,7 +275,7 @@ type FxTurnRun = {
  * body, every model catalog request is the effect
  * `catalog:${index}:${ordinal}` holding the exact response, every tool call
  * goes through `executeBuiltinTool()` or
- * `executeHostTool()`, and the effect `checkpoint:${index}` records the
+ * `executeHostTool()` or `executeMcpTool()`, and the effect `checkpoint:${index}` records the
  * conversation and how the turn finished before `finishTurn()`.
  *
  * A rerun turn replays against its recorded effects: libfx sends
@@ -470,8 +489,14 @@ export class FxDrive {
     });
     this.liveRun = run;
     this.checkCancel();
-    const engine = await this.createEngine({ run, base });
+    let engine: FxEngine | undefined;
     try {
+      if (!(await this.prepareMcp({ run, prompt }))) {
+        return run.cancelled && !this.halted
+          ? this.finishCancelledTurn({ run })
+          : false;
+      }
+      engine = await this.createEngine({ run, base });
       const stopReason = await this.promptEngine({ run, engine, prompt });
       if (stopReason == null) {
         return run.cancelled && !this.halted
@@ -519,7 +544,11 @@ export class FxDrive {
       return true;
     } finally {
       this.liveRun = undefined;
-      await engine.close();
+      try {
+        await engine?.close();
+      } finally {
+        await run.mcpRuntime?.close();
+      }
     }
   }
 
@@ -720,19 +749,32 @@ export class FxDrive {
      * Conversation before the turn.
      */
     base?: Uint8Array;
-  }): Promise<Uint8Array> {
+  }): Promise<Uint8Array | undefined> {
     const { turn, base } = options;
+    if (
+      Object.keys(turn.prompt.settings.mcpServers ?? {}).length > 0 &&
+      ![...this.state.modelEffects.values()].some(
+        effect => effect.turnIndex === turn.index,
+      )
+    )
+      return base;
     const run = this.createRun({
       index: turn.index,
       mode: 'offline',
       settings: turn.prompt.settings,
     });
-    const engine = await this.createEngine({ run, base });
+    let engine: FxEngine | undefined;
     try {
+      await this.prepareMcp({ run, prompt: turn.prompt });
+      engine = await this.createEngine({ run, base });
       await this.promptEngine({ run, engine, prompt: turn.prompt });
       return await engine.checkpoint();
     } finally {
-      await engine.close();
+      try {
+        await engine?.close();
+      } finally {
+        await run.mcpRuntime?.close();
+      }
     }
   }
 
@@ -767,7 +809,75 @@ export class FxDrive {
       cancelled: false,
       abortController: new AbortController(),
       inFlight: new Set(),
+      mcpTools: new Map(),
     };
+  }
+
+  /**
+   * Restores the turn's catalog without network access, or records discovery
+   * for a new turn. Offline conversation reconstruction never starts effects.
+   */
+  private async prepareMcp(options: {
+    run: FxTurnRun;
+    prompt: FxPromptSubmission;
+  }): Promise<boolean> {
+    const { run, prompt } = options;
+    const { mcpServers } = run.settings;
+    if (mcpServers == null || Object.keys(mcpServers).length === 0) return true;
+    const runtime = createFxMcpRuntime({
+      mcpServers,
+      abortSignal: AbortSignal.any([
+        this.context.stopAbortSignal,
+        run.abortController.signal,
+      ]),
+    });
+    run.mcpRuntime = runtime;
+    let catalog: FxMcpCatalog;
+    if (run.mode === 'offline') {
+      const recorded = this.context.log.getEffect({
+        key: `mcp-discovery:${prompt.id}`,
+      })?.end?.data.output;
+      if (recorded?.type !== 'result')
+        throw new Error('fx MCP discovery has no recorded catalog.');
+      catalog = recorded.value as FxMcpCatalog;
+    } else {
+      const output = await this.guard(
+        this.context.effect({
+          key: `mcp-discovery:${prompt.id}`,
+          name: 'mcp.discovery',
+          replay: 'safe',
+          input: { submissionId: prompt.id },
+          fn: ({ abortSignal }) =>
+            this.translateCancel({
+              run,
+              work: async () =>
+                (await runtime.discover({
+                  abortSignal: AbortSignal.any([
+                    abortSignal,
+                    run.abortController.signal,
+                  ]),
+                })) as SerializableValue,
+            }),
+        }),
+      );
+      if (output.type === 'error') throw new Error(output.error.message);
+      if (output.type === 'interrupted') {
+        if (!run.cancelled) this.halt();
+        return false;
+      }
+      catalog = output.value as FxMcpCatalog;
+    }
+    for (const tool of await runtime.createTools({ catalog })) {
+      if (run.hostToolNames.has(tool.name)) continue;
+      if (isFxBuiltinToolName(tool.name) || run.mcpTools.has(tool.name))
+        throw new Error('fx MCP tool names collide with another tool.');
+      run.mcpTools.set(tool.name, tool);
+    }
+    run.mcpInstructions = catalog.servers
+      .map(server => server.instructions ?? '')
+      .filter(Boolean)
+      .join('\n\n');
+    return true;
   }
 
   /**
@@ -789,14 +899,32 @@ export class FxDrive {
     const engineOptions: FxNodeEngineOptions = {
       apiKey: this.runtime.apiKey,
       model: run.settings.model ?? DEFAULT_FX_MODEL_ID,
-      tools: createFxEngineTools({
-        settings: run.settings,
-        execute: call => this.executeTool({ run, ...call }),
-      }),
+      tools: [
+        ...createFxEngineTools({
+          settings: run.settings,
+          execute: call => this.executeTool({ run, ...call }),
+        }),
+        ...[...run.mcpTools.values()].map(tool => ({
+          ...tool,
+          execute: (input: unknown, context: { executionId: string }) =>
+            this.executeTool({
+              run,
+              toolName: tool.name,
+              builtin: false,
+              input,
+              executionId: context.executionId,
+            }),
+        })),
+      ],
       fetch: this.createEngineFetch({ run }),
     };
-    if (run.settings.instructions != null) {
-      engineOptions.instructions = run.settings.instructions;
+    if (run.settings.instructions != null || run.mcpInstructions) {
+      engineOptions.instructions = [
+        run.settings.instructions ?? '',
+        run.mcpInstructions ?? '',
+      ]
+        .filter(Boolean)
+        .join('\n\n');
     }
     if (FX_SESSION_ID_PATTERN.test(this.sessionId)) {
       engineOptions.sessionId = this.sessionId;
@@ -1217,8 +1345,8 @@ export class FxDrive {
     const output = await this.track({
       run,
       work: this.guard(
-        builtin
-          ? this.context.executeBuiltinTool({
+        run.mcpTools.has(toolName)
+          ? this.context.executeMcpTool({
               toolCallId: executionId,
               toolName,
               input: jsonInput,
@@ -1226,20 +1354,41 @@ export class FxDrive {
                 this.translateCancel({
                   run,
                   work: () =>
-                    this.runBuiltinTool({
-                      run,
-                      toolName,
-                      toolCallId: executionId,
+                    executeFxMcpTool({
+                      tool: run.mcpTools.get(toolName)!,
                       input,
-                      abortSignal,
+                      executionId,
+                      sessionId: this.sessionId,
+                      abortSignal: AbortSignal.any([
+                        abortSignal,
+                        run.abortController.signal,
+                      ]),
                     }),
                 }),
             })
-          : this.context.executeHostTool({
-              toolCallId: executionId,
-              toolName,
-              input: jsonInput,
-            }),
+          : builtin
+            ? this.context.executeBuiltinTool({
+                toolCallId: executionId,
+                toolName,
+                input: jsonInput,
+                execute: ({ abortSignal }) =>
+                  this.translateCancel({
+                    run,
+                    work: () =>
+                      this.runBuiltinTool({
+                        run,
+                        toolName,
+                        toolCallId: executionId,
+                        input,
+                        abortSignal,
+                      }),
+                  }),
+              })
+            : this.context.executeHostTool({
+                toolCallId: executionId,
+                toolName,
+                input: jsonInput,
+              }),
       ),
     });
     if (

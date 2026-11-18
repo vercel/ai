@@ -20,6 +20,7 @@ import type { HarnessV2BuiltinToolSet } from '../../../v2/harness-v2-builtin-too
 import type {
   HarnessV2ExecuteBuiltinToolFunction,
   HarnessV2ExecuteHostToolFunction,
+  HarnessV2ExecuteMcpToolFunction,
   HarnessV2ToolExecutionOutput,
   HarnessV2ToolExecutionValue,
 } from '../../../v2/harness-v2-drive-context';
@@ -186,7 +187,7 @@ function assertJSONInput(options: {
   /**
    * Name of the drive context function, for the error message.
    */
-  functionName: 'executeHostTool' | 'executeBuiltinTool';
+  functionName: 'executeHostTool' | 'executeBuiltinTool' | 'executeMcpTool';
 }): void {
   if (!isPlainJSONValue({ value: options.input })) {
     throw new Error(
@@ -196,15 +197,16 @@ function assertJSONInput(options: {
 }
 
 /**
- * Rejects a value produced by a built-in tool's `execute` that cannot be
- * recorded as a tool value. Thrown inside the attempt, so it becomes the
- * call's `error` outcome.
+ * Rejects a value produced by an adapter's `execute` that cannot be recorded
+ * as a tool value. Thrown inside the attempt, so it becomes the call's
+ * `error` outcome.
  */
 function validateBuiltinToolValue(options: {
   /**
    * Partial or final value produced by `execute`.
    */
   value: HarnessV2ToolExecutionValue;
+  functionName: 'executeBuiltinTool' | 'executeMcpTool';
 }): void {
   const { value } = options;
   if (
@@ -214,7 +216,7 @@ function validateBuiltinToolValue(options: {
     !isPlainJSONValue({ value: value.raw })
   ) {
     throw new Error(
-      'HarnessAgent.executeBuiltinTool: `raw` must be a JSON value.',
+      `HarnessAgent.${options.functionName}: \`raw\` must be a JSON value.`,
     );
   }
   if (
@@ -222,7 +224,7 @@ function validateBuiltinToolValue(options: {
     !isSerializableValue(value.modelOutput)
   ) {
     throw new Error(
-      'HarnessAgent.executeBuiltinTool: `modelOutput` must be serializable.',
+      `HarnessAgent.${options.functionName}: \`modelOutput\` must be serializable.`,
     );
   }
 }
@@ -414,6 +416,7 @@ export function createExecuteToolFunctions(options: {
 }): {
   executeHostTool: HarnessAgentExecuteHostToolFunction;
   executeBuiltinTool: HarnessAgentExecuteBuiltinToolFunction;
+  executeMcpTool: HarnessV2ExecuteMcpToolFunction;
 } {
   const { log, tools, builtinTools, effect, getSandboxSession } = options;
 
@@ -595,9 +598,10 @@ export function createExecuteToolFunctions(options: {
   }
 
   /**
-   * Runs one attempt of a built-in tool call: fails it for a tool that is not
-   * a built-in tool, and otherwise commits the attempt's
-   * `tool-execution-start` event and runs the adapter's `execute`.
+   * Runs one attempt of an adapter-managed built-in or MCP tool call. Built-in
+   * calls require a declared built-in tool; MCP calls have already been
+   * resolved by the adapter. Commits the attempt's `tool-execution-start`
+   * event before running the adapter's `execute`.
    *
    * If `execute` returns an async iterable, each value it produces is emitted
    * as a preliminary `tool-result` part and yielded, and the last one is
@@ -607,7 +611,7 @@ export function createExecuteToolFunctions(options: {
    *
    * @yields Each value the tool produces. The effect records every yielded
    * value as partial output and the last one as the final output, so the
-   * recorded output is exactly what `executeBuiltinTool()` returns.
+   * recorded output is exactly what the drive context executor returns.
    */
   async function* runBuiltinTool(options: {
     /**
@@ -634,10 +638,12 @@ export function createExecuteToolFunctions(options: {
      * Context of the current effect attempt.
      */
     context: HarnessV2EffectContext;
+    mcp?: boolean;
   }): AsyncGenerator<SerializableValue> {
-    const { toolCallId, toolName, tool, execute, context } = options;
+    const { toolCallId, toolName, tool, execute, context, mcp } = options;
+    const functionName = mcp ? 'executeMcpTool' : 'executeBuiltinTool';
     try {
-      if (tool == null) {
+      if (!mcp && tool == null) {
         throw new NoSuchToolError({
           toolName,
           availableTools: Object.keys(builtinTools),
@@ -648,8 +654,15 @@ export function createExecuteToolFunctions(options: {
 
       if (!(Symbol.asyncIterator in result)) {
         const value = await result;
-        validateBuiltinToolValue({ value });
-        emitToolResult({ context, toolCallId, toolName, result: value.raw });
+        validateBuiltinToolValue({ value, functionName });
+        emitToolResult({
+          context,
+          toolCallId,
+          toolName,
+          result: value.raw,
+          isError: value.isError,
+          dynamic: mcp,
+        });
         /*
          * The cast is needed because `ToolResultOutput` contains interfaces,
          * which TypeScript never treats as `SerializableValue`; the value was
@@ -661,13 +674,15 @@ export function createExecuteToolFunctions(options: {
 
       let last: HarnessV2ToolExecutionValue | undefined;
       for await (const value of result) {
-        validateBuiltinToolValue({ value });
+        validateBuiltinToolValue({ value, functionName });
         emitToolResult({
           context,
           toolCallId,
           toolName,
           result: value.raw,
           preliminary: true,
+          isError: value.isError,
+          dynamic: mcp,
         });
         last = value;
         /*
@@ -678,16 +693,48 @@ export function createExecuteToolFunctions(options: {
         yield value as SerializableValue;
       }
       if (last == null) {
-        throw new Error(`The built-in tool '${toolName}' produced no value.`);
+        throw new Error(
+          `The ${mcp ? 'MCP' : 'built-in'} tool '${toolName}' produced no value.`,
+        );
       }
-      emitToolResult({ context, toolCallId, toolName, result: last.raw });
+      emitToolResult({
+        context,
+        toolCallId,
+        toolName,
+        result: last.raw,
+        isError: last.isError,
+        dynamic: mcp,
+      });
     } catch (error) {
-      emitToolError({ context, toolCallId, toolName, error });
+      emitToolError({ context, toolCallId, toolName, error, dynamic: mcp });
       throw error;
     }
   }
 
   return {
+    async executeMcpTool<T extends JSONValue = JSONValue>(call: {
+      toolCallId: string;
+      toolName: string;
+      input: JSONValue;
+      execute: (options: {
+        abortSignal: AbortSignal;
+      }) =>
+        | PromiseLike<HarnessV2ToolExecutionValue<T>>
+        | AsyncIterable<HarnessV2ToolExecutionValue<T>>;
+    }): Promise<HarnessV2ToolExecutionOutput<T>> {
+      const { toolCallId, toolName, input, execute } = call;
+      assertJSONInput({ input, functionName: 'executeMcpTool' });
+      const output = await effect({
+        key: `${TOOL_EFFECT_KEY_PREFIX}${toolCallId}`,
+        name: `${TOOL_EFFECT_NAME_PREFIX}${toolName}`,
+        replay: 'never',
+        input,
+        fn: context =>
+          runBuiltinTool({ toolCallId, toolName, execute, context, mcp: true }),
+      });
+      return output as HarnessV2ToolExecutionOutput<T>;
+    },
+
     async executeHostTool<T extends JSONValue = JSONValue>(call: {
       toolCallId: string;
       toolName: string;
