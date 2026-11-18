@@ -40,11 +40,24 @@ const liveWebSocketPath =
   'google.cloud.aiplatform.v1.LlmBidiService/BidiGenerateContent';
 
 /**
- * After the input audio has ended, finish when no terminal signal
- * (`turnComplete` / idle `interactionStatus`) arrives within this window.
+ * After the input audio has ended, finish when no terminal signal (idle
+ * `interactionStatus`, `turnComplete`, or server VAD showing that all audio
+ * was transcribed) arrives within this window.
  * Trailing transcripts reset the timer.
  */
 const defaultFinishGraceMs = 3000;
+
+/**
+ * Audio sent at most this far ahead of real time still counts as a live
+ * stream, which the server keeps up with.
+ */
+const realtimeAudioToleranceMs = 1000;
+
+/**
+ * Speech that server VAD ended within this distance of the end of the sent
+ * audio counts as ending at the end of the audio.
+ */
+const audioEndToleranceMs = 250;
 
 /** Live transcription is only supported by `*-live` model variants. */
 function isLiveTranscriptionModelId(modelId: string): boolean {
@@ -85,6 +98,7 @@ type GoogleLiveServerMessage = {
     interactionStatus?: string;
   };
   inputTranscription?: GoogleLiveTranscription;
+  voiceActivity?: { type?: string; audioOffset?: string };
   usageMetadata?: JSONObject;
   error?: { message?: string };
 };
@@ -412,7 +426,8 @@ function createVertexLiveTranscriptionStream({
       // Google Live messages carry no response/item IDs; a segment counter
       // generates consistent synthetic IDs. Transcription fragments arrive
       // incrementally and are accumulated per segment; a `finished: true`
-      // transcription or `turnComplete` finalizes the current segment.
+      // transcription, `generationComplete`, or `turnComplete` finalizes the
+      // current segment.
       let segmentCounter = 0;
       let segmentBuffer = '';
       let fullText = '';
@@ -423,6 +438,12 @@ function createVertexLiveTranscriptionStream({
       let audioEnded = false;
       let usageMetadata: JSONObject | undefined;
       let finishTimer: ReturnType<typeof setTimeout> | undefined;
+      // latest server VAD signal (`ACTIVITY_START` / `ACTIVITY_END`)
+      let lastVoiceActivity:
+        | { type: string; audioOffsetMs: number | undefined }
+        | undefined;
+      let sentAudioBytes = 0;
+      let firstAudioSentAt: number | undefined;
 
       const segmentId = () => `google-segment-${segmentCounter}`;
 
@@ -481,6 +502,29 @@ function createVertexLiveTranscriptionStream({
         segmentCounter++;
       };
 
+      // Once the audio has ended, the server has transcribed all of it when
+      // server VAD ended the last speech, its segment is complete, and the
+      // server has caught up with the sent audio: either that speech ended at
+      // the end of the audio, or the audio was streamed in real time (so the
+      // server is not still processing buffered audio, which can hold further
+      // segments). No further messages arrive in that case.
+      const isTranscriptionComplete = () => {
+        if (
+          lastVoiceActivity?.type !== 'ACTIVITY_END' ||
+          segmentBuffer !== '' ||
+          latestInterim !== ''
+        ) {
+          return false;
+        }
+        const sentAudioMs = (sentAudioBytes / (inputAudioRate * 2)) * 1000;
+        const elapsedMs = Date.now() - (firstAudioSentAt ?? Date.now());
+        return (
+          (lastVoiceActivity.audioOffsetMs ?? 0) >=
+            sentAudioMs - audioEndToleranceMs ||
+          sentAudioMs <= elapsedMs + realtimeAudioToleranceMs
+        );
+      };
+
       const finish = () => {
         if (finished) return;
         completeSegment();
@@ -508,11 +552,14 @@ function createVertexLiveTranscriptionStream({
           while (true) {
             const { done, value } = await audioReader.read();
             if (done || finished) break;
+            const data = convertToBase64(value);
+            firstAudioSentAt ??= Date.now();
+            sentAudioBytes += (data.length * 3) / 4;
             socket.send(
               JSON.stringify({
                 realtimeInput: {
                   audio: {
-                    data: convertToBase64(value),
+                    data,
                     mimeType: `audio/pcm;rate=${inputAudioRate}`,
                   },
                 },
@@ -531,7 +578,11 @@ function createVertexLiveTranscriptionStream({
             JSON.stringify({ realtimeInput: { audioStreamEnd: true } }),
           );
           audioEnded = true;
-          schedulePendingFinish();
+          if (isTranscriptionComplete()) {
+            finish();
+          } else {
+            schedulePendingFinish();
+          }
         }
       };
 
@@ -566,6 +617,19 @@ function createVertexLiveTranscriptionStream({
 
           if (message.usageMetadata != null) {
             usageMetadata = message.usageMetadata;
+          }
+
+          if (message.voiceActivity?.type != null) {
+            const audioOffsetSeconds = parseOffsetSeconds(
+              message.voiceActivity.audioOffset,
+            );
+            lastVoiceActivity = {
+              type: message.voiceActivity.type,
+              audioOffsetMs:
+                audioOffsetSeconds != null
+                  ? audioOffsetSeconds * 1000
+                  : undefined,
+            };
           }
 
           if (message.error != null) {
@@ -611,7 +675,12 @@ function createVertexLiveTranscriptionStream({
             }
           }
 
-          if (serverContent?.turnComplete) {
+          // `gemini-3.5-transcribe-live` ends each segment with
+          // `generationComplete` and never sends `turnComplete`.
+          if (
+            serverContent?.generationComplete ||
+            serverContent?.turnComplete
+          ) {
             completeSegment();
           }
 
@@ -624,7 +693,8 @@ function createVertexLiveTranscriptionStream({
             (interactionStatus === 'IDLE' ||
               interactionStatus === 'REQUIRES_ACTION' ||
               (serverContent?.turnComplete === true &&
-                interactionStatus == null))
+                interactionStatus == null) ||
+              isTranscriptionComplete())
           ) {
             finish();
           }
