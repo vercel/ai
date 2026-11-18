@@ -1,6 +1,10 @@
 'use client';
 
-import { createMCPClient, WebMCPTransport, type MCPClient } from '@ai-sdk/mcp';
+import {
+  createMCPClient,
+  Experimental_WebMCPTransport as WebMCPTransport,
+  type MCPClient,
+} from '@ai-sdk/mcp';
 import { useChat } from '@ai-sdk/react';
 import {
   DefaultChatTransport,

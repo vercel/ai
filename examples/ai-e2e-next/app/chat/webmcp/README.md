@@ -21,6 +21,9 @@ Open Chrome DevTools Console and filter for `[WebMCP]` to see registration,
 discovered definitions, the stored MCP client, tool calls, and returned results.
 Expand the client logged after discovery to inspect its transport's tool registry.
 
+The transport is imported as `Experimental_WebMCPTransport as WebMCPTransport`.
+The browser API types use the same experimental import alias pattern.
+
 ## Run
 
 1. Set `OPENAI_API_KEY` in `examples/ai-e2e-next/.env.local`.

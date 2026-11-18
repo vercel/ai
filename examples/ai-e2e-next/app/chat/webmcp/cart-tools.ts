@@ -1,4 +1,7 @@
-import type { WebMCPModelContext, WebMCPTool } from '@ai-sdk/mcp';
+import type {
+  Experimental_WebMCPModelContext as WebMCPModelContext,
+  Experimental_WebMCPTool as WebMCPTool,
+} from '@ai-sdk/mcp';
 import { z } from 'zod/v4';
 
 export const products = [

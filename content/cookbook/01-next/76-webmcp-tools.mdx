@@ -101,10 +101,14 @@ const writeCart = useCallback((next: Cart) => {
 
 ## Connect the browser MCP client
 
-Create the client in an effect, after checking browser support. `registerCartTools` below is the registration function from the [cart tools module](https://github.com/vercel/ai/blob/main/examples/ai-e2e-next/app/chat/webmcp/cart-tools.ts).
+Create the client in an effect, after checking browser support. Import the experimental transport under its plain name. `registerCartTools` below is the registration function from the [cart tools module](https://github.com/vercel/ai/blob/main/examples/ai-e2e-next/app/chat/webmcp/cart-tools.ts).
 
 ```tsx
-import { createMCPClient, WebMCPTransport, type MCPClient } from '@ai-sdk/mcp';
+import {
+  createMCPClient,
+  Experimental_WebMCPTransport as WebMCPTransport,
+  type MCPClient,
+} from '@ai-sdk/mcp';
 import { registerCartTools } from './cart-tools';
 
 const client = useRef<MCPClient>();

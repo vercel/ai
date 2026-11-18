@@ -48,9 +48,9 @@ export {
 } from './error/oauth-error';
 export { MCPClientError } from './error/mcp-client-error';
 export {
-  WebMCPTransport,
-  type WebMCPModelContext,
-  type WebMCPTool,
+  WebMCPTransport as Experimental_WebMCPTransport,
+  type WebMCPModelContext as Experimental_WebMCPModelContext,
+  type WebMCPTool as Experimental_WebMCPTool,
 } from './tool/webmcp-transport';
 export type { ManagedMCPClient as Experimental_ManagedMCPClient } from './tool/mcp-client';
 export type {
