@@ -120,6 +120,30 @@ const readDb = (): Database => {
 };
 
 const writeDb = (db: Database): void => {
+  const userId = process.geteuid?.();
+  if (userId != null) {
+    // A writable parent would let another account replace a checked path.
+    // Sticky ancestors such as /tmp protect children owned by this user.
+    let parent = path.dirname(DB_DIR);
+    for (;;) {
+      const stats = fs.lstatSync(parent);
+      const protectedByStickyBit =
+        parent !== path.dirname(DB_DIR) && (stats.mode & 0o1000) !== 0;
+      if (
+        !stats.isDirectory() ||
+        (stats.uid !== userId && stats.uid !== 0) ||
+        ((stats.mode & 0o022) !== 0 && !protectedByStickyBit)
+      ) {
+        throw new Error(
+          'Refusing to write DevTools storage through an unsafe parent directory.',
+        );
+      }
+      const nextParent = path.dirname(parent);
+      if (nextParent === parent) break;
+      parent = nextParent;
+    }
+  }
+
   const isFirstRun = !fs.existsSync(DB_DIR);
 
   if (isFirstRun) {
@@ -127,13 +151,48 @@ const writeDb = (db: Database): void => {
     ensureGitignore();
   }
 
-  // Creation modes do not restrict existing storage. Tighten it before writing.
-  fs.chmodSync(DB_DIR, 0o700);
-  if (fs.existsSync(DB_PATH)) {
-    fs.chmodSync(DB_PATH, 0o600);
+  const directory = fs.lstatSync(DB_DIR);
+  if (
+    !directory.isDirectory() ||
+    (userId != null && directory.uid !== userId)
+  ) {
+    throw new Error(
+      'DevTools storage must be an owned directory, not a symlink.',
+    );
   }
 
-  fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2), { mode: 0o600 });
+  const validateFile = (stats: fs.Stats): void => {
+    if (
+      !stats.isFile() ||
+      stats.nlink !== 1 ||
+      (userId != null && stats.uid !== userId)
+    ) {
+      throw new Error(
+        'DevTools database must be an owned regular file without links.',
+      );
+    }
+  };
+  const existingFile = fs.lstatSync(DB_PATH, { throwIfNoEntry: false });
+  if (existingFile) validateFile(existingFile);
+
+  // The verified parent prevents directory replacement while permissions tighten.
+  fs.chmodSync(DB_DIR, 0o700);
+  const file = fs.openSync(
+    DB_PATH,
+    fs.constants.O_RDWR |
+      fs.constants.O_CREAT |
+      (fs.constants.O_NOFOLLOW ?? 0) |
+      (fs.constants.O_NONBLOCK ?? 0),
+    0o600,
+  );
+  try {
+    validateFile(fs.fstatSync(file));
+    fs.fchmodSync(file, 0o600);
+    fs.ftruncateSync(file, 0);
+    fs.writeFileSync(file, JSON.stringify(db, null, 2));
+  } finally {
+    fs.closeSync(file);
+  }
 };
 
 // In-memory cache for performance
