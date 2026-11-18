@@ -826,6 +826,127 @@ try {
 }
 ```
 
+## Sprites Sandboxes
+
+`@ai-sdk/sandbox-sprites` backs a network sandbox session with a
+[Sprite](https://sprites.dev), Fly.io's stateful sandbox. Authenticate with a Sprites
+API token (`org/projectNumber/tokenId/secret`): pass it as `apiKey`, or set the
+`SPRITES_API_KEY` environment variable.
+
+```ts
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { claudeCode } from '@ai-sdk/harness-claude-code';
+import { createSpritesNetworkSandboxSession } from '@ai-sdk/sandbox-sprites';
+
+const agent = new HarnessAgent({ harness: claudeCode });
+
+const sandboxSession = await createSpritesNetworkSandboxSession({
+  template: await agent.getSandboxTemplate(),
+});
+const session = await agent.createSession({ sandboxSession });
+```
+
+The Codex adapter is used the same way; nothing in the sandbox code is specific to a
+harness. Sprites cannot start a new Sprite from a snapshot of another, so the template
+is prepared in every new Sprite.
+
+Set `sandboxId` to name a new Sprite, or persist the returned session's `id`. Creation
+never resumes an existing Sprite and a conflicting name fails; use
+`resumeSpritesNetworkSandboxSession({ sandboxId })` to reattach, which is also how you
+use a Sprite that you created elsewhere. To adapt an existing Sprite without a request
+to the Sprites API, use `createSpritesSandboxSessionFromNativeSandbox({ sprite, workingDirectory })`
+or `createSpritesNetworkSandboxSessionFromNativeSandbox()`, which take the Sprite's URL,
+URL auth and working directory as `sprite: { name, url, urlAuth }` and `workingDirectory`.
+
+### Bridge Capability
+
+A Sprite proxies its always-on public URL (`https://<name>-<suffix>.sprites.app`) to a
+single internal HTTP port (`8080`). `getPortEndpoint({ port: 8080, protocol: 'ws' })`
+returns `wss://<name>-<suffix>.sprites.app/` with no headers, which the bridge-backed
+harness adapters dial with a stock WebSocket client before authenticating to the
+in-Sprite bridge. The URL is derived from the Sprite's name, so it stays the same across
+reconnects and after reattaching.
+
+A session is bridge-capable when its Sprite is on `public` URL auth and has `pnpm` on
+`PATH`:
+
+| Session                                                     | Bridge-capable                                                           |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `createSpritesNetworkSandboxSession()`                      | Yes. The Sprite is created on `public` URL auth and `pnpm` is installed. |
+| `createSpritesNetworkSandboxSession({ urlAuth: 'sprite' })` | No. File and process access only.                                        |
+| `resumeSpritesNetworkSandboxSession({ sandboxId })`         | Only when the Sprite is on `public` URL auth and has `pnpm`.             |
+
+Public URLs are reachable by anyone with the URL, so the in-Sprite bridge is the
+authentication boundary. On any other URL auth a stock client is turned away, so the
+session exposes no port: `ports` is empty, `getPortEndpoint()` throws a
+`HarnessCapabilityUnsupportedError`, and bridge-backed harness adapters do not select it.
+Pass `urlAuth: 'public'` to the resume function to put an existing Sprite on `public`
+URL auth.
+
+The Claude Code and Codex adapters bootstrap their runtime with `pnpm install`. The stock
+Sprite image has no `pnpm` on `PATH`, so `createSpritesNetworkSandboxSession()` enables
+`pnpm` 11 through `corepack` in every Sprite it creates, before the template is prepared.
+A Sprite that you created elsewhere is reattached as it is, so give it `pnpm` once before
+using it with a bridge harness:
+
+```bash
+sprite exec -s my-sprite -- corepack enable --install-directory /usr/local/bin pnpm
+sprite exec -s my-sprite -- corepack prepare pnpm@11 --activate
+```
+
+### Sprite Lifecycle and Network Policy
+
+Sprites have no stop call. A Sprite pauses on its own when it is idle and wakes on the
+next request, so `stop()` returns without doing anything. The filesystem persists across
+a pause; running processes do not survive a long one. `destroy()` deletes the Sprite, also
+on a session that was reattached.
+
+`setNetworkPolicy()` translates the harness policy to Sprites' domain rules: `'allow-all'`
+clears the rule set, `'deny-all'` blocks everything, and `'custom'` allows the listed
+`allowedHosts` with a catch-all deny. Sprites match on domains, so `allowedCIDRs` and
+`deniedCIDRs` are rejected.
+
+The session does not implement request transformations, so bridge-backed harness adapters
+forward model credentials into the Sprite instead of brokering them. Each harness
+adapter's `credentialForwarding` setting controls what the Sprite receives.
+
+### Sprites Options
+
+| Option             | Description                                                                                                                        |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `apiKey`           | Sprites API token. Defaults to `SPRITES_API_KEY` / `SPRITES_TOKEN`.                                                                |
+| `baseUrl`          | Control-plane base URL. Defaults to `SPRITES_API_URL` or `https://api.sprites.dev`.                                                |
+| `workingDirectory` | Base directory for relative paths and the default for `run` and `spawn`. Defaults to the directory the Sprite starts a process in. |
+| `sandboxId`        | Name of the Sprite. Optional on creation (a name is generated when omitted), required on resume.                                   |
+| `template`         | Creation only. Harness sandbox template to prepare in the new Sprite.                                                              |
+| `urlAuth`          | `'public'` or `'sprite'`. Creation defaults to `'public'`; resume leaves the Sprite as it is unless set.                           |
+| `waitForCapacity`  | Creation only. Block on fleet capacity instead of failing fast when creating a Sprite.                                             |
+| `abortSignal`      | Aborts creation or resume.                                                                                                         |
+
+`createSpritesSandbox()` returns a `HarnessV1SandboxProvider` for the deprecated
+`HarnessAgent({ sandbox })` setting. It accepts `apiKey`, `baseUrl`, `workingDirectory`,
+`urlAuth` and `waitForCapacity`, plus `name` to name the created Sprite or `spriteName` to
+wrap an existing one, which it then never deletes. Use the create and resume functions
+for new code.
+
+### Sprites Limitations
+
+- `run()` may merge stderr into stdout for instant commands. Sprites can replay the
+  buffered output of a command that exits before the client attaches as one stdout
+  stream, so check `exitCode` rather than an empty `stderr`.
+- The command line travels in the exec request URL, which proxies and logging tools
+  routinely record, so don't put secrets in a command. Values passed as `env` are written
+  to a temporary file in the Sprite instead, which the command sources and deletes before
+  it starts.
+- Unread `spawn()` output is buffered in memory on the host until the process ends,
+  because the exec WebSocket cannot be paused. Read `stdout` and `stderr` of long-running
+  processes.
+- Created Sprites default to a public URL, so any service on port 8080 is reachable by
+  anyone with the URL. Set `urlAuth: 'sprite'` if you don't need the bridge and want
+  org-token-gated access.
+- The package runs on Node.js only: it authenticates the exec WebSocket with undici's
+  `headers` constructor option, which browsers, edge runtimes and Deno ignore.
+
 ## Next Steps
 
 - [Tools](/docs/ai-sdk-harnesses/tools) for built-in and host-executed tools.
