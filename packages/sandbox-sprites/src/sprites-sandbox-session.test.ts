@@ -307,6 +307,58 @@ describe('SpritesSandboxSession.run', () => {
   });
 });
 
+describe('SpritesSandboxSession.run with maxOutputLength', () => {
+  it('returns capped prefixes and the full lengths', async () => {
+    execMessages = [
+      frame(1, '1\n2\n'),
+      frame(2, 'error'),
+      frame(1, '3\n'),
+      frame(3, [7]),
+    ];
+
+    await expect(
+      makeSession().run({ command: 'x', maxOutputLength: 4 }),
+    ).resolves.toEqual({
+      exitCode: 7,
+      stdout: '1\n2\n',
+      stderr: 'erro',
+      stdoutLength: 6,
+      stderrLength: 5,
+    });
+  });
+
+  it('counts UTF-16 code units', async () => {
+    execMessages = [frame(1, 'a😀b'), frame(3, [0])];
+
+    await expect(
+      makeSession().run({ command: 'x', maxOutputLength: 2 }),
+    ).resolves.toEqual({
+      exitCode: 0,
+      stdout: 'a\ud83d',
+      stderr: '',
+      stdoutLength: 4,
+      stderrLength: 0,
+    });
+  });
+
+  it('returns no lengths without the option', async () => {
+    execMessages = [frame(1, 'out'), frame(3, [0])];
+
+    await expect(makeSession().run({ command: 'x' })).resolves.toEqual({
+      exitCode: 0,
+      stdout: 'out',
+      stderr: '',
+    });
+  });
+
+  it('rejects an invalid limit before starting the command', async () => {
+    await expect(
+      makeSession().run({ command: 'x', maxOutputLength: 0 }),
+    ).rejects.toThrow('Must be a positive safe integer.');
+    expect(lastWsUrl).toBe('');
+  });
+});
+
 describe('SpritesSandboxSession.spawn', () => {
   it('streams stdout and resolves wait() with the exit code', async () => {
     execMessages = [

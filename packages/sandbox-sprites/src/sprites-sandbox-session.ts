@@ -1,10 +1,12 @@
 import {
+  createTextOutputCapture,
   extractLines,
   type Experimental_SandboxDeleteFileOptions as DeleteFileOptions,
   type Experimental_SandboxDirectoryEntry as SandboxDirectoryEntry,
   type Experimental_SandboxFileStat as SandboxFileStat,
   type Experimental_SandboxListDirectoryOptions as ListDirectoryOptions,
   type Experimental_SandboxProcess as SandboxProcess,
+  type Experimental_SandboxRunOptions as RunOptions,
   type Experimental_SandboxSession as SandboxSession,
   type Experimental_SandboxSpawnOptions as SpawnOptions,
   type Experimental_SandboxSpawnOptionsWithStdin as SpawnOptionsWithStdin,
@@ -117,13 +119,23 @@ export class SpritesSandboxSession implements SandboxSession {
     workingDirectory,
     env,
     abortSignal,
-  }: {
-    command: string;
-    workingDirectory?: string;
-    env?: Record<string, string>;
-    abortSignal?: AbortSignal;
-  }): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+    maxOutputLength,
+  }: RunOptions): Promise<{
+    exitCode: number;
+    stdout: string;
+    stderr: string;
+    stdoutLength?: number;
+    stderrLength?: number;
+  }> {
     abortSignal?.throwIfAborted();
+    // Validate the limit before the command starts.
+    const captures =
+      maxOutputLength === undefined
+        ? undefined
+        : {
+            stdout: createTextOutputCapture({ maxLength: maxOutputLength }),
+            stderr: createTextOutputCapture({ maxLength: maxOutputLength }),
+          };
 
     const proc = await this.client.exec(this.spriteName, {
       argv: ['bash', '-c', command],
@@ -132,7 +144,21 @@ export class SpritesSandboxSession implements SandboxSession {
       ...(abortSignal !== undefined ? { abortSignal } : {}),
     });
 
-    return collectProcess(proc);
+    if (captures === undefined) return collectProcess(proc);
+
+    // Keep only the prefixes while the rest of the output is drained.
+    const [{ exitCode }] = await Promise.all([
+      proc.wait(),
+      readText(proc.stdout, chunk => captures.stdout.append(chunk)),
+      readText(proc.stderr, chunk => captures.stderr.append(chunk)),
+    ]);
+    return {
+      exitCode,
+      stdout: captures.stdout.text,
+      stderr: captures.stderr.text,
+      stdoutLength: captures.stdout.length,
+      stderrLength: captures.stderr.length,
+    };
   }
 
   spawn(options: SpawnOptionsWithStdin): Promise<WritableSandboxProcess>;
@@ -431,14 +457,23 @@ async function collectBytes(
 async function collectText(
   stream: ReadableStream<Uint8Array>,
 ): Promise<string> {
+  let text = '';
+  await readText(stream, chunk => {
+    text += chunk;
+  });
+  return text;
+}
+
+async function readText(
+  stream: ReadableStream<Uint8Array>,
+  onText: (chunk: string) => void,
+): Promise<void> {
   const decoder = new TextDecoder();
   const reader = stream.getReader();
-  let text = '';
   while (true) {
     const { value, done } = await reader.read();
     if (done) break;
-    if (value) text += decoder.decode(value, { stream: true });
+    if (value) onText(decoder.decode(value, { stream: true }));
   }
-  text += decoder.decode();
-  return text;
+  onText(decoder.decode());
 }
