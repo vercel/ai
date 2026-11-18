@@ -32,6 +32,8 @@ The decision is not limited to the current call's arguments. The policy `input` 
 
 With `generateText`, `streamText`, and `ToolLoopAgent`, these rules also apply when the model returns several tool calls in one response. See [Several tool calls in one response](#several-tool-calls-in-one-response).
 
+A rule over `messages` only sees what is sent to the model. When `prepareStep` replaces the messages of a step, for example to shorten a long conversation, the tool calls that are no longer in them do not count. In that case, keep a limit that must hold for the whole conversation in a store of your own and pass its state to the policy, for example through `runtimeContext`.
+
 ### Best fit: deterministic checks
 
 Policy enforcement is strongest when the decision is deterministic and verifiable from structured fields, whether those fields come from the current call or the history in `messages`. The policy extracts a value and compares it, so the answer is the same every time.
