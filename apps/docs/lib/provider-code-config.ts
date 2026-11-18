@@ -173,6 +173,16 @@ export const providerCodeConfigs: Record<string, ProviderCodeConfig> = {
       'minimax/minimax-m3': 'MiniMaxAI/MiniMax-M3',
     },
   },
+  liquid: {
+    title: 'Liquid',
+    pkg: 'liquid',
+    export: 'liquid',
+    kinds: ['decision'],
+    models: {
+      'liquid/d1.2': 'd1.2',
+      'liquid/d1.2-ultra': 'd1.2-ultra',
+    },
+  },
   'typesafe-ai': {
     title: 'TypeSafe',
     pkg: 'typesafe-ai',
@@ -220,6 +230,7 @@ export const providerCodeConfigs: Record<string, ProviderCodeConfig> = {
     models: {
       'google/gemini-4-argon': 'gemini-4-argon',
       'google/gemini-4-carbon': 'gemini-4-carbon',
+      'google/gemini-4-neon': 'gemini-4-neon',
       'google/gemini-3.8-flash': 'gemini-3.8-flash',
       'google/gemini-3.1-pro-preview': 'gemini-3.1-pro-preview',
     },

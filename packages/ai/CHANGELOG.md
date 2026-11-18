@@ -1,5 +1,48 @@
 # ai
 
+## 7.0.177
+
+### Patch Changes
+
+- e403988: add an interrupt option to steering so a steer can cancel a model call that has not produced output yet
+- b792b56: feat(ai): ship the AI SDK skill in the package at `skills/ai-sdk` for pnpm agent skills
+- Updated dependencies [700089c]
+  - @ai-sdk/gateway@4.0.150
+
+## 7.0.176
+
+### Patch Changes
+
+- Updated dependencies [f886264]
+- Updated dependencies [d03d74a]
+  - @ai-sdk/gateway@4.0.149
+
+## 7.0.175
+
+### Patch Changes
+
+- Updated dependencies [ed981f8]
+  - @ai-sdk/gateway@4.0.148
+
+## 7.0.174
+
+### Patch Changes
+
+- 3bea041: feat(ai): support `output` in `startBatch` and parse it in `getBatchResults`
+- 30d35eb: Fix `streamText` passing `tools: undefined` to `experimental_transform` factories when no `tools` are provided. Transforms now receive an empty tool set, matching the `StreamTextTransform` type.
+- fab7478: Fix locked stream errors when telemetry subscribers or integrations replace a model stream whose request or response metadata requires credential redaction.
+- 10ff0b1: add extraction model support to provider registries, custom providers and string model ids
+- 718824c: Prevent excessive memory and CPU usage when validating UI messages with deeply nested provider or tool metadata. `validateUIMessages`, `safeValidateUIMessages`, and the agent UI stream helpers validated JSON values in `providerMetadata`, `callProviderMetadata`, `resultProviderMetadata`, `toolMetadata`, and citation metadata with a recursive union schema that needed several times the memory of the value, so a valid request could exhaust the memory of a worker before the model was called. These values are now validated in a single pass and are no longer copied, except to remove `__proto__` keys.
+- d99098a: Centralize empty extraction value normalization in `experimental_extract`, preserving missing-value behavior while removing duplicated conversion from extraction providers.
+- Updated dependencies [74042c5]
+- Updated dependencies [b8c01eb]
+- Updated dependencies [10ff0b1]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/gateway@4.0.147
+  - @ai-sdk/provider@4.0.39
+  - @ai-sdk/provider-utils@5.0.82
+
 ## 7.0.173
 
 ### Patch Changes

@@ -177,9 +177,6 @@ export class ScaleDownExtractionModel implements ExtractionModelV4 {
               entity => entity.type === id && entity.text !== '',
             );
             if (field.type === 'list') {
-              if (matches.length === 0) {
-                return [id, { type: 'list', value: null }];
-              }
               return [
                 id,
                 {

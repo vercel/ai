@@ -283,6 +283,7 @@ const DEFAULT_MODEL_NAMES: Record<string, string> = {
   [DEFAULT_MODEL_IDS.decision]: 'TypeSafe JEV',
   'google/gemini-4-argon': 'Gemini 4 Argon',
   'google/gemini-4-carbon': 'Gemini 4 Carbon',
+  'google/gemini-4-neon': 'Gemini 4 Neon',
 };
 
 const getDefaultModelOption = (

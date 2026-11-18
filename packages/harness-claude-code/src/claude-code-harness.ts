@@ -1470,8 +1470,8 @@ function createSession({
 
   /*
    * The Claude conversation this session currently embodies. Seeded from the
-   * resume state and updated from every `finish` part's metadata — each turn
-   * may fork a new id, so the latest observation is the one a later
+   * resume state and updated from init raw events and `finish` metadata. Each
+   * turn may fork a new id, so the latest observation is the one a later
    * stop/detach must record for exact resume.
    */
   let lastClaudeSessionId = resumeSessionId;
@@ -1621,7 +1621,6 @@ function createSession({
       'tool-result',
       'finish-step',
       'compaction',
-      'raw',
     ] as const;
     for (const type of eventTypes) {
       unsubs.push(
@@ -1631,6 +1630,29 @@ function createSession({
         }),
       );
     }
+    unsubs.push(
+      channel.on('raw', msg => {
+        if (!belongsToTurn(msg)) return;
+        const rawValue = (msg as { rawValue?: unknown }).rawValue;
+        if (
+          rawValue != null &&
+          typeof rawValue === 'object' &&
+          !Array.isArray(rawValue)
+        ) {
+          const raw = rawValue as Record<string, unknown>;
+          const sessionId = raw.sessionId;
+          if (
+            raw.type === 'system' &&
+            raw.subtype === 'init' &&
+            typeof sessionId === 'string' &&
+            sessionId.length > 0
+          ) {
+            lastClaudeSessionId = sessionId;
+          }
+        }
+        forward(msg);
+      }),
+    );
     unsubs.push(
       channel.on('finish', msg => {
         if (!belongsToTurn(msg)) return;

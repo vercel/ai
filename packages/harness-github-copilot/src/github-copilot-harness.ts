@@ -516,6 +516,7 @@ export function createGitHubCopilot(
      */
     writeProtectedPaths: [
       '.github/hooks',
+      '.github/mcp.json',
       '.github/copilot',
       '.github/skills',
       '.github/agents',

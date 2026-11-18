@@ -11,8 +11,9 @@ import { join } from 'path';
 // The opt-in useChat message queue adds ~3 KiB.
 // Bounded validation of malformed UI messages adds ~1.5 KiB.
 // The experimental extract API adds ~5 KiB.
-// Single-pass validation of JSON values in UI message metadata adds ~1 KiB.
-const LIMIT = 652 * 1024;
+// The bundled Gateway extraction client adds ~4 KiB.
+// Steering interrupts add ~3 KiB.
+const LIMIT = 661 * 1024;
 
 interface BundleResult {
   size: number;

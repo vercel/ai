@@ -31,12 +31,15 @@ import { z } from 'zod/v4';
 import {
   embed,
   embedMany,
+  experimental_createSteering,
   experimental_decide,
   experimental_evaluate,
   generateObject,
   generateText,
+  isStepCount,
   streamObject,
   streamText,
+  tool,
   type GenerateTextEndEvent,
   type Telemetry,
 } from 'ai';
@@ -2725,6 +2728,223 @@ describe('OpenTelemetry', () => {
         }
       `);
     });
+
+    it('records output message parts in the order they were produced', async () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          provider: 'openai.chat',
+          modelId: 'gpt-4',
+          doGenerate: {
+            content: [
+              { type: 'text', text: 'Summary of earlier work.' },
+              { type: 'reasoning', text: 'I should answer.' },
+              { type: 'text', text: 'The answer is 7.' },
+            ],
+            finishReason: { raw: undefined, unified: 'stop' },
+            usage: {
+              inputTokens: {
+                total: 2,
+                noCache: 2,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 1,
+                text: 1,
+                reasoning: undefined,
+              },
+            },
+            warnings: [],
+          },
+        }),
+        prompt: 'Hello',
+        telemetry: {
+          integrations: integration,
+        },
+      });
+
+      const chatSpan = getExportedSpan(sdkTrace.exporter, 'chat gpt-4');
+      const rootSpan = getExportedSpan(sdkTrace.exporter, 'invoke_agent gpt-4');
+      expect(
+        parseJsonAttributes(rootSpan.attributes, 'gen_ai.output.messages'),
+      ).toEqual(
+        parseJsonAttributes(chatSpan.attributes, 'gen_ai.output.messages'),
+      );
+      expect(parseJsonAttributes(chatSpan.attributes, 'gen_ai.output.messages'))
+        .toMatchInlineSnapshot(`
+          {
+            "gen_ai.output.messages": [
+              {
+                "finish_reason": "stop",
+                "parts": [
+                  {
+                    "content": "Summary of earlier work.",
+                    "type": "text",
+                  },
+                  {
+                    "content": "I should answer.",
+                    "type": "reasoning",
+                  },
+                  {
+                    "content": "The answer is 7.",
+                    "type": "text",
+                  },
+                ],
+                "role": "assistant",
+              },
+            ],
+          }
+        `);
+    });
+
+    it('records step output parts the same way as the next step input', async () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+
+      const usage = {
+        inputTokens: {
+          total: 2,
+          noCache: 2,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 1,
+          text: 1,
+          reasoning: undefined,
+        },
+      };
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          provider: 'openai.chat',
+          modelId: 'gpt-4',
+          doGenerate: [
+            {
+              content: [
+                { type: 'text', text: 'Summary of earlier work.' },
+                { type: 'reasoning', text: 'I should look this up.' },
+                { type: 'text', text: 'Looking it up now.' },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'lookup',
+                  input: '{"id":7}',
+                },
+              ],
+              finishReason: { raw: undefined, unified: 'tool-calls' },
+              usage,
+              warnings: [],
+            },
+            {
+              content: [{ type: 'text', text: 'It is seven.' }],
+              finishReason: { raw: undefined, unified: 'stop' },
+              usage,
+              warnings: [],
+            },
+          ],
+        }),
+        prompt: 'Find 7',
+        tools: {
+          lookup: tool({
+            inputSchema: z.object({ id: z.number() }),
+            execute: async () => 'seven',
+          }),
+        },
+        stopWhen: isStepCount(2),
+        telemetry: {
+          integrations: integration,
+        },
+      });
+
+      const [firstChatSpan, secondChatSpan] = sdkTrace.exporter
+        .getFinishedSpans()
+        .filter(span => span.name === 'chat gpt-4');
+
+      const firstOutput = parseJsonAttributes(
+        firstChatSpan.attributes,
+        'gen_ai.output.messages',
+      )['gen_ai.output.messages'] as Array<{ parts: unknown[] }>;
+      const secondInput = parseJsonAttributes(
+        secondChatSpan.attributes,
+        'gen_ai.input.messages',
+      )['gen_ai.input.messages'] as Array<{ role: string; parts: unknown[] }>;
+
+      expect(firstOutput[0].parts).toEqual(
+        secondInput.find(message => message.role === 'assistant')?.parts,
+      );
+      expect(firstOutput[0].parts).toMatchInlineSnapshot(`
+        [
+          {
+            "content": "Summary of earlier work.",
+            "type": "text",
+          },
+          {
+            "content": "I should look this up.",
+            "type": "reasoning",
+          },
+          {
+            "content": "Looking it up now.",
+            "type": "text",
+          },
+          {
+            "arguments": {
+              "id": 7,
+            },
+            "id": "call-1",
+            "name": "lookup",
+            "type": "tool_call",
+          },
+        ]
+      `);
+
+      const rootSpan = getExportedSpan(sdkTrace.exporter, 'invoke_agent gpt-4');
+      expect(parseJsonAttributes(rootSpan.attributes, 'gen_ai.output.messages'))
+        .toMatchInlineSnapshot(`
+        {
+          "gen_ai.output.messages": [
+            {
+              "finish_reason": "stop",
+              "parts": [
+                {
+                  "content": "Summary of earlier work.",
+                  "type": "text",
+                },
+                {
+                  "content": "I should look this up.",
+                  "type": "reasoning",
+                },
+                {
+                  "content": "Looking it up now.",
+                  "type": "text",
+                },
+                {
+                  "arguments": {
+                    "id": 7,
+                  },
+                  "id": "call-1",
+                  "name": "lookup",
+                  "type": "tool_call",
+                },
+                {
+                  "id": "call-1",
+                  "response": "seven",
+                  "type": "tool_call_response",
+                },
+                {
+                  "content": "It is seven.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+        }
+      `);
+    });
   });
 
   describe('embed integration', () => {
@@ -3075,6 +3295,97 @@ describe('OpenTelemetry', () => {
         ],
       );
     });
+  });
+
+  describe('steering interrupt', () => {
+    it.each(['generateText', 'streamText'] as const)(
+      'ends the span of the model call that an interrupt cancels in %s',
+      async mode => {
+        const steering = experimental_createSteering();
+        const usage = {
+          inputTokens: {
+            total: 2,
+            noCache: 2,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
+          outputTokens: { total: 1, text: 1, reasoning: 0 },
+        };
+        const interruptAndWaitForAbort = (signal: AbortSignal | undefined) => {
+          void steering.steer('Use Paris, Texas instead.', {
+            interrupt: true,
+          });
+          return new Promise<never>((_, reject) => {
+            if (signal?.aborted) {
+              reject(signal.reason);
+            }
+            signal?.addEventListener('abort', () => reject(signal.reason), {
+              once: true,
+            });
+          });
+        };
+        const model: MockLanguageModelV4 = new MockLanguageModelV4({
+          doGenerate: async ({ abortSignal }) =>
+            model.doGenerateCalls.length === 1
+              ? interruptAndWaitForAbort(abortSignal)
+              : {
+                  content: [{ type: 'text', text: 'It is sunny.' }],
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage,
+                  warnings: [],
+                },
+          doStream: async ({ abortSignal }) =>
+            model.doStreamCalls.length === 1
+              ? interruptAndWaitForAbort(abortSignal)
+              : {
+                  stream: convertArrayToReadableStream([
+                    { type: 'stream-start', warnings: [] },
+                    { type: 'text-start', id: '1' },
+                    { type: 'text-delta', id: '1', delta: 'It is sunny.' },
+                    { type: 'text-end', id: '1' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage,
+                    },
+                  ]),
+                },
+        });
+        const options = {
+          model,
+          prompt: 'What is the weather in Paris?',
+          experimental_steering: steering,
+          telemetry: { integrations: integration },
+        };
+
+        if (mode === 'generateText') {
+          await generateText(options);
+        } else {
+          await streamText(options).consumeStream();
+        }
+
+        expect(
+          tracer.spans.map(span => ({
+            name: span.name,
+            ended: span.ended,
+            status: span.status,
+          })),
+        ).toEqual([
+          {
+            name: 'invoke_agent mock-model-id',
+            ended: true,
+            status: undefined,
+          },
+          { name: 'step 1', ended: true, status: undefined },
+          {
+            name: 'chat mock-model-id',
+            ended: true,
+            status: { code: SpanStatusCode.ERROR },
+          },
+          { name: 'chat mock-model-id', ended: true, status: undefined },
+        ]);
+      },
+    );
   });
 
   describe('stream errors', () => {

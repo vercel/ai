@@ -237,6 +237,8 @@ vi.mock('node:fs/promises', async importOriginal => {
       const [input] = args;
       const filePath = typeof input === 'string' ? input : String(input);
       if (filePath.endsWith('/bridge/index.mjs')) return '// mock bridge\n';
+      if (filePath.endsWith('/bridge/opencode-read-plugin.mjs'))
+        return '// mock read plugin\n';
       if (filePath.endsWith('/bridge/host-tool-mcp.mjs'))
         return '// mock host-tool-mcp\n';
       if (filePath.endsWith('/bridge/pnpm-lockfile.yaml'))
@@ -1815,6 +1817,7 @@ describe('createOpenCode adapter', () => {
       expect(paths).toEqual([
         '.harness-bootstrap/opencode/bridge.mjs',
         '.harness-bootstrap/opencode/host-tool-mcp.mjs',
+        '.harness-bootstrap/opencode/opencode-read-plugin.mjs',
         '.harness-bootstrap/opencode/package.json',
         '.harness-bootstrap/opencode/pnpm-lock.yaml',
         '.harness-bootstrap/opencode/pnpm-workspace.yaml',

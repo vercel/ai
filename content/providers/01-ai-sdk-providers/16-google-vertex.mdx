@@ -618,6 +618,30 @@ const result = await generateText({
 
 The optional `retrievalConfig.latLng` provider option provides location context for queries about nearby places. This configuration applies to any grounding tools that support location context.
 
+#### Remote MCP Server
+
+For Vertex Interactions models (`googleVertex.interactions(...)`), `googleVertex.tools.mcpServer` connects a remote MCP server so the model can call its tools. Header values are sent to the API and redacted from telemetry.
+
+```ts
+import { googleVertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: googleVertex.interactions('gemini-4-hydrogen'),
+  tools: {
+    mcp_server: googleVertex.tools.mcpServer({
+      name: 'local-mcp',
+      url: 'https://example.com/mcp',
+      headers: { Authorization: `Bearer ${process.env.MCP_TOKEN}` },
+      allowedTools: ['getWeather'],
+    }),
+  },
+  prompt: 'What is the weather in San Francisco right now?',
+});
+```
+
+See [Remote MCP servers](/providers/ai-sdk-providers/google#remote-mcp-servers) for the Google provider equivalent.
+
 #### Streaming Function Call Arguments
 
 For Gemini 3 Pro and later models on Vertex AI, you can stream function call
@@ -1061,6 +1085,7 @@ The following Zod features are known to not work with Google Vertex:
 | `gemini-4-argon`                 | <Check />   | <Check />         | <Check />  | <Check />      |
 | `gemini-4-carbon`                | <Check />   | <Check />         | <Check />  | <Check />      |
 | `gemini-4-hydrogen`              | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-4-neon`                  | <Check />   | <Check />         | <Check />  | <Check />      |
 | `gemini-3.8-flash`               | <Check />   | <Check />         | <Check />  | <Check />      |
 | `gemini-3.7-flash`               | <Check />   | <Check />         | <Check />  | <Check />      |
 | `gemini-3.6-flash`               | <Check />   | <Check />         | <Check />  | <Check />      |

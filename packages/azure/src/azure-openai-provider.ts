@@ -800,14 +800,30 @@ class AzureImageModel implements ImageModelV4 {
   }
 
   async doGenerate(options: Parameters<ImageModelV4['doGenerate']>[0]) {
-    const { api, ...maiOptions } =
+    // `background` is shared with the OpenAI API, so it is not MAI-only.
+    const { api, background, ...maiOnlyOptions } =
       (await parseProviderOptions({
         provider: 'azure',
         providerOptions: options.providerOptions,
         schema: azureImageModelOptions,
       })) ?? {};
     if ((api ?? (isMAIImageModel(this.modelId) ? 'mai' : 'openai')) === 'mai') {
-      return this.mai.doGenerate(options, maiOptions);
+      if (background !== 'auto') {
+        return this.mai.doGenerate(options, { ...maiOnlyOptions, background });
+      }
+      const result = await this.mai.doGenerate(options, maiOnlyOptions);
+      return {
+        ...result,
+        warnings: [
+          ...result.warnings,
+          {
+            type: 'unsupported',
+            feature: 'providerOptions.azure.background',
+            details:
+              "The MAI image API supports 'transparent' and 'opaque' backgrounds.",
+          } satisfies SharedV4Warning,
+        ],
+      };
     }
 
     const result = await this.openai.doGenerate(
@@ -826,7 +842,7 @@ class AzureImageModel implements ImageModelV4 {
       warnings: [
         ...result.warnings,
         ...unsupportedOptionWarnings(
-          maiOptions,
+          maiOnlyOptions,
           'This option requires the MAI image API.',
         ),
       ],
