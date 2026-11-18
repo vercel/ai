@@ -1163,7 +1163,6 @@ async function generateTextInternal<
                       }) ?? []
                     ).map(({ message }) => message),
                   ];
-                  const deliveredSteeringMessages = stepSteeringMessages;
 
                   const promptMessages = await convertToLanguageModelPrompt({
                     prompt: {
@@ -1771,7 +1770,7 @@ async function generateTextInternal<
                       request: stepRequest,
                       response: stepResponse,
                       toolsContext,
-                      steeringMessages: deliveredSteeringMessages,
+                      steeringMessages: stepSteeringMessages,
                     });
 
                   logWarnings({
