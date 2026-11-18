@@ -137,7 +137,7 @@ for (const version of versions) {
       continue;
     }
     rmSync(outDir, { recursive: true, force: true });
-    transformDir(srcDir, outDir);
+    transformDir(srcDir, outDir, "", version.id, family);
     log(`transformed ${version.id}/${family}`);
   }
 }
