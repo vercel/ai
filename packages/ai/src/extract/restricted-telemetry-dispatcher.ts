@@ -6,10 +6,44 @@ import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type { Callback } from '../util/callback';
 import type { ExtractEndEvent, ExtractStartEvent } from './extract-events';
 
-export function omitRequestCredentials<
-  EVENT extends Pick<ExtractStartEvent, 'headers' | 'providerOptions'>,
+export function toTelemetryEvent<
+  EVENT extends Pick<
+    ExtractStartEvent,
+    'headers' | 'providerOptions' | 'state'
+  >,
 >(event: EVENT): EVENT {
-  return { ...event, headers: undefined, providerOptions: {} };
+  return {
+    ...event,
+    headers: undefined,
+    providerOptions: {},
+    state: redactFileLocations(event.state),
+  };
+}
+
+function redactFileLocations<STATE>(state: STATE): STATE {
+  if (!Array.isArray(state)) return state;
+  return state.map(part =>
+    part?.type === 'file' && isFileLocation(part.data)
+      ? { ...part, data: '[redacted]' }
+      : part,
+  ) as STATE;
+}
+
+function isFileLocation(data: unknown): boolean {
+  if (data instanceof URL) return true;
+  if (typeof data === 'string') {
+    try {
+      return new URL(data).protocol !== 'data:';
+    } catch {
+      return false;
+    }
+  }
+  return (
+    data != null &&
+    typeof data === 'object' &&
+    'type' in data &&
+    (data.type === 'url' || data.type === 'reference')
+  );
 }
 
 export function createRestrictedTelemetryDispatcher<
@@ -32,9 +66,19 @@ export function createRestrictedTelemetryDispatcher<
 
   return {
     ...dispatcher,
+    experimental_onExtractionModelCallStart: event =>
+      dispatcher.experimental_onExtractionModelCallStart?.({
+        ...event,
+        state: redactFileLocations(event.state),
+      }),
+    experimental_onExtractionModelCallEnd: event =>
+      dispatcher.experimental_onExtractionModelCallEnd?.({
+        ...event,
+        state: redactFileLocations(event.state),
+      }),
     onStart: event =>
       dispatcher.experimental_onExtractStart?.({
-        ...omitRequestCredentials(event),
+        ...toTelemetryEvent(event),
         runtimeContext: filterIncludedContext({
           context: event.runtimeContext,
           includeContext: telemetry?.includeRuntimeContext,
@@ -42,7 +86,7 @@ export function createRestrictedTelemetryDispatcher<
       }),
     onEnd: event =>
       dispatcher.experimental_onExtractEnd?.({
-        ...omitRequestCredentials(event),
+        ...toTelemetryEvent(event),
         runtimeContext: filterIncludedContext({
           context: event.runtimeContext,
           includeContext: telemetry?.includeRuntimeContext,

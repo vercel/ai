@@ -7,10 +7,15 @@ import {
   type Experimental_ExtractionModelV4Field as ExtractionField,
   type Experimental_ExtractionModelV4Result as ExtractionModelV4Result,
 } from '@ai-sdk/provider';
+import { DownloadError } from '@ai-sdk/provider-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
-import { createDownload, experimental_extract as extract } from '../index';
+import {
+  createDownload,
+  experimental_extract as extract,
+  type Experimental_ExtractionStatePart,
+} from '../index';
 import { ExtractionMockModelV4 } from '../test/extraction-mock-model-v4';
 import type { Telemetry } from '../telemetry/telemetry';
 import { VERSION } from '../version';
@@ -1030,6 +1035,81 @@ describe('telemetry', () => {
       });
     },
   );
+
+  it('redacts file urls and references from state sent to integrations', async () => {
+    const experimental_onExtractStart = vi.fn();
+    const onStart = vi.fn();
+    const url = 'https://files.example.com/invoice.pdf?X-Amz-Signature=secret';
+    const fileState: Experimental_ExtractionStatePart[] = [
+      { type: 'text', text: 'Invoice' },
+      {
+        type: 'file' as const,
+        mediaType: 'application/pdf',
+        data: new URL(url),
+      },
+      { type: 'file', mediaType: 'application/pdf', data: url },
+      {
+        type: 'file',
+        mediaType: 'application/pdf',
+        data: { type: 'reference', reference: { openai: 'secret-reference' } },
+      },
+    ];
+
+    await extract({
+      ...setup({
+        answers: { invoiceNumber: { type: 'text', value: 'INV-2041' } },
+        warnings: [],
+      }),
+      state: fileState,
+      fields: { invoiceNumber: fields.invoiceNumber },
+      experimental_download: async requests =>
+        requests.map(() => ({
+          data: new Uint8Array([1, 2, 3]),
+          mediaType: 'application/pdf',
+        })),
+      telemetry: { integrations: { experimental_onExtractStart } },
+      onStart,
+    });
+
+    const event = experimental_onExtractStart.mock.calls[0][0];
+    expect(JSON.stringify(event)).not.toContain('secret');
+    expect(event.state).toEqual([
+      { type: 'text', text: 'Invoice' },
+      { type: 'file', mediaType: 'application/pdf', data: '[redacted]' },
+      { type: 'file', mediaType: 'application/pdf', data: '[redacted]' },
+      { type: 'file', mediaType: 'application/pdf', data: '[redacted]' },
+    ]);
+    expect(onStart.mock.calls[0][0].state).toBe(fileState);
+  });
+
+  it('redacts the url of a failed download from telemetry errors', async () => {
+    const onError = vi.fn();
+    const url = 'https://files.example.com/invoice.pdf?X-Amz-Signature=secret';
+    const { model, doExtract } = setup();
+
+    const error = await extract({
+      model,
+      state: [
+        { type: 'file', mediaType: 'application/pdf', data: new URL(url) },
+      ],
+      fields,
+      experimental_download: async () => {
+        throw new DownloadError({
+          url,
+          message: `Download of ${url} exceeded maximum size of 10 bytes.`,
+        });
+      },
+      telemetry: { integrations: { onError } },
+    }).catch(error => error);
+
+    expect(error.url).toBe(url);
+    expect(doExtract).not.toHaveBeenCalled();
+    const delivered = onError.mock.calls[0][0].error;
+    expect(DownloadError.isInstance(delivered)).toBe(true);
+    expect(
+      `${delivered.url} ${delivered.message} ${delivered.stack}`,
+    ).not.toContain('secret');
+  });
 
   it('includes only selected runtime context fields', async () => {
     const experimental_onExtractStart = vi.fn();

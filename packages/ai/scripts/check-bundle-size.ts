@@ -13,8 +13,8 @@ import { join } from 'path';
 // The experimental extract API adds ~5 KiB.
 // The bundled Gateway extraction client adds ~4 KiB.
 // Steering interrupts add ~3 KiB.
-// Extraction telemetry adds ~1.5 KiB.
-const LIMIT = 663 * 1024;
+// Extraction telemetry adds ~2.5 KiB.
+const LIMIT = 664 * 1024;
 
 interface BundleResult {
   size: number;

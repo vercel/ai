@@ -79,6 +79,8 @@ and Node.js `ai:telemetry` subscribers. Raw provider bodies and provider metadat
 are omitted when either recording option is disabled. Raw tracing span results
 are also omitted in that case because they can contain both inputs and outputs.
 Tracing span errors use a generic failure message.
+File download errors are always sent with the file URL redacted, because the URL
+can be a signed link to a private file.
 Application lifecycle callbacks and returned results retain their full content.
 
 OpenAI Code Interpreter and shell domain secrets, and MCP authorization and
@@ -828,7 +830,10 @@ GenAI semantic-convention attributes. Enable the `experimental_extraction`
 supplemental option to record them under AI SDK-specific `ai.extraction.*`
 attributes. Request headers and provider options can contain credentials, so
 they are not sent to telemetry integrations or `ai:telemetry` subscribers for
-extraction, and extraction spans do not record request headers.
+extraction, and extraction spans do not record request headers. File URLs and
+provider file references in extraction state are replaced with `[redacted]`,
+and extraction spans do not record provider metadata, which can contain document
+content such as OCR text.
 
 #### GenAI span details
 

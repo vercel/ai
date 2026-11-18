@@ -1,4 +1,4 @@
-import { withTelemetryRedaction } from '@ai-sdk/provider-utils';
+import { DownloadError, withTelemetryRedaction } from '@ai-sdk/provider-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { VERSION } from '../version';
 import { createTelemetryDispatcher } from './create-telemetry-dispatcher';
@@ -908,6 +908,29 @@ describe('recordInputs / recordOutputs filtering', () => {
     expect(delivered.state).toBe('');
     expect(delivered.fields).toEqual({});
     expect(delivered.referenceDate).toBeUndefined();
+  });
+
+  it('redacts download urls from errors sent to integrations', async () => {
+    const integration: Telemetry = { onError: vi.fn() };
+    const telemetry = createTelemetryDispatcher({
+      telemetry: { integrations: integration },
+    });
+    const error = new DownloadError({
+      url: 'https://files.example.com/invoice.pdf?X-Amz-Signature=secret',
+      statusCode: 413,
+      statusText: 'Payload Too Large',
+    });
+
+    await telemetry.onError!({ callId: 'call-1', error } as any);
+
+    const delivered = vi.mocked(integration.onError!).mock.calls[0][0] as any;
+    expect(DownloadError.isInstance(delivered.error)).toBe(true);
+    expect(delivered.error.url).toBe('[redacted]');
+    expect(delivered.error.statusCode).toBe(413);
+    expect(JSON.stringify(delivered.error)).not.toContain('secret');
+    expect(delivered.error.message).not.toContain('secret');
+    expect(delivered.error.stack).not.toContain('secret');
+    expect(error.url).toContain('secret');
   });
 
   it('strips output content when recordOutputs is false', async () => {

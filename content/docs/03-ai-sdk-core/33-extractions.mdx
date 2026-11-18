@@ -224,7 +224,9 @@ through `experimental_onExtractStart`, `experimental_onExtractionModelCallStart`
 use `onError`. With `recordInputs: false`, integrations do not receive the state,
 fields, or reference date, and with `recordOutputs: false` they do not receive
 answers. Request headers and provider options are never sent to telemetry
-because they can contain credentials; `onStart` and `onEnd` still receive them. See [Telemetry](/docs/ai-sdk-core/telemetry#experimental_extract) for
+because they can contain credentials, and file URLs and references in the state
+are replaced with `[redacted]`; `onStart` and `onEnd` still receive the
+original values. See [Telemetry](/docs/ai-sdk-core/telemetry#experimental_extract) for
 the OpenTelemetry spans.
 
 ## Testing

@@ -7,7 +7,7 @@ import type {
 import { createOpenAI, openai } from '@ai-sdk/openai';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { RetryError } from '../util/retry-error';
-import { tool } from '@ai-sdk/provider-utils';
+import { DownloadError, tool } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
@@ -1238,6 +1238,57 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
       (extractMessage?.event as { headers?: unknown })?.headers,
     ).toBeUndefined();
     expect(JSON.stringify(extractMessage?.event)).not.toContain('secret');
+  });
+
+  it('redacts file urls and failed download urls from extract tracing', async () => {
+    const url = 'https://files.example.com/invoice.pdf?X-Amz-Signature=secret';
+    const published: unknown[] = [];
+    const tracingChannel = diagnosticsChannel.tracingChannel(
+      AI_SDK_TELEMETRY_TRACING_CHANNEL,
+    );
+    const subscribers = {
+      start(message: unknown) {
+        published.push((message as TelemetryTracingChannelMessage).event);
+      },
+      end() {},
+      asyncStart() {},
+      asyncEnd() {},
+      error(message: unknown) {
+        published.push((message as { error?: unknown }).error);
+      },
+    };
+    tracingChannel.subscribe(subscribers);
+
+    let error: any;
+    try {
+      error = await extract({
+        model: new ExtractionMockModelV4(),
+        state: [
+          { type: 'file', mediaType: 'application/pdf', data: new URL(url) },
+        ],
+        fields: {
+          invoiceNumber: { type: 'text', instructions: 'Invoice number' },
+        },
+        experimental_download: async () => {
+          throw new DownloadError({
+            url,
+            message: `Download of ${url} exceeded maximum size of 10 bytes.`,
+          });
+        },
+      }).catch(error => error);
+    } finally {
+      tracingChannel.unsubscribe(subscribers);
+    }
+
+    expect(error.url).toBe(url);
+    expect(published).toHaveLength(2);
+    for (const value of published) {
+      const text = JSON.stringify(value);
+      expect(text).not.toContain('secret');
+      if (value instanceof Error) {
+        expect(`${value.message} ${value.stack}`).not.toContain('secret');
+      }
+    }
   });
 
   it('hides extraction inputs in tracing when inputs are not recorded', async () => {
