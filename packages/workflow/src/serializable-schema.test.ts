@@ -120,6 +120,115 @@ describe('serializeToolSet', () => {
 });
 
 describe('resolveSerializableTools', () => {
+  it('compiles an unchanged JSON Schema once across calls', async () => {
+    const { default: Ajv } = await import('ajv');
+    const compileSpy = vi.spyOn(Ajv.prototype, 'compile');
+
+    try {
+      const original = {
+        search: tool({
+          description: 'Search documentation',
+          inputSchema: jsonSchema({
+            type: 'object',
+            properties: { query: { type: 'string' } },
+            required: ['query'],
+          }),
+        }),
+      };
+
+      compileSpy.mockClear();
+      resolveSerializableTools(serializeToolSet(original));
+      const afterFirst = compileSpy.mock.calls.length;
+      resolveSerializableTools(serializeToolSet(original));
+      const afterSecond = compileSpy.mock.calls.length;
+
+      expect(afterFirst).toBe(1);
+      expect(afterSecond).toBe(1);
+    } finally {
+      compileSpy.mockRestore();
+    }
+  });
+
+  it('compiles a changed JSON Schema again', async () => {
+    const { default: Ajv } = await import('ajv');
+    const compileSpy = vi.spyOn(Ajv.prototype, 'compile');
+
+    try {
+      // The cache key is the schema's JSON text, so this schema must differ
+      // from every other one in this file; the tool name plays no part.
+      const build = (type: 'string' | 'number') => ({
+        lookup: tool({
+          description: 'Look up a record',
+          inputSchema: jsonSchema({
+            type: 'object',
+            properties: { key: { type } },
+            required: ['key'],
+          }),
+        }),
+      });
+
+      compileSpy.mockClear();
+      resolveSerializableTools(serializeToolSet(build('string')));
+      const afterFirst = compileSpy.mock.calls.length;
+      resolveSerializableTools(serializeToolSet(build('number')));
+      const afterChange = compileSpy.mock.calls.length;
+
+      expect(afterFirst).toBe(1);
+      expect(afterChange).toBe(2);
+    } finally {
+      compileSpy.mockRestore();
+    }
+  });
+
+  it('resolves a $ref from one tool schema to another in the same set', () => {
+    const tools = {
+      shared: tool({
+        description: 'Shared shape',
+        inputSchema: jsonSchema({
+          $id: 'https://example.com/serializable-schema-shared',
+          type: 'object',
+          properties: { a: { type: 'string' } },
+        }),
+      }),
+      consumer: tool({
+        description: 'Refers to the shared shape',
+        inputSchema: jsonSchema({
+          type: 'object',
+          properties: {
+            s: { $ref: 'https://example.com/serializable-schema-shared' },
+          },
+        }),
+      }),
+    };
+
+    // Tools in one set share a compiler, so the second schema resolves.
+    expect(() =>
+      resolveSerializableTools(serializeToolSet(tools)),
+    ).not.toThrow();
+  });
+
+  it('recompiles a schema whose fixed $id stayed the same but whose body changed', () => {
+    const build = (type: 'string' | 'number') => ({
+      probe: tool({
+        description: 'Probe a value',
+        inputSchema: jsonSchema({
+          $id: 'https://example.com/serializable-schema-probe',
+          type: 'object',
+          properties: { v: { type } },
+        }),
+      }),
+    });
+
+    // Ajv refuses a second schema with an $id it already holds, so a shared
+    // compiler would throw here instead of recompiling.
+    expect(() =>
+      resolveSerializableTools(serializeToolSet(build('string'))),
+    ).not.toThrow();
+    expect(() =>
+      resolveSerializableTools(serializeToolSet(build('number'))),
+    ).not.toThrow();
+  });
+
   it('round-trips function tool input examples and provider options', () => {
     const original = {
       search: tool({
