@@ -1,0 +1,163 @@
+---
+title: 'GoodMem'
+description: 'GoodMem integration for the Vercel AI SDK.'
+---
+
+# GoodMem
+
+The [GoodMem](https://goodmem.ai) provider gives AI SDK agents persistent memory, stored in organized spaces and searched by meaning with optional reranking. It runs on GoodMem Cloud (free 14-day trial) or fully on-premises, with embedding models you choose:
+
+- **Memory Spaces**: Organize memories into scoped spaces (per user, per project, per agent)
+- **Semantic Retrieval**: Vector search with optional reranking over stored memories
+- **Multiple Embedders**: Use the embedding model of your choice (OpenAI, TEI, vLLM, and more)
+- **Cloud or On-Prem**: Use GoodMem Cloud, or run the server fully on-premises — with self-hosted embedding endpoints, your content never leaves your network
+- **Multimodal Content**: Store and retrieve text and binary content (PDFs, documents)
+- **Free Trial Available**: Get started with 14 days of GoodMem Cloud, no credit card required
+
+Learn more in the [GoodMem documentation](https://docs.goodmem.ai).
+
+## Setup
+
+The GoodMem provider is available in the `@pairsystems/goodmem-vercel-ai-sdk` module. You can install it with:
+
+<InstallPackages packages="@pairsystems/goodmem-vercel-ai-sdk" />
+
+## Provider Instance
+
+You can get a GoodMem instance for free at [cloud.goodmem.ai](https://cloud.goodmem.ai/login) (14-day trial, no credit card required). To run on-prem instead, install the server with `curl -s https://get.goodmem.ai | bash`.
+
+Your instance's console includes a **Quick Start**: paste one API key from your model provider (OpenAI, OpenRouter, Voyage, Cohere, Jina, Gemini or DashScope) and it creates an embedder and your first memory space in one click. Use that space's ID as the `spaceId` in the examples below.
+
+The provider reads your instance URL and API key from the environment:
+
+```bash
+GOODMEM_BASE_URL=https://gm-<name>-<id>.app.goodmem.ai
+GOODMEM_API_KEY=your-api-key
+```
+
+You can also pass them explicitly as `baseUrl` and `apiKey` in any configuration.
+
+## Usage
+
+There are three ways to integrate GoodMem with your AI applications:
+
+**1. Memory tools** — give the model `searchMemories` and `addMemory` operations:
+
+```typescript
+import { goodmemTools } from '@pairsystems/goodmem-vercel-ai-sdk';
+import { generateText, stepCountIs } from 'ai';
+
+const result = await generateText({
+  model: yourModel,
+  tools: goodmemTools({ spaceId: 'space-id' }),
+  stopWhen: stepCountIs(5),
+  prompt: 'Remember that my favorite editor is Neovim',
+});
+```
+
+**2. Automatic memory middleware** — wrap any AI SDK model so relevant memories are retrieved and injected on every call:
+
+```typescript
+import { withGoodmem } from '@pairsystems/goodmem-vercel-ai-sdk';
+
+const model = withGoodmem(yourModel, { spaceId: 'space-id' });
+```
+
+If GoodMem is unreachable or slow (over 5 seconds by default), the call goes ahead without memories and the result carries a warning, so a memory outage never takes your chat down.
+
+**3. Explicit memory management** — store and retrieve memories yourself:
+
+```typescript
+import { addMemories, retrieveMemories } from '@pairsystems/goodmem-vercel-ai-sdk';
+
+const config = { spaceId: 'space-id' };
+
+await addMemories(['My favorite editor is Neovim'], config);
+const { context } = await retrieveMemories('What editor do I use?', config);
+```
+
+GoodMem works with any AI SDK provider.
+
+## Examples
+
+Here are examples of using GoodMem with the AI SDK:
+
+### `generateText` with Tools
+
+```typescript
+import { generateText, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { goodmemTools } from '@pairsystems/goodmem-vercel-ai-sdk';
+
+const { text } = await generateText({
+  model: openai('gpt-5-mini'),
+  prompt: 'Remember that my name is Alice and I prefer aisle seats.',
+  tools: goodmemTools({ spaceId: 'space-id' }),
+  stopWhen: stepCountIs(5),
+});
+
+console.log(text);
+```
+
+### `streamText` with Automatic Memory
+
+```typescript
+import { streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { withGoodmem } from '@pairsystems/goodmem-vercel-ai-sdk';
+
+const model = withGoodmem(openai('gpt-5'), { spaceId: 'space-id' });
+
+const result = streamText({
+  model,
+  prompt: 'What are my seating preferences?',
+});
+
+// Relevant memories are retrieved and injected before the model runs;
+// the outcome of the lookup is reported on providerMetadata.goodmem.
+
+for await (const chunk of result.textStream) {
+  console.log(chunk);
+}
+```
+
+### Memories with Metadata and Filtered Search
+
+```typescript
+import {
+  addMemories,
+  searchMemories,
+  filters,
+} from '@pairsystems/goodmem-vercel-ai-sdk';
+
+const config = { spaceId: 'space-id' };
+
+await addMemories(
+  [
+    { text: 'User is allergic to peanuts.', metadata: { category: 'health' } },
+    { text: 'User prefers aisle seats.', metadata: { category: 'travel' } },
+  ],
+  config,
+  { waitForIndexing: true },
+);
+
+const { results } = await searchMemories('anything to avoid at dinner?', {
+  ...config,
+  filter: filters.equals('category', 'health'),
+});
+// Only memories tagged health, with oriented scores and their metadata.
+```
+
+## Multi-User Applications
+
+Scope memories per user by giving each user their own space, and construct the tools inside your request handler:
+
+```typescript
+const tools = goodmemTools({ spaceId: spaceIdForUser(userId) });
+```
+
+## Additional Resources
+
+- [GoodMem Documentation](https://docs.goodmem.ai)
+- [`@pairsystems/goodmem-vercel-ai-sdk` on npm](https://www.npmjs.com/package/@pairsystems/goodmem-vercel-ai-sdk)
+- [Source repository](https://github.com/PAIR-Systems-Inc/goodmem-vercel-ai-sdk)
