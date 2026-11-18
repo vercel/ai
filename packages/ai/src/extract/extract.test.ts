@@ -12,6 +12,8 @@ import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import { createDownload, experimental_extract as extract } from '../index';
 import { ExtractionMockModelV4 } from '../test/extraction-mock-model-v4';
+import type { Telemetry } from '../telemetry/telemetry';
+import { VERSION } from '../version';
 
 const state =
   'Invoice INV-2041, total due $1,250.00 by March 3, 2027 at 17:30. Call Ana or Bo within 2 hours.';
@@ -833,4 +835,264 @@ it('stops before provider I/O when the download transport blocks a URL', async (
   expect(fetch).toHaveBeenCalledTimes(1);
   expect(globalFetch).not.toHaveBeenCalled();
   expect(doExtract).not.toHaveBeenCalled();
+});
+
+describe('telemetry', () => {
+  it('emits operation and model-call lifecycle events', async () => {
+    const onStart = vi.fn();
+    const onEnd = vi.fn();
+    const events: string[] = [];
+    const record = (name: string) => (event: unknown) => {
+      events.push(name);
+      calls[name].push(event);
+    };
+    const calls: Record<string, unknown[]> = {
+      experimental_onExtractStart: [],
+      experimental_onExtractionModelCallStart: [],
+      experimental_onExtractionModelCallEnd: [],
+      experimental_onExtractEnd: [],
+      extractOnStart: [],
+      extractOnEnd: [],
+    };
+    const integration: Telemetry = {
+      onStart,
+      onEnd,
+      experimental_onExtractStart: record('experimental_onExtractStart'),
+      experimental_onExtractionModelCallStart: record(
+        'experimental_onExtractionModelCallStart',
+      ),
+      experimental_onExtractionModelCallEnd: record(
+        'experimental_onExtractionModelCallEnd',
+      ),
+      experimental_onExtractEnd: record('experimental_onExtractEnd'),
+    };
+
+    await extract({
+      ...setup({
+        answers: { ...answers, contacts: { type: 'list', value: [] } },
+        warnings: [],
+        usage: { inputTokens: 40, outputTokens: 12 },
+      }),
+      state,
+      fields,
+      referenceDate: '2026-11-18',
+      telemetry: {
+        integrations: integration,
+        functionId: 'extract-test',
+        recordInputs: false,
+        recordOutputs: true,
+      },
+      runtimeContext: { requestId: 'request-1', secret: 'hidden' },
+      onStart: record('extractOnStart'),
+      onEnd: record('extractOnEnd'),
+      _internal: { generateCallId: () => 'test-call-id' },
+    });
+
+    expect(onStart).not.toHaveBeenCalled();
+    expect(onEnd).not.toHaveBeenCalled();
+    expect(events).toEqual([
+      'extractOnStart',
+      'experimental_onExtractStart',
+      'experimental_onExtractionModelCallStart',
+      'experimental_onExtractionModelCallEnd',
+      'extractOnEnd',
+      'experimental_onExtractEnd',
+    ]);
+    expect(calls.experimental_onExtractStart[0]).toMatchObject({
+      callId: 'test-call-id',
+      operationId: 'ai.extract',
+      provider: 'mock-provider',
+      modelId: 'mock-model-id',
+      state: '',
+      fields: {},
+      runtimeContext: {},
+      maxRetries: 2,
+      recordInputs: false,
+      recordOutputs: true,
+      functionId: 'extract-test',
+      aiVersion: VERSION,
+    });
+    expect(calls.experimental_onExtractionModelCallStart[0]).toMatchObject({
+      callId: 'test-call-id',
+      operationId: 'ai.extract.doExtract',
+      state: [],
+      fields: {},
+    });
+    expect(calls.experimental_onExtractionModelCallEnd[0]).toMatchObject({
+      callId: 'test-call-id',
+      operationId: 'ai.extract.doExtract',
+      answers: { ...answers, contacts: { type: 'list', value: null } },
+      usage: { inputTokens: 40, outputTokens: 12 },
+    });
+    expect(calls.experimental_onExtractEnd[0]).toMatchObject({
+      callId: 'test-call-id',
+      operationId: 'ai.extract',
+      answers: { ...answers, contacts: { type: 'list', value: null } },
+      usage: { inputTokens: 40, outputTokens: 12, totalTokens: 52 },
+      runtimeContext: {},
+    });
+    for (const name of [
+      'experimental_onExtractStart',
+      'experimental_onExtractionModelCallStart',
+      'experimental_onExtractionModelCallEnd',
+      'experimental_onExtractEnd',
+    ]) {
+      const event = calls[name][0] as {
+        state: unknown;
+        fields: unknown;
+        referenceDate: unknown;
+      };
+      expect(event.fields).toEqual({});
+      expect(event.referenceDate).toBeUndefined();
+      expect(event.state).toEqual(name.includes('ModelCall') ? [] : '');
+    }
+    expect(calls.extractOnStart[0]).toMatchObject({
+      operationId: 'ai.extract',
+      state,
+      fields,
+      referenceDate: '2026-11-18',
+      runtimeContext: { requestId: 'request-1', secret: 'hidden' },
+    });
+    expect(calls.extractOnEnd[0]).toMatchObject({
+      operationId: 'ai.extract',
+      runtimeContext: { requestId: 'request-1', secret: 'hidden' },
+    });
+  });
+
+  it('hides answers from integrations when outputs are not recorded', async () => {
+    const experimental_onExtractionModelCallEnd = vi.fn();
+    const experimental_onExtractEnd = vi.fn();
+    const onEnd = vi.fn();
+
+    await extract({
+      ...setup(),
+      state,
+      fields,
+      telemetry: {
+        integrations: {
+          experimental_onExtractionModelCallEnd,
+          experimental_onExtractEnd,
+        },
+        recordOutputs: false,
+      },
+      onEnd,
+    });
+
+    for (const callback of [
+      experimental_onExtractionModelCallEnd,
+      experimental_onExtractEnd,
+    ]) {
+      expect(callback.mock.calls[0][0].answers).toEqual({});
+      expect(callback.mock.calls[0][0].fields).toEqual(fields);
+    }
+    expect(onEnd.mock.calls[0][0].answers).toEqual(answers);
+  });
+
+  it('includes only selected runtime context fields', async () => {
+    const experimental_onExtractStart = vi.fn();
+    const experimental_onExtractEnd = vi.fn();
+
+    await extract({
+      ...setup(),
+      state,
+      fields,
+      telemetry: {
+        integrations: {
+          experimental_onExtractStart,
+          experimental_onExtractEnd,
+        },
+        includeRuntimeContext: { requestId: true },
+      },
+      runtimeContext: { requestId: 'request-1', secret: 'hidden' },
+    });
+
+    for (const callback of [
+      experimental_onExtractStart,
+      experimental_onExtractEnd,
+    ]) {
+      expect(callback).toHaveBeenCalledWith(
+        expect.objectContaining({ runtimeContext: { requestId: 'request-1' } }),
+      );
+    }
+  });
+
+  it('emits an error event when extraction fails', async () => {
+    const error = new Error('extraction failed');
+    const onError = vi.fn();
+    const experimental_onExtractEnd = vi.fn();
+    const { model } = setup();
+    model.doExtract = vi.fn().mockRejectedValue(error);
+
+    await expect(
+      extract({
+        model,
+        state,
+        fields,
+        maxRetries: 0,
+        telemetry: { integrations: { onError, experimental_onExtractEnd } },
+        _internal: { generateCallId: () => 'test-call-id' },
+      }),
+    ).rejects.toBe(error);
+
+    expect(onError).toHaveBeenCalledWith({
+      aiVersion: VERSION,
+      callId: 'test-call-id',
+      error,
+    });
+    expect(experimental_onExtractEnd).not.toHaveBeenCalled();
+  });
+
+  it('emits an error event and no end events when a field is refused', async () => {
+    const onError = vi.fn();
+    const experimental_onExtractionModelCallEnd = vi.fn();
+    const experimental_onExtractEnd = vi.fn();
+    const onEnd = vi.fn();
+
+    await expect(
+      extract({
+        ...setup({
+          answers: { ...answers, total: { type: 'refusal' } },
+          warnings: [],
+        }),
+        state,
+        fields,
+        telemetry: {
+          integrations: {
+            onError,
+            experimental_onExtractionModelCallEnd,
+            experimental_onExtractEnd,
+          },
+        },
+        onEnd,
+        _internal: { generateCallId: () => 'test-call-id' },
+      }),
+    ).rejects.toSatisfy(ExtractionRefusalError.isInstance);
+
+    expect(onError).toHaveBeenCalledWith(
+      expect.objectContaining({ callId: 'test-call-id' }),
+    );
+    expect(experimental_onExtractionModelCallEnd).not.toHaveBeenCalled();
+    expect(experimental_onExtractEnd).not.toHaveBeenCalled();
+    expect(onEnd).not.toHaveBeenCalled();
+  });
+
+  it('emits no events when a field type is unsupported', async () => {
+    const onError = vi.fn();
+    const experimental_onExtractStart = vi.fn();
+    const onStart = vi.fn();
+
+    await expect(
+      extract({
+        model: new ExtractionMockModelV4({ supportedFieldTypes: ['text'] }),
+        state,
+        fields,
+        telemetry: { integrations: { onError, experimental_onExtractStart } },
+        onStart,
+      }),
+    ).rejects.toSatisfy(ExtractionUnsupportedFieldTypeError.isInstance);
+
+    expect(experimental_onExtractStart).not.toHaveBeenCalled();
+    expect(onStart).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+  });
 });
