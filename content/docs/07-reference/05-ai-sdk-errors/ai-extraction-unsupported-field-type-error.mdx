@@ -7,8 +7,12 @@ description: Identify an extraction field type that a model does not support.
 
 This experimental error identifies a field whose type is unsupported by an
 extraction model. It is exported from `ai` and `@ai-sdk/provider` as
-`Experimental_ExtractionUnsupportedFieldTypeError`. `experimental_extract`
-throws it before any provider request.
+`Experimental_ExtractionUnsupportedFieldTypeError`.
+
+`experimental_extract` throws it before any provider request when the field type
+is not in the model's `supportedFieldTypes`. AI Gateway extraction models support
+different field types per model, so they throw it after the request, when the
+gateway rejects the field.
 
 ## Properties
 
