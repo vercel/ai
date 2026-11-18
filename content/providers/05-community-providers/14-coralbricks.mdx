@@ -6,9 +6,9 @@ description: Learn how to use the CoralBricks provider for the AI SDK.
 # CoralBricks Provider
 
 [@coralbricks/ai-sdk-provider](https://www.npmjs.com/package/@coralbricks/ai-sdk-provider)
-provides access to [CoralBricks](https://www.coralbricks.ai) inference — open
-models (GLM 5.3, DeepSeek V4.1 Flash) with up to 1M-token context and free
-cached input, over an OpenAI-compatible API.
+provides access to [CoralBricks](https://www.coralbricks.ai) inference for the
+open-weight [DeepSeek V4.1 Flash](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash-1017)
+model, with a 1M-token context window, over an OpenAI-compatible API.
 
 API keys can be obtained from the [CoralBricks API keys page](https://www.coralbricks.ai/api-keys).
 
@@ -61,14 +61,31 @@ You can use the following optional settings to customize the CoralBricks provide
 Create a model with the provider instance and a model id:
 
 ```ts
-const model = coralbricks('glm-5.3-fp4');
+const model = coralbricks('deepseek-v4.1-flash');
 ```
 
-Available model ids: `glm-5.3-fp4` (GLM 5.3) and `deepseek-v4.1-flash-fast-fp4`
-(DeepSeek V4.1 Flash). The id type is open, so a
-newly launched model works before
-the package updates. See [coralbricks.ai/pricing](https://www.coralbricks.ai/pricing)
-for the current catalog.
+DeepSeek V4.1 Flash is served in three tiers, each with its own model id:
+
+| Model                        | Model ID                    | Tier              | Input $/1M | Cached input $/1M | Output $/1M |
+| ---------------------------- | --------------------------- | ----------------- | ---------- | ----------------- | ----------- |
+| DeepSeek V4.1 Flash Standard | `deepseek-v4.1-flash`       | Default tier      | $0.19      | $0.008            | $0.60       |
+| DeepSeek V4.1 Flash Fast     | `deepseek-v4.1-flash-fast`  | Fastest tier      | $0.45      | $0.009            | $1.80       |
+| DeepSeek V4.1 Flash Value    | `deepseek-v4.1-flash-value` | Lowest-price tier | $0.005     | $0.003            | $0.57       |
+
+All three have a 1,048,576-token context window and up to 393,216 output
+tokens, accept text and image input, and support reasoning and prompt caching.
+Writing to the prompt cache is not billed. See
+[coralbricks.ai/pricing](https://www.coralbricks.ai/pricing) for current
+prices. The model id type is open, so a newly launched model works before the
+package updates.
+
+### Model Capabilities
+
+| Model                       | Image Input | Object Generation | Tool Usage | Tool Streaming |
+| --------------------------- | ----------- | ----------------- | ---------- | -------------- |
+| `deepseek-v4.1-flash`       | <Check />   | <Check />         | <Check />  | <Check />      |
+| `deepseek-v4.1-flash-fast`  | <Check />   | <Check />         | <Check />  | <Check />      |
+| `deepseek-v4.1-flash-value` | <Check />   | <Check />         | <Check />  | <Check />      |
 
 ### Example
 
@@ -77,11 +94,11 @@ import { generateText } from 'ai';
 import { coralbricks } from '@coralbricks/ai-sdk-provider';
 
 const { text } = await generateText({
-  model: coralbricks('glm-5.3-fp4'),
+  model: coralbricks('deepseek-v4.1-flash'),
   prompt: 'Explain prompt caching in one sentence.',
 });
 ```
 
 Streaming (`streamText`), tool calls, and structured output (`generateObject`)
 work through the standard AI SDK functions — CoralBricks speaks the OpenAI wire
-format, including streaming tool calls. Cached input tokens are billed at zero.
+format, including streaming tool calls.
