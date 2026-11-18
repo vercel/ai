@@ -31,6 +31,7 @@ import { z } from 'zod/v4';
 import {
   embed,
   embedMany,
+  experimental_createSteering,
   experimental_decide,
   experimental_evaluate,
   generateObject,
@@ -3294,6 +3295,97 @@ describe('OpenTelemetry', () => {
         ],
       );
     });
+  });
+
+  describe('steering interrupt', () => {
+    it.each(['generateText', 'streamText'] as const)(
+      'ends the span of the model call that an interrupt cancels in %s',
+      async mode => {
+        const steering = experimental_createSteering();
+        const usage = {
+          inputTokens: {
+            total: 2,
+            noCache: 2,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
+          outputTokens: { total: 1, text: 1, reasoning: 0 },
+        };
+        const interruptAndWaitForAbort = (signal: AbortSignal | undefined) => {
+          void steering.steer('Use Paris, Texas instead.', {
+            interrupt: true,
+          });
+          return new Promise<never>((_, reject) => {
+            if (signal?.aborted) {
+              reject(signal.reason);
+            }
+            signal?.addEventListener('abort', () => reject(signal.reason), {
+              once: true,
+            });
+          });
+        };
+        const model: MockLanguageModelV4 = new MockLanguageModelV4({
+          doGenerate: async ({ abortSignal }) =>
+            model.doGenerateCalls.length === 1
+              ? interruptAndWaitForAbort(abortSignal)
+              : {
+                  content: [{ type: 'text', text: 'It is sunny.' }],
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage,
+                  warnings: [],
+                },
+          doStream: async ({ abortSignal }) =>
+            model.doStreamCalls.length === 1
+              ? interruptAndWaitForAbort(abortSignal)
+              : {
+                  stream: convertArrayToReadableStream([
+                    { type: 'stream-start', warnings: [] },
+                    { type: 'text-start', id: '1' },
+                    { type: 'text-delta', id: '1', delta: 'It is sunny.' },
+                    { type: 'text-end', id: '1' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage,
+                    },
+                  ]),
+                },
+        });
+        const options = {
+          model,
+          prompt: 'What is the weather in Paris?',
+          experimental_steering: steering,
+          telemetry: { integrations: integration },
+        };
+
+        if (mode === 'generateText') {
+          await generateText(options);
+        } else {
+          await streamText(options).consumeStream();
+        }
+
+        expect(
+          tracer.spans.map(span => ({
+            name: span.name,
+            ended: span.ended,
+            status: span.status,
+          })),
+        ).toEqual([
+          {
+            name: 'invoke_agent mock-model-id',
+            ended: true,
+            status: undefined,
+          },
+          { name: 'step 1', ended: true, status: undefined },
+          {
+            name: 'chat mock-model-id',
+            ended: true,
+            status: { code: SpanStatusCode.ERROR },
+          },
+          { name: 'chat mock-model-id', ended: true, status: undefined },
+        ]);
+      },
+    );
   });
 
   describe('stream errors', () => {

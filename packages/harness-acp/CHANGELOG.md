@@ -1,5 +1,13 @@
 # @ai-sdk/harness-acp
 
+## 1.0.128
+
+### Patch Changes
+
+- e845694: fix(harness-acp): validate alternate tool path interpretations
+- Updated dependencies [679b5b5]
+  - @ai-sdk/harness@1.0.188
+
 ## 1.0.127
 
 ### Patch Changes

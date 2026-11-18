@@ -10,6 +10,7 @@ export type GatewayDecisionModelId =
   | 'liquid/d1-ultra'
   | 'liquid/d1.2'
   | 'liquid/d1.2-ultra'
+  | 'microsoft/decision-1.1'
   | 'microsoft/microsoft-decision-1'
   | 'nace-ai/drex-max-finance'
   | 'nace-ai/drex-max-v1.1'
