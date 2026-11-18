@@ -30,7 +30,7 @@ The decision is not limited to the current call's arguments. The policy `input` 
 - Deny a second irreversible action (a push, a delete) in the same conversation.
 - Track cumulative spend or token usage across steps and stop at a ceiling.
 
-These rules also hold when the model returns several tool calls in one response. See [Several tool calls in one response](#several-tool-calls-in-one-response).
+With `generateText`, `streamText`, and `ToolLoopAgent`, these rules also apply when the model returns several tool calls in one response. See [Several tool calls in one response](#several-tool-calls-in-one-response).
 
 ### Best fit: deterministic checks
 
@@ -77,6 +77,7 @@ The more restrictive decision applies: `deny` before `requires-approval`, before
 - A rule that allows a tool call only after another one, such as "deploy only after the tests ran", is not satisfied by a tool call of the same response, because that call has not run yet.
 - Base a limit that must hold within one response on tool calls, not on tool results. The earlier tool calls of a response have no results when the policy is evaluated.
 - OPA receives two queries for such a tool call, so it appears twice in OPA decision logs. A custom `toInput` is called twice as well. When it returns the same input both times, for example because it does not use `messages`, the policy is evaluated once.
+- `opaPolicy` recognizes the tool calls of one response by the `messages` array they are evaluated with. `generateText`, `streamText`, and `ToolLoopAgent` pass the same array for all tool calls of a response. When a caller passes a separate array for each tool call, `opaPolicy` evaluates each tool call once, with `messages` as passed.
 
 ## Quick start
 
