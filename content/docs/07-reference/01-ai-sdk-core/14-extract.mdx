@@ -59,8 +59,10 @@ Returns `Promise<Experimental_ExtractionResult<FIELDS>>`:
 
 ## Errors
 
-Unsupported field types throw `Experimental_ExtractionUnsupportedFieldTypeError`
-before provider I/O. Invalid inputs throw `InvalidArgumentError`; malformed
-answers throw `InvalidResponseDataError`. Fields the model refuses throw
-`Experimental_ExtractionRefusalError`. Model instances must implement v4; other
+Unsupported field types throw
+[`Experimental_ExtractionUnsupportedFieldTypeError`](/docs/reference/ai-sdk-errors/ai-extraction-unsupported-field-type-error),
+before provider I/O or, for AI Gateway models, after the gateway rejects the
+field. Invalid inputs throw `InvalidArgumentError`; malformed answers throw
+`InvalidResponseDataError`. Fields the model refuses throw
+[`Experimental_ExtractionRefusalError`](/docs/reference/ai-sdk-errors/ai-extraction-refusal-error). Model instances must implement v4; other
 versions throw `UnsupportedModelVersionError`.

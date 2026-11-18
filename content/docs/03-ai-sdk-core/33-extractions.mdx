@@ -206,10 +206,12 @@ List answers can include `items`, one `{ confidence?, source? }` entry per value
 
 ## Errors
 
-Unsupported field types throw `Experimental_ExtractionUnsupportedFieldTypeError`
-before provider I/O. Invalid inputs throw `InvalidArgumentError`; malformed
-answers throw `InvalidResponseDataError`. Fields the model refuses throw
-`Experimental_ExtractionRefusalError`. Invalid answers and refusals are not
+Unsupported field types throw
+[`Experimental_ExtractionUnsupportedFieldTypeError`](/docs/reference/ai-sdk-errors/ai-extraction-unsupported-field-type-error),
+before provider I/O or, for AI Gateway models, after the gateway rejects the
+field. Invalid inputs throw `InvalidArgumentError`; malformed answers throw
+`InvalidResponseDataError`. Fields the model refuses throw
+[`Experimental_ExtractionRefusalError`](/docs/reference/ai-sdk-errors/ai-extraction-refusal-error). Invalid answers and refusals are not
 retried, and partial results are not supported.
 
 ## Testing
