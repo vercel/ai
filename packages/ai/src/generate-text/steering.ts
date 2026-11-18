@@ -176,7 +176,7 @@ class DefaultSteering implements Steering {
       target: this.pending,
     });
 
-    if (options?.interrupt === true && isNew && this.state !== 'ended') {
+    if (options?.interrupt === true && isNew) {
       this.requestInterrupt();
     }
 
