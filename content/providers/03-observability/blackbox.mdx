@@ -1,0 +1,79 @@
+---
+title: Blackbox
+description: End-to-end session tracing and observability for AI SDK applications with Blackbox
+---
+
+# Blackbox Observability
+
+[Blackbox](https://explorer.softprobe.ai) provides end-to-end session tracing for AI applications. Using `@softprobe/vercel-ai-sdk`, Blackbox captures `agent`, `generation`, and `tool` spans from `generateText` and `streamText`, links them to incoming browser requests via W3C `traceparent`, and forwards `traceparent` on downstream `fetch`, `http`, and `https` calls.
+
+## Setup
+
+### 1. Install
+
+Install `@softprobe/vercel-ai-sdk` and `@softprobe/tracing`:
+
+```bash
+npm install @softprobe/vercel-ai-sdk @softprobe/tracing
+```
+
+### 2. Configure credentials
+
+Create an ingestion key in [Blackbox Explorer](https://explorer.softprobe.ai) and set `SOFTPROBE_INGESTION_KEY` in your `.env` file:
+
+```bash
+SOFTPROBE_INGESTION_KEY="spk_REPLACE_WITH_INGESTION_KEY"
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT="https://explorer.softprobe.ai/api/thelake/v1/traces"
+OTEL_EXPORTER_OTLP_TRACES_HEADERS="Authorization=Bearer ${SOFTPROBE_INGESTION_KEY}"
+OTEL_EXPORTER_OTLP_TRACES_PROTOCOL="http/protobuf"
+OTEL_SERVICE_NAME="my-vercel-ai-agent"
+```
+
+### 3. Initialize at startup
+
+Call `initVercelAiTelemetry()` once before your server starts handling requests or importing AI routes:
+
+```typescript filename="instrumentation.ts"
+import { initVercelAiTelemetry } from "@softprobe/vercel-ai-sdk";
+
+export const telemetry = initVercelAiTelemetry({
+  ingestionKey: process.env.SOFTPROBE_INGESTION_KEY,
+  serviceName: "my-vercel-ai-agent",
+});
+```
+
+Enable telemetry on your `generateText` or `streamText` calls. Pass `sessionId` in `experimental_telemetry.metadata` (or send an `x-session-id` or `x-softprobe-session-id` header) to group turns into a session:
+
+```typescript
+import { generateText } from "ai";
+import { openai } from "@ai-sdk/openai";
+
+const result = await generateText({
+  model: openai("gpt-4o-mini"),
+  prompt: "Find flights from LHR to CDG.",
+  experimental_telemetry: {
+    isEnabled: true,
+    metadata: {
+      sessionId: chatSessionId,
+      userId: currentUserId,
+    },
+  },
+});
+```
+
+In short-lived scripts or serverless handlers, flush spans before exiting:
+
+```typescript
+await telemetry.forceFlush();
+```
+
+## Session and trace correlation
+
+- **Browser to Node.js**: When `@softprobe/web-record` instruments the browser, it injects `traceparent` on API calls. `initVercelAiTelemetry()` extracts `traceparent` and session IDs from `/sessions/:id` paths, `x-session-id` or `x-softprobe-session-id` headers, or baggage, and forwards `traceparent` to downstream services.
+- **Standalone calls**: When no incoming session ID or metadata `sessionId` is present, Blackbox records the trace without inventing a session ID.
+
+## Resources
+
+- [Blackbox Explorer](https://explorer.softprobe.ai)
+- [Blackbox Vercel AI SDK guide](https://docs.softprobe.ai/en/blackbox/vercel-ai-sdk)
+- [`@softprobe/vercel-ai-sdk` on npm](https://www.npmjs.com/package/@softprobe/vercel-ai-sdk)
