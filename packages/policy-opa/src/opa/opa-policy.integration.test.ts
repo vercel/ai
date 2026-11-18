@@ -405,11 +405,14 @@ describe.each(['generateText', 'streamText', 'ToolLoopAgent'] as const)(
       responses,
       policy,
       repeatToolCallIds,
+      history = [],
       approvePendingToolCalls = false,
     }: {
       responses: ToolCall[][];
       policy: (input: DefaultOpaInput) => unknown;
       repeatToolCallIds?: boolean;
+      /** Messages that follow the user message of the conversation. */
+      history?: ModelMessage[];
       /** Approve the pending tool calls as a user and call the model again. */
       approvePendingToolCalls?: boolean;
     }) {
@@ -496,6 +499,7 @@ describe.each(['generateText', 'streamText', 'ToolLoopAgent'] as const)(
 
       const messages: ModelMessage[] = [
         { role: 'user', content: 'perform the requested actions' },
+        ...history,
       ];
       let { content, responseMessages } = await generate(options, messages);
 
@@ -584,6 +588,52 @@ describe.each(['generateText', 'streamText', 'ToolLoopAgent'] as const)(
         executed: ['charge(60)', 'charge(30)'],
         pendingApprovals: 0,
       });
+    });
+
+    it('enforces a running total when a tool call reuses the ID of an approved tool call', async () => {
+      // The conversation ends with the approval of a tool call that the
+      // provider runs, so the SDK adds no result for it. The new response
+      // numbers its tool calls from zero again.
+      expect(
+        await run({
+          history: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-0',
+                  toolName: 'providerAction',
+                  input: {},
+                  providerExecuted: true,
+                },
+                {
+                  type: 'tool-approval-request',
+                  approvalId: 'approval-0',
+                  toolCallId: 'call-0',
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-approval-response',
+                  approvalId: 'approval-0',
+                  approved: true,
+                  providerExecuted: true,
+                },
+              ],
+            },
+          ],
+          responses: [[charge(60), charge(60)]],
+          policy: input =>
+            input.tool.name === 'charge'
+              ? budgetPolicy(input)
+              : { decision: 'allow' },
+          repeatToolCallIds: true,
+        }),
+      ).toEqual({ executed: ['charge(60)'], pendingApprovals: 0 });
     });
 
     it('enforces a running total across successive responses', async () => {

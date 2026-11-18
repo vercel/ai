@@ -146,7 +146,7 @@ export function opaPolicy<
     // The SDK checks a tool call that a user approved once more before it runs
     // it. `messages` then contain the response with that tool call and with
     // the other tool calls of the response, so there is nothing to append.
-    if (isApprovedToolCall(messages, toolCall.toolCallId)) {
+    if (isToolCallFromMessages(messages, toolCall)) {
       return (async () => decide(toOpaInput(messages)))();
     }
 
@@ -263,33 +263,23 @@ function appendEarlierToolCalls(
 }
 
 /**
- * Returns whether `messages` end with the approval of the tool call by a user:
- * the last message is a tool message that approves a request for this tool
- * call and has no result for it. That is how the SDK finds the approved tool
- * calls that it checks again and then runs.
+ * Returns whether the tool call is one of the tool calls in `messages`.
  *
- * A tool call of a new response does not match, also when an earlier tool call
- * had the same ID: an earlier tool call that was approved has its result in
- * the same tool message as the approval or in a later message.
+ * When the SDK checks a tool call that a user approved, it passes the tool call
+ * of the conversation, with the same `input` object. A tool call of a new
+ * response is parsed from that response, so its `input` is a new object, also
+ * when it has the ID of a tool call in `messages`. Tool call IDs can repeat:
+ * some providers number the tool calls of every response from zero.
+ *
+ * An `input` that is not an object cannot be told apart this way. Such a tool
+ * call is treated as new, which can only make the decision more restrictive.
  */
-function isApprovedToolCall(
+function isToolCallFromMessages(
   messages: ModelMessage[],
-  toolCallId: string,
+  toolCall: { toolCallId: string; input: unknown },
 ): boolean {
-  const lastMessage = messages.at(-1);
-  if (lastMessage?.role !== 'tool' || !Array.isArray(lastMessage.content)) {
-    return false;
-  }
-
-  const approvedApprovalIds = new Set<string>();
-  for (const part of lastMessage.content) {
-    if (part.type === 'tool-result' && part.toolCallId === toolCallId) {
-      return false;
-    }
-    if (part.type === 'tool-approval-response' && part.approved) {
-      approvedApprovalIds.add(part.approvalId);
-    }
-  }
+  const { toolCallId, input } = toolCall;
+  if (typeof input !== 'object' || input === null) return false;
 
   return messages.some(
     message =>
@@ -297,9 +287,9 @@ function isApprovedToolCall(
       Array.isArray(message.content) &&
       message.content.some(
         part =>
-          part.type === 'tool-approval-request' &&
+          part.type === 'tool-call' &&
           part.toolCallId === toolCallId &&
-          approvedApprovalIds.has(part.approvalId),
+          part.input === input,
       ),
   );
 }

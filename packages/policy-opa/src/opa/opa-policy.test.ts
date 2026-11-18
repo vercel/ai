@@ -576,18 +576,62 @@ describe('opaPolicy with several tool calls in one response', () => {
     ]);
   });
 
-  it('evaluates once when the messages end with the approval of the tool call by a user', async () => {
-    // The SDK checks tool calls that a user approved once more before it runs
-    // them. The messages then include the response with those tool calls.
-    const evaluate = vi.fn(async () => ({ decision: 'allow' }) as never);
-    const approval = opaPolicy({ client: { evaluate }, path: 'p' });
+  it('counts an earlier tool call whose ID an approved tool call without a result already used', async () => {
+    // The messages end with the approval of `call-0`, and the SDK added no
+    // result for it. The tool calls of the new response are new objects.
+    const approval = opaPolicy({
+      client: { evaluate: budgetPolicy(100) },
+      path: 'p',
+    });
     const conversation: ModelMessage[] = [
       ...messages(),
       {
         role: 'assistant',
         content: [
-          { type: 'tool-call', ...charge('call-1', 60) },
-          { type: 'tool-call', ...charge('call-2', 60) },
+          { type: 'tool-call', ...charge('call-0', 1) },
+          {
+            type: 'tool-approval-request',
+            approvalId: 'approval-0',
+            toolCallId: 'call-0',
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-approval-response',
+            approvalId: 'approval-0',
+            approved: true,
+          },
+        ],
+      },
+    ];
+
+    expect([
+      await approve(approval, charge('call-0', 60), conversation),
+      await approve(approval, charge('call-1', 60), conversation),
+    ]).toEqual([
+      { type: 'approved' },
+      { type: 'denied', reason: 'conversation budget exceeded' },
+    ]);
+  });
+
+  it('evaluates once when the tool call is one of the tool calls in the messages', async () => {
+    // The SDK checks tool calls that a user approved once more before it runs
+    // them. It passes the tool calls of the conversation, and the messages
+    // include the response with those tool calls.
+    const evaluate = vi.fn(async () => ({ decision: 'allow' }) as never);
+    const approval = opaPolicy({ client: { evaluate }, path: 'p' });
+    const firstToolCall = charge('call-1', 60);
+    const secondToolCall = charge('call-2', 60);
+    const conversation: ModelMessage[] = [
+      ...messages(),
+      {
+        role: 'assistant',
+        content: [
+          { type: 'tool-call', ...firstToolCall },
+          { type: 'tool-call', ...secondToolCall },
           {
             type: 'tool-approval-request',
             approvalId: 'approval-1',
@@ -617,8 +661,8 @@ describe('opaPolicy with several tool calls in one response', () => {
       },
     ];
 
-    await approve(approval, charge('call-1', 60), conversation);
-    await approve(approval, charge('call-2', 60), conversation);
+    await approve(approval, firstToolCall, conversation);
+    await approve(approval, secondToolCall, conversation);
 
     expect(evaluatedMessages(evaluate)).toEqual([conversation, conversation]);
   });
