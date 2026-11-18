@@ -18,6 +18,7 @@ import {
   zodSchema,
   combineHeaders,
   convertAsyncIteratorToReadableStream,
+  convertUint8ArrayToBase64,
   createJsonErrorResponseHandler,
   createJsonLinesResponseHandler,
   createJsonResponseHandler,
@@ -300,7 +301,7 @@ function maybeBase64EncodeFileData<T extends { type: string }>(data: T): T {
   if (data.type === 'data') {
     const bytes = (data as { data?: unknown }).data;
     if (bytes instanceof Uint8Array) {
-      return { ...data, data: Buffer.from(bytes).toString('base64') } as T;
+      return { ...data, data: convertUint8ArrayToBase64(bytes) } as T;
     }
   }
   return data;
