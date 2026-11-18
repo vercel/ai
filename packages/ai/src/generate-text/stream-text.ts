@@ -3482,15 +3482,23 @@ class DefaultStreamTextResult<
                 async flush(controller) {
                   stopWatchingInterrupt();
 
-                  // the step is not finished, its model call is made again:
-                  if (attemptInterrupted) {
+                  // starts the stream that follows this one: the redo of the
+                  // step or the next step
+                  const startFollowingStream = async (
+                    start: () => Promise<void>,
+                  ) => {
                     try {
-                      await runInStreamTextTracingChannelContext(redoStep);
+                      await runInStreamTextTracingChannelContext(start);
                     } catch (error) {
                       steeringRun?.end('error');
                       enqueueStepPart(controller, { type: 'error', error });
                       self.closeStream();
                     }
+                  };
+
+                  // the step is not finished, its model call is made again:
+                  if (attemptInterrupted) {
+                    await startFollowingStream(redoStep);
                     return;
                   }
 
@@ -3649,23 +3657,12 @@ class DefaultStreamTextResult<
                   };
 
                   if (await shouldStartNextStep()) {
-                    try {
-                      await runInStreamTextTracingChannelContext(() =>
-                        streamStep({
-                          currentStep: currentStep + 1,
-                          usage: combinedUsage,
-                        }),
-                      );
-                    } catch (error) {
-                      steeringRun?.end('error');
-
-                      enqueueStepPart(controller, {
-                        type: 'error',
-                        error,
-                      });
-
-                      self.closeStream();
-                    }
+                    await startFollowingStream(() =>
+                      streamStep({
+                        currentStep: currentStep + 1,
+                        usage: combinedUsage,
+                      }),
+                    );
                   } else {
                     steeringRun?.end(steeringEndReason);
 
