@@ -1,5 +1,76 @@
 # @ai-sdk/harness
 
+## 1.0.187
+
+### Patch Changes
+
+- ai@7.0.176
+
+## 1.0.186
+
+### Patch Changes
+
+- ai@7.0.175
+
+## 1.0.185
+
+### Patch Changes
+
+- Updated dependencies [3bea041]
+- Updated dependencies [30d35eb]
+- Updated dependencies [fab7478]
+- Updated dependencies [10ff0b1]
+- Updated dependencies [718824c]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - ai@7.0.174
+  - @ai-sdk/provider@4.0.39
+  - @ai-sdk/provider-utils@5.0.82
+
+## 1.0.184
+
+### Patch Changes
+
+- Updated dependencies [3c09e00]
+- Updated dependencies [f43ee39]
+- Updated dependencies [7ce7ffc]
+- Updated dependencies [f6809e3]
+- Updated dependencies [2559173]
+- Updated dependencies [f1de9cb]
+  - ai@7.0.173
+
+## 1.0.183
+
+### Patch Changes
+
+- 71bef69: feat(harness): require approval for sensitive workspace file changes in `allow-edits` permission mode
+- Updated dependencies [6d50947]
+- Updated dependencies [79d2004]
+  - @ai-sdk/provider-utils@5.0.81
+  - ai@7.0.172
+
+## 1.0.182
+
+### Patch Changes
+
+- 1a94af3: Forward the `redactToolErrors` option in `toUIMessageStream` and `toUIMessageStreamResponse`.
+
+  When the context validation of a host tool fails, the `tool-error` stream part now carries an error with the message that the runtime receives (`Tool context validation failed.`). Previously it carried the detailed validation error, which includes the context value. The detailed error is still passed to `onToolExecutionEnd`.
+
+  When a host tool throws a value that is not an `Error` or a string, the `tool-error` stream part now carries the text that the runtime receives (`String(value)`), not the thrown value.
+
+  Both changes apply to every consumer of the stream part: `fullStream`, step content, and the `onError` callback of a UI message stream, also when `redactToolErrors` is `true`.
+
+- Updated dependencies [11323f9]
+- Updated dependencies [2ebc78b]
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+- Updated dependencies [ceeee29]
+- Updated dependencies [1a94af3]
+  - ai@7.0.171
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+
 ## 1.0.181
 
 ### Patch Changes

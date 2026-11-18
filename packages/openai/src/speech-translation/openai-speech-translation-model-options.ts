@@ -4,9 +4,10 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { OpenAIModelIds } from '../openai-model-catalog';
 
 export type OpenAISpeechTranslationModelId =
-  | 'gpt-realtime-translate'
+  | OpenAIModelIds['speechTranslation']
   | (string & {});
 
 export const openAISpeechTranslationModelOptions = lazySchema(() =>

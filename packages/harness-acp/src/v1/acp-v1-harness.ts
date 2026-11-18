@@ -631,6 +631,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               settings.askUserQuestions?.requestMethod,
             hostToolMcpTransport: settings.hostToolMcpTransport,
             nonTextContentTypes: settings.nonTextContentTypes,
+            writeProtectedPaths: settings.writeProtectedPaths,
           }),
           ...sandboxProviderAuthenticationEnvironment,
           [BRIDGE_AUTH_PUBLIC_KEY_ENV]: bridgeAuth.publicKey,

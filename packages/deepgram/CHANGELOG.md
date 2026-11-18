@@ -1,5 +1,32 @@
 # @ai-sdk/deepgram
 
+## 3.1.54
+
+### Patch Changes
+
+- Updated dependencies [10ff0b1]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/provider@4.0.39
+  - @ai-sdk/provider-utils@5.0.82
+
+## 3.1.53
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+
+## 3.1.52
+
+### Patch Changes
+
+- c2ef713: Centralize Deepgram speech and transcription model IDs, streaming capabilities, voice-family request policies, and provider option metadata in a model catalog.
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+
 ## 3.1.51
 
 ### Patch Changes

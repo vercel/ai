@@ -1001,6 +1001,9 @@ describe('doGenerate', () => {
   const TEST_URL_GEMINI_3_7_FLASH =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent';
 
+  const TEST_URL_GEMINI_4_HYDROGEN =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-4-hydrogen:generateContent';
+
   const TEST_URL_GEMINI_99_PRO =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-99-pro-preview:generateContent';
 
@@ -1024,6 +1027,7 @@ describe('doGenerate', () => {
     [TEST_URL_GEMINI_3_PRO]: {},
     [TEST_URL_GEMINI_3_1_PRO]: {},
     [TEST_URL_GEMINI_3_7_FLASH]: {},
+    [TEST_URL_GEMINI_4_HYDROGEN]: {},
     [TEST_URL_GEMINI_99_PRO]: {},
     [TEST_URL_GEMINI_2_5_PRO]: {},
     [TEST_URL_GEMINI_2_5_FLASH_LITE]: {},
@@ -3951,6 +3955,32 @@ describe('doGenerate', () => {
     expect(result.response?.id).toBe('blocked-response-id');
   });
 
+  it('should include the prompt block reason message in provider metadata', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        promptFeedback: {
+          blockReason: 'PROHIBITED_CONTENT',
+          blockReasonMessage:
+            'The prompt is blocked due to prohibited contents',
+        },
+        usageMetadata: {
+          promptTokenCount: 9,
+          totalTokenCount: 9,
+        },
+      },
+    };
+
+    const { providerMetadata } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google.promptFeedback).toEqual({
+      blockReason: 'PROHIBITED_CONTENT',
+      blockReasonMessage: 'The prompt is blocked due to prohibited contents',
+    });
+  });
+
   it.each(['', 'BLOCK_REASON_UNSPECIFIED', 'BLOCKED_REASON_UNSPECIFIED'])(
     'should not classify the default prompt block reason %j as a content filter',
     async blockReason => {
@@ -5613,6 +5643,58 @@ describe('doGenerate', () => {
       },
     };
 
+    describe('Gemini 4 Hydrogen', () => {
+      beforeEach(() => {
+        server.urls[TEST_URL_GEMINI_4_HYDROGEN].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+      });
+
+      it.each(['low', 'medium', 'high', 'xhigh'] as const)(
+        'passes reasoning "%s" without a compatibility warning',
+        async reasoning => {
+          const result = await provider('gemini-4-hydrogen').doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning,
+          });
+
+          expect(await server.calls[0].requestBodyJson).toMatchObject({
+            generationConfig: {
+              thinkingConfig: { thinkingLevel: reasoning },
+            },
+          });
+          expect(result.warnings).toEqual([]);
+        },
+      );
+
+      it('passes an explicit xhigh thinking level instead of portable reasoning', async () => {
+        const result = await provider('gemini-4-hydrogen').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'low',
+          providerOptions: {
+            google: { thinkingConfig: { thinkingLevel: 'xhigh' } },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          generationConfig: {
+            thinkingConfig: { thinkingLevel: 'xhigh' },
+          },
+        });
+        expect(result.warnings).toEqual([]);
+      });
+
+      it('leaves the thinking level unset for the API default', async () => {
+        await provider('gemini-4-hydrogen').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.generationConfig?.thinkingConfig).toBeUndefined();
+      });
+    });
+
     describe('Gemini 3 models (thinkingLevel)', () => {
       const gemini3Model = provider.chat('gemini-3-pro-preview');
       const gemini37FlashModel = provider.chat('gemini-3.7-flash');
@@ -5806,6 +5888,41 @@ describe('doGenerate', () => {
       });
 
       it.each([
+        {
+          modelId: 'gemini-4-hydrogen-eap',
+          reasoning: 'xhigh' as const,
+          expectedThinkingLevel: 'xhigh',
+        },
+        {
+          modelId: 'models/gemini-4-hydrogen-eap',
+          reasoning: 'xhigh' as const,
+          expectedThinkingLevel: 'xhigh',
+        },
+        {
+          modelId: 'gemini-4-hydrogen',
+          reasoning: 'max' as const,
+          expectedThinkingLevel: 'xhigh',
+        },
+        {
+          modelId: 'gemini-4-hydrogen',
+          reasoning: 'minimal' as const,
+          expectedThinkingLevel: 'low',
+        },
+        {
+          modelId: 'gemini-4-argon',
+          reasoning: 'xhigh' as const,
+          expectedThinkingLevel: 'high',
+        },
+        {
+          modelId: 'gemini-4-carbon',
+          reasoning: 'xhigh' as const,
+          expectedThinkingLevel: 'high',
+        },
+        {
+          modelId: 'gemini-4-hydrogenous',
+          reasoning: 'xhigh' as const,
+          expectedThinkingLevel: 'high',
+        },
         {
           modelId: 'gemini-3.7-flash-video-understanding-eap',
           reasoning: 'minimal' as const,
@@ -7598,6 +7715,40 @@ describe('doStream', () => {
           serviceTier: 'standard',
         },
       },
+    });
+  });
+
+  it('should include the streamed prompt block reason message in provider metadata', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          promptFeedback: {
+            blockReason: 'PROHIBITED_CONTENT',
+            blockReasonMessage:
+              'The prompt is blocked due to prohibited contents',
+          },
+          usageMetadata: {
+            promptTokenCount: 9,
+            totalTokenCount: 9,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.promptFeedback,
+    ).toEqual({
+      blockReason: 'PROHIBITED_CONTENT',
+      blockReasonMessage: 'The prompt is blocked due to prohibited contents',
     });
   });
 

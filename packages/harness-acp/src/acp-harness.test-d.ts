@@ -213,6 +213,7 @@ describe('createACP built-in tool inference', () => {
       modelMapping,
       ...toolCallSettings,
       skillsDirectory: '.claude/skills',
+      writeProtectedPaths: ['.claude'],
       instructionMapping: {
         type: 'session-meta',
         path: ['systemPrompt', 'append'],

@@ -1,4 +1,5 @@
 import type { ToolCallUpdate } from '@agentclientprotocol/sdk';
+import { isWriteProtectedPath } from '@ai-sdk/harness/bridge';
 import { lstat, realpath } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -42,6 +43,33 @@ export async function areACPToolLocationsTrusted({
     // Unresolvable locations require the host's approval.
     return false;
   }
+}
+
+/*
+ * Returns whether a write tool call touches a write-protected path and
+ * therefore requires the host's approval. File operations need explicit
+ * locations, so a call without usable locations is treated as protected.
+ */
+export async function areACPToolWriteLocationsProtected({
+  toolCall,
+  workDir,
+  writeProtectedPaths,
+}: {
+  toolCall: ToolCallUpdate;
+  workDir: string;
+  writeProtectedPaths: ReadonlyArray<string>;
+}): Promise<boolean> {
+  const paths = (toolCall.locations ?? []).map(location => location.path);
+  if (
+    paths.length === 0 ||
+    !paths.every(
+      (value): value is string =>
+        typeof value === 'string' && value.trim().length > 0,
+    )
+  ) {
+    return true;
+  }
+  return isWriteProtectedPath({ workDir, paths, writeProtectedPaths });
 }
 
 // Resolves the nearest existing ancestor for new files. A dangling symlink is

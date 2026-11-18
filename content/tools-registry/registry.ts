@@ -1000,4 +1000,36 @@ console.log(text);`,
     websiteUrl: 'https://keenable.ai',
     npmUrl: 'https://www.npmjs.com/package/@keenable/ai-sdk',
   },
+  {
+    slug: 'upstash-agentkit',
+    name: 'Upstash AgentKit',
+    description:
+      'Give agents long-term memory on Upstash Redis. Tools to save and recall memories scoped to a user, backed by Upstash Redis Search, so no separate vector database is needed. The same package has search tools for RAG, chat history, rate limiting, and tool caching.',
+    packageName: '@upstash/agentkit-ai-sdk',
+    tags: ['memory', 'rag', 'semantic-search', 'redis'],
+    apiKeyEnvName: 'UPSTASH_REDIS_REST_TOKEN',
+    installCommand: {
+      pnpm: 'pnpm add @upstash/agentkit-ai-sdk',
+      npm: 'npm install @upstash/agentkit-ai-sdk',
+      yarn: 'yarn add @upstash/agentkit-ai-sdk',
+      bun: 'bun add @upstash/agentkit-ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createMemoryTools } from '@upstash/agentkit-ai-sdk';
+
+// reads UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Remember that my favorite editor is Neovim.',
+  tools: createMemoryTools({ userId: 'user-123' }),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl:
+      'https://ai-sdk.dev/providers/community-providers/upstash-agentkit',
+    apiKeyUrl: 'https://console.upstash.com',
+    websiteUrl: 'https://upstash.com',
+    npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
+  },
 ];

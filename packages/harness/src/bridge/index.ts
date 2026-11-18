@@ -20,6 +20,7 @@ import {
 } from './bridge-auth';
 
 export { HarnessBridgeCapabilityUnsupportedError } from './harness-bridge-capability-unsupported-error';
+export { isWriteProtectedPath } from './is-write-protected-path';
 export {
   convertHarnessToolModelOutput,
   type HarnessToolModelOutputContent,

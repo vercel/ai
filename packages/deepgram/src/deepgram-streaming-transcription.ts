@@ -1,3 +1,4 @@
+import { getDeepgramTranscriptionModelEntry } from './deepgram-model-catalog';
 import {
   InvalidArgumentError,
   UnsupportedFunctionalityError,
@@ -33,7 +34,10 @@ export async function streamDeepgramTranscription(
   config: DeepgramConfig & { _internal?: { currentDate?: () => Date } },
   options: StreamOptions,
 ): Promise<Awaited<ReturnType<NonNullable<TranscriptionModelV4['doStream']>>>> {
-  if (modelId.startsWith('flux')) {
+  if (
+    !getDeepgramTranscriptionModelEntry(modelId).capabilities.transcription
+      .streaming
+  ) {
     throw new UnsupportedFunctionalityError({
       functionality: 'Deepgram Flux streaming transcription (/v2/listen)',
     });

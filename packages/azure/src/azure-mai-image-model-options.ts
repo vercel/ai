@@ -8,14 +8,21 @@ import { z } from 'zod/v4';
 export const azureMaiImageModelOptionsShape = () => ({
   /**
    * Let the model pick the output aspect ratio from the prompt and any
-   * reference images. MAI-Image-2.6 models only.
+   * reference images. MAI-Image-2.6 and MAI-Image-2.7 models only.
    */
   autoAspectRatio: z.boolean().optional(),
 
   /**
-   * Ground generation in Bing web search results. MAI-Image-2.6 models only.
+   * Ground generation in Bing web search results. MAI-Image-2.6 and
+   * MAI-Image-2.7 models only.
    */
   webGrounding: z.boolean().optional(),
+
+  /**
+   * Image background. `transparent` returns a PNG with an alpha channel;
+   * the API defaults to `opaque`. MAI-Image-2.7 models only.
+   */
+  background: z.enum(['transparent', 'opaque']).optional(),
 });
 
 export const azureMaiImageModelOptions = lazySchema(() =>

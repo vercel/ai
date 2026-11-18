@@ -1,10 +1,10 @@
 import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { DeepSeekModelIds } from '../deepseek-model-catalog';
 
 // https://api-docs.deepseek.com/api/create-response
 export type DeepSeekResponsesModelId =
-  | 'deepseek-flash'
-  | 'deepseek-v4-pro'
+  | DeepSeekModelIds['responses']
   | (string & {});
 
 export const deepseekLanguageModelResponsesOptions = lazySchema(() =>

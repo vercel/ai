@@ -915,6 +915,9 @@ async function convertOpenAIBatchResult(
       ...(response.prompt_cache_diagnostics != null
         ? { promptCacheDiagnostics: response.prompt_cache_diagnostics }
         : {}),
+      ...(response.input_transformations != null
+        ? { inputTransformations: response.input_transformations }
+        : {}),
     },
   };
 

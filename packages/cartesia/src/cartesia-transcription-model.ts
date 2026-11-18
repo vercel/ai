@@ -1,3 +1,4 @@
+import { getCartesiaTranscriptionModelEntry } from './cartesia-model-catalog';
 import {
   InvalidArgumentError,
   UnsupportedFunctionalityError,
@@ -607,7 +608,8 @@ function isStreamingTranscriptionModelId(modelId: string): boolean {
   // Ink Whisper (including dated snapshots such as `ink-whisper-2025-06-04`)
   // is the known batch-only model family. Future IDs inherit the current
   // streaming protocol regardless of their name.
-  return modelId !== 'ink-whisper' && !modelId.startsWith('ink-whisper-');
+  return getCartesiaTranscriptionModelEntry(modelId).capabilities.transcription
+    .streaming;
 }
 
 const cartesiaTranscriptionResponseSchema = lazySchema(() =>
