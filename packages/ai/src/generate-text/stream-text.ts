@@ -1579,21 +1579,6 @@ class DefaultStreamTextResult<
     let stepMessagesForNextStep: Array<ModelMessage> | undefined;
     let currentStepMessages: Array<ModelMessage> = [];
     let currentStepSteeringMessages: Array<UserModelMessage> = [];
-    let interruptedStep:
-      | {
-          stepNumber: number;
-          steeringMessages: Array<UserModelMessage>;
-          deliveredSteeringMessages: Array<UserModelMessage>;
-          stepStart: { notified: boolean; enqueued: boolean };
-          stepTimeoutId: ReturnType<typeof setTimeout> | undefined;
-          stepTracingChannelContext: TracingChannelContext | undefined;
-          stepStartState: {
-            instructions: Instructions | undefined;
-            runtimeContext: RUNTIME_CONTEXT;
-            toolsContext: InferToolSetContext<TOOLS>;
-          };
-        }
-      | undefined;
     let isAborted = false;
     let currentStepModel = model;
 
@@ -2490,19 +2475,27 @@ class DefaultStreamTextResult<
       async function streamStep({
         currentStep,
         usage,
+        redo,
       }: {
         currentStep: number;
         usage: LanguageModelUsage;
-      }) {
+
         // A step that a steering interrupt cancelled is made again as the same
         // step. Its timeout keeps running and its tracing span stays open, so
         // that the step is not timed or traced twice.
-        const redo =
-          interruptedStep?.stepNumber === currentStep
-            ? interruptedStep
-            : undefined;
-        interruptedStep = undefined;
-
+        redo?: {
+          steeringMessages: Array<UserModelMessage>;
+          deliveredSteeringMessages: Array<UserModelMessage>;
+          stepStart: { notified: boolean; enqueued: boolean };
+          stepTimeoutId: ReturnType<typeof setTimeout> | undefined;
+          stepTracingChannelContext: TracingChannelContext | undefined;
+          stepStartState: {
+            instructions: Instructions | undefined;
+            runtimeContext: RUNTIME_CONTEXT;
+            toolsContext: InferToolSetContext<TOOLS>;
+          };
+        };
+      }) {
         // Set up step timeout if configured
         const stepTimeoutId =
           redo != null
@@ -2788,20 +2781,24 @@ class DefaultStreamTextResult<
             abortSignal,
             interruptController?.signal,
           );
-          const rememberInterruptedStep = () => {
-            interruptedStep = {
-              stepNumber: currentStep,
-              steeringMessages,
-              deliveredSteeringMessages: currentStepSteeringMessages,
-              stepStart,
-              stepTimeoutId,
-              stepTracingChannelContext,
-              stepStartState,
-            };
+          const redoStep = () => {
             // the redo adds its own listener for the step timeout that it
             // takes over:
             abortSignal?.removeEventListener('abort', cleanupStepTimeouts);
             clearModelOutputTimeouts();
+
+            return streamStep({
+              currentStep,
+              usage,
+              redo: {
+                steeringMessages,
+                deliveredSteeringMessages: currentStepSteeringMessages,
+                stepStart,
+                stepTimeoutId,
+                stepTracingChannelContext,
+                stepStartState,
+              },
+            });
           };
           let interruptWindowClosed = false;
           let attemptInterrupted = false;
@@ -2895,8 +2892,7 @@ class DefaultStreamTextResult<
               stopWatchingInterrupt();
               throw error;
             }
-            rememberInterruptedStep();
-            await streamStep({ currentStep, usage });
+            await redoStep();
             return;
           }
           let request = initialLanguageModelCall.request;
@@ -3486,12 +3482,8 @@ class DefaultStreamTextResult<
 
                   // the step is not finished, its model call is made again:
                   if (attemptInterrupted) {
-                    rememberInterruptedStep();
-
                     try {
-                      await runInStreamTextTracingChannelContext(() =>
-                        streamStep({ currentStep, usage }),
-                      );
+                      await runInStreamTextTracingChannelContext(redoStep);
                     } catch (error) {
                       steeringRun?.end('error');
                       enqueueStepPart(controller, { type: 'error', error });
