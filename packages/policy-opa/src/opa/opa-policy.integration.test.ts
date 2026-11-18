@@ -7,11 +7,15 @@
  * execution-denied result.
  */
 import { jsonSchema } from '@ai-sdk/provider-utils';
-import { generateText, isStepCount, tool } from 'ai';
-import { MockLanguageModelV3 } from 'ai/test';
+import { generateText, isStepCount, streamText, tool, ToolLoopAgent } from 'ai';
+import {
+  convertArrayToReadableStream,
+  MockLanguageModelV3,
+  MockLanguageModelV4,
+} from 'ai/test';
 import { describe, expect, it, vi } from 'vitest';
 import type { PolicyClient } from '../policy-client';
-import { opaPolicy } from './opa-policy';
+import { type DefaultOpaInput, opaPolicy } from './opa-policy';
 import { stubClient } from './test-helpers';
 
 const dummyUsage = {
@@ -303,3 +307,250 @@ describe('opaPolicy end-to-end with generateText', () => {
     expect(toolResult?.output).toMatchObject({ type: 'execution-denied' });
   });
 });
+
+/**
+ * A model response can contain several tool calls. The SDK resolves all of
+ * their approvals against the conversation before that response, so a rule
+ * over the history must also see the earlier tool calls of the same response.
+ * These tests run the same tool calls in one response and in successive
+ * responses and expect the same outcome.
+ */
+describe.each(['generateText', 'streamText', 'ToolLoopAgent'] as const)(
+  'opaPolicy end-to-end with several tool calls in one response (%s)',
+  api => {
+    type ToolCall = { toolName: string; input: object };
+
+    const charge = (amount: number): ToolCall => ({
+      toolName: 'charge',
+      input: { amount },
+    });
+
+    /** One inner array is one model response. */
+    function modelEmittingToolCalls(responses: ToolCall[][]) {
+      let step = 0;
+
+      const nextToolCalls = () => {
+        const toolCalls = responses[step] ?? [];
+        const prefix = `call-${step++}`;
+        return toolCalls.map(({ toolName, input }, index) => ({
+          type: 'tool-call' as const,
+          toolCallId: `${prefix}-${index}`,
+          toolName,
+          input: JSON.stringify(input),
+        }));
+      };
+
+      return new MockLanguageModelV4({
+        doGenerate: async () => {
+          const toolCalls = nextToolCalls();
+          return toolCalls.length > 0
+            ? {
+                warnings: [],
+                usage: dummyUsage,
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                content: toolCalls,
+              }
+            : {
+                warnings: [],
+                usage: dummyUsage,
+                finishReason: { unified: 'stop', raw: 'stop' },
+                content: [{ type: 'text', text: 'done' }],
+              };
+        },
+        doStream: async () => {
+          const toolCalls = nextToolCalls();
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start' as const, warnings: [] },
+              ...(toolCalls.length > 0
+                ? toolCalls
+                : [
+                    { type: 'text-start' as const, id: '1' },
+                    { type: 'text-delta' as const, id: '1', delta: 'done' },
+                    { type: 'text-end' as const, id: '1' },
+                  ]),
+              {
+                type: 'finish' as const,
+                finishReason:
+                  toolCalls.length > 0
+                    ? { unified: 'tool-calls' as const, raw: undefined }
+                    : { unified: 'stop' as const, raw: 'stop' },
+                usage: dummyUsage,
+              },
+            ]),
+          };
+        },
+      });
+    }
+
+    /** Names of the tool calls in the history that `input.messages` holds. */
+    function toolCallsInHistory(input: DefaultOpaInput) {
+      return input.messages.flatMap(message =>
+        message.role === 'assistant' && typeof message.content !== 'string'
+          ? message.content.flatMap(part =>
+              part.type === 'tool-call' ? [part] : [],
+            )
+          : [],
+      );
+    }
+
+    async function run({
+      responses,
+      policy,
+    }: {
+      responses: ToolCall[][];
+      policy: (input: DefaultOpaInput) => unknown;
+    }) {
+      const executed: string[] = [];
+      const emptyInput = jsonSchema<object>({ type: 'object', properties: {} });
+
+      const tools = {
+        charge: tool({
+          inputSchema: jsonSchema<{ amount: number }>({
+            type: 'object',
+            properties: { amount: { type: 'number' } },
+            required: ['amount'],
+          }),
+          execute: async ({ amount }) => {
+            executed.push(`charge(${amount})`);
+            return 'ok';
+          },
+        }),
+        attest: tool({
+          inputSchema: emptyInput,
+          execute: async () => {
+            executed.push('attest()');
+            return 'ok';
+          },
+        }),
+        protectedAction: tool({
+          inputSchema: emptyInput,
+          execute: async () => {
+            executed.push('protectedAction()');
+            return 'ok';
+          },
+        }),
+      };
+
+      const options = {
+        model: modelEmittingToolCalls(responses),
+        stopWhen: isStepCount(responses.length),
+        tools,
+        toolApproval: opaPolicy<typeof tools>({
+          client: {
+            evaluate: async (_path: string, input: unknown) =>
+              policy(input as DefaultOpaInput) as never,
+          },
+          path: 'agent/call/decision',
+        }),
+      };
+      const prompt = 'perform the requested actions';
+
+      let content;
+      if (api === 'generateText') {
+        content = (await generateText({ ...options, prompt })).content;
+      } else if (api === 'streamText') {
+        const result = streamText({ ...options, prompt });
+        await result.consumeStream();
+        content = await result.content;
+      } else {
+        content = (await new ToolLoopAgent(options).generate({ prompt }))
+          .content;
+      }
+
+      return {
+        executed,
+        pendingApprovals: content.filter(
+          part =>
+            part.type === 'tool-approval-request' && part.isAutomatic !== true,
+        ).length,
+      };
+    }
+
+    /** "Charges may total at most 100 per conversation." */
+    const budgetPolicy = (input: DefaultOpaInput) => {
+      const charged = toolCallsInHistory(input)
+        .filter(toolCall => toolCall.toolName === 'charge')
+        .reduce(
+          (total, toolCall) =>
+            total + (toolCall.input as { amount: number }).amount,
+          0,
+        );
+      return charged + (input.args as { amount: number }).amount <= 100
+        ? { decision: 'allow' }
+        : { decision: 'deny', reason: 'conversation budget exceeded' };
+    };
+
+    /** "A human approves every charge after the first one." */
+    const approvalPolicy = (input: DefaultOpaInput) =>
+      toolCallsInHistory(input).length === 0
+        ? { decision: 'allow' }
+        : { decision: 'requires-approval' };
+
+    /** "protectedAction is allowed only after an attest call." */
+    const prerequisitePolicy = (input: DefaultOpaInput) =>
+      input.tool.name === 'attest' ||
+      toolCallsInHistory(input).some(toolCall => toolCall.toolName === 'attest')
+        ? { decision: 'allow' }
+        : { decision: 'deny', reason: 'attest first' };
+
+    it('enforces a running total across the tool calls of one response', async () => {
+      expect(
+        await run({
+          responses: [[charge(60), charge(60)]],
+          policy: budgetPolicy,
+        }),
+      ).toEqual({ executed: ['charge(60)'], pendingApprovals: 0 });
+
+      expect(
+        await run({
+          responses: [[charge(40), charge(40), charge(30)]],
+          policy: budgetPolicy,
+        }),
+      ).toEqual({
+        executed: ['charge(40)', 'charge(40)'],
+        pendingApprovals: 0,
+      });
+    });
+
+    it('enforces a running total across successive responses', async () => {
+      expect(
+        await run({
+          responses: [[charge(60)], [charge(60)]],
+          policy: budgetPolicy,
+        }),
+      ).toEqual({ executed: ['charge(60)'], pendingApprovals: 0 });
+    });
+
+    it('asks for user approval for a later tool call of one response', async () => {
+      expect(
+        await run({
+          responses: [[charge(60), charge(60)]],
+          policy: approvalPolicy,
+        }),
+      ).toEqual({ executed: ['charge(60)'], pendingApprovals: 1 });
+    });
+
+    it('does not let a tool call that has not run satisfy a prerequisite', async () => {
+      const attest = { toolName: 'attest', input: {} };
+      const protectedAction = { toolName: 'protectedAction', input: {} };
+
+      expect(
+        await run({
+          responses: [[attest, protectedAction]],
+          policy: prerequisitePolicy,
+        }),
+      ).toEqual({ executed: ['attest()'], pendingApprovals: 0 });
+
+      expect(
+        await run({
+          responses: [[attest], [protectedAction]],
+          policy: prerequisitePolicy,
+        }),
+      ).toEqual({
+        executed: ['attest()', 'protectedAction()'],
+        pendingApprovals: 0,
+      });
+    });
+  },
+);
