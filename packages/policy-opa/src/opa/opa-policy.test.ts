@@ -544,7 +544,39 @@ describe('opaPolicy with several tool calls in one response', () => {
     ]);
   });
 
-  it('evaluates once when the messages already contain the tool call without a result', async () => {
+  it('counts an earlier tool call whose ID an unanswered tool call already used', async () => {
+    // The user did not answer the approval request for `call-0` and sent a
+    // new message instead.
+    const approval = opaPolicy({
+      client: { evaluate: budgetPolicy(100) },
+      path: 'p',
+    });
+    const conversation: ModelMessage[] = [
+      ...messages(),
+      {
+        role: 'assistant',
+        content: [
+          { type: 'tool-call', ...charge('call-0', 1) },
+          {
+            type: 'tool-approval-request',
+            approvalId: 'approval-0',
+            toolCallId: 'call-0',
+          },
+        ],
+      },
+      { role: 'user', content: 'charge 99 twice instead' },
+    ];
+
+    expect([
+      await approve(approval, charge('call-0', 99), conversation),
+      await approve(approval, charge('call-1', 99), conversation),
+    ]).toEqual([
+      { type: 'approved' },
+      { type: 'denied', reason: 'conversation budget exceeded' },
+    ]);
+  });
+
+  it('evaluates once when the messages end with the approval of the tool call by a user', async () => {
     // The SDK checks tool calls that a user approved once more before it runs
     // them. The messages then include the response with those tool calls.
     const evaluate = vi.fn(async () => ({ decision: 'allow' }) as never);
@@ -556,6 +588,31 @@ describe('opaPolicy with several tool calls in one response', () => {
         content: [
           { type: 'tool-call', ...charge('call-1', 60) },
           { type: 'tool-call', ...charge('call-2', 60) },
+          {
+            type: 'tool-approval-request',
+            approvalId: 'approval-1',
+            toolCallId: 'call-1',
+          },
+          {
+            type: 'tool-approval-request',
+            approvalId: 'approval-2',
+            toolCallId: 'call-2',
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-approval-response',
+            approvalId: 'approval-1',
+            approved: true,
+          },
+          {
+            type: 'tool-approval-response',
+            approvalId: 'approval-2',
+            approved: true,
+          },
         ],
       },
     ];

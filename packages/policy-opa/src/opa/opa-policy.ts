@@ -142,7 +142,7 @@ export function opaPolicy<
     // The SDK checks a tool call that a user approved once more before it runs
     // it. `messages` then contain the response with that tool call and with
     // the other tool calls of the response, so there is nothing to append.
-    if (containsToolCallWithoutResult(messages, toolCall)) {
+    if (isApprovedToolCall(messages, toolCall.toolCallId)) {
       return (async () => decide(toOpaInput(messages)))();
     }
 
@@ -259,41 +259,45 @@ function appendEarlierToolCalls(
 }
 
 /**
- * Returns whether `messages` contain the tool call and no result for it yet.
+ * Returns whether `messages` end with the approval of the tool call by a user:
+ * the last message is a tool message that approves a request for this tool
+ * call and has no result for it. That is how the SDK finds the approved tool
+ * calls that it checks again and then runs.
  *
- * A tool call of a new response is not in `messages`. A tool call ID that an
- * earlier response used as well does not count: that earlier tool call has a
- * result. The messages are read in order, so a result only completes a tool
- * call that precedes it.
+ * A tool call of a new response does not match, also when an earlier tool call
+ * had the same ID: an earlier tool call that was approved has its result in
+ * the same tool message as the approval or in a later message.
  */
-function containsToolCallWithoutResult(
+function isApprovedToolCall(
   messages: ModelMessage[],
-  toolCall: { toolCallId: string; toolName: string },
+  toolCallId: string,
 ): boolean {
-  let withoutResult = false;
+  const lastMessage = messages.at(-1);
+  if (lastMessage?.role !== 'tool' || !Array.isArray(lastMessage.content)) {
+    return false;
+  }
 
-  for (const message of messages) {
-    if (
-      (message.role !== 'assistant' && message.role !== 'tool') ||
-      !Array.isArray(message.content)
-    ) {
-      continue;
+  const approvedApprovalIds = new Set<string>();
+  for (const part of lastMessage.content) {
+    if (part.type === 'tool-result' && part.toolCallId === toolCallId) {
+      return false;
     }
-
-    for (const part of message.content) {
-      if (!('toolCallId' in part) || part.toolCallId !== toolCall.toolCallId) {
-        continue;
-      }
-
-      if (part.type === 'tool-call') {
-        withoutResult = part.toolName === toolCall.toolName;
-      } else if (part.type === 'tool-result') {
-        withoutResult = false;
-      }
+    if (part.type === 'tool-approval-response' && part.approved) {
+      approvedApprovalIds.add(part.approvalId);
     }
   }
 
-  return withoutResult;
+  return messages.some(
+    message =>
+      message.role === 'assistant' &&
+      Array.isArray(message.content) &&
+      message.content.some(
+        part =>
+          part.type === 'tool-approval-request' &&
+          part.toolCallId === toolCallId &&
+          approvedApprovalIds.has(part.approvalId),
+      ),
+  );
 }
 
 const decisionRestrictiveness: Record<PolicyDecision['type'], number> = {
