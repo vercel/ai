@@ -18957,6 +18957,108 @@ describe('streamText', () => {
       });
     });
 
+    describe('provider-executed tool with preliminary result', () => {
+      let result: StreamTextResult<any, any, any>;
+
+      beforeEach(async () => {
+        result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'image_generation',
+                input: `{}`,
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'image_generation',
+                result: { result: 'partial-image' },
+                preliminary: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'image_generation',
+                result: { result: 'final-image' },
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          tools: {
+            image_generation: {
+              type: 'provider',
+              isProviderExecuted: true,
+              id: 'test.image_generation',
+              inputSchema: z.object({}),
+              outputSchema: z.object({ result: z.string() }),
+              args: {},
+            },
+          },
+          ...defaultSettings(),
+        });
+      });
+
+      it('should include the preliminary flag in the full stream', async () => {
+        const parts = await convertAsyncIterableToArray(result.stream);
+
+        expect(parts.filter(part => part.type === 'tool-result'))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "dynamic": undefined,
+                "input": {},
+                "output": {
+                  "result": "partial-image",
+                },
+                "preliminary": true,
+                "providerExecuted": true,
+                "toolCallId": "call-1",
+                "toolName": "image_generation",
+                "type": "tool-result",
+              },
+              {
+                "dynamic": undefined,
+                "input": {},
+                "output": {
+                  "result": "final-image",
+                },
+                "providerExecuted": true,
+                "toolCallId": "call-1",
+                "toolName": "image_generation",
+                "type": "tool-result",
+              },
+            ]
+          `);
+      });
+
+      it('should only include the final tool result in content', async () => {
+        expect(
+          (await result.content).filter(part => part.type === 'tool-result'),
+        ).toMatchInlineSnapshot(`
+          [
+            {
+              "dynamic": undefined,
+              "input": {},
+              "output": {
+                "result": "final-image",
+              },
+              "providerExecuted": true,
+              "toolCallId": "call-1",
+              "toolName": "image_generation",
+              "type": "tool-result",
+            },
+          ]
+        `);
+      });
+    });
+
     describe('provider-executed tool error with structured object preserves error in ui message stream', () => {
       it('should preserve structured error despite custom onError for provider-executed tools', async () => {
         const result = streamText({
