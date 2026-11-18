@@ -146,6 +146,13 @@ export async function POST(request: Request) {
       description: 'Optional HTTP status text.',
     },
     {
+      name: 'keepAliveMs',
+      type: 'number',
+      isRequired: false,
+      description:
+        'Interval in milliseconds for sending SSE keep-alive comments. When set, an opening comment is sent immediately and additional comments are sent after the stream has been idle for the configured interval.',
+    },
+    {
       name: 'consumeSseStream',
       type: '(options: { stream: ReadableStream<string> }) => PromiseLike<void> | void',
       isRequired: false,
