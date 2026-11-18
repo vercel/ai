@@ -6,7 +6,7 @@
  * decides, `generateText` either runs `tool.execute` or returns an
  * execution-denied result.
  */
-import { jsonSchema } from '@ai-sdk/provider-utils';
+import { jsonSchema, type ModelMessage } from '@ai-sdk/provider-utils';
 import { generateText, isStepCount, streamText, tool, ToolLoopAgent } from 'ai';
 import {
   convertArrayToReadableStream,
@@ -405,10 +405,13 @@ describe.each(['generateText', 'streamText', 'ToolLoopAgent'] as const)(
       responses,
       policy,
       repeatToolCallIds,
+      approvePendingToolCalls = false,
     }: {
       responses: ToolCall[][];
       policy: (input: DefaultOpaInput) => unknown;
       repeatToolCallIds?: boolean;
+      /** Approve the pending tool calls as a user and call the model again. */
+      approvePendingToolCalls?: boolean;
     }) {
       const executed: string[] = [];
       const emptyInput = jsonSchema<object>({ type: 'object', properties: {} });
@@ -453,31 +456,79 @@ describe.each(['generateText', 'streamText', 'ToolLoopAgent'] as const)(
           path: 'agent/call/decision',
         }),
       };
-      const prompt = 'perform the requested actions';
 
-      let content;
-      if (api === 'generateText') {
-        content = (await generateText({ ...options, prompt })).content;
-      } else if (api === 'streamText') {
-        const result = streamText({ ...options, prompt });
-        await result.consumeStream();
-        content = await result.content;
-      } else {
-        content = (await new ToolLoopAgent(options).generate({ prompt }))
-          .content;
+      const generate = async (
+        callOptions: typeof options,
+        messages: ModelMessage[],
+      ) => {
+        if (api === 'generateText') {
+          const result = await generateText({ ...callOptions, messages });
+          return {
+            content: result.content,
+            responseMessages: result.responseMessages,
+          };
+        }
+        if (api === 'streamText') {
+          const result = streamText({ ...callOptions, messages });
+          await result.consumeStream();
+          return {
+            content: await result.content,
+            responseMessages: await result.responseMessages,
+          };
+        }
+        const result = await new ToolLoopAgent(callOptions).generate({
+          messages,
+        });
+        return {
+          content: result.content,
+          responseMessages: result.responseMessages,
+        };
+      };
+
+      const pendingApprovalIds = (
+        content: Awaited<ReturnType<typeof generate>>['content'],
+      ) =>
+        content.flatMap(part =>
+          part.type === 'tool-approval-request' && part.isAutomatic !== true
+            ? [part.approvalId]
+            : [],
+        );
+
+      const messages: ModelMessage[] = [
+        { role: 'user', content: 'perform the requested actions' },
+      ];
+      let { content, responseMessages } = await generate(options, messages);
+
+      if (approvePendingToolCalls) {
+        ({ content } = await generate(
+          {
+            ...options,
+            model: modelEmittingToolCalls([]),
+            stopWhen: isStepCount(1),
+          },
+          [
+            ...messages,
+            ...responseMessages,
+            {
+              role: 'tool',
+              content: pendingApprovalIds(content).map(approvalId => ({
+                type: 'tool-approval-response',
+                approvalId,
+                approved: true,
+              })),
+            },
+          ],
+        ));
       }
 
       return {
         executed,
-        pendingApprovals: content.filter(
-          part =>
-            part.type === 'tool-approval-request' && part.isAutomatic !== true,
-        ).length,
+        pendingApprovals: pendingApprovalIds(content).length,
       };
     }
 
     /** "Charges may total at most 100 per conversation." */
-    const budgetPolicy = (input: DefaultOpaInput) => {
+    const budgetPolicy = (input: DefaultOpaInput, ceiling = 100) => {
       const charged = toolCallsInHistory(input)
         .filter(toolCall => toolCall.toolName === 'charge')
         .reduce(
@@ -485,7 +536,7 @@ describe.each(['generateText', 'streamText', 'ToolLoopAgent'] as const)(
             total + (toolCall.input as { amount: number }).amount,
           0,
         );
-      return charged + (input.args as { amount: number }).amount <= 100
+      return charged + (input.args as { amount: number }).amount <= ceiling
         ? { decision: 'allow' }
         : { decision: 'deny', reason: 'conversation budget exceeded' };
     };
@@ -551,6 +602,35 @@ describe.each(['generateText', 'streamText', 'ToolLoopAgent'] as const)(
           policy: approvalPolicy,
         }),
       ).toEqual({ executed: ['charge(60)'], pendingApprovals: 1 });
+    });
+
+    it('runs the tool calls of one response that a user approved', async () => {
+      // "Charges above 50 need a human. Charges may total at most 200."
+      const policy = (input: DefaultOpaInput) => {
+        const amount = (input.args as { amount: number }).amount;
+        return budgetPolicy(input, 200).decision === 'deny'
+          ? budgetPolicy(input, 200)
+          : amount > 50
+            ? { decision: 'requires-approval' }
+            : { decision: 'allow' };
+      };
+      const responses = [[charge(60), charge(70)]];
+
+      expect(await run({ responses, policy })).toEqual({
+        executed: [],
+        pendingApprovals: 2,
+      });
+
+      // The SDK evaluates the approved tool calls again before it runs them.
+      // The messages then contain both tool calls, which must not be counted
+      // a second time: 60 + 70 + 70 fits the budget, 60 + 70 + 60 + 70 would
+      // not.
+      expect(
+        await run({ responses, policy, approvePendingToolCalls: true }),
+      ).toEqual({
+        executed: ['charge(60)', 'charge(70)'],
+        pendingApprovals: 0,
+      });
     });
 
     it('does not let a tool call that has not run satisfy a prerequisite', async () => {
