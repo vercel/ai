@@ -34,6 +34,7 @@ import {
   experimental_createSteering,
   experimental_decide,
   experimental_evaluate,
+  experimental_extract,
   generateObject,
   generateText,
   isStepCount,
@@ -45,6 +46,7 @@ import {
 } from 'ai';
 import {
   Experimental_DecisionMockModelV4,
+  Experimental_ExtractionMockModelV4,
   MockEmbeddingModelV4,
   MockLanguageModelV4,
 } from 'ai/test';
@@ -4294,4 +4296,169 @@ describe('OpenTelemetry integration with decide', () => {
       expect(span.exceptions).toHaveLength(1);
     }
   });
+});
+
+describe('OpenTelemetry integration with extract', () => {
+  const fields = {
+    invoiceNumber: { type: 'text', instructions: 'Invoice number' },
+  } as const;
+  const createModel = () =>
+    new Experimental_ExtractionMockModelV4({
+      doExtract: async () => ({
+        answers: { invoiceNumber: { type: 'text', value: 'INV-2041' } },
+        usage: { inputTokens: 12, outputTokens: 2 },
+        warnings: [],
+        response: { id: 'test-response-id', modelId: 'mock-model-resolved' },
+      }),
+    });
+
+  it('creates extraction spans', async () => {
+    const tracer = createMockTracer();
+
+    await experimental_extract({
+      model: createModel(),
+      state: 'Invoice INV-2041',
+      fields,
+      referenceDate: '2026-11-18',
+      telemetry: {
+        integrations: new OpenTelemetry({
+          tracer,
+          experimental_extraction: true,
+        }),
+      },
+    });
+
+    expect(tracer.spans).toHaveLength(2);
+    expect(tracer.spans.map(span => serializeSpan(span, tracer)))
+      .toMatchInlineSnapshot(`
+      [
+        {
+          "ended": true,
+          "initAttributes": {
+            "ai.extraction.fields": "{"invoiceNumber":{"type":"text","instructions":"Invoice number"}}",
+            "ai.extraction.referenceDate": "2026-11-18",
+            "ai.extraction.state": ""Invoice INV-2041"",
+            "gen_ai.operation.name": "extract",
+            "gen_ai.provider.name": "mock-provider",
+            "gen_ai.request.model": "mock-model-id",
+          },
+          "name": "extract mock-model-id",
+          "runtimeAttributes": {
+            "ai.extraction.answers": "{"invoiceNumber":{"type":"text","value":"INV-2041"}}",
+          },
+        },
+        {
+          "ended": true,
+          "initAttributes": {
+            "ai.extraction.fields": "{"invoiceNumber":{"type":"text","instructions":"Invoice number"}}",
+            "ai.extraction.referenceDate": "2026-11-18",
+            "ai.extraction.state": "[{"type":"text","text":"Invoice INV-2041"}]",
+            "gen_ai.operation.name": "extract",
+            "gen_ai.provider.name": "mock-provider",
+            "gen_ai.request.model": "mock-model-id",
+          },
+          "name": "extract mock-model-id",
+          "runtimeAttributes": {
+            "ai.extraction.answers": "{"invoiceNumber":{"type":"text","value":"INV-2041"}}",
+            "gen_ai.response.id": "test-response-id",
+            "gen_ai.response.model": "mock-model-resolved",
+            "gen_ai.usage.input_tokens": 12,
+            "gen_ai.usage.output_tokens": 2,
+          },
+        },
+      ]
+    `);
+  });
+
+  it('omits extraction content unless experimental_extraction is enabled', async () => {
+    const tracer = createMockTracer();
+
+    await experimental_extract({
+      model: createModel(),
+      state: 'Invoice INV-2041',
+      fields,
+      referenceDate: '2026-11-18',
+      telemetry: { integrations: new OpenTelemetry({ tracer }) },
+    });
+
+    expect(tracer.spans).toHaveLength(2);
+    for (const span of tracer.spans) {
+      const { initAttributes, runtimeAttributes } = serializeSpan(span, tracer);
+      expect(
+        Object.keys({ ...initAttributes, ...runtimeAttributes }).filter(key =>
+          key.startsWith('ai.extraction.'),
+        ),
+      ).toEqual([]);
+    }
+  });
+
+  it('hides extraction inputs when recordInputs is false', async () => {
+    const tracer = createMockTracer();
+
+    await experimental_extract({
+      model: createModel(),
+      state: 'Invoice INV-2041',
+      fields,
+      referenceDate: '2026-11-18',
+      telemetry: {
+        recordInputs: false,
+        integrations: new OpenTelemetry({
+          tracer,
+          experimental_extraction: true,
+        }),
+      },
+    });
+
+    expect(tracer.spans).toHaveLength(2);
+    for (const span of tracer.spans) {
+      const { initAttributes, runtimeAttributes } = serializeSpan(span, tracer);
+      expect(initAttributes['ai.extraction.state']).toBeUndefined();
+      expect(initAttributes['ai.extraction.fields']).toBeUndefined();
+      expect(initAttributes['ai.extraction.referenceDate']).toBeUndefined();
+      expect(runtimeAttributes['ai.extraction.answers']).toBe(
+        '{"invoiceNumber":{"type":"text","value":"INV-2041"}}',
+      );
+    }
+  });
+
+  it.each([
+    {
+      name: 'the model call fails',
+      doExtract: async () => {
+        throw new Error('extraction failed');
+      },
+      message: 'extraction failed',
+    },
+    {
+      name: 'a field is refused',
+      doExtract: async () => ({
+        answers: { invoiceNumber: { type: 'refusal' as const } },
+        warnings: [],
+      }),
+      message:
+        'Extraction model "mock-model-id" from provider "mock-provider" refused field "invoiceNumber".',
+    },
+  ])(
+    'ends both spans with error status when $name',
+    async ({ doExtract, message }) => {
+      const tracer = createMockTracer();
+
+      await expect(
+        experimental_extract({
+          model: new Experimental_ExtractionMockModelV4({ doExtract }),
+          state: 'Invoice INV-2041',
+          fields,
+          maxRetries: 0,
+          telemetry: { integrations: new OpenTelemetry({ tracer }) },
+        }),
+      ).rejects.toThrow(message);
+
+      expect(tracer.spans).toHaveLength(2);
+      for (const span of tracer.spans) {
+        expect(span.ended).toBe(true);
+        expect(span.status).toEqual({ code: SpanStatusCode.ERROR, message });
+        expect(span.exceptions).toHaveLength(1);
+      }
+    },
+  );
 });

@@ -26,6 +26,7 @@ import {
   embedMany,
   experimental_decide,
   experimental_evaluate,
+  experimental_extract,
   generateObject,
   generateText,
   isStepCount,
@@ -40,6 +41,7 @@ import {
 import {
   MockEmbeddingModelV4,
   Experimental_DecisionMockModelV4,
+  Experimental_ExtractionMockModelV4,
   MockLanguageModelV4,
   MockRerankingModelV4,
   mockValues,
@@ -2732,6 +2734,126 @@ describe('LegacyOpenTelemetry integration with decide', () => {
     `);
     },
   );
+});
+
+describe('LegacyOpenTelemetry integration with extract', () => {
+  const fields = {
+    invoiceNumber: { type: 'text', instructions: 'Invoice number' },
+  } as const;
+  const createModel = () =>
+    new Experimental_ExtractionMockModelV4({
+      doExtract: async () => ({
+        answers: { invoiceNumber: { type: 'text', value: 'INV-2041' } },
+        usage: { inputTokens: 12, outputTokens: 2 },
+        warnings: [],
+      }),
+    });
+
+  it('records extraction inputs, outputs, and usage', async () => {
+    const tracer = new IntegrationMockTracer();
+
+    await experimental_extract({
+      model: createModel(),
+      state: 'Invoice INV-2041',
+      fields,
+      referenceDate: '2026-11-18',
+      telemetry: { integrations: new LegacyOpenTelemetry({ tracer }) },
+    });
+
+    expect(tracer.jsonSpans).toMatchInlineSnapshot(`
+      [
+        {
+          "attributes": {
+            "ai.extraction.answers": "{"invoiceNumber":{"type":"text","value":"INV-2041"}}",
+            "ai.extraction.fields": "{"invoiceNumber":{"type":"text","instructions":"Invoice number"}}",
+            "ai.extraction.referenceDate": "2026-11-18",
+            "ai.extraction.state": ""Invoice INV-2041"",
+            "ai.model.id": "mock-model-id",
+            "ai.model.provider": "mock-provider",
+            "ai.operationId": "ai.extract",
+            "ai.settings.maxRetries": 2,
+            "operation.name": "ai.extract",
+          },
+          "events": [],
+          "name": "ai.extract",
+        },
+        {
+          "attributes": {
+            "ai.extraction.answers": "{"invoiceNumber":{"type":"text","value":"INV-2041"}}",
+            "ai.extraction.fields": "{"invoiceNumber":{"type":"text","instructions":"Invoice number"}}",
+            "ai.extraction.referenceDate": "2026-11-18",
+            "ai.extraction.state": "[{"type":"text","text":"Invoice INV-2041"}]",
+            "ai.model.id": "mock-model-id",
+            "ai.model.provider": "mock-provider",
+            "ai.operationId": "ai.extract.doExtract",
+            "ai.settings.maxRetries": 2,
+            "ai.usage.inputTokens": 12,
+            "ai.usage.outputTokens": 2,
+            "operation.name": "ai.extract.doExtract",
+          },
+          "events": [],
+          "name": "ai.extract.doExtract",
+        },
+      ]
+    `);
+  });
+
+  it('hides extraction inputs when recordInputs is false', async () => {
+    const tracer = new IntegrationMockTracer();
+
+    await experimental_extract({
+      model: createModel(),
+      state: 'Invoice INV-2041',
+      fields,
+      referenceDate: '2026-11-18',
+      telemetry: {
+        recordInputs: false,
+        integrations: new LegacyOpenTelemetry({ tracer }),
+      },
+    });
+
+    expect(tracer.jsonSpans).toHaveLength(2);
+    for (const { attributes } of tracer.jsonSpans) {
+      expect(attributes['ai.extraction.state']).toBeUndefined();
+      expect(attributes['ai.extraction.fields']).toBeUndefined();
+      expect(attributes['ai.extraction.referenceDate']).toBeUndefined();
+      expect(attributes['ai.extraction.answers']).toBe(
+        '{"invoiceNumber":{"type":"text","value":"INV-2041"}}',
+      );
+    }
+  });
+
+  it('ends both spans with error status when extraction fails', async () => {
+    const tracer = createMockTracer();
+    const error = new Error('extraction failed');
+
+    await expect(
+      experimental_extract({
+        model: new Experimental_ExtractionMockModelV4({
+          doExtract: async () => {
+            throw error;
+          },
+        }),
+        state: 'Invoice INV-2041',
+        fields,
+        maxRetries: 0,
+        telemetry: { integrations: new LegacyOpenTelemetry({ tracer }) },
+      }),
+    ).rejects.toBe(error);
+
+    expect(tracer.spans.map(span => span.name)).toEqual([
+      'ai.extract',
+      'ai.extract.doExtract',
+    ]);
+    for (const span of tracer.spans) {
+      expect(span.ended).toBe(true);
+      expect(span.status).toEqual({
+        code: SpanStatusCode.ERROR,
+        message: 'extraction failed',
+      });
+      expect(span.exceptions).toHaveLength(1);
+    }
+  });
 });
 
 // --- embed integration fixtures ---
