@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22913,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22913-to-ui-message-stream-invalid-tool-call.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22913-to-ui-message-stream-invalid-tool-call.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #22913 REPRODUCED: invalid-input invoked onError 2 times (InvalidToolInputError, string)"
+  }
+}
