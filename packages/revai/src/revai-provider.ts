@@ -1,4 +1,5 @@
 import {
+  InvalidArgumentError,
   NoSuchModelError,
   type TranscriptionModelV4,
   type ProviderV4,
@@ -11,6 +12,7 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { RevaiTranscriptionModel } from './revai-transcription-model';
+import { revaiPollingOptionsShape } from './revai-transcription-model-options';
 import type { RevaiTranscriptionModelId } from './revai-transcription-options';
 import { VERSION } from './version';
 
@@ -50,6 +52,26 @@ export interface RevaiProviderSettings {
    * or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
+
+  /**
+   * Maximum time in milliseconds to wait for an asynchronous transcription job
+   * to finish before throwing a `TranscriptionJobPollingTimedOut` error.
+   * Defaults to 60000 (1 minute). Raise it for long audio files.
+   */
+  pollTimeoutMs?: number;
+}
+
+function validatePollingSettings(settings: RevaiProviderSettings) {
+  const shape = revaiPollingOptionsShape();
+  const value = settings.pollTimeoutMs;
+
+  if (value != null && !shape.pollTimeoutMs.safeParse(value).success) {
+    throw new InvalidArgumentError({
+      argument: 'pollTimeoutMs',
+      message:
+        'pollTimeoutMs must be a positive integer number of milliseconds',
+    });
+  }
 }
 
 /**
@@ -58,6 +80,8 @@ export interface RevaiProviderSettings {
 export function createRevai(
   options: RevaiProviderSettings = {},
 ): RevaiProvider {
+  validatePollingSettings(options);
+
   const getHeaders = () =>
     resolveWith(options.apiKey, apiKey =>
       withUserAgentSuffix(
@@ -79,6 +103,7 @@ export function createRevai(
       url: ({ path }) => `https://api.rev.ai${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      pollTimeoutMs: options.pollTimeoutMs,
     });
 
   const provider = function (modelId: RevaiTranscriptionModelId) {

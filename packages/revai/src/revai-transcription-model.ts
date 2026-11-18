@@ -138,6 +138,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
     return {
       formData,
       warnings,
+      pollTimeoutMs: revaiOptions?.pollTimeoutMs ?? undefined,
     };
   }
 
@@ -145,7 +146,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
     options: Parameters<TranscriptionModelV4['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { formData, warnings } = await this.getArgs(options);
+    const { formData, warnings, pollTimeoutMs } = await this.getArgs(options);
 
     const { value: submissionResponse } = await postFormDataToApi({
       url: this.config.url({
@@ -174,9 +175,10 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
     }
 
     const jobId = submissionResponse.id;
-    const { timeoutMs, pollingInterval } = getRevaiTranscriptionModelEntry(
-      this.modelId,
-    ).requestConfig.transcription;
+    const { timeoutMs: defaultTimeoutMs, pollingInterval } =
+      getRevaiTranscriptionModelEntry(this.modelId).requestConfig.transcription;
+    const timeoutMs =
+      pollTimeoutMs ?? this.config.pollTimeoutMs ?? defaultTimeoutMs;
     const startTime = Date.now();
     let jobResponse = submissionResponse;
 
@@ -184,7 +186,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
       // Check if we've exceeded the timeout
       if (Date.now() - startTime > timeoutMs) {
         throw new AISDKError({
-          message: 'Transcription job polling timed out',
+          message: `Transcription job polling timed out after ${timeoutMs} ms`,
           name: 'TranscriptionJobPollingTimedOut',
           cause: submissionResponse,
         });

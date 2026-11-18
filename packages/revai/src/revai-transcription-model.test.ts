@@ -1,3 +1,4 @@
+import { InvalidArgumentError } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { RevaiTranscriptionModel } from './revai-transcription-model';
 import { createRevai } from './revai-provider';
@@ -203,6 +204,151 @@ describe('doGenerate', () => {
 
       expect(result.response.timestamp.getTime()).toEqual(testDate.getTime());
       expect(result.response.modelId).toBe('machine');
+    });
+  });
+
+  describe('polling timeout', () => {
+    it('throws TranscriptionJobPollingTimedOut after the configured pollTimeoutMs', async () => {
+      prepareJsonFixtureResponse();
+
+      let now = 0;
+      const dateNow = vi.spyOn(Date, 'now').mockImplementation(() => now);
+      let pollCount = 0;
+
+      server.urls['https://api.rev.ai/speechtotext/v1/jobs/test-id'].response =
+        () => {
+          pollCount++;
+          now += 100000;
+          return { type: 'json-value', body: { status: 'in_progress' } };
+        };
+
+      try {
+        const shortTimeoutProvider = createRevai({
+          apiKey: 'test-api-key',
+          pollTimeoutMs: 20,
+        });
+
+        await expect(
+          shortTimeoutProvider.transcription('machine').doGenerate({
+            audio: audioData,
+            mediaType: 'audio/mp3',
+          }),
+        ).rejects.toMatchObject({
+          name: 'TranscriptionJobPollingTimedOut',
+          message: 'Transcription job polling timed out after 20 ms',
+        });
+
+        expect(pollCount).toBe(1);
+      } finally {
+        dateNow.mockRestore();
+      }
+    });
+
+    it('resolves pollTimeoutMs from providerOptions.revai before provider settings', async () => {
+      prepareJsonFixtureResponse();
+
+      let now = 0;
+      const dateNow = vi.spyOn(Date, 'now').mockImplementation(() => now);
+      let pollCount = 0;
+
+      server.urls['https://api.rev.ai/speechtotext/v1/jobs/test-id'].response =
+        () => {
+          pollCount++;
+          now += 100000;
+          return { type: 'json-value', body: { status: 'in_progress' } };
+        };
+
+      try {
+        const longTimeoutProvider = createRevai({
+          apiKey: 'test-api-key',
+          pollTimeoutMs: 600000,
+        });
+
+        await expect(
+          longTimeoutProvider.transcription('machine').doGenerate({
+            audio: audioData,
+            mediaType: 'audio/mp3',
+            providerOptions: {
+              revai: {
+                pollTimeoutMs: 20,
+              },
+            },
+          }),
+        ).rejects.toMatchObject({
+          name: 'TranscriptionJobPollingTimedOut',
+          message: 'Transcription job polling timed out after 20 ms',
+        });
+
+        expect(pollCount).toBe(1);
+      } finally {
+        dateNow.mockRestore();
+      }
+    });
+
+    it('uses the catalog timeout when no override is configured', async () => {
+      prepareJsonFixtureResponse();
+
+      let now = 0;
+      const dateNow = vi.spyOn(Date, 'now').mockImplementation(() => now);
+
+      server.urls['https://api.rev.ai/speechtotext/v1/jobs/test-id'].response =
+        () => {
+          now += 100000;
+          return { type: 'json-value', body: { status: 'in_progress' } };
+        };
+
+      try {
+        await expect(
+          model.doGenerate({ audio: audioData, mediaType: 'audio/mp3' }),
+        ).rejects.toMatchObject({
+          name: 'TranscriptionJobPollingTimedOut',
+          message: 'Transcription job polling timed out after 60000 ms',
+        });
+      } finally {
+        dateNow.mockRestore();
+      }
+    });
+
+    it('does not send pollTimeoutMs to the Rev.ai API', async () => {
+      prepareJsonFixtureResponse();
+
+      await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/mp3',
+        providerOptions: {
+          revai: {
+            pollTimeoutMs: 20,
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyMultipart;
+      expect(requestBody?.config).not.toContain('pollTimeoutMs');
+    });
+
+    it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+      'rejects provider pollTimeoutMs = %s',
+      value => {
+        expect(() =>
+          createRevai({ apiKey: 'test-api-key', pollTimeoutMs: value }),
+        ).toThrow(InvalidArgumentError);
+      },
+    );
+
+    it('rejects invalid per-call pollTimeoutMs', async () => {
+      prepareJsonFixtureResponse();
+
+      await expect(
+        model.doGenerate({
+          audio: audioData,
+          mediaType: 'audio/mp3',
+          providerOptions: {
+            revai: {
+              pollTimeoutMs: 0,
+            },
+          },
+        }),
+      ).rejects.toBeInstanceOf(InvalidArgumentError);
     });
   });
 });

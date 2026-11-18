@@ -76,6 +76,10 @@ export const revaiProviderOptions = {
     },
     language: { description: 'Language of the audio content.' },
     forced_alignment: { description: 'Whether to perform forced alignment.' },
+    pollTimeoutMs: {
+      description:
+        'Maximum polling time in milliseconds; overrides the provider setting.',
+    },
   } satisfies Record<
     keyof RevaiTranscriptionModelOptions,
     ProviderOptionDefinition

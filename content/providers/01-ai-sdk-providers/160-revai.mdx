@@ -96,6 +96,13 @@ You can use the following optional settings to customize the Rev.ai provider ins
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
+- **pollTimeoutMs** _number_
+
+  Maximum time in milliseconds to wait for an asynchronous transcription job to
+  finish before throwing a `TranscriptionJobPollingTimedOut` error. Defaults to
+  `60000` (1 minute). Raise it when you transcribe long audio files. Can be
+  overridden per call with `providerOptions.revai.pollTimeoutMs`.
+
 ## Transcription Models
 
 You can create models that call the [Rev.ai transcription API](https://www.rev.ai/docs/api/transcription)
@@ -125,6 +132,12 @@ const result = await transcribe({
 ```
 
 The following provider options are available:
+
+- **pollTimeoutMs** _number_
+
+  Maximum time in milliseconds to wait for the transcription job to finish for
+  this call. Overrides the provider-level `pollTimeoutMs` setting. Defaults to
+  `60000` (1 minute). Optional.
 
 - **metadata** _string_
 
@@ -243,6 +256,9 @@ The following provider options are available:
   - Spanish (es)
 
   Note: This option is not available in low-cost environments.
+
+These polling options control the SDK's polling loop and are not sent to the
+Rev.ai API.
 
 ### Model Capabilities
 
