@@ -237,6 +237,37 @@ console.log(text);
 
 For more configuration options and customization, see the [Perplexity Search API documentation](https://docs.perplexity.ai/guides/search-quickstart).
 
+#### Search1API
+
+<Note>
+  Get your API key from the [Search1API dashboard](https://app.s1.dev).
+</Note>
+
+First, install the Search1API tools:
+
+```bash
+pnpm install @search1api/ai-sdk
+```
+
+Then, you can import and pass the tools into `generateText`, `streamText`, or your agent. Search1API provides `search` for web search across general and source-specific engines (including GitHub, Reddit, arXiv, and YouTube), `news` for news search, `crawl` for reading a webpage, and `ask` for agentic search:
+
+```ts
+import { generateText, isStepCount } from 'ai';
+__PROVIDER_IMPORT__;
+import { search1apiTools } from '@search1api/ai-sdk';
+
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'What changed in the latest Next.js release? Cite your sources.',
+  tools: search1apiTools({ only: ['search', 'crawl'] }),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);
+```
+
+For more configuration options and customization, see the [Search1API AI SDK documentation](https://s1.dev/docs/integrations/vercel-ai-sdk).
+
 #### Tavily
 
 <Note>
