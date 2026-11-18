@@ -30,6 +30,7 @@ import {
   serializeModelOptions,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
+  encodePathSegment,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { TopazConfig } from './topaz-config';
@@ -322,8 +323,9 @@ export class TopazImageModel implements ImageModelV4 {
 
     while (true) {
       const { value: status } = await getFromApi({
-        url: `${this.config.baseURL}/image/v1/status/${processId}`,
-        // Built from the configured baseURL, not from response data.
+        url: `${this.config.baseURL}/image/v1/status/${encodePathSegment(processId)}`,
+        // Host comes from the configured baseURL; the provider-returned ID is
+        // encoded as a single path segment to prevent traversal.
         validateUrl: false,
         headers: await resolve(headers),
         successfulResponseHandler: createJsonResponseHandler(
@@ -369,7 +371,7 @@ export class TopazImageModel implements ImageModelV4 {
     try {
       // Deliberately not tied to the caller's abort signal, which may be the
       // reason polling stopped.
-      await fetchImpl(`${this.config.baseURL}/image/v1/cancel/${processId}`, {
+      await fetchImpl(`${this.config.baseURL}/image/v1/cancel/${encodePathSegment(processId)}`, {
         method: 'DELETE',
         headers: removeUndefinedEntries((await resolve(headers)) ?? {}),
       });
@@ -391,8 +393,9 @@ export class TopazImageModel implements ImageModelV4 {
     responseHeaders: Record<string, string> | undefined;
   }> {
     const { value: downloadResponse } = await getFromApi({
-      url: `${this.config.baseURL}/image/v1/download/${processId}`,
-      // Built from the configured baseURL, not from response data.
+      url: `${this.config.baseURL}/image/v1/download/${encodePathSegment(processId)}`,
+      // Host comes from the configured baseURL; the provider-returned ID is
+      // encoded as a single path segment to prevent traversal.
       validateUrl: false,
       headers: await resolve(headers),
       successfulResponseHandler: createJsonResponseHandler(
