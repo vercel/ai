@@ -109,6 +109,7 @@ const harnessUtilsMocks = vi.hoisted(() => {
       abortSignal: AbortSignal;
       reason: 'open' | 'reconnect';
     }) => Promise<unknown>;
+    keepaliveMs: number | undefined;
     reconnect:
       | {
           readonly maxElapsedMs?: number;
@@ -122,6 +123,7 @@ const harnessUtilsMocks = vi.hoisted(() => {
   class MockSandboxChannel {
     sent: unknown[] = [];
     closed = false;
+    readonly keepaliveMs: number | undefined;
     readonly reconnect:
       | {
           readonly maxElapsedMs?: number;
@@ -137,11 +139,13 @@ const harnessUtilsMocks = vi.hoisted(() => {
     constructor({
       connect,
       reconnect,
+      keepaliveMs,
     }: {
       connect: (options: {
         abortSignal: AbortSignal;
         reason: 'open' | 'reconnect';
       }) => Promise<unknown>;
+      keepaliveMs?: number;
       reconnect?: {
         readonly maxElapsedMs?: number;
         readonly initialDelayMs?: number;
@@ -150,6 +154,7 @@ const harnessUtilsMocks = vi.hoisted(() => {
     }) {
       this.connect = connect;
       this.reconnect = reconnect;
+      this.keepaliveMs = keepaliveMs;
       channels.push(this);
     }
 
@@ -457,6 +462,7 @@ describe('createOpenCode adapter', () => {
       mintBridgeToken,
       portEndpoint,
       reconnect,
+      keepaliveMs: 100,
     });
     expect(
       warn.mock.calls.filter(([message]) =>
@@ -506,6 +512,9 @@ describe('createOpenCode adapter', () => {
     expect(
       harnessUtilsMocks.channels.map(channel => channel.reconnect),
     ).toEqual([reconnect, reconnect]);
+    expect(
+      harnessUtilsMocks.channels.map(channel => channel.keepaliveMs),
+    ).toEqual([100, 100]);
     await attachedSession.doDetach();
   });
 

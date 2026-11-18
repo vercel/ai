@@ -256,6 +256,7 @@ describe('createGrokBuild', () => {
       startupTimeoutMs: 45_000,
       hostDisconnectTimeoutMs: 60_000,
       reconnect,
+      keepaliveMs: 100,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
     });
@@ -272,6 +273,7 @@ describe('createGrokBuild', () => {
       startupTimeoutMs: settings.startupTimeoutMs,
       hostDisconnectTimeoutMs: settings.hostDisconnectTimeoutMs,
       reconnect: settings.reconnect,
+      keepaliveMs: settings.keepaliveMs,
       mcpServers: settings.mcpServers,
       mintBridgeToken: settings.mintBridgeToken,
     }).toEqual({
@@ -287,6 +289,7 @@ describe('createGrokBuild', () => {
       startupTimeoutMs: 45_000,
       hostDisconnectTimeoutMs: 60_000,
       reconnect,
+      keepaliveMs: 100,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
     });

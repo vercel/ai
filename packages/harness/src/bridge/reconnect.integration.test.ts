@@ -58,6 +58,117 @@ async function startBridge(
 }
 
 describe('SandboxChannel ↔ runBridge reconnect', () => {
+  it.each(['idle', 'blackhole'] as const)(
+    'handles a silent bridge behind an %s TCP proxy',
+    async mode => {
+      let release!: () => void;
+      const gate = new Promise<void>(resolve => (release = resolve));
+      const handle = await startBridge(async (_start, turn) => {
+        turn.emit({ type: 'text-delta', id: 'm', delta: 'started' });
+        await gate;
+        turn.emit({ type: 'finish' });
+      });
+      cleanups.push(() => release());
+
+      const sockets = new Set<Socket>();
+      const timers = new Set<ReturnType<typeof setTimeout>>();
+      let connections = 0;
+      let idleDrops = 0;
+      let blackhole = false;
+      let denyReconnect = false;
+      const proxy = createServer(host => {
+        connections++;
+        sockets.add(host);
+        host.on('error', () => {});
+        if (denyReconnect) {
+          host.destroy();
+          return;
+        }
+        const remote = createConnection(handle.port, '127.0.0.1');
+        sockets.add(remote);
+        remote.on('error', () => host.destroy());
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const activity = () => {
+          clearTimeout(timer);
+          if (timer) timers.delete(timer);
+          if (mode !== 'idle') return;
+          timer = setTimeout(() => {
+            idleDrops++;
+            denyReconnect = true;
+            host.destroy();
+            remote.destroy();
+          }, 300);
+          timers.add(timer);
+        };
+        host.on('data', data => {
+          if (blackhole) return;
+          activity();
+          remote.write(data);
+        });
+        remote.on('data', data => {
+          if (blackhole) return;
+          activity();
+          host.write(data);
+        });
+        host.on('close', () => {
+          clearTimeout(timer);
+          if (timer) timers.delete(timer);
+          remote.destroy();
+        });
+        remote.on('close', () => host.destroy());
+      });
+      cleanups.push(async () => {
+        for (const timer of timers) clearTimeout(timer);
+        for (const socket of sockets) socket.destroy();
+        await new Promise<void>(resolve => proxy.close(() => resolve()));
+      });
+      await new Promise<void>(resolve => proxy.listen(0, '127.0.0.1', resolve));
+      const address = proxy.address();
+      if (!address || typeof address === 'string')
+        throw new Error('No TCP port');
+      const debug: string[] = [];
+      const channel = new SandboxChannel<Outbound, Inbound>({
+        connect: () =>
+          openAuthenticatedBridgeWebSocket({
+            url: `ws://127.0.0.1:${address.port}/`,
+            privateKey: BRIDGE_AUTH.privateKey,
+          }),
+        outboundSchema,
+        keepaliveMs: 50,
+        reconnect: { maxElapsedMs: 200, initialDelayMs: 10, maxDelayMs: 20 },
+        onDebug: event => debug.push(event.event),
+      });
+      cleanups.push(() => channel.close());
+      let started = false;
+      let finished = false;
+      let closeReason: string | undefined;
+      channel.on('text-delta', () => (started = true));
+      channel.on('finish', () => (finished = true));
+      channel.onClose((_code, reason) => (closeReason = reason));
+      await channel.open();
+      channel.send({ type: 'start' });
+      await waitUntil(() => started);
+
+      if (mode === 'blackhole') {
+        blackhole = true;
+        denyReconnect = true;
+        await waitUntil(() => channel.isClosed());
+        expect(closeReason).toBe('reconnect failed');
+        expect(debug).toContain('reconnect-attempt');
+        expect(debug.at(-1)).toBe('reconnect-failed');
+        expect(connections).toBeGreaterThan(1);
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 750));
+        release();
+        await waitUntil(() => finished);
+        expect(connections).toBe(1);
+        expect(idleDrops).toBe(0);
+        expect(debug).toEqual([]);
+        expect(closeReason).toBeUndefined();
+      }
+    },
+  );
+
   it('transparently reconnects mid-turn and delivers every event in order, once', async () => {
     let release!: () => void;
     const gate = new Promise<void>(r => (release = r));

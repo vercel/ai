@@ -136,6 +136,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
   startupTimeoutMs,
   hostDisconnectTimeoutMs,
   reconnect,
+  keepaliveMs,
   clientApp,
   lifecycleStateSchema,
 }: {
@@ -146,6 +147,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
   startupTimeoutMs?: number;
   hostDisconnectTimeoutMs?: number;
   reconnect?: SandboxChannelReconnectOptions;
+  keepaliveMs?: number;
   clientApp: ACPClientApp;
   lifecycleStateSchema: NonNullable<
     HarnessV1<TBuiltinTools>['lifecycleStateSchema']
@@ -421,6 +423,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               onDiagnostic,
               onBridgeError,
               reconnect,
+              keepaliveMs,
             });
             await attachChannel.open(isContinue ? { resume: true } : undefined);
             return createSession({
@@ -698,6 +701,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         onDiagnostic,
         onBridgeError,
         reconnect,
+        keepaliveMs,
       });
       await channel.open(
         respawnStrategy?.mode === 'disk-replay' ? { resume: true } : undefined,

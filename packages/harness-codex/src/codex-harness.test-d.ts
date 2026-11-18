@@ -13,8 +13,9 @@ test('accepts supported reasoning effort settings', () => {
   }
 });
 
-test('accepts sandbox bridge reconnect settings', () => {
+test('accepts sandbox bridge connection settings', () => {
   const settings: CodexHarnessSettings = {
+    keepaliveMs: 100,
     reconnect: {
       maxElapsedMs: 120_000,
       initialDelayMs: 100,
@@ -23,6 +24,7 @@ test('accepts sandbox bridge reconnect settings', () => {
   };
 
   createCodex(settings);
+  expectTypeOf(settings.keepaliveMs).toEqualTypeOf<number | undefined>();
   expectTypeOf(settings.reconnect).toEqualTypeOf<
     SandboxChannelReconnectOptions | undefined
   >();

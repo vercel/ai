@@ -67,6 +67,11 @@ export type ACPHarnessSettings<
    * milliseconds up to 2 seconds.
    */
   readonly reconnect?: SandboxChannelReconnectOptions;
+  /**
+   * WebSocket ping interval in milliseconds. Defaults to 20_000. Set to 0 to
+   * disable. Two unanswered pings terminate the socket and trigger reconnect.
+   */
+  readonly keepaliveMs?: number;
   readonly clientApp?: ACPClientApp;
   readonly version?: ACPV1Settings['version'];
   readonly harnessId: ACPV1Settings['harnessId'];
@@ -213,6 +218,7 @@ export function createACP<
         startupTimeoutMs: settings.startupTimeoutMs,
         hostDisconnectTimeoutMs: settings.hostDisconnectTimeoutMs,
         reconnect: settings.reconnect,
+        keepaliveMs: settings.keepaliveMs,
         clientApp,
         lifecycleStateSchema: acpResumeStateSchema satisfies z.ZodType<{
           bridge?: ACPBridgeCoords;

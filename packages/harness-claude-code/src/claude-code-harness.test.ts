@@ -16,6 +16,7 @@ import type { z } from 'zod/v4';
 const sentMessages: Array<Record<string, unknown>> = [];
 const openCalls: Array<{ resume?: boolean } | undefined> = [];
 const reconnects: Array<unknown> = [];
+const keepalives: Array<number | undefined> = [];
 const debugHooks: Array<unknown> = [];
 const subscribedEventTypes: string[] = [];
 const channelListeners = new Map<
@@ -116,6 +117,7 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
     constructor({
       connect,
       reconnect,
+      keepaliveMs,
       onDebug,
     }: {
       connect: (options: {
@@ -123,10 +125,12 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
         reason: 'open' | 'reconnect';
       }) => Promise<unknown>;
       reconnect?: unknown;
+      keepaliveMs?: number;
       onDebug?: unknown;
     }) {
       this.connect = connect;
       reconnects.push(reconnect);
+      keepalives.push(keepaliveMs);
       debugHooks.push(onDebug);
     }
 
@@ -376,6 +380,7 @@ describe('createClaudeCode adapter', () => {
     sentMessages.length = 0;
     openCalls.length = 0;
     reconnects.length = 0;
+    keepalives.length = 0;
     debugHooks.length = 0;
     subscribedEventTypes.length = 0;
     channelListeners.clear();
@@ -1017,7 +1022,7 @@ describe('createClaudeCode adapter', () => {
       initialDelayMs: 100,
       maxDelayMs: 5_000,
     };
-    const harness = createClaudeCode({ reconnect });
+    const harness = createClaudeCode({ reconnect, keepaliveMs: 100 });
     const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
       bridgePortUrl: 'ws://127.0.0.1:1',
       spawnEnvs,
@@ -1047,6 +1052,7 @@ describe('createClaudeCode adapter', () => {
       resumeFrom,
     });
     expect(reconnects).toEqual([reconnect, reconnect]);
+    expect(keepalives).toEqual([100, 100]);
     const attachedResumeFrom = await attachedSession.doDetach();
     expect(attachedResumeFrom.data).toMatchObject({ bridge: { privateKey } });
   });
