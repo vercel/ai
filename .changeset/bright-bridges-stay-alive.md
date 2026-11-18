@@ -10,4 +10,4 @@
 '@ai-sdk/harness-opencode': patch
 ---
 
-Keep silent sandbox bridge connections alive with WebSocket pings and reconnect when a peer stops responding. Add `keepAliveMs` to `SandboxChannel` and bridge-backed harness settings (default: 20 seconds; `0` disables it).
+fix(harness): keep silent sandbox bridge connections alive with WebSocket pings and reconnect when a peer stops responding, controllable via `keepAliveMs` option for bridge-backed harness adapters
