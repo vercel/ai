@@ -24,7 +24,7 @@ Set `GRADIUM_API_KEY`, or pass `apiKey` to `createGradium`. Authentication is re
 
 ## Local development
 
-This package depends on the published `@gradium/sdk@^0.1.0` from npm.
+This package depends on the published `@gradium/sdk@^0.2.0` from npm.
 
 ```sh
 pnpm install

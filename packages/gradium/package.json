@@ -43,7 +43,7 @@
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "@gradium/sdk": "^0.1.0"
+    "@gradium/sdk": "^0.2.0"
   },
   "devDependencies": {
     "@types/node": "22.19.19",
