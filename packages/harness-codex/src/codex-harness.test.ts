@@ -23,6 +23,7 @@ const channelMocks = vi.hoisted(() => ({
     }) => Promise<unknown>
   >,
   reconnects: [] as Array<unknown>,
+  keepalives: [] as Array<number | undefined>,
 }));
 const webSocketMocks = vi.hoisted(() => {
   type Listener = (...args: unknown[]) => void;
@@ -100,15 +101,18 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
     constructor({
       connect,
       reconnect,
+      keepAliveMs,
     }: {
       connect: (options: {
         abortSignal: AbortSignal;
         reason: 'open' | 'reconnect';
       }) => Promise<unknown>;
       reconnect?: unknown;
+      keepAliveMs?: number;
     }) {
       channelMocks.connects.push(connect);
       channelMocks.reconnects.push(reconnect);
+      channelMocks.keepalives.push(keepAliveMs);
       channelMocks.channels.push(this);
     }
     async open(): Promise<void> {
@@ -258,6 +262,7 @@ describe('createCodex adapter', () => {
     channelMocks.connects.length = 0;
     channelMocks.channels.length = 0;
     channelMocks.reconnects.length = 0;
+    channelMocks.keepalives.length = 0;
     webSocketMocks.calls.length = 0;
   });
 
@@ -1034,7 +1039,7 @@ describe('createCodex adapter', () => {
       initialDelayMs: 100,
       maxDelayMs: 5_000,
     };
-    const harness = createCodex({ reconnect });
+    const harness = createCodex({ reconnect, keepAliveMs: 100 });
     const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
       bridgePortUrl: 'ws://127.0.0.1:1',
       runs,
@@ -1065,6 +1070,7 @@ describe('createCodex adapter', () => {
       resumeFrom,
     });
     expect(channelMocks.reconnects).toEqual([reconnect, reconnect]);
+    expect(channelMocks.keepalives).toEqual([100, 100]);
     const attachedResumeFrom = await attachedSession.doDetach();
     expect(attachedResumeFrom.data).toMatchObject({ bridge: { privateKey } });
   });

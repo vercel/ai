@@ -219,6 +219,11 @@ export type ClaudeCodeHarnessSettings = {
    */
   readonly reconnect?: SandboxChannelReconnectOptions;
   /**
+   * WebSocket ping interval in milliseconds. Defaults to 20_000. Set to 0 to
+   * disable. Two unanswered pings terminate the socket and trigger reconnect.
+   */
+  readonly keepAliveMs?: number;
+  /**
    * Called with bridge connection lifecycle events: reconnect attempts,
    * successful reconnects, and `reconnect-failed` once the connection is
    * closed for good. Hosts that cache idle sessions can use it to reattach
@@ -1111,6 +1116,7 @@ export function createClaudeCode(
             onDiagnostic,
             onBridgeError,
             reconnect: settings.reconnect,
+            keepAliveMs: settings.keepAliveMs,
             onDebug: settings.onDebug,
           });
           const finishListenerAttachment = isContinue
@@ -1283,6 +1289,7 @@ export function createClaudeCode(
         onDiagnostic,
         onBridgeError,
         reconnect: settings.reconnect,
+        keepAliveMs: settings.keepAliveMs,
         onDebug: settings.onDebug,
         // In replay mode the respawned bridge reloaded the finished turn from
         // disk; seed the cursor and resume so it streams the tail (incl.
