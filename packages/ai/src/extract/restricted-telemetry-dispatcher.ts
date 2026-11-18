@@ -6,6 +6,12 @@ import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type { Callback } from '../util/callback';
 import type { ExtractEndEvent, ExtractStartEvent } from './extract-events';
 
+export function omitRequestCredentials<
+  EVENT extends Pick<ExtractStartEvent, 'headers' | 'providerOptions'>,
+>(event: EVENT): EVENT {
+  return { ...event, headers: undefined, providerOptions: {} };
+}
+
 export function createRestrictedTelemetryDispatcher<
   RUNTIME_CONTEXT extends Context,
 >({
@@ -28,7 +34,7 @@ export function createRestrictedTelemetryDispatcher<
     ...dispatcher,
     onStart: event =>
       dispatcher.experimental_onExtractStart?.({
-        ...event,
+        ...omitRequestCredentials(event),
         runtimeContext: filterIncludedContext({
           context: event.runtimeContext,
           includeContext: telemetry?.includeRuntimeContext,
@@ -36,7 +42,7 @@ export function createRestrictedTelemetryDispatcher<
       }),
     onEnd: event =>
       dispatcher.experimental_onExtractEnd?.({
-        ...event,
+        ...omitRequestCredentials(event),
         runtimeContext: filterIncludedContext({
           context: event.runtimeContext,
           includeContext: telemetry?.includeRuntimeContext,

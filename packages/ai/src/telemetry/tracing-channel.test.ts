@@ -1207,6 +1207,39 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
     ).toEqual({ requestId: 'request-1' });
   });
 
+  it('keeps request headers and provider options out of extract tracing', async () => {
+    const messages = await collectTracingChannelStartMessages(async () => {
+      await extract({
+        model: new ExtractionMockModelV4({
+          doExtract: async () => ({
+            answers: {
+              invoiceNumber: { type: 'text', value: 'INV-2041' },
+            },
+            warnings: [],
+          }),
+        }),
+        state: 'Invoice INV-2041',
+        fields: {
+          invoiceNumber: { type: 'text', instructions: 'Invoice number' },
+        },
+        headers: { authorization: 'Bearer secret-token' },
+        providerOptions: {
+          gateway: { byok: { openai: [{ apiKey: 'secret-key' }] } },
+        },
+      });
+    });
+
+    const extractMessage = messages.find(
+      message => message.type === 'experimental_extract',
+    );
+
+    expect(extractMessage?.event).toMatchObject({ providerOptions: {} });
+    expect(
+      (extractMessage?.event as { headers?: unknown })?.headers,
+    ).toBeUndefined();
+    expect(JSON.stringify(extractMessage?.event)).not.toContain('secret');
+  });
+
   it('hides extraction inputs in tracing when inputs are not recorded', async () => {
     const messages = await collectTracingChannelStartMessages(async () => {
       await extract({

@@ -26,7 +26,10 @@ import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import type { ExtractEndEvent, ExtractStartEvent } from './extract-events';
 import type { ExtractionModel, ExtractionResult } from './extraction-result';
-import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
+import {
+  createRestrictedTelemetryDispatcher,
+  omitRequestCredentials,
+} from './restricted-telemetry-dispatcher';
 import {
   validateExtractionAnswers,
   validateExtractionInput,
@@ -137,7 +140,7 @@ export async function extract<
   };
   return await runInTracingChannelSpan({
     type: 'experimental_extract',
-    event: startEvent,
+    event: omitRequestCredentials(startEvent),
     execute: async () => {
       await notify({
         event: startEvent,

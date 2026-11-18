@@ -988,6 +988,49 @@ describe('telemetry', () => {
     expect(onEnd.mock.calls[0][0].answers).toEqual(answers);
   });
 
+  it.each([true, false])(
+    'keeps request headers and provider options out of integrations with recordInputs %s',
+    async recordInputs => {
+      const experimental_onExtractStart = vi.fn();
+      const experimental_onExtractEnd = vi.fn();
+      const onStart = vi.fn();
+      const headers = { authorization: 'Bearer secret-token' };
+      const providerOptions = {
+        gateway: { byok: { openai: [{ apiKey: 'secret-key' }] } },
+      };
+
+      await extract({
+        ...setup(),
+        state,
+        fields,
+        headers,
+        providerOptions,
+        telemetry: {
+          recordInputs,
+          integrations: {
+            experimental_onExtractStart,
+            experimental_onExtractEnd,
+          },
+        },
+        onStart,
+      });
+
+      for (const callback of [
+        experimental_onExtractStart,
+        experimental_onExtractEnd,
+      ]) {
+        const event = callback.mock.calls[0][0];
+        expect(event.headers).toBeUndefined();
+        expect(event.providerOptions).toEqual({});
+        expect(JSON.stringify(event)).not.toContain('secret');
+      }
+      expect(onStart.mock.calls[0][0]).toMatchObject({
+        headers,
+        providerOptions,
+      });
+    },
+  );
+
   it('includes only selected runtime context fields', async () => {
     const experimental_onExtractStart = vi.fn();
     const experimental_onExtractEnd = vi.fn();
