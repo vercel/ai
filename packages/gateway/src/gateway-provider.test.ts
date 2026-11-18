@@ -265,6 +265,25 @@ describe('GatewayProvider', () => {
   });
 
   describe('createGateway', () => {
+    it.each(['au', 'eu', 'us'] as const)(
+      'uses the %s endpoint for reporting clients',
+      async regionalHosting => {
+        const provider = createGateway({ regionalHosting, apiKey: 'test-key' });
+
+        await provider.getSpendReport({
+          startDate: '2025-01-01',
+          endDate: '2025-01-02',
+        });
+        await provider.getGenerationInfo({ id: 'gen_test' });
+
+        const config = expect.objectContaining({
+          baseURL: `https://${regionalHosting}.ai-gateway.vercel.sh/v4/ai`,
+        });
+        expect(GatewaySpendReport).toHaveBeenCalledWith(config);
+        expect(GatewayGenerationInfoFetcher).toHaveBeenCalledWith(config);
+      },
+    );
+
     it('should create provider with correct configuration', async () => {
       const options = {
         baseURL: 'https://api.example.com',

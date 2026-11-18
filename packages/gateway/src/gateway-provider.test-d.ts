@@ -72,6 +72,14 @@ createGateway({ apiKey: 'vca_test-token' });
 createGateway({ apiKey: 'vca_test-token', teamIdOrSlug: 'vercel' });
 createGateway({ teamIdOrSlug: 'vercel' });
 createGateway({});
+createGateway({ regionalHosting: 'au' });
+createGateway({ regionalHosting: 'eu' });
+createGateway({ regionalHosting: 'us' });
+
+// @ts-expect-error Constructor regions must be from the finite allowlist.
+createGateway({ regionalHosting: 'ap' });
+// @ts-expect-error The constructor takes a region, not a request assertion object.
+createGateway({ regionalHosting: { region: 'eu', pinInference: false } });
 
 // @ts-expect-error token is not a supported Gateway provider setting
 createGateway({ token: 'vca_test-token' });
