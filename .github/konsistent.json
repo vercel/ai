@@ -439,7 +439,8 @@
                     "port": { "type": "number" },
                     "portEndpoint": "HarnessV1PortEndpoint",
                     "reconnect": "SandboxChannelReconnectOptions",
-                    "startupTimeoutMs": { "type": "number" }
+                    "startupTimeoutMs": { "type": "number" },
+                    "keepAliveMs": { "type": "number" }
                   }
                 }
               }
@@ -475,7 +476,8 @@
                     "port": { "type": "number" },
                     "portEndpoint": "HarnessV1PortEndpoint",
                     "reconnect": "SandboxChannelReconnectOptions",
-                    "startupTimeoutMs": { "type": "number" }
+                    "startupTimeoutMs": { "type": "number" },
+                    "keepAliveMs": { "type": "number" }
                   }
                 }
               }
@@ -506,7 +508,8 @@
                     "port": { "type": "number" },
                     "portEndpoint": "HarnessV1PortEndpoint",
                     "reconnect": "SandboxChannelReconnectOptions",
-                    "startupTimeoutMs": { "type": "number" }
+                    "startupTimeoutMs": { "type": "number" },
+                    "keepAliveMs": { "type": "number" }
                   }
                 }
               }
