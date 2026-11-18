@@ -835,11 +835,27 @@ describe('ACP permission controller', () => {
     });
 
     it.each([
-      { permissionMode: 'allow-edits', kind: 'edit' },
-      { permissionMode: 'allow-reads', kind: 'edit' },
+      {
+        permissionMode: 'allow-edits',
+        kind: 'edit',
+        protectedPath: '.claude',
+        location: '.claude/settings.json',
+      },
+      {
+        permissionMode: 'allow-reads',
+        kind: 'edit',
+        protectedPath: '.claude',
+        location: '.claude/settings.json',
+      },
+      ...(['edit', 'delete', 'move'] as const).map(kind => ({
+        permissionMode: 'allow-edits' as const,
+        kind,
+        protectedPath: '.github/mcp.json',
+        location: '.github/mcp.json',
+      })),
     ] as const)(
-      'requests approval for configured paths with $permissionMode $kind',
-      async ({ permissionMode, kind }) => {
+      'requests approval for $location with $permissionMode $kind',
+      async ({ permissionMode, kind, protectedPath, location }) => {
         const fake = createFakeTurn();
         const controller = createACPPermissionController({
           turn: fake.turn,
@@ -847,7 +863,7 @@ describe('ACP permission controller', () => {
           sessionId: 'session-1',
           permissionMode,
           hasPermissionModeMapping: false,
-          writeProtectedPaths: ['.claude'],
+          writeProtectedPaths: [protectedPath],
           emitToolCall: () => {},
           claimHostToolPermission: async () => undefined,
         });
@@ -855,7 +871,7 @@ describe('ACP permission controller', () => {
           permissionRequest({
             toolCallId: 'call-1',
             kind,
-            toolCall: { locations: [{ path: '.claude/settings.json' }] },
+            toolCall: { locations: [{ path: location }] },
           }),
         );
         const approvalId = await vi.waitFor(() =>
