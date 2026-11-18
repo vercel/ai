@@ -1,5 +1,14 @@
 # ai
 
+## 7.0.177
+
+### Patch Changes
+
+- e403988: add an interrupt option to steering so a steer can cancel a model call that has not produced output yet
+- b792b56: feat(ai): ship the AI SDK skill in the package at `skills/ai-sdk` for pnpm agent skills
+- Updated dependencies [700089c]
+  - @ai-sdk/gateway@4.0.150
+
 ## 7.0.176
 
 ### Patch Changes
