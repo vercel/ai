@@ -1,0 +1,116 @@
+---
+title: HopBase
+description: Use the HopBase OpenAI compatible API with the AI SDK.
+---
+
+# HopBase Provider
+
+[HopBase](https://hop-base.com) is an AI API gateway that serves chat models
+from several model families through one OpenAI-compatible API and one API key.
+You can use its Chat Completions endpoint with the AI SDK through the
+`@ai-sdk/openai-compatible` module.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Create an API key in the [HopBase console](https://api.hop-base.com). Each key
+is scoped to the model groups you choose when you create it. Set the key as a
+server-side environment variable:
+
+```bash
+export HOPBASE_API_KEY=your-api-key
+```
+
+## Provider Instance
+
+Create a HopBase provider instance with `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+
+const hopbase = createOpenAICompatible({
+  name: "hopbase",
+  apiKey: process.env.HOPBASE_API_KEY,
+  baseURL: "https://api.hop-base.com/v1",
+  includeUsage: true,
+});
+```
+
+The `apiKey` setting sends the key as a Bearer token in the `Authorization`
+header. `includeUsage: true` requests usage information in streaming responses.
+
+## Language Models
+
+Create a language model by passing a HopBase model ID to the provider instance:
+
+```ts
+const model = hopbase("deepseek-v4.1-flash-1017");
+```
+
+### Example
+
+Use `generateText` to generate text with the model:
+
+```ts
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { generateText } from "ai";
+
+const hopbase = createOpenAICompatible({
+  name: "hopbase",
+  apiKey: process.env.HOPBASE_API_KEY,
+  baseURL: "https://api.hop-base.com/v1",
+  includeUsage: true,
+});
+
+const { text } = await generateText({
+  model: hopbase("deepseek-v4.1-flash-1017"),
+  prompt: "Explain what an API gateway does in one sentence.",
+});
+
+console.log(text);
+```
+
+You can also use HopBase language models with `streamText`.
+
+## Supported Models and Capabilities
+
+HopBase exposes chat models such as the following through its
+OpenAI-compatible Chat Completions endpoint:
+
+| Provider  | Model IDs                                                                           |
+| --------- | ----------------------------------------------------------------------------------- |
+| OpenAI    | `gpt-5.6-sol`                                                                       |
+| Google    | `gemini-3.1-pro-preview`, `gemini-3.8-flash`                                        |
+| xAI       | `grok-4.7`                                                                          |
+| DeepSeek  | `deepseek-v4.1-flash-1017`, `deepseek-v4.1-flash-1017-sg`, `deepseek-v4-pro-202606` |
+| Moonshot  | `kimi-k3`                                                                           |
+| Z.ai      | `glm-5.3`                                                                           |
+| ByteDance | `doubao-seed-2-1-pro-260915`, `doubao-seed-2-1-lite-260915`                         |
+
+`deepseek-v4.1-flash-1017-sg` is served from a Singapore data center.
+
+The models available to a key depend on the groups it includes and can change.
+Use the authenticated `GET https://api.hop-base.com/v1/models` endpoint or the
+[HopBase model catalog](https://hop-base.com/models) for current model IDs.
+
+Supported capabilities depend on the selected model and include:
+
+- text generation and streaming;
+- tool calling, including multi-step tool use with `stopWhen`; and
+- image input for vision models.
+
+This guide covers HopBase's OpenAI-compatible Chat Completions endpoint. Claude
+models are served over the Anthropic Messages API and can be used with the
+[Anthropic provider](/providers/ai-sdk-providers/anthropic) by setting
+`baseURL: 'https://api.hop-base.com/v1'`, as described in the HopBase AI SDK
+guide below.
+
+## Resources
+
+- [HopBase AI SDK guide](https://hop-base.com/en/docs/tools/vercel-ai-sdk)
+- [HopBase documentation](https://hop-base.com/en/docs)
+- [HopBase model catalog](https://hop-base.com/models)
+- [AI SDK OpenAI Compatible provider](/providers/openai-compatible-providers)
