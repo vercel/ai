@@ -147,6 +147,87 @@ describe('HttpMCPTransport', () => {
     });
   });
 
+  describe('HTTP SSE request isolation', () => {
+    let controller: TestResponseController;
+
+    beforeEach(async () => {
+      transport = createLegacyHttpTransport({
+        url: 'http://localhost:4000/stream',
+      });
+      controller = new TestResponseController();
+      server.urls['http://localhost:4000/stream'].response = ({ callNumber }) =>
+        callNumber === 0
+          ? { type: 'error', status: 405 }
+          : {
+              type: 'controlled-stream',
+              controller,
+              headers: { 'content-type': 'text/event-stream' },
+            };
+      await transport.start();
+    });
+
+    const message = {
+      jsonrpc: '2.0' as const,
+      method: 'tools/call',
+      id: 3,
+      params: { name: 'echo', arguments: {} },
+    };
+
+    it.each([0, 'request-3'])(
+      'should not treat a response for another ID as answering request %s',
+      async id => {
+        const messages: unknown[] = [];
+        transport.onmessage = msg => messages.push(msg);
+
+        await transport.send({ ...message, id });
+        await controller.write(
+          `data: ${JSON.stringify({ jsonrpc: '2.0', id: 'other-request', result: { content: [] } })}\n\n`,
+        );
+        await controller.close();
+        await vi.waitFor(() => expect(messages).toHaveLength(2));
+
+        expect(messages[0]).toMatchObject({
+          id: 'other-request',
+          result: { content: [] },
+        });
+        expect(messages[1]).toMatchObject({ id, error: { code: -32000 } });
+      },
+    );
+
+    it('should fail only the unanswered request while another SSE response remains active', async () => {
+      const secondController = new TestResponseController();
+      let posts = 0;
+      server.urls['http://localhost:4000/stream'].response = () => ({
+        type: 'controlled-stream',
+        controller: posts++ === 0 ? controller : secondController,
+        headers: { 'content-type': 'text/event-stream' },
+      });
+      const messages: unknown[] = [];
+      transport.onmessage = msg => messages.push(msg);
+
+      await transport.send(message);
+      await transport.send({ ...message, id: 4 });
+      await controller.write(': keep-alive\n\n');
+      await secondController.write(': keep-alive\n\n');
+      await controller.close();
+      await vi.waitFor(() => expect(messages).toHaveLength(1));
+      expect(messages[0]).toMatchObject({ id: 3, error: { code: -32000 } });
+
+      await secondController.write(
+        `data: ${JSON.stringify({ jsonrpc: '2.0', id: 4, result: { content: [] } })}\n\n`,
+      );
+      await secondController.close();
+      await vi.waitFor(() => expect(messages).toHaveLength(2));
+      await vi.advanceTimersByTimeAsync(10);
+      expect(messages).toHaveLength(2);
+      expect(messages[1]).toEqual({
+        jsonrpc: '2.0',
+        id: 4,
+        result: { content: [] },
+      });
+    });
+  });
+
   it('should initialize MCP client from SSE response without explicit event field', async () => {
     const controller = new TestResponseController();
 
