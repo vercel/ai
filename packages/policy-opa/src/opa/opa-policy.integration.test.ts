@@ -7,7 +7,14 @@
  * execution-denied result.
  */
 import { jsonSchema, type ModelMessage } from '@ai-sdk/provider-utils';
-import { generateText, isStepCount, streamText, tool, ToolLoopAgent } from 'ai';
+import {
+  generateText,
+  isStepCount,
+  streamText,
+  tool,
+  ToolLoopAgent,
+  type ToolApprovalConfiguration,
+} from 'ai';
 import {
   convertArrayToReadableStream,
   MockLanguageModelV3,
@@ -407,9 +414,14 @@ describe.each(['generateText', 'streamText', 'ToolLoopAgent'] as const)(
       repeatToolCallIds,
       history = [],
       approvePendingToolCalls = false,
+      approval,
+      prepareStep,
     }: {
       responses: ToolCall[][];
       policy: (input: DefaultOpaInput) => unknown;
+      /** An `opaPolicy` to use instead of a new one for `policy`. */
+      approval?: ReturnType<typeof opaPolicy>;
+      prepareStep?: () => { messages: ModelMessage[] };
       repeatToolCallIds?: boolean;
       /** Messages that follow the user message of the conversation. */
       history?: ModelMessage[];
@@ -451,13 +463,15 @@ describe.each(['generateText', 'streamText', 'ToolLoopAgent'] as const)(
         model: modelEmittingToolCalls(responses, { repeatToolCallIds }),
         stopWhen: isStepCount(responses.length),
         tools,
-        toolApproval: opaPolicy<typeof tools>({
-          client: {
-            evaluate: async (_path: string, input: unknown) =>
-              policy(input as DefaultOpaInput) as never,
-          },
-          path: 'agent/call/decision',
-        }),
+        toolApproval: (approval ??
+          opaPolicy({
+            client: {
+              evaluate: async (_path: string, input: unknown) =>
+                policy(input as DefaultOpaInput) as never,
+            },
+            path: 'agent/call/decision',
+          })) as ToolApprovalConfiguration<typeof tools, unknown>,
+        prepareStep,
       };
 
       const generate = async (
@@ -634,6 +648,37 @@ describe.each(['generateText', 'streamText', 'ToolLoopAgent'] as const)(
           repeatToolCallIds: true,
         }),
       ).toEqual({ executed: ['charge(60)'], pendingApprovals: 0 });
+    });
+
+    it('keeps the tool calls of separate runs apart when prepareStep returns the same messages array', async () => {
+      // One policy and one prepared messages array serve every run.
+      const preparedMessages: ModelMessage[] = [
+        { role: 'user', content: 'perform the requested actions' },
+      ];
+      const approval = opaPolicy({
+        client: {
+          evaluate: async (_path: string, input: unknown) =>
+            budgetPolicy(input as DefaultOpaInput) as never,
+        },
+        path: 'agent/call/decision',
+      });
+      const runOnce = () =>
+        run({
+          responses: [[charge(60)], [charge(30)]],
+          policy: budgetPolicy,
+          approval,
+          prepareStep: () => ({ messages: preparedMessages }),
+        });
+
+      // The second run must not be charged for the tool calls of the first.
+      expect(await runOnce()).toEqual({
+        executed: ['charge(60)', 'charge(30)'],
+        pendingApprovals: 0,
+      });
+      expect(await runOnce()).toEqual({
+        executed: ['charge(60)', 'charge(30)'],
+        pendingApprovals: 0,
+      });
     });
 
     it('enforces a running total across successive responses', async () => {
