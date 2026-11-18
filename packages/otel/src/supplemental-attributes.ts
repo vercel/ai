@@ -1,3 +1,4 @@
+import type { OpenTelemetryIdGenerator } from './durable-span-ids';
 import type { Attributes, Tracer } from '@opentelemetry/api';
 import type { TelemetryOptions } from 'ai';
 import {
@@ -43,6 +44,9 @@ export type OpenTelemetryOptions = {
    * The tracer to use for the telemetry data.
    */
   tracer?: Tracer;
+
+  /** The same bridge registered as the tracer provider's idGenerator and sampler. */
+  durable?: OpenTelemetryIdGenerator;
 
   /**
    * Controls root agent span names for text and object generation.

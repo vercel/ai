@@ -4,10 +4,6 @@
     "declaration": true,
     "sourceMap": true,
     "target": "es2022",
-    "lib": [
-      "es2022",
-      "dom"
-    ],
     "module": "esnext",
     "types": [
       "node"
@@ -88,6 +84,9 @@
       "path": "../../packages/fireworks"
     },
     {
+      "path": "../../packages/fish-audio"
+    },
+    {
       "path": "../../packages/gateway"
     },
     {
@@ -157,10 +156,16 @@
       "path": "../../packages/langchain"
     },
     {
+      "path": "../../packages/liquid"
+    },
+    {
       "path": "../../packages/luma"
     },
     {
       "path": "../../packages/mcp"
+    },
+    {
+      "path": "../../packages/minimax"
     },
     {
       "path": "../../packages/mistral"
@@ -179,6 +184,9 @@
     },
     {
       "path": "../../packages/otel"
+    },
+    {
+      "path": "../../packages/parallel"
     },
     {
       "path": "../../packages/perplexity"
@@ -208,6 +216,12 @@
       "path": "../../packages/sandbox-vercel"
     },
     {
+      "path": "../../packages/scaledown"
+    },
+    {
+      "path": "../../packages/tencent"
+    },
+    {
       "path": "../../packages/togetherai"
     },
     {
@@ -230,6 +244,12 @@
     },
     {
       "path": "../../packages/voyage"
+    },
+    {
+      "path": "../../packages/workflow"
+    },
+    {
+      "path": "../../packages/workflow-harness"
     },
     {
       "path": "../../packages/xai"

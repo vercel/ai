@@ -20968,7 +20968,7 @@ describe('streamText', () => {
               "type": "tool-input-available",
             },
             {
-              "errorText": "An error occurred.",
+              "errorText": "Error: test error",
               "toolCallId": "call-1",
               "type": "tool-output-error",
             },
@@ -20981,6 +20981,50 @@ describe('streamText', () => {
             },
           ]
         `);
+    });
+
+    describe('redactToolErrors: true', () => {
+      it('should redact the tool error in toUIMessageStream', async () => {
+        const chunks = await convertReadableStreamToArray(
+          result.toUIMessageStream({ redactToolErrors: true }),
+        );
+
+        expect(
+          chunks.filter(chunk => chunk.type === 'tool-output-error'),
+        ).toEqual([
+          {
+            type: 'tool-output-error',
+            toolCallId: 'call-1',
+            errorText: 'An error occurred.',
+          },
+        ]);
+      });
+
+      it('should redact the tool error in toUIMessageStreamResponse', async () => {
+        const response = result.toUIMessageStreamResponse({
+          redactToolErrors: true,
+        });
+
+        const body = (await convertResponseStreamToArray(response)).join('');
+
+        expect(body).toContain('"errorText":"An error occurred."');
+        expect(body).not.toContain('test error');
+      });
+
+      it('should redact the tool error in pipeUIMessageStreamToResponse', async () => {
+        const mockResponse = createMockServerResponse();
+
+        result.pipeUIMessageStreamToResponse(mockResponse, {
+          redactToolErrors: true,
+        });
+
+        await mockResponse.waitForEnd();
+
+        const body = mockResponse.getDecodedChunks().join('');
+
+        expect(body).toContain('"errorText":"An error occurred."');
+        expect(body).not.toContain('test error');
+      });
     });
   });
 
@@ -22404,6 +22448,25 @@ describe('streamText', () => {
             },
           ]
         `);
+      });
+    });
+
+    describe('with transformation that reads tools', () => {
+      it('should pass an empty tool set when no tools are provided', async () => {
+        let receivedTools: unknown;
+
+        const result = streamText({
+          model: createTestModel(),
+          experimental_transform: ({ tools }) => {
+            receivedTools = tools;
+            return new TransformStream();
+          },
+          prompt: 'test-input',
+        });
+
+        await result.consumeStream();
+
+        expect(receivedTools).toStrictEqual({});
       });
     });
 
@@ -24631,6 +24694,149 @@ describe('streamText', () => {
         'alpha',
         'zebra',
       ]);
+    });
+  });
+
+  describe('ping forwarding', () => {
+    it('should forward ping chunks without enabling raw chunks', async () => {
+      const model = createTestModel({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start', warnings: [] },
+          { type: 'ping' },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ]),
+      });
+
+      const result = streamText({
+        model,
+        prompt: 'test prompt',
+      });
+
+      const chunks = await convertAsyncIterableToArray(result.stream);
+
+      expect(chunks.filter(chunk => chunk.type === 'ping')).toEqual([
+        { type: 'ping' },
+      ]);
+      expect(await result.content).toEqual([]);
+      const uiChunks = await convertReadableStreamToArray(
+        result.toUIMessageStream(),
+      );
+      expect(uiChunks).not.toContainEqual({ type: 'ping' });
+    });
+
+    it('does not hold heartbeats behind buffered tool input during retries', async () => {
+      let upstream!: ReadableStreamDefaultController<LanguageModelV4StreamPart>;
+      const onChunk = vi.fn();
+      const result = streamText({
+        model: createTestModel({
+          stream: new ReadableStream<LanguageModelV4StreamPart>({
+            start(controller) {
+              upstream = controller;
+              controller.enqueue({ type: 'stream-start', warnings: [] });
+              controller.enqueue({
+                type: 'tool-input-start',
+                id: 'call-1',
+                toolName: 'testTool',
+              });
+              controller.enqueue({ type: 'ping' });
+            },
+          }),
+        }),
+        prompt: 'test',
+        streamRetries: 1,
+        onChunk,
+      });
+      const consumption = result.consumeStream();
+      try {
+        await vi.waitFor(() =>
+          expect(onChunk).toHaveBeenCalledWith({ chunk: { type: 'ping' } }),
+        );
+      } finally {
+        upstream.enqueue({
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'stop' },
+          usage: testUsage,
+        });
+        upstream.close();
+        await consumption;
+      }
+      expect(await result.content).toEqual([]);
+    });
+
+    it('delivers a heartbeat once while discarding failed-attempt tool input and content', async () => {
+      let callCount = 0;
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream<LanguageModelV4StreamPart>(
+              callCount++ === 0
+                ? [
+                    { type: 'text-start', id: 'failed' },
+                    { type: 'text-delta', id: 'failed', delta: 'partial' },
+                    {
+                      type: 'tool-input-start',
+                      id: 'call-1',
+                      toolName: 'testTool',
+                    },
+                    { type: 'ping' },
+                    { type: 'error', error: new Error('provider error') },
+                  ]
+                : [
+                    { type: 'text-start', id: 'recovered' },
+                    { type: 'text-delta', id: 'recovered', delta: 'recovered' },
+                    { type: 'text-end', id: 'recovered' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ],
+            ),
+          }),
+        }),
+        prompt: 'test',
+        maxRetries: 0,
+        streamRetries: 1,
+        onError: () => {},
+      });
+      const chunks = await convertAsyncIterableToArray(result.stream);
+      expect(callCount).toBe(2);
+      expect(chunks.filter(chunk => chunk.type === 'ping')).toEqual([
+        { type: 'ping' },
+      ]);
+      expect(chunks.some(chunk => chunk.type === 'tool-input-start')).toBe(
+        false,
+      );
+      expect(await result.text).toBe('recovered');
+      expect(await result.content).toEqual([
+        expect.objectContaining({ type: 'text', text: 'recovered' }),
+      ]);
+    });
+
+    it('does not treat a ping-only incomplete stream as generated output', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([{ type: 'ping' }]),
+        }),
+        prompt: 'test',
+        onError: () => {},
+      });
+      const chunks = await convertAsyncIterableToArray(result.fullStream);
+      expect(chunks).toContainEqual({ type: 'ping' });
+      expect(
+        chunks.some(
+          chunk =>
+            chunk.type === 'error' &&
+            NoOutputGeneratedError.isInstance(chunk.error),
+        ),
+      ).toBe(true);
+      await expect(result.content).rejects.toBeInstanceOf(
+        NoOutputGeneratedError,
+      );
     });
   });
 
@@ -26898,7 +27104,7 @@ describe('streamText', () => {
           `);
       });
 
-      it('should add tool call and result error parts to the ui message stream', async () => {
+      it('should add a tool input error part to the ui message stream', async () => {
         expect(await convertAsyncIterableToArray(result.toUIMessageStream()))
           .toMatchInlineSnapshot(`
             [
@@ -26919,18 +27125,23 @@ describe('streamText', () => {
                 "type": "tool-input-delta",
               },
               {
-                "errorText": "An error occurred.",
+                "errorText": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
+            Error message: [
+              {
+                "expected": "string",
+                "code": "invalid_type",
+                "path": [
+                  "city"
+                ],
+                "message": "Invalid input: expected string, received undefined"
+              }
+            ]",
                 "input": {
                   "cities": "San Francisco",
                 },
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
                 "type": "tool-input-error",
-              },
-              {
-                "errorText": "An error occurred.",
-                "toolCallId": "call-1",
-                "type": "tool-output-error",
               },
               {
                 "type": "finish-step",
@@ -32060,6 +32271,7 @@ describe('streamText', () => {
                 "preliminary": true,
                 "providerExecuted": undefined,
                 "providerOptions": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-result",
@@ -32072,6 +32284,7 @@ describe('streamText', () => {
                 "preliminary": true,
                 "providerExecuted": undefined,
                 "providerOptions": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-result",
@@ -33305,6 +33518,7 @@ describe('streamText', () => {
       expect(downloadCalls).toMatchInlineSnapshot(`
         [
           {
+            "abortSignal": undefined,
             "isUrlSupportedByModel": false,
             "url": "https://example.com/test.jpg",
           },
@@ -33635,3 +33849,52 @@ async function expectUndefinedUnhandledRejections({
   );
   expect(reasons.length).toBeLessThanOrEqual(maxCount);
 }
+
+it('sanitizes streamed provider request URLs in results and step/end events', async () => {
+  const onStepEnd = vi.fn();
+  const onEnd = vi.fn();
+  const request = {
+    url: 'https://user:password@model.example.test:8443/private?key=secret#fragment',
+  };
+  const result = streamText({
+    model: new MockLanguageModelV4({
+      doStream: async () => ({
+        request,
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start', warnings: [] },
+          { type: 'text-start', id: 'text' },
+          { type: 'text-delta', id: 'text', delta: 'hello' },
+          { type: 'text-end', id: 'text' },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ]),
+      }),
+    }),
+    prompt: 'hello',
+    onStepEnd,
+    onEnd,
+  });
+  await result.consumeStream();
+  expect((await result.finalStep).request.url).toBe(
+    'https://model.example.test:8443',
+  );
+  expect((await result.steps)[0].request.url).toBe(
+    'https://model.example.test:8443',
+  );
+  for (const callback of [onStepEnd, onEnd]) {
+    expect(callback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        request: expect.objectContaining({
+          url: 'https://model.example.test:8443',
+        }),
+      }),
+    );
+    expect(JSON.stringify(callback.mock.calls)).not.toMatch(
+      /password|private|secret|fragment/,
+    );
+  }
+  expect(request.url).toContain('password');
+});

@@ -11,6 +11,8 @@ import {
   extractResponseHeaders,
   postToApi,
   safeParseJSON,
+  resolve,
+  type Resolvable,
   type FetchFunction,
   type ResponseHandler,
 } from '@ai-sdk/provider-utils';
@@ -64,7 +66,7 @@ export class AzureSpeechSpeechModel implements SpeechModelV4 {
     readonly modelId: string,
     private readonly config: {
       url: () => string;
-      headers: () => Record<string, string | undefined>;
+      headers: Resolvable<Record<string, string | undefined>>;
       fetch?: FetchFunction;
       _internal?: { currentDate?: () => Date };
     },
@@ -139,7 +141,7 @@ export class AzureSpeechSpeechModel implements SpeechModelV4 {
     } = await postToApi({
       url: this.config.url(),
       headers: combineHeaders(
-        this.config.headers(),
+        await resolve(this.config.headers),
         {
           'Content-Type': 'application/ssml+xml',
           'X-Microsoft-OutputFormat': outputFormat,

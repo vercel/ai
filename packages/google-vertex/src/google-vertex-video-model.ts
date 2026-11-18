@@ -205,7 +205,7 @@ export class GoogleVertexVideoModel implements VideoModelV4 {
       parameters.durationSeconds = options.duration;
     }
 
-    if (options.seed) {
+    if (options.seed != null) {
       parameters.seed = options.seed;
     }
 

@@ -84,7 +84,11 @@ You can use the following optional settings to customize the Hugging Face provid
   Use a different URL prefix for API calls, e.g. to use proxy servers.
   The default prefix is `https://router.huggingface.co/v1`.
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
+
+  Pass a function to resolve credentials before each request, including when keys
+  rotate. The function can return a string or a promise. Credential caching and
+  refresh are managed by the function.
 
   API key that is being sent using the `Authorization` header. It defaults to
   the `HUGGINGFACE_API_KEY` environment variable. You can get your API key
@@ -249,6 +253,8 @@ You can also pass image URLs:
 
 ## Model Capabilities
 
+{/* model-capabilities:huggingface-language:start */}
+
 | Model                                           | Image Input | Object Generation | Tool Usage | Tool Streaming |
 | ----------------------------------------------- | ----------- | ----------------- | ---------- | -------------- |
 | `meta-llama/Llama-3.1-8B-Instruct`              | <Cross />   | <Check />         | <Check />  | <Check />      |
@@ -265,6 +271,8 @@ You can also pass image URLs:
 | `google/gemma-3-27b-it`                         | <Cross />   | <Check />         | <Check />  | <Check />      |
 | `moonshotai/Kimi-K2-Instruct`                   | <Cross />   | <Check />         | <Check />  | <Check />      |
 
+{/* model-capabilities:huggingface-language:end */}
+
 <Note>
   The table above lists popular models. You can explore all available models on
   the [Hugging Face Inference Models](https://huggingface.co/inference/models)
@@ -272,3 +280,18 @@ You can also pass image URLs:
   model documentation on Hugging Face Hub for detailed information about each
   model's features.
 </Note>
+
+## Provider Option Reference
+
+The following option definitions are generated from the provider catalog.
+
+{/* model-capabilities:huggingface-provider-options:start */}
+
+| Operation | Option             | Description      |
+| --------- | ------------------ | ---------------- |
+| language  | `metadata`         | metadata         |
+| language  | `instructions`     | instructions     |
+| language  | `strictJsonSchema` | strictJsonSchema |
+| language  | `reasoningEffort`  | reasoningEffort  |
+
+{/* model-capabilities:huggingface-provider-options:end */}

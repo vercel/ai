@@ -24,7 +24,8 @@ export type DecisionModelV4Question =
     }
   | {
       readonly type: 'box';
-      readonly instructions: DecisionModelV4Input;
+      /** May be omitted or null when supported by the provider. */
+      readonly instructions?: DecisionModelV4Input | null;
     }
   | {
       readonly type: 'boolean';
@@ -34,5 +35,5 @@ export type DecisionModelV4Question =
       readonly criteria?: {
         readonly true?: DecisionModelV4Input | null;
         readonly false?: DecisionModelV4Input | null;
-      };
+      } | null;
     };

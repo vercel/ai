@@ -67,7 +67,6 @@ describe('fx subscription Responses transport', () => {
           headers: {},
           turn,
           fetch,
-          save: async () => {},
           onRequest() {},
           beforeRelease({ requestIndex }) {
             expect(turn.models[requestIndex].complete).toBe(true);
@@ -123,7 +122,6 @@ describe('fx subscription Responses transport', () => {
       headers: {},
       turn,
       fetch,
-      save: async () => {},
       onRequest() {},
       beforeRelease() {},
     });
@@ -145,7 +143,6 @@ describe('fx subscription Responses transport', () => {
       provider: 'codex',
       headers: {},
       turn: createTurn(),
-      save: async () => {},
       onRequest() {},
       beforeRelease,
       fetch: async () =>
@@ -183,7 +180,6 @@ describe('fx subscription Responses transport', () => {
       turn: createTurn(),
       fetch,
       responseFormat: { type: 'json', schema: { type: 'object' } },
-      save: async () => {},
       onRequest() {},
       beforeRelease() {},
     });
@@ -252,42 +248,6 @@ describe('fx subscription Responses transport', () => {
 });
 
 describe('fx Gateway transport', () => {
-  it('converts a saved Gateway frame cursor to parsed output lengths on replay', async () => {
-    const textFixture = readFileSync(
-      new URL('./__fixtures__/gateway-1.sse.txt', import.meta.url),
-      'utf8',
-    );
-    const turn = createTurn();
-    const fetch = vi.fn(async () => new Response(textFixture));
-    const options = {
-      headers: {},
-      turn,
-      fetch,
-      save: async () => {},
-      onRequest() {},
-      beforeRelease() {},
-    };
-    const transport = createFxTransport(options);
-    await (await transport.fetch(request.url, request.init)).text();
-    await transport.stop();
-    const record = turn.models[0];
-    delete record.emittedOutput;
-    record.emittedParts = record.body
-      .split(/\r?\n\r?\n/)
-      .filter(Boolean).length;
-    const replay = createFxTransport(options);
-    await (await replay.fetch(request.url, request.init)).text();
-    expect(record.emittedOutput).toMatchInlineSnapshot(`
-      {
-        "finished": true,
-        "reasoning": 0,
-        "text": 5,
-      }
-    `);
-    expect(fetch).toHaveBeenCalledTimes(1);
-    await replay.stop();
-  });
-
   it('preserves passthrough Request fields when rewriting the Gateway URL', async () => {
     const controller = new AbortController();
     let forwarded!: Request;
@@ -296,7 +256,6 @@ describe('fx Gateway transport', () => {
       baseUrl: 'https://gateway.example/proxy',
       headers: { 'x-client-app': 'ai-sdk-harness-fx/test' },
       turn,
-      save: async () => {},
       onRequest() {},
       beforeRelease() {},
       fetch: async (input, init) => {
@@ -367,7 +326,6 @@ describe('fx Gateway transport', () => {
         baseUrl: 'https://gateway.example',
         headers: { 'x-client-app': 'adapter' },
         turn: createTurn(),
-        save: async () => {},
         onRequest() {},
         beforeRelease() {},
         fetch: async (input, init) => {
@@ -441,7 +399,6 @@ describe('fx Gateway transport', () => {
         headers: {},
         turn,
         fetch,
-        save: async () => {},
         onRequest() {},
         beforeRelease,
       });
@@ -489,7 +446,6 @@ describe('fx Gateway transport', () => {
       baseUrl: 'https://ai-gateway.vercel.sh',
       headers: {},
       turn,
-      save: async () => {},
       onRequest() {},
       beforeRelease() {},
       fetch,
@@ -510,7 +466,6 @@ describe('fx Gateway transport', () => {
 
   it('records real responses before executable frames and replays without fetching', async () => {
     const turn = createTurn();
-    const save = vi.fn(async () => {});
     const fetch = vi.fn(
       async () =>
         new Response(fixture, {
@@ -521,12 +476,10 @@ describe('fx Gateway transport', () => {
       baseUrl: 'https://ai-gateway.vercel.sh',
       headers: {},
       turn,
-      save,
       fetch,
       onRequest() {},
       beforeRelease() {
         expect(turn.models[0].complete).toBe(true);
-        expect(save).toHaveBeenCalled();
       },
     };
     const transport = createFxTransport(options);
@@ -552,7 +505,6 @@ describe('fx Gateway transport', () => {
       baseUrl: 'https://ai-gateway.vercel.sh',
       headers: {},
       turn,
-      save: async () => {},
       onRequest() {},
       beforeRelease,
       fetch: async () =>
@@ -579,7 +531,6 @@ describe('fx Gateway transport', () => {
       headers: { 'x-client-app': 'ai-sdk-harness-fx/test' },
       turn: createTurn(),
       responseFormat,
-      save: async () => {},
       onRequest() {},
       beforeRelease() {},
       fetch,
@@ -600,7 +551,6 @@ describe('fx Gateway transport', () => {
       baseUrl: 'https://ai-gateway.vercel.sh',
       headers: {},
       turn,
-      save: async () => {},
       onRequest() {},
       beforeRelease() {},
       fetch: async () => new Response(fixture),
@@ -633,7 +583,6 @@ describe('fx Gateway transport', () => {
       baseUrl: 'https://ai-gateway.vercel.sh',
       headers: {},
       turn,
-      save: async () => {},
       onRequest() {},
       beforeRelease() {},
       fetch,

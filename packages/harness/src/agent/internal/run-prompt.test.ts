@@ -89,6 +89,99 @@ const harness: HarnessV1 = {
   doStart: async () => fakeSession([]),
 };
 
+test.each([
+  {
+    toolName: 'bash',
+    nativeName: 'Bash',
+    input: { command: 'echo hello', description: 'Print hello' },
+    builtinTool: tool({
+      inputSchema: z.object({
+        command: z.string(),
+        description: z.string().optional(),
+      }),
+    }),
+  },
+  {
+    toolName: 'write',
+    nativeName: 'Write',
+    input: { file_path: 'hello.txt', content: 'hello' },
+    builtinTool: tool({
+      inputSchema: z.object({ file_path: z.string(), content: z.string() }),
+    }),
+  },
+  {
+    toolName: 'edit',
+    nativeName: 'Edit',
+    input: { file_path: 'hello.txt', old_string: 'hello', new_string: 'hi' },
+    builtinTool: tool({
+      inputSchema: z.object({
+        file_path: z.string(),
+        old_string: z.string(),
+        new_string: z.string(),
+      }),
+    }),
+  },
+])(
+  'preserves $nativeName in built-in tool approval metadata',
+  async ({ toolName, nativeName, input, builtinTool }) => {
+    const events: HarnessV1StreamPart[] = [
+      { type: 'stream-start' },
+      { type: 'tool-input-start', id: 'c1', toolName, providerExecuted: true },
+      { type: 'tool-input-delta', id: 'c1', delta: JSON.stringify(input) },
+      {
+        type: 'tool-call',
+        toolCallId: 'c1',
+        toolName,
+        input: JSON.stringify(input),
+        providerExecuted: true,
+        nativeName,
+      },
+      { type: 'tool-input-end', id: 'c1' },
+      { type: 'tool-approval-request', approvalId: 'a1', toolCallId: 'c1' },
+    ];
+    const { result, done } = runPrompt({
+      harness: { ...harness, harnessId: 'claude-code' },
+      session: fakeSession(events),
+      prompt: 'Run the shell command `echo hello`',
+      instructions: undefined,
+      tools: { [toolName]: builtinTool },
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) {
+      if (part.type === 'error') throw part.error;
+      parts.push(part);
+    }
+    await done;
+    const expectedToolCall = {
+      type: 'tool-call',
+      toolCallId: 'c1',
+      toolName,
+      input,
+      providerExecuted: true,
+      providerMetadata: { 'claude-code': { nativeToolName: nativeName } },
+    };
+    expect(parts.find(part => part.type === 'tool-call')).toEqual(
+      expectedToolCall,
+    );
+    expect(parts.filter(part => part.type === 'tool-approval-request')).toEqual(
+      [
+        {
+          type: 'tool-approval-request',
+          approvalId: 'a1',
+          toolCall: expectedToolCall,
+        },
+      ],
+    );
+    const steps = await result.steps;
+    expect(steps[0]?.toolCalls).toEqual([expectedToolCall]);
+  },
+);
+
 const questionsHarness: HarnessV1 = {
   ...harness,
   builtinTools: {
@@ -2191,6 +2284,302 @@ describe('runPrompt host tool input validation', () => {
     ]);
   });
 
+  test('keeps host tool context out of the stream when context validation fails', async () => {
+    const execute = vi.fn(async () => 'not reached');
+    const lookupAccount = tool({
+      inputSchema: z.object({}),
+      contextSchema: z.object({ userId: z.string() }),
+      execute,
+    });
+    const askUser = tool({ inputSchema: z.object({}) });
+    const submitted: SubmittedResult[] = [];
+    let hostFacingError: unknown;
+    const { result, done } = runPrompt({
+      harness,
+      // The turn pauses for the client-side tool before the runtime echoes
+      // the result of the host tool, so the harness reports the host tool
+      // outcome itself.
+      session: fakeSession(
+        [
+          {
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'lookupAccount',
+            input: '{}',
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'c2',
+            toolName: 'askUser',
+            input: '{}',
+          },
+          ...finishEvents,
+        ],
+        input => submitted.push(input),
+      ),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { lookupAccount, askUser },
+      toolsContext: {
+        lookupAccount: { userId: 123, apiKey: 'host-secret' },
+      } as never,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      callbacks: {
+        onToolExecutionEnd: event => {
+          if (event.toolOutput.type === 'tool-error') {
+            hostFacingError = event.toolOutput.error;
+          }
+        },
+      },
+    });
+    const uiChunksPromise = (async () => {
+      const chunks: Array<{ type: string }> = [];
+      for await (const chunk of result.toUIMessageStream()) chunks.push(chunk);
+      return chunks;
+    })();
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    const uiChunks = await uiChunksPromise;
+    await done;
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(submitted).toEqual([
+      {
+        toolCallId: 'c1',
+        output: { error: 'Tool context validation failed.' },
+        isError: true,
+      },
+    ]);
+
+    // The callback is host-only and keeps the detailed validation error.
+    expect(String(hostFacingError)).toContain('host-secret');
+
+    // Stream parts can reach the client. They carry the error that the
+    // runtime received.
+    expect(parts.filter(part => part.type === 'tool-error')).toEqual([
+      expect.objectContaining({
+        toolCallId: 'c1',
+        error: expect.objectContaining({
+          message: 'Tool context validation failed.',
+        }),
+      }),
+    ]);
+    expect(
+      uiChunks.filter(chunk => chunk.type === 'tool-output-error'),
+    ).toEqual([
+      expect.objectContaining({
+        toolCallId: 'c1',
+        errorText: 'Error: Tool context validation failed.',
+      }),
+    ]);
+    expect(JSON.stringify(uiChunks)).not.toContain('host-secret');
+    expect(JSON.stringify((await result.steps)[0]!.content)).not.toContain(
+      'host-secret',
+    );
+  });
+
+  test('keeps host tool context out of the stream when an approved host tool fails context validation', async () => {
+    const execute = vi.fn(async () => 'not reached');
+    const lookupAccount = tool({
+      inputSchema: z.object({}),
+      contextSchema: z.object({ userId: z.string() }),
+      execute,
+    });
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([]),
+      mode: 'continue',
+      prompt: undefined,
+      instructions: undefined,
+      tools: { lookupAccount },
+      toolsContext: {
+        lookupAccount: { userId: 123, apiKey: 'host-secret' },
+      } as never,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      pendingToolApprovals: [
+        {
+          approvalId: 'a1',
+          toolCallId: 'c1',
+          toolName: 'lookupAccount',
+          input: '{}',
+          kind: 'custom',
+          providerExecuted: false,
+        },
+      ],
+      toolApprovalContinuations: [
+        { type: 'tool-approval-response', approvalId: 'a1', approved: true },
+      ],
+    });
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(parts.filter(part => part.type === 'tool-error')).toEqual([
+      expect.objectContaining({
+        toolCallId: 'c1',
+        error: expect.objectContaining({
+          message: 'Tool context validation failed.',
+        }),
+      }),
+    ]);
+    expect(JSON.stringify(parts)).not.toContain('host-secret');
+  });
+
+  test('sends the text that the runtime received when a host tool throws an object', async () => {
+    const failing = tool({
+      inputSchema: z.object({}),
+      execute: async (): Promise<string> => {
+        throw { status: 500, body: 'host-secret' };
+      },
+    });
+    const askUser = tool({ inputSchema: z.object({}) });
+    const submitted: SubmittedResult[] = [];
+    let hostFacingError: unknown;
+    const { result, done } = runPrompt({
+      harness,
+      // The turn pauses for the client-side tool, so the harness reports
+      // the host tool outcome itself.
+      session: fakeSession(
+        [
+          {
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'failing',
+            input: '{}',
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'c2',
+            toolName: 'askUser',
+            input: '{}',
+          },
+          ...finishEvents,
+        ],
+        input => submitted.push(input),
+      ),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { failing, askUser },
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      callbacks: {
+        onToolExecutionEnd: event => {
+          if (event.toolOutput.type === 'tool-error') {
+            hostFacingError = event.toolOutput.error;
+          }
+        },
+      },
+    });
+    const uiChunksPromise = (async () => {
+      const chunks: Array<{ type: string }> = [];
+      for await (const chunk of result.toUIMessageStream()) chunks.push(chunk);
+      return chunks;
+    })();
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    const uiChunks = await uiChunksPromise;
+    await done;
+
+    expect(submitted).toEqual([
+      {
+        toolCallId: 'c1',
+        output: { error: '[object Object]' },
+        isError: true,
+      },
+    ]);
+    expect(hostFacingError).toEqual({ status: 500, body: 'host-secret' });
+    expect(
+      uiChunks.filter(chunk => chunk.type === 'tool-output-error'),
+    ).toEqual([
+      expect.objectContaining({
+        toolCallId: 'c1',
+        errorText: '[object Object]',
+      }),
+    ]);
+    expect(JSON.stringify(parts)).not.toContain('host-secret');
+    expect(JSON.stringify(uiChunks)).not.toContain('host-secret');
+  });
+
+  test.each(['toUIMessageStream', 'toUIMessageStreamResponse'] as const)(
+    'redacts a host tool error in %s when redactToolErrors is true',
+    async method => {
+      const failing = tool({
+        inputSchema: z.object({}),
+        execute: async (): Promise<string> => {
+          throw new Error('host tool failed');
+        },
+      });
+      const askUser = tool({ inputSchema: z.object({}) });
+      const { result, done } = runPrompt({
+        harness,
+        // The turn pauses for the client-side tool, so the harness reports
+        // the host tool outcome itself.
+        session: fakeSession([
+          {
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'failing',
+            input: '{}',
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'c2',
+            toolName: 'askUser',
+            input: '{}',
+          },
+          ...finishEvents,
+        ]),
+        prompt: 'go',
+        instructions: undefined,
+        tools: { failing, askUser },
+        toolSpecs: [],
+        sandboxSession,
+        sessionWorkDir: WORK_DIR,
+        runtimeContext: {} as never,
+        abortSignal: undefined,
+      });
+      const bodyPromise = (async () => {
+        if (method === 'toUIMessageStreamResponse') {
+          return await result
+            .toUIMessageStreamResponse({ redactToolErrors: true })
+            .text();
+        }
+        const chunks: unknown[] = [];
+        for await (const chunk of result.toUIMessageStream({
+          redactToolErrors: true,
+        })) {
+          chunks.push(chunk);
+        }
+        return JSON.stringify(chunks);
+      })();
+      const parts: TextStreamPart<ToolSet>[] = [];
+      for await (const part of result.fullStream) parts.push(part);
+      const body = await bodyPromise;
+      await done;
+
+      expect(parts.filter(part => part.type === 'tool-error')).toEqual([
+        expect.objectContaining({
+          toolCallId: 'c1',
+          error: expect.objectContaining({ message: 'host tool failed' }),
+        }),
+      ]);
+      expect(body).toContain('"errorText":"An error occurred."');
+      expect(body).not.toContain('host tool failed');
+    },
+  );
+
   test('reports a rejected host call without an adapter echo in the step and UI stream', async () => {
     const execute = vi.fn(async () => 'not reached');
     const restricted = tool({
@@ -2245,14 +2634,17 @@ describe('runPrompt host tool input validation', () => {
       expect.objectContaining({ type: 'tool-error', toolCallId: 'c1' }),
     );
     expect(await result.toolResults).toEqual([]);
-    expect(
-      uiChunks.filter(chunk => chunk.type === 'tool-output-error'),
-    ).toEqual([
-      expect.objectContaining({
-        toolCallId: 'c1',
-        errorText: 'Tool failed',
-      }),
-    ]);
+    expect(uiChunks.filter(chunk => chunk.type === 'tool-input-error')).toEqual(
+      [
+        expect.objectContaining({
+          toolCallId: 'c1',
+          errorText: 'Tool failed',
+        }),
+      ],
+    );
+    expect(uiChunks.some(chunk => chunk.type === 'tool-output-error')).toBe(
+      false,
+    );
     expect(uiChunks.some(chunk => chunk.type === 'tool-output-available')).toBe(
       false,
     );
@@ -2360,14 +2752,17 @@ describe('runPrompt host tool input validation', () => {
       ).toHaveLength(1);
       expect(parts.some(part => part.type === 'tool-result')).toBe(false);
       expect(
-        uiChunks.filter(chunk => chunk.type === 'tool-output-error'),
+        uiChunks.filter(chunk => chunk.type === 'tool-input-error'),
       ).toEqual([
         expect.objectContaining({
-          type: 'tool-output-error',
+          type: 'tool-input-error',
           toolCallId: 'c1',
           errorText: 'Tool failed',
         }),
       ]);
+      expect(uiChunks.some(chunk => chunk.type === 'tool-output-error')).toBe(
+        false,
+      );
       expect(
         uiChunks.some(chunk => chunk.type === 'tool-output-available'),
       ).toBe(false);
@@ -4447,6 +4842,125 @@ describe('runPrompt host input pauses', () => {
       'tool-approval-request',
       'tool-result',
     ]);
+  });
+
+  test('pauses for a host approval before waiting for another host result echo', async () => {
+    const gatedExecute = vi.fn(async ({ value }: { value: string }) => ({
+      value,
+    }));
+    const allowedExecute = vi.fn(async ({ value }: { value: string }) => ({
+      value,
+    }));
+    const gatedWrite = tool({
+      inputSchema: z.object({ value: z.string() }),
+      execute: gatedExecute,
+    });
+    const allowedWrite = tool({
+      inputSchema: z.object({ value: z.string() }),
+      execute: allowedExecute,
+    });
+    const pendingApprovals: HarnessV1PendingToolApproval[] = [];
+    const pendingResults: HarnessV1PendingToolResult[] = [];
+    const submittedResults: Array<
+      Parameters<HarnessV1PromptControl['submitToolResult']>[0]
+    > = [];
+    let resultEchoReceived = false;
+    let pendingResultBeforeEcho = false;
+    let echoTimer: ReturnType<typeof setTimeout> | undefined;
+    const { result, done } = runPrompt({
+      harness,
+      session: scriptedSession({
+        start: emit => {
+          emit({ type: 'stream-start', modelId: 'fake-model' });
+          emit({
+            type: 'tool-call',
+            toolCallId: 'gated-1',
+            toolName: 'gated_write',
+            input: JSON.stringify({ value: 'gated' }),
+          });
+          emit({
+            type: 'tool-call',
+            toolCallId: 'allowed-1',
+            toolName: 'allowed_write',
+            input: JSON.stringify({ value: 'allowed' }),
+          });
+          emit(boundary(6));
+        },
+        onSubmitToolResult: (submission, emit) => {
+          submittedResults.push(submission);
+          echoTimer = setTimeout(() => {
+            resultEchoReceived = true;
+            emit({
+              type: 'tool-result',
+              toolCallId: submission.toolCallId,
+              toolName: 'allowed_write',
+              result: submission.output as { value: string },
+            });
+          }, 100);
+        },
+      }),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { gated_write: gatedWrite, allowed_write: allowedWrite },
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      toolApproval: {
+        gated_write: 'user-approval',
+        allowed_write: 'approved',
+      },
+      onPendingToolApproval: approval => pendingApprovals.push(approval),
+      onPendingToolResult: pendingResult => {
+        pendingResults.push(pendingResult);
+        pendingResultBeforeEcho ||= !resultEchoReceived;
+      },
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    try {
+      for await (const part of result.fullStream) parts.push(part);
+      await done;
+    } finally {
+      if (echoTimer != null) clearTimeout(echoTimer);
+    }
+
+    expect(gatedExecute).not.toHaveBeenCalled();
+    expect(allowedExecute).toHaveBeenCalledOnce();
+    expect(submittedResults).toEqual([
+      expect.objectContaining({
+        toolCallId: 'allowed-1',
+        output: { value: 'allowed' },
+      }),
+    ]);
+    expect(pendingApprovals).toEqual([
+      expect.objectContaining({
+        toolCallId: 'gated-1',
+        toolName: 'gated_write',
+        kind: 'custom',
+      }),
+    ]);
+    expect(pendingResults).toEqual([
+      expect.objectContaining({
+        toolCallId: 'allowed-1',
+        toolName: 'allowed_write',
+        input: JSON.stringify({ value: 'allowed' }),
+        completedResult: expect.objectContaining({
+          output: { value: 'allowed' },
+        }),
+      }),
+    ]);
+    expect(pendingResultBeforeEcho).toBe(true);
+    expect(resultEchoReceived).toBe(false);
+    expect(
+      parts.filter(part => part.type === 'tool-approval-request'),
+    ).toHaveLength(1);
+    expect(
+      parts
+        .filter(part => part.type === 'tool-result')
+        .map(part => part.toolCallId),
+    ).toEqual(['allowed-1']);
   });
 
   test.each([

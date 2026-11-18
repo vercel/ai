@@ -1,5 +1,7 @@
+import type { LumaModelIds } from './luma-model-catalog';
+
 // https://luma.ai/models?type=image
-export type LumaImageModelId = 'photon-1' | 'photon-flash-1' | (string & {});
+export type LumaImageModelId = LumaModelIds['image'] | (string & {});
 
 /**
  * The type of image reference to use when providing input images.

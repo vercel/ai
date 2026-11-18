@@ -194,11 +194,7 @@ describe('host tool MCP HTTP transport', () => {
     const relay = await createRelay({
       tools: [{ name: 'weather', inputSchema: { type: 'object' } }],
     });
-    const authorization = createHostToolRelayAuthorization({
-      serverName: 'ai-sdk-harness-tools',
-      toolNames: ['weather'],
-      ttlMs: 20,
-    });
+    const authorization = createHostToolRelayAuthorization({ ttlMs: 20 });
     cleanups.push(async () => authorization.close());
     let notifyAuthorizationRequest: (() => void) | undefined;
     const turn = createTurn({
@@ -235,6 +231,7 @@ describe('host tool MCP HTTP transport', () => {
         rawInput: { city: 'Paris' },
         status: 'in_progress',
       },
+      hostToolCall: { toolName: 'weather', input: { city: 'Paris' } },
     });
     await expect(authorizedCall).resolves.toMatchObject({
       content: [{ type: 'text', text: '{"celsius":12}' }],

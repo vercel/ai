@@ -24,6 +24,18 @@ describe('steering types', () => {
     steering.steer({ role: 'assistant', content: 'hello' });
   });
 
+  it('should accept text and user messages in the queue', () => {
+    const steering = createSteering();
+
+    expectTypeOf(steering.queue('hello')).toEqualTypeOf<
+      Promise<SteeringOutcome>
+    >();
+    steering.queue({ role: 'user', content: 'hello' }, { id: 'queued-1' });
+
+    // @ts-expect-error only user messages can be queued
+    steering.queue({ role: 'assistant', content: 'hello' });
+  });
+
   it('should narrow the outcome by type', async () => {
     const outcome = await createSteering().steer('hello');
 

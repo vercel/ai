@@ -53,7 +53,7 @@ describe('download SSRF redirect protection', () => {
       ok: false,
       status: 302,
       headers: new Headers({
-        location: 'http://169.254.169.254/latest/meta-data/',
+        location: 'https://169.254.169.254/latest/meta-data/',
       }),
       body: new ReadableStream({
         start(controller) {
@@ -82,7 +82,7 @@ describe('download SSRF redirect protection', () => {
     const fetchMock = vi.fn().mockResolvedValueOnce({
       ok: false,
       status: 307,
-      headers: new Headers({ location: 'http://localhost:8080/admin' }),
+      headers: new Headers({ location: 'https://localhost:8080/admin' }),
       body: new ReadableStream({
         start(controller) {
           controller.enqueue(new TextEncoder().encode('redirecting'));

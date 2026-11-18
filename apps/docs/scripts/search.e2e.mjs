@@ -44,7 +44,7 @@ test('search follows client-side version changes and preserves the query', async
     }
 
     await page.getByRole('button', { name: /Search…/ }).click();
-    const input = page.getByRole('dialog').getByRole('textbox');
+    const input = page.getByRole('dialog').getByRole('combobox');
     if (initialSearch) {
       await input.fill('streamText');
       initialSearch = false;

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/tool-bash",
-  "version": "1.0.10",
+  "version": "1.0.30",
   "description": "Provider-independent bash tool for the AI SDK",
   "type": "module",
   "license": "Apache-2.0",
@@ -34,7 +34,7 @@
     "test:watch": "vitest --config vitest.node.config.js"
   },
   "dependencies": {
-    "zod": "3.25.76"
+    "zod": "4.6.7"
   },
   "peerDependencies": {
     "ai": "workspace:^"

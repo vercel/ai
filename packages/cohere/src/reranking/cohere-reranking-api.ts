@@ -21,7 +21,6 @@ export const cohereRerankingResponseSchema = lazySchema(() =>
           relevance_score: z.number(),
         }),
       ),
-      meta: z.any(),
     }),
   ),
 );

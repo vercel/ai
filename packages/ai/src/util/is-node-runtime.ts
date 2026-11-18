@@ -1,3 +1,5 @@
 export function isNodeRuntime(): boolean {
-  return typeof process !== 'undefined' && process.release?.name === 'node';
+  // Access the optional global directly so Edge bundlers do not treat this
+  // runtime check as an unsupported use of the Node.js process API.
+  return globalThis.process?.release?.name === 'node';
 }

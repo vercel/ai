@@ -6,6 +6,7 @@ import {
   type TranscriptionModelV4CallOptions,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   combineHeaders,
   convertBase64ToUint8Array,
   convertToBase64,
@@ -25,6 +26,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
+import { getOpenAITranscriptionModelEntry } from '../openai-model-catalog';
 import { openaiTranscriptionResponseSchema } from './openai-transcription-api';
 import {
   openAITranscriptionModelOptions,
@@ -56,47 +58,6 @@ type OpenAIRealtimeTranscriptionEvent = {
   transcript?: string;
   error?: { message?: string };
 };
-
-/**
- * Whether `modelId` is `base` or one of its dated snapshots
- * (e.g. `gpt-realtime-whisper-2026-01-01`).
- */
-function isModelOrSnapshot(modelId: string, base: string): boolean {
-  return modelId === base || modelId.startsWith(`${base}-`);
-}
-
-/**
- * Model IDs that stream over the realtime transcription WebSocket and do not
- * support the REST transcription endpoint.
- */
-function isRealtimeTranscriptionModelId(modelId: string): boolean {
-  return (
-    isModelOrSnapshot(modelId, 'gpt-realtime-whisper') ||
-    isModelOrSnapshot(modelId, 'gpt-live-transcribe')
-  );
-}
-
-/**
- * Model IDs that support streaming transcription. `gpt-transcribe` also
- * supports the REST transcription endpoint.
- */
-function supportsStreamingTranscription(modelId: string): boolean {
-  return (
-    isRealtimeTranscriptionModelId(modelId) ||
-    isModelOrSnapshot(modelId, 'gpt-transcribe')
-  );
-}
-
-/**
- * Models whose realtime transcription session takes a `languages` list
- * instead of the singular `language` field.
- */
-function usesLanguagesList(modelId: string): boolean {
-  return (
-    isModelOrSnapshot(modelId, 'gpt-live-transcribe') ||
-    isModelOrSnapshot(modelId, 'gpt-transcribe')
-  );
-}
 
 interface OpenAITranscriptionModelConfig extends OpenAIConfig {
   _internal?: {
@@ -201,6 +162,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
     audio,
     mediaType,
     providerOptions,
+    timestampGranularities: requestedTimestampGranularities,
   }: OpenAITranscriptionCallOptions) {
     const warnings: SharedV4Warning[] = [];
 
@@ -226,33 +188,62 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
       `audio.${fileExtension}`,
     );
 
-    const isDiarizationModel = this.modelId === 'gpt-4o-transcribe-diarize';
+    const { transcription: requestConfig } = getOpenAITranscriptionModelEntry(
+      this.modelId,
+    ).requestConfig;
 
     const responseFormat =
-      openAIOptions?.responseFormat ??
-      (isDiarizationModel
-        ? 'diarized_json'
-        : this.modelId === 'whisper-1'
-          ? 'verbose_json'
-          : undefined);
+      openAIOptions?.responseFormat ?? requestConfig.responseFormat;
 
-    // Timestamps are only returned with verbose_json, so only default to
-    // segments when that format is used.
+    // Only verbose_json accepts timestamp_granularities. Diarized JSON
+    // always returns segment timings without a timestamp control.
     const timestampGranularities =
       openAIOptions?.timestampGranularities ??
+      requestedTimestampGranularities ??
       (responseFormat === 'verbose_json' ? ['segment'] : undefined);
 
+    for (const granularity of requestedTimestampGranularities ?? []) {
+      if (
+        openAIOptions?.timestampGranularities != null &&
+        !openAIOptions.timestampGranularities.includes(granularity)
+      ) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'timestampGranularities',
+          details: `The "${granularity}" timestamp granularity is excluded by providerOptions.openai.timestampGranularities.`,
+        });
+      }
+    }
+
+    for (const granularity of timestampGranularities ?? []) {
+      if (
+        responseFormat !== 'verbose_json' &&
+        !(responseFormat === 'diarized_json' && granularity === 'segment')
+      ) {
+        warnings.push({
+          type: 'unsupported',
+          feature:
+            openAIOptions?.timestampGranularities != null
+              ? 'providerOptions.openai.timestampGranularities'
+              : 'timestampGranularities',
+          details: `OpenAI transcription with the ${responseFormat ?? 'default JSON'} response format does not support ${granularity} timestamps.`,
+        });
+      }
+    }
+
     const chunkingStrategy =
-      openAIOptions?.chunkingStrategy ??
-      (isDiarizationModel ? 'auto' : undefined);
+      openAIOptions?.chunkingStrategy ?? requestConfig.chunkingStrategy;
 
     const transcriptionModelOptions = {
       response_format: responseFormat,
       include: openAIOptions?.include,
       language: openAIOptions?.language,
+      languages: openAIOptions?.languages,
+      keywords: openAIOptions?.keywords,
       prompt: openAIOptions?.prompt,
       temperature: openAIOptions?.temperature,
-      timestamp_granularities: timestampGranularities,
+      timestamp_granularities:
+        responseFormat === 'verbose_json' ? timestampGranularities : undefined,
     };
 
     for (const [key, value] of Object.entries(transcriptionModelOptions)) {
@@ -296,7 +287,10 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
   async doGenerate(
     options: OpenAITranscriptionCallOptions,
   ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
-    if (isRealtimeTranscriptionModelId(this.modelId)) {
+    if (
+      getOpenAITranscriptionModelEntry(this.modelId).capabilities.transcription
+        .transcription === false
+    ) {
       throw new UnsupportedFunctionalityError({
         functionality: `non-streaming transcription with ${this.modelId}`,
       });
@@ -314,7 +308,10 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
         path: '/audio/transcriptions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       formData,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -349,6 +346,12 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
         : [],
     );
 
+    const words = response.words?.map(word => ({
+      text: word.word,
+      startSecond: word.start,
+      endSecond: word.end,
+    }));
+
     return {
       text: response.text,
       segments:
@@ -357,12 +360,9 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
           startSecond: segment.start,
           endSecond: segment.end,
         })) ??
-        response.words?.map(word => ({
-          text: word.word,
-          startSecond: word.start,
-          endSecond: word.end,
-        })) ??
+        words ??
         [],
+      ...(words != null && words.length > 0 ? { words } : {}),
       language,
       // Duration-billed json responses report the duration only in `usage`:
       durationInSeconds:
@@ -401,7 +401,8 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
   ): Promise<
     Awaited<ReturnType<NonNullable<TranscriptionModelV4['doStream']>>>
   > {
-    if (!supportsStreamingTranscription(this.modelId)) {
+    const entry = getOpenAITranscriptionModelEntry(this.modelId);
+    if (entry.capabilities.transcription.streaming !== true) {
       throw new UnsupportedFunctionalityError({
         functionality: `streaming transcription with ${this.modelId}`,
       });
@@ -420,6 +421,8 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
     const rawOpenAIOptions = options.providerOptions?.openai ?? {};
     for (const option of [
       'include',
+      'languages',
+      'keywords',
       'prompt',
       'temperature',
       'timestampGranularities',
@@ -434,7 +437,8 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
     }
 
     // gpt-transcribe transcribes each committed turn, so it has no delay setting:
-    const supportsDelay = !isModelOrSnapshot(this.modelId, 'gpt-transcribe');
+    const supportsDelay =
+      entry.capabilities.transcription.streamingDelay === true;
     if (!supportsDelay && openAIOptions?.streaming?.delay != null) {
       warnings.push({
         type: 'unsupported',
@@ -443,7 +447,10 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
       });
     }
 
-    const headers = combineHeaders(this.config.headers?.(), options.headers);
+    const headers = combineHeaders(
+      await resolve(this.config.headers),
+      options.headers,
+    );
     const sessionUpdate = buildOpenAIRealtimeTranscriptionSession({
       modelId: this.modelId,
       inputAudioFormat: options.inputAudioFormat,
@@ -659,7 +666,8 @@ function buildOpenAIRealtimeTranscriptionSession({
           transcription: {
             model: modelId,
             ...(providerOptions?.language != null
-              ? usesLanguagesList(modelId)
+              ? getOpenAITranscriptionModelEntry(modelId).requestConfig
+                  .transcription.languageField === 'languages'
                 ? { languages: [providerOptions.language] }
                 : { language: providerOptions.language }
               : {}),

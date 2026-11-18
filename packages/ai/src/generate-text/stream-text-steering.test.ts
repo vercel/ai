@@ -8,6 +8,9 @@ import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import { convertToModelMessages } from '../ui/convert-to-model-messages';
+import type { UIMessage } from '../ui/ui-messages';
+import { readUIMessageStream } from '../ui-message-stream/read-ui-message-stream';
 import { createSteering, type SteeringOutcome } from './steering';
 import { isStepCount } from './stop-condition';
 import { streamText } from './stream-text';
@@ -564,6 +567,434 @@ describe('streamText experimental_steering', () => {
       reason: 'removed-by-prepare-step',
     });
     expect(steps[1].experimental_steeringMessages).toBeUndefined();
+  });
+
+  describe('queue', () => {
+    it('should wait until the current task is done to deliver a queued message', async () => {
+      const steering = createSteering();
+      let outcome: Promise<SteeringOutcome> | undefined;
+
+      const model = createModel([
+        () => toolCallStream,
+        () => textStream('It is sunny in Paris.'),
+        () => textStream('The readme is updated.'),
+      ]);
+
+      const result = streamText({
+        model,
+        prompt: 'What is the weather in Paris?',
+        tools: {
+          weather: weather(() => {
+            outcome = steering.queue('Then update the readme.');
+            return 'sunny';
+          }),
+        },
+        stopWhen: isStepCount(5),
+        experimental_steering: steering,
+      });
+
+      expect(await result.text).toBe('The readme is updated.');
+      expect(model.doStreamCalls).toHaveLength(3);
+      expect(lastUserText(model.doStreamCalls[1])).toBeUndefined();
+      expect(lastUserText(model.doStreamCalls[2])).toBe(
+        'Then update the readme.',
+      );
+      expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 2 });
+    });
+
+    it('should deliver one queued message per task in order', async () => {
+      const steering = createSteering();
+      const first = steering.queue('Then update the readme.');
+      const second = steering.queue('Then add a changelog entry.');
+
+      const model = createModel([
+        () => textStream('It is sunny in Paris.'),
+        () => textStream('The readme is updated.'),
+        () => textStream('The changelog is updated.'),
+      ]);
+
+      const result = streamText({
+        model,
+        prompt: 'What is the weather in Paris?',
+        stopWhen: isStepCount(5),
+        experimental_steering: steering,
+      });
+
+      await result.consumeStream();
+
+      expect(model.doStreamCalls.map(lastUserText)).toEqual([
+        'What is the weather in Paris?',
+        'Then update the readme.',
+        'Then add a changelog entry.',
+      ]);
+      expect(await first).toMatchObject({ type: 'delivered', stepNumber: 1 });
+      expect(await second).toMatchObject({ type: 'delivered', stepNumber: 2 });
+      expect(
+        (await result.steps).map(step =>
+          step.experimental_steeringMessages?.map(message => message.content),
+        ),
+      ).toEqual([
+        undefined,
+        ['Then update the readme.'],
+        ['Then add a changelog entry.'],
+      ]);
+    });
+
+    it.each(['length', 'content-filter'] as const)(
+      'should not deliver a queued message when the response finished with %s',
+      async finishReason => {
+        const steering = createSteering();
+        const outcome = steering.queue('Then update the readme.');
+
+        const model = createModel([
+          () => [
+            ...textStream('It is sunny').slice(0, -1),
+            {
+              type: 'finish',
+              finishReason: { unified: finishReason, raw: finishReason },
+              usage,
+            },
+          ],
+        ]);
+
+        const result = streamText({
+          model,
+          prompt: 'What is the weather in Paris?',
+          stopWhen: isStepCount(5),
+          experimental_steering: steering,
+        });
+
+        await result.consumeStream();
+
+        expect(model.doStreamCalls).toHaveLength(1);
+        expect(await outcome).toMatchObject({
+          type: 'not-delivered',
+          reason: 'finished',
+        });
+      },
+    );
+
+    it('should not deliver a queued message when the default stop condition ends the stream', async () => {
+      const steering = createSteering();
+      const outcome = steering.queue('Then update the readme.');
+
+      const model = createModel([() => textStream('It is sunny in Paris.')]);
+
+      const result = streamText({
+        model,
+        prompt: 'What is the weather in Paris?',
+        experimental_steering: steering,
+      });
+
+      await result.consumeStream();
+
+      expect(model.doStreamCalls).toHaveLength(1);
+      expect(await outcome).toMatchObject({
+        type: 'not-delivered',
+        reason: 'stop-condition',
+      });
+    });
+  });
+
+  describe('steering message stream part', () => {
+    it('should stream a delivered message before the output of its step', async () => {
+      const steering = createSteering();
+
+      const model = createModel([
+        () => toolCallStream,
+        () => textStream('It is sunny in Paris, Texas.'),
+      ]);
+
+      const result = streamText({
+        model,
+        prompt: 'What is the weather in Paris?',
+        tools: {
+          weather: weather(() => {
+            void steering.steer('I meant Paris, Texas.', { id: 'steer-1' });
+            return 'sunny';
+          }),
+        },
+        stopWhen: isStepCount(5),
+        experimental_steering: steering,
+      });
+
+      const parts = [];
+      for await (const part of result.fullStream) {
+        parts.push(part);
+      }
+
+      expect(parts.map(part => part.type)).toMatchInlineSnapshot(`
+        [
+          "start",
+          "start-step",
+          "tool-call",
+          "tool-result",
+          "finish-step",
+          "steering-message",
+          "start-step",
+          "text-start",
+          "text-delta",
+          "text-end",
+          "finish-step",
+          "finish",
+        ]
+      `);
+      expect(parts.find(part => part.type === 'steering-message'))
+        .toMatchInlineSnapshot(`
+        {
+          "id": "steer-1",
+          "message": {
+            "content": "I meant Paris, Texas.",
+            "role": "user",
+          },
+          "stepNumber": 1,
+          "type": "steering-message",
+        }
+      `);
+    });
+
+    it('should stream a message sent before the stream starts before the first step', async () => {
+      const steering = createSteering();
+      void steering.steer('Use Celsius.', { id: 'steer-1' });
+
+      const model = createModel([() => textStream('It is 20 degrees.')]);
+
+      const result = streamText({
+        model,
+        prompt: 'What is the weather in Paris?',
+        experimental_steering: steering,
+      });
+
+      const types = [];
+      for await (const part of result.fullStream) {
+        types.push(
+          part.type === 'steering-message'
+            ? `${part.type}:${part.stepNumber}`
+            : part.type,
+        );
+      }
+
+      expect(types).toMatchInlineSnapshot(`
+        [
+          "start",
+          "steering-message:0",
+          "start-step",
+          "text-start",
+          "text-delta",
+          "text-end",
+          "finish-step",
+          "finish",
+        ]
+      `);
+    });
+
+    it('should stream queued messages when they are delivered', async () => {
+      const steering = createSteering();
+      void steering.queue('Then update the readme.', { id: 'queued-1' });
+
+      const model = createModel([
+        () => textStream('It is sunny in Paris.'),
+        () => textStream('The readme is updated.'),
+      ]);
+
+      const result = streamText({
+        model,
+        prompt: 'What is the weather in Paris?',
+        stopWhen: isStepCount(5),
+        experimental_steering: steering,
+      });
+
+      const types = [];
+      for await (const part of result.fullStream) {
+        types.push(
+          part.type === 'steering-message'
+            ? `${part.type}:${part.id}:${part.stepNumber}`
+            : part.type,
+        );
+      }
+
+      expect(types).toMatchInlineSnapshot(`
+        [
+          "start",
+          "start-step",
+          "text-start",
+          "text-delta",
+          "text-end",
+          "finish-step",
+          "steering-message:queued-1:1",
+          "start-step",
+          "text-start",
+          "text-delta",
+          "text-end",
+          "finish-step",
+          "finish",
+        ]
+      `);
+    });
+
+    it('should not stream messages that prepareStep removes', async () => {
+      const steering = createSteering();
+
+      const model = createModel([
+        () => toolCallStream,
+        () => textStream('It is sunny in Paris.'),
+      ]);
+
+      const result = streamText({
+        model,
+        prompt: 'What is the weather in Paris?',
+        tools: {
+          weather: weather(() => {
+            void steering.steer('I meant Paris, Texas.');
+            return 'sunny';
+          }),
+        },
+        stopWhen: isStepCount(5),
+        experimental_steering: steering,
+        prepareStep: ({ initialMessages, responseMessages }) => ({
+          messages: [...initialMessages, ...responseMessages],
+        }),
+      });
+
+      const types = [];
+      for await (const part of result.fullStream) {
+        types.push(part.type);
+      }
+
+      expect(types).not.toContain('steering-message');
+    });
+
+    it('should keep provider options of delivered messages in converted model messages', async () => {
+      const steering = createSteering();
+      void steering.steer({
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Use Celsius.',
+            providerOptions: {
+              anthropic: { cacheControl: { type: 'ephemeral' } },
+            },
+          },
+        ],
+      });
+
+      const model = createModel([() => textStream('It is 20 degrees.')]);
+
+      const result = streamText({
+        model,
+        prompt: 'What is the weather in Paris?',
+        experimental_steering: steering,
+      });
+
+      let message: UIMessage | undefined;
+      for await (const uiMessage of readUIMessageStream({
+        stream: result.toUIMessageStream(),
+      })) {
+        message = uiMessage;
+      }
+
+      const [steeringMessage] = await convertToModelMessages([message!]);
+
+      expect(steeringMessage).toEqual({
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Use Celsius.',
+            providerOptions: {
+              anthropic: { cacheControl: { type: 'ephemeral' } },
+            },
+          },
+        ],
+      });
+    });
+
+    it('should add delivered messages to the ui message and keep them in converted model messages', async () => {
+      const steering = createSteering();
+
+      const model = createModel([
+        () => toolCallStream,
+        () => textStream('It is sunny in Paris, Texas.'),
+      ]);
+
+      const result = streamText({
+        model,
+        prompt: 'What is the weather in Paris?',
+        tools: {
+          weather: weather(() => {
+            void steering.steer('I meant Paris, Texas.', { id: 'steer-1' });
+            return 'sunny';
+          }),
+        },
+        stopWhen: isStepCount(5),
+        experimental_steering: steering,
+      });
+
+      let message: UIMessage | undefined;
+      for await (const uiMessage of readUIMessageStream({
+        stream: result.toUIMessageStream(),
+      })) {
+        message = uiMessage;
+      }
+
+      expect(message!.parts.map(part => part.type)).toMatchInlineSnapshot(`
+        [
+          "step-start",
+          "tool-weather",
+          "steering-message",
+          "step-start",
+          "text",
+        ]
+      `);
+      expect(message!.parts.find(part => part.type === 'steering-message'))
+        .toMatchInlineSnapshot(`
+        {
+          "id": "steer-1",
+          "parts": [
+            {
+              "text": "I meant Paris, Texas.",
+              "type": "text",
+            },
+          ],
+          "type": "steering-message",
+        }
+      `);
+
+      const modelMessages = await convertToModelMessages([
+        {
+          id: 'user-1',
+          role: 'user',
+          parts: [{ type: 'text', text: 'What is the weather in Paris?' }],
+        },
+        message!,
+      ]);
+
+      expect(modelMessages.map(({ role }) => role)).toMatchInlineSnapshot(`
+        [
+          "user",
+          "assistant",
+          "tool",
+          "user",
+          "assistant",
+        ]
+      `);
+      expect(modelMessages[3]).toMatchInlineSnapshot(`
+        {
+          "content": [
+            {
+              "text": "I meant Paris, Texas.",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        }
+      `);
+      // the model saw the same history before its final answer:
+      expect(model.doStreamCalls[1].prompt.map(({ role }) => role)).toEqual(
+        modelMessages.slice(0, -1).map(({ role }) => role),
+      );
+    });
   });
 
   it('should throw when the steering object is used by two streams at once', async () => {

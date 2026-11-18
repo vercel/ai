@@ -8,16 +8,19 @@ export type ChatCompletionMessage =
   | ChatCompletionToolMessage;
 
 export interface ChatCompletionSystemMessage {
+  name?: string;
   role: 'system';
   content: string | Array<ChatCompletionContentPartText>;
 }
 
 export interface ChatCompletionDeveloperMessage {
+  name?: string;
   role: 'developer';
   content: string | Array<ChatCompletionContentPartText>;
 }
 
 export interface ChatCompletionUserMessage {
+  name?: string;
   role: 'user';
   content: string | Array<ChatCompletionContentPart>;
 }
@@ -53,6 +56,7 @@ export interface ChatCompletionContentPartFile {
 }
 
 export interface ChatCompletionAssistantMessage {
+  name?: string;
   role: 'assistant';
   content?: string | null | Array<ChatCompletionContentPartText>;
   tool_calls?: Array<ChatCompletionMessageToolCall>;

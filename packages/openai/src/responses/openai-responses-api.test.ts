@@ -21,9 +21,12 @@ describe('openaiResponses schema alignment', () => {
     >['annotation'];
 
     type ResponseAnnotation = Extract<
-      NonNullable<Response['output']>[number],
-      { type: 'message' }
-    >['content'][number]['annotations'][number];
+      Extract<
+        NonNullable<Response['output']>[number],
+        { type: 'message' }
+      >['content'][number],
+      { type: 'output_text' }
+    >['annotations'][number];
 
     expectTypeOf<ChunkAnnotation>().toEqualTypeOf<ResponseAnnotation>();
   });
@@ -291,6 +294,106 @@ describe('openaiResponsesChunkSchema', () => {
       });
     },
   );
+
+  it.each([
+    {
+      type: 'response.refusal.delta',
+      content_index: 0,
+      delta: "I'm sorry",
+      item_id: 'msg_1',
+      output_index: 0,
+      sequence_number: 4,
+    },
+    {
+      type: 'response.refusal.done',
+      content_index: 0,
+      item_id: 'msg_1',
+      output_index: 0,
+      refusal: "I'm sorry, I can't assist with that.",
+      sequence_number: 5,
+    },
+  ])('accepts $type events', async event => {
+    const result = await safeValidateTypes({
+      value: event,
+      schema: openaiResponsesChunkSchema,
+    });
+
+    expect(result).toMatchObject({
+      success: true,
+      value: { type: event.type },
+    });
+  });
+});
+
+describe('openaiResponsesResponseSchema', () => {
+  it('accepts refusal content parts in message output items', async () => {
+    const result = await safeValidateTypes({
+      value: {
+        id: 'resp_1',
+        output: [
+          {
+            type: 'message',
+            id: 'msg_1',
+            role: 'assistant',
+            content: [
+              {
+                type: 'refusal',
+                refusal: "I'm sorry, I can't assist with that.",
+              },
+            ],
+          },
+        ],
+      },
+      schema: openaiResponsesResponseSchema,
+    });
+
+    expect(result).toMatchObject({
+      success: true,
+      value: {
+        output: [
+          {
+            type: 'message',
+            content: [{ type: 'refusal' }],
+          },
+        ],
+      },
+    });
+  });
+
+  it('accepts text and refusal content parts in the same message', async () => {
+    const result = await safeValidateTypes({
+      value: {
+        id: 'resp_1',
+        output: [
+          {
+            type: 'message',
+            id: 'msg_1',
+            role: 'assistant',
+            content: [
+              { type: 'output_text', text: 'partial', annotations: [] },
+              { type: 'refusal', refusal: "I can't assist with that." },
+            ],
+          },
+        ],
+      },
+      schema: openaiResponsesResponseSchema,
+    });
+
+    expect(result).toMatchObject({
+      success: true,
+      value: {
+        output: [
+          {
+            type: 'message',
+            content: [
+              { type: 'output_text', text: 'partial' },
+              { type: 'refusal' },
+            ],
+          },
+        ],
+      },
+    });
+  });
 });
 
 describe('OpenAI Responses usage schemas', () => {

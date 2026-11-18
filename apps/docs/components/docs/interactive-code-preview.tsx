@@ -282,6 +282,7 @@ const DEFAULT_MODEL_NAMES: Record<string, string> = {
   [DEFAULT_MODEL_IDS.embedding]: 'Voyage 4',
   [DEFAULT_MODEL_IDS.decision]: 'TypeSafe JEV',
   'google/gemini-4-argon': 'Gemini 4 Argon',
+  'google/gemini-4-carbon': 'Gemini 4 Carbon',
 };
 
 const getDefaultModelOption = (

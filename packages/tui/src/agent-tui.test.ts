@@ -518,6 +518,9 @@ function createSandboxSession(): Experimental_SandboxSession {
     writeFile: async () => {},
     writeBinaryFile: async () => {},
     writeTextFile: async () => {},
+    stat: async () => null,
+    listDirectory: async () => null,
+    deleteFile: async () => false,
     spawn: async () => {
       throw new Error('spawn is not implemented in this mock.');
     },

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getOpenAILanguageModelCapabilities } from './openai-language-model-capabilities';
+import { getOpenAILanguageModelCapabilities } from './openai-model-catalog';
 
 describe('getOpenAILanguageModelCapabilities', () => {
   describe('isReasoningModel', () => {
@@ -103,6 +103,8 @@ describe('getOpenAILanguageModelCapabilities', () => {
       ['gpt-6.1-terra', true],
       ['gpt-6-astra', false],
       ['gpt-6.1-sol', false],
+      ['gpt-6.2-astra', false],
+      ['gpt-6.2-sol', false],
       ['gpt-99', false],
       ['gpt-5', false],
       ['gpt-5.0', false],
@@ -137,6 +139,23 @@ describe('getOpenAILanguageModelCapabilities', () => {
         supportsChatFunctionToolsWithReasoning: true,
       });
     });
+
+    it.each(['gpt-6.2-astra', 'gpt-6.2-sol'])(
+      'supports the documented %s capabilities',
+      modelId => {
+        expect(getOpenAILanguageModelCapabilities(modelId)).toEqual({
+          isReasoningModel: true,
+          systemMessageMode: 'developer',
+          supportsFlexProcessing: true,
+          supportsPriorityProcessing: true,
+          supportsConfigurationUpdate: true,
+          supportsAsyncToolCalling: true,
+          supportedReasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+          supportsNonReasoningParameters: false,
+          supportsChatFunctionToolsWithReasoning: true,
+        });
+      },
+    );
 
     it('supports the documented GPT-6.1 Terra capabilities', () => {
       expect(getOpenAILanguageModelCapabilities('gpt-6.1-terra')).toEqual({

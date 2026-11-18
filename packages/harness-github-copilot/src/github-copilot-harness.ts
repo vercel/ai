@@ -13,7 +13,11 @@ import {
   isSandboxCredentialPlaceholder,
   type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
-import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
+import {
+  createACP,
+  type ACPAuthenticationMode,
+  type ACPResolveHostToolCall,
+} from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
@@ -58,12 +62,23 @@ export type GitHubCopilotHarnessSettings = {
   readonly portEndpoint?: HarnessV1PortEndpoint;
   readonly startupTimeoutMs?: number;
   /**
+   * Abort a running turn when its host disconnects and does not reconnect
+   * within this many milliseconds, so the turn stops spending. A suspended
+   * turn is exempt. Unset keeps the turn running until it finishes.
+   */
+  readonly hostDisconnectTimeoutMs?: number;
+  /**
    * Configures reconnection attempts after an established bridge connection
    * drops. The reconnect window includes connection establishment and
    * backoff delays. Defaults to 30 seconds with exponential backoff from 50
    * milliseconds up to 2 seconds.
    */
   readonly reconnect?: SandboxChannelReconnectOptions;
+  // TODO: Remove in the next major version.
+  /**
+   * @deprecated Sandbox bridge authentication now uses adapter-generated
+   * Ed25519 keys. This setting is ignored and emits a warning.
+   */
   readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
 
@@ -271,6 +286,11 @@ export function createGitHubCopilot(
       pnpmWorkspaceYaml: __GITHUB_COPILOT_BRIDGE_PNPM_WORKSPACE_YAML__,
     },
     executable: 'copilot',
+    /*
+     * GitHub Copilot CLI does not expose an option to disable project-level
+     * configuration. This ACP integration cannot isolate repository-owned
+     * configuration, so working directory contents must be trusted.
+     */
     args: [
       '--acp',
       '--stdio',
@@ -482,13 +502,32 @@ export function createGitHubCopilot(
       type: 'filesystem',
       path: '.copilot/copilot-instructions.md',
     },
+    /*
+     * GitHub Copilot CLI loads hooks, MCP servers, skills, custom agents, and
+     * extensions from these repository locations when a session starts, some of
+     * which run shell commands outside of tool approval. The rest of `.github`
+     * is left writable because it also holds non-agent files such as CI
+     * workflows.
+     */
+    writeProtectedPaths: [
+      '.github/hooks',
+      '.github/copilot',
+      '.github/skills',
+      '.github/agents',
+      '.github/extensions',
+      '.claude',
+      '.mcp.json',
+      '.vscode/mcp.json',
+    ],
     builtinTools: GITHUB_COPILOT_BUILTIN_TOOLS,
     mcpServers: settings.mcpServers,
+    resolveHostToolCall: resolveGitHubCopilotHostToolCall,
     isMcpToolCall: toolCall =>
       mcpToolTitlePrefixes.some(prefix => toolCall.title.startsWith(prefix)),
     port: settings.port,
     portEndpoint: settings.portEndpoint,
     startupTimeoutMs: settings.startupTimeoutMs,
+    hostDisconnectTimeoutMs: settings.hostDisconnectTimeoutMs,
     reconnect: settings.reconnect,
     mintBridgeToken: settings.mintBridgeToken,
   });
@@ -538,4 +577,25 @@ function createGitHubOAuthSandboxCredentialPlaceholder({
         GITHUB_OAUTH_SANDBOX_CREDENTIAL_MARKER.length,
     );
   return `gho_${GITHUB_OAUTH_SANDBOX_CREDENTIAL_MARKER}${tokenBody}`;
+}
+
+/**
+ * GitHub Copilot reports host tool calls without a programmatic name, using
+ * `${serverName}-${toolName}` as the title and the tool input as raw input.
+ */
+const resolveGitHubCopilotHostToolCall: ACPResolveHostToolCall = ({
+  toolCall,
+  serverName,
+  toolNames,
+}) => {
+  const rawInput = toolCall.rawInput;
+  if (toolCall.name != null || !isRecord(rawInput)) return undefined;
+  const toolName = toolNames.find(
+    name => toolCall.title === `${serverName}-${name}`,
+  );
+  return toolName == null ? undefined : { toolName, input: rawInput };
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
 }

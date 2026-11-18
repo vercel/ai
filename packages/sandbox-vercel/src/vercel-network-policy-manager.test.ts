@@ -40,7 +40,12 @@ function makeManager({
 } = {}) {
   const updateMock = update ?? vi.fn(async () => {});
   const sandbox = {
-    currentSession: () => ({ networkPolicy }),
+    currentSession: () => ({ networkPolicy, sessionId: 'session' }),
+    listSessions: async () => ({
+      async *[Symbol.asyncIterator]() {
+        yield { id: 'session', networkPolicy: { mode: 'custom' } };
+      },
+    }),
     update: updateMock,
   } as unknown as Sandbox;
   return {

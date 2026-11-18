@@ -1,4 +1,10 @@
 import {
+  getElevenLabsSpeechModelEntry,
+  elevenLabsTextToSpeechOnlyOptions as textToSpeechOnlyOptions,
+  elevenLabsMusicOnlyOptions as musicOnlyOptions,
+  elevenLabsSoundEffectsOnlyOptions as soundEffectsOnlyOptions,
+} from './elevenlabs-model-catalog';
+import {
   InvalidArgumentError,
   UnsupportedFunctionalityError,
   type Experimental_SpeechModelV4StreamOptions as SpeechModelV4StreamOptions,
@@ -9,6 +15,7 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   combineHeaders,
   convertBase64ToUint8Array,
   createBinaryResponseHandler,
@@ -58,42 +65,17 @@ const defaultOutputFormat = 'mp3_44100_128';
 
 // The TTS WebSockets do not serve the v3/v4 families; Text-to-Dialogue does.
 function isDialogueModelId(modelId: string): boolean {
-  return modelId.startsWith('eleven_v3') || modelId.startsWith('eleven_v4');
+  return getElevenLabsSpeechModelEntry(modelId).requestConfig.speech.dialogue;
 }
 
 function isMusicModelId(modelId: string): boolean {
-  return modelId.startsWith('music_');
+  return getElevenLabsSpeechModelEntry(modelId).requestConfig.speech.music;
 }
 
 function isSoundEffectsModelId(modelId: string): boolean {
-  return modelId.startsWith('eleven_text_to_sound');
+  return getElevenLabsSpeechModelEntry(modelId).requestConfig.speech
+    .soundEffects;
 }
-
-// Options that only the text-to-speech and dialogue endpoints read.
-const textToSpeechOnlyOptions = [
-  'applyLanguageTextNormalization',
-  'applyTextNormalization',
-  'dialogue',
-  'inputs',
-  'languageCode',
-  'nextRequestIds',
-  'nextText',
-  'previousRequestIds',
-  'previousText',
-  'pronunciationDictionaryLocators',
-  'streaming',
-  'voiceSettings',
-] as const;
-const musicOnlyOptions = [
-  'compositionPlan',
-  'forceInstrumental',
-  'musicLengthMs',
-] as const;
-const soundEffectsOnlyOptions = [
-  'durationSeconds',
-  'loop',
-  'promptInfluence',
-] as const;
 
 export class ElevenLabsSpeechModel
   implements SpeechModelV4, StreamingSpeechModelV4
@@ -159,7 +141,11 @@ export class ElevenLabsSpeechModel
         });
       }
     }
-    if (elevenLabsOptions?.inputs != null || this.modelId === 'eleven_v4') {
+    if (
+      elevenLabsOptions?.inputs != null ||
+      getElevenLabsSpeechModelEntry(this.modelId).requestConfig.speech
+        .defaultDialogue
+    ) {
       return this.getDialogueArgs(
         options,
         elevenLabsOptions ?? {},
@@ -554,7 +540,10 @@ export class ElevenLabsSpeechModel
         const queryString = new URLSearchParams(queryParams).toString();
         return queryString ? `${baseUrl}?${queryString}` : baseUrl;
       })(),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: requestBody,
       failedResponseHandler: elevenlabsFailedResponseHandler,
       successfulResponseHandler:
@@ -669,7 +658,8 @@ export class ElevenLabsSpeechModel
     }
     if (
       dialogue != null &&
-      this.modelId === 'eleven_v3_conversational' &&
+      getElevenLabsSpeechModelEntry(this.modelId).requestConfig.speech
+        .singleVoiceDialogue &&
       dialogue.voices.length !== 1
     ) {
       throw new InvalidArgumentError({
@@ -735,7 +725,8 @@ export class ElevenLabsSpeechModel
         voices: dialogue.voices,
         defaultVoice: options.voice ?? dialogue.voices[0],
         // The v3 family accepts a single message per session.
-        incremental: this.modelId.startsWith('eleven_v4'),
+        incremental: getElevenLabsSpeechModelEntry(this.modelId).requestConfig
+          .speech.incrementalDialogue,
       });
     } else {
       protocol = createSingleContextProtocol({
@@ -747,7 +738,7 @@ export class ElevenLabsSpeechModel
     // The API key goes in the init message (not a header) so native
     // WebSockets work; it is kept out of the reported request body.
     const { 'xi-api-key': apiKey, ...headers } = combineHeaders(
-      this.config.headers?.(),
+      await resolve(this.config.headers),
       options.headers,
     );
 

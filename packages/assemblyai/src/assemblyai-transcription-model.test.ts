@@ -671,6 +671,26 @@ describe('doGenerate', () => {
     expect(result.text).toBe('Hello, world!');
   });
 
+  it('should surface a flat error message from the submit call', async () => {
+    prepareJsonResponse();
+
+    server.urls['https://api.assemblyai.com/v2/transcript'].response = {
+      type: 'error',
+      status: 401,
+      body: JSON.stringify({ error: 'Invalid API key' }),
+    };
+
+    await expect(
+      model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      }),
+    ).rejects.toMatchObject({
+      message: 'Invalid API key',
+      statusCode: 401,
+    });
+  });
+
   it('should include response data with timestamp, modelId and headers', async () => {
     prepareJsonResponse({
       headers: {

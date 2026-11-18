@@ -1,5 +1,16 @@
+import { spawnSync } from 'node:child_process';
+import {
+  chmod,
+  mkdir,
+  mkdtemp,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type { Sandbox } from '@vercel/sandbox';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { VercelSandboxSession } from './vercel-sandbox-session';
 
 const decoder = new TextDecoder();
@@ -129,6 +140,65 @@ describe('VercelSandboxSession', () => {
 
       expect(spies.runCommand).toHaveBeenCalledWith(
         expect.objectContaining({ cwd: '/work' }),
+      );
+    });
+
+    it('resolves a relative workingDirectory against the session cwd', async () => {
+      const { sandbox, spies } = makeMockSandbox({
+        currentSession: () => ({ cwd: '/vercel/sandbox' }),
+      } as unknown as Partial<Sandbox>);
+      spies.runCommand.mockResolvedValueOnce(
+        makeMockCommand({ logs: [], exitCode: 0 }).handle,
+      );
+
+      await new VercelSandboxSession(sandbox).run({
+        command: 'ls',
+        workingDirectory: 'project/src',
+      });
+
+      expect(spies.runCommand).toHaveBeenCalledWith(
+        expect.objectContaining({ cwd: '/vercel/sandbox/project/src' }),
+      );
+    });
+
+    it('does not normalize a relative workingDirectory', async () => {
+      const { sandbox, spies } = makeMockSandbox({
+        currentSession: () => ({ cwd: '/' }),
+      } as unknown as Partial<Sandbox>);
+      spies.runCommand.mockResolvedValueOnce(
+        makeMockCommand({ logs: [], exitCode: 0 }).handle,
+      );
+
+      await new VercelSandboxSession(sandbox).run({
+        command: 'ls',
+        workingDirectory: 'link/..',
+      });
+
+      expect(spies.runCommand).toHaveBeenCalledWith(
+        expect.objectContaining({ cwd: '/link/..' }),
+      );
+    });
+
+    it('resumes a stopped sandbox before resolving a relative workingDirectory', async () => {
+      let resumed = false;
+      const { sandbox, spies } = makeMockSandbox({
+        currentSession: () => {
+          if (!resumed) throw new Error('No active session.');
+          return { cwd: '/vercel/sandbox' };
+        },
+      } as unknown as Partial<Sandbox>);
+      spies.runCommand.mockImplementation(async () => {
+        resumed = true;
+        return makeMockCommand({ logs: [], exitCode: 0 }).handle;
+      });
+
+      await new VercelSandboxSession(sandbox).run({
+        command: 'ls',
+        workingDirectory: 'project',
+      });
+
+      expect(spies.runCommand).toHaveBeenLastCalledWith(
+        expect.objectContaining({ cwd: '/vercel/sandbox/project' }),
       );
     });
 
@@ -897,5 +967,326 @@ describe('VercelSandboxSession', () => {
       ac.abort(new Error('user cancelled'));
       await expect(proc.wait()).rejects.toThrow('user cancelled');
     });
+  });
+});
+
+// Runs the adapter's path scripts with the local bash instead of a Vercel
+// Sandbox, so the scripts themselves are tested.
+function createLocalSandbox(
+  directory: string,
+  env: Record<string, string> = {},
+): Sandbox {
+  return {
+    name: 'sbx_test',
+    runCommand: async ({ cmd, args }: { cmd: string; args: string[] }) => {
+      const result = spawnSync(cmd, args, {
+        cwd: directory,
+        env: { ...process.env, ...env },
+        encoding: 'utf8',
+      });
+      return {
+        exitCode: result.status ?? 1,
+        stdout: async () => result.stdout,
+        stderr: async () => result.stderr,
+      };
+    },
+  } as unknown as Sandbox;
+}
+
+describe('VercelSandboxSession path methods', () => {
+  let directory: string;
+  let sandbox: VercelSandboxSession;
+
+  beforeEach(async () => {
+    directory = await mkdtemp(join(tmpdir(), 'vercel-sandbox-session-'));
+    sandbox = new VercelSandboxSession(createLocalSandbox(directory));
+
+    await writeFile(join(directory, 'file.txt'), 'hello');
+    await mkdir(join(directory, 'dir'));
+    await writeFile(join(directory, 'dir', 'nested.txt'), '');
+    await writeFile(join(directory, '.hidden'), '');
+    await writeFile(join(directory, 'with space\nand newline'), '');
+    await symlink(join(directory, 'file.txt'), join(directory, 'file-link'));
+    await symlink(join(directory, 'dir'), join(directory, 'dir-link'));
+    await symlink(join(directory, 'missing'), join(directory, 'broken-link'));
+    spawnSync('mkfifo', [join(directory, 'fifo')]);
+  });
+
+  afterEach(async () => {
+    await rm(directory, { recursive: true, force: true });
+  });
+
+  describe('stat', () => {
+    it('returns the type and size of a file', async () => {
+      expect(await sandbox.stat({ path: 'file.txt' })).toEqual({
+        type: 'file',
+        size: 5,
+      });
+    });
+
+    it('returns directory for a directory', async () => {
+      expect(await sandbox.stat({ path: join(directory, 'dir') })).toEqual({
+        type: 'directory',
+        size: expect.any(Number),
+      });
+    });
+
+    it('follows symbolic links', async () => {
+      expect(await sandbox.stat({ path: 'file-link' })).toEqual({
+        type: 'file',
+        size: 5,
+      });
+    });
+
+    it('returns null for a missing path', async () => {
+      expect(await sandbox.stat({ path: 'missing.txt' })).toBeNull();
+      expect(await sandbox.stat({ path: 'file.txt/child' })).toBeNull();
+    });
+
+    it('returns null for a broken symbolic link', async () => {
+      expect(await sandbox.stat({ path: 'broken-link' })).toBeNull();
+    });
+
+    it('returns other for a named pipe', async () => {
+      expect(await sandbox.stat({ path: 'fifo' })).toEqual({
+        type: 'other',
+        size: 0,
+      });
+    });
+
+    // Root can search any directory, so the check cannot fail as root.
+    it.skipIf(process.getuid?.() === 0)(
+      'rejects instead of returning null when a parent directory is not searchable',
+      async () => {
+        await mkdir(join(directory, 'locked'));
+        await writeFile(join(directory, 'locked', 'secret.txt'), '');
+        await chmod(join(directory, 'locked'), 0o000);
+        try {
+          await expect(
+            sandbox.stat({ path: 'locked/secret.txt' }),
+          ).rejects.toThrow('Permission denied');
+          await expect(
+            sandbox.listDirectory({ path: 'locked/missing' }),
+          ).rejects.toThrow('Permission denied');
+          await expect(
+            sandbox.deleteFile({ path: 'locked/secret.txt' }),
+          ).rejects.toThrow('Permission denied');
+        } finally {
+          await chmod(join(directory, 'locked'), 0o755);
+        }
+      },
+    );
+
+    it.skipIf(process.getuid?.() === 0)(
+      'rejects instead of returning null when a symbolic link target is not searchable',
+      async () => {
+        await mkdir(join(directory, 'locked', 'target'), { recursive: true });
+        await symlink(
+          join(directory, 'locked', 'target'),
+          join(directory, 'locked-link'),
+        );
+        await chmod(join(directory, 'locked'), 0o000);
+        try {
+          await expect(sandbox.stat({ path: 'locked-link' })).rejects.toThrow(
+            'Permission denied',
+          );
+          await expect(
+            sandbox.listDirectory({ path: 'locked-link' }),
+          ).rejects.toThrow('Permission denied');
+        } finally {
+          await chmod(join(directory, 'locked'), 0o755);
+        }
+      },
+    );
+
+    it('rejects for a symbolic link loop', async () => {
+      await symlink(join(directory, 'loop'), join(directory, 'loop'));
+      await expect(sandbox.stat({ path: 'loop' })).rejects.toThrow(
+        'Too many levels of symbolic links',
+      );
+      await expect(sandbox.listDirectory({ path: 'loop' })).rejects.toThrow(
+        'Too many levels of symbolic links',
+      );
+    });
+
+    it('rejects when the signal is already aborted', async () => {
+      const controller = new AbortController();
+      controller.abort();
+      await expect(
+        sandbox.stat({ path: 'file.txt', abortSignal: controller.signal }),
+      ).rejects.toThrow();
+    });
+  });
+
+  describe('listDirectory', () => {
+    it('lists entries with their types, including hidden entries', async () => {
+      const entries = await sandbox.listDirectory({ path: '.' });
+
+      expect(entries?.sort((a, b) => a.name.localeCompare(b.name)))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "name": ".hidden",
+            "type": "file",
+          },
+          {
+            "name": "broken-link",
+            "type": "symlink",
+          },
+          {
+            "name": "dir",
+            "type": "directory",
+          },
+          {
+            "name": "dir-link",
+            "type": "symlink",
+          },
+          {
+            "name": "fifo",
+            "type": "other",
+          },
+          {
+            "name": "file-link",
+            "type": "symlink",
+          },
+          {
+            "name": "file.txt",
+            "type": "file",
+          },
+          {
+            "name": "with space
+        and newline",
+            "type": "file",
+          },
+        ]
+      `);
+    });
+
+    it('resolves `..` after a symbolic link in the filesystem', async () => {
+      await mkdir(join(directory, 'deep', 'inner'), { recursive: true });
+      await symlink(
+        join(directory, 'deep', 'inner'),
+        join(directory, 'inner-link'),
+      );
+
+      expect(await sandbox.listDirectory({ path: 'inner-link/..' })).toEqual([
+        { name: 'inner', type: 'directory' },
+      ]);
+    });
+
+    it('returns an empty array for an empty directory', async () => {
+      await mkdir(join(directory, 'empty'));
+      expect(await sandbox.listDirectory({ path: 'empty' })).toEqual([]);
+    });
+
+    it('returns null for a missing directory', async () => {
+      expect(await sandbox.listDirectory({ path: 'missing' })).toBeNull();
+    });
+
+    it('rejects for a file', async () => {
+      await expect(sandbox.listDirectory({ path: 'file.txt' })).rejects.toThrow(
+        'Not a directory',
+      );
+    });
+
+    it('lists a directory through a symbolic link', async () => {
+      expect(await sandbox.listDirectory({ path: 'dir-link' })).toEqual([
+        { name: 'nested.txt', type: 'file' },
+      ]);
+    });
+
+    it('returns null for a broken symbolic link', async () => {
+      expect(await sandbox.listDirectory({ path: 'broken-link' })).toBeNull();
+    });
+
+    it.skipIf(process.getuid?.() === 0)(
+      'rejects for a directory that can be entered but not read',
+      async () => {
+        await chmod(join(directory, 'dir'), 0o311);
+        try {
+          await expect(sandbox.listDirectory({ path: 'dir' })).rejects.toThrow(
+            'Permission denied',
+          );
+        } finally {
+          await chmod(join(directory, 'dir'), 0o755);
+        }
+      },
+    );
+
+    it('lists a directory named `-`', async () => {
+      await mkdir(join(directory, '-'));
+      await writeFile(join(directory, '-', 'inside.txt'), '');
+      expect(await sandbox.listDirectory({ path: '-' })).toEqual([
+        { name: 'inside.txt', type: 'file' },
+      ]);
+    });
+
+    it('ignores CDPATH', async () => {
+      await mkdir(join(directory, 'other', 'dir'), { recursive: true });
+      await writeFile(join(directory, 'other', 'dir', 'wrong.txt'), '');
+      const withCdpath = new VercelSandboxSession(
+        createLocalSandbox(directory, { CDPATH: join(directory, 'other') }),
+      );
+      expect(await withCdpath.listDirectory({ path: 'dir' })).toEqual([
+        { name: 'nested.txt', type: 'file' },
+      ]);
+    });
+  });
+
+  describe('deleteFile', () => {
+    it('deletes a file', async () => {
+      expect(await sandbox.deleteFile({ path: 'file.txt' })).toBe(true);
+      expect(await sandbox.stat({ path: 'file.txt' })).toBeNull();
+    });
+
+    it('returns false for a missing file', async () => {
+      expect(await sandbox.deleteFile({ path: 'missing.txt' })).toBe(false);
+    });
+
+    it('rejects for a directory', async () => {
+      await expect(sandbox.deleteFile({ path: 'dir' })).rejects.toThrow(
+        'it is a directory',
+      );
+      expect(await sandbox.stat({ path: 'dir' })).not.toBeNull();
+    });
+
+    it('deletes a symbolic link to a directory but not the directory', async () => {
+      expect(await sandbox.deleteFile({ path: 'dir-link' })).toBe(true);
+      expect(await sandbox.stat({ path: 'dir-link' })).toBeNull();
+      expect(await sandbox.stat({ path: 'dir/nested.txt' })).not.toBeNull();
+    });
+
+    it('rejects for a symbolic link to a directory with a trailing slash', async () => {
+      await expect(sandbox.deleteFile({ path: 'dir-link/' })).rejects.toThrow(
+        'it is a directory',
+      );
+      expect(await sandbox.stat({ path: 'dir-link' })).not.toBeNull();
+      expect(await sandbox.stat({ path: 'dir/nested.txt' })).not.toBeNull();
+    });
+
+    it('deletes a broken symbolic link', async () => {
+      expect(await sandbox.deleteFile({ path: 'broken-link' })).toBe(true);
+      expect(
+        await sandbox
+          .listDirectory({ path: '.' })
+          .then(entries => entries?.map(entry => entry.name)),
+      ).not.toContain('broken-link');
+    });
+
+    it('deletes a file in a symbolically linked directory', async () => {
+      expect(await sandbox.deleteFile({ path: 'dir-link/nested.txt' })).toBe(
+        true,
+      );
+      expect(await sandbox.stat({ path: 'dir/nested.txt' })).toBeNull();
+    });
+  });
+
+  it('passes paths as arguments instead of interpolating them', async () => {
+    const path = '$(touch injected)';
+
+    expect(await sandbox.stat({ path })).toBeNull();
+    expect(await sandbox.listDirectory({ path })).toBeNull();
+    expect(await sandbox.deleteFile({ path })).toBe(false);
+    expect(await sandbox.stat({ path: 'injected' })).toBeNull();
   });
 });

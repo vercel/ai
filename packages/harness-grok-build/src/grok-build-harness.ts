@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+import { posix } from 'node:path';
 import {
   HARNESS_V1_BUILTIN_TOOLS,
   commonTool,
@@ -9,10 +11,18 @@ import {
 } from '@ai-sdk/harness';
 import {
   createCredentialRequestTransformation,
+  resolveSandboxHomeDir,
+  shellQuote,
   type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
-import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
+import {
+  createACP,
+  type ACPAuthenticationMode,
+  type ACPHarnessSettings,
+  type ACPResolveHostToolCall,
+} from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
+import { parse, stringify } from '@iarna/toml';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
 import { resolveGrokBuildSubscriptionEnvironment } from './grok-build-subscription';
@@ -64,6 +74,12 @@ export type GrokBuildHarnessSettings = {
    */
   readonly startupTimeoutMs?: number;
   /**
+   * Abort a running turn when its host disconnects and does not reconnect
+   * within this many milliseconds, so the turn stops spending. A suspended
+   * turn is exempt. Unset keeps the turn running until it finishes.
+   */
+  readonly hostDisconnectTimeoutMs?: number;
+  /**
    * Configures reconnection attempts after an established bridge connection
    * drops. The reconnect window includes connection establishment and
    * backoff delays. Defaults to 30 seconds with exponential backoff from 50
@@ -75,9 +91,10 @@ export type GrokBuildHarnessSettings = {
    * underlying runtime's native MCP server configuration format.
    */
   readonly mcpServers?: Record<string, unknown>;
+  // TODO: Remove in the next major version.
   /**
-   * Creates the authentication token used by the sandbox bridge. Defaults to
-   * a random 32-byte hexadecimal token.
+   * @deprecated Sandbox bridge authentication now uses adapter-generated
+   * Ed25519 keys. This setting is ignored and emits a warning.
    */
   readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
@@ -300,17 +317,20 @@ export function createGrokBuild(
     nonTextContentTypes: ['image'],
     auth: settings.auth,
     resolveAuthenticationEnvironment: resolveGrokBuildSubscriptionEnvironment,
+    prepareSandbox: prepareGrokBuildSandbox,
     authentication: { methodId: 'xai.api_key' },
     credentialForwarding: settings.credentialForwarding,
     port: settings.port,
     portEndpoint: settings.portEndpoint,
     startupTimeoutMs: settings.startupTimeoutMs,
+    hostDisconnectTimeoutMs: settings.hostDisconnectTimeoutMs,
     reconnect: settings.reconnect,
     mcpServers: settings.mcpServers,
     modelMapping: {
       type: 'session-model',
       path: 'modelId',
     },
+    resolveHostToolCall: resolveGrokBuildHostToolCall,
     isMcpToolCall: toolCall => {
       const metadata = toolCall._meta?.['x.ai/tool'];
       return isRecord(metadata) && metadata.namespace === 'mcp';
@@ -338,6 +358,12 @@ export function createGrokBuild(
         : ['--reasoning-effort', settings.reasoningEffort]),
       'stdio',
     ],
+    env: {
+      GROK_CLAUDE_HOOKS_ENABLED: 'false',
+      GROK_CURSOR_HOOKS_ENABLED: 'false',
+      GROK_CLAUDE_MCPS_ENABLED: 'false',
+      GROK_CURSOR_MCPS_ENABLED: 'false',
+    },
     forwardEnv: [
       'GROK_XAI_API_BASE_URL',
       'GROK_MODELS_BASE_URL',
@@ -366,6 +392,7 @@ export function createGrokBuild(
       type: 'filesystem',
       path: '.grok/AGENTS.md',
     },
+    writeProtectedPaths: ['.grok'],
     outputSchemaMapping: {
       type: 'session-prompt-meta',
       path: ['outputSchema'],
@@ -389,6 +416,111 @@ export function createGrokBuild(
     },
   });
 }
+
+/*
+ * Grok Build executes reads without requesting ACP permission by default.
+ * A native Read ask rule routes them through ACP so its permission controller
+ * can approve reads inside the session workspace and ask about outside reads.
+ */
+const prepareGrokBuildSandbox: NonNullable<
+  ACPHarnessSettings['prepareSandbox']
+> = async ({ sandbox, workDir, abortSignal }) => {
+  abortSignal?.throwIfAborted();
+  const home = await sandbox.run({
+    command: 'printf "%s" "${GROK_HOME:-}"',
+    workingDirectory: workDir,
+    abortSignal,
+  });
+  if (home.exitCode !== 0) {
+    throw new Error(
+      'Unable to resolve the Grok Build configuration directory.',
+    );
+  }
+  const configDir = posix.resolve(
+    workDir,
+    home.stdout ||
+      posix.join(
+        await resolveSandboxHomeDir({ sandbox, abortSignal }),
+        '.grok',
+      ),
+  );
+  const configPath = posix.join(configDir, 'config.toml');
+  const content = await sandbox.readTextFile({ path: configPath, abortSignal });
+  let config: ReturnType<typeof parse>;
+  try {
+    config = parse(content ?? '');
+  } catch {
+    throw new Error('Grok Build configuration must contain valid TOML.');
+  }
+  config.permission ??= {};
+  const permission = config.permission;
+  if (
+    typeof permission !== 'object' ||
+    Array.isArray(permission) ||
+    permission instanceof Date
+  ) {
+    throw new Error('Grok Build configuration permission must be a table.');
+  }
+  const ask = permission.ask ?? [];
+  if (!Array.isArray(ask) || ask.some(rule => typeof rule !== 'string')) {
+    throw new Error(
+      'Grok Build configuration permission.ask must be a string array.',
+    );
+  }
+  if (ask.some(rule => rule === 'Read')) return;
+  permission.ask = [...ask, 'Read'];
+  const updatedContent = stringify(config);
+  const temporaryPath = `${configPath}.${randomUUID()}.tmp`;
+  const created = await sandbox.run({
+    command:
+      `mkdir -p ${shellQuote(configDir)} && ` +
+      `(umask 077; set -C; : > ${shellQuote(temporaryPath)})`,
+    abortSignal,
+  });
+  if (created.exitCode !== 0) {
+    throw new Error('Unable to create the temporary Grok Build configuration.');
+  }
+  try {
+    await sandbox.writeTextFile({
+      path: temporaryPath,
+      content: updatedContent,
+      abortSignal,
+    });
+    const replaced = await sandbox.run({
+      command:
+        `chmod 600 ${shellQuote(temporaryPath)} && ` +
+        `mv -f ${shellQuote(temporaryPath)} ${shellQuote(configPath)}`,
+      abortSignal,
+    });
+    if (replaced.exitCode !== 0) {
+      throw new Error('Unable to replace the Grok Build configuration.');
+    }
+  } finally {
+    await Promise.resolve(sandbox.deleteFile({ path: temporaryPath })).catch(
+      () => {},
+    );
+  }
+};
+
+/**
+ * Grok Build calls MCP tools through its `use_tool` meta-tool, with a
+ * `{ tool_name, tool_input }` raw input where `tool_name` is
+ * `${serverName}__${toolName}`.
+ */
+const resolveGrokBuildHostToolCall: ACPResolveHostToolCall = ({
+  toolCall,
+  serverName,
+  toolNames,
+}) => {
+  const rawInput = toolCall.rawInput;
+  if (!isRecord(rawInput) || !isRecord(rawInput.tool_input)) return undefined;
+  const toolName = toolNames.find(
+    name => rawInput.tool_name === `${serverName}__${name}`,
+  );
+  return toolName == null
+    ? undefined
+    : { toolName, input: rawInput.tool_input };
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === 'object' && !Array.isArray(value);

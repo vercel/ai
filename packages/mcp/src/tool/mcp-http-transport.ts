@@ -49,6 +49,7 @@ export class HttpMCPTransport implements MCPTransport {
   private inboundSseConnection?: { close: () => void };
   private redirectMode: RequestRedirect;
   private fetchFn: FetchFunction;
+  private customFetch?: FetchFunction;
   private authPromise?: Promise<AuthResult>;
   private onSessionIdChange?: (sessionId: string | undefined) => void;
   private onSessionExpired?: (sessionId: string) => void;
@@ -102,7 +103,8 @@ export class HttpMCPTransport implements MCPTransport {
     this.onSessionIdChange = onSessionIdChange;
     this.onSessionExpired = onSessionExpired;
     this.terminateSessionOnClose = terminateSessionOnClose;
-    this.fetchFn = fetchFn ?? globalThis.fetch;
+    this.fetchFn = fetchFn ?? globalThis.fetch.bind(globalThis);
+    this.customFetch = fetchFn;
   }
 
   setProtocolVersion(version: string): void {
@@ -206,7 +208,7 @@ export class HttpMCPTransport implements MCPTransport {
         serverUrl: this.url,
         resourceMetadataUrl,
         scope,
-        fetchFn: this.fetchFn,
+        fetchFn: this.customFetch,
       }).finally(() => {
         this.authPromise = undefined;
       });
@@ -411,6 +413,8 @@ export class HttpMCPTransport implements MCPTransport {
             .pipeThrough(new TextDecoderStream())
             .pipeThrough(new EventSourceParserStream());
           const reader = stream.getReader();
+          const requestId = 'method' in message ? message.id : undefined;
+          let receivedResponse = false;
 
           const processEvents = async () => {
             try {
@@ -421,6 +425,13 @@ export class HttpMCPTransport implements MCPTransport {
                 if (isMessageEvent(event)) {
                   try {
                     const jsonRpcMessage = await parseJSONRPCMessage(data);
+                    if (
+                      ('result' in jsonRpcMessage ||
+                        'error' in jsonRpcMessage) &&
+                      jsonRpcMessage.id === requestId
+                    ) {
+                      receivedResponse = true;
+                    }
                     this.onmessage?.(jsonRpcMessage);
                   } catch (error) {
                     const e = new MCPClientError({
@@ -440,6 +451,23 @@ export class HttpMCPTransport implements MCPTransport {
                 return;
               }
               this.onerror?.(error);
+            } finally {
+              reader.releaseLock();
+
+              if (
+                requestId !== undefined &&
+                !receivedResponse &&
+                !requestSignal?.aborted
+              ) {
+                this.onmessage?.({
+                  jsonrpc: '2.0',
+                  id: requestId,
+                  error: {
+                    code: -32000,
+                    message: `MCP HTTP Transport Error: SSE stream ended before the response for request ${requestId}`,
+                  },
+                });
+              }
             }
           };
 

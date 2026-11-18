@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import type * as Zod from 'zod/v4';
+import type * as Zod from 'zod/v4/mini';
 
 const { constructed } = vi.hoisted(() => ({ constructed: vi.fn() }));
 
-vi.mock('zod/v4', async importOriginal => {
+vi.mock('zod/v4/mini', async importOriginal => {
   const actual = await importOriginal<typeof Zod>();
   const factories = new Set([
     'object',
@@ -47,6 +47,7 @@ describe('lazy schema initialization', () => {
   it('defers schema construction until first use', async () => {
     constructed.mockClear();
     await import('./gateway-batch');
+    await import('./gateway-tools');
     expect(constructed).not.toHaveBeenCalled();
   });
 });
