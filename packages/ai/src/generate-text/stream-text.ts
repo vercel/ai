@@ -2760,18 +2760,19 @@ class DefaultStreamTextResult<
           };
           const interruptController =
             steeringRun == null ? undefined : new AbortController();
-          let resolveInterrupt: (() => void) | undefined;
           const interruptRequested =
             interruptController == null
               ? undefined
               : new Promise<'interrupted'>(resolve => {
-                  resolveInterrupt = () => resolve('interrupted');
+                  interruptController.signal.addEventListener(
+                    'abort',
+                    () => resolve('interrupted'),
+                    { once: true },
+                  );
                 });
           const stopWatchingInterrupt =
-            steeringRun?.watchInterrupt(() => {
-              resolveInterrupt?.();
-              interruptController?.abort();
-            }) ?? (() => {});
+            steeringRun?.watchInterrupt(() => interruptController?.abort()) ??
+            (() => {});
           // A caller abort or a timeout wins over an interrupt: the run ends
           // instead of making the model call again.
           const isInterrupted = () =>
