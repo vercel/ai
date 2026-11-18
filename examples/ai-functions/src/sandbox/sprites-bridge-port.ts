@@ -1,9 +1,10 @@
 /*
- * Verifies that a Sprite's public URL carries the bridge WebSocket contract
- * of bridge-backed harness adapters: a stock `ws` client receives HTTP 101 on
- * the URL from `getPortEndpoint()` plus `?agent_bridge_token=...`, without
- * any headers, the in-Sprite upgrade sees that query unchanged, and the URL
- * stays the same across reconnects and after reattaching to the Sprite.
+ * Verifies that a Sprite's public URL carries a bridge WebSocket: a stock `ws`
+ * client receives HTTP 101 on the URL from `getPortEndpoint()` plus
+ * `?agent_bridge_token=...`, without any headers, the in-Sprite upgrade sees
+ * that query unchanged, the first frame the in-Sprite server sends reaches the
+ * client (a harness bridge sends its authentication challenge first), and the
+ * URL stays the same across reconnects and after reattaching to the Sprite.
  */
 import { randomBytes } from 'node:crypto';
 import {

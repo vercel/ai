@@ -24,9 +24,10 @@ const SPRITES_PROVIDER_ID = 'sprites-sandbox';
  * Sprites proxy a single internal HTTP port ({@link SPRITE_HTTP_PORT}) to the
  * always-on public URL, so `ports` is exactly `[8080]` and `getPortEndpoint`
  * resolves that one port to the public URL. Bridge-backed harness adapters
- * dial `getPortEndpoint({ port: 8080, protocol: 'ws' })` and append
- * `?agent_bridge_token=…`; the Sprite must have `url` auth set to `public` for
- * a stock WebSocket client (no auth header) to reach the in-Sprite bridge.
+ * dial `getPortEndpoint({ port: 8080, protocol: 'ws' })` with a stock
+ * WebSocket client and no headers, then authenticate to the in-Sprite bridge
+ * over that socket; the Sprite must have `url` auth set to `public` for that
+ * client to reach the bridge.
  *
  * A Sprite on any other URL auth turns that client away at the auth gate, so
  * its session exposes no port: `ports` is empty and `getPortEndpoint` throws.
@@ -113,8 +114,8 @@ export class SpritesNetworkSandboxSession
         url.protocol = isSecure ? 'wss:' : 'ws:';
         break;
     }
-    // A public Sprite URL needs no headers: the bridge token in the query
-    // string is the only credential a stock WebSocket client presents.
+    // A public Sprite URL needs no headers: the bridge authenticates the
+    // client over the socket itself.
     return { url: url.toString() };
   };
 
