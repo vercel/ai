@@ -12,7 +12,8 @@ import { join } from 'path';
 // Bounded validation of malformed UI messages adds ~1.5 KiB.
 // The experimental extract API adds ~5 KiB.
 // The bundled Gateway extraction client adds ~4 KiB.
-const LIMIT = 659 * 1024;
+// Steering interrupts add ~3 KiB.
+const LIMIT = 661 * 1024;
 
 interface BundleResult {
   size: number;
