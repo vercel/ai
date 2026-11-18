@@ -1032,4 +1032,37 @@ console.log(text);`,
     websiteUrl: 'https://upstash.com',
     npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
   },
+  {
+    slug: 'diffbot',
+    name: 'Diffbot',
+    description:
+      'Diffbot tools for the AI SDK: web search with full page content, structured extraction from any URL, and Knowledge Graph (DQL) queries over billions of organizations, people, places, articles and products, plus ontology introspection and query probing so agents write valid DQL instead of guessing.',
+    packageName: '@diffbot/ai-sdk',
+    tags: ['search', 'web', 'extraction', 'knowledge-graph', 'nlp'],
+    apiKeyEnvName: 'DIFFBOT_API_TOKEN',
+    installCommand: {
+      pnpm: 'pnpm add @diffbot/ai-sdk',
+      npm: 'npm install @diffbot/ai-sdk',
+      yarn: 'yarn add @diffbot/ai-sdk',
+      bun: 'bun add @diffbot/ai-sdk',
+    },
+    codeExample: `import { generateText, stepCountIs } from 'ai';
+import { diffbotWebSearch, diffbotKnowledgeGraph } from '@diffbot/ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5.5',
+  prompt: 'Which Boston AI companies raised a Series B this year?',
+  tools: {
+    webSearch: diffbotWebSearch(),
+    knowledgeGraph: diffbotKnowledgeGraph(),
+  },
+  stopWhen: stepCountIs(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://www.diffbot.com/docs/interfaces/ai-sdk',
+    apiKeyUrl: 'https://app.diffbot.com/get-started/',
+    websiteUrl: 'https://www.diffbot.com',
+    npmUrl: 'https://www.npmjs.com/package/@diffbot/ai-sdk',
+  },
 ];
