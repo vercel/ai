@@ -2660,8 +2660,16 @@ class DefaultStreamTextResult<
           const stepExecutionTools =
             stepToolChoice.type === 'none' ? undefined : executionTools;
 
+          // The messages array of a step is created for that step.
+          // `prepareStep` can return the same array for several steps or
+          // calls, so its messages are copied. Tool approval functions can
+          // then tell the tool calls of one response from the tool calls of
+          // another response by the array they receive.
           const stepMessages = appendToolCallerMessages({
-            messages: prepareStepResult?.messages ?? stepInputMessages,
+            messages:
+              prepareStepResult?.messages != null
+                ? [...prepareStepResult.messages]
+                : stepInputMessages,
             toolCallerMessages,
           });
           currentStepMessages = stepMessages;
