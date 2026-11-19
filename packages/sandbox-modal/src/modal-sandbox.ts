@@ -61,7 +61,9 @@ type ModalCreationSettings = Omit<
   /**
    * Modal client used for every request. Defaults to a new `ModalClient`,
    * which reads `MODAL_TOKEN_ID` and `MODAL_TOKEN_SECRET` or the active
-   * profile in `~/.modal.toml`.
+   * profile in `~/.modal.toml` that `modal setup` writes. Pass your own
+   * client, such as `new ModalClient({ tokenId, tokenSecret })`, to configure
+   * credentials or the Modal environment in code.
    */
   client?: ModalClient;
 
@@ -73,7 +75,8 @@ type ModalCreationSettings = Omit<
 
   /**
    * Container image for the sandbox: a registry tag such as `node:24`, or a
-   * Modal `Image`. Defaults to `node:24` with `pnpm` installed.
+   * Modal `Image`. Defaults to `node:24` with `pnpm` installed and
+   * `/workspace` as the working directory.
    */
   image?: Image | string;
 
@@ -147,11 +150,14 @@ export type ModalNetworkSandboxSessionResumeOptions = Prettify<
  * outbound network access is open unless `blockNetwork` or an allowlist is
  * passed. Commands run through `bash`, so the image must provide it.
  *
- * Expose ports with `encryptedPorts`. Bridge-backed harness adapters such as
- * Claude Code and Codex connect to the first listed port unless they are
- * configured with a `port`. Modal fixes a sandbox's tunnels when it is
- * created, so the session has no `setPorts()`. Ports exposed with
- * `unencryptedPorts` are not listed.
+ * Expose ports with `encryptedPorts`. The session lists them in `ports` in
+ * ascending order, and `getPortEndpoint()` resolves each one to the URL of
+ * its Modal tunnel: `https://` by default and `wss://` for `protocol: 'ws'`.
+ * The URL can be dialed directly and stays the same for as long as the
+ * sandbox runs. Bridge-backed harness adapters such as Claude Code and Codex
+ * connect to the first listed port unless they are configured with a `port`.
+ * Modal fixes a sandbox's tunnels when it is created, so the session has no
+ * `setPorts()`. Ports exposed with `unencryptedPorts` are not listed.
  *
  * Modal runs sandbox processes as root, even when the image declares another
  * user. Claude Code only skips its permission prompts as root when
@@ -160,7 +166,12 @@ export type ModalNetworkSandboxSessionResumeOptions = Prettify<
  *
  * Setting `sandboxId` names the sandbox. Creation never resumes an existing
  * sandbox and a conflicting name fails; use
- * {@link resumeModalNetworkSandboxSession} to reattach. Creating a sandbox
+ * {@link resumeModalNetworkSandboxSession} to reattach. Modal cannot restart
+ * a terminated sandbox, so the session's `stop()` snapshots the sandbox
+ * filesystem, publishes the snapshot as a Modal image named after the
+ * session `id`, and terminates the sandbox, without keeping running
+ * processes. `destroy()` terminates the sandbox and deletes its stop
+ * snapshot. Creating a sandbox
  * with the `sandboxId` of a stopped one leaves the old stop snapshot in place
  * until the next `stop()` or `destroy()`.
  *
@@ -174,6 +185,11 @@ export type ModalNetworkSandboxSessionResumeOptions = Prettify<
  * 443, rejects IPv6 ranges, and has no deny list, so a policy with
  * `deniedCIDRs` fails with a `HarnessCapabilityUnsupportedError`, as does a
  * sandbox whose policy Modal cannot change.
+ *
+ * The session does not implement request transformations, so bridge-backed
+ * harness adapters forward model credentials into the sandbox process
+ * instead of brokering them. Each harness adapter's `credentialForwarding`
+ * setting controls what the sandbox receives.
  */
 export async function createModalNetworkSandboxSession(
   options: ModalNetworkSandboxSessionCreateOptions = {},
@@ -264,6 +280,20 @@ export async function createModalNetworkSandboxSession(
  * Claude Code or Codex, can then be resumed with
  * `createSession({ sandboxSession, sessionId, resumeFrom })`.
  *
+ * Modal does not keep the configuration of a stopped sandbox, so pass the
+ * creation options again, for example
+ * `resumeModalNetworkSandboxSession({ sandboxId, encryptedPorts: [4000], blockNetwork: false })`.
+ * They are used only when the sandbox has to be restored and are ignored when
+ * reattaching to a running sandbox.
+ *
+ * Modal does not keep the network settings of a stopped sandbox either,
+ * whether they were set at creation or with `setNetworkPolicy()`, and a
+ * restore without them would open all outbound access. A restore is
+ * therefore refused unless `blockNetwork`, `outboundCidrAllowlist`, or
+ * `outboundDomainAllowlist` is passed. `blockNetwork: false` restores the
+ * sandbox with open outbound access. Reattaching to a running sandbox needs
+ * no network settings.
+ *
  * Tunnel URLs stay the same for as long as a sandbox runs, including after
  * reattaching. A restored sandbox is a new Modal sandbox, so its tunnel URLs
  * are new, and without `encryptedPorts` it exposes no ports.
@@ -271,9 +301,10 @@ export async function createModalNetworkSandboxSession(
  * Only `stop()` takes a snapshot. A sandbox that ends another way, for example
  * by reaching `timeoutMs`, cannot be restored from its last state: resuming it
  * restores the snapshot of an earlier `stop()` when there is one, and
- * otherwise fails. Modal keeps a snapshot for 30 days. Each `stop()` publishes
- * a new snapshot image, `destroy()` deletes the current one, and earlier ones
- * stay in the Modal account until they expire.
+ * otherwise fails. Modal keeps a snapshot for 30 days, after which the
+ * stopped sandbox cannot be resumed. Each `stop()` publishes a new snapshot
+ * image, `destroy()` deletes the current one, and earlier ones stay in the
+ * Modal account until they expire.
  */
 export async function resumeModalNetworkSandboxSession(
   options: ModalNetworkSandboxSessionResumeOptions,
