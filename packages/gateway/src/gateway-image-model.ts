@@ -157,6 +157,7 @@ export class GatewayImageModel implements ImageModelV4 {
       throw await asGatewayError(
         error,
         await parseAuthMethod(resolvedHeaders ?? {}),
+        abortSignal,
       );
     }
   }

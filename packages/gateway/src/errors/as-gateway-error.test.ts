@@ -26,6 +26,55 @@ describe('asGatewayError', () => {
         await expect(asGatewayError(error)).rejects.toBe(error);
       },
     );
+
+    it.each(['AbortError', 'TimeoutError'])(
+      'should rethrow a %s when the caller signal is aborted',
+      async name => {
+        const controller = new AbortController();
+        controller.abort();
+        const error = Object.assign(new Error('Request cancelled'), { name });
+
+        await expect(
+          asGatewayError(error, undefined, controller.signal),
+        ).rejects.toBe(error);
+      },
+    );
+  });
+
+  describe('internal connection abort (signal provided but not aborted)', () => {
+    it.each(['AbortError', 'TimeoutError'])(
+      'should wrap a %s as a retryable GatewayTimeoutError when signal is not aborted',
+      async name => {
+        const controller = new AbortController();
+        const error = Object.assign(new Error('connection reset'), { name });
+
+        const result = await asGatewayError(
+          error,
+          undefined,
+          controller.signal,
+        );
+
+        expect(GatewayTimeoutError.isInstance(result)).toBe(true);
+        expect(result.isRetryable).toBe(true);
+        expect(result.statusCode).toBe(503);
+        expect(result.message).toContain('Gateway connection was reset');
+        expect(result.message).toContain('connection reset');
+        expect(result.cause).toBe(error);
+      },
+    );
+
+    it('should use 503 status to signal the error is retryable', async () => {
+      const controller = new AbortController();
+      const error = Object.assign(new Error('This operation was aborted'), {
+        name: 'AbortError',
+      });
+
+      const result = await asGatewayError(error, undefined, controller.signal);
+
+      expect(GatewayTimeoutError.isInstance(result)).toBe(true);
+      expect(result.statusCode).toBe(503);
+      expect(result.isRetryable).toBe(true);
+    });
   });
 
   describe('timeout error detection', () => {
