@@ -33204,7 +33204,7 @@ describe('streamText', () => {
                 {
                   "finishReason": "tool-calls",
                   "rawFinishReason": undefined,
-                  "stoppedBy": "model",
+                  "stoppedBy": "approval",
                   "totalUsage": {
                     "inputTokenDetails": {
                       "cacheReadTokens": undefined,

@@ -108,7 +108,11 @@ import {
   type SteeringNotDeliveredReason,
   type SteeringRun,
 } from './steering';
-import { getPendingToolCallStoppedBy, type StoppedBy } from './stopped-by';
+import {
+  getModelStoppedBy,
+  getPendingToolCallStoppedBy,
+  type StoppedBy,
+} from './stopped-by';
 import {
   isStepCount,
   isStopConditionMet,
@@ -1001,6 +1005,7 @@ async function generateTextInternal<
             !steeringRun?.hasPendingMessages() &&
             (isTruncated || !steeringRun?.promoteQueuedMessage())
           ) {
+            stoppedBy = getModelStoppedBy(steps[steps.length - 1]);
             return false;
           }
 

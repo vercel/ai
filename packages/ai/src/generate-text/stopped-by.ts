@@ -19,17 +19,25 @@ export type StoppedBy =
   | 'tool-without-execute'
   | 'approval';
 
-export function getPendingToolCallStoppedBy({
-  finishReason,
-  content,
-}: Pick<StepResult<ToolSet, Context>, 'finishReason' | 'content'>): StoppedBy {
-  if (!isToolExecutionAllowedFinishReason(finishReason)) {
+type FinishedStep = Pick<
+  StepResult<ToolSet, Context>,
+  'finishReason' | 'content'
+>;
+
+export function getPendingToolCallStoppedBy(step: FinishedStep): StoppedBy {
+  if (!isToolExecutionAllowedFinishReason(step.finishReason)) {
     return 'model';
   }
 
+  return hasPendingApproval(step) ? 'approval' : 'tool-without-execute';
+}
+
+export function getModelStoppedBy(step: FinishedStep): StoppedBy {
+  return hasPendingApproval(step) ? 'approval' : 'model';
+}
+
+function hasPendingApproval({ content }: FinishedStep): boolean {
   return content.some(
     part => part.type === 'tool-approval-request' && part.isAutomatic !== true,
-  )
-    ? 'approval'
-    : 'tool-without-execute';
+  );
 }

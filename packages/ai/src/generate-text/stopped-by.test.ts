@@ -14,6 +14,7 @@ import { generateText } from './generate-text';
 import { isStepCount, type StopCondition } from './stop-condition';
 import { streamText } from './stream-text';
 import type { TextStreamPart } from './stream-text-result';
+import type { StoppedBy } from './stopped-by';
 
 vi.mock('../version', () => ({ VERSION: '0.0.0-test' }));
 
@@ -62,7 +63,9 @@ function toStream(response: Response): Array<LanguageModelV4StreamPart> {
           { type: 'text-end', id: '1' },
         ];
       }
-      return part.type === 'tool-call' ? [part] : [];
+      return part.type === 'tool-call' || part.type === 'tool-approval-request'
+        ? [part]
+        : [];
     }),
     {
       type: 'finish',
@@ -136,7 +139,13 @@ describe.each(['generate', 'stream'] as const)('stoppedBy (%s)', method => {
     };
   }
 
-  it.each([
+  const cases: Array<{
+    name: string;
+    responses: ReadonlyArray<Response>;
+    tools?: ToolSet;
+    stopWhen?: StopCondition<ToolSet>;
+    expected: StoppedBy;
+  }> = [
     {
       name: 'model when the model gives a final answer',
       responses: [text('It is sunny.')],
@@ -177,6 +186,39 @@ describe.each(['generate', 'stream'] as const)('stoppedBy (%s)', method => {
       expected: 'approval',
     },
     {
+      name: 'approval when a provider-executed tool needs an approval',
+      responses: [
+        {
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'mcp-call-1',
+              toolName: 'mcp_tool',
+              input: '{ "query": "test" }',
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-approval-request',
+              approvalId: 'mcp-approval-1',
+              toolCallId: 'mcp-call-1',
+            },
+          ],
+          finishReason: 'tool-calls',
+        },
+      ],
+      tools: {
+        mcp_tool: {
+          type: 'provider',
+          isProviderExecuted: true,
+          id: 'test.mcp_tool',
+          inputSchema: z.object({ query: z.string() }),
+          args: {},
+        },
+      },
+      stopWhen: isStepCount(3),
+      expected: 'approval',
+    },
+    {
       name: 'model when the output limit cuts off a tool call',
       responses: [toolCall('length')],
       tools: { weather },
@@ -188,13 +230,18 @@ describe.each(['generate', 'stream'] as const)('stoppedBy (%s)', method => {
       responses: [text('It is', 'interrupted')],
       expected: 'model',
     },
-  ] as const)('reports $name', async ({ expected, ...settings }) => {
-    expect(await run(settings)).toEqual({
-      result: expected,
-      onEnd: expected,
-      finishPart: expected,
-    });
-  });
+  ];
+
+  it.each(cases)(
+    'reports $name',
+    async ({ name: _name, expected, ...settings }) => {
+      expect(await run(settings)).toEqual({
+        result: expected,
+        onEnd: expected,
+        finishPart: expected,
+      });
+    },
+  );
 });
 
 describe('stoppedBy', () => {
