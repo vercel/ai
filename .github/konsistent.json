@@ -1115,6 +1115,7 @@
     "deepagents": "DeepAgents",
     "deepinfra": "DeepInfra",
     "deepseek": "DeepSeek",
+    "e2b": "E2B",
     "elevenlabs": "ElevenLabs",
     "github-copilot": "GitHubCopilot",
     "heygen": "HeyGen",
