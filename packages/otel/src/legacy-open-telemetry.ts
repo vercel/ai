@@ -28,6 +28,7 @@ import type {
   GenerateTextStepStartEvent,
   GenerateSpeechEndEvent,
   GenerateSpeechStartEvent,
+  LanguageModelCallEndEvent,
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
   Experimental_DecideEndEvent as DecideEndEvent,
@@ -708,7 +709,7 @@ export class LegacyOpenTelemetry implements Telemetry {
 
   onToolExecutionStart(event: ToolExecutionStartEvent<ToolSet>): void {
     const state = this.getCallState(event.callId);
-    if (!state?.stepContext) return;
+    if (!state?.rootContext) return;
 
     const { telemetry } = state;
     const { toolCall } = event;
@@ -730,12 +731,14 @@ export class LegacyOpenTelemetry implements Telemetry {
       },
     });
 
+    // Parent tool spans under rootContext so ai.toolCall is a sibling of the
+    // provider-call span (doGenerate/doStream), which ends before tools run.
     const toolSpan = this.tracer.startSpan(
       'ai.toolCall',
       { attributes },
-      state.stepContext,
+      state.rootContext,
     );
-    const toolContext = trace.setSpan(state.stepContext, toolSpan);
+    const toolContext = trace.setSpan(state.rootContext, toolSpan);
 
     state.toolSpans.set(toolCall.toolCallId, {
       span: toolSpan,
@@ -774,11 +777,109 @@ export class LegacyOpenTelemetry implements Telemetry {
     state.toolSpans.delete(event.toolCall.toolCallId);
   }
 
+  onLanguageModelCallEnd(event: LanguageModelCallEndEvent<ToolSet>): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.stepSpan) return;
+
+    const text = event.content
+      .filter(part => part.type === 'text')
+      .map(part => part.text)
+      .join('');
+    const reasoningParts = event.content.filter(
+      (part): part is Extract<typeof part, { type: 'reasoning' }> =>
+        part.type === 'reasoning' && 'text' in part,
+    );
+    const toolCalls = event.content
+      .filter(part => part.type === 'tool-call')
+      .map(toolCall => ({
+        toolCallId: toolCall.toolCallId,
+        toolName: toolCall.toolName,
+        input: toolCall.input,
+      }));
+    const files = event.content
+      .filter(part => part.type === 'file')
+      .map(part => ({
+        mediaType: part.file.mediaType,
+        base64: part.file.base64,
+      }));
+
+    this.finishStepSpan(state, {
+      finishReason: event.finishReason,
+      text,
+      reasoning:
+        reasoningParts.length > 0
+          ? reasoningParts.map(part => part.text).join('\n')
+          : undefined,
+      toolCalls,
+      files,
+      responseId: event.responseId,
+      responseModelId: event.modelId,
+      responseTimestamp: undefined,
+      providerMetadata: event.providerMetadata,
+      performance: event.performance,
+      usage: event.usage,
+    });
+  }
+
   onStepEnd(event: GenerateTextStepEndEvent<ToolSet>): void {
     const state = this.getCallState(event.callId);
     if (!state?.stepSpan) return;
 
-    if (event.finishReason === 'error') {
+    this.finishStepSpan(state, {
+      finishReason: event.finishReason,
+      text: event.text ?? undefined,
+      reasoning:
+        event.reasoning.length > 0
+          ? event.reasoning
+              .filter(part => 'text' in part)
+              .map(part => part.text)
+              .join('\n')
+          : undefined,
+      toolCalls: event.toolCalls.map(toolCall => ({
+        toolCallId: toolCall.toolCallId,
+        toolName: toolCall.toolName,
+        input: toolCall.input,
+      })),
+      files: event.files.map(file => ({
+        mediaType: file.mediaType,
+        base64: file.base64,
+      })),
+      responseId: event.response.id,
+      responseModelId: event.response.modelId,
+      responseTimestamp: event.response.timestamp,
+      providerMetadata: event.providerMetadata,
+      performance: event.performance,
+      usage: event.usage,
+    });
+  }
+
+  private finishStepSpan(
+    state: CallState,
+    result: {
+      finishReason: GenerateTextStepEndEvent<ToolSet>['finishReason'];
+      text: string | undefined;
+      reasoning: string | undefined;
+      toolCalls: ReadonlyArray<{
+        toolCallId: string;
+        toolName: string;
+        input: unknown;
+      }>;
+      files: ReadonlyArray<{ mediaType: string; base64: string }>;
+      responseId: string;
+      responseModelId: string;
+      responseTimestamp: Date | undefined;
+      providerMetadata: GenerateTextStepEndEvent<ToolSet>['providerMetadata'];
+      performance: {
+        timeToFirstOutputMs: number | undefined;
+        responseTimeMs: number;
+        effectiveOutputTokensPerSecond: number;
+      };
+      usage: GenerateTextStepEndEvent<ToolSet>['usage'];
+    },
+  ): void {
+    if (!state.stepSpan) return;
+
+    if (result.finishReason === 'error') {
       state.stepSpan.setStatus({ code: SpanStatusCode.ERROR });
     }
 
@@ -787,36 +888,24 @@ export class LegacyOpenTelemetry implements Telemetry {
 
     state.stepSpan.setAttributes(
       selectAttributes(telemetry, {
-        'ai.response.finishReason': event.finishReason,
+        'ai.response.finishReason': result.finishReason,
         'ai.response.text': {
-          output: () => event.text ?? undefined,
+          output: () => result.text,
         },
         'ai.response.reasoning': {
-          output: () =>
-            event.reasoning.length > 0
-              ? event.reasoning
-                  .filter(part => 'text' in part)
-                  .map(part => part.text)
-                  .join('\n')
-              : undefined,
+          output: () => result.reasoning,
         },
         'ai.response.toolCalls': {
           output: () =>
-            event.toolCalls.length > 0
-              ? JSON.stringify(
-                  event.toolCalls.map(toolCall => ({
-                    toolCallId: toolCall.toolCallId,
-                    toolName: toolCall.toolName,
-                    input: toolCall.input,
-                  })),
-                )
+            result.toolCalls.length > 0
+              ? JSON.stringify(result.toolCalls)
               : undefined,
         },
         'ai.response.files': {
           output: () =>
-            event.files.length > 0
+            result.files.length > 0
               ? JSON.stringify(
-                  event.files.map(file => ({
+                  result.files.map(file => ({
                     type: 'file',
                     mediaType: file.mediaType,
                     data: file.base64,
@@ -824,59 +913,59 @@ export class LegacyOpenTelemetry implements Telemetry {
                 )
               : undefined,
         },
-        'ai.response.id': event.response.id,
-        'ai.response.model': event.response.modelId,
-        'ai.response.timestamp': event.response.timestamp.toISOString(),
-        'ai.response.providerMetadata': event.providerMetadata
-          ? JSON.stringify(event.providerMetadata)
+        'ai.response.id': result.responseId,
+        'ai.response.model': result.responseModelId,
+        'ai.response.timestamp': result.responseTimestamp?.toISOString(),
+        'ai.response.providerMetadata': result.providerMetadata
+          ? JSON.stringify(result.providerMetadata)
           : undefined,
         'ai.response.msToFirstChunk': isStreamText
-          ? event.performance.timeToFirstOutputMs
+          ? result.performance.timeToFirstOutputMs
           : undefined,
         'ai.response.msToFinish': isStreamText
-          ? event.performance.responseTimeMs
+          ? result.performance.responseTimeMs
           : undefined,
         'ai.response.avgOutputTokensPerSecond': isStreamText
-          ? event.performance.effectiveOutputTokensPerSecond
+          ? result.performance.effectiveOutputTokensPerSecond
           : undefined,
 
-        'ai.usage.inputTokens': event.usage.inputTokens,
-        'ai.usage.outputTokens': event.usage.outputTokens,
-        'ai.usage.totalTokens': event.usage.totalTokens,
+        'ai.usage.inputTokens': result.usage.inputTokens,
+        'ai.usage.outputTokens': result.usage.outputTokens,
+        'ai.usage.totalTokens': result.usage.totalTokens,
         'ai.usage.reasoningTokens':
-          event.usage.outputTokenDetails?.reasoningTokens,
+          result.usage.outputTokenDetails?.reasoningTokens,
         'ai.usage.cachedInputTokens':
-          event.usage.inputTokenDetails?.cacheReadTokens,
+          result.usage.inputTokenDetails?.cacheReadTokens,
         'ai.usage.inputTokenDetails.noCacheTokens':
-          event.usage.inputTokenDetails?.noCacheTokens,
+          result.usage.inputTokenDetails?.noCacheTokens,
         'ai.usage.inputTokenDetails.cacheReadTokens':
-          event.usage.inputTokenDetails?.cacheReadTokens,
+          result.usage.inputTokenDetails?.cacheReadTokens,
         'ai.usage.inputTokenDetails.cacheWriteTokens':
-          event.usage.inputTokenDetails?.cacheWriteTokens,
+          result.usage.inputTokenDetails?.cacheWriteTokens,
         'ai.usage.outputTokenDetails.textTokens':
-          event.usage.outputTokenDetails?.textTokens,
+          result.usage.outputTokenDetails?.textTokens,
         'ai.usage.outputTokenDetails.reasoningTokens':
-          event.usage.outputTokenDetails?.reasoningTokens,
+          result.usage.outputTokenDetails?.reasoningTokens,
 
-        'gen_ai.response.finish_reasons': [event.finishReason],
-        'gen_ai.response.id': event.response.id,
-        'gen_ai.response.model': event.response.modelId,
-        'gen_ai.usage.input_tokens': event.usage.inputTokens,
-        'gen_ai.usage.output_tokens': event.usage.outputTokens,
+        'gen_ai.response.finish_reasons': [result.finishReason],
+        'gen_ai.response.id': result.responseId,
+        'gen_ai.response.model': result.responseModelId,
+        'gen_ai.usage.input_tokens': result.usage.inputTokens,
+        'gen_ai.usage.output_tokens': result.usage.outputTokens,
       }),
     );
 
-    if (isStreamText && event.performance.timeToFirstOutputMs != null) {
+    if (isStreamText && result.performance.timeToFirstOutputMs != null) {
       state.stepSpan.addEvent('ai.stream.firstChunk', {
-        'ai.response.msToFirstChunk': event.performance.timeToFirstOutputMs,
+        'ai.response.msToFirstChunk': result.performance.timeToFirstOutputMs,
       });
     }
 
     if (isStreamText) {
       state.stepSpan.addEvent('ai.stream.finish', {
-        'ai.response.msToFinish': event.performance.responseTimeMs,
+        'ai.response.msToFinish': result.performance.responseTimeMs,
         'ai.response.avgOutputTokensPerSecond':
-          event.performance.effectiveOutputTokensPerSecond,
+          result.performance.effectiveOutputTokensPerSecond,
       });
     }
 

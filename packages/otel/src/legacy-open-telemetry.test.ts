@@ -545,7 +545,7 @@ describe('LegacyOpenTelemetry', () => {
   });
 
   describe('onToolExecutionStart', () => {
-    it('creates a tool span as child of step span', () => {
+    it('creates a tool span as child of root span', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
@@ -553,6 +553,10 @@ describe('LegacyOpenTelemetry', () => {
       expect(tracer.startSpan).toHaveBeenCalledTimes(3);
       expect(tracer.spans).toHaveLength(3);
       expect(tracer.spans[2].name).toBe('ai.toolCall');
+
+      const toolParentContext = (tracer.startSpan as ReturnType<typeof vi.fn>)
+        .mock.calls[2][2];
+      expect(trace.getSpan(toolParentContext)).toBe(tracer.spans[0]);
     });
 
     it('sets tool call attributes', () => {
@@ -574,11 +578,10 @@ describe('LegacyOpenTelemetry', () => {
       expect(attrs['ai.toolCall.args']).toBe(JSON.stringify({ query: 'test' }));
     });
 
-    it('does not create tool span without prior step span', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
+    it('does not create tool span without prior onStart', () => {
       otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
 
-      expect(tracer.spans).toHaveLength(1);
+      expect(tracer.spans).toHaveLength(0);
     });
 
     it('creates multiple tool spans for concurrent tool calls', () => {
@@ -1492,7 +1495,6 @@ describe('LegacyOpenTelemetry integration with generateText', () => {
             "ai.response.id": "test-id",
             "ai.response.model": "mock-model-id",
             "ai.response.text": "",
-            "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
             "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
             "ai.settings.maxRetries": 2,
             "ai.usage.inputTokenDetails.noCacheTokens": 3,
@@ -3613,7 +3615,6 @@ describe('LegacyOpenTelemetry integration with streamText stopWhen (2 steps with
             "ai.response.msToFirstChunk": 100,
             "ai.response.reasoning": "thinking",
             "ai.response.text": "",
-            "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
             "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
             "ai.settings.maxRetries": 2,
             "ai.usage.inputTokenDetails.noCacheTokens": 3,
@@ -3678,7 +3679,6 @@ describe('LegacyOpenTelemetry integration with streamText stopWhen (2 steps with
             "ai.response.msToFinish": 400,
             "ai.response.msToFirstChunk": 0,
             "ai.response.text": "Hello, world!",
-            "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
             "ai.settings.maxRetries": 2,
             "ai.usage.cachedInputTokens": 0,
             "ai.usage.inputTokenDetails.cacheReadTokens": 0,
@@ -3897,5 +3897,159 @@ describe('LegacyOpenTelemetry speech and transcription operations', () => {
       }),
     );
     expect(tracer.spans[0].ended).toBe(true);
+  });
+});
+
+describe('LegacyOpenTelemetry provider span timing with local tool execution', () => {
+  const hrTimeToMs = (time: [number, number]) => time[0] * 1e3 + time[1] / 1e6;
+
+  it('ends ai.streamText.doStream before local tool execution and siblings ai.toolCall under root span', async () => {
+    const { BasicTracerProvider, InMemorySpanExporter, SimpleSpanProcessor } =
+      await import('@opentelemetry/sdk-trace-base');
+
+    const exporter = new InMemorySpanExporter();
+    const provider = new BasicTracerProvider({
+      spanProcessors: [new SimpleSpanProcessor(exporter)],
+    });
+    const sdkTracer = provider.getTracer('legacy-otel-test');
+
+    const result = streamText({
+      model: new MockLanguageModelV4({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start', warnings: [] },
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'slow',
+              input: '{}',
+            },
+            {
+              type: 'finish',
+              finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+              usage: streamTextTestUsage,
+            },
+          ]),
+        }),
+      }),
+      prompt: 'q',
+      stopWhen: isStepCount(1),
+      tools: {
+        slow: tool({
+          inputSchema: z.object({}),
+          execute: async () => {
+            await new Promise(resolve => setTimeout(resolve, 40));
+            return 'done';
+          },
+        }),
+      },
+      experimental_telemetry: {
+        isEnabled: true,
+        integrations: [new LegacyOpenTelemetry({ tracer: sdkTracer })],
+      },
+    });
+    await result.consumeStream();
+    await provider.forceFlush();
+
+    const spans = exporter.getFinishedSpans();
+    const rootSpan = spans.find(s => s.name === 'ai.streamText')!;
+    const doStreamSpan = spans.find(s => s.name === 'ai.streamText.doStream')!;
+    const toolCallSpan = spans.find(s => s.name === 'ai.toolCall')!;
+
+    expect(rootSpan).toBeDefined();
+    expect(doStreamSpan).toBeDefined();
+    expect(toolCallSpan).toBeDefined();
+
+    expect(doStreamSpan.parentSpanContext?.spanId).toBe(
+      rootSpan.spanContext().spanId,
+    );
+    expect(toolCallSpan.parentSpanContext?.spanId).toBe(
+      rootSpan.spanContext().spanId,
+    );
+    expect(hrTimeToMs(doStreamSpan.endTime)).toBeLessThan(
+      hrTimeToMs(toolCallSpan.endTime),
+    );
+    expect(
+      hrTimeToMs(doStreamSpan.endTime) - hrTimeToMs(doStreamSpan.startTime),
+    ).toBeLessThan(20);
+    expect(
+      hrTimeToMs(toolCallSpan.endTime) - hrTimeToMs(toolCallSpan.startTime),
+    ).toBeGreaterThanOrEqual(30);
+
+    await provider.shutdown();
+  });
+
+  it('ends ai.generateText.doGenerate before local tool execution and siblings ai.toolCall under root span', async () => {
+    const { BasicTracerProvider, InMemorySpanExporter, SimpleSpanProcessor } =
+      await import('@opentelemetry/sdk-trace-base');
+
+    const exporter = new InMemorySpanExporter();
+    const provider = new BasicTracerProvider({
+      spanProcessors: [new SimpleSpanProcessor(exporter)],
+    });
+    const sdkTracer = provider.getTracer('legacy-otel-test');
+
+    await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async () => ({
+          ...integrationDummyResponseValues,
+          content: [
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'slow',
+              input: '{}',
+            },
+          ],
+          finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+        }),
+      }),
+      prompt: 'q',
+      stopWhen: isStepCount(1),
+      tools: {
+        slow: tool({
+          inputSchema: z.object({}),
+          execute: async () => {
+            await new Promise(resolve => setTimeout(resolve, 40));
+            return 'done';
+          },
+        }),
+      },
+      experimental_telemetry: {
+        isEnabled: true,
+        integrations: [new LegacyOpenTelemetry({ tracer: sdkTracer })],
+      },
+    });
+    await provider.forceFlush();
+
+    const spans = exporter.getFinishedSpans();
+    const rootSpan = spans.find(s => s.name === 'ai.generateText')!;
+    const doGenerateSpan = spans.find(
+      s => s.name === 'ai.generateText.doGenerate',
+    )!;
+    const toolCallSpan = spans.find(s => s.name === 'ai.toolCall')!;
+
+    expect(rootSpan).toBeDefined();
+    expect(doGenerateSpan).toBeDefined();
+    expect(toolCallSpan).toBeDefined();
+
+    expect(doGenerateSpan.parentSpanContext?.spanId).toBe(
+      rootSpan.spanContext().spanId,
+    );
+    expect(toolCallSpan.parentSpanContext?.spanId).toBe(
+      rootSpan.spanContext().spanId,
+    );
+    expect(hrTimeToMs(doGenerateSpan.endTime)).toBeLessThan(
+      hrTimeToMs(toolCallSpan.endTime),
+    );
+    expect(
+      hrTimeToMs(doGenerateSpan.endTime) - hrTimeToMs(doGenerateSpan.startTime),
+    ).toBeLessThan(20);
+    expect(
+      hrTimeToMs(toolCallSpan.endTime) - hrTimeToMs(toolCallSpan.startTime),
+    ).toBeGreaterThanOrEqual(30);
+
+    await provider.shutdown();
   });
 });
