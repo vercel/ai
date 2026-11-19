@@ -246,4 +246,82 @@ describe('convertMoonshotAIChatUsage', () => {
       },
     });
   });
+
+  it('should convert usage with cache_write_tokens', () => {
+    const result = convertMoonshotAIChatUsage({
+      prompt_tokens: 150,
+      completion_tokens: 50,
+      prompt_tokens_details: {
+        cached_tokens: 30,
+        cache_write_tokens: 20,
+      },
+    });
+
+    expect(result).toEqual({
+      inputTokens: {
+        total: 150,
+        noCache: 100,
+        cacheRead: 30,
+        cacheWrite: 20,
+      },
+      outputTokens: {
+        total: 50,
+        text: 50,
+        reasoning: 0,
+      },
+      raw: {
+        prompt_tokens: 150,
+        completion_tokens: 50,
+        prompt_tokens_details: {
+          cached_tokens: 30,
+          cache_write_tokens: 20,
+        },
+      },
+    });
+  });
+
+  it('should subtract both cache read and write from noCache', () => {
+    const result = convertMoonshotAIChatUsage({
+      prompt_tokens: 200,
+      completion_tokens: 60,
+      cached_tokens: 80,
+      prompt_tokens_details: {
+        cache_write_tokens: 40,
+      },
+    });
+
+    expect(result).toEqual({
+      inputTokens: {
+        total: 200,
+        noCache: 80,
+        cacheRead: 80,
+        cacheWrite: 40,
+      },
+      outputTokens: {
+        total: 60,
+        text: 60,
+        reasoning: 0,
+      },
+      raw: {
+        prompt_tokens: 200,
+        completion_tokens: 60,
+        cached_tokens: 80,
+        prompt_tokens_details: {
+          cache_write_tokens: 40,
+        },
+      },
+    });
+  });
+
+  it('should not produce negative text token count', () => {
+    const result = convertMoonshotAIChatUsage({
+      prompt_tokens: 100,
+      completion_tokens: 20,
+      completion_tokens_details: {
+        reasoning_tokens: 30,
+      },
+    });
+
+    expect(result.outputTokens.text).toBe(0);
+  });
 });
