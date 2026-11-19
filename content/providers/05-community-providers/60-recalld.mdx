@@ -1,0 +1,53 @@
+---
+title: Recalld
+description: Learn how to use Recalld long-term memory with the AI SDK.
+---
+
+# Recalld
+
+[Recalld](https://recalld.ai) is a managed long-term memory service for AI agents. It extracts facts from what you save, keeps them up to date as they change, and returns the ones relevant to a question. The [`@recalld/ai-sdk`](https://www.npmjs.com/package/@recalld/ai-sdk) package provides two AI SDK tools:
+
+- `saveMemory`: store something worth remembering, such as a fact about the user or a preference
+- `recallMemory`: look up what was remembered in earlier conversations
+
+The tools work with `generateText`, `streamText`, and `ToolLoopAgent`.
+
+## Setup
+
+Create an account at [recalld.ai](https://recalld.ai), then create an API key and an agent. Set the key as `RECALLD_API_KEY`.
+
+## Installation
+
+<InstallPackages packages="@recalld/ai-sdk" />
+
+## Usage
+
+```ts
+import { createRecalldTools } from '@recalld/ai-sdk';
+import { ToolLoopAgent } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const agent = new ToolLoopAgent({
+  model: openai('gpt-4o'),
+  tools: createRecalldTools({ agentId: 'your-agent-id' }),
+  instructions: 'You are a helpful assistant with long-term memory.',
+});
+
+const result = await agent.generate({
+  prompt: 'Remember that my favorite editor is Neovim',
+});
+```
+
+## Options
+
+- `agentId`: the Recalld agent that owns the memory. For personal memory, use one agent per end user and create the tools inside your request handler.
+- `threadId` (optional): a session label. Saves go to this thread, and recall reads it plus memory not tied to any thread.
+- `apiKey` (optional): defaults to `RECALLD_API_KEY`.
+- `baseUrl` (optional): defaults to the region of your key (`https://eu.recalld.ai` or `https://us.recalld.ai`).
+
+Saves are queued and return immediately. Recalld extracts facts in the background, so a saved memory is usually recallable a few seconds later.
+
+## More Resources
+
+- [Recalld documentation](https://recalld.ai/docs)
+- [`@recalld/ai-sdk` on npm](https://www.npmjs.com/package/@recalld/ai-sdk)
