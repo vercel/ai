@@ -9,18 +9,17 @@ Look up what a model supports before choosing settings or enabling features in y
 Each provider exports a synchronous function that reads its bundled model catalog.
 No API key or network request is needed.
 
-Choose a provider to see its function, input, and an abbreviated result.
+Choose a provider and switch between the input and abbreviated output.
 
-<Tabs items={['OpenAI', 'Anthropic', 'Google']} label="Model capability provider">
-  <Tab>
+<ModelCapabilitiesPreview>
 
-```ts title="Input"
+```ts
 import { openaiModelCapabilities } from '@ai-sdk/openai';
 
 const model = openaiModelCapabilities('gpt-5.6');
 ```
 
-```ts title="Output (selected fields)"
+```ts
 {
   provider: 'openai',
   modelId: 'gpt-5.6',
@@ -40,16 +39,13 @@ const model = openaiModelCapabilities('gpt-5.6');
 }
 ```
 
-  </Tab>
-  <Tab>
-
-```ts title="Input"
+```ts
 import { anthropicModelCapabilities } from '@ai-sdk/anthropic';
 
 const model = anthropicModelCapabilities('claude-opus-4-6');
 ```
 
-```ts title="Output (selected fields)"
+```ts
 {
   provider: 'anthropic',
   modelId: 'claude-opus-4-6',
@@ -68,16 +64,13 @@ const model = anthropicModelCapabilities('claude-opus-4-6');
 }
 ```
 
-  </Tab>
-  <Tab>
-
-```ts title="Input"
+```ts
 import { googleModelCapabilities } from '@ai-sdk/google';
 
 const model = googleModelCapabilities('gemini-2.5-pro');
 ```
 
-```ts title="Output (selected fields)"
+```ts
 {
   provider: 'google',
   modelId: 'gemini-2.5-pro',
@@ -99,8 +92,7 @@ const model = googleModelCapabilities('gemini-2.5-pro');
 }
 ```
 
-  </Tab>
-</Tabs>
+</ModelCapabilitiesPreview>
 
 `endpoints` groups the result by provider API. Each entry contains its `operation`,
 `capabilities`, and `providerOptions`. Capability fields and option names are typed
