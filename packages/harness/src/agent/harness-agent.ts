@@ -8,6 +8,7 @@ import {
   type HarnessV1NetworkSandboxSession,
   type HarnessV1ResponseFormat,
 } from '../v1';
+import type { HarnessV2 } from '../v2/harness-v2';
 import {
   asArray,
   asSchema,
@@ -40,6 +41,8 @@ import type {
   HarnessAgentSandboxCreator,
   HarnessAgentSettings,
 } from './harness-agent-settings';
+import { HarnessAgent as HarnessAgentV2 } from './v2/harness-agent';
+import type { HarnessAgentSession as HarnessAgentV2Session } from './v2/harness-agent-session';
 import type { HarnessAllTools } from './harness-agent-tool-types';
 import { HarnessAgentSession } from './harness-agent-session';
 import type {
@@ -96,6 +99,87 @@ export interface HarnessAgentCallExtensions {
    * underlying harness adapter for this turn.
    */
   session: HarnessAgentSession;
+}
+
+type HarnessAgentSessionFor<THarness extends HarnessAgentAdapter<any>> =
+  THarness extends HarnessV2<any> ? HarnessAgentV2Session : HarnessAgentSession;
+
+type HarnessAgentCallExtensionsFor<THarness extends HarnessAgentAdapter<any>> =
+  {
+    session: HarnessAgentSessionFor<THarness>;
+  };
+
+function isHarnessAgentV2Session(
+  session: HarnessAgentSession | HarnessAgentV2Session,
+): session is HarnessAgentV2Session {
+  return 'sandboxId' in session;
+}
+
+type HarnessAgentCreateSessionOptions<
+  TUserTools extends ToolSet,
+  RUNTIME_CONTEXT extends Context,
+> = {
+  /**
+   * Optional stable identifier for the underlying sandbox/session.
+   * When omitted the agent generates one. Supply the original
+   * `session.sessionId` together with `resumeFrom` to reattach a
+   * previously ended session across processes.
+   */
+  sessionId?: string;
+  /**
+   * Resume payload returned by a prior `session.detach()` or
+   * `session.stop()`. Must be accompanied by the original `sessionId`; the
+   * framework validates it against `harness.lifecycleStateSchema` before
+   * handing it to the adapter.
+   */
+  resumeFrom?: HarnessAgentResumeSessionState;
+  /**
+   * Continuation payload returned by a prior `session.suspendTurn()`. Must be
+   * accompanied by the original `sessionId`; the framework validates it before
+   * handing it to the adapter.
+   */
+  continueFrom?: HarnessAgentContinueTurnState;
+  /**
+   * Rebinds host-only tool context for an unfinished turn resumed with
+   * `continueFrom` (directly or through `resumeFrom`). Tool context is not
+   * serialized into lifecycle state because it may contain credentials or
+   * non-serializable host objects.
+   */
+  toolsContext?: ToolsContextSettings<TUserTools>['toolsContext'];
+  /**
+   * Rebinds host-only runtime context for an unfinished turn resumed with
+   * `continueFrom` (directly or through `resumeFrom`). Runtime context is
+   * not serialized into lifecycle state.
+   */
+  runtimeContext?: RUNTIME_CONTEXT;
+  /**
+   * Optional existing sandbox session to run the harness in, or a
+   * `HarnessAgentSandboxCreator` that creates it when it is needed. HarnessV2
+   * can omit this and resolve the sandbox lazily from `sandboxId`.
+   */
+  sandboxSession?:
+    | HarnessV1NetworkSandboxSession
+    | SandboxSession
+    | HarnessAgentSandboxCreator;
+  /**
+   * Stable identifier for a sandbox session when `sandboxSession` does not
+   * expose an `id`, or when creating a HarnessV2 session without a sandbox
+   * session object.
+   */
+  sandboxId?: string;
+  /**
+   * ID of the World run of an existing HarnessV2 session. When given, the
+   * session is restored from that run instead of creating a new one. Only
+   * supported with HarnessV2.
+   */
+  runId?: string;
+  abortSignal?: AbortSignal;
+};
+
+function isHarnessV2Adapter<THarness extends HarnessAgentAdapter<any>>(
+  harness: THarness,
+): harness is Extract<THarness, HarnessV2<any>> {
+  return harness.specificationVersion === 'harness-v2';
 }
 
 type HarnessAgentContinueTurnInput = {
@@ -207,13 +291,19 @@ export class HarnessAgent<
    */
   readonly tools: HarnessAllTools<THarness, TUserTools>;
 
+  /**
+   * HarnessAgentSettings for this `HarnessAgent` implementation, i.e.
+   * always using a `HarnessV1`. The newer `HarnessV2` spec relies on
+   * the separate `HarnessAgent` implementation aliased `HarnessAgentV2`
+   * here.
+   */
   private readonly settings: HarnessAgentSettings<
     THarness,
     TUserTools,
     RUNTIME_CONTEXT,
     OUTPUT,
     CALL_OPTIONS
-  >;
+  > & { readonly harness: HarnessV1<any> };
   private readonly stopConditions: Array<
     StopCondition<HarnessAllTools<THarness, TUserTools>, RUNTIME_CONTEXT>
   >;
@@ -224,15 +314,103 @@ export class HarnessAgent<
   private readonly permissionMode: HarnessAgentPermissionMode;
   private readonly headers: Readonly<Record<string, string>> | undefined;
 
+  /**
+   * Wrapped v2 implementation of `HarnessAgent`. This class entirely
+   * proxies through to that class if the given harness is a `HarnessV2`.
+   */
+  private readonly harnessAgentV2:
+    | HarnessAgentV2<
+        Extract<THarness, HarnessV2<any>>,
+        TUserTools,
+        RUNTIME_CONTEXT,
+        OUTPUT,
+        CALL_OPTIONS
+      >
+    | undefined;
+
   constructor(
-    settings: HarnessAgentSettings<
+    inputSettings: HarnessAgentSettings<
       THarness,
       TUserTools,
       RUNTIME_CONTEXT,
       OUTPUT,
       CALL_OPTIONS
-    >,
+    > &
+      (THarness extends HarnessV2<any> ? { harness: HarnessV2 } : unknown),
   ) {
+    // If the given harness is a `HarnessV2`, create an instance of the
+    // newer `HarnessAgent` implementation under the hood and proxy through
+    // to it. The other properties in this class are then populated with
+    // no-op values for TypeScript compliance.
+    if (isHarnessV2Adapter(inputSettings.harness)) {
+      const v2Settings = { ...inputSettings, harness: inputSettings.harness };
+      const harnessAgentV2 = new HarnessAgentV2<
+        Extract<THarness, HarnessV2<any>>,
+        TUserTools,
+        RUNTIME_CONTEXT,
+        OUTPUT,
+        CALL_OPTIONS
+      >(v2Settings);
+      this.harnessAgentV2 = harnessAgentV2;
+      this.settings = {
+        ...inputSettings,
+        harness: {
+          specificationVersion: 'harness-v1',
+          harnessId: 'unused',
+          builtinTools: {},
+          doStart: async () => {
+            throw new Error(
+              'HarnessAgent: the fallback harness cannot start a session.',
+            );
+          },
+        },
+      } as HarnessAgentSettings<
+        THarness,
+        TUserTools,
+        RUNTIME_CONTEXT,
+        OUTPUT,
+        CALL_OPTIONS
+      > & { readonly harness: HarnessV1<any> };
+      this.stopConditions = [];
+      this.sandboxConfig = {};
+      this.builtinToolFiltering = undefined;
+      this.permissionMode = 'allow-all';
+      this.headers = undefined;
+      this.id = harnessAgentV2.id;
+      this.tools = harnessAgentV2.tools as HarnessAllTools<
+        THarness,
+        TUserTools
+      >;
+      return;
+    }
+
+    if (inputSettings.mcpServers !== undefined) {
+      throw new Error(
+        'HarnessAgent: top-level `mcpServers` is only supported with HarnessV2. Configure MCP servers on the individual harness instead.',
+      );
+    }
+
+    if (inputSettings.world !== undefined) {
+      throw new Error(
+        'HarnessAgent: `world` is only supported with HarnessV2.',
+      );
+    }
+
+    if (inputSettings.getSandboxSession !== undefined) {
+      throw new Error(
+        'HarnessAgent: `getSandboxSession` is only supported with HarnessV2.',
+      );
+    }
+
+    this.harnessAgentV2 = undefined;
+    const settings = inputSettings as HarnessAgentSettings<
+      THarness,
+      TUserTools,
+      RUNTIME_CONTEXT,
+      OUTPUT,
+      CALL_OPTIONS
+    > & { readonly harness: HarnessV1<any> };
+
     if (settings.sandbox != null) {
       console.warn(
         'HarnessAgent: `sandbox` is deprecated. Supply `sandboxSession` to createSession() instead.',
@@ -298,15 +476,22 @@ export class HarnessAgent<
 
   /** Identifier of the harness backing this agent. */
   get harnessId(): string {
+    if (this.harnessAgentV2 != null) return this.harnessAgentV2.harnessId;
     return this.settings.harness.harnessId;
   }
 
   /** Whether this agent parses completed turns with its configured output. */
   get hasOutput(): boolean {
+    if (this.harnessAgentV2 != null) return this.harnessAgentV2.hasOutput;
     return this.settings.output != null;
   }
 
   getSandboxTemplate(): Promise<HarnessSandboxTemplate | undefined> {
+    if (this.harnessAgentV2 != null) {
+      throw new Error(
+        'HarnessAgent: getSandboxTemplate() is not supported with HarnessV2.',
+      );
+    }
     return createHarnessSandboxTemplate({
       harnesses: [this.settings.harness],
       sandboxConfig: this.sandboxConfig,
@@ -320,51 +505,42 @@ export class HarnessAgent<
    * calls; end it with `session.detach()`, `session.stop()`, or
    * `session.destroy()`.
    */
-  async createSession(options?: {
-    /**
-     * Optional stable identifier for the underlying sandbox/session.
-     * When omitted the agent generates one. Supply the original
-     * `session.sessionId` together with `resumeFrom` to reattach a
-     * previously ended session across processes.
-     */
-    sessionId?: string;
-    /**
-     * Resume payload returned by a prior `session.detach()` or
-     * `session.stop()`. Must be accompanied by the original `sessionId`; the
-     * framework validates it against `harness.lifecycleStateSchema` before
-     * handing it to the adapter.
-     */
-    resumeFrom?: HarnessAgentResumeSessionState;
-    /**
-     * Continuation payload returned by a prior `session.suspendTurn()`. Must be
-     * accompanied by the original `sessionId`; the framework validates it before
-     * handing it to the adapter.
-     */
-    continueFrom?: HarnessAgentContinueTurnState;
-    /**
-     * Rebinds host-only tool context for an unfinished turn resumed with
-     * `continueFrom` (directly or through `resumeFrom`). Tool context is not
-     * serialized into lifecycle state because it may contain credentials or
-     * non-serializable host objects.
-     */
-    toolsContext?: ToolsContextSettings<TUserTools>['toolsContext'];
-    /**
-     * Rebinds host-only runtime context for an unfinished turn resumed with
-     * `continueFrom` (directly or through `resumeFrom`). Runtime context is
-     * not serialized into lifecycle state.
-     */
-    runtimeContext?: RUNTIME_CONTEXT;
-    /**
-     * Existing sandbox session to run the harness in, or a
-     * `HarnessAgentSandboxCreator` that creates it when it is needed. Either
-     * way, the caller retains ownership of the sandbox lifecycle.
-     */
-    sandboxSession?:
-      | HarnessV1NetworkSandboxSession
-      | SandboxSession
-      | HarnessAgentSandboxCreator;
-    abortSignal?: AbortSignal;
-  }): Promise<HarnessAgentSession> {
+  createSession(
+    options?: HarnessAgentCreateSessionOptions<TUserTools, RUNTIME_CONTEXT>,
+  ): Promise<HarnessAgentSessionFor<THarness>>;
+  async createSession(
+    options?: HarnessAgentCreateSessionOptions<TUserTools, RUNTIME_CONTEXT>,
+  ): Promise<HarnessAgentSession | HarnessAgentV2Session> {
+    if (this.harnessAgentV2 != null) {
+      if (
+        options?.sandboxSession != null &&
+        'createSandboxSession' in options.sandboxSession
+      ) {
+        throw new Error(
+          'HarnessAgent.createSession: `HarnessAgentSandboxCreator` is not supported with HarnessV2.',
+        );
+      }
+
+      return this.harnessAgentV2.createSession({
+        sessionId: options?.sessionId,
+        sandboxId: options?.sandboxId,
+        sandboxSession: options?.sandboxSession,
+        runId: options?.runId,
+      });
+    }
+
+    if (options?.sandboxId != null) {
+      throw new Error(
+        'HarnessAgent.createSession: `sandboxId` is only supported with HarnessV2.',
+      );
+    }
+
+    if (options?.runId != null) {
+      throw new Error(
+        'HarnessAgent.createSession: `runId` is only supported with HarnessV2.',
+      );
+    }
+
     const sessionId = options?.sessionId ?? generateId();
     const resumeFrom = options?.resumeFrom;
     const continueFrom = options?.continueFrom;
@@ -703,12 +879,12 @@ export class HarnessAgent<
   }
 
   async generate(
-    options: AgentCallParameters<
+    input: AgentCallParameters<
       CALL_OPTIONS,
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT
     > &
-      HarnessAgentCallExtensions,
+      HarnessAgentCallExtensionsFor<THarness>,
   ): Promise<
     GenerateTextResult<
       HarnessAllTools<THarness, TUserTools>,
@@ -716,6 +892,22 @@ export class HarnessAgent<
       OUTPUT
     >
   > {
+    if (this.harnessAgentV2 != null) {
+      const { session, ...callOptions } = input;
+      if (!isHarnessAgentV2Session(session)) {
+        throw new Error(
+          'HarnessAgent: the session does not match the configured harness.',
+        );
+      }
+      return this.harnessAgentV2.generate({ ...callOptions, session });
+    }
+
+    if (!(input.session instanceof HarnessAgentSession)) {
+      throw new Error(
+        'HarnessAgent: the session does not match the configured harness.',
+      );
+    }
+    const options = { ...input, session: input.session };
     const continueTurnInput = this._resolveContinueTurnInput(options);
     const runtimeContext =
       this.settings.runtimeContext ?? ({} as RUNTIME_CONTEXT);
@@ -733,12 +925,12 @@ export class HarnessAgent<
   }
 
   async stream(
-    options: AgentStreamParameters<
+    input: AgentStreamParameters<
       CALL_OPTIONS,
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT
     > &
-      HarnessAgentCallExtensions,
+      HarnessAgentCallExtensionsFor<THarness>,
   ): Promise<
     StreamTextResult<
       HarnessAllTools<THarness, TUserTools>,
@@ -746,6 +938,22 @@ export class HarnessAgent<
       OUTPUT
     >
   > {
+    if (this.harnessAgentV2 != null) {
+      const { session, ...callOptions } = input;
+      if (!isHarnessAgentV2Session(session)) {
+        throw new Error(
+          'HarnessAgent: the session does not match the configured harness.',
+        );
+      }
+      return this.harnessAgentV2.stream({ ...callOptions, session });
+    }
+
+    if (!(input.session instanceof HarnessAgentSession)) {
+      throw new Error(
+        'HarnessAgent: the session does not match the configured harness.',
+      );
+    }
+    const options = { ...input, session: input.session };
     const continueTurnInput = this._resolveContinueTurnInput(options);
     const runtimeContext =
       this.settings.runtimeContext ?? ({} as RUNTIME_CONTEXT);
@@ -760,6 +968,85 @@ export class HarnessAgent<
           });
     await ready;
     return result;
+  }
+
+  /**
+   * Whether this agent runs durably: true if it was given a `world` other than
+   * an `InMemoryWorld`, which is only supported with HarnessV2. A durable
+   * agent's sessions survive process restarts and crashes, and background
+   * drives continue their turns.
+   */
+  isDurable(): boolean {
+    return this.harnessAgentV2?.isDurable() ?? false;
+  }
+
+  /**
+   * Runs one drive of a HarnessV2 session without submitting a prompt,
+   * continuing its unfinished turn after recovering from a crash, or starting
+   * the turn of a prompt that has not started one. Only supported with
+   * HarnessV2.
+   */
+  async drive(options: {
+    session: HarnessAgentV2Session;
+    queueJobId?: string;
+  }): Promise<void> {
+    if (this.harnessAgentV2 == null) {
+      throw new Error(
+        'HarnessAgent: drive() is only supported with HarnessV2.',
+      );
+    }
+    return this.harnessAgentV2.drive(options);
+  }
+
+  /**
+   * Reads the latest turn of a HarnessV2 session from its stream, across
+   * drives, without driving the session. Only supported with HarnessV2.
+   */
+  async readStream(options: {
+    session: HarnessAgentV2Session;
+    abortSignal?: AbortSignal;
+  }): Promise<
+    StreamTextResult<
+      HarnessAllTools<THarness, TUserTools>,
+      RUNTIME_CONTEXT,
+      OUTPUT
+    >
+  > {
+    if (this.harnessAgentV2 == null) {
+      throw new Error(
+        'HarnessAgent: readStream() is only supported with HarnessV2.',
+      );
+    }
+    return this.harnessAgentV2.readStream(options);
+  }
+
+  /**
+   * Cancels the running turn of a HarnessV2 session, in any process. Only
+   * supported with HarnessV2.
+   */
+  async cancel(options: { session: HarnessAgentV2Session }): Promise<void> {
+    if (this.harnessAgentV2 == null) {
+      throw new Error(
+        'HarnessAgent: cancel() is only supported with HarnessV2.',
+      );
+    }
+    return this.harnessAgentV2.cancel(options);
+  }
+
+  /**
+   * Crashes the process of the drive running a HarnessV2 session's current
+   * turn, for testing crash recovery. Only supported with HarnessV2.
+   */
+  async experimental_crash(options: {
+    session: HarnessAgentV2Session;
+    recordCrash?: boolean;
+  }): Promise<void> {
+    if (this.harnessAgentV2 == null) {
+      throw new Error(
+        'HarnessAgent: experimental_crash() is only supported with HarnessV2.',
+      );
+    }
+    return this.harnessAgentV2.experimental_crash(options);
   }
 
   /**
@@ -779,6 +1066,12 @@ export class HarnessAgent<
       OUTPUT
     >
   > {
+    if (this.harnessAgentV2 != null) {
+      throw new Error(
+        'HarnessAgent: continueGenerate() is not supported with HarnessV2.',
+      );
+    }
+
     const runtimeContext =
       this.settings.runtimeContext ?? ({} as RUNTIME_CONTEXT);
     const { result, done } = await this._startContinueTurn({
@@ -814,6 +1107,12 @@ export class HarnessAgent<
       OUTPUT
     >
   > {
+    if (this.harnessAgentV2 != null) {
+      throw new Error(
+        'HarnessAgent: continueStream() is not supported with HarnessV2.',
+      );
+    }
+
     const runtimeContext =
       this.settings.runtimeContext ?? ({} as RUNTIME_CONTEXT);
     const { result, ready } = await this._startContinueTurn({
@@ -840,6 +1139,12 @@ export class HarnessAgent<
     session: HarnessAgentSession;
     text: string;
   }): Promise<void> {
+    if (this.harnessAgentV2 != null) {
+      throw new Error(
+        'HarnessAgent: experimental_steer() is not supported with HarnessV2.',
+      );
+    }
+
     await options.session.experimental_steerTurn(options.text);
   }
 

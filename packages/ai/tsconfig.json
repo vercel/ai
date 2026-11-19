@@ -2,9 +2,6 @@
   "extends": "./node_modules/@vercel/ai-tsconfig/base.json",
   "compilerOptions": {
     "stripInternal": true,
-    "types": [
-      "@types/node"
-    ],
     "composite": true,
     "rootDir": ".",
     "outDir": "dist"

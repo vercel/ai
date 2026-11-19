@@ -6,6 +6,7 @@ import type {
   HarnessV1NetworkSandboxSession,
   HarnessV1SandboxProvider,
 } from '../v1';
+import type { HarnessAgentSandboxSessionResolver } from './v2/harness-agent-session';
 import type {
   HarnessAgentAdapter,
   HarnessAgentPermissionMode,
@@ -40,10 +41,31 @@ import type {
 } from 'ai';
 import type { ToolsContextSettings } from 'ai/internal';
 import type { HarnessAllTools } from './harness-agent-tool-types';
+import type { World } from '@workflow/world';
+import type { InMemoryWorld } from './v2/in-memory-world';
 
 export type HarnessAgentToolApprovalConfiguration = Readonly<
   Record<string, ToolApprovalStatus>
 >;
+
+/**
+ * Remote MCP server connected through Streamable HTTP. Stdio servers are
+ * currently unsupported. Headers may contain credentials and must not be logged.
+ */
+export type HarnessAgentMcpServerConfig = {
+  /**
+   * Streamable HTTP is the only supported transport and is the default.
+   */
+  readonly type?: 'http';
+  /**
+   * Endpoint used for the MCP initialization and subsequent requests.
+   */
+  readonly url: string;
+  /**
+   * Request headers, including any server-specific authentication credentials.
+   */
+  readonly headers?: Readonly<Record<string, string>>;
+};
 
 /**
  * Creates the sandbox session for `HarnessAgent.createSession()` when it is
@@ -157,10 +179,9 @@ export type HarnessAgentSettings<
   readonly harness: THarness;
 
   /**
-   * Stable identifier for this agent instance. Exposed via `agent.id`.
-   * If omitted, `agent.id` is `undefined`.
+   * Resolves an existing sandbox session for a HarnessV2 session.
    */
-  readonly id?: string;
+  readonly getSandboxSession?: HarnessAgentSandboxSessionResolver;
 
   /**
    * Model identifier used by the harness adapter. Supported values are
@@ -179,6 +200,14 @@ export type HarnessAgentSettings<
    * declare a tool with the same name as a builtin to override.
    */
   readonly tools?: TUserTools;
+
+  /**
+   * Remote MCP servers available to HarnessV2. Configured once for the agent,
+   * like tools, rather than through call options. Stdio servers are currently
+   * unsupported. HarnessV1 rejects this setting; configure its MCP servers
+   * on the individual harness instead.
+   */
+  readonly mcpServers?: Readonly<Record<string, HarnessAgentMcpServerConfig>>;
 
   /**
    * Per-tool context passed to host-executed tools. Each entry is validated
@@ -423,5 +452,51 @@ export type HarnessAgentSettings<
    * stderr default — wire this to capture diagnostics in code.
    */
   readonly onLog?: (event: HarnessDiagnostic) => void;
-} & ToolsContextSettings<TUserTools> &
+} &
+  /*
+   * With a `world` other than an `InMemoryWorld`, the agent is durable and
+   * needs an `id`, under which it registers in the durable agent registry so
+   * that background drives find it. Keep `id` stable while sessions created
+   * with it exist: their runs record it.
+   *
+   * `InMemoryWorld` has private fields, so a World of another kind is not
+   * assignable to it and takes the first branch, which requires `id`.
+   */
+  (
+    | {
+        /**
+         * Workflow World that persists the agent's sessions, which makes the
+         * agent durable. Only supported when `harness` implements
+         * `HarnessV2`.
+         *
+         * Run input, log payloads and output stream batches are encrypted
+         * with the key returned by `world.getEncryptionKeyForRun()`. If the
+         * World does not supply a key, they are stored unencrypted. Key and
+         * encryption failures reject instead of falling back to plaintext.
+         */
+        readonly world: World;
+
+        /**
+         * Stable identifier of the agent, exposed via `agent.id`. Required
+         * for a durable agent: its sessions' runs record it, and background
+         * drives look the agent up by it. Only letters, digits, `_` and `-`
+         * are allowed.
+         */
+        readonly id: string;
+      }
+    | {
+        /**
+         * In-memory World for the agent's sessions. The agent is not durable.
+         * Without a `world`, the agent creates its own `InMemoryWorld`.
+         */
+        readonly world?: InMemoryWorld;
+
+        /**
+         * Stable identifier of the agent, exposed via `agent.id`. If
+         * omitted, `agent.id` is `undefined`.
+         */
+        readonly id?: string;
+      }
+  ) &
+  ToolsContextSettings<TUserTools> &
   HarnessAgentToolFilteringSettings<HarnessAllTools<THarness, TUserTools>>;

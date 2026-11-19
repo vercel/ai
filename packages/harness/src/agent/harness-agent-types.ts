@@ -22,9 +22,16 @@ import type {
   HarnessV1StreamPart,
   HarnessV1ToolSpec,
 } from '../v1';
+import type { HarnessV2 } from '../v2/harness-v2';
 
-export type HarnessAgentAdapter<TBuiltinTools extends ToolSet = ToolSet> =
-  HarnessV1<TBuiltinTools>;
+/**
+ * This union temporarily preserves both contract versions while HarnessAgent
+ * transitions to HarnessV2; remove it after that migration is complete.
+ */
+export type HarnessAgentAdapter<TBuiltinTools extends ToolSet = ToolSet> = (
+  | HarnessV1
+  | HarnessV2
+) & { readonly builtinTools: TBuiltinTools };
 export type HarnessSandboxTemplate = HarnessV1SandboxTemplate;
 
 export type HarnessAgentBuiltinTool<

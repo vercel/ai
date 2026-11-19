@@ -196,8 +196,11 @@
           "description": "The harness layer main entrypoint must export the entire HarnessV1 spec.",
           "for": { "files": ["src/index.ts"] },
           "must": {
-            "exportValues": [{ "name": "*", "from": "./v1" }],
-            "exportValuesFrom": ["./v1", "./errors/*"]
+            "exportValues": [
+              { "name": "*", "from": "./v1" },
+              { "name": "*", "from": "./v2" }
+            ],
+            "exportValuesFrom": ["./v1", "./v2", "./errors/*"]
           },
           "mustNot": {
             "exportValuesFrom": [
@@ -233,7 +236,9 @@
               "../src/utils",
               "../src/utils/*",
               "../src/v1",
-              "../src/v1/*"
+              "../src/v1/*",
+              "../src/v2",
+              "../src/v2/*"
             ],
             "exportTypesFrom": [
               "../src/bridge",
@@ -241,7 +246,9 @@
               "../src/utils",
               "../src/utils/*",
               "../src/v1",
-              "../src/v1/*"
+              "../src/v1/*",
+              "../src/v2",
+              "../src/v2/*"
             ]
           }
         },
@@ -260,7 +267,9 @@
               "../src/utils",
               "../src/utils/*",
               "../src/v1",
-              "../src/v1/*"
+              "../src/v1/*",
+              "../src/v2",
+              "../src/v2/*"
             ],
             "exportTypesFrom": [
               "../src/agent",
@@ -268,7 +277,9 @@
               "../src/utils",
               "../src/utils/*",
               "../src/v1",
-              "../src/v1/*"
+              "../src/v1/*",
+              "../src/v2",
+              "../src/v2/*"
             ]
           }
         },
@@ -287,7 +298,9 @@
               "../src/bridge",
               "../src/bridge/*",
               "../src/v1",
-              "../src/v1/*"
+              "../src/v1/*",
+              "../src/v2",
+              "../src/v2/*"
             ],
             "exportTypesFrom": [
               "../src/agent",
@@ -295,7 +308,45 @@
               "../src/bridge",
               "../src/bridge/*",
               "../src/v1",
-              "../src/v1/*"
+              "../src/v1/*",
+              "../src/v2",
+              "../src/v2/*"
+            ]
+          }
+        },
+        {
+          "name": "harness-layer-package-may-use-workflow-core-only-for-encryption",
+          "description": "The harness layer package may use @workflow/core only for encryption.",
+          "for": { "files": ["src/**/*.ts"] },
+          "mustNot": {
+            "importValuesFrom": [
+              "@workflow/core",
+              "@workflow/core/*",
+              "!@workflow/core/encryption"
+            ],
+            "importTypesFrom": [
+              "@workflow/core",
+              "@workflow/core/*",
+              "!@workflow/core/encryption"
+            ]
+          }
+        },
+        {
+          "name": "harness-layer-agent-v2-must-use-v2-spec",
+          "description": "The harness layer agent v2 entrypoint must use the v2 spec.",
+          "for": { "files": ["src/agent/v2/*.ts"] },
+          "mustNot": {
+            "importValuesFrom": [
+              "../*",
+              "!../harness-agent-settings",
+              "!../../errors/*",
+              "!../../v2/*"
+            ],
+            "importTypesFrom": [
+              "../*",
+              "!../harness-agent-settings",
+              "!../../errors/*",
+              "!../../v2/*"
             ]
           }
         }
@@ -304,7 +355,11 @@
     {
       "name": "harness-package-must-export-required-symbols",
       "description": "Every harness package must have specific files that export a specific set of symbols.",
-      "paths": ["packages/harness-{harnessId}/src/index.ts"],
+      "paths": [
+        "packages/harness-{harnessId}/src/index.ts",
+        "!packages/harness-*-v2/src/index.ts",
+        "!packages/harness-ai-sdk/src/index.ts"
+      ],
       "must": [
         {
           "name": "harness-package-must-export-harness-creator-and-settings",
