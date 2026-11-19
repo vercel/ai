@@ -11,4 +11,9 @@ export type {
 } from './deepgram-speech-model-options';
 export type { DeepgramSpeechModelId } from './deepgram-speech-options';
 export type { DeepgramTranscriptionModelOptions } from './deepgram-transcription-model-options';
+export { DeepgramRealtimeModel } from './deepgram-realtime-model';
+export type {
+  DeepgramRealtimeModelId,
+  DeepgramRealtimeModelOptions,
+} from './deepgram-realtime-model-options';
 export { VERSION } from './version';
