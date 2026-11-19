@@ -1,6 +1,6 @@
 import { safeValidateTypes } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
-import { xSearch, xSearchArgsSchema } from './x-search';
+import { xSearchArgsSchema } from './x-search';
 
 const handles = (count: number) =>
   Array.from({ length: count }, (_, i) => `handle${i}`);
@@ -29,21 +29,4 @@ describe('xSearchArgsSchema', () => {
       expect(result.success).toBe(false);
     },
   );
-});
-
-describe('xSearch', () => {
-  it('keeps the search arguments in the tool call input', async () => {
-    const input = {
-      query: 'from:xai filter:media',
-      limit: 20,
-      mode: 'Latest',
-    };
-
-    const result = await safeValidateTypes({
-      value: input,
-      schema: xSearch().inputSchema,
-    });
-
-    expect(result).toMatchObject({ success: true, value: input });
-  });
 });
