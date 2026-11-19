@@ -31,8 +31,9 @@ export class MCPClientError extends AISDKError {
   readonly statusCode?: number;
 
   /**
-   * URL of the MCP endpoint the failing request was sent to, when the
-   * error originated from an HTTP transport failure.
+   * Origin of the MCP endpoint the failing request was sent to, when the
+   * error originated from an HTTP transport failure. Only the origin is kept:
+   * a server URL can carry a token in its path or query.
    */
   readonly url?: string;
 
