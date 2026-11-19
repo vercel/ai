@@ -107,6 +107,177 @@ describe('VercelSandboxSession', () => {
   });
 
   describe('run', () => {
+    it('drains capped output to completion without using native output buffers', async () => {
+      const { sandbox, spies } = makeMockSandbox();
+      let completed = false;
+      const handle = {
+        stdout: vi.fn(),
+        stderr: vi.fn(),
+        kill: vi.fn(),
+        wait: vi.fn(async () => ({ exitCode: 7 })),
+        logs: vi.fn(async function* () {
+          yield { stream: 'stdout', data: 'ab' };
+          yield { stream: 'stderr', data: 'error!' };
+          for (let index = 0; index < 512; index++) {
+            yield { stream: 'stdout', data: 'x'.repeat(64 * 1024) };
+          }
+          completed = true;
+        }),
+      };
+      spies.runCommand.mockResolvedValue(handle);
+
+      expect(
+        await new VercelSandboxSession(sandbox).run({
+          command: 'noisy command; save-results; exit 7',
+          workingDirectory: '/work',
+          env: { NAME: 'value' },
+          maxOutputLength: 4,
+        }),
+      ).toEqual({
+        exitCode: 7,
+        stdout: 'abxx',
+        stderr: 'erro',
+        stdoutLength: 2 + 32 * 1024 * 1024,
+        stderrLength: 6,
+      });
+      expect(completed).toBe(true);
+      expect(handle.stdout).not.toHaveBeenCalled();
+      expect(handle.stderr).not.toHaveBeenCalled();
+      expect(handle.kill).not.toHaveBeenCalled();
+      expect(spies.runCommand).toHaveBeenCalledExactlyOnceWith({
+        cmd: 'bash',
+        args: ['-c', 'noisy command; save-results; exit 7'],
+        detached: true,
+        cwd: '/work',
+        env: { NAME: 'value' },
+      });
+    });
+
+    it('preserves Unicode code units and empty output with a cap', async () => {
+      const { sandbox, spies } = makeMockSandbox();
+      spies.runCommand.mockResolvedValue(
+        makeMockCommand({
+          logs: [{ stream: 'stdout', data: 'a😀b\ud800' }],
+        }).handle,
+      );
+      expect(
+        await new VercelSandboxSession(sandbox).run({
+          command: 'unicode',
+          maxOutputLength: 2,
+        }),
+      ).toEqual({
+        exitCode: 0,
+        stdout: 'a\ud83d',
+        stderr: '',
+        stdoutLength: 5,
+        stderrLength: 0,
+      });
+    });
+
+    it('cancels bounded log reads when waiting fails', async () => {
+      const { sandbox, spies } = makeMockSandbox();
+      const reason = new Error('wait failed');
+      let logSignal: AbortSignal | undefined;
+      spies.runCommand.mockResolvedValue({
+        wait: async () => {
+          throw reason;
+        },
+        logs: async function* ({ signal }: { signal: AbortSignal }) {
+          logSignal = signal;
+          await new Promise<void>(resolve => {
+            signal.addEventListener('abort', () => resolve(), { once: true });
+          });
+          yield { stream: 'stdout', data: '' };
+        },
+      });
+      await expect(
+        new VercelSandboxSession(sandbox).run({
+          command: 'command',
+          maxOutputLength: 4,
+        }),
+      ).rejects.toBe(reason);
+      expect(logSignal?.aborted).toBe(true);
+    });
+
+    it('forwards cancellation to waiting and log streaming with a cap', async () => {
+      const { sandbox, spies } = makeMockSandbox();
+      const controller = new AbortController();
+      const { handle, spies: commandSpies } = makeMockCommand({});
+      spies.runCommand.mockResolvedValue(handle);
+      await new VercelSandboxSession(sandbox).run({
+        command: 'command',
+        maxOutputLength: 4,
+        abortSignal: controller.signal,
+      });
+      expect(commandSpies.wait).toHaveBeenCalledWith({
+        signal: expect.any(AbortSignal),
+      });
+      expect(spies.runCommand).toHaveBeenCalledWith(
+        expect.objectContaining({ signal: controller.signal }),
+      );
+      controller.abort();
+      expect(commandSpies.kill).not.toHaveBeenCalled();
+    });
+
+    it('cancels an in-flight capped command and both pending requests', async () => {
+      const { sandbox, spies } = makeMockSandbox();
+      const controller = new AbortController();
+      const reason = new Error('cancelled');
+      const kill = vi.fn(async () => {});
+      const wait = vi.fn(
+        ({ signal }: { signal: AbortSignal }) =>
+          new Promise<never>((_, reject) => {
+            signal.addEventListener('abort', () => reject(signal.reason), {
+              once: true,
+            });
+          }),
+      );
+      let logSignal: AbortSignal | undefined;
+      spies.runCommand.mockResolvedValue({
+        kill,
+        wait,
+        logs: async function* ({ signal }: { signal: AbortSignal }) {
+          logSignal = signal;
+          yield { stream: 'stdout', data: 'partial' };
+          await new Promise<never>((_, reject) => {
+            signal.addEventListener('abort', () => reject(signal.reason), {
+              once: true,
+            });
+          });
+        },
+      });
+      const result = new VercelSandboxSession(sandbox).run({
+        command: 'command',
+        maxOutputLength: 4,
+        abortSignal: controller.signal,
+      });
+      const rejected = expect(result).rejects.toBe(reason);
+      await vi.waitFor(() => expect(logSignal).toBeDefined());
+      controller.abort(reason);
+      await rejected;
+      expect(logSignal?.aborted).toBe(true);
+      expect(kill).toHaveBeenCalledExactlyOnceWith();
+    });
+
+    it('kills capped commands aborted during startup and preserves the reason', async () => {
+      const { sandbox, spies } = makeMockSandbox();
+      const controller = new AbortController();
+      const reason = new Error('cancelled during startup');
+      const { handle, spies: commandSpies } = makeMockCommand({});
+      spies.runCommand.mockImplementation(async () => {
+        controller.abort(reason);
+        return handle;
+      });
+      await expect(
+        new VercelSandboxSession(sandbox).run({
+          command: 'command',
+          maxOutputLength: 4,
+          abortSignal: controller.signal,
+        }),
+      ).rejects.toBe(reason);
+      expect(commandSpies.kill).toHaveBeenCalledExactlyOnceWith();
+    });
+
     it('wraps the command in bash -c and maps stdout/stderr/exitCode', async () => {
       const { sandbox, spies } = makeMockSandbox();
       const { handle } = makeMockCommand({

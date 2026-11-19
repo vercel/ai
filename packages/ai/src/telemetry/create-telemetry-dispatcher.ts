@@ -258,6 +258,18 @@ export function createTelemetryDispatcher({
       'experimental_onDecideEnd',
       'experimental_onEvaluateEnd',
     ),
+    experimental_onExtractStart: mergeTelemetryCallback(
+      'experimental_onExtractStart',
+    ),
+    experimental_onExtractionModelCallStart: mergeTelemetryCallback(
+      'experimental_onExtractionModelCallStart',
+    ),
+    experimental_onExtractionModelCallEnd: mergeTelemetryCallback(
+      'experimental_onExtractionModelCallEnd',
+    ),
+    experimental_onExtractEnd: mergeTelemetryCallback(
+      'experimental_onExtractEnd',
+    ),
     experimental_onStreamTranscriptionStart: mergeTelemetryCallback(
       'experimental_onStreamTranscriptionStart',
     ),

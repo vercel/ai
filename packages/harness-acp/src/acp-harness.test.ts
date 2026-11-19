@@ -97,6 +97,7 @@ const harnessUtilsMocks = vi.hoisted(() => {
         abortSignal: AbortSignal;
         reason: 'open' | 'reconnect';
       }) => Promise<unknown>;
+      keepAliveMs?: number;
       reconnect?: {
         readonly maxElapsedMs?: number;
         readonly initialDelayMs?: number;
@@ -123,6 +124,7 @@ const harnessUtilsMocks = vi.hoisted(() => {
         abortSignal: AbortSignal;
         reason: 'open' | 'reconnect';
       }) => Promise<unknown>;
+      keepAliveMs?: number;
       reconnect?: {
         readonly maxElapsedMs?: number;
         readonly initialDelayMs?: number;
@@ -2507,6 +2509,7 @@ describe('createACP', () => {
       ...agentSettings,
       portEndpoint,
       reconnect,
+      keepAliveMs: 100,
     });
     const sandboxSession = fakeSandbox({
       runs: [],
@@ -2538,6 +2541,9 @@ describe('createACP', () => {
     expect(
       harnessUtilsMocks.channels.map(channel => channel.options.reconnect),
     ).toEqual([reconnect, reconnect]);
+    expect(
+      harnessUtilsMocks.channels.map(channel => channel.options.keepAliveMs),
+    ).toEqual([100, 100]);
     expect(webSocketMocks.calls).toEqual([
       {
         url: 'wss://sandbox.example/bridge?existing=value',

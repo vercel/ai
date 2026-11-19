@@ -1,5 +1,14 @@
 # @ai-sdk/harness
 
+## 1.0.188
+
+### Patch Changes
+
+- 679b5b5: Honor globally registered telemetry in HarnessAgent when no per-call telemetry settings are supplied.
+- Updated dependencies [e403988]
+- Updated dependencies [b792b56]
+  - ai@7.0.177
+
 ## 1.0.187
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 export { extract as experimental_extract } from './extract';
 export type {
+  ExtractStartEvent as Experimental_ExtractStartEvent,
+  ExtractEndEvent as Experimental_ExtractEndEvent,
+  ExtractionModelCallStartEvent as Experimental_ExtractionModelCallStartEvent,
+  ExtractionModelCallEndEvent as Experimental_ExtractionModelCallEndEvent,
+} from './extract-events';
+export type {
   ExtractionAnswer as Experimental_ExtractionAnswer,
   ExtractionModel as Experimental_ExtractionModel,
   ExtractionResult as Experimental_ExtractionResult,
