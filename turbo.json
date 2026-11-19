@@ -4,18 +4,11 @@
     // Packages without a script for a task don't pull in that task's dependencies.
     "strictTaskEntrypointSelection": true
   },
-  "globalEnv": [
-    "CI",
-    "PORT"
-  ],
-  "globalPassThroughEnv": [
-    "pnpm_config_verify_deps_before_run"
-  ],
+  "globalEnv": ["CI", "PORT"],
+  "globalPassThroughEnv": ["pnpm_config_verify_deps_before_run"],
   "tasks": {
     "build": {
-      "dependsOn": [
-        "^build"
-      ],
+      "dependsOn": ["^build"],
       "env": [
         "AI_GATEWAY_API_KEY",
         "AI_SDK_DEVTOOLS_PORT",
@@ -96,101 +89,52 @@
         ".svelte-kit/**",
         ".vinxi/**"
       ],
-      "tags": [
-        "ci",
-        "ci:cpus:4"
-      ]
+      "tags": ["ci", "ci:cpus:4"]
     },
     "type-check": {
-      "dependsOn": [
-        "^build"
-      ],
-      "tags": [
-        "ci"
-      ]
+      "dependsOn": ["^build"],
+      "tags": ["ci"]
     },
     "test": {
-      "dependsOn": [
-        "^build",
-        "build"
-      ],
-      "env": [
-        "TEST_NODE_VERSION"
-      ],
-      "passThroughEnv": [
-        "VITEST_MAX_WORKERS"
-      ],
-      "tags": [
-        "ci"
-      ]
+      "dependsOn": ["^build", "build"],
+      "env": ["TEST_NODE_VERSION"],
+      "passThroughEnv": ["VITEST_MAX_WORKERS"],
+      "tags": ["ci"]
     },
     "test:browser": {
-      "dependsOn": [
-        "^build",
-        "build"
-      ],
+      "dependsOn": ["^build", "build"],
       "outputs": [
         "test-results/**",
         "test-results.json",
         "playwright-report/**"
       ],
-      "tags": [
-        "ci",
-        "ci:os:ubuntu",
-        "ci:cpus:4"
-      ]
+      "tags": ["ci", "ci:os:ubuntu", "ci:cpus:4"]
     },
     "test:windows": {
-      "dependsOn": [
-        "^build",
-        "build"
-      ]
+      "dependsOn": ["^build", "build"]
     },
     "test:bundlers": {
-      "dependsOn": [
-        "^build"
-      ],
-      "tags": [
-        "ci",
-        "ci:cpus:4"
-      ]
+      "dependsOn": ["^build"],
+      "tags": ["ci", "ci:cpus:4"]
     },
     "test:load-time": {
-      "dependsOn": [
-        "^build"
-      ],
-      "tags": [
-        "ci"
-      ]
+      "dependsOn": ["^build"],
+      "tags": ["ci"]
     },
     "check-bundle-size": {
-      "dependsOn": [
-        "build"
-      ],
-      "outputs": [
-        "dist-bundle-check/**"
-      ],
-      "tags": [
-        "ci"
-      ]
+      "dependsOn": ["^build"],
+      "outputs": ["dist-bundle-check/**"],
+      "tags": ["ci"]
     },
     "test:update": {
-      "dependsOn": [
-        "^build",
-        "build"
-      ],
+      "dependsOn": ["^build", "build"],
       "cache": false
     },
     "publint": {
-      "dependsOn": [
-        "^build",
-        "build"
-      ]
+      "dependsOn": ["^build", "build"]
     },
     "clean": {
-      "dependsOn": [
-        "^clean"
-      ],
+      "dependsOn": ["^clean"],
       "cache": false
     },
     "dev": {
@@ -199,52 +143,33 @@
     },
     "//#check": {
       "cache": false,
-      "tags": [
-        "ci",
-        "ci:cpus:4"
-      ]
+      "tags": ["ci", "ci:cpus:4"]
     },
     "//#run-verifiers": {
       "cache": false,
-      "tags": [
-        "ci"
-      ]
+      "tags": ["ci"]
     },
     "//#validate:docs": {
       "cache": false,
-      "tags": [
-        "ci"
-      ]
+      "tags": ["ci"]
     },
     "//#verify:model-capabilities-docs": {
       "cache": false,
-      "tags": [
-        "ci"
-      ]
+      "tags": ["ci"]
     },
     "//#test:tarballs": {
       "cache": false,
-      "tags": [
-        "ci"
-      ]
+      "tags": ["ci"]
     },
     "//#konsistent:check": {
-      "dependsOn": [
-        "konsistent-provider#build"
-      ],
+      "dependsOn": ["konsistent-provider#build"],
       "cache": false,
-      "tags": [
-        "ci"
-      ]
+      "tags": ["ci"]
     },
     "//#konsistent:validate": {
-      "dependsOn": [
-        "konsistent-provider#build"
-      ],
+      "dependsOn": ["konsistent-provider#build"],
       "cache": false,
-      "tags": [
-        "ci"
-      ]
+      "tags": ["ci"]
     }
   }
 }

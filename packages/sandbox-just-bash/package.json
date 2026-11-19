@@ -18,9 +18,8 @@
     "README.md"
   ],
   "scripts": {
-    "build": "pnpm clean && tsdown",
-    "build:watch": "pnpm clean && tsdown --watch",
-    "clean": "del-cli *.tsbuildinfo",
+    "build": "tsdown",
+    "build:watch": "tsdown --watch",
     "type-check": "tsc --noEmit",
     "test": "pnpm test:node",
     "test:watch": "vitest --config vitest.node.config.js",
