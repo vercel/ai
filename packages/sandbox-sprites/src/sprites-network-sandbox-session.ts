@@ -34,9 +34,7 @@ const SPRITES_PROVIDER_ID = 'sprites-sandbox';
  * Such a session supports file and process access only and is not selected by
  * bridge-backed adapters.
  *
- * `destroy()` deletes the Sprite when the session owns its lifecycle, which is
- * every session except one the deprecated provider wraps around a
- * caller-named Sprite (`spriteName`); there `destroy()` is a no-op.
+ * `destroy()` deletes the Sprite.
  */
 export class SpritesNetworkSandboxSession
   extends SpritesSandboxSession
@@ -44,14 +42,12 @@ export class SpritesNetworkSandboxSession
 {
   readonly id: string;
   readonly defaultWorkingDirectory: string;
-  private readonly ownsLifecycle: boolean;
   private readonly urlAuth: SpriteUrlAuth | undefined;
 
   constructor(input: {
     client: SpritesApiClient;
     sprite: Pick<SpriteResource, 'name' | 'url' | 'urlAuth'>;
     workingDirectory: string;
-    ownsLifecycle: boolean;
   }) {
     super(
       input.client,
@@ -64,7 +60,6 @@ export class SpritesNetworkSandboxSession
     // looks the Sprite up by it.
     this.id = input.sprite.name;
     this.defaultWorkingDirectory = input.workingDirectory;
-    this.ownsLifecycle = input.ownsLifecycle;
     this.urlAuth = input.sprite.urlAuth;
   }
 
@@ -138,12 +133,10 @@ export class SpritesNetworkSandboxSession
     // "cold") after ~30s idle. The contract's "stop" therefore maps to that
     // auto-suspend behavior rather than an action this method takes: it
     // returns without doing anything, and the Sprite will suspend on its own
-    // once idle. Resource teardown for provider-owned sprites happens in
-    // destroy().
+    // once idle. Resource teardown happens in destroy().
   };
 
   destroy = async (): Promise<void> => {
-    if (!this.ownsLifecycle) return;
     await this.client.deleteSprite(this.spriteName);
   };
 }

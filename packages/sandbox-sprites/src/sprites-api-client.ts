@@ -38,6 +38,9 @@ export interface SpriteNetworkRule {
   readonly action: 'allow' | 'deny';
 }
 
+/** Names bash can assign and export; `exec` rejects any other env key. */
+const ENV_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
 /** Options accepted by {@link SpritesApiClient.exec}. */
 export interface SpriteExecOptions {
   /** Argument vector. `argv[0]` is the executable. */
@@ -357,6 +360,13 @@ export class SpritesApiClient {
 
     let argv: ReadonlyArray<string> = options.argv;
     if (options.env != null && Object.keys(options.env).length > 0) {
+      for (const key of Object.keys(options.env)) {
+        if (!ENV_NAME_PATTERN.test(key)) {
+          throw new Error(
+            `Invalid environment variable name "${key}": names must match ${ENV_NAME_PATTERN}.`,
+          );
+        }
+      }
       // Random filename so concurrent execs never clobber each other's env.
       const envPath = `/tmp/.ai-sdk-env-${randomUUID()}`;
       await this.writeFile(
@@ -637,9 +647,10 @@ export class SpritesApiClient {
 
 /**
  * Serialize env vars into a bash-sourceable file (used with `set -a` so each
- * assignment is auto-exported). Values are single-quoted with the `'\''`
- * escape so arbitrary characters — spaces, `$`, quotes, newlines — are taken
- * literally, never re-interpreted by the shell.
+ * assignment is auto-exported). Keys are shell identifiers (checked by
+ * `exec`). Values are single-quoted with the `'\''` escape so arbitrary
+ * characters — spaces, `$`, quotes, newlines — are taken literally, never
+ * re-interpreted by the shell.
  */
 function encodeEnvFile(env: Record<string, string>): Uint8Array {
   const body = Object.entries(env)

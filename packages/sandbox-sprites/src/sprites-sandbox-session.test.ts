@@ -351,6 +351,25 @@ describe('SpritesSandboxSession.run', () => {
     expect(body).toBe(`EVIL='a'\\''; rm -rf /; echo '\\'''\n`);
   });
 
+  it.each(['MY-VAR', 'A=1;touch /tmp/pwn;B', '1ABC', ''])(
+    'rejects the env name %j without writing a file or connecting',
+    async key => {
+      const fetchMock = vi.fn(async () => new Response('', { status: 200 }));
+      vi.stubGlobal('fetch', fetchMock);
+      const session = makeSession();
+
+      await expect(
+        session.run({ command: 'echo hi', env: { OK: 'x', [key]: 'y' } }),
+      ).rejects.toThrow(`Invalid environment variable name "${key}"`);
+      await expect(
+        session.spawn({ command: 'echo hi', env: { [key]: 'y' } }),
+      ).rejects.toThrow(`Invalid environment variable name "${key}"`);
+
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(lastWsUrl).toBe('');
+    },
+  );
+
   it('throws synchronously when already aborted', async () => {
     const session = makeSession();
     const controller = new AbortController();
