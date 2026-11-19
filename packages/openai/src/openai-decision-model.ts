@@ -29,8 +29,9 @@ import {
 } from './openai-config';
 import { openaiFailedResponseHandler } from './openai-error';
 import { openaiDecisionModelOptions } from './openai-decision-model-options';
+import type { OpenAIModelIds } from './openai-model-catalog';
 
-export type OpenAIDecisionModelId = 'gpt-6-luna' | (string & {});
+export type OpenAIDecisionModelId = OpenAIModelIds['decision'] | (string & {});
 
 const probability = () => z.number().min(0).max(1);
 const responseSchema = lazySchema(() =>
