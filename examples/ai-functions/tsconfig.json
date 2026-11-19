@@ -213,6 +213,9 @@
       "path": "../../packages/sandbox-just-bash"
     },
     {
+      "path": "../../packages/sandbox-modal"
+    },
+    {
       "path": "../../packages/sandbox-vercel"
     },
     {
