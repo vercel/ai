@@ -14,23 +14,30 @@ Extracts a nonempty map of typed fields from one state. See
 
 ## Parameters
 
-| Parameter               | Type                                                                                           | Description                                                                                                                |
-| ----------------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `model`                 | `Experimental_ExtractionModel`                                                                 | Required experimental v4 extraction model instance.                                                                        |
-| `state`                 | `Experimental_ExtractionState`                                                                 | Required string, JSON object, or ordered array of text, file, and JSON parts.                                              |
-| `fields`                | `Record<string, Experimental_ExtractionField>`                                                 | Required nonempty field map.                                                                                               |
-| `referenceDate`         | `string`                                                                                       | Optional `YYYY-MM-DD` date that anchors relative dates.                                                                    |
-| `maxOutputTokens`       | `number`                                                                                       | Optional maximum output tokens, an integer >= 1.                                                                           |
-| `reasoning`             | `'provider-default' \| 'none' \| 'minimal' \| 'low' \| 'medium' \| 'high' \| 'xhigh' \| 'max'` | Optional reasoning effort for supported models.                                                                            |
-| `maxRetries`            | `number`                                                                                       | Nonnegative integer; defaults to 2.                                                                                        |
-| `abortSignal`           | `AbortSignal`                                                                                  | Cancels the extraction request.                                                                                            |
-| `experimental_download` | `Experimental_DownloadFunction`                                                                | Required for remote file URLs in state. Use `createDownload({ fetch })` with a DNS-protected transport for untrusted URLs. |
-| `headers`               | `Record<string, string>`                                                                       | Additional HTTP headers.                                                                                                   |
-| `providerOptions`       | `ProviderOptions`                                                                              | Provider-specific options.                                                                                                 |
+| Parameter               | Type                                                                                           | Description                                                                                                                                    |
+| ----------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model`                 | `Experimental_ExtractionModel`                                                                 | Required experimental v4 extraction model instance, or a string ID resolved by the default provider (the AI Gateway unless one is configured). |
+| `state`                 | `Experimental_ExtractionState`                                                                 | Required string, JSON object, or ordered array of text, file, and JSON parts.                                                                  |
+| `fields`                | `Record<string, Experimental_ExtractionField>`                                                 | Required nonempty field map.                                                                                                                   |
+| `referenceDate`         | `string`                                                                                       | Optional `YYYY-MM-DD` date that anchors relative dates.                                                                                        |
+| `maxOutputTokens`       | `number`                                                                                       | Optional maximum output tokens, an integer >= 1.                                                                                               |
+| `reasoning`             | `'provider-default' \| 'none' \| 'minimal' \| 'low' \| 'medium' \| 'high' \| 'xhigh' \| 'max'` | Optional reasoning effort for supported models.                                                                                                |
+| `maxRetries`            | `number`                                                                                       | Nonnegative integer; defaults to 2.                                                                                                            |
+| `abortSignal`           | `AbortSignal`                                                                                  | Cancels the extraction request.                                                                                                                |
+| `experimental_download` | `Experimental_DownloadFunction`                                                                | Required for remote file URLs in state. Use `createDownload({ fetch })` with a DNS-protected transport for untrusted URLs.                     |
+| `headers`               | `Record<string, string>`                                                                       | Additional HTTP headers.                                                                                                                       |
+| `providerOptions`       | `ProviderOptions`                                                                              | Provider-specific options.                                                                                                                     |
+| `telemetry`             | `TelemetryOptions`                                                                             | Telemetry configuration, including per-call integrations, input/output recording, and a function ID.                                           |
+| `runtimeContext`        | `Record<string, unknown>`                                                                      | Context available to lifecycle callbacks and selectively included in telemetry with `telemetry.includeRuntimeContext`.                         |
+| `onStart`               | `(event: Experimental_ExtractStartEvent) => void`                                              | Called when the extraction operation begins.                                                                                                   |
+| `onEnd`                 | `(event: Experimental_ExtractEndEvent) => void`                                                | Called when the extraction operation completes successfully.                                                                                   |
 
 Remote file URLs are rejected with `DownloadError` unless `experimental_download`
 is supplied. The model's `fetch` option does not apply to these downloads. See
 [Secure URL Fetching](/docs/advanced/secure-url-fetching#core-file-downloads).
+
+See [Lifecycle Callbacks](/docs/ai-sdk-core/lifecycle-callbacks#experimental_extract)
+for the complete `onStart` and `onEnd` event fields.
 
 ## Fields
 
@@ -59,8 +66,10 @@ Returns `Promise<Experimental_ExtractionResult<FIELDS>>`:
 
 ## Errors
 
-Unsupported field types throw `Experimental_ExtractionUnsupportedFieldTypeError`
-before provider I/O. Invalid inputs throw `InvalidArgumentError`; malformed
-answers throw `InvalidResponseDataError`. Fields the model refuses throw
-`Experimental_ExtractionRefusalError`. Model instances must implement v4; other
+Unsupported field types throw
+[`Experimental_ExtractionUnsupportedFieldTypeError`](/docs/reference/ai-sdk-errors/ai-extraction-unsupported-field-type-error),
+before provider I/O or, for AI Gateway models, after the gateway rejects the
+field. Invalid inputs throw `InvalidArgumentError`; malformed answers throw
+`InvalidResponseDataError`. Fields the model refuses throw
+[`Experimental_ExtractionRefusalError`](/docs/reference/ai-sdk-errors/ai-extraction-refusal-error). Model instances must implement v4; other
 versions throw `UnsupportedModelVersionError`.

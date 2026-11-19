@@ -1,0 +1,265 @@
+---
+title: Liquid
+description: Learn how to use Liquid decision models with AI Gateway and the direct provider.
+---
+
+# Liquid Provider
+
+The [Liquid](https://www.liquid.ai) provider supports Liquid's hosted
+[decision models](https://docs.liquid.ai/lfm/models/decision-models), which
+classify, check, score, and locate objects in text, images, and audio in a single
+call with calibrated probabilities.
+You can use Liquid models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended) or connect directly with `@ai-sdk/liquid`.
+
+```ts provider="liquid" model="liquid/d1.2"
+import { experimental_decide } from 'ai';
+__PROVIDER_IMPORT__;
+
+const result = await experimental_decide({
+  model: __DECISION_MODEL__,
+  state: 'I was charged twice. Please refund the duplicate.',
+  questions: {
+    requestsRefund: {
+      type: 'boolean',
+      instructions: 'Is the customer requesting money back?',
+    },
+  },
+});
+
+console.log(result.answers.requestsRefund.probability);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+Gateway feature and provider-option support depends on the model and the provider serving the request. See [Gateway provider options](https://vercel.com/docs/ai-gateway/models-and-providers/provider-options).
+
+## Using `@ai-sdk/liquid`
+
+For direct access to Liquid, install `ai` and `@ai-sdk/liquid`:
+
+<InstallPackages packages="ai @ai-sdk/liquid" />
+
+Create an API key in the [Liquid Console](https://console.liquid.ai) and set it in the `LIQUID_API_KEY` environment variable:
+
+```bash
+export LIQUID_API_KEY=your_api_key_here
+```
+
+<Note>
+  The following sections document the direct `@ai-sdk/liquid` provider,
+  including its model factories and settings. Gateway model and feature
+  availability can differ.
+</Note>
+
+This provider supports Liquid's decision models. Liquid's OpenAI-compatible
+chat completions API is not included.
+
+## Provider Instance
+
+Import the default instance:
+
+```ts
+import { liquid } from '@ai-sdk/liquid';
+```
+
+Or create a customized instance:
+
+```ts
+import { createLiquid } from '@ai-sdk/liquid';
+
+const liquid = createLiquid({
+  apiKey: process.env.LIQUID_API_KEY,
+});
+```
+
+The following settings are optional:
+
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_: The key sent as a bearer token in the `Authorization` header. Defaults to the `LIQUID_API_KEY` environment variable.
+
+  Pass a function to resolve credentials before each request, including when keys
+  rotate. The function can return a string or a promise. Credential caching and
+  refresh are managed by the function.
+
+- **baseURL** _string_: The API URL prefix. Defaults to `https://api.liquid.ai`.
+- **headers** _Record&lt;string, string&gt;_: Additional request headers.
+- **fetch** _typeof fetch_: A custom fetch implementation.
+
+## Decision Models
+
+Use `liquid.decisionModel()` with
+[`experimental_decide`](/docs/reference/ai-sdk-core/decide) to call Liquid's
+[Decisions API](https://docs.liquid.ai/api/reference/decision-models/make-decisions).
+This API is experimental and may change in patch releases.
+
+```ts
+import { liquid } from '@ai-sdk/liquid';
+import { experimental_decide as decide } from 'ai';
+
+const result = await decide({
+  model: liquid.decisionModel('d1.2'),
+  state:
+    'Our production API is returning 500 errors on every request. All customers are affected.',
+  questions: {
+    team: {
+      type: 'choice',
+      instructions: 'Which team should handle this ticket?',
+      criteria: {
+        billing: 'Charges, invoices, refunds, or payment methods',
+        engineering: 'Bugs, outages, and technical malfunctions',
+        account: 'Sign-in, permissions, or plan changes',
+      },
+    },
+    outage: {
+      type: 'boolean',
+      instructions: 'Is the customer reporting a service outage?',
+    },
+    urgency: {
+      type: 'score',
+      instructions: 'How urgent is this ticket?',
+      criteria: [
+        'Can wait',
+        'Handle today',
+        'Time-sensitive',
+        'Blocking revenue',
+      ],
+    },
+  },
+});
+
+result.answers.outage.probability; // P(true), from 0 to 1
+result.answers.team.choice; // 'billing' | 'engineering' | 'account'
+result.answers.urgency.score; // Expected zero-based level, from 0 to 3
+```
+
+`d1.2` and `d1.2-ultra` are available. `d1.2-ultra` is the more capable model
+for harder decisions. The provider maps SDK `boolean` questions to Liquid's
+native `noul` type and returns Choice and Score probability distributions
+without rounding. Every question requires `instructions`.
+
+### Images and audio
+
+Add image and audio file parts to `state`. The provider sends them in Liquid's
+top-level `images` and `audio` arrays as base64 data URLs, and keeps text and
+JSON parts in the native `state`. Liquid reads images and audio before the
+state, each in request order, so describe each input's role in the text by its
+order. A `state` that contains only files is sent as `null`.
+
+```ts
+import { readFileSync } from 'node:fs';
+
+const result = await decide({
+  model: liquid.decisionModel('d1.2'),
+  state: [
+    { type: 'text', text: 'A voice message left on the support line.' },
+    {
+      type: 'file',
+      mediaType: 'audio/mpeg',
+      data: readFileSync('voicemail.mp3'),
+    },
+  ],
+  questions: {
+    refund: {
+      type: 'boolean',
+      instructions: 'Does the caller ask for a refund?',
+    },
+  },
+});
+```
+
+Images must be JPEG, PNG, or WebP. Audio must be WAV, MP3 (`audio/mpeg`), FLAC,
+or OGG. Liquid does not accept remote URLs, so pass file data inline;
+`experimental_decide` downloads URL file state before calling the provider when
+`experimental_download` is configured.
+
+A single text part is sent as a string and a single JSON part as structured
+JSON. Other combinations of text and JSON parts are joined with newlines.
+
+### Box questions
+
+Box questions locate an object in a picture and require exactly one image in the
+state. Box edges are fractions of the image's height (`top`, `bottom`) and width
+(`left`, `right`), measured from its top-left corner.
+
+```ts
+const result = await decide({
+  model: liquid.decisionModel('d1.2'),
+  state: [
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: readFileSync('form.png'),
+    },
+  ],
+  questions: {
+    signature: { type: 'box', instructions: 'The signature.' },
+  },
+});
+
+result.answers.signature.box; // { top, bottom, left, right }
+```
+
+When Liquid does not find the object (its `found` probability is below 0.5), it
+returns no box. The provider maps this to a refusal, so `experimental_decide`
+throws `Experimental_DecisionRefusalError` with the question ID. The `found`
+probability is available at `providerMetadata.liquid.found`.
+
+### Confidence, legends, and response metadata
+
+Liquid's confidence values and Score legends are available in
+`providerMetadata.liquid`, keyed by question ID. Confidence is distinct from the
+selected option's probability.
+
+```ts
+const metadata = result.providerMetadata?.liquid;
+console.log(metadata?.confidence); // Choice, Score, and Box confidence by question ID
+console.log(metadata?.legend); // Score index-to-description maps by question ID
+console.log(metadata?.found); // Box found probabilities by question ID
+console.log(metadata?.cost); // Cost in USD, when Liquid reports it
+console.log(result.usage.inputTokens);
+```
+
+Liquid bills input tokens only; `usage.outputTokens` is `0`.
+
+### Decision limits
+
+The provider validates these limits before sending the decision request:
+
+| Input          | Limit                              |
+| -------------- | ---------------------------------- |
+| Questions      | 1–128, each with `instructions`    |
+| Choice options | 2–255                              |
+| Score levels   | 2–10, all non-null                 |
+| Media          | At most 8 images and 8 audio clips |
+| Box questions  | Exactly one image in the state     |
+
+See Liquid's [image requirements](https://docs.liquid.ai/lfm/models/d1#image-requirements)
+and [audio requirements](https://docs.liquid.ai/lfm/models/d1#audio-requirements)
+for API-enforced request size, image patch, and audio length limits. Liquid
+decision models do not accept provider-specific options, `maxOutputTokens`, or
+`reasoning`; these produce unsupported warnings and are not sent to the API.
+
+### Decision Model Capabilities
+
+{/* model-capabilities:liquid-decision:start */}
+
+| Model        | Boolean   | Choice    | Score     | Box       | Image Input | Reasoning | Max Output Tokens |
+| ------------ | --------- | --------- | --------- | --------- | ----------- | --------- | ----------------- |
+| `d1.2`       | <Check /> | <Check /> | <Check /> | <Check /> | <Check />   | <Cross /> | <Cross />         |
+| `d1.2-ultra` | <Check /> | <Check /> | <Check /> | <Check /> | <Check />   | <Cross /> | <Cross />         |
+
+{/* model-capabilities:liquid-decision:end */}
+
+Both models also accept audio input.

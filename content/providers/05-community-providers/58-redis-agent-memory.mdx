@@ -131,7 +131,14 @@ const { text } = await generateText({
 });
 ```
 
-The tool map includes `search_memories`, `create_memories`, `update_memory`, `get_session_memory`, `add_session_event` and others. Deletion tools (`allowDeletes`) and namespace tools (`namespaceTools`) are off by default.
+The tool map includes `search_memories`, `create_memories`, `update_memory`, `upsert_memory`, `get_session_memory`, `add_session_event` and others. These tool groups are off by default:
+
+- Deletion tools (`allowDeletes`).
+- Namespace and routing tools (`namespaceTools`).
+- `put_namespace_routing` (`routingPolicyWrites`, with `namespaceTools`), which replaces the store-wide routing policy.
+- Document ingestion tools (`ingestionTools`).
+- Summary View tools (`summaryViewTools`).
+
 To record the conversation without relying on the model, use `tools.createSessionEventHook()` with `onStart` and `onEnd`. The hook requires an `onError` callback, and `userId` and `sessionId` must be fixed in the tools' scope. See the [tools guide](https://github.com/redis/vercel-ai-sdk/blob/main/TOOLS.md).
 
 Do not combine automatic model recording with session-write tools or recording hooks for the same interaction. It duplicates events.
@@ -139,7 +146,8 @@ Do not combine automatic model recording with session-write tools or recording h
 ## Best Practices
 
 - **Scope from authenticated state**: derive `userId`, `sessionId` and `namespaceId` from your application's authentication. The factory scope is trusted configuration, not an authorization check.
-- **Session IDs**: use collision-resistant IDs bound to the user in your own database, and serialize requests for the same session. Redis Agent Memory has no conditional session creation or append idempotency key.
+- **Session IDs**: use collision-resistant IDs bound to the user in your own database, and serialize requests for the same session. The automatic-memory model sends no idempotency key with its appends, and the store does not deduplicate session events by key.
+- **Actor IDs**: `assistantId` and every `actorId` accept 1 to 64 letters, digits, and `_+=.@-`, except `.` and `..`. The package rejects any other ID before it sends a request.
 - **Best effort**: writes are not exactly once. A timed-out write may still have committed.
 - **Treat memory as data**: retrieved text is injected as untrusted reference material, not as instructions.
 

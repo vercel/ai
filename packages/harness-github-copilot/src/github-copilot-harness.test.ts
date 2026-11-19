@@ -27,6 +27,7 @@ describe('createGitHubCopilot', () => {
     expect(settings.nonTextContentTypes).toEqual(['image']);
     expect(settings.writeProtectedPaths).toEqual([
       '.github/hooks',
+      '.github/mcp.json',
       '.github/copilot',
       '.github/skills',
       '.github/agents',
@@ -338,6 +339,7 @@ describe('createGitHubCopilot', () => {
       startupTimeoutMs: 45_000,
       hostDisconnectTimeoutMs: 60_000,
       reconnect,
+      keepAliveMs: 100,
       mintBridgeToken,
     });
 
@@ -351,6 +353,7 @@ describe('createGitHubCopilot', () => {
       startupTimeoutMs: 45_000,
       hostDisconnectTimeoutMs: 60_000,
       reconnect,
+      keepAliveMs: 100,
       mintBridgeToken,
     });
     await settings.credentialForwarding?.({

@@ -288,6 +288,9 @@ importers:
         specifier: ^2.1.0
         version: 2.5.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(supports-color@10.2.2)
     devDependencies:
+      '@mdx-js/mdx':
+        specifier: 3.1.1
+        version: 3.1.1(supports-color@10.2.2)
       '@tailwindcss/postcss':
         specifier: ^4.1.17
         version: 4.3.0
@@ -303,6 +306,9 @@ importers:
       '@types/react-dom':
         specifier: 18.3.7
         version: 18.3.7(@types/react@18.3.28)
+      js-yaml:
+        specifier: 4.2.0
+        version: 4.2.0
       postcss:
         specifier: ^8.5.26
         version: 8.5.26
@@ -628,6 +634,9 @@ importers:
       '@ai-sdk/langchain':
         specifier: workspace:*
         version: link:../../packages/langchain
+      '@ai-sdk/liquid':
+        specifier: workspace:*
+        version: link:../../packages/liquid
       '@ai-sdk/luma':
         specifier: workspace:*
         version: link:../../packages/luma
@@ -3805,6 +3814,34 @@ importers:
       typescript:
         specifier: 6.0.3
         version: 6.0.3
+
+  packages/liquid:
+    dependencies:
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+    devDependencies:
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
+      tsdown:
+        specifier: ^0.23.0
+        version: 0.23.0(@vue/language-core@3.3.11)(publint@0.3.21)(tsx@4.23.12)(typescript@6.0.3)
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
 
   packages/llamaindex:
     dependencies:

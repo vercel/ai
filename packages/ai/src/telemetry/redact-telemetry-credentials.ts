@@ -1,10 +1,13 @@
-import { redactTelemetryValue } from '@ai-sdk/provider-utils';
+import { DownloadError, redactTelemetryValue } from '@ai-sdk/provider-utils';
 
 /**
  * Apply provider-owned credential redaction on telemetry-only copies. Only visit SDK
  * metadata containers, never arbitrary prompts, tool outputs, or user context.
  */
 export function redactTelemetryCredentials<T>(value: T): T {
+  if (DownloadError.isInstance(value)) {
+    return redactDownloadError(value) as T;
+  }
   return replaceProperties(value, {
     args: redactTelemetryValue,
     tools: redactTools,
@@ -20,6 +23,15 @@ export function redactTelemetryCredentials<T>(value: T): T {
     lastError: redactTelemetryCredentials,
     // Provider errors carry the same request body outside request metadata.
     requestBodyValues: redactBody,
+  });
+}
+
+function redactDownloadError(error: DownloadError): DownloadError {
+  return new DownloadError({
+    url: '[redacted]',
+    statusCode: error.statusCode,
+    statusText: error.statusText,
+    message: 'Failed to download a file.',
   });
 }
 
