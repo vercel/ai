@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url';
 // Maximum median import time in milliseconds. Raise a limit only when the
 // increase is justified, and explain why in the pull request.
 const limits = {
-  ai: 190,
+  // The unchanged main build can reach ~208 ms on slower Vercel CI runners.
+  ai: 230,
   '@ai-sdk/openai': 145,
   '@ai-sdk/openai-compatible': 135,
   '@ai-sdk/anthropic': 145,
@@ -40,7 +41,7 @@ console.log(performance.now() - start);`,
   const median = (times[iterations / 2 - 1] + times[iterations / 2]) / 2;
   const ok = median <= limit;
   console.log(
-    `${ok ? '✅' : '❌'} ${name}: ${median.toFixed(1)} ms (limit ${limit} ms)`,
+    `${ok ? '✅' : '❌'} ${name}: ${median.toFixed(1)} ms (limit ${limit} ms; min ${times[0].toFixed(1)} ms, max ${times[times.length - 1].toFixed(1)} ms)`,
   );
   failed ||= !ok;
 }
