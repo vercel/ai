@@ -229,6 +229,15 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           'https://docs.cloud.google.com/vertex-ai/generative-ai/docs/priority-paygo',
       });
     }
+    if (googleOptions?.store != null && isVertexProvider) {
+      warnings.push({
+        type: 'other',
+        message:
+          "'store' is a Gemini API option and is not supported on Vertex AI. " +
+          'It will be ignored with the current Google provider ' +
+          `(${config.provider}).`,
+      });
+    }
     if (
       (googleOptions?.sharedRequestType || googleOptions?.requestType) &&
       !isVertexProvider
@@ -257,6 +266,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     const bodyServiceTier = isVertexProvider
       ? undefined
       : googleOptions?.serviceTier;
+    const bodyStore = isVertexProvider ? undefined : googleOptions?.store;
 
     // personGeneration, prominentPeople and imageOutputOptions are only
     // supported by the Vertex AI API, the Gemini API rejects them.
@@ -446,6 +456,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         cachedContent: googleOptions?.cachedContent,
         labels: googleOptions?.labels,
         serviceTier: bodyServiceTier,
+        ...(bodyStore != null && { store: bodyStore }),
         ...(googleOptions?.continuationToken != null && {
           continuationToken: googleOptions.continuationToken,
         }),

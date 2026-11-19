@@ -42,6 +42,9 @@ export const googleProviderOptions = {
       description: 'Stream function arguments. Vertex AI only.',
     },
     serviceTier: { description: 'Service tier. Gemini API only.' },
+    store: {
+      description: 'Whether to log to Logs and Datasets. Gemini API only.',
+    },
     continuationToken: {
       description: 'Resume a response using its continuation token.',
     },
@@ -260,6 +263,7 @@ function createGoogleLanguageModelEntry(
         },
         requestType: { condition: 'Only supported on the Vertex AI API.' },
         serviceTier: { condition: 'Only supported on the Gemini API.' },
+        store: { condition: 'Only supported on the Gemini API.' },
         streamFunctionCallArguments: {
           condition:
             'Only supported for streaming requests on the Vertex AI API with Gemini 3 or newer.',
