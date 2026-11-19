@@ -5,11 +5,11 @@ import { fileURLToPath } from 'node:url';
 // Maximum median import time in milliseconds. Raise a limit only when the
 // increase is justified, and explain why in the pull request.
 const limits = {
-  ai: 115,
-  '@ai-sdk/openai': 95,
-  '@ai-sdk/openai-compatible': 75,
-  '@ai-sdk/anthropic': 80,
-  '@ai-sdk/google': 80,
+  ai: 190,
+  '@ai-sdk/openai': 145,
+  '@ai-sdk/openai-compatible': 135,
+  '@ai-sdk/anthropic': 145,
+  '@ai-sdk/google': 155,
 };
 const iterations = 50;
 const directory = dirname(fileURLToPath(import.meta.url));

@@ -160,8 +160,7 @@
         "^build"
       ],
       "tags": [
-        "ci",
-        "ci:cpus:4"
+        "ci"
       ]
     },
     "check-bundle-size": {
