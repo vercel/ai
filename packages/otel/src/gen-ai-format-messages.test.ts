@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   formatInputMessages,
   formatModelMessages,
+  formatOutputContent,
   formatOutputMessages,
   formatObjectOutputMessages,
   formatSystemInstructions,
@@ -800,5 +801,307 @@ describe('formatModelMessages', () => {
     expect(
       formatModelMessages({ prompt: undefined, messages: undefined }),
     ).toMatchInlineSnapshot(`[]`);
+  });
+
+  it('should format all assistant content parts in order', () => {
+    expect(
+      formatModelMessages({
+        prompt: undefined,
+        messages: [
+          {
+            role: 'assistant',
+            content: [
+              { type: 'text', text: 'Before' },
+              { type: 'reasoning', text: 'Thinking' },
+              {
+                type: 'reasoning-file',
+                data: 'cmVhc29u',
+                mediaType: 'image/png',
+              },
+              { type: 'custom', kind: 'anthropic.compaction' },
+              { type: 'file', data: 'aW1hZ2U=', mediaType: 'image/jpeg' },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'search',
+                input: { q: 'test' },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'search',
+                output: { type: 'json', value: { hits: 1 } },
+              },
+              {
+                type: 'tool-approval-request',
+                approvalId: 'approval-1',
+                toolCallId: 'call-2',
+              },
+              { type: 'text', text: 'After' },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval-1',
+                approved: false,
+                reason: 'not allowed',
+              },
+            ],
+          },
+        ],
+      }),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "parts": [
+            {
+              "content": "Before",
+              "type": "text",
+            },
+            {
+              "content": "Thinking",
+              "type": "reasoning",
+            },
+            {
+              "content": "cmVhc29u",
+              "mime_type": "image/png",
+              "modality": "image",
+              "type": "blob",
+            },
+            {
+              "kind": "anthropic.compaction",
+              "type": "custom",
+            },
+            {
+              "content": "aW1hZ2U=",
+              "mime_type": "image/jpeg",
+              "modality": "image",
+              "type": "blob",
+            },
+            {
+              "arguments": {
+                "q": "test",
+              },
+              "id": "call-1",
+              "name": "search",
+              "type": "tool_call",
+            },
+            {
+              "id": "call-1",
+              "response": {
+                "hits": 1,
+              },
+              "type": "tool_call_response",
+            },
+            {
+              "approval_id": "approval-1",
+              "reason": undefined,
+              "tool_call_id": "call-2",
+              "type": "tool_approval_request",
+            },
+            {
+              "content": "After",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "parts": [
+            {
+              "approval_id": "approval-1",
+              "approved": false,
+              "reason": "not allowed",
+              "type": "tool_approval_response",
+            },
+          ],
+          "role": "tool",
+        },
+      ]
+    `);
+  });
+});
+
+describe('formatOutputContent', () => {
+  it('should preserve the order and boundaries of content parts', () => {
+    expect(
+      formatOutputContent({
+        content: [
+          { type: 'text', text: 'Summary of earlier work.' },
+          { type: 'reasoning', text: 'I should look this up.' },
+          { type: 'text', text: 'Looking it up now.' },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'lookup',
+            input: { id: 7 },
+          },
+        ],
+        finishReason: 'tool-calls',
+      }),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "finish_reason": "tool_call",
+          "parts": [
+            {
+              "content": "Summary of earlier work.",
+              "type": "text",
+            },
+            {
+              "content": "I should look this up.",
+              "type": "reasoning",
+            },
+            {
+              "content": "Looking it up now.",
+              "type": "text",
+            },
+            {
+              "arguments": {
+                "id": 7,
+              },
+              "id": "call-1",
+              "name": "lookup",
+              "type": "tool_call",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
+  });
+
+  it('should format all content part types', () => {
+    const file = {
+      base64: 'aW1hZ2U=',
+      uint8Array: new Uint8Array(),
+      mediaType: 'image/png',
+    };
+    const toolCall = {
+      type: 'tool-call' as const,
+      toolCallId: 'call-2',
+      toolName: 'delete',
+      input: {},
+    };
+
+    expect(
+      formatOutputContent({
+        content: [
+          { type: 'reasoning', text: '' },
+          { type: 'reasoning-file', file },
+          { type: 'custom', kind: 'anthropic.compaction' },
+          { type: 'file', file },
+          {
+            type: 'source',
+            sourceType: 'url',
+            id: 'source-1',
+            url: 'https://example.com',
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'search',
+            input: {},
+            output: { hits: 1 },
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-error',
+            toolCallId: 'call-3',
+            toolName: 'search',
+            input: {},
+            error: new Error('search failed'),
+          },
+          {
+            type: 'tool-approval-request',
+            approvalId: 'approval-1',
+            toolCall,
+          },
+          {
+            type: 'tool-approval-response',
+            approvalId: 'approval-1',
+            toolCall,
+            approved: false,
+            reason: 'not allowed',
+          },
+        ],
+        finishReason: 'stop',
+      }),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "finish_reason": "stop",
+          "parts": [
+            {
+              "content": "",
+              "type": "reasoning",
+            },
+            {
+              "content": "aW1hZ2U=",
+              "mime_type": "image/png",
+              "modality": "image",
+              "type": "blob",
+            },
+            {
+              "kind": "anthropic.compaction",
+              "type": "custom",
+            },
+            {
+              "content": "aW1hZ2U=",
+              "mime_type": "image/png",
+              "modality": "image",
+              "type": "blob",
+            },
+            {
+              "id": "call-1",
+              "response": {
+                "hits": 1,
+              },
+              "type": "tool_call_response",
+            },
+            {
+              "id": "call-3",
+              "response": "Error: search failed",
+              "type": "tool_call_response",
+            },
+            {
+              "approval_id": "approval-1",
+              "reason": undefined,
+              "tool_call_id": "call-2",
+              "type": "tool_approval_request",
+            },
+            {
+              "approval_id": "approval-1",
+              "approved": false,
+              "reason": "not allowed",
+              "type": "tool_approval_response",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
+  });
+
+  it('should skip empty text parts without provider metadata', () => {
+    expect(
+      formatOutputContent({
+        content: [
+          { type: 'text', text: '' },
+          { type: 'text', text: '', providerMetadata: { test: { a: 1 } } },
+        ],
+        finishReason: 'stop',
+      })[0].parts,
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "",
+          "type": "text",
+        },
+      ]
+    `);
   });
 });

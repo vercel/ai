@@ -1,5 +1,51 @@
 # @ai-sdk/otel
 
+## 1.0.177
+
+### Patch Changes
+
+- e403988: fix(otel): end the span of a model call when a stream retry or a steering interrupt starts a new one
+- Updated dependencies [e403988]
+- Updated dependencies [b792b56]
+  - ai@7.0.177
+
+## 1.0.176
+
+### Patch Changes
+
+- ai@7.0.176
+
+## 1.0.175
+
+### Patch Changes
+
+- ai@7.0.175
+
+## 1.0.174
+
+### Patch Changes
+
+- 71410a4: fix(otel): record `gen_ai.output.messages` parts in the order the model produced them
+
+  Output messages previously grouped parts by type (reasoning, then all text joined into one part, then tool calls), so they did not match the same assistant message in the next step's `gen_ai.input.messages`. Output parts now follow the content order, text blocks are no longer merged, and file, reasoning file, custom, tool error, and tool approval parts are emitted on both the output and input side. The root span records the content of all steps in order, including text from earlier steps. Adds `formatOutputContent` and deprecates `formatOutputMessages`.
+
+- b0fccbd: fix(otel): redact Google MCP server credentials in tool definitions
+
+  Plain `google.mcp_server` tool definitions do not carry a provider-owned
+  telemetry redaction annotation, for example when they are built by hand or come
+  from an older `@ai-sdk/google` version. Both OTel integrations now redact every
+  `google.mcp_server` header value in telemetry-only copies, so MCP connector
+  credentials no longer reach `ai.prompt.tools` or `gen_ai.tool.definitions`.
+
+- Updated dependencies [3bea041]
+- Updated dependencies [30d35eb]
+- Updated dependencies [fab7478]
+- Updated dependencies [10ff0b1]
+- Updated dependencies [718824c]
+- Updated dependencies [d99098a]
+  - ai@7.0.174
+  - @ai-sdk/provider@4.0.39
+
 ## 1.0.173
 
 ### Patch Changes

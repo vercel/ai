@@ -23,8 +23,21 @@ The content sync generates `apps/docs/content/` from three reviewed sources:
 return 404. Set `DOCS_ALL_VERSIONS=1` to include them. Builds always include
 every version.
 
-Generated content, Fumadocs source files, and Next.js output are ignored by
-Git. Run the complete local validation with:
+On production deployments (`VERCEL_ENV=production`), `build:site` also runs
+`build-search-index`, which extracts each page's frontmatter and search sections
+into `apps/docs/.search-index/`, one module per version. The search API indexes
+those modules instead of the compiled pages, so the first search on a new
+function instance does not load every page. Preview deployments and local
+builds skip that step and search the compiled pages. To exercise the production
+search path locally:
+
+```bash
+VERCEL_ENV=production pnpm --filter ai-sdk-docs build:site
+pnpm --filter ai-sdk-docs start:site
+```
+
+Generated content, Fumadocs source files, the search index, and Next.js output
+are ignored by Git. Run the complete local validation with:
 
 ```bash
 pnpm --filter ai-sdk-docs validate:site

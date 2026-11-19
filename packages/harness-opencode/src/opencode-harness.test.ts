@@ -109,6 +109,7 @@ const harnessUtilsMocks = vi.hoisted(() => {
       abortSignal: AbortSignal;
       reason: 'open' | 'reconnect';
     }) => Promise<unknown>;
+    keepAliveMs: number | undefined;
     reconnect:
       | {
           readonly maxElapsedMs?: number;
@@ -122,6 +123,7 @@ const harnessUtilsMocks = vi.hoisted(() => {
   class MockSandboxChannel {
     sent: unknown[] = [];
     closed = false;
+    readonly keepAliveMs: number | undefined;
     readonly reconnect:
       | {
           readonly maxElapsedMs?: number;
@@ -137,11 +139,13 @@ const harnessUtilsMocks = vi.hoisted(() => {
     constructor({
       connect,
       reconnect,
+      keepAliveMs,
     }: {
       connect: (options: {
         abortSignal: AbortSignal;
         reason: 'open' | 'reconnect';
       }) => Promise<unknown>;
+      keepAliveMs?: number;
       reconnect?: {
         readonly maxElapsedMs?: number;
         readonly initialDelayMs?: number;
@@ -150,6 +154,7 @@ const harnessUtilsMocks = vi.hoisted(() => {
     }) {
       this.connect = connect;
       this.reconnect = reconnect;
+      this.keepAliveMs = keepAliveMs;
       channels.push(this);
     }
 
@@ -232,6 +237,8 @@ vi.mock('node:fs/promises', async importOriginal => {
       const [input] = args;
       const filePath = typeof input === 'string' ? input : String(input);
       if (filePath.endsWith('/bridge/index.mjs')) return '// mock bridge\n';
+      if (filePath.endsWith('/bridge/opencode-read-plugin.mjs'))
+        return '// mock read plugin\n';
       if (filePath.endsWith('/bridge/host-tool-mcp.mjs'))
         return '// mock host-tool-mcp\n';
       if (filePath.endsWith('/bridge/pnpm-lockfile.yaml'))
@@ -457,6 +464,7 @@ describe('createOpenCode adapter', () => {
       mintBridgeToken,
       portEndpoint,
       reconnect,
+      keepAliveMs: 100,
     });
     expect(
       warn.mock.calls.filter(([message]) =>
@@ -506,6 +514,9 @@ describe('createOpenCode adapter', () => {
     expect(
       harnessUtilsMocks.channels.map(channel => channel.reconnect),
     ).toEqual([reconnect, reconnect]);
+    expect(
+      harnessUtilsMocks.channels.map(channel => channel.keepAliveMs),
+    ).toEqual([100, 100]);
     await attachedSession.doDetach();
   });
 
@@ -1806,6 +1817,7 @@ describe('createOpenCode adapter', () => {
       expect(paths).toEqual([
         '.harness-bootstrap/opencode/bridge.mjs',
         '.harness-bootstrap/opencode/host-tool-mcp.mjs',
+        '.harness-bootstrap/opencode/opencode-read-plugin.mjs',
         '.harness-bootstrap/opencode/package.json',
         '.harness-bootstrap/opencode/pnpm-lock.yaml',
         '.harness-bootstrap/opencode/pnpm-workspace.yaml',
