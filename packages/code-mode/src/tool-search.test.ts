@@ -2,7 +2,7 @@ import { generateText, isStepCount, tool, toolSearch } from 'ai';
 import { MockLanguageModelV4 } from 'ai/test';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
-import { experimental_codeModeTool as codeModeTool } from '../dist/index.js';
+import { experimental_codeModeTool as codeModeTool } from './index.js';
 
 describe('tool search through code mode', () => {
   it('discovers tools between sandbox executions and resets discovery between generations', async () => {

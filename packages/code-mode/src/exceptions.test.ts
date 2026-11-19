@@ -5,7 +5,7 @@ import {
   CodeModeDetachedBridgeRequestError,
   CodeModeToolApprovalRequiredError,
   experimental_runCodeMode as runCodeMode,
-} from '../dist/index.js';
+} from './index.js';
 import { delay } from './utils/test-helpers.js';
 
 describe('exceptions and serialization', () => {
