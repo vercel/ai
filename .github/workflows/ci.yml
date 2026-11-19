@@ -59,9 +59,12 @@ jobs:
         uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3
         with:
           runtime: node@24
-          cache: true
-          save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-          require-lockfile: true
+          install: false
+
+      # Installing the whole workspace is slow on Windows, so install only the
+      # packages with a `test:windows` script and their dependencies.
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --filter "@ai-sdk/mcp..."
 
       # pnpm's Node.js runtime excludes npm/npx, which the Windows spawn test uses.
       - name: Install npm and npx
