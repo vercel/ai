@@ -54,4 +54,5 @@ When adding new packages under `packages`, please ensure they are added to `/tsc
 | `vue`     | `@ai-sdk/vue`     | Vue composables             |
 | `svelte`  | `@ai-sdk/svelte`  | Svelte stores and utilities |
 | `angular` | `@ai-sdk/angular` | Angular services            |
+| `ember`   | `@ai-sdk/ember`   | Ember tracked classes       |
 | `rsc`     | `@ai-sdk/rsc`     | React Server Components     |

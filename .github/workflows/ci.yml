@@ -95,7 +95,7 @@ jobs:
           - shard: next-telemetry
             filters: --filter=@example/next-openai-kasada-bot-protection --filter=@example/next-openai-pages --filter=@example/next-openai-rate-limits --filter=@example/next-openai-telemetry --filter=@example/next-openai-telemetry-sentry
           - shard: other-frameworks
-            filters: --filter=@example/angular --filter=@example/nest --filter=@example/nuxt-openai --filter=@example/sveltekit-openai
+            filters: --filter=@example/angular --filter=@example/ember --filter=@example/nest --filter=@example/nuxt-openai --filter=@example/sveltekit-openai
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

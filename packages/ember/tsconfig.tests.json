@@ -1,0 +1,12 @@
+{
+  "extends": "./node_modules/@vercel/ai-tsconfig/ts-library.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "noEmit": true,
+    "emitDeclarationOnly": false,
+    "declaration": false,
+    "declarationMap": false,
+    "types": ["ember-source/types", "@glint/ember-tsc/types"]
+  },
+  "include": ["src/**/*.ts", "tests/**/*.ts", "tests/**/*.gts"]
+}

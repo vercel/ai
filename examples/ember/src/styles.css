@@ -1,0 +1,41 @@
+body {
+  font-family: system-ui, sans-serif;
+  max-width: 48rem;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+nav {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+button[aria-pressed="true"] {
+  font-weight: bold;
+}
+
+form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+input,
+textarea {
+  flex: 1 1 100%;
+}
+
+.message {
+  margin-bottom: 1rem;
+}
+
+pre,
+.message p {
+  white-space: pre-wrap;
+}
+
+[role="alert"] {
+  color: #b00020;
+}

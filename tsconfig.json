@@ -64,6 +64,9 @@
       "path": "packages/elevenlabs"
     },
     {
+      "path": "packages/ember"
+    },
+    {
       "path": "packages/fal"
     },
     {

@@ -22,7 +22,7 @@ This is a **monorepo** using pnpm workspaces and Turborepo.
 | `packages/provider`       | Provider interface specifications (`@ai-sdk/provider`)                               |
 | `packages/provider-utils` | Shared utilities for providers and core (`@ai-sdk/provider-utils`)                   |
 | `packages/<provider>`     | AI provider implementations (openai, anthropic, google, azure, amazon-bedrock, etc.) |
-| `packages/<framework>`    | UI framework integrations (react, vue, svelte, angular, rsc)                         |
+| `packages/<framework>`    | UI framework integrations (react, vue, svelte, angular, ember, rsc)                  |
 | `packages/codemod`        | Automated migrations for major releases                                              |
 | `examples/`               | Example applications (ai-functions, next-openai, etc.)                               |
 | `content/`                | Documentation source files (MDX)                                                     |

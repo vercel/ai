@@ -1,0 +1,38 @@
+{
+  "name": "@example/ember",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "concurrently 'vite' 'tsx watch src/server.ts'",
+    "build": "vite build",
+    "type-check": "ember-tsc --noEmit",
+    "clean": "del-cli dist"
+  },
+  "dependencies": {
+    "@ai-sdk/ember": "workspace:*",
+    "ai": "workspace:*",
+    "dotenv": "16.4.5",
+    "express": "5.0.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@babel/core": "8.1.2",
+    "@babel/plugin-transform-typescript": "8.0.6",
+    "@embroider/core": "4.6.10",
+    "@embroider/macros": "1.21.4",
+    "@embroider/vite": "1.8.0",
+    "@glimmer/component": "2.2.1",
+    "@glint/ember-tsc": "1.14.3",
+    "@glint/template": "1.11.1",
+    "@rollup/plugin-babel": "7.1.0",
+    "@types/express": "5.0.0",
+    "@types/node": "22.19.19",
+    "babel-plugin-ember-template-compilation": "4.0.1",
+    "concurrently": "^9.2.1",
+    "ember-source": "7.4.0",
+    "tsx": "4.23.12",
+    "typescript": "6.0.3",
+    "vite": "^7.3.7"
+  }
+}
