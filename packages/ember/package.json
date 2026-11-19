@@ -1,0 +1,93 @@
+{
+  "name": "@ai-sdk/ember",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Ember implementation of ai-sdk.",
+  "license": "Apache-2.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "pnpm clean && tsdown",
+    "build:watch": "pnpm clean && tsdown --watch",
+    "clean": "del-cli dist *.tsbuildinfo",
+    "type-check": "tsc --build && ember-tsc --noEmit --project tsconfig.tests.json",
+    "test": "vitest --config vitest.config.ts --run",
+    "test:update": "vitest --config vitest.config.ts --run -u",
+    "test:watch": "vitest --config vitest.config.ts"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    "./addon-main.js": "./addon-main.cjs",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist/**/*",
+    "src",
+    "addon-main.cjs",
+    "CHANGELOG.md",
+    "README.md"
+  ],
+  "ember-addon": {
+    "version": 2,
+    "type": "addon",
+    "main": "addon-main.cjs"
+  },
+  "dependencies": {
+    "@ai-sdk/provider-utils": "workspace:*",
+    "@embroider/addon-shim": "^1.11.0",
+    "ai": "workspace:*"
+  },
+  "devDependencies": {
+    "@babel/core": "8.1.2",
+    "@babel/plugin-transform-typescript": "8.0.6",
+    "@embroider/core": "4.6.10",
+    "@embroider/macros": "1.21.4",
+    "@embroider/vite": "1.8.0",
+    "@glimmer/component": "2.2.1",
+    "@glint/ember-tsc": "1.14.3",
+    "@glint/template": "1.11.1",
+    "@rollup/plugin-babel": "7.1.0",
+    "@types/node": "22.19.19",
+    "@vercel/ai-tsconfig": "workspace:*",
+    "@vercel/ai-tsdown-config": "workspace:*",
+    "@vitest/browser": "4.1.11",
+    "@vitest/browser-playwright": "4.1.11",
+    "babel-plugin-ember-template-compilation": "4.0.1",
+    "ember-source": "7.4.0",
+    "playwright": "^1.61.1",
+    "tsdown": "^0.23.0",
+    "typescript": "6.0.3",
+    "vite": "^7.3.7",
+    "vitest": "4.1.11",
+    "zod": "4.6.7"
+  },
+  "peerDependencies": {
+    "ember-source": ">= 7.1.0"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "homepage": "https://ai-sdk.dev/docs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vercel/ai",
+    "directory": "packages/ember"
+  },
+  "bugs": {
+    "url": "https://github.com/vercel/ai/issues"
+  },
+  "sideEffects": false,
+  "keywords": [
+    "ai",
+    "ember",
+    "ember-addon"
+  ]
+}

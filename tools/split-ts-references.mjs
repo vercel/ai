@@ -23,9 +23,13 @@ const WITH_EXAMPLES_CONFIG = 'tsconfig.with-examples.json';
  * out of `tsconfig.with-examples.json`. `sveltekit-openai` imports `.svelte`
  * components, whose types are only resolvable via `svelte-check` (which the
  * example runs as its own `type-check` script); under plain `tsc` those imports
- * resolve to the ambient `*.svelte` module and fail.
+ * resolve to the ambient `*.svelte` module and fail. `ember` imports `.gts`
+ * components, which only `ember-tsc` understands (its `type-check` script).
  */
-const EXCLUDED_EXAMPLES = new Set(['examples/sveltekit-openai']);
+const EXCLUDED_EXAMPLES = new Set([
+  'examples/ember',
+  'examples/sveltekit-openai',
+]);
 
 const isPackageReference = reference => /^packages\/[^/]+$/.test(reference.path);
 const isExampleReference = reference =>

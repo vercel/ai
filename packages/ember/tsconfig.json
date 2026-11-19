@@ -1,0 +1,19 @@
+{
+  "extends": "./node_modules/@vercel/ai-tsconfig/ts-library.json",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": "src",
+    "outDir": "dist",
+    "types": ["ember-source/types"]
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["dist", "build", "node_modules", "tests", "tsdown.config.ts"],
+  "references": [
+    {
+      "path": "../ai"
+    },
+    {
+      "path": "../provider-utils"
+    }
+  ]
+}
