@@ -73,13 +73,13 @@ jobs:
       - name: Check for changes
         id: check-changes
         run: |
-          if git diff --quiet packages/gateway/src/gateway-model-catalog.ts packages/gateway/src/gateway-*-model-settings.ts; then
+          if git diff --quiet -- packages/gateway/src/gateway-model-catalog.ts packages/gateway/src/gateway-*-model-settings.ts; then
             echo "has-changes=false" >> "$GITHUB_OUTPUT"
             echo "No changes detected in model settings"
           else
             echo "has-changes=true" >> "$GITHUB_OUTPUT"
             echo "Changes detected in model settings"
-            git diff --stat packages/gateway/src/gateway-model-catalog.ts packages/gateway/src/gateway-*-model-settings.ts
+            git diff --stat -- packages/gateway/src/gateway-model-catalog.ts packages/gateway/src/gateway-*-model-settings.ts
           fi
 
       - name: Create changeset
