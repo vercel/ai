@@ -1,5 +1,67 @@
 # @ai-sdk/harness-acp
 
+## 1.0.128
+
+### Patch Changes
+
+- e845694: fix(harness-acp): validate alternate tool path interpretations
+- Updated dependencies [679b5b5]
+  - @ai-sdk/harness@1.0.188
+
+## 1.0.127
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.187
+
+## 1.0.126
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.186
+
+## 1.0.125
+
+### Patch Changes
+
+- f630e0d: fix(harness): update bridge zod dependency to 4.6.7 to address GHSA-mrhx-c7xc-m3w5
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/provider-utils@5.0.82
+  - @ai-sdk/harness@1.0.185
+
+## 1.0.124
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.184
+
+## 1.0.123
+
+### Patch Changes
+
+- 71bef69: feat(harness): require approval for sensitive workspace file changes in `allow-edits` permission mode
+- Updated dependencies [6d50947]
+- Updated dependencies [71bef69]
+  - @ai-sdk/provider-utils@5.0.81
+  - @ai-sdk/harness@1.0.183
+
+## 1.0.122
+
+### Patch Changes
+
+- 6f9d73f: fix(harness-acp): require approval for sensitive workspace file changes in `allow-edits` permission mode
+- Updated dependencies [2ebc78b]
+- Updated dependencies [1a94af3]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/harness@1.0.182
+
+## 1.0.121
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.181
+
 ## 1.0.120
 
 ### Patch Changes

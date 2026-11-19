@@ -4,16 +4,9 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { XaiModelIds } from '../xai-model-catalog';
 
-export type XaiResponsesModelId =
-  | 'grok-4.20-non-reasoning'
-  | 'grok-4.20-reasoning'
-  | 'grok-4.3'
-  | 'grok-4.5'
-  | 'grok-4.6'
-  | 'grok-4.7'
-  | 'grok-latest'
-  | (string & {});
+export type XaiResponsesModelId = XaiModelIds['language'] | (string & {});
 
 /**
  * @see https://docs.x.ai/docs/api-reference#create-new-response

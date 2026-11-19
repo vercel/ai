@@ -8,6 +8,6 @@
     "@modelcontextprotocol/sdk": "1.32.2",
     "@xai-official/grok": "1.0.77",
     "ws": "8.21.0",
-    "zod": "4.4.3"
+    "zod": "4.6.7"
   }
 }

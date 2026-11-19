@@ -6,6 +6,7 @@ description: Learn how to use HeyGen with AI Gateway and the direct provider.
 # HeyGen Provider
 
 The [HeyGen](https://developers.heygen.com/docs/models/heygen-video) provider supports `heygen-video-1`, a video generation model with text-to-video, image-to-video, and reference-to-video modes. Generated clips include audio.
+It also supports [HeyGen Decision](#decision-models) models, which classify, check, and score text, images, and video.
 You can use HeyGen models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended) or connect directly with `@ai-sdk/heygen`.
 
 ```ts provider="heygen" model="heygen/heygen-video-1"
@@ -60,7 +61,7 @@ AI Gateway does not expose every API in `@ai-sdk/heygen`. Use the direct provide
   availability can differ.
 </Note>
 
-This provider supports video generation only. HeyGen's avatar, voice, translation, and video editing APIs are not included.
+This provider supports video generation and decision models. HeyGen's avatar, voice, translation, and video editing APIs are not included.
 
 ## Provider Instance
 
@@ -233,6 +234,141 @@ Pass an `Idempotency-Key` through the standard `headers` option when retrying th
 Submission and in-progress operation metadata exposes `videoId`, `mode`, and `resolution` directly under `providerMetadata.heygen`. Failed or cancelled operations also expose `failureCode` when HeyGen reports it.
 
 The current HeyGen video endpoint does not document token counts or credit consumption in its generation response. The provider returns the reported duration and dimensions without estimating those quantities. Reported inference timing is preserved per video.
+
+## Decision Models
+
+Use `heygen.decisionModel()` with
+[`experimental_decide`](/docs/reference/ai-sdk-core/decide) to call the
+[HeyGen Decision API](https://developers.heygen.com/docs/models/heygen-decision).
+This API is experimental and may change in patch releases.
+
+```ts
+import { heygen } from '@ai-sdk/heygen';
+import { experimental_decide as decide } from 'ai';
+
+const result = await decide({
+  model: heygen.decisionModel('heygen-decision-1'),
+  state:
+    'Video export fails for everyone on our team after today’s update. We have no workaround.',
+  questions: {
+    team: {
+      type: 'choice',
+      instructions: 'Which support team should handle this request?',
+      criteria: {
+        video: 'Video creation, rendering, or export problems',
+        account: 'Sign-in, access, or workspace administration',
+        billing: 'Payments, invoices, or subscription charges',
+      },
+    },
+    blocked: {
+      type: 'boolean',
+      instructions: 'Is the customer unable to work without a workaround?',
+    },
+    impact: {
+      type: 'score',
+      instructions: 'How much does this issue affect the customer’s work?',
+      criteria: ['Cosmetic', 'Slower, with a workaround', 'Blocked'],
+    },
+  },
+});
+
+result.answers.blocked.probability; // P(true), from 0 to 1
+result.answers.team.choice; // 'video' | 'account' | 'billing'
+result.answers.impact.score; // Expected zero-based level, from 0 to 2
+```
+
+`heygen-decision-1` and `heygen-decision-1-turbo` are available. The provider
+maps SDK `boolean` questions to HeyGen's native `noul` type and returns Choice
+and Score probability distributions without rounding. Box questions are
+unsupported.
+
+### Images and video
+
+Add image and video file parts to `state`. The provider sends them as HeyGen
+`assets` and keeps text and JSON parts in the native `state`. HeyGen reads
+images first, then videos, then the state, each in request order, so describe
+each input's role in the text by its order:
+
+```ts
+import { readFileSync } from 'node:fs';
+
+const result = await decide({
+  model: heygen.decisionModel('heygen-decision-1'),
+  state: [
+    {
+      type: 'text',
+      text: 'The first image is the reference product; the video is the unboxing.',
+    },
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: readFileSync('reference.png'),
+    },
+    {
+      type: 'file',
+      mediaType: 'video/mp4',
+      data: readFileSync('unboxing.mp4'),
+    },
+  ],
+  questions: {
+    matches: {
+      type: 'boolean',
+      instructions: 'Does the unboxed product match the reference product?',
+    },
+  },
+});
+```
+
+Inline file data is sent as base64. When calling the model directly, HTTPS URL
+file data is passed to HeyGen as a URL, and a provider reference such as
+`{ type: 'reference', reference: { heygen: assetId } }` is sent as an uploaded
+HeyGen asset. `experimental_decide` downloads URL file state before calling the
+provider.
+
+### Confidence, legends, and response metadata
+
+HeyGen's confidence values and Score legends are available in
+`providerMetadata.heygen`, keyed by question ID. Confidence is distinct from the
+selected option's probability. Per-answer diagnostic warnings returned by HeyGen
+are available at `providerMetadata.heygen.answerWarnings`.
+
+```ts
+const metadata = result.providerMetadata?.heygen;
+console.log(metadata?.confidence); // Choice and Score confidence by question ID
+console.log(metadata?.legend); // Score index-to-description maps by question ID
+console.log(metadata?.answerWarnings); // Diagnostic warnings by question ID
+console.log(metadata?.requestId); // HeyGen request ID for support
+console.log(result.response.id); // HeyGen decision ID
+console.log(result.usage.inputTokens);
+```
+
+### Decision limits
+
+The provider validates these limits before sending the decision request:
+
+| Input          | Limit                                                                      |
+| -------------- | -------------------------------------------------------------------------- |
+| Questions      | 1–400; names nonempty, without colons, newlines, or surrounding whitespace |
+| Choice options | 1–255                                                                      |
+| Score levels   | 1–10, all non-null                                                         |
+| Media          | At most 4 images and 1 video; HTTPS URLs only                              |
+
+See HeyGen's [media limits](https://developers.heygen.com/docs/models/heygen-decision#media-limits)
+and [context limits](https://developers.heygen.com/docs/models/heygen-decision#context-limits)
+for API-enforced file-size and token limits. HeyGen decision models do not accept
+provider-specific options, `maxOutputTokens`, or `reasoning`; these produce
+unsupported warnings and are not sent to the API.
+
+### Decision Model Capabilities
+
+{/* model-capabilities:heygen-decision:start */}
+
+| Model                     | Boolean   | Choice    | Score     | Box       | Image Input | Reasoning | Max Output Tokens |
+| ------------------------- | --------- | --------- | --------- | --------- | ----------- | --------- | ----------------- |
+| `heygen-decision-1`       | <Check /> | <Check /> | <Check /> | <Cross /> | <Check />   | <Cross /> | <Cross />         |
+| `heygen-decision-1-turbo` | <Check /> | <Check /> | <Check /> | <Cross /> | <Check />   | <Cross /> | <Cross />         |
+
+{/* model-capabilities:heygen-decision:end */}
 
 ## Model Capabilities
 

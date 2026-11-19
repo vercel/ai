@@ -162,6 +162,8 @@ describe('resolveSerializableTools', () => {
         }),
       }),
       dynamicSearch: dynamicTool({
+        title: 'Dynamic search title',
+        metadata: { source: 'mcp' },
         inputSchema: jsonSchema({
           type: 'object',
           properties: { query: { type: 'string' } },
@@ -177,7 +179,11 @@ describe('resolveSerializableTools', () => {
       metadata: { source: 'docs' },
       strict: true,
     });
-    expect(resolved.dynamicSearch.type).toBe('dynamic');
+    expect(resolved.dynamicSearch).toMatchObject({
+      type: 'dynamic',
+      title: 'Dynamic search title',
+      metadata: { source: 'mcp' },
+    });
   });
 
   it('reconstructs function tools with Ajv validation', () => {

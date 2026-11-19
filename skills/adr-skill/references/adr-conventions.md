@@ -2,79 +2,34 @@
 
 ## Directory
 
-If the repo already has an ADR directory, keep it.
-
-If the repo has no ADR directory, choose based on project size:
-
-- **`docs/decisions/`** — MADR default, recommended for projects with existing `docs/` structure.
-- **`adr/`** — simpler alternative for smaller repos.
-
-Detection order (used by scripts): `contributing/decisions/`, `docs/decisions/`, `adr/`, `docs/adr/`, `docs/adrs/`, `decisions/`.
+Store ADRs in `contributing/decisions/` and keep its `README.md` index current.
 
 ## Filename Conventions
 
 Pattern: `YYYY-MM-DD-title-with-dashes.md`
 
-- `YYYY-MM-DD` is the ADR creation date (matches the `date` frontmatter field).
+- `YYYY-MM-DD` is the ADR creation date; keep it stable when updating the record.
 - Title uses lowercase, dashes, present-tense imperative verb phrase.
 - Examples: `2025-06-15-choose-database.md`, `2025-07-01-adopt-adrs.md`
 - Multiple ADRs on the same date are fine — the slug suffix disambiguates them.
 
-If a repo already uses slug-only filenames (no date prefix), follow that convention.
+## Sections
 
-## Minimal Sections
+Use Context and Problem Statement, Decision, and Alternatives Considered. More Information is optional. Include accepted tradeoffs in Decision and option-specific tradeoffs with the alternatives. Do not repeat them in a separate Consequences section.
 
-At minimum, every ADR must clearly include:
+Keep implementation plans and verification in issues and pull requests, linked from the ADR when useful. Do not add YAML frontmatter.
 
-1. **Context**: why the decision exists now, what constraints/drivers apply.
-2. **Decision**: what is chosen.
-3. **Consequences**: what becomes easier/harder, risks, costs, follow-ups.
+## Acceptance
 
-For agent-first ADRs, also ensure:
+An ADR is accepted when its pull request merges, therefore an explicit status on the ADR is unnecessary.
 
-- Constraints are explicit and measurable
-- Non-goals are stated
-- Follow-up tasks are identified
-
-## Status Values
-
-Track status in YAML front matter:
-
-```yaml
----
-status: proposed
-date: 2025-06-15
-decision-makers: Alice, Bob
----
-```
-
-Common statuses:
-
-| Status                        | Meaning                                                       |
-| ----------------------------- | ------------------------------------------------------------- |
-| `proposed`                    | Under discussion, not yet decided                             |
-| `accepted`                    | Decision is active and should be followed                     |
-| `rejected`                    | Considered but explicitly not adopted                         |
-| `deprecated`                  | Was accepted but no longer applies — explain replacement path |
-| `superseded by [title](link)` | Replaced by a newer ADR — always link both ways               |
-
-## YAML Front Matter Fields
-
-| Field             | Required | Description                                              |
-| ----------------- | -------- | -------------------------------------------------------- |
-| `status`          | Yes      | Current lifecycle state                                  |
-| `date`            | Yes      | Date of last status change (YYYY-MM-DD)                  |
-| `decision-makers` | Yes      | People who own the decision                              |
-| `consulted`       | No       | Subject-matter experts consulted (two-way communication) |
-| `informed`        | No       | Stakeholders kept up-to-date (one-way communication)     |
-
-The `consulted` and `informed` fields follow the RACI model and are useful for audit trails in larger teams.
+Do not add explicit status fields to ADRs or index entries. Keep the creation date in the filename and index. If a decision is deprecated or superseded, explain why in More Information and link any replacement in both directions.
 
 ## Mutability
 
 - Prefer appending new information with a date stamp over rewriting existing content.
 - If a decision is replaced, create a new ADR and explicitly supersede the old one.
-- Status changes and after-action notes are fine to edit in-place.
+- After-action notes are fine to edit in place.
 
 ## Categories (Large Projects)
 

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   assertCodexThreadPermissions,
   createCodexAppServerRuntime,
@@ -37,6 +37,7 @@ const server = vi.hoisted(() => ({
   steerResponse: undefined as
     | ((params: unknown) => Promise<unknown> | unknown)
     | undefined,
+  backgroundTerminalResponses: [] as unknown[],
 }));
 
 vi.mock('./codex-app-server-client', () => ({
@@ -126,6 +127,14 @@ vi.mock('./codex-app-server-client', () => ({
           }
         );
       }
+      if (method === 'thread/backgroundTerminals/list') {
+        return (
+          server.backgroundTerminalResponses.shift() ?? {
+            data: [],
+            nextCursor: null,
+          }
+        );
+      }
       return {};
     }
 
@@ -207,6 +216,7 @@ describe('Codex app-server runtime lifecycle', () => {
     server.hookResponse = undefined;
     server.threadModel = undefined;
     server.steerResponse = undefined;
+    server.backgroundTerminalResponses = [];
   });
 
   function createOptions({
@@ -271,7 +281,9 @@ describe('Codex app-server runtime lifecycle', () => {
       'initialize',
       'thread/start',
       'turn/start',
+      'thread/backgroundTerminals/list',
       'turn/start',
+      'thread/backgroundTerminals/list',
     ]);
     expect(
       server.clients[0]!.calls.find(call => call.method === 'thread/start')
@@ -316,7 +328,9 @@ describe('Codex app-server runtime lifecycle', () => {
         'initialize',
         'thread/start',
         'turn/start',
+        'thread/backgroundTerminals/list',
         'turn/start',
+        'thread/backgroundTerminals/list',
       ]);
       expect(streamStarts(emit)).toEqual([
         { type: 'stream-start', modelId: 'gpt-5.3-codex-resolved' },
@@ -385,9 +399,11 @@ describe('Codex app-server runtime lifecycle', () => {
       'initialize',
       'thread/start',
       'turn/start',
+      'thread/backgroundTerminals/list',
       'thread/unsubscribe',
       'thread/start',
       'turn/start',
+      'thread/backgroundTerminals/list',
     ]);
     await runtime.close();
   });
@@ -452,6 +468,7 @@ describe('Codex app-server runtime lifecycle', () => {
       'initialize',
       'thread/resume',
       'turn/start',
+      'thread/backgroundTerminals/list',
     ]);
     expect(
       server.clients[1]!.calls.find(call => call.method === 'thread/resume')
@@ -465,6 +482,7 @@ describe('Codex app-server runtime lifecycle', () => {
       'initialize',
       'thread/resume',
       'turn/start',
+      'thread/backgroundTerminals/list',
     ]);
     await runtime.close();
   });
@@ -518,6 +536,7 @@ describe('Codex app-server runtime lifecycle', () => {
       'initialize',
       'thread/resume',
       'turn/start',
+      'thread/backgroundTerminals/list',
     ]);
     const resumeParams = resumed.calls.find(
       call => call.method === 'thread/resume',
@@ -557,7 +576,9 @@ describe('Codex app-server runtime lifecycle', () => {
       'initialize',
       'thread/start',
       'turn/start',
+      'thread/backgroundTerminals/list',
       'turn/start',
+      'thread/backgroundTerminals/list',
     ]);
     const turnParams = client.calls
       .filter(call => call.method === 'turn/start')
@@ -633,8 +654,10 @@ describe('Codex app-server runtime lifecycle', () => {
       'hooks/list',
       'thread/start',
       'turn/start',
+      'thread/backgroundTerminals/list',
       'hooks/list',
       'turn/start',
+      'thread/backgroundTerminals/list',
     ]);
     await runtime.close();
   });
@@ -883,6 +906,7 @@ describe('Codex app-server runtime lifecycle', () => {
       'initialize',
       'thread/resume',
       'turn/start',
+      'thread/backgroundTerminals/list',
     ]);
     await runtime.close();
   });
@@ -917,6 +941,96 @@ describe('Codex app-server runtime lifecycle', () => {
     await runtime.runTurn(createOptions({ threadId: 'thread-1' }));
     expect(server.clients).toHaveLength(1);
     await runtime.close();
+  });
+
+  describe('background terminals', () => {
+    const runningTerminal = {
+      itemId: 'item-1',
+      processId: '1000',
+      command: 'sleep 45',
+      cwd: '/workspace',
+      osPid: null,
+      cpuPercent: null,
+      rssKb: null,
+    };
+
+    function backgroundTerminalListCalls(
+      client: (typeof server.clients)[number],
+    ) {
+      return client.calls.filter(
+        call => call.method === 'thread/backgroundTerminals/list',
+      );
+    }
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('resolves a completed turn only after its background terminals exit', async () => {
+      server.backgroundTerminalResponses = [
+        { data: [runningTerminal], nextCursor: null },
+      ];
+      const runtime = createCodexAppServerRuntime();
+      let settled = false;
+      const pending = runtime.runTurn(createOptions()).then(() => {
+        settled = true;
+      });
+      await vi.waitFor(() =>
+        expect(backgroundTerminalListCalls(server.clients[0]!)).toHaveLength(1),
+      );
+      const client = server.clients[0]!;
+      expect(backgroundTerminalListCalls(client)).toEqual([
+        {
+          method: 'thread/backgroundTerminals/list',
+          params: { threadId: 'thread-1', limit: 1 },
+        },
+      ]);
+      expect(settled).toBe(false);
+
+      await vi.advanceTimersByTimeAsync(1_000);
+      await pending;
+
+      expect(backgroundTerminalListCalls(client)).toHaveLength(2);
+      expect(client.closed).toBe(0);
+      await runtime.close();
+    });
+
+    it('stops waiting for background terminals when the turn is aborted', async () => {
+      server.backgroundTerminalResponses = [
+        { data: [runningTerminal], nextCursor: null },
+      ];
+      const runtime = createCodexAppServerRuntime();
+      const controller = new AbortController();
+      const pending = runtime.runTurn(
+        createOptions({ abortSignal: controller.signal }),
+      );
+      await vi.waitFor(() =>
+        expect(backgroundTerminalListCalls(server.clients[0]!)).toHaveLength(1),
+      );
+      const client = server.clients[0]!;
+
+      controller.abort();
+
+      await expect(pending).rejects.toThrow();
+      expect(vi.getTimerCount()).toBe(0);
+      expect(methods(client)).not.toContain('thread/backgroundTerminals/clean');
+      expect(client.closed).toBe(0);
+      await runtime.close();
+    });
+
+    it('closes the app-server when the background terminal list is invalid', async () => {
+      server.backgroundTerminalResponses = [{}];
+      const runtime = createCodexAppServerRuntime();
+
+      await expect(runtime.runTurn(createOptions())).rejects.toThrow(
+        'Codex app-server thread/backgroundTerminals/list returned an invalid response.',
+      );
+      expect(server.clients[0]!.closed).toBe(1);
+    });
   });
 });
 

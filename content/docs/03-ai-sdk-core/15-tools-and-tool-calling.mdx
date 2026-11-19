@@ -1458,6 +1458,13 @@ also supports direct `gs://` tool-result file references for Gemini 3 and later
 models with supported image and document MIME types. It downloads HTTP(S)
 tool-result URLs and sends their contents as inline data.
 
+<Note type="warning">
+  File URLs returned by tools are untrusted input. To validate DNS results when
+  the provider downloads them on Node.js, pass a `guarded-fetch` transport as
+  the provider's `fetch` option. See [Secure URL
+  Fetching](/docs/advanced/secure-url-fetching).
+</Note>
+
 In order to send multi-modal tool results, e.g. screenshots, back to the model,
 they need to be converted into a specific format.
 

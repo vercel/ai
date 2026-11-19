@@ -250,7 +250,8 @@ The following provider options are available:
 <Note>
   Supported reasoning efforts vary by model. GPT-5.6, GPT-6 Sol, GPT-6 Luna, and
   GPT-6.1 Terra support `'none'`, `'low'`, `'medium'`, `'high'`, `'xhigh'`, and
-  `'max'`. GPT-6 Astra and GPT-6.1 Sol do not support `'none'`.
+  `'max'`. GPT-6 Astra, GPT-6.1 Sol, GPT-6.2 Astra, and GPT-6.2 Sol do not
+  support `'none'`.
 </Note>
 
 <Note type="warning">
@@ -390,6 +391,10 @@ The following OpenAI-specific metadata may be returned:
   Cache comparison result. Contains `type` and, when supplied by OpenAI, `reason`,
   `cache_missed_tokens`, and `comparison_reusable_tokens`. Inner field names match
   the API response. Available on generation, streaming, and batch results.
+- **inputTransformations** _(optional)_
+  Input items that OpenAI changed before generation, such as dropped reasoning
+  items. Each entry contains `type`, `action`, `reason`, and, when supplied by
+  OpenAI, `id`. Available on generation, streaming, and batch results.
 
 #### Preserving Reasoning Across Turns
 
@@ -410,6 +415,24 @@ original request settings and history, and append changes where possible:
 - Prefer [OpenAI compaction](#compaction-1) when supported. With custom compaction,
   place summary items as late in the context as possible to limit reasoning loss.
   Configuration updates have the [compaction restrictions](#compaction) below.
+
+To check whether reasoning was dropped, read
+`providerMetadata.openai.inputTransformations`:
+
+```ts
+const result = await generateText({
+  model: openai.responses('gpt-6.2-astra'),
+  messages,
+});
+
+console.log(result.providerMetadata?.openai?.inputTransformations);
+// [{ id: 'rs_...', type: 'reasoning', action: 'removed', reason: 'prefix_mismatch' }]
+```
+
+Each removed reasoning item is listed with its `id` and a `reason`, for example
+`prefix_mismatch`, `model_mismatch`, or `end_user_mismatch`. OpenAI returns an
+empty array when nothing was removed. For streams, await
+`result.providerMetadata` after consuming the stream.
 
 See [OpenAI's preserved reasoning guide](https://developers.openai.com/api/docs/guides/preserved-reasoning).
 
@@ -1792,6 +1815,11 @@ When your own search function discovers tools, attach
 provider preserves the ordinary result and emits an `additional_tools` item
 immediately after it. Replaying the same messages preserves that insertion point.
 
+Because messages can contain replayed, client-supplied history, each entry only
+selects a tool that is registered in `tools`; the provider sends the definition
+it derives from that tool, including its description and input schema. Entries
+for tools that are not registered for the request are dropped with a warning.
+
 ```ts
 import {
   openai,
@@ -1849,6 +1877,7 @@ const messages: ModelMessage[] = [
 const tools = {
   search: tool({ inputSchema: z.object({}) }),
   list_issues: tool({
+    description: 'List Linear issues.',
     inputSchema: z.object({}),
     execute: async () => ({ issues: ['Example issue'] }),
     providerOptions: {
@@ -1875,15 +1904,88 @@ await generateText({
 });
 ```
 
-`additionalTools` currently accepts function definitions with `type: 'function'`,
-`name`, `parameters`, and optional `description` and `strict`. An empty array emits
-no item. These are OpenAI-format definitions; keep their names and schemas aligned
-with the SDK tools used for local validation and execution.
+`additionalTools` accepts OpenAI-format tool definitions:
+
+- `type: 'function'` with `name`, `parameters`, and optional `description`, `strict`
+  and `defer_loading`
+- `type: 'custom'` with `name` and optional `description` and `format`
+- `type: 'namespace'` with `name`, `description`, and a non-empty `tools` list of
+  function definitions
+
+Entries only select registered tools; the `description`, `parameters`,
+`strict`, `defer_loading`, and `format` in an entry are not sent. The provider
+sends the definition derived from the registered tool instead: function and
+namespace entries use that tool's description, input schema, `strict` setting,
+and `deferLoading` option, and custom entries use its `description` and `format`.
+A namespace entry loads only the registered tools whose names it lists. An entry
+can also name a tool that is already part of the request tools; the provider then
+sends that tool's definition again at the named position. Tools that set
+`allowedCallers` cannot be loaded from history, because an inserted definition
+cannot carry that restriction; their entries are dropped with a warning. When the
+request sets `allowedTools`, history can only load tools in that set, and
+namespace entries are not loaded. Register every tool you load this way, usually
+with `omitFromRequestTools: true`, and keep its name aligned with the entry. An
+empty array emits no item.
+
+##### Load tools at any point in the conversation
+
+To add tools somewhere other than after a tool result, add an empty system message
+with `providerOptions.openai.additionalTools` at that point. The Responses provider
+emits an `additional_tools` item in its place, so the earlier history and the
+top-level tool list stay unchanged. This requires `allowSystemInMessages: true`.
+The same registration check applies: every entry must refer to a tool in `tools`,
+and the provider sends the registered definition.
+
+```ts
+import {
+  openai,
+  type OpenAIResponsesSystemMessageOptions,
+} from '@ai-sdk/openai';
+
+messages.push(
+  {
+    role: 'system',
+    content: '',
+    providerOptions: {
+      openai: {
+        additionalTools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get the weather for a city.',
+            parameters: {
+              type: 'object',
+              properties: { city: { type: 'string' } },
+              required: ['city'],
+              additionalProperties: false,
+            },
+          },
+        ],
+      } satisfies OpenAIResponsesSystemMessageOptions,
+    },
+  },
+  { role: 'user', content: 'What is the weather in Rome?' },
+);
+
+await generateText({
+  model: openai.responses('gpt-5.4'),
+  tools, // includes get_weather with omitFromRequestTools: true and its description
+  messages,
+  allowSystemInMessages: true,
+});
+```
+
+The control message must have empty content. It can be combined with
+`reasoningEffortUpdate` or `textFormatUpdate` on the same message, in which case
+the configuration update comes first.
 
 `omitFromRequestTools: true` omits only the function's top-level Responses tool
 definition. Keep the function in `tools` and, if you use `activeTools`, include it
 there too: inactive tools cannot be executed. Use automatic tool choice for these
 functions; OpenAI cannot force or allow-list a tool absent from the top-level list.
+Omission only affects serialization: decide which tools a user may run with
+`activeTools` or by choosing which tools to register on the server, not by
+leaving them out of the request.
 
 Both `generateText` and `streamText` support this representation. For streaming,
 append `await result.responseMessages` when replaying the conversation. This
@@ -3377,6 +3479,8 @@ The following optional provider options are available for OpenAI completion mode
 
 | Model                 | Image Input | Audio Input | Object Generation | Tool Usage |
 | --------------------- | ----------- | ----------- | ----------------- | ---------- |
+| `gpt-6.2-astra`       | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-6.2-sol`         | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-6-astra`         | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-6.1-sol`         | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-6.1-terra`       | <Check />   | <Cross />   | <Check />         | <Check />  |
@@ -3431,6 +3535,8 @@ is supported.
 
 | Model                 | Reasoning | Reasoning Efforts                               | Temperature                                      | Top P                                            |
 | --------------------- | --------- | ----------------------------------------------- | ------------------------------------------------ | ------------------------------------------------ |
+| `gpt-6.2-astra`       | <Check /> | `low`, `medium`, `high`, `xhigh`, `max`         | <Cross />                                        | <Cross />                                        |
+| `gpt-6.2-sol`         | <Check /> | `low`, `medium`, `high`, `xhigh`, `max`         | <Cross />                                        | <Cross />                                        |
 | `gpt-6-astra`         | <Check /> | `low`, `medium`, `high`, `xhigh`, `max`         | <Cross />                                        | <Cross />                                        |
 | `gpt-6.1-sol`         | <Check /> | `low`, `medium`, `high`, `xhigh`, `max`         | <Cross />                                        | <Cross />                                        |
 | `gpt-6.1-terra`       | <Check /> | `none`, `low`, `medium`, `high`, `xhigh`, `max` | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
@@ -3669,6 +3775,13 @@ const model = openai.image('gpt-image-2.5-sunburst');
 ### Image Editing
 
 OpenAI's `gpt-image-*` models support powerful image editing capabilities. Pass input images via `prompt.images` to transform, combine, or edit existing images.
+
+<Note type="warning">
+  The provider downloads remote input images and masks before uploading them to
+  OpenAI, using the `fetch` option of `createOpenAI`. For untrusted URLs on
+  Node.js, pass a `guarded-fetch` transport there. See [Secure URL
+  Fetching](/docs/advanced/secure-url-fetching#opt-in-dns-protection-on-nodejs).
+</Note>
 
 #### Basic Image Editing
 
@@ -4229,3 +4342,33 @@ Decision models can also be accessed through `customProvider` aliases or
 use Gateway by default, or an explicitly configured default provider with an
 `decisionModel` method. See
 [model aliases and registries](/docs/ai-sdk-core/decisions#model-aliases-and-registries).
+
+## Extraction Models
+
+Create an experimental extraction model with `openai.extractionModel(modelId)`.
+It wraps an OpenAI language model and uses the Responses API's structured output
+to extract typed fields in one call.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { experimental_extract } from 'ai';
+
+const { answers } = await experimental_extract({
+  model: openai.extractionModel('gpt-6.1-sol'),
+  referenceDate: '2026-11-11',
+  state: 'Invoice INV-2041. Total due $1,250.00 by March 3.',
+  fields: {
+    invoiceNumber: { type: 'text', instructions: 'The invoice number' },
+    total: { type: 'number', instructions: 'Total due', decimals: 2 },
+    dueDate: { type: 'date', instructions: 'Payment due date' },
+  },
+});
+```
+
+The adapter supports every field type and returns `null` when the state has no
+value for a field. It does not return `pNull`, `confidence`, `guess`, or
+`source`, since a prompted model cannot give calibrated estimates or exact
+offsets. Image and PDF files are passed to the language model, which must
+support them. The adapter requests `reasoning: 'none'` by default. Models that
+do not support `'none'` use their lowest reasoning effort and return a
+compatibility warning. The adapter forwards `providerOptions.openai`. See [Extractions](/docs/ai-sdk-core/extractions).

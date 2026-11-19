@@ -233,6 +233,41 @@ describe('file approval predicates', () => {
     }
   });
 
+  it.each([
+    { name: 'write_file', target: 'notes.md', interrupts: false },
+    {
+      name: 'write_file',
+      target: '.agents/skills/test/SKILL.md',
+      interrupts: true,
+    },
+    { name: 'edit_file', target: '.deepagents/AGENTS.md', interrupts: true },
+    { name: 'delete', target: '.agents', interrupts: true },
+    {
+      name: 'read_file',
+      target: '.agents/skills/test/SKILL.md',
+      interrupts: false,
+    },
+  ])(
+    '$name of write-protected path $target requires approval=$interrupts',
+    async ({ name, target, interrupts }) => {
+      const config = buildInterruptOn({
+        permissionMode: 'allow-edits',
+        builtinToolFiltering: undefined,
+        workDir,
+        readableSkillRoots: [skill],
+      })!;
+      const when = config[name].when!;
+      await expect(
+        when({
+          toolCall: {
+            name,
+            args: { file_path: path.join(workDir, target) },
+          },
+        } as unknown as Parameters<typeof when>[0]),
+      ).resolves.toBe(interrupts);
+    },
+  );
+
   describe.each(['allow-reads', 'allow-edits'] as const)(
     'glob prefixes under %s',
     permissionMode => {

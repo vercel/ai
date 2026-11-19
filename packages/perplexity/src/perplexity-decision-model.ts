@@ -12,6 +12,7 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   postJsonToApi,
+  parseProviderOptions,
   resolve,
   serializeModelOptions,
   WORKFLOW_DESERIALIZE,
@@ -26,9 +27,13 @@ import {
   perplexityErrorToMessage,
 } from './perplexity-agent-api';
 
-import type { PerplexityDecisionModelId } from './perplexity-decision-model-options';
+import {
+  perplexityDecisionModelOptions,
+  type PerplexityDecisionModelId,
+} from './perplexity-decision-model-options';
 import {
   getPerplexityDecisionModelEntry,
+  perplexityProviderOptions,
   type perplexityDecisionModelLimits,
 } from './perplexity-model-catalog';
 
@@ -85,6 +90,11 @@ export class DecisionPerplexityModel implements DecisionModelV4 {
     const { decision } = getPerplexityDecisionModelEntry(
       this.modelId,
     ).capabilities;
+    const perplexityOptions = await parseProviderOptions({
+      provider: 'perplexity',
+      providerOptions,
+      schema: perplexityDecisionModelOptions,
+    });
     const entries = Object.entries(questions);
     if (entries.length === 0 || entries.length > decision.maxQuestions) {
       throw new InvalidArgumentError({
@@ -168,6 +178,8 @@ export class DecisionPerplexityModel implements DecisionModelV4 {
         model: this.modelId,
         state: convertToPerplexityDecisionState(state),
         questions: nativeQuestions,
+        mode: perplexityOptions?.mode,
+        max_staleness: perplexityOptions?.maxStaleness,
       },
       abortSignal,
       fetch: this.config.fetch,
@@ -229,13 +241,37 @@ export class DecisionPerplexityModel implements DecisionModelV4 {
         ...(reasoning != null && decision.reasoning === false
           ? [{ type: 'unsupported' as const, feature: 'reasoning' }]
           : []),
-        ...Object.keys(providerOptions?.perplexity ?? {}).map(option => ({
-          type: 'unsupported' as const,
-          feature: `providerOptions.perplexity.${option}`,
-        })),
+        ...Object.keys(providerOptions?.perplexity ?? {})
+          .filter(
+            option =>
+              !Object.prototype.hasOwnProperty.call(
+                perplexityProviderOptions.decision,
+                option,
+              ),
+          )
+          .map(option => ({
+            type: 'unsupported' as const,
+            feature: `providerOptions.perplexity.${option}`,
+          })),
       ],
       providerMetadata: {
         perplexity: {
+          ...(response.search_results != null && {
+            searchResults: response.search_results,
+          }),
+          ...(response.fetched_results != null && {
+            fetchedResults: response.fetched_results,
+          }),
+          ...(response.usage?.tool_calls_details != null && {
+            toolCalls: Object.fromEntries(
+              Object.entries(response.usage.tool_calls_details).map(
+                ([name, details]) => [
+                  name,
+                  { invocation: details.invocation ?? null },
+                ],
+              ),
+            ),
+          }),
           confidence: Object.fromEntries(
             Object.entries(response.answers).flatMap(([id, answer]) =>
               answer.type !== 'noul' && answer.confidence != null
@@ -286,10 +322,38 @@ const perplexityDecisionResponseSchema = lazySchema(() =>
           }),
         ]),
       ),
+      search_results: z
+        .array(
+          z.object({
+            title: z.string(),
+            url: z.string(),
+            snippet: z.string(),
+            date: z.string().nullish(),
+            last_updated: z.string().nullish(),
+          }),
+        )
+        .nullish(),
+      fetched_results: z
+        .array(
+          z.object({
+            title: z.string(),
+            url: z.string(),
+            snippet: z.string(),
+          }),
+        )
+        .nullish(),
       usage: z
         .object({
           input_tokens: z.number().nullish(),
           output_tokens: z.number().nullish(),
+          tool_calls_details: z
+            .record(
+              z.string(),
+              z.object({
+                invocation: z.number().nullish(),
+              }),
+            )
+            .nullish(),
         })
         .nullish(),
     }),

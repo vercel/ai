@@ -24,6 +24,7 @@ describe('createGrokBuild', () => {
 
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
     expect(settings.nonTextContentTypes).toEqual(['image']);
+    expect(settings.writeProtectedPaths).toEqual(['.grok']);
     expect(settings.prepareSandbox).toBeTypeOf('function');
     expect(settings.permissionModeMapping).toBeUndefined();
     if (settings.source.type !== 'npm-locked') {
@@ -255,6 +256,7 @@ describe('createGrokBuild', () => {
       startupTimeoutMs: 45_000,
       hostDisconnectTimeoutMs: 60_000,
       reconnect,
+      keepAliveMs: 100,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
     });
@@ -271,6 +273,7 @@ describe('createGrokBuild', () => {
       startupTimeoutMs: settings.startupTimeoutMs,
       hostDisconnectTimeoutMs: settings.hostDisconnectTimeoutMs,
       reconnect: settings.reconnect,
+      keepAliveMs: settings.keepAliveMs,
       mcpServers: settings.mcpServers,
       mintBridgeToken: settings.mintBridgeToken,
     }).toEqual({
@@ -286,6 +289,7 @@ describe('createGrokBuild', () => {
       startupTimeoutMs: 45_000,
       hostDisconnectTimeoutMs: 60_000,
       reconnect,
+      keepAliveMs: 100,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
     });

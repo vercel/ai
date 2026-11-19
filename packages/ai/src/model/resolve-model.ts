@@ -3,6 +3,7 @@ import {
   NoSuchModelError,
   type Experimental_DecisionModelV4 as DecisionModelV4,
   type EmbeddingModelV4,
+  type Experimental_ExtractionModelV4 as ExtractionModelV4,
   type Experimental_SpeechTranslationModelV4,
   type Experimental_VideoModelV4,
   type ImageModelV4,
@@ -15,6 +16,8 @@ import {
 import type { DecisionModel } from '../decide/decision-result';
 import type { DecisionProvider } from '../decide/decision-provider';
 import { UnsupportedModelVersionError } from '../error';
+import type { ExtractionModel } from '../extract/extraction-result';
+import type { ExtractionProvider } from '../extract/extraction-provider';
 import type { EmbeddingModel } from '../types/embedding-model';
 import type { LanguageModel } from '../types/language-model';
 import type { SpeechModel } from '../types/speech-model';
@@ -266,6 +269,44 @@ export function resolveDecisionModel(model: DecisionModel): DecisionModelV4 {
     supportedQuestionTypes: legacyModel.supportedQuestionTypes,
     doDecide: options => legacyModel.doEvaluate(options),
   };
+}
+
+export function resolveExtractionModel(
+  model: ExtractionModel,
+): ExtractionModelV4 {
+  if (typeof model === 'string') {
+    const provider = (globalThis.AI_SDK_DEFAULT_PROVIDER ??
+      gateway) as ExtractionProvider;
+
+    if (typeof provider.extractionModel !== 'function') {
+      throw new NoSuchModelError({
+        modelId: model,
+        modelType: 'extractionModel',
+        message:
+          'The default provider does not support extraction models. ' +
+          'Pass an extraction model instance or configure AI_SDK_DEFAULT_PROVIDER with an extractionModel method.',
+      });
+    }
+
+    const resolvedModel = provider.extractionModel(model);
+    if (resolvedModel == null) {
+      throw new NoSuchModelError({
+        modelId: model,
+        modelType: 'extractionModel',
+      });
+    }
+    model = resolvedModel;
+  }
+
+  const version: string = model.specificationVersion;
+  if (version !== 'v4') {
+    throw new UnsupportedModelVersionError({
+      version,
+      provider: model.provider,
+      modelId: model.modelId,
+    });
+  }
+  return model;
 }
 
 function getGlobalProvider(): ProviderV4 {
