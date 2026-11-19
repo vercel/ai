@@ -6,6 +6,11 @@ import type {
   ProviderOptionDefinitions,
 } from '@ai-sdk/provider';
 import type { AnthropicLanguageModelOptions } from './anthropic-language-model-options';
+import {
+  createModelCapabilities,
+  createModelCapabilitiesEndpoint,
+  declareModelProviderOptions,
+} from '@ai-sdk/provider-utils';
 
 type AnthropicLanguageProviderOption = keyof AnthropicLanguageModelOptions;
 
@@ -296,6 +301,26 @@ export function getAnthropicLanguageModelEntry(
     : createAnthropicLanguageModelEntry(modelId);
 }
 
+/** Returns declared Messages capabilities without making an API request. */
+export function anthropicModelCapabilities(
+  modelId: AnthropicModelIds['language'] | (string & {}),
+) {
+  const entry = Object.prototype.hasOwnProperty.call(
+    languageModelDefinitions,
+    modelId,
+  )
+    ? getAnthropicLanguageModelEntry(modelId)
+    : undefined;
+  return createModelCapabilities('anthropic', modelId, {
+    messages: createModelCapabilitiesEndpoint(
+      'language',
+      entry?.capabilities.language,
+      anthropicProviderOptions.language,
+      entry?.providerOptions.language,
+    ),
+  });
+}
+
 function createAnthropicLanguageModelEntry(
   modelId: string,
   documented?: DocumentedCapabilities,
@@ -347,7 +372,7 @@ function createAnthropicLanguageModelEntry(
       },
     },
     providerOptions: {
-      language: declareProviderOptions(
+      language: declareModelProviderOptions(
         anthropicProviderOptions.language,
         declared ? true : 'unknown',
         {
@@ -369,20 +394,6 @@ function createAnthropicLanguageModelEntry(
       },
     },
   };
-}
-
-/** Applies one default support value to every option, except the listed ones. */
-function declareProviderOptions<Option extends string>(
-  definitions: Readonly<Record<Option, ProviderOptionDefinition>>,
-  support: ModelCapability,
-  exceptions: Partial<Record<Option, ModelCapability>>,
-): Record<Option, ModelCapability> {
-  return Object.fromEntries(
-    (Object.keys(definitions) as Option[]).map(option => [
-      option,
-      exceptions[option] ?? support,
-    ]),
-  ) as Record<Option, ModelCapability>;
 }
 
 function resolveRuntimeDefinition(modelId: string): RuntimeDefinition {

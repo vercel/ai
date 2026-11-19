@@ -1,0 +1,113 @@
+---
+title: Model Capabilities
+description: Look up a model's capabilities and provider options from its provider's catalog.
+---
+
+# Model Capabilities
+
+Look up what a model supports before choosing settings or enabling features in your app.
+Each provider exports a synchronous function that reads its bundled model catalog.
+No API key or network request is needed.
+
+Choose a provider to see its function, input, and an abbreviated result.
+
+<Tabs items={['OpenAI', 'Anthropic', 'Google']} label="Model capability provider">
+  <Tab>
+
+```ts title="Input"
+import { openaiModelCapabilities } from '@ai-sdk/openai';
+
+const model = openaiModelCapabilities('gpt-5.6');
+```
+
+```ts title="Output (selected fields)"
+{
+  provider: 'openai',
+  modelId: 'gpt-5.6',
+  endpoints: {
+    responses: {
+      operation: 'language',
+      capabilities: { tools: { withReasoning: true } },
+      providerOptions: {
+        reasoningEffort: { description: 'Reasoning effort.', support: true },
+      },
+    },
+    chat: {
+      operation: 'language',
+      capabilities: { tools: { withReasoning: false } },
+    },
+  },
+}
+```
+
+  </Tab>
+  <Tab>
+
+```ts title="Input"
+import { anthropicModelCapabilities } from '@ai-sdk/anthropic';
+
+const model = anthropicModelCapabilities('claude-opus-4-6');
+```
+
+```ts title="Output (selected fields)"
+{
+  provider: 'anthropic',
+  modelId: 'claude-opus-4-6',
+  endpoints: {
+    messages: {
+      operation: 'language',
+      capabilities: { reasoning: { adaptive: true } },
+      providerOptions: {
+        thinking: {
+          description: 'Extended thinking configuration.',
+          support: true,
+        },
+      },
+    },
+  },
+}
+```
+
+  </Tab>
+  <Tab>
+
+```ts title="Input"
+import { googleModelCapabilities } from '@ai-sdk/google';
+
+const model = googleModelCapabilities('gemini-2.5-pro');
+```
+
+```ts title="Output (selected fields)"
+{
+  provider: 'google',
+  modelId: 'gemini-2.5-pro',
+  endpoints: {
+    generateContent: {
+      operation: 'language',
+      capabilities: { tools: { googleSearch: true } },
+    },
+    interactions: {
+      operation: 'language',
+      providerOptions: {
+        previousInteractionId: {
+          description: 'Previous interaction to continue.',
+          support: 'unknown',
+        },
+      },
+    },
+  },
+}
+```
+
+  </Tab>
+</Tabs>
+
+`endpoints` groups the result by provider API. Each entry contains its `operation`,
+`capabilities`, and `providerOptions`. Capability fields and option names are typed
+for that provider.
+
+Support is `true`, `false`, `'unknown'`, or `{ condition: string }`.
+Use `=== true` to check unconditional support. Missing fields are undeclared;
+unrecognized model IDs return `undefined`.
+
+Results reflect the installed provider package's catalog.
