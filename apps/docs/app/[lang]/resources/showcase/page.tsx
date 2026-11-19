@@ -78,7 +78,7 @@ const ShowcasePage = () => (
       </p>
       <Link
         className="inline-flex items-center justify-center rounded-md bg-gray-1000 px-4 py-2 font-medium text-background-100 transition-opacity hover:opacity-90"
-        href="https://github.com/vercel/ai/discussions/1914"
+        href="https://community.vercel.com/c/ai-sdk/62"
         rel="noopener noreferrer"
         target="_blank"
       >
