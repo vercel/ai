@@ -1,3 +1,4 @@
+import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import {
   mistralLanguageModelChatOptions,
   type MistralChatModelId,
@@ -6,8 +7,9 @@ import {
 
 export type MistralConversationModelId = MistralChatModelId;
 
-export const mistralLanguageModelConversationOptions =
-  mistralLanguageModelChatOptions;
+export const mistralLanguageModelConversationOptions = lazySchema(() =>
+  zodSchema(mistralLanguageModelChatOptions()),
+);
 
 export type MistralLanguageModelConversationOptions =
   MistralLanguageModelChatOptions;

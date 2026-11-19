@@ -2078,6 +2078,386 @@ describe('ToolLoopAgent', () => {
     });
   });
 
+  describe('onStepError', () => {
+    it('should call onStepError when a generate step fails', async () => {
+      const onStepStart = vi.fn();
+      const onStepError = vi.fn();
+      const onStepEnd = vi.fn();
+      const providerError = new Error('provider failure');
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            throw providerError;
+          },
+        }),
+        maxRetries: 0,
+        onStepStart,
+        onStepError,
+        onStepEnd,
+      });
+
+      await expect(agent.generate({ prompt: 'Hello, world!' })).rejects.toBe(
+        providerError,
+      );
+
+      expect(onStepEnd).not.toHaveBeenCalled();
+      expect(onStepError).toHaveBeenCalledTimes(1);
+      expect(onStepError).toHaveBeenCalledWith({
+        ...onStepStart.mock.calls[0][0],
+        error: providerError,
+      });
+    });
+
+    it('should call onStepError when a stream step ends without output', async () => {
+      const onStepError = vi.fn();
+      const onStepEnd = vi.fn();
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+            ]),
+          }),
+        }),
+        onError: () => {},
+        onStepError,
+        onStepEnd,
+      });
+
+      const result = await agent.stream({ prompt: 'Hello, world!' });
+      await result.consumeStream();
+      await expect(result.text).rejects.toThrow();
+
+      expect(onStepEnd).not.toHaveBeenCalled();
+      expect(onStepError).toHaveBeenCalledTimes(1);
+      expect(onStepError).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stepNumber: 0,
+          error: expect.objectContaining({
+            name: 'AI_NoOutputGeneratedError',
+          }),
+        }),
+      );
+    });
+  });
+
+  describe('onAbort', () => {
+    const hangingModel = (abortController?: AbortController) =>
+      new MockLanguageModelV4({
+        doStream: ({ abortSignal }) => {
+          abortController?.abort();
+          return new Promise((_, reject) => {
+            if (abortSignal?.aborted) {
+              reject(abortSignal.reason);
+            }
+            abortSignal?.addEventListener('abort', () =>
+              reject(abortSignal.reason),
+            );
+          });
+        },
+        doGenerate: ({ abortSignal }) => {
+          abortController?.abort();
+          return new Promise((_, reject) => {
+            if (abortSignal?.aborted) {
+              reject(abortSignal.reason);
+            }
+            abortSignal?.addEventListener('abort', () =>
+              reject(abortSignal.reason),
+            );
+          });
+        },
+      });
+
+    it('should call onAbort when stream() is aborted', async () => {
+      const onAbort = vi.fn();
+      const abortController = new AbortController();
+      const agent = new ToolLoopAgent({
+        model: hangingModel(abortController),
+        maxRetries: 0,
+        onAbort,
+      });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
+        abortSignal: abortController.signal,
+      });
+      await result.consumeStream();
+
+      expect(onAbort).toHaveBeenCalledTimes(1);
+      expect(onAbort.mock.calls[0][0]).toMatchObject({ steps: [] });
+    });
+
+    it('should call onAbort when stream() times out', async () => {
+      const onAbort = vi.fn();
+      const agent = new ToolLoopAgent({
+        model: hangingModel(),
+        maxRetries: 0,
+        onAbort,
+      });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
+        timeout: { totalMs: 10 },
+      });
+      await result.consumeStream();
+
+      expect(onAbort).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not call onAbort when generate() is aborted', async () => {
+      const onAbort = vi.fn();
+      const onStepError = vi.fn();
+      const abortController = new AbortController();
+      const agent = new ToolLoopAgent({
+        model: hangingModel(abortController),
+        maxRetries: 0,
+        onAbort,
+        onStepError,
+      });
+
+      await expect(
+        agent.generate({
+          prompt: 'Hello, world!',
+          abortSignal: abortController.signal,
+        }),
+      ).rejects.toThrow();
+
+      expect(onAbort).not.toHaveBeenCalled();
+      expect(onStepError).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('onError', () => {
+    it('should call onError when a stream step fails', async () => {
+      const onError = vi.fn();
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+            ]),
+          }),
+        }),
+        onError,
+      });
+
+      const result = await agent.stream({ prompt: 'Hello, world!' });
+      await result.consumeStream();
+      await expect(result.text).rejects.toThrow();
+
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(onError).toHaveBeenCalledWith({
+        error: expect.objectContaining({ name: 'AI_NoOutputGeneratedError' }),
+      });
+    });
+
+    it('should call onError and rethrow when generate fails', async () => {
+      const onError = vi.fn();
+      const providerError = new Error('provider failure');
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            throw providerError;
+          },
+        }),
+        maxRetries: 0,
+        onError,
+      });
+
+      await expect(agent.generate({ prompt: 'Hello, world!' })).rejects.toBe(
+        providerError,
+      );
+
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(onError).toHaveBeenCalledWith({ error: providerError });
+    });
+
+    it('should rethrow the generate error when onError throws', async () => {
+      const providerError = new Error('provider failure');
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            throw providerError;
+          },
+        }),
+        maxRetries: 0,
+        onError: () => {
+          throw new Error('callback failure');
+        },
+      });
+
+      await expect(agent.generate({ prompt: 'Hello, world!' })).rejects.toBe(
+        providerError,
+      );
+    });
+
+    it.each([
+      ['an abort', { abort: true }],
+      ['a timeout', { timeout: { totalMs: 10 } }],
+    ] as const)(
+      'should not call onError for %s in generate()',
+      async (_, setup) => {
+        const onError = vi.fn();
+        const abortController = new AbortController();
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4({
+            doGenerate: ({ abortSignal }) => {
+              if ('abort' in setup) {
+                abortController.abort();
+              }
+              return new Promise((_, reject) => {
+                if (abortSignal?.aborted) {
+                  reject(abortSignal.reason);
+                }
+                abortSignal?.addEventListener('abort', () =>
+                  reject(abortSignal.reason),
+                );
+              });
+            },
+          }),
+          maxRetries: 0,
+          onError,
+        });
+
+        await expect(
+          agent.generate({
+            prompt: 'Hello, world!',
+            ...('abort' in setup
+              ? { abortSignal: abortController.signal }
+              : { timeout: setup.timeout }),
+          }),
+        ).rejects.toThrow();
+
+        expect(onError).not.toHaveBeenCalled();
+      },
+    );
+
+    it('should not call onError when a provider wraps a timeout error', async () => {
+      const onError = vi.fn();
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            throw new Error('Gateway request failed', {
+              cause: new DOMException('timed out', 'TimeoutError'),
+            });
+          },
+        }),
+        maxRetries: 0,
+        onError,
+      });
+
+      await expect(agent.generate({ prompt: 'Hello, world!' })).rejects.toThrow(
+        'Gateway request failed',
+      );
+
+      expect(onError).not.toHaveBeenCalled();
+    });
+
+    it('should not call onError when a provider wraps an abort in stream()', async () => {
+      const onError = vi.fn();
+      const abortController = new AbortController();
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            abortController.abort();
+            throw new Error('Gateway request failed', {
+              cause: new DOMException('aborted', 'AbortError'),
+            });
+          },
+        }),
+        maxRetries: 0,
+        onError,
+      });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
+        abortSignal: abortController.signal,
+      });
+      await result.consumeStream();
+
+      expect(onError).not.toHaveBeenCalled();
+    });
+
+    it('should not call onError when a provider wraps a timeout in stream()', async () => {
+      const onError = vi.fn();
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doStream: ({ abortSignal }) =>
+            new Promise((_, reject) => {
+              abortSignal?.addEventListener('abort', () =>
+                reject(
+                  new Error('Gateway request failed', {
+                    cause: abortSignal.reason,
+                  }),
+                ),
+              );
+            }),
+        }),
+        maxRetries: 0,
+        onError,
+      });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
+        timeout: { totalMs: 10 },
+      });
+      await result.consumeStream();
+
+      expect(onError).not.toHaveBeenCalled();
+    });
+
+    it('should not call onError when generate() is aborted with a custom reason', async () => {
+      const onError = vi.fn();
+      const abortController = new AbortController();
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            abortController.abort(new Error('user left'));
+            throw abortController.signal.reason;
+          },
+        }),
+        maxRetries: 0,
+        onError,
+      });
+
+      await expect(
+        agent.generate({
+          prompt: 'Hello, world!',
+          abortSignal: abortController.signal,
+        }),
+      ).rejects.toThrow('user left');
+
+      expect(onError).not.toHaveBeenCalled();
+    });
+
+    it('should keep the default stream error logging when no onError is set', async () => {
+      const consoleError = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      try {
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+              ]),
+            }),
+          }),
+        });
+
+        const result = await agent.stream({ prompt: 'Hello, world!' });
+        await result.consumeStream();
+        await expect(result.text).rejects.toThrow();
+
+        expect(consoleError).toHaveBeenCalledWith(
+          expect.objectContaining({ name: 'AI_NoOutputGeneratedError' }),
+        );
+      } finally {
+        consoleError.mockRestore();
+      }
+    });
+  });
+
   describe('onStepFinish', () => {
     describe('generate', () => {
       let mockModel: MockLanguageModelV4;

@@ -205,7 +205,7 @@ Model and provider credentials must not enter the sandbox.
 - Host-driven adapters keep model and provider credentials on the host. Prefer this setup when the runtime can run on the host.
 - Bridge-backed adapters should use credential brokering so the sandbox process receives only non-secret placeholders.
 
-The exception is per-session bridge authentication tokens, which bridge-backed adapters need inside the sandbox.
+Bridge-backed adapters pass only a per-session public key into the sandbox for bridge authentication. The matching private key stays on the host.
 
 Credential brokering requires a `HarnessV1NetworkSandboxSession` implementation with `addRequestTransformations()` and is strongly recommended. The adapter installs outbound HTTPS request transformations that match the placeholder and destination, then inject the real credential after the request leaves the sandbox security boundary.
 
@@ -220,7 +220,7 @@ You can use the `credentialForwarding` setting if you handle credential brokerin
 - `credentialForwarding` allows you to inject custom placeholder credentials into the sandbox instead of the real credentials from environment variables.
 - Alternatively, provide placeholder credentials in the environment variables themselves.
 
-Never persist secrets in `sessionWorkDir`. Lifecycle state can contain bridge tokens or forwarded credentials, so callers must treat it as sensitive data and store and transmit it securely.
+Never persist secrets in `sessionWorkDir`. Lifecycle state can contain bridge private keys or forwarded credentials, so callers must treat it as sensitive data and store and transmit it securely.
 
 ## Lifecycle and resume
 

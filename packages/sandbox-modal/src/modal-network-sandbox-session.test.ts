@@ -1,5 +1,4 @@
 import { HarnessCapabilityUnsupportedError } from '@ai-sdk/harness';
-import { withBridgeToken } from '@ai-sdk/harness/utils';
 import type { Image, ModalClient, Sandbox } from 'modal';
 import { describe, expect, it, vi } from 'vitest';
 import { ModalNetworkSandboxSession } from './modal-network-sandbox-session';
@@ -149,23 +148,6 @@ describe('ModalNetworkSandboxSession', () => {
       });
 
       expect(second).toEqual(first);
-    });
-
-    it('carries the bridge token as a plain query parameter', async () => {
-      const { sandbox } = makeMockSandbox();
-      const token = 'tok/with+reserved&chars=';
-
-      const endpoint = withBridgeToken({
-        endpoint: await createSession(sandbox).getPortEndpoint({
-          port: 4000,
-          protocol: 'ws',
-        }),
-        token,
-      });
-
-      expect(endpoint).toEqual({
-        url: `wss://ta-01abc-4000-xyz.w.modal.host/?agent_bridge_token=${encodeURIComponent(token)}`,
-      });
     });
 
     it('rejects ports that the sandbox does not expose', async () => {

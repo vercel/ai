@@ -138,6 +138,43 @@ export type ModalNetworkSandboxSessionResumeOptions = Prettify<
   HarnessV1SandboxSessionResumeOptions<ModalLookupSettings>
 >;
 
+/**
+ * Creates a Modal sandbox and returns a network sandbox session for it.
+ *
+ * Accepts the options of the Modal SDK's `client.sandboxes.create()`, such as
+ * `timeoutMs`, `cpu`, `memoryMiB`, `env`, `secrets`, and `volumes`. Sandboxes
+ * are terminated after 30 minutes unless `timeoutMs` says otherwise, and
+ * outbound network access is open unless `blockNetwork` or an allowlist is
+ * passed. Commands run through `bash`, so the image must provide it.
+ *
+ * Expose ports with `encryptedPorts`. Bridge-backed harness adapters such as
+ * Claude Code and Codex connect to the first listed port unless they are
+ * configured with a `port`. Modal fixes a sandbox's tunnels when it is
+ * created, so the session has no `setPorts()`. Ports exposed with
+ * `unencryptedPorts` are not listed.
+ *
+ * Modal runs sandbox processes as root, even when the image declares another
+ * user. Claude Code only skips its permission prompts as root when
+ * `IS_SANDBOX` is set, so pass it to the harness adapter:
+ * `createClaudeCode({ env: { IS_SANDBOX: '1' } })`.
+ *
+ * Setting `sandboxId` names the sandbox. Creation never resumes an existing
+ * sandbox and a conflicting name fails; use
+ * {@link resumeModalNetworkSandboxSession} to reattach. Creating a sandbox
+ * with the `sandboxId` of a stopped one leaves the old stop snapshot in place
+ * until the next `stop()` or `destroy()`.
+ *
+ * With a `template`, the prepared filesystem is published as a Modal image
+ * named after the template, and later sandboxes start from it.
+ *
+ * The session's `setNetworkPolicy()` only works on a sandbox that was created
+ * with an `outboundDomainAllowlist` and without `blockNetwork`, so sandboxes
+ * are created with allowlists that admit everything unless `blockNetwork` or
+ * an allowlist is passed. Modal admits a host only for TLS traffic on port
+ * 443, rejects IPv6 ranges, and has no deny list, so a policy with
+ * `deniedCIDRs` fails with a `HarnessCapabilityUnsupportedError`, as does a
+ * sandbox whose policy Modal cannot change.
+ */
 export async function createModalNetworkSandboxSession(
   options: ModalNetworkSandboxSessionCreateOptions = {},
 ): Promise<HarnessV1NetworkSandboxSession> {
@@ -219,6 +256,25 @@ export async function createModalNetworkSandboxSession(
   });
 }
 
+/**
+ * Reattaches to the Modal sandbox named `sandboxId` while it is running.
+ * Otherwise starts a new sandbox from its stop snapshot and gives it the same
+ * ID, with the working directory and the rest of the filesystem as `stop()`
+ * left them. A harness session that keeps its state in the sandbox, such as
+ * Claude Code or Codex, can then be resumed with
+ * `createSession({ sandboxSession, sessionId, resumeFrom })`.
+ *
+ * Tunnel URLs stay the same for as long as a sandbox runs, including after
+ * reattaching. A restored sandbox is a new Modal sandbox, so its tunnel URLs
+ * are new, and without `encryptedPorts` it exposes no ports.
+ *
+ * Only `stop()` takes a snapshot. A sandbox that ends another way, for example
+ * by reaching `timeoutMs`, cannot be restored from its last state: resuming it
+ * restores the snapshot of an earlier `stop()` when there is one, and
+ * otherwise fails. Modal keeps a snapshot for 30 days. Each `stop()` publishes
+ * a new snapshot image, `destroy()` deletes the current one, and earlier ones
+ * stay in the Modal account until they expire.
+ */
 export async function resumeModalNetworkSandboxSession(
   options: ModalNetworkSandboxSessionResumeOptions,
 ): Promise<HarnessV1NetworkSandboxSession> {
@@ -340,12 +396,25 @@ export async function resumeModalNetworkSandboxSession(
   });
 }
 
+/**
+ * Adapts an existing native `Sandbox` for AI SDK tools that accept
+ * `experimental_sandbox`. Modal reports a sandbox's working directory only
+ * through an asynchronous call, so the adaptation takes the `workdir` that the
+ * sandbox was created with.
+ */
 export function createModalSandboxSessionFromNativeSandbox(
   nativeSandbox: ModalNativeSandboxSession,
 ): SandboxSession {
   return new ModalSandboxSession(nativeSandbox.sandbox, nativeSandbox.workdir);
 }
 
+/**
+ * Adapts an existing native `Sandbox` to a network sandbox session. Modal
+ * reports a sandbox's working directory and tunnels only through asynchronous
+ * calls, so the adaptation takes the `workdir` and `encryptedPorts` that the
+ * sandbox was created with. The session does not snapshot the sandbox:
+ * `stop()` and `destroy()` both terminate it.
+ */
 export function createModalNetworkSandboxSessionFromNativeSandbox(
   nativeSandbox: ModalNativeSandboxSession,
 ): HarnessV1NetworkSandboxSession {

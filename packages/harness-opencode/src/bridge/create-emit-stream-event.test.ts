@@ -484,6 +484,38 @@ describe('createEmitStreamEvent', () => {
     `);
   });
 
+  it('ignores tool parts that OpenCode has compacted', () => {
+    const { emitted, emitStreamEvent } = createEmitter();
+    const part = {
+      type: 'tool',
+      callID: 'tool-earlier-turn',
+      tool: 'view',
+      state: {
+        status: 'completed',
+        input: { file: 'README.md' },
+        output: 'contents',
+        time: { start: 1, end: 2 },
+      },
+    };
+
+    emitStreamEvent({
+      type: 'message.part.updated',
+      properties: {
+        part: {
+          ...part,
+          state: { ...part.state, time: { ...part.state.time, compacted: 3 } },
+        },
+      },
+    });
+    expect(emitted).toEqual([]);
+
+    emitStreamEvent({ type: 'message.part.updated', properties: { part } });
+    expect(emitted.map(event => event.type)).toEqual([
+      'tool-call',
+      'tool-result',
+    ]);
+  });
+
   it('does not expose the internal structured output tool', () => {
     const { emitted, emitStreamEvent } = createEmitter();
 

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/valibot",
-  "version": "3.0.58",
+  "version": "3.0.82",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -20,7 +20,12 @@
     "build": "pnpm clean && tsdown",
     "build:watch": "pnpm clean && tsdown --watch",
     "clean": "del-cli *.tsbuildinfo",
-    "type-check": "tsc --build"
+    "type-check": "tsc --build",
+    "test": "pnpm test:node && pnpm test:edge",
+    "test:update": "pnpm test:node -u",
+    "test:watch": "vitest --config vitest.node.config.js",
+    "test:edge": "vitest --config vitest.edge.config.js --run",
+    "test:node": "vitest --config vitest.node.config.js --run"
   },
   "exports": {
     "./package.json": "./package.json",
@@ -37,6 +42,7 @@
     "@types/node": "22.19.19",
     "@valibot/to-json-schema": "^1.7.0",
     "@vercel/ai-tsconfig": "workspace:*",
+    "@vercel/ai-tsdown-config": "workspace:*",
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
     "valibot": "^1.4.0"

@@ -2,9 +2,18 @@ import type { SharedV4ProviderMetadata } from '../../shared/v4/shared-v4-provide
 import type { SharedV4Warning } from '../../shared/v4/shared-v4-warning';
 
 /**
- * Generated video data. Can be a URL, base64-encoded string, or binary data.
+ * Generated video data, or confirmation of delivery to caller-managed storage.
  */
 export type VideoModelV4VideoData =
+  | {
+      /**
+       * The provider completed delivery to caller-managed storage.
+       * No downloadable URL or video bytes are available to the SDK.
+       * Never include a signed upload URL in this result.
+       */
+      type: 'uploaded';
+      mediaType: string;
+    }
   | {
       /**
        * Video available as a URL (most common for video providers).
@@ -35,7 +44,7 @@ export type VideoModelV4VideoData =
  */
 export type VideoModelV4Result = {
   /**
-   * Generated videos as URLs, base64 strings, or binary data.
+   * Generated videos as URLs, base64 strings, binary data, or upload confirmations.
    *
    * Most providers return URLs to video files (MP4, WebM) due to large file sizes.
    * Use the discriminated union to indicate the type of video data being returned.

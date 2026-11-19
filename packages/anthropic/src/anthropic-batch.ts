@@ -49,10 +49,7 @@ import {
   AnthropicLanguageModel,
   type AnthropicLanguageModelConfig,
 } from './anthropic-language-model';
-import {
-  anthropicLanguageModelOptions,
-  type AnthropicModelId,
-} from './anthropic-language-model-options';
+import type { AnthropicModelId } from './anthropic-language-model-options';
 import type {
   AnthropicMessageMetadata,
   AnthropicUsageIteration,
@@ -62,9 +59,13 @@ import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 
 const anthropicBatchRequestIdPattern = /^[A-Za-z0-9_-]{1,64}$/;
 
-const anthropicBatchProviderOptionsSchema = anthropicLanguageModelOptions.pick({
-  anthropicBeta: true,
-});
+const anthropicBatchProviderOptionsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      anthropicBeta: z.array(z.string()).optional(),
+    }),
+  ),
+);
 
 type AnthropicBatchRequest = TextBatchV4Request<AnthropicModelId>;
 
@@ -259,6 +260,12 @@ export class AnthropicBatch implements BatchV4<{
           userSuppliedBetas: new Set(explicitBatchBetas),
         },
       });
+      if (prepared.args.thread != null) {
+        throw new UnsupportedFunctionalityError({
+          functionality: 'message threads in batches',
+          message: `Anthropic Message Batches do not support message threads (request "${request.id}").`,
+        });
+      }
       if (prepared.usesJsonResponseTool) {
         throw new UnsupportedFunctionalityError({
           functionality: 'batch responseFormat JSON-tool fallback',
@@ -1125,10 +1132,12 @@ function anthropicCallerMetadata(
 
 function convertAnthropicMessageMetadata(response: AnthropicResponse) {
   const stopDetails = mapAnthropicStopDetails(response.stop_details);
+  const serviceTier = response.usage.service_tier ?? response.service_tier;
 
   return {
     usage: response.usage as JSONObject,
     stopSequence: response.stop_sequence ?? null,
+    ...(serviceTier != null ? { serviceTier } : {}),
     ...(stopDetails != null ? { stopDetails } : {}),
     ...(response.input_transformations != null
       ? { inputTransformations: response.input_transformations }

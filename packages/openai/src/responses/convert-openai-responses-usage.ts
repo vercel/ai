@@ -9,6 +9,12 @@ export type OpenAIResponsesUsage = JSONObject & {
     | (JSONObject & {
         cached_tokens?: number | null;
         cache_write_tokens?: number | null;
+        cache_write_tokens_details?:
+          | (JSONObject & {
+              ttl_30m_tokens?: number | null;
+              ttl_12h_tokens?: number | null;
+            })
+          | null;
         orchestration_input_tokens?: number | null;
         orchestration_input_cached_tokens?: number | null;
       })

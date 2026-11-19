@@ -1,0 +1,47 @@
+import { azure } from '@ai-sdk/azure';
+import { isStepCount, streamText } from 'ai';
+import { run } from '../../lib/run';
+
+run(async () => {
+  const result = streamText({
+    // Replace with your Azure deployment name that supports this shell mode.
+    model: azure.responses('gpt-5.4-mini'),
+    tools: {
+      shell: azure.tools.shell({
+        environment: {
+          type: 'containerAuto',
+        },
+      }),
+    },
+    stopWhen: isStepCount(20),
+    prompt:
+      'Print "Hello from container!" and show the system info using uname -a',
+  });
+
+  for await (const chunk of result.stream) {
+    switch (chunk.type) {
+      case 'text-delta': {
+        process.stdout.write(chunk.text);
+        break;
+      }
+
+      case 'tool-call': {
+        console.log(
+          `\x1b[32m\x1b[1mTool call:\x1b[22m ${JSON.stringify(chunk, null, 2)}\x1b[0m`,
+        );
+        break;
+      }
+
+      case 'tool-result': {
+        console.log(
+          `\x1b[32m\x1b[1mTool result:\x1b[22m ${JSON.stringify(chunk, null, 2)}\x1b[0m`,
+        );
+        break;
+      }
+
+      case 'error':
+        console.error('Error:', chunk.error);
+        break;
+    }
+  }
+});

@@ -3,7 +3,30 @@ import {
   experimental_harnessV1BridgeUserMessageInboundSchema,
   harnessV1BridgeResponseFormatSchema,
   harnessV1BridgeUserMessageInboundSchema,
+  harnessV1BridgeStartBaseSchema,
+  harnessV1BridgeHelloSchema,
 } from './harness-v1-bridge-protocol';
+
+describe('idempotent bridge starts', () => {
+  it('preserves start identifiers and the retry capability', () => {
+    expect(
+      harnessV1BridgeStartBaseSchema.parse({
+        type: 'start',
+        startId: 'turn-1',
+        prompt: 'Hello',
+      }),
+    ).toEqual({ type: 'start', startId: 'turn-1', prompt: 'Hello' });
+    expect(
+      harnessV1BridgeHelloSchema.parse({
+        type: 'bridge-hello',
+        capabilities: { idempotentStart: true },
+      }),
+    ).toEqual({
+      type: 'bridge-hello',
+      capabilities: { idempotentStart: true },
+    });
+  });
+});
 
 describe('harnessV1BridgeResponseFormatSchema', () => {
   it('preserves JSON Schema response formats across the bridge boundary', () => {

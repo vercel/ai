@@ -5,6 +5,8 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonErrorResponseHandler,
@@ -12,6 +14,8 @@ import {
   downloadBlob,
   postFormDataToApi,
   postJsonToApi,
+  resolve,
+  type Resolvable,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -36,8 +40,10 @@ export class AzureMaiImageModel implements ImageModelV4 {
     readonly modelId: string,
     private readonly config: {
       url: (path: string) => string;
-      headers: () => Record<string, string | undefined>;
+      headers: Resolvable<Record<string, string | undefined>>;
       fetch?: FetchFunction;
+      /** Transport for untrusted file URLs, without provider authentication. */
+      downloadFetch?: FetchFunction;
       _internal?: { currentDate?: () => Date };
     },
   ) {}
@@ -54,7 +60,11 @@ export class AzureMaiImageModel implements ImageModelV4 {
       headers,
       abortSignal,
     }: Parameters<ImageModelV4['doGenerate']>[0],
-    { autoAspectRatio, webGrounding }: AzureImageModelMaiOptions = {},
+    {
+      autoAspectRatio,
+      webGrounding,
+      background,
+    }: AzureImageModelMaiOptions = {},
   ): Promise<Awaited<ReturnType<ImageModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];
@@ -95,9 +105,10 @@ export class AzureMaiImageModel implements ImageModelV4 {
       height: dimensions?.height,
       auto_aspect_ratio: autoAspectRatio,
       web_grounding: webGrounding,
+      background,
     };
     const requestOptions = {
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       failedResponseHandler: maiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         maiImageResponseSchema,
@@ -107,7 +118,15 @@ export class AzureMaiImageModel implements ImageModelV4 {
     };
     const images =
       files != null && files.length > 0
-        ? await Promise.all(files.map(file => fileToBlob(file, abortSignal)))
+        ? await Promise.all(
+            files.map(file =>
+              fileToBlob(
+                file,
+                abortSignal,
+                this.config.downloadFetch ?? this.config.fetch,
+              ),
+            ),
+          )
         : undefined;
 
     // The API ignores `n`, so a call reached with n > 1 (e.g. through an
@@ -222,9 +241,10 @@ function toFormData(
 async function fileToBlob(
   file: ImageModelV4File,
   abortSignal: AbortSignal | undefined,
+  fetch: FetchFunction | undefined,
 ): Promise<Blob> {
   if (file.type === 'url') {
-    return downloadBlob(file.url, { abortSignal });
+    return downloadBlob(file.url, { abortSignal, fetch });
   }
 
   const data =
@@ -234,12 +254,16 @@ async function fileToBlob(
   return new Blob([data as BlobPart], { type: file.mediaType });
 }
 
-const maiErrorSchema = z.object({
-  error: z.object({
-    code: z.union([z.string(), z.number()]).nullish(),
-    message: z.string(),
-  }),
-});
+const maiErrorSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      error: z.object({
+        code: z.union([z.string(), z.number()]).nullish(),
+        message: z.string(),
+      }),
+    }),
+  ),
+);
 
 const maiFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: maiErrorSchema,
@@ -247,15 +271,19 @@ const maiFailedResponseHandler = createJsonErrorResponseHandler({
 });
 
 // Only the fields used here, to tolerate API additions.
-const maiImageResponseSchema = z.object({
-  created: z.number().nullish(),
-  size: z.string().nullish(),
-  usage: z
-    .object({
-      num_input_text_tokens: z.number().nullish(),
-      num_input_image_tokens: z.number().nullish(),
-      num_output_tokens: z.number().nullish(),
-    })
-    .nullish(),
-  data: z.array(z.object({ b64_json: z.string() })),
-});
+const maiImageResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      created: z.number().nullish(),
+      size: z.string().nullish(),
+      usage: z
+        .object({
+          num_input_text_tokens: z.number().nullish(),
+          num_input_image_tokens: z.number().nullish(),
+          num_output_tokens: z.number().nullish(),
+        })
+        .nullish(),
+      data: z.array(z.object({ b64_json: z.string() })),
+    }),
+  ),
+);

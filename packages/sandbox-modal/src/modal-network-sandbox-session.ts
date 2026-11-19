@@ -27,6 +27,11 @@ import { MODAL_PROVIDER_ID, normalizePorts } from './utils';
  *
  * Modal fixes a sandbox's tunnels when the sandbox is created, so `setPorts`
  * is omitted.
+ *
+ * The session does not implement request transformations, so bridge-backed
+ * harness adapters forward model credentials into the sandbox process instead
+ * of brokering them. Each harness adapter's `credentialForwarding` setting
+ * controls what the sandbox receives.
  */
 export class ModalNetworkSandboxSession
   extends ModalSandboxSession

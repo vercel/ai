@@ -25,6 +25,14 @@ import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 
 describe('generateText types', () => {
+  it('should accept toolCallConcurrency', async () => {
+    await generateText({
+      model: new MockLanguageModelV4(),
+      prompt: 'Hello',
+      toolCallConcurrency: 1,
+    });
+  });
+
   describe('onLanguageModelCallEnd', () => {
     it('should expose provider metadata', async () => {
       await generateText({
@@ -458,6 +466,12 @@ describe('generateText types', () => {
             requestId: string;
           }>();
         },
+        onStepError: ({ runtimeContext }) => {
+          expectTypeOf(runtimeContext).toEqualTypeOf<{
+            userId: string;
+            requestId: string;
+          }>();
+        },
         onFinish: ({ runtimeContext }) => {
           expectTypeOf(runtimeContext).toEqualTypeOf<{
             userId: string;
@@ -576,16 +590,12 @@ describe('generateText types', () => {
               writeFile: async () => {},
               writeBinaryFile: async () => {},
               writeTextFile: async () => {},
-              spawn: async () => ({
-                stdout: new ReadableStream<Uint8Array>({
-                  start: c => c.close(),
-                }),
-                stderr: new ReadableStream<Uint8Array>({
-                  start: c => c.close(),
-                }),
-                wait: async () => ({ exitCode: 0 }),
-                kill: async () => {},
-              }),
+              stat: async () => null,
+              listDirectory: async () => null,
+              deleteFile: async () => false,
+              spawn: async () => {
+                throw new Error('spawn is not implemented in this mock.');
+              },
             },
           }),
         });

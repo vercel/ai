@@ -74,8 +74,6 @@ describe('expandParallelToolCall', () => {
               itemId: 'fc_parallel',
               toolCallId: 'call_parallel',
               toolName: 'parallel',
-              input:
-                '{"tool_uses":[{"recipient_name":"functions.weather","parameters":{"location":"San Francisco"}},{"recipient_name":"functions.cityAttractions","parameters":{"city":"Rome"}}]}',
               index: 1,
               count: 2,
             },

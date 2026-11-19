@@ -58,7 +58,7 @@ const tools = {
 };
 
 run(async () => {
-  const model = 'google/gemini-3.7-flash';
+  const model = 'google/gemini-4-hydrogen';
   console.log(`\n=== Live tool search (${model}) ===`);
   let modelCall = 0;
   const startedAt = performance.now();

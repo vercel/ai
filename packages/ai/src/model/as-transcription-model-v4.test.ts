@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import type { TranscriptionModelV4 } from '@ai-sdk/provider';
+import { describe, expect, it, vi } from 'vitest';
 import { MockTranscriptionModelV2 } from '../test/mock-transcription-model-v2';
 import { MockTranscriptionModelV3 } from '../test/mock-transcription-model-v3';
 import { MockTranscriptionModelV4 } from '../test/mock-transcription-model-v4';
@@ -114,6 +115,107 @@ describe('asTranscriptionModelV4', () => {
       expect(result.specificationVersion).toBe('v4');
       expect(result.provider).toBe('test-provider');
       expect(result.modelId).toBe('test-model-id');
+    });
+  });
+
+  describe.each([
+    ['v2', MockTranscriptionModelV2],
+    ['v3', MockTranscriptionModelV3],
+  ] as const)('shared timestamp compatibility for %s', (version, MockModel) => {
+    const response = {
+      text: 'Hello, world!',
+      segments: [{ text: 'Hello, world!', startSecond: 0, endSecond: 1 }],
+      language: 'en',
+      durationInSeconds: 1,
+      warnings: [{ type: 'other' as const, message: 'Provider warning' }],
+      response: { timestamp: new Date(0), modelId: 'test-model' },
+      providerMetadata: { test: { value: true } },
+    };
+
+    it('should warn for shared timing requests and preserve provider options and results', async () => {
+      const doGenerate = vi.fn(async () => response);
+      const model = new MockModel({ doGenerate });
+      const {
+        timestampGranularities,
+        ...legacyOptions
+      }: Parameters<TranscriptionModelV4['doGenerate']>[0] = {
+        audio: new Uint8Array([1, 2, 3]),
+        mediaType: 'audio/wav',
+        timestampGranularities: ['word', 'segment'],
+        providerOptions: { test: { timestampGranularities: ['word'] } },
+        headers: { 'test-header': 'value' },
+        abortSignal: new AbortController().signal,
+      };
+
+      const result = await asTranscriptionModelV4(model).doGenerate({
+        ...legacyOptions,
+        timestampGranularities,
+      });
+
+      expect(doGenerate).toHaveBeenCalledExactlyOnceWith(legacyOptions);
+      expect(doGenerate.mock.contexts[0]).toBe(model);
+      expect(result).toEqual({
+        ...response,
+        warnings: [
+          ...response.warnings,
+          {
+            type: 'unsupported',
+            feature: 'timestampGranularities',
+            details: expect.stringContaining(version),
+          },
+        ],
+      });
+      expect(response.warnings).toEqual([
+        { type: 'other', message: 'Provider warning' },
+      ]);
+      expect(result.words).toBeUndefined();
+    });
+
+    it.each([
+      { timestampGranularities: undefined },
+      { timestampGranularities: [] },
+    ])(
+      'should not warn for timestampGranularities $timestampGranularities',
+      async ({ timestampGranularities }) => {
+        const doGenerate = vi.fn(async () => response);
+        const result = await asTranscriptionModelV4(
+          new MockModel({ doGenerate }),
+        ).doGenerate({
+          audio: new Uint8Array([1, 2, 3]),
+          mediaType: 'audio/wav',
+          timestampGranularities,
+        });
+
+        expect(result).toBe(response);
+        expect(result.warnings).toEqual(response.warnings);
+        expect(doGenerate).toHaveBeenCalledExactlyOnceWith({
+          audio: new Uint8Array([1, 2, 3]),
+          mediaType: 'audio/wav',
+        });
+      },
+    );
+
+    it('should bind doGenerate to the original model with private state', async () => {
+      class LegacyModel {
+        readonly specificationVersion = version;
+        readonly provider = 'test-provider';
+        readonly modelId = 'test-model';
+        #text = 'Private state transcript';
+
+        async doGenerate() {
+          return { ...response, text: this.#text };
+        }
+      }
+
+      const model = asTranscriptionModelV4(new LegacyModel());
+      const doGenerate = model.doGenerate;
+      const result = await doGenerate({
+        audio: new Uint8Array([1, 2, 3]),
+        mediaType: 'audio/wav',
+        timestampGranularities: ['word'],
+      });
+
+      expect(result.text).toBe('Private state transcript');
     });
   });
 });

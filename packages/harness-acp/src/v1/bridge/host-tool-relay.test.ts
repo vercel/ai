@@ -7,15 +7,110 @@ import {
 import { createHostToolRelayAuthorization } from './host-tool-relay-authorization';
 
 describe('startHostToolRelay', () => {
+  it.each([
+    { nonTextContentTypes: undefined },
+    { nonTextContentTypes: [] },
+    { nonTextContentTypes: ['image'] as const },
+  ])(
+    'filters images according to declared content types: %j',
+    async ({ nonTextContentTypes }) => {
+      const toolResult: NonNullable<
+        Awaited<
+          ReturnType<HostToolRelayTurn['requestToolResult']>
+        >['toolResult']
+      > = {
+        type: 'tool-result',
+        toolCallId: 'call',
+        toolName: 'inspect',
+        output: {
+          type: 'content',
+          value: [
+            { type: 'text', text: 'marker' },
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: { type: 'data', data: 'aW1hZ2U=' },
+            },
+            {
+              type: 'file',
+              mediaType: 'image/jpeg',
+              data: { type: 'data', data: 'anBlZw==' },
+            },
+          ],
+        },
+      };
+      const original = structuredClone(toolResult);
+      const order: string[] = [];
+      const turn: HostToolRelayTurn = {
+        waitForToolCallAuthorization: async () => true,
+        emitToolCall: vi.fn(),
+        emitToolResult: vi.fn(() => {
+          order.push('result');
+        }),
+        emitWarning: vi.fn(() => {
+          order.push('warning');
+        }),
+        requestToolResult: async () => ({
+          output: { status: 'ready' },
+          toolResult,
+        }),
+        registerCorrelationInvocation: vi.fn(),
+        removeCorrelationInvocation: vi.fn(),
+      };
+      const relay = await startHostToolRelay({
+        tools: [{ name: 'inspect', inputSchema: { type: 'object' } }],
+        serverName: 'ai-sdk-harness-tools',
+        nonTextContentTypes,
+      });
+      relay.bindTurn({ turn });
+      try {
+        const response = await invoke({
+          relay,
+          requestId: 'call',
+          toolName: 'inspect',
+          input: {},
+          catalogRevision: 1,
+        });
+        const supportsImages = nonTextContentTypes?.length === 1;
+        expect(response).toMatchObject({
+          output: { status: 'ready' },
+          toolResult: supportsImages
+            ? original
+            : {
+                ...original,
+                output: {
+                  type: 'content',
+                  value: [{ type: 'text', text: 'marker' }],
+                },
+              },
+        });
+        expect(toolResult).toEqual(original);
+        expect(order).toEqual(
+          supportsImages ? ['result'] : ['warning', 'result'],
+        );
+        expect(turn.emitWarning).toHaveBeenCalledTimes(supportsImages ? 0 : 1);
+        if (!supportsImages) {
+          expect(turn.emitWarning).toHaveBeenCalledWith({
+            message:
+              "Image content in tool model output for 'inspect' was omitted because this ACP harness does not declare image support.",
+          });
+        }
+        expect(turn.emitToolResult).toHaveBeenCalledWith({
+          toolCallId: 'call',
+          toolName: 'inspect',
+          output: { status: 'ready' },
+        });
+      } finally {
+        await relay.close();
+      }
+    },
+  );
+
   it('refuses a stolen bearer without an ACP call and executes only a matching one-use call', async () => {
     const relay = await createRelay({
       tools: [{ name: 'weather', inputSchema: { type: 'object' } }],
     });
-    const authorization = createHostToolRelayAuthorization({
-      serverName: 'ai-sdk-harness-tools',
-      toolNames: ['weather'],
-      ttlMs: 20,
-    });
+    const authorization = createHostToolRelayAuthorization({ ttlMs: 20 });
     let notifyAuthorizationRequest: (() => void) | undefined;
     const turn: HostToolRelayTurn = {
       waitForToolCallAuthorization: options => {
@@ -27,6 +122,7 @@ describe('startHostToolRelay', () => {
       emitToolResult: vi.fn(),
       requestToolResult: vi.fn(async () => ({ output: { celsius: 19 } })),
       registerCorrelationInvocation: vi.fn(),
+      emitWarning: vi.fn(),
       removeCorrelationInvocation: vi.fn(),
     };
     relay.bindTurn({ turn });
@@ -67,6 +163,7 @@ describe('startHostToolRelay', () => {
           rawInput: { city: 'Lima' },
           status: 'in_progress',
         },
+        hostToolCall: { toolName: 'weather', input: { city: 'Lima' } },
       });
       await expect(authorizedCall).resolves.toMatchObject({
         output: { celsius: 19 },
@@ -96,11 +193,7 @@ describe('startHostToolRelay', () => {
     const relay = await createRelay({
       tools: [{ name: 'calculator', inputSchema: { type: 'object' } }],
     });
-    const authorization = createHostToolRelayAuthorization({
-      serverName: 'ai-sdk-harness-tools',
-      toolNames: ['calculator'],
-      ttlMs: 250,
-    });
+    const authorization = createHostToolRelayAuthorization({ ttlMs: 250 });
     let notifyAuthorizationRequest!: () => void;
     const authorizationRequested = new Promise<void>(resolve => {
       notifyAuthorizationRequest = resolve;
@@ -115,6 +208,7 @@ describe('startHostToolRelay', () => {
       emitToolResult: vi.fn(),
       requestToolResult: vi.fn(async () => ({ output: { sum: 5 } })),
       registerCorrelationInvocation: vi.fn(),
+      emitWarning: vi.fn(),
       removeCorrelationInvocation: vi.fn(),
     };
     relay.bindTurn({ turn });
@@ -136,6 +230,7 @@ describe('startHostToolRelay', () => {
           rawInput: {},
           status: 'pending',
         },
+        hostToolCall: { toolName: 'calculator', input: {} },
       });
       expect(turn.emitToolCall).not.toHaveBeenCalled();
       authorization.observeUpdate({
@@ -145,6 +240,7 @@ describe('startHostToolRelay', () => {
           rawInput: input,
           status: 'in_progress',
         },
+        hostToolCall: { toolName: 'calculator', input },
       });
 
       await expect(response).resolves.toMatchObject({
@@ -184,6 +280,7 @@ describe('startHostToolRelay', () => {
       emitToolResult,
       requestToolResult: () => pendingResult,
       registerCorrelationInvocation,
+      emitWarning: vi.fn(),
       removeCorrelationInvocation: vi.fn(),
     };
     const relay = await createRelay({
@@ -350,6 +447,7 @@ describe('startHostToolRelay', () => {
         output: { accepted: true },
       }),
       registerCorrelationInvocation: vi.fn(),
+      emitWarning: vi.fn(),
       removeCorrelationInvocation: vi.fn(),
     };
     const relay = await createRelay({
@@ -417,6 +515,7 @@ describe('startHostToolRelay', () => {
         isError: true,
       }),
       registerCorrelationInvocation: vi.fn(),
+      emitWarning: vi.fn(),
       removeCorrelationInvocation: vi.fn(),
     };
     const relay = await createRelay({

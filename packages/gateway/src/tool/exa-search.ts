@@ -176,110 +176,117 @@ export type ExaSearchOutput = ExaSearchResponse | ExaSearchError;
 const exaSearchInputSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      query: z
-        .string()
-        .describe('Natural-language web search query. This is required.'),
-      type: z
-        .enum(['auto', 'fast', 'instant'])
-        .optional()
-        .describe(
-          'Search method. Use auto for the default balance of speed and quality.',
+      query: z.describe(
+        z.string(),
+        'Natural-language web search query. This is required.',
+      ),
+      type: z.describe(
+        z.optional(z.enum(['auto', 'fast', 'instant'])),
+        'Search method. Use auto for the default balance of speed and quality.',
+      ),
+      num_results: z.describe(
+        z.optional(z.number()),
+        'Maximum number of results to return (1-100, default: 10).',
+      ),
+      category: z.describe(
+        z.optional(
+          z.enum([
+            'company',
+            'people',
+            'research paper',
+            'news',
+            'personal site',
+            'financial report',
+          ]),
         ),
-      num_results: z
-        .number()
-        .optional()
-        .describe('Maximum number of results to return (1-100, default: 10).'),
-      category: z
-        .enum([
-          'company',
-          'people',
-          'research paper',
-          'news',
-          'personal site',
-          'financial report',
-        ])
-        .optional()
-        .describe('Optional content category to focus results.'),
-      user_location: z
-        .string()
-        .optional()
-        .describe("Two-letter ISO country code such as 'US'."),
-      include_domains: z
-        .array(z.string())
-        .optional()
-        .describe('Only return results from these domains.'),
-      exclude_domains: z
-        .array(z.string())
-        .optional()
-        .describe('Exclude results from these domains.'),
-      start_published_date: z
-        .string()
-        .optional()
-        .describe('Only return links published after this ISO 8601 date.'),
-      end_published_date: z
-        .string()
-        .optional()
-        .describe('Only return links published before this ISO 8601 date.'),
-      contents: z
-        .object({
-          text: z
-            .union([
-              z.boolean(),
+        'Optional content category to focus results.',
+      ),
+      user_location: z.describe(
+        z.optional(z.string()),
+        "Two-letter ISO country code such as 'US'.",
+      ),
+      include_domains: z.describe(
+        z.optional(z.array(z.string())),
+        'Only return results from these domains.',
+      ),
+      exclude_domains: z.describe(
+        z.optional(z.array(z.string())),
+        'Exclude results from these domains.',
+      ),
+      start_published_date: z.describe(
+        z.optional(z.string()),
+        'Only return links published after this ISO 8601 date.',
+      ),
+      end_published_date: z.describe(
+        z.optional(z.string()),
+        'Only return links published before this ISO 8601 date.',
+      ),
+      contents: z.describe(
+        z.optional(
+          z.object({
+            text: z.optional(
+              z.union([
+                z.boolean(),
+                z.object({
+                  max_characters: z.optional(z.number()),
+                  include_html_tags: z.optional(z.boolean()),
+                  verbosity: z.optional(
+                    z.enum(['compact', 'standard', 'full']),
+                  ),
+                  include_sections: z.optional(
+                    z.array(
+                      z.enum([
+                        'header',
+                        'navigation',
+                        'banner',
+                        'body',
+                        'sidebar',
+                        'footer',
+                        'metadata',
+                      ]),
+                    ),
+                  ),
+                  exclude_sections: z.optional(
+                    z.array(
+                      z.enum([
+                        'header',
+                        'navigation',
+                        'banner',
+                        'body',
+                        'sidebar',
+                        'footer',
+                        'metadata',
+                      ]),
+                    ),
+                  ),
+                }),
+              ]),
+            ),
+            highlights: z.optional(
+              z.union([
+                z.boolean(),
+                z.object({
+                  query: z.optional(z.string()),
+                  max_characters: z.optional(z.number()),
+                }),
+              ]),
+            ),
+            max_age_hours: z.optional(z.number()),
+            livecrawl_timeout: z.optional(z.number()),
+            subpages: z.optional(z.number()),
+            subpage_target: z.optional(
+              z.union([z.string(), z.array(z.string())]),
+            ),
+            extras: z.optional(
               z.object({
-                max_characters: z.number().optional(),
-                include_html_tags: z.boolean().optional(),
-                verbosity: z.enum(['compact', 'standard', 'full']).optional(),
-                include_sections: z
-                  .array(
-                    z.enum([
-                      'header',
-                      'navigation',
-                      'banner',
-                      'body',
-                      'sidebar',
-                      'footer',
-                      'metadata',
-                    ]),
-                  )
-                  .optional(),
-                exclude_sections: z
-                  .array(
-                    z.enum([
-                      'header',
-                      'navigation',
-                      'banner',
-                      'body',
-                      'sidebar',
-                      'footer',
-                      'metadata',
-                    ]),
-                  )
-                  .optional(),
+                links: z.optional(z.number()),
+                image_links: z.optional(z.number()),
               }),
-            ])
-            .optional(),
-          highlights: z
-            .union([
-              z.boolean(),
-              z.object({
-                query: z.string().optional(),
-                max_characters: z.number().optional(),
-              }),
-            ])
-            .optional(),
-          max_age_hours: z.number().optional(),
-          livecrawl_timeout: z.number().optional(),
-          subpages: z.number().optional(),
-          subpage_target: z.union([z.string(), z.array(z.string())]).optional(),
-          extras: z
-            .object({
-              links: z.number().optional(),
-              image_links: z.number().optional(),
-            })
-            .optional(),
-        })
-        .optional()
-        .describe('Controls extracted page content and freshness.'),
+            ),
+          }),
+        ),
+        'Controls extracted page content and freshness.',
+      ),
     }),
   ),
 );
@@ -289,36 +296,36 @@ const exaSearchOutputSchema = lazySchema(() =>
     z.union([
       z.object({
         requestId: z.string(),
-        searchType: z.string().optional(),
-        resolvedSearchType: z.string().optional(),
+        searchType: z.optional(z.string()),
+        resolvedSearchType: z.optional(z.string()),
         results: z.array(
           z.object({
             title: z.string(),
             url: z.string(),
             id: z.string(),
-            publishedDate: z.string().nullable().optional(),
-            author: z.string().nullable().optional(),
-            image: z.string().nullable().optional(),
-            favicon: z.string().nullable().optional(),
-            text: z.string().optional(),
-            highlights: z.array(z.string()).optional(),
-            highlightScores: z.array(z.number()).optional(),
-            summary: z.string().optional(),
-            subpages: z.array(z.any()).optional(),
-            extras: z
-              .object({
-                links: z.array(z.string()).optional(),
-                imageLinks: z.array(z.string()).optional(),
-              })
-              .optional(),
+            publishedDate: z.optional(z.nullable(z.string())),
+            author: z.optional(z.nullable(z.string())),
+            image: z.optional(z.nullable(z.string())),
+            favicon: z.optional(z.nullable(z.string())),
+            text: z.optional(z.string()),
+            highlights: z.optional(z.array(z.string())),
+            highlightScores: z.optional(z.array(z.number())),
+            summary: z.optional(z.string()),
+            subpages: z.optional(z.array(z.any())),
+            extras: z.optional(
+              z.object({
+                links: z.optional(z.array(z.string())),
+                imageLinks: z.optional(z.array(z.string())),
+              }),
+            ),
           }),
         ),
-        costDollars: z
-          .object({
-            total: z.number().optional(),
-            search: z.record(z.string(), z.number()).optional(),
-          })
-          .optional(),
+        costDollars: z.optional(
+          z.object({
+            total: z.optional(z.number()),
+            search: z.optional(z.record(z.string(), z.number())),
+          }),
+        ),
       }),
       z.object({
         error: z.enum([
@@ -330,7 +337,7 @@ const exaSearchOutputSchema = lazySchema(() =>
           'execution_error',
           'unknown',
         ]),
-        statusCode: z.number().optional(),
+        statusCode: z.optional(z.number()),
         message: z.string(),
       }),
     ]),

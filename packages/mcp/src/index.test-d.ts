@@ -117,7 +117,7 @@ it('infers managed event operations and rejects mixing direct and managed APIs',
   const input: Experimental_ManagedSubscribeInput = {
     name: 'comment.created',
     arguments: {},
-    expiresAt: null,
+    ttlMs: null,
     idempotencyKey: 'intent_1',
   };
   const watch = await client.experimental_events.subscribe(input);
@@ -137,14 +137,21 @@ it('infers managed event operations and rejects mixing direct and managed APIs',
   client.experimental_events.refresh({ id: watch.id });
   // @ts-expect-error Managed results are not upstream lease grants.
   watch.refreshBefore;
-  // @ts-expect-error A managed subscription needs exactly one monitoring lifetime.
+  // @ts-expect-error A managed subscription requires an explicit TTL.
   client.experimental_events.subscribe({
     name: 'comment.created',
     arguments: {},
     idempotencyKey: 'intent_1',
   });
-  // @ts-expect-error Relative and absolute deadlines are mutually exclusive.
   client.experimental_events.subscribe({ ...input, ttlMs: 1000 });
+  client.experimental_events.subscribe({
+    ...input,
+    // @ts-expect-error expiresAt is a response field, not a creation input.
+    expiresAt: null,
+  });
+  expectTypeOf<Experimental_ManagedSubscribeInput['ttlMs']>().toEqualTypeOf<
+    number | null
+  >();
   client.experimental_events.subscribe({
     ...input,
     // @ts-expect-error The host's adapter owns the callback destination.
@@ -273,7 +280,7 @@ it('infers managed clients from adapters and narrows transport metadata', async 
   const watch = await client.experimental_events.subscribe({
     name: 'comment.created',
     arguments: {},
-    expiresAt: null,
+    ttlMs: null,
     idempotencyKey: 'intent_1',
   });
   expectTypeOf(watch).toEqualTypeOf<Experimental_ManagedSubscription>();

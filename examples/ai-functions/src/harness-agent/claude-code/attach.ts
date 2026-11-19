@@ -15,12 +15,11 @@ import {
   createVercelNetworkSandboxSession,
   resumeVercelNetworkSandboxSession,
 } from '@ai-sdk/sandbox-vercel';
-import { mintBridgeToken } from '../../lib/mint-bridge-token';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const harness = createClaudeCode({ mintBridgeToken });
+  const harness = createClaudeCode();
   const sandboxName = `harness-${crypto.randomUUID()}`;
   const sandboxSession = await createVercelNetworkSandboxSession({
     sandboxId: sandboxName,

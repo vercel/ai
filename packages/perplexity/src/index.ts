@@ -13,3 +13,7 @@ export type {
   PerplexityEmbeddingModelOptions,
 } from './perplexity-embedding-model-options';
 export { VERSION } from './version';
+export type {
+  PerplexityDecisionModelId,
+  PerplexityDecisionModelOptions,
+} from './perplexity-decision-model-options';

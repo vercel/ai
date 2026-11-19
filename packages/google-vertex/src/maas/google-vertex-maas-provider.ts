@@ -1,3 +1,4 @@
+import { getGoogleVertexRequestConfig } from '../google-vertex-model-catalog-config';
 import { InvalidArgumentError } from '@ai-sdk/provider';
 import {
   createOpenAICompatible,
@@ -13,13 +14,9 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { GoogleVertexMaasModelId } from './google-vertex-maas-options';
 
-const maxOutputTokensByModel: Record<string, number | undefined> = {
-  'meta/llama-4-maverick-17b-128e-instruct-maas': 8192,
-  'meta/llama-4-scout-17b-16e-instruct-maas': 8192,
-};
-
 function transformGoogleVertexMaasRequestBody(args: Record<string, any>) {
-  const maxOutputTokens = maxOutputTokensByModel[args.model];
+  const maxOutputTokens = getGoogleVertexRequestConfig(args.model).language
+    ?.maxOutputTokens;
 
   return maxOutputTokens != null && args.max_tokens === undefined
     ? { ...args, max_tokens: maxOutputTokens }
@@ -67,14 +64,16 @@ export interface GoogleVertexMaasProviderSettings {
 }
 
 /**
- * Create a Google Vertex AI MaaS (Model as a Service) provider instance.
- * Uses the OpenAI-compatible Chat Completions API for partner and open models.
- *
- * @see https://cloud.google.com/vertex-ai/generative-ai/docs/maas/use-open-models
+ * Loads the base URL of the MaaS API from the settings or from the project and
+ * location. Settings are loaded on each call so environment variables are read
+ * at runtime.
  */
-export function createGoogleVertexMaas(
-  options: GoogleVertexMaasProviderSettings = {},
-): GoogleVertexMaasProvider {
+export function loadGoogleVertexMaasBaseURL(
+  options: Pick<
+    GoogleVertexMaasProviderSettings,
+    'baseURL' | 'project' | 'location'
+  >,
+): string {
   // Lazy-load settings to support loading from environment variables at runtime
   const loadLocation = () => {
     const location =
@@ -117,14 +116,23 @@ export function createGoogleVertexMaas(
     return `https://${getHost(location)}/v1/projects/${projectId}/locations/${location}/endpoints/openapi`;
   };
 
-  const loadBaseURL = () =>
-    withoutTrailingSlash(options.baseURL ?? '') || constructBaseURL();
+  return withoutTrailingSlash(options.baseURL ?? '') || constructBaseURL();
+}
 
+/**
+ * Create a Google Vertex AI MaaS (Model as a Service) provider instance.
+ * Uses the OpenAI-compatible Chat Completions API for partner and open models.
+ *
+ * @see https://cloud.google.com/vertex-ai/generative-ai/docs/maas/use-open-models
+ */
+export function createGoogleVertexMaas(
+  options: GoogleVertexMaasProviderSettings = {},
+): GoogleVertexMaasProvider {
   let cachedProvider: GoogleVertexMaasProvider | undefined;
   const getProvider = () =>
     (cachedProvider ??= createOpenAICompatible({
       name: 'vertex.maas',
-      baseURL: loadBaseURL(),
+      baseURL: loadGoogleVertexMaasBaseURL(options),
       fetch: options.fetch,
       transformRequestBody: transformGoogleVertexMaasRequestBody,
     }));

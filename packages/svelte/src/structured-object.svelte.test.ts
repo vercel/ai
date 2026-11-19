@@ -233,6 +233,30 @@ describe('text stream', () => {
     });
   });
 
+  it('should send custom headers from a Headers instance', async () => {
+    server.urls['/api/object'].response = {
+      type: 'stream-chunks',
+      chunks: ['{ ', '"content": "Hello, ', 'world', '!"', '}'],
+    };
+
+    const structuredObjectWithCustomHeaders = new StructuredObject({
+      api: '/api/object',
+      schema: z.object({ content: z.string() }),
+      headers: new Headers({
+        Authorization: 'Bearer TEST_TOKEN',
+        'X-Custom-Header': 'CustomValue',
+      }),
+    });
+
+    await structuredObjectWithCustomHeaders.submit('test-input');
+
+    expect(server.calls[0].requestHeaders).toStrictEqual({
+      'content-type': 'application/json',
+      authorization: 'Bearer TEST_TOKEN',
+      'x-custom-header': 'CustomValue',
+    });
+  });
+
   it('should send custom credentials', async () => {
     server.urls['/api/object'].response = {
       type: 'stream-chunks',

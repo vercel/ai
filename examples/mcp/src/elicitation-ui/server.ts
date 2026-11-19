@@ -53,12 +53,6 @@ server.registerTool(
               description: 'Your email address',
               format: 'email',
             },
-            password: {
-              type: 'string',
-              title: 'Password',
-              description: 'Your password (min 8 characters)',
-              minLength: 8,
-            },
             newsletter: {
               type: 'boolean',
               title: 'Newsletter',
@@ -66,7 +60,7 @@ server.registerTool(
               default: false,
             },
           },
-          required: ['username', 'email', 'password'],
+          required: ['username', 'email'],
         },
       });
 
@@ -74,15 +68,10 @@ server.registerTool(
         const { username, email, newsletter } = result.content as {
           username: string;
           email: string;
-          password: string;
           newsletter?: boolean;
         };
 
-        console.log('[register_user] Accepted registration payload:', {
-          username,
-          email,
-          newsletter: newsletter ?? false,
-        });
+        console.log('[register_user] Registration accepted.');
 
         return {
           content: [

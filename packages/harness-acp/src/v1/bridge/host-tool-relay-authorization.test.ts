@@ -1,16 +1,74 @@
 import type { SessionUpdate, ToolCallUpdate } from '@agentclientprotocol/sdk';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { ACPToolCall } from '../../acp-tool-call';
+import { resolveFixtureHostToolCall } from './__fixtures__/fixture-host-tool-call-resolver';
+import type { HostToolCall } from './host-tool-call-resolver';
 import { createHostToolRelayAuthorization } from './host-tool-relay-authorization';
+import { mergeObservedToolCall } from './merge-observed-tool-call';
 
 const serverName = 'ai-sdk-harness-tools';
+const toolNames = ['weather', 'clock'];
 const weather = { toolName: 'weather', input: { city: 'Lima' } };
 
-function authorizer({ ttlMs }: { ttlMs?: number } = {}) {
-  return createHostToolRelayAuthorization({
+/*
+ * Resolves the captured adapter formats, plus a direct-input convention used
+ * by these tests: a `mcp__<server>__<tool>` name or title, or a programmatic
+ * tool name with a matching `_meta.serverName`.
+ */
+function resolveTestHostToolCall({
+  toolCall,
+}: {
+  toolCall: ACPToolCall;
+}): HostToolCall | undefined {
+  const fixtureCall = resolveFixtureHostToolCall({
+    toolCall,
     serverName,
-    toolNames: ['weather', 'clock'],
-    ttlMs,
+    toolNames,
   });
+  if (fixtureCall != null) return fixtureCall;
+  const rawInput = toolCall.rawInput;
+  if (
+    rawInput == null ||
+    typeof rawInput !== 'object' ||
+    Array.isArray(rawInput)
+  )
+    return undefined;
+  const toolName = toolNames.find(
+    name =>
+      toolCall.name === `mcp__${serverName}__${name}` ||
+      (toolCall.name == null &&
+        toolCall.title === `mcp__${serverName}__${name}`) ||
+      (toolCall.name === name && toolCall._meta?.serverName === serverName),
+  );
+  return toolName == null
+    ? undefined
+    : { toolName, input: rawInput as Record<string, unknown> };
+}
+
+function authorizer({ ttlMs }: { ttlMs?: number } = {}) {
+  const authorization = createHostToolRelayAuthorization({ ttlMs });
+  const snapshots = new Map<string, ACPToolCall>();
+  return {
+    ...authorization,
+    observeUpdate: ({ update }: { update: SessionUpdate }) => {
+      if (
+        update.sessionUpdate !== 'tool_call' &&
+        update.sessionUpdate !== 'tool_call_update'
+      ) {
+        authorization.observeUpdate({ update });
+        return;
+      }
+      const toolCall = mergeObservedToolCall({
+        previous: snapshots.get(update.toolCallId),
+        update,
+      });
+      snapshots.set(update.toolCallId, toolCall);
+      authorization.observeUpdate({
+        update,
+        hostToolCall: resolveTestHostToolCall({ toolCall }),
+      });
+    },
+  };
 }
 
 function update({
@@ -277,14 +335,13 @@ describe('createHostToolRelayAuthorization', () => {
     await expect(pending).resolves.toBe(false);
   });
 
-  it('unpacks known ACP wrappers and rejects conflicting or malformed wrappers', async () => {
+  it('authorizes the resolved host tool call input of each adapter format', async () => {
     const authorization = authorizer();
     authorization.observeUpdate({
       update: {
         sessionUpdate: 'tool_call',
-        toolCallId: 'deferred',
-        title: 'Deferred tool',
-        name: 'use_tool',
+        toolCallId: 'grok-build',
+        title: 'use_tool',
         rawInput: {
           tool_name: `${serverName}__weather`,
           tool_input: { city: 'Lima' },
@@ -306,155 +363,47 @@ describe('createHostToolRelayAuthorization', () => {
     authorization.observeUpdate({
       update: {
         sessionUpdate: 'tool_call',
-        toolCallId: 'portable',
-        title: 'Weather',
-        rawInput: {
-          origin: serverName,
-          operation: 'weather',
-          arguments: { city: 'Quito' },
-        },
-      },
-    });
-    authorization.observeUpdate({
-      update: {
-        sessionUpdate: 'tool_call',
-        toolCallId: 'server-tool',
-        title: 'Weather',
-        rawInput: {
-          server: serverName,
-          tool: 'weather',
-          arguments: { city: 'Tokyo' },
-        },
-      },
-    });
-    authorization.observeUpdate({
-      update: {
-        sessionUpdate: 'tool_call',
-        toolCallId: 'fx',
-        title: 'Weather',
-        name: `mcp_${serverName}_weather`,
-        rawInput: { city: 'Reykjavik' },
-      },
-    });
-    authorization.observeUpdate({
-      update: {
-        sessionUpdate: 'tool_call',
-        toolCallId: 'copilot',
+        toolCallId: 'github-copilot',
         title: `${serverName}-weather`,
         status: 'pending',
         rawInput: { city: 'Seattle' },
       },
     });
 
-    await expect(
-      authorization.waitForToolCallAuthorization(weather),
-    ).resolves.toBe(true);
-    await expect(
-      authorization.waitForToolCallAuthorization({
-        toolName: 'weather',
-        input: { city: 'Paris' },
-      }),
-    ).resolves.toBe(true);
-    await expect(
-      authorization.waitForToolCallAuthorization({
-        toolName: 'weather',
-        input: { city: 'Quito' },
-      }),
-    ).resolves.toBe(true);
-    await expect(
-      authorization.waitForToolCallAuthorization({
-        toolName: 'weather',
-        input: { city: 'Tokyo' },
-      }),
-    ).resolves.toBe(true);
-    await expect(
-      authorization.waitForToolCallAuthorization({
-        toolName: 'weather',
-        input: { city: 'Reykjavik' },
-      }),
-    ).resolves.toBe(true);
-    await expect(
-      authorization.waitForToolCallAuthorization({
-        toolName: 'weather',
-        input: { city: 'Seattle' },
-      }),
-    ).resolves.toBe(true);
-
-    authorization.observeUpdate({
-      update: update({
-        toolCallId: 'conflicting',
-        rawInput: {
-          tool_name: `other-server__weather`,
-          tool_input: weather.input,
-        },
-      }),
-    });
-    authorization.observeUpdate({
-      update: update({
-        toolCallId: 'malformed',
-        rawInput: { tool_name: `${serverName}__weather`, tool_input: null },
-      }),
-    });
-    authorization.observeUpdate({
-      update: update({
-        toolCallId: 'ambiguous',
-        rawInput: {
-          tool_name: `other-server__weather`,
-          tool_input: weather.input,
-          server: serverName,
-          tool: 'weather',
-          arguments: weather.input,
-        },
-      }),
-    });
-    const conflictingOrigin = {
-      origin: 'other-server',
-      operation: 'weather',
-      arguments: weather.input,
-    };
-    authorization.observeUpdate({
-      update: update({
-        toolCallId: 'conflicting-origin',
-        rawInput: conflictingOrigin,
-      }),
-    });
-    const invalid = [
-      authorization.waitForToolCallAuthorization(weather),
-      authorization.waitForToolCallAuthorization({
-        toolName: 'weather',
-        input: conflictingOrigin,
-      }),
-      authorization.waitForToolCallAuthorization({
-        toolName: 'weather',
-        input: { tool_name: `${serverName}__weather`, tool_input: null },
-      }),
-    ];
+    for (const city of ['Lima', 'Paris', 'Seattle']) {
+      await expect(
+        authorization.waitForToolCallAuthorization({
+          toolName: 'weather',
+          input: { city },
+        }),
+      ).resolves.toBe(true);
+    }
     authorization.close();
-    for (const pending of invalid) await expect(pending).resolves.toBe(false);
   });
 
-  it.each([
-    { tool_name: `${serverName}__weather` },
-    { tool_name: `${serverName}__weather`, tool_input: null },
-    { tool_name: `${serverName}__weather`, tool_input: [] },
-  ])('does not authorize unresolved deferred updates: %j', async rawInput => {
+  it('does not authorize an update that the adapter did not resolve', async () => {
     const authorization = authorizer();
+    const rawInput = {
+      tool_name: 'other-server__weather',
+      tool_input: weather.input,
+    };
     authorization.observeUpdate({
       update: {
         sessionUpdate: 'tool_call',
-        toolCallId: 'unresolved-deferred',
-        title: `mcp__${serverName}__weather`,
+        toolCallId: 'unresolved',
+        title: 'use_tool',
         rawInput,
       },
     });
-    const direct = authorization.waitForToolCallAuthorization({
-      toolName: 'weather',
-      input: rawInput,
-    });
-    const unwrapped = authorization.waitForToolCallAuthorization(weather);
+    const pending = [
+      authorization.waitForToolCallAuthorization(weather),
+      authorization.waitForToolCallAuthorization({
+        toolName: 'weather',
+        input: rawInput,
+      }),
+    ];
     authorization.close();
-    await expect(direct).resolves.toBe(false);
-    await expect(unwrapped).resolves.toBe(false);
+    for (const result of pending) await expect(result).resolves.toBe(false);
   });
 
   it('uses accepted permission requests as ACP evidence when they precede updates', async () => {

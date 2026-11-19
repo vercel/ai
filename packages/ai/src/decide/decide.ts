@@ -2,6 +2,7 @@ import {
   Experimental_DecisionRefusalError as DecisionRefusalError,
   Experimental_DecisionUnsupportedQuestionTypeError as DecisionUnsupportedQuestionTypeError,
   type Experimental_DecisionModelV4Question as DecisionQuestion,
+  type Experimental_DecisionModelV4CallOptions as DecisionCallOptions,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -14,8 +15,10 @@ import { resolveDecisionModel } from '../model/resolve-model';
 import { logWarnings } from '../logger/log-warnings';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type { Callback } from '../util/callback';
+import type { DownloadFunction } from '../util/download/download-function';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
+import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
 import { VERSION } from '../version';
 import type { DecideEndEvent, DecideStartEvent } from './decide-events';
 import type { DecisionModel, DecisionResult } from './decision-result';
@@ -38,8 +41,11 @@ export async function decide<
   model: modelArg,
   state,
   questions,
+  maxOutputTokens,
+  reasoning,
   maxRetries,
   abortSignal,
+  experimental_download: download,
   headers,
   providerOptions = {},
   telemetry,
@@ -52,9 +58,18 @@ export async function decide<
   model: DecisionModel;
   state: DecisionState;
   questions: QUESTIONS;
+  /** Maximum output tokens for supported models. Must be an integer >= 1. */
+  maxOutputTokens?: number;
+  /** Reasoning effort for supported models. Language-model adapters default to none. */
+  reasoning?: DecisionCallOptions['reasoning'];
   /** Maximum retries for transient provider failures. Defaults to 2. */
   maxRetries?: number;
   abortSignal?: AbortSignal;
+  /**
+   * Download function required for URL-backed file state. Use createDownload({ fetch })
+   * with a DNS-protected transport for untrusted URLs. The model's fetch is not used.
+   */
+  experimental_download?: DownloadFunction;
   headers?: Record<string, string>;
   providerOptions?: ProviderOptions;
   /** Optional telemetry configuration. */
@@ -72,6 +87,7 @@ export async function decide<
 }): Promise<DecisionResult<QUESTIONS>> {
   const model = resolveDecisionModel(modelArg);
 
+  prepareLanguageModelCallOptions({ maxOutputTokens });
   validateDecisionInput({ state, questions });
 
   for (const [questionId, question] of Object.entries(questions)) {
@@ -105,6 +121,8 @@ export async function decide<
     modelId: model.modelId,
     state,
     questions,
+    maxOutputTokens,
+    reasoning,
     maxRetries: resolvedMaxRetries,
     headers,
     providerOptions,
@@ -119,7 +137,11 @@ export async function decide<
       });
 
       try {
-        const preparedState = await prepareDecisionState(state, abortSignal);
+        const preparedState = await prepareDecisionState({
+          state,
+          abortSignal,
+          download,
+        });
         const modelCallEvent = {
           callId,
           operationId: 'ai.decide.doDecide' as const,
@@ -139,6 +161,8 @@ export async function decide<
           return await model.doDecide({
             state: preparedState,
             questions,
+            maxOutputTokens,
+            reasoning,
             abortSignal,
             headers: withUserAgentSuffix(headers ?? {}, `ai/${VERSION}`),
             providerOptions,

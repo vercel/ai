@@ -1,43 +1,17 @@
----
-status: '{proposed | accepted | rejected | deprecated | superseded by [title](YYYY-MM-DD-title.md)}'
-date: { YYYY-MM-DD }
-decision-makers: '{list everyone who owns the decision}'
----
-
-# {short title, representative of solved problem and found solution}
+# {TITLE}
 
 ## Context and Problem Statement
 
-{Why does this decision need to happen now? What constraints exist? Include enough background that someone (or an agent) reading this for the first time can understand without follow-up questions.}
+{Why does this decision need to happen now? What constraints exist? Include enough background that a reader can understand the problem without prior conversations.}
 
 ## Decision
 
-{What are we choosing to do? Be specific — include scope and non-goals.}
-
-## Consequences
-
-- Good, because {positive consequence}
-- Bad, because {negative consequence}
-- …
-
-## Implementation Plan
-
-- **Affected paths**: {files and directories that change}
-- **Dependencies**: {packages to add/remove/update}
-- **Patterns to follow**: {existing code patterns to match}
-- **Patterns to avoid**: {what NOT to do}
-
-### Verification
-
-- [ ] {how to confirm the decision was implemented correctly}
-- [ ] {another verification criterion}
-
-<!-- Optional — remove if not needed -->
+{What are we choosing to do, and why? State the scope and non-goals. Include the tradeoffs we accept with this choice. Keep implementation steps and verification in issues or pull requests.}
 
 ## Alternatives Considered
 
-- {Alternative 1}: {Why it was rejected, in one or two sentences.}
-- {Alternative 2}: {Why it was rejected.}
+- {Alternative 1}: {What are its benefits and drawbacks? Why was it rejected?}
+- {Alternative 2}: {What are its benefits and drawbacks? Why was it rejected?}
 
 <!-- Optional — remove if not needed -->
 

@@ -17,6 +17,7 @@ export class NoSuchModelError extends AISDKError {
     | 'rerankingModel'
     | 'videoModel'
     | 'decisionModel'
+    | 'extractionModel'
     /** @deprecated Use `decisionModel` instead. */
     | 'evaluationModel';
 
@@ -37,6 +38,7 @@ export class NoSuchModelError extends AISDKError {
       | 'rerankingModel'
       | 'videoModel'
       | 'decisionModel'
+      | 'extractionModel'
       /** @deprecated Use `decisionModel` instead. */
       | 'evaluationModel';
     message?: string;

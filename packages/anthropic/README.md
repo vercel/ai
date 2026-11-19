@@ -6,10 +6,8 @@ The **[Anthropic provider](https://ai-sdk.dev/providers/ai-sdk-providers/anthrop
 
 ## Setup
 
-The Anthropic provider is available in the `@ai-sdk/anthropic` module. You can install it with
-
 ```bash
-npm i @ai-sdk/anthropic
+npm i ai @ai-sdk/anthropic
 ```
 
 ## Skill for Coding Agents
@@ -20,15 +18,7 @@ If you use coding agents such as Claude Code or Cursor, we highly recommend addi
 npx skills add vercel/ai
 ```
 
-## Provider Instance
-
-You can import the default provider instance `anthropic` from `@ai-sdk/anthropic`:
-
-```ts
-import { anthropic } from '@ai-sdk/anthropic';
-```
-
-## Example
+## Usage
 
 ```ts
 import { anthropic } from '@ai-sdk/anthropic';
@@ -40,6 +30,4 @@ const { text } = await generateText({
 });
 ```
 
-## Documentation
-
-Please check out the **[Anthropic provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/anthropic)** for more information.
+See the [Anthropic Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/anthropic) for more information.

@@ -181,6 +181,193 @@ function createStreamChunks(responseOverrides: Record<string, unknown> = {}) {
   ];
 }
 
+describe.each(['doGenerate', 'doStream'] as const)('%s tool choice', method => {
+  const tools = [
+    {
+      type: 'function' as const,
+      name: 'weather',
+      inputSchema: { type: 'object' as const, properties: {} },
+    },
+  ];
+  const nativeTools = [
+    { type: 'web_search' },
+    {
+      type: 'mcp',
+      server_label: 'test',
+      server_url: 'https://example.com/mcp',
+      authorization: 'test-mcp-token',
+      headers: { 'x-api-key': 'test-mcp-key' },
+    },
+    { type: 'connector', id: 'test-connector', server_label: 'test' },
+  ];
+
+  function prepareResponse() {
+    if (method === 'doGenerate') {
+      prepareJsonResponse();
+    } else {
+      prepareStream(createStreamChunks());
+    }
+  }
+
+  describe.each(['low', 'openai/gpt-5.1'])('model %s', modelId => {
+    const model = new PerplexityLanguageModel(modelId, {
+      baseURL: 'https://api.perplexity.ai',
+      generateId: mockId(),
+    });
+
+    it.each([undefined, 5])(
+      'disables all tools with none and max_tool_calls %s',
+      async maxToolCalls => {
+        prepareResponse();
+
+        const result = await model[method]({
+          prompt: TEST_PROMPT,
+          tools,
+          toolChoice: { type: 'none' },
+          providerOptions: {
+            perplexity: { tools: nativeTools, max_tool_calls: maxToolCalls },
+          },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body).not.toHaveProperty('tools');
+        expect(body.max_tool_calls).toBe(0);
+        expect(JSON.stringify(body)).not.toContain('test-mcp-token');
+        expect(JSON.stringify(body)).not.toContain('test-mcp-key');
+        if ('stream' in result) {
+          const parts = await convertReadableStreamToArray(result.stream);
+          expect(parts[0]).toEqual({ type: 'stream-start', warnings: [] });
+        } else {
+          expect(result.warnings).toEqual([]);
+        }
+      },
+    );
+
+    it('disables preset tools even without explicit tools', async () => {
+      prepareResponse();
+
+      await model[method]({
+        prompt: TEST_PROMPT,
+        toolChoice: { type: 'none' },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('tools');
+      expect(body.max_tool_calls).toBe(0);
+    });
+
+    it('omits disabled provider-defined tools without unsupported warnings', async () => {
+      prepareResponse();
+
+      const result = await model[method]({
+        prompt: TEST_PROMPT,
+        toolChoice: { type: 'none' },
+        tools: [
+          {
+            type: 'provider',
+            id: 'perplexity.web_search',
+            name: 'search',
+            args: {},
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('tools');
+      expect(body.max_tool_calls).toBe(0);
+      if ('stream' in result) {
+        const parts = await convertReadableStreamToArray(result.stream);
+        expect(parts[0]).toEqual({ type: 'stream-start', warnings: [] });
+      } else {
+        expect(result.warnings).toEqual([]);
+      }
+    });
+
+    it('keeps prior tool calls and results while disabling new tool use', async () => {
+      prepareResponse();
+
+      await model[method]({
+        prompt: [
+          ...TEST_PROMPT,
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'weather',
+                input: {},
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'weather',
+                output: { type: 'text', value: 'Sunny' },
+              },
+            ],
+          },
+        ],
+        tools,
+        toolChoice: { type: 'none' },
+        providerOptions: {
+          perplexity: { tools: nativeTools, max_tool_calls: 5 },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('tools');
+      expect(body.max_tool_calls).toBe(0);
+      expect(body.input).toEqual([
+        { type: 'message', role: 'user', content: 'Hello' },
+        {
+          type: 'function_call',
+          call_id: 'call-1',
+          name: 'weather',
+          arguments: '{}',
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call-1',
+          name: 'weather',
+          output: 'Sunny',
+        },
+      ]);
+    });
+
+    it.each([undefined, { type: 'auto' as const }])(
+      'preserves tools and limits with tool choice %s',
+      async toolChoice => {
+        prepareResponse();
+
+        await model[method]({
+          prompt: TEST_PROMPT,
+          tools,
+          toolChoice,
+          providerOptions: {
+            perplexity: { tools: nativeTools, max_tool_calls: 5 },
+          },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.tools).toEqual([
+          ...nativeTools,
+          {
+            type: 'function',
+            name: 'weather',
+            parameters: tools[0].inputSchema,
+          },
+        ]);
+        expect(body.max_tool_calls).toBe(5);
+      },
+    );
+  });
+});
+
 describe('doGenerate', () => {
   it('parses a captured Agent API web search response', async () => {
     const response = JSON.parse(
@@ -203,6 +390,50 @@ describe('doGenerate', () => {
     ).toBe(true);
     expect(result.usage.raw).toEqual(response.usage);
     expect(result.finishReason.unified).toBe('stop');
+    expect(result.providerMetadata?.perplexity?.searchQueries).toEqual([
+      'Find the official TypeScript website and describe TypeScript in one sentence with a citation.',
+    ]);
+  });
+
+  it('collects search queries across search result items without duplicates', async () => {
+    prepareJsonResponse(
+      createResponse({
+        output: [
+          {
+            type: 'search_results',
+            queries: ['running shoes Denmark', 'best running shoe brands'],
+            results: [],
+          },
+          {
+            type: 'search_results',
+            queries: ['best running shoe brands', 'running shoes 2026'],
+            results: [],
+          },
+        ],
+      }),
+    );
+
+    const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(result.providerMetadata?.perplexity?.searchQueries).toEqual([
+      'running shoes Denmark',
+      'best running shoe brands',
+      'running shoes 2026',
+    ]);
+  });
+
+  it('returns null search queries when no web search ran', async () => {
+    prepareJsonResponse(
+      createResponse({
+        output: createResponse().output.filter(
+          item => item.type !== 'search_results',
+        ),
+      }),
+    );
+
+    const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(result.providerMetadata?.perplexity?.searchQueries).toBeNull();
   });
 
   it('accepts native tool results without treating them as web search results', async () => {
@@ -262,6 +493,7 @@ describe('doGenerate', () => {
       perplexity: {
         usage: { citationTokens: null, numSearchQueries: 2 },
         images: null,
+        searchQueries: ['latest AI news'],
         cost: {
           inputTokensCost: 0.001,
           outputTokensCost: 0.002,
@@ -428,6 +660,25 @@ describe('doGenerate', () => {
       feature: 'reasoning',
       details:
         'reasoning "max" is not directly supported by this model. mapped to effort "xhigh".',
+    });
+  });
+
+  it('maps top-level none reasoning to the lowest effort with a warning', async () => {
+    prepareJsonResponse();
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'none',
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      reasoning: { effort: 'minimal' },
+    });
+    expect(result.warnings).toContainEqual({
+      type: 'compatibility',
+      feature: 'reasoning',
+      details:
+        'reasoning "none" is not directly supported by this model. mapped to effort "minimal".',
     });
   });
 
@@ -645,6 +896,62 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
+  it.each(['response.completed', 'response.incomplete'])(
+    'preserves an explicit %s event without response details',
+    async type => {
+      prepareStream([{ type }]);
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts.filter(part => part.type === 'error')).toEqual([]);
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'finish',
+          finishReason: { unified: 'other', raw: undefined },
+        }),
+      );
+    },
+  );
+
+  it.each([false, true])(
+    'handles a truncated stream (with error: %s)',
+    async withError => {
+      const events = readFileSync(
+        'src/__fixtures__/agent-web-search.chunks.txt',
+        'utf8',
+      )
+        .split('\n')
+        .filter(Boolean)
+        .map(line => JSON.parse(line));
+      const firstText = events.findIndex(
+        event => event.type === 'response.output_text.delta',
+      );
+      expect(firstText).toBeGreaterThanOrEqual(0);
+      server.urls[AGENT_URL].response = {
+        type: 'stream-chunks',
+        chunks: [
+          ...events
+            .slice(0, firstText + 1)
+            .map(event => `data: ${JSON.stringify(event)}\n\n`),
+          ...(withError ? ['data: {invalid-json}\n\n'] : []),
+        ],
+      };
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts.some(part => part.type === 'text-delta')).toBe(true);
+      expect(parts.filter(part => part.type === 'error')).toHaveLength(
+        withError ? 1 : 0,
+      );
+      expect(parts.filter(part => part.type === 'finish')).toEqual([
+        expect.objectContaining({
+          finishReason: {
+            unified: withError ? 'error' : 'interrupted',
+            raw: undefined,
+          },
+        }),
+      ]);
+    },
+  );
+
   it('parses captured Agent API web search events', async () => {
     const events = readFileSync(
       'src/__fixtures__/agent-web-search.chunks.txt',
@@ -684,8 +991,60 @@ describe('doStream', () => {
       expect.objectContaining({
         type: 'finish',
         finishReason: { unified: 'stop', raw: 'completed' },
+        providerMetadata: expect.objectContaining({
+          perplexity: expect.objectContaining({
+            searchQueries: [
+              'Find the official TypeScript website and describe TypeScript in one sentence with a citation.',
+            ],
+          }),
+        }),
       }),
     );
+  });
+
+  it('collects search queries from reasoning events when the completed response omits them', async () => {
+    prepareStream([
+      {
+        type: 'response.reasoning.started',
+        sequence_number: 0,
+        thought: 'Planning...',
+      },
+      {
+        type: 'response.reasoning.search_queries',
+        sequence_number: 1,
+        queries: ['running shoes Denmark', 'best running shoe brands'],
+        thought: 'Searching the web...',
+      },
+      {
+        type: 'response.reasoning.search_queries',
+        sequence_number: 2,
+        queries: ['best running shoe brands'],
+      },
+      {
+        type: 'response.reasoning.fetch_url_queries',
+        sequence_number: 3,
+        urls: ['https://example.com/source'],
+      },
+      { type: 'response.reasoning.stopped', sequence_number: 4 },
+      {
+        type: 'response.completed',
+        sequence_number: 5,
+        response: createResponse({
+          output: createResponse().output.filter(
+            item => item.type !== 'search_results',
+          ),
+        }),
+      },
+    ]);
+
+    const result = await model.doStream({ prompt: TEST_PROMPT });
+    const chunks = await convertReadableStreamToArray(result.stream);
+    const finish = chunks.find(chunk => chunk.type === 'finish');
+
+    expect(finish?.providerMetadata?.perplexity?.searchQueries).toEqual([
+      'running shoes Denmark',
+      'best running shoe brands',
+    ]);
   });
 
   it.each(['response.completed', 'response.incomplete'])(

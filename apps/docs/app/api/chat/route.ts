@@ -8,7 +8,7 @@ const chatProxyToken = process.env.GEISTDOCS_CHAT_PROXY_TOKEN;
 export const { POST, maxDuration } = createChatRoute({
   config,
   // Applies in AI Gateway mode; proxy/eve modes select their own model.
-  model: 'anthropic/claude-fable-5',
+  model: 'openai/gpt-6-luna',
   proxy: chatProxyUrl
     ? {
         url: chatProxyUrl,

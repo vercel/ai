@@ -1,4 +1,8 @@
-import type { JSONObject, SharedV4AudioFormat } from '@ai-sdk/provider';
+import type {
+  JSONObject,
+  SharedV4AudioFormat,
+  TranscriptionModelV4TimestampGranularity,
+} from '@ai-sdk/provider';
 import type { ProviderOptions } from '@ai-sdk/provider-utils';
 import type { ProviderMetadata } from '../types';
 import type { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
@@ -21,8 +25,9 @@ type TranscriptionStartEventFor<OPERATION_ID extends string> = {
   readonly modelId: string;
 
   /**
-   * Metadata about the input audio. The byte length is known immediately for
-   * non-streaming transcription and is reported on the end event for streams.
+   * Metadata about the input audio. Native URL transcription does not inspect
+   * the audio, so its byte length and media type are unknown. Streaming byte
+   * length is reported on the end event after consuming the stream.
    */
   readonly audio: {
     readonly byteLength: number | undefined;
@@ -47,7 +52,10 @@ type TranscriptionStartEventFor<OPERATION_ID extends string> = {
 };
 
 export type TranscriptionStartEvent =
-  TranscriptionStartEventFor<'ai.transcribe'>;
+  TranscriptionStartEventFor<'ai.transcribe'> & {
+    /** Requested shared timing granularities, when specified. */
+    readonly timestampGranularities?: Array<TranscriptionModelV4TimestampGranularity>;
+  };
 
 export type StreamTranscriptionStartEvent =
   TranscriptionStartEventFor<'ai.streamTranscribe'>;
@@ -72,14 +80,18 @@ type TranscriptionEndEventFor<OPERATION_ID extends string> = {
 
   /** Metadata about the input audio. */
   readonly audio: {
-    readonly byteLength: number;
-    readonly mediaType: string;
+    readonly byteLength: OPERATION_ID extends 'ai.transcribe'
+      ? number | undefined
+      : number;
+    readonly mediaType: OPERATION_ID extends 'ai.transcribe'
+      ? string | undefined
+      : string;
   };
 
   /** The complete transcript. */
   readonly text: string;
 
-  /** Transcript segments with timing information. */
+  /** Transcript segments with timing information, retaining provider behavior. */
   readonly segments: Array<{
     readonly text: string;
     readonly startSecond: number;
@@ -105,7 +117,15 @@ type TranscriptionEndEventFor<OPERATION_ID extends string> = {
   readonly response: TranscriptionModelResponseMetadata;
 };
 
-export type TranscriptionEndEvent = TranscriptionEndEventFor<'ai.transcribe'>;
+export type TranscriptionEndEvent =
+  TranscriptionEndEventFor<'ai.transcribe'> & {
+    /** Word timings returned by the provider, whether requested or returned by default. */
+    readonly words?: Array<{
+      readonly text: string;
+      readonly startSecond: number;
+      readonly endSecond: number;
+    }>;
+  };
 
 export type StreamTranscriptionEndEvent =
   TranscriptionEndEventFor<'ai.streamTranscribe'>;

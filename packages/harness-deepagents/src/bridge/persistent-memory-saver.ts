@@ -1,4 +1,4 @@
-import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdir, open, readFile, rename, rm } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import type { MemorySaver } from '@langchain/langgraph';
 
@@ -18,6 +18,61 @@ function encodeBytes(value: Uint8Array): string {
 
 function decodeBytes(value: string): Uint8Array {
   return Buffer.from(value, 'base64');
+}
+
+function getLatestCheckpointId(
+  checkpoints: Record<string, unknown>,
+): string | undefined {
+  return Object.keys(checkpoints).sort((a, b) => b.localeCompare(a))[0];
+}
+
+function getCheckpointStorageKey({
+  threadId,
+  namespace,
+  checkpointId,
+}: {
+  threadId: string;
+  namespace: string;
+  checkpointId: string;
+}): string {
+  return JSON.stringify([threadId, namespace, checkpointId]);
+}
+
+export function pruneMemorySaver({ saver }: { saver: MemorySaver }): void {
+  const retainedCheckpointKeys = new Set<string>();
+
+  for (const [threadId, namespaces] of Object.entries(saver.storage)) {
+    for (const [namespace, checkpoints] of Object.entries(namespaces)) {
+      const latestCheckpointId = getLatestCheckpointId(checkpoints);
+      if (latestCheckpointId === undefined) {
+        delete namespaces[namespace];
+        continue;
+      }
+
+      for (const checkpointId of Object.keys(checkpoints)) {
+        if (checkpointId !== latestCheckpointId) {
+          delete checkpoints[checkpointId];
+        }
+      }
+
+      const latestCheckpoint = checkpoints[latestCheckpointId];
+      if (latestCheckpoint !== undefined) latestCheckpoint[2] = undefined;
+
+      retainedCheckpointKeys.add(
+        getCheckpointStorageKey({
+          threadId,
+          namespace,
+          checkpointId: latestCheckpointId,
+        }),
+      );
+    }
+
+    if (Object.keys(namespaces).length === 0) delete saver.storage[threadId];
+  }
+
+  for (const key of Object.keys(saver.writes)) {
+    if (!retainedCheckpointKeys.has(key)) delete saver.writes[key];
+  }
 }
 
 export async function loadMemorySaver({
@@ -77,6 +132,7 @@ export async function loadMemorySaver({
 
   saver.storage = storage;
   saver.writes = writes;
+  pruneMemorySaver({ saver });
 }
 
 export async function saveMemorySaver({
@@ -86,50 +142,69 @@ export async function saveMemorySaver({
   path: string;
   saver: MemorySaver;
 }): Promise<void> {
-  const lines = [SNAPSHOT_HEADER];
-
-  for (const [threadId, namespaces] of Object.entries(saver.storage)) {
-    for (const [namespace, checkpoints] of Object.entries(namespaces)) {
-      for (const [
-        checkpointId,
-        [checkpoint, metadata, parentCheckpointId],
-      ] of Object.entries(checkpoints)) {
-        lines.push(
-          [
-            'S',
-            encodeString(threadId),
-            encodeString(namespace),
-            encodeString(checkpointId),
-            encodeBytes(checkpoint),
-            encodeBytes(metadata),
-            parentCheckpointId == null ? '' : encodeString(parentCheckpointId),
-          ].join('\t'),
-        );
-      }
-    }
-  }
-
-  for (const [key, indexedWrites] of Object.entries(saver.writes)) {
-    for (const [index, [taskId, channel, value]] of Object.entries(
-      indexedWrites,
-    )) {
-      lines.push(
-        [
-          'W',
-          encodeString(key),
-          encodeString(index),
-          encodeString(taskId),
-          encodeString(channel),
-          encodeBytes(value),
-        ].join('\t'),
-      );
-    }
-  }
-
   await mkdir(dirname(path), { recursive: true });
   const temporaryPath = `${path}.${process.pid}.tmp`;
-  await writeFile(temporaryPath, `${lines.join('\n')}\n`, 'utf8');
-  await rename(temporaryPath, path);
+  const retainedCheckpointKeys = new Set<string>();
+
+  try {
+    const file = await open(temporaryPath, 'w');
+    try {
+      const writeLine = async (line: string) => {
+        await file.writeFile(`${line}\n`, 'utf8');
+      };
+
+      await writeLine(SNAPSHOT_HEADER);
+
+      for (const [threadId, namespaces] of Object.entries(saver.storage)) {
+        for (const [namespace, checkpoints] of Object.entries(namespaces)) {
+          const checkpointId = getLatestCheckpointId(checkpoints);
+          if (checkpointId === undefined) continue;
+
+          retainedCheckpointKeys.add(
+            getCheckpointStorageKey({ threadId, namespace, checkpointId }),
+          );
+          const [checkpoint, metadata] = checkpoints[checkpointId];
+          await writeLine(
+            [
+              'S',
+              encodeString(threadId),
+              encodeString(namespace),
+              encodeString(checkpointId),
+              encodeBytes(checkpoint),
+              encodeBytes(metadata),
+              '',
+            ].join('\t'),
+          );
+        }
+      }
+
+      for (const [key, indexedWrites] of Object.entries(saver.writes)) {
+        if (!retainedCheckpointKeys.has(key)) continue;
+
+        for (const [index, [taskId, channel, value]] of Object.entries(
+          indexedWrites,
+        )) {
+          await writeLine(
+            [
+              'W',
+              encodeString(key),
+              encodeString(index),
+              encodeString(taskId),
+              encodeString(channel),
+              encodeBytes(value),
+            ].join('\t'),
+          );
+        }
+      }
+    } finally {
+      await file.close();
+    }
+
+    await rename(temporaryPath, path);
+  } catch (error) {
+    await rm(temporaryPath, { force: true }).catch(() => undefined);
+    throw error;
+  }
 }
 
 export async function removeMemorySaverSnapshot(path: string): Promise<void> {

@@ -39,8 +39,12 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
       continue;
     }
 
-    // Skip empty text
-    if (part.type === 'text' && part.text.length === 0) {
+    // Skip empty text without provider metadata.
+    if (
+      part.type === 'text' &&
+      part.text.length === 0 &&
+      part.providerMetadata == null
+    ) {
       continue;
     }
 
