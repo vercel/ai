@@ -19,7 +19,12 @@ describe.skipIf(isEdgeRuntime)('Output declaration emit', () => {
       target: ts.ScriptTarget.ES2022,
       types: [],
     };
-    const fileName = path.resolve('test/exported-output.ts');
+    // TypeScript normalizes paths to forward slashes on every platform, so the
+    // in-memory file must be keyed the same way for the host overrides to
+    // match on Windows (where path.resolve returns backslash separators).
+    const fileName = path
+      .resolve('test/exported-output.ts')
+      .replace(/\\/g, '/');
     const sourceText = `
 import { Output, type Prompt } from 'ai';
 

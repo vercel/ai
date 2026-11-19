@@ -17,6 +17,11 @@ describe.skipIf(isEdgeRuntime)('global declaration compatibility', () => {
           import('node:path'),
           import('typescript'),
         ]);
+      // TypeScript normalizes paths to forward slashes on every platform, so
+      // the in-memory files must be keyed the same way for the compiler host
+      // to find them on Windows (where path.resolve returns backslashes).
+      const resolveTestFile = (relativePath: string) =>
+        path.resolve(relativePath).replace(/\\/g, '/');
       const source = ts.createSourceFile(
         'global.ts',
         await readFile(new URL('./global.ts', import.meta.url), 'utf8'),
@@ -45,13 +50,13 @@ type LogWarningsFunction = (options: {
 type Telemetry = { onEnd?: (event: { version: 'v7' }) => void };
 `;
       const files = new Map<string, string>([
-        [path.resolve('test/v7-globals.d.ts'), currentTypes + declarations],
+        [resolveTestFile('test/v7-globals.d.ts'), currentTypes + declarations],
       ]);
 
       for (const [index, version] of versions.entries()) {
         const isV5 = version === 'v5';
         files.set(
-          path.resolve(`test/other-${index}-globals.d.ts`),
+          resolveTestFile(`test/other-${index}-globals.d.ts`),
           version === 'v7'
             ? currentTypes.replace(
                 "type ProviderV4 = { specificationVersion: 'v4' };",
@@ -78,7 +83,7 @@ declare global {
       }
 
       files.set(
-        path.resolve('test/global-assignments.ts'),
+        resolveTestFile('test/global-assignments.ts'),
         `
 globalThis.AI_SDK_DEFAULT_PROVIDER = { specificationVersion: 'v4' };
 // @ts-expect-error Invalid providers remain rejected.
