@@ -222,6 +222,63 @@ describe('convertAnthropicUsage', () => {
       expect(result.outputTokens.total).toBe(2998); // 2241 + 757
     });
 
+    it('should use top-level cache tokens when an iteration omits them', () => {
+      const usage: AnthropicUsage = {
+        input_tokens: 2,
+        output_tokens: 757,
+        cache_creation_input_tokens: 2406,
+        cache_read_input_tokens: 11193,
+        iterations: [
+          {
+            type: 'compaction',
+            input_tokens: 157,
+            output_tokens: 2241,
+            cache_creation_input_tokens: 46711,
+            cache_read_input_tokens: 56615,
+          },
+          {
+            type: 'message',
+            input_tokens: 2,
+            output_tokens: 757,
+          },
+        ],
+      };
+
+      const result = convertAnthropicUsage({ usage });
+
+      expect(result.inputTokens.cacheWrite).toBe(2406);
+      expect(result.inputTokens.cacheRead).toBe(11193);
+      expect(result.inputTokens.total).toBe(13758); // 159 + 2406 + 11193
+    });
+
+    it('should decide per cache field whether to sum iterations', () => {
+      const usage: AnthropicUsage = {
+        input_tokens: 2,
+        output_tokens: 757,
+        cache_creation_input_tokens: 2406,
+        cache_read_input_tokens: 11193,
+        iterations: [
+          {
+            type: 'compaction',
+            input_tokens: 157,
+            output_tokens: 2241,
+            cache_read_input_tokens: 56615,
+          },
+          {
+            type: 'message',
+            input_tokens: 2,
+            output_tokens: 757,
+            cache_read_input_tokens: 11193,
+          },
+        ],
+      };
+
+      const result = convertAnthropicUsage({ usage });
+
+      expect(result.inputTokens.cacheWrite).toBe(2406); // top-level
+      expect(result.inputTokens.cacheRead).toBe(67808); // 56615 + 11193
+    });
+
     it('should not count advisor iteration cache tokens', () => {
       const usage: AnthropicUsage = {
         input_tokens: 10,

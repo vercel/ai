@@ -90,24 +90,25 @@ export function convertAnthropicUsage({
       outputTokens = totals.output;
 
       // The top-level cache fields also only reflect the final message
-      // iteration, so sum them across executor iterations as well. Fall back
-      // to the top-level values when iterations don't report cache usage.
-      const reportsCacheUsage = executorIterations.some(
-        iter =>
-          iter.cache_creation_input_tokens != null ||
-          iter.cache_read_input_tokens != null,
-      );
+      // iteration, so sum them across executor iterations as well. Each field
+      // is summed only when every executor iteration reports it; otherwise the
+      // top-level value is kept, since an iteration's missing value is unknown.
+      const sumCacheField = (
+        field: 'cache_creation_input_tokens' | 'cache_read_input_tokens',
+        fallback: number,
+      ) =>
+        executorIterations.every(iter => iter[field] != null)
+          ? executorIterations.reduce((acc, iter) => acc + iter[field]!, 0)
+          : fallback;
 
-      if (reportsCacheUsage) {
-        cacheCreationTokens = executorIterations.reduce(
-          (acc, iter) => acc + (iter.cache_creation_input_tokens ?? 0),
-          0,
-        );
-        cacheReadTokens = executorIterations.reduce(
-          (acc, iter) => acc + (iter.cache_read_input_tokens ?? 0),
-          0,
-        );
-      }
+      cacheCreationTokens = sumCacheField(
+        'cache_creation_input_tokens',
+        cacheCreationTokens,
+      );
+      cacheReadTokens = sumCacheField(
+        'cache_read_input_tokens',
+        cacheReadTokens,
+      );
     } else {
       inputTokens = usage.input_tokens;
       outputTokens = usage.output_tokens;
