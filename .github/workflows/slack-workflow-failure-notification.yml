@@ -19,7 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     # Only notify for CI pushes to main or release branches; notify other
     # workflows as before. For pull requests, head_branch is the source branch
-    # and can also be named main or release-v* in a fork.
+    # and can also be named main or release-v* in a fork. Any app or user with
+    # write access can post a "Vercel CI" status, so also require that vercel[bot]
+    # (user ID 35613825) posted it with a link to a Vercel CI run.
     if: >-
       ${{
         (
@@ -39,6 +41,8 @@ jobs:
         (
           github.event_name == 'status' &&
           github.event.context == 'Vercel CI' &&
+          github.event.sender.id == 35613825 &&
+          startsWith(github.event.target_url, 'https://vercel.com/vercel/~/ci/') &&
           (github.event.state == 'failure' || github.event.state == 'error')
         )
       }}
@@ -57,7 +61,7 @@ jobs:
           fi
 
           earlier=$(gh api --paginate "repos/$GITHUB_REPOSITORY/commits/$SHA/statuses" \
-            --jq '.[] | select(.context == "Vercel CI" and (.state == "failure" or .state == "error") and .target_url == env.TARGET_URL and .id < (env.STATUS_ID | tonumber)) | .id' | wc -l)
+            --jq '.[] | select(.context == "Vercel CI" and .creator.id == 35613825 and (.state == "failure" or .state == "error") and .target_url == env.TARGET_URL and .id < (env.STATUS_ID | tonumber)) | .id' | wc -l)
           if [ "$earlier" -eq 0 ]; then
             echo "notify=true" >> "$GITHUB_OUTPUT"
           else
