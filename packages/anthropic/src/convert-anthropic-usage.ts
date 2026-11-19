@@ -36,8 +36,9 @@ export type AnthropicUsage = {
   /**
    * When compaction is triggered or the advisor tool is invoked, this
    * array contains usage for each sampling iteration. Top-level
-   * input_tokens and output_tokens exclude compaction iteration usage,
-   * and the advisor sub-inference is also not rolled into the top-level
+   * input_tokens, output_tokens, cache_creation_input_tokens and
+   * cache_read_input_tokens exclude compaction iteration usage (they only
+   * reflect the final message iteration), and the advisor sub-inference is also not rolled into the top-level
    * totals because it bills at a different rate. Use this array for
    * per-iteration cost tracking.
    */
@@ -57,8 +58,10 @@ export function convertAnthropicUsage({
     usage.output_tokens_details?.thinking_tokens ?? undefined;
 
   // When iterations is present (compaction or advisor), sum across executor
-  // iterations to get the true executor totals. The top-level input_tokens
-  // and output_tokens exclude compaction usage. Advisor (`advisor_message`)
+  // iterations to get the true executor totals. The top-level input_tokens,
+  // output_tokens and cache_creation_input_tokens / cache_read_input_tokens
+  // exclude compaction usage (cache fields are summed only when every executor
+  // iteration reports them). Advisor (`advisor_message`)
   // iterations are filtered out: they bill at the advisor model's rates,
   // not the executor's, so they don't belong in the top-level totals.
   //
