@@ -109,73 +109,300 @@ const standard = {
   urlContext: true,
 } as const;
 
-const languageModelDefinitions = {
+// Keep endpoint-specific suggestions together without declaring unsupported capabilities.
+const modelDefinitions = {
   'gemini-nano-banana-2.1': {
-    image: true,
-    objectGeneration: false,
-    tools: false,
-    streaming: false,
-    googleSearch: true,
-    urlContext: false,
+    types: ['language', 'interactions', 'image'],
+    definition: {
+      image: true,
+      objectGeneration: false,
+      tools: false,
+      streaming: false,
+      googleSearch: true,
+      urlContext: false,
+    },
   },
-  'gemini-4-argon': standard,
-  'gemini-4-carbon': standard,
-  'gemini-4-hydrogen': standard,
-  'gemini-4-neon': standard,
-  'gemini-3.8-flash': standard,
-  'gemini-3.7-flash': standard,
-  'gemini-3.6-flash': standard,
-  'gemini-3.5-flash': standard,
-  'gemini-3.5-flash-lite': standard,
-  'gemini-3.1-pro-preview': standard,
-  'gemini-3.1-flash-image-preview': standard,
-  'gemini-3.1-flash-lite-preview': standard,
-  'gemini-3-pro-preview': standard,
-  'gemini-3-pro-image-preview': standard,
-  'gemini-3-flash-preview': standard,
-  'gemini-2.5-pro': standard,
-  'gemini-2.5-flash': standard,
-  'gemini-2.5-flash-lite': standard,
-  'gemini-2.5-flash-lite-preview-06-17': standard,
-  'gemini-2.0-flash': standard,
-  // Known IDs without declared capabilities retain the custom-model fallback.
-  aqa: undefined,
-  'deep-research-max-preview-04-2026': undefined,
-  'deep-research-preview-04-2026': undefined,
-  'deep-research-pro-preview-12-2025': undefined,
-  'gemini-2.0-flash-001': undefined,
-  'gemini-2.0-flash-lite': undefined,
-  'gemini-2.0-flash-lite-001': undefined,
-  'gemini-2.5-computer-use-preview-10-2025': undefined,
-  'gemini-2.5-flash-image': undefined,
-  'gemini-2.5-flash-native-audio-latest': undefined,
-  'gemini-2.5-flash-native-audio-preview-09-2025': undefined,
-  'gemini-2.5-flash-native-audio-preview-12-2025': undefined,
-  'gemini-2.5-flash-preview-tts': undefined,
-  'gemini-2.5-pro-preview-tts': undefined,
-  'gemini-3.1-flash-tts-preview': undefined,
-  'gemini-3.1-pro-preview-customtools': undefined,
-  'gemini-flash-latest': undefined,
-  'gemini-flash-lite-latest': undefined,
-  'gemini-pro-latest': undefined,
-  'gemini-robotics-er-1.5-preview': undefined,
-  'gemma-3-12b-it': undefined,
-  'gemma-3-1b-it': undefined,
-  'gemma-3-27b-it': undefined,
-  'gemma-3-4b-it': undefined,
-  'gemma-3n-e2b-it': undefined,
-  'gemma-3n-e4b-it': undefined,
-  'nano-banana-pro-preview': undefined,
-} satisfies Record<string, DocumentedCapabilities | undefined>;
+  'gemini-4-argon': {
+    types: ['language', 'interactions'],
+    definition: standard,
+  },
+  'gemini-4-carbon': {
+    types: ['language', 'interactions'],
+    definition: standard,
+  },
+  'gemini-4-hydrogen': {
+    types: ['language', 'interactions'],
+    definition: standard,
+  },
+  'gemini-4-neon': {
+    types: ['language', 'interactions'],
+    definition: standard,
+  },
+  'gemini-3.8-flash': {
+    types: ['language', 'interactions'],
+    definition: standard,
+  },
+  'gemini-3.7-flash': {
+    types: ['language', 'interactions'],
+    definition: standard,
+  },
+  'gemini-3.6-flash': {
+    types: ['language', 'interactions'],
+    definition: standard,
+  },
+  'gemini-3.5-flash': {
+    types: ['language', 'interactions'],
+    definition: standard,
+  },
+  'gemini-3.5-flash-lite': {
+    types: ['language', 'interactions'],
+    definition: standard,
+  },
+  'gemini-3.1-pro-preview': {
+    types: ['language', 'interactions'],
+    definition: standard,
+  },
+  'gemini-3.1-flash-image-preview': {
+    types: ['language', 'interactions', 'image'],
+    definition: standard,
+  },
+  'gemini-3.1-flash-lite-preview': {
+    types: ['language', 'interactions'],
+    definition: standard,
+  },
+  'gemini-3-pro-preview': {
+    types: ['language', 'interactions'],
+    definition: standard,
+  },
+  'gemini-3-pro-image-preview': {
+    types: ['language', 'interactions', 'image'],
+    definition: standard,
+  },
+  'gemini-3-flash-preview': {
+    types: ['language', 'interactions'],
+    definition: standard,
+  },
+  'gemini-2.5-pro': {
+    types: ['language', 'interactions'],
+    definition: standard,
+  },
+  'gemini-2.5-flash': {
+    types: ['language', 'interactions'],
+    definition: standard,
+  },
+  'gemini-2.5-flash-lite': {
+    types: ['language', 'interactions'],
+    definition: standard,
+  },
+  'gemini-2.5-flash-lite-preview-06-17': {
+    types: ['language'],
+    definition: standard,
+  },
+  'gemini-2.0-flash': {
+    types: ['language'],
+    definition: standard,
+  },
+  aqa: {
+    types: ['language'],
+    definition: undefined,
+  },
+  'deep-research-max-preview-04-2026': {
+    types: ['language'],
+    definition: undefined,
+  },
+  'deep-research-preview-04-2026': {
+    types: ['language'],
+    definition: undefined,
+  },
+  'deep-research-pro-preview-12-2025': {
+    types: ['language'],
+    definition: undefined,
+  },
+  'gemini-2.0-flash-001': {
+    types: ['language'],
+    definition: undefined,
+  },
+  'gemini-2.0-flash-lite': {
+    types: ['language'],
+    definition: undefined,
+  },
+  'gemini-2.0-flash-lite-001': {
+    types: ['language'],
+    definition: undefined,
+  },
+  'gemini-2.5-computer-use-preview-10-2025': {
+    types: ['language', 'interactions'],
+    definition: undefined,
+  },
+  'gemini-2.5-flash-image': {
+    types: ['language', 'interactions', 'image'],
+    definition: undefined,
+  },
+  'gemini-2.5-flash-native-audio-latest': {
+    types: ['language'],
+    definition: undefined,
+  },
+  'gemini-2.5-flash-native-audio-preview-09-2025': {
+    types: ['language'],
+    definition: undefined,
+  },
+  'gemini-2.5-flash-native-audio-preview-12-2025': {
+    types: ['language', 'interactions'],
+    definition: undefined,
+  },
+  'gemini-2.5-flash-preview-tts': {
+    types: ['language', 'interactions', 'speech'],
+    definition: undefined,
+  },
+  'gemini-2.5-pro-preview-tts': {
+    types: ['language', 'interactions', 'speech'],
+    definition: undefined,
+  },
+  'gemini-3.1-flash-tts-preview': {
+    types: ['language', 'interactions', 'speech'],
+    definition: undefined,
+  },
+  'gemini-3.1-pro-preview-customtools': {
+    types: ['language'],
+    definition: undefined,
+  },
+  'gemini-flash-latest': {
+    types: ['language'],
+    definition: undefined,
+  },
+  'gemini-flash-lite-latest': {
+    types: ['language'],
+    definition: undefined,
+  },
+  'gemini-pro-latest': {
+    types: ['language'],
+    definition: undefined,
+  },
+  'gemini-robotics-er-1.5-preview': {
+    types: ['language'],
+    definition: undefined,
+  },
+  'gemma-3-12b-it': {
+    types: ['language'],
+    definition: undefined,
+  },
+  'gemma-3-1b-it': {
+    types: ['language'],
+    definition: undefined,
+  },
+  'gemma-3-27b-it': {
+    types: ['language'],
+    definition: undefined,
+  },
+  'gemma-3-4b-it': {
+    types: ['language'],
+    definition: undefined,
+  },
+  'gemma-3n-e2b-it': {
+    types: ['language'],
+    definition: undefined,
+  },
+  'gemma-3n-e4b-it': {
+    types: ['language'],
+    definition: undefined,
+  },
+  'nano-banana-pro-preview': {
+    types: ['language'],
+    definition: undefined,
+  },
+  'gemini-2.5-flash-lite-preview-09-2025': {
+    types: ['interactions'],
+    definition: undefined,
+  },
+  'gemini-2.5-flash-preview-09-2025': {
+    types: ['interactions'],
+    definition: undefined,
+  },
+  'lyria-3-clip-preview': {
+    types: ['interactions'],
+    definition: undefined,
+  },
+  'lyria-3-pro-preview': {
+    types: ['interactions'],
+    definition: undefined,
+  },
+  'gemini-3.8-flash-tts': {
+    types: ['speech'],
+    definition: undefined,
+  },
+  'gemini-3.8-flash-lite-tts': {
+    types: ['speech'],
+    definition: undefined,
+  },
+  'gemini-embedding-001': {
+    types: ['embedding'],
+    definition: undefined,
+  },
+  'gemini-embedding-2': {
+    types: ['embedding'],
+    definition: undefined,
+  },
+  'gemini-embedding-2-preview': {
+    types: ['embedding'],
+    definition: undefined,
+  },
+  'veo-3.1-fast-generate-preview': {
+    types: ['video'],
+    definition: undefined,
+  },
+  'veo-3.1-generate-preview': {
+    types: ['video'],
+    definition: undefined,
+  },
+  'veo-3.1-generate': {
+    types: ['video'],
+    definition: undefined,
+  },
+  'veo-3.1-lite-generate-preview': {
+    types: ['video'],
+    definition: undefined,
+  },
+  'veo-3.0-generate-001': {
+    types: ['video'],
+    definition: undefined,
+  },
+  'veo-3.0-fast-generate-001': {
+    types: ['video'],
+    definition: undefined,
+  },
+  'veo-2.0-generate-001': {
+    types: ['video'],
+    definition: undefined,
+  },
+  'gemini-3.5-transcribe': {
+    types: ['transcription'],
+    definition: undefined,
+  },
+  'gemini-3.5-transcribe-live': {
+    types: ['transcription'],
+    definition: undefined,
+  },
+  'gemini-3.5-live-translate-preview': {
+    types: ['speechTranslation'],
+    definition: undefined,
+  },
+  'gemini-decision-1': {
+    types: ['decision'],
+    definition: undefined,
+  },
+} as const satisfies Record<
+  string,
+  { types: readonly string[]; definition: DocumentedCapabilities | undefined }
+>;
 
 export const googleModelCatalog: Readonly<
   Record<string, GoogleLanguageModelEntry>
 > = Object.fromEntries(
-  Object.entries(languageModelDefinitions)
-    .filter(([, definition]) => definition != null)
-    .map(([modelId, documented]) => [
+  Object.entries(modelDefinitions)
+    .filter(([, { definition }]) => definition != null)
+    .map(([modelId, { definition }]) => [
       modelId,
-      createGoogleLanguageModelEntry(modelId, documented),
+      createGoogleLanguageModelEntry(modelId, definition),
     ]),
 );
 
@@ -357,7 +584,16 @@ function getMinimumThinkingLevelForGemini3Model(
     : 'minimal';
 }
 
+type GoogleModelType =
+  (typeof modelDefinitions)[keyof typeof modelDefinitions]['types'][number];
+
+type GoogleModelIdFor<Type extends GoogleModelType> = {
+  [ModelId in keyof typeof modelDefinitions]: Type extends (typeof modelDefinitions)[ModelId]['types'][number]
+    ? ModelId
+    : never;
+}[keyof typeof modelDefinitions];
+
 /** Known model IDs, derived from the declarations used to build the catalog. */
 export type GoogleModelIds = {
-  language: keyof typeof languageModelDefinitions;
+  [Type in GoogleModelType]: GoogleModelIdFor<Type>;
 };
