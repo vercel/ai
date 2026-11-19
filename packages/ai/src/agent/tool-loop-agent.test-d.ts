@@ -819,6 +819,27 @@ describe('ToolLoopAgent', () => {
           toolsContext: { weather: { weatherApiKey: 'key' } },
         });
       });
+
+      it('should accept toolsContext when a tool has contextSchema, outputSchema, and inferred toModelOutput', async () => {
+        const toolWithModelOutput = tool({
+          inputSchema: z.object({ query: z.string() }),
+          outputSchema: z.object({ result: z.string() }),
+          contextSchema: z.object({ userId: z.string() }),
+          toModelOutput: ({ output }) => ({
+            type: 'text',
+            value: output.result,
+          }),
+          execute: async (_input, { context }) => ({
+            result: context.userId,
+          }),
+        });
+
+        new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: { toolWithModelOutput },
+          toolsContext: { toolWithModelOutput: { userId: 'u1' } },
+        });
+      });
     });
 
     describe('prepareStep', () => {
