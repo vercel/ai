@@ -1059,7 +1059,7 @@ const helve = createHelveGateway({
 const { text } = await generateText({
   model: 'openai/gpt-5-mini',
   prompt: 'Search for live web extraction tools on Helve and run one.',
-  tools: helve.tools,
+  tools: helve,
   stopWhen: isStepCount(5),
 });
 
