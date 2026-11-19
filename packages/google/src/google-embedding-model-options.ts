@@ -4,11 +4,10 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { GoogleModelIds } from './google-model-catalog';
 
 export type GoogleEmbeddingModelId =
-  | 'gemini-embedding-001'
-  | 'gemini-embedding-2'
-  | 'gemini-embedding-2-preview'
+  | GoogleModelIds['embedding']
   | (string & {});
 
 const googleEmbeddingContentPartSchema = () =>

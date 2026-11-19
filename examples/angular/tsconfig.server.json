@@ -11,16 +11,7 @@
     "moduleResolution": "Bundler",
     "rootDir": "./src",
     "outDir": "./dist",
-    "skipLibCheck": true,
-    "composite": true
+    "skipLibCheck": true
   },
-  "include": ["src/server.ts"],
-  "references": [
-    {
-      "path": "../../packages/ai"
-    },
-    {
-      "path": "../../packages/openai"
-    }
-  ]
+  "include": ["src/server.ts"]
 }

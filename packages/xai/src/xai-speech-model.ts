@@ -19,7 +19,7 @@ import {
 import { z } from 'zod/v4';
 import { xaiFailedResponseHandler } from './xai-error';
 import { xaiSpeechModelOptionsSchema } from './xai-speech-model-options';
-import { getXaiSpeechModelEntry } from './xai-model-catalog';
+import { getXaiSpeechModelEntry, type XaiModelIds } from './xai-model-catalog';
 
 interface XaiSpeechModelConfig {
   provider: string;
@@ -46,7 +46,7 @@ export class XaiSpeechModel implements SpeechModelV4 {
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
-    modelId: '';
+    modelId: XaiModelIds['speech'];
     config: XaiSpeechModelConfig;
   }) {
     return new XaiSpeechModel(options.modelId, options.config);
@@ -57,7 +57,7 @@ export class XaiSpeechModel implements SpeechModelV4 {
   }
 
   constructor(
-    readonly modelId: '',
+    readonly modelId: XaiModelIds['speech'],
     private readonly config: XaiSpeechModelConfig,
   ) {}
 

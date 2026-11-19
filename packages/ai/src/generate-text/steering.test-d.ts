@@ -19,6 +19,11 @@ describe('steering types', () => {
       Promise<SteeringOutcome>
     >();
     steering.steer({ role: 'user', content: 'hello' }, { id: 'steer-1' });
+    steering.steer('stop', { interrupt: true });
+    // @ts-expect-error interrupt is a boolean
+    steering.steer('stop', { interrupt: 'yes' });
+    // @ts-expect-error queued messages wait for the task and cannot interrupt
+    steering.queue('later', { interrupt: true });
 
     // @ts-expect-error only user messages can be sent
     steering.steer({ role: 'assistant', content: 'hello' });

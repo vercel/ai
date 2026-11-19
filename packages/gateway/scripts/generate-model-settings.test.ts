@@ -3,7 +3,6 @@ import * as fs from 'fs';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
 vi.mock('fs', () => ({
-  existsSync: vi.fn(() => true),
   writeFileSync: vi.fn(),
 }));
 vi.mock('child_process', () => ({ execFileSync: vi.fn() }));
@@ -23,7 +22,7 @@ it.each([
   { types: ['evaluation', 'decision'] },
   { types: ['decision', 'evaluation'] },
 ])(
-  'writes one decision settings file for catalog types $types',
+  'writes decision catalog IDs for upstream types $types',
   async ({ types }) => {
     vi.stubGlobal(
       'fetch',
@@ -39,19 +38,22 @@ it.each([
     await vi.waitFor(() => expect(execFileSync).toHaveBeenCalledOnce());
 
     expect(fs.writeFileSync).toHaveBeenCalledExactlyOnceWith(
-      expect.stringContaining('gateway-decision-model-settings.ts'),
-      [
-        'export type GatewayDecisionModelId =',
-        ...types.sort().map(type => `  | 'provider/${type}'`),
-        '  | (string & {});',
-        '',
-      ].join('\n'),
+      expect.stringContaining('gateway-model-catalog.ts'),
+      expect.stringContaining(
+        [
+          '  decision: [',
+          ...types
+            .sort()
+            .map(type => `    ${JSON.stringify(`provider/${type}`)},`),
+          '  ],',
+        ].join('\n'),
+      ),
       'utf-8',
     );
   },
 );
 
-it('writes the extraction settings file for extraction catalog models', async () => {
+it('writes extraction catalog IDs for upstream extraction models', async () => {
   vi.stubGlobal(
     'fetch',
     vi.fn().mockResolvedValue({
@@ -66,13 +68,10 @@ it('writes the extraction settings file for extraction catalog models', async ()
   await vi.waitFor(() => expect(execFileSync).toHaveBeenCalledOnce());
 
   expect(fs.writeFileSync).toHaveBeenCalledExactlyOnceWith(
-    expect.stringContaining('gateway-extraction-model-settings.ts'),
-    [
-      'export type GatewayExtractionModelId =',
-      "  | 'provider/extract'",
-      '  | (string & {});',
-      '',
-    ].join('\n'),
+    expect.stringContaining('gateway-model-catalog.ts'),
+    expect.stringContaining(
+      ['  extraction: [', '    "provider/extract",', '  ],'].join('\n'),
+    ),
     'utf-8',
   );
 });

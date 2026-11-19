@@ -8,10 +8,9 @@ output. The suite does not use Playwright or install a browser.
 
 ```sh
 pnpm install
-pnpm exec turbo build --filter=ai --filter=@ai-sdk/openai
 pnpm test:bundlers
 # Or run just one supported peer-dependency boundary:
-pnpm test:bundlers 4.1.8
+pnpm test:bundlers -- 4.1.8
 ```
 
 The two lanes install Zod 3.25.76 and 4.1.8, the minimum supported versions of
