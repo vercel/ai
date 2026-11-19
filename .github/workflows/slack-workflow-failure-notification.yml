@@ -7,9 +7,12 @@ on:
       - 'Release'
     types:
       - completed
+  # Vercel CI reports a commit status instead of running a workflow.
+  status:
 
 permissions:
   contents: read
+  statuses: read
 
 jobs:
   notify-on-failure:
@@ -19,21 +22,55 @@ jobs:
     # and can also be named main or release-v* in a fork.
     if: >-
       ${{
-        github.event.workflow_run.conclusion == 'failure' &&
         (
-          github.event.workflow_run.name != 'CI' ||
+          github.event_name == 'workflow_run' &&
+          github.event.workflow_run.conclusion == 'failure' &&
           (
-            github.event.workflow_run.event == 'push' &&
+            github.event.workflow_run.name != 'CI' ||
             (
-              github.event.workflow_run.head_branch == 'main' ||
-              startsWith(github.event.workflow_run.head_branch, 'release-v')
+              github.event.workflow_run.event == 'push' &&
+              (
+                github.event.workflow_run.head_branch == 'main' ||
+                startsWith(github.event.workflow_run.head_branch, 'release-v')
+              )
             )
           )
+        ) ||
+        (
+          github.event_name == 'status' &&
+          github.event.context == 'Vercel CI' &&
+          (github.event.state == 'failure' || github.event.state == 'error')
         )
       }}
 
     steps:
+      # Vercel CI posts a new failure status each time a task finishes, so only
+      # notify for the run's first one, and only for commits on main or a
+      # release branch.
+      - name: Check for a new Vercel CI failure
+        id: vercel-ci
+        if: github.event_name == 'status'
+        run: |
+          if ! jq -e '.branches | any(.name == "main" or (.name | startswith("release-v")))' "$GITHUB_EVENT_PATH" > /dev/null; then
+            echo "notify=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          earlier=$(gh api --paginate "repos/$GITHUB_REPOSITORY/commits/$SHA/statuses" \
+            --jq '.[] | select(.context == "Vercel CI" and (.state == "failure" or .state == "error") and .target_url == env.TARGET_URL and .id < (env.STATUS_ID | tonumber)) | .id' | wc -l)
+          if [ "$earlier" -eq 0 ]; then
+            echo "notify=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "notify=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.sha }}
+          STATUS_ID: ${{ github.event.id }}
+          TARGET_URL: ${{ github.event.target_url }}
+
       - name: Send Slack notification
+        if: github.event_name != 'status' || steps.vercel-ci.outputs.notify == 'true'
         run: |
           payload=$(jq -n \
             --arg channel_id "$CHANNEL_ID" \
@@ -45,5 +82,5 @@ jobs:
         env:
           SLACK_WORKFLOW_FAILURE_URL: ${{ secrets.SLACK_WORKFLOW_FAILURE_URL }}
           CHANNEL_ID: 'C0BU7R72RNW'
-          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
-          WORKFLOW_URL: ${{ github.event.workflow_run.html_url }}
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name || github.event.context }}
+          WORKFLOW_URL: ${{ github.event.workflow_run.html_url || github.event.target_url }}
