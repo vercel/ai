@@ -1,4 +1,5 @@
 import {
+  convertUint8ArrayToBase64,
   getErrorMessage,
   isRecord,
   safeParseJSON,
@@ -9,7 +10,8 @@ import type { JSONRPCMessage, JSONRPCRequest } from './json-rpc-message';
 import type { MCPTransport, MCPTransportSendOptions } from './mcp-transport';
 import { LATEST_LEGACY_PROTOCOL_VERSION, type ListToolsResult } from './types';
 
-const MAX_TOOL_REGISTRATIONS = 1024;
+const MAX_TOOL_REGISTRATIONS_PER_ORIGIN = 1024;
+const MAX_TOOL_NAME_LENGTH = 64;
 
 /** A tool returned by WebMCP's ModelContext.getTools(). */
 export interface WebMCPTool {
@@ -54,10 +56,11 @@ export class WebMCPTransport implements MCPTransport {
   private readonly fromOrigins?: string[];
   private controller?: AbortController;
   private tools = new Map<string, WebMCPTool>();
-  // Reserve aliases without retaining removed descriptors. Bound the history
-  // rather than recycling names that may still have approvals or pending calls.
+  // Reserve aliases without retaining removed descriptors. Bound history per
+  // origin and never recycle names with possible approvals or pending calls.
   private readonly aliases = new Map<string, Map<unknown, string>>();
   private readonly reservedNames = new Set<string>();
+  private readonly registrationCounts = new Map<string, number>();
   private hasListedTools = false;
 
   onmessage?: (message: JSONRPCMessage) => void;
@@ -142,6 +145,7 @@ export class WebMCPTransport implements MCPTransport {
     this.tools.clear();
     this.aliases.clear();
     this.reservedNames.clear();
+    this.registrationCounts.clear();
     this.hasListedTools = false;
     this.onclose?.();
   }
@@ -240,17 +244,6 @@ export class WebMCPTransport implements MCPTransport {
       this.fromOrigins == null ? undefined : { fromOrigins: this.fromOrigins },
     );
     signal.throwIfAborted();
-    const registrationLimitError = () => {
-      this.tools.clear();
-      return new MCPClientError({
-        message: 'WebMCP tool registration limit exceeded; create a new client',
-        code: -32603,
-      });
-    };
-    if (registered.length > MAX_TOOL_REGISTRATIONS) {
-      throw registrationLimitError();
-    }
-
     const originPrefixes = new Map<string, string>();
     if (this.fromOrigins != null && this.fromOrigins.length > 0) {
       for (const origin of new Set(registered.map(tool => tool.origin))) {
@@ -260,29 +253,31 @@ export class WebMCPTransport implements MCPTransport {
           'SHA-256',
           new TextEncoder().encode(origin),
         );
-        const hash = Array.from(new Uint8Array(digest), byte =>
-          byte.toString(16).padStart(2, '0'),
-        ).join('');
+        const hash = convertUint8ArrayToBase64(new Uint8Array(digest))
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_')
+          .replace(/=+$/g, '');
         originPrefixes.set(origin, `webmcp_${hash}_`);
       }
     }
     signal.throwIfAborted();
 
     const availableTools = new Map<string, WebMCPTool>();
-    const tools = registered.map(tool => {
+    const tools = registered.flatMap(tool => {
       const key = JSON.stringify([tool.origin, tool.name]);
       let owners = this.aliases.get(key);
       let name = owners?.get(tool.window);
       if (name == null) {
-        if (this.reservedNames.size >= MAX_TOOL_REGISTRATIONS) {
-          throw registrationLimitError();
+        const count = this.registrationCounts.get(tool.origin) ?? 0;
+        if (count >= MAX_TOOL_REGISTRATIONS_PER_ORIGIN) {
+          return [];
         }
         const baseName = `${originPrefixes.get(tool.origin) ?? ''}${tool.name}`;
-        name = baseName.slice(0, 128);
+        name = baseName.slice(0, MAX_TOOL_NAME_LENGTH);
         let suffix = 2;
         while (this.reservedNames.has(name)) {
           const ending = `_${suffix++}`;
-          name = `${baseName.slice(0, 128 - ending.length)}${ending}`;
+          name = `${baseName.slice(0, MAX_TOOL_NAME_LENGTH - ending.length)}${ending}`;
         }
         if (owners == null) {
           owners = new Map();
@@ -290,30 +285,33 @@ export class WebMCPTransport implements MCPTransport {
         }
         owners.set(tool.window, name);
         this.reservedNames.add(name);
+        this.registrationCounts.set(tool.origin, count + 1);
       }
       availableTools.set(name, tool);
-      return {
-        name,
-        title: tool.title,
-        description: tool.description,
-        inputSchema:
-          tool.inputSchema == null
-            ? { type: 'object', properties: {} }
-            : { ...tool.inputSchema },
-        outputSchema:
-          tool.outputSchema == null ? undefined : { ...tool.outputSchema },
-        annotations:
-          tool.annotations == null
-            ? undefined
-            : { readOnlyHint: tool.annotations.readOnlyHint },
-        _meta: {
-          'ai-sdk.dev/webmcp': {
-            name: tool.name,
-            origin: tool.origin,
-            annotations: tool.annotations ?? {},
+      return [
+        {
+          name,
+          title: tool.title,
+          description: tool.description,
+          inputSchema:
+            tool.inputSchema == null
+              ? { type: 'object', properties: {} }
+              : { ...tool.inputSchema },
+          outputSchema:
+            tool.outputSchema == null ? undefined : { ...tool.outputSchema },
+          annotations:
+            tool.annotations == null
+              ? undefined
+              : { readOnlyHint: tool.annotations.readOnlyHint },
+          _meta: {
+            'ai-sdk.dev/webmcp': {
+              name: tool.name,
+              origin: tool.origin,
+              annotations: tool.annotations ?? {},
+            },
           },
         },
-      };
+      ];
     });
     this.tools = availableTools;
     this.hasListedTools = true;
