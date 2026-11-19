@@ -89,22 +89,6 @@ describe('E2BNetworkSandboxSession', () => {
       }
     });
 
-    it('keeps the bridge token query intact when it is appended', async () => {
-      const { session } = makeSession();
-      const token = 'a/b+c&d=e?f#g h%';
-
-      const { url } = await session.getPortEndpoint({
-        port: 4000,
-        protocol: 'ws',
-      });
-      const bridgeUrl = new URL(
-        `${url}?agent_bridge_token=${encodeURIComponent(token)}`,
-      );
-
-      expect(bridgeUrl.host).toBe('4000-sbx_test.e2b.app');
-      expect(bridgeUrl.searchParams.get('agent_bridge_token')).toBe(token);
-    });
-
     it('returns the same URL on every call', async () => {
       const { session } = makeSession();
 

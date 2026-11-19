@@ -1,11 +1,13 @@
 /*
- * Verifies that an E2B sandbox port carries the bridge WebSocket contract of
- * bridge-backed harness adapters: a stock `ws` client receives HTTP 101 on
- * the URL from `getPortEndpoint()` plus `?agent_bridge_token=...` without any
- * extra headers, the in-sandbox upgrade sees that query unchanged, and the URL
- * stays the same across reconnects and after reattaching to the sandbox.
+ * Verifies that an E2B sandbox port carries what the bridge WebSocket of
+ * bridge-backed harness adapters needs: a stock `ws` client receives HTTP 101
+ * on the URL from `getPortEndpoint()` without any extra headers, the
+ * in-sandbox upgrade sees that URL unchanged, frames pass in both directions
+ * (bridge authentication is a challenge and a proof frame), WebSocket pings
+ * reach the in-sandbox server and its pongs come back (the harness keepalive),
+ * and the URL stays the same across reconnects and after reattaching to the
+ * sandbox.
  */
-import { randomBytes } from 'node:crypto';
 import {
   createE2BNetworkSandboxSession,
   resumeE2BNetworkSandboxSession,
@@ -15,17 +17,19 @@ import { run } from '../lib/run';
 
 const port = 4000;
 
-// Reserved characters prove that the encoded value is not rewritten in transit.
-const token = `${randomBytes(16).toString('hex')}/+&=?# %`;
-const bridgeQuery = `?agent_bridge_token=${encodeURIComponent(token)}`;
-
 /*
- * Dependency-free WebSocket server that completes the upgrade and sends back
- * the request URL exactly as it arrived inside the sandbox.
+ * Dependency-free WebSocket server. After the upgrade it sends the request URL
+ * exactly as it arrived inside the sandbox, echoes text frames, and answers a
+ * ping with a pong plus a text frame that reports the ping, so the client can
+ * tell that the ping reached the server rather than an intermediary.
  */
 const serverSource = `
 const { createHash } = require('node:crypto');
 const { createServer } = require('node:http');
+
+function frame(opcode, payload) {
+  return Buffer.concat([Buffer.from([0x80 | opcode, payload.length]), payload]);
+}
 
 const server = createServer((request, response) => {
   response.writeHead(426).end();
@@ -40,8 +44,29 @@ server.on('upgrade', (request, socket) => {
       'Connection: Upgrade\\r\\n' +
       'Sec-WebSocket-Accept: ' + accept + '\\r\\n\\r\\n',
   );
-  const payload = Buffer.from(request.url);
-  socket.write(Buffer.concat([Buffer.from([0x81, payload.length]), payload]));
+  socket.write(frame(0x1, Buffer.from(request.url)));
+
+  // Client frames are masked and, in this check, shorter than 126 bytes.
+  let buffered = Buffer.alloc(0);
+  socket.on('data', data => {
+    buffered = Buffer.concat([buffered, data]);
+    while (buffered.length >= 6 && buffered.length >= 6 + (buffered[1] & 0x7f)) {
+      const opcode = buffered[0] & 0x0f;
+      const length = buffered[1] & 0x7f;
+      const mask = buffered.subarray(2, 6);
+      const payload = Buffer.from(buffered.subarray(6, 6 + length));
+      for (let i = 0; i < payload.length; i++) payload[i] ^= mask[i % 4];
+      buffered = buffered.subarray(6 + length);
+      if (opcode === 0x1) {
+        socket.write(frame(0x1, Buffer.concat([Buffer.from('echo:'), payload])));
+      } else if (opcode === 0x9) {
+        socket.write(frame(0xa, payload));
+        socket.write(frame(0x1, Buffer.concat([Buffer.from('ping:'), payload])));
+      } else if (opcode === 0x8) {
+        socket.end(frame(0x8, Buffer.alloc(0)));
+      }
+    }
+  });
 });
 server.listen(${port}, () => console.log('listening'));
 `;
@@ -61,9 +86,9 @@ run(async () => {
     const endpoint = await session.getPortEndpoint({ port, protocol: 'ws' });
     console.log('endpoint:', endpoint);
 
-    const first = await dial(endpoint.url + bridgeQuery);
+    const first = await dial(endpoint.url);
     console.log('first connection:', first);
-    const reconnect = await dial(endpoint.url + bridgeQuery);
+    const reconnect = await dial(endpoint.url);
     console.log('reconnect:', reconnect);
 
     const reattached = await resumeE2BNetworkSandboxSession({
@@ -75,7 +100,7 @@ run(async () => {
     });
     console.log('endpoint after reattaching:', reattachedEndpoint);
     console.log('ports after reattaching:', reattached.ports);
-    const afterReattach = await dial(reattachedEndpoint.url + bridgeQuery);
+    const afterReattach = await dial(reattachedEndpoint.url);
     console.log('connection after reattaching:', afterReattach);
 
     if (endpoint.url !== `wss://${port}-${session.id}.e2b.app`) {
@@ -94,38 +119,87 @@ run(async () => {
       if (connection.statusCode !== 101) {
         throw new Error(`expected HTTP 101, got ${connection.statusCode}`);
       }
-      if (connection.requestUrl !== `/${bridgeQuery}`) {
+      if (connection.requestUrl !== '/') {
         throw new Error(
-          `the in-sandbox upgrade received ${connection.requestUrl} instead of /${bridgeQuery}`,
+          `the in-sandbox upgrade received ${connection.requestUrl} instead of /`,
         );
       }
     }
 
-    console.log('ok: the E2B port satisfies the bridge WebSocket contract');
+    console.log('ok: the E2B port carries the bridge WebSocket');
     process.exitCode = 0;
   } finally {
     await session.destroy();
   }
 });
 
+/*
+ * Connects, then waits for the server's first frame before sending anything,
+ * like the harness waits for the bridge's authentication challenge. Sends a
+ * text frame and a ping and expects the echo, the pong, and the server's
+ * report of the ping.
+ */
 function dial(url: string): Promise<{
   statusCode: number | undefined;
-  statusMessage: string | undefined;
   requestUrl: string;
+  echo: string;
+  pong: string;
+  serverSawPing: string;
 }> {
   return new Promise((resolve, reject) => {
     const socket = new WebSocket(url);
+    const timeout = setTimeout(() => {
+      socket.terminate();
+      reject(new Error(`no complete exchange on ${url} within 30 seconds`));
+    }, 30_000);
     let statusCode: number | undefined;
-    let statusMessage: string | undefined;
+    let requestUrl: string | undefined;
+    let echo: string | undefined;
+    let pong: string | undefined;
+    let serverSawPing: string | undefined;
+    const finishIfComplete = () => {
+      if (
+        requestUrl === undefined ||
+        echo === undefined ||
+        pong === undefined ||
+        serverSawPing === undefined
+      ) {
+        return;
+      }
+      clearTimeout(timeout);
+      socket.close();
+      if (echo !== 'echo:hello') {
+        reject(new Error(`unexpected echo ${echo}`));
+      } else if (pong !== 'keepalive' || serverSawPing !== 'ping:keepalive') {
+        reject(new Error(`unexpected ping exchange ${pong} ${serverSawPing}`));
+      } else {
+        resolve({ statusCode, requestUrl, echo, pong, serverSawPing });
+      }
+    };
     socket.on('upgrade', response => {
       statusCode = response.statusCode;
-      statusMessage = response.statusMessage;
     });
     socket.on('message', data => {
-      socket.terminate();
-      resolve({ statusCode, statusMessage, requestUrl: data.toString() });
+      const text = data.toString();
+      if (requestUrl === undefined) {
+        requestUrl = text;
+        socket.send('hello');
+        socket.ping('keepalive');
+      } else if (text.startsWith('echo:')) {
+        echo = text;
+      } else if (text.startsWith('ping:')) {
+        serverSawPing = text;
+      }
+      finishIfComplete();
     });
-    socket.on('error', reject);
+    socket.on('pong', data => {
+      pong = data.toString();
+      finishIfComplete();
+    });
+    socket.on('error', error => {
+      clearTimeout(timeout);
+      reject(error);
+    });
   });
 }
 
