@@ -31,6 +31,10 @@ export const deepgramProviderOptions = {
       description:
         'HTTP method by which the callback request will be made (POST or PUT).',
     },
+    expressivity: {
+      description:
+        'Flux TTS only (beta): delivery register from -2 (calm) to 2 (animated).',
+    },
     mipOptOut: {
       description:
         'Opts out requests from the Deepgram Model Improvement Program.',
@@ -96,7 +100,7 @@ export const deepgramProviderOptions = {
     },
     streaming: {
       description:
-        'Options for live transcription over the /v1/listen WebSocket.',
+        'Options for live transcription over the /v1/listen (Nova) and /v2/listen (Flux) WebSockets.',
     },
   } satisfies Record<
     keyof DeepgramTranscriptionModelOptions,
@@ -104,7 +108,7 @@ export const deepgramProviderOptions = {
   >,
 } as const satisfies ProviderOptionDefinitions;
 
-export const deepgramSpeechModelIds = ['aura', 'aura-2'] as const;
+export const deepgramSpeechModelIds = ['aura', 'aura-2', 'flux'] as const;
 export const deepgramTranscriptionModelIds = [
   'base',
   'base-general',
@@ -119,6 +123,8 @@ export const deepgramTranscriptionModelIds = [
   'enhanced-meeting',
   'enhanced-phonecall',
   'enhanced-finance',
+  'flux-general-en',
+  'flux-general-multi',
   'nova',
   'nova-general',
   'nova-phonecall',
@@ -142,6 +148,9 @@ export const deepgramTranscriptionModelIds = [
 
 export function getDeepgramSpeechModelEntry(modelId: string) {
   const voiceFamily = deepgramSpeechModelIds.some(id => id === modelId);
+  // Flux TTS voices (`flux-<voice>-<language>`) are served only by /v2/speak;
+  // Aura voices only by /v1/speak.
+  const flux = modelId === 'flux' || modelId.startsWith('flux-');
   return {
     capabilities: { speech: { instructions: false } },
     providerOptions: {
@@ -153,19 +162,64 @@ export function getDeepgramSpeechModelEntry(modelId: string) {
         ),
         callback: false,
         callbackMethod: false,
+        expressivity: flux ? true : voiceFamily ? false : 'unknown',
       },
     },
-    requestConfig: { speech: { voiceFamily } },
-  } as const satisfies ModelEntry<{ speech: { voiceFamily: boolean } }>;
+    requestConfig: { speech: { voiceFamily, flux } },
+  } as const satisfies ModelEntry<{
+    speech: { voiceFamily: boolean; flux: boolean };
+  }>;
 }
 export function getDeepgramTranscriptionModelEntry(modelId: string) {
+  // Flux models are served only by the turn-based /v2/listen WebSocket; the
+  // /v1/listen batch and live endpoints reject them.
+  if (modelId.startsWith('flux')) {
+    const multilingual = modelId.startsWith('flux-general-multi');
+    return {
+      capabilities: {
+        transcription: {
+          transcription: false,
+          streaming: true,
+          duration: {
+            condition:
+              'Computed from the audio that was sent; Flux reports no duration.',
+          },
+          segments: true,
+          language: multilingual
+            ? { condition: 'Returned when a language is detected.' }
+            : true,
+        },
+      },
+      providerOptions: {
+        transcription: {
+          ...Object.fromEntries(
+            Object.keys(deepgramProviderOptions.transcription).map(
+              key => [key, false] as const,
+            ),
+          ),
+          language: multilingual
+            ? { condition: 'Used as a single language hint.' }
+            : false,
+          redact: {
+            condition: 'Number redaction only (numbers, aggressive_numbers).',
+          },
+          keyterm: true,
+          streaming: {
+            condition:
+              'Flux turn options only (eotThreshold, eagerEotThreshold, eotTimeoutMs, languageHints).',
+          },
+        },
+      },
+      requestConfig: { transcription: { flux: true } },
+    } as const satisfies ModelEntry<{ transcription: { flux: boolean } }>;
+  }
+
   const known = deepgramTranscriptionModelIds.some(id => id === modelId);
-  const streaming = !modelId.startsWith('flux');
   return {
     capabilities: {
       transcription: {
         transcription: true,
-        streaming,
+        streaming: true,
         duration: true,
         segments: true,
         language: {
@@ -181,12 +235,10 @@ export function getDeepgramTranscriptionModelEntry(modelId: string) {
             key => [key, known ? true : 'unknown'] as const,
           ),
         ),
-        streaming: streaming
-          ? {
-              condition:
-                'Streaming transcription only; Flux /v2/listen is not supported.',
-            }
-          : false,
+        streaming: {
+          condition:
+            'Streaming transcription only; the Flux turn options are ignored.',
+        },
         detectLanguage: { condition: 'Batch transcription only.' },
         paragraphs: { condition: 'Batch transcription only.' },
         summarize: { condition: 'Batch transcription only.' },
@@ -198,7 +250,8 @@ export function getDeepgramTranscriptionModelEntry(modelId: string) {
         uttSplit: { condition: 'Batch transcription only.' },
       },
     },
-  } as const satisfies ModelEntry;
+    requestConfig: { transcription: { flux: false } },
+  } as const satisfies ModelEntry<{ transcription: { flux: boolean } }>;
 }
 
 export const deepgramModelCatalog: Record<

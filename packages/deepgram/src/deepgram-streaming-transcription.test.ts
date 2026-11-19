@@ -394,16 +394,51 @@ describe('Deepgram streaming transcription', () => {
     expect(MockWebSocket.instances).toHaveLength(0);
   });
 
-  it('rejects Flux models which use a distinct protocol', async () => {
-    await expect(
-      createDeepgram({
-        apiKey: 'test-key',
-        webSocket: MockWebSocket,
-      }).transcription('flux-general-en').doStream!({
-        audio: audio(),
-        inputAudioFormat,
-      }),
-    ).rejects.toThrow('Flux');
+  it('routes Flux models to the turn-based /v2/listen endpoint', async () => {
+    const result = await createDeepgram({
+      apiKey: 'test-key',
+      webSocket: MockWebSocket,
+    }).transcription('flux-general-en').doStream!({
+      audio: audio(),
+      inputAudioFormat,
+    });
+    expect(new URL(MockWebSocket.instances[0].url).pathname).toBe('/v2/listen');
+    await result.stream.cancel();
+  });
+
+  it('warns about Flux-only streaming options instead of sending them', async () => {
+    const result = await model().doStream!({
+      audio: audio(),
+      inputAudioFormat,
+      providerOptions: {
+        deepgram: {
+          streaming: { eotThreshold: 0.8, languageHints: ['en'] },
+        },
+      },
+    });
+    const parts = convertReadableStreamToArray(result.stream);
+    const socket = MockWebSocket.instances[0];
+    expect([...new URL(socket.url).searchParams.keys()]).toEqual([
+      'model',
+      'encoding',
+      'sample_rate',
+    ]);
+    socket.open();
+    await flush();
+    socket.message({ type: 'Metadata', duration: 1 });
+    expect((await parts)[0]).toEqual({
+      type: 'stream-start',
+      warnings: [
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'providerOptions.deepgram.streaming.eotThreshold',
+        }),
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'providerOptions.deepgram.streaming.languageHints',
+        }),
+      ],
+    });
   });
 
   it('warns about batch-only options', async () => {

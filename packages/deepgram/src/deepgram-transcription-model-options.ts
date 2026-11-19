@@ -45,7 +45,12 @@ export const deepgramTranscriptionModelOptionsSchema = lazySchema(() =>
       uttSplit: z.number().nullish(),
       /** Whether to include filler words (um, uh, etc.) in the transcript. */
       fillerWords: z.boolean().nullish(),
-      /** Options for live transcription over the /v1/listen WebSocket. */
+      /**
+       * Options for live transcription. Nova models use the /v1/listen
+       * WebSocket and Flux models the turn-based /v2/listen WebSocket; each
+       * option applies to one of the two and is ignored with a warning on the
+       * other.
+       */
       streaming: z
         .object({
           /** Return revisable transcripts before a segment is finalized. */
@@ -62,6 +67,20 @@ export const deepgramTranscriptionModelOptionsSchema = lazySchema(() =>
           vadEvents: z.boolean().optional(),
           /** Silence duration in milliseconds before an utterance-end event. */
           utteranceEndMs: z.number().int().min(1000).optional(),
+          /** Flux: confidence required to end a turn (0.5 to 1, default 0.7). */
+          eotThreshold: z.number().min(0.5).max(1).optional(),
+          /**
+           * Flux: confidence required for an early `EagerEndOfTurn` event
+           * (0.3 to 0.9). Enables `EagerEndOfTurn` and `TurnResumed` events.
+           */
+          eagerEotThreshold: z.number().min(0.3).max(0.9).optional(),
+          /** Flux: silence in milliseconds that forces the end of a turn. */
+          eotTimeoutMs: z.number().int().min(500).max(60000).optional(),
+          /**
+           * Flux Multilingual (`flux-general-multi`): language codes that
+           * bias detection. Without hints the language is auto-detected.
+           */
+          languageHints: z.array(z.string().min(1)).optional(),
         })
         .optional(),
     }),

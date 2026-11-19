@@ -6,6 +6,7 @@ import {
 import { z } from 'zod/v4';
 
 // https://developers.deepgram.com/reference/text-to-speech/speak-request
+// https://developers.deepgram.com/docs/flux-tts/batch
 export const deepgramSpeechModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
@@ -32,6 +33,11 @@ export const deepgramSpeechModelOptionsSchema = lazySchema(() =>
        * @deprecated Ignored (with a warning).
        */
       callbackMethod: z.enum(['POST', 'PUT']).nullish(),
+      /**
+       * Flux TTS only (beta): delivery register from -2 (calm) to 2
+       * (animated). Defaults to 0, the voice's tuned delivery.
+       */
+      expressivity: z.number().int().min(-2).max(2).nullish(),
       /** Opts out requests from the Deepgram Model Improvement Program. */
       mipOptOut: z.boolean().nullish(),
       /** Label your requests for the purpose of identification during usage reporting. */

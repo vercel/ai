@@ -13,6 +13,7 @@ const model = provider.speech('aura-2');
 
 const server = createTestServer({
   'https://api.deepgram.com/v1/speak': {},
+  'https://api.deepgram.com/v2/speak': {},
 });
 
 describe('doGenerate', () => {
@@ -598,5 +599,143 @@ describe('doGenerate', () => {
     expect(url.searchParams.get('encoding')).toBe('opus');
     expect(url.searchParams.get('container')).toBe('ogg');
     expect(url.searchParams.get('sample_rate')).toBeNull(); // Should be removed (opus has fixed sample rate)
+  });
+});
+
+describe('doGenerate with Flux TTS', () => {
+  const fluxModel = provider.speech('flux');
+
+  function prepareAudioResponse() {
+    server.urls['https://api.deepgram.com/v2/speak'].response = {
+      type: 'binary',
+      headers: {
+        'content-type': 'audio/mpeg',
+        'dg-char-count': '12',
+        'dg-model-name': 'haley',
+        'dg-request-id': 'request-id',
+      },
+      body: Buffer.from(new Uint8Array(100)),
+    };
+  }
+
+  it('should compose the Flux voice model ID and call the /v2/speak endpoint', async () => {
+    prepareAudioResponse();
+
+    const result = await fluxModel.doGenerate({
+      text: 'Hello there.',
+      voice: 'haley',
+    });
+
+    const url = new URL(server.calls[0].requestUrl);
+    expect(url.pathname).toBe('/v2/speak');
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      model: 'flux-haley-en',
+      encoding: 'mp3',
+    });
+    expect(await server.calls[0].requestBodyJson).toEqual({
+      text: 'Hello there.',
+    });
+    expect(result.warnings).toEqual([]);
+    expect(result.usage).toEqual({ characters: 12 });
+    expect(result.providerMetadata).toEqual({
+      deepgram: { modelName: 'haley', charCount: 12, requestId: 'request-id' },
+    });
+  });
+
+  it('should compose the language into the Flux voice model ID', async () => {
+    prepareAudioResponse();
+
+    await fluxModel.doGenerate({
+      text: 'Hola desde Deepgram!',
+      voice: 'carmen',
+      language: 'es',
+    });
+
+    const url = new URL(server.calls[0].requestUrl);
+    expect(url.searchParams.get('model')).toBe('flux-carmen-es');
+  });
+
+  it('should route full Flux voice model IDs to the /v2/speak endpoint', async () => {
+    prepareAudioResponse();
+
+    await provider.speech('flux-kit-en').doGenerate({ text: 'Hello there.' });
+
+    const url = new URL(server.calls[0].requestUrl);
+    expect(url.pathname).toBe('/v2/speak');
+    expect(url.searchParams.get('model')).toBe('flux-kit-en');
+  });
+
+  it('should throw when no voice is provided', async () => {
+    await expect(
+      fluxModel.doGenerate({ text: 'Hello there.' }),
+    ).rejects.toThrow('requires a `voice` to be set');
+  });
+
+  it('should pass speed, expressivity, and the Flux-only output settings', async () => {
+    prepareAudioResponse();
+
+    const mp3 = await fluxModel.doGenerate({
+      text: 'Hello there.',
+      voice: 'haley',
+      speed: 1.25,
+      providerOptions: {
+        deepgram: { expressivity: -1, encoding: 'mp3', bitRate: 24000 },
+      },
+    });
+    const wav = await fluxModel.doGenerate({
+      text: 'Hello there.',
+      voice: 'haley',
+      outputFormat: 'linear16_44100',
+    });
+
+    expect(mp3.warnings).toEqual([]);
+    expect(
+      Object.fromEntries(new URL(server.calls[0].requestUrl).searchParams),
+    ).toEqual({
+      model: 'flux-haley-en',
+      encoding: 'mp3',
+      bit_rate: '24000',
+      speed: '1.25',
+      expressivity: '-1',
+    });
+    expect(wav.warnings).toEqual([]);
+    expect(
+      new URL(server.calls[1].requestUrl).searchParams.get('sample_rate'),
+    ).toBe('44100');
+  });
+
+  it('should keep the Aura output limits and ignore expressivity for Aura models', async () => {
+    server.urls['https://api.deepgram.com/v1/speak'].response = {
+      type: 'binary',
+      headers: { 'content-type': 'audio/mpeg' },
+      body: Buffer.from(new Uint8Array(100)),
+    };
+
+    const result = await model.doGenerate({
+      text: 'Hello there.',
+      voice: 'helena',
+      providerOptions: {
+        deepgram: { expressivity: 1, encoding: 'mp3', bitRate: 24000 },
+      },
+    });
+
+    const url = new URL(server.calls[0].requestUrl);
+    expect(url.pathname).toBe('/v1/speak');
+    expect(url.searchParams.has('expressivity')).toBe(false);
+    expect(url.searchParams.has('bit_rate')).toBe(false);
+    expect(result.warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'providerOptions',
+        details:
+          'Encoding "mp3" only supports bit rates: 32000, 48000. Bit rate 24000 was ignored.',
+      },
+      {
+        type: 'unsupported',
+        feature: 'providerOptions.deepgram.expressivity',
+        details:
+          'Expressivity is only supported by Flux TTS models and was ignored for "aura-2".',
+      },
+    ]);
   });
 });
