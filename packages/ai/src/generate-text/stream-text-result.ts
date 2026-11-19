@@ -121,14 +121,35 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   /**
    * Process an error, e.g. to log it. Default to `() => 'An error occurred.'`.
    *
+   * This callback handles stream errors. It also handles failed tool calls
+   * (tool execution errors and invalid tool calls) when `redactToolErrors` is
+   * enabled, which is the default when this callback is provided.
+   *
    * Tool execution errors marked `providerExecuted: true` bypass this callback.
    * Their strings pass through unchanged; other values are JSON-stringified to
    * preserve provider error data for model-message round trips and harness
-   * runtime error messages. Stream errors and invalid tool calls still use it.
+   * runtime error messages. Invalid tool calls of provider-executed tools
+   * always use it.
    *
    * @returns error message to include in the data stream.
    */
   onError?: (error: unknown) => string;
+
+  /**
+   * Replace the error text of failed tool calls (tool execution errors and
+   * invalid tool calls) with the result of `onError`.
+   *
+   * By default, the client receives the same error text as the model. The UI
+   * messages are sent back to the model on the next request, so a different
+   * text changes the message history that the model's reasoning and answers
+   * are based on. Some models reject such a history, for example Anthropic
+   * models with preserved thinking. To keep error details away from the model
+   * and the client, throw a safe error from the tool's `execute` function.
+   *
+   * Default to `true` when `onError` is provided, so that an existing
+   * `onError` keeps handling tool errors, and to `false` otherwise.
+   */
+  redactToolErrors?: boolean;
 };
 
 export type ConsumeStreamOptions = {

@@ -7,6 +7,7 @@
 import {
   runBridge,
   convertHarnessToolModelOutput,
+  isWriteProtectedPath,
   type BridgeEvent,
   type BridgeTurn,
   type Experimental_BridgeUserMessage,
@@ -91,6 +92,17 @@ const NATIVE_TO_COMMON: Readonly<Record<string, CommonBuiltinToolName>> = {
   WebSearch: 'webSearch',
   AskUserQuestion: 'askUserQuestions',
 };
+
+/*
+ * Workspace paths that hold Claude Code configuration or skills, which can run
+ * code or change the agent's behavior in later sessions. Writes to them always
+ * require host approval unless the permission mode is `allow-all`.
+ */
+const CLAUDE_CODE_WRITE_PROTECTED_PATHS = [
+  '.agents/skills',
+  '.claude',
+  '.mcp.json',
+];
 
 const NATIVE_TOOL_KINDS: Readonly<
   Record<string, 'readonly' | 'edit' | 'bash'>
@@ -530,14 +542,56 @@ async function needsHostApproval(input: {
   if (input.blockedPath != null) paths.push(input.blockedPath);
   if (!paths.every((value): value is string => typeof value === 'string'))
     return true;
-  return !(await areFileToolPathsTrusted({
+  if (
+    !(await areFileToolPathsTrusted({
+      workDir: workdir!,
+      cwd: input.cwd,
+      paths,
+      access,
+      readableSkillRoots: input.readableSkillRoots,
+      additionalDirectories: input.additionalDirectories,
+    }))
+  )
+    return true;
+  return (
+    access === 'write' &&
+    (await isWriteProtectedPath({
+      workDir: workdir!,
+      cwd: input.cwd,
+      paths,
+      writeProtectedPaths: CLAUDE_CODE_WRITE_PROTECTED_PATHS,
+    }))
+  );
+}
+
+async function isProtectedClaudeFileWrite(input: {
+  toolName: string;
+  toolInput: unknown;
+  cwd: string;
+}): Promise<boolean> {
+  const args =
+    input.toolInput != null && typeof input.toolInput === 'object'
+      ? (input.toolInput as Record<string, unknown>)
+      : {};
+  let target: unknown;
+  switch (input.toolName) {
+    case 'Write':
+    case 'Edit':
+      target = args.file_path;
+      break;
+    case 'NotebookEdit':
+      target = args.notebook_path;
+      break;
+    default:
+      return false;
+  }
+  if (typeof target !== 'string') return true;
+  return isWriteProtectedPath({
     workDir: workdir!,
     cwd: input.cwd,
-    paths,
-    access,
-    readableSkillRoots: input.readableSkillRoots,
-    additionalDirectories: input.additionalDirectories,
-  }));
+    paths: [target],
+    writeProtectedPaths: CLAUDE_CODE_WRITE_PROTECTED_PATHS,
+  });
 }
 
 /*
@@ -546,9 +600,13 @@ async function needsHostApproval(input: {
  * Resuming the session without a prompt fires the hook again for the same
  * call, and the host's decision is applied then. This survives a bridge
  * restart because nothing waits in memory.
+ *
+ * In auto mode, Claude Code's classifier decides every other call, so the
+ * hook defers only writes to write-protected paths.
  */
 function createApprovalPreToolUseHook(input: {
   permissionMode: 'allow-reads' | 'allow-edits' | 'allow-all';
+  autoMode: boolean;
   inactiveNativeTools: ReadonlySet<string>;
   decisions: Map<string, { approved: boolean; reason?: string }>;
   deferredToolUseIds: Set<string>;
@@ -587,15 +645,21 @@ function createApprovalPreToolUseHook(input: {
       };
     }
     if (
-      !(await needsHostApproval({
-        toolName,
-        toolInput: hookInput.tool_input,
-        cwd: hookInput.cwd,
-        readableSkillRoots: input.readableSkillRoots,
-        additionalDirectories: input.additionalDirectories,
-        permissionMode: input.permissionMode,
-        inactiveNativeTools: input.inactiveNativeTools,
-      }))
+      !(input.autoMode
+        ? await isProtectedClaudeFileWrite({
+            toolName,
+            toolInput: hookInput.tool_input,
+            cwd: hookInput.cwd,
+          })
+        : await needsHostApproval({
+            toolName,
+            toolInput: hookInput.tool_input,
+            cwd: hookInput.cwd,
+            readableSkillRoots: input.readableSkillRoots,
+            additionalDirectories: input.additionalDirectories,
+            permissionMode: input.permissionMode,
+            inactiveNativeTools: input.inactiveNativeTools,
+          }))
     ) {
       return {};
     }
@@ -836,6 +900,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     readableSkillRoots: start.readableSkillRoots ?? [],
     additionalDirectories: start.additionalDirectories ?? [],
     permissionMode,
+    autoMode: start.autoMode === true,
     inactiveNativeTools: new Set(inactiveNativeTools),
     decisions: approvalDecisions,
     deferredToolUseIds,
@@ -904,7 +969,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       // `compaction` event; return an empty output so compaction proceeds.
       hooks: {
         PreToolUse: [
-          ...(permissionMode === 'allow-all' || start.autoMode === true
+          ...(permissionMode === 'allow-all'
             ? []
             : [{ hooks: [approvalPreToolUseHook] }]),
           {

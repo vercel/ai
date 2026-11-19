@@ -67,6 +67,11 @@ export type ACPHarnessSettings<
    * milliseconds up to 2 seconds.
    */
   readonly reconnect?: SandboxChannelReconnectOptions;
+  /**
+   * WebSocket ping interval in milliseconds. Defaults to 20_000. Set to 0 to
+   * disable. Two unanswered pings terminate the socket and trigger reconnect.
+   */
+  readonly keepAliveMs?: number;
   readonly clientApp?: ACPClientApp;
   readonly version?: ACPV1Settings['version'];
   readonly harnessId: ACPV1Settings['harnessId'];
@@ -113,6 +118,14 @@ export type ACPHarnessSettings<
   readonly nonTextContentTypes?: ACPV1Settings['nonTextContentTypes'];
   readonly askUserQuestions?: TAskUserQuestions;
   readonly permissionModeMapping?: ACPV1Settings['permissionModeMapping'];
+  /**
+   * Paths relative to the session working directory (files or directories)
+   * that the ACP agent must not write to without host approval. Under the
+   * `allow-reads` and `allow-edits` permission modes, `edit`, `delete`, and
+   * `move` permission requests touching these paths always require approval.
+   * `.agents/skills` is always protected. `allow-all` is unaffected.
+   */
+  readonly writeProtectedPaths?: ACPV1Settings['writeProtectedPaths'];
   readonly session?: ACPV1Settings['session'];
   // TODO: Remove in the next major version.
   /**
@@ -205,6 +218,7 @@ export function createACP<
         startupTimeoutMs: settings.startupTimeoutMs,
         hostDisconnectTimeoutMs: settings.hostDisconnectTimeoutMs,
         reconnect: settings.reconnect,
+        keepAliveMs: settings.keepAliveMs,
         clientApp,
         lifecycleStateSchema: acpResumeStateSchema satisfies z.ZodType<{
           bridge?: ACPBridgeCoords;

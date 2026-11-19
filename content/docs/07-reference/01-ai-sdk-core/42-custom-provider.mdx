@@ -219,3 +219,16 @@ added to the stable `ProviderV4` contract. Direct decision string IDs default
 to Gateway when no default provider is configured.
 See [Decisions](/docs/ai-sdk-core/decisions#model-aliases-and-registries)
 for runnable usage patterns.
+
+## Experimental extraction models
+
+Pass `extractionModels: Record<string, Experimental_ExtractionModel>` to define
+aliases for extraction model instances or string IDs. The returned provider adds
+`extractionModel(alias): Experimental_ExtractionModelV4`. String aliases resolve
+through an explicitly configured default provider with an `extractionModel`
+method. Unknown aliases use the fallback provider's extraction factory when
+available.
+
+Unavailable extraction capabilities or models throw `NoSuchModelError` with
+`modelType: 'extractionModel'`. See
+[Extractions](/docs/ai-sdk-core/extractions#model-aliases-and-registries).

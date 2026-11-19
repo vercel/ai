@@ -278,3 +278,8 @@ export function getMoonshotAILanguageModelEntry(
 export const moonshotaiModelCatalog = Object.fromEntries(
   languageModelIds.map(id => [id, getMoonshotAILanguageModelEntry(id)]),
 );
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type MoonshotAIModelIds = {
+  language: (typeof languageModelIds)[number];
+};

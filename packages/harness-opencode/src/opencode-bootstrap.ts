@@ -14,6 +14,10 @@ const readBridgeAsset = createReadBridgeAsset({
     './bridge/pnpm-workspace.yaml',
     import.meta.url,
   ),
+  'opencode-read-plugin.mjs': new URL(
+    './bridge/opencode-read-plugin.mjs',
+    import.meta.url,
+  ),
   'index.mjs': new URL('./bridge/index.mjs', import.meta.url),
   'host-tool-mcp.mjs': new URL('./bridge/host-tool-mcp.mjs', import.meta.url),
 });
@@ -24,17 +28,23 @@ let cachedBootstrap: HarnessV1Bootstrap | undefined;
 
 export async function getOpenCodeBootstrap(): Promise<HarnessV1Bootstrap> {
   if (cachedBootstrap != null) return cachedBootstrap;
-  const [pkg, lock, workspace, bridge, hostToolMcp] = await Promise.all([
-    readBridgeAsset('package.json'),
-    readBridgeAsset('pnpm-lock.yaml'),
-    readBridgeAsset('pnpm-workspace.yaml'),
-    readBridgeAsset('index.mjs'),
-    readBridgeAsset('host-tool-mcp.mjs'),
-  ]);
+  const [pkg, lock, workspace, bridge, hostToolMcp, readPlugin] =
+    await Promise.all([
+      readBridgeAsset('package.json'),
+      readBridgeAsset('pnpm-lock.yaml'),
+      readBridgeAsset('pnpm-workspace.yaml'),
+      readBridgeAsset('index.mjs'),
+      readBridgeAsset('host-tool-mcp.mjs'),
+      readBridgeAsset('opencode-read-plugin.mjs'),
+    ]);
   cachedBootstrap = {
     harnessId: 'opencode',
     bootstrapDir: OPENCODE_BOOTSTRAP_DIR,
     files: [
+      {
+        path: `${OPENCODE_BOOTSTRAP_DIR}/opencode-read-plugin.mjs`,
+        content: readPlugin,
+      },
       { path: `${OPENCODE_BOOTSTRAP_DIR}/package.json`, content: pkg },
       { path: `${OPENCODE_BOOTSTRAP_DIR}/pnpm-lock.yaml`, content: lock },
       {

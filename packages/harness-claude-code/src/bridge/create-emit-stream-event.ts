@@ -6,6 +6,7 @@ type Emit = (message: Record<string, unknown>) => void;
 export type ClaudeMessage = {
   type?: string;
   subtype?: string;
+  session_id?: string;
   permissionMode?: string;
   parent_tool_use_id?: string | null;
   model?: string;
@@ -226,13 +227,18 @@ export function createEmitStreamEvent({
       type === 'system' &&
       (msg.subtype === 'init' || msg.subtype === 'status')
     ) {
-      // Expose the effective mode without forwarding the large init payload
+      // Expose resume metadata without forwarding the large init payload
       // (tools, MCP servers, skills, plugins, and other session metadata).
       emit({
         type: 'raw',
         rawValue: {
           type,
           subtype: msg.subtype,
+          ...(msg.subtype === 'init' &&
+          typeof msg.session_id === 'string' &&
+          msg.session_id.length > 0
+            ? { sessionId: msg.session_id }
+            : {}),
           ...(msg.permissionMode != null
             ? { permissionMode: msg.permissionMode }
             : {}),

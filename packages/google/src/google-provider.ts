@@ -2,6 +2,7 @@ import type {
   EmbeddingModelV4,
   Experimental_BatchV4 as BatchV4,
   Experimental_DecisionModelV4 as DecisionModelV4,
+  Experimental_ExtractionModelV4 as ExtractionModelV4,
   Experimental_VideoModelV4,
   FilesV4,
   ImageModelV4,
@@ -23,7 +24,9 @@ import {
   type FetchFunction,
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
-import { Experimental_DecisionLanguageModel as DecisionLanguageModel } from '@ai-sdk/provider-utils/experimental-decision';
+import { Experimental_ExtractionLanguageModel as ExtractionLanguageModel } from '@ai-sdk/provider-utils/experimental-extraction';
+import { DecisionGoogleModel } from './google-decision-model';
+import type { GoogleDecisionModelId } from './google-decision-model-options';
 import { VERSION } from './version';
 import { GoogleEmbeddingModel } from './google-embedding-model';
 import type { GoogleEmbeddingModelId } from './google-embedding-model-options';
@@ -65,12 +68,15 @@ export interface GoogleProvider extends ProviderV4 {
 
   chat(modelId: GoogleModelId): LanguageModelV4;
 
-  /** Creates an experimental Choice/Score/Boolean decision model using Gemini. */
-  decisionModel(modelId: GoogleModelId): DecisionModelV4;
+  /** Creates an experimental model using the Gemini Decisions API. */
+  decisionModel(modelId: GoogleDecisionModelId): DecisionModelV4;
   /** @deprecated Use `decisionModel` instead. */
-  evaluationModel(modelId: GoogleModelId): DecisionModelV4 & {
+  evaluationModel(modelId: GoogleDecisionModelId): DecisionModelV4 & {
     doEvaluate: DecisionModelV4['doDecide'];
   };
+
+  /** Creates an experimental typed field extraction model using Gemini. */
+  extractionModel(modelId: GoogleModelId): ExtractionModelV4;
 
   experimental_batch(): BatchV4<{
     text: GoogleModelId;
@@ -450,13 +456,20 @@ export function createGoogle(
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.generativeAI = createChatModel;
-  provider.decisionModel = (modelId: GoogleModelId) =>
-    new DecisionLanguageModel({
-      model: createChatModel(modelId),
+  provider.decisionModel = (modelId: GoogleDecisionModelId) =>
+    new DecisionGoogleModel(modelId, {
       provider: `${providerName.replace(/\.generative-ai$/, '')}.decision`,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
     });
   provider.evaluationModel =
     provider.decisionModel as GoogleProvider['evaluationModel'];
+  provider.extractionModel = (modelId: GoogleModelId) =>
+    new ExtractionLanguageModel({
+      model: createChatModel(modelId),
+      provider: `${providerName.replace(/\.generative-ai$/, '')}.extraction`,
+    });
   provider.experimental_batch = createBatch;
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;

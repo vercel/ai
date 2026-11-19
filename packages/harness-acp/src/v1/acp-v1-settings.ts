@@ -268,6 +268,14 @@ export type ACPV1Settings = {
   readonly nonTextContentTypes?: ReadonlyArray<'image'>;
   readonly askUserQuestions?: ACPAskUserQuestionsSettings;
   readonly permissionModeMapping?: ACPPermissionModeMapping;
+  /**
+   * Paths relative to the session working directory (files or directories)
+   * that the ACP agent must not write to without host approval. Under the
+   * `allow-reads` and `allow-edits` permission modes, `edit`, `delete`, and
+   * `move` permission requests touching these paths always require approval.
+   * `.agents/skills` is always protected. `allow-all` is unaffected.
+   */
+  readonly writeProtectedPaths?: ReadonlyArray<string>;
   readonly session?: {
     readonly meta?: Readonly<Record<string, ACPSerializableValue>>;
   };
@@ -317,6 +325,9 @@ export function validateACPV1Settings({
   }
   if (typeof settings.resolveHostToolCall !== 'function') {
     throw new Error('ACP resolveHostToolCall must be a function.');
+  }
+  for (const entry of settings.writeProtectedPaths ?? []) {
+    validateWriteProtectedPath({ entry });
   }
 
   const { source } = settings;
@@ -394,6 +405,22 @@ function validateEnvironmentVariableName({ name }: { name: string }): void {
   if (!ENVIRONMENT_VARIABLE_NAME_REGEXP.test(name)) {
     throw new Error(
       `ACP environment variable name is invalid: ${JSON.stringify(name)}.`,
+    );
+  }
+}
+
+function validateWriteProtectedPath({ entry }: { entry: unknown }): void {
+  if (
+    typeof entry !== 'string' ||
+    entry.trim().length === 0 ||
+    entry.includes('\0') ||
+    entry.startsWith('/') ||
+    entry
+      .split('/')
+      .some(segment => segment === '' || segment === '.' || segment === '..')
+  ) {
+    throw new Error(
+      `ACP writeProtectedPaths entries must be relative paths inside the working directory without "." or ".." segments; received ${JSON.stringify(entry)}.`,
     );
   }
 }

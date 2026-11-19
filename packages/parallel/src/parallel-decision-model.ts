@@ -1,3 +1,4 @@
+import { parallelSupportedQuestionTypes } from './parallel-model-catalog';
 import {
   Experimental_DecisionUnsupportedQuestionTypeError as DecisionUnsupportedQuestionTypeError,
   InvalidArgumentError,
@@ -42,7 +43,7 @@ type ParallelDecisionModelConfig = {
 
 export class DecisionParallelModel implements DecisionModelV4 {
   readonly specificationVersion = 'v4';
-  readonly supportedQuestionTypes = ['boolean', 'choice', 'score'] as const;
+  readonly supportedQuestionTypes = parallelSupportedQuestionTypes;
 
   constructor(
     readonly modelId: ParallelDecisionModelId,

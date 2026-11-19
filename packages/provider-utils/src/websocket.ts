@@ -4,6 +4,8 @@ export type WebSocketLike = {
   readyState: number;
   /** Bytes queued by `send` but not yet transmitted (native + `ws`). */
   readonly bufferedAmount?: number;
+  /** How binary frames are delivered (native + `ws`), e.g. `arraybuffer`. */
+  binaryType?: string;
   send(data: string | Uint8Array | ArrayBuffer): void;
   close(code?: number, reason?: string): void;
   onopen: ((event: unknown) => void) | null;

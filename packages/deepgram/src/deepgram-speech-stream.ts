@@ -181,7 +181,8 @@ export async function streamDeepgramSpeech(
           | ReadableStreamDefaultReader<SpeechModelV4StreamTextPart>
           | undefined;
         let keepaliveTimer: ReturnType<typeof setTimeout> | undefined;
-        let inputEnded = false;
+        let awaitingTurnEnd = false;
+        let closeSent = false;
         let sentCharacters = 0;
         let requestId: string | undefined;
         let modelName: string | undefined;
@@ -203,22 +204,34 @@ export async function streamDeepgramSpeech(
         // The server closes a session after 60 s without a client message.
         // Native WebSockets cannot send pings, so an empty `Configure` (which
         // changes nothing) resets the timer while the text producer is idle.
-        // Every send restarts the idle clock; none follows the end of input.
-        const send = (
-          socket: WebSocketLike,
-          message: Record<string, unknown>,
-        ) => {
-          socket.send(JSON.stringify(message));
+        // The idle clock starts when the socket opens (the first text part can
+        // be slow too) and restarts on every send. It keeps running while the
+        // server synthesizes the rest of the turn after the end of the input,
+        // and stops once `Close` is sent.
+        const scheduleKeepalive = (socket: WebSocketLike) => {
           clearTimeout(keepaliveTimer);
-          if (finished || inputEnded) return;
+          if (finished || closeSent) return;
           keepaliveTimer = setTimeout(() => {
-            if (finished || inputEnded) return;
+            if (finished || closeSent) return;
             try {
               send(socket, { type: 'Configure' });
             } catch (error) {
               fail(error);
             }
           }, KEEPALIVE_INTERVAL_MS);
+        };
+        const send = (
+          socket: WebSocketLike,
+          message: Record<string, unknown>,
+        ) => {
+          socket.send(JSON.stringify(message));
+          scheduleKeepalive(socket);
+        };
+
+        // The server reports the session totals and closes.
+        const sendClose = (socket: WebSocketLike) => {
+          closeSent = true;
+          send(socket, { type: 'Close' });
         };
 
         const sendText = async (socket: WebSocketLike) => {
@@ -251,13 +264,16 @@ export async function streamDeepgramSpeech(
             }
           }
           if (!finished) {
-            inputEnded = true;
-            // `Flush` ends the turn; `Close` drains its remaining audio,
-            // after which the server reports the totals and closes.
             if (sentCharacters > 0) {
+              // `Flush` ends the turn. `Close` waits until the server reports
+              // the turn complete (`SpeechMetadata`): the inactivity timer
+              // keeps running while the remaining audio is synthesized, and
+              // a long final part can take more than 60 s.
+              awaitingTurnEnd = true;
               send(socket, { type: 'Flush' });
+            } else {
+              sendClose(socket);
             }
-            send(socket, { type: 'Close' });
           }
         };
 
@@ -271,6 +287,7 @@ export async function streamDeepgramSpeech(
           onProcessingError: fail,
           onOpen(socket) {
             controller.enqueue({ type: 'stream-start', warnings });
+            scheduleKeepalive(socket);
             void sendText(socket).catch(fail);
           },
           onMessageBinary(bytes) {
@@ -304,6 +321,13 @@ export async function streamDeepgramSpeech(
                 modelId,
                 body: parsed.rawValue,
               });
+            } else if (event.type === 'SpeechMetadata') {
+              // All of the turn's audio has been delivered.
+              const socket = connection?.socket;
+              if (awaitingTurnEnd && socket != null) {
+                awaitingTurnEnd = false;
+                sendClose(socket);
+              }
             } else if (event.type === 'SessionMetadata') {
               // Sent once, after all audio and just before the server closes.
               finished = true;

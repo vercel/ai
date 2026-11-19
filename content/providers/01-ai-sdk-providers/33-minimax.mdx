@@ -88,6 +88,11 @@ You can use the following optional settings to customize the MiniMax provider in
   `https://api.minimax.io/anthropic/v1` — not the OpenAI-compatible
   `https://api.minimax.io/v1`.
 
+- **imageBaseURL** _string_
+
+  Use a different URL prefix for image generation and editing. The default is
+  `https://api.minimax.io/v1`, independent of the language model `baseURL`.
+
 - **videoBaseURL** _string_
 
   Use a different URL prefix for video generation API calls. The video API uses
@@ -380,6 +385,78 @@ The following optional provider options are available for MiniMax language model
     thinks and returns an error if `'disabled'` is sent.
   </Note>
 
+## Image Models
+
+Use `minimax.image()` or `minimax.imageModel()` with `generateImage`:
+
+```ts
+import { minimax, type MiniMaxImageModelOptions } from '@ai-sdk/minimax';
+import { generateImage } from 'ai';
+
+const { image, usage, providerMetadata } = await generateImage({
+  model: minimax.image('MiniMax-H3-Image'),
+  prompt: 'A salamander at dusk in a forest pond surrounded by fireflies.',
+  aspectRatio: '16:9',
+  maxRetries: 0,
+  abortSignal: AbortSignal.timeout(600_000),
+  providerOptions: {
+    minimax: {
+      area: '2K',
+      outputFormat: 'png',
+    } satisfies MiniMaxImageModelOptions,
+  },
+});
+```
+
+`MiniMax-H3-Image-Highspeed` supports the same options. Both models accept up to
+10 images per request. Output sizes range from 655,360 to 20,000,000 pixels,
+with aspect ratios from 1:3 to 3:1. Set exact dimensions with
+`size: '1024x1024'`, or select an `area` tier, optionally combined with
+`aspectRatio`. Do not combine a pixel size with `aspectRatio` or `area`.
+
+MiniMax requests can take up to 600 seconds and are not idempotent. Set
+`maxRetries: 0` to avoid duplicate generation after a timeout or server error.
+An aborted request can still finish on the server.
+
+### Image Editing
+
+Pass 1–16 reference images in the prompt. Image masks are not supported.
+
+```ts
+import { readFile } from 'node:fs/promises';
+import { minimax } from '@ai-sdk/minimax';
+import { generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: minimax.image('MiniMax-H3-Image'),
+  prompt: {
+    text: 'Turn the cat into a dog, keeping the original style.',
+    images: [await readFile('cat.png')],
+  },
+  size: '1024x1024',
+  maxRetries: 0,
+  abortSignal: AbortSignal.timeout(600_000),
+});
+```
+
+### Image Provider Options
+
+- **area**: `'1K' | '2K' | '4K'` — target output area when `size` is omitted;
+  defaults to `'4K'`.
+- **disablePromptEnhanced**: `boolean` — disable prompt enhancement for
+  text-to-image. When `true`, requires an explicit pixel size or aspect ratio.
+  Edits always apply prompt enhancement.
+- **outputFormat**: `'jpeg' | 'jpg' | 'png' | 'webp'` — defaults to `'jpeg'`.
+- **outputCompression**: `number` — JPEG/WebP quality from 0 to 100.
+
+`usage` contains aggregate input, output, and total token counts. The original
+text/image token breakdown and successful image count are retained in
+the first successful image's `usage` field under `providerMetadata.minimax.images`.
+Request usage is stored once per API call to avoid double-counting batches.
+Each successful image also includes `size`, `revisedPrompt`, `outputFormat`,
+and `requestId` when supplied by MiniMax. Partial image failures are
+reported as warnings while successful images and request usage are preserved.
+
 ## Video Models
 
 You can generate videos with the MiniMax-H3 and MiniMax-H3-Max models using
@@ -646,16 +723,20 @@ The following option definitions are generated from the provider catalog.
 
 {/* model-capabilities:minimax-provider-options:start */}
 
-| Operation | Option               | Description                                                                                                                                                             |
-| --------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| language  | `effort`             | Reasoning effort for MiniMax M3.1 and later models. Higher levels can use more reasoning tokens and increase latency. Defaults to the server's setting.                 |
-| language  | `serviceTier`        | Request admission tier (`standard` or `priority`), sent as `service_tier`. Priority admission is billed at 1.5x the standard price. Omit to use the API's default tier. |
-| language  | `thinking`           | thinking                                                                                                                                                                |
-| video     | `resolution`         | Output resolution.                                                                                                                                                      |
-| video     | `ratio`              | Aspect ratio of the generated video. Overrides the top-level `aspectRatio`.                                                                                             |
-| video     | `referenceAudioUrls` | Reference audio URLs for reference-to-video generation.                                                                                                                 |
-| video     | `aigcWatermark`      | Whether to embed an AIGC watermark in the output. Defaults to `false`.                                                                                                  |
-| video     | `pollIntervalMs`     | Interval in milliseconds between task status polls. Default: 10000.                                                                                                     |
-| video     | `pollTimeoutMs`      | Maximum time in milliseconds to poll before timing out. Default: 600000.                                                                                                |
+| Operation | Option                  | Description                                                                                                                                                             |
+| --------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| image     | `area`                  | Output area: 1K, 2K, or 4K. Use without a pixel size.                                                                                                                   |
+| image     | `disablePromptEnhanced` | Disable prompt enhancement for text-to-image requests.                                                                                                                  |
+| image     | `outputCompression`     | JPEG or WebP compression quality, from 0 to 100.                                                                                                                        |
+| image     | `outputFormat`          | Output format: JPEG, PNG, or WebP.                                                                                                                                      |
+| language  | `effort`                | Reasoning effort for MiniMax M3.1 and later models. Higher levels can use more reasoning tokens and increase latency. Defaults to the server's setting.                 |
+| language  | `serviceTier`           | Request admission tier (`standard` or `priority`), sent as `service_tier`. Priority admission is billed at 1.5x the standard price. Omit to use the API's default tier. |
+| language  | `thinking`              | thinking                                                                                                                                                                |
+| video     | `resolution`            | Output resolution.                                                                                                                                                      |
+| video     | `ratio`                 | Aspect ratio of the generated video. Overrides the top-level `aspectRatio`.                                                                                             |
+| video     | `referenceAudioUrls`    | Reference audio URLs for reference-to-video generation.                                                                                                                 |
+| video     | `aigcWatermark`         | Whether to embed an AIGC watermark in the output. Defaults to `false`.                                                                                                  |
+| video     | `pollIntervalMs`        | Interval in milliseconds between task status polls. Default: 10000.                                                                                                     |
+| video     | `pollTimeoutMs`         | Maximum time in milliseconds to poll before timing out. Default: 600000.                                                                                                |
 
 {/* model-capabilities:minimax-provider-options:end */}

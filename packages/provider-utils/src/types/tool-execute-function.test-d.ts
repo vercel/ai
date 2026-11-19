@@ -19,12 +19,14 @@ describe('tool execute function types', () => {
   });
 
   it('should include abort signal in sandbox command options', () => {
-    expectTypeOf<Parameters<SandboxSession['run']>[0]>().toEqualTypeOf<{
-      command: string;
-      workingDirectory?: string;
-      env?: Record<string, string>;
-      abortSignal?: AbortSignal;
-    }>();
+    expectTypeOf<Parameters<SandboxSession['run']>[0]>().toEqualTypeOf<
+      {
+        command: string;
+        workingDirectory?: string;
+        env?: Record<string, string>;
+        abortSignal?: AbortSignal;
+      } & { maxOutputLength?: number }
+    >();
   });
 
   it('should type the input, output, and execution options', () => {

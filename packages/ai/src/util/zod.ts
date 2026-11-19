@@ -1,4 +1,5 @@
 import {
+  NEVER,
   array,
   boolean,
   custom,
@@ -19,6 +20,7 @@ import {
   positive,
   record,
   refine,
+  safeParse,
   startsWith,
   string,
   transform,
@@ -28,6 +30,7 @@ import {
 
 // Import individual Mini factories so bundlers retain only the schemas in use.
 export const z = {
+  NEVER,
   array,
   boolean,
   custom,
@@ -48,6 +51,7 @@ export const z = {
   positive,
   record,
   refine,
+  safeParse,
   startsWith,
   string,
   transform,
@@ -55,4 +59,4 @@ export const z = {
   unknown,
 };
 
-export type { ZodMiniType as ZodType } from 'zod/v4/mini';
+export type { ZodMiniType as ZodType, output as ZodOutput } from 'zod/v4/mini';

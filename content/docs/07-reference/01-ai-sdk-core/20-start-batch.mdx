@@ -51,6 +51,13 @@ const batch = await startBatch({
         'The independent requests to process. Each request must have a unique, non-empty id, a supported type, and type-specific properties such as model and prompt or messages for text requests.',
     },
     {
+      name: 'output',
+      type: 'Output',
+      isOptional: true,
+      description:
+        'Specification for structured data in text responses, as in generateText. Its response format is sent with every text request; image requests ignore it. Pass the same value to getBatchResults to parse and validate results.',
+    },
+    {
       name: 'providerOptions',
       type: 'ProviderOptions',
       isOptional: true,
