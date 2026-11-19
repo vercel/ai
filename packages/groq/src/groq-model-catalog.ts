@@ -101,7 +101,7 @@ const text = { image: false, tools: true };
 const vision = { image: true, tools: true };
 
 // Preserve the provider page's model set and per-model support declarations.
-const documentedLanguageModels: Record<string, LanguageDefinition> = {
+const documentedLanguageModels = {
   'gemma2-9b-it': text,
   'llama-3.1-8b-instant': { ...text, jsonSchema: false },
   'llama-3.3-70b-versatile': text,
@@ -122,7 +122,7 @@ const documentedLanguageModels: Record<string, LanguageDefinition> = {
   'deepseek-r1-distill-qwen-32b': text,
   'openai/gpt-oss-20b': text,
   'openai/gpt-oss-120b': text,
-};
+} satisfies Record<string, LanguageDefinition>;
 
 function createLanguageModelEntry(
   modelId: string,
@@ -224,6 +224,11 @@ function createTranscriptionModelEntry(
   };
 }
 
+const groqTranscriptionModelEntries = {
+  'whisper-large-v3': createTranscriptionModelEntry(true),
+  'whisper-large-v3-turbo': createTranscriptionModelEntry(true),
+};
+
 export const groqModelCatalog: Readonly<Record<string, GroqModelEntry>> = {
   ...Object.fromEntries(
     Object.entries(documentedLanguageModels).map(([modelId, definition]) => [
@@ -231,8 +236,7 @@ export const groqModelCatalog: Readonly<Record<string, GroqModelEntry>> = {
       createLanguageModelEntry(modelId, definition),
     ]),
   ),
-  'whisper-large-v3': createTranscriptionModelEntry(true),
-  'whisper-large-v3-turbo': createTranscriptionModelEntry(true),
+  ...groqTranscriptionModelEntries,
 };
 
 function findModelEntry(modelId: string) {
@@ -281,3 +285,9 @@ function declareProviderOptions<Option extends string>(
     ]),
   ) as Record<Option, ModelCapability>;
 }
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type GroqModelIds = {
+  language: keyof typeof documentedLanguageModels;
+  transcription: keyof typeof groqTranscriptionModelEntries;
+};

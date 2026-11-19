@@ -21,6 +21,7 @@ const channelMocks = vi.hoisted(() => ({
     }) => Promise<unknown>
   >,
   reconnects: [] as Array<unknown>,
+  keepalives: [] as Array<number | undefined>,
 }));
 const webSocketMocks = vi.hoisted(() => {
   type Listener = (...args: unknown[]) => void;
@@ -100,15 +101,18 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
     constructor({
       connect,
       reconnect,
+      keepAliveMs,
     }: {
       connect: (options: {
         abortSignal: AbortSignal;
         reason: 'open' | 'reconnect';
       }) => Promise<unknown>;
       reconnect?: unknown;
+      keepAliveMs?: number;
     }) {
       channelMocks.connects.push(connect);
       channelMocks.reconnects.push(reconnect);
+      channelMocks.keepalives.push(keepAliveMs);
     }
     async open(): Promise<void> {
       if (channelMocks.connectOnOpen) {
@@ -234,6 +238,7 @@ describe('createDeepAgents', () => {
     channelMocks.connectOnOpen = false;
     channelMocks.connects.length = 0;
     channelMocks.reconnects.length = 0;
+    channelMocks.keepalives.length = 0;
     webSocketMocks.calls.length = 0;
   });
 
@@ -747,6 +752,7 @@ describe('createDeepAgents', () => {
       mintBridgeToken,
       portEndpoint,
       reconnect,
+      keepAliveMs: 100,
     });
     expect(
       warn.mock.calls.filter(([message]) =>
@@ -787,6 +793,7 @@ describe('createDeepAgents', () => {
     });
     expect(mintBridgeToken).not.toHaveBeenCalled();
     expect(channelMocks.reconnects).toEqual([reconnect, reconnect]);
+    expect(channelMocks.keepalives).toEqual([100, 100]);
     expect(webSocketMocks.calls).toEqual([
       {
         url: 'wss://sandbox.example/bridge?existing=value',

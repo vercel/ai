@@ -121,7 +121,14 @@ export default function Chat() {
       type: '(error: unknown) => string',
       isOptional: true,
       description:
-        "Process an error, e.g. to log it. Defaults to `() => 'An error occurred.'`. Return the error message to include in the data stream.",
+        "Process an error, e.g. to log it. Defaults to `() => 'An error occurred.'`. Return the error message to include in the data stream. Handles stream errors. Also handles failed tool calls (tool execution errors and invalid tool calls) when `redactToolErrors` is enabled, which is the default when this callback is provided.",
+    },
+    {
+      name: 'redactToolErrors',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'Replace the error text of failed tool calls (tool execution errors and invalid tool calls) with the result of onError. By default, the client receives the same error text as the model, because the UI messages are sent back to the model on the next request and a different text changes the message history. Defaults to true when onError is provided, and to false otherwise.',
     },
   ]}
 />

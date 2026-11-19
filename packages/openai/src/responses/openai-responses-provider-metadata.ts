@@ -1,5 +1,6 @@
 import type {
   openaiResponsesChunkSchema,
+  OpenAIResponsesInputTransformation,
   OpenAIResponsesLogprobs,
   OpenAIResponsesPromptCacheDiagnostics,
 } from './openai-responses-api';
@@ -18,6 +19,7 @@ export type ResponsesProviderMetadata = {
   serviceTier?: string;
   reasoningContext?: string;
   promptCacheDiagnostics?: OpenAIResponsesPromptCacheDiagnostics;
+  inputTransformations?: Array<OpenAIResponsesInputTransformation>;
 };
 
 export type ResponsesReasoningProviderMetadata = {

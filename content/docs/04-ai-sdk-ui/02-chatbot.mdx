@@ -815,16 +815,21 @@ With `streamText`, you can control how error messages and usage information are 
 
 ### Error Messages
 
-By default, the error message is masked for security reasons.
+By default, the error message of a stream error is masked for security reasons.
 The default error message is "An error occurred."
 
-Tool execution errors marked `providerExecuted: true` are an exception. They
-bypass the UI stream's `onError` callback: strings are forwarded unchanged, and
-other error values are serialized with `JSON.stringify`. This preserves provider
-error codes when chat history is converted back into model messages, as well as
-error messages from harness runtimes. Stream errors and invalid tool calls still
-use `onError`, even for provider-executed tools. Do not rely on this callback to
-redact provider-executed tool execution errors before they reach the client.
+Failed tool calls are an exception. The client receives the same error text as
+the model, because the UI messages are sent back to the model on the next
+request. See [Errors](/docs/ai-sdk-ui/chatbot-tool-usage#errors) in the tool
+usage guide for how to keep details out of that text and how to redact it with
+`redactToolErrors`.
+
+Tool execution errors marked `providerExecuted: true` always bypass the UI
+stream's `onError` callback: strings are forwarded unchanged, and other error
+values are serialized with `JSON.stringify`. This preserves provider error codes
+when chat history is converted back into model messages, as well as error
+messages from harness runtimes. Do not rely on this callback to redact
+provider-executed tool execution errors before they reach the client.
 
 You can forward error messages or send your own error message by providing an `onError` function:
 
@@ -859,7 +864,7 @@ export async function POST(req: Request) {
         }
 
         if (error instanceof Error) {
-          return error.message;
+          return error.toString();
         }
 
         return JSON.stringify(error);
@@ -868,6 +873,11 @@ export async function POST(req: Request) {
   });
 }
 ```
+
+A custom `onError` also handles failed tool calls, unless you set `redactToolErrors` to `false`.
+This function returns the same error text that the model receives for a failed tool call.
+If the two texts differ, the stored messages no longer match what the model received.
+See [Tool error text and message history](/docs/ai-sdk-ui/chatbot-tool-usage#tool-error-text-and-message-history).
 
 ### Usage Information
 

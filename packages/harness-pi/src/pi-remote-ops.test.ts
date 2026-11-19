@@ -875,6 +875,9 @@ describe('createPiRemoteOps.listDirectory', () => {
 });
 
 describe('createPiRemoteOps.grepFiles', () => {
+  // Root ignores file permissions, so grep can't hit a permission error.
+  const isRoot = process.getuid?.() === 0;
+
   it('builds the grep command with the requested flags', async () => {
     const env = makeOps({
       run: () => ({ stdout: 'foo.ts:1:hit\n' }),
@@ -952,60 +955,66 @@ describe('createPiRemoteOps.grepFiles', () => {
     );
   });
 
-  it('preserves GNU grep matches when recursive traversal also reports diagnostics', async () => {
-    const workDir = await mkdtemp(path.join(tmpdir(), 'pi-grep-gnu-'));
-    const blockedDirectory = path.join(workDir, 'blocked');
+  it.skipIf(isRoot)(
+    'preserves GNU grep matches when recursive traversal also reports diagnostics',
+    async () => {
+      const workDir = await mkdtemp(path.join(tmpdir(), 'pi-grep-gnu-'));
+      const blockedDirectory = path.join(workDir, 'blocked');
 
-    try {
-      await writeFile(path.join(workDir, 'match.txt'), 'needle\n');
-      await mkdir(blockedDirectory);
-      await writeFile(path.join(blockedDirectory, 'hidden.txt'), 'needle\n');
-      await chmod(blockedDirectory, 0);
+      try {
+        await writeFile(path.join(workDir, 'match.txt'), 'needle\n');
+        await mkdir(blockedDirectory);
+        await writeFile(path.join(blockedDirectory, 'hidden.txt'), 'needle\n');
+        await chmod(blockedDirectory, 0);
 
-      const output = await makeNativeShellOps(workDir).grepFiles('needle', {
-        literal: true,
-      });
+        const output = await makeNativeShellOps(workDir).grepFiles('needle', {
+          literal: true,
+        });
 
-      expect(output).toContain('match.txt:1:needle');
-      expect(output).toContain('Permission denied');
-    } finally {
-      await chmod(blockedDirectory, 0o700).catch(() => {});
-      await rm(workDir, { recursive: true, force: true });
-    }
-  });
+        expect(output).toContain('match.txt:1:needle');
+        expect(output).toContain('Permission denied');
+      } finally {
+        await chmod(blockedDirectory, 0o700).catch(() => {});
+        await rm(workDir, { recursive: true, force: true });
+      }
+    },
+  );
 
-  it('bounds GNU grep diagnostics independently of the match limit', async () => {
-    const workDir = await mkdtemp(path.join(tmpdir(), 'pi-grep-gnu-'));
-    const blockedDirectories = Array.from({ length: 250 }, (_, index) =>
-      path.join(workDir, `blocked-${String(index).padStart(3, '0')}`),
-    );
-
-    try {
-      await writeFile(path.join(workDir, 'match.txt'), 'needle\n');
-      await Promise.all(
-        blockedDirectories.map(async directory => {
-          await mkdir(directory);
-          await chmod(directory, 0);
-        }),
+  it.skipIf(isRoot)(
+    'bounds GNU grep diagnostics independently of the match limit',
+    async () => {
+      const workDir = await mkdtemp(path.join(tmpdir(), 'pi-grep-gnu-'));
+      const blockedDirectories = Array.from({ length: 250 }, (_, index) =>
+        path.join(workDir, `blocked-${String(index).padStart(3, '0')}`),
       );
 
-      const output = await makeNativeShellOps(workDir).grepFiles('needle', {
-        literal: true,
-        limit: 1,
-      });
+      try {
+        await writeFile(path.join(workDir, 'match.txt'), 'needle\n');
+        await Promise.all(
+          blockedDirectories.map(async directory => {
+            await mkdir(directory);
+            await chmod(directory, 0);
+          }),
+        );
 
-      expect(output).toContain('match.txt:1:needle');
-      expect(output).toContain('Permission denied');
-      expect(Buffer.byteLength(output)).toBeLessThan(8_300);
-    } finally {
-      await Promise.all(
-        blockedDirectories.map(directory =>
-          chmod(directory, 0o700).catch(() => {}),
-        ),
-      );
-      await rm(workDir, { recursive: true, force: true });
-    }
-  });
+        const output = await makeNativeShellOps(workDir).grepFiles('needle', {
+          literal: true,
+          limit: 1,
+        });
+
+        expect(output).toContain('match.txt:1:needle');
+        expect(output).toContain('Permission denied');
+        expect(Buffer.byteLength(output)).toBeLessThan(8_300);
+      } finally {
+        await Promise.all(
+          blockedDirectories.map(directory =>
+            chmod(directory, 0o700).catch(() => {}),
+          ),
+        );
+        await rm(workDir, { recursive: true, force: true });
+      }
+    },
+  );
 
   it('rejects workspace symlinks before running grep outside readable roots', async () => {
     const outsideSecretPath = '/home/vercel-sandbox/CODEX_API_KEY';

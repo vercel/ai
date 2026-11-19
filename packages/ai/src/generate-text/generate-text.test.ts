@@ -12128,6 +12128,89 @@ describe('generateText', () => {
   });
 
   describe('tool execution approval', () => {
+    describe('messages array passed to the approval function', () => {
+      async function collectApprovalMessages({
+        prepareStep,
+      }: {
+        prepareStep?: () => { messages: ModelMessage[] };
+      } = {}) {
+        const approvalMessages: ModelMessage[][] = [];
+        let responseCount = 0;
+
+        await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => {
+              const step = responseCount++;
+              return step < 2
+                ? {
+                    ...dummyResponseValues,
+                    content: [1, 2].map(index => ({
+                      type: 'tool-call' as const,
+                      toolCallId: `call-${step}-${index}`,
+                      toolName: 'tool1',
+                      input: `{ "value": "value" }`,
+                    })),
+                    finishReason: {
+                      unified: 'tool-calls' as const,
+                      raw: undefined,
+                    },
+                  }
+                : {
+                    ...dummyResponseValues,
+                    content: [{ type: 'text' as const, text: 'done' }],
+                  };
+            },
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async () => 'result1',
+            }),
+          },
+          toolApproval: ({ messages }) => {
+            approvalMessages.push(messages);
+            return 'approved';
+          },
+          prepareStep,
+          stopWhen: isStepCount(3),
+          prompt: 'test-input',
+        });
+
+        return approvalMessages;
+      }
+
+      it('should be the same for all tool calls of a step and new for every step', async () => {
+        const approvalMessages = await collectApprovalMessages();
+
+        expect(approvalMessages).toHaveLength(4);
+        expect(approvalMessages[1]).toBe(approvalMessages[0]);
+        expect(approvalMessages[3]).toBe(approvalMessages[2]);
+        expect(approvalMessages[2]).not.toBe(approvalMessages[0]);
+      });
+
+      it('should be new for every step when prepareStep returns the same messages array', async () => {
+        const preparedMessages: ModelMessage[] = [
+          { role: 'user', content: 'prepared-input' },
+        ];
+
+        const approvalMessages = await collectApprovalMessages({
+          prepareStep: () => ({ messages: preparedMessages }),
+        });
+
+        expect(approvalMessages).toEqual([
+          preparedMessages,
+          preparedMessages,
+          preparedMessages,
+          preparedMessages,
+        ]);
+        expect(approvalMessages[0]).not.toBe(preparedMessages);
+        expect(approvalMessages[1]).toBe(approvalMessages[0]);
+        expect(approvalMessages[2]).not.toBe(preparedMessages);
+        expect(approvalMessages[2]).not.toBe(approvalMessages[0]);
+        expect(approvalMessages[3]).toBe(approvalMessages[2]);
+      });
+    });
+
     it('should surface the reason for user approval requests', async () => {
       const result = await generateText({
         model: new MockLanguageModelV4({
