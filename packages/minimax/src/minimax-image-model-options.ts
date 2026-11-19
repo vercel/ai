@@ -4,11 +4,9 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { MiniMaxModelIds } from './minimax-model-catalog';
 
-export type MiniMaxImageModelId =
-  | 'MiniMax-H3-Image'
-  | 'MiniMax-H3-Image-Highspeed'
-  | (string & {});
+export type MiniMaxImageModelId = MiniMaxModelIds['image'] | (string & {});
 
 export const minimaxImageModelOptionsSchema = lazySchema(() =>
   zodSchema(
