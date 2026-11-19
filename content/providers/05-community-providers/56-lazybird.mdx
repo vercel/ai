@@ -1,0 +1,121 @@
+---
+title: Lazybird
+description: Lazybird provider for AI SDK 7
+---
+
+# Lazybird
+
+[Lazybird](https://lazybird.app) is a text to speech platform with 500+ voices in 150+ languages and accents, voice cloning and voice design. The [Lazybird provider](https://github.com/lazybirdai/ai-sdk-provider) brings its speech models to the AI SDK through `generateSpeech`.
+
+The Lazybird provider is a good fit if you want:
+
+- **A large voice library**: pick from 500+ voices, or use voices you cloned or designed in Lazybird
+- **Any voice in any language**: every voice can speak every supported locale
+- **Control over delivery**: speed, pitch, volume, speaking styles and SSML for pauses and pronunciation
+- **A free tier**: 10,000 characters a month on the free plan
+
+## Setup
+
+The `@lazybirdai/ai-sdk-provider` package supports AI SDK 7 and the Provider V4 specification.
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @lazybirdai/ai-sdk-provider ai@^7" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @lazybirdai/ai-sdk-provider ai@^7" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @lazybirdai/ai-sdk-provider ai@^7" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @lazybirdai/ai-sdk-provider ai@^7" dark />
+  </Tab>
+</Tabs>
+
+Create an API key in [Lazybird](https://lazybird.app) settings and set it as an environment variable:
+
+```bash
+export LAZYBIRD_API_KEY="your_api_key_here"
+```
+
+## Provider Instance
+
+You can import the default provider instance `lazybird`:
+
+```ts
+import { lazybird } from '@lazybirdai/ai-sdk-provider';
+```
+
+For custom settings, create an instance with `createLazybird`:
+
+```ts
+import { createLazybird } from '@lazybirdai/ai-sdk-provider';
+
+const lazybird = createLazybird({
+  apiKey: process.env.MY_LAZYBIRD_KEY,
+});
+```
+
+`createLazybird` also accepts:
+
+- **baseURL** _string_: API base URL. Defaults to `https://api.lazybird.app/v2`.
+- **headers** _Record&lt;string,string&gt;_: extra request headers.
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_: a custom fetch implementation.
+
+## Speech Models
+
+Create a speech model with `lazybird.speech()` and pass it to `generateSpeech`. The result is an MP3 file.
+
+```ts
+import { lazybird } from '@lazybirdai/ai-sdk-provider';
+import { generateSpeech } from 'ai';
+import { writeFile } from 'node:fs/promises';
+
+const { audio } = await generateSpeech({
+  model: lazybird.speech(),
+  text: 'Welcome to the show.',
+  voice: 'tgJ2Hes6DauwTg8kFrRPLN',
+});
+
+await writeFile('speech.mp3', audio.uint8Array);
+```
+
+`voice` takes a Lazybird voice id. Browse and preview voices at [lazybird.app/voices](https://lazybird.app/voices), or list them with `GET https://api.lazybird.app/v2/voices`. Without a voice, the default voice is used.
+
+`speed` sets the speaking rate (1 is normal). `language` takes a locale with a region, such as `es-ES`.
+
+### Provider Options
+
+Lazybird-specific settings go in `providerOptions.lazybird`:
+
+```ts
+const { audio } = await generateSpeech({
+  model: lazybird.speech(),
+  text: '<speak>One moment.<break time="1s"/>Here we go.</speak>',
+  providerOptions: {
+    lazybird: {
+      ssml: true,
+      pitch: 1.05,
+      style: 'cheerful',
+    },
+  },
+});
+```
+
+- **ssml** _boolean_: treat `text` as SSML.
+- **locale** _string_: locale with a region, used when `language` is not set.
+- **pitch** _number_: 1 is the voice's normal pitch.
+- **volume** _number_: 1 is normal, 0 is silent.
+- **style** _string_: a speaking style the voice supports.
+- **styleIntensity** _number_: strength of the speaking style.
+
+`outputFormat` (other than `mp3`) and `instructions` are not supported and return a warning.
+
+## Additional Resources
+
+- [Lazybird Provider Repository](https://github.com/lazybirdai/ai-sdk-provider)
+- [NPM Package](https://www.npmjs.com/package/@lazybirdai/ai-sdk-provider)
+- [Lazybird Text to Speech API](https://lazybird.app/text-to-speech-api)
+- [Lazybird API Reference](https://lazybird.app/docs/api-reference)
