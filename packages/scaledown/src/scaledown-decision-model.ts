@@ -22,10 +22,10 @@ import { convertToScaleDownState } from './convert-to-scaledown-state';
 import { scaledownDecisionResponseSchema } from './scaledown-decision-api';
 import { scaledownFailedResponseHandler } from './scaledown-error';
 import { VERSION } from './version';
+import type { ScaleDownModelIds } from './scaledown-model-catalog';
 
 export type ScaleDownDecisionModelId =
-  | 'classify'
-  | 'classify-1'
+  | ScaleDownModelIds['decision']
   | (string & {});
 
 export type ScaleDownDecisionProviderMetadata = {
