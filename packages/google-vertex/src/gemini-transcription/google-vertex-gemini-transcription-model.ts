@@ -48,12 +48,6 @@ const liveWebSocketPath =
 const defaultFinishGraceMs = 3000;
 
 /**
- * Audio sent at most this far ahead of real time still counts as a live
- * stream, which the server keeps up with.
- */
-const realtimeAudioToleranceMs = 1000;
-
-/**
  * Speech that server VAD ended within this distance of the end of the sent
  * audio counts as ending at the end of the audio.
  */
@@ -350,6 +344,9 @@ export class GoogleVertexGeminiTranscriptionModel implements TranscriptionModelV
       `wss://${vertexHost(location)}/ws/${liveWebSocketPath}`,
     );
 
+    const manualActivityDetection =
+      googleOptions?.streaming?.automaticActivityDetection?.disabled === true;
+
     // NOTE: mirrors the Developer API model — Google's documented setup shape
     // includes `generationConfig.responseModalities: ['TEXT']`, but sending it
     // suppresses the final `inputTranscription` segments; omit generationConfig.
@@ -357,6 +354,13 @@ export class GoogleVertexGeminiTranscriptionModel implements TranscriptionModelV
       model: modelResource,
       inputAudioTranscription:
         buildAudioTranscriptionConfig(googleOptions) ?? {},
+      ...(manualActivityDetection
+        ? {
+            realtimeInputConfig: {
+              automaticActivityDetection: { disabled: true },
+            },
+          }
+        : {}),
     };
 
     return {
@@ -371,6 +375,7 @@ export class GoogleVertexGeminiTranscriptionModel implements TranscriptionModelV
         headers,
         setup,
         inputAudioRate: options.inputAudioFormat.rate ?? 16000,
+        manualActivityDetection,
         finishGraceMs:
           this.config._internal?.finishGraceMs ?? defaultFinishGraceMs,
         warnings,
@@ -388,6 +393,7 @@ function createVertexLiveTranscriptionStream({
   headers,
   setup,
   inputAudioRate,
+  manualActivityDetection,
   finishGraceMs,
   warnings,
   audio,
@@ -399,6 +405,7 @@ function createVertexLiveTranscriptionStream({
   headers: Record<string, string | undefined>;
   setup: unknown;
   inputAudioRate: number;
+  manualActivityDetection: boolean;
   finishGraceMs: number;
   warnings: SharedV4Warning[];
   audio: ReadableStream<Uint8Array | string>;
@@ -442,13 +449,7 @@ function createVertexLiveTranscriptionStream({
       let lastVoiceActivity:
         | { type: string; audioOffsetMs: number | undefined }
         | undefined;
-      // a segment opens with `ACTIVITY_START` and closes when the server
-      // completes it (e.g. `generationComplete`), in either message order
-      let speechSegmentOpen = false;
       let sentAudioBytes = 0;
-      let firstAudioSentAt: number | undefined;
-      // whether the audio was sent at about real time, measured when it ended
-      let audioSentInRealtime = false;
 
       const segmentId = () => `google-segment-${segmentCounter}`;
 
@@ -491,7 +492,6 @@ function createVertexLiveTranscriptionStream({
       };
 
       const completeSegment = () => {
-        speechSegmentOpen = false;
         // A finished segment supersedes any interim text it revises.
         if (segmentBuffer === '') {
           if (latestInterim === '') return;
@@ -512,25 +512,18 @@ function createVertexLiveTranscriptionStream({
         (sentAudioBytes / (inputAudioRate * 2)) * 1000;
 
       // Once the audio has ended, the server has transcribed all of it when
-      // server VAD ended the last speech, the server completed that segment,
-      // and the server has caught up with the sent audio: either that speech
-      // ended at the end of the audio, or the audio was streamed in real time
-      // (so the server is not still processing buffered audio, which can hold
-      // further segments). No further messages arrive in that case.
-      const isTranscriptionComplete = () => {
-        if (
-          lastVoiceActivity?.type !== 'ACTIVITY_END' ||
-          speechSegmentOpen ||
-          segmentBuffer !== '' ||
-          latestInterim !== ''
-        ) {
-          return false;
-        }
-        return (
-          (lastVoiceActivity.audioOffsetMs ?? 0) >=
-            getSentAudioMs() - audioEndToleranceMs || audioSentInRealtime
-        );
-      };
+      // server VAD ended the last speech at the end of the sent audio and no
+      // transcript is pending. VAD ends speech at the end of the audio when
+      // the audio ends mid-speech (the server transcribes the rest as one
+      // segment) and, with manual activity detection, always (`activityEnd`
+      // closes the single turn). Earlier `ACTIVITY_END` offsets can mean the
+      // server is still processing buffered audio with further segments.
+      const isTranscriptionComplete = () =>
+        lastVoiceActivity?.type === 'ACTIVITY_END' &&
+        segmentBuffer === '' &&
+        latestInterim === '' &&
+        (lastVoiceActivity.audioOffsetMs ?? 0) >=
+          getSentAudioMs() - audioEndToleranceMs;
 
       const finish = () => {
         if (finished) return;
@@ -554,14 +547,22 @@ function createVertexLiveTranscriptionStream({
       };
 
       const sendAudio = async (socket: WebSocketLike) => {
+        // with manual activity detection, the audio stream is one user turn
+        if (manualActivityDetection) {
+          socket.send(JSON.stringify({ realtimeInput: { activityStart: {} } }));
+        }
         audioReader = audio.getReader();
         try {
           while (true) {
             const { done, value } = await audioReader.read();
             if (done || finished) break;
             const data = convertToBase64(value);
-            firstAudioSentAt ??= Date.now();
-            sentAudioBytes += (data.length * 3) / 4;
+            const padding = data.endsWith('==')
+              ? 2
+              : data.endsWith('=')
+                ? 1
+                : 0;
+            sentAudioBytes += (data.length * 3) / 4 - padding;
             socket.send(
               JSON.stringify({
                 realtimeInput: {
@@ -582,14 +583,13 @@ function createVertexLiveTranscriptionStream({
         }
         if (!finished) {
           socket.send(
-            JSON.stringify({ realtimeInput: { audioStreamEnd: true } }),
+            JSON.stringify({
+              realtimeInput: manualActivityDetection
+                ? { activityEnd: {} }
+                : { audioStreamEnd: true },
+            }),
           );
           audioEnded = true;
-          audioSentInRealtime =
-            getSentAudioMs() <=
-            Date.now() -
-              (firstAudioSentAt ?? Date.now()) +
-              realtimeAudioToleranceMs;
           if (isTranscriptionComplete()) {
             finish();
           } else {
@@ -642,9 +642,6 @@ function createVertexLiveTranscriptionStream({
                   ? audioOffsetSeconds * 1000
                   : undefined,
             };
-            if (message.voiceActivity.type === 'ACTIVITY_START') {
-              speechSegmentOpen = true;
-            }
           }
 
           if (message.error != null) {

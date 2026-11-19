@@ -480,7 +480,7 @@ describe('doStream', () => {
     });
   });
 
-  it('completes each segment on generationComplete and finishes once server VAD ended the speech', async () => {
+  it('completes each segment on generationComplete and finishes once server VAD ended the speech at the end of the audio', async () => {
     const model = createModel();
 
     let audioController!: ReadableStreamDefaultController<Uint8Array>;
@@ -496,14 +496,21 @@ describe('doStream', () => {
       providerOptions: {},
     });
 
-    const partsPromise = convertReadableStreamToArray(result.stream);
+    let settled = false;
+    const partsPromise = convertReadableStreamToArray(result.stream).finally(
+      () => {
+        settled = true;
+      },
+    );
     const ws = MockWebSocket.instances[0];
     ws.open();
     ws.message({ setupComplete: {} });
     await flush();
 
+    // 5 seconds of 16kHz 16-bit audio:
+    audioController.enqueue(new Uint8Array(5 * 32000));
+
     // server-side VAD completes a segment while audio is still streaming:
-    audioController.enqueue(new Uint8Array([1, 2]));
     ws.message({
       voiceActivity: { type: 'ACTIVITY_START', audioOffset: '0.280s' },
     });
@@ -526,7 +533,9 @@ describe('doStream', () => {
     expect(JSON.parse(ws.send.mock.calls.at(-1)?.[0])).toEqual({
       realtimeInput: { audioStreamEnd: true },
     });
+    expect(settled).toBe(false);
 
+    // the server transcribes the rest and ends the speech at the end of the audio:
     ws.message({
       serverContent: { inputTranscription: { text: 'on October 18th, 1989.' } },
     });
@@ -567,8 +576,10 @@ describe('doStream', () => {
     expect(ws.close).toHaveBeenCalledWith(1000);
   });
 
-  it('finishes when the audio ends after server VAD ended the speech', async () => {
-    const model = createModel();
+  it('falls back to the grace period when the audio ends in silence after the last segment', async () => {
+    const model = createModel('gemini-3.5-transcribe-live', {
+      finishGraceMs: 50,
+    });
 
     let audioController!: ReadableStreamDefaultController<Uint8Array>;
     const audio = new ReadableStream<Uint8Array>({
@@ -583,13 +594,19 @@ describe('doStream', () => {
       providerOptions: {},
     });
 
-    const partsPromise = convertReadableStreamToArray(result.stream);
+    let settled = false;
+    const partsPromise = convertReadableStreamToArray(result.stream).finally(
+      () => {
+        settled = true;
+      },
+    );
     const ws = MockWebSocket.instances[0];
     ws.open();
     ws.message({ setupComplete: {} });
     await flush();
 
-    audioController.enqueue(new Uint8Array([1, 2]));
+    // 4 seconds of 16kHz 16-bit audio, with speech ending at 2 seconds:
+    audioController.enqueue(new Uint8Array(4 * 32000));
     ws.message({
       voiceActivity: { type: 'ACTIVITY_START', audioOffset: '0.280s' },
     });
@@ -598,16 +615,14 @@ describe('doStream', () => {
     ws.message({ voiceActivity: { type: 'ACTIVITY_END', audioOffset: '2s' } });
     await flush();
 
-    // trailing silence: the server sends nothing after audioStreamEnd
+    // the server sends nothing after audioStreamEnd:
     audioController.close();
     await flush();
+    expect(settled).toBe(false);
 
+    await new Promise(resolve => setTimeout(resolve, 100));
+    expect(settled).toBe(true);
     const parts = await partsPromise;
-    expect(parts.at(-2)).toEqual({
-      type: 'transcript-final',
-      id: 'google-segment-0',
-      text: 'hello.',
-    });
     expect(parts.at(-1)).toMatchObject({ type: 'finish', text: 'hello.' });
   });
 
@@ -639,7 +654,7 @@ describe('doStream', () => {
     await flush();
 
     // 2 seconds of 16kHz 16-bit audio, sent at once:
-    audioController.enqueue(new Uint8Array(64000));
+    audioController.enqueue(new Uint8Array(2 * 32000));
     ws.message({
       voiceActivity: { type: 'ACTIVITY_START', audioOffset: '0.280s' },
     });
@@ -671,74 +686,7 @@ describe('doStream', () => {
     });
   });
 
-  it('waits for buffered audio segments when the server processes them slower than real time', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] });
-    try {
-      const model = createModel();
-
-      let audioController!: ReadableStreamDefaultController<Uint8Array>;
-      const audio = new ReadableStream<Uint8Array>({
-        start(controller) {
-          audioController = controller;
-        },
-      });
-
-      const result = await model.doStream({
-        audio,
-        inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
-        providerOptions: {},
-      });
-
-      let settled = false;
-      const partsPromise = convertReadableStreamToArray(result.stream).finally(
-        () => {
-          settled = true;
-        },
-      );
-      const ws = MockWebSocket.instances[0];
-      ws.open();
-      ws.message({ setupComplete: {} });
-      await flush();
-
-      // 2 seconds of 16kHz 16-bit audio, sent at once:
-      audioController.enqueue(new Uint8Array(64000));
-      audioController.close();
-      await flush();
-
-      // the server takes longer than the audio duration to catch up:
-      vi.setSystemTime(Date.now() + 5000);
-      ws.message({
-        voiceActivity: { type: 'ACTIVITY_START', audioOffset: '0.280s' },
-      });
-      ws.message({ serverContent: { inputTranscription: { text: 'hello.' } } });
-      ws.message({ serverContent: { generationComplete: true } });
-      ws.message({
-        voiceActivity: { type: 'ACTIVITY_END', audioOffset: '1s' },
-      });
-      await flush();
-      expect(settled).toBe(false);
-
-      ws.message({
-        voiceActivity: { type: 'ACTIVITY_START', audioOffset: '1.200s' },
-      });
-      ws.message({ serverContent: { inputTranscription: { text: 'world.' } } });
-      ws.message({ serverContent: { generationComplete: true } });
-      ws.message({
-        voiceActivity: { type: 'ACTIVITY_END', audioOffset: '2s' },
-      });
-      await flush();
-
-      const parts = await partsPromise;
-      expect(parts.at(-1)).toMatchObject({
-        type: 'finish',
-        text: 'hello. world.',
-      });
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it('waits for the segment transcript when ACTIVITY_END arrives before it', async () => {
+  it('transcribes the audio as a single turn when automatic activity detection is disabled', async () => {
     const model = createModel();
 
     let audioController!: ReadableStreamDefaultController<Uint8Array>;
@@ -751,7 +699,11 @@ describe('doStream', () => {
     const result = await model.doStream({
       audio,
       inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
-      providerOptions: {},
+      providerOptions: {
+        googleVertex: {
+          streaming: { automaticActivityDetection: { disabled: true } },
+        },
+      },
     });
 
     let settled = false;
@@ -765,27 +717,97 @@ describe('doStream', () => {
     ws.message({ setupComplete: {} });
     await flush();
 
-    audioController.enqueue(new Uint8Array([1, 2]));
-    ws.message({
-      voiceActivity: { type: 'ACTIVITY_START', audioOffset: '0.280s' },
+    expect(JSON.parse(ws.send.mock.calls[0][0]).setup).toMatchObject({
+      realtimeInputConfig: { automaticActivityDetection: { disabled: true } },
     });
-    await flush();
+    expect(result.request?.body).toMatchObject({
+      realtimeInputConfig: { automaticActivityDetection: { disabled: true } },
+    });
 
-    // the audio ends mid-speech; VAD ends the speech before its transcript:
+    // 3 seconds of 16kHz 16-bit audio, including a trailing pause:
+    audioController.enqueue(new Uint8Array(3 * 32000));
     audioController.close();
     await flush();
-    ws.message({
-      voiceActivity: { type: 'ACTIVITY_END', audioOffset: '0.900s' },
-    });
-    await flush();
-    expect(settled).toBe(false);
 
-    ws.message({ serverContent: { inputTranscription: { text: 'Yes.' } } });
+    const sent = ws.send.mock.calls.map(call => JSON.parse(call[0]));
+    expect(sent[1]).toEqual({ realtimeInput: { activityStart: {} } });
+    expect(sent[2].realtimeInput.audio).toBeDefined();
+    expect(sent.at(-1)).toEqual({ realtimeInput: { activityEnd: {} } });
+    expect(sent).not.toContainEqual({
+      realtimeInput: { audioStreamEnd: true },
+    });
+
+    ws.message({
+      voiceActivity: { type: 'ACTIVITY_START', audioOffset: '0s' },
+    });
+    ws.message({
+      serverContent: {
+        inputTranscription: { text: 'Book a venue. Then ask Sam.' },
+      },
+    });
     ws.message({ serverContent: { generationComplete: true } });
+    ws.message({ voiceActivity: { type: 'ACTIVITY_END', audioOffset: '3s' } });
     await flush();
 
     const parts = await partsPromise;
-    expect(parts.at(-1)).toMatchObject({ type: 'finish', text: 'Yes.' });
+    expect(parts.filter(part => part.type === 'transcript-final')).toEqual([
+      {
+        type: 'transcript-final',
+        id: 'google-segment-0',
+        text: 'Book a venue. Then ask Sam.',
+      },
+    ]);
+    expect(parts.at(-1)).toMatchObject({
+      type: 'finish',
+      text: 'Book a venue. Then ask Sam.',
+    });
+  });
+
+  it('finishes when a manual activity contains no speech', async () => {
+    const model = createModel();
+
+    let audioController!: ReadableStreamDefaultController<Uint8Array>;
+    const audio = new ReadableStream<Uint8Array>({
+      start(controller) {
+        audioController = controller;
+      },
+    });
+
+    const result = await model.doStream({
+      audio,
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      providerOptions: {
+        googleVertex: {
+          streaming: { automaticActivityDetection: { disabled: true } },
+        },
+      },
+    });
+
+    let settled = false;
+    const partsPromise = convertReadableStreamToArray(result.stream).finally(
+      () => {
+        settled = true;
+      },
+    );
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ setupComplete: {} });
+    await flush();
+
+    // 3 seconds of silence:
+    audioController.enqueue(new Uint8Array(3 * 32000));
+    audioController.close();
+    await flush();
+
+    // without speech, the server sends no transcript or generationComplete:
+    ws.message({
+      voiceActivity: { type: 'ACTIVITY_START', audioOffset: '0s' },
+    });
+    ws.message({ voiceActivity: { type: 'ACTIVITY_END', audioOffset: '3s' } });
+    await flush();
+
+    const parts = await partsPromise;
+    expect(parts.at(-1)).toMatchObject({ type: 'finish', text: '' });
   });
 
   it('errors when the socket closes before the audio ended', async () => {

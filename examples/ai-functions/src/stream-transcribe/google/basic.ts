@@ -30,10 +30,10 @@ run(async () => {
     }),
   );
 
-  // The speaker pauses between sentences and stops recording a moment after
-  // the last one, as with a push-to-talk button:
+  // The speaker pauses between sentences and stops recording after the last
+  // one:
   const pause = new Uint8Array(2 * bytesPerSecond);
-  const bytes = Buffer.concat(clips.flatMap(clip => [clip, pause]));
+  const bytes = Buffer.concat(clips.flatMap(clip => [pause, clip]).slice(1));
 
   // Stream the audio in 100ms chunks, as a microphone would:
   let offset = 0;
