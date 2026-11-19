@@ -1562,6 +1562,201 @@ describe('smoothStream', () => {
     });
   });
 
+  describe('types', () => {
+    it('should pass reasoning through when only text is smoothed', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'reasoning-start', id: '1' },
+        { text: 'Let me think about it', type: 'reasoning-delta', id: '1' },
+        { type: 'reasoning-end', id: '1' },
+        { type: 'text-start', id: '2' },
+        { text: 'The answer is', type: 'text-delta', id: '2' },
+        { text: ' 42', type: 'text-delta', id: '2' },
+        { type: 'text-end', id: '2' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          types: ['text'],
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "reasoning-start",
+          },
+          {
+            "id": "1",
+            "text": "Let me think about it",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "1",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "2",
+            "type": "text-start",
+          },
+          "delay 10",
+          {
+            "id": "2",
+            "text": "The ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "2",
+            "text": "answer ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "2",
+            "text": "is ",
+            "type": "text-delta",
+          },
+          {
+            "id": "2",
+            "text": "42",
+            "type": "text-delta",
+          },
+          {
+            "id": "2",
+            "type": "text-end",
+          },
+        ]
+      `);
+    });
+
+    it('should flush the text buffer before a reasoning delta that is passed through', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { type: 'reasoning-start', id: '2' },
+        { text: 'Hello wor', type: 'text-delta', id: '1' },
+        { text: 'Let me think', type: 'reasoning-delta', id: '2' },
+        { text: 'ld', type: 'text-delta', id: '1' },
+        { type: 'reasoning-end', id: '2' },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          types: ['text'],
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "2",
+            "type": "reasoning-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "Hello ",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "text": "wor",
+            "type": "text-delta",
+          },
+          {
+            "id": "2",
+            "text": "Let me think",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "1",
+            "text": "ld",
+            "type": "text-delta",
+          },
+          {
+            "id": "2",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+        ]
+      `);
+    });
+
+    it('should pass text through when only reasoning is smoothed', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'reasoning-start', id: '1' },
+        { text: 'Let me think', type: 'reasoning-delta', id: '1' },
+        { type: 'reasoning-end', id: '1' },
+        { type: 'text-start', id: '2' },
+        { text: 'The answer is 42', type: 'text-delta', id: '2' },
+        { type: 'text-end', id: '2' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          types: ['reasoning'],
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "reasoning-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "Let ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "me ",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "1",
+            "text": "think",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "1",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "2",
+            "type": "text-start",
+          },
+          {
+            "id": "2",
+            "text": "The answer is 42",
+            "type": "text-delta",
+          },
+          {
+            "id": "2",
+            "type": "text-end",
+          },
+        ]
+      `);
+    });
+  });
+
   describe('providerMetadata preservation', () => {
     const providerMetadataA = {
       anthropic: { signature: 'sig-a' },
