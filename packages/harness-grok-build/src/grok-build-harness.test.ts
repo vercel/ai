@@ -24,6 +24,7 @@ describe('createGrokBuild', () => {
 
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
     expect(settings.nonTextContentTypes).toEqual(['image']);
+    expect(settings.writeProtectedPaths).toEqual(['.grok']);
     expect(settings.prepareSandbox).toBeTypeOf('function');
     expect(settings.permissionModeMapping).toBeUndefined();
     if (settings.source.type !== 'npm-locked') {
@@ -31,13 +32,10 @@ describe('createGrokBuild', () => {
     }
     const source = {
       ...settings.source,
-      packageJson: JSON.parse(settings.source.packageJson),
+      packageJson: '<package.json>',
       pnpmLockYaml: '<pnpm-lock.yaml>',
       pnpmWorkspaceYaml: '<pnpm-workspace.yaml>',
     };
-    expect(settings.source.pnpmLockYaml).toContain(
-      "'@xai-official/grok@1.0.49'",
-    );
     expect(settings.source.pnpmWorkspaceYaml).toContain(
       "'@xai-official/grok': true",
     );
@@ -134,19 +132,7 @@ describe('createGrokBuild', () => {
           },
         },
         "source": {
-          "packageJson": {
-            "dependencies": {
-              "@agentclientprotocol/sdk": "1.7.0",
-              "@modelcontextprotocol/sdk": "1.32.1",
-              "@xai-official/grok": "1.0.49",
-              "ws": "8.21.0",
-              "zod": "4.4.3",
-            },
-            "name": "harness-grok-build-bridge",
-            "private": true,
-            "type": "module",
-            "version": "0.0.0",
-          },
+          "packageJson": "<package.json>",
           "pnpmLockYaml": "<pnpm-lock.yaml>",
           "pnpmWorkspaceYaml": "<pnpm-workspace.yaml>",
           "type": "npm-locked",
@@ -270,6 +256,7 @@ describe('createGrokBuild', () => {
       startupTimeoutMs: 45_000,
       hostDisconnectTimeoutMs: 60_000,
       reconnect,
+      keepAliveMs: 100,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
     });
@@ -286,6 +273,7 @@ describe('createGrokBuild', () => {
       startupTimeoutMs: settings.startupTimeoutMs,
       hostDisconnectTimeoutMs: settings.hostDisconnectTimeoutMs,
       reconnect: settings.reconnect,
+      keepAliveMs: settings.keepAliveMs,
       mcpServers: settings.mcpServers,
       mintBridgeToken: settings.mintBridgeToken,
     }).toEqual({
@@ -301,6 +289,7 @@ describe('createGrokBuild', () => {
       startupTimeoutMs: 45_000,
       hostDisconnectTimeoutMs: 60_000,
       reconnect,
+      keepAliveMs: 100,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
     });

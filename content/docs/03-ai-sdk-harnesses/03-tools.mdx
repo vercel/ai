@@ -130,6 +130,9 @@ const session = await agent.createSession({
 Missing or invalid context fails validation before the host tool executes. The
 validation error returned to the harness runtime is intentionally generic so
 host-only context values and schema details are not disclosed to the model.
+Stream parts and UI messages carry an error with the same generic message. The
+detailed validation error is only passed to host callbacks such as
+`onToolExecutionEnd`.
 
 ## Client-Side Tools
 

@@ -1,5 +1,104 @@
 # @ai-sdk/openai
 
+## 4.0.121
+
+### Patch Changes
+
+- 1a7440b: return input transformations in responses provider metadata
+
+## 4.0.120
+
+### Patch Changes
+
+- ed981f8: feat(openai): add GPT-6.2 Astra and GPT-6.2 Sol model support
+
+## 4.0.119
+
+### Patch Changes
+
+- 5aa836f: fix(openai): send `additionalTools` definitions only for tools registered in the request
+
+  `additionalTools` entries can come from replayed, client-supplied conversation history. The Responses provider now uses an entry only to select a tool registered in the call's `tools` and sends the definition derived from that tool: its description, input schema, `strict` setting, and `deferLoading` option instead of the values in the history. Entries for tools that are not registered are dropped with a warning, and a namespace entry loads only the registered tools it names.
+
+- Updated dependencies [10ff0b1]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/provider@4.0.39
+  - @ai-sdk/provider-utils@5.0.82
+
+## 4.0.118
+
+### Patch Changes
+
+- f5fc6ba: Derive known model ID suggestions from each provider's model catalog declarations so catalog updates automatically update autocomplete, while preserving existing suggestions, endpoint-specific model lists, and support for custom model IDs.
+
+## 4.0.117
+
+### Patch Changes
+
+- 6d50947: add experimental extraction models backed by structured language model output
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+
+## 4.0.116
+
+### Patch Changes
+
+- 2ebc78b: Forward the provider's configured fetch transport when downloading file inputs. Add a `fetch` option to `createDownload` so core downloads can also use `guarded-fetch` for opt-in DNS validation on Node.js. The function returned by `createDownload` can now also be passed as `experimental_download` to `generateText` and `streamText`, and `experimental_download` now also handles generated file URLs returned by the model, so one hook covers all core downloads. Document that the default URL checks do not resolve DNS and recommend the guarded transport or network egress controls for untrusted URLs.
+
+  Keep Azure image and Vertex tool-result downloads separate from provider authentication wrappers so file hosts never receive Azure bearer tokens or Vertex Express Mode API keys.
+
+  Pass the call's abort signal to custom download requests, including prompt assets and generated files, so `experimental_download: createDownload({ fetch })` preserves cancellation and timeouts.
+
+- 6eff958: feat(openai): add positioned additionalTools and accept custom and namespace tools
+- a279e86: fix(openai): keep tool-result additionalTools for parallel results and openai options
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+
+## 4.0.115
+
+### Patch Changes
+
+- 5a645e9: Support positioned Responses API format updates so changing structured output schemas can preserve earlier reasoning and prompt cache reuse. Add a stable request-level text format override and expose prompt cache comparison diagnostics for generation, streaming, and batch results.
+
+## 4.0.114
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+
+## 4.0.113
+
+### Patch Changes
+
+- 22b8158: Avoid repeating the complete parallel-tool wrapper input in every expanded tool call's metadata while preserving wrapper reconstruction for follow-up Responses API requests.
+- Updated dependencies [88b9575]
+  - @ai-sdk/provider-utils@5.0.78
+
+## 4.0.112
+
+### Patch Changes
+
+- 9f37b45: refactor: separate provider-specific credential redaction from core telemetry
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+
+## 4.0.111
+
+### Patch Changes
+
+- 6400cf8: Add `resolveProviderOptions` to parse provider options that a model accepts under several `providerOptions` keys, either as aliases (`first`) or merged in order (`merge`), and use it for the existing multi-key lookups in the OpenAI, OpenAI-compatible, Anthropic, Google, and Amazon Bedrock models. Resolution behavior for these models is unchanged.
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+
 ## 4.0.110
 
 ### Patch Changes

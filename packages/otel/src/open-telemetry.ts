@@ -1,3 +1,4 @@
+import { redactToolDefinition } from './redact-tool-definition';
 import {
   context,
   metrics,
@@ -53,14 +54,13 @@ import {
   formatInputMessages,
   formatModelMessages,
   formatObjectOutputMessages,
-  formatOutputMessages,
+  formatOutputContent,
   formatSystemInstructions,
   mapOperationName,
   mapProviderName,
 } from './gen-ai-format-messages';
 import { stringifyDecisionStateForTelemetry } from './stringify-for-telemetry';
 import { recordErrorOnSpan } from './record-span';
-import { redactToolDefinition } from './redact-tool-definition';
 import { getProviderUsageAttributes } from './provider-usage-attributes';
 import { getServerAttributes } from './server-attributes';
 import { sanitizeAttributes } from './sanitize-attribute-value';
@@ -1072,8 +1072,9 @@ export class OpenTelemetry implements Telemetry {
     const state = existingState ?? this.startDurableModelCall(event);
     if (!state?.stepContext) return;
 
-    // A retried stream may start a new attempt without ending the failed one.
-    if (state.liveDurableContext && state.inferenceSpan != null) {
+    // A stream retry or a steering interrupt starts a new model call without
+    // ending the previous one.
+    if (state.inferenceSpan != null) {
       state.inferenceSpan.setStatus({ code: SpanStatusCode.ERROR });
       state.inferenceSpan.end(getEventTime(event));
       state.inferenceSpan = undefined;
@@ -1226,20 +1227,8 @@ export class OpenTelemetry implements Telemetry {
         'gen_ai.output.messages': {
           output: () =>
             JSON.stringify(
-              formatOutputMessages({
-                text:
-                  event.content
-                    .filter(p => p.type === 'text')
-                    .map(p => p.text)
-                    .join('') || undefined,
-                reasoning: event.content.filter(p => p.type === 'reasoning'),
-                toolCalls: event.content.filter(p => p.type === 'tool-call'),
-                toolResults: event.content.filter(
-                  p => p.type === 'tool-result',
-                ),
-                files: event.content
-                  .filter(p => p.type === 'file')
-                  .map(p => p.file),
+              formatOutputContent({
+                content: event.content,
                 finishReason: event.finishReason,
               }),
             ),
@@ -1742,14 +1731,8 @@ export class OpenTelemetry implements Telemetry {
         'gen_ai.output.messages': {
           output: () =>
             JSON.stringify(
-              formatOutputMessages({
-                text: event.text ?? undefined,
-                reasoning: event.finalStep.reasoning as ReadonlyArray<{
-                  text?: string;
-                }>,
-                toolCalls: event.toolCalls,
-                toolResults: event.toolResults,
-                files: event.files,
+              formatOutputContent({
+                content: event.content,
                 finishReason: event.finishReason,
               }),
             ),

@@ -1,5 +1,6 @@
 import { posix } from 'node:path';
 import {
+  createTextOutputCapture,
   extractLines,
   type Experimental_SandboxDirectoryEntry as SandboxDirectoryEntry,
   type Experimental_SandboxFileStat as SandboxFileStat,
@@ -143,12 +144,69 @@ export class VercelSandboxSession implements SandboxSession {
     workingDirectory,
     env,
     abortSignal,
+    maxOutputLength,
   }: RunOptions): Promise<{
     exitCode: number;
     stdout: string;
     stderr: string;
+    stdoutLength?: number;
+    stderrLength?: number;
   }> {
     abortSignal?.throwIfAborted();
+
+    if (maxOutputLength !== undefined) {
+      const stdout = createTextOutputCapture({ maxLength: maxOutputLength });
+      const stderr = createTextOutputCapture({ maxLength: maxOutputLength });
+      // The native non-detached runCommand buffers every log before returning.
+      // Consume detached logs directly so only the configured prefixes survive.
+      const commandHandle = await this.sandbox.runCommand({
+        cmd: 'bash',
+        args: ['-c', command],
+        detached: true,
+        ...(workingDirectory !== undefined
+          ? {
+              cwd: await this.resolveWorkingDirectory(
+                workingDirectory,
+                abortSignal,
+              ),
+            }
+          : {}),
+        ...(env !== undefined ? { env } : {}),
+        ...(abortSignal !== undefined ? { signal: abortSignal } : {}),
+      });
+      const reads = new AbortController();
+      const signal =
+        abortSignal === undefined
+          ? reads.signal
+          : AbortSignal.any([abortSignal, reads.signal]);
+      // Detached execution needs explicit cancellation after startup. Killing
+      // must use a fresh request rather than the already-aborted caller signal.
+      const onAbort = () => {
+        void commandHandle.kill().catch(() => {});
+      };
+      if (abortSignal?.aborted) onAbort();
+      else abortSignal?.addEventListener('abort', onAbort, { once: true });
+      try {
+        const [finished] = await Promise.all([
+          commandHandle.wait({ signal }),
+          (async () => {
+            for await (const log of commandHandle.logs({ signal })) {
+              (log.stream === 'stdout' ? stdout : stderr).append(log.data);
+            }
+          })(),
+        ]);
+        return {
+          exitCode: finished.exitCode,
+          stdout: stdout.text,
+          stderr: stderr.text,
+          stdoutLength: stdout.length,
+          stderrLength: stderr.length,
+        };
+      } finally {
+        abortSignal?.removeEventListener('abort', onAbort);
+        reads.abort();
+      }
+    }
 
     const finished = await this.sandbox.runCommand({
       cmd: 'bash',

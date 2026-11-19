@@ -1,5 +1,12 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
+import type {
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+} from '@ai-sdk/provider';
+import { createOpenAI, openai } from '@ai-sdk/openai';
+import { wrapLanguageModel } from '../middleware/wrap-language-model';
+import { RetryError } from '../util/retry-error';
 import { tool } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,6 +15,7 @@ import { embed } from '../embed/embed';
 import { embedMany } from '../embed/embed-many';
 import { decide } from '../decide/decide';
 import { generateText } from '../generate-text';
+import { createSteering } from '../generate-text/steering';
 import { streamText } from '../generate-text/stream-text';
 import { isStepCount } from '../generate-text/stop-condition';
 import { rerank } from '../rerank/rerank';
@@ -570,6 +578,143 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
     `);
   });
 
+  it('traces one step span when a steering interrupt redoes the generateText model call', async () => {
+    const steering = createSteering();
+    let calls = 0;
+
+    const sequence = await collectTracingChannelEventSequence(async () => {
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async ({ abortSignal }) => {
+            calls++;
+            if (calls === 1) {
+              void steering.steer('Use Paris, Texas instead.', {
+                interrupt: true,
+              });
+              throw abortSignal?.reason;
+            }
+            return {
+              content: [{ type: 'text', text: 'It is sunny.' }],
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: {
+                inputTokens: {
+                  total: 3,
+                  noCache: 3,
+                  cacheRead: undefined,
+                  cacheWrite: undefined,
+                },
+                outputTokens: {
+                  total: 3,
+                  text: 3,
+                  reasoning: undefined,
+                },
+              },
+              warnings: [],
+            };
+          },
+        }),
+        prompt: 'What is the weather in Paris?',
+        experimental_steering: steering,
+        telemetry: {
+          functionId: 'tracing-channel-generate-text-interrupt-test',
+        },
+      });
+    });
+
+    expect(calls).toBe(2);
+    expect(sequence).toMatchInlineSnapshot(`
+      [
+        "bindStart generateText",
+        "bindStart step",
+        "bindStart languageModelCall",
+        "asyncEnd languageModelCall",
+        "bindStart languageModelCall",
+        "asyncEnd languageModelCall",
+        "asyncEnd step",
+        "asyncEnd generateText",
+      ]
+    `);
+  });
+
+  it('traces one step span when a steering interrupt redoes the streamText model call', async () => {
+    const steering = createSteering();
+    let calls = 0;
+
+    const sequence = await collectTracingChannelEventSequence(async () => {
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async options => {
+            calls++;
+            if (calls === 1) {
+              const stream = new ReadableStream<LanguageModelV4StreamPart>({
+                start(controller) {
+                  controller.enqueue({ type: 'stream-start', warnings: [] });
+                  options.abortSignal?.addEventListener(
+                    'abort',
+                    () => controller.error(options.abortSignal?.reason),
+                    { once: true },
+                  );
+                },
+              });
+              setTimeout(() => {
+                void steering.steer('Use Paris, Texas instead.', {
+                  interrupt: true,
+                });
+              }, 0);
+              return { stream };
+            }
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'It is sunny.' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: {
+                    inputTokens: {
+                      total: 3,
+                      noCache: 3,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: {
+                      total: 3,
+                      text: 3,
+                      reasoning: undefined,
+                    },
+                  },
+                },
+              ]),
+            };
+          },
+        }),
+        prompt: 'What is the weather in Paris?',
+        experimental_steering: steering,
+        telemetry: {
+          functionId: 'tracing-channel-stream-text-interrupt-test',
+        },
+      });
+
+      await result.consumeStream();
+    });
+
+    expect(calls).toBe(2);
+    expect(sequence).toMatchInlineSnapshot(`
+      [
+        "bindStart streamText",
+        "bindStart step",
+        "bindStart languageModelCall",
+        "asyncEnd languageModelCall",
+        "bindStart languageModelCall",
+        "asyncEnd languageModelCall",
+        "asyncEnd step",
+        "asyncEnd streamText",
+      ]
+    `);
+  });
+
   it('includes the SDK version with allowlisted context on every tracing span', async () => {
     const usage = {
       inputTokens: {
@@ -949,6 +1094,280 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
       (decideMessage?.event as { runtimeContext?: unknown })?.runtimeContext,
     ).toEqual({ requestId: 'request-1' });
   });
+
+  describe.each(['generateText', 'streamText'] as const)(
+    '%s request metadata',
+    api => {
+      it.each([200, 503])(
+        'applies OpenAI redaction through middleware with HTTP %s',
+        async status => {
+          const domainSecrets = [
+            { domain: 'example.com', name: 'KEY', value: 'test-domain-secret' },
+          ];
+          const tools = {
+            python: openai.tools.codeInterpreter({
+              container: {
+                networkPolicy: {
+                  type: 'allowlist',
+                  allowedDomains: ['example.com'],
+                  domainSecrets,
+                },
+              },
+            }),
+          };
+          const sentBodies: Record<string, unknown>[] = [];
+          const model = wrapLanguageModel({
+            middleware: {},
+            model: createOpenAI({
+              apiKey: 'test-key',
+              fetch: async (_url, init) => {
+                const body = JSON.parse(init!.body as string);
+                sentBodies.push(body);
+                if (status === 503)
+                  return new Response(
+                    JSON.stringify({ error: { message: 'Unavailable' } }),
+                    {
+                      status,
+                      headers: {
+                        'content-type': 'application/json',
+                        'retry-after-ms': '0',
+                      },
+                    },
+                  );
+                const response = {
+                  id: 'response-1',
+                  model: 'gpt-4o',
+                  created_at: 0,
+                  output: [],
+                  tools: body.tools,
+                  usage: { input_tokens: 1, output_tokens: 0, total_tokens: 1 },
+                };
+                return new Response(
+                  body.stream
+                    ? `data: ${JSON.stringify({ type: 'response.completed', response })}\n\n`
+                    : JSON.stringify(response),
+                  {
+                    headers: {
+                      'content-type': body.stream
+                        ? 'text/event-stream'
+                        : 'application/json',
+                    },
+                  },
+                );
+              },
+            }).responses('gpt-4o'),
+          });
+          const recorded: string[] = [];
+          // Snapshot at publication time, including nested retry errors.
+          const record = (value: unknown) => {
+            recorded.push(JSON.stringify(value));
+          };
+          const start = vi.fn(record);
+          const asyncEnd = vi.fn(record);
+          const channel = diagnosticsChannel.tracingChannel(
+            AI_SDK_TELEMETRY_TRACING_CHANNEL,
+          );
+          const onLanguageModelCallStart = vi.fn();
+          channel.start.subscribe(start);
+          channel.asyncEnd.subscribe(asyncEnd);
+          channel.error.subscribe(record);
+          try {
+            const options = {
+              model,
+              tools,
+              prompt: 'Hello',
+              maxRetries: 1,
+              include: { requestBody: true, responseBody: true },
+              onLanguageModelCallStart,
+              onError() {},
+              telemetry: {
+                integrations: {
+                  onStart: record,
+                  onStepEnd: record,
+                  onEnd: record,
+                  onError: record,
+                  onStepError: record,
+                  executeLanguageModelCall: async <T>({
+                    execute,
+                  }: {
+                    execute: () => PromiseLike<T>;
+                  }) => {
+                    const result = await execute();
+                    record(result);
+                    return result;
+                  },
+                },
+              },
+            };
+            if (status === 200) {
+              const result =
+                api === 'generateText'
+                  ? await generateText(options)
+                  : streamText(options);
+              expect(await result.text).toBe('');
+              expect(
+                JSON.stringify((await result.finalStep).request.body),
+              ).toContain('test-domain-secret');
+              if (api === 'generateText')
+                expect(
+                  JSON.stringify((await result.finalStep).response.body),
+                ).toContain('test-domain-secret');
+            } else {
+              let applicationError: unknown;
+              if (api === 'generateText')
+                applicationError = await generateText(options).catch(
+                  error => error,
+                );
+              else
+                for await (const part of streamText(options).fullStream) {
+                  if (part.type === 'error') applicationError = part.error;
+                }
+              expect(RetryError.isInstance(applicationError)).toBe(true);
+              const error = applicationError as RetryError;
+              expect(error.errors).toHaveLength(2);
+              expect(error.lastError).toBe(error.errors[1]);
+              for (const attempt of error.errors)
+                expect(JSON.stringify(attempt)).toContain('test-domain-secret');
+            }
+          } finally {
+            channel.start.unsubscribe(start);
+            channel.asyncEnd.unsubscribe(asyncEnd);
+            channel.error.unsubscribe(record);
+          }
+          expect(start).toHaveBeenCalled();
+          expect(asyncEnd).toHaveBeenCalled();
+          expect(recorded.join('\n')).toContain('[redacted]');
+          expect(recorded.join('\n')).not.toContain('test-domain-secret');
+          expect(sentBodies).toHaveLength(status === 200 ? 1 : 2);
+          for (const body of sentBodies)
+            expect(JSON.stringify(body)).toContain('test-domain-secret');
+          expect(onLanguageModelCallStart.mock.calls[0][0].tools[0].args).toBe(
+            tools.python.args,
+          );
+          expect(domainSecrets[0].value).toBe('test-domain-secret');
+        },
+      );
+
+      it.each([
+        {
+          request: {
+            body: 'keep',
+            url: 'https://user:password@model.example.test:8443/private?key=secret#fragment',
+          },
+          expected: { body: 'keep', url: 'https://model.example.test:8443' },
+        },
+        {
+          request: { body: 'keep', url: 'not a URL' },
+          expected: { body: 'keep' },
+        },
+        {
+          request: { body: 'keep', url: 'data:text/plain,secret' },
+          expected: { body: 'keep' },
+        },
+        { request: { body: 'keep' }, expected: { body: 'keep' } },
+        { request: undefined, expected: undefined },
+      ])(
+        'sanitizes $request before telemetry observes the provider result',
+        async ({ request, expected }) => {
+          type Request = LanguageModelV4GenerateResult['request'];
+          const tracedRequests: Request[] = [];
+          const integrationRequests: Request[] = [];
+          const providerRequest =
+            request == null ? undefined : Object.freeze({ ...request });
+          const snapshotRequest = (result: { request?: Request }) =>
+            result.request == null ? result.request : { ...result.request };
+          const channel = diagnosticsChannel.tracingChannel(
+            AI_SDK_TELEMETRY_TRACING_CHANNEL,
+          );
+          const subscribers = {
+            start() {},
+            end() {},
+            asyncStart() {},
+            asyncEnd(message: unknown) {
+              const telemetry =
+                message as TelemetryTracingChannelAsyncEndMessage;
+              if (telemetry.type === 'languageModelCall') {
+                tracedRequests.push(
+                  snapshotRequest(
+                    telemetry.result as LanguageModelV4GenerateResult,
+                  ),
+                );
+              }
+            },
+            error() {},
+          };
+          const finish = {
+            finishReason: { unified: 'stop' as const, raw: 'stop' },
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: 1,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: { total: 1, text: 1, reasoning: undefined },
+            },
+          };
+          const model = new MockLanguageModelV4({
+            doGenerate: {
+              content: [{ type: 'text', text: 'Hello' }],
+              warnings: [],
+              request: providerRequest,
+              ...finish,
+            },
+            doStream: {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                { type: 'text-start', id: 'text-1' },
+                { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+                { type: 'text-end', id: 'text-1' },
+                { type: 'finish', ...finish },
+              ]),
+              request: providerRequest,
+            },
+          });
+
+          channel.subscribe(subscribers);
+          try {
+            const options = {
+              model,
+              prompt: 'Hello',
+              telemetry: {
+                integrations: [
+                  {
+                    executeLanguageModelCall: async <T>({
+                      execute,
+                    }: {
+                      execute: () => PromiseLike<T>;
+                    }) => {
+                      const result = await execute();
+                      integrationRequests.push(
+                        snapshotRequest(
+                          result as LanguageModelV4GenerateResult,
+                        ),
+                      );
+                      return result;
+                    },
+                  },
+                ],
+              },
+            };
+            const result =
+              api === 'generateText'
+                ? await generateText(options)
+                : streamText(options);
+            expect(await result.text).toBe('Hello');
+          } finally {
+            channel.unsubscribe(subscribers);
+          }
+
+          expect(tracedRequests).toEqual([expected]);
+          expect(integrationRequests).toEqual([expected]);
+          expect(providerRequest).toEqual(request);
+        },
+      );
+    },
+  );
 
   it('publishes the embed result on asyncEnd', async () => {
     const messages = await collectTracingChannelAsyncEndMessages(async () => {

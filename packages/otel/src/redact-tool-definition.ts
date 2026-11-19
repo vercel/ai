@@ -1,4 +1,8 @@
-/** Remove provider credentials from a telemetry-only copy of a tool definition. */
+/**
+ * Preserve exporter protection for older providers and plain tool definitions
+ * whose arguments do not carry a provider-owned telemetry redaction annotation.
+ * Only create telemetry copies; never modify the provider's arguments.
+ */
 export function redactToolDefinition(
   tool: Record<string, unknown>,
 ): Record<string, unknown> {
@@ -22,6 +26,20 @@ export function redactToolDefinition(
               ),
             }
           : {}),
+      },
+    };
+  }
+
+  if (tool.id === 'google.mcp_server') {
+    if (!isRecord(args.headers)) return tool;
+
+    return {
+      ...tool,
+      args: {
+        ...args,
+        headers: Object.fromEntries(
+          Object.keys(args.headers).map(name => [name, '[redacted]']),
+        ),
       },
     };
   }

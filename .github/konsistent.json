@@ -104,7 +104,9 @@
           "excludeFiles": [
             "${providerId}-realtime-model.ts",
             "${providerId}-video-model.ts",
-            "${providerId}-decision-model.ts"
+            "${providerId}-decision-model.ts",
+            "packages/gateway/src/gateway-extraction-model.ts",
+            "packages/scaledown/src/scaledown-extraction-model.ts"
           ]
         },
         {
@@ -129,13 +131,15 @@
             "${providerId}-video-model.ts",
             "packages/gateway/src/gateway-embedding-model.ts",
             "packages/gateway/src/gateway-decision-model.ts",
+            "packages/gateway/src/gateway-extraction-model.ts",
             "packages/gateway/src/gateway-image-model.ts",
             "packages/gateway/src/gateway-language-model.ts",
             "packages/gateway/src/gateway-realtime-model.ts",
             "packages/gateway/src/gateway-reranking-model.ts",
             "packages/gateway/src/gateway-speech-model.ts",
             "packages/gateway/src/gateway-transcription-model.ts",
-            "packages/typesafe-ai/src/typesafe-ai-decision-model.ts"
+            "packages/typesafe-ai/src/typesafe-ai-decision-model.ts",
+            "packages/scaledown/src/scaledown-decision-model.ts"
           ]
         },
         {
@@ -398,7 +402,11 @@
             ],
             "importValues": [
               {
-                "name": "createBridgeToken",
+                "name": "createBridgeAuthKeyPair",
+                "from": "@ai-sdk/harness/utils"
+              },
+              {
+                "name": "createBridgeWebSocketConnect",
                 "from": "@ai-sdk/harness/utils"
               },
               {
@@ -410,7 +418,11 @@
                 "from": "@ai-sdk/harness/utils"
               }
             ],
-            "callFunction": ["resolveBridgeEndpoint"],
+            "callFunction": [
+              "createBridgeAuthKeyPair",
+              "createBridgeWebSocketConnect",
+              "resolveBridgeEndpoint"
+            ],
             "importTypes": [
               {
                 "name": "SandboxChannelReconnectOptions",
@@ -429,7 +441,8 @@
                     "port": { "type": "number" },
                     "portEndpoint": "HarnessV1PortEndpoint",
                     "reconnect": "SandboxChannelReconnectOptions",
-                    "startupTimeoutMs": { "type": "number" }
+                    "startupTimeoutMs": { "type": "number" },
+                    "keepAliveMs": { "type": "number" }
                   }
                 }
               }
@@ -465,7 +478,8 @@
                     "port": { "type": "number" },
                     "portEndpoint": "HarnessV1PortEndpoint",
                     "reconnect": "SandboxChannelReconnectOptions",
-                    "startupTimeoutMs": { "type": "number" }
+                    "startupTimeoutMs": { "type": "number" },
+                    "keepAliveMs": { "type": "number" }
                   }
                 }
               }
@@ -496,7 +510,8 @@
                     "port": { "type": "number" },
                     "portEndpoint": "HarnessV1PortEndpoint",
                     "reconnect": "SandboxChannelReconnectOptions",
-                    "startupTimeoutMs": { "type": "number" }
+                    "startupTimeoutMs": { "type": "number" },
+                    "keepAliveMs": { "type": "number" }
                   }
                 }
               }
@@ -1112,6 +1127,7 @@
     "opencode": "OpenCode",
     "quiverai": "QuiverAI",
     "togetherai": "TogetherAI",
+    "scaledown": "ScaleDown",
     "typesafe-ai": "TypeSafeAi"
   },
   "kebabToCamelMap": {

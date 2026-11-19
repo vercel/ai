@@ -76,6 +76,7 @@ describe('Claude 5 structured outputs through InvokeModel', () => {
     'global.anthropic.claude-sonnet-5-5',
     'us.anthropic.claude-opus-5-5',
     'anthropic.claude-fable-5-1',
+    'anthropic.claude-fable-5-2',
     'us.anthropic.claude-haiku-5-5',
     'us.anthropic.claude-sonnet-5',
     'us.anthropic.claude-opus-5',

@@ -8,7 +8,7 @@ run(async () => {
   });
 
   const result = await generateText({
-    model: vertex('gemini-3.8-flash'),
+    model: vertex('gemini-4-hydrogen'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

@@ -1,19 +1,65 @@
+import { isWriteProtectedPath } from '@ai-sdk/harness/bridge';
 import { lstat, realpath } from 'node:fs/promises';
 import path from 'node:path';
+
+/*
+ * Workspace paths that hold OpenCode configuration or skills it discovers,
+ * which can run code or change the agent's behavior in later sessions. Writes
+ * to them always require host approval unless the permission mode is
+ * `allow-all`.
+ */
+const OPENCODE_WRITE_PROTECTED_PATHS = [
+  '.agents/skills',
+  '.opencode',
+  'opencode.json',
+  'opencode.jsonc',
+  '.claude/skills',
+];
 
 export type PermissionToolCall = {
   nativeName: string;
   input: Record<string, unknown>;
 };
 
-export async function areOpenCodePermissionPathsTrusted(options: {
+type OpenCodePermissionPathOptions = {
   action: string;
   resources: string[];
   metadata: Record<string, unknown> | undefined;
   toolCall: PermissionToolCall | undefined;
   workDir: string;
   readableSkillRoots: readonly string[];
-}): Promise<boolean> {
+};
+
+export async function areOpenCodePermissionPathsTrusted(
+  options: OpenCodePermissionPathOptions,
+): Promise<boolean> {
+  const resolved = resolveOpenCodePermissionTargets(options);
+  if (resolved == null) return false;
+  return areFileToolPathsTrusted({
+    workDir: options.workDir,
+    cwd: options.workDir,
+    paths: resolved.targets,
+    access: resolved.access,
+    readableSkillRoots: options.readableSkillRoots,
+  });
+}
+
+export async function areOpenCodePermissionPathsWriteProtected(
+  options: OpenCodePermissionPathOptions,
+): Promise<boolean> {
+  const resolved = resolveOpenCodePermissionTargets(options);
+  if (resolved == null) return true;
+  if (resolved.access !== 'write') return false;
+  return isWriteProtectedPath({
+    workDir: options.workDir,
+    paths: resolved.targets,
+    writeProtectedPaths: OPENCODE_WRITE_PROTECTED_PATHS,
+  });
+}
+
+export function resolveOpenCodePermissionTargets(
+  options: OpenCodePermissionPathOptions,
+): { access: 'read' | 'write'; targets: string[] } | undefined {
   const args = options.toolCall?.input;
   const nativeName = options.toolCall?.nativeName;
   const access =
@@ -23,7 +69,7 @@ export async function areOpenCodePermissionPathsTrusted(options: {
       : 'read';
   let targets: unknown[];
   if (Array.isArray(options.metadata?.files)) {
-    if (options.metadata.files.length === 0) return false;
+    if (options.metadata.files.length === 0) return undefined;
     targets = options.metadata.files.flatMap(value => {
       if (value == null || typeof value !== 'object') return [undefined];
       const file = value as Record<string, unknown>;
@@ -59,17 +105,11 @@ export async function areOpenCodePermissionPathsTrusted(options: {
   ) {
     targets = options.resources;
   } else {
-    return false;
+    return undefined;
   }
   if (!targets.every((value): value is string => typeof value === 'string'))
-    return false;
-  return areFileToolPathsTrusted({
-    workDir: options.workDir,
-    cwd: options.workDir,
-    paths: targets,
-    access,
-    readableSkillRoots: options.readableSkillRoots,
-  });
+    return undefined;
+  return { access, targets };
 }
 
 export async function areFileToolPathsTrusted(options: {

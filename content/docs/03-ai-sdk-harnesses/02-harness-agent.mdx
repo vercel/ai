@@ -458,6 +458,10 @@ new prompt. The Vercel resume function reattaches whether the sandbox is still
 running after `detach()` or stopped with a restorable snapshot. After
 `sandboxSession.destroy()` deletes it, that ID cannot be resumed.
 
+Treat resume state as a secret. For sandbox bridge adapters, it contains the
+private key that authorizes reconnecting to the running bridge. Store it on the
+server like a credential, and never send it to the browser or another client.
+
 ## Continue a Suspended Turn
 
 For advanced workflows that must hand off an active turn across a process

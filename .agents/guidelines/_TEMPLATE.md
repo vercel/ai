@@ -1,5 +1,5 @@
 ---
-fileMatcher: # globs matched against changed file paths; guideline file is skipped if none match
+fileMatcher: # globs matched against changed file paths; guideline file is skipped if none match; test files (e.g. *.test.ts, *.test-d.ts) are always excluded
   - 'services/**'
   - '!services/special-file.ts' # exclusions (prefixed with !) are supported and will not trigger this guideline
 ---

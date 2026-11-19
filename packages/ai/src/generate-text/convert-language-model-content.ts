@@ -1,6 +1,7 @@
 import type { LanguageModelV4Content } from '@ai-sdk/provider';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
+import type { DownloadFunction } from '../util/download/download-function';
 import { getOwn } from '../util/get-own';
 import type { ContentPart } from './content-part';
 import { DefaultGeneratedFile } from './generated-file';
@@ -22,6 +23,7 @@ export async function convertLanguageModelContent<TOOLS extends ToolSet>({
   toolApprovalRequests,
   toolApprovalResponses,
   tools,
+  download,
   abortSignal,
   generatedFileDataCache,
 }: {
@@ -31,6 +33,7 @@ export async function convertLanguageModelContent<TOOLS extends ToolSet>({
   toolApprovalRequests: Array<ToolApprovalRequestOutput<TOOLS>>;
   toolApprovalResponses: Array<ToolApprovalResponseOutput<TOOLS>>;
   tools: TOOLS | undefined;
+  download?: DownloadFunction;
   abortSignal?: AbortSignal;
   generatedFileDataCache?: GeneratedFileDataCache;
 }): Promise<Array<ContentPart<TOOLS>>> {
@@ -59,6 +62,7 @@ export async function convertLanguageModelContent<TOOLS extends ToolSet>({
           file: new DefaultGeneratedFile({
             data: await resolveGeneratedFileData({
               data: part.data,
+              download,
               abortSignal,
               cache: generatedFileDataCache,
             }),

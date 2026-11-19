@@ -1,12 +1,9 @@
-import {
-  UnsupportedFunctionalityError,
-  type Experimental_DecisionModelV4 as DecisionModelV4,
-  type Experimental_DecisionModelV4State as DecisionModelV4State,
-  type SharedV4ProviderMetadata,
+import type {
+  Experimental_DecisionModelV4 as DecisionModelV4,
+  SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  convertUint8ArrayToBase64,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   getErrorMessage,
@@ -22,6 +19,8 @@ import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import type { GatewayConfig } from './gateway-config';
 import { gatewayDecisionProviderOptionsSchema } from './gateway-provider-options';
+import { gatewayWarningSchema } from './gateway-warning-schema';
+import { toGatewayStateParts } from './to-gateway-state-parts';
 
 export class GatewayDecisionModel implements DecisionModelV4 {
   readonly specificationVersion = 'v4';
@@ -56,7 +55,7 @@ export class GatewayDecisionModel implements DecisionModelV4 {
   }: Parameters<DecisionModelV4['doDecide']>[0]): Promise<
     Awaited<ReturnType<DecisionModelV4['doDecide']>>
   > {
-    const stateParts = toGatewayDecisionState(state);
+    const stateParts = toGatewayStateParts({ state, modelType: 'decision' });
     const gatewayOptions = await parseProviderOptions({
       provider: 'gateway',
       providerOptions,
@@ -140,12 +139,12 @@ const gatewayDecisionAnswerSchema = () =>
     z.object({
       type: z.literal('choice'),
       choice: z.string(),
-      probabilities: z.record(z.string(), z.number()).optional(),
+      probabilities: z.optional(z.record(z.string(), z.number())),
     }),
     z.object({
       type: z.literal('score'),
       score: z.number(),
-      probabilities: z.record(z.string(), z.number()).optional(),
+      probabilities: z.optional(z.record(z.string(), z.number())),
     }),
     z.object({
       type: z.literal('boolean'),
@@ -156,71 +155,27 @@ const gatewayDecisionAnswerSchema = () =>
     }),
   ]);
 
-const gatewayDecisionWarningSchema = () =>
-  z.discriminatedUnion('type', [
-    z.object({
-      type: z.literal('unsupported'),
-      feature: z.string(),
-      details: z.string().optional(),
-    }),
-    z.object({
-      type: z.literal('compatibility'),
-      feature: z.string(),
-      details: z.string().optional(),
-    }),
-    z.object({
-      type: z.literal('deprecated'),
-      setting: z.string(),
-      message: z.string(),
-    }),
-    z.object({
-      type: z.literal('other'),
-      message: z.string(),
-    }),
-  ]);
-
 const gatewayDecisionResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       answers: z.record(z.string(), gatewayDecisionAnswerSchema()),
-      model: z.string().optional(),
-      rounding: z
-        .object({
-          probabilityDecimals: z.number().optional(),
-          scoreDecimals: z.number().optional(),
-        })
-        .optional(),
-      usage: z
-        .object({
-          inputTokens: z.number().optional(),
-          outputTokens: z.number().optional(),
-        })
-        .optional(),
-      warnings: z.array(gatewayDecisionWarningSchema()).optional(),
-      providerMetadata: z
-        .record(z.string(), z.record(z.string(), z.unknown()))
-        .optional(),
+      model: z.optional(z.string()),
+      rounding: z.optional(
+        z.object({
+          probabilityDecimals: z.optional(z.number()),
+          scoreDecimals: z.optional(z.number()),
+        }),
+      ),
+      usage: z.optional(
+        z.object({
+          inputTokens: z.optional(z.number()),
+          outputTokens: z.optional(z.number()),
+        }),
+      ),
+      warnings: z.optional(z.array(gatewayWarningSchema())),
+      providerMetadata: z.optional(
+        z.record(z.string(), z.record(z.string(), z.unknown())),
+      ),
     }),
   ),
 );
-
-function toGatewayDecisionState(
-  state: DecisionModelV4State,
-): DecisionModelV4State {
-  return state.map(part => {
-    if (part.type !== 'file') return part;
-    if (part.data.type !== 'data') {
-      throw new UnsupportedFunctionalityError({
-        functionality: `Gateway decision file input: ${part.data.type} data`,
-      });
-    }
-    const { data } = part.data;
-    return {
-      ...part,
-      data: {
-        type: 'data',
-        data: typeof data === 'string' ? data : convertUint8ArrayToBase64(data),
-      },
-    };
-  });
-}

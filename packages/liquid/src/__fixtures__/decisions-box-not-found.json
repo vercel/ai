@@ -1,0 +1,16 @@
+{
+  "model": "d1.2",
+  "answers": {
+    "car": {
+      "type": "box",
+      "box": null,
+      "found": 0.0012875843247724626,
+      "confidence": 0
+    }
+  },
+  "usage": {
+    "input_tokens": 479,
+    "output_tokens": 0,
+    "cost": 0.00000958
+  }
+}

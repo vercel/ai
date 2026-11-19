@@ -20,6 +20,8 @@ const webSocketMocks = vi.hoisted(() => {
 
   class FakeWebSocket {
     private readonly listeners = new Map<string, Set<Listener>>();
+    readonly sent: string[] = [];
+    private challengeSent = false;
 
     constructor(url: string, options?: { headers?: Record<string, string> }) {
       calls.push({ url, headers: options?.headers });
@@ -64,7 +66,25 @@ const webSocketMocks = vi.hoisted(() => {
       return this;
     }
 
+    send(frame: string): void {
+      this.sent.push(frame);
+    }
+
     private emit(type: string, ...args: unknown[]): void {
+      if (
+        type === 'message' &&
+        !this.challengeSent &&
+        String(args[0]).includes('"bridge-hello"')
+      ) {
+        this.challengeSent = true;
+        this.emit(
+          'message',
+          JSON.stringify({
+            type: 'bridge-auth-challenge',
+            challenge: 'a'.repeat(64),
+          }),
+        );
+      }
       for (const listener of [...(this.listeners.get(type) ?? [])]) {
         listener(...args);
       }
@@ -89,6 +109,7 @@ const harnessUtilsMocks = vi.hoisted(() => {
       abortSignal: AbortSignal;
       reason: 'open' | 'reconnect';
     }) => Promise<unknown>;
+    keepAliveMs: number | undefined;
     reconnect:
       | {
           readonly maxElapsedMs?: number;
@@ -102,6 +123,7 @@ const harnessUtilsMocks = vi.hoisted(() => {
   class MockSandboxChannel {
     sent: unknown[] = [];
     closed = false;
+    readonly keepAliveMs: number | undefined;
     readonly reconnect:
       | {
           readonly maxElapsedMs?: number;
@@ -117,11 +139,13 @@ const harnessUtilsMocks = vi.hoisted(() => {
     constructor({
       connect,
       reconnect,
+      keepAliveMs,
     }: {
       connect: (options: {
         abortSignal: AbortSignal;
         reason: 'open' | 'reconnect';
       }) => Promise<unknown>;
+      keepAliveMs?: number;
       reconnect?: {
         readonly maxElapsedMs?: number;
         readonly initialDelayMs?: number;
@@ -130,6 +154,7 @@ const harnessUtilsMocks = vi.hoisted(() => {
     }) {
       this.connect = connect;
       this.reconnect = reconnect;
+      this.keepAliveMs = keepAliveMs;
       channels.push(this);
     }
 
@@ -212,6 +237,8 @@ vi.mock('node:fs/promises', async importOriginal => {
       const [input] = args;
       const filePath = typeof input === 'string' ? input : String(input);
       if (filePath.endsWith('/bridge/index.mjs')) return '// mock bridge\n';
+      if (filePath.endsWith('/bridge/opencode-read-plugin.mjs'))
+        return '// mock read plugin\n';
       if (filePath.endsWith('/bridge/host-tool-mcp.mjs'))
         return '// mock host-tool-mcp\n';
       if (filePath.endsWith('/bridge/pnpm-lockfile.yaml'))
@@ -382,6 +409,7 @@ describe('createOpenCode adapter', () => {
     harnessUtilsMocks.connectOnOpen = true;
     harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const mintBridgeToken = vi.fn(
       (sandboxId: string) => `token-for-${sandboxId}`,
     );
@@ -436,22 +464,35 @@ describe('createOpenCode adapter', () => {
       mintBridgeToken,
       portEndpoint,
       reconnect,
+      keepAliveMs: 100,
     });
+    expect(
+      warn.mock.calls.filter(([message]) =>
+        String(message).includes('mintBridgeToken'),
+      ),
+    ).toEqual([
+      [
+        'The opencode harness ignores the deprecated `mintBridgeToken` setting. Sandbox bridge authentication now uses an adapter-generated key pair.',
+      ],
+    ]);
+    warn.mockRestore();
     const session = await harness.doStart({
       sessionId: 's1',
       sandboxSession,
       sessionWorkDir: '/workspace/project',
     });
 
-    expect(mintBridgeToken).toHaveBeenCalledExactlyOnceWith('test-sandbox');
-    expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toBe(
-      'token-for-test-sandbox',
+    expect(spawnEnvs.at(0)?.BRIDGE_AUTH_PUBLIC_KEY).toMatch(
+      /^[A-Za-z0-9_-]{43}$/,
     );
+    expect(spawnEnvs.at(0)).not.toHaveProperty('BRIDGE_CHANNEL_TOKEN');
 
     const resumeFrom = await session.doDetach();
-    expect(resumeFrom.data).toMatchObject({
-      bridge: { token: 'token-for-test-sandbox' },
-    });
+    const { privateKey } = (
+      resumeFrom.data as { bridge: { privateKey: string } }
+    ).bridge;
+    expect(privateKey).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(JSON.stringify(spawnEnvs)).not.toContain(privateKey);
 
     const attachedSession = await harness.doStart({
       sessionId: 's1',
@@ -459,20 +500,23 @@ describe('createOpenCode adapter', () => {
       sessionWorkDir: '/workspace/project',
       resumeFrom,
     });
-    expect(mintBridgeToken).toHaveBeenCalledTimes(1);
+    expect(mintBridgeToken).not.toHaveBeenCalled();
     expect(webSocketMocks.calls).toEqual([
       {
-        url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-test-sandbox',
+        url: 'wss://sandbox.example/bridge?existing=value',
         headers: portEndpoint.headers,
       },
       {
-        url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-test-sandbox',
+        url: 'wss://sandbox.example/bridge?existing=value',
         headers: portEndpoint.headers,
       },
     ]);
     expect(
       harnessUtilsMocks.channels.map(channel => channel.reconnect),
     ).toEqual([reconnect, reconnect]);
+    expect(
+      harnessUtilsMocks.channels.map(channel => channel.keepAliveMs),
+    ).toEqual([100, 100]);
     await attachedSession.doDetach();
   });
 
@@ -1207,7 +1251,10 @@ describe('createOpenCode adapter', () => {
     expect(spawns.at(-1)?.env.AI_SDK_HARNESS_CLIENT_APP).toBe(
       'ai-sdk-harness-opencode/0.0.0-test',
     );
-    expect(spawns.at(-1)?.env.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
+    expect(spawns.at(-1)?.env.BRIDGE_AUTH_PUBLIC_KEY).toMatch(
+      /^[A-Za-z0-9_-]{43}$/,
+    );
+    expect(spawns.at(-1)?.env).not.toHaveProperty('BRIDGE_CHANNEL_TOKEN');
     expect(spawns.at(-1)?.command).toContain(
       "node '/home/vercel-sandbox/.ai-sdk-harness/.harness-bootstrap/opencode/bridge.mjs'",
     );
@@ -1770,6 +1817,7 @@ describe('createOpenCode adapter', () => {
       expect(paths).toEqual([
         '.harness-bootstrap/opencode/bridge.mjs',
         '.harness-bootstrap/opencode/host-tool-mcp.mjs',
+        '.harness-bootstrap/opencode/opencode-read-plugin.mjs',
         '.harness-bootstrap/opencode/package.json',
         '.harness-bootstrap/opencode/pnpm-lock.yaml',
         '.harness-bootstrap/opencode/pnpm-workspace.yaml',

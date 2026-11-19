@@ -1,3 +1,4 @@
+import { getQuiverAILanguageModelEntry } from './quiverai-model-catalog';
 import {
   InvalidArgumentError,
   type LanguageModelV4,
@@ -68,13 +69,13 @@ export class QuiverAILanguageModel implements LanguageModelV4 {
   }
 
   async doGenerate(options: LanguageModelV4CallOptions) {
-    const prepared = prepareQuiverAICall(options);
+    const prepared = prepareQuiverAICall(this.modelId, options);
     const result = await this.model.doGenerate(prepared.options);
     return { ...result, warnings: [...prepared.warnings, ...result.warnings] };
   }
 
   async doStream(options: LanguageModelV4CallOptions) {
-    const prepared = prepareQuiverAICall(options);
+    const prepared = prepareQuiverAICall(this.modelId, options);
     const result = await this.model.doStream(prepared.options);
     if (prepared.warnings.length === 0) return result;
     return {
@@ -100,7 +101,10 @@ export class QuiverAILanguageModel implements LanguageModelV4 {
   }
 }
 
-function prepareQuiverAICall(options: LanguageModelV4CallOptions): {
+function prepareQuiverAICall(
+  modelId: string,
+  options: LanguageModelV4CallOptions,
+): {
   options: LanguageModelV4CallOptions;
   warnings: SharedV4Warning[];
 } {
@@ -109,7 +113,11 @@ function prepareQuiverAICall(options: LanguageModelV4CallOptions): {
   if (
     reasoningEffort != null &&
     (typeof reasoningEffort !== 'string' ||
-      !['low', 'medium', 'high', 'xhigh'].includes(reasoningEffort))
+      !getQuiverAILanguageModelEntry(
+        modelId,
+      ).capabilities.language.reasoning.efforts.some(
+        effort => effort === reasoningEffort,
+      ))
   ) {
     throw new InvalidArgumentError({
       argument: 'providerOptions',

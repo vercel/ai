@@ -4,18 +4,10 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { MistralModelIds } from './mistral-model-catalog';
 
 export type MistralTranscriptionModelId =
-  | 'voxtral-mini-2602'
-  | 'voxtral-mini-latest'
-  | 'voxtral-mini-transcribe-3-0'
-  | 'voxtral-mini-transcribe-3'
-  | 'voxtral-mini-transcribe-latest'
-  | 'voxtral-small-transcribe-3-0'
-  | 'voxtral-small-transcribe-3'
-  | 'voxtral-small-transcribe-latest'
-  | 'voxtral-mini-transcribe-realtime-3'
-  | 'voxtral-mini-transcribe-realtime-3-0'
+  | MistralModelIds['transcription']
   | (string & {});
 
 // https://docs.mistral.ai/api/endpoint/audio/transcriptions

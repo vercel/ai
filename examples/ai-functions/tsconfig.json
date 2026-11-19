@@ -84,6 +84,9 @@
       "path": "../../packages/fireworks"
     },
     {
+      "path": "../../packages/fish-audio"
+    },
+    {
       "path": "../../packages/gateway"
     },
     {
@@ -153,10 +156,16 @@
       "path": "../../packages/langchain"
     },
     {
+      "path": "../../packages/liquid"
+    },
+    {
       "path": "../../packages/luma"
     },
     {
       "path": "../../packages/mcp"
+    },
+    {
+      "path": "../../packages/minimax"
     },
     {
       "path": "../../packages/mistral"
@@ -207,6 +216,12 @@
       "path": "../../packages/sandbox-vercel"
     },
     {
+      "path": "../../packages/scaledown"
+    },
+    {
+      "path": "../../packages/tencent"
+    },
+    {
       "path": "../../packages/togetherai"
     },
     {
@@ -229,6 +244,12 @@
     },
     {
       "path": "../../packages/voyage"
+    },
+    {
+      "path": "../../packages/workflow"
+    },
+    {
+      "path": "../../packages/workflow-harness"
     },
     {
       "path": "../../packages/xai"

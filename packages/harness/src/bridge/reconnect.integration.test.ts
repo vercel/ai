@@ -9,12 +9,17 @@
 
 import { createConnection, createServer, type Socket } from 'node:net';
 import { afterEach, describe, expect, it } from 'vitest';
-import { WebSocket } from 'ws';
+import { WebSocket, type RawData } from 'ws';
 import { z } from 'zod/v4';
 import { runBridge, type BridgeHandle, type BridgeTurn } from './index';
 import { SandboxChannel } from '../utils/sandbox-channel';
+import {
+  createBridgeAuthKeyPair,
+  createBridgeAuthProof,
+  parseBridgeAuthPrivateKey,
+} from '../utils/bridge-auth';
 
-const TOKEN = 'integ-token';
+const BRIDGE_AUTH = createBridgeAuthKeyPair();
 const outboundSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('bridge-hello'),
@@ -44,7 +49,7 @@ async function startBridge(
     bridgeType: 'test',
     bridgeStateDir: `${process.env.TMPDIR ?? '/tmp'}/harness-reconnect-${Math.floor(performance.now())}`,
     port: 0,
-    token: TOKEN,
+    publicKey: BRIDGE_AUTH.publicKey,
     onStart,
     onExit: () => {},
   });
@@ -53,6 +58,117 @@ async function startBridge(
 }
 
 describe('SandboxChannel ↔ runBridge reconnect', () => {
+  it.each(['idle', 'blackhole'] as const)(
+    'handles a silent bridge behind an %s TCP proxy',
+    async mode => {
+      let release!: () => void;
+      const gate = new Promise<void>(resolve => (release = resolve));
+      const handle = await startBridge(async (_start, turn) => {
+        turn.emit({ type: 'text-delta', id: 'm', delta: 'started' });
+        await gate;
+        turn.emit({ type: 'finish' });
+      });
+      cleanups.push(() => release());
+
+      const sockets = new Set<Socket>();
+      const timers = new Set<ReturnType<typeof setTimeout>>();
+      let connections = 0;
+      let idleDrops = 0;
+      let blackhole = false;
+      let denyReconnect = false;
+      const proxy = createServer(host => {
+        connections++;
+        sockets.add(host);
+        host.on('error', () => {});
+        if (denyReconnect) {
+          host.destroy();
+          return;
+        }
+        const remote = createConnection(handle.port, '127.0.0.1');
+        sockets.add(remote);
+        remote.on('error', () => host.destroy());
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const activity = () => {
+          clearTimeout(timer);
+          if (timer) timers.delete(timer);
+          if (mode !== 'idle') return;
+          timer = setTimeout(() => {
+            idleDrops++;
+            denyReconnect = true;
+            host.destroy();
+            remote.destroy();
+          }, 300);
+          timers.add(timer);
+        };
+        host.on('data', data => {
+          if (blackhole) return;
+          activity();
+          remote.write(data);
+        });
+        remote.on('data', data => {
+          if (blackhole) return;
+          activity();
+          host.write(data);
+        });
+        host.on('close', () => {
+          clearTimeout(timer);
+          if (timer) timers.delete(timer);
+          remote.destroy();
+        });
+        remote.on('close', () => host.destroy());
+      });
+      cleanups.push(async () => {
+        for (const timer of timers) clearTimeout(timer);
+        for (const socket of sockets) socket.destroy();
+        await new Promise<void>(resolve => proxy.close(() => resolve()));
+      });
+      await new Promise<void>(resolve => proxy.listen(0, '127.0.0.1', resolve));
+      const address = proxy.address();
+      if (!address || typeof address === 'string')
+        throw new Error('No TCP port');
+      const debug: string[] = [];
+      const channel = new SandboxChannel<Outbound, Inbound>({
+        connect: () =>
+          openAuthenticatedBridgeWebSocket({
+            url: `ws://127.0.0.1:${address.port}/`,
+            privateKey: BRIDGE_AUTH.privateKey,
+          }),
+        outboundSchema,
+        keepAliveMs: 50,
+        reconnect: { maxElapsedMs: 200, initialDelayMs: 10, maxDelayMs: 20 },
+        onDebug: event => debug.push(event.event),
+      });
+      cleanups.push(() => channel.close());
+      let started = false;
+      let finished = false;
+      let closeReason: string | undefined;
+      channel.on('text-delta', () => (started = true));
+      channel.on('finish', () => (finished = true));
+      channel.onClose((_code, reason) => (closeReason = reason));
+      await channel.open();
+      channel.send({ type: 'start' });
+      await waitUntil(() => started);
+
+      if (mode === 'blackhole') {
+        blackhole = true;
+        denyReconnect = true;
+        await waitUntil(() => channel.isClosed());
+        expect(closeReason).toBe('reconnect failed');
+        expect(debug).toContain('reconnect-attempt');
+        expect(debug.at(-1)).toBe('reconnect-failed');
+        expect(connections).toBeGreaterThan(1);
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 750));
+        release();
+        await waitUntil(() => finished);
+        expect(connections).toBe(1);
+        expect(idleDrops).toBe(0);
+        expect(debug).toEqual([]);
+        expect(closeReason).toBeUndefined();
+      }
+    },
+  );
+
   it('transparently reconnects mid-turn and delivers every event in order, once', async () => {
     let release!: () => void;
     const gate = new Promise<void>(r => (release = r));
@@ -67,15 +183,16 @@ describe('SandboxChannel ↔ runBridge reconnect', () => {
       turn.emit({ type: 'finish' }); // seq 4
     });
 
-    const url = `ws://127.0.0.1:${handle.port}/?agent_bridge_token=${TOKEN}`;
+    const url = `ws://127.0.0.1:${handle.port}/`;
     const sockets: WebSocket[] = [];
-    const connect = () =>
-      new Promise<WebSocket>((resolve, reject) => {
-        const ws = new WebSocket(url);
-        sockets.push(ws);
-        ws.on('open', () => resolve(ws));
-        ws.on('error', reject);
+    const connect = async () => {
+      const ws = await openAuthenticatedBridgeWebSocket({
+        url,
+        privateKey: BRIDGE_AUTH.privateKey,
       });
+      sockets.push(ws);
+      return ws;
+    };
 
     const debug: string[] = [];
     const channel = new SandboxChannel<Outbound, Inbound>({
@@ -186,15 +303,14 @@ describe('SandboxChannel ↔ runBridge reconnect', () => {
       | { type: 'finish' },
       Inbound | { type: 'tool-result'; toolCallId: string; output: number }
     >({
-      connect: () =>
-        new Promise<WebSocket>((resolve, reject) => {
-          const socket = new WebSocket(
-            `ws://127.0.0.1:${port}/?agent_bridge_token=${TOKEN}`,
-          );
-          sockets.push(socket);
-          socket.once('open', () => resolve(socket));
-          socket.once('error', reject);
-        }),
+      connect: async () => {
+        const socket = await openAuthenticatedBridgeWebSocket({
+          url: `ws://127.0.0.1:${port}/`,
+          privateKey: BRIDGE_AUTH.privateKey,
+        });
+        sockets.push(socket);
+        return socket;
+      },
       outboundSchema: z.discriminatedUnion('type', [
         z.object({ type: z.literal('bridge-hello') }),
         z.object({ type: z.literal('tool-call'), toolCallId: z.string() }),
@@ -303,12 +419,11 @@ describe('SandboxChannel ↔ runBridge reconnect', () => {
       turn.emit({ type: 'finish' }); // seq 5
     });
 
-    const url = `ws://127.0.0.1:${handle.port}/?agent_bridge_token=${TOKEN}`;
+    const url = `ws://127.0.0.1:${handle.port}/`;
     const connect = () =>
-      new Promise<WebSocket>((resolve, reject) => {
-        const ws = new WebSocket(url);
-        ws.on('open', () => resolve(ws));
-        ws.on('error', reject);
+      openAuthenticatedBridgeWebSocket({
+        url,
+        privateKey: BRIDGE_AUTH.privateKey,
       });
 
     // ── Slice 1: open, start, receive the first two deltas, then suspend. ──
@@ -364,4 +479,44 @@ async function waitUntil(pred: () => boolean, timeoutMs = 2000): Promise<void> {
       throw new Error('waitUntil timed out');
     await new Promise(r => setTimeout(r, 5));
   }
+}
+
+/**
+ * Opens a raw bridge WebSocket and answers its authentication challenge.
+ * Resolves right after the proof is sent, so the caller still receives the
+ * `bridge-hello` frame that the bridge sends once the proof is verified.
+ */
+function openAuthenticatedBridgeWebSocket({
+  url,
+  privateKey,
+}: {
+  url: string;
+  privateKey: string;
+}): Promise<WebSocket> {
+  const key = parseBridgeAuthPrivateKey({ privateKey });
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(url);
+    ws.once('error', reject);
+    ws.once('message', (raw: RawData) => {
+      try {
+        ws.send(
+          createBridgeAuthProof({
+            privateKey: key,
+            message: rawDataToString(raw),
+          }),
+        );
+        ws.off('error', reject);
+        resolve(ws);
+      } catch (error) {
+        ws.terminate();
+        reject(error);
+      }
+    });
+  });
+}
+
+function rawDataToString(raw: RawData): string {
+  if (Array.isArray(raw)) return Buffer.concat(raw).toString('utf8');
+  if (Buffer.isBuffer(raw)) return raw.toString('utf8');
+  return Buffer.from(raw).toString('utf8');
 }

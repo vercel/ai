@@ -155,6 +155,8 @@ import * as z4 from 'zod/v4';
 // Use z4.core.$ZodType for type references
 ```
 
+Installed versions are a separate matter: every first-party `package.json` (packages, harness bridges, examples, tools) must declare `zod` in `dependencies` or `devDependencies` at exactly the version used in `packages/ai/package.json` (Zod 4, optionally with `^`), never Zod 3. Only published `peerDependencies` keep the Zod 3 and Zod 4 compatibility range. See `.agents/guidelines/zod-dependency-version.md`. `pnpm run-verifiers` enforces this.
+
 ### JSON parsing
 
 Never use `JSON.parse` directly in production code to prevent security risks.

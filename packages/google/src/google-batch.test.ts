@@ -175,6 +175,97 @@ describe('GoogleBatch', () => {
     expect(server.calls).toHaveLength(0);
   });
 
+  it('rejects response schemas because the batch endpoint does not reliably enforce them', async () => {
+    const batch = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
+
+    await expect(
+      batch.doStartBatch({
+        requests: [
+          request('schema', 'Hello', {
+            responseFormat: {
+              type: 'json',
+              schema: { type: 'object', properties: {} },
+            },
+          }),
+        ],
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_UnsupportedFunctionalityError',
+      functionality: 'structured output schemas in Google batches',
+      message: expect.stringContaining(
+        'providerOptions.google.structuredOutputs',
+      ),
+    });
+
+    expect(server.calls).toHaveLength(0);
+  });
+
+  it('allows response schemas when structuredOutputs is disabled and does not send the schema', async () => {
+    server.urls[urls.create].response = {
+      type: 'json-value',
+      body: operation(),
+    };
+    const batch = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
+
+    await batch.doStartBatch({
+      requests: [
+        request('schema', 'Hello', {
+          responseFormat: {
+            type: 'json',
+            schema: { type: 'object', properties: {} },
+          },
+          providerOptions: { google: { structuredOutputs: false } },
+        }),
+      ],
+    });
+
+    const body = (await server.calls[0].requestBodyJson) as {
+      batch: {
+        inputConfig: {
+          requests: {
+            requests: Array<{
+              request: { generationConfig: Record<string, unknown> };
+            }>;
+          };
+        };
+      };
+    };
+    const { generationConfig } =
+      body.batch.inputConfig.requests.requests[0].request;
+    expect(generationConfig.responseMimeType).toBe('application/json');
+    expect(generationConfig).not.toHaveProperty('responseJsonSchema');
+  });
+
+  it('allows JSON mode without a schema', async () => {
+    server.urls[urls.create].response = {
+      type: 'json-value',
+      body: operation(),
+    };
+    const batch = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
+
+    await batch.doStartBatch({
+      requests: [
+        request('json', 'Hello', { responseFormat: { type: 'json' } }),
+      ],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      batch: {
+        inputConfig: {
+          requests: {
+            requests: [
+              {
+                request: {
+                  generationConfig: { responseMimeType: 'application/json' },
+                },
+              },
+            ],
+          },
+        },
+      },
+    });
+  });
+
   it('rejects mixed models before creating a batch', async () => {
     const batch = createGoogle({ apiKey: 'test-api-key' }).experimental_batch();
 
