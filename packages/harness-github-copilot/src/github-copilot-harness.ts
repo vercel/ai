@@ -74,6 +74,11 @@ export type GitHubCopilotHarnessSettings = {
    * milliseconds up to 2 seconds.
    */
   readonly reconnect?: SandboxChannelReconnectOptions;
+  /**
+   * WebSocket ping interval in milliseconds. Defaults to 20_000. Set to 0 to
+   * disable. Two unanswered pings terminate the socket and trigger reconnect.
+   */
+  readonly keepAliveMs?: number;
   // TODO: Remove in the next major version.
   /**
    * @deprecated Sandbox bridge authentication now uses adapter-generated
@@ -530,6 +535,7 @@ export function createGitHubCopilot(
     startupTimeoutMs: settings.startupTimeoutMs,
     hostDisconnectTimeoutMs: settings.hostDisconnectTimeoutMs,
     reconnect: settings.reconnect,
+    keepAliveMs: settings.keepAliveMs,
     mintBridgeToken: settings.mintBridgeToken,
   });
 

@@ -5909,6 +5909,21 @@ describe('doGenerate', () => {
           expectedThinkingLevel: 'low',
         },
         {
+          modelId: 'gemini-4-neon',
+          reasoning: 'xhigh' as const,
+          expectedThinkingLevel: 'xhigh',
+        },
+        {
+          modelId: 'gemini-4-neon',
+          reasoning: 'max' as const,
+          expectedThinkingLevel: 'xhigh',
+        },
+        {
+          modelId: 'gemini-4-neon',
+          reasoning: 'minimal' as const,
+          expectedThinkingLevel: 'low',
+        },
+        {
           modelId: 'gemini-4-argon',
           reasoning: 'xhigh' as const,
           expectedThinkingLevel: 'high',

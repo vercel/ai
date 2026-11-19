@@ -12,6 +12,7 @@ export { convertJsonResponseToolStream } from './convert-json-response-tool-stre
 export { convertToFormData } from './convert-to-form-data';
 export { createLanguageModelResponseMetadata } from './create-language-model-response-metadata';
 export { createNullLanguageModelUsage } from './create-null-language-model-usage';
+export { createTextOutputCapture } from './create-text-output-capture';
 export {
   createToolNameMapping,
   type ToolNameMapping,

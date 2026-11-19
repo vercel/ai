@@ -121,6 +121,7 @@ const languageModelDefinitions = {
   'gemini-4-argon': standard,
   'gemini-4-carbon': standard,
   'gemini-4-hydrogen': standard,
+  'gemini-4-neon': standard,
   'gemini-3.8-flash': standard,
   'gemini-3.7-flash': standard,
   'gemini-3.6-flash': standard,
@@ -198,8 +199,10 @@ function createGoogleLanguageModelEntry(
     runtime.usesGemini3Features && !modelId.includes('gemini-3-pro-image')
       ? 'level'
       : 'budget';
-  const isHydrogen = /(^|[/.])gemini-4-hydrogen(?:-|$)/i.test(modelId);
-  const minLevel = isHydrogen
+  // Hydrogen and Neon add `xhigh` and have no `minimal` thinking level.
+  const supportsXhighThinking =
+    /(^|[/.])gemini-4-(?:hydrogen|neon)(?:-|$)/i.test(modelId);
+  const minLevel = supportsXhighThinking
     ? 'low'
     : getMinimumThinkingLevelForGemini3Model(modelId);
   const language: GoogleLanguageCapabilities = {
@@ -224,7 +227,7 @@ function createGoogleLanguageModelEntry(
               'low',
               'medium',
               'high',
-              ...(isHydrogen ? ['xhigh'] : []),
+              ...(supportsXhighThinking ? ['xhigh'] : []),
             ]
           : undefined,
       minBudget: id.includes('2.5-pro') ? 128 : 0,
