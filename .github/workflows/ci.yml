@@ -78,4 +78,4 @@ jobs:
           team: ${{ vars.TURBO_TEAM }}
 
       - name: Run Windows tests
-        run: pnpm exec turbo run test:windows
+        run: pnpm exec turbo run test:windows --force
