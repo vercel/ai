@@ -4,6 +4,7 @@ import {
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { KEEPALIVE_INTERVAL_MS } from './deepgram-flux-streaming-transcription';
 import { createDeepgram } from './deepgram-provider';
 
 class MockWebSocket {
@@ -186,23 +187,221 @@ describe('Deepgram Flux streaming transcription', () => {
     });
   });
 
-  it('sends audio, then CloseStream, and never a KeepAlive', async () => {
+  it('keeps a paused connection alive with single samples of silence that do not count as audio', async () => {
     vi.useFakeTimers();
+    let audioController!: ReadableStreamDefaultController<Uint8Array>;
     const result = await model().doStream!({
       audio: new ReadableStream<Uint8Array>({
         start(controller) {
+          audioController = controller;
+          controller.enqueue(new Uint8Array(3200));
+        },
+      }),
+      inputAudioFormat,
+    });
+    const parts = convertReadableStreamToArray(result.stream);
+    const socket = MockWebSocket.instances[0];
+    socket.open();
+
+    // The audio producer pauses (e.g. a muted microphone) for longer than
+    // the server's 60 s inactivity timeout.
+    await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS * 2);
+    expect(socket.send.mock.calls.map(([value]) => value)).toEqual([
+      new Uint8Array(3200),
+      new Uint8Array([0, 0]),
+      new Uint8Array([0, 0]),
+    ]);
+
+    audioController.close();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(socket.send.mock.calls.at(-1)).toEqual([
+      JSON.stringify({ type: 'CloseStream' }),
+    ]);
+
+    // No keepalive follows the end of the input.
+    await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS * 2);
+    expect(socket.send).toHaveBeenCalledTimes(4);
+    socket.serverClose(1005);
+    expect((await parts).at(-1)).toMatchObject({
+      type: 'finish',
+      durationInSeconds: 0.1,
+    });
+  });
+
+  it('keeps the connection alive before the first audio and stops on cancellation', async () => {
+    vi.useFakeTimers();
+    const result = await model().doStream!({
+      audio: new ReadableStream<Uint8Array>(),
+      inputAudioFormat,
+    });
+    const socket = MockWebSocket.instances[0];
+    socket.open();
+    await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS);
+    expect(socket.send.mock.calls).toEqual([[new Uint8Array([0, 0])]]);
+    await result.stream.cancel();
+    await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS * 2);
+    expect(socket.send).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['audio/pcmu', [0xff]],
+    ['audio/pcma', [0xd5]],
+  ])('uses the silence value of %s for keepalives', async (type, silence) => {
+    vi.useFakeTimers();
+    const result = await model().doStream!({
+      audio: new ReadableStream<Uint8Array>(),
+      inputAudioFormat: { type, rate: 8000 },
+    });
+    const socket = MockWebSocket.instances[0];
+    socket.open();
+    await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS);
+    expect(socket.send.mock.calls).toEqual([[new Uint8Array(silence)]]);
+    await result.stream.cancel();
+  });
+
+  it('maps eager end-of-turn and resumed-turn events to partial transcripts', async () => {
+    const result = await model().doStream!({
+      audio: audio(),
+      inputAudioFormat,
+      providerOptions: {
+        deepgram: { streaming: { eagerEotThreshold: 0.5 } },
+      },
+    });
+    const parts = convertReadableStreamToArray(result.stream);
+    const socket = MockWebSocket.instances[0];
+    expect(new URL(socket.url).searchParams.get('eager_eot_threshold')).toBe(
+      '0.5',
+    );
+    socket.open();
+    await flush();
+    socket.message(turnInfo('StartOfTurn', 'I would'));
+    socket.message(
+      turnInfo('EagerEndOfTurn', 'I would like', {
+        end_of_turn_confidence: 0.6,
+      }),
+    );
+    socket.message(turnInfo('TurnResumed', 'I would like a'));
+    socket.message(
+      turnInfo('EndOfTurn', 'I would like a coffee.', {
+        end_of_turn_confidence: 0.9,
+        trigger: 'model',
+      }),
+    );
+    socket.serverClose(1005);
+    const values = await parts;
+
+    expect(
+      values.flatMap(part =>
+        part.type === 'transcript-partial' || part.type === 'transcript-final'
+          ? [[part.type, part.providerMetadata?.deepgram?.event, part.text]]
+          : [],
+      ),
+    ).toEqual([
+      ['transcript-partial', 'StartOfTurn', 'I would'],
+      ['transcript-partial', 'EagerEndOfTurn', 'I would like'],
+      ['transcript-partial', 'TurnResumed', 'I would like a'],
+      ['transcript-final', 'EndOfTurn', 'I would like a coffee.'],
+    ]);
+    expect(values).toContainEqual(
+      expect.objectContaining({
+        type: 'transcript-partial',
+        providerMetadata: {
+          deepgram: {
+            event: 'EagerEndOfTurn',
+            turnIndex: 0,
+            endOfTurnConfidence: 0.6,
+          },
+        },
+      }),
+    );
+    // The eager end of turn is not a final transcript: the turn resumed.
+    expect(values.at(-1)).toMatchObject({
+      type: 'finish',
+      text: 'I would like a coffee.',
+    });
+  });
+
+  it('warns when disabling something Flux always does, but not for features it lacks', async () => {
+    const result = await model().doStream!({
+      audio: audio(),
+      inputAudioFormat,
+      providerOptions: {
+        deepgram: {
+          punctuate: false,
+          fillerWords: false,
+          diarize: false,
+          smartFormat: false,
+        },
+      },
+    });
+    const parts = convertReadableStreamToArray(result.stream);
+    const socket = MockWebSocket.instances[0];
+    socket.open();
+    await flush();
+    socket.serverClose(1005);
+    expect((await parts)[0]).toEqual({
+      type: 'stream-start',
+      warnings: [
+        {
+          type: 'unsupported',
+          feature: 'providerOptions.deepgram.punctuate',
+          details:
+            'Deepgram Flux always applies this and it cannot be turned off.',
+        },
+        {
+          type: 'unsupported',
+          feature: 'providerOptions.deepgram.fillerWords',
+          details:
+            'Deepgram Flux always applies this and it cannot be turned off.',
+        },
+      ],
+    });
+  });
+
+  it('aborts an active connection, cancels a pending audio read, and stops keepalives', async () => {
+    vi.useFakeTimers();
+    const abortController = new AbortController();
+    const cancel = vi.fn();
+    const result = await model().doStream!({
+      audio: new ReadableStream({ cancel }),
+      inputAudioFormat,
+      abortSignal: abortController.signal,
+    });
+    const parts = convertReadableStreamToArray(result.stream);
+    const failure = expect(parts).rejects.toThrow('stop');
+    const socket = MockWebSocket.instances[0];
+    socket.open();
+    abortController.abort(new Error('stop'));
+    await failure;
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(socket.close).toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS * 2);
+    expect(socket.send).not.toHaveBeenCalled();
+  });
+
+  it('propagates errors from the audio producer and closes the socket', async () => {
+    vi.useFakeTimers();
+    let audioController!: ReadableStreamDefaultController<Uint8Array>;
+    const result = await model().doStream!({
+      audio: new ReadableStream<Uint8Array>({
+        start(controller) {
+          audioController = controller;
           controller.enqueue(new Uint8Array([1, 2]));
         },
       }),
       inputAudioFormat,
     });
+    const parts = convertReadableStreamToArray(result.stream);
+    const rejected = expect(parts).rejects.toThrow('microphone disconnected');
     const socket = MockWebSocket.instances[0];
     socket.open();
-    await vi.advanceTimersByTimeAsync(30000);
-    expect(socket.send.mock.calls.map(([value]) => value)).toEqual([
-      new Uint8Array([1, 2]),
-    ]);
-    await result.stream.cancel();
+    await vi.advanceTimersByTimeAsync(0);
+    audioController.error(new Error('microphone disconnected'));
+    await rejected;
+    expect(socket.close).toHaveBeenCalled();
+    // Neither CloseStream nor a keepalive follows a failed input.
+    await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS * 2);
+    expect(socket.send.mock.calls).toEqual([[new Uint8Array([1, 2])]]);
   });
 
   it('maps turn events to partial and final transcripts with turn metadata', async () => {

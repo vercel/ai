@@ -6,6 +6,7 @@ class MockWebSocket {
   static instances: MockWebSocket[] = [];
 
   readyState = 0;
+  binaryType = 'blob';
   send = vi.fn();
   close = vi.fn();
   onopen: ((event: unknown) => void) | null = null;
@@ -124,6 +125,17 @@ describe('connectToWebSocket', () => {
     ws.onmessage?.({ data: new TextEncoder().encode('frame-2') });
     await flush();
     expect(onMessageText).toHaveBeenCalledWith('frame-2');
+  });
+
+  it('should request ArrayBuffer frames only when onMessageBinary is set', () => {
+    MockWebSocket.instances = [];
+    connectToWebSocket({ ...baseOptions });
+    connectToWebSocket({ ...baseOptions, onMessageBinary: () => {} });
+
+    expect(MockWebSocket.instances.map(ws => ws.binaryType)).toEqual([
+      'blob',
+      'arraybuffer',
+    ]);
   });
 
   it('should route binary frames to onMessageBinary in order with text frames', async () => {

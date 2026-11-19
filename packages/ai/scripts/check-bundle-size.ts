@@ -13,7 +13,8 @@ import { join } from 'path';
 // The experimental extract API adds ~5 KiB.
 // The bundled Gateway extraction client adds ~4 KiB.
 // Steering interrupts add ~3 KiB.
-const LIMIT = 661 * 1024;
+// Binary WebSocket frame handling in connectToWebSocket adds ~0.4 KiB.
+const LIMIT = 662 * 1024;
 
 interface BundleResult {
   size: number;

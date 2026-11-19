@@ -36,6 +36,16 @@ export function isDeepgramFluxTranscriptionModelId(modelId: string): boolean {
     .flux;
 }
 
+/**
+ * Milliseconds without audio after which a keepalive is sent, ahead of the
+ * server's 60 s inactivity timeout.
+ */
+export const KEEPALIVE_INTERVAL_MS = 30_000;
+
+// Flux always punctuates and transcribes filler words, so turning these off
+// has no effect.
+const ALWAYS_ON_OPTIONS = new Set(['punctuate', 'fillerWords']);
+
 type FluxTurn = {
   text: string;
   startSecond: number;
@@ -52,10 +62,14 @@ export async function streamDeepgramFluxTranscription(
   options: StreamOptions,
 ): Promise<Awaited<ReturnType<NonNullable<TranscriptionModelV4['doStream']>>>> {
   // Raw single-channel formats, so the audio duration follows from the bytes.
+  // `silence` is one sample of silence in the encoding.
   const encodings = new Map([
-    ['audio/pcm', { encoding: 'linear16', bytesPerSample: 2 }],
-    ['audio/pcmu', { encoding: 'mulaw', bytesPerSample: 1 }],
-    ['audio/pcma', { encoding: 'alaw', bytesPerSample: 1 }],
+    [
+      'audio/pcm',
+      { encoding: 'linear16', bytesPerSample: 2, silence: [0x00, 0x00] },
+    ],
+    ['audio/pcmu', { encoding: 'mulaw', bytesPerSample: 1, silence: [0xff] }],
+    ['audio/pcma', { encoding: 'alaw', bytesPerSample: 1, silence: [0xd5] }],
   ]);
   const inputFormat = encodings.get(options.inputAudioFormat.type);
   const rate = options.inputAudioFormat.rate;
@@ -88,12 +102,15 @@ export async function streamDeepgramFluxTranscription(
     if (value == null || key === 'streaming' || key === 'language') continue;
     const parameter = mappings[key as keyof typeof mappings];
     if (parameter == null) {
-      if (value === false) continue;
+      // Disabling a feature that Flux does not have needs no warning.
+      if (value === false && !ALWAYS_ON_OPTIONS.has(key)) continue;
       warnings.push({
         type: 'unsupported',
         feature: `providerOptions.deepgram.${key}`,
         details:
-          'This option is not supported for Deepgram Flux streaming transcription.',
+          value === false
+            ? 'Deepgram Flux always applies this and it cannot be turned off.'
+            : 'This option is not supported for Deepgram Flux streaming transcription.',
       });
       continue;
     }
@@ -162,12 +179,14 @@ export async function streamDeepgramFluxTranscription(
         let reader:
           | ReadableStreamDefaultReader<Uint8Array | string>
           | undefined;
+        let keepaliveTimer: ReturnType<typeof setTimeout> | undefined;
         let inputEnded = false;
         let sentBytes = 0;
         let language = modelId.startsWith('flux-general-en') ? 'en' : undefined;
         const turns = new Map<number, FluxTurn>();
 
         cleanup = () => {
+          clearTimeout(keepaliveTimer);
           void (
             reader != null ? reader.cancel() : options.audio.cancel()
           ).catch(() => {});
@@ -214,6 +233,24 @@ export async function streamDeepgramFluxTranscription(
           controller.close();
           cleanup();
         };
+        // Flux closes a connection that receives no audio for 60 s. Only
+        // audio or a WebSocket ping resets that timer (`Configure` does not),
+        // and native WebSockets cannot send pings, so one sample of silence
+        // keeps the connection open while the audio producer is paused, e.g.
+        // a muted microphone. It is not counted as sent audio.
+        const scheduleKeepalive = (socket: WebSocketLike) => {
+          clearTimeout(keepaliveTimer);
+          if (finished || inputEnded) return;
+          keepaliveTimer = setTimeout(() => {
+            if (finished || inputEnded) return;
+            try {
+              socket.send(new Uint8Array(inputFormat.silence));
+              scheduleKeepalive(socket);
+            } catch (error) {
+              fail(error);
+            }
+          }, KEEPALIVE_INTERVAL_MS);
+        };
         const sendAudio = async (socket: WebSocketLike) => {
           reader = options.audio.getReader();
           try {
@@ -228,6 +265,7 @@ export async function streamDeepgramFluxTranscription(
               if (bytes.byteLength === 0) continue;
               socket.send(bytes);
               sentBytes += bytes.byteLength;
+              scheduleKeepalive(socket);
               await waitForWebSocketBufferDrain(socket, {
                 abortSignal: options.abortSignal,
               });
@@ -238,6 +276,7 @@ export async function streamDeepgramFluxTranscription(
           }
           if (!finished) {
             inputEnded = true;
+            clearTimeout(keepaliveTimer);
             socket.send(JSON.stringify({ type: 'CloseStream' }));
           }
         };
@@ -252,8 +291,7 @@ export async function streamDeepgramFluxTranscription(
           onProcessingError: fail,
           onOpen(socket) {
             controller.enqueue({ type: 'stream-start', warnings });
-            // Unlike /v1/listen, Flux has no KeepAlive message and keeps an
-            // idle connection open.
+            scheduleKeepalive(socket);
             void sendAudio(socket).catch(fail);
           },
           async onMessageText(text) {

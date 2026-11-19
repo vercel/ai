@@ -98,6 +98,12 @@ export function connectToWebSocket({
     abortSignal.addEventListener('abort', abortListener, { once: true });
   }
 
+  if (onMessageBinary != null) {
+    // Browsers and Node.js default to Blob frames, which have to be read
+    // back asynchronously.
+    socket.binaryType = 'arraybuffer';
+  }
+
   const openedSocket = socket;
   socket.onopen = () => {
     try {

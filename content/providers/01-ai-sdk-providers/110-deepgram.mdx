@@ -287,8 +287,9 @@ parts are forwarded as they arrive and can split anywhere; the end of the text
 ends the turn. `speed`, `expressivity`, `mipOptOut`, and `tag` apply, while
 the batch-only `encoding`, `container`, `sampleRate`, and `bitRate` options
 are ignored with a warning. A stream speaks a single voice. `result.usage`
-reports Deepgram's billable character count, and the connection is kept alive
-while the text input is idle. Aura models do not support streaming speech.
+reports Deepgram's billable character count. The connection is kept alive
+while the text input is idle and while the last audio is synthesized after the
+end of the text. Aura models do not support streaming speech.
 
 ### Model Capabilities
 
@@ -592,6 +593,10 @@ the detected `languages` (Flux Multilingual). Closing the audio input does
 not end the active turn, so its latest transcript is emitted as a final part
 before the result finishes. Deepgram recommends sending audio in 80ms chunks.
 
+Deepgram closes a Flux connection that receives no audio for 60 seconds. While
+the audio input is paused, for example by a muted microphone, the provider
+sends a single sample of silence every 30 seconds to keep the connection open.
+
 Flux supports the `keyterm` and `redact` (`numbers`, `aggressive_numbers`)
 options and these `providerOptions.deepgram.streaming` options:
 
@@ -607,7 +612,9 @@ options and these `providerOptions.deepgram.streaming` options:
   automatically. A single `language` option is used as one hint.
 
 The Nova streaming options above are ignored with a warning for Flux models,
-and the Flux options for Nova models. Flux does not report an audio duration
+and the Flux options for Nova models. Flux always punctuates and transcribes
+filler words, so `punctuate: false` and `fillerWords: false` also produce a
+warning. Flux does not report an audio duration
 or usage, so `result.durationInSeconds` is the duration of the audio that was
 sent. Flux models cannot be used with `transcribe`.
 

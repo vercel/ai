@@ -71,6 +71,13 @@ const connected = {
   model_version: '2026-08-12.0',
   model_uuids: ['model-uuid'],
 };
+const speechMetadata = {
+  type: 'SpeechMetadata',
+  speech_id: 'dg_sp_1',
+  audio_duration_ms: 1200,
+  input_character_count: 12,
+  billable_character_count: 11,
+};
 const sessionMetadata = {
   type: 'SessionMetadata',
   total_audio_duration_ms: 1200,
@@ -150,7 +157,7 @@ describe('Deepgram speech streaming', () => {
     await result.stream.cancel();
   });
 
-  it('forwards text parts as Speak messages, then flushes and closes', async () => {
+  it('forwards text parts as Speak messages, flushes, and closes once the turn is complete', async () => {
     const result = await model().doStream({
       text: text('Hello ', '', 'there.'),
       voice: 'haley',
@@ -159,14 +166,99 @@ describe('Deepgram speech streaming', () => {
     const socket = MockWebSocket.instances[0];
     socket.open();
     await flush();
+    // `Close` waits for the turn to finish synthesizing.
     expect(socket.sentMessages()).toEqual([
       { type: 'Speak', text: 'Hello ' },
       { type: 'Speak', text: 'there.' },
       { type: 'Flush' },
-      { type: 'Close' },
     ]);
+    socket.message(speechMetadata);
+    await flush();
+    expect(socket.sentMessages().at(-1)).toEqual({ type: 'Close' });
+    expect(socket.send).toHaveBeenCalledTimes(4);
     socket.message(sessionMetadata);
     await parts;
+  });
+
+  it('keeps the session alive while the final turn is synthesized after the end of the input', async () => {
+    vi.useFakeTimers();
+    const result = await model().doStream({
+      text: text('A long final part.'),
+      voice: 'haley',
+    });
+    const parts = convertReadableStreamToArray(result.stream);
+    const socket = MockWebSocket.instances[0];
+    socket.open();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(socket.sentMessages()).toEqual([
+      { type: 'Speak', text: 'A long final part.' },
+      { type: 'Flush' },
+    ]);
+
+    // Synthesizing the rest of the turn takes longer than the server's 60 s
+    // inactivity timeout.
+    socket.audio([1, 2]);
+    await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS * 2);
+    expect(socket.sentMessages().slice(2)).toEqual([
+      { type: 'Configure' },
+      { type: 'Configure' },
+    ]);
+
+    socket.message(speechMetadata);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(socket.sentMessages().at(-1)).toEqual({ type: 'Close' });
+
+    // No keepalive follows `Close`.
+    await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS * 2);
+    expect(socket.send).toHaveBeenCalledTimes(5);
+    socket.message(sessionMetadata);
+    expect((await parts).at(-1)).toMatchObject({ type: 'finish' });
+  });
+
+  it('aborts an active connection, cancels a pending text read, and stops keepalives', async () => {
+    vi.useFakeTimers();
+    const abortController = new AbortController();
+    const cancel = vi.fn();
+    const result = await model().doStream({
+      text: new ReadableStream<SpeechModelV4StreamTextPart>({ cancel }),
+      voice: 'haley',
+      abortSignal: abortController.signal,
+    });
+    const parts = convertReadableStreamToArray(result.stream);
+    const failure = expect(parts).rejects.toThrow('stop');
+    const socket = MockWebSocket.instances[0];
+    socket.open();
+    abortController.abort(new Error('stop'));
+    await failure;
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(socket.close).toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS * 2);
+    expect(socket.send).not.toHaveBeenCalled();
+  });
+
+  it('propagates an error from the text producer mid-stream without flushing', async () => {
+    vi.useFakeTimers();
+    let textController!: ReadableStreamDefaultController<SpeechModelV4StreamTextPart>;
+    const result = await model().doStream({
+      text: new ReadableStream<SpeechModelV4StreamTextPart>({
+        start(controller) {
+          textController = controller;
+          controller.enqueue({ type: 'text', text: 'Hello' });
+        },
+      }),
+      voice: 'haley',
+    });
+    const parts = convertReadableStreamToArray(result.stream);
+    const rejected = expect(parts).rejects.toThrow('model failed');
+    const socket = MockWebSocket.instances[0];
+    socket.open();
+    await vi.advanceTimersByTimeAsync(0);
+    textController.error(new Error('model failed'));
+    await rejected;
+    expect(socket.close).toHaveBeenCalled();
+    // Neither Flush, Close, nor a keepalive follows a failed input.
+    await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS * 2);
+    expect(socket.sentMessages()).toEqual([{ type: 'Speak', text: 'Hello' }]);
   });
 
   it('emits audio frames, response metadata, usage, and provider metadata', async () => {
@@ -420,10 +512,12 @@ describe('Deepgram speech streaming', () => {
     expect(socket.sentMessages().slice(2)).toEqual([
       { type: 'Speak', text: 'Hello' },
       { type: 'Flush' },
-      { type: 'Close' },
     ]);
+    socket.message(speechMetadata);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(socket.sentMessages().at(-1)).toEqual({ type: 'Close' });
 
-    // No keepalive follows the end of the input.
+    // No keepalive follows `Close`.
     await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS * 2);
     expect(socket.send).toHaveBeenCalledTimes(5);
     socket.message(sessionMetadata);
