@@ -117,18 +117,15 @@ describe('amazon-bedrock-anthropic-provider', () => {
     'anthropic.claude-opus-4-8',
     'us.anthropic.claude-opus-4-8',
     'eu.anthropic.claude-opus-4-8',
-    'anthropic.claude-opus-5',
-    'us.anthropic.claude-opus-5',
-    'eu.anthropic.claude-opus-5',
     'anthropic.claude-fable-5',
     'us.anthropic.claude-fable-5',
     'eu.anthropic.claude-fable-5',
     'anthropic.claude-fable-5-1',
+    'anthropic.claude-fable-5-2',
     'us.anthropic.claude-fable-5-1',
+    'us.anthropic.claude-fable-5-2',
     'global.anthropic.claude-fable-5-1',
-    'anthropic.claude-sonnet-5',
-    'us.anthropic.claude-sonnet-5',
-    'eu.anthropic.claude-sonnet-5',
+    'global.anthropic.claude-fable-5-2',
   ])('should disable native structured output for %s', modelId => {
     const provider = createAmazonBedrockAnthropic({
       region: 'us-east-1',
@@ -154,18 +151,15 @@ describe('amazon-bedrock-anthropic-provider', () => {
     'anthropic.claude-opus-4-8',
     'us.anthropic.claude-opus-4-8',
     'eu.anthropic.claude-opus-4-8',
-    'anthropic.claude-opus-5',
-    'us.anthropic.claude-opus-5',
-    'eu.anthropic.claude-opus-5',
     'anthropic.claude-fable-5',
     'us.anthropic.claude-fable-5',
     'eu.anthropic.claude-fable-5',
     'anthropic.claude-fable-5-1',
+    'anthropic.claude-fable-5-2',
     'us.anthropic.claude-fable-5-1',
+    'us.anthropic.claude-fable-5-2',
     'global.anthropic.claude-fable-5-1',
-    'anthropic.claude-sonnet-5',
-    'us.anthropic.claude-sonnet-5',
-    'eu.anthropic.claude-sonnet-5',
+    'global.anthropic.claude-fable-5-2',
   ])(
     'should disable strict tools for %s (Bedrock rejects tools[].strict)',
     modelId => {
@@ -180,6 +174,35 @@ describe('amazon-bedrock-anthropic-provider', () => {
         modelId,
         expect.objectContaining({
           supportsStrictTools: false,
+        }),
+      );
+    },
+  );
+
+  it.each([
+    'anthropic.claude-opus-5',
+    'us.anthropic.claude-opus-5',
+    'eu.anthropic.claude-opus-5',
+    'anthropic.claude-sonnet-5',
+    'us.anthropic.claude-sonnet-5',
+    'eu.anthropic.claude-sonnet-5',
+    'global.anthropic.claude-sonnet-5-5',
+    'global.anthropic.claude-haiku-5-5',
+  ])(
+    'should enable native structured output and strict tools for %s',
+    modelId => {
+      const provider = createAmazonBedrockAnthropic({
+        region: 'us-east-1',
+        accessKeyId: 'test-key',
+        secretAccessKey: 'test-secret',
+      });
+      provider(modelId as Parameters<typeof provider>[0]);
+
+      expect(AnthropicLanguageModel).toHaveBeenCalledWith(
+        modelId,
+        expect.objectContaining({
+          supportsNativeStructuredOutput: true,
+          supportsStrictTools: true,
         }),
       );
     },
@@ -627,69 +650,6 @@ describe('amazon-bedrock-anthropic-provider', () => {
     );
 
     expect(transformedBody?.anthropic_beta).toBeUndefined();
-  });
-
-  it('should rename thinking block_binding prefix_mismatch_behavior to mismatch_behavior', () => {
-    const provider = createAmazonBedrockAnthropic({
-      region: 'us-east-1',
-      accessKeyId: 'test-key',
-      secretAccessKey: 'test-secret',
-    });
-    provider('test-model-id');
-
-    const constructorCall = vi.mocked(AnthropicLanguageModel).mock.calls[
-      vi.mocked(AnthropicLanguageModel).mock.calls.length - 1
-    ];
-    const config = constructorCall[1];
-
-    const transformedBody = config.transformRequestBody?.(
-      {
-        model: 'test-model-id',
-        messages: [{ role: 'user', content: 'Hello' }],
-        max_tokens: 1024,
-        thinking: {
-          type: 'adaptive',
-          display: 'summarized',
-          block_binding: { prefix_mismatch_behavior: 'drop_block' },
-        },
-      },
-      new Set(['thinking-binding-controls-2026-08-01']),
-    );
-
-    expect(transformedBody?.thinking).toEqual({
-      type: 'adaptive',
-      display: 'summarized',
-      block_binding: { mismatch_behavior: 'drop_block' },
-    });
-  });
-
-  it('should leave thinking unchanged when it has no block_binding', () => {
-    const provider = createAmazonBedrockAnthropic({
-      region: 'us-east-1',
-      accessKeyId: 'test-key',
-      secretAccessKey: 'test-secret',
-    });
-    provider('test-model-id');
-
-    const constructorCall = vi.mocked(AnthropicLanguageModel).mock.calls[
-      vi.mocked(AnthropicLanguageModel).mock.calls.length - 1
-    ];
-    const config = constructorCall[1];
-
-    const transformedBody = config.transformRequestBody?.(
-      {
-        model: 'test-model-id',
-        messages: [{ role: 'user', content: 'Hello' }],
-        max_tokens: 1024,
-        thinking: { type: 'enabled', budget_tokens: 2000 },
-      },
-      new Set(),
-    );
-
-    expect(transformedBody?.thinking).toEqual({
-      type: 'enabled',
-      budget_tokens: 2000,
-    });
   });
 
   it('should translate eager_input_streaming on tools into the fine-grained-tool-streaming beta', () => {

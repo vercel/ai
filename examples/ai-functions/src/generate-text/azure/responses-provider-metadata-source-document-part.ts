@@ -12,7 +12,7 @@ run(async () => {
       'Create a program that generates five random numbers between 1 and 100 with two decimal places, and show me the execution results. Also save the result to a file.',
     tools: {
       code_interpreter: azure.tools.codeInterpreter(),
-      web_search_preview: azure.tools.webSearchPreview({}),
+      web_search: azure.tools.webSearch({}),
       file_search: azure.tools.fileSearch({ vectorStoreIds: ['vs_1234'] }), // requires a configured vector store
     },
   });

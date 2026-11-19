@@ -1,9 +1,10 @@
 /*
- * Verifies that a Modal encrypted tunnel carries the bridge WebSocket
- * contract of bridge-backed harness adapters: a stock `ws` client receives
- * HTTP 101 on the URL from `getPortEndpoint()` plus `?agent_bridge_token=...`,
- * the in-sandbox upgrade sees that query unchanged, and the URL stays the same
- * across reconnects and after reattaching to the sandbox.
+ * Verifies that a Modal encrypted tunnel carries a WebSocket transparently: a
+ * stock `ws` client receives HTTP 101 on the URL from `getPortEndpoint()` plus
+ * `?agent_bridge_token=...`, the in-sandbox upgrade sees that query unchanged,
+ * a frame sent after the upgrade arrives, and the URL stays the same across
+ * reconnects and after reattaching to the sandbox. Bridge-backed harness
+ * adapters dial that URL as is and authenticate over the open WebSocket.
  */
 import { randomBytes } from 'node:crypto';
 import {
@@ -96,7 +97,7 @@ run(async () => {
       }
     }
 
-    console.log('ok: the Modal tunnel satisfies the bridge WebSocket contract');
+    console.log('ok: the Modal tunnel carries the WebSocket transparently');
     process.exitCode = 0;
   } finally {
     await session.destroy();

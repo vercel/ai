@@ -28,11 +28,10 @@ export type ManagedSubscribeInput = {
   context?: JSONObject;
   /** Reuse the original key when recovering an uncertain create result. */
   idempotencyKey: string;
+  /** Application lifetime in milliseconds, or null until explicitly stopped. */
+  ttlMs: number | null;
   options?: RequestOptions;
-} & (
-  | { ttlMs: number; expiresAt?: never }
-  | { expiresAt: string | null; ttlMs?: never }
-);
+};
 
 /**
  * Bound to an authorized account and destination by the application. The backend

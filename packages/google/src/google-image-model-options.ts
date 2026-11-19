@@ -18,7 +18,7 @@ export const googleImageModelOptionsSchema = lazySchema(() =>
        * dedicated escape hatch for grounding image generation the same way
        * `generateText` does.
        */
-      googleSearch: googleSearchToolArgsBaseSchema.optional(),
+      googleSearch: googleSearchToolArgsBaseSchema().optional(),
     }),
   ),
 );

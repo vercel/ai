@@ -12,6 +12,7 @@ import {
   type Experimental_BatchV4StartResult as BatchV4StartResult,
   type Experimental_BatchV4Status as BatchV4Status,
   type Experimental_ImageBatchV4Request as ImageBatchV4Request,
+  type Experimental_TextBatchV4Request as TextBatchV4Request,
   type Experimental_BatchV4StartOptions as BatchV4StartOptions,
   type LanguageModelV4GenerateResult,
   type ImageModelV4Result,
@@ -58,6 +59,7 @@ const supportedGoogleBatchContentTypes = new Set<
   LanguageModelV4GenerateResult['content'][number]['type']
 >(['text', 'reasoning', 'source', 'tool-call', 'tool-result']);
 
+type GoogleTextBatchRequest = TextBatchV4Request<GoogleModelId>;
 type GoogleImageBatchRequest = ImageBatchV4Request<GoogleImageModelId>;
 type GoogleBatchModelIds = {
   readonly text: GoogleModelId;
@@ -78,35 +80,38 @@ function assertSupportedBatchRequests(
   }
 }
 
-const googleRpcStatusSchema = z.object({
-  code: z.union([z.number(), z.string()]).nullish(),
-  message: z.string().nullish(),
-  status: z.string().nullish(),
-});
+const googleRpcStatusSchema = () =>
+  z.object({
+    code: z.union([z.number(), z.string()]).nullish(),
+    message: z.string().nullish(),
+    status: z.string().nullish(),
+  });
 
-const googleBatchStatsSchema = z.object({
-  requestCount: z.union([z.string(), z.number()]).nullish(),
-  successfulRequestCount: z.union([z.string(), z.number()]).nullish(),
-  failedRequestCount: z.union([z.string(), z.number()]).nullish(),
-  pendingRequestCount: z.union([z.string(), z.number()]).nullish(),
-});
+const googleBatchStatsSchema = () =>
+  z.object({
+    requestCount: z.union([z.string(), z.number()]).nullish(),
+    successfulRequestCount: z.union([z.string(), z.number()]).nullish(),
+    failedRequestCount: z.union([z.string(), z.number()]).nullish(),
+    pendingRequestCount: z.union([z.string(), z.number()]).nullish(),
+  });
 
-const googleBatchOutputSchema = z.object({
-  responsesFile: z.string().nullish(),
-  inlinedResponses: z
-    .object({
-      inlinedResponses: z.array(
-        z.object({
-          metadata: z.object({
-            key: z.string(),
+const googleBatchOutputSchema = () =>
+  z.object({
+    responsesFile: z.string().nullish(),
+    inlinedResponses: z
+      .object({
+        inlinedResponses: z.array(
+          z.object({
+            metadata: z.object({
+              key: z.string(),
+            }),
+            response: z.unknown().nullish(),
+            error: googleRpcStatusSchema().nullish(),
           }),
-          response: z.unknown().nullish(),
-          error: googleRpcStatusSchema.nullish(),
-        }),
-      ),
-    })
-    .nullish(),
-});
+        ),
+      })
+      .nullish(),
+  });
 
 const googleBatchOperationZodSchema = () =>
   z.object({
@@ -115,13 +120,13 @@ const googleBatchOperationZodSchema = () =>
       .object({
         state: z.string().nullish(),
         createTime: z.string().nullish(),
-        batchStats: googleBatchStatsSchema.nullish(),
-        output: googleBatchOutputSchema.nullish(),
+        batchStats: googleBatchStatsSchema().nullish(),
+        output: googleBatchOutputSchema().nullish(),
       })
       .nullish(),
     done: z.boolean().nullish(),
-    error: googleRpcStatusSchema.nullish(),
-    response: googleBatchOutputSchema.nullish(),
+    error: googleRpcStatusSchema().nullish(),
+    response: googleBatchOutputSchema().nullish(),
   });
 
 const googleBatchOperationSchema = lazySchema(() =>
@@ -159,7 +164,7 @@ const googleBatchResultLineSchema = lazySchema(() =>
     z.object({
       key: z.string(),
       response: z.unknown().nullish(),
-      error: googleRpcStatusSchema.nullish(),
+      error: googleRpcStatusSchema().nullish(),
     }),
   ),
 );
@@ -231,11 +236,7 @@ export class GoogleBatch implements BatchV4<GoogleBatchModelIds> {
     for (const request of options.requests) {
       const preparedRequest =
         request.type === 'text'
-          ? await GoogleLanguageModel.prepareRequest({
-              modelId: request.modelId,
-              config: this.batchConfig,
-              options: request.options,
-            })
+          ? await this.prepareTextRequest(request)
           : await this.prepareImageRequest(request);
       const inlinedRequest = {
         request: preparedRequest.args,
@@ -289,7 +290,6 @@ export class GoogleBatch implements BatchV4<GoogleBatchModelIds> {
       }
     }
 
-    const headers = await this.getHeaders(options.headers);
     const createUrl = `${this.batchConfig.baseURL}/${getModelPath(
       modelId,
     )}:batchGenerateContent`;
@@ -297,7 +297,7 @@ export class GoogleBatch implements BatchV4<GoogleBatchModelIds> {
     if (fileParts == null) {
       const { value: operation } = await postJsonToApi({
         url: createUrl,
-        headers,
+        headers: await this.getHeaders(options.headers),
         body: inlineBatchBody,
         failedResponseHandler: googleFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(
@@ -326,7 +326,7 @@ export class GoogleBatch implements BatchV4<GoogleBatchModelIds> {
 
     const { value: uploadUrl } = await postJsonToApi({
       url: `${this.getBaseOrigin()}/upload/v1beta/files`,
-      headers: combineHeaders(headers, {
+      headers: combineHeaders(await this.getHeaders(options.headers), {
         'X-Goog-Upload-Protocol': 'resumable',
         'X-Goog-Upload-Command': 'start',
         'X-Goog-Upload-Header-Content-Length': String(inputFile.size),
@@ -367,7 +367,7 @@ export class GoogleBatch implements BatchV4<GoogleBatchModelIds> {
 
     const { value: operation } = await postJsonToApi({
       url: createUrl,
-      headers,
+      headers: await this.getHeaders(options.headers),
       body: {
         batch: {
           displayName,
@@ -672,6 +672,27 @@ export class GoogleBatch implements BatchV4<GoogleBatchModelIds> {
     }
   }
 
+  private async prepareTextRequest(request: GoogleTextBatchRequest) {
+    const preparedRequest = await GoogleLanguageModel.prepareRequest({
+      modelId: request.modelId,
+      config: this.batchConfig,
+      options: request.options,
+    });
+
+    if (preparedRequest.args.generationConfig.responseJsonSchema != null) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'structured output schemas in Google batches',
+        message:
+          `The Google Batch API does not reliably enforce JSON schemas (request "${request.id}"). ` +
+          'Remove the output schema, use `Output.json()` without a schema, or set ' +
+          '`providerOptions.google.structuredOutputs` to `false` to not send the schema ' +
+          'and validate the results with `getBatchResults({ output })` instead.',
+      });
+    }
+
+    return preparedRequest;
+  }
+
   private async prepareImageRequest(request: GoogleImageBatchRequest) {
     const { prompt, n, size, aspectRatio, seed, files, mask, providerOptions } =
       request.options;
@@ -872,7 +893,7 @@ function parseCount(value: string | number | null | undefined) {
 }
 
 function convertGoogleRpcError(
-  error: InferSchema<typeof googleRpcStatusSchema>,
+  error: InferSchema<ReturnType<typeof googleRpcStatusSchema>>,
   fallbackMessage: string,
 ): BatchV4Error {
   return {

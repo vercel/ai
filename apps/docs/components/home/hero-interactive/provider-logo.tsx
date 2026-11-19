@@ -11,9 +11,14 @@ import { LogoIconPerplexitySvg } from '@vercel/geistdocs/assets/logos/logo-icon-
 import { LogoIconZaiSvg } from '@vercel/geistdocs/assets/logos/logo-icon-zai-svg';
 import { cn } from '@vercel/geistdocs/utils';
 import type { Provider } from '@/lib/home/code-examples';
+import { LogoIconTypeSafeAi } from './logo-icon-typesafe-ai';
 
-const LOGOS: Record<Provider, typeof LogoIconGrokSvg> = {
+const LOGOS: Record<
+  Provider,
+  typeof LogoIconGrokSvg | typeof LogoIconTypeSafeAi
+> = {
   grok: LogoIconGrokSvg,
+  typesafe: LogoIconTypeSafeAi,
   openai: LogoIconOpenAiSvg,
   anthropic: LogoIconAnthropicSvg,
   google: LogoIconGoogleSvg,

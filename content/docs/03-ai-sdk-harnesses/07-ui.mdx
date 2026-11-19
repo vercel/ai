@@ -93,7 +93,7 @@ export const agent = new HarnessAgent({
 
 Persist the opaque resume state returned by `session.detach()`. If the
 turn paused for approval or was otherwise interrupted, that resume state carries
-the continuation state internally. The chat id can also be the harness
+the continuation state internally. The chat ID can also be the harness
 `sessionId`. Here we derive a stable `sandboxId` from that known chat id. If
 you do not derive one, persist the returned `sandboxSession.id` separately.
 
@@ -170,7 +170,7 @@ export async function POST(request: Request) {
   } = await request.json();
 
   if (!body.id) {
-    throw new Error('Missing chat id');
+    return new Response('Missing chat ID', { status: 400 });
   }
 
   const chatId = body.id;
@@ -202,6 +202,11 @@ Creating the UI message stream before acquiring the session ensures sandbox,
 bootstrap, and harness startup failures are sent as UI error parts instead of
 becoming generic HTTP errors. `getHarnessErrorMessage` preserves reviewed,
 client-safe harness messages and masks unknown server errors.
+
+Because the route passes `onError`, it also formats the errors of failed host
+tool calls that the harness reports itself. Set `redactToolErrors: false` to
+send those error texts unchanged. See
+[Errors](/docs/ai-sdk-ui/chatbot-tool-usage#errors) for details.
 
 Do not use `createAgentUIStreamResponse` directly with `HarnessAgent` unless you
 wrap the agent to inject the required session. `HarnessAgent.stream()` requires

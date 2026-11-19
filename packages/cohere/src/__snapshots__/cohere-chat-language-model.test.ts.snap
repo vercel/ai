@@ -208,7 +208,7 @@ exports[`doGenerate > citations > should extract citations from response 1`] = `
       "content-length": "1175",
       "content-type": "application/json",
     },
-    "id": undefined,
+    "id": "68475c80-574b-4c65-98a4-e81cebab5dce",
   },
   "usage": {
     "inputTokens": {
@@ -324,7 +324,7 @@ exports[`doGenerate > reasoning > should extract reasoning from response 1`] = `
       "content-length": "411",
       "content-type": "application/json",
     },
-    "id": undefined,
+    "id": "53bcb235-5179-4a91-a578-cb372b5430bc",
   },
   "usage": {
     "inputTokens": {
@@ -421,7 +421,7 @@ exports[`doGenerate > text > should extract text response 1`] = `
       "content-length": "304",
       "content-type": "application/json",
     },
-    "id": undefined,
+    "id": "e7592632-1e3d-424f-b129-bd5f9f980f7b",
   },
   "usage": {
     "inputTokens": {
@@ -560,7 +560,7 @@ exports[`doGenerate > tool call > should extract tool calls 1`] = `
       "content-length": "693",
       "content-type": "application/json",
     },
-    "id": undefined,
+    "id": "f201af17-e24a-4396-8f6a-98e8bf9c3432",
   },
   "usage": {
     "inputTokens": {

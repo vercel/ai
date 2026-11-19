@@ -57,7 +57,6 @@ End the document with the version tag on a line by itself, prefixed with \`v\`.`
 
   const sandboxSession = await createVercelNetworkSandboxSession({
     runtime: 'node24',
-    ports: [4000],
     timeout: 10 * 60 * 1000,
     template: await agent.getSandboxTemplate(),
   });

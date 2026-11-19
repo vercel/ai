@@ -1,0 +1,21 @@
+{"id":"e9b428fc-e0e0-4978-a2b2-3f225df4a90d","type":"message-start","delta":{"message":{"role":"assistant","content":[],"tool_plan":"","tool_calls":[],"citations":[]}}}
+{"type":"content-start","index":0,"delta":{"message":{"content":{"type":"text","text":""}}}}
+{"type":"content-delta","index":0,"delta":{"message":{"content":{"text":"The"}}}}
+{"type":"content-delta","index":0,"delta":{"message":{"content":{"text":" capital"}}}}
+{"type":"content-delta","index":0,"delta":{"message":{"content":{"text":" of"}}}}
+{"type":"content-delta","index":0,"delta":{"message":{"content":{"text":" the"}}}}
+{"type":"content-delta","index":0,"delta":{"message":{"content":{"text":" fictional"}}}}
+{"type":"content-delta","index":0,"delta":{"message":{"content":{"text":" country"}}}}
+{"type":"content-delta","index":0,"delta":{"message":{"content":{"text":" Zeph"}}}}
+{"type":"content-delta","index":0,"delta":{"message":{"content":{"text":"y"}}}}
+{"type":"content-delta","index":0,"delta":{"message":{"content":{"text":"ria"}}}}
+{"type":"content-delta","index":0,"delta":{"message":{"content":{"text":" is"}}}}
+{"type":"content-delta","index":0,"delta":{"message":{"content":{"text":" "}}}}
+{"type":"content-delta","index":0,"delta":{"message":{"content":{"text":"Mar"}}}}
+{"type":"content-delta","index":0,"delta":{"message":{"content":{"text":"row"}}}}
+{"type":"content-delta","index":0,"delta":{"message":{"content":{"text":"dale"}}}}
+{"type":"content-delta","index":0,"delta":{"message":{"content":{"text":"."}}}}
+{"type":"citation-start","index":0,"delta":{"message":{"citations":{"start":49,"end":60,"text":"Marrowdale.","sources":[{"type":"document","id":"doc:0","document":{"id":"doc:0","text":"Zephyria is a fictional country. Its capital city is Marrowdale, a coastal city known for its lighthouses.","title":"zephyria.txt"}}],"type":"TEXT_CONTENT"}}}}
+{"type":"citation-end","index":0}
+{"type":"content-end","index":0}
+{"type":"message-end","delta":{"finish_reason":"COMPLETE","usage":{"billed_units":{"input_tokens":54,"output_tokens":14},"tokens":{"input_tokens":1698,"output_tokens":27},"cached_tokens":112}}}

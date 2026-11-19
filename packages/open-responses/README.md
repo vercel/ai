@@ -5,10 +5,8 @@ contains language model support for [Open Responses](https://www.openresponses.o
 
 ## Setup
 
-The Open Responses provider is available in the `@ai-sdk/open-responses` module. You can install it with
-
 ```bash
-npm i @ai-sdk/open-responses
+npm i ai @ai-sdk/open-responses
 ```
 
 ## Skill for Coding Agents
@@ -19,22 +17,7 @@ If you use coding agents such as Claude Code or Cursor, we highly recommend addi
 npx skills add vercel/ai
 ```
 
-## Provider Instance
-
-Create an Open Responses provider instance using `createOpenResponses`:
-
-```ts
-import { createOpenResponses } from '@ai-sdk/open-responses';
-
-const openResponses = createOpenResponses({
-  name: 'aProvider',
-  url: 'http://localhost:1234/v1/responses',
-});
-```
-
-You can use this instance to access models served by any Open Responses compatible endpoint.
-
-## Example
+## Usage
 
 ```ts
 import { createOpenResponses } from '@ai-sdk/open-responses';
@@ -52,6 +35,4 @@ const { text } = await generateText({
 });
 ```
 
-## Documentation
-
-Please check out the **[Open Responses provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/open-responses)** for more information.
+See the [Open Responses Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/open-responses) for more information.

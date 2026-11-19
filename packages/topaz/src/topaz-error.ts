@@ -1,4 +1,9 @@
-import { createJsonErrorResponseHandler } from '@ai-sdk/provider-utils';
+import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
+  createJsonErrorResponseHandler,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 /**
@@ -7,20 +12,26 @@ import { z } from 'zod/v4';
  * array of validation issues) and `error` are accepted as well because a few
  * endpoints use them instead.
  */
-export const topazErrorDataSchema = z.object({
-  detail: z
-    .union([
-      z.string(),
-      z.array(z.object({ msg: z.string().nullish() }).loose()),
-    ])
-    .nullish(),
-  message: z.string().nullish(),
-  error: z.string().nullish(),
-  errorCode: z.string().nullish(),
-  errors: z.array(z.object({ msg: z.string().nullish() }).loose()).nullish(),
-});
+export const topazErrorDataSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      detail: z
+        .union([
+          z.string(),
+          z.array(z.object({ msg: z.string().nullish() }).loose()),
+        ])
+        .nullish(),
+      message: z.string().nullish(),
+      error: z.string().nullish(),
+      errorCode: z.string().nullish(),
+      errors: z
+        .array(z.object({ msg: z.string().nullish() }).loose())
+        .nullish(),
+    }),
+  ),
+);
 
-export type TopazErrorData = z.infer<typeof topazErrorDataSchema>;
+export type TopazErrorData = InferSchema<typeof topazErrorDataSchema>;
 
 export function topazErrorToMessage(data: TopazErrorData): string {
   const message = baseErrorMessage(data);

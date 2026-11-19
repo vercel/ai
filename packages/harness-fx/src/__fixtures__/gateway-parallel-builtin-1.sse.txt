@@ -1,0 +1,19 @@
+data: {"type":"stream-start","warnings":[]}
+
+data: {"type":"response-metadata","id":"d910e95f-a010-97dd-b4cc-34f767e48fd3","modelId":"grok-4.7","timestamp":"2026-10-15T00:42:05.000Z"}
+
+data: {"type":"reasoning-start","id":"reasoning-rs_d910e95f-a010-97dd-b4cc-34f767e48fd3","providerMetadata":{"xai":{"itemId":"rs_d910e95f-a010-97dd-b4cc-34f767e48fd3"}}}
+
+data: {"type":"reasoning-end","id":"reasoning-rs_d910e95f-a010-97dd-b4cc-34f767e48fd3","providerMetadata":{"xai":{"reasoningEncryptedContent":"9dblErWKoP29Zni3CmuRuw9XszMiWbXaPksbK3vH4O5KJ7v3QB/rbfr9XcZgV8OMht80PppfUQAPd07+huIhmVj64NC7RizfxcKLIex/WFnUjATnUjSkuo+Rkdum42NoUM/nD53WThCKu2rTl+4KE0H8","itemId":"rs_d910e95f-a010-97dd-b4cc-34f767e48fd3"}}}
+
+data: {"type":"text-start","id":"text-msg_d910e95f-a010-97dd-b4cc-34f767e48fd3"}
+
+data: {"type":"text-delta","id":"text-msg_d910e95f-a010-97dd-b4cc-34f767e48fd3","delta":"READY"}
+
+data: {"type":"text-end","id":"text-msg_d910e95f-a010-97dd-b4cc-34f767e48fd3"}
+
+data: {"type":"finish","finishReason":{"unified":"stop","raw":"completed"},"usage":{"inputTokens":{"total":2302,"noCache":254,"cacheRead":2048},"outputTokens":{"total":16,"text":1,"reasoning":15},"raw":{"input_tokens":2302,"output_tokens":16,"total_tokens":2318,"input_tokens_details":{"cached_tokens":2048},"output_tokens_details":{"reasoning_tokens":15},"num_sources_used":0,"num_server_side_tools_used":0,"cost_in_usd_ticks":16280000,"context_details":{"input_tokens":2302,"output_tokens":25}}},"providerMetadata":{"xai":{"costInUsdTicks":16280000,"serviceTier":"default"},"gateway":{"routing":{"originalModelId":"spacexai/grok-4.7","resolvedProvider":"xai","fallbacksAvailable":[],"planningReasoning":"System credentials planned for: xai. Total execution order: xai(system)","canonicalSlug":"xai/grok-4.7","finalProvider":"xai","modelAttemptCount":1,"modelAttempts":[{"canonicalSlug":"xai/grok-4.7","success":true,"providerAttemptCount":1,"providerAttempts":[{"provider":"xai","credentialType":"system","success":true,"startTime":1792024925487,"endTime":1792024926210,"providerRequestId":"d910e95f-a010-97dd-b4cc-34f767e48fd3","statusCode":200,"providerResponseId":"d910e95f-a010-97dd-b4cc-34f767e48fd3"}]}],"totalProviderAttemptCount":1,"affinity":{"outcome":"confirmed","pinnedProvider":"xai"},"clientSessionId":"vr6K8tCQedwb","clientSessionIdSource":"explicit"},"cost":"0.001628","marketCost":"0.001628","surchargeCost":"0.0001","gatewayCost":"0.001728","inferenceCost":"0.001628","inputInferenceCost":"0.001532","outputInferenceCost":"0.000096","providerAllowlistCost":"0.0001","generationId":"gen_01M4YG4N7S4F4KTEF9E4DWMX68"}}}
+
+DONE
+
+

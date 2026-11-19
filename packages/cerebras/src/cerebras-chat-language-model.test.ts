@@ -1,6 +1,7 @@
-import type {
-  LanguageModelV4Prompt,
-  LanguageModelV4StreamPart,
+import {
+  InvalidArgumentError,
+  type LanguageModelV4Prompt,
+  type LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
 import fs from 'node:fs';
 import { describe, expect, expectTypeOf, it, vi } from 'vitest';
@@ -38,6 +39,67 @@ function createJsonFixtureFetchMock(filename: string) {
     }),
   );
 }
+
+function createRecordingJsonFetchMock(body: unknown) {
+  const calls: { init: RequestInit | undefined }[] = [];
+  const fetch = vi.fn(
+    (_input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      calls.push({ init });
+      return Promise.resolve(
+        new Response(JSON.stringify(body), {
+          headers: { 'content-type': 'application/json' },
+        }),
+      );
+    },
+  );
+  return { fetch, calls };
+}
+
+function createRecordingStreamFetchMock(chunks: unknown[]) {
+  const calls: { init: RequestInit | undefined }[] = [];
+  const fetch = vi.fn(
+    (_input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      calls.push({ init });
+      const body = [
+        ...chunks.map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+        'data: [DONE]\n\n',
+      ].join('');
+      return Promise.resolve(
+        new Response(body, {
+          headers: { 'content-type': 'text/event-stream' },
+        }),
+      );
+    },
+  );
+  return { fetch, calls };
+}
+
+const SERVICE_TIER_RESPONSE_BODY = {
+  id: 'chatcmpl-test',
+  model: 'gpt-oss-120b',
+  choices: [
+    {
+      message: { role: 'assistant', content: 'blue' },
+      finish_reason: 'stop',
+    },
+  ],
+  usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+};
+
+const SERVICE_TIER_STREAM_CHUNKS = [
+  {
+    id: 'chatcmpl-test',
+    model: 'gpt-oss-120b',
+    choices: [{ delta: { role: 'assistant', content: 'blue' } }],
+  },
+  {
+    id: 'chatcmpl-test',
+    model: 'gpt-oss-120b',
+    choices: [{ delta: {}, finish_reason: 'stop' }],
+    usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+    service_tier: 'flex',
+  },
+];
 
 function createStreamFixtureFetchMock(filename: string) {
   const chunks = fs
@@ -185,12 +247,12 @@ describe('doGenerate', () => {
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
-            "text": "{"result":"2026"}",
-            "type": "text",
-          },
-          {
             "text": "The function returned 2026 as the magic number. Now I need to return this as a JSON object matching the specified schema. The schema requires a "result" property of type string. So I should wrap the magic number in a string.",
             "type": "reasoning",
+          },
+          {
+            "text": "{"result":"2026"}",
+            "type": "text",
           },
         ]
       `);
@@ -215,12 +277,12 @@ describe('doGenerate', () => {
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
-            "text": "{"result":"2026"}",
-            "type": "text",
-          },
-          {
             "text": "The function returned 2026 as the magic number. Now I need to return this as a JSON object matching the specified schema. The schema requires a "result" property of type string. So I should wrap the magic number in a string.",
             "type": "reasoning",
+          },
+          {
+            "text": "{"result":"2026"}",
+            "type": "text",
           },
           {
             "input": "{}",
@@ -319,6 +381,288 @@ describe('doStream', () => {
       expect(
         chunks.filter(chunk => chunk.type === 'tool-call'),
       ).toMatchInlineSnapshot(`[]`);
+    });
+  });
+});
+
+describe('service tiers', () => {
+  describe('doGenerate', () => {
+    it('sends service_tier in the body and the queue_threshold header', async () => {
+      const { fetch, calls } = createRecordingJsonFetchMock(
+        SERVICE_TIER_RESPONSE_BODY,
+      );
+      const model = createCerebras({ apiKey: 'test-api-key', fetch })(
+        'gpt-oss-120b',
+      );
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          cerebras: { serviceTier: 'flex', queueThreshold: 200 },
+        },
+      });
+
+      const init = calls[0].init!;
+      const body = JSON.parse(init.body as string);
+      expect(body.service_tier).toBe('flex');
+      // camelCase passthrough keys must not leak into the body:
+      expect(body.serviceTier).toBeUndefined();
+      expect(body.queueThreshold).toBeUndefined();
+
+      const headers = new Headers(init.headers as HeadersInit);
+      expect(headers.get('queue_threshold')).toBe('200');
+    });
+
+    it('omits the queue_threshold header when queueThreshold is not set', async () => {
+      const { fetch, calls } = createRecordingJsonFetchMock(
+        SERVICE_TIER_RESPONSE_BODY,
+      );
+      const model = createCerebras({ apiKey: 'test-api-key', fetch })(
+        'gpt-oss-120b',
+      );
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: { cerebras: { serviceTier: 'auto' } },
+      });
+
+      const headers = new Headers(calls[0].init!.headers as HeadersInit);
+      expect(headers.get('queue_threshold')).toBeNull();
+    });
+
+    it('gives queueThreshold precedence over header casing without mutating callers', async () => {
+      const { fetch, calls } = createRecordingJsonFetchMock(
+        SERVICE_TIER_RESPONSE_BODY,
+      );
+      const model = createCerebras({
+        apiKey: 'test-api-key',
+        fetch,
+        headers: { queue_threshold: '777' },
+      })('gpt-oss-120b');
+      const headers = {
+        queue_threshold: '999',
+        QUEUE_THRESHOLD: '888',
+        'X-Request-ID': 'request-123',
+      };
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        headers,
+        providerOptions: { cerebras: { queueThreshold: 200 } },
+      });
+
+      const sentHeaders = new Headers(calls[0].init!.headers as HeadersInit);
+      expect(sentHeaders.get('queue_threshold')).toBe('200');
+      expect(sentHeaders.get('x-request-id')).toBe('request-123');
+      expect(headers).toEqual({
+        queue_threshold: '999',
+        QUEUE_THRESHOLD: '888',
+        'X-Request-ID': 'request-123',
+      });
+    });
+
+    it('exposes the effective service tier from service_tier', async () => {
+      const { fetch } = createRecordingJsonFetchMock({
+        ...SERVICE_TIER_RESPONSE_BODY,
+        service_tier: 'flex',
+      });
+      const model = createCerebras({ apiKey: 'test-api-key', fetch })(
+        'gpt-oss-120b',
+      );
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: { cerebras: { serviceTier: 'auto' } },
+      });
+
+      expect(result.providerMetadata?.cerebras?.serviceTier).toBe('flex');
+    });
+
+    it.each([undefined, null])(
+      'does not fabricate missing serviceTier metadata (%s)',
+      async serviceTier => {
+        const { fetch } = createRecordingJsonFetchMock({
+          ...SERVICE_TIER_RESPONSE_BODY,
+          service_tier: serviceTier,
+        });
+        const model = createCerebras({ apiKey: 'test-api-key', fetch })(
+          'gpt-oss-120b',
+        );
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: { cerebras: { serviceTier: 'auto' } },
+        });
+
+        expect(result.providerMetadata?.cerebras?.serviceTier).toBeUndefined();
+      },
+    );
+  });
+
+  describe('doStream', () => {
+    it.each([undefined, null])(
+      'does not fabricate missing streamed tier metadata (%s)',
+      async serviceTier => {
+        const { fetch } = createRecordingStreamFetchMock(
+          SERVICE_TIER_STREAM_CHUNKS.map(chunk => ({
+            ...chunk,
+            service_tier: serviceTier,
+          })),
+        );
+        const model = createCerebras({ apiKey: 'test-api-key', fetch })(
+          'gpt-oss-120b',
+        );
+        const { stream } = await model.doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: { cerebras: { serviceTier: 'auto' } },
+        });
+        const chunks = await convertStreamToArray(stream);
+        const finish = chunks.find(chunk => chunk.type === 'finish');
+        expect(finish?.providerMetadata?.cerebras?.serviceTier).toBeUndefined();
+      },
+    );
+
+    it('uses the final returned tier while preserving prediction metadata', async () => {
+      const { fetch } = createRecordingStreamFetchMock([
+        { ...SERVICE_TIER_STREAM_CHUNKS[0], service_tier: 'auto' },
+        {
+          ...SERVICE_TIER_STREAM_CHUNKS[1],
+          service_tier: 'flex',
+          usage: {
+            prompt_tokens: 1,
+            completion_tokens: 1,
+            total_tokens: 2,
+            completion_tokens_details: {
+              accepted_prediction_tokens: 1,
+              rejected_prediction_tokens: 0,
+            },
+          },
+        },
+      ]);
+      const model = createCerebras({ apiKey: 'test-api-key', fetch })(
+        'gpt-oss-120b',
+      );
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const chunks = await convertStreamToArray(stream);
+      const finish = chunks.find(chunk => chunk.type === 'finish');
+      expect(finish?.providerMetadata?.cerebras).toMatchObject({
+        serviceTier: 'flex',
+        acceptedPredictionTokens: 1,
+        rejectedPredictionTokens: 0,
+      });
+    });
+
+    it('sends the queue_threshold header and exposes the effective tier', async () => {
+      const { fetch, calls } = createRecordingStreamFetchMock(
+        SERVICE_TIER_STREAM_CHUNKS,
+      );
+      const model = createCerebras({ apiKey: 'test-api-key', fetch })(
+        'gpt-oss-120b',
+      );
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          cerebras: { serviceTier: 'flex', queueThreshold: 150 },
+        },
+      });
+      const chunks = await convertStreamToArray(stream);
+
+      const headers = new Headers(calls[0].init!.headers as HeadersInit);
+      expect(headers.get('queue_threshold')).toBe('150');
+
+      const finish = chunks.find(chunk => chunk.type === 'finish');
+      expect(finish?.providerMetadata?.cerebras?.serviceTier).toBe('flex');
+    });
+  });
+
+  describe('option validation', () => {
+    function createModel() {
+      const { fetch } = createRecordingJsonFetchMock(
+        SERVICE_TIER_RESPONSE_BODY,
+      );
+      return createCerebras({ apiKey: 'test-api-key', fetch })('gpt-oss-120b');
+    }
+
+    it('rejects a queueThreshold below the valid range', async () => {
+      await expect(
+        createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: { cerebras: { queueThreshold: 5 } },
+        }),
+      ).rejects.toThrow(InvalidArgumentError);
+    });
+
+    it('rejects a queueThreshold above the valid range', async () => {
+      await expect(
+        createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: { cerebras: { queueThreshold: 25_000 } },
+        }),
+      ).rejects.toThrow(InvalidArgumentError);
+    });
+
+    it('rejects a non-integer queueThreshold', async () => {
+      await expect(
+        createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: { cerebras: { queueThreshold: 100.5 } },
+        }),
+      ).rejects.toThrow(InvalidArgumentError);
+    });
+
+    it('accepts the inclusive queueThreshold boundaries', async () => {
+      await expect(
+        createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: { cerebras: { queueThreshold: 50 } },
+        }),
+      ).resolves.toBeDefined();
+
+      await expect(
+        createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: { cerebras: { queueThreshold: 20_000 } },
+        }),
+      ).resolves.toBeDefined();
+    });
+
+    it('preserves the existing runtime option pass-through', async () => {
+      const { fetch, calls } = createRecordingJsonFetchMock(
+        SERVICE_TIER_RESPONSE_BODY,
+      );
+      const model = createCerebras({ apiKey: 'test-api-key', fetch })(
+        'gpt-oss-120b',
+      );
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          cerebras: {
+            queueThreshold: 200,
+            serviceTier: 'future-tier',
+            reasoningEffort: null,
+            topLogprobs: 21,
+            promptCacheKey: 'x'.repeat(1025),
+          },
+        },
+      });
+
+      expect(JSON.parse(calls[0].init!.body as string)).toMatchObject({
+        service_tier: 'future-tier',
+        reasoning_effort: null,
+        top_logprobs: 21,
+        prompt_cache_key: 'x'.repeat(1025),
+      });
+    });
+
+    it('rejects invalid options on the streaming path too', async () => {
+      await expect(
+        createModel().doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: { cerebras: { queueThreshold: 5 } },
+        }),
+      ).rejects.toThrow(InvalidArgumentError);
     });
   });
 });

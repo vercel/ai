@@ -36,7 +36,7 @@ function createOperations(): MCPEventOperations {
 const input = {
   name: 'comment.created',
   arguments: {},
-  expiresAt: null,
+  ttlMs: null,
   idempotencyKey: 'intent_1',
 };
 

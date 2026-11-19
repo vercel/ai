@@ -70,6 +70,7 @@ export type LanguageModel =
  * - `content-filter`: content filter violation stopped the model
  * - `tool-calls`: model triggered tool calls
  * - `error`: model stopped because of an error
+ * - `interrupted`: provider stream ended without a completion signal; output may be incomplete
  * - `other`: model stopped for other reasons
  */
 export type FinishReason =
@@ -78,6 +79,7 @@ export type FinishReason =
   | 'content-filter'
   | 'tool-calls'
   | 'error'
+  | 'interrupted'
   | 'other';
 
 /**

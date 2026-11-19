@@ -33,30 +33,39 @@ export const computerToolset_20260801Members = [
 export type ComputerToolset_20260801Member =
   (typeof computerToolset_20260801Members)[number];
 
-const computerToolset_20260801InputSchema = lazySchema(() =>
-  zodSchema(
-    z.object({
-      action: z.enum(computerToolset_20260801Members),
-      coordinate: z.tuple([z.number().int(), z.number().int()]).optional(),
-      duration: z.number().optional(),
-      region: z
-        .tuple([
-          z.number().int(),
-          z.number().int(),
-          z.number().int(),
-          z.number().int(),
-        ])
-        .optional(),
-      repeat: z.number().int().optional(),
-      scroll_amount: z.number().optional(),
-      scroll_direction: z.enum(['up', 'down', 'left', 'right']).optional(),
-      start_coordinate: z
-        .tuple([z.number().int(), z.number().int()])
-        .optional(),
-      text: z.string().optional(),
-    }),
-  ),
-);
+const computerToolset_20260801InputSchema = (
+  configs?: Partial<
+    Record<ComputerToolset_20260801Member, { enabled?: boolean }>
+  >,
+) =>
+  lazySchema(() =>
+    zodSchema(
+      z.object({
+        action: z.enum(
+          computerToolset_20260801Members.filter(
+            member => configs?.[member]?.enabled !== false,
+          ),
+        ),
+        coordinate: z.tuple([z.number().int(), z.number().int()]).optional(),
+        duration: z.number().optional(),
+        region: z
+          .tuple([
+            z.number().int(),
+            z.number().int(),
+            z.number().int(),
+            z.number().int(),
+          ])
+          .optional(),
+        repeat: z.number().int().optional(),
+        scroll_amount: z.number().optional(),
+        scroll_direction: z.enum(['up', 'down', 'left', 'right']).optional(),
+        start_coordinate: z
+          .tuple([z.number().int(), z.number().int()])
+          .optional(),
+        text: z.string().optional(),
+      }),
+    ),
+  );
 
 export const computerToolset_20260801ArgsSchema = lazySchema(() =>
   zodSchema(
@@ -74,7 +83,7 @@ export const computerToolset_20260801ArgsSchema = lazySchema(() =>
   ),
 );
 
-export const computerToolset_20260801 = createProviderDefinedToolFactory<
+const factory = createProviderDefinedToolFactory<
   {
     /**
      * The member tool that Claude invoked. Each member is returned by the API
@@ -161,5 +170,10 @@ export const computerToolset_20260801 = createProviderDefinedToolFactory<
   }
 >({
   id: 'anthropic.computer_toolset_20260801',
-  inputSchema: computerToolset_20260801InputSchema,
+  inputSchema: computerToolset_20260801InputSchema(),
+});
+
+export const computerToolset_20260801: typeof factory = args => ({
+  ...factory(args),
+  inputSchema: computerToolset_20260801InputSchema(args.configs),
 });

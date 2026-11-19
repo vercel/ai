@@ -2,10 +2,12 @@
 
 `HarnessV1` adapter backed by [`@cline/agents`](https://www.npmjs.com/package/@cline/agents). Cline runs in the host Node.js process and uses the sandbox as a remote filesystem and shell, so no bridge process is installed inside the sandbox.
 
+-> **Note**: This package is experimental.
+
 ## Setup
 
 ```bash
-npm i @ai-sdk/harness-cline @ai-sdk/harness @ai-sdk/sandbox-vercel
+npm i ai @ai-sdk/harness-cline @ai-sdk/harness @ai-sdk/sandbox-vercel zod
 ```
 
 ## Usage
@@ -52,11 +54,4 @@ try {
 }
 ```
 
-The adapter has no in-sandbox bridge, so the supplied session does not need
-exposed ports. Its built-in tools operate on the sandbox from the host process.
-
-## Authentication
-
-The default `auto` authentication mode uses `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` when available and otherwise falls back to `CLINE_API_KEY`. Use `createCline({ auth: 'ai-gateway' })` or `createCline({ auth: 'direct' })` to select a mode explicitly, or pass an isolated authentication environment with `createCline({ auth: { CLINE_API_KEY: token } })`. `AI_GATEWAY_BASE_URL` and `CLINE_API_BASE_URL` configure their respective endpoints.
-
-See the [Cline harness documentation](https://ai-sdk.dev/providers/ai-sdk-harnesses/cline) for model configuration, reasoning, tools, skills, MCP, and session lifecycle details.
+See the [Cline Harness documentation](https://ai-sdk.dev/providers/ai-sdk-harnesses/cline) for more information.

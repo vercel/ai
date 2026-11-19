@@ -16,7 +16,7 @@ run(async () => {
     messages.push({ role: 'user', content: await terminal.question('You: ') });
 
     const result = streamText({
-      model: google('gemini-3.8-flash'),
+      model: google('gemini-4-hydrogen'),
       tools: {
         weather: tool({
           description: 'Get the weather in a location',

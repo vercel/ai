@@ -492,6 +492,71 @@ describe('HuggingFaceResponsesLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it('should forward tool choice none while preserving tool definitions', async () => {
+      server.urls['https://router.huggingface.co/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:{"type":"response.completed","response":{"id":"resp_test","status":"completed","incomplete_details":null,"usage":null},"sequence_number":1}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('test-model').doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'test',
+            inputSchema: { type: 'object' },
+          },
+        ],
+        toolChoice: { type: 'none' },
+      });
+
+      await convertReadableStreamToArray(stream);
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        tool_choice: 'none',
+        tools: [
+          { type: 'function', name: 'test', parameters: { type: 'object' } },
+        ],
+      });
+    });
+
+    it.each([false, true])(
+      'handles a truncated stream (with error: %s)',
+      async withError => {
+        server.urls['https://router.huggingface.co/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: ${JSON.stringify({ type: 'response.created', response: { id: 'r1', created_at: 1, model: 'test-model', status: 'in_progress' } })}\n\n`,
+            `data: ${JSON.stringify({ type: 'response.output_text.delta', item_id: 'msg1', output_index: 0, content_index: 0, delta: 'Partial answer', sequence_number: 1 })}\n\n`,
+            ...(withError ? ['data: {invalid-json}\n\n'] : []),
+          ],
+        };
+        const { stream } = await createModel('test-model').doStream({
+          prompt: TEST_PROMPT,
+        });
+        const parts = await convertReadableStreamToArray(stream);
+        expect(parts).toContainEqual(
+          expect.objectContaining({
+            type: 'text-delta',
+            delta: 'Partial answer',
+          }),
+        );
+        expect(parts.filter(part => part.type === 'error')).toHaveLength(
+          withError ? 1 : 0,
+        );
+        expect(parts.filter(part => part.type === 'finish')).toEqual([
+          expect.objectContaining({
+            finishReason: {
+              unified: withError ? 'error' : 'interrupted',
+              raw: undefined,
+            },
+          }),
+        ]);
+      },
+    );
+
     it('should stream text deltas', async () => {
       server.urls['https://router.huggingface.co/v1/responses'].response = {
         type: 'stream-chunks',
@@ -1565,62 +1630,51 @@ describe('HuggingFaceResponsesLanguageModel', () => {
       `);
     });
 
-    it('should handle auto and required tool choices', async () => {
-      server.urls['https://router.huggingface.co/v1/responses'].response = {
-        type: 'json-value',
-        body: {
-          id: 'resp_tools',
-          model: 'deepseek-ai/DeepSeek-V3-0324',
-          object: 'response',
-          created_at: 1741257730,
-          status: 'completed',
-          error: null,
-          instructions: null,
-          max_output_tokens: null,
-          metadata: null,
-          tool_choice: 'auto',
-          tools: [],
-          temperature: 1.0,
-          top_p: 1.0,
-          incomplete_details: null,
-          usage: null,
-          output: [],
-          output_text: 'Test',
-        },
-      };
-
-      // Test auto
-      await createModel('deepseek-ai/DeepSeek-V3-0324').doGenerate({
-        prompt: TEST_PROMPT,
-        tools: [
-          {
-            type: 'function',
-            name: 'test',
-            inputSchema: { type: 'object' },
+    it.each(['auto', 'required', 'none'] as const)(
+      'should forward tool choice %s',
+      async toolChoice => {
+        server.urls['https://router.huggingface.co/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_tools',
+            model: 'deepseek-ai/DeepSeek-V3-0324',
+            object: 'response',
+            created_at: 1741257730,
+            status: 'completed',
+            error: null,
+            instructions: null,
+            max_output_tokens: null,
+            metadata: null,
+            tool_choice: 'auto',
+            tools: [],
+            temperature: 1.0,
+            top_p: 1.0,
+            incomplete_details: null,
+            usage: null,
+            output: [],
+            output_text: 'Test',
           },
-        ],
-        toolChoice: { type: 'auto' },
-      });
+        };
 
-      let requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.tool_choice).toBe('auto');
+        await createModel('deepseek-ai/DeepSeek-V3-0324').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'test',
+              inputSchema: { type: 'object' },
+            },
+          ],
+          toolChoice: { type: toolChoice },
+        });
 
-      // Test required
-      await createModel('deepseek-ai/DeepSeek-V3-0324').doGenerate({
-        prompt: TEST_PROMPT,
-        tools: [
-          {
-            type: 'function',
-            name: 'test',
-            inputSchema: { type: 'object' },
-          },
-        ],
-        toolChoice: { type: 'required' },
-      });
-
-      requestBody = await server.calls[1].requestBodyJson;
-      expect(requestBody.tool_choice).toBe('required');
-    });
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.tool_choice).toBe(toolChoice);
+        expect(requestBody.tools).toEqual([
+          { type: 'function', name: 'test', parameters: { type: 'object' } },
+        ]);
+      },
+    );
   });
 
   describe('top-level-only media type resolution', () => {

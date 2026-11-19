@@ -88,10 +88,11 @@ export interface AmazonBedrockAnthropicProviderSettings {
 
   /**
    * API key for authenticating requests using Bearer token authentication.
+   * A callback is resolved before each request and must return a non-empty key.
    * When provided, this will be used instead of AWS SigV4 authentication.
    * Defaults to the value of the `AWS_BEARER_TOKEN_BEDROCK` environment variable.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * The AWS access key ID to use for the Bedrock provider. Defaults to the value of the
@@ -147,14 +148,17 @@ export function createAmazonBedrockAnthropic(
   options: AmazonBedrockAnthropicProviderSettings = {},
 ): AmazonBedrockAnthropicProvider {
   // Check for API key authentication first
-  const rawApiKey = loadOptionalSetting({
-    settingValue: options.apiKey,
-    environmentVariableName: 'AWS_BEARER_TOKEN_BEDROCK',
-  });
+  const rawApiKey =
+    typeof options.apiKey === 'string' || options.apiKey == null
+      ? loadOptionalSetting({
+          settingValue: options.apiKey,
+          environmentVariableName: 'AWS_BEARER_TOKEN_BEDROCK',
+        })
+      : options.apiKey;
 
   // Only use API key if it's a non-empty, non-whitespace string
   const apiKey =
-    rawApiKey && rawApiKey.trim().length > 0 ? rawApiKey.trim() : undefined;
+    typeof rawApiKey === 'string' ? rawApiKey.trim() || undefined : rawApiKey;
 
   // Use API key authentication if available, otherwise fall back to SigV4
   const baseFetchFunction = apiKey
@@ -275,7 +279,6 @@ export function createAmazonBedrockAnthropic(
           model: _model,
           stream: _stream,
           tool_choice,
-          thinking,
           tools,
           ...rest
         } = args;
@@ -287,21 +290,6 @@ export function createAmazonBedrockAnthropic(
                 ...(tool_choice.name != null ? { name: tool_choice.name } : {}),
               }
             : undefined;
-
-        // Bedrock names the thinking block binding field `mismatch_behavior`, while the
-        // Anthropic Messages API names it `prefix_mismatch_behavior`
-        // Some AWS regions (us-east-1) will automatically alias the field to `mismatch_behavior`,
-        // but others (eu-central-1) fail.
-        const transformedThinking =
-          thinking?.block_binding != null
-            ? {
-                ...thinking,
-                block_binding: {
-                  mismatch_behavior:
-                    thinking.block_binding.prefix_mismatch_behavior,
-                },
-              }
-            : thinking;
 
         const requiredBetas = new Set<string>(betas);
         const transformedTools = tools?.map(
@@ -353,7 +341,6 @@ export function createAmazonBedrockAnthropic(
 
         return {
           ...rest,
-          ...(thinking != null ? { thinking: transformedThinking } : {}),
           ...(transformedTools != null ? { tools: transformedTools } : {}),
           ...(transformedToolChoice != null
             ? { tool_choice: transformedToolChoice }

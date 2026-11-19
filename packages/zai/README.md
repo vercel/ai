@@ -6,31 +6,11 @@ The **Z.AI provider** for the [AI SDK](https://ai-sdk.dev/docs) contains languag
 
 ## Setup
 
-Install the Z.AI provider with:
-
 ```bash
-npm i @ai-sdk/zai
+npm i ai @ai-sdk/zai
 ```
 
-## Provider Instance
-
-Import the default provider instance from `@ai-sdk/zai`:
-
-```ts
-import { zai } from '@ai-sdk/zai';
-```
-
-The provider reads the API key from `ZAI_API_KEY` by default. To configure it explicitly, use `createZai`:
-
-```ts
-import { createZai } from '@ai-sdk/zai';
-
-const zai = createZai({
-  apiKey: process.env.ZAI_API_KEY,
-});
-```
-
-## Language Models
+## Usage
 
 ```ts
 import { zai } from '@ai-sdk/zai';
@@ -44,4 +24,4 @@ const { text } = await generateText({
 console.log(text);
 ```
 
-The provider supports streaming, reasoning, function tools, JSON object output, and URL-based image and video input on compatible GLM models.
+See the [Z.AI Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/zai) for more information.

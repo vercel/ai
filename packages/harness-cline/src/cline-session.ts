@@ -16,6 +16,8 @@ import {
 } from '@ai-sdk/harness';
 import {
   getRestrictedSandboxSession,
+  convertHarnessToolModelOutput,
+  isSandboxWriteProtectedPath,
   resolveSandboxHomeDir,
 } from '@ai-sdk/harness/utils';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
@@ -24,6 +26,7 @@ import {
   createTool,
   type AgentMessage,
   type AgentModel,
+  type AgentRunInput,
   type AgentRunResult,
 } from '@cline/agents';
 import { Llms } from '@cline/core';
@@ -58,11 +61,12 @@ import {
   createClineTranslatorState,
   finishClineTranslation,
   toolApprovalParts,
+  takeClineEarlyFinishStep,
   translateClineEvent,
   type ClineTranslatorState,
 } from './cline-translate';
 import {
-  extractUserText,
+  extractUserInput,
   mapRunFinishReason,
   usageFromAgentUsage,
 } from './cline-utils';
@@ -158,6 +162,28 @@ function clineBuiltinToolRequiresApproval(input: {
   return input.kind === 'edit' || input.kind === 'bash';
 }
 
+/*
+ * Workspace paths that hold Cline rules, configuration, or skills, which can
+ * change the agent's behavior in later sessions. Writes to them always require
+ * host approval unless the permission mode is `allow-all`.
+ */
+const CLINE_WRITE_PROTECTED_PATHS = ['.agents/skills', '.cline', '.clinerules'];
+
+/*
+ * Edits that the permission mode approves automatically still go through the
+ * runtime's approval callback, which approves them unless they write to a
+ * write-protected path.
+ */
+function clineBuiltinToolRequiresApprovalCallback(input: {
+  permissionMode: HarnessV1PermissionMode;
+  kind: 'readonly' | 'edit' | 'bash';
+}): boolean {
+  return (
+    clineBuiltinToolRequiresApproval(input) ||
+    (input.permissionMode === 'allow-edits' && input.kind === 'edit')
+  );
+}
+
 function buildSystemPrompt(input: {
   sessionWorkDir: string;
   sandboxDescription: string;
@@ -186,7 +212,7 @@ function createClineAgentModel({
   settings: ClineSessionSettings;
   clientApp: string;
   modelId: string | undefined;
-}): { model: AgentModel; providerId: string } {
+}): { model: AgentModel; providerId: string; modelId: string | undefined } {
   const gatewayBaseUrl = settings.authEnv.AI_GATEWAY_BASE_URL;
   const isAiGateway = gatewayBaseUrl != null;
   const providerId = isAiGateway ? 'cline' : (settings.providerId ?? 'cline');
@@ -247,6 +273,15 @@ function createClineAgentModel({
   return {
     model,
     providerId,
+    /*
+     * The Cline gateway resolves an omitted model to the provider manifest's
+     * `defaultModelId`, which `listProviders()` reports with the same
+     * precedence (provider config, then built-in manifest, then first model).
+     */
+    modelId:
+      modelId ??
+      gateway.listProviders().find(provider => provider.id === providerId)
+        ?.defaultModelId,
   };
 }
 
@@ -386,6 +421,30 @@ export async function createClineSession(
     });
   }
 
+  async function isClineWriteProtected({
+    toolInput,
+  }: {
+    toolInput: unknown;
+  }): Promise<boolean> {
+    const filePath =
+      toolInput != null && typeof toolInput === 'object'
+        ? (toolInput as { file_path?: unknown }).file_path
+        : undefined;
+    if (typeof filePath !== 'string') return true;
+    let sandboxPath: string;
+    try {
+      sandboxPath = ops.resolvePath(filePath);
+    } catch {
+      return true;
+    }
+    return isSandboxWriteProtectedPath({
+      sandbox: toolSafeSandboxSession,
+      workDir: input.sessionWorkDir,
+      paths: [sandboxPath],
+      writeProtectedPaths: CLINE_WRITE_PROTECTED_PATHS,
+    });
+  }
+
   function requestBuiltinToolApproval(toolCall: {
     toolCallId: string;
     toolName: string;
@@ -398,7 +457,22 @@ export async function createClineSession(
     }
     return new Promise(resolve => {
       pendingToolApprovals.set(toolCall.toolCallId, { resolve });
+      emitEarlyFinishStepIfReady();
     });
+  }
+
+  function emitEarlyFinishStepIfReady(): void {
+    if (!translatorState || !currentEmit) return;
+    const waitingToolCallIds = new Set([
+      ...pendingToolResults.keys(),
+      ...pendingToolApprovals.keys(),
+      ...pendingQuestions.keys(),
+    ]);
+    for (const part of takeClineEarlyFinishStep(translatorState, {
+      waitingToolCallIds,
+    })) {
+      currentEmit(part);
+    }
   }
 
   function rebuildAgent(rebuildInput: {
@@ -440,6 +514,7 @@ export async function createClineSession(
           activeNames: activeBuiltinNames,
           pendingQuestions,
           pendingQuestionResults,
+          onHostInputPending: emitEarlyFinishStepIfReady,
         }),
         ...(rebuildInput.skillsRuntime.tool &&
         activeBuiltinNames.includes('skills')
@@ -449,6 +524,7 @@ export async function createClineSession(
         ...buildUserAgentTools({
           specs: rebuildInput.userTools,
           pendingToolResults,
+          onHostInputPending: emitEarlyFinishStepIfReady,
         }),
         ...(rebuildInput.responseFormat?.type === 'json' &&
         rebuildInput.responseFormat.schema != null
@@ -483,23 +559,33 @@ export async function createClineSession(
         },
       },
       // Built-in tools whose kind requires approval under the session's
-      // permission mode are marked `autoApprove: false`; the runtime then
-      // routes them through `requestToolApproval` below. User tools are
-      // approved by the harness framework, never by the adapter.
+      // permission mode, and edits that may touch write-protected paths, are
+      // marked `autoApprove: false`; the runtime then routes them through
+      // `requestToolApproval` below. User tools are approved by the harness
+      // framework, never by the adapter.
       toolPolicies: Object.fromEntries(
         activeBuiltinNames
           .filter(name =>
-            clineBuiltinToolRequiresApproval({
+            clineBuiltinToolRequiresApprovalCallback({
               permissionMode,
               kind: CLINE_NATIVE_TOOL_KINDS[name],
             }),
           )
           .map(name => [name, { autoApprove: false }]),
       ),
-      requestToolApproval: request => {
+      requestToolApproval: async request => {
         if (!isClineBuiltinToolName(request.toolName)) {
           // Custom host-executed tool approvals are handled by the framework
           // before results are submitted back; the adapter never gates them.
+          return { approved: true };
+        }
+        if (
+          !clineBuiltinToolRequiresApproval({
+            permissionMode,
+            kind: CLINE_NATIVE_TOOL_KINDS[request.toolName],
+          }) &&
+          !(await isClineWriteProtected({ toolInput: request.input }))
+        ) {
           return { approved: true };
         }
         return requestBuiltinToolApproval({
@@ -573,10 +659,17 @@ export async function createClineSession(
         const pending = pendingToolResults.get(args.toolCallId);
         if (!pending) return;
         pendingToolResults.delete(args.toolCallId);
+        translatorState?.hostToolResults.set(args.toolCallId, args.output);
+        const converted =
+          args.toolResult == null
+            ? undefined
+            : convertHarnessToolModelOutput({
+                output: args.toolResult.output,
+              });
         pending.resolve(
           createClineToolResult({
-            output: args.output,
-            isError: args.isError,
+            output: converted?.content ?? args.output,
+            isError: args.isError === true || converted?.isError === true,
           }),
         );
       },
@@ -609,7 +702,7 @@ export async function createClineSession(
    * (no prompt — the runtime continues its own thread after a rerun resume).
    */
   async function runTurn(turnOpts: {
-    text: string | undefined;
+    input: AgentRunInput | undefined;
     model?: string;
     skills: ReadonlyArray<HarnessV1Skill>;
     tools: ReadonlyArray<HarnessV1ToolSpec>;
@@ -690,25 +783,25 @@ export async function createClineSession(
 
     turnOpts.emit({
       type: 'stream-start',
-      ...(activeModelId ? { modelId: activeModelId } : {}),
+      ...(agentModel.modelId ? { modelId: agentModel.modelId } : {}),
     });
 
     acceptingUserMessages = true;
     const turnPromise = (async () => {
       const runtime = agent!;
       try {
-        let nextText = turnOpts.text;
+        let nextInput = turnOpts.input;
         let result: AgentRunResult;
         for (;;) {
-          // `text` is undefined only on rerun-continue: `continue()` without
+          // `input` is undefined only on rerun-continue: `continue()` without
           // input re-drives the loop from the restored transcript instead of
           // pushing an empty user message.
           result =
-            nextText === undefined
+            nextInput === undefined
               ? await runtime.continue()
               : agentHasRun
-                ? await runtime.continue(nextText)
-                : await runtime.run(nextText);
+                ? await runtime.continue(nextInput)
+                : await runtime.run(nextInput);
           agentHasRun = true;
           currentMessages = result.messages;
 
@@ -721,7 +814,7 @@ export async function createClineSession(
           if (result.status !== 'completed') break;
           const pendingUserMessage = consumePendingUserMessage();
           if (pendingUserMessage == null) break;
-          nextText = pendingUserMessage;
+          nextInput = pendingUserMessage;
         }
 
         if (
@@ -865,7 +958,7 @@ export async function createClineSession(
       promptOpts: HarnessV1PromptTurnOptions,
     ): Promise<HarnessV1PromptControl> => {
       return runTurn({
-        text: extractUserText(promptOpts.prompt),
+        input: extractUserInput(promptOpts.prompt),
         ...(promptOpts.model ? { model: promptOpts.model } : {}),
         skills: promptOpts.skills,
         tools: promptOpts.tools ?? [],
@@ -901,7 +994,7 @@ export async function createClineSession(
        * host-resident runtime cannot do a lossless attach.
        */
       return runTurn({
-        text: undefined,
+        input: undefined,
         ...(continueOpts.model ? { model: continueOpts.model } : {}),
         skills: continueOpts.skills,
         tools: continueOpts.tools ?? [],

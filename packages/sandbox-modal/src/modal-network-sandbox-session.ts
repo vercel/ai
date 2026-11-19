@@ -43,9 +43,22 @@ export class ModalNetworkSandboxSession
   readonly id: string;
   readonly defaultWorkingDirectory: string;
   readonly ports: ReadonlyArray<number>;
+  /**
+   * Replaces the rules of the session. Present only when the sandbox was
+   * created with `requestTransformations: true`. Rules Modal cannot express
+   * are rejected and leave the rules in place unchanged.
+   */
   readonly setRequestTransformations?: (
     transformations: ReadonlyArray<HarnessV1RequestTransformation>,
   ) => Promise<void>;
+  /**
+   * Adds to the rules of the session. Present only when the sandbox was
+   * created with `requestTransformations: true`. Each header that an added
+   * rule sets replaces the value held for the same host and header name,
+   * whatever the rule's other matchers or placeholder are, which is how a
+   * harness adapter refreshes a credential. Adding the same value again
+   * changes nothing.
+   */
   readonly addRequestTransformations?: (
     transformations: ReadonlyArray<HarnessV1RequestTransformation>,
   ) => Promise<void>;

@@ -66,7 +66,9 @@ type ModalCreationSettings = Omit<
   /**
    * Modal client used for every request. Defaults to a new `ModalClient`,
    * which reads `MODAL_TOKEN_ID` and `MODAL_TOKEN_SECRET` or the active
-   * profile in `~/.modal.toml`.
+   * profile in `~/.modal.toml` that `modal setup` writes. Pass your own
+   * client, such as `new ModalClient({ tokenId, tokenSecret })`, to configure
+   * credentials or the Modal environment in code.
    */
   client?: ModalClient;
 
@@ -78,30 +80,76 @@ type ModalCreationSettings = Omit<
 
   /**
    * Container image for the sandbox: a registry tag such as `node:24`, or a
-   * Modal `Image`. Defaults to `node:24` with `pnpm` installed.
+   * Modal `Image`. Defaults to `node:24` with `pnpm` installed and
+   * `/workspace` as the working directory.
    */
   image?: Image | string;
 
   /**
-   * Creates the sandbox with Modal's experimental outbound policy, so that
-   * the session has `setRequestTransformations()` and
-   * `addRequestTransformations()` and harness adapters broker credentials
-   * instead of forwarding them into the sandbox.
+   * Creates the sandbox with Modal's experimental outbound policy
+   * (`ExperimentalOutboundPolicy`), so that the session has
+   * `setRequestTransformations()` and `addRequestTransformations()`.
+   * Bridge-backed harness adapters such as Claude Code and Codex then broker
+   * model credentials: the sandbox process receives a placeholder, and Modal
+   * attaches the real credential to the request after it has left the
+   * sandbox. Without the option the session has neither method, and the
+   * adapters forward model credentials into the sandbox process instead. Each
+   * harness adapter's `credentialForwarding` setting controls what the
+   * sandbox receives. Defaults to `false`, because Modal may change the
+   * experimental policy and because of these limits:
    *
-   * Modal applies a rule to its whole host. A rule's `path` and `headers`
-   * matchers are accepted without narrowing it, so a brokered credential is
-   * attached to every request the sandbox makes to that host, with or without
-   * the placeholder. A rule with a `method` or `queryString` matcher, or
-   * anything else Modal cannot express, is rejected.
-   *
-   * Modal does not restrict the outbound HTTPS traffic of such a sandbox, so
-   * this cannot be combined with `blockNetwork` or an outbound allowlist.
+   * - A rule applies to its whole host. Modal replaces headers per host and
+   *   has no path, method, query string, or header matcher. A rule's `path`
+   *   and `headers` matchers are accepted without narrowing the rule: it is
+   *   applied to every HTTPS request that the sandbox sends to its host. On
+   *   Modal a brokered credential is therefore attached to every request the
+   *   sandbox makes to that host, with or without the placeholder, and a
+   *   program in the sandbox cannot use a different credential of its own for
+   *   the same host.
+   * - Rules that Modal cannot express are rejected. A rule with a `method` or
+   *   `queryString` matcher, or with any other matcher Modal cannot express,
+   *   fails with a `HarnessCapabilityUnsupportedError`, and nothing is
+   *   changed. A harness adapter whose credential rules use such a matcher,
+   *   which among the bundled adapters is Cursor, therefore fails to start on
+   *   a session created with this option and has to run on one created
+   *   without it. A host is an exact name, a name with a `*.` prefix, which on
+   *   Modal also matches the name itself, or `*`.
+   * - One credential per host and header for the whole sandbox session, and
+   *   the latest value wins. Modal holds one value per host and header, shared
+   *   by every harness session on the sandbox session. A refreshed credential
+   *   therefore takes effect from any harness session, resumed or not, and two
+   *   agents with different credentials for the same host on one sandbox
+   *   session share the last one supplied; use separate sandbox sessions to
+   *   keep them apart. Two bearer credentials for one host in direct mode,
+   *   such as `ANTHROPIC_AUTH_TOKEN` together with `CLAUDE_CODE_OAUTH_TOKEN`,
+   *   are supplied in one call and are rejected, because both set
+   *   `Authorization`. An API key together with a bearer token are both
+   *   accepted, and both `x-api-key` and `Authorization` are attached to every
+   *   request to the host.
+   * - Ambiguous values are rejected with a
+   *   `HarnessCapabilityUnsupportedError`, and nothing is changed: one call
+   *   that sets the same header to different values for the same host or for
+   *   overlapping hosts, and a value for a host that overlaps a different host
+   *   already holding a different value for that header.
+   * - No outbound restrictions. Modal rejects `blockNetwork` and
+   *   `outboundDomainAllowlist` on a sandbox that uses its outbound policy,
+   *   and does not apply `outboundCidrAllowlist` to its HTTPS traffic. This
+   *   option therefore cannot be combined with any of the three, and the
+   *   session's `setNetworkPolicy()` fails with a
+   *   `HarnessCapabilityUnsupportedError`.
+   * - Modal sees the header values. They are sent to Modal as part of the
+   *   sandbox's outbound policy. For the hosts that have a rule, Modal
+   *   terminates TLS with its own certificate authority, which the sandbox is
+   *   set up to trust, and sends the requests on over HTTP/1.1.
    */
   requestTransformations?: boolean;
 
   /**
    * Not supported: the session owns the outbound policy of a sandbox created
-   * with `requestTransformations` and would replace this one.
+   * with `requestTransformations` and would replace this one. To manage
+   * Modal's outbound policy yourself, create the sandbox with the Modal SDK
+   * and adapt it with
+   * {@link createModalNetworkSandboxSessionFromNativeSandbox}.
    */
   experimentalOutboundPolicy?: never;
 
@@ -153,11 +201,21 @@ type ModalLookupSettings = Omit<
 
   /**
    * Restores a stopped sandbox with Modal's experimental outbound policy, as
-   * on creation. A sandbox that is still running accepts request
-   * transformations when it was created with this option, whether or not it
-   * is passed again. Passing `true` for a running sandbox that was not
-   * created with it fails, instead of returning a session that forwards
-   * credentials into the sandbox.
+   * on creation, with the same limits. A stopped sandbox is restored as a new
+   * sandbox without rules, so pass the option again, together with the open
+   * outbound access it requires:
+   * `resumeModalNetworkSandboxSession({ sandboxId, encryptedPorts: [4000], requestTransformations: true, blockNetwork: false })`.
+   * A sandbox restored without the option has neither request transformation
+   * method, and harness adapters forward credentials into it.
+   *
+   * Modal does not report the outbound policy of a sandbox, so a tag records
+   * that it was created with the option. A sandbox that is still running
+   * accepts request transformations when it was created with the option,
+   * whether or not it is passed again. The reattached session does not know
+   * the rules in place, so its first call replaces them; harness adapters add
+   * their rules again whenever they start or resume a session. Passing `true`
+   * for a running sandbox that was not created with the option fails, instead
+   * of returning a session that forwards credentials into the sandbox.
    */
   requestTransformations?: boolean;
 
@@ -181,6 +239,60 @@ export type ModalNetworkSandboxSessionResumeOptions = Prettify<
   HarnessV1SandboxSessionResumeOptions<ModalLookupSettings>
 >;
 
+/**
+ * Creates a Modal sandbox and returns a network sandbox session for it.
+ *
+ * Accepts the options of the Modal SDK's `client.sandboxes.create()`, such as
+ * `timeoutMs`, `cpu`, `memoryMiB`, `env`, `secrets`, and `volumes`. Sandboxes
+ * are terminated after 30 minutes unless `timeoutMs` says otherwise, and
+ * outbound network access is open unless `blockNetwork` or an allowlist is
+ * passed. Commands run through `bash`, so the image must provide it.
+ *
+ * Expose ports with `encryptedPorts`. The session lists them in `ports` in
+ * ascending order, and `getPortEndpoint()` resolves each one to the URL of
+ * its Modal tunnel: `https://` by default and `wss://` for `protocol: 'ws'`.
+ * The URL can be dialed directly and stays the same for as long as the
+ * sandbox runs. Bridge-backed harness adapters such as Claude Code and Codex
+ * connect to the first listed port unless they are configured with a `port`.
+ * Modal fixes a sandbox's tunnels when it is created, so the session has no
+ * `setPorts()`. Ports exposed with `unencryptedPorts` are not listed.
+ *
+ * Modal runs sandbox processes as root, even when the image declares another
+ * user. Claude Code only skips its permission prompts as root when
+ * `IS_SANDBOX` is set, so pass it to the harness adapter:
+ * `createClaudeCode({ env: { IS_SANDBOX: '1' } })`.
+ *
+ * Setting `sandboxId` names the sandbox. Creation never resumes an existing
+ * sandbox and a conflicting name fails; use
+ * {@link resumeModalNetworkSandboxSession} to reattach. Modal cannot restart
+ * a terminated sandbox, so the session's `stop()` snapshots the sandbox
+ * filesystem, publishes the snapshot as a Modal image named after the
+ * session `id`, and terminates the sandbox, without keeping running
+ * processes. `destroy()` terminates the sandbox and deletes its stop
+ * snapshot. Creating a sandbox
+ * with the `sandboxId` of a stopped one leaves the old stop snapshot in place
+ * until the next `stop()` or `destroy()`.
+ *
+ * With a `template`, the prepared filesystem is published as a Modal image
+ * named after the template, and later sandboxes start from it.
+ *
+ * The session's `setNetworkPolicy()` only works on a sandbox that was created
+ * with an `outboundDomainAllowlist` and without `blockNetwork`, so sandboxes
+ * are created with allowlists that admit everything unless `blockNetwork` or
+ * an allowlist is passed. Modal admits a host only for TLS traffic on port
+ * 443, rejects IPv6 ranges, and has no deny list, so a policy with
+ * `deniedCIDRs` fails with a `HarnessCapabilityUnsupportedError`, as does a
+ * sandbox whose policy Modal cannot change. That includes every sandbox
+ * created with `requestTransformations: true`.
+ *
+ * Pass `requestTransformations: true` to give the session
+ * `setRequestTransformations()` and `addRequestTransformations()`, so that
+ * bridge-backed harness adapters broker model credentials instead of
+ * forwarding them into the sandbox process. On Modal a brokered credential is
+ * attached to every request the sandbox sends to that host, and a program in
+ * the sandbox cannot use a different credential of its own for the same
+ * host. See the option for its limits.
+ */
 export async function createModalNetworkSandboxSession(
   options: ModalNetworkSandboxSessionCreateOptions = {},
 ): Promise<HarnessV1NetworkSandboxSession> {
@@ -278,6 +390,42 @@ export async function createModalNetworkSandboxSession(
   });
 }
 
+/**
+ * Reattaches to the Modal sandbox named `sandboxId` while it is running.
+ * Otherwise starts a new sandbox from its stop snapshot and gives it the same
+ * ID, with the working directory and the rest of the filesystem as `stop()`
+ * left them. A harness session that keeps its state in the sandbox, such as
+ * Claude Code or Codex, can then be resumed with
+ * `createSession({ sandboxSession, sessionId, resumeFrom })`.
+ *
+ * Modal does not keep the configuration of a stopped sandbox, so pass the
+ * creation options again, for example
+ * `resumeModalNetworkSandboxSession({ sandboxId, encryptedPorts: [4000], blockNetwork: false })`.
+ * They are used only when the sandbox has to be restored and are ignored when
+ * reattaching to a running sandbox.
+ *
+ * Modal does not keep the network settings of a stopped sandbox either,
+ * whether they were set at creation or with `setNetworkPolicy()`, and a
+ * restore without them would open all outbound access. A restore is
+ * therefore refused unless `blockNetwork`, `outboundCidrAllowlist`, or
+ * `outboundDomainAllowlist` is passed. `blockNetwork: false` restores the
+ * sandbox with open outbound access. Reattaching to a running sandbox needs
+ * no network settings. A restore with `requestTransformations: true` needs
+ * `blockNetwork: false`, because the option cannot be combined with outbound
+ * restrictions.
+ *
+ * Tunnel URLs stay the same for as long as a sandbox runs, including after
+ * reattaching. A restored sandbox is a new Modal sandbox, so its tunnel URLs
+ * are new, and without `encryptedPorts` it exposes no ports.
+ *
+ * Only `stop()` takes a snapshot. A sandbox that ends another way, for example
+ * by reaching `timeoutMs`, cannot be restored from its last state: resuming it
+ * restores the snapshot of an earlier `stop()` when there is one, and
+ * otherwise fails. Modal keeps a snapshot for 30 days, after which the
+ * stopped sandbox cannot be resumed. Each `stop()` publishes a new snapshot
+ * image, `destroy()` deletes the current one, and earlier ones stay in the
+ * Modal account until they expire.
+ */
 export async function resumeModalNetworkSandboxSession(
   options: ModalNetworkSandboxSessionResumeOptions,
 ): Promise<HarnessV1NetworkSandboxSession> {
@@ -423,12 +571,27 @@ export async function resumeModalNetworkSandboxSession(
   });
 }
 
+/**
+ * Adapts an existing native `Sandbox` for AI SDK tools that accept
+ * `experimental_sandbox`. Modal reports a sandbox's working directory only
+ * through an asynchronous call, so the adaptation takes the `workdir` that the
+ * sandbox was created with.
+ */
 export function createModalSandboxSessionFromNativeSandbox(
   nativeSandbox: ModalNativeSandboxSession,
 ): SandboxSession {
   return new ModalSandboxSession(nativeSandbox.sandbox, nativeSandbox.workdir);
 }
 
+/**
+ * Adapts an existing native `Sandbox` to a network sandbox session. Modal
+ * reports a sandbox's working directory and tunnels only through asynchronous
+ * calls, so the adaptation takes the `workdir` and `encryptedPorts` that the
+ * sandbox was created with. The session does not snapshot the sandbox:
+ * `stop()` and `destroy()` both terminate it. It has neither
+ * `setRequestTransformations()` nor `addRequestTransformations()`, and a
+ * sandbox created with the Modal SDK keeps its own outbound policy.
+ */
 export function createModalNetworkSandboxSessionFromNativeSandbox(
   nativeSandbox: ModalNativeSandboxSession,
 ): HarnessV1NetworkSandboxSession {

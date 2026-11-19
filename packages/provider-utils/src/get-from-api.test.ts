@@ -263,7 +263,7 @@ describe('getFromApi', () => {
     it('rejects a redirect to an internal address without following it', async () => {
       const mockFetch = vi
         .fn()
-        .mockResolvedValueOnce(redirectTo('http://169.254.169.254/'));
+        .mockResolvedValueOnce(redirectTo('https://169.254.169.254/'));
 
       await expect(
         getFromApi({

@@ -103,6 +103,7 @@ describe('doGenerate', () => {
     });
 
     expect(result.text).toBe('Hello world.');
+    expect(result.warnings).toEqual([]);
     expect(await server.calls[0].requestBodyJson).toEqual({
       contents: [
         {
@@ -209,6 +210,7 @@ describe('doGenerate', () => {
     const result = await model.doGenerate({
       audio: new Uint8Array([1, 2, 3, 4]),
       mediaType: 'audio/wav',
+      timestampGranularities: ['word'],
       providerOptions: {},
     });
 
@@ -220,6 +222,124 @@ describe('doGenerate', () => {
       { text: 'brown', startSecond: 0.4, endSecond: 0.7 },
       { text: 'fox.', startSecond: 0.7, endSecond: 1 },
     ]);
+    expect(result.words).toEqual(result.segments);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('maps shared word timings and warns that caption segments are unavailable', async () => {
+    server.urls[
+      `${BASE_URL}/models/gemini-3.5-transcribe:generateContent`
+    ].response = {
+      type: 'json-value',
+      body: { candidates: [{ content: { parts: [{ text: 'Hello' }] } }] },
+    };
+    const model = createModel('gemini-3.5-transcribe');
+    const result = await model.doGenerate({
+      audio: new Uint8Array([1, 2, 3, 4]),
+      mediaType: 'audio/wav',
+      timestampGranularities: ['word', 'segment'],
+    });
+
+    expect((await server.calls[0].requestBodyJson).generationConfig).toEqual({
+      audioTranscriptionConfig: { wordTimestamp: true },
+    });
+    expect(result.warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'timestampGranularities',
+        details:
+          'Vertex Gemini transcription returns word timings and does not provide separate caption segments.',
+      },
+      {
+        type: 'other',
+        message:
+          'The Vertex Gemini transcription response omitted the requested word timings.',
+      },
+    ]);
+  });
+
+  it.each(['googleVertex', 'vertex', 'google'])(
+    'warns when %s.wordTimestamp disables requested word timings',
+    async namespace => {
+      const model = createModel('gemini-3.5-transcribe');
+      const result = await model.doGenerate({
+        audio: new Uint8Array([1, 2, 3, 4]),
+        mediaType: 'audio/wav',
+        timestampGranularities: ['word'],
+        providerOptions: {
+          [namespace]: { wordTimestamp: false, languageCodes: ['en-US'] },
+        },
+      });
+
+      expect((await server.calls[0].requestBodyJson).generationConfig).toEqual({
+        audioTranscriptionConfig: {
+          wordTimestamp: false,
+          languageCodes: ['en-US'],
+        },
+      });
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'timestampGranularities',
+          details:
+            'The provider wordTimestamp option is false and overrides the requested word timings.',
+        },
+      ]);
+    },
+  );
+
+  it.each([undefined, null, [], [{ word: 'Hello' }]].map(words => ({ words })))(
+    'warns when a nonempty response omits requested word timings ($words)',
+    async ({ words }) => {
+      server.urls[
+        `${BASE_URL}/models/gemini-3.5-transcribe:generateContent`
+      ].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: {
+                parts: [{ audioTranscription: { text: 'Hello', words } }],
+              },
+            },
+          ],
+        },
+      };
+      const model = createModel('gemini-3.5-transcribe');
+      const result = await model.doGenerate({
+        audio: new Uint8Array([1, 2, 3, 4]),
+        mediaType: 'audio/wav',
+        timestampGranularities: ['word'],
+      });
+
+      expect(result.words).toBeUndefined();
+      expect(result.segments).toEqual([]);
+      expect(result.warnings).toEqual([
+        {
+          type: 'other',
+          message:
+            'The Vertex Gemini transcription response omitted the requested word timings.',
+        },
+      ]);
+    },
+  );
+
+  it('does not warn about omitted word timings for an empty transcript', async () => {
+    server.urls[
+      `${BASE_URL}/models/gemini-3.5-transcribe:generateContent`
+    ].response = {
+      type: 'json-value',
+      body: { candidates: [] },
+    };
+    const result = await createModel('gemini-3.5-transcribe').doGenerate({
+      audio: new Uint8Array([1, 2, 3, 4]),
+      mediaType: 'audio/wav',
+      timestampGranularities: ['word'],
+    });
+
+    expect(result.text).toBe('');
+    expect(result.words).toBeUndefined();
+    expect(result.warnings).toEqual([]);
   });
 
   it('rejects unary transcription on live model ids', async () => {

@@ -1,4 +1,8 @@
-import type { ModelMessage } from '@ai-sdk/provider-utils';
+import {
+  isArrayBuffer,
+  isUint8Array,
+  type ModelMessage,
+} from '@ai-sdk/provider-utils';
 
 /**
  * Clone model messages while preserving URL instances. Node's structuredClone
@@ -7,35 +11,67 @@ import type { ModelMessage } from '@ai-sdk/provider-utils';
 export function cloneModelMessages<T extends ModelMessage>(
   messages: Array<T>,
 ): Array<T> {
-  return messages.map(message => cloneValue(message)) as Array<T>;
+  return cloneValue(messages, new Map()) as Array<T>;
 }
 
-function cloneValue<T>(value: T): T {
+function cloneValue(value: unknown, seen: Map<object, unknown>): unknown {
+  if (value == null || typeof value !== 'object') {
+    return value;
+  }
+
+  if (seen.has(value)) {
+    return seen.get(value);
+  }
+
   if (value instanceof URL) {
-    return new URL(value.href) as T;
+    const copy = new URL(value.href);
+    seen.set(value, copy);
+    return copy;
   }
 
   if (Array.isArray(value)) {
-    return value.map(item => cloneValue(item)) as T;
+    const copy: unknown[] = new Array(value.length);
+    seen.set(value, copy);
+    value.forEach((item, index) => {
+      copy[index] = cloneValue(item, seen);
+    });
+    return copy;
   }
 
-  if (value instanceof Uint8Array) {
-    return new Uint8Array(value) as T;
+  if (isUint8Array(value)) {
+    const copy = new Uint8Array(value);
+    seen.set(value, copy);
+    return copy;
   }
 
-  if (value instanceof ArrayBuffer) {
-    return value.slice(0) as T;
+  if (isArrayBuffer(value)) {
+    const copy = new Uint8Array(value).slice().buffer;
+    seen.set(value, copy);
+    return copy;
   }
 
-  if (value instanceof Date) {
-    return new Date(value) as T;
+  if (
+    value instanceof Date ||
+    Object.prototype.toString.call(value) === '[object Date]'
+  ) {
+    try {
+      const copy = new Date(Date.prototype.getTime.call(value));
+      seen.set(value, copy);
+      return copy;
+    } catch {
+      // A string tag alone does not make a plain object a Date.
+    }
   }
 
-  if (value != null && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, value]) => [key, cloneValue(value)]),
-    ) as T;
+  const copy: Record<string, unknown> = {};
+  seen.set(value, copy);
+  for (const [key, val] of Object.entries(value)) {
+    Object.defineProperty(copy, key, {
+      value: cloneValue(val, seen),
+      writable: true,
+      enumerable: true,
+      configurable: true,
+    });
   }
-
-  return value;
+  return copy;
 }

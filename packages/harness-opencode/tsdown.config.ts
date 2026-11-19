@@ -1,6 +1,6 @@
 import { defineConfig, mergeConfig } from 'tsdown';
 
-import { tsdownBaseConfig } from '../../tools/tsdown-config.mts';
+import { tsdownBaseConfig } from '@vercel/ai-tsdown-config';
 
 const packageVersion = JSON.stringify(
   (await import('./package.json', { with: { type: 'json' } })).default.version,
@@ -13,11 +13,32 @@ export default defineConfig(
         __PACKAGE_VERSION__: packageVersion,
       },
     },
+    /*
+     * Each sandbox-side file is bundled on its own. The bootstrap ships these
+     * files individually, so a shared chunk between them would not resolve.
+     */
+    {
+      entry: { 'bridge/index': 'src/bridge/index.ts' },
+      outExtensions: () => ({ js: '.mjs' }),
+      dts: false,
+      deps: {
+        alwaysBundle: [/^@ai-sdk\/harness(?:\/|$)/],
+        neverBundle: true,
+      },
+      define: {
+        __PACKAGE_VERSION__: packageVersion,
+      },
+    },
     {
       entry: {
-        'bridge/index': 'src/bridge/index.ts',
-        'bridge/host-tool-mcp': 'src/bridge/host-tool-mcp.ts',
+        'bridge/opencode-read-plugin': 'src/bridge/opencode-read-plugin.ts',
       },
+      outExtensions: () => ({ js: '.mjs' }),
+      dts: false,
+      deps: { neverBundle: true },
+    },
+    {
+      entry: { 'bridge/host-tool-mcp': 'src/bridge/host-tool-mcp.ts' },
       outExtensions: () => ({ js: '.mjs' }),
       dts: false,
       deps: {

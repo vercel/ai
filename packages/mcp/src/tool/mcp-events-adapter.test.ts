@@ -104,11 +104,7 @@ describe('managed MCP events', () => {
       expect(operation).not.toHaveBeenCalled();
   });
 
-  it.each([
-    { expiresAt: null },
-    { expiresAt: '2030-01-01T00:00:00Z' },
-    { ttlMs: 60_000 },
-  ])(
+  it.each([{ ttlMs: null }, { ttlMs: 60_000 }])(
     'delegates creation with %j without a store or upstream subscribe',
     async lifetime => {
       const { client, adapter, subscription, send } = await setup();
@@ -171,7 +167,7 @@ describe('managed MCP events', () => {
     const input = {
       name: eventDefinition.name,
       arguments: {},
-      expiresAt: null,
+      ttlMs: null,
       idempotencyKey: 'intent_1',
     };
     await expect(client.experimental_events.subscribe(input)).rejects.toBe(

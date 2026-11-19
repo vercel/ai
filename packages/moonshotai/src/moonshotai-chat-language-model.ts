@@ -10,6 +10,8 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
@@ -36,7 +38,7 @@ import { mapMoonshotAIFinishReason } from './map-moonshotai-finish-reason';
 import {
   moonshotAIChatChunkSchema,
   moonshotAIChatResponseSchema,
-  moonshotAIErrorSchema,
+  moonshotAIErrorSchemaValidator,
   type MoonshotAIChatLogprob,
   type MoonshotAIChatTokenUsage,
 } from './moonshotai-chat-api-types';
@@ -51,7 +53,7 @@ import { prepareTools } from './moonshotai-prepare-tools';
 
 export type MoonshotAIChatConfig = {
   provider: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   includeUsage?: boolean;
@@ -106,6 +108,16 @@ function getMoonshotAIStreamErrorMetadata(type?: string | null): {
   }
 }
 
+/**
+ * Reasoning efforts supported by the Moonshot AI API. Other reasoning levels
+ * are mapped to the closest supported effort.
+ */
+const moonshotReasoningEffortMap = {
+  low: 'low',
+  high: 'high',
+  max: 'max',
+} as const;
+
 export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
 
@@ -141,7 +153,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
     this.config = config;
 
     this.failedResponseHandler = createJsonErrorResponseHandler({
-      errorSchema: moonshotAIErrorSchema,
+      errorSchema: moonshotAIErrorSchemaValidator,
       errorToMessage: error => error.error.message,
     });
   }
@@ -259,41 +271,30 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
               'Kimi K3 always reasons and does not accept the thinking field. The option has been omitted.',
           });
         }
-        if (reasoning === 'none') {
-          allWarnings.push({
-            type: 'unsupported',
-            feature: 'reasoning "none"',
-            details: 'Kimi K3 reasoning cannot be disabled.',
-          });
-        }
-        reasoningEffort =
-          requestedReasoningEffort ??
-          (isCustomReasoning(reasoning) && reasoning !== 'none'
-            ? mapReasoningToProviderEffort({
-                reasoning,
-                effortMap: {
-                  minimal: 'low',
-                  low: 'low',
-                  medium: 'high',
-                  high: 'high',
-                  xhigh: 'max',
-                  max: 'max',
-                },
-                warnings: allWarnings,
-              })
-            : undefined);
+        // Kimi K3 reasoning cannot be disabled, so reasoning 'none' maps to
+        // the lowest effort.
+        reasoningEffort = mapReasoningToProviderEffort({
+          reasoning,
+          providerOptionsEffort: requestedReasoningEffort,
+          effortMap: moonshotReasoningEffortMap,
+          warnings: allWarnings,
+        });
         break;
       }
       case 'kimi-k2.7': {
         warnUnsupportedReasoningEffort();
-        if (requestedThinking?.type === 'disabled' || reasoning === 'none') {
+        if (requestedThinking?.type === 'disabled') {
           allWarnings.push({
             type: 'unsupported',
-            feature:
-              requestedThinking?.type === 'disabled'
-                ? 'thinking.type "disabled"'
-                : 'reasoning "none"',
+            feature: 'thinking.type "disabled"',
             details: 'Kimi K2.7 thinking cannot be disabled.',
+          });
+        } else if (requestedThinking == null && reasoning === 'none') {
+          allWarnings.push({
+            type: 'compatibility',
+            feature: 'reasoning',
+            details:
+              'reasoning "none" is not supported by Kimi K2.7; thinking cannot be disabled. Using thinking enabled instead.',
           });
         } else if (requestedThinking?.type === 'enabled') {
           thinking = { type: 'enabled' };
@@ -362,32 +363,21 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         break;
       }
       case 'unknown': {
-        if (reasoning === 'none') {
-          allWarnings.push({
-            type: 'unsupported',
-            feature: 'reasoning "none"',
-            details:
-              'Use providerOptions.moonshotai.thinking to control thinking on custom models.',
-          });
-        }
+        // The capabilities of unknown models are not known, so reasoning
+        // 'none' is sent as disabled thinking and the API decides.
         reasoningEffort =
           requestedReasoningEffort ??
           (isCustomReasoning(reasoning) && reasoning !== 'none'
             ? mapReasoningToProviderEffort({
                 reasoning,
-                effortMap: {
-                  minimal: 'low',
-                  low: 'low',
-                  medium: 'high',
-                  high: 'high',
-                  xhigh: 'max',
-                  max: 'max',
-                },
+                effortMap: moonshotReasoningEffortMap,
                 warnings: allWarnings,
               })
             : undefined);
         if (requestedThinking?.type != null) {
           thinking = { type: requestedThinking.type };
+        } else if (reasoning === 'none') {
+          thinking = { type: 'disabled' };
         }
         if (preserveReasoning) {
           allWarnings.push({
@@ -464,6 +454,14 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         ...(moonshotOptions.promptCacheKey != null && {
           prompt_cache_key: moonshotOptions.promptCacheKey,
         }),
+        ...(moonshotOptions.promptCacheOptions != null && {
+          prompt_cache_options: {
+            mode: moonshotOptions.promptCacheOptions.mode ?? 'implicit',
+            ...(moonshotOptions.promptCacheOptions.ttl != null && {
+              ttl: moonshotOptions.promptCacheOptions.ttl,
+            }),
+          },
+        }),
         ...(moonshotOptions.safetyIdentifier != null && {
           safety_identifier: moonshotOptions.safetyIdentifier,
         }),
@@ -486,7 +484,10 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: args,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -532,6 +533,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
       usage: convertMoonshotAIChatUsage(responseBody.usage),
       providerMetadata: {
         [this.providerOptionsName]: {
+          ...extractCacheWriteTokensByTtl(responseHeaders),
           ...(choice.logprobs != null && { logprobs: choice.logprobs }),
           ...(responseBody.object != null && {
             responseObject: responseBody.object,
@@ -575,7 +577,10 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -587,8 +592,9 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
 
     let toolCallTracker: StreamingToolCallTracker;
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let topLevelUsage: MoonshotAIChatTokenUsage | undefined = undefined;
@@ -768,6 +774,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
               usage: convertMoonshotAIChatUsage(topLevelUsage ?? choiceUsage),
               providerMetadata: {
                 [providerOptionsName]: {
+                  ...extractCacheWriteTokensByTtl(responseHeaders),
                   ...(contentLogprobs.length > 0 && {
                     logprobs: { content: contentLogprobs },
                   }),
@@ -789,4 +796,26 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
       response: { headers: responseHeaders },
     };
   }
+}
+
+function extractCacheWriteTokensByTtl(
+  headers: Record<string, string | undefined> | undefined,
+): { cacheWriteTokens?: { ttl5m: number; ttl1h: number } } {
+  const ttl5m = parseTokenCountHeader(
+    headers?.['msh-usage-cache-write-tokens-5m'],
+  );
+  const ttl1h = parseTokenCountHeader(
+    headers?.['msh-usage-cache-write-tokens-1h'],
+  );
+  if (ttl5m == null && ttl1h == null) {
+    return {};
+  }
+  return { cacheWriteTokens: { ttl5m: ttl5m ?? 0, ttl1h: ttl1h ?? 0 } };
+}
+
+function parseTokenCountHeader(value: string | undefined): number | undefined {
+  if (value == null || !/^\d+$/.test(value.trim())) {
+    return undefined;
+  }
+  return Number(value.trim());
 }

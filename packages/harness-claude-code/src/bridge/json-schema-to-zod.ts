@@ -5,6 +5,15 @@ type JsonLiteral = string | number | boolean | null;
 export type JsonSchemaObject = {
   type?: string | string[];
   description?: string;
+  minimum?: number;
+  maximum?: number;
+  exclusiveMinimum?: number;
+  exclusiveMaximum?: number;
+  minLength?: number;
+  maxLength?: number;
+  minItems?: number;
+  maxItems?: number;
+  default?: unknown;
   properties?: Record<string, JsonSchemaObject>;
   additionalProperties?: boolean | JsonSchemaObject;
   required?: string[];
@@ -20,7 +29,7 @@ type ZodShape = Record<string, z.ZodTypeAny>;
 
 export function jsonSchemaToZodObject(input: unknown) {
   const schema = isJsonSchemaObject(input) ? input : {};
-  return toZodObject(schema);
+  return withJsonSchemaMetadata(toZodObject(schema), schema);
 }
 
 function toZodObject(schema: JsonSchemaObject) {
@@ -61,7 +70,28 @@ function toZodType(schema: JsonSchemaObject | undefined): z.ZodTypeAny {
 
   if (isNullable(schema)) zType = zType.nullable();
   if (schema.description) zType = zType.describe(schema.description);
-  return zType;
+  return withJsonSchemaMetadata(zType, schema);
+}
+
+function withJsonSchemaMetadata<Schema extends z.ZodTypeAny>(
+  zType: Schema,
+  schema: JsonSchemaObject,
+): Schema {
+  const metadata: Record<string, unknown> = {};
+  for (const key of [
+    'minimum',
+    'maximum',
+    'exclusiveMinimum',
+    'exclusiveMaximum',
+    'minLength',
+    'maxLength',
+    'minItems',
+    'maxItems',
+    'default',
+  ] as const) {
+    if (schema[key] !== undefined) metadata[key] = schema[key];
+  }
+  return zType.meta(metadata);
 }
 
 function zodForType(schema: JsonSchemaObject): z.ZodTypeAny {

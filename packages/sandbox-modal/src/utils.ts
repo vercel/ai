@@ -197,7 +197,7 @@ export async function resolveSandboxWorkingDirectory(
 /**
  * Container ports that Modal tunnels with TLS, in ascending order. Tunnels
  * created through `unencryptedPorts` carry an unencrypted host and are left
- * out, so every listed port resolves to a `wss://` URL.
+ * out, so every listed port resolves to an `https://` or `wss://` URL.
  */
 export function getEncryptedTunnelPorts(
   tunnels: Record<number, Tunnel>,

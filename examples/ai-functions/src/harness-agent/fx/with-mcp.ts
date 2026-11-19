@@ -11,14 +11,12 @@ run(async () => {
         context7: {
           type: 'http',
           url: 'https://mcp.context7.com/mcp',
-          headers: [],
         },
       },
     }),
   });
   const sandboxSession = await createVercelNetworkSandboxSession({
     runtime: 'node24',
-    ports: [4000],
     timeout: 10 * 60 * 1000,
     template: await agent.getSandboxTemplate(),
   });
