@@ -826,6 +826,68 @@ try {
 }
 ```
 
+### E2B Sandboxes
+
+`@ai-sdk/sandbox-e2b` provides network sandbox sessions on
+[E2B](https://e2b.dev/docs). It reads `E2B_API_KEY`, or an explicit `apiKey`
+setting.
+
+Bridge-backed harnesses such as Claude Code and Codex install their bridge with
+`pnpm`, which E2B's `base` template does not include. Build a template that has
+it once:
+
+```ts
+import { Template } from 'e2b';
+
+await Template.build(
+  Template().fromNodeImage('24').npmInstall('pnpm', { g: true }),
+  'ai-sdk-node24',
+  { cpuCount: 2, memoryMB: 2048 },
+);
+```
+
+Then pass its name as `baseTemplate`. The E2B SDK calls this option `template`,
+but here `template` is the harness sandbox template:
+
+```ts
+import { createE2BNetworkSandboxSession } from '@ai-sdk/sandbox-e2b';
+
+const sandboxSession = await createE2BNetworkSandboxSession({
+  baseTemplate: 'ai-sdk-node24',
+  ports: [4000],
+  template: await agent.getSandboxTemplate(),
+});
+```
+
+`createE2BNetworkSandboxSession()` also accepts the options of the E2B SDK's
+`Sandbox.create()`, such as `timeoutMs`, `envs`, `metadata`, `network`, and
+`lifecycle`. A sandbox is killed 30 minutes after it is created or resumed unless
+`timeoutMs` says otherwise, and it cannot be resumed afterwards unless it was
+created with `lifecycle: { onTimeout: 'pause' }`.
+
+- **Resuming**: E2B assigns the ID of a sandbox, so creation does not accept a
+  `sandboxId`. Persist the session's `id` and reattach with
+  `resumeE2BNetworkSandboxSession({ sandboxId })`, which also resumes a sandbox
+  that `stop()` paused. Pausing keeps the sandbox's filesystem and memory.
+- **Native sandboxes**: E2B reports a sandbox's working directory only through
+  an asynchronous call, so
+  `createE2BNetworkSandboxSessionFromNativeSandbox({ sandbox, defaultWorkingDirectory, ports })`
+  and `createE2BSandboxSessionFromNativeSandbox({ sandbox, defaultWorkingDirectory })`
+  take the directory that commands run in by default.
+- **Ports**: E2B routes every port that a process listens on, so there is no
+  `setPorts()`. `getPortEndpoint()` resolves a port to the host that E2B's
+  `getHost(port)` returns. With `network: { allowPublicTraffic: false }` it also
+  returns the required traffic access token in `headers`, which the deprecated
+  `getPortUrl()` cannot.
+- **Network policy**: `setNetworkPolicy()` replaces the outbound policy of the
+  running sandbox. E2B matches a host only for HTTP on port 80 and TLS on port 443. It fails with a `HarnessCapabilityUnsupportedError` for `deniedCIDRs`, and
+  for a sandbox with an egress proxy or per-host transform rules in its native
+  `network` options.
+- **Credentials**: E2B's transform rules match the destination host only, so the
+  session does not implement request transformations. Bridge-backed harnesses
+  forward model credentials into the sandbox process instead, as controlled by
+  each harness adapter's `credentialForwarding` setting.
+
 ## Next Steps
 
 - [Tools](/docs/ai-sdk-harnesses/tools) for built-in and host-executed tools.

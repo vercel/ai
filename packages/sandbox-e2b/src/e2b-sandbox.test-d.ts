@@ -2,7 +2,11 @@ import type {
   HarnessV1NetworkSandboxSession,
   HarnessV1SandboxTemplate,
 } from '@ai-sdk/harness';
-import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
+import type {
+  Experimental_SandboxProcess as SandboxProcess,
+  Experimental_SandboxSession as SandboxSession,
+  Experimental_WritableSandboxProcess as WritableSandboxProcess,
+} from '@ai-sdk/provider-utils';
 import type { Sandbox } from 'e2b';
 import { expectTypeOf } from 'vitest';
 import type {
@@ -14,6 +18,47 @@ import type {
   createE2BSandboxSessionFromNativeSandbox,
   resumeE2BNetworkSandboxSession,
 } from './e2b-sandbox';
+import type { E2BSandboxSession } from './e2b-sandbox-session';
+
+declare const session: E2BSandboxSession;
+declare const stdin: boolean;
+
+const writable = session.spawn({ command: 'cat', stdin: true });
+const regular = session.spawn({ command: 'cat' });
+const disabled = session.spawn({ command: 'cat', stdin: false });
+const dynamic = session.spawn({ command: 'cat', stdin });
+
+expectTypeOf<E2BSandboxSession>().toExtend<SandboxSession>();
+expectTypeOf<
+  Awaited<typeof writable>
+>().toEqualTypeOf<WritableSandboxProcess>();
+expectTypeOf<Awaited<typeof writable>['stdin']>().toEqualTypeOf<
+  WritableStream<Uint8Array>
+>();
+expectTypeOf<Awaited<typeof regular>>().toEqualTypeOf<SandboxProcess>();
+expectTypeOf<Awaited<typeof disabled>>().toEqualTypeOf<SandboxProcess>();
+expectTypeOf<Awaited<typeof regular>>().not.toHaveProperty('stdin');
+expectTypeOf<Awaited<typeof disabled>>().not.toHaveProperty('stdin');
+expectTypeOf<Awaited<typeof dynamic>>().toEqualTypeOf<
+  SandboxProcess | WritableSandboxProcess
+>();
+
+declare const networkSession: Awaited<
+  ReturnType<typeof createE2BNetworkSandboxSession>
+>;
+
+const networkWritable = networkSession.spawn({ command: 'cat', stdin: true });
+const restrictedWritable = networkSession.restricted().spawn({
+  command: 'cat',
+  stdin: true,
+});
+
+expectTypeOf<Awaited<typeof networkWritable>['stdin']>().toEqualTypeOf<
+  WritableStream<Uint8Array>
+>();
+expectTypeOf<Awaited<typeof restrictedWritable>['stdin']>().toEqualTypeOf<
+  WritableStream<Uint8Array>
+>();
 
 type Options = E2BNetworkSandboxSessionCreateOptions;
 
