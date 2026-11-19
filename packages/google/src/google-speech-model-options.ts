@@ -4,14 +4,9 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { GoogleModelIds } from './google-model-catalog';
 
-export type GoogleSpeechModelId =
-  | 'gemini-2.5-flash-preview-tts'
-  | 'gemini-2.5-pro-preview-tts'
-  | 'gemini-3.1-flash-tts-preview'
-  | 'gemini-3.8-flash-tts'
-  | 'gemini-3.8-flash-lite-tts'
-  | (string & {});
+export type GoogleSpeechModelId = GoogleModelIds['speech'] | (string & {});
 
 const prebuiltVoiceConfigSchema = () =>
   z.object({

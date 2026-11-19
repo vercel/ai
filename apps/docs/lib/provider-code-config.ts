@@ -230,6 +230,7 @@ export const providerCodeConfigs: Record<string, ProviderCodeConfig> = {
     models: {
       'google/gemini-4-argon': 'gemini-4-argon',
       'google/gemini-4-carbon': 'gemini-4-carbon',
+      'google/gemini-4-neon': 'gemini-4-neon',
       'google/gemini-3.8-flash': 'gemini-3.8-flash',
       'google/gemini-3.1-pro-preview': 'gemini-3.1-pro-preview',
     },

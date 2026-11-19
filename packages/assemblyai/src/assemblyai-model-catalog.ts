@@ -129,18 +129,20 @@ export const assemblyaiProviderOptions = {
   >,
 } as const satisfies ProviderOptionDefinitions;
 
+const deprecatedTranscriptionModelIds = ['best'] as const;
+
 export const assemblyaiTranscriptionModelIds = [
   'universal-2',
   'universal-3-pro',
   'universal-3-5-pro',
-  'best',
+  ...deprecatedTranscriptionModelIds,
 ] as const;
 
 const modelPolicies: Record<
   string,
   { legacy?: boolean; replacementWarning?: string; prompted?: boolean }
 > = {
-  best: { legacy: true },
+  [deprecatedTranscriptionModelIds[0]]: { legacy: true },
   'universal-2': {
     replacementWarning:
       "'universal-3-5-pro' is AssemblyAI's latest flagship model.",
@@ -213,5 +215,6 @@ export const assemblyaiModelCatalog = Object.fromEntries(
 
 /** Known model IDs, derived from the declarations used to build the catalog. */
 export type AssemblyAIModelIds = {
+  deprecatedTranscription: (typeof deprecatedTranscriptionModelIds)[number];
   transcription: (typeof assemblyaiTranscriptionModelIds)[number];
 };
