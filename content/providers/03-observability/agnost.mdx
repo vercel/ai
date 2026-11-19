@@ -25,9 +25,19 @@ Sign in at [app.agnost.ai](https://app.agnost.ai) and copy your organization ID 
 AGNOST_ORG_ID="..."
 ```
 
-Start the OpenTelemetry SDK and register telemetry once at startup, for example in Next.js `instrumentation.ts`:
+In Next.js, use the `register` hook in `instrumentation.ts` to load the setup only in the Node.js runtime:
 
 ```ts filename="instrumentation.ts"
+export async function register() {
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    await import('./instrumentation.node');
+  }
+}
+```
+
+Create `instrumentation.node.ts` alongside `instrumentation.ts` to start the OpenTelemetry SDK and register telemetry once at startup. Keeping the Node.js imports in this separate file prevents them from being included in Edge bundles:
+
+```ts filename="instrumentation.node.ts"
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
 import { registerTelemetry } from 'ai';
