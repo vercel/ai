@@ -34,10 +34,6 @@ import type {
   Experimental_DecideStartEvent as DecideStartEvent,
   Experimental_DecisionModelCallEndEvent as DecisionModelCallEndEvent,
   Experimental_DecisionModelCallStartEvent as DecisionModelCallStartEvent,
-  Experimental_ExtractEndEvent as ExtractEndEvent,
-  Experimental_ExtractStartEvent as ExtractStartEvent,
-  Experimental_ExtractionModelCallEndEvent as ExtractionModelCallEndEvent,
-  Experimental_ExtractionModelCallStartEvent as ExtractionModelCallStartEvent,
   Output,
   RerankingModelCallEndEvent,
   RerankEndEvent,
@@ -157,7 +153,6 @@ interface CallState {
   embedSpans: Map<string, { span: Span; context: OpenTelemetryContext }>;
   rerankSpan: { span: Span; context: OpenTelemetryContext } | undefined;
   decisionSpan: { span: Span; context: OpenTelemetryContext } | undefined;
-  extractionSpan: { span: Span; context: OpenTelemetryContext } | undefined;
   toolSpans: Map<string, { span: Span; context: OpenTelemetryContext }>;
   baseTelemetryAttributes: Attributes;
   settings: Record<string, unknown>;
@@ -333,7 +328,6 @@ export class LegacyOpenTelemetry implements Telemetry {
       embedSpans: new Map(),
       rerankSpan: undefined,
       decisionSpan: undefined,
-      extractionSpan: undefined,
       toolSpans: new Map(),
       baseTelemetryAttributes,
       settings: {},
@@ -398,7 +392,6 @@ export class LegacyOpenTelemetry implements Telemetry {
       embedSpans: new Map(),
       rerankSpan: undefined,
       decisionSpan: undefined,
-      extractionSpan: undefined,
       toolSpans: new Map(),
       baseTelemetryAttributes,
       settings,
@@ -467,7 +460,6 @@ export class LegacyOpenTelemetry implements Telemetry {
       embedSpans: new Map(),
       rerankSpan: undefined,
       decisionSpan: undefined,
-      extractionSpan: undefined,
       toolSpans: new Map(),
       baseTelemetryAttributes,
       settings,
@@ -640,7 +632,6 @@ export class LegacyOpenTelemetry implements Telemetry {
       embedSpans: new Map(),
       rerankSpan: undefined,
       decisionSpan: undefined,
-      extractionSpan: undefined,
       toolSpans: new Map(),
       baseTelemetryAttributes,
       settings,
@@ -1247,7 +1238,6 @@ export class LegacyOpenTelemetry implements Telemetry {
       embedSpans: new Map(),
       rerankSpan: undefined,
       decisionSpan: undefined,
-      extractionSpan: undefined,
       toolSpans: new Map(),
       baseTelemetryAttributes,
       settings,
@@ -1349,7 +1339,6 @@ export class LegacyOpenTelemetry implements Telemetry {
       embedSpans: new Map(),
       rerankSpan: undefined,
       decisionSpan: undefined,
-      extractionSpan: undefined,
       toolSpans: new Map(),
       baseTelemetryAttributes,
       settings,
@@ -1458,123 +1447,6 @@ export class LegacyOpenTelemetry implements Telemetry {
     state.decisionSpan = undefined;
   }
 
-  experimental_onExtractStart(
-    event: InferTelemetryEvent<ExtractStartEvent>,
-  ): void {
-    const telemetry: TelemetryOptions = {
-      recordInputs: event.recordInputs,
-      recordOutputs: event.recordOutputs,
-      functionId: event.functionId,
-    };
-    const settings: Record<string, unknown> = {
-      maxRetries: event.maxRetries,
-    };
-    const baseTelemetryAttributes = getBaseTelemetryAttributes({
-      model: { provider: event.provider, modelId: event.modelId },
-      headers: event.headers,
-      settings,
-      context: event.runtimeContext,
-    });
-    const attributes = selectAttributes(telemetry, {
-      ...assembleOperationName({ operationId: event.operationId, telemetry }),
-      ...baseTelemetryAttributes,
-      'ai.extraction.state': {
-        input: () => stringifyDecisionStateForTelemetry(event.state),
-      },
-      'ai.extraction.fields': {
-        input: () => JSON.stringify(event.fields),
-      },
-      'ai.extraction.referenceDate': {
-        input: () => event.referenceDate,
-      },
-    });
-    const rootSpan = this.tracer.startSpan(event.operationId, { attributes });
-    const rootContext = trace.setSpan(context.active(), rootSpan);
-
-    this.callStates.set(event.callId, {
-      operationId: event.operationId,
-      telemetry,
-      rootSpan,
-      rootContext,
-      stepSpan: undefined,
-      stepContext: undefined,
-      embedSpans: new Map(),
-      rerankSpan: undefined,
-      decisionSpan: undefined,
-      extractionSpan: undefined,
-      toolSpans: new Map(),
-      baseTelemetryAttributes,
-      settings,
-    });
-  }
-
-  experimental_onExtractEnd(event: InferTelemetryEvent<ExtractEndEvent>): void {
-    const state = this.getCallState(event.callId);
-    if (!state?.rootSpan) return;
-
-    state.rootSpan.setAttributes(
-      selectAttributes(state.telemetry, {
-        'ai.extraction.answers': {
-          output: () => JSON.stringify(event.answers),
-        },
-      }),
-    );
-    state.rootSpan.end();
-    this.cleanupCallState(event.callId);
-  }
-
-  experimental_onExtractionModelCallStart(
-    event: InferTelemetryEvent<ExtractionModelCallStartEvent>,
-  ): void {
-    const state = this.getCallState(event.callId);
-    if (!state?.rootSpan || !state.rootContext) return;
-
-    const attributes = selectAttributes(state.telemetry, {
-      ...assembleOperationName({
-        operationId: event.operationId,
-        telemetry: state.telemetry,
-      }),
-      ...state.baseTelemetryAttributes,
-      'ai.extraction.state': {
-        input: () => stringifyDecisionStateForTelemetry(event.state),
-      },
-      'ai.extraction.fields': {
-        input: () => JSON.stringify(event.fields),
-      },
-      'ai.extraction.referenceDate': {
-        input: () => event.referenceDate,
-      },
-    });
-    const span = this.tracer.startSpan(
-      event.operationId,
-      { attributes },
-      state.rootContext,
-    );
-    state.extractionSpan = {
-      span,
-      context: trace.setSpan(state.rootContext, span),
-    };
-  }
-
-  experimental_onExtractionModelCallEnd(
-    event: InferTelemetryEvent<ExtractionModelCallEndEvent>,
-  ): void {
-    const state = this.getCallState(event.callId);
-    if (!state?.extractionSpan) return;
-
-    state.extractionSpan.span.setAttributes(
-      selectAttributes(state.telemetry, {
-        'ai.extraction.answers': {
-          output: () => JSON.stringify(event.answers),
-        },
-        'ai.usage.inputTokens': event.usage?.inputTokens,
-        'ai.usage.outputTokens': event.usage?.outputTokens,
-      }),
-    );
-    state.extractionSpan.span.end();
-    state.extractionSpan = undefined;
-  }
-
   onAbort(event: GenerateTextAbortEvent<ToolSet>): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
@@ -1603,11 +1475,6 @@ export class LegacyOpenTelemetry implements Telemetry {
     if (state.decisionSpan) {
       state.decisionSpan.span.end();
       state.decisionSpan = undefined;
-    }
-
-    if (state.extractionSpan) {
-      state.extractionSpan.span.end();
-      state.extractionSpan = undefined;
     }
 
     state.rootSpan.end();
@@ -1644,12 +1511,6 @@ export class LegacyOpenTelemetry implements Telemetry {
       recordSpanError(state.decisionSpan.span, actualError);
       state.decisionSpan.span.end();
       state.decisionSpan = undefined;
-    }
-
-    if (state.extractionSpan) {
-      recordSpanError(state.extractionSpan.span, actualError);
-      state.extractionSpan.span.end();
-      state.extractionSpan = undefined;
     }
 
     recordSpanError(state.rootSpan, actualError);

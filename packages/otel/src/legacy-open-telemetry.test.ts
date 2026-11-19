@@ -22,12 +22,10 @@ import {
 } from '@opentelemetry/api';
 import { z } from 'zod/v4';
 import {
-  DownloadError,
   embed,
   embedMany,
   experimental_decide,
   experimental_evaluate,
-  experimental_extract,
   generateObject,
   generateText,
   isStepCount,
@@ -42,7 +40,6 @@ import {
 import {
   MockEmbeddingModelV4,
   Experimental_DecisionMockModelV4,
-  Experimental_ExtractionMockModelV4,
   MockLanguageModelV4,
   MockRerankingModelV4,
   mockValues,
@@ -2735,185 +2732,6 @@ describe('LegacyOpenTelemetry integration with decide', () => {
     `);
     },
   );
-});
-
-describe('LegacyOpenTelemetry integration with extract', () => {
-  const fields = {
-    invoiceNumber: { type: 'text', instructions: 'Invoice number' },
-  } as const;
-  const createModel = () =>
-    new Experimental_ExtractionMockModelV4({
-      doExtract: async () => ({
-        answers: { invoiceNumber: { type: 'text', value: 'INV-2041' } },
-        usage: { inputTokens: 12, outputTokens: 2 },
-        warnings: [],
-      }),
-    });
-
-  it('records extraction inputs, outputs, and usage', async () => {
-    const tracer = new IntegrationMockTracer();
-
-    await experimental_extract({
-      model: createModel(),
-      state: 'Invoice INV-2041',
-      fields,
-      referenceDate: '2026-11-18',
-      telemetry: { integrations: new LegacyOpenTelemetry({ tracer }) },
-    });
-
-    expect(tracer.jsonSpans).toMatchInlineSnapshot(`
-      [
-        {
-          "attributes": {
-            "ai.extraction.answers": "{"invoiceNumber":{"type":"text","value":"INV-2041"}}",
-            "ai.extraction.fields": "{"invoiceNumber":{"type":"text","instructions":"Invoice number"}}",
-            "ai.extraction.referenceDate": "2026-11-18",
-            "ai.extraction.state": ""Invoice INV-2041"",
-            "ai.model.id": "mock-model-id",
-            "ai.model.provider": "mock-provider",
-            "ai.operationId": "ai.extract",
-            "ai.settings.maxRetries": 2,
-            "operation.name": "ai.extract",
-          },
-          "events": [],
-          "name": "ai.extract",
-        },
-        {
-          "attributes": {
-            "ai.extraction.answers": "{"invoiceNumber":{"type":"text","value":"INV-2041"}}",
-            "ai.extraction.fields": "{"invoiceNumber":{"type":"text","instructions":"Invoice number"}}",
-            "ai.extraction.referenceDate": "2026-11-18",
-            "ai.extraction.state": "[{"type":"text","text":"Invoice INV-2041"}]",
-            "ai.model.id": "mock-model-id",
-            "ai.model.provider": "mock-provider",
-            "ai.operationId": "ai.extract.doExtract",
-            "ai.settings.maxRetries": 2,
-            "ai.usage.inputTokens": 12,
-            "ai.usage.outputTokens": 2,
-            "operation.name": "ai.extract.doExtract",
-          },
-          "events": [],
-          "name": "ai.extract.doExtract",
-        },
-      ]
-    `);
-  });
-
-  it('hides extraction inputs when recordInputs is false', async () => {
-    const tracer = new IntegrationMockTracer();
-
-    await experimental_extract({
-      model: createModel(),
-      state: 'Invoice INV-2041',
-      fields,
-      referenceDate: '2026-11-18',
-      telemetry: {
-        recordInputs: false,
-        integrations: new LegacyOpenTelemetry({ tracer }),
-      },
-    });
-
-    expect(tracer.jsonSpans).toHaveLength(2);
-    for (const { attributes } of tracer.jsonSpans) {
-      expect(attributes['ai.extraction.state']).toBeUndefined();
-      expect(attributes['ai.extraction.fields']).toBeUndefined();
-      expect(attributes['ai.extraction.referenceDate']).toBeUndefined();
-      expect(attributes['ai.extraction.answers']).toBe(
-        '{"invoiceNumber":{"type":"text","value":"INV-2041"}}',
-      );
-    }
-  });
-
-  it('keeps file urls and provider metadata out of extraction spans', async () => {
-    const tracer = new IntegrationMockTracer();
-    const url = 'https://files.example.com/invoice.pdf?X-Amz-Signature=secret';
-    const download = async () => [
-      { data: new Uint8Array([1, 2, 3]), mediaType: 'application/pdf' },
-    ];
-    const model = new Experimental_ExtractionMockModelV4({
-      doExtract: async () => ({
-        answers: { invoiceNumber: { type: 'text', value: 'INV-2041' } },
-        warnings: [],
-        providerMetadata: { scaledown: { ocrText: 'secret document text' } },
-      }),
-    });
-
-    await experimental_extract({
-      model,
-      state: [
-        { type: 'file', mediaType: 'application/pdf', data: new URL(url) },
-      ],
-      fields,
-      experimental_download: download,
-      telemetry: { integrations: new LegacyOpenTelemetry({ tracer }) },
-    });
-
-    expect(tracer.jsonSpans).toHaveLength(2);
-    expect(JSON.stringify(tracer.jsonSpans)).not.toContain('secret');
-    expect(tracer.jsonSpans[0].attributes['ai.extraction.state']).toBe(
-      '[{"type":"file","mediaType":"application/pdf","data":"[redacted]"}]',
-    );
-  });
-
-  it('keeps the url of a failed download out of extraction spans', async () => {
-    const tracer = createMockTracer();
-    const url = 'https://files.example.com/invoice.pdf?X-Amz-Signature=secret';
-
-    const error = await experimental_extract({
-      model: new Experimental_ExtractionMockModelV4(),
-      state: [
-        { type: 'file', mediaType: 'application/pdf', data: new URL(url) },
-      ],
-      fields,
-      experimental_download: async () => {
-        throw new DownloadError({
-          url,
-          message: `Download of ${url} exceeded maximum size of 10 bytes.`,
-        });
-      },
-      telemetry: { integrations: new LegacyOpenTelemetry({ tracer }) },
-    }).catch(error => error);
-
-    expect(error.url).toBe(url);
-    expect(tracer.spans).toHaveLength(1);
-    const [span] = tracer.spans;
-    expect(span.ended).toBe(true);
-    expect(span.status?.code).toBe(SpanStatusCode.ERROR);
-    expect(JSON.stringify(span.exceptions)).not.toContain('secret');
-    expect(JSON.stringify(span.status)).not.toContain('secret');
-  });
-
-  it('ends both spans with error status when extraction fails', async () => {
-    const tracer = createMockTracer();
-    const error = new Error('extraction failed');
-
-    await expect(
-      experimental_extract({
-        model: new Experimental_ExtractionMockModelV4({
-          doExtract: async () => {
-            throw error;
-          },
-        }),
-        state: 'Invoice INV-2041',
-        fields,
-        maxRetries: 0,
-        telemetry: { integrations: new LegacyOpenTelemetry({ tracer }) },
-      }),
-    ).rejects.toBe(error);
-
-    expect(tracer.spans.map(span => span.name)).toEqual([
-      'ai.extract',
-      'ai.extract.doExtract',
-    ]);
-    for (const span of tracer.spans) {
-      expect(span.ended).toBe(true);
-      expect(span.status).toEqual({
-        code: SpanStatusCode.ERROR,
-        message: 'extraction failed',
-      });
-      expect(span.exceptions).toHaveLength(1);
-    }
-  });
 });
 
 // --- embed integration fixtures ---
