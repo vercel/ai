@@ -6,7 +6,8 @@ import type { AssemblyAIModelIds } from './assemblyai-model-catalog';
  * @deprecated Use `universal-3-5-pro` instead.
  * @see https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model
  */
-export type AssemblyAIDeprecatedTranscriptionModelId = 'best';
+export type AssemblyAIDeprecatedTranscriptionModelId =
+  AssemblyAIModelIds['deprecatedTranscription'];
 
 export type AssemblyAITranscriptionModelId =
   | AssemblyAIModelIds['transcription']
