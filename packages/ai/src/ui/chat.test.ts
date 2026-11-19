@@ -3491,6 +3491,66 @@ describe('Chat', () => {
       },
     );
 
+    it('should automatically send after a resumed stream that only finishes the last message', async () => {
+      const sendMessages = vi.fn(async () => {
+        if (sendMessages.mock.calls.length > 1) {
+          return convertArrayToReadableStream<UIMessageChunk>([
+            { type: 'start' },
+            { type: 'finish' },
+          ]);
+        }
+        const chunks: UIMessageChunk[] = [
+          { type: 'start', messageId: 'assistant-1' },
+          { type: 'start-step' },
+          {
+            type: 'tool-input-available',
+            toolCallId: 'call-1',
+            toolName: 'test-tool',
+            input: {},
+          },
+          {
+            type: 'tool-output-available',
+            toolCallId: 'call-1',
+            output: 'result',
+          },
+          { type: 'finish-step' },
+        ];
+        let index = 0;
+        return new ReadableStream<UIMessageChunk>({
+          pull(controller) {
+            if (index < chunks.length) {
+              controller.enqueue(chunks[index++]);
+            } else {
+              controller.error(new TypeError('network connection lost'));
+            }
+          },
+        });
+      });
+      const chat = new TestChat({
+        transport: {
+          sendMessages,
+          // the disconnect happened after the tool result, so the resumed
+          // stream only finishes the message and changes none of its parts:
+          reconnectToStream: async () =>
+            convertArrayToReadableStream<UIMessageChunk>([{ type: 'finish' }]),
+        },
+        sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+        onError: () => {},
+      });
+
+      await chat.sendMessage({ text: 'Hello' });
+      expect(chat.status).toBe('error');
+      expect(sendMessages).toHaveBeenCalledTimes(1);
+
+      chat.clearError();
+      await chat.resumeStream();
+      await vi.advanceTimersByTimeAsync(0);
+
+      // the disconnected request never reached sendAutomaticallyWhen, so the
+      // resumed stream must still send the continuation for the tool result:
+      expect(sendMessages).toHaveBeenCalledTimes(2);
+    });
+
     it('should preserve interrupted output without an error or automatic follow-up', async () => {
       const sendMessages = vi.fn(async () =>
         convertArrayToReadableStream<UIMessageChunk>([

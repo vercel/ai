@@ -1284,9 +1284,11 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     const lastMessage = this.lastMessage;
     // a request that leaves the last message unchanged must not trigger an
     // automatic send: sendAutomaticallyWhen would see the same messages again
-    // and send the same request again, without end (#25183):
+    // and send the same request again, without end (#25183). a resumed stream
+    // is exempt: the disconnected request it completes never reached
+    // sendAutomaticallyWhen, so its automatic send is still owed:
     const lastMessageBeforeRequest =
-      this.sendAutomaticallyWhen != null
+      this.sendAutomaticallyWhen != null && trigger !== 'resume-stream'
         ? JSON.stringify(lastMessage)
         : undefined;
     const responseMessageIndex =
