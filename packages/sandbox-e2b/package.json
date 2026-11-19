@@ -37,7 +37,7 @@
   "dependencies": {
     "@ai-sdk/harness": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "e2b": "^2.51.0"
+    "e2b": "^2.64.0"
   },
   "devDependencies": {
     "@types/node": "22.19.19",
