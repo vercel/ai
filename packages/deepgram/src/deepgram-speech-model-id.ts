@@ -1,21 +1,19 @@
 import type { SharedV4Warning } from '@ai-sdk/provider';
-
-// Deepgram embeds voice and language in the model ID
-// (`<family>-<voice>-<language>`, e.g. `aura-2-thalia-en`). Bare family IDs
-// compose the upstream model ID from the voice and language call options.
-const VOICE_FAMILY_IDS = new Set<string>(['aura', 'aura-2', 'flux']);
+import { getDeepgramSpeechModelEntry } from './deepgram-model-catalog';
 
 /**
  * Flux TTS voices (`flux-<voice>-<language>`) are served only by `/v2/speak`;
  * Aura voices only by `/v1/speak`.
  */
 export function isDeepgramFluxSpeechModelId(modelId: string): boolean {
-  return modelId === 'flux' || modelId.startsWith('flux-');
+  return getDeepgramSpeechModelEntry(modelId).requestConfig.speech.flux;
 }
 
 /**
- * Composes the upstream model ID from voice/language when a bare voice family
- * ID is used; full voice IDs (e.g. `aura-2-thalia-en`) pass through.
+ * Deepgram embeds voice and language in the model ID
+ * (`<family>-<voice>-<language>`, e.g. `aura-2-thalia-en`). Bare family IDs
+ * compose the upstream model ID from the voice and language call options;
+ * full voice IDs pass through.
  */
 export function composeDeepgramSpeechModelId({
   modelId,
@@ -28,7 +26,7 @@ export function composeDeepgramSpeechModelId({
   language: string | undefined;
   warnings: SharedV4Warning[];
 }): string {
-  if (!VOICE_FAMILY_IDS.has(modelId)) {
+  if (!getDeepgramSpeechModelEntry(modelId).requestConfig.speech.voiceFamily) {
     return modelId;
   }
 

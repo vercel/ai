@@ -1,5 +1,82 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.145
+
+### Patch Changes
+
+- Updated dependencies [1a7440b]
+  - @ai-sdk/openai@4.0.121
+
+## 5.0.144
+
+### Patch Changes
+
+- Updated dependencies [ed981f8]
+  - @ai-sdk/openai@4.0.120
+
+## 5.0.143
+
+### Patch Changes
+
+- Updated dependencies [5aa836f]
+- Updated dependencies [10ff0b1]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/openai@4.0.119
+  - @ai-sdk/provider@4.0.39
+  - @ai-sdk/provider-utils@5.0.82
+  - @ai-sdk/anthropic@4.0.106
+
+## 5.0.142
+
+### Patch Changes
+
+- bd4d721: fix(amazon-bedrock): send `block_binding.prefix_mismatch_behavior` to Bedrock again instead of the deprecated `mismatch_behavior` alias
+- f5fc6ba: Derive known model ID suggestions from each provider's model catalog declarations so catalog updates automatically update autocomplete, while preserving existing suggestions, endpoint-specific model lists, and support for custom model IDs.
+- Updated dependencies [f5fc6ba]
+  - @ai-sdk/anthropic@4.0.105
+  - @ai-sdk/openai@4.0.118
+
+## 5.0.141
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+  - @ai-sdk/openai@4.0.117
+  - @ai-sdk/anthropic@4.0.104
+
+## 5.0.140
+
+### Patch Changes
+
+- Updated dependencies [2ebc78b]
+- Updated dependencies [2ebc78b]
+- Updated dependencies [6eff958]
+- Updated dependencies [a279e86]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/openai@4.0.116
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+  - @ai-sdk/anthropic@4.0.103
+
+## 5.0.139
+
+### Patch Changes
+
+- Updated dependencies [5a645e9]
+  - @ai-sdk/openai@4.0.115
+
+## 5.0.138
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+  - @ai-sdk/anthropic@4.0.102
+  - @ai-sdk/openai@4.0.114
+
 ## 5.0.137
 
 ### Patch Changes

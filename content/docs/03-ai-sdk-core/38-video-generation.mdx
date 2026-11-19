@@ -30,6 +30,13 @@ const base64 = video.base64; // base64 video data
 const uint8Array = video.uint8Array; // Uint8Array video data
 ```
 
+## URL download protection
+
+Provider polling requests use the provider's `fetch` option; the final video
+download uses the `download` option. For untrusted URLs on Node.js, pass a
+`guarded-fetch` transport to both (`download: createDownload({ fetch })`). See
+[Secure URL Fetching](/docs/advanced/secure-url-fetching#core-file-downloads).
+
 ## Settings
 
 ### Aspect Ratio

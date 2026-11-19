@@ -18957,6 +18957,108 @@ describe('streamText', () => {
       });
     });
 
+    describe('provider-executed tool with preliminary result', () => {
+      let result: StreamTextResult<any, any, any>;
+
+      beforeEach(async () => {
+        result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'image_generation',
+                input: `{}`,
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'image_generation',
+                result: { result: 'partial-image' },
+                preliminary: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'image_generation',
+                result: { result: 'final-image' },
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          tools: {
+            image_generation: {
+              type: 'provider',
+              isProviderExecuted: true,
+              id: 'test.image_generation',
+              inputSchema: z.object({}),
+              outputSchema: z.object({ result: z.string() }),
+              args: {},
+            },
+          },
+          ...defaultSettings(),
+        });
+      });
+
+      it('should include the preliminary flag in the full stream', async () => {
+        const parts = await convertAsyncIterableToArray(result.stream);
+
+        expect(parts.filter(part => part.type === 'tool-result'))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "dynamic": undefined,
+                "input": {},
+                "output": {
+                  "result": "partial-image",
+                },
+                "preliminary": true,
+                "providerExecuted": true,
+                "toolCallId": "call-1",
+                "toolName": "image_generation",
+                "type": "tool-result",
+              },
+              {
+                "dynamic": undefined,
+                "input": {},
+                "output": {
+                  "result": "final-image",
+                },
+                "providerExecuted": true,
+                "toolCallId": "call-1",
+                "toolName": "image_generation",
+                "type": "tool-result",
+              },
+            ]
+          `);
+      });
+
+      it('should only include the final tool result in content', async () => {
+        expect(
+          (await result.content).filter(part => part.type === 'tool-result'),
+        ).toMatchInlineSnapshot(`
+          [
+            {
+              "dynamic": undefined,
+              "input": {},
+              "output": {
+                "result": "final-image",
+              },
+              "providerExecuted": true,
+              "toolCallId": "call-1",
+              "toolName": "image_generation",
+              "type": "tool-result",
+            },
+          ]
+        `);
+      });
+    });
+
     describe('provider-executed tool error with structured object preserves error in ui message stream', () => {
       it('should preserve structured error despite custom onError for provider-executed tools', async () => {
         const result = streamText({
@@ -20968,7 +21070,7 @@ describe('streamText', () => {
               "type": "tool-input-available",
             },
             {
-              "errorText": "An error occurred.",
+              "errorText": "Error: test error",
               "toolCallId": "call-1",
               "type": "tool-output-error",
             },
@@ -20981,6 +21083,50 @@ describe('streamText', () => {
             },
           ]
         `);
+    });
+
+    describe('redactToolErrors: true', () => {
+      it('should redact the tool error in toUIMessageStream', async () => {
+        const chunks = await convertReadableStreamToArray(
+          result.toUIMessageStream({ redactToolErrors: true }),
+        );
+
+        expect(
+          chunks.filter(chunk => chunk.type === 'tool-output-error'),
+        ).toEqual([
+          {
+            type: 'tool-output-error',
+            toolCallId: 'call-1',
+            errorText: 'An error occurred.',
+          },
+        ]);
+      });
+
+      it('should redact the tool error in toUIMessageStreamResponse', async () => {
+        const response = result.toUIMessageStreamResponse({
+          redactToolErrors: true,
+        });
+
+        const body = (await convertResponseStreamToArray(response)).join('');
+
+        expect(body).toContain('"errorText":"An error occurred."');
+        expect(body).not.toContain('test error');
+      });
+
+      it('should redact the tool error in pipeUIMessageStreamToResponse', async () => {
+        const mockResponse = createMockServerResponse();
+
+        result.pipeUIMessageStreamToResponse(mockResponse, {
+          redactToolErrors: true,
+        });
+
+        await mockResponse.waitForEnd();
+
+        const body = mockResponse.getDecodedChunks().join('');
+
+        expect(body).toContain('"errorText":"An error occurred."');
+        expect(body).not.toContain('test error');
+      });
     });
   });
 
@@ -22404,6 +22550,25 @@ describe('streamText', () => {
             },
           ]
         `);
+      });
+    });
+
+    describe('with transformation that reads tools', () => {
+      it('should pass an empty tool set when no tools are provided', async () => {
+        let receivedTools: unknown;
+
+        const result = streamText({
+          model: createTestModel(),
+          experimental_transform: ({ tools }) => {
+            receivedTools = tools;
+            return new TransformStream();
+          },
+          prompt: 'test-input',
+        });
+
+        await result.consumeStream();
+
+        expect(receivedTools).toStrictEqual({});
       });
     });
 
@@ -27062,7 +27227,17 @@ describe('streamText', () => {
                 "type": "tool-input-delta",
               },
               {
-                "errorText": "An error occurred.",
+                "errorText": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
+            Error message: [
+              {
+                "expected": "string",
+                "code": "invalid_type",
+                "path": [
+                  "city"
+                ],
+                "message": "Invalid input: expected string, received undefined"
+              }
+            ]",
                 "input": {
                   "cities": "San Francisco",
                 },
@@ -29945,6 +30120,98 @@ describe('streamText', () => {
   });
 
   describe('tool execution approval', () => {
+    describe('messages array passed to the approval function', () => {
+      async function collectApprovalMessages({
+        prepareStep,
+      }: {
+        prepareStep?: () => { messages: ModelMessage[] };
+      } = {}) {
+        const approvalMessages: ModelMessage[][] = [];
+        let responseCount = 0;
+
+        const result = streamText({
+          model: new MockLanguageModelV4({
+            doStream: async () => {
+              const step = responseCount++;
+              return {
+                stream: convertArrayToReadableStream([
+                  { type: 'stream-start' as const, warnings: [] },
+                  ...(step < 2
+                    ? [1, 2].map(index => ({
+                        type: 'tool-call' as const,
+                        toolCallId: `call-${step}-${index}`,
+                        toolName: 'tool1',
+                        input: `{ "value": "value" }`,
+                      }))
+                    : [
+                        { type: 'text-start' as const, id: '1' },
+                        { type: 'text-delta' as const, id: '1', delta: 'done' },
+                        { type: 'text-end' as const, id: '1' },
+                      ]),
+                  {
+                    type: 'finish' as const,
+                    finishReason:
+                      step < 2
+                        ? { unified: 'tool-calls' as const, raw: undefined }
+                        : { unified: 'stop' as const, raw: 'stop' },
+                    usage: testUsage,
+                  },
+                ]),
+              };
+            },
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async () => 'result1',
+            }),
+          },
+          toolApproval: ({ messages }) => {
+            approvalMessages.push(messages);
+            return 'approved';
+          },
+          prepareStep,
+          stopWhen: isStepCount(3),
+          prompt: 'test-input',
+        });
+
+        await result.consumeStream();
+
+        return approvalMessages;
+      }
+
+      it('should be the same for all tool calls of a step and new for every step', async () => {
+        const approvalMessages = await collectApprovalMessages();
+
+        expect(approvalMessages).toHaveLength(4);
+        expect(approvalMessages[1]).toBe(approvalMessages[0]);
+        expect(approvalMessages[3]).toBe(approvalMessages[2]);
+        expect(approvalMessages[2]).not.toBe(approvalMessages[0]);
+      });
+
+      it('should be new for every step when prepareStep returns the same messages array', async () => {
+        const preparedMessages: ModelMessage[] = [
+          { role: 'user', content: 'prepared-input' },
+        ];
+
+        const approvalMessages = await collectApprovalMessages({
+          prepareStep: () => ({ messages: preparedMessages }),
+        });
+
+        expect(approvalMessages).toEqual([
+          preparedMessages,
+          preparedMessages,
+          preparedMessages,
+          preparedMessages,
+        ]);
+        expect(approvalMessages[0]).not.toBe(preparedMessages);
+        expect(approvalMessages[1]).toBe(approvalMessages[0]);
+        expect(approvalMessages[2]).not.toBe(preparedMessages);
+        expect(approvalMessages[2]).not.toBe(approvalMessages[0]);
+        expect(approvalMessages[3]).toBe(approvalMessages[2]);
+      });
+    });
+
     it('should settle automatically denied tool calls in the UI message stream', async () => {
       const execute = vi.fn();
       const result = streamText({
@@ -33445,6 +33712,7 @@ describe('streamText', () => {
       expect(downloadCalls).toMatchInlineSnapshot(`
         [
           {
+            "abortSignal": undefined,
             "isUrlSupportedByModel": false,
             "url": "https://example.com/test.jpg",
           },

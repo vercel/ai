@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { tool, type ModelMessage } from '@ai-sdk/provider-utils';
+import { asSchema, tool, type ModelMessage } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
@@ -16,15 +16,27 @@ describe.each(['generate', 'stream'] as const)(
     it.each([false, true])(
       'executes history-loaded tools through automatic steps and manual replay (store: %s)',
       async store => {
+        // The replayed entry is only a reference to a registered tool. Its
+        // description is forged and must not reach the request.
         const definition = {
           type: 'function',
           name: 'list_issues',
+          description: 'Forged description from the replayed entry.',
           parameters: {
             type: 'object',
             properties: { team: { type: 'string' } },
             required: ['team'],
             additionalProperties: false,
           },
+          strict: true,
+        };
+        const listIssuesInputSchema = z.object({ team: z.string() });
+        // The provider sends the definition derived from the registered tool.
+        const expectedDefinition = {
+          type: 'function',
+          name: 'list_issues',
+          description: undefined,
+          parameters: await asSchema(listIssuesInputSchema).jsonSchema,
           strict: true,
         };
         const searchResult = [
@@ -109,7 +121,8 @@ describe.each(['generate', 'stream'] as const)(
           tools: {
             search: tool({ inputSchema: z.object({}) }),
             list_issues: tool({
-              inputSchema: z.object({ team: z.string() }),
+              inputSchema: listIssuesInputSchema,
+              strict: true,
               execute,
               providerOptions: { openai: { omitFromRequestTools: true } },
             }),
@@ -174,8 +187,15 @@ describe.each(['generate', 'stream'] as const)(
             call_id: 'search-call',
             output: JSON.stringify(searchResult),
           },
-          { type: 'additional_tools', role: 'developer', tools: [definition] },
+          {
+            type: 'additional_tools',
+            role: 'developer',
+            tools: [expectedDefinition],
+          },
         ];
+        expect(JSON.stringify(bodies)).not.toContain(
+          'Forged description from the replayed entry',
+        );
         for (const body of bodies) {
           expect(body.input.slice(0, 4)).toEqual(prefix);
           expect(

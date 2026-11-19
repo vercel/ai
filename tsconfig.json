@@ -142,6 +142,9 @@
       "path": "packages/langchain"
     },
     {
+      "path": "packages/liquid"
+    },
+    {
       "path": "packages/llamaindex"
     },
     {
@@ -211,6 +214,9 @@
       "path": "packages/sandbox-vercel"
     },
     {
+      "path": "packages/scaledown"
+    },
+    {
       "path": "packages/svelte"
     },
     {
@@ -257,9 +263,6 @@
     },
     {
       "path": "packages/zai"
-    },
-    {
-      "path": "tools/integration-tests"
     }
   ],
   "include": [],

@@ -45,28 +45,28 @@ pnpm tsx src/decide/gateway/basic.ts
 All paths below are relative to this directory. Run any script with
 `pnpm tsx src/decide/<path>` from `examples/ai-functions`.
 
-| Example                                                                  | Demonstrates                                                                                            |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| [mock/basic.ts](./mock/basic.ts)                                         | Return a fixed boolean probability with a mock decision model.                                          |
-| [gateway/basic.ts](./gateway/basic.ts)                                   | Decide answers to Choice, Score, and Boolean questions with Jev through AI Gateway.                     |
-| [typesafe-ai/basic.ts](./typesafe-ai/basic.ts)                           | Call Jev directly through the TypeSafe AI provider and inspect answers, usage, and provider metadata.   |
-| [typesafe-ai/structured-rubrics.ts](./typesafe-ai/structured-rubrics.ts) | Use JSON objects and arrays in state, instructions, and criteria.                                       |
-| [typesafe-ai/registry.ts](./typesafe-ai/registry.ts)                     | Register a custom model alias and route answers using probability thresholds.                           |
-| [typesafe-ai/error-handling.ts](./typesafe-ai/error-handling.ts)         | Submit oversized state and inspect `APICallError` details if the provider rejects it.                   |
-| [perplexity/basic.ts](./perplexity/basic.ts)                             | Decide answers to Boolean, Choice, and Score questions with Perplexity.                                 |
-| [perplexity/criteria-only.ts](./perplexity/criteria-only.ts)             | Omit instructions or set them to null, using structured criteria to describe the decision.              |
-| [perplexity/single-level-score.ts](./perplexity/single-level-score.ts)   | Use a single Score level and inspect its zero score, probability, and legend.                           |
-| [openai/basic.ts](./openai/basic.ts)                                     | Decide answers to all three question types with OpenAI.                                                 |
-| [openai/default-provider.ts](./openai/default-provider.ts)               | Configure a global default provider and resolve a decision model by alias.                              |
-| [anthropic/basic.ts](./anthropic/basic.ts)                               | Decide answers to all three question types with Anthropic.                                              |
-| [google/basic.ts](./google/basic.ts)                                     | Decide answers to all three question types with Google and configure thinking through provider options. |
+| Example                                                                  | Demonstrates                                                                                          |
+| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| [mock/basic.ts](./mock/basic.ts)                                         | Return a fixed boolean probability with a mock decision model.                                        |
+| [gateway/basic.ts](./gateway/basic.ts)                                   | Decide answers to Choice, Score, and Boolean questions with Jev through AI Gateway.                   |
+| [typesafe-ai/basic.ts](./typesafe-ai/basic.ts)                           | Call Jev directly through the TypeSafe AI provider and inspect answers, usage, and provider metadata. |
+| [typesafe-ai/structured-rubrics.ts](./typesafe-ai/structured-rubrics.ts) | Use JSON objects and arrays in state, instructions, and criteria.                                     |
+| [typesafe-ai/registry.ts](./typesafe-ai/registry.ts)                     | Register a custom model alias and route answers using probability thresholds.                         |
+| [typesafe-ai/error-handling.ts](./typesafe-ai/error-handling.ts)         | Submit oversized state and inspect `APICallError` details if the provider rejects it.                 |
+| [perplexity/basic.ts](./perplexity/basic.ts)                             | Decide answers to Boolean, Choice, and Score questions with Perplexity.                               |
+| [perplexity/criteria-only.ts](./perplexity/criteria-only.ts)             | Omit instructions or set them to null, using structured criteria to describe the decision.            |
+| [perplexity/single-level-score.ts](./perplexity/single-level-score.ts)   | Use a single Score level and inspect its zero score, probability, and legend.                         |
+| [openai/basic.ts](./openai/basic.ts)                                     | Decide answers to all three question types with OpenAI.                                               |
+| [openai/default-provider.ts](./openai/default-provider.ts)               | Configure a global default provider and resolve a decision model by alias.                            |
+| [anthropic/basic.ts](./anthropic/basic.ts)                               | Decide answers to all three question types with Anthropic.                                            |
+| [google/basic.ts](./google/basic.ts)                                     | Call Gemini Decisions directly and inspect native probabilities and confidence.                       |
 
 ## Interpreting results
 
-TypeSafe AI, OpenAI, and Perplexity provide native decisions. The Anthropic and Google
-adapters use structured language-model output and evaluate all questions in one
-prompt. Their boolean probabilities are prompted estimates; Choice and Score
-answers do not include probability distributions.
+TypeSafe AI, OpenAI, Perplexity, and Google provide native decisions.
+The Anthropic adapter uses structured language-model output and evaluates all
+questions in one prompt. Its boolean probabilities are prompted estimates;
+Choice and Score answers do not include probability distributions.
 
 Choice and Score distributions are optional in the shared API. Check for their
 presence before using them, and choose routing thresholds using labeled data

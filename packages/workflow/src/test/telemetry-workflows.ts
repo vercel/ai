@@ -13,6 +13,51 @@ async function addNumbers(input: { a: number; b: number }): Promise<number> {
   return input.a + input.b;
 }
 
+export async function agentWithClientToolTelemetry(
+  mode: 'generate' | 'stream',
+) {
+  'use workflow';
+  let stepEndCallbacks = 0;
+  const agent = new WorkflowAgent({
+    model: mockSequenceModel([
+      {
+        type: 'tool-call',
+        toolName: 'addNumbers',
+        input: '{"a":2,"b":3}',
+      },
+      {
+        type: 'tool-call',
+        toolName: 'askUser',
+        input: '{"question":"Continue?"}',
+      },
+    ]),
+    tools: {
+      addNumbers: {
+        inputSchema: z.object({ a: z.number(), b: z.number() }),
+        execute: addNumbers,
+      },
+      askUser: {
+        inputSchema: z.object({ question: z.string() }),
+      },
+    },
+    onStepEnd: () => {
+      stepEndCallbacks++;
+    },
+  });
+  const result =
+    mode === 'generate'
+      ? await agent.generate({ prompt: 'Add 2 and 3, then ask to continue.' })
+      : await agent.stream({
+          prompt: 'Add 2 and 3, then ask to continue.',
+          writable: getWritable(),
+        });
+  return {
+    stepCount: result.steps.length,
+    lastTool: result.steps.at(-1)?.toolCalls.at(-1)?.toolName,
+    stepEndCallbacks,
+  };
+}
+
 export async function agentWithRedactedProviderTools(
   mode: 'generate' | 'stream',
 ) {

@@ -19,6 +19,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { DeepgramConfig } from './deepgram-config';
+import { getDeepgramTranscriptionModelEntry } from './deepgram-model-catalog';
 import { deepgramTranscriptionModelOptionsSchema } from './deepgram-transcription-model-options';
 import { resolveDeepgramWebSocketAuth } from './deepgram-websocket-auth';
 
@@ -31,7 +32,8 @@ type StreamOptions = Parameters<
  * `/v1/listen` batch and live endpoints reject them.
  */
 export function isDeepgramFluxTranscriptionModelId(modelId: string): boolean {
-  return modelId.startsWith('flux');
+  return getDeepgramTranscriptionModelEntry(modelId).requestConfig.transcription
+    .flux;
 }
 
 type FluxTurn = {

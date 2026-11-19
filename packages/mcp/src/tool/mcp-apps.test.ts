@@ -204,6 +204,7 @@ describe('MCP Apps helpers', () => {
                 csp: {
                   connectDomains: ['https://ok.example', 42, null], // non-strings dropped
                   resourceDomains: 'not-an-array', // wrong type -> dropped
+                  baseUriDomains: ['https://base.example', false], // non-strings dropped
                 },
                 permissions: 'nope', // wrong type -> dropped
                 extra: 'kept', // unknown key passes through
@@ -217,6 +218,9 @@ describe('MCP Apps helpers', () => {
     expect(resource.meta).toMatchInlineSnapshot(`
       {
         "csp": {
+          "baseUriDomains": [
+            "https://base.example",
+          ],
           "connectDomains": [
             "https://ok.example",
           ],

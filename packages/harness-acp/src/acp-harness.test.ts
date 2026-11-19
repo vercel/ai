@@ -97,6 +97,7 @@ const harnessUtilsMocks = vi.hoisted(() => {
         abortSignal: AbortSignal;
         reason: 'open' | 'reconnect';
       }) => Promise<unknown>;
+      keepAliveMs?: number;
       reconnect?: {
         readonly maxElapsedMs?: number;
         readonly initialDelayMs?: number;
@@ -123,6 +124,7 @@ const harnessUtilsMocks = vi.hoisted(() => {
         abortSignal: AbortSignal;
         reason: 'open' | 'reconnect';
       }) => Promise<unknown>;
+      keepAliveMs?: number;
       reconnect?: {
         readonly maxElapsedMs?: number;
         readonly initialDelayMs?: number;
@@ -2354,6 +2356,35 @@ describe('createACP', () => {
     expect(stop).not.toHaveBeenCalled();
   });
 
+  it('passes write-protected paths to the bridge configuration', async () => {
+    const spawns: Array<{
+      command: string;
+      env: Record<string, string | undefined>;
+    }> = [];
+    const harness = createACP({
+      harnessId: 'codex-acp',
+      auth: 'direct',
+      ...agentSettings,
+      writeProtectedPaths: ['.example', '.example-config/hooks'],
+    });
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({ runs: [], spawns, stop: async () => {} }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+
+    await expect(
+      safeParseJSON({ text: spawns[0].env[ACP_BRIDGE_CONFIGURATION_ENV]! }),
+    ).resolves.toMatchObject({
+      success: true,
+      value: {
+        writeProtectedPaths: ['.example', '.example-config/hooks'],
+      },
+    });
+
+    await session.doDestroy();
+  });
+
   it('requires explicit bridge settings for a basic sandbox session', async () => {
     const networkSession = fakeSandbox({
       runs: [],
@@ -2478,6 +2509,7 @@ describe('createACP', () => {
       ...agentSettings,
       portEndpoint,
       reconnect,
+      keepAliveMs: 100,
     });
     const sandboxSession = fakeSandbox({
       runs: [],
@@ -2509,6 +2541,9 @@ describe('createACP', () => {
     expect(
       harnessUtilsMocks.channels.map(channel => channel.options.reconnect),
     ).toEqual([reconnect, reconnect]);
+    expect(
+      harnessUtilsMocks.channels.map(channel => channel.options.keepAliveMs),
+    ).toEqual([100, 100]);
     expect(webSocketMocks.calls).toEqual([
       {
         url: 'wss://sandbox.example/bridge?existing=value',

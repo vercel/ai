@@ -54,7 +54,12 @@ type Bash20250124OptionsWithNullableExecute<OUTPUT> = Omit<
   execute?: Bash20250124Options<OUTPUT>['execute'] | null;
 };
 
-type Bash20250124DefaultOutput = Awaited<ReturnType<SandboxSession['run']>>;
+// The default execute function does not pass `maxOutputLength`, so the
+// sandbox returns the full output without the original stream lengths.
+type Bash20250124DefaultOutput = Pick<
+  Awaited<ReturnType<SandboxSession['run']>>,
+  'exitCode' | 'stdout' | 'stderr'
+>;
 
 export function bash_20250124(
   options?: Omit<Bash20250124Options<Bash20250124DefaultOutput>, 'execute'> & {

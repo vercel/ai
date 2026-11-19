@@ -23,7 +23,7 @@ proxy negotiation); this app owns content, configuration, and thin adapters.
   `node_modules/@vercel/geistdocs/docs/` (start with `agents.md` and
   `sitemap.md` there).
 - Keep `createGeistdocs` as the `next.config.ts` wrapper and keep
-  `cacheComponents: true` and `partialPrefetching: true`. Do not export
+  `cacheComponents: true`. Do not export
   `dynamic`, `revalidate`, or `fetchCache` from App Router files; use
   `"use cache"` + `cacheLife` for cacheable work (see
   `components/resources/highlighted-code.tsx`).
@@ -37,6 +37,14 @@ proxy negotiation); this app owns content, configuration, and thin adapters.
   `content/docs` (v7) and pinned release SHAs (v5/v6). Do not edit it by hand;
   change the source or `scripts/sync-content-utils.mjs` transforms.
 - `dev:site` syncs only v7; set `DOCS_ALL_VERSIONS=1` to work on v5/v6 pages.
+- `/api/search` builds a version's index on its first request. On production
+  deployments (`VERCEL_ENV=production`) it reads `.search-index/`, which
+  `pnpm build-search-index` generates after `fumadocs-mdx` (frontmatter and
+  search sections per version, no page bodies). Every other build skips that
+  script and reads the compiled pages through `lib/geistdocs/source.ts`.
+  Keep that import behind the build-time flag in
+  `lib/geistdocs/search-sources.ts`: it loads the MDX of every version, which
+  made each production function instance's first search take over ten seconds.
 - Versioned Markdown routes rewrite links with
   `lib/geistdocs/version-markdown.ts`; proxy mappings in `proxy.ts` must cover
   every public docs family (`/docs`, `/providers`, `/cookbook`,

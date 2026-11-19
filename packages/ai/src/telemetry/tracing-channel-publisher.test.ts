@@ -111,6 +111,73 @@ describe.runIf(runningOnNode)(
     });
 
     it.each([true, false])(
+      'preserves subscriber stream replacements with redaction=%s',
+      async redact => {
+        vi.mocked(isNodeRuntime).mockReturnValue(true);
+        const body = { credential: 'test-token' };
+        const original = {
+          stream: new ReadableStream<string>({
+            start(controller) {
+              controller.enqueue('hello');
+              controller.close();
+            },
+          }),
+          request: {
+            body: redact
+              ? withTelemetryRedaction(body, value => ({
+                  ...value,
+                  credential: '[redacted]',
+                }))
+              : body,
+          },
+        };
+        const observedCredentials: string[] = [];
+        const wrapStream = (context: unknown) => {
+          const { result } = context as { result: typeof original };
+          observedCredentials.push(result.request.body.credential);
+          result.stream = result.stream.pipeThrough(
+            new TransformStream<string, string>({
+              transform(chunk, controller) {
+                controller.enqueue(`${chunk}!`);
+              },
+            }),
+          );
+        };
+        const channel = diagnosticsChannel.tracingChannel(
+          AI_SDK_TELEMETRY_TRACING_CHANNEL,
+        );
+        const firstSubscriber = (context: unknown) => wrapStream(context);
+        const secondSubscriber = (context: unknown) => wrapStream(context);
+        channel.asyncEnd.subscribe(firstSubscriber);
+        channel.asyncEnd.subscribe(secondSubscriber);
+
+        try {
+          const result = await runWithTracingChannelSpan(
+            message,
+            async () => original,
+          );
+
+          expect(result).toBe(original);
+          expect(result.request.body).toBe(original.request.body);
+          expect(result.request.body.credential).toBe('test-token');
+          expect(observedCredentials).toEqual([
+            redact ? '[redacted]' : 'test-token',
+            redact ? '[redacted]' : 'test-token',
+          ]);
+          const reader = result.stream.getReader();
+          expect(await reader.read()).toEqual({
+            value: 'hello!!',
+            done: false,
+          });
+          expect(await reader.read()).toEqual({ value: undefined, done: true });
+        } finally {
+          channel.asyncEnd.unsubscribe(firstSubscriber);
+          channel.asyncEnd.unsubscribe(secondSubscriber);
+        }
+      },
+    );
+
+    it.each([true, false])(
       'redacts long-lived completion metadata with recordResult=%s',
       async recordResult => {
         vi.mocked(isNodeRuntime).mockReturnValue(true);

@@ -9,8 +9,11 @@ import { join } from 'path';
 // Patched Zod adds ~36 KiB; public message schemas retain the classic API.
 // Internal schemas use Mini, preserving the existing named-export budgets.
 // The opt-in useChat message queue adds ~3 KiB.
-// Binary WebSocket frame handling in connectToWebSocket adds ~0.4 KiB.
-const LIMIT = 644 * 1024;
+// Bounded validation of malformed UI messages adds ~1.5 KiB.
+// The experimental extract API adds ~5 KiB.
+// The bundled Gateway extraction client adds ~4 KiB.
+// Steering interrupts add ~3 KiB.
+const LIMIT = 661 * 1024;
 
 interface BundleResult {
   size: number;

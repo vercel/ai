@@ -42,6 +42,8 @@ export class AzureMaiImageModel implements ImageModelV4 {
       url: (path: string) => string;
       headers: Resolvable<Record<string, string | undefined>>;
       fetch?: FetchFunction;
+      /** Transport for untrusted file URLs, without provider authentication. */
+      downloadFetch?: FetchFunction;
       _internal?: { currentDate?: () => Date };
     },
   ) {}
@@ -58,7 +60,11 @@ export class AzureMaiImageModel implements ImageModelV4 {
       headers,
       abortSignal,
     }: Parameters<ImageModelV4['doGenerate']>[0],
-    { autoAspectRatio, webGrounding }: AzureImageModelMaiOptions = {},
+    {
+      autoAspectRatio,
+      webGrounding,
+      background,
+    }: AzureImageModelMaiOptions = {},
   ): Promise<Awaited<ReturnType<ImageModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];
@@ -99,6 +105,7 @@ export class AzureMaiImageModel implements ImageModelV4 {
       height: dimensions?.height,
       auto_aspect_ratio: autoAspectRatio,
       web_grounding: webGrounding,
+      background,
     };
     const requestOptions = {
       headers: combineHeaders(await resolve(this.config.headers), headers),
@@ -111,7 +118,15 @@ export class AzureMaiImageModel implements ImageModelV4 {
     };
     const images =
       files != null && files.length > 0
-        ? await Promise.all(files.map(file => fileToBlob(file, abortSignal)))
+        ? await Promise.all(
+            files.map(file =>
+              fileToBlob(
+                file,
+                abortSignal,
+                this.config.downloadFetch ?? this.config.fetch,
+              ),
+            ),
+          )
         : undefined;
 
     // The API ignores `n`, so a call reached with n > 1 (e.g. through an
@@ -226,9 +241,10 @@ function toFormData(
 async function fileToBlob(
   file: ImageModelV4File,
   abortSignal: AbortSignal | undefined,
+  fetch: FetchFunction | undefined,
 ): Promise<Blob> {
   if (file.type === 'url') {
-    return downloadBlob(file.url, { abortSignal });
+    return downloadBlob(file.url, { abortSignal, fetch });
   }
 
   const data =

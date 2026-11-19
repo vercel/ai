@@ -12,6 +12,7 @@ import {
   type Experimental_BatchV4StartResult as BatchV4StartResult,
   type Experimental_BatchV4Status as BatchV4Status,
   type Experimental_ImageBatchV4Request as ImageBatchV4Request,
+  type Experimental_TextBatchV4Request as TextBatchV4Request,
   type Experimental_BatchV4StartOptions as BatchV4StartOptions,
   type LanguageModelV4GenerateResult,
   type ImageModelV4Result,
@@ -58,6 +59,7 @@ const supportedGoogleBatchContentTypes = new Set<
   LanguageModelV4GenerateResult['content'][number]['type']
 >(['text', 'reasoning', 'source', 'tool-call', 'tool-result']);
 
+type GoogleTextBatchRequest = TextBatchV4Request<GoogleModelId>;
 type GoogleImageBatchRequest = ImageBatchV4Request<GoogleImageModelId>;
 type GoogleBatchModelIds = {
   readonly text: GoogleModelId;
@@ -234,11 +236,7 @@ export class GoogleBatch implements BatchV4<GoogleBatchModelIds> {
     for (const request of options.requests) {
       const preparedRequest =
         request.type === 'text'
-          ? await GoogleLanguageModel.prepareRequest({
-              modelId: request.modelId,
-              config: this.batchConfig,
-              options: request.options,
-            })
+          ? await this.prepareTextRequest(request)
           : await this.prepareImageRequest(request);
       const inlinedRequest = {
         request: preparedRequest.args,
@@ -672,6 +670,27 @@ export class GoogleBatch implements BatchV4<GoogleBatchModelIds> {
 
       yield { type: 'text', id: line.key, status: 'succeeded', result };
     }
+  }
+
+  private async prepareTextRequest(request: GoogleTextBatchRequest) {
+    const preparedRequest = await GoogleLanguageModel.prepareRequest({
+      modelId: request.modelId,
+      config: this.batchConfig,
+      options: request.options,
+    });
+
+    if (preparedRequest.args.generationConfig.responseJsonSchema != null) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'structured output schemas in Google batches',
+        message:
+          `The Google Batch API does not reliably enforce JSON schemas (request "${request.id}"). ` +
+          'Remove the output schema, use `Output.json()` without a schema, or set ' +
+          '`providerOptions.google.structuredOutputs` to `false` to not send the schema ' +
+          'and validate the results with `getBatchResults({ output })` instead.',
+      });
+    }
+
+    return preparedRequest;
   }
 
   private async prepareImageRequest(request: GoogleImageBatchRequest) {

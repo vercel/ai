@@ -16,6 +16,7 @@ import type { z } from 'zod/v4';
 const sentMessages: Array<Record<string, unknown>> = [];
 const openCalls: Array<{ resume?: boolean } | undefined> = [];
 const reconnects: Array<unknown> = [];
+const keepalives: Array<number | undefined> = [];
 const debugHooks: Array<unknown> = [];
 const subscribedEventTypes: string[] = [];
 const channelListeners = new Map<
@@ -116,6 +117,7 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
     constructor({
       connect,
       reconnect,
+      keepAliveMs,
       onDebug,
     }: {
       connect: (options: {
@@ -123,10 +125,12 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
         reason: 'open' | 'reconnect';
       }) => Promise<unknown>;
       reconnect?: unknown;
+      keepAliveMs?: number;
       onDebug?: unknown;
     }) {
       this.connect = connect;
       reconnects.push(reconnect);
+      keepalives.push(keepAliveMs);
       debugHooks.push(onDebug);
     }
 
@@ -376,6 +380,7 @@ describe('createClaudeCode adapter', () => {
     sentMessages.length = 0;
     openCalls.length = 0;
     reconnects.length = 0;
+    keepalives.length = 0;
     debugHooks.length = 0;
     subscribedEventTypes.length = 0;
     channelListeners.clear();
@@ -1017,7 +1022,7 @@ describe('createClaudeCode adapter', () => {
       initialDelayMs: 100,
       maxDelayMs: 5_000,
     };
-    const harness = createClaudeCode({ reconnect });
+    const harness = createClaudeCode({ reconnect, keepAliveMs: 100 });
     const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
       bridgePortUrl: 'ws://127.0.0.1:1',
       spawnEnvs,
@@ -1047,6 +1052,7 @@ describe('createClaudeCode adapter', () => {
       resumeFrom,
     });
     expect(reconnects).toEqual([reconnect, reconnect]);
+    expect(keepalives).toEqual([100, 100]);
     const attachedResumeFrom = await attachedSession.doDetach();
     expect(attachedResumeFrom.data).toMatchObject({ bridge: { privateKey } });
   });
@@ -1149,6 +1155,102 @@ describe('createClaudeCode adapter', () => {
     expect(lastStart()).not.toHaveProperty('continue');
 
     await attachedSession.doDestroy();
+  });
+
+  it('persists the init session id when detaching after a terminal error without finish', async () => {
+    const harness = createClaudeCode();
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      writes: [],
+      runs: [],
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Trigger a terminal error.',
+      emit: () => {},
+    });
+    const startId = lastStart().startId;
+    const done = expect(control.done).rejects.toThrow('boom');
+
+    dispatchChannelEvent({
+      type: 'raw',
+      startId,
+      rawValue: {
+        type: 'system',
+        subtype: 'init',
+        sessionId: 'claude-session-error',
+      },
+    });
+    dispatchChannelEvent({ type: 'error', startId, error: 'boom' });
+    await done;
+
+    const resumeFrom = await session.doDetach();
+    expect(resumeFrom.data).toMatchObject({
+      claudeSessionId: 'claude-session-error',
+    });
+
+    const resumedSession = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      resumeFrom,
+    });
+    const resumedControl = await resumedSession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Resume the exact conversation.',
+      emit: () => {},
+    });
+    const resumedStartId = lastStart().startId;
+
+    expect(lastStart()).toMatchObject({
+      resumeSessionId: 'claude-session-error',
+    });
+
+    dispatchChannelEvent({ type: 'finish', startId: resumedStartId });
+    await resumedControl.done;
+    await resumedSession.doDestroy();
+  });
+
+  it('persists the init session id when suspending an unfinished turn', async () => {
+    const session = await createClaudeCode().doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Keep this turn running.',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+    const startId = lastStart().startId;
+
+    dispatchChannelEvent({
+      type: 'raw',
+      startId,
+      rawValue: {
+        type: 'system',
+        subtype: 'init',
+        sessionId: 'claude-session-suspended',
+      },
+    });
+
+    const continueFrom = await session.doSuspendTurn();
+    expect(continueFrom.data).toMatchObject({
+      claudeSessionId: 'claude-session-suspended',
+    });
   });
 
   it('passes port endpoint headers to fresh, retried, and attached WebSocket connections', async () => {
@@ -1561,7 +1663,14 @@ describe('createClaudeCode adapter', () => {
         approvalId: 'old-approval',
       },
       { type: 'compaction', phase: 'start' },
-      { type: 'raw', rawValue: 'old' },
+      {
+        type: 'raw',
+        rawValue: {
+          type: 'system',
+          subtype: 'init',
+          sessionId: 'wrong-conversation',
+        },
+      },
       { type: 'finish-step', finishReason: { unified: 'stop' }, usage: {} },
       {
         type: 'finish',

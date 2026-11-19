@@ -22,6 +22,7 @@ const authorizationMetadata = {
 };
 
 describe.each([
+  { name: 'Node.js' },
   { name: 'Bun', versions: { bun: '1.3.5' } },
   { name: 'Deno', versions: { deno: '2.0.0' } },
   { name: 'Workers', title: 'workerd' },
