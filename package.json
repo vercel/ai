@@ -13,7 +13,7 @@
     "type-check": "turbo run type-check",
     "publint": "turbo publint",
     "test": "turbo test --concurrency 16 --filter=!@example/*",
-    "test:bundlers": "pnpm --filter ai-sdk-bundler-tests test:bundlers",
+    "test:bundlers": "turbo run test:bundlers",
     "test:tarballs": "node --test tools/tarballs/*.test.mjs",
     "test:update": "turbo test:update --concurrency 16 --filter=!@example/*",
     "ci:release": "turbo clean && npm run build:packages && changeset publish",
