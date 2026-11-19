@@ -490,6 +490,19 @@ export class SpritesApiClient {
                 exitCode = code;
                 exitObserved = true;
               }
+            } else if (message.type === 'error') {
+              // The server reports a failed exec session this way and then
+              // closes normally without an exit frame. For example, Sprites
+              // keep only the last 64 KiB of output for a client that attaches
+              // late, so output beyond that printed before the socket attached
+              // is gone: "cannot resume output at byte 0: earliest retained
+              // byte is <n>".
+              const error = message['error'];
+              socketError ??= new Error(
+                `Sprites exec failed: ${
+                  typeof error === 'string' ? error : 'unknown error'
+                } (${safeUrl}).`,
+              );
             }
           }),
         );

@@ -934,6 +934,11 @@ for new code.
 - `run()` may merge stderr into stdout for instant commands. Sprites can replay the
   buffered output of a command that exits before the client attaches as one stdout
   stream, so check `exitCode` rather than an empty `stderr`.
+- A command that prints more than 64 KiB in its first few milliseconds, before the exec
+  connection attaches, fails: Sprites keep only the last 64 KiB of output for a client
+  that attaches late. `run()` and the `wait()` of a spawned process reject with the
+  platform's message (`cannot resume output at byte 0: earliest retained byte is ...`).
+  Output printed after the connection attaches is not limited.
 - The command line travels in the exec request URL, which proxies and logging tools
   routinely record, so don't put secrets in a command. Values passed as `env` are written
   to a temporary file in the Sprite instead, which the command sources and deletes before

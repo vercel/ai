@@ -171,6 +171,48 @@ describe('SpritesSandboxSession.run', () => {
     );
   });
 
+  it('reports the error frame of a session whose output was not retained', async () => {
+    // Recorded from a live Sprite for a command that printed 131,072 bytes
+    // before the exec socket attached: the server replays at most the last
+    // 64 KiB, sends this error frame and closes normally without an exit.
+    execMessages = [
+      JSON.stringify({
+        msg: 'session_created cmd=bash',
+        pid: 883,
+        t_ms: 25,
+        type: 'debug',
+      }),
+      JSON.stringify({
+        error:
+          'cannot resume output at byte 0: earliest retained byte is 65536',
+        type: 'error',
+      }),
+    ];
+
+    const error = await makeSession()
+      .run({ command: "head -c 131072 /dev/zero | tr '\\0' a" })
+      .catch((caught: Error) => caught);
+
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toBe(
+      'Sprites exec failed: cannot resume output at byte 0: earliest retained byte is 65536 (wss://api.test/v1/sprites/my-sprite/exec).',
+    );
+  });
+
+  it('lets a reported exit win over an error frame', async () => {
+    execMessages = [
+      JSON.stringify({ type: 'error', error: 'late' }),
+      frame(1, 'out'),
+      frame(3, [0]),
+    ];
+
+    await expect(makeSession().run({ command: 'x' })).resolves.toEqual({
+      exitCode: 0,
+      stdout: 'out',
+      stderr: '',
+    });
+  });
+
   it('throws when the WebSocket errors before opening', async () => {
     execErrorBeforeOpen = true;
     const session = makeSession();
