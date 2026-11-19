@@ -58,7 +58,7 @@ function mapArray(
   return copy.some((entry, index) => entry !== value[index]) ? copy : value;
 }
 
-/** Preserve result getters, streams, and property descriptors without mutation. */
+/** Preserve result getters and property descriptors without mutation. */
 function replaceProperties<T>(
   value: T,
   redactors: Record<string, (value: unknown) => unknown>,
@@ -74,7 +74,25 @@ function replaceProperties<T>(
       descriptors[key] = { ...descriptor, value: redacted };
     }
   }
-  return descriptors == null
-    ? value
-    : Object.create(Object.getPrototypeOf(value), descriptors);
+  if (descriptors == null) return value;
+
+  // Instrumentation replaces result.stream with a tapped stream, locking the
+  // original. Forward replacements so the application consumes the tapped stream.
+  const streamDescriptor = descriptors.stream;
+  if (
+    streamDescriptor?.writable &&
+    streamDescriptor.value instanceof ReadableStream
+  ) {
+    const original: Record<string, unknown> = value;
+    descriptors.stream = {
+      configurable: streamDescriptor.configurable,
+      enumerable: streamDescriptor.enumerable,
+      get: () => original.stream,
+      set: stream => {
+        original.stream = stream;
+      },
+    };
+  }
+
+  return Object.create(Object.getPrototypeOf(value), descriptors);
 }

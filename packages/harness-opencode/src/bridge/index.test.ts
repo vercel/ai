@@ -65,7 +65,12 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
 
 vi.mock('@opencode-ai/sdk/v2', () => ({
   createOpencodeServer: createOpencodeServerMock,
-  createOpencodeClient: vi.fn(() => sdkMock.client),
+  createOpencodeClient: vi.fn(() => ({
+    tool: {
+      ids: vi.fn(async () => ({ data: ['read', 'harness_read_guard'] })),
+    },
+    ...(sdkMock.client as Record<string, unknown>),
+  })),
 }));
 
 vi.mock('./tool-relay', () => ({
@@ -2120,6 +2125,56 @@ describe('OpenCode bridge turn settlement', () => {
       );
       return workdir;
     }
+
+    it.each(['allow-reads', 'allow-edits', 'allow-all', undefined])(
+      'installs the no-discovery read override only for restrictive mode %s',
+      async permissionMode => {
+        const workdir = createRepositoryWorkdir();
+        setUpRepositoryTurn({
+          permissionMode,
+          openCodeConfig: { plugin: ['host-plugin'] },
+        });
+        setBridgeArgv(workdir);
+        await import('./index');
+        const config = createOpencodeServerMock.mock.calls[0]?.[0]
+          .config as Record<string, unknown>;
+        if (permissionMode && permissionMode !== 'allow-all') {
+          expect(config.permission).toMatchObject({
+            harness_read_guard: 'deny',
+          });
+        }
+        expect(config.plugin).toEqual(
+          permissionMode && permissionMode !== 'allow-all'
+            ? [
+                'host-plugin',
+                `file://${workdir}-bootstrap/opencode-read-plugin.mjs`,
+              ]
+            : ['host-plugin'],
+        );
+      },
+    );
+
+    it('fails closed when OpenCode skips the required read plugin', async () => {
+      const workdir = createRepositoryWorkdir();
+      const { emitError } = setUpRepositoryTurn({
+        permissionMode: 'allow-reads',
+      });
+      const client = sdkMock.client as {
+        tool?: unknown;
+        session: { promptAsync: unknown };
+      };
+      client.tool = { ids: vi.fn(async () => ({ data: ['read'] })) };
+      setBridgeArgv(workdir);
+      await import('./index');
+      expect(client.session.promptAsync).not.toHaveBeenCalled();
+      expect(emitError).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: expect.objectContaining({
+            message: expect.stringContaining('required Harness read plugin'),
+          }),
+        }),
+      );
+    });
 
     it('disables project config and passes the working directory AGENTS.md', async () => {
       const workdir = createRepositoryWorkdir();

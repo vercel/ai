@@ -82,6 +82,7 @@ export {
 } from './bridge-diagnostics';
 export { resolveSandboxDefaultWorkingDirectory } from './resolve-sandbox-default-working-directory';
 export { getRestrictedSandboxSession } from './get-restricted-sandbox-session';
+export { isSandboxWriteProtectedPath } from './is-sandbox-write-protected-path';
 export { sleep } from './sleep';
 export { normalizeHarnessToolModelOutput } from './normalize-harness-tool-model-output';
 export {

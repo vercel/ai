@@ -1,5 +1,74 @@
 # @ai-sdk/harness-github-copilot
 
+## 1.0.85
+
+### Patch Changes
+
+- 7acc5a3: fix(harness-github-copilot): require approval for `.github/mcp.json` changes under `allow-edits`
+- Updated dependencies [679b5b5]
+- Updated dependencies [e845694]
+  - @ai-sdk/harness@1.0.188
+  - @ai-sdk/harness-acp@1.0.128
+
+## 1.0.84
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.187
+- @ai-sdk/harness-acp@1.0.127
+
+## 1.0.83
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.186
+- @ai-sdk/harness-acp@1.0.126
+
+## 1.0.82
+
+### Patch Changes
+
+- f630e0d: fix(harness): update bridge zod dependency to 4.6.7 to address GHSA-mrhx-c7xc-m3w5
+- Updated dependencies [f630e0d]
+- Updated dependencies [10ff0b1]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/harness-acp@1.0.125
+  - @ai-sdk/provider@4.0.39
+  - @ai-sdk/provider-utils@5.0.82
+  - @ai-sdk/harness@1.0.185
+
+## 1.0.81
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.184
+- @ai-sdk/harness-acp@1.0.124
+
+## 1.0.80
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+- Updated dependencies [71bef69]
+  - @ai-sdk/provider-utils@5.0.81
+  - @ai-sdk/harness-acp@1.0.123
+  - @ai-sdk/harness@1.0.183
+
+## 1.0.79
+
+### Patch Changes
+
+- 6f9d73f: fix(harness-acp): require approval for sensitive workspace file changes in `allow-edits` permission mode
+- Updated dependencies [2ebc78b]
+- Updated dependencies [1a94af3]
+- Updated dependencies [cb4fa52]
+- Updated dependencies [6f9d73f]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/harness@1.0.182
+  - @ai-sdk/provider@4.0.38
+  - @ai-sdk/harness-acp@1.0.122
+
 ## 1.0.78
 
 ### Patch Changes

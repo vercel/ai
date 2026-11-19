@@ -1,4 +1,4 @@
-import { dynamicTool, tool } from '@ai-sdk/provider-utils';
+import { dynamicTool, jsonSchema, tool } from '@ai-sdk/provider-utils';
 import { describe, expect, it, vi } from 'vitest';
 import { z as z3 } from 'zod/v3';
 import { z as z4 } from 'zod/v4';
@@ -25,6 +25,57 @@ function createApproval(
 }
 
 describe('validateApprovedToolApprovals', () => {
+  it('should reject signed approvals changed by an in-place schema validator', async () => {
+    const approval = createApproval({
+      type: 'tool-call',
+      toolCallId: 'call-1',
+      toolName: 'tool1',
+      input: { counter: { value: 2 } },
+    });
+    approval.approvalRequest.signature = await signToolApproval({
+      secret: 'test-secret',
+      approvalId: approval.approvalRequest.approvalId,
+      ...approval.toolCall,
+    });
+    const originalApproval = structuredClone(approval);
+    const result = await validateApprovedToolApprovals({
+      approvedToolApprovals: [approval],
+      tools: {
+        tool1: tool({
+          inputSchema: jsonSchema<{ counter: { value: number } }>(
+            { type: 'object' },
+            {
+              validate: value => {
+                const input = value as { counter: { value: number } };
+                input.counter.value++;
+                return { success: true, value: input };
+              },
+            },
+          ),
+          execute: async () => 'ok',
+        }),
+      },
+      toolApproval: undefined,
+      toolApprovalSecret: 'test-secret',
+      messages: [],
+      toolsContext: {},
+      runtimeContext: {},
+    });
+
+    expect(result.approvedToolApprovals).toHaveLength(0);
+    expect(result.invalidToolApprovals).toMatchObject([
+      {
+        error: {
+          name: 'AI_InvalidToolInputError',
+          message: expect.stringContaining(
+            'does not match the validated schema output',
+          ),
+        },
+      },
+    ]);
+    expect(approval).toEqual(originalApproval);
+  });
+
   it('should keep approvals whose input matches the tool input schema', async () => {
     const tools = {
       tool1: tool({

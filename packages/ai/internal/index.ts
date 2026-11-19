@@ -31,8 +31,11 @@ export {
   createNullLanguageModelUsage,
 } from '../src/types/usage';
 export { resolveLanguageModel } from '../src/model/resolve-model';
+export { logWarnings } from '../src/logger/log-warnings';
 export { mergeAbortSignals } from '../src/util/merge-abort-signals';
+export { setAbortTimeout } from '../src/util/set-abort-timeout';
 export { mergeCallbacks } from '../src/util/merge-callbacks';
+export { mergeObjects } from '../src/util/merge-objects';
 export { createTelemetryDispatcher } from '../src/telemetry/create-telemetry-dispatcher';
 export { filterIncludedContext } from '../src/telemetry/filter-included-context';
 export { createRestrictedTelemetryDispatcher } from '../src/generate-text/restricted-telemetry-dispatcher';
@@ -42,6 +45,7 @@ export { isOutputChunk } from '../src/generate-text/is-output-chunk';
 export type { ToolsContextSettings } from '../src/generate-text/tools-context-parameter';
 export { validateToolContext } from '../src/generate-text/validate-tool-context';
 export { createToolSearchState } from '../src/tool-search/prepare-tool-search';
+export { logDefaultStopConditionWarning } from '../src/agent/default-stop-condition';
 export {
   collectToolApprovals,
   type CollectedToolApprovals,
@@ -51,6 +55,7 @@ export {
   verifyToolApprovalSignature,
 } from '../src/generate-text/tool-approval-signature';
 export { validateApprovedToolApprovals } from '../src/generate-text/validate-tool-approvals';
+export { resolveToolApproval } from '../src/generate-text/resolve-tool-approval';
 export { toResponseMessages } from '../src/generate-text/to-response-messages';
 
 export { DefaultGenerateTextResult } from '../src/generate-text/default-generate-text-result';

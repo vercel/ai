@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const { text } = await generateText({
-    model: googleVertex('gemini-3.8-flash'),
+    model: googleVertex('gemini-4-hydrogen'),
     tools: {
       currentLocation: tool({
         description: 'Get the current location.',

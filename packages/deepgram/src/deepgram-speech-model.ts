@@ -1,3 +1,4 @@
+import { getDeepgramSpeechModelEntry } from './deepgram-model-catalog';
 import {
   InvalidArgumentError,
   type SpeechModelV4,
@@ -27,7 +28,6 @@ interface DeepgramSpeechModelConfig extends DeepgramConfig {
 // Deepgram embeds voice and language in the model ID
 // (`<family>-<voice>-<language>`, e.g. `aura-2-thalia-en`). Bare family IDs
 // compose the upstream model ID from the voice and language call options.
-const VOICE_FAMILY_IDS = new Set<string>(['aura', 'aura-2']);
 
 export class DeepgramSpeechModel implements SpeechModelV4 {
   readonly specificationVersion = 'v4';
@@ -96,7 +96,9 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
     // Compose the upstream model ID from voice/language when a bare voice
     // family ID is used; full voice IDs (e.g. `aura-2-thalia-en`) pass through.
     let upstreamModelId: string = this.modelId;
-    if (VOICE_FAMILY_IDS.has(this.modelId)) {
+    if (
+      getDeepgramSpeechModelEntry(this.modelId).requestConfig.speech.voiceFamily
+    ) {
       const trimmedVoice = voice?.trim();
       if (!trimmedVoice) {
         throw new Error(

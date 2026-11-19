@@ -134,8 +134,13 @@ Raw runtime instances need their respective adapters; a custom
 The model calls the tool with `{ command: string }` and receives
 `{ stdout, stderr, exitCode }`. Nonzero exit codes are returned so the model can
 inspect failures and recover. AI SDK cancellation is forwarded to the session.
-Output truncation happens after execution and does not limit execution memory or
-duration.
+The tool keeps the first `maxOutputLength` characters from stdout and stderr and
+reports how many characters it omitted. The command still runs to completion.
+
+Vercel Sandbox discards extra output as it arrives. just-bash buffers output
+within its own limits, and custom sandboxes may return full output before the
+tool truncates it. This setting does not limit command duration or memory used
+inside the sandbox.
 
 ### Command timeout
 

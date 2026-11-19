@@ -99,6 +99,43 @@ describe('redactToolDefinition', () => {
     expect(redactToolDefinition(tool)).toEqual(tool);
   });
 
+  it('redacts Google MCP server header values without mutating provider arguments', () => {
+    const tool = {
+      type: 'provider',
+      id: 'google.mcp_server',
+      name: 'connector',
+      args: {
+        name: 'local-mcp',
+        url: 'https://example.com/mcp',
+        allowedTools: ['search'],
+        headers: {
+          Authorization: 'Bearer mcp-private-token',
+          'X-Custom-Key': 'mcp-private-key',
+        },
+      },
+    };
+    const original = structuredClone(tool);
+    expect(redactToolDefinition(tool)).toEqual({
+      ...tool,
+      args: {
+        name: 'local-mcp',
+        url: 'https://example.com/mcp',
+        allowedTools: ['search'],
+        headers: { Authorization: '[redacted]', 'X-Custom-Key': '[redacted]' },
+      },
+    });
+    expect(tool).toEqual(original);
+  });
+
+  it('preserves Google MCP definitions without credentials', () => {
+    const tool = {
+      type: 'provider',
+      id: 'google.mcp_server',
+      args: { url: 'https://example.com/mcp' },
+    };
+    expect(redactToolDefinition(tool)).toBe(tool);
+  });
+
   it('preserves unrelated tool definitions', () => {
     const args = {
       container: {

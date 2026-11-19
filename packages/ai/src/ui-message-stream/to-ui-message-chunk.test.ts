@@ -815,6 +815,118 @@ describe('toUIMessageChunk', () => {
     expect(onError).toHaveBeenCalledWith(error);
   });
 
+  it('masks error parts by default', () => {
+    expect(
+      toUIMessageChunk({ type: 'error', error: new Error('boom') }),
+    ).toEqual({
+      type: 'error',
+      errorText: 'An error occurred.',
+    });
+  });
+
+  it('masks error parts when redactToolErrors is false', () => {
+    expect(
+      toUIMessageChunk(
+        { type: 'error', error: new Error('boom') },
+        { redactToolErrors: false },
+      ),
+    ).toEqual({
+      type: 'error',
+      errorText: 'An error occurred.',
+    });
+  });
+
+  describe('error text of failed tool calls', () => {
+    const toolError: TextStreamPart<Tools> = {
+      type: 'tool-error',
+      toolCallId: 'call-1',
+      toolName: 'runtimeTool',
+      input: { value: 'input' },
+      error: new Error('tool failed'),
+      dynamic: true,
+    };
+
+    const invalidToolCall: TextStreamPart<Tools> = {
+      type: 'tool-call',
+      toolCallId: 'call-1',
+      toolName: 'runtimeTool',
+      input: '{broken',
+      dynamic: true,
+      invalid: true,
+      error: new Error('tool failed'),
+    };
+
+    const formatError = (error: unknown) =>
+      `handled: ${(error as Error).message}`;
+
+    it.each([
+      {
+        name: 'keeps the text that the model received by default',
+        options: {},
+        expectedErrorText: 'Error: tool failed',
+      },
+      {
+        name: 'uses the default onError when tool errors are redacted',
+        options: { redactToolErrors: true },
+        expectedErrorText: 'An error occurred.',
+      },
+      {
+        name: 'uses a provided onError',
+        options: { onError: formatError },
+        expectedErrorText: 'handled: tool failed',
+      },
+      {
+        name: 'keeps the text that the model received when a provided onError does not redact tool errors',
+        options: { onError: formatError, redactToolErrors: false },
+        expectedErrorText: 'Error: tool failed',
+      },
+    ])('$name', ({ options, expectedErrorText }) => {
+      expect(toUIMessageChunk<Tools>(toolError, options)).toEqual({
+        type: 'tool-output-error',
+        toolCallId: 'call-1',
+        dynamic: true,
+        errorText: expectedErrorText,
+      });
+
+      expect(toUIMessageChunk<Tools>(invalidToolCall, options)).toEqual({
+        type: 'tool-input-error',
+        toolCallId: 'call-1',
+        toolName: 'runtimeTool',
+        input: '{broken',
+        dynamic: true,
+        errorText: expectedErrorText,
+      });
+    });
+
+    it('uses onError when the tool error cannot be serialized', () => {
+      const circularError: { self?: unknown } = {};
+      circularError.self = circularError;
+
+      expect(
+        toUIMessageChunk<Tools>({ ...toolError, error: circularError }),
+      ).toEqual({
+        type: 'tool-output-error',
+        toolCallId: 'call-1',
+        dynamic: true,
+        errorText: 'An error occurred.',
+      });
+    });
+
+    it('uses onError for invalid tool calls of provider-executed tools', () => {
+      expect(
+        toUIMessageChunk<Tools>({ ...invalidToolCall, providerExecuted: true }),
+      ).toEqual({
+        type: 'tool-input-error',
+        toolCallId: 'call-1',
+        toolName: 'runtimeTool',
+        input: '{broken',
+        providerExecuted: true,
+        dynamic: true,
+        errorText: 'An error occurred.',
+      });
+    });
+  });
+
   it('returns undefined for parts that do not produce UI message chunks', () => {
     expect(
       toUIMessageChunk({

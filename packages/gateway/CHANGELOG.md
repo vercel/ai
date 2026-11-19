@@ -1,5 +1,60 @@
 # @ai-sdk/gateway
 
+## 4.0.150
+
+### Patch Changes
+
+- 700089c: chore(provider/gateway): update gateway model settings files
+
+## 4.0.149
+
+### Patch Changes
+
+- f886264: feat(gateway): add experimental extraction model support. String model ids passed to `experimental_extract` now resolve through the AI Gateway by default.
+- d03d74a: chore(provider/gateway): update gateway model settings files
+
+## 4.0.148
+
+### Patch Changes
+
+- ed981f8: feat(openai): add GPT-6.2 Astra and GPT-6.2 Sol model support
+
+## 4.0.147
+
+### Patch Changes
+
+- 74042c5: chore(provider/gateway): update gateway model settings files
+- b8c01eb: Map AI Gateway `access_policy_denied` error responses (HTTP 403) to the new `GatewayAccessPolicyDeniedError` instead of `GatewayInternalServerError`. Use `GatewayAccessPolicyDeniedError.isInstance(error)` to tell an access policy denial from other 403 errors. When the response includes them, the error exposes the denying policy IDs (`policyIds`) and the models and providers the policies removed (`removedModels`, `removedProviders`).
+- Updated dependencies [10ff0b1]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/provider@4.0.39
+  - @ai-sdk/provider-utils@5.0.82
+
+## 4.0.146
+
+### Patch Changes
+
+- 9baa2d0: chore(provider/gateway): update gateway model settings files
+
+## 4.0.145
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+
+## 4.0.144
+
+### Patch Changes
+
+- 640569d: chore(provider/gateway): update gateway model settings files
+- 4e43721: Add the `gemini-4-hydrogen` model ID and support Hydrogen's `xhigh` thinking level in Google Generate Content and Interactions provider options. Map portable `reasoning: 'xhigh'` to `xhigh` only for Hydrogen models.
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+
 ## 4.0.143
 
 ### Patch Changes

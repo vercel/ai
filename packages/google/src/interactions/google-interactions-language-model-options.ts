@@ -39,6 +39,8 @@ export type GoogleInteractionsModelId =
   | 'gemini-3.8-flash'
   | 'gemini-4-argon'
   | 'gemini-4-carbon'
+  | 'gemini-4-hydrogen'
+  | 'gemini-4-neon'
   | 'gemini-nano-banana-2.1'
   | 'lyria-3-clip-preview'
   | 'lyria-3-pro-preview'
@@ -99,7 +101,9 @@ export const googleInteractionsLanguageModelOptions = lazySchema(() =>
         ])
         .nullish(),
 
-      thinkingLevel: z.enum(['minimal', 'low', 'medium', 'high']).nullish(),
+      thinkingLevel: z
+        .enum(['minimal', 'low', 'medium', 'high', 'xhigh'])
+        .nullish(),
       thinkingSummaries: z.enum(['auto', 'none']).nullish(),
 
       /**
