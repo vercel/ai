@@ -791,6 +791,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "rawFinishReason": "stop",
+              "stoppedBy": "model",
               "totalUsage": {
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
@@ -1038,6 +1039,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "rawFinishReason": "stop",
+              "stoppedBy": "model",
               "totalUsage": {
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
@@ -1157,6 +1159,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "rawFinishReason": "stop",
+              "stoppedBy": "model",
               "totalUsage": {
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
@@ -1261,6 +1264,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "rawFinishReason": "stop",
+              "stoppedBy": "model",
               "totalUsage": {
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
@@ -1385,6 +1389,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "rawFinishReason": "stop",
+              "stoppedBy": "model",
               "totalUsage": {
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
@@ -1568,6 +1573,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "rawFinishReason": "stop",
+              "stoppedBy": "model",
               "totalUsage": {
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
@@ -1711,6 +1717,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "rawFinishReason": "stop",
+              "stoppedBy": "model",
               "totalUsage": {
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
@@ -2546,6 +2553,7 @@ describe('streamText', () => {
             {
               "finishReason": "tool-calls",
               "rawFinishReason": undefined,
+              "stoppedBy": "tool-without-execute",
               "totalUsage": {
                 "inputTokenDetails": {
                   "cacheReadTokens": 0,
@@ -2828,6 +2836,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "rawFinishReason": "stop",
+              "stoppedBy": "model",
               "totalUsage": {
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
@@ -7638,6 +7647,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "rawFinishReason": "stop",
+              "stoppedBy": "model",
               "totalUsage": {
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
@@ -12416,6 +12426,7 @@ describe('streamText', () => {
           {
             "finishReason": "stop",
             "rawFinishReason": "stop",
+            "stoppedBy": "stop-condition",
             "totalUsage": {
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
@@ -12530,6 +12541,7 @@ describe('streamText', () => {
           {
             "finishReason": "stop",
             "rawFinishReason": "stop",
+            "stoppedBy": "model",
             "totalUsage": {
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
@@ -13113,6 +13125,7 @@ describe('streamText', () => {
               "warnings": [],
             },
           ],
+          "stoppedBy": "stop-condition",
           "text": "Hello, world!",
           "toolCalls": [
             {
@@ -13486,6 +13499,7 @@ describe('streamText', () => {
               "warnings": [],
             },
           ],
+          "stoppedBy": "model",
           "text": "Hello!",
           "toolCalls": [],
           "toolResults": [],
@@ -13907,6 +13921,7 @@ describe('streamText', () => {
               "warnings": [],
             },
           ],
+          "stoppedBy": "model",
           "text": "Hello!",
           "toolCalls": [],
           "toolResults": [],
@@ -14521,6 +14536,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "rawFinishReason": "stop",
+                "stoppedBy": "model",
                 "totalUsage": {
                   "inputTokenDetails": {
                     "cacheReadTokens": 0,
@@ -14976,6 +14992,7 @@ describe('streamText', () => {
                   "warnings": [],
                 },
               ],
+              "stoppedBy": "model",
               "text": "Hello, world!",
               "toolCalls": [
                 {
@@ -16665,6 +16682,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "rawFinishReason": "stop",
+                "stoppedBy": "model",
                 "totalUsage": {
                   "inputTokenDetails": {
                     "cacheReadTokens": 0,
@@ -17120,6 +17138,7 @@ describe('streamText', () => {
                   "warnings": [],
                 },
               ],
+              "stoppedBy": "model",
               "text": "Hello, world!",
               "toolCalls": [
                 {
@@ -18864,6 +18883,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "rawFinishReason": "stop",
+                "stoppedBy": "model",
                 "totalUsage": {
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
@@ -19525,6 +19545,7 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "rawFinishReason": undefined,
+                "stoppedBy": "stop-condition",
                 "totalUsage": {
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
@@ -20882,6 +20903,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "rawFinishReason": "stop",
+              "stoppedBy": "stop-condition",
               "totalUsage": {
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
@@ -22090,6 +22112,7 @@ describe('streamText', () => {
                 "warnings": [],
               },
             ],
+            "stoppedBy": "stop-condition",
             "text": "HELLO, WORLD!",
             "toolCalls": [
               {
@@ -22532,6 +22555,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "rawFinishReason": "stop",
+              "stoppedBy": "stop-condition",
               "totalUsage": {
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
@@ -23880,6 +23904,7 @@ describe('streamText', () => {
                 "warnings": [],
               },
             ],
+            "stoppedBy": "model",
             "text": "{ "value": "Hello, world!" }",
             "toolCalls": [],
             "toolResults": [],
@@ -25235,6 +25260,7 @@ describe('streamText', () => {
           {
             "finishReason": "stop",
             "rawFinishReason": "stop",
+            "stoppedBy": "model",
             "totalUsage": {
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
@@ -25631,6 +25657,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "rawFinishReason": "stop",
+                "stoppedBy": "model",
                 "totalUsage": {
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
@@ -27186,6 +27213,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "rawFinishReason": "stop",
+                "stoppedBy": "stop-condition",
                 "totalUsage": {
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
@@ -27422,6 +27450,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "rawFinishReason": "stop",
+                "stoppedBy": "stop-condition",
                 "totalUsage": {
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
@@ -27848,6 +27877,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "rawFinishReason": "stop",
+                "stoppedBy": "model",
                 "totalUsage": {
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
@@ -29708,6 +29738,7 @@ describe('streamText', () => {
                 {
                   "finishReason": "stop",
                   "rawFinishReason": "stop",
+                  "stoppedBy": "model",
                   "totalUsage": {
                     "inputTokenDetails": {
                       "cacheReadTokens": undefined,
@@ -30674,6 +30705,7 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "rawFinishReason": undefined,
+                "stoppedBy": "approval",
                 "totalUsage": {
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
@@ -31506,6 +31538,7 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "rawFinishReason": undefined,
+                "stoppedBy": "approval",
                 "totalUsage": {
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
@@ -32099,6 +32132,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "rawFinishReason": "stop",
+                "stoppedBy": "model",
                 "totalUsage": {
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
@@ -32556,6 +32590,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "rawFinishReason": "stop",
+                "stoppedBy": "model",
                 "totalUsage": {
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
@@ -32872,6 +32907,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "rawFinishReason": "stop",
+                "stoppedBy": "model",
                 "totalUsage": {
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
@@ -33168,6 +33204,7 @@ describe('streamText', () => {
                 {
                   "finishReason": "tool-calls",
                   "rawFinishReason": undefined,
+                  "stoppedBy": "model",
                   "totalUsage": {
                     "inputTokenDetails": {
                       "cacheReadTokens": undefined,

@@ -6098,6 +6098,7 @@ describe('generateText', () => {
               "warnings": [],
             },
           ],
+          "stoppedBy": "stop-condition",
           "text": "Hello, World!",
           "toolCalls": [
             {

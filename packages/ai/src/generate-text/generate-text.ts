@@ -108,6 +108,7 @@ import {
   type SteeringNotDeliveredReason,
   type SteeringRun,
 } from './steering';
+import { getPendingToolCallStoppedBy, type StoppedBy } from './stopped-by';
 import {
   isStepCount,
   isStopConditionMet,
@@ -968,6 +969,7 @@ async function generateTextInternal<
 
       // why waiting steering messages are not delivered when the loop ends:
       let steeringEndReason: SteeringNotDeliveredReason = 'finished';
+      let stoppedBy: StoppedBy = 'model';
 
       const shouldStartNextStep = async () => {
         if (steps[steps.length - 1].finishReason === 'interrupted') {
@@ -980,6 +982,7 @@ async function generateTextInternal<
           clientToolCalls.length
         ) {
           steeringEndReason = 'waiting-for-tool-results';
+          stoppedBy = getPendingToolCallStoppedBy(steps[steps.length - 1]);
           return false;
         }
 
@@ -1011,6 +1014,7 @@ async function generateTextInternal<
         // continue until a stop condition is met:
         if (await isStopConditionMet({ stopConditions, steps })) {
           steeringEndReason = 'stop-condition';
+          stoppedBy = 'stop-condition';
           return false;
         }
 
@@ -1857,6 +1861,7 @@ async function generateTextInternal<
         runtimeContext: lastStep.runtimeContext,
         finishReason: lastStep.finishReason,
         rawFinishReason: lastStep.rawFinishReason,
+        stoppedBy,
         usage: totalUsage,
         totalUsage,
         content: steps.flatMap(step => step.content),
@@ -1918,6 +1923,7 @@ async function generateTextInternal<
         steps,
         totalUsage,
         output: resolvedOutput,
+        stoppedBy,
       });
     } catch (error) {
       const wrappedError = wrapGatewayError(error);
