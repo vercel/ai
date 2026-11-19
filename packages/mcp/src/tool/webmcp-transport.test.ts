@@ -74,7 +74,7 @@ describe('WebMCPTransport', () => {
     });
     expect(definitions.tools).toEqual([
       {
-        name: tool.name,
+        name: expect.stringMatching(/^webmcp_[A-Za-z0-9_-]{43}_getCart$/),
         title: tool.title,
         description: tool.description,
         inputSchema: tool.inputSchema,
@@ -179,6 +179,194 @@ describe('WebMCPTransport', () => {
     });
   });
 
+  it('namespaces every origin before assigning aliases, even when a secondary origin appears first', async () => {
+    const secondary = { ...cart, origin: 'https://other.example', window: {} };
+    const fromOrigins = [secondary.origin];
+    const first = await connect({ tools: [secondary], fromOrigins });
+    const secondaryName = (await first.client.listTools()).tools[0].name;
+
+    expect(secondaryName).toMatch(/^webmcp_[A-Za-z0-9_-]{43}_getCart$/);
+    expect(secondaryName.length).toBeLessThanOrEqual(64);
+    expect((await first.client.tools()).getCart).toBeUndefined();
+    await expect(
+      first.client.callTool({
+        name: 'getCart',
+        arguments: { secret: 'input' },
+      }),
+    ).rejects.toMatchObject({ code: -32602 });
+    expect(first.modelContext.executeTool).not.toHaveBeenCalled();
+
+    first.modelContext.getTools.mockResolvedValue([secondary, cart]);
+    const names = (await first.client.listTools()).tools.map(tool => tool.name);
+    expect(names[0]).toBe(secondaryName);
+    expect(names[1]).not.toBe(secondaryName);
+    await first.client.callTool({ name: names[1] });
+    expect(first.modelContext.executeTool).toHaveBeenLastCalledWith(
+      cart,
+      {},
+      { signal: expect.any(AbortSignal) },
+    );
+    await first.client.close();
+
+    const second = await connect({ tools: [cart, secondary], fromOrigins });
+    expect(
+      (await second.client.listTools()).tools.map(tool => tool.name),
+    ).toEqual([...names].reverse());
+  });
+
+  it('keeps origin namespaces intact for long and crafted tool names', async () => {
+    const { client, modelContext } = await connect({
+      fromOrigins: ['https://other.example'],
+    });
+    const trustedName = (await client.listTools()).tools[0].name;
+    const secondary = { ...cart, origin: 'https://other.example', window: {} };
+    modelContext.getTools.mockResolvedValue([
+      { ...secondary, name: trustedName },
+      { ...cart, name: 'x'.repeat(128) },
+      { ...cart, name: `${'x'.repeat(127)}y` },
+      { ...secondary, name: 'x'.repeat(128) },
+    ]);
+    const names = (await client.listTools()).tools.map(tool => tool.name);
+
+    expect(new Set(names).size).toBe(4);
+    expect(names).not.toContain(trustedName);
+    for (const name of names) {
+      expect(name).toMatch(/^webmcp_[A-Za-z0-9_-]{43}_/);
+      expect(name.length).toBeLessThanOrEqual(64);
+    }
+    expect(names[1].slice(0, 51)).toBe(names[2].slice(0, 51));
+    expect(names[1].slice(0, 51)).not.toBe(names[3].slice(0, 51));
+  });
+
+  it('releases removed descriptors while reserving aliases for their original owners', async () => {
+    const { client, modelContext, transport } = await connect();
+    await client.listTools();
+    modelContext.getTools.mockResolvedValue([]);
+    await client.listTools();
+    expect(transport).toHaveProperty('tools', new Map());
+    await expect(client.callTool({ name: 'getCart' })).rejects.toMatchObject({
+      code: -32602,
+    });
+
+    const replacement = { ...cart, window: {} };
+    modelContext.getTools.mockResolvedValue([replacement]);
+    expect((await client.listTools()).tools[0].name).toBe('getCart_2');
+    modelContext.getTools.mockResolvedValue([cart]);
+    expect((await client.listTools()).tools[0].name).toBe('getCart');
+  });
+
+  it('skips new registrations from an exhausted origin without recycling approved names', async () => {
+    const { client, modelContext } = await connect();
+    await client.listTools();
+    for (let i = 1; i < 1024; i++) {
+      modelContext.getTools.mockResolvedValue([{ ...cart, name: `tool_${i}` }]);
+      await client.listTools();
+    }
+
+    const last = { ...cart, name: 'tool_1023' };
+    modelContext.getTools.mockResolvedValue([{ ...cart, window: {} }, last]);
+    expect((await client.listTools()).tools.map(tool => tool.name)).toEqual([
+      last.name,
+    ]);
+    await client.callTool({ name: last.name });
+    expect(modelContext.executeTool).toHaveBeenLastCalledWith(
+      last,
+      {},
+      { signal: expect.any(AbortSignal) },
+    );
+    await expect(client.callTool({ name: 'getCart' })).rejects.toMatchObject({
+      code: -32602,
+    });
+
+    modelContext.getTools.mockResolvedValue([]);
+    expect((await client.listTools()).tools).toEqual([]);
+    await expect(client.callTool({ name: 'tool_1023' })).rejects.toMatchObject({
+      code: -32602,
+    });
+    modelContext.getTools.mockResolvedValue([cart]);
+    expect((await client.listTools()).tools[0].name).toBe('getCart');
+  });
+
+  it('limits an oversized snapshot per origin without excluding trusted tools listed last', async () => {
+    const secondary = { ...cart, origin: 'https://other.example', window: {} };
+    const { client, modelContext } = await connect({
+      tools: [
+        ...Array.from({ length: 1025 }, (_, i) => ({
+          ...secondary,
+          name: `tool_${i}`,
+        })),
+        cart,
+      ],
+      fromOrigins: [secondary.origin],
+    });
+    const definitions = await client.listTools();
+    expect(definitions.tools).toHaveLength(1025);
+    const trustedName = definitions.tools[1024].name;
+    await client.callTool({ name: trustedName });
+    expect(modelContext.executeTool).toHaveBeenLastCalledWith(
+      cart,
+      {},
+      { signal: expect.any(AbortSignal) },
+    );
+    modelContext.getTools.mockResolvedValue([cart]);
+    expect((await client.listTools()).tools.map(tool => tool.name)).toEqual([
+      trustedName,
+    ]);
+  });
+
+  it('isolates rotating origin quotas and admits new trusted tools after the secondary frame is removed', async () => {
+    const secondary = { ...cart, origin: 'https://other.example', window: {} };
+    const { client, modelContext } = await connect({
+      fromOrigins: [secondary.origin],
+    });
+    const trustedName = (await client.listTools()).tools[0].name;
+    let secondaryName: string | undefined;
+    for (let i = 0; i < 1024; i++) {
+      modelContext.getTools.mockResolvedValue([
+        { ...secondary, name: `rotating_${i}` },
+        cart,
+      ]);
+      const listed = await client.listTools();
+      expect(listed.tools).toHaveLength(2);
+      secondaryName = listed.tools[0].name;
+    }
+
+    const newTrusted = { ...cart, name: 'newTrustedTool' };
+    modelContext.getTools.mockResolvedValue([
+      { ...secondary, name: 'overflow' },
+      cart,
+      newTrusted,
+    ]);
+    const listed = await client.listTools();
+    expect(listed.tools.map(tool => tool._meta?.['ai-sdk.dev/webmcp'])).toEqual(
+      [
+        expect.objectContaining({ name: cart.name, origin: cart.origin }),
+        expect.objectContaining({ name: newTrusted.name, origin: cart.origin }),
+      ],
+    );
+    expect(listed.tools[0].name).toBe(trustedName);
+    await client.callTool({ name: trustedName });
+    await expect(
+      client.callTool({ name: secondaryName! }),
+    ).rejects.toMatchObject({
+      code: -32602,
+    });
+
+    modelContext.getTools.mockResolvedValue([newTrusted]);
+    expect((await client.listTools()).tools.map(tool => tool.name)).toEqual([
+      listed.tools[1].name,
+    ]);
+    await client.callTool({ name: listed.tools[1].name });
+    expect(modelContext.executeTool).toHaveBeenLastCalledWith(
+      newTrusted,
+      {},
+      { signal: expect.any(AbortSignal) },
+    );
+    await expect(client.callTool({ name: trustedName })).rejects.toMatchObject({
+      code: -32602,
+    });
+  });
+
   it('refreshes schemas and definitions when tools are listed again', async () => {
     const { client, modelContext } = await connect();
     expect((await client.listTools()).tools[0].inputSchema).toEqual({
@@ -228,12 +416,32 @@ describe('WebMCPTransport', () => {
     );
   });
 
-  it('rejects malformed JSON results instead of returning invalid structured content', async () => {
-    const { client } = await connect({ executeTool: async () => 'not JSON' });
-    await expect(client.callTool({ name: 'getCart' })).rejects.toMatchObject({
-      code: -32603,
-    });
-  });
+  it.each([
+    'not JSON: private result',
+    '{"items":2,"private":"private result","__proto__":{}}',
+  ])(
+    'rejects invalid results without exposing their contents: %s',
+    async text => {
+      const { client, transport } = await connect({
+        executeTool: async () => text,
+      });
+      const onmessage = vi.fn(transport.onmessage!);
+      transport.onmessage = onmessage;
+
+      await expect(client.callTool({ name: 'getCart' })).rejects.toMatchObject({
+        code: -32603,
+        message: 'Invalid JSON returned by WebMCP tool',
+      });
+      expect(onmessage).toHaveBeenLastCalledWith({
+        jsonrpc: '2.0',
+        id: expect.any(Number),
+        error: {
+          code: -32603,
+          message: 'Invalid JSON returned by WebMCP tool',
+        },
+      });
+    },
+  );
 
   it.each(['abort', 'close'] as const)(
     'cancels the browser invocation on %s',
