@@ -23,10 +23,10 @@
   "scripts": {
     "build": "pnpm clean && tsdown",
     "build:watch": "pnpm clean && tsdown --watch",
-    "clean": "del-cli docs *.tsbuildinfo",
+    "clean": "del-cli docs",
     "prepack": "mkdir -p docs && cp ../../content/providers/01-ai-sdk-providers/01-xai.mdx ./docs/",
     "postpack": "del-cli docs",
-    "type-check": "tsc --build",
+    "type-check": "tsc --noEmit",
     "test": "pnpm test:node && pnpm test:edge",
     "test:update": "pnpm test:node -u",
     "test:watch": "vitest --config vitest.node.config.js",

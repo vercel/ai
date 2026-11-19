@@ -13,7 +13,7 @@
     "test": "vitest --run",
     "test:update": "vitest --run -u",
     "test:watch": "vitest",
-    "clean": "del-cli dist *.tsbuildinfo"
+    "clean": "del-cli dist"
   },
   "files": [
     "dist",
