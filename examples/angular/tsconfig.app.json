@@ -25,10 +25,5 @@
     "strictTemplates": true
   },
   "include": ["src/**/*"],
-  "exclude": ["src/server.ts"],
-  "references": [
-    {
-      "path": "../../packages/angular"
-    }
-  ]
+  "exclude": ["src/server.ts"]
 }

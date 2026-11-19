@@ -2,7 +2,6 @@
   "compilerOptions": {
     "allowJs": true,
     "checkJs": true,
-    "composite": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
@@ -22,17 +21,6 @@
     "rootDir": "src",
     "outDir": "dist"
   },
-  "references": [
-    {
-      "path": "../ai"
-    },
-    {
-      "path": "../provider-utils"
-    },
-    {
-      "path": "../test-server"
-    }
-  ],
   "include": [
     "./src/**/*.js",
     "./src/**/*.ts",

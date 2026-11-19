@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/devtools",
-  "version": "1.0.79",
+  "version": "1.0.80",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -30,10 +30,12 @@
     "example": "tsx examples/basic/index.ts",
     "start": "node dist/viewer/server.js",
     "build": "pnpm build:client && pnpm build:server",
+    "type-check": "tsc --noEmit",
     "build:client": "vite build",
     "build:server": "tsdown",
     "test": "pnpm test:unit",
     "test:e2e": "pnpm build:client && playwright test",
+    "test:browser": "playwright install ${CI:+--with-deps} chromium && pnpm test:e2e",
     "test:unit": "vitest --config vitest.node.config.js --run",
     "test:watch": "vitest --config vitest.node.config.js",
     "prepublishOnly": "pnpm build"
