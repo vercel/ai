@@ -125,7 +125,7 @@ const configurableNonReasoning: OpenAILanguageModelDefinition = {
 
 // Endpoint lists define suggestions independently of optional capability metadata.
 // An undefined definition retains family rules and the custom-model fallback.
-const openaiLanguageModelDefinitions = {
+const openaiModelDefinitions = {
   'gpt-6.2-astra': { endpoints: ['chat', 'responses'], definition: {} },
   'gpt-6.2-sol': { endpoints: ['chat', 'responses'], definition: {} },
   'gpt-6-astra': { endpoints: ['chat', 'responses'], definition: {} },
@@ -135,7 +135,7 @@ const openaiLanguageModelDefinitions = {
     definition: configurableNonReasoning,
   },
   'gpt-6-luna': {
-    endpoints: ['chat', 'responses'],
+    endpoints: ['chat', 'responses', 'decision'],
     definition: configurableNonReasoning,
   },
   'gpt-6-sol': {
@@ -304,10 +304,18 @@ const openaiLanguageModelDefinitions = {
   'gpt-5.1-codex-max': { endpoints: ['responses'], definition: undefined },
   'gpt-5.2-codex': { endpoints: ['responses'], definition: undefined },
   'gpt-5.3-codex': { endpoints: ['responses'], definition: undefined },
+  'gpt-3.5-turbo-instruct': {
+    endpoints: ['completion'],
+    definition: undefined,
+  },
+  'gpt-3.5-turbo-instruct-0914': {
+    endpoints: ['completion'],
+    definition: undefined,
+  },
 } as const satisfies Record<
   string,
   {
-    endpoints: readonly ('chat' | 'responses')[];
+    endpoints: readonly ('chat' | 'responses' | 'completion' | 'decision')[];
     definition: OpenAILanguageModelDefinition | undefined;
   }
 >;
@@ -315,7 +323,7 @@ const openaiLanguageModelDefinitions = {
 const openaiLanguageModelEntries: Readonly<
   Record<string, OpenAILanguageModelEntry>
 > = Object.fromEntries(
-  Object.entries(openaiLanguageModelDefinitions)
+  Object.entries(openaiModelDefinitions)
     .filter(([, { definition }]) => definition != null)
     .map(([modelId, { definition }]) => [
       modelId,
@@ -1089,16 +1097,20 @@ export function getOpenAILanguageModelCapabilities(
   };
 }
 
-type OpenAIEndpointModelId<Endpoint extends 'chat' | 'responses'> = {
-  [ModelId in keyof typeof openaiLanguageModelDefinitions]: Endpoint extends (typeof openaiLanguageModelDefinitions)[ModelId]['endpoints'][number]
+type OpenAIEndpointModelId<
+  Endpoint extends 'chat' | 'responses' | 'completion' | 'decision',
+> = {
+  [ModelId in keyof typeof openaiModelDefinitions]: Endpoint extends (typeof openaiModelDefinitions)[ModelId]['endpoints'][number]
     ? ModelId
     : never;
-}[keyof typeof openaiLanguageModelDefinitions];
+}[keyof typeof openaiModelDefinitions];
 
 /** Known model IDs, derived from the declarations used to build the catalog. */
 export type OpenAIModelIds = {
   chat: OpenAIEndpointModelId<'chat'>;
   responses: OpenAIEndpointModelId<'responses'>;
+  completion: OpenAIEndpointModelId<'completion'>;
+  decision: OpenAIEndpointModelId<'decision'>;
   embedding: keyof typeof openaiEmbeddingModelEntries;
   image: keyof typeof openaiImageModelEntries | keyof typeof imageModelAliases;
   transcription: keyof typeof openaiTranscriptionModelEntries;
