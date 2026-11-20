@@ -36,6 +36,7 @@ import {
   defaultOpenAICompatibleErrorStructure,
   type ProviderErrorStructure,
 } from '../openai-compatible-error';
+import { classifyOpenAICompatibleStreamError } from '../openai-compatible-stream-error';
 import { convertOpenAICompatibleCompletionUsage } from './convert-openai-compatible-completion-usage';
 import { convertToOpenAICompatibleCompletionPrompt } from './convert-to-openai-compatible-completion-prompt';
 import { getResponseMetadata } from './get-response-metadata';
@@ -330,7 +331,10 @@ export class OpenAICompatibleCompletionLanguageModel implements LanguageModelV4 
             // handle error chunks:
             if ('error' in value) {
               finishReason = { unified: 'error', raw: undefined };
-              controller.enqueue({ type: 'error', error: value.error });
+              controller.enqueue({
+                type: 'error',
+                error: classifyOpenAICompatibleStreamError(value.error),
+              });
               return;
             }
 
