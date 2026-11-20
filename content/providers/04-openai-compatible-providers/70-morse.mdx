@@ -1,0 +1,95 @@
+---
+title: Morse
+description: Use the Morse OpenAI compatible API with the AI SDK.
+---
+
+# Morse Provider
+
+[Morse](https://trymorse.ai/) is private, OpenAI-compatible inference. You can use its Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Create a Morse API key and set it as a server-side environment variable:
+
+```bash
+export MORSE_API_KEY=your-api-key
+```
+
+See the [Morse console](https://console.trymorse.ai) for instructions on creating an API key.
+
+## Provider Instance
+
+Create a Morse provider instance with `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const morse = createOpenAICompatible({
+  name: 'morse',
+  apiKey: process.env.MORSE_API_KEY,
+  baseURL: 'https://inference.trymorse.ai/v1',
+});
+```
+
+## Language Models
+
+Create a chat model with the `.chatModel()` factory method and a Morse model ID:
+
+```ts
+const model = morse.chatModel('moonshotai/kimi-k3.1-pro');
+```
+
+### Example
+
+Use `generateText` to generate text with the model:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const morse = createOpenAICompatible({
+  name: 'morse',
+  apiKey: process.env.MORSE_API_KEY,
+  baseURL: 'https://inference.trymorse.ai/v1',
+});
+
+const { text } = await generateText({
+  model: morse.chatModel('moonshotai/kimi-k3.1-pro'),
+  prompt: 'Explain what attestation means in one sentence.',
+});
+
+console.log(text);
+```
+
+### Provider Options
+
+Morse supports provider-specific options through `providerOptions.morse`. For example, you can set a minimum privacy tier for the request:
+
+```ts
+const { text } = await generateText({
+  model: morse.chatModel('z-ai/glm-5.3'),
+  prompt: 'Summarize this contract.',
+  providerOptions: {
+    morse: { provider: { min_privacy: 'tee' } },
+  },
+});
+```
+
+See the [Morse provider routing documentation](https://trymorse.ai/inference/docs/provider-routing) for all available provider options.
+
+## Supported Models and Capabilities
+
+This integration uses Morse's OpenAI-compatible Chat Completions endpoint. Morse supports streaming, tool calls, reasoning content, and image inputs across 80+ open-weight models.
+
+Model IDs follow the `lab/model` format (for example `moonshotai/kimi-k3.1-pro`, `z-ai/glm-5.3-flash`, `deepseek/deepseek-v4.1-flash`). Use the [Morse model catalog](https://trymorse.ai/inference/models) to find current model IDs, capabilities, and pricing.
+
+## Resources
+
+- [Morse AI SDK guide](https://trymorse.ai/inference/docs/vercel-ai-sdk)
+- [Morse model catalog](https://trymorse.ai/inference/models)
+- [Morse documentation](https://trymorse.ai/inference/docs)
+- [AI SDK OpenAI Compatible provider](/providers/openai-compatible-providers)
