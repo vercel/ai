@@ -123,11 +123,12 @@ export function addLanguageModelUsage(
   usage1: LanguageModelUsage,
   usage2: LanguageModelUsage,
 ): LanguageModelUsage {
-  const raw = isNullLanguageModelUsage(usage1)
-    ? usage2.raw
-    : isNullLanguageModelUsage(usage2)
-      ? usage1.raw
-      : undefined;
+  // Provider-specific usage metadata is not summable, so keep the most recently
+  // reported one instead of dropping it. Without this the total usage of a
+  // single-step call came back without the `raw` payload the step itself
+  // carried. Left off entirely when neither usage has one, so an aggregate of
+  // providers that report no extra fields stays byte-identical.
+  const raw = usage2.raw ?? usage1.raw;
 
   return {
     inputTokens: addTokenCounts(usage1.inputTokens, usage2.inputTokens),
@@ -159,20 +160,6 @@ export function addLanguageModelUsage(
     totalTokens: addTokenCounts(usage1.totalTokens, usage2.totalTokens),
     ...(raw == null ? {} : { raw }),
   };
-}
-
-function isNullLanguageModelUsage(usage: LanguageModelUsage): boolean {
-  return (
-    usage.inputTokens == null &&
-    usage.inputTokenDetails?.noCacheTokens == null &&
-    usage.inputTokenDetails?.cacheReadTokens == null &&
-    usage.inputTokenDetails?.cacheWriteTokens == null &&
-    usage.outputTokens == null &&
-    usage.outputTokenDetails?.textTokens == null &&
-    usage.outputTokenDetails?.reasoningTokens == null &&
-    usage.totalTokens == null &&
-    usage.raw == null
-  );
 }
 
 function addTokenCounts(
