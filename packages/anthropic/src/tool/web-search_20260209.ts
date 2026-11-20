@@ -20,6 +20,9 @@ export const webSearch_20260209ArgsSchema = lazySchema(() =>
           timezone: z.string().optional(),
         })
         .optional(),
+      allowedCallers: z
+        .array(z.enum(['direct', 'code_execution_20260120']))
+        .optional(),
     }),
   ),
 );
@@ -121,6 +124,15 @@ const factory = createProviderExecutedToolFactory<
        */
       timezone?: string;
     };
+
+    /**
+     * Controls how Claude can call the tool. Defaults to
+     * `['code_execution_20260120']`, which enables dynamic filtering. Set to
+     * `['direct']` to call the tool directly without dynamic filtering, which
+     * is required for Zero Data Retention and for models that do not support
+     * programmatic tool calling.
+     */
+    allowedCallers?: Array<'direct' | 'code_execution_20260120'>;
   }
 >({
   id: 'anthropic.web_search_20260209',

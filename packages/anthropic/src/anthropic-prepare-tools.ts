@@ -342,6 +342,7 @@ export async function prepareTools({
               blocked_domains: args.blockedDomains,
               citations: args.citations,
               max_content_tokens: args.maxContentTokens,
+              allowed_callers: args.allowedCallers,
               cache_control: undefined,
             });
             break;
@@ -361,6 +362,7 @@ export async function prepareTools({
               max_content_tokens: args.maxContentTokens,
               use_cache: args.useCache,
               response_inclusion: args.responseInclusion,
+              allowed_callers: args.allowedCallers,
               cache_control: undefined,
             });
             break;
@@ -394,6 +396,7 @@ export async function prepareTools({
               allowed_domains: args.allowedDomains,
               blocked_domains: args.blockedDomains,
               user_location: args.userLocation,
+              allowed_callers: args.allowedCallers,
               cache_control: undefined,
             });
             break;
@@ -411,6 +414,7 @@ export async function prepareTools({
               blocked_domains: args.blockedDomains,
               user_location: args.userLocation,
               response_inclusion: args.responseInclusion,
+              allowed_callers: args.allowedCallers,
               cache_control: undefined,
             });
             break;
