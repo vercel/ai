@@ -1,5 +1,4 @@
 import {
-  parseJsonEventStream,
   uiMessageChunkSchema,
   type ChatRequestOptions,
   type ChatTransport,
@@ -11,9 +10,72 @@ import {
 import {
   convertAsyncIteratorToReadableStream,
   getErrorMessage,
+  safeParseJSON,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { createAsyncIterableStream } from 'ai/internal';
+import {
+  EventSourceParserStream,
+  type EventSourceMessage,
+} from 'eventsource-parser/stream';
 import { normalizeUIMessageStreamParts } from './normalize-ui-message-stream.js';
+
+/** One SSE event: the parsed chunk, and the `id` field when the server set one. */
+type IdentifiedChunk = {
+  readonly parsed: ParseResult<UIMessageChunk>;
+  readonly id?: string;
+};
+
+/**
+ * Parses an SSE body into UI message chunks, keeping each event's `id`.
+ *
+ * `parseJsonEventStream` from `@ai-sdk/provider-utils` drops the id, and the id
+ * is what carries the server's stream cursor (see {@link streamCursorOf}), so
+ * this transport does the same job one field wider.
+ */
+function parseIdentifiedUIMessageChunkStream(
+  stream: ReadableStream<Uint8Array>,
+): ReadableStream<IdentifiedChunk> {
+  return stream
+    .pipeThrough(
+      new TextDecoderStream() as ReadableWritablePair<string, Uint8Array>,
+    )
+    .pipeThrough(new EventSourceParserStream())
+    .pipeThrough(
+      new TransformStream<EventSourceMessage, IdentifiedChunk>({
+        async transform({ data, id }, controller) {
+          if (data === '[DONE]') return;
+          controller.enqueue({
+            parsed: await safeParseJSON({
+              text: data,
+              schema: uiMessageChunkSchema,
+            }),
+            ...(id === undefined ? {} : { id }),
+          });
+        },
+      }),
+    );
+}
+
+/**
+ * The durable stream position an SSE event reports, or `undefined` when it
+ * reports none.
+ *
+ * The transport's own count of UI chunks is NOT that position. A chunk too
+ * large for one stored chunk is written across several, so the stream advances
+ * further than the count does; resuming from the count lands behind the large
+ * chunk and replays every chunk after it. A server that sets `id` to the
+ * position it read each chunk from (`readable.position` in the Workflow SDK)
+ * gives the transport the real cursor, and `id + 1` resumes exactly after it.
+ *
+ * Non-numeric ids are ignored rather than rejected: `id` is a free-form SSE
+ * field and a server may already be using it for something else.
+ */
+function streamCursorOf(id: string | undefined): number | undefined {
+  if (id === undefined || id === '') return undefined;
+  const position = Number(id);
+  return Number.isInteger(position) && position >= 0 ? position : undefined;
+}
 
 /**
  * Tracks `*-start` chunks the client has accepted so we can drop deltas/ends
@@ -288,6 +350,8 @@ export class WorkflowChatTransport<
     // if we need to reconnect, and keep track of the chunk index to resume from.
     let gotFinish = false;
     let chunkIndex = 0;
+    // The last durable position the server reported, when it reports any.
+    let streamCursor: number | undefined;
 
     // Prepare the request using the configurator if provided
     const requestConfig = this.prepareSendMessagesRequest
@@ -335,20 +399,18 @@ export class WorkflowChatTransport<
 
     // Flush the initial stream until the end or an error occurs
     try {
-      const chunkStream = parseJsonEventStream({
-        stream: response.body,
-        schema: uiMessageChunkSchema,
-      });
+      const chunkStream = parseIdentifiedUIMessageChunkStream(response.body);
       for await (const chunk of createAsyncIterableStream(chunkStream)) {
-        if (!chunk.success) {
-          throw chunk.error;
+        if (!chunk.parsed.success) {
+          throw chunk.parsed.error;
         }
 
         chunkIndex++;
+        streamCursor = streamCursorOf(chunk.id) ?? streamCursor;
 
-        yield chunk.value;
+        yield chunk.parsed.value;
 
-        if (chunk.value.type === 'finish') {
+        if (chunk.parsed.value.type === 'finish') {
           gotFinish = true;
         }
       }
@@ -362,7 +424,12 @@ export class WorkflowChatTransport<
       // If the initial POST request did not include the "finish" chunk,
       // we need to reconnect to the stream. This could indicate that a
       // network error occurred or the Vercel Function timed out.
-      yield* this.reconnectToStreamIterator(options, workflowRunId, chunkIndex);
+      yield* this.reconnectToStreamIterator(
+        options,
+        workflowRunId,
+        chunkIndex,
+        streamCursor,
+      );
     }
   }
 
@@ -391,8 +458,15 @@ export class WorkflowChatTransport<
     options: ReconnectToStreamOptions & ChatRequestOptions,
     workflowRunId?: string,
     initialChunkIndex = 0,
+    initialStreamCursor?: number,
   ): AsyncGenerator<UIMessageChunk> {
     let chunkIndex = initialChunkIndex;
+    // The durable position the server last reported, via the SSE `id` field.
+    // When present it supersedes `chunkIndex` as the resume position: the two
+    // agree only while every UI chunk occupies exactly one stored chunk, and a
+    // chunk too large for one stored chunk breaks that, leaving `chunkIndex`
+    // behind the real position and replaying what it skipped past.
+    let streamCursor = initialStreamCursor;
 
     // When called from the public reconnectToStream (initialChunkIndex === 0),
     // honour the caller's startIndex (or the constructor default) for the
@@ -441,9 +515,12 @@ export class WorkflowChatTransport<
     while (!gotFinish) {
       const startIndex = useExplicitStartIndex
         ? explicitStartIndex
-        : replayFromStart
-          ? 0
-          : chunkIndex;
+        : // A reported position is exact, so it beats both fallbacks.
+          streamCursor !== undefined
+          ? streamCursor + 1
+          : replayFromStart
+            ? 0
+            : chunkIndex;
 
       const url = `${baseUrl}?startIndex=${startIndex}`;
       const response = await this.fetch(url, {
@@ -482,7 +559,8 @@ export class WorkflowChatTransport<
           console.warn(
             '[WorkflowChatTransport] Negative initialStartIndex is configured ' +
               `(${explicitStartIndex}) but the reconnection endpoint did not ` +
-              'return a valid "x-workflow-stream-tail-index" header. Retries ' +
+              'return a valid "x-workflow-stream-tail-index" header. Unless ' +
+              'the stream reports its own positions as SSE event ids, retries ' +
               'will replay the stream from the beginning. See: ' +
               'https://workflow.dev/docs/ai/resumable-streams#resuming-from-the-end-of-the-stream',
           );
@@ -493,22 +571,20 @@ export class WorkflowChatTransport<
 
       try {
         const streamStartIndex = chunkIndex;
-        const chunkStream = parseJsonEventStream({
-          stream: response.body,
-          schema: uiMessageChunkSchema,
-        });
+        const chunkStream = parseIdentifiedUIMessageChunkStream(response.body);
         for await (const chunk of createAsyncIterableStream(chunkStream)) {
-          if (!chunk.success) {
-            throw chunk.error;
+          if (!chunk.parsed.success) {
+            throw chunk.parsed.error;
           }
 
           chunkIndex++;
+          streamCursor = streamCursorOf(chunk.id) ?? streamCursor;
 
-          if (orphanFilter?.shouldDrop(chunk.value)) continue;
+          if (orphanFilter?.shouldDrop(chunk.parsed.value)) continue;
 
-          yield chunk.value;
+          yield chunk.parsed.value;
 
-          if (chunk.value.type === 'finish') {
+          if (chunk.parsed.value.type === 'finish') {
             gotFinish = true;
           }
         }

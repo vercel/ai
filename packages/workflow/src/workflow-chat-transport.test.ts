@@ -1213,4 +1213,248 @@ describe('WorkflowChatTransport', () => {
       });
     });
   });
+
+  // A UI chunk too large for one stored chunk is written across several, so the
+  // transport's count of UI chunks stops matching the stream's own position.
+  // The server reports that position as the SSE event `id`; these tests pin
+  // that the transport carries it, and what goes wrong when it cannot.
+  describe('durable stream positions (SSE event ids)', () => {
+    /** One UI chunk as the durable stream stores it. */
+    interface StoredChunk {
+      readonly ui: UIMessageChunk;
+      /** First stored chunk this UI chunk occupies. */
+      readonly start: number;
+      /** Last stored chunk it occupies; what the server reports as the id. */
+      readonly end: number;
+    }
+
+    /** Lays UI chunks over stored chunks; `span` > 1 models a split write. */
+    function layout(
+      entries: readonly { ui: UIMessageChunk; span?: number }[],
+    ): StoredChunk[] {
+      let next = 0;
+      return entries.map(({ ui, span = 1 }) => {
+        const start = next;
+        next += span;
+        return { ui, start, end: next - 1 };
+      });
+    }
+
+    /**
+     * The server's read: a read starting at `startIndex` cannot reassemble a
+     * value whose first stored chunk falls before it, so that value is skipped
+     * and reading continues with the next whole one.
+     */
+    function read(stored: readonly StoredChunk[], startIndex: number) {
+      return stored.filter(entry => entry.start >= startIndex);
+    }
+
+    function sseBody(
+      entries: readonly StoredChunk[],
+      { ids }: { ids: boolean | 'not-a-number' },
+    ) {
+      return new ReadableStream<Uint8Array>({
+        start(controller) {
+          for (const entry of entries) {
+            const id =
+              ids === false
+                ? ''
+                : `id: ${ids === 'not-a-number' ? 'abc' : entry.end}\n`;
+            controller.enqueue(
+              new TextEncoder().encode(
+                `${id}data: ${JSON.stringify(entry.ui)}\n\n`,
+              ),
+            );
+          }
+          controller.close();
+        },
+      });
+    }
+
+    /**
+     * A turn whose first text delta is large enough to be stored across four
+     * chunks, so the stream reaches position 8 while only 6 UI chunks have been
+     * delivered — and the two deltas after it sit at positions the UI chunk
+     * count has not reached yet.
+     */
+    const turn = layout([
+      { ui: { type: 'start' } as UIMessageChunk },
+      { ui: { type: 'start-step' } as UIMessageChunk },
+      { ui: { type: 'text-start', id: '0' } as UIMessageChunk },
+      {
+        ui: { type: 'text-delta', id: '0', delta: 'LARGE' } as UIMessageChunk,
+        span: 4,
+      },
+      { ui: { type: 'text-delta', id: '0', delta: 'B' } as UIMessageChunk },
+      { ui: { type: 'text-delta', id: '0', delta: 'C' } as UIMessageChunk },
+      { ui: { type: 'text-end', id: '0' } as UIMessageChunk },
+      { ui: { type: 'finish-step' } as UIMessageChunk },
+      { ui: { type: 'finish' } as UIMessageChunk },
+    ]);
+    /** The POST dies after the last delta, with no `finish`. */
+    const DELIVERED_BY_POST = 6;
+
+    function mockServer({ ids }: { ids: boolean | 'not-a-number' }) {
+      const reconnectUrls: string[] = [];
+      mockFetch.mockImplementation(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === '/api/chat') {
+          return {
+            ok: true,
+            headers: new Headers({ 'x-workflow-run-id': 'run-1' }),
+            body: sseBody(turn.slice(0, DELIVERED_BY_POST), { ids }),
+          };
+        }
+        reconnectUrls.push(url);
+        const startIndex = Number(
+          new URL(url, 'http://localhost').searchParams.get('startIndex'),
+        );
+        return {
+          ok: true,
+          headers: new Headers(),
+          body: sseBody(read(turn, startIndex), { ids }),
+        };
+      });
+      return { reconnectUrls };
+    }
+
+    async function collect(stream: ReadableStream<UIMessageChunk>) {
+      const out: UIMessageChunk[] = [];
+      const reader = stream.getReader();
+      try {
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          out.push(value);
+        }
+      } finally {
+        reader.releaseLock();
+      }
+      return out;
+    }
+
+    it('resumes from the reported position, not the UI chunk count', async () => {
+      const { reconnectUrls } = mockServer({ ids: true });
+      const transport = new WorkflowChatTransport({ fetch: mockFetch });
+
+      const chunks = await collect(
+        await transport.sendMessages({
+          trigger: 'submit-message',
+          chatId: 'chat-1',
+          messages: [],
+        }),
+      );
+
+      // The last POST chunk ended on stored chunk 8, so the resume is 9 — not
+      // 6, the number of UI chunks received.
+      expect(reconnectUrls).toEqual(['/api/chat/run-1/stream?startIndex=9']);
+      expect(chunks).toEqual(turn.map(entry => entry.ui));
+    });
+
+    it('delivers no duplicate chunks across the resume', async () => {
+      mockServer({ ids: true });
+      const transport = new WorkflowChatTransport({ fetch: mockFetch });
+
+      const chunks = await collect(
+        await transport.sendMessages({
+          trigger: 'submit-message',
+          chatId: 'chat-1',
+          messages: [],
+        }),
+      );
+
+      // Every chunk exactly once, in order: no replayed delta, no gap.
+      expect(chunks).toHaveLength(turn.length);
+      expect(chunks.filter(chunk => chunk.type === 'text-delta')).toEqual([
+        { type: 'text-delta', id: '0', delta: 'LARGE' },
+        { type: 'text-delta', id: '0', delta: 'B' },
+        { type: 'text-delta', id: '0', delta: 'C' },
+      ]);
+    });
+
+    it('replays deltas when the stream reports no position, which is what the id prevents', async () => {
+      // The regression this pins: without a reported position the transport
+      // resumes at its UI chunk count (6), which the large delta pushed the
+      // real position past, so the two deltas stored after it are delivered a
+      // second time. Their part is still open, so the framing repair passes
+      // them through as duplicated text.
+      const { reconnectUrls } = mockServer({ ids: false });
+      const transport = new WorkflowChatTransport({ fetch: mockFetch });
+
+      const chunks = await collect(
+        await transport.sendMessages({
+          trigger: 'submit-message',
+          chatId: 'chat-1',
+          messages: [],
+        }),
+      );
+
+      expect(reconnectUrls).toEqual(['/api/chat/run-1/stream?startIndex=6']);
+      expect(chunks.filter(chunk => chunk.type === 'text-delta')).toEqual([
+        { type: 'text-delta', id: '0', delta: 'LARGE' },
+        { type: 'text-delta', id: '0', delta: 'B' },
+        { type: 'text-delta', id: '0', delta: 'C' },
+        { type: 'text-delta', id: '0', delta: 'B' },
+        { type: 'text-delta', id: '0', delta: 'C' },
+      ]);
+    });
+
+    it('ignores an id that is not a stream position', async () => {
+      // `id` is a free-form SSE field; a server already using it for something
+      // else must not be read as reporting a position.
+      const { reconnectUrls } = mockServer({ ids: 'not-a-number' });
+      const transport = new WorkflowChatTransport({ fetch: mockFetch });
+
+      await collect(
+        await transport.sendMessages({
+          trigger: 'submit-message',
+          chatId: 'chat-1',
+          messages: [],
+        }),
+      );
+
+      expect(reconnectUrls).toEqual(['/api/chat/run-1/stream?startIndex=6']);
+    });
+
+    it('keeps using a reported position across several resumes', async () => {
+      const reconnectUrls: string[] = [];
+      // Each reconnect delivers one more value and then dies, so the resume
+      // position has to advance from the ids alone.
+      mockFetch.mockImplementation(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === '/api/chat') {
+          return {
+            ok: true,
+            headers: new Headers({ 'x-workflow-run-id': 'run-1' }),
+            body: sseBody(turn.slice(0, DELIVERED_BY_POST), { ids: true }),
+          };
+        }
+        reconnectUrls.push(url);
+        const startIndex = Number(
+          new URL(url, 'http://localhost').searchParams.get('startIndex'),
+        );
+        return {
+          ok: true,
+          headers: new Headers(),
+          body: sseBody(read(turn, startIndex).slice(0, 1), { ids: true }),
+        };
+      });
+
+      const transport = new WorkflowChatTransport({ fetch: mockFetch });
+      const chunks = await collect(
+        await transport.sendMessages({
+          trigger: 'submit-message',
+          chatId: 'chat-1',
+          messages: [],
+        }),
+      );
+
+      expect(reconnectUrls).toEqual([
+        '/api/chat/run-1/stream?startIndex=9',
+        '/api/chat/run-1/stream?startIndex=10',
+        '/api/chat/run-1/stream?startIndex=11',
+      ]);
+      expect(chunks).toEqual(turn.map(entry => entry.ui));
+    });
+  });
 });

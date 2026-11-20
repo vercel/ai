@@ -51,7 +51,8 @@
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
     "ai": "workspace:*",
-    "ajv": "^8.20.0"
+    "ajv": "^8.20.0",
+    "eventsource-parser": "^3.0.8"
   },
   "devDependencies": {
     "@ai-sdk/otel": "workspace:*",
