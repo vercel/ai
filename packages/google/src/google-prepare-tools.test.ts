@@ -98,6 +98,23 @@ it('should preserve recursive function tool schemas as JSON Schema', () => {
   ]);
 });
 
+it('should propagate schema budget errors instead of falling back to JSON Schema', () => {
+  expect(() =>
+    prepareTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'example',
+          inputSchema: { type: 'string', description: 'x'.repeat(170_000) },
+        },
+      ],
+      modelId: 'gemini-2.5-flash',
+    }),
+  ).toThrow(
+    'Google schema conversion exceeded its node, size, or depth limit.',
+  );
+});
+
 it('should correctly prepare provider-defined tools as array', () => {
   const result = prepareTools({
     tools: [

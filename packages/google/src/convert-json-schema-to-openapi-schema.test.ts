@@ -157,6 +157,167 @@ it('should reject recursive references', () => {
   );
 });
 
+it.each(['properties', 'items', 'allOf', 'anyOf', 'oneOf'])(
+  'should share the size budget across references in %s',
+  keyword => {
+    const reference = { $ref: '#/definitions/Value' };
+    const pair = {
+      [keyword]:
+        keyword === 'properties'
+          ? { first: reference, second: reference }
+          : [reference, reference],
+    };
+    const input: JSONSchema7 = {
+      type: 'object',
+      properties: {
+        first: { $ref: '#/definitions/Pair' },
+        second: { $ref: '#/definitions/Pair' },
+      },
+      definitions: {
+        Pair: pair,
+        Value: { type: 'string', description: 'x'.repeat(48_000) },
+      },
+    };
+
+    // Only four leaf occurrences: rejection does not require a large expansion.
+    expect(() => convertJSONSchemaToOpenAPISchema(input)).toThrow(
+      'Google schema conversion exceeded its node, size, or depth limit.',
+    );
+  },
+);
+
+it('should share the node budget across sibling schemas', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: Object.fromEntries(
+      Array.from({ length: 3_000 }, (_, i) => [
+        `value${i}`,
+        { type: 'string' },
+      ]),
+    ),
+  };
+
+  expect(() => convertJSONSchemaToOpenAPISchema(input)).toThrow(
+    'Google schema conversion exceeded its node, size, or depth limit.',
+  );
+});
+
+it('should bound compact branching references with small leaves', () => {
+  const definitions: NonNullable<JSONSchema7['definitions']> = {
+    value11: { type: 'string' },
+  };
+  // Fixed depth: even without the guard this fixture has only 2,048 leaves.
+  for (let i = 10; i >= 0; i--) {
+    const reference = { $ref: `#/definitions/value${i + 1}` };
+    definitions[`value${i}`] = {
+      type: 'object',
+      properties: { first: reference, second: reference },
+    };
+  }
+
+  expect(() =>
+    convertJSONSchemaToOpenAPISchema({
+      $ref: '#/definitions/value0',
+      definitions,
+    }),
+  ).toThrow(
+    'Google schema conversion exceeded its node, size, or depth limit.',
+  );
+});
+
+it.each([
+  {
+    name: '2,000 properties',
+    schema: {
+      type: 'object',
+      properties: Object.fromEntries(
+        Array.from({ length: 2_000 }, (_, i) => [
+          `value${i}`,
+          { type: 'string' },
+        ]),
+      ),
+    },
+  },
+  {
+    name: '5,000 enum values',
+    schema: {
+      type: 'string',
+      enum: Array.from({ length: 5_000 }, (_, i) => `value${i}`),
+    },
+  },
+  {
+    name: '100 KB description',
+    schema: { type: 'string', description: 'x'.repeat(100_000) },
+  },
+])(
+  'should keep input and conversion budgets separate for $name',
+  ({ schema }) => {
+    expect(convertJSONSchemaToOpenAPISchema(schema as JSONSchema7)).toEqual(
+      schema,
+    );
+  },
+);
+
+it.each([
+  { name: 'description', metadata: { description: 'x'.repeat(170_000) } },
+  { name: 'enum', metadata: { enum: ['x'.repeat(170_000)] } },
+  { name: 'required', metadata: { required: ['x'.repeat(170_000)] } },
+  {
+    name: 'property names',
+    metadata: { properties: { ['x'.repeat(170_000)]: { type: 'string' } } },
+  },
+])('should bound retained $name', ({ metadata }) => {
+  expect(() =>
+    convertJSONSchemaToOpenAPISchema(metadata as JSONSchema7),
+  ).toThrow(UnsupportedFunctionalityError);
+});
+
+it('should preserve repeated acyclic references within the budget', () => {
+  expect(
+    convertJSONSchemaToOpenAPISchema({
+      type: 'object',
+      properties: {
+        first: { $ref: '#/definitions/Value' },
+        second: { $ref: '#/definitions/Value' },
+      },
+      definitions: { Value: { type: 'string', enum: ['a', 'b'] } },
+    }),
+  ).toEqual({
+    type: 'object',
+    properties: {
+      first: { type: 'string', enum: ['a', 'b'] },
+      second: { type: 'string', enum: ['a', 'b'] },
+    },
+  });
+});
+
+it('should bound conversion depth through acyclic references', () => {
+  const definitions: NonNullable<JSONSchema7['definitions']> = {
+    value120: { type: 'string' },
+  };
+  for (let i = 119; i >= 0; i--) {
+    definitions[`value${i}`] = { $ref: `#/definitions/value${i + 1}` };
+  }
+
+  expect(() =>
+    convertJSONSchemaToOpenAPISchema({
+      $ref: '#/definitions/value0',
+      definitions,
+    }),
+  ).toThrow(
+    'Google schema conversion exceeded its node, size, or depth limit.',
+  );
+});
+
+it('should use a fresh budget for each conversion', () => {
+  expect(() =>
+    convertJSONSchemaToOpenAPISchema({ description: 'x'.repeat(170_000) }),
+  ).toThrow(UnsupportedFunctionalityError);
+  expect(convertJSONSchemaToOpenAPISchema({ type: 'string' })).toEqual({
+    type: 'string',
+  });
+});
+
 it('should remove additionalProperties object from nested object schemas', function () {
   const input: JSONSchema7 = {
     type: 'object',
