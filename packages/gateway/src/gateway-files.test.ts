@@ -306,6 +306,8 @@ describe('GatewayFiles', () => {
     it.each([
       ['text/plain; charset=utf-8', 'TEXT/PLAIN'],
       ['application/octet-stream', 'application/pdf'],
+      ['APPLICATION/OCTET-STREAM', 'application/pdf'],
+      ['application/octet-stream; charset=binary', 'application/pdf'],
     ])(
       'should not warn for declared %s and stored %s',
       async (declared, stored) => {

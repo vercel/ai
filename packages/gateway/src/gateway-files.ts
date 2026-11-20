@@ -244,10 +244,11 @@ function getMediaTypeWarnings({
   declared: string;
   stored: string | undefined;
 }): Array<SharedV4Warning> {
+  const normalizedDeclared = normalizeMediaType(declared);
   if (
     stored == null ||
-    declared === 'application/octet-stream' ||
-    normalizeMediaType(declared) === normalizeMediaType(stored)
+    normalizedDeclared === 'application/octet-stream' ||
+    normalizedDeclared === normalizeMediaType(stored)
   ) {
     return [];
   }
