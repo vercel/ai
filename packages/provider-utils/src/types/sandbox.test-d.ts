@@ -80,13 +80,25 @@ test('SandboxSession methods use their named options types', () => {
 });
 
 test('run options preserve command fields without stdin', () => {
-  expectTypeOf<SandboxRunOptions>().toEqualTypeOf<{
-    command: string;
-    workingDirectory?: string;
-    env?: Record<string, string>;
-    abortSignal?: AbortSignal;
-  }>();
+  expectTypeOf<SandboxRunOptions>().toEqualTypeOf<
+    {
+      command: string;
+      workingDirectory?: string;
+      env?: Record<string, string>;
+      abortSignal?: AbortSignal;
+    } & { maxOutputLength?: number }
+  >();
   expectTypeOf<SandboxRunOptions>().not.toHaveProperty('stdin');
+});
+
+test('run result includes optional original output lengths', () => {
+  expectTypeOf<Awaited<ReturnType<SandboxSession['run']>>>().toEqualTypeOf<{
+    exitCode: number;
+    stdout: string;
+    stderr: string;
+    stdoutLength?: number;
+    stderrLength?: number;
+  }>();
 });
 
 test('file read options preserve path, signal, and text fields', () => {

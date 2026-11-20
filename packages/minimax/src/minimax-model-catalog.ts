@@ -74,6 +74,11 @@ const languageModelIds = [
   'minimax-m2.1-highspeed',
   'minimax-m2',
 ] as const;
+const imageModelIds = [
+  'MiniMax-H3-Image',
+  'MiniMax-H3-Image-Highspeed',
+] as const;
+
 const videoModelIds = ['MiniMax-H3', 'MiniMax-H3-Max'] as const;
 const documentedLanguageCapabilities: Record<
   string,
@@ -263,9 +268,7 @@ export function getMiniMaxImageModelEntry() {
 }
 
 export const minimaxModelCatalog = Object.fromEntries([
-  ...['MiniMax-H3-Image', 'MiniMax-H3-Image-Highspeed'].map(
-    id => [id, getMiniMaxImageModelEntry()] as const,
-  ),
+  ...imageModelIds.map(id => [id, getMiniMaxImageModelEntry()] as const),
   ...languageModelIds.map(
     id => [id, getMiniMaxLanguageModelEntry(id)] as const,
   ),
@@ -274,6 +277,7 @@ export const minimaxModelCatalog = Object.fromEntries([
 
 /** Known model IDs, derived from the declarations used to build the catalog. */
 export type MiniMaxModelIds = {
+  image: (typeof imageModelIds)[number];
   language: (typeof languageModelIds)[number];
   video: (typeof videoModelIds)[number];
 };

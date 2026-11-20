@@ -27,10 +27,10 @@
   "scripts": {
     "build": "pnpm clean && tsdown",
     "build:watch": "pnpm clean && tsdown --watch",
-    "clean": "del-cli docs skills *.tsbuildinfo",
+    "clean": "del-cli docs skills",
     "prepack": "cp -r ../../content/docs ./docs && mkdir -p skills && cp -r ../../skills/ai-sdk ./skills/ai-sdk",
     "postpack": "del-cli docs skills",
-    "type-check": "tsc --build",
+    "type-check": "tsc --noEmit",
     "test": "pnpm test:node && pnpm test:edge",
     "test:update": "pnpm test:node -u",
     "test:watch": "vitest --config vitest.node.config.js",

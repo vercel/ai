@@ -7,10 +7,9 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "pnpm clean && tsdown",
-    "build:watch": "pnpm clean && tsdown --watch",
-    "clean": "del-cli *.tsbuildinfo",
-    "type-check": "tsc --build",
+    "build": "tsdown",
+    "build:watch": "tsdown --watch",
+    "type-check": "tsc --noEmit",
     "test": "vitest --config vitest.config.ts --run",
     "test:update": "vitest --config vitest.config.ts --run -u",
     "test:watch": "vitest --config vitest.config.ts"

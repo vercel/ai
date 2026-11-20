@@ -4,10 +4,10 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { GoogleModelIds } from '../google-model-catalog';
 
 export type GoogleTranscriptionModelId =
-  | 'gemini-3.5-transcribe'
-  | 'gemini-3.5-transcribe-live'
+  | GoogleModelIds['transcription']
   | (string & {});
 
 /**

@@ -6,7 +6,7 @@ import {
   experimental_codeModeTool as codeModeTool,
   experimental_createCodeModeTool as createCodeModeTool,
   experimental_runCodeMode as runCodeMode,
-} from '../dist/index.js';
+} from './index.js';
 import { deferred, emptyMessages } from './utils/test-helpers.js';
 
 describe('AI SDK tool bridge', () => {
