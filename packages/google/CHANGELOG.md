@@ -1,5 +1,12 @@
 # @ai-sdk/google
 
+## 3.0.148
+
+### Patch Changes
+
+- 85637dc: Backport: fix(google): serialize JSON Schema references in function responses
+- 8a9bcc8: feat(google): add the `gemini-4-neon` model ID
+
 ## 3.0.147
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @ai-sdk/gateway
 
+## 3.0.240
+
+### Patch Changes
+
+- eec7bd8: Backport: chore(provider/gateway): update gateway model settings files
+- 8a9bcc8: feat(google): add the `gemini-4-neon` model ID
+- e1a5663: Backport: chore(provider/gateway): update gateway model settings files
+
 ## 3.0.239
 
 ### Patch Changes
