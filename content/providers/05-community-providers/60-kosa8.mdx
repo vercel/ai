@@ -1,0 +1,123 @@
+---
+title: kosa8
+description: Learn how to use kosa8 microVM sandboxes with the AI SDK to run an agent's commands and files outside your application.
+---
+
+# kosa8
+
+[kosa8](https://kosa8.com) runs each sandbox as a microVM with its own kernel, with a closed network that reaches only the hosts you allow.
+Sandboxes run on kosa8 Cloud with an API key, or on your own machine through the kosa8 daemon.
+
+The [`@kosa8/ai-sdk-sandbox`](https://www.npmjs.com/package/@kosa8/ai-sdk-sandbox) package, maintained by kosa8, is the AI SDK adapter.
+It does not provide a language model. It implements the AI SDK 7 sandbox interfaces (`Experimental_SandboxSession` and `HarnessV1NetworkSandboxSession`), so you can pass a kosa8 sandbox to tools as `experimental_sandbox` or to `HarnessAgent` as a `sandboxSession`:
+
+| Export                                           | Description                                                           |
+| ------------------------------------------------ | --------------------------------------------------------------------- |
+| `createKosa8CloudSandboxSession`                 | Creates a sandbox on kosa8 Cloud and returns a session.               |
+| `resumeKosa8CloudSandboxSession`                 | Wakes a sleeping kosa8 Cloud sandbox by its ID or name.               |
+| `createKosa8NetworkSandboxSession`               | Creates a sandbox on the local kosa8 daemon.                          |
+| `createKosa8CloudSandbox` / `createKosa8Sandbox` | The sandbox provider shape, for kosa8 Cloud and for the local daemon. |
+
+The package requires AI SDK 7 and Node.js 22 or later.
+
+Learn more in the [package README](https://github.com/kosa8ai/kosa8-js/tree/main/packages/ai-sdk-sandbox) and the [kosa8 documentation](https://docs.kosa8.com).
+
+## Setup
+
+<InstallPackages packages="@kosa8/ai-sdk-sandbox" />
+
+For kosa8 Cloud, create an API key in the [kosa8 Cloud dashboard](https://app.kosa8.com) and set it as an environment variable:
+
+```bash
+KOSA8_API_KEY=your-kosa8-api-key
+```
+
+kosa8 Cloud requires a paid plan; see [pricing](https://kosa8.com/pricing/).
+
+## Using the Sandbox with Tools
+
+Create a session, then pass its restricted view as `experimental_sandbox`.
+The restricted view exposes file I/O, `run`, and `spawn`, without lifecycle or network controls.
+
+```ts
+import { createKosa8CloudSandboxSession } from '@kosa8/ai-sdk-sandbox';
+import { generateText, isStepCount, tool } from 'ai';
+import { z } from 'zod';
+
+const session = await createKosa8CloudSandboxSession({
+  template: 'python',
+  ttlS: 3600, // deleted after an hour
+  networkPolicy: {
+    mode: 'custom',
+    allowedHosts: ['pypi.org', 'files.pythonhosted.org'],
+  },
+});
+
+try {
+  const sandbox = session.restricted();
+
+  const { text } = await generateText({
+    model: 'anthropic/claude-sonnet-5.5',
+    stopWhen: isStepCount(10),
+    prompt: `Write fib.py, run it, and report the 30th Fibonacci number.\n\nSandbox:\n${sandbox.description}`,
+    experimental_sandbox: sandbox,
+    tools: {
+      writeFile: tool({
+        description: 'Write a file in the sandbox.',
+        inputSchema: z.object({ path: z.string(), content: z.string() }),
+        execute: async (
+          { path, content },
+          { experimental_sandbox, abortSignal },
+        ) => {
+          await experimental_sandbox!.writeTextFile({
+            path,
+            content,
+            abortSignal,
+          });
+          return { written: path };
+        },
+      }),
+      shell: tool({
+        description: 'Run a shell command in the sandbox.',
+        inputSchema: z.object({ command: z.string() }),
+        execute: ({ command }, { experimental_sandbox, abortSignal }) =>
+          experimental_sandbox!.run({ command, abortSignal }),
+      }),
+    },
+  });
+
+  console.log(text);
+} finally {
+  await session.destroy(); // or session.stop() to sleep it and resume later
+}
+```
+
+## Using the Sandbox with HarnessAgent
+
+```ts
+import { createKosa8CloudSandboxSession } from '@kosa8/ai-sdk-sandbox';
+
+const session = await createKosa8CloudSandboxSession({ template: 'node' });
+const agentSession = await agent.createSession({ sandboxSession: session });
+```
+
+## Session Lifecycle and Network
+
+- `stop()` puts the sandbox to sleep and keeps its state. `resumeKosa8CloudSandboxSession({ sandboxId })` wakes it.
+- `destroy()` deletes the sandbox.
+- `setNetworkPolicy()` changes the egress of a running sandbox.
+- `getPortEndpoint({ port })` returns a private https URL for a port in the sandbox.
+- Commands run in the background on kosa8 Cloud, so long commands are not cut off. `abortSignal` and `kill()` stop them.
+
+## Running Locally
+
+To run sandboxes on your own machine (macOS on Apple silicon or x86-64 Linux), install kosa8, start its daemon, and use the local session:
+
+```ts
+import { createKosa8NetworkSandboxSession } from '@kosa8/ai-sdk-sandbox';
+
+const session = await createKosa8NetworkSandboxSession({
+  image: 'alpine:latest',
+  networkPolicy: { mode: 'custom', allowedHosts: ['registry.npmjs.org'] },
+});
+```
