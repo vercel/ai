@@ -16,6 +16,11 @@ For OpenAI Live's continuous JSON/PCM16 WSS relay runtime and application-handle
 client delegation, see
 [`experimental_useRealtime`](/docs/reference/ai-sdk-ui/use-realtime#continuous-conversations).
 
+For Mistral's managed microphone-to-speaker conversations, use
+[`mistral.experimental_realtime()`](/providers/ai-sdk-providers/mistral#realtime-voice-agents)
+with `api.provider`. Its provider-owned LiveKit transport handles audio, and
+your server creates and closes the sessions.
+
 The typical flow is:
 
 1. The browser calls your setup endpoint.
@@ -30,6 +35,70 @@ application handles delegated work and submits context rather than using the
 turn-based tool loop below. See the
 [`experimental_useRealtime` reference](/docs/reference/ai-sdk-ui/use-realtime)
 for SDP setup, server-owned permissions, capture ownership, and graceful close.
+
+## Server-owned connections
+
+A trusted server can own the WebSocket instead of minting a browser token. Check
+`model.capabilities?.connections` for `server-websocket` and obtain the server-only
+settings with `await model.getServerWebSocketConfig?.({ intent: 'conversation' })`.
+OpenAI Realtime, Google, xAI and AI Gateway support this connection, alongside the
+existing OpenAI Live adapter. Returned headers can contain long-lived credentials;
+keep the descriptor on your server. The application owns socket lifetime,
+authorization, buffering, and reconnect policy.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { WebSocket } from 'ws';
+
+const model = openai.experimental_realtime('gpt-realtime-2.1', {
+  api: 'realtime',
+});
+const options = { intent: 'conversation' } as const;
+const { url, headers, protocols } =
+  await model.getServerWebSocketConfig(options);
+const socket = new WebSocket(url, protocols, { headers });
+```
+
+Feed incoming JSON to a fresh `model.createServerEventParser()` when the model
+provides it, using one parser for each connection and discarding it on disconnect.
+Stateless models can use `model.parseServerEvent(raw)` directly. Serialize outgoing normalized events with
+`await model.serializeClientEvent(event, options)`. Use the same `intent` when
+building a session configuration with `model.buildSessionConfig(config, options)`.
+A complete Node example is in
+[`server.ts`](https://github.com/vercel/ai/blob/main/examples/ai-functions/src/realtime/openai/server.ts).
+
+The default intent is `conversation`. OpenAI Realtime also supports
+`transcription`, which selects its dedicated endpoint and session shape. Set
+`inputAudioTranscription.model` explicitly when the factory model is a conversation
+model; otherwise the factory model ID is used for transcription. Instructions,
+voice, tools and output settings are rejected in transcription sessions. Google,
+xAI, AI Gateway and OpenAI Live reject a non-conversation intent. Google Live
+translation remains a session provider option, rather than a connection intent.
+
+### Usage snapshots
+
+Normalized completion events can carry optional `usage` with gross `inputTokens`
+and `outputTokens`, available text/audio buckets, cached input portions, and
+`seconds` for duration-billed transcription. Cached counts are subsets of gross
+input counts. Modality buckets are subsets of totals, so do not add them to those
+totals. Unknown counts remain absent, and totals can include other modalities.
+The public types are `Experimental_RealtimeServerConnection`,
+`Experimental_RealtimeSessionIntent` and `Experimental_RealtimeUsage` from `ai`.
+
+OpenAI Realtime and xAI expose reported usage on `response-done` and input
+transcription completions. AI Gateway passes through normalized usage only when
+the Gateway route includes it in its events.
+OpenAI Live retains its existing duration snapshots on `session-usage` and
+`session-closed`.
+
+Google attaches usage to `response-done` only when the same wire frame contains
+`turnComplete` and `usageMetadata`. Otherwise it emits an existing `custom` event
+with `rawType: 'usageMetadata'` and typed `usage`. Google gross input totals include
+reported tool-use prompt counts, and gross output totals include reported thinking
+counts. These are provider snapshots;
+they do not repeat completion, imply a response association, or represent increments
+to sum. A later snapshot can revise an earlier one. The original provider payload
+remains available in `raw`.
 
 ## Setup Endpoint
 
@@ -269,7 +338,7 @@ realtime.addToolOutput(toolCallId, {
 
 ## Supported Providers
 
-Realtime models are available on providers that expose realtime WebSocket APIs:
+The following providers support the token-based WebSocket flow above:
 
 ```ts
 import { openai } from '@ai-sdk/openai';
@@ -297,3 +366,7 @@ secret on your server. The browser uses that token to open the Gateway
 WebSocket; the SDK handles the Gateway-specific WebSocket subprotocols for you.
 See the [AI Gateway realtime docs](/providers/ai-sdk-providers/ai-gateway#realtime)
 for Gateway-specific token and provider option details.
+
+[Mistral voice agents](/providers/ai-sdk-providers/mistral#realtime-voice-agents)
+use `mistral.experimental_realtime('mistral-small-latest')` with a managed session
+endpoint (`api.provider`). LiveKit is handled internally by the Mistral provider.

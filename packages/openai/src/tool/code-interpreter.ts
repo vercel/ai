@@ -4,6 +4,7 @@ import {
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { redactOpenAIToolArgs } from '../redact-openai-tool-credentials';
 
 export const codeInterpreterInputSchema = lazySchema(() =>
   zodSchema(
@@ -37,6 +38,25 @@ export const codeInterpreterArgsSchema = lazySchema(() =>
           z.string(),
           z.object({
             fileIds: z.array(z.string()).optional(),
+            memoryLimit: z.enum(['1g', '4g', '16g', '64g']).optional(),
+            networkPolicy: z
+              .discriminatedUnion('type', [
+                z.object({ type: z.literal('disabled') }),
+                z.object({
+                  type: z.literal('allowlist'),
+                  allowedDomains: z.array(z.string()),
+                  domainSecrets: z
+                    .array(
+                      z.object({
+                        domain: z.string(),
+                        name: z.string(),
+                        value: z.string(),
+                      }),
+                    )
+                    .optional(),
+                }),
+              ])
+              .optional(),
           }),
         ])
         .optional(),
@@ -48,9 +68,26 @@ type CodeInterpreterArgs = {
   /**
    * The code interpreter container.
    * Can be a container ID
-   * or an object that specifies uploaded file IDs to make available to your code.
+   * or an object that configures uploaded file IDs, the memory limit,
+   * and the network policy for a new container.
    */
-  container?: string | { fileIds?: string[] };
+  container?:
+    | string
+    | {
+        fileIds?: string[];
+        memoryLimit?: '1g' | '4g' | '16g' | '64g';
+        networkPolicy?:
+          | { type: 'disabled' }
+          | {
+              type: 'allowlist';
+              allowedDomains: string[];
+              domainSecrets?: Array<{
+                domain: string;
+                name: string;
+                value: string;
+              }>;
+            };
+      };
 };
 
 export const codeInterpreterToolFactory = createProviderExecutedToolFactory<
@@ -92,6 +129,7 @@ export const codeInterpreterToolFactory = createProviderExecutedToolFactory<
   CodeInterpreterArgs
 >({
   id: 'openai.code_interpreter',
+  redactArgs: args => redactOpenAIToolArgs('code_interpreter', args),
   inputSchema: codeInterpreterInputSchema,
   outputSchema: codeInterpreterOutputSchema,
 });

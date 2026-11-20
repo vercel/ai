@@ -110,11 +110,7 @@ describe('startHostToolRelay', () => {
     const relay = await createRelay({
       tools: [{ name: 'weather', inputSchema: { type: 'object' } }],
     });
-    const authorization = createHostToolRelayAuthorization({
-      serverName: 'ai-sdk-harness-tools',
-      toolNames: ['weather'],
-      ttlMs: 20,
-    });
+    const authorization = createHostToolRelayAuthorization({ ttlMs: 20 });
     let notifyAuthorizationRequest: (() => void) | undefined;
     const turn: HostToolRelayTurn = {
       waitForToolCallAuthorization: options => {
@@ -167,6 +163,7 @@ describe('startHostToolRelay', () => {
           rawInput: { city: 'Lima' },
           status: 'in_progress',
         },
+        hostToolCall: { toolName: 'weather', input: { city: 'Lima' } },
       });
       await expect(authorizedCall).resolves.toMatchObject({
         output: { celsius: 19 },
@@ -196,11 +193,7 @@ describe('startHostToolRelay', () => {
     const relay = await createRelay({
       tools: [{ name: 'calculator', inputSchema: { type: 'object' } }],
     });
-    const authorization = createHostToolRelayAuthorization({
-      serverName: 'ai-sdk-harness-tools',
-      toolNames: ['calculator'],
-      ttlMs: 250,
-    });
+    const authorization = createHostToolRelayAuthorization({ ttlMs: 250 });
     let notifyAuthorizationRequest!: () => void;
     const authorizationRequested = new Promise<void>(resolve => {
       notifyAuthorizationRequest = resolve;
@@ -237,6 +230,7 @@ describe('startHostToolRelay', () => {
           rawInput: {},
           status: 'pending',
         },
+        hostToolCall: { toolName: 'calculator', input: {} },
       });
       expect(turn.emitToolCall).not.toHaveBeenCalled();
       authorization.observeUpdate({
@@ -246,6 +240,7 @@ describe('startHostToolRelay', () => {
           rawInput: input,
           status: 'in_progress',
         },
+        hostToolCall: { toolName: 'calculator', input },
       });
 
       await expect(response).resolves.toMatchObject({

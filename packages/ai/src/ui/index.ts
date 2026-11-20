@@ -69,6 +69,7 @@ export {
   type ReasoningUIPart,
   type SourceDocumentUIPart,
   type SourceUrlUIPart,
+  type SteeringMessageUIPart as Experimental_SteeringMessageUIPart,
   type StepStartUIPart,
   type TextUIPart,
   type ToolOutputErrorUIPart,

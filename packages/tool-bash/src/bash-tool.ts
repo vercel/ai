@@ -8,10 +8,6 @@ import {
 import { posix } from 'node:path';
 import { z } from 'zod/v4';
 
-type BashInput = z.infer<typeof inputSchema>;
-
-type BashOutput = z.infer<typeof outputSchema>;
-
 const inputSchema = z.object({
   command: z.string().describe('The Bash command or script to execute.'),
 });
@@ -22,12 +18,23 @@ const outputSchema = z.object({
   exitCode: z.number(),
 });
 
-function limitOutput(output: string, maxLength: number): string {
-  if (output.length <= maxLength) {
+type BashInput = z.infer<typeof inputSchema>;
+
+type BashOutput = z.infer<typeof outputSchema>;
+
+function limitOutput(
+  output: string,
+  maxLength: number,
+  totalLength = output.length,
+): string {
+  if (totalLength <= maxLength) {
     return output;
   }
 
-  return `${output.slice(0, maxLength)}\n[Output truncated: ${output.length - maxLength} characters omitted.]`;
+  // Also copy prefixes returned by older or custom sandboxes, which may not
+  // support bounded output and can return a substring backed by a large string.
+  const prefix = output.slice(0, maxLength).split('').join('');
+  return `${prefix}\n[Output truncated: ${totalLength - maxLength} characters omitted.]`;
 }
 
 /**
@@ -124,15 +131,17 @@ export async function createBashTool({
             ? timeoutSignal
             : AbortSignal.any([abortSignal, timeoutSignal]);
 
-      const { stdout, stderr, exitCode } = await sandbox.run({
-        command,
-        ...(workingDirectory !== undefined ? { workingDirectory } : {}),
-        abortSignal: commandSignal,
-      });
+      const { stdout, stderr, exitCode, stdoutLength, stderrLength } =
+        await sandbox.run({
+          command,
+          ...(workingDirectory !== undefined ? { workingDirectory } : {}),
+          abortSignal: commandSignal,
+          maxOutputLength,
+        });
 
       return {
-        stdout: limitOutput(stdout, maxOutputLength),
-        stderr: limitOutput(stderr, maxOutputLength),
+        stdout: limitOutput(stdout, maxOutputLength, stdoutLength),
+        stderr: limitOutput(stderr, maxOutputLength, stderrLength),
         exitCode,
       };
     },

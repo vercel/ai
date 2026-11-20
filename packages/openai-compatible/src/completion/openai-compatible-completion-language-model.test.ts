@@ -23,6 +23,26 @@ const server = createTestServer({
   'https://my.api.com/v1/completions': {},
 });
 
+describe.each(['doGenerate', 'doStream'] as const)(
+  'prompt validation (%s)',
+  method => {
+    it('should include the content of an unexpected system message in the error', async () => {
+      await expect(
+        model[method]({
+          prompt: [
+            ...TEST_PROMPT,
+            { role: 'system', content: 'misplaced system message' },
+          ],
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidPromptError',
+        message:
+          'Invalid prompt: Unexpected system message in prompt: misplaced system message',
+      });
+    });
+  },
+);
+
 describe('config', () => {
   it('should extract base name from provider string', () => {
     const model = new OpenAICompatibleCompletionLanguageModel('gpt-5', {

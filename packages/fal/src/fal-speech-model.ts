@@ -1,5 +1,6 @@
 import type { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
+  resolve,
   lazySchema,
   zodSchema,
   combineHeaders,
@@ -114,7 +115,10 @@ export class FalSpeechModel implements SpeechModelV4 {
       rawValue,
     } = await postJsonToApi({
       url: requestUrl,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: requestBody,
       failedResponseHandler: falFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

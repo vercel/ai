@@ -3,16 +3,19 @@ import type { DecisionFallbackCondition } from './gateway-provider-options';
 
 export type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
 export type { GatewayDecisionModelId } from './gateway-decision-model-settings';
+export type { GatewayExtractionModelId } from './gateway-extraction-model-settings';
 export type { GatewayImageModelId } from './gateway-image-model-settings';
 export type { GatewayModelId } from './gateway-language-model-settings';
 export {
   GATEWAY_AUTH_SUBPROTOCOL_PREFIX,
   GATEWAY_REALTIME_SUBPROTOCOL,
+  GATEWAY_SPEECH_SUBPROTOCOL,
   GATEWAY_TEAM_SUBPROTOCOL_PREFIX,
   GATEWAY_TRANSCRIPTION_SUBPROTOCOL,
   getGatewayRealtimeAuthToken,
   getGatewayRealtimeProtocols,
   getGatewayRealtimeTeamIdOrSlug,
+  getGatewaySpeechProtocols,
   getGatewayTranscriptionProtocols,
 } from './gateway-realtime-auth';
 export type { GatewayRealtimeModelId } from './gateway-realtime-model-settings';
@@ -58,6 +61,7 @@ export type {
 } from './gateway-provider-options';
 export {
   GatewayError,
+  GatewayAccessPolicyDeniedError,
   GatewayAuthenticationError,
   GatewayFailedDependencyError,
   GatewayForbiddenError,

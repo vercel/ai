@@ -1,13 +1,13 @@
 # AI SDK - Harness Specification and Agent
 
-_This package is **experimental**._
-
 `HarnessAgent` implementation plus the underlying harness specification, including an expanded network session sandbox interface to support harness sandbox needs.
+
+-> **Note**: This package is experimental.
 
 ## Setup
 
 ```bash
-npm i ai zod @ai-sdk/harness @ai-sdk/harness-claude-code @ai-sdk/sandbox-vercel
+npm i ai @ai-sdk/harness @ai-sdk/harness-claude-code @ai-sdk/sandbox-vercel zod
 ```
 
 ## Usage
@@ -84,24 +84,4 @@ try {
 }
 ```
 
-Set `output` on `HarnessAgent` to require the same typed, schema-backed output
-on every turn. `generate()` exposes the validated value as `result.output`, and
-`stream()` additionally exposes `partialOutputStream`; the JSON also remains on
-the normal text and stream surfaces.
-
-```ts
-import { Output } from 'ai';
-
-const agent = new HarnessAgent({
-  harness: claudeCode,
-  output: Output.object({
-    schema: z.object({ answer: z.string() }),
-  }),
-});
-```
-
-## Documentation
-
-- [Detailed usage documentation](https://ai-sdk.dev/docs/ai-sdk-harnesses)
-- [Harness abstraction architecture](https://github.com/vercel/ai/blob/main/architecture/harness-abstraction.md)
-- [Sandbox abstraction architecture](https://github.com/vercel/ai/blob/main/architecture/sandbox-abstraction.md)
+See the [Harness Specification and Agent documentation](https://ai-sdk.dev/docs/ai-sdk-harnesses) for more information.

@@ -9,11 +9,13 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
-  parseProviderOptions,
   postJsonToApi,
+  resolveProviderOptions,
   serializeModelOptions,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
@@ -45,7 +47,7 @@ type OpenAICompletionConfig = {
   provider: string;
   /** Model ID sent to the API. Defaults to the model's reported ID. */
   requestModelId?: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
 };
@@ -109,18 +111,16 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
     const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
-    const openaiOptions = {
-      ...(await parseProviderOptions({
-        provider: 'openai',
-        providerOptions,
-        schema: openaiLanguageModelCompletionOptions,
-      })),
-      ...(await parseProviderOptions({
-        provider: this.providerOptionsName,
-        providerOptions,
-        schema: openaiLanguageModelCompletionOptions,
-      })),
-    };
+    // `openai` and the provider key are merged; the provider key wins.
+    const openaiOptions =
+      (
+        await resolveProviderOptions({
+          providerOptions,
+          namespaces: ['openai', this.providerOptionsName],
+          resolution: 'merge',
+          schema: openaiLanguageModelCompletionOptions,
+        })
+      ).options ?? {};
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
@@ -196,7 +196,10 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
         path: '/completions',
         modelId: this.config.requestModelId ?? this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: args,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -253,7 +256,10 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(

@@ -10,6 +10,7 @@ export const openaiDecisionModelOptions = lazySchema(() =>
     z.object({
       /** An opaque end-user identifier for safety monitoring, up to 128 characters. */
       safetyIdentifier: z.string().max(128).optional(),
+      promptCacheKey: z.string().optional(),
     }),
   ),
 );

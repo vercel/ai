@@ -128,12 +128,12 @@ const gatewayEmbeddingWarningSchema = () =>
     z.object({
       type: z.literal('unsupported'),
       feature: z.string(),
-      details: z.string().optional(),
+      details: z.optional(z.string()),
     }),
     z.object({
       type: z.literal('compatibility'),
       feature: z.string(),
-      details: z.string().optional(),
+      details: z.optional(z.string()),
     }),
     z.object({
       type: z.literal('deprecated'),
@@ -150,11 +150,11 @@ const gatewayEmbeddingResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       embeddings: z.array(z.array(z.number())),
-      usage: z.object({ tokens: z.number() }).nullish(),
-      warnings: z.array(gatewayEmbeddingWarningSchema()).optional(),
-      providerMetadata: z
-        .record(z.string(), z.record(z.string(), z.unknown()))
-        .optional(),
+      usage: z.nullish(z.object({ tokens: z.number() })),
+      warnings: z.optional(z.array(gatewayEmbeddingWarningSchema())),
+      providerMetadata: z.optional(
+        z.record(z.string(), z.record(z.string(), z.unknown())),
+      ),
     }),
   ),
 );

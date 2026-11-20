@@ -92,6 +92,21 @@ describe('convertMoonshotAIChatUsage', () => {
     });
   });
 
+  it('should report cache_write_tokens and exclude them from noCache', () => {
+    const result = convertMoonshotAIChatUsage({
+      prompt_tokens: 100,
+      completion_tokens: 50,
+      prompt_tokens_details: { cached_tokens: 20, cache_write_tokens: 60 },
+    });
+
+    expect(result.inputTokens).toEqual({
+      total: 100,
+      noCache: 20,
+      cacheRead: 20,
+      cacheWrite: 60,
+    });
+  });
+
   it('should convert usage with nested cached_tokens (OpenAI format)', () => {
     const result = convertMoonshotAIChatUsage({
       prompt_tokens: 100,

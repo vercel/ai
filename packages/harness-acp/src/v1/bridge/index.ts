@@ -32,6 +32,7 @@ import {
 } from './acp-diagnostics';
 import { monitorACPAgentStderr } from './agent-stderr-monitor';
 import { createEmitStreamEvent } from './create-emit-stream-event';
+import { createHostToolCallResolver } from './host-tool-call-resolver';
 import { resolveACPInstructionConfiguration } from './instruction-mapping';
 import {
   startHostToolRelay,
@@ -47,6 +48,7 @@ import {
 import { createACPPermissionController } from './permission-controller';
 import { configureACPPermissionMode } from './permission-mode';
 import { configureACPModel } from './model-mapping';
+import { resolveACPModelId } from './resolve-acp-model-id';
 import {
   assertACPResumeCapability,
   createACPRecoveredSession,
@@ -87,9 +89,11 @@ let streamCapture: ACPStreamCapture | undefined;
 let initializationDiagnostic: Record<string, unknown> | undefined;
 let hostToolRelay: HostToolRelay | undefined;
 let catalogRefreshError: HarnessBridgeCapabilityUnsupportedError | undefined;
+let sessionPrompted = false;
 let sessionConfigurationFailure: { readonly error: unknown } | undefined;
 let historicalUpdatesSuppressed = false;
 let coldRestorationMethod: ACPSessionRestorationMethod | undefined;
+let currentModelId: string | undefined;
 let activePermissionController:
   | ReturnType<typeof createACPPermissionController>
   | undefined;
@@ -104,6 +108,9 @@ let activeQuestionRequest:
 await runBridge<StartMessage>({
   bridgeType,
   bridgeStateDir,
+  ...(args.hostDisconnectTimeoutMs !== undefined
+    ? { hostDisconnectTimeoutMs: args.hostDisconnectTimeoutMs }
+    : {}),
   onStart: runTurn,
   onStop: () => (session == null ? {} : { sessionId: session.sessionId }),
   onExit: () => {
@@ -220,12 +227,13 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     return;
   }
 
-  await configureACPModel({
+  const configuredModelId = await configureACPModel({
     agent: connection!.agent,
     sessionId: activeSession.sessionId,
     model: start.model,
     mapping: start.modelMapping,
   });
+  if (configuredModelId != null) currentModelId = configuredModelId;
 
   let rejectCancellationFailure!: (error: unknown) => void;
   const cancellationFailure = new Promise<never>((_, reject) => {
@@ -234,7 +242,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   void cancellationFailure.catch(() => {});
   let cancellationRequested = false;
   let cancellationFailureError: Error | undefined;
-  const hostToolAuthorization = createHostToolRelayAuthorization({
+  const hostToolAuthorization = createHostToolRelayAuthorization();
+  const hostToolCallResolver = createHostToolCallResolver({
+    turn,
     serverName: HOST_TOOL_MCP_SERVER_NAME,
     toolNames: (start.tools ?? []).map(tool => tool.name),
   });
@@ -242,6 +252,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     if (cancellationRequested) return;
     cancellationRequested = true;
     hostToolAuthorization.close();
+    hostToolCallResolver.close();
     activePermissionController?.cancelAll();
     try {
       if (connection == null) {
@@ -258,7 +269,11 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       rejectCancellationFailure(cancellationFailureError);
     }
   };
-  turn.emit({ type: 'stream-start' });
+  const streamStartModelId = currentModelId ?? start.model;
+  turn.emit({
+    type: 'stream-start',
+    ...(streamStartModelId ? { modelId: streamStartModelId } : {}),
+  });
   const emitStreamEvent = createEmitStreamEvent({
     emit: event => turn.emit(event as BridgeEvent),
     emitToolCallCandidate: ({ toolCall }) => {
@@ -284,6 +299,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     builtinTools: start.builtinTools,
     hostToolServerName: HOST_TOOL_MCP_SERVER_NAME,
     hostTools: start.tools ?? [],
+    hostToolCallResolver,
   });
   if (bridgeConfiguration.askUserQuestionsRequestMethod != null) {
     activeQuestionRequest = {
@@ -295,8 +311,10 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const permissionController = createACPPermissionController({
     turn,
     sessionId: activeSession.sessionId,
+    workDir,
     permissionMode: start.permissionMode ?? 'allow-all',
     hasPermissionModeMapping: start.permissionModeMapping != null,
+    writeProtectedPaths: bridgeConfiguration.writeProtectedPaths,
     emitToolCall: emitStreamEvent.permissionToolCall,
     claimHostToolPermission: emitStreamEvent.claimHostToolPermission,
     onHostToolPermissionAllowed: hostToolAuthorization.authorizePermission,
@@ -317,13 +335,15 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   activeHostToolRelay.bindTurn({ turn: relayTurn });
   try {
     const promptMeta = createOutputSchemaPromptMeta({ start });
-    const startPrompt = () =>
-      promptActiveSession({
+    const startPrompt = () => {
+      sessionPrompted = true;
+      return promptActiveSession({
         session: activeSession,
         agent: connection!.agent,
         prompt: start.prompt,
         meta: promptMeta,
       });
+    };
     if (initialHostToolCatalogRefreshRequired) {
       try {
         await promptAndRefreshInitialHostToolCatalog({
@@ -350,6 +370,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         once: true,
       });
     }
+    let pendingHostToolResolutions: Promise<void> = Promise.resolve();
     for (;;) {
       let message: acp.ActiveSessionMessage;
       try {
@@ -370,19 +391,55 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         });
       }
       if (message.kind === 'session_update') {
+        if (message.update.sessionUpdate === 'config_option_update') {
+          currentModelId =
+            resolveACPModelId({
+              sessionState: message.update,
+              modelMapping: start.modelMapping,
+            }) ?? currentModelId;
+        }
         const captured = streamCapture?.takeForUpdate({
           update: message.update,
         });
-        hostToolAuthorization.observeUpdate({ update: message.update });
+        const update = message.update;
+        const isToolUpdate =
+          update.sessionUpdate === 'tool_call' ||
+          update.sessionUpdate === 'tool_call_update';
         for (const rawValue of captured?.precedingRawValues ?? []) {
           emitStreamEvent.raw({ rawValue });
         }
-        emitStreamEvent.message({
-          message,
-          rawUpdate: captured?.rawUpdate,
-        });
+        if (!isToolUpdate) {
+          hostToolAuthorization.observeUpdate({ update });
+          emitStreamEvent.message({ message, rawUpdate: captured?.rawUpdate });
+          continue;
+        }
+        /*
+         * Host tool resolution requires a round trip to the host. Updates are
+         * still recorded as soon as they arrive, so that a permission request
+         * received meanwhile can be matched against them, and the resolution
+         * is applied once it is known. Resolutions are applied in update
+         * order. The flush hold keeps a host tool call from being released to
+         * the stream while its resolution is pending. Released tool calls
+         * still need resolution for relay authorization, even though their
+         * stream events can no longer be suppressed.
+         */
+        const flushHold = emitStreamEvent.deferFlush();
+        const resolution = hostToolCallResolver.resolveUpdate({ update });
+        emitStreamEvent.message({ message, rawUpdate: captured?.rawUpdate });
+        pendingHostToolResolutions = pendingHostToolResolutions
+          .then(() => resolution)
+          .catch(() => undefined)
+          .then(hostToolCall => {
+            hostToolAuthorization.observeUpdate({ update, hostToolCall });
+            emitStreamEvent.applyHostToolCall({
+              toolCallId: update.toolCallId,
+              hostToolCall,
+            });
+          })
+          .finally(() => flushHold.release());
         continue;
       }
+      await pendingHostToolResolutions;
       for (const rawValue of streamCapture?.drainRawValues() ?? []) {
         emitStreamEvent.raw({ rawValue });
       }
@@ -390,6 +447,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     }
   } finally {
     hostToolAuthorization.close();
+    hostToolCallResolver.close();
     if (activeQuestionRequest?.turn === turn) {
       activeQuestionRequest = undefined;
     }
@@ -429,6 +487,9 @@ async function ensureSession({
     const relay = hostToolRelay;
     if (relay == null) {
       throw new Error('The host tool MCP relay is unavailable.');
+    }
+    if (!sessionPrompted) {
+      return { initialHostToolCatalogRefreshRequired: true };
     }
     try {
       await refreshHostToolCatalog({
@@ -712,6 +773,10 @@ async function ensureSession({
     throw error;
   }
   session = createdSession;
+  currentModelId = resolveACPModelId({
+    sessionState: createdSession.newSessionResponse,
+    modelMapping: start.modelMapping,
+  });
   initializationDiagnostic = createACPInitializationDiagnostic({
     initialization,
     sessionId: createdSession.sessionId,
@@ -840,7 +905,7 @@ function createChildEnvironment({
   home: string | undefined;
 }): NodeJS.ProcessEnv {
   const blocked = new Set([
-    'BRIDGE_CHANNEL_TOKEN',
+    'BRIDGE_AUTH_PUBLIC_KEY',
     'BRIDGE_WS_PORT',
     'AI_SDK_ACP_GATEWAY_API_KEY',
     'AI_SDK_ACP_GATEWAY_BASE_URL',
@@ -954,11 +1019,13 @@ function parseArgs({ args }: { args: ReadonlyArray<string> }): {
   workDir?: string;
   bridgeStateDir?: string;
   bridgeType?: string;
+  hostDisconnectTimeoutMs?: number;
 } {
   const result: {
     workDir?: string;
     bridgeStateDir?: string;
     bridgeType?: string;
+    hostDisconnectTimeoutMs?: number;
   } = {};
   for (let index = 0; index < args.length; index++) {
     const value = args[index + 1];
@@ -967,6 +1034,8 @@ function parseArgs({ args }: { args: ReadonlyArray<string> }): {
     else if (args[index] === '--bridge-state-dir')
       result.bridgeStateDir = value;
     else if (args[index] === '--bridge-type') result.bridgeType = value;
+    else if (args[index] === '--host-disconnect-timeout-ms')
+      result.hostDisconnectTimeoutMs = Number(value);
   }
   return result;
 }

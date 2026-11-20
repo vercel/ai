@@ -12,7 +12,7 @@ const writeDb = (dbPath: string, runs: Array<Record<string, unknown>>) => {
   fs.writeFileSync(dbPath, JSON.stringify({ runs, steps: [] }));
 };
 
-describe('devtools db path validation', () => {
+describe('devtools db', () => {
   let db: typeof DbModule;
   let tempDir: string;
 
@@ -33,6 +33,66 @@ describe('devtools db path validation', () => {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
     tempDirs = [];
+  });
+
+  describe.skipIf(process.platform === 'win32')('storage permissions', () => {
+    it.each(['directory symlink', 'database symlink', 'database hard link'])(
+      'rejects a %s without modifying its target',
+      async kind => {
+        const targetDir = fs.mkdtempSync(
+          path.join(os.tmpdir(), 'devtools-target-'),
+        );
+        tempDirs.push(targetDir);
+        fs.chmodSync(targetDir, 0o755);
+        const targetFile = path.join(targetDir, 'generations.json');
+        const originalMode = kind === 'database hard link' ? 0o600 : 0o400;
+        fs.writeFileSync(targetFile, 'unrelated content');
+        fs.chmodSync(targetFile, originalMode);
+        const dbDir = path.join(tempDir, '.devtools');
+
+        if (kind === 'directory symlink') {
+          fs.symlinkSync(targetDir, dbDir);
+        } else {
+          fs.mkdirSync(dbDir);
+          const link =
+            kind === 'database hard link' ? fs.linkSync : fs.symlinkSync;
+          link(targetFile, path.join(dbDir, 'generations.json'));
+        }
+
+        await expect(db.clearDatabase()).rejects.toThrow();
+
+        expect(fs.statSync(targetDir).mode & 0o777).toBe(0o755);
+        expect(fs.statSync(targetFile).mode & 0o777).toBe(originalMode);
+        expect(fs.readFileSync(targetFile, 'utf8')).toBe('unrelated content');
+      },
+    );
+
+    it('rejects a workspace writable by other accounts before creating storage', async () => {
+      fs.chmodSync(tempDir, 0o777);
+
+      await expect(db.clearDatabase()).rejects.toThrow();
+
+      expect(fs.existsSync(path.join(tempDir, '.devtools'))).toBe(false);
+    });
+
+    it.each(['new', 'existing'])(
+      'restricts %s storage to owner-only permissions',
+      async storage => {
+        const dbDir = path.join(tempDir, '.devtools');
+        const dbPath = path.join(dbDir, 'generations.json');
+        const originalUmask = process.umask(0o022);
+        try {
+          if (storage === 'existing') writeDb(dbPath, []);
+
+          await db.createRun('run-1');
+
+          expect(fs.statSync(dbDir).mode & 0o777).toBe(0o700);
+          expect(fs.statSync(dbPath).mode & 0o777).toBe(0o600);
+        } finally {
+          process.umask(originalUmask);
+        }
+      },
+    );
   });
 
   it('accepts real .devtools/generations.json files', () => {

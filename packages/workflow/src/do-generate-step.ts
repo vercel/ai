@@ -1,3 +1,4 @@
+import { serializeTelemetryBody } from './serializable-telemetry-body.js';
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { generateId, convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import {
@@ -8,6 +9,8 @@ import {
 import {
   asLanguageModelUsage,
   convertToLanguageModelPrompt,
+  convertLanguageModelContent,
+  logWarnings,
   parseToolCall,
   prepareLanguageModelCallOptions,
   prepareRetries,
@@ -16,6 +19,7 @@ import {
   resolveLanguageModel,
 } from 'ai/internal';
 import { languageModelPromptToModelMessages } from './language-model-prompt-to-model-messages.js';
+import { createModelCallTimeouts } from './model-call-timeouts.js';
 import type {
   ModelCallOptions,
   ModelCallRawContentPart,
@@ -43,17 +47,20 @@ export async function doGenerateStep(
 
   return runModelCallWithTelemetry({
     telemetry: options.telemetry,
-    modelInit,
-    prompt,
     serializedTools,
-    options,
-    execute: async languageModelCallTelemetry => {
+    execute: async (languageModelCallTelemetry): Promise<ModelCallResult> => {
+      // The step timeout covers the whole model call, including SDK retries.
+      const timeouts = createModelCallTimeouts({
+        abortSignal: options.abortSignal,
+        stepTimeoutMs: options.stepTimeoutMs,
+      });
+      timeouts.startStepTimeout();
       try {
         return await generateModelCall(
           prompt,
           modelInit,
           serializedTools,
-          options,
+          { ...options, abortSignal: timeouts.abortSignal },
           languageModelCallTelemetry,
         );
       } catch (error) {
@@ -66,6 +73,8 @@ export async function doGenerateStep(
           providerExecutedToolResults: new Map(),
           terminalError: error,
         };
+      } finally {
+        timeouts.clear();
       }
     },
   });
@@ -104,7 +113,10 @@ async function generateModelCall(
   });
   const tools = resolveSerializableTools(serializedTools);
   const toolChoice = prepareToolChoice({ toolChoice: options.toolChoice });
-  const modelTools = await prepareTools({ tools });
+  const modelTools = await prepareTools({
+    tools,
+    toolOrder: options.toolOrder,
+  });
   const settings = prepareLanguageModelCallOptions(options);
   const { retry } = prepareRetries({
     maxRetries: options.maxRetries,
@@ -148,20 +160,20 @@ async function generateModelCall(
     });
   });
   const responseTimeMs = Date.now() - start;
-  await languageModelCallTelemetry?.onLanguageModelCallEnd?.({
-    callId,
-    provider: model.provider,
-    modelId: response.response?.modelId ?? model.modelId,
-    finishReason: response.finishReason.unified,
-    usage: asLanguageModelUsage(response.usage),
-    content: response.content,
-    responseId: response.response?.id,
-    ...(response.providerMetadata != null
-      ? { providerMetadata: response.providerMetadata }
-      : {}),
-    performance: { responseTimeMs },
-  });
   abortSignal?.throwIfAborted();
+  // Reject before parsing so tool calls are neither repaired nor executed.
+  if (
+    toolChoice.type === 'none' &&
+    response.content.some(part => part.type === 'tool-call')
+  ) {
+    throw new ToolChoiceViolationError({
+      toolChoice,
+      finishReason: response.finishReason.unified,
+      provider: model.provider,
+      modelId: model.modelId,
+      content: response.content,
+    });
+  }
   const repairedToolCallIds = new Set<string>();
   const repairToolCall = options.repairToolCall;
   const trackedRepairToolCall = repairToolCall
@@ -209,6 +221,28 @@ async function generateModelCall(
       content: response.content,
     });
   }
+  await languageModelCallTelemetry?.onLanguageModelCallEnd?.({
+    callId,
+    provider: model.provider,
+    modelId: response.response?.modelId ?? model.modelId,
+    finishReason: response.finishReason.unified,
+    usage: asLanguageModelUsage(response.usage),
+    content: await convertLanguageModelContent({
+      content: response.content,
+      toolCalls,
+      toolOutputs: [],
+      toolApprovalRequests: [],
+      toolApprovalResponses: [],
+      tools,
+      abortSignal,
+    }),
+    responseId: response.response?.id,
+    ...(response.providerMetadata != null
+      ? { providerMetadata: response.providerMetadata }
+      : {}),
+    performance: { responseTimeMs },
+    timestamp: start + responseTimeMs,
+  });
   const providerExecutedToolResults = new Map<
     string,
     ProviderExecutedToolResult
@@ -252,6 +286,11 @@ async function generateModelCall(
       return events;
     },
   );
+  logWarnings({
+    warnings: response.warnings,
+    provider: model.provider,
+    model: model.modelId,
+  });
   return {
     toolCalls,
     finish: {
@@ -263,6 +302,14 @@ async function generateModelCall(
     raw: {
       content,
       reasoning: [],
+      telemetryBodies: {
+        request: options.include?.requestBody
+          ? serializeTelemetryBody(response.request?.body)
+          : undefined,
+        response: options.include?.responseBody
+          ? serializeTelemetryBody(response.response?.body)
+          : undefined,
+      },
       warnings: response.warnings,
       responseMetadata: {
         id: response.response?.id ?? generateId(),

@@ -19,7 +19,7 @@ export type ACPPromptGuidanceLifecycleState = {
 
 export type ACPBridgeCoordinates = {
   readonly port: number;
-  readonly token: string;
+  readonly privateKey: string;
   readonly lastSeenEventId: number;
   readonly sandboxId?: string;
   readonly stateDir?: string;

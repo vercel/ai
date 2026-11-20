@@ -4,9 +4,10 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { GoogleModelIds } from '../google-model-catalog';
 
 export type GoogleSpeechTranslationModelId =
-  | 'gemini-3.5-live-translate-preview'
+  | GoogleModelIds['speechTranslation']
   | (string & {});
 
 export const googleSpeechTranslationModelOptions = lazySchema(() =>

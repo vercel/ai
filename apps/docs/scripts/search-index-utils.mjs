@@ -1,0 +1,165 @@
+import { readdirSync, readFileSync } from 'node:fs';
+import { extname, join, relative, sep } from 'node:path';
+import { createProcessor } from '@mdx-js/mdx';
+import { load } from 'js-yaml';
+
+/** The frontmatter block fumadocs-mdx splits off before it compiles a page. */
+const FRONTMATTER_PATTERN = /^---\r?\n(.+?)\r?\n---\r?\n/s;
+
+/** Splits a page into its parsed frontmatter and its MDX body. */
+export const splitFrontmatter = source => {
+  const match = FRONTMATTER_PATTERN.exec(source);
+  if (!match) {
+    return { data: {}, content: source };
+  }
+  return {
+    data: load(match[1]) ?? {},
+    content: source.slice(match[0].length),
+  };
+};
+
+/** Validates data with the Standard Schema a collection declares. */
+const validate = async (schema, data, context, label) => {
+  const resolved =
+    typeof schema === 'function' && !('~standard' in schema)
+      ? schema(context)
+      : schema;
+  if (!(resolved && '~standard' in resolved)) {
+    return data;
+  }
+  const result = await resolved['~standard'].validate(data);
+  if (result.issues) {
+    const issues = result.issues
+      .map(issue => `${(issue.path ?? []).join('.')}: ${issue.message}`)
+      .join('; ');
+    throw new Error(`invalid ${label} in ${context.path}: ${issues}`);
+  }
+  return result.value;
+};
+
+/** Empties the page once its sections are recorded: nothing renders it. */
+const remarkDropContent = () => tree => {
+  tree.children = [];
+};
+
+/**
+ * Creates the function that extracts a page's search sections.
+ *
+ * It runs the same remark plugins the site build runs, in the same order, so
+ * `remarkStructure` sees the same tree. The rehype plugins (syntax
+ * highlighting above all) run after that data is recorded and are skipped.
+ */
+export const createStructureExtractor = mdxOptions => {
+  const processors = new Map();
+  const getProcessor = format => {
+    let processor = processors.get(format);
+    if (!processor) {
+      processor = createProcessor({
+        ...mdxOptions,
+        format,
+        remarkPlugins: [...(mdxOptions.remarkPlugins ?? []), remarkDropContent],
+        rehypePlugins: [],
+      });
+      processors.set(format, processor);
+    }
+    return processor;
+  };
+
+  return async ({ path, content, frontmatter }) => {
+    const processor = getProcessor(extname(path) === '.mdx' ? 'mdx' : 'md');
+    const input = { path, value: content, data: { frontmatter } };
+    // Only parse and transform: the sections are recorded by the remark
+    // plugins, so serializing the page to JavaScript would be wasted work.
+    const file = await new Promise((resolve, reject) => {
+      processor.run(processor.parse(input), input, (error, _tree, output) =>
+        error ? reject(error) : resolve(output),
+      );
+    });
+    const { structuredData } = file.data;
+    if (!structuredData) {
+      throw new Error(
+        `${path}: remarkStructure did not run, so the page has no search data.`,
+      );
+    }
+    return structuredData;
+  };
+};
+
+const listFiles = dir =>
+  readdirSync(dir, { withFileTypes: true })
+    .sort((a, b) => (a.name < b.name ? -1 : 1))
+    .flatMap(entry =>
+      entry.isDirectory()
+        ? listFiles(join(dir, entry.name))
+        : [join(dir, entry.name)],
+    );
+
+/**
+ * Reads one docs collection into the file list fumadocs builds a source from:
+ * each page with its validated frontmatter and search sections, and each
+ * `meta.json`. Page bodies are left out; search never renders them.
+ */
+export const collectSearchFiles = async ({
+  cwd,
+  dir,
+  docsSchema,
+  metaSchema,
+  extractStructure,
+}) => {
+  const root = join(cwd, dir);
+  const files = [];
+
+  for (const file of listFiles(root)) {
+    const path = relative(root, file).split(sep).join('/');
+    // Matches `info.fullPath` in the fumadocs-mdx runtime.
+    const absolutePath = join(dir, path);
+    const extension = extname(file);
+    const source = readFileSync(file, 'utf8');
+    const context = { path: file, source };
+
+    if (extension === '.mdx' || extension === '.md') {
+      const { data, content } = splitFrontmatter(source);
+      const frontmatter = await validate(
+        docsSchema,
+        data,
+        context,
+        'frontmatter',
+      );
+      files.push({
+        type: 'page',
+        path,
+        absolutePath,
+        data: {
+          ...frontmatter,
+          structuredData: await extractStructure({
+            path: file,
+            content,
+            frontmatter,
+          }),
+        },
+      });
+    } else if (extension === '.json') {
+      files.push({
+        type: 'meta',
+        path,
+        absolutePath,
+        data: await validate(metaSchema, JSON.parse(source), context, 'data'),
+      });
+    } else if (extension === '.yaml') {
+      throw new Error(
+        `${file}: YAML meta files are not supported by the search index.`,
+      );
+    }
+  }
+
+  return files;
+};
+
+/** Serializes one version's search index as a module the route can import. */
+export const renderSearchIndexModule = index =>
+  [
+    '// @ts-nocheck -- generated by scripts/build-search-index.mjs',
+    // JSON.parse of a string literal is faster to load than an object literal.
+    `export default JSON.parse(${JSON.stringify(JSON.stringify(index))});`,
+    '',
+  ].join('\n');

@@ -1,23 +1,10 @@
-import { mkdtempSync, rmSync, symlinkSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { createPiPathMapper, type PiFileToolPathPolicy } from './pi-paths';
 
-let hostWorkDir: string;
 const sandboxWorkDir = '/sandbox/work/session';
-
-beforeEach(() => {
-  hostWorkDir = mkdtempSync(path.join(tmpdir(), 'pi-paths-'));
-});
-
-afterEach(() => {
-  rmSync(hostWorkDir, { recursive: true, force: true });
-});
 
 function createPolicyMapper(policy: PiFileToolPathPolicy) {
   return createPiPathMapper({
-    hostWorkDir,
     sandboxWorkDir,
     readableRoots: policy.readableRoots?.map(sandboxDir => ({ sandboxDir })),
     writableRoots: policy.writableRoots,
@@ -27,33 +14,33 @@ function createPolicyMapper(policy: PiFileToolPathPolicy) {
 
 describe('createPiPathMapper', () => {
   it('translates relative paths to sandbox POSIX paths', () => {
-    const mapper = createPiPathMapper({ hostWorkDir, sandboxWorkDir });
+    const mapper = createPiPathMapper({ sandboxWorkDir });
     expect(mapper.toSandboxPath('src/foo.ts')).toBe(
       `${sandboxWorkDir}/src/foo.ts`,
     );
   });
 
   it('handles the workspace root itself', () => {
-    const mapper = createPiPathMapper({ hostWorkDir, sandboxWorkDir });
+    const mapper = createPiPathMapper({ sandboxWorkDir });
     expect(mapper.toSandboxPath('.')).toBe(sandboxWorkDir);
   });
 
   it('returns already-sandbox absolute paths inside the sandbox root unchanged', () => {
-    const mapper = createPiPathMapper({ hostWorkDir, sandboxWorkDir });
+    const mapper = createPiPathMapper({ sandboxWorkDir });
     expect(mapper.toSandboxPath(`${sandboxWorkDir}/already/here.ts`)).toBe(
       `${sandboxWorkDir}/already/here.ts`,
     );
   });
 
   it('throws when a path escapes the workspace', () => {
-    const mapper = createPiPathMapper({ hostWorkDir, sandboxWorkDir });
+    const mapper = createPiPathMapper({ sandboxWorkDir });
     expect(() => mapper.toSandboxPath('../escape.ts')).toThrow(
       /escapes the workspace/,
     );
   });
 
   it('accepts two-dot-prefixed names inside the workspace', () => {
-    const mapper = createPiPathMapper({ hostWorkDir, sandboxWorkDir });
+    const mapper = createPiPathMapper({ sandboxWorkDir });
     expect(mapper.toSandboxPath('..notes/file.txt')).toBe(
       `${sandboxWorkDir}/..notes/file.txt`,
     );
@@ -67,7 +54,6 @@ describe('createPiPathMapper', () => {
 
   it('allows configured read-only sandbox roots for readable paths', () => {
     const mapper = createPiPathMapper({
-      hostWorkDir,
       sandboxWorkDir,
       readableRoots: [{ sandboxDir: '/home/vercel-sandbox/.agents/skills' }],
     });
@@ -85,7 +71,6 @@ describe('createPiPathMapper', () => {
 
   it('refuses readable paths inside a denied root', () => {
     const mapper = createPiPathMapper({
-      hostWorkDir,
       sandboxWorkDir,
       readableRoots: [{ sandboxDir: '/home/vercel-sandbox' }],
       deniedRoots: ['/home/vercel-sandbox/.credentials'],
@@ -104,7 +89,6 @@ describe('createPiPathMapper', () => {
 
   it('refuses workspace paths inside a denied root', () => {
     const mapper = createPiPathMapper({
-      hostWorkDir,
       sandboxWorkDir,
       deniedRoots: [`${sandboxWorkDir}/.private`],
     });
@@ -125,7 +109,6 @@ describe('createPiPathMapper', () => {
 
   it('denies two-dot-prefixed descendants and includes two-dot-prefixed denied roots in recursive exclusions', () => {
     const mapper = createPiPathMapper({
-      hostWorkDir,
       sandboxWorkDir,
       deniedRoots: [`${sandboxWorkDir}/private`, `${sandboxWorkDir}/..private`],
     });
@@ -147,7 +130,6 @@ describe('createPiPathMapper', () => {
 
   it('expands ~ against the configured home directory', () => {
     const mapper = createPiPathMapper({
-      hostWorkDir,
       sandboxWorkDir,
       homeDir: '/home/vercel-sandbox',
       readableRoots: [{ sandboxDir: '/home/vercel-sandbox' }],
@@ -163,7 +145,7 @@ describe('createPiPathMapper', () => {
   });
 
   it('treats ~ as a workspace-relative name without a home directory', () => {
-    const mapper = createPiPathMapper({ hostWorkDir, sandboxWorkDir });
+    const mapper = createPiPathMapper({ sandboxWorkDir });
     expect(mapper.toReadableSandboxPath('~/notes.txt')).toBe(
       `${sandboxWorkDir}/~/notes.txt`,
     );
@@ -218,7 +200,6 @@ describe('createPiPathMapper', () => {
   it('gives denied roots precedence over every readable and writable root', () => {
     const skillRoot = '/home/vercel-sandbox/.agents/skills';
     const mapper = createPiPathMapper({
-      hostWorkDir,
       sandboxWorkDir,
       readableRoots: [
         { sandboxDir: skillRoot },
@@ -258,35 +239,6 @@ describe('createPiPathMapper', () => {
     expect(mapper.toSandboxPath('/tmp/public.json')).toBe('/tmp/public.json');
   });
 
-  it('maps absolute host mirror paths before matching writable sandbox roots', () => {
-    const mapper = createPolicyMapper({
-      writableRoots: [path.posix.dirname(hostWorkDir)],
-    });
-    const hostFilePath = path.join(hostWorkDir, 'result.json');
-
-    expect(mapper.toSandboxPath(hostFilePath)).toBe(
-      `${sandboxWorkDir}/result.json`,
-    );
-    expect(mapper.toReadableSandboxPath(hostFilePath)).toBe(
-      `${sandboxWorkDir}/result.json`,
-    );
-  });
-
-  it('does not reinterpret a host mirror symlink escape as an allowed sandbox path', () => {
-    const hostLink = path.join(hostWorkDir, 'outside-link');
-    symlinkSync(tmpdir(), hostLink, 'dir');
-    const mapper = createPolicyMapper({
-      writableRoots: [path.posix.normalize(tmpdir())],
-    });
-
-    expect(() =>
-      mapper.toSandboxPath(path.join(hostLink, 'secret.txt')),
-    ).toThrow(/escapes the workspace/);
-    expect(() =>
-      mapper.toReadableSandboxPath(path.join(hostLink, 'secret.txt')),
-    ).toThrow(/escapes the workspace/);
-  });
-
   it('reports workspace membership with normalized boundary-safe checks', () => {
     const mapper = createPolicyMapper({ writableRoots: ['/tmp'] });
 
@@ -319,12 +271,12 @@ describe('createPiPathMapper', () => {
   });
 
   it('toRelativePath returns "." for the sandbox root', () => {
-    const mapper = createPiPathMapper({ hostWorkDir, sandboxWorkDir });
+    const mapper = createPiPathMapper({ sandboxWorkDir });
     expect(mapper.toRelativePath(sandboxWorkDir)).toBe('.');
   });
 
   it('toRelativePath returns POSIX-relative form for nested paths', () => {
-    const mapper = createPiPathMapper({ hostWorkDir, sandboxWorkDir });
+    const mapper = createPiPathMapper({ sandboxWorkDir });
     expect(mapper.toRelativePath(`${sandboxWorkDir}/a/b/c.ts`)).toBe(
       'a/b/c.ts',
     );

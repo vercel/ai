@@ -1,9 +1,4 @@
-export type CartesiaSpeechModelId =
-  | 'sonic-3.5'
-  | 'sonic-3'
-  | 'sonic-2'
-  | 'sonic-turbo'
-  | 'sonic-latest'
-  | (string & {});
+import type { CartesiaModelIds } from './cartesia-model-catalog';
+export type CartesiaSpeechModelId = CartesiaModelIds['speech'] | (string & {});
 
 export type CartesiaSpeechVoiceId = string;

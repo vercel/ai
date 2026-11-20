@@ -5,6 +5,8 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolveWith,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
@@ -14,6 +16,8 @@ import { CerebrasChatLanguageModel } from './cerebras-chat-language-model';
 import type { CerebrasChatModelId } from './cerebras-chat-options';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
+import { cerebrasMetadataExtractor } from './cerebras-metadata-extractor';
+import { getCerebrasLanguageModelEntry } from './cerebras-model-catalog';
 
 // Add error schema and structure
 const cerebrasErrorSchema = z.object({
@@ -43,6 +47,7 @@ function transformCerebrasRequestBody(
     topLogprobs,
     logitBias,
     serviceTier,
+    queueThreshold: _queueThreshold,
     reasoningFormat,
     promptCacheKey,
     ...restArgs
@@ -92,8 +97,9 @@ function transformCerebrasRequestBody(
 export interface CerebrasProviderSettings {
   /**
    * Cerebras API key.
+   * A function is called before each request and may return a promise.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
   /**
    * Base URL for the API calls.
    */
@@ -138,16 +144,18 @@ export function createCerebras(
     options.baseURL ?? 'https://api.cerebras.ai/v1',
   );
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'CEREBRAS_API_KEY',
-          description: 'Cerebras API key',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk-cerebras/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'CEREBRAS_API_KEY',
+            description: 'Cerebras API key',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-cerebras/${VERSION}`,
+      ),
     );
 
   const createLanguageModel = (modelId: CerebrasChatModelId) => {
@@ -157,8 +165,11 @@ export function createCerebras(
       headers: getHeaders,
       fetch: options.fetch,
       errorStructure: cerebrasErrorStructure,
-      supportsStructuredOutputs: true,
+      supportsStructuredOutputs:
+        getCerebrasLanguageModelEntry(modelId).capabilities.language
+          .structuredOutput.jsonSchema,
       transformRequestBody: transformCerebrasRequestBody,
+      metadataExtractor: cerebrasMetadataExtractor,
     });
   };
 

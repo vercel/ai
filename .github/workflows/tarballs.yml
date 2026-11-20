@@ -1,0 +1,39 @@
+name: Package preview checks
+
+on:
+  repository_dispatch:
+    types: [vercel.deployment.success]
+  workflow_dispatch:
+    inputs:
+      deployment_url:
+        description: Immutable ai-tarballs deployment origin (https://...)
+        required: true
+        type: string
+      sha:
+        description: Full Git commit SHA packaged by the deployment
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    if: >-
+      github.repository == 'vercel/ai' &&
+      (github.event_name == 'workflow_dispatch' ||
+       github.event.client_payload.project.id == 'prj_2gxrowIWLMVUp1IuTbudNy47pUaN')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # Always use trusted tooling. Preview packages execute only in a separate
+      # container, without Actions runtime/cache credentials or host mounts.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Verify public downloads and npm/pnpm installs
+        run: bash tools/tarballs/smoke-container.sh
+        env:
+          TARBALLS_URL: ${{ github.event.client_payload.url || inputs.deployment_url }}
+          TARBALLS_SHA: ${{ github.event.client_payload.git.sha || inputs.sha }}

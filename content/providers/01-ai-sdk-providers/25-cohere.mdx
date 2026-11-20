@@ -83,7 +83,11 @@ You can use the following optional settings to customize the Cohere provider ins
   Use a different URL prefix for API calls, e.g. to use proxy servers.
   The default prefix is `https://api.cohere.com/v2`.
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
+
+  Pass a function to resolve credentials before each request, including when keys
+  rotate. The function can return a string or a promise. Credential caching and
+  refresh are managed by the function.
 
   API key that is being sent using the `Authorization` header.
   It defaults to the `COHERE_API_KEY` environment variable.
@@ -134,6 +138,8 @@ and support structured data generation with [`Output`](/docs/reference/ai-sdk-co
 
 ### Model Capabilities
 
+{/* model-capabilities:cohere-language:start */}
+
 | Model                         | Image Input | Object Generation | Tool Usage | Tool Streaming |
 | ----------------------------- | ----------- | ----------------- | ---------- | -------------- |
 | `command-a-03-2025`           | <Cross />   | <Check />         | <Check />  | <Check />      |
@@ -149,6 +155,8 @@ and support structured data generation with [`Output`](/docs/reference/ai-sdk-co
 | `command-nightly`             | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
 | `command-light`               | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
 | `command-light-nightly`       | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
+
+{/* model-capabilities:cohere-language:end */}
 
 <Note>
   The table above lists popular models. Please see the [Cohere
@@ -243,6 +251,75 @@ async function main() {
 
 main().catch(console.error);
 ```
+
+#### Sources
+
+You can ground a Cohere response in documents by adding text files to the prompt
+as file parts. When the model cites one of these documents, the provider returns
+the cited text span as a source.
+
+With `generateText`, cited documents are available in `result.sources`:
+
+```ts
+import { cohere } from '@ai-sdk/cohere';
+import { generateText } from 'ai';
+import { readFileSync } from 'node:fs';
+
+const model = cohere('command-a-03-2025');
+
+const { text, sources } = await generateText({
+  model,
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'What is the capital of Zephyria?' },
+        {
+          type: 'file',
+          mediaType: 'text/plain',
+          filename: 'zephyria.txt',
+          data: readFileSync('./data/zephyria.txt'),
+        },
+      ],
+    },
+  ],
+});
+
+console.log(sources);
+```
+
+With `streamText`, the same citations are emitted as `source` stream parts:
+
+```ts
+import { streamText } from 'ai';
+
+const result = streamText({
+  model,
+  messages: [
+    // same messages as above
+  ],
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'source') {
+    console.log(part.sourceType); // 'document'
+    console.log(part.title);
+    console.log(part.providerMetadata?.cohere);
+  }
+}
+```
+
+Each source has `sourceType: 'document'`, the document title (`'Document'` when
+Cohere does not return one), and citation details in `providerMetadata.cohere`:
+
+- `start` / `end` _number_ - character offsets of the cited text in the response.
+- `text` _string_ - the cited text.
+- `sources` _array_ - the raw Cohere sources, including each document's `id`, `text`, and `title`.
+- `citationType` _string_ - the Cohere citation type, e.g. `'TEXT_CONTENT'`.
+
+Keys that Cohere omits are absent from `providerMetadata.cohere`. Citations that
+only reference tool output have no document to cite and are not emitted as
+sources.
 
 ## Embedding Models
 
@@ -340,18 +417,22 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model                           | Embedding Dimensions                      |
-| ------------------------------- | ----------------------------------------- |
-| `embed-v5.0-pro`                | 256, 512, 768, 1024, 1536, 2048 (default) |
-| `embed-v5.0-fast`               | 256, 512, 768, 1024, 1536, 2048 (default) |
-| `embed-v4.0`                    | 256, 512, 1024, 1536 (default)            |
-| `embed-english-v3.0`            | 1024                                      |
-| `embed-multilingual-v3.0`       | 1024                                      |
-| `embed-english-light-v3.0`      | 384                                       |
-| `embed-multilingual-light-v3.0` | 384                                       |
-| `embed-english-v2.0`            | 4096                                      |
-| `embed-english-light-v2.0`      | 1024                                      |
-| `embed-multilingual-v2.0`       | 768                                       |
+{/* model-capabilities:cohere-embedding:start */}
+
+| Model                           | Default Dimensions | Supported Dimensions            | Custom Dimensions |
+| ------------------------------- | ------------------ | ------------------------------- | ----------------- |
+| `embed-v5.0-pro`                | 2048               | 256, 512, 768, 1024, 1536, 2048 | <Check />         |
+| `embed-v5.0-fast`               | 2048               | 256, 512, 768, 1024, 1536, 2048 | <Check />         |
+| `embed-v4.0`                    | 1536               | 256, 512, 1024, 1536            | <Check />         |
+| `embed-english-v3.0`            | 1024               | 1024                            | <Cross />         |
+| `embed-multilingual-v3.0`       | 1024               | 1024                            | <Cross />         |
+| `embed-english-light-v3.0`      | 384                | 384                             | <Cross />         |
+| `embed-multilingual-light-v3.0` | 384                | 384                             | <Cross />         |
+| `embed-english-v2.0`            | 4096               | 4096                            | <Cross />         |
+| `embed-english-light-v2.0`      | 1024               | 1024                            | <Cross />         |
+| `embed-multilingual-v2.0`       | 768                | 768                             | <Cross />         |
+
+{/* model-capabilities:cohere-embedding:end */}
 
 ## Reranking Models
 
@@ -419,10 +500,14 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model                      |
-| -------------------------- |
-| `rerank-v4.0-pro`          |
-| `rerank-v4.0-fast`         |
-| `rerank-v3.5`              |
-| `rerank-english-v3.0`      |
-| `rerank-multilingual-v3.0` |
+{/* model-capabilities:cohere-reranking:start */}
+
+| Model                      | Text Documents | Object Documents                                                                 | Top N     |
+| -------------------------- | -------------- | -------------------------------------------------------------------------------- | --------- |
+| `rerank-v4.0-pro`          | <Check />      | Conditional: Objects are converted to JSON strings with a compatibility warning. | <Check /> |
+| `rerank-v4.0-fast`         | <Check />      | Conditional: Objects are converted to JSON strings with a compatibility warning. | <Check /> |
+| `rerank-v3.5`              | <Check />      | Conditional: Objects are converted to JSON strings with a compatibility warning. | <Check /> |
+| `rerank-english-v3.0`      | <Check />      | Conditional: Objects are converted to JSON strings with a compatibility warning. | <Check /> |
+| `rerank-multilingual-v3.0` | <Check />      | Conditional: Objects are converted to JSON strings with a compatibility warning. | <Check /> |
+
+{/* model-capabilities:cohere-reranking:end */}

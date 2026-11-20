@@ -1,5 +1,6 @@
 import type { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
+  resolve,
   combineHeaders,
   createBinaryResponseHandler,
   parseProviderOptions,
@@ -131,7 +132,10 @@ export class OpenAISpeechModel implements SpeechModelV4 {
         path: '/audio/speech',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: requestBody,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createBinaryResponseHandler(),

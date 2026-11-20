@@ -4,6 +4,7 @@ import type {
   ReasoningFilePart,
   ReasoningPart,
   ToolSet,
+  UserModelMessage,
 } from '@ai-sdk/provider-utils';
 import type {
   CallWarning,
@@ -275,6 +276,13 @@ export type StepResult<
    * results that can be fully encapsulated in the provider.
    */
   readonly providerMetadata: ProviderMetadata | undefined;
+
+  /**
+   * The user messages that were sent with `experimental_steering` and added
+   * to the input of this step. Undefined when the step received no steering
+   * messages.
+   */
+  readonly experimental_steeringMessages?: Array<UserModelMessage>;
 };
 
 export class DefaultStepResult<
@@ -301,6 +309,10 @@ export class DefaultStepResult<
     TOOLS,
     RUNTIME_CONTEXT
   >['providerMetadata'];
+  declare readonly experimental_steeringMessages?: StepResult<
+    TOOLS,
+    RUNTIME_CONTEXT
+  >['experimental_steeringMessages'];
 
   constructor({
     callId,
@@ -318,6 +330,7 @@ export class DefaultStepResult<
     request,
     response,
     providerMetadata,
+    steeringMessages,
   }: {
     callId: StepResult<TOOLS, RUNTIME_CONTEXT>['callId'];
     stepNumber: StepResult<TOOLS, RUNTIME_CONTEXT>['stepNumber'];
@@ -334,6 +347,7 @@ export class DefaultStepResult<
     request: StepResult<TOOLS, RUNTIME_CONTEXT>['request'];
     response: StepResult<TOOLS, RUNTIME_CONTEXT>['response'];
     providerMetadata: StepResult<TOOLS, RUNTIME_CONTEXT>['providerMetadata'];
+    steeringMessages?: Array<UserModelMessage>;
   }) {
     this.callId = callId;
     this.stepNumber = stepNumber;
@@ -349,6 +363,10 @@ export class DefaultStepResult<
     this.request = request;
     this.response = response;
     this.providerMetadata = providerMetadata;
+
+    if (steeringMessages != null && steeringMessages.length > 0) {
+      this.experimental_steeringMessages = steeringMessages;
+    }
   }
 
   get text() {

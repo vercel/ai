@@ -3,8 +3,18 @@ import { describe, expectTypeOf, test } from 'vitest';
 import { createOpenCode, type OpenCodeHarnessSettings } from './index';
 
 describe('OpenCodeHarnessSettings', () => {
-  test('accepts sandbox bridge reconnect settings', () => {
+  test('accepts direct authentication', () => {
     const settings: OpenCodeHarnessSettings = {
+      auth: 'direct',
+      provider: 'github-copilot',
+    };
+
+    createOpenCode(settings);
+  });
+
+  test('accepts sandbox bridge connection settings', () => {
+    const settings: OpenCodeHarnessSettings = {
+      keepAliveMs: 100,
       reconnect: {
         maxElapsedMs: 120_000,
         initialDelayMs: 100,
@@ -14,6 +24,7 @@ describe('OpenCodeHarnessSettings', () => {
 
     createOpenCode(settings);
 
+    expectTypeOf(settings.keepAliveMs).toEqualTypeOf<number | undefined>();
     expectTypeOf(settings.reconnect).toEqualTypeOf<
       SandboxChannelReconnectOptions | undefined
     >();

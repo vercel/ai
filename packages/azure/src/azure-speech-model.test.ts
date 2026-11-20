@@ -123,6 +123,36 @@ describe('API routing', () => {
     ]);
   });
 
+  it('accepts OpenAI options under the azure key on the OpenAI API', async () => {
+    const { provider, request } = setup();
+    const result = await provider.speech('tts-1').doGenerate({
+      text: 'Hello',
+      providerOptions: {
+        openai: { speed: 2 },
+        azure: { instructions: 'Speak calmly', speed: 1.5 },
+      },
+    });
+    expect(JSON.parse(request().body)).toMatchObject({
+      instructions: 'Speak calmly',
+      speed: 1.5,
+    });
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('warns about OpenAI-only options on the Speech API', async () => {
+    const { provider, request } = setup();
+    const result = await provider.speech('mai-voice-2').doGenerate({
+      text: 'Hello',
+      providerOptions: { azure: { speed: 1.5 } },
+    });
+    expect(request().url).toBe(speechUrl);
+    expect(result.warnings).toContainEqual({
+      type: 'unsupported',
+      feature: 'providerOptions.azure.speed',
+      details: 'This option requires the OpenAI speech API.',
+    });
+  });
+
   it.each([
     { emotion: 'happy' },
     { api: 'invalid' },
@@ -463,22 +493,8 @@ describe('Speech errors', () => {
     ).rejects.toMatchObject({ statusCode: 401, message: 'Access denied' });
   });
 
-  it('maps the Envoy protocol-error 502 for unknown voices to a non-retryable 400', async () => {
-    const body =
-      'upstream connect error or disconnect/reset before headers. reset reason: protocol error';
-    const { provider } = setup({}, () => new Response(body, { status: 502 }));
-    await expect(
-      provider.speech('mai-voice-2.1').doGenerate({ text: 'Hi', voice: 'x' }),
-    ).rejects.toMatchObject({
-      statusCode: 400,
-      isRetryable: false,
-      message:
-        'Azure Speech could not synthesize the request. Check that the voice is available for this model and that the style is supported by the voice.',
-      responseBody: body,
-    });
-  });
-
   it.each([
+    'upstream connect error or disconnect/reset before headers. reset reason: protocol error',
     'upstream connect error or disconnect/reset before headers. reset reason: connection termination',
     'unavailable',
   ])('keeps 502 responses retryable (%s)', async body => {

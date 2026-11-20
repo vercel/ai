@@ -7,10 +7,8 @@ contains transcription model support for the AssemblyAI transcription API.
 
 ## Setup
 
-The AssemblyAI provider is available in the `@ai-sdk/assemblyai` module. You can install it with
-
 ```bash
-npm i @ai-sdk/assemblyai
+npm i ai @ai-sdk/assemblyai
 ```
 
 ## Skill for Coding Agents
@@ -21,15 +19,7 @@ If you use coding agents such as Claude Code or Cursor, we highly recommend addi
 npx skills add vercel/ai
 ```
 
-## Provider Instance
-
-You can import the default provider instance `assemblyai` from `@ai-sdk/assemblyai`:
-
-```ts
-import { assemblyai } from '@ai-sdk/assemblyai';
-```
-
-## Example
+## Usage
 
 ```ts
 import { assemblyai } from '@ai-sdk/assemblyai';
@@ -43,6 +33,4 @@ const { text } = await transcribe({
 });
 ```
 
-## Documentation
-
-Please check out the **[AssemblyAI provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/assemblyai)** for more information.
+See the [AssemblyAI Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/assemblyai) for more information.

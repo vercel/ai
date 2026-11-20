@@ -42,8 +42,6 @@ export type HarnessAgentLifecycleCallbacks<
   onEnd?: GenerateTextOnEndCallback<TOOLS, RUNTIME_CONTEXT>;
 };
 
-type Dispatcher = ReturnType<typeof createRestrictedTelemetryDispatcher>;
-
 export interface TurnLifecycle<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
@@ -105,14 +103,15 @@ export function createTurnLifecycle<
   runtimeContext: RUNTIME_CONTEXT;
   output: OUTPUT | undefined;
 }): TurnLifecycle<TOOLS, RUNTIME_CONTEXT> {
-  const telemetry =
-    options.telemetry == null
-      ? ({} as Dispatcher)
-      : createRestrictedTelemetryDispatcher<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
-          telemetry: options.telemetry,
-          includeRuntimeContext: options.telemetry.includeRuntimeContext,
-          includeToolsContext: options.telemetry.includeToolsContext,
-        });
+  const telemetry = createRestrictedTelemetryDispatcher<
+    TOOLS,
+    RUNTIME_CONTEXT,
+    OUTPUT
+  >({
+    telemetry: options.telemetry,
+    includeRuntimeContext: options.telemetry?.includeRuntimeContext,
+    includeToolsContext: options.telemetry?.includeToolsContext,
+  });
   const provider = `harness:${options.harnessId}`;
   let modelId = options.modelId ?? '';
   let started = false;

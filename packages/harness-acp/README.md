@@ -3,8 +3,9 @@
 `HarnessV1` adapter backed by an
 [Agent Client Protocol](https://agentclientprotocol.com/) version 1 agent.
 The adapter ships a bridge process that runs inside a sandbox and talks to the
-host over a WebSocket on a sandbox-proxied loopback port. The configured ACP
-agent runs alongside the bridge inside the sandbox.
+host over a WebSocket on a sandbox-proxied loopback port.
+
+-> **Note**: This package is experimental.
 
 ## Setup
 
@@ -12,15 +13,7 @@ agent runs alongside the bridge inside the sandbox.
 npm i @ai-sdk/harness-acp @ai-sdk/harness @ai-sdk/sandbox-vercel
 ```
 
-The bridge installs the configured ACP agent inside the sandbox the
-first time the session starts.
-
 ## Usage
-
-This example connects `HarnessAgent` to Codex ACP using direct OpenAI
-authentication. The locked `package.json` declares
-`@agentclientprotocol/codex-acp` together with every dependency of this
-package's bridge manifest (`dist/bridge/package.json`) at the same versions:
 
 ```ts
 import { readFileSync } from 'node:fs';
@@ -47,6 +40,27 @@ const codexACP = createACP({
     type: 'session-config-option',
     path: 'model',
   },
+  // codex-acp reports MCP tool calls with a `{ server, tool, arguments }`
+  // raw input.
+  resolveHostToolCall: ({ toolCall, serverName, toolNames }) => {
+    const rawInput = toolCall.rawInput as
+      | { server?: unknown; tool?: unknown; arguments?: unknown }
+      | undefined;
+    if (
+      rawInput?.server !== serverName ||
+      typeof rawInput.tool !== 'string' ||
+      !toolNames.includes(rawInput.tool) ||
+      rawInput.arguments == null ||
+      typeof rawInput.arguments !== 'object'
+    ) {
+      return undefined;
+    }
+    return {
+      toolName: rawInput.tool,
+      input: rawInput.arguments as Record<string, unknown>,
+    };
+  },
+  isMcpToolCall: toolCall => toolCall._meta?.is_mcp_tool_call === true,
   credentialEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
   credentialBrokering: ({ env, sandboxEnv }) => {
     const environmentVariableName = env.CODEX_API_KEY
@@ -102,32 +116,4 @@ try {
 }
 ```
 
-Set `CODEX_API_KEY` or `OPENAI_API_KEY` in the host environment. Sandboxes that
-support additive request transformations receive only credential placeholders;
-the real value is injected only when a matching outbound request contains the
-expected placeholder. Other sandboxes
-retain the legacy behavior of forwarding the value to the ACP process. Codex
-ACP supports only `permissionMode: 'allow-all'` because its
-restrictive modes enable Codex's internal sandbox. A bridge-backed ACP harness
-requires a sandbox with at least one exposed port.
-
-`modelMapping` is required because ACP agents expose different model
-selection operations. Use `session-config-option` with the ACP configuration
-option ID as `path`, or `session-model` with the JSON-RPC request property as
-`path` for agents such as Grok Build that use the legacy
-`session/set_model` method. No model operation is sent when `HarnessAgent` has
-no model configured.
-
-Use `instructionMapping` when the ACP agent exposes a native system
-or developer prompt. A `session-meta` mapping writes `HarnessAgent`
-instructions below the ACP session request's `_meta` field. A
-`launch-env-json` mapping merges them into a JSON environment variable before
-the agent starts. A `filesystem` mapping writes instructions to a
-markdown file at a relative path under the agent's effective `$HOME`.
-Without a mapping, the adapter preserves its backward-compatible behavior and
-prepends instructions to the first user prompt.
-
-Skills are written to `.agents/skills` below the ACP agent's effective
-`$HOME` and discovered natively by the agent. Set `skillsDirectory`
-to another relative path, such as `.claude/skills`, when required by the
-agent.
+See the [ACP Harness documentation](https://ai-sdk.dev/providers/ai-sdk-harnesses/acp) for more information.

@@ -67,7 +67,7 @@ export function extractJsonMiddleware(options?: {
     specificationVersion: 'v4',
 
     wrapGenerate: async ({ doGenerate }) => {
-      const { content, ...rest } = await doGenerate();
+      const { content, structuredOutputText, ...rest } = await doGenerate();
 
       const transformedContent: LanguageModelV4Content[] = [];
       for (const part of content) {
@@ -82,7 +82,13 @@ export function extractJsonMiddleware(options?: {
         });
       }
 
-      return { content: transformedContent, ...rest };
+      return {
+        content: transformedContent,
+        ...rest,
+        ...(structuredOutputText != null && {
+          structuredOutputText: transform(structuredOutputText),
+        }),
+      };
     },
     wrapStream: async ({ doStream }) => {
       const { stream, ...rest } = await doStream();

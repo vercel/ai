@@ -4,6 +4,8 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   loadOptionalSetting,
   withoutTrailingSlash,
@@ -27,7 +29,7 @@ export interface TypeSafeAiProvider extends ProviderV4 {
 
 export interface TypeSafeAiProviderSettings {
   /** API key. Defaults to the TYPESAFE_AI_API_KEY environment variable. */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
   /**
    * API base URL. Defaults to the TYPESAFE_AI_BASE_URL environment variable,
    * then https://api.typesafe.ai/v1.
@@ -48,12 +50,14 @@ export function createTypeSafeAi(
       }),
     ) ?? 'https://api.typesafe.ai/v1';
   const headers = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({ apiKey: options.apiKey, environmentVariableName: 'TYPESAFE_AI_API_KEY', description: 'TypeSafe' })}`,
-        ...options.headers,
-      },
-      `ai-sdk-typesafe-ai/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({ apiKey, environmentVariableName: 'TYPESAFE_AI_API_KEY', description: 'TypeSafe' })}`,
+          ...options.headers,
+        },
+        `ai-sdk-typesafe-ai/${VERSION}`,
+      ),
     );
 
   const decisionModel = (modelId: TypeSafeAiDecisionModelId) =>
