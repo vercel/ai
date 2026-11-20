@@ -23,6 +23,16 @@ export const googleLanguageModelOptions = lazySchema(() =>
           thinkingLevel: z
             .enum(['minimal', 'low', 'medium', 'high', 'xhigh'])
             .optional(),
+          /**
+           * Optional. Controls behavior when input thought signatures do not
+           * match the current conversation prefix.
+           *
+           * - 'ERROR': Returns HTTP 400 INVALID_ARGUMENT on prefix mismatch (default).
+           * - 'DROP': Drops mismatched thought signatures and keeps visible text,
+           *   function calls, and media. Recommended for harnesses that compact,
+           *   prune, or edit earlier conversation history.
+           */
+          prefixMismatchBehavior: z.enum(['DROP', 'ERROR']).optional(),
         })
         .optional(),
 

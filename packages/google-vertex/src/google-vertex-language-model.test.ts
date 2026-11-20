@@ -96,6 +96,55 @@ it.each(futureModelIds)(
   },
 );
 
+it('should pass prefixMismatchBehavior in thinkingConfig', async () => {
+  const modelUrl = `${futureBaseURL}/models/gemini-4.0-flash:generateContent`;
+  server.urls[modelUrl].response = {
+    type: 'json-value',
+    body: {
+      candidates: [
+        {
+          content: { parts: [{ text: 'Done' }], role: 'model' },
+          finishReason: 'STOP',
+          index: 0,
+        },
+      ],
+      usageMetadata: {
+        promptTokenCount: 4,
+        candidatesTokenCount: 30,
+        totalTokenCount: 34,
+      },
+    },
+  };
+
+  const provider = createGoogleVertex({
+    project: 'test-project',
+    location: 'us-central1',
+    headers: { Authorization: 'Bearer test-token' },
+  });
+
+  const result = await provider('gemini-4.0-flash').doGenerate({
+    prompt: TEST_PROMPT,
+    providerOptions: {
+      google: {
+        thinkingConfig: {
+          thinkingLevel: 'high',
+          prefixMismatchBehavior: 'DROP',
+        },
+      },
+    },
+  });
+
+  expect(await server.calls[0].requestBodyJson).toMatchObject({
+    generationConfig: {
+      thinkingConfig: {
+        thinkingLevel: 'high',
+        prefixMismatchBehavior: 'DROP',
+      },
+    },
+  });
+  expect(result.warnings).toEqual([]);
+});
+
 it('should preserve local JSON Schema references in tool requests', async () => {
   server.urls[TEST_URL].response = {
     type: 'json-value',
