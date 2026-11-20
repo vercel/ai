@@ -3918,6 +3918,7 @@ describe('doGenerate', () => {
       body: {
         promptFeedback: {
           blockReason: 'PROHIBITED_CONTENT',
+          blockReasonMessage: 'The prompt was blocked: test message.',
         },
         usageMetadata: {
           promptTokenCount: 9,
@@ -3940,6 +3941,7 @@ describe('doGenerate', () => {
     expect(result.providerMetadata?.google).toMatchObject({
       promptFeedback: {
         blockReason: 'PROHIBITED_CONTENT',
+        blockReasonMessage: 'The prompt was blocked: test message.',
       },
       groundingMetadata: null,
       urlContextMetadata: null,
@@ -7686,6 +7688,7 @@ describe('doStream', () => {
         `data: ${JSON.stringify({
           promptFeedback: {
             blockReason: 'PROHIBITED_CONTENT',
+            blockReasonMessage: 'The prompt was blocked: test message.',
           },
           usageMetadata: {
             promptTokenCount: 9,
@@ -7717,6 +7720,7 @@ describe('doStream', () => {
         google: {
           promptFeedback: {
             blockReason: 'PROHIBITED_CONTENT',
+            blockReasonMessage: 'The prompt was blocked: test message.',
           },
           groundingMetadata: null,
           urlContextMetadata: null,
