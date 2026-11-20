@@ -5,6 +5,7 @@ import type {
   Experimental_SpeechModelV4StreamTextPart as SpeechModelV4StreamTextPart,
   Experimental_StreamingSpeechModelV4 as StreamingSpeechModelV4,
   SharedV4ProviderMetadata,
+  SharedV4ProviderOptions,
   SharedV4Warning,
   SpeechModelV4,
 } from '@ai-sdk/provider';
@@ -77,6 +78,8 @@ export class GatewaySpeechModel
   }: Parameters<SpeechModelV4['doGenerate']>[0]): Promise<
     Awaited<ReturnType<SpeechModelV4['doGenerate']>>
   > {
+    const { streamingAudioDecoding, providerOptions: requestProviderOptions } =
+      splitClientOptions(providerOptions);
     const resolvedHeaders = this.config.headers
       ? await resolve(this.config.headers)
       : undefined;
@@ -100,10 +103,15 @@ export class GatewaySpeechModel
           ...(instructions && { instructions }),
           ...(speed != null && { speed }),
           ...(language && { language }),
-          ...(providerOptions && { providerOptions }),
+          ...(requestProviderOptions && {
+            providerOptions: requestProviderOptions,
+          }),
         },
         successfulResponseHandler: createJsonResponseHandler(
           gatewaySpeechResponseSchema,
+          streamingAudioDecoding
+            ? { experimental_binaryFields: ['audio'] }
+            : undefined,
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
@@ -147,6 +155,10 @@ export class GatewaySpeechModel
     );
     const authMethod = await parseAuthMethod(headers);
 
+    const { providerOptions: requestProviderOptions } = splitClientOptions(
+      options.providerOptions,
+    );
+
     // First frame after the WebSocket opens, per the speech-stream envelope.
     // Optional keys are omitted so the frame stays minimal.
     const startFrame: Experimental_SpeechStreamStartFrame = {
@@ -160,8 +172,8 @@ export class GatewaySpeechModel
       }),
       ...(options.speed != null && { speed: options.speed }),
       ...(options.language != null && { language: options.language }),
-      ...(options.providerOptions != null && {
-        providerOptions: options.providerOptions,
+      ...(requestProviderOptions != null && {
+        providerOptions: requestProviderOptions,
       }),
       ...(options.includeRawChunks != null && {
         includeRawChunks: options.includeRawChunks,
@@ -197,6 +209,47 @@ export class GatewaySpeechModel
       'ai-model-id': this.modelId,
     };
   }
+}
+
+/**
+ * Takes the options that the SDK handles itself out of `providerOptions.gateway`
+ * so that they are not sent to the Gateway service. Service options stay; an
+ * empty `gateway` object and empty provider options are omitted. The caller's
+ * object is not modified.
+ */
+function splitClientOptions(
+  providerOptions: SharedV4ProviderOptions | undefined,
+): {
+  streamingAudioDecoding: boolean;
+  providerOptions: SharedV4ProviderOptions | undefined;
+} {
+  const gatewayOptions = providerOptions?.gateway;
+  const streamingAudioDecoding =
+    gatewayOptions?.experimental_streamingAudioDecoding === true;
+
+  if (
+    gatewayOptions == null ||
+    !('experimental_streamingAudioDecoding' in gatewayOptions)
+  ) {
+    return { streamingAudioDecoding, providerOptions };
+  }
+
+  const { experimental_streamingAudioDecoding: _, ...serviceOptions } =
+    gatewayOptions;
+  const requestProviderOptions = { ...providerOptions };
+  if (Object.keys(serviceOptions).length > 0) {
+    requestProviderOptions.gateway = serviceOptions;
+  } else {
+    delete requestProviderOptions.gateway;
+  }
+
+  return {
+    streamingAudioDecoding,
+    providerOptions:
+      Object.keys(requestProviderOptions).length > 0
+        ? requestProviderOptions
+        : undefined,
+  };
 }
 
 /**
@@ -448,7 +501,9 @@ const gatewaySpeechWarningSchema = () =>
 const gatewaySpeechResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      audio: z.string(),
+      // A base64 string over the wire. A large one is decoded to bytes while the
+      // response is read (`experimental_binaryFields`) and returned as bytes.
+      audio: z.union([z.string(), z.instanceof(Uint8Array)]),
       warnings: z.optional(z.array(gatewaySpeechWarningSchema())),
       usage: z.optional(z.record(z.string(), z.json())),
       providerMetadata: z.optional(
