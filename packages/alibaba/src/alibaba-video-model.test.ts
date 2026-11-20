@@ -89,6 +89,93 @@ describe('AlibabaVideoModel', () => {
     },
   });
 
+  it.each([
+    ['480p', '16:9', '832x480'],
+    ['480p', '9:16', '480x832'],
+    ['480p', '1:1', '624x624'],
+    ['720p', '16:9', '1280x720'],
+    ['720p', '9:16', '720x1280'],
+    ['720p', '1:1', '960x960'],
+    ['720p', '4:3', '1088x832'],
+    ['720p', '3:4', '832x1088'],
+    ['1080p', '16:9', '1920x1080'],
+    ['1080p', '9:16', '1080x1920'],
+    ['1080p', '1:1', '1440x1440'],
+    ['1080p', '4:3', '1632x1248'],
+    ['1080p', '3:4', '1248x1632'],
+  ] as const)(
+    'maps Wan 2.5 runtime %s at %s to the same size as %s',
+    async (resolution, aspectRatio, pixels) => {
+      const model = createModel({ modelId: 'wan2.5-t2v-preview' });
+      const label = await model.doStart({
+        ...defaultOptions,
+        // JavaScript callers can supply a provider-native tier at runtime.
+        resolution: resolution as `${number}x${number}`,
+        aspectRatio,
+      });
+      const labelBody = await server.calls.at(-1)?.requestBodyJson;
+      await model.doStart({ ...defaultOptions, resolution: pixels });
+      expect(labelBody).toEqual(await server.calls.at(-1)?.requestBodyJson);
+      expect(labelBody.parameters.size).toBe(pixels.replace('x', '*'));
+      expect(label.warnings).not.toContainEqual(
+        expect.objectContaining({ feature: 'aspectRatio' }),
+      );
+    },
+  );
+
+  it.each(['480p', '480P'])(
+    'defaults %s labels to landscape',
+    async resolution => {
+      await createModel({ modelId: 'wan2.5-t2v-preview' }).doStart({
+        ...defaultOptions,
+        resolution: resolution as `${number}x${number}`,
+      });
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        parameters: { size: '832*480' },
+      });
+    },
+  );
+
+  it('keeps pixel dimensions authoritative when aspectRatio conflicts', async () => {
+    const result = await createModel({ modelId: 'wan2.5-t2v-preview' }).doStart(
+      { ...defaultOptions, resolution: '480x832', aspectRatio: '16:9' },
+    );
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      parameters: { size: '480*832' },
+    });
+    expect(result.warnings).toContainEqual(
+      expect.objectContaining({ feature: 'aspectRatio' }),
+    );
+  });
+
+  it.each(['4:3', '3:4', '21:9'] as const)(
+    'rejects unsupported 480p ratio %s before submission',
+    async aspectRatio => {
+      await expect(
+        createModel({ modelId: 'wan2.5-t2v-preview' }).doStart({
+          ...defaultOptions,
+          resolution: '480p' as `${number}x${number}`,
+          aspectRatio,
+        }),
+      ).rejects.toThrow('Unsupported aspect ratio');
+      expect(server.calls).toHaveLength(0);
+    },
+  );
+
+  it.each(['wan2.6-t2v', 'wan2.7-t2v', 'wan3.0'])(
+    'does not apply Wan 2.5 size mapping to %s',
+    async modelId => {
+      await createModel({ modelId }).doStart({
+        ...defaultOptions,
+        resolution: '480p' as `${number}x${number}`,
+        aspectRatio: '9:16',
+      });
+      expect((await server.calls[0].requestBodyJson).parameters.size).not.toBe(
+        '480*832',
+      );
+    },
+  );
+
   describe('constructor', () => {
     it('should expose correct provider and model information', () => {
       const model = createModel();

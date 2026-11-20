@@ -1,6 +1,7 @@
 import { getAlibabaVideoModelEntry } from './alibaba-model-catalog';
 import {
   AISDKError,
+  InvalidArgumentError,
   type Experimental_VideoModelV4 as VideoModelV4,
   type Experimental_VideoModelV4CallOptions as VideoModelV4CallOptions,
   type Experimental_VideoModelV4File as VideoModelV4File,
@@ -322,8 +323,9 @@ export class AlibabaVideoModel implements VideoModelV4 {
     }
 
     const startImage = resolveStartImage(options);
-    const protocol = getAlibabaVideoModelEntry(this.modelId).requestConfig.video
-      .protocol;
+    const { protocol, resolutionSizes } = getAlibabaVideoModelEntry(
+      this.modelId,
+    ).requestConfig.video;
     const wan27 = protocol === 'wan27';
     const wan3 = protocol === 'wan3';
     // Resolution tiers and input.media replaced size/img_url from wan2.7 on.
@@ -409,6 +411,18 @@ export class AlibabaVideoModel implements VideoModelV4 {
       parameters.seed = options.seed;
     }
 
+    const labelSizes =
+      options.resolution != null
+        ? resolutionSizes?.[options.resolution.toLowerCase()]
+        : undefined;
+    const labelSize = labelSizes?.[options.aspectRatio ?? '16:9'];
+    if (labelSizes != null && labelSize == null) {
+      throw new InvalidArgumentError({
+        argument: 'aspectRatio',
+        message: `Unsupported aspect ratio ${options.aspectRatio} for ${this.modelId} at ${options.resolution}. Supported ratios: ${Object.keys(labelSizes).join(', ')}.`,
+      });
+    }
+
     // Resolution / Size mapping
     if (options.resolution != null) {
       if (mode === 'i2v' || tieredProtocol) {
@@ -434,7 +448,7 @@ export class AlibabaVideoModel implements VideoModelV4 {
       } else {
         // wan2.6 T2V and R2V use "WIDTH*HEIGHT" format for the size parameter
         // Convert "WIDTHxHEIGHT" (SDK standard) to "WIDTH*HEIGHT" (Alibaba API)
-        parameters.size = options.resolution.replace('x', '*');
+        parameters.size = labelSize ?? options.resolution.replace('x', '*');
       }
     }
 
@@ -489,7 +503,7 @@ export class AlibabaVideoModel implements VideoModelV4 {
     }
 
     // Warn about unsupported standard options
-    if (options.aspectRatio && !supportsRatio) {
+    if (options.aspectRatio && !supportsRatio && labelSize == null) {
       warnings.push({
         type: 'unsupported',
         feature: 'aspectRatio',
