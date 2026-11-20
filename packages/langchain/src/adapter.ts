@@ -18,6 +18,7 @@ import {
   parseLangGraphEvent,
   isToolResultPart,
   extractReasoningFromContentBlocks,
+  hasAccumulatedReasoning,
   extractCitationsFromContentBlocks,
   emitSourceChunks,
   getLangGraphProviderMetadata,
@@ -157,6 +158,8 @@ function processStreamEventsEvent(
     textMessageId: string | null;
     reasoningMessageId: string | null;
     emittedSourceIds: Set<string>;
+    /** Model runs (or message IDs without a run ID) that streamed reasoning */
+    streamedReasoningRunIds: Set<string>;
   },
   controller: ReadableStreamDefaultController<UIMessageChunk>,
 ): void {
@@ -233,10 +236,17 @@ function processStreamEventsEvent(
         }
 
         /**
-         * Handle reasoning content from contentBlocks
+         * Handle reasoning content from contentBlocks.
+         * Accumulated reasoning is skipped if this model run already streamed its deltas.
+         * The run ID is used because the terminal chunk can have a different message ID.
          */
         const reasoning = extractReasoningFromContentBlocks(chunk);
-        if (reasoning) {
+        const reasoningRunId = event.run_id ?? state.messageId;
+        const reasoningAlreadyStreamed =
+          state.streamedReasoningRunIds.has(reasoningRunId) &&
+          hasAccumulatedReasoning(chunk);
+        if (reasoning && !reasoningAlreadyStreamed) {
+          state.streamedReasoningRunIds.add(reasoningRunId);
           if (!state.reasoningStarted) {
             // Track the ID used for reasoning-start to ensure reasoning-end uses the same ID
             state.reasoningMessageId = state.messageId;
@@ -449,6 +459,7 @@ export function toUIMessageStream<TState = unknown>(
     /** Track the ID used for reasoning-start to ensure reasoning-end uses the same ID */
     reasoningMessageId: null as string | null,
     emittedSourceIds: new Set<string>(),
+    streamedReasoningRunIds: new Set<string>(),
   };
 
   /**
@@ -470,6 +481,8 @@ export function toUIMessageStream<TState = unknown>(
     emittedImages: new Set<string>(),
     emittedReasoningIds: new Set<string>(),
     messageReasoningIds: new Map(),
+    streamedReasoningMessageIds: new Set<string>(),
+    historicalMessageIds: undefined,
     toolCallInfoByIndex: new Map(),
     currentStepsByNamespace: new Map(),
     emittedToolCallsByKey: new Map<string, string>(),

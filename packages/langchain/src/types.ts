@@ -40,6 +40,10 @@ export interface LangGraphEventState {
   emittedReasoningIds: Set<string>;
   /** Maps message IDs to their reasoning block IDs (for chunks that don't include the ID) */
   messageReasoningIds: Map<string, string>;
+  /** Tracks message IDs whose reasoning deltas have been emitted */
+  streamedReasoningMessageIds: Set<string>;
+  /** Message IDs from the first values snapshot, i.e. state from before this run */
+  historicalMessageIds: Set<string> | undefined;
   /** Maps message ID + tool call index to tool call info (for streaming chunks without ID) */
   toolCallInfoByIndex: Map<string, Map<number, { id: string; name: string }>>;
   /** Tracks each namespace's current LangGraph step */
