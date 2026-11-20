@@ -1032,4 +1032,35 @@ console.log(text);`,
     websiteUrl: 'https://upstash.com',
     npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
   },
+  {
+    slug: 'quorumz',
+    name: 'Quorumz Sense',
+    description:
+      'Geo-tagged world news for agents. Each story is a quorum: the distinct viewpoints being expressed about it, each with a summary and a support count split into media, social and on-the-ground posts. Also alpha events that are ahead of the wider press, and news articles. The sample tool is free; the others are paid per item from an API key with a free trial.',
+    packageName: '@quorumz/ai-sdk',
+    tags: ['news', 'search', 'geopolitics'],
+    apiKeyEnvName: 'QUORUMZ_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @quorumz/ai-sdk',
+      npm: 'npm install @quorumz/ai-sdk',
+      yarn: 'yarn add @quorumz/ai-sdk',
+      bun: 'bun add @quorumz/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { quorumzTools } from '@quorumz/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt:
+    'What are people saying about Lebanon right now? Give each viewpoint and how many posts support it.',
+  tools: quorumzTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/Quorumz/quorumz-js#readme',
+    apiKeyUrl: 'https://sense.quorumz.com/agents/keys',
+    websiteUrl: 'https://sense.quorumz.com/agents',
+    npmUrl: 'https://www.npmjs.com/package/@quorumz/ai-sdk',
+  },
 ];
