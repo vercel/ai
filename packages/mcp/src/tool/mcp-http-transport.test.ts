@@ -98,6 +98,47 @@ describe('HttpMCPTransport', () => {
     });
   });
 
+  it('should send Mcp-Name on events methods that take a name (SEP-3415)', async () => {
+    transport = new HttpMCPTransport({
+      url: 'http://localhost:4000/mcp',
+      initialProtocolVersion: LATEST_PROTOCOL_VERSION,
+    });
+
+    server.urls['http://localhost:4000/mcp'].response = {
+      type: 'json-value',
+      body: { jsonrpc: '2.0', id: 10, result: { ok: true } },
+    };
+
+    await transport.start();
+
+    for (const method of [
+      'events/subscribe',
+      'events/unsubscribe',
+      'events/poll',
+      'events/stream',
+    ] as const) {
+      await transport.send({
+        jsonrpc: '2.0',
+        method,
+        id: 10,
+        params: { name: 'incident.created' },
+      });
+      const lastCall = server.calls[server.calls.length - 1];
+      expect(lastCall.requestHeaders['mcp-method']).toBe(method);
+      expect(lastCall.requestHeaders['mcp-name']).toBe('incident.created');
+    }
+
+    await transport.send({
+      jsonrpc: '2.0',
+      method: 'events/list',
+      id: 11,
+      params: {},
+    });
+    const listCall = server.calls[server.calls.length - 1];
+    expect(listCall.requestHeaders['mcp-method']).toBe('events/list');
+    expect(listCall.requestHeaders['mcp-name']).toBeUndefined();
+  });
+
   it('should handle text/event-stream responses', async () => {
     transport = createLegacyHttpTransport({
       url: 'http://localhost:4000/stream',

@@ -58,6 +58,7 @@ export {
   createMCPEventWebhook as experimental_createMCPEventWebhook,
   type MCPEventWebhookOptions as Experimental_MCPEventWebhookOptions,
 } from './tool/mcp-event-webhook';
+export { MCP_EVENTS_EXTENSION_NAME } from './tool/mcp-event-types';
 export type {
   MCPEvent as Experimental_MCPEvent,
   MCPEventControl as Experimental_MCPEventControl,
