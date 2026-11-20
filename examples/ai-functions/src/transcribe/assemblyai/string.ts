@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await transcribe({
-    model: assemblyai.transcription('universal-3-5-pro'),
+    model: assemblyai.transcription('assemblyai-stt-3-7'),
     audio: Buffer.from(await readFile('./data/galileo.mp3')).toString('base64'),
   });
 
