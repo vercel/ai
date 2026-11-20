@@ -85,6 +85,28 @@ describe('SseMCPTransport', () => {
     await expect(transport.start()).rejects.toThrow();
   });
 
+  it('should reject when the connection closes before receiving an endpoint', async () => {
+    const controller = new TestResponseController();
+
+    server.urls['http://localhost:3000/sse'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    let reportedError: unknown;
+    transport.onerror = error => {
+      reportedError = error;
+    };
+
+    const connectPromise = transport.start();
+    await controller.close();
+
+    await expect(connectPromise).rejects.toThrow(
+      'MCP SSE Transport Error: Connection closed before endpoint event was received',
+    );
+    expect(reportedError).toBeInstanceOf(MCPClientError);
+  });
+
   it('should handle valid JSON-RPC messages', async () => {
     const controller = new TestResponseController();
 
