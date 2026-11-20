@@ -267,7 +267,7 @@ describe('AssemblyAISpeechModel', () => {
     it('should return the audio, usage, and response metadata', async () => {
       const audio = prepareAudioResponse({
         headers: {
-          'x-request-id': '83c9fae1-e0b0-433a-b97e-26f372778f2a',
+          'x-request-id': 'test-request-id',
           'x-tts-model': 'assemblyai-tts-1',
           'x-tts-voice-id': 'aai-kyla',
           'x-tts-language': 'english',
@@ -292,7 +292,7 @@ describe('AssemblyAISpeechModel', () => {
       expect(result.usage).toStrictEqual({ characters: 13 });
       expect(result.providerMetadata).toStrictEqual({
         assemblyai: {
-          requestId: '83c9fae1-e0b0-433a-b97e-26f372778f2a',
+          requestId: 'test-request-id',
           model: 'assemblyai-tts-1',
           voiceId: 'aai-kyla',
           language: 'english',
@@ -316,7 +316,7 @@ describe('AssemblyAISpeechModel', () => {
           code: 'voice_not_found',
           message: 'voice_id: no voice with this ID or slug',
           param: 'voice_id',
-          request_id: '2f0c1d9e-7b4a-4c3e-9a51-6d8e2b7f4c10',
+          request_id: 'test-request-id',
           errors: null,
           retryable: false,
           retry_after_seconds: null,
