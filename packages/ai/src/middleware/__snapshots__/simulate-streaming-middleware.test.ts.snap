@@ -54,6 +54,7 @@ exports[`simulateStreamingMiddleware > should handle empty text response 1`] = `
   {
     "finishReason": "stop",
     "rawFinishReason": "stop",
+    "stoppedBy": "model",
     "totalUsage": {
       "inputTokenDetails": {
         "cacheReadTokens": 0,

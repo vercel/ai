@@ -145,6 +145,11 @@ import {
   type SteeringRun,
 } from './steering';
 import {
+  getModelStoppedBy,
+  getPendingToolCallStoppedBy,
+  type StoppedBy,
+} from './stopped-by';
+import {
   isStepCount,
   isStopConditionMet,
   type StopCondition,
@@ -1355,6 +1360,7 @@ class DefaultStreamTextResult<
   private readonly _rawFinishReason = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['rawFinishReason']>
   >();
+  private readonly _stoppedBy = new DelayedPromise<StoppedBy | undefined>();
   private readonly _steps = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps']>
   >();
@@ -1571,6 +1577,7 @@ class DefaultStreamTextResult<
     let recordedContent: Array<ContentPart<TOOLS>> = [];
     let recordedFinishReason: FinishReason | undefined = undefined;
     let recordedRawFinishReason: string | undefined = undefined;
+    let recordedStoppedBy: StoppedBy | undefined = undefined;
     let recordedTotalUsage: LanguageModelUsage | undefined = undefined;
     let recordedRequest: Omit<LanguageModelRequestMetadata, 'messages'> = {};
     let recordedRequestMessages: Array<ModelMessage> = [];
@@ -1916,6 +1923,7 @@ class DefaultStreamTextResult<
           recordedTotalUsage = part.totalUsage;
           recordedFinishReason = part.finishReason;
           recordedRawFinishReason = part.rawFinishReason;
+          recordedStoppedBy = part.stoppedBy;
         }
       },
 
@@ -1964,6 +1972,7 @@ class DefaultStreamTextResult<
           // from finish:
           self._finishReason.resolve(finishReason);
           self._rawFinishReason.resolve(recordedRawFinishReason);
+          self._stoppedBy.resolve(recordedStoppedBy);
           self._totalUsage.resolve(totalUsage);
 
           // aggregate results:
@@ -2020,6 +2029,7 @@ class DefaultStreamTextResult<
             runtimeContext: finalStep.runtimeContext,
             finishReason: finalStep.finishReason,
             rawFinishReason: finalStep.rawFinishReason,
+            stoppedBy: recordedStoppedBy,
             usage: totalUsage,
             totalUsage,
             content,
@@ -3610,6 +3620,7 @@ class DefaultStreamTextResult<
                   // the stream ends:
                   let steeringEndReason: SteeringNotDeliveredReason =
                     'finished';
+                  let stoppedBy: StoppedBy = 'model';
 
                   const shouldStartNextStep = async () => {
                     if (stepFinishReason === 'interrupted') {
@@ -3623,6 +3634,9 @@ class DefaultStreamTextResult<
                         deniedToolApprovalResponses.length
                     ) {
                       steeringEndReason = 'waiting-for-tool-results';
+                      stoppedBy = getPendingToolCallStoppedBy(
+                        recordedSteps[recordedSteps.length - 1],
+                      );
                       return false;
                     }
 
@@ -3641,6 +3655,9 @@ class DefaultStreamTextResult<
                         !steeringRun?.hasPendingMessages() &&
                         (isTruncated || !steeringRun?.promoteQueuedMessage())
                       ) {
+                        stoppedBy = getModelStoppedBy(
+                          recordedSteps[recordedSteps.length - 1],
+                        );
                         return false;
                       }
 
@@ -3659,6 +3676,7 @@ class DefaultStreamTextResult<
                       })
                     ) {
                       steeringEndReason = 'stop-condition';
+                      stoppedBy = 'stop-condition';
                       return false;
                     }
 
@@ -3679,6 +3697,7 @@ class DefaultStreamTextResult<
                       type: 'finish',
                       finishReason: stepFinishReason,
                       rawFinishReason: stepRawFinishReason,
+                      stoppedBy,
                       totalUsage: combinedUsage,
                     });
 
@@ -3852,6 +3871,14 @@ class DefaultStreamTextResult<
     return this._rawFinishReason.promise;
   }
 
+  get stoppedBy() {
+    // when any of the promises are accessed, the stream is consumed
+    // so it resolves without needing to consume the stream separately
+    if (this.retention.replay) this.consumeStream();
+
+    return this._stoppedBy.promise;
+  }
+
   /**
    * Split out a new stream from the original stream.
    * The original stream is replaced to allow for further splitting,
@@ -3944,6 +3971,7 @@ class DefaultStreamTextResult<
   private rejectResultPromises(error: unknown) {
     this.rejectResultPromise({ delayedPromise: this._finishReason, error });
     this.rejectResultPromise({ delayedPromise: this._rawFinishReason, error });
+    this.rejectResultPromise({ delayedPromise: this._stoppedBy, error });
     this.rejectResultPromise({ delayedPromise: this._totalUsage, error });
     this.rejectResultPromise({ delayedPromise: this._steps, error });
     this.rejectResultPromise({
