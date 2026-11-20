@@ -68,6 +68,15 @@ export type GatewayProviderOptions<QUESTION_ID extends string = string> = {
    */
   experimental_streamingImageDecoding?: boolean;
 
+  /**
+   * Experimental, speech models only: decode large base64 audio while reading
+   * the response to reduce peak memory. Extracted audio is returned as bytes;
+   * audio below 64 KiB and strings that are not canonical base64 stay base64
+   * strings. Defaults to false. Speech models remove this client option from
+   * requests.
+   */
+  experimental_streamingAudioDecoding?: boolean;
+
   /** Filter to providers that do not train on prompt data. */
   disallowPromptTraining?: boolean;
 

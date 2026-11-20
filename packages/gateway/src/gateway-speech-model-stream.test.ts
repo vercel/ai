@@ -188,6 +188,51 @@ describe('GatewaySpeechModel.doStream', () => {
     expect(socket.close).toHaveBeenCalledWith(1000);
   });
 
+  it.each([true, false])(
+    'should not send the client-only decoding option set to %s in the start frame',
+    async enabled => {
+      const result = await createStreamingTestModel().doStream({
+        text: textParts(['Hello']),
+        providerOptions: {
+          gateway: {
+            experimental_streamingAudioDecoding: enabled,
+            tags: ['speech'],
+          },
+          elevenlabs: { seed: 7 },
+        },
+      });
+
+      const socket = lastSocket();
+      socket.open();
+      await flush();
+      await flush();
+
+      const providerOptions = {
+        gateway: { tags: ['speech'] },
+        elevenlabs: { seed: 7 },
+      };
+      expect(result.request?.body).toEqual({
+        type: 'speech-stream.start',
+        providerOptions,
+      });
+      expect(socket.sentFrames()[0]).toEqual({
+        type: 'speech-stream.start',
+        providerOptions,
+      });
+    },
+  );
+
+  it('should omit providerOptions from the start frame when the decoding option is its only entry', async () => {
+    const result = await createStreamingTestModel().doStream({
+      text: textParts(['Hello']),
+      providerOptions: {
+        gateway: { experimental_streamingAudioDecoding: true },
+      },
+    });
+
+    expect(result.request?.body).toStrictEqual({ type: 'speech-stream.start' });
+  });
+
   it('should put the voice on every frame of a split part and its provider options on the first only', async () => {
     const long = 'x'.repeat(70 * 1024);
     await createStreamingTestModel().doStream({

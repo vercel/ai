@@ -1,8 +1,10 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import { describe, expect, it, vi } from 'vitest';
 import {
   GatewayInternalServerError,
   GatewayInvalidRequestError,
+  GatewayResponseError,
 } from './errors';
 import type { GatewayConfig } from './gateway-config';
 import { GatewaySpeechModel } from './gateway-speech-model';
@@ -138,6 +140,252 @@ describe('GatewaySpeechModel', () => {
       });
       expect(result.response.headers?.['x-request-id']).toBe('req-123');
       expect(result.response.modelId).toBe('openai/tts-1');
+    });
+
+    describe('large audio with experimental streaming decoding', () => {
+      const callOptions = {
+        text: 'Hello world',
+        providerOptions: {
+          gateway: { experimental_streamingAudioDecoding: true },
+        },
+      };
+
+      function bytesOf(length: number, seed = 1) {
+        const bytes = new Uint8Array(length);
+        let state = seed;
+        for (let index = 0; index < length; index++) {
+          state = (state * 1103515245 + 12345) >>> 0;
+          bytes[index] = state >>> 24;
+        }
+        return bytes;
+      }
+
+      function sameBytes(actual: unknown, expected: Uint8Array) {
+        if (
+          !(actual instanceof Uint8Array) ||
+          actual.length !== expected.length
+        ) {
+          return false;
+        }
+        for (let index = 0; index < expected.length; index++) {
+          if (actual[index] !== expected[index]) return false;
+        }
+        return true;
+      }
+
+      const large = bytesOf(70_000, 1);
+      const largeBase64 = convertUint8ArrayToBase64(large);
+      const small = bytesOf(1_000, 2);
+      const smallBase64 = convertUint8ArrayToBase64(small);
+
+      function respondWith(body: unknown) {
+        server.urls['https://api.test.com/speech-model'].response = {
+          type: 'json-value',
+          body: body as Record<string, unknown>,
+        };
+      }
+
+      it.each([undefined, false])(
+        'should preserve the base64 string and the raw body when the option is %s',
+        async enabled => {
+          respondWith({ audio: largeBase64 });
+
+          const result = await createTestModel().doGenerate({
+            text: 'Hello world',
+            providerOptions:
+              enabled === undefined
+                ? {}
+                : { gateway: { experimental_streamingAudioDecoding: enabled } },
+          });
+
+          expect(result.audio).toBe(largeBase64);
+          expect(result.response.body).toEqual({ audio: largeBase64 });
+        },
+      );
+
+      it.each([true, false])(
+        'should remove the client option set to %s while preserving service options',
+        async enabled => {
+          respondWith({ audio: smallBase64 });
+          const providerOptions = {
+            gateway: {
+              experimental_streamingAudioDecoding: enabled,
+              tags: ['speech'],
+            },
+            openai: { style: 'friendly' },
+          };
+
+          await createTestModel().doGenerate({
+            text: 'Hello world',
+            providerOptions,
+          });
+
+          expect(
+            (await server.calls[0].requestBodyJson).providerOptions,
+          ).toEqual({
+            gateway: { tags: ['speech'] },
+            openai: { style: 'friendly' },
+          });
+          expect(
+            providerOptions.gateway.experimental_streamingAudioDecoding,
+          ).toBe(enabled);
+        },
+      );
+
+      it.each([true, false])(
+        'should omit providerOptions when the client option set to %s is its only entry',
+        async enabled => {
+          respondWith({ audio: smallBase64 });
+
+          await createTestModel().doGenerate({
+            text: 'Hello world',
+            providerOptions: {
+              gateway: { experimental_streamingAudioDecoding: enabled },
+            },
+          });
+
+          expect(
+            (await server.calls[0].requestBodyJson).providerOptions,
+          ).toBeUndefined();
+        },
+      );
+
+      it.each([true, false])(
+        'should omit an empty gateway object when the client option is %s',
+        async enabled => {
+          respondWith({ audio: smallBase64 });
+
+          await createTestModel().doGenerate({
+            text: 'Hello world',
+            providerOptions: {
+              gateway: { experimental_streamingAudioDecoding: enabled },
+              openai: { style: 'friendly' },
+            },
+          });
+
+          expect(
+            (await server.calls[0].requestBodyJson).providerOptions,
+          ).toEqual({ openai: { style: 'friendly' } });
+        },
+      );
+
+      it('should return audio of 64 KiB and more as Uint8Array', async () => {
+        respondWith({ audio: largeBase64 });
+
+        const result = await createTestModel().doGenerate(callOptions);
+
+        expect(result.audio).toBeInstanceOf(Uint8Array);
+        expect(result.audio).toEqual(large);
+      });
+
+      it('should keep audio below 64 KiB as a base64 string', async () => {
+        respondWith({ audio: smallBase64 });
+
+        const result = await createTestModel().doGenerate(callOptions);
+
+        expect(result.audio).toBe(smallBase64);
+      });
+
+      it('should keep a large string that is not canonical base64 as a string', async () => {
+        const base64Url = largeBase64.replace(/\+/g, '-').replace(/\//g, '_');
+        respondWith({ audio: base64Url });
+
+        const result = await createTestModel().doGenerate(callOptions);
+
+        expect(result.audio).toBe(base64Url);
+      });
+
+      it('should not change the other fields of the result and keep the raw response body small', async () => {
+        server.urls['https://api.test.com/speech-model'].response = {
+          type: 'json-value',
+          headers: { 'x-request-id': 'req-123' },
+          body: {
+            audio: largeBase64,
+            warnings: [{ type: 'other', message: 'careful' }],
+            usage: { characters: 11 },
+            providerMetadata: { gateway: { cost: '0.002' } },
+          },
+        };
+
+        const result = await createTestModel().doGenerate(callOptions);
+
+        expect(result.audio).toEqual(large);
+        expect(result.warnings).toEqual([
+          { type: 'other', message: 'careful' },
+        ]);
+        expect(result.usage).toEqual({ characters: 11 });
+        expect(result.providerMetadata).toEqual({
+          gateway: { cost: '0.002' },
+        });
+        expect(result.response.headers?.['x-request-id']).toBe('req-123');
+        expect(result.response.modelId).toBe('openai/tts-1');
+        const rawBody = JSON.stringify(result.response.body);
+        expect(rawBody).toContain('[binary data: 70000 bytes');
+        expect(rawBody.length).toBeLessThan(2000);
+      });
+
+      it('should read a body that arrives in small chunks', async () => {
+        const body = JSON.stringify({ audio: largeBase64 });
+        server.urls['https://api.test.com/speech-model'].response = {
+          type: 'stream-chunks',
+          headers: { 'Content-Type': 'application/json' },
+          chunks: body.match(/[\s\S]{1,1999}/g) ?? [],
+        };
+
+        const result = await createTestModel().doGenerate(callOptions);
+
+        expect(result.audio).toEqual(large);
+      });
+
+      it('should decode a response of several MiB', async () => {
+        const longAudio = bytesOf(6 * 1024 * 1024, 3);
+        const body = JSON.stringify({
+          audio: convertUint8ArrayToBase64(longAudio),
+          usage: { characters: 11 },
+        });
+        server.urls['https://api.test.com/speech-model'].response = {
+          type: 'stream-chunks',
+          headers: { 'Content-Type': 'application/json' },
+          chunks: body.match(/[\s\S]{1,65536}/g) ?? [],
+        };
+
+        const result = await createTestModel().doGenerate(callOptions);
+
+        expect(sameBytes(result.audio, longAudio)).toBe(true);
+        expect(result.usage).toEqual({ characters: 11 });
+      });
+
+      it('should not put the audio into the error of an invalid response', async () => {
+        respondWith({ audio: largeBase64, usage: 5 });
+
+        const error = await createTestModel()
+          .doGenerate(callOptions)
+          .then(
+            () => undefined,
+            (caught: unknown) => caught,
+          );
+
+        expect(GatewayResponseError.isInstance(error)).toBe(true);
+        // The error does not carry the audio, only a placeholder.
+        const { responseBody } = (error as GatewayResponseError).cause as {
+          responseBody?: string;
+        };
+        expect(responseBody).toContain('[binary data: 70000 bytes');
+        expect(String(responseBody).length).toBeLessThan(2000);
+      });
+
+      it('should reject a response whose audio is not a string', async () => {
+        respondWith({ audio: 5 });
+
+        const error = await createTestModel()
+          .doGenerate(callOptions)
+          .then(
+            () => undefined,
+            (caught: unknown) => caught,
+          );
+
+        expect(GatewayResponseError.isInstance(error)).toBe(true);
+      });
     });
   });
 

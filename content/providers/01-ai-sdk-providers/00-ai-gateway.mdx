@@ -532,6 +532,40 @@ console.log(answers.contacts.value); // ['Ana', 'Bo']
 - **Files:** send file state inline, as bytes or base64. Files given as a URL are downloaded by `experimental_extract` when you pass `experimental_download`. File references are sent to the gateway unchanged, which rejects them for now, so they fail after the request is sent.
 - **Provider options:** [gateway provider options](#gateway-provider-options) such as `user` and `tags` go under `providerOptions.gateway`.
 
+## Speech Models
+
+AI Gateway supports speech generation through `generateSpeech`. To reduce peak
+memory when receiving long audio, opt in to streaming base64 decoding:
+
+```ts
+import { generateSpeech } from 'ai';
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+
+const { audio } = await generateSpeech({
+  model: 'openai/tts-1',
+  text: 'Hello from the AI SDK!',
+  providerOptions: {
+    gateway: {
+      experimental_streamingAudioDecoding: true,
+    } satisfies GatewayProviderOptions,
+  },
+});
+
+console.log(audio.uint8Array.byteLength);
+```
+
+The option defaults to `false`, preserving the base64 string in the provider
+result. When enabled, canonical base64 audio of at least 64 KiB is decoded while
+the response arrives, and the model returns it as `Uint8Array`; shorter audio
+and strings that are not canonical base64 keep the regular decoding path.
+`GeneratedAudioFile` provides both `uint8Array` and `base64` either way, but
+reading `base64` of decoded audio can require re-encoding.
+
+The raw response body (`response.body`) and validation errors contain a short
+placeholder in place of decoded audio. The option is handled by the client and
+is not sent to the Gateway service. Streaming speech
+(`experimental_streamSpeech`) is not affected.
+
 ## Streaming Speech Models
 
 <Note type="warning">
