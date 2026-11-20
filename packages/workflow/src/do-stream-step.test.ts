@@ -106,6 +106,54 @@ describe('doStreamStep', () => {
     });
   });
 
+  it('keeps provisional usage out of final response metadata', async () => {
+    const usage = {
+      inputTokens: {
+        total: 10,
+        noCache: 10,
+        cacheRead: undefined,
+        cacheWrite: undefined,
+      },
+      outputTokens: { total: 2, text: 2, reasoning: undefined },
+    };
+    const timestamp = new Date('2026-01-01T00:00:00Z');
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start', warnings: [] },
+          {
+            type: 'response-metadata',
+            id: 'response-1',
+            modelId: 'mock-model',
+            timestamp,
+            usage,
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage,
+          },
+        ]),
+      }),
+    });
+
+    const result = await doStreamStep(prompt, model);
+    if ('aborted' in result) throw new Error('Expected a completed model call');
+
+    expect(result.raw?.responseMetadata).toEqual({
+      id: 'response-1',
+      timestamp,
+      modelId: 'mock-model',
+    });
+    expect(result.raw?.responseMetadata).not.toHaveProperty('usage');
+    expect(result.raw?.responseMetadata).not.toHaveProperty('type');
+    expect(result.finish?.usage).toMatchObject({
+      inputTokens: 10,
+      outputTokens: 2,
+      totalTokens: 12,
+    });
+  });
+
   it('uses model URL support when invoking a custom downloader', async () => {
     const fileUrl = new URL('https://example.com/file.pdf');
     const urlPrompt = [
