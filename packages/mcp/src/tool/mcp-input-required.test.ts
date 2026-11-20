@@ -176,3 +176,189 @@ it.each(['abort', 'close', 'timeout'] as const)(
     expect(requests).toHaveLength(1);
   },
 );
+
+it('handles url-mode elicitation in the auto-fulfill loop when url capability is declared', async () => {
+  const urlElicitation = {
+    method: 'elicitation/create',
+    params: {
+      mode: 'url',
+      message: 'Sign in to the upstream service',
+      url: 'https://example.com/oauth/authorize',
+      elicitationId: 'elicit-123',
+    },
+  };
+  const requests: JSONRPCRequest[] = [];
+  const transport: MCPTransport = {
+    supportsProtocolVersionDiscovery: true,
+    async start() {},
+    async close() {
+      transport.onclose?.();
+    },
+    async send(message) {
+      if (!('method' in message) || !('id' in message)) return;
+      const discovery = message.method === 'server/discover';
+      if (!discovery) requests.push(message);
+      transport.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: discovery
+          ? {
+              resultType: 'complete',
+              supportedVersions: ['2026-07-28'],
+              capabilities: { tools: {} },
+            }
+          : requests.length === 1
+            ? {
+                resultType: 'input_required',
+                inputRequests: { signin: urlElicitation },
+                requestState: 'oauth-state-1',
+              }
+            : complete,
+      });
+    },
+  };
+
+  client = await createMCPClient({
+    transport,
+    capabilities: { elicitation: { form: {}, url: {} } },
+  });
+
+  const handler = vi.fn().mockResolvedValueOnce({ action: 'accept' });
+  client.onElicitationRequest(ElicitationRequestSchema, handler);
+
+  await client.callTool({ name: 'connect' });
+
+  expect(handler).toHaveBeenCalledTimes(1);
+  expect(handler).toHaveBeenCalledWith(urlElicitation);
+  expect(requests).toHaveLength(2);
+  expect(requests[1].params).toMatchObject({
+    name: 'connect',
+    arguments: {},
+    inputResponses: { signin: { action: 'accept' } },
+    requestState: 'oauth-state-1',
+  });
+});
+
+it('returns input_required to caller when allowInputRequired is true and retries with inputResponses and requestState', async () => {
+  const urlElicitation = {
+    method: 'elicitation/create',
+    params: {
+      mode: 'url',
+      message: 'Sign in to the upstream service',
+      url: 'https://example.com/oauth/authorize',
+      elicitationId: 'elicit-456',
+    },
+  };
+  const requests = await setup([
+    {
+      resultType: 'input_required',
+      inputRequests: { signin: urlElicitation },
+      requestState: 'state-token-xyz',
+    },
+    complete,
+  ]);
+
+  const handler = vi.fn();
+  client.onElicitationRequest(ElicitationRequestSchema, handler);
+
+  const firstResult = await client.callTool({
+    name: 'connect',
+    arguments: { workspace: 'prod' },
+    options: { allowInputRequired: true },
+  });
+
+  expect(handler).not.toHaveBeenCalled();
+  expect(firstResult).toEqual({
+    resultType: 'input_required',
+    inputRequests: { signin: urlElicitation },
+    requestState: 'state-token-xyz',
+  });
+
+  const secondResult = await client.callTool({
+    name: 'connect',
+    arguments: { workspace: 'prod' },
+    inputResponses: { signin: { action: 'accept' } },
+    requestState: 'state-token-xyz',
+    options: { allowInputRequired: true },
+  });
+
+  expect(secondResult).toMatchObject({ resultType: 'complete', content: [] });
+  expect(requests).toHaveLength(2);
+  expect(requests[1].params).toMatchObject({
+    name: 'connect',
+    arguments: { workspace: 'prod' },
+    inputResponses: { signin: { action: 'accept' } },
+    requestState: 'state-token-xyz',
+  });
+});
+
+it.each(['tool', 'resource', 'prompt'] as const)(
+  'supports client-level inputRequired.autoFulfill: false for %s requests',
+  async kind => {
+    const requests: JSONRPCRequest[] = [];
+    const results = [
+      {
+        resultType: 'input_required',
+        inputRequests: { confirm: elicitation },
+        requestState: 'manual-state',
+      },
+      complete,
+    ];
+    const transport: MCPTransport = {
+      supportsProtocolVersionDiscovery: true,
+      async start() {},
+      async close() {
+        transport.onclose?.();
+      },
+      async send(message) {
+        if (!('method' in message) || !('id' in message)) return;
+        const discovery = message.method === 'server/discover';
+        if (!discovery) requests.push(message);
+        transport.onmessage?.({
+          jsonrpc: '2.0',
+          id: message.id,
+          result: discovery
+            ? {
+                resultType: 'complete',
+                supportedVersions: ['2026-07-28'],
+                capabilities: { tools: {}, resources: {}, prompts: {} },
+              }
+            : results[Math.min(requests.length - 1, results.length - 1)],
+        });
+      },
+    };
+
+    client = await createMCPClient({
+      transport,
+      capabilities: { elicitation: { form: {} } },
+      inputRequired: { autoFulfill: false },
+    });
+
+    const first =
+      kind === 'tool'
+        ? await client.callTool({ name: 'deploy' })
+        : kind === 'resource'
+          ? await client.readResource({ uri: 'file:///demo' })
+          : await client.getPrompt({ name: 'deploy' });
+
+    expect(first).toEqual({
+      resultType: 'input_required',
+      inputRequests: { confirm: elicitation },
+      requestState: 'manual-state',
+    });
+
+    const resumeArgs = {
+      inputResponses: { confirm: { action: 'accept' as const } },
+      requestState: 'manual-state',
+    };
+    const second =
+      kind === 'tool'
+        ? await client.callTool({ name: 'deploy', ...resumeArgs })
+        : kind === 'resource'
+          ? await client.readResource({ uri: 'file:///demo', ...resumeArgs })
+          : await client.getPrompt({ name: 'deploy', ...resumeArgs });
+
+    expect(second).toMatchObject({ resultType: 'complete' });
+    expect(requests[1].params).toMatchObject(resumeArgs);
+  },
+);
