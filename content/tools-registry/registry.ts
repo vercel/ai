@@ -1000,6 +1000,70 @@ console.log(text);`,
     websiteUrl: 'https://keenable.ai',
     npmUrl: 'https://www.npmjs.com/package/@keenable/ai-sdk',
   },
+
+  {
+    slug: 'ava',
+    name: 'AVA',
+    description:
+      'AVA tools for the Vercel AI SDK: load a local dataset (CSV/JSON/Parquet/XLSX), inspect its schema, run read-only SQL, profile columns, ask natural-language questions, and turn verified rows into a chart. AVA owns data access and rendering; the model owns reasoning. Runs in-process, no server required.',
+    packageName: 'ai-sdk-ava',
+    tags: ['data-analysis', 'sql', 'visualization', 'charts'],
+    apiKeyEnvName: 'AI_GATEWAY_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add ai-sdk-ava ai zod @antv/ava',
+      npm: 'npm install ai-sdk-ava ai zod @antv/ava',
+      yarn: 'yarn add ai-sdk-ava ai zod @antv/ava',
+      bun: 'bun add ai-sdk-ava ai zod @antv/ava',
+    },
+    codeExample: `import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { generateText, isStepCount } from 'ai';
+import { avaTools } from 'ai-sdk-ava';
+
+const tempDir = await mkdtemp(join(tmpdir(), 'ai-sdk-ava-'));
+const csvPath = join(tempDir, 'sales.csv');
+// The sample dataset is written below (region,revenue header plus three
+// rows), so no separate download is needed for the local-file tool.
+const { tools, dispose } = avaTools({
+  llm: {
+    // Requires AI_GATEWAY_API_KEY in your environment; see the API key
+    // setup link on the tool detail page.
+    model: 'openai/gpt-4o-mini',
+    apiKey: process.env.AI_GATEWAY_API_KEY!,
+    baseURL: 'https://ai-gateway.vercel.sh/v1',
+  },
+  maxRows: 200,
+});
+
+try {
+  await writeFile(
+    csvPath,
+    'region,revenue\\nNorth,120\\nSouth,180\\nWest,150\\n',
+    'utf8',
+  );
+
+  const { text } = await generateText({
+    model: 'openai/gpt-4o-mini',
+    tools,
+    stopWhen: isStepCount(5),
+    prompt: \`Load \${csvPath}, then tell me which region sells the most and chart it.\`,
+  });
+  console.log(text);
+} finally {
+  try {
+    await dispose(); // closes the DuckDB connection
+  } finally {
+    await rm(tempDir, { recursive: true, force: true });
+  }
+}`,
+    docsUrl:
+      'https://github.com/DoubleCore/ai-sdk-ava/blob/main/README.md#usage',
+    apiKeyUrl:
+      'https://vercel.com/docs/ai-gateway/authentication-and-byok#api-key',
+    websiteUrl: 'https://github.com/DoubleCore/ai-sdk-ava',
+    npmUrl: 'https://www.npmjs.com/package/ai-sdk-ava',
+  },
   {
     slug: 'upstash-agentkit',
     name: 'Upstash AgentKit',
