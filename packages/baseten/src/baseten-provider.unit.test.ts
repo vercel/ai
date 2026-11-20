@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { DecisionBasetenModel } from './baseten-decision-model';
 import { createBaseten } from './baseten-provider';
 import {
   LanguageModelV4,
@@ -697,6 +698,38 @@ describe('BasetenProvider', () => {
 
       const model2 = provider('test-model');
       expect(model2).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
+    });
+  });
+
+  describe('decisionModel', () => {
+    it('should call the Model APIs System One endpoint and ignore modelURL', async () => {
+      const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            answers: { refund: { type: 'noul', noul: 0.9 } },
+            usage: { input_tokens: 12, output_tokens: 1 },
+          }),
+          { headers: { 'content-type': 'application/json' } },
+        ),
+      );
+      const provider = createBaseten({
+        modelURL:
+          'https://model-123.api.baseten.co/environments/production/sync/v1',
+        fetch,
+      });
+      const model = provider.decisionModel(
+        'decision-models/baseten-groundhog-latest',
+      );
+
+      expect(model).toBeInstanceOf(DecisionBasetenModel);
+      expect(model.provider).toBe('baseten.decision');
+      await model.doDecide({
+        state: [{ type: 'text', text: 'Please refund me.' }],
+        questions: { refund: { type: 'boolean' } },
+      });
+      expect(fetch.mock.calls[0][0]).toBe(
+        'https://inference.baseten.co/v1/systemone',
+      );
     });
   });
 });
