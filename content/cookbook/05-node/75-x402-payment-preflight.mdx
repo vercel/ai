@@ -1,0 +1,61 @@
+---
+title: Review x402 Payments Before Signing
+description: Add an advisory payment preflight tool and enforce its decision in the payment client.
+tags: ['node']
+---
+
+# Review x402 Payments Before Signing
+
+This community example is maintained by the operator of [SpendPreflight](https://spendpreflight.com). It reviews an x402 merchant challenge before payment, returning allow, hold or block and a receipt. Screening is informational, not legal advice or certification.
+
+The separate screening request costs $0.02 USDC on Base. Supply a fetch transport bounded to that screening service, published recipient and fee. Do not give the model unrestricted signing authority. A plain fetch receives HTTP402 instead of a completed screening result.
+
+## Define the tool
+
+Install ai and zod in your application. The factory below makes no request until execute is invoked. It rejects HTTP and schema errors rather than treating them as permission to pay.
+
+```ts file='preflight-tool.ts'
+import { tool } from "ai";
+import { z } from "zod";
+
+// Maintained by SpendPreflight's operator. The supplied fetch pays only the $0.02
+// screening fee; this tool never pays the merchant whose challenge is reviewed.
+export function createPreflightTool(screeningFetch: typeof fetch) {
+  return tool({
+    description: "Operated by SpendPreflight. Before an x402 payment, review its 402 challenge against your spending rules ($0.02 in Base USDC). Returns allow/hold/block and a receipt; informational screening, not a compliance certification. A separate payment action must deny hold/block.",
+    inputSchema: z.object({
+      challenge: z.record(z.string(), z.unknown()).describe("The merchant's complete x402 402 challenge"),
+      resource_url: z.url().describe("The merchant URL you plan to pay"),
+      rules: z.object({
+        max_per_payment_usd: z.number().positive(),
+        hold_above_usd: z.number().nonnegative(),
+      }),
+    }),
+    execute: async (input) => {
+      const response = await screeningFetch("https://api.spendpreflight.com/v1/preflight", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(input),
+        signal: AbortSignal.timeout(8_000),
+      });
+      if (!response.ok) throw new Error(`Preflight unavailable (HTTP ${response.status}); do not pay`);
+      return z.object({
+        decision: z.enum(["allow", "hold", "block"]),
+        reasons: z.array(z.string()),
+        receipt: z.object({ id: z.string() }).passthrough(),
+      }).passthrough().parse(await response.json());
+    },
+  });
+}
+
+// With an existing x402-paying fetch:
+// const tools = { preflight_before_paying: createPreflightTool(pay) };
+// Pass tools to generateText/streamText. Enforce decisions in the payment path,
+// e.g. with guard() as in x402-fetch.ts; tool selection alone is not enforcement.
+```
+
+## Enforce the result before signing
+
+An agent choosing this tool is not a security boundary. Put a guard in the actual x402 signing path: allow can continue subject to your local policy, hold requires an explicit policy or human decision, and block stops payment. Revalidate the current merchant quote, including network, asset, payee and maximum amount. Screening fees and merchant fees have separate budgets. Trial exhaustion must never silently switch to paid screening.
+
+The operator maintains executable [fetch](https://github.com/spendpreflight/spendpreflight-js/blob/main/examples/x402-fetch.ts) and [axios](https://github.com/spendpreflight/spendpreflight-js/blob/main/examples/x402-axios.ts) guard examples and [mocked framework tests](https://github.com/spendpreflight/spendpreflight-js/tree/main/test). No merchant payment or LLM request is needed to run those tests.
