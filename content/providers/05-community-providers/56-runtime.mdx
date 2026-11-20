@@ -1,0 +1,76 @@
+---
+title: Runtime
+description: Run AI SDK harness agents in Runtime Cloud sandboxes (Firecracker microVMs).
+---
+
+# Runtime
+
+[Runtime Cloud](https://withruntime.com) runs code in Firecracker microVM
+sandboxes, each with its own Linux kernel. The `withruntime` package includes a
+sandbox provider for [`HarnessAgent`](/docs/ai-sdk-harnesses/harness-agent), so a
+harness such as Claude Code, Codex, OpenCode or Pi runs in a Runtime sandbox
+instead of a Vercel Sandbox, with the same agent code.
+
+## Setup
+
+<InstallPackages packages="withruntime @ai-sdk/harness @ai-sdk/harness-claude-code" />
+
+Set `RUNTIME_API_KEY` to a key from
+[withruntime.com/account/keys](https://withruntime.com/account/keys), or run
+`npx withruntime login` once on the machine.
+
+## Create an Agent
+
+```ts
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { claudeCode } from '@ai-sdk/harness-claude-code';
+import { createRuntimeSandbox } from 'withruntime/ai-harness';
+
+export const agent = new HarnessAgent({
+  harness: claudeCode,
+  sandbox: createRuntimeSandbox({
+    ports: [4000],
+  }),
+  instructions: 'You are a careful coding assistant.',
+});
+```
+
+`createRuntimeSandbox()` returns a `HarnessV1SandboxProvider`. Bridge-backed
+harnesses (Claude Code, Codex, OpenCode, Deep Agents) connect to the first port
+in `ports`; host-runtime harnesses such as Pi need none.
+
+## Run a Turn
+
+```ts
+const session = await agent.createSession();
+try {
+  const result = await agent.generate({
+    session,
+    prompt: 'Create a short TODO.md for this repository.',
+  });
+  console.log(result.text);
+} finally {
+  await session.destroy();
+}
+```
+
+## Settings
+
+- `create`: how each sandbox is created, such as `region`, `image`, `snapshot`,
+  `vcpu`, `memoryMiB`, `timeoutSeconds` and `network`.
+- `env`: environment variables set for every command.
+- `ports`: ports exposed as preview URLs. Previews are private by default; the
+  endpoint returned by `getPortEndpoint` carries its token.
+- `pauseOnStop`: by default `session.stop()` stops the sandbox. With
+  `pauseOnStop: true` it pauses it instead, keeping files, memory and
+  processes, and `agent.createSession({ sessionId, resumeFrom })` resumes the
+  same machine.
+- `sandbox`: wrap an existing `withruntime` sandbox that you keep ownership of.
+
+The session implements `setNetworkPolicy` (`allow-all`, `deny-all` and
+`custom`) and `setPorts`. Missing or rejected credentials raise
+`HarnessSandboxAuthenticationError`.
+
+## More Information
+
+See the [Runtime guide for the Vercel AI SDK](https://withruntime.com/docs/vercel-ai-sdk).
