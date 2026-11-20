@@ -10,7 +10,7 @@ import {
   GATEWAY_REALTIME_SUBPROTOCOL,
   getGatewayRealtimeTeamIdOrSlug,
 } from './gateway-realtime-auth';
-import { GatewayLiveModel } from './gateway-live-model';
+import { GatewayRealtimeModelLive } from './gateway-realtime-model-live';
 import { GatewayRealtimeModel } from './gateway-realtime-model';
 import { createGateway } from './gateway-provider';
 
@@ -31,10 +31,10 @@ const createTestModel = ({
   baseURL?: string;
   teamIdOrSlug?: string;
   createClientSecret?: ConstructorParameters<
-    typeof GatewayLiveModel
+    typeof GatewayRealtimeModelLive
   >[1]['createClientSecret'];
 } = {}) =>
-  new GatewayLiveModel(modelId, {
+  new GatewayRealtimeModelLive(modelId, {
     provider: 'gateway.live',
     baseURL,
     ...(teamIdOrSlug !== undefined && { teamIdOrSlug }),
@@ -48,7 +48,7 @@ const createTestModel = ({
 const liveUrl =
   'wss://ai-gateway.vercel.sh/v4/ai/live-model?ai-model-id=openai%2Fgpt-live-1.1';
 
-describe('GatewayLiveModel', () => {
+describe('GatewayRealtimeModelLive', () => {
   it('declares continuous Live capabilities', () => {
     const model = createTestModel();
     expect(model.specificationVersion).toBe('v4');
@@ -454,7 +454,7 @@ describe('gateway.experimental_realtime Live routing', () => {
     'creates a Live model for %s',
     modelId => {
       const model = gateway.experimental_realtime(modelId);
-      expect(model).toBeInstanceOf(GatewayLiveModel);
+      expect(model).toBeInstanceOf(GatewayRealtimeModelLive);
       expect(model.provider).toBe('gateway.live');
     },
   );
@@ -472,7 +472,7 @@ describe('gateway.experimental_realtime Live routing', () => {
   it('honors an explicit api option', () => {
     expect(
       gateway.experimental_realtime('openai/gpt-live-2', { api: 'live' }),
-    ).toBeInstanceOf(GatewayLiveModel);
+    ).toBeInstanceOf(GatewayRealtimeModelLive);
     expect(
       gateway.experimental_realtime('openai/gpt-live-1.1', { api: 'realtime' }),
     ).toBeInstanceOf(GatewayRealtimeModel);

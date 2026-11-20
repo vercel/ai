@@ -13,7 +13,7 @@ import {
 import { removeUndefinedEntries } from '@ai-sdk/provider-utils';
 import { getGatewayRealtimeProtocols } from './gateway-realtime-auth';
 
-export type GatewayLiveModelConfig = {
+export type GatewayRealtimeModelLiveConfig = {
   provider: string;
   baseURL: string;
   teamIdOrSlug?: string;
@@ -51,7 +51,7 @@ const supportedSessionSettings = new Set([
  * on `/v4/ai/live-model`, and the Gateway runs the provider mapping
  * server-side, so server events arrive already normalized.
  */
-export class GatewayLiveModel implements RealtimeModelV4 {
+export class GatewayRealtimeModelLive implements RealtimeModelV4 {
   readonly specificationVersion = 'v4' as const;
   readonly capabilities = {
     conversation: 'continuous',
@@ -63,9 +63,9 @@ export class GatewayLiveModel implements RealtimeModelV4 {
   readonly provider: string;
   readonly modelId: string;
 
-  private readonly config: GatewayLiveModelConfig;
+  private readonly config: GatewayRealtimeModelLiveConfig;
 
-  constructor(modelId: string, config: GatewayLiveModelConfig) {
+  constructor(modelId: string, config: GatewayRealtimeModelLiveConfig) {
     this.modelId = modelId;
     this.provider = config.provider;
     this.config = config;

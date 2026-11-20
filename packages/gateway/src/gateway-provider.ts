@@ -48,7 +48,7 @@ import {
   GatewayTranscriptionModel,
   toGatewayTranscriptionUrl,
 } from './gateway-transcription-model';
-import { GatewayLiveModel } from './gateway-live-model';
+import { GatewayRealtimeModelLive } from './gateway-realtime-model-live';
 import { GatewayRealtimeModel } from './gateway-realtime-model';
 import type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
 import type { GatewayDecisionModelId } from './gateway-decision-model-settings';
@@ -265,12 +265,12 @@ export interface GatewayProvider extends ProviderV4 {
  * secret bound to the matching Gateway WebSocket route.
  */
 export interface GatewayRealtimeFactory extends RealtimeFactoryV4 {
-  (modelId: string, options: { api: 'live' }): GatewayLiveModel;
+  (modelId: string, options: { api: 'live' }): GatewayRealtimeModelLive;
   (modelId: string, options: { api: 'realtime' }): GatewayRealtimeModel;
   (
     modelId: GatewayKnownLiveModelId,
     options?: { api?: undefined },
-  ): GatewayLiveModel;
+  ): GatewayRealtimeModelLive;
   (
     modelId: GatewayRealtimeModelId,
     options?: GatewayRealtimeOptions,
@@ -829,7 +829,7 @@ export function createGateway(
     realtimeOptions?: GatewayRealtimeOptions,
   ) =>
     resolveGatewayRealtimeApi(modelId, realtimeOptions) === 'live'
-      ? new GatewayLiveModel(modelId, {
+      ? new GatewayRealtimeModelLive(modelId, {
           provider: 'gateway.live',
           baseURL,
           teamIdOrSlug: options.teamIdOrSlug,
