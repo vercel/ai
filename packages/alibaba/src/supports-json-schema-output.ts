@@ -5,6 +5,7 @@ const JSON_SCHEMA_MODEL_PREFIXES = [
   'qwen3.7-max',
   'qwen3.8-max',
   'qwen3.8-flash',
+  'qwen4-max',
 ];
 
 export function supportsJsonSchemaOutput(modelId: string): boolean {

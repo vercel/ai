@@ -1,4 +1,4 @@
-export type AlibabaCacheControl = { type: string };
+export type AlibabaCacheControl = { type: string; ttl?: string };
 
 export type AlibabaChatPrompt = Array<AlibabaChatMessage>;
 
@@ -29,6 +29,11 @@ export type AlibabaChatUserMessageContent =
   | {
       type: 'image_url';
       image_url: { url: string };
+      cache_control?: AlibabaCacheControl;
+    }
+  | {
+      type: 'video_url';
+      video_url: { url: string };
       cache_control?: AlibabaCacheControl;
     };
 
