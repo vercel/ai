@@ -35,6 +35,13 @@ type VercelCreationSettings = DistributiveOmit<
 export type VercelNetworkSandboxSessionCreateOptions = Prettify<
   HarnessV1SandboxSessionCreateOptions<VercelCreationSettings> & {
     sandbox?: never;
+    /**
+     * Name of the reusable template. Defaults to a name derived from the
+     * template's identity and the sandbox source. A template that already
+     * exists under this name is reused as is, so change the name when the
+     * template's identity or source changes. Has no effect without `template`.
+     */
+    templateName?: string;
   }
 >;
 
@@ -71,6 +78,7 @@ export async function createVercelNetworkSandboxSession(
   }
   const {
     template,
+    templateName,
     abortSignal,
     sandboxId,
     sandbox: _sandbox,
@@ -116,13 +124,13 @@ export async function createVercelNetworkSandboxSession(
   const digest = new Uint8Array(
     await crypto.subtle.digest('SHA-256', new TextEncoder().encode(material)),
   );
-  const templateName = `ai-sdk-harness-v${TEMPLATE_VERSION}-${Array.from(digest.slice(0, 12), byte => byte.toString(16).padStart(2, '0')).join('')}`;
+  const derivedTemplateName = `ai-sdk-harness-v${TEMPLATE_VERSION}-${Array.from(digest.slice(0, 12), byte => byte.toString(16).padStart(2, '0')).join('')}`;
   const snapshotId = await withVercelSandboxAuthenticationError({
     settings,
     operation: () =>
       ensureTemplateSnapshot({
         baseParams,
-        templateName,
+        templateName: templateName ?? derivedTemplateName,
         lookupParams: getSandboxLookupParams(baseParams),
         abortSignal: effectiveSignal,
         onCreate: async sandbox => {
