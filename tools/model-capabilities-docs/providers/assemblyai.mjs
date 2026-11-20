@@ -5,6 +5,16 @@ export const assemblyaiDocs = {
   "docsPath": "content/providers/01-ai-sdk-providers/100-assemblyai.mdx",
   "tables": [
     {
+      "id": "assemblyai-speech",
+      "capability": "speech",
+      "columns": [
+        [
+          "Instructions",
+          "instructions"
+        ]
+      ]
+    },
+    {
       "id": "assemblyai-transcription",
       "capability": "transcription",
       "columns": [
