@@ -38,8 +38,13 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
       continue;
     }
 
-    // Skip empty text
-    if (part.type === 'text' && part.text.length === 0) {
+    // Skip empty text unless it carries provider metadata that needs to be
+    // preserved for replay.
+    if (
+      part.type === 'text' &&
+      part.text.length === 0 &&
+      part.providerMetadata == null
+    ) {
       continue;
     }
 
