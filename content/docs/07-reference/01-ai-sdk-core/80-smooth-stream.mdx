@@ -47,6 +47,13 @@ const result = streamText({
       description:
         'Controls how text and reasoning content is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, an Intl.Segmenter for locale-aware word segmentation (recommended for CJK languages), or provide a custom callback or RegExp pattern that does not match the empty string for custom chunking.',
     },
+    {
+      name: 'types',
+      type: "Array<'text' | 'reasoning'>",
+      isOptional: true,
+      description:
+        "The part types to smooth. Defaults to `['text', 'reasoning']`. Deltas of the other types are passed through immediately, after any buffered content is flushed.",
+    },
   ]}
 />
 
@@ -137,6 +144,18 @@ smoothStream({
 });
 ```
 
+#### Smoothing text only
+
+When your UI does not display reasoning, smoothing it only delays the text:
+text deltas wait until the buffered reasoning has been released. Set `types`
+to smooth text only and pass reasoning through immediately:
+
+```ts
+smoothStream({
+  types: ['text'],
+});
+```
+
 ### Returns
 
 Returns a `TransformStream` that:
@@ -144,4 +163,4 @@ Returns a `TransformStream` that:
 - Buffers incoming text and reasoning chunks
 - Releases content when the chunking pattern is encountered
 - Adds configurable delays between chunks for smooth output
-- Passes through non-text/reasoning chunks (like tool calls, step-finish events) immediately
+- Passes through all other chunks (like tool calls, step-finish events, and deltas of types that are not smoothed) immediately

@@ -30,16 +30,19 @@ export type ChunkDetector = (buffer: string) => string | undefined | null;
  *
  * @param delayInMs - The delay in milliseconds between each chunk. Defaults to 10ms. Can be set to `null` to skip the delay. The delay is skipped while the document is hidden (e.g. browser background tabs), where timer throttling would otherwise stall the stream.
  * @param chunking - Controls how the text is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, provide a custom RegExp pattern that does not match the empty string for custom chunking, provide an Intl.Segmenter for locale-aware word segmentation (recommended for CJK languages), or provide a custom ChunkDetector function.
+ * @param types - The part types to smooth. Defaults to `['text', 'reasoning']`. Deltas of the other types are passed through immediately, after any buffered content is flushed.
  *
  * @returns A transform stream that smooths text streaming output.
  */
 export function smoothStream<TOOLS extends ToolSet>({
   delayInMs = 10,
   chunking = 'word',
+  types = ['text', 'reasoning'],
   _internal: { delay = originalDelay } = {},
 }: {
   delayInMs?: number | null;
   chunking?: 'word' | 'line' | RegExp | ChunkDetector | Intl.Segmenter;
+  types?: Array<'text' | 'reasoning'>;
   /**
    * Internal. For test use only. May change without notice.
    */
@@ -145,8 +148,11 @@ export function smoothStream<TOOLS extends ToolSet>({
           return;
         }
 
-        // Handle non-smoothable chunks: flush buffer and pass through
-        if (chunk.type !== 'text-delta' && chunk.type !== 'reasoning-delta') {
+        // Handle chunks that are not smoothed: flush buffer and pass through
+        if (
+          !(chunk.type === 'text-delta' && types.includes('text')) &&
+          !(chunk.type === 'reasoning-delta' && types.includes('reasoning'))
+        ) {
           flushBuffer(controller);
           controller.enqueue(chunk);
           return;
