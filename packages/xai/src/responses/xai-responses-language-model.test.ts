@@ -1,4 +1,5 @@
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import { safeParseJSON } from '@ai-sdk/provider-utils';
 import {
   convertReadableStreamToArray,
   mockId,
@@ -6,6 +7,7 @@ import {
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import fs from 'node:fs';
+import { xSearch } from '../tool/x-search';
 import { XaiResponsesLanguageModel } from './xai-responses-language-model';
 import type { XaiLanguageModelResponsesOptions } from './xai-responses-language-model-options';
 
@@ -1783,6 +1785,49 @@ describe('XaiResponsesLanguageModel', () => {
 
         expect(result.content).toMatchSnapshot();
       });
+
+      it('should keep the search arguments when the tool call input is parsed', async () => {
+        const searchArguments = { query: 'ai sdk', limit: '5', mode: 'Latest' };
+
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast-non-reasoning',
+          output: [
+            {
+              type: 'custom_tool_call',
+              id: 'ctc_123',
+              call_id: 'xs_call_123',
+              name: 'x_keyword_search',
+              input: JSON.stringify(searchArguments),
+              status: 'completed',
+            },
+          ],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.x_search',
+              name: 'x_search',
+              args: {},
+            },
+          ],
+        });
+
+        const toolCall = result.content.find(part => part.type === 'tool-call');
+
+        expect(
+          await safeParseJSON({
+            text: toolCall!.input,
+            schema: xSearch().inputSchema,
+          }),
+        ).toMatchObject({ success: true, value: searchArguments });
+      });
     });
 
     describe('code_interpreter tool', () => {
@@ -3158,6 +3203,87 @@ describe('XaiResponsesLanguageModel', () => {
         const parts = await convertReadableStreamToArray(stream);
 
         expect(parts).toMatchSnapshot();
+      });
+
+      it('should keep the search arguments when the streamed tool call input is parsed', async () => {
+        const searchArguments = { query: 'ai sdk', limit: '5', mode: 'Latest' };
+        const item = {
+          type: 'custom_tool_call',
+          id: 'ctc_123',
+          call_id: 'xs_call_123',
+          name: 'x_keyword_search',
+        };
+
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: { ...item, input: '', status: 'in_progress' },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.custom_tool_call_input.delta',
+            item_id: 'ctc_123',
+            output_index: 0,
+            delta: JSON.stringify(searchArguments),
+          }),
+          JSON.stringify({
+            type: 'response.custom_tool_call_input.done',
+            item_id: 'ctc_123',
+            output_index: 0,
+            input: JSON.stringify(searchArguments),
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              ...item,
+              input: JSON.stringify(searchArguments),
+              status: 'completed',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.completed',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.x_search',
+              name: 'x_search',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const toolCall = parts.find(part => part.type === 'tool-call');
+
+        expect(
+          await safeParseJSON({
+            text: toolCall!.input,
+            schema: xSearch().inputSchema,
+          }),
+        ).toMatchObject({ success: true, value: searchArguments });
       });
 
       it('should not emit duplicate text-delta from response.output_item.done after streaming', async () => {
