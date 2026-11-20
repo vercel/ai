@@ -346,9 +346,31 @@ function serializeFunctionResponseContent(
 ): JSONValue | string {
   // Keep Google's structured response for ordinary JSON, but normalize values
   // that would otherwise fail when the final request body is serialized.
-  return containsNonJsonValue(value)
+  const normalizedValue: JSONValue = containsNonJsonValue(value)
     ? secureJsonParse(stringifyWithBigIntAndCycles(value))
     : value;
+
+  // Google reserves { $ref: displayName } in structured function responses for
+  // multimodal parts. This conflicts with JSON Schema $ref, so serialize the
+  // result to preserve it without triggering Google's reference handling.
+  return containsJSONSchemaReference(normalizedValue)
+    ? JSON.stringify(normalizedValue)
+    : normalizedValue;
+}
+
+function containsJSONSchemaReference(value: JSONValue | undefined): boolean {
+  if (Array.isArray(value)) {
+    return value.some(containsJSONSchemaReference);
+  }
+
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  return Object.entries(value).some(
+    ([key, nestedValue]) =>
+      key === '$ref' || containsJSONSchemaReference(nestedValue),
+  );
 }
 
 function containsNonJsonValue(
