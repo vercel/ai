@@ -814,6 +814,14 @@ async function generateTextInternal<
         deniedToolApprovals: collectedDeniedToolApprovals,
       } = collectToolApprovals<TOOLS>({ messages: initialMessages });
 
+      const hasPreStepApprovals =
+        collectedDeniedToolApprovals.length > 0 ||
+        approvedToolApprovals.length > 0;
+
+      if (hasPreStepApprovals) {
+        mergedAbortSignal?.throwIfAborted();
+      }
+
       const {
         approvedToolApprovals: localApprovedToolApprovals,
         deniedToolApprovals: revalidationDeniedToolApprovals,
@@ -829,7 +837,12 @@ async function generateTextInternal<
         runtimeContext,
         toolApprovalSecret: experimental_toolApprovalSecret,
         refineToolInput,
+        abortSignal: mergedAbortSignal,
       });
+
+      if (hasPreStepApprovals) {
+        mergedAbortSignal?.throwIfAborted();
+      }
 
       const deniedToolApprovals = [
         ...collectedDeniedToolApprovals,
@@ -941,6 +954,8 @@ async function generateTextInternal<
           role: 'tool',
           content: toolContent,
         });
+
+        mergedAbortSignal?.throwIfAborted();
       }
 
       const callSettings = prepareLanguageModelCallOptions(settings);
