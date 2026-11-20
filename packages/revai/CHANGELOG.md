@@ -1,5 +1,13 @@
 # @ai-sdk/revai
 
+## 3.0.83
+
+### Patch Changes
+
+- c93eef4: Derive the legacy provider call signature model ID from the model catalog.
+- Updated dependencies [1d2c2ff]
+  - @ai-sdk/provider-utils@5.0.83
+
 ## 3.0.82
 
 ### Patch Changes

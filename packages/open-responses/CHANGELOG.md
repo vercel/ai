@@ -1,5 +1,12 @@
 # @ai-sdk/open-responses
 
+## 2.0.89
+
+### Patch Changes
+
+- Updated dependencies [1d2c2ff]
+  - @ai-sdk/provider-utils@5.0.83
+
 ## 2.0.88
 
 ### Patch Changes

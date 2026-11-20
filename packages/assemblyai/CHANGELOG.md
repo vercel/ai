@@ -1,5 +1,13 @@
 # @ai-sdk/assemblyai
 
+## 3.0.84
+
+### Patch Changes
+
+- f2e49dc: Derive deprecated transcription model IDs from the model catalog while preserving the legacy model policy.
+- Updated dependencies [1d2c2ff]
+  - @ai-sdk/provider-utils@5.0.83
+
 ## 3.0.83
 
 ### Patch Changes
