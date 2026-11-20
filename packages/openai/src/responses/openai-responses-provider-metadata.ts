@@ -1,4 +1,5 @@
 import type {
+  OpenAIResponsesAccessPrograms,
   openaiResponsesChunkSchema,
   OpenAIResponsesInputTransformation,
   OpenAIResponsesLogprobs,
@@ -20,6 +21,12 @@ export type ResponsesProviderMetadata = {
   reasoningContext?: string;
   promptCacheDiagnostics?: OpenAIResponsesPromptCacheDiagnostics;
   inputTransformations?: Array<OpenAIResponsesInputTransformation>;
+  /**
+   * The access programs that OpenAI applied to the request, keyed by program
+   * category, such as `{ cyber: 'daybreak_blue' }`. Omitted when the response
+   * does not report any.
+   */
+  accessPrograms?: OpenAIResponsesAccessPrograms;
 };
 
 export type ResponsesReasoningProviderMetadata = {
