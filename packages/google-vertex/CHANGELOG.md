@@ -1,5 +1,14 @@
 # @ai-sdk/google-vertex
 
+## 4.0.235
+
+### Patch Changes
+
+- 8a9bcc8: feat(google): add the `gemini-4-neon` model ID
+- Updated dependencies [85637dc]
+- Updated dependencies [8a9bcc8]
+  - @ai-sdk/google@3.0.148
+
 ## 4.0.234
 
 ### Patch Changes
