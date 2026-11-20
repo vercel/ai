@@ -1,0 +1,146 @@
+---
+title: Dash0
+description: Trace and monitor AI SDK applications with Dash0
+---
+
+# Dash0 Observability
+
+[Dash0](https://www.dash0.com) is an OpenTelemetry-native observability platform for traces, metrics and logs. It reads the [OpenTelemetry GenAI semantic conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/), so AI SDK calls show up with their model, token usage, cost, tool calls and messages, next to the rest of your application's traces. You can score the recorded conversations with [evals](https://www.dash0.com/docs/dash0/ai/observability/evals).
+
+## Setup
+
+### 1. Get an auth token and endpoint
+
+You need an [auth token](https://www.dash0.com/docs/dash0/miscellaneous/glossary/auth-tokens) with ingest permission and your organization's OTLP via HTTP [endpoint](https://www.dash0.com/docs/dash0/miscellaneous/glossary/endpoints), such as `https://ingress.eu-west-1.aws.dash0.com`. Both are in your Dash0 organization settings.
+
+```bash filename=".env"
+DASH0_AUTH_TOKEN="<auth-token>"
+DASH0_OTLP_ENDPOINT="https://ingress.eu-west-1.aws.dash0.com"
+```
+
+### 2. Send traces to Dash0
+
+Use the AI SDK's `OpenTelemetry` integration from `@ai-sdk/otel`. It writes spans with the GenAI attributes that Dash0 reads.
+
+<Tabs items={["Next.js", "Node.js"]}>
+
+<Tab>
+
+Install the OpenTelemetry packages:
+
+```bash
+npm install @ai-sdk/otel @opentelemetry/api @vercel/otel
+```
+
+Register the OpenTelemetry provider before the AI SDK OpenTelemetry integration:
+
+```ts filename="instrumentation.ts"
+import { OpenTelemetry } from '@ai-sdk/otel';
+import { registerTelemetry } from 'ai';
+import { OTLPHttpProtoTraceExporter, registerOTel } from '@vercel/otel';
+
+export function register() {
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    registerOTel({
+      serviceName: 'my-ai-app',
+      traceExporter: new OTLPHttpProtoTraceExporter({
+        url: `${process.env.DASH0_OTLP_ENDPOINT}/v1/traces`,
+        headers: {
+          Authorization: `Bearer ${process.env.DASH0_AUTH_TOKEN}`,
+        },
+      }),
+    });
+
+    registerTelemetry(new OpenTelemetry());
+  }
+}
+```
+
+</Tab>
+
+<Tab>
+
+Install the OpenTelemetry SDK and HTTP/protobuf exporter:
+
+```bash
+npm install @ai-sdk/otel @opentelemetry/api @opentelemetry/sdk-node @opentelemetry/exporter-trace-otlp-proto
+```
+
+Create an instrumentation module that starts the Node.js OpenTelemetry SDK before registering the AI SDK integration:
+
+```js filename="instrumentation.mjs"
+import { OpenTelemetry } from '@ai-sdk/otel';
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
+import { NodeSDK } from '@opentelemetry/sdk-node';
+import { registerTelemetry } from 'ai';
+
+export const sdk = new NodeSDK({
+  serviceName: 'my-ai-app',
+  traceExporter: new OTLPTraceExporter({
+    url: `${process.env.DASH0_OTLP_ENDPOINT}/v1/traces`,
+    headers: {
+      Authorization: `Bearer ${process.env.DASH0_AUTH_TOKEN}`,
+    },
+  }),
+});
+
+sdk.start();
+registerTelemetry(new OpenTelemetry());
+```
+
+Load the instrumentation module before your application starts:
+
+```bash
+node --import ./instrumentation.mjs your-app.mjs
+```
+
+For scripts, import `sdk` from the instrumentation module and call `await sdk.shutdown()` after all AI SDK calls and streams finish, so the last spans are exported.
+
+</Tab>
+
+</Tabs>
+
+Dash0 writes to the token's default [dataset](https://www.dash0.com/docs/dash0/miscellaneous/glossary/datasets). To pick another one, add a `Dash0-Dataset` header to the exporter:
+
+```ts
+headers: {
+  Authorization: `Bearer ${process.env.DASH0_AUTH_TOKEN}`,
+  'Dash0-Dataset': 'my-dataset',
+},
+```
+
+No further changes are needed in your AI SDK calls. Once the integration is registered, `generateText`, `streamText`, agents and tool calls emit spans by default.
+
+## Traces
+
+Each `generateText` or `streamText` call produces an `invoke_agent` span, with a `chat <model>` span for every model call and an `execute_tool <tool>` span for every tool call. The **Gen AI** tab of Dash0's span sidebar groups the attributes into model, parameters, token usage and response, and Dash0 derives token usage and cost metrics from them. See [About GenAI Spans](https://www.dash0.com/docs/dash0/telemetry/tracing/about-gen-ai-spans) for the attributes Dash0 reads.
+
+Set `telemetry.functionId` to tell your features apart. The AI SDK records it as `gen_ai.agent.name`, which you can filter and group by in Dash0:
+
+```ts highlight="4-6"
+const result = await generateText({
+  model: openai('gpt-6-luna'),
+  prompt: 'Write a short story about a cat.',
+  telemetry: {
+    functionId: 'story-agent',
+  },
+});
+```
+
+The agent span is named after the model by default. To name it after the `functionId` instead, pass `agentSpanName` when you register the integration:
+
+```ts
+registerTelemetry(new OpenTelemetry({ agentSpanName: 'functionId' }));
+```
+
+## Prompts and responses
+
+The AI SDK records inputs and outputs by default, as `gen_ai.input.messages` and `gen_ai.output.messages` on the span. Dash0 evals judge these messages, so keep them on if you want to evaluate the conversations. To leave them out of a call, set `recordInputs` or `recordOutputs` to `false`:
+
+```ts
+telemetry: { recordInputs: false, recordOutputs: false }
+```
+
+To evaluate content without storing it, keep recording on and turn on GenAI attribute redaction for the dataset in Dash0 instead. Evals run before redaction, so they still judge the original text.
+
+See [Telemetry](/docs/ai-sdk-core/telemetry) for the other telemetry options.
