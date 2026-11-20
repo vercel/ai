@@ -478,6 +478,75 @@ describe('client-delegation runtime correctness', () => {
     expect(onError).not.toHaveBeenCalled();
   });
 
+  it.each([
+    { currentTime: 0.25, itemId: 'first', audioEndMs: 250 },
+    { currentTime: 1.25, itemId: 'second', audioEndMs: 250 },
+  ])(
+    'truncates the item playing at $currentTime seconds using its own offset',
+    async ({ currentTime, itemId, audioEndMs }) => {
+      const session = create({
+        model: legacyModel(),
+        api: { token: '/token' },
+      });
+      await ready(session, true);
+      const playback = FakeAudioContext.instances[0];
+      playback.state = 'running';
+      for (const queuedItemId of ['first', 'second'])
+        await emit({
+          type: 'audio-delta',
+          responseId: `response-${queuedItemId}`,
+          itemId: queuedItemId,
+          delta: encodeRealtimeAudio(new Float32Array(24000)),
+          raw: {},
+        });
+      expect(
+        playback.sources.map(source => source.start.mock.calls[0][0]),
+      ).toEqual([0, 1]);
+
+      playback.currentTime = currentTime;
+      await emit({ type: 'speech-started', raw: {} });
+
+      expect(socket().sent.at(-1)).toEqual({
+        type: 'conversation-item-truncate',
+        itemId,
+        contentIndex: 0,
+        audioEndMs,
+      });
+    },
+  );
+
+  it('accumulates the playback offset across chunks of the same queued item', async () => {
+    const session = create({
+      model: legacyModel(),
+      api: { token: '/token' },
+    });
+    await ready(session, true);
+    const playback = FakeAudioContext.instances[0];
+    playback.state = 'running';
+    for (const [itemId, samples] of [
+      ['first', 24000],
+      ['second', 12000],
+      ['second', 12000],
+    ] as const)
+      await emit({
+        type: 'audio-delta',
+        responseId: `response-${itemId}`,
+        itemId,
+        delta: encodeRealtimeAudio(new Float32Array(samples)),
+        raw: {},
+      });
+
+    playback.currentTime = 1.75;
+    await emit({ type: 'speech-started', raw: {} });
+
+    expect(socket().sent.at(-1)).toEqual({
+      type: 'conversation-item-truncate',
+      itemId: 'second',
+      contentIndex: 0,
+      audioEndMs: 750,
+    });
+  });
+
   it('rejects a legacy playback budget before token or browser effects', async () => {
     const onError = vi.fn();
     await create({
