@@ -755,7 +755,7 @@ console.log(text);`,
     slug: 'pidgeon',
     name: 'Pidgeon',
     description:
-      'Email inboxes for AI agents. Create addresses, send, receive and reply in threads, and wait for the next message with verification codes and links already extracted. Every inbound message is screened for prompt injection.',
+      'Email inboxes for AI agents, on @pidgeon.email or your domain, and for every user of your platform. The model creates inboxes, sends, waits for the reply and answers in the thread. Actions that cannot be undone can wait for a person to approve them.',
     packageName: '@pidgeon-ai/ai-sdk',
     tags: ['email', 'inbox', 'agents', 'security'],
     apiKeyEnvName: 'PIDGEON_API_KEY',
@@ -766,19 +766,22 @@ console.log(text);`,
       bun: 'bun add @pidgeon-ai/ai-sdk',
     },
     codeExample: `import { generateText, isStepCount } from 'ai';
-import { pidgeonTools } from '@pidgeon-ai/ai-sdk';
+import { pidgeonToolApproval, pidgeonTools } from '@pidgeon-ai/ai-sdk';
+
+const tools = pidgeonTools();
 
 const { text } = await generateText({
   model: 'openai/gpt-5-mini',
-  tools: pidgeonTools(),
-  stopWhen: isStepCount(5),
+  tools,
+  toolApproval: pidgeonToolApproval(tools),
+  stopWhen: isStepCount(10),
   prompt:
-    'List the email addresses you can use, check the newest one for recent messages, and summarise anything that needs a reply.',
+    'Make an inbox called bookings, email ops@example.com from it to ask for the staging access code, wait for the answer and tell me the code.',
 });
 
 console.log(text);`,
-    docsUrl: 'https://pidgeon.ai/docs/ai-sdk',
-    apiKeyUrl: 'https://pidgeon.ai/app/developers/keys',
+    docsUrl: 'https://pidgeon.ai/docs/sdks#vercel-ai-sdk',
+    apiKeyUrl: 'https://pidgeon.ai/keys',
     websiteUrl: 'https://pidgeon.ai',
     npmUrl: 'https://www.npmjs.com/package/@pidgeon-ai/ai-sdk',
   },
