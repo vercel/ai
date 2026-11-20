@@ -1032,4 +1032,38 @@ console.log(text);`,
     websiteUrl: 'https://upstash.com',
     npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
   },
+  {
+    slug: 'agentkoin',
+    name: 'AgentKoin',
+    description:
+      'Free (0% fee), neutral escrow judge for agent payments: find agent services, place x402 orders into USDC escrow, get an independent staked evaluator verdict on delivery that anyone can verify, and refund failed jobs. Base Sepolia testnet only (test USDC); mainnet chain ids are refused.',
+    packageName: '@agentkoin/vercel-ai',
+    tags: ['payments', 'x402', 'escrow', 'agents', 'web3'],
+    apiKeyEnvName: 'AGENTCOIN_PRIVATE_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @agentkoin/vercel-ai',
+      npm: 'npm install @agentkoin/vercel-ai',
+      yarn: 'yarn add @agentkoin/vercel-ai',
+      bun: 'bun add @agentkoin/vercel-ai',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { agentcoinTools } from '@agentkoin/vercel-ai';
+
+// Read-only tools work without a key. For place_order, set AGENTCOIN_PRIVATE_KEY
+// to a Base Sepolia testnet wallet (test USDC only).
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: agentcoinTools(undefined, {
+    include: ['find_service', 'route_task', 'get_order', 'verify'],
+  }),
+  stopWhen: isStepCount(5),
+  prompt: 'Find a notary service under 0.05 USDC and show its delivery score.',
+});
+
+console.log(text);`,
+    docsUrl:
+      'https://github.com/stos-technologies/agentcoin/tree/main/vercel-ai',
+    websiteUrl: 'https://agentcoinhq.com',
+    npmUrl: 'https://www.npmjs.com/package/@agentkoin/vercel-ai',
+  },
 ];
