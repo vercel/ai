@@ -311,6 +311,15 @@ The following optional provider options are available for Google models:
   [Priority inference](https://ai.google.dev/gemini-api/docs/priority-inference)
   and [Flex inference](https://ai.google.dev/gemini-api/docs/flex-inference).
 
+- **store** _boolean_
+
+  Optional. Whether the Gemini API may log this request and its response to
+  your project's Logs and Datasets. Set to `false` to opt the request out of
+  logging. The request field overrides the project-level logging setting, which
+  is on by default for projects created on or after October 26, 2026.
+  Available on the Gemini API only. See
+  [Logs and datasets](https://ai.google.dev/gemini-api/docs/logs-datasets).
+
 - **continuationToken** _string_
 
   Optional. Resumes a response that stopped because it used up its
