@@ -64,13 +64,21 @@ export function convertToMistralConversationInputs(
       });
       return;
     }
+    if (part.output.type === 'content') {
+      inputs.push({
+        type: 'function.result',
+        tool_call_id: part.toolCallId,
+        result: stringifyWithBigIntAndCycles(part.output.value),
+      });
+      return;
+    }
     const converted = convertToMistralChatMessages([
       { role: 'tool', content: [part] },
     ])[0] as MistralToolMessage;
     inputs.push({
       type: 'function.result',
       tool_call_id: part.toolCallId,
-      result: converted.content,
+      result: converted.content as string,
     });
   };
 

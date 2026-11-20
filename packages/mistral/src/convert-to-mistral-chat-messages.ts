@@ -2,10 +2,12 @@ import {
   UnsupportedFunctionalityError,
   type LanguageModelV4FilePart,
   type LanguageModelV4Prompt,
+  type LanguageModelV4ToolResultOutput,
 } from '@ai-sdk/provider';
 import type {
   MistralAssistantMessageContent,
   MistralPrompt,
+  MistralUserMessageContent,
 } from './mistral-chat-prompt';
 import {
   secureJsonParse,
@@ -27,6 +29,54 @@ function formatFileUrl({ part }: { part: LanguageModelV4FilePart }): string {
   throw new UnsupportedFunctionalityError({
     functionality: `file part data type ${part.data.type}`,
   });
+}
+
+function convertToolResultFilePart(
+  part: LanguageModelV4FilePart,
+): MistralUserMessageContent | undefined {
+  if (part.data.type !== 'url' && part.data.type !== 'data') {
+    return undefined;
+  }
+
+  if (getTopLevelMediaType(part.mediaType) === 'image') {
+    return { type: 'image_url', image_url: formatFileUrl({ part }) };
+  }
+
+  const mediaType =
+    part.data.type === 'data' ? resolveFullMediaType({ part }) : part.mediaType;
+
+  if (mediaType === 'application/pdf') {
+    return { type: 'document_url', document_url: formatFileUrl({ part }) };
+  }
+
+  return undefined;
+}
+
+function convertToolResultContentPart(
+  part: Extract<
+    LanguageModelV4ToolResultOutput,
+    { type: 'content' }
+  >['value'][number],
+): MistralUserMessageContent {
+  if (part.type === 'text') {
+    return { type: 'text', text: part.text };
+  }
+
+  if (part.type === 'file') {
+    try {
+      const fileChunk = convertToolResultFilePart(part);
+
+      if (fileChunk != null) {
+        return fileChunk;
+      }
+    } catch (error) {
+      if (!UnsupportedFunctionalityError.isInstance(error)) {
+        throw error;
+      }
+    }
+  }
+
+  return { type: 'text', text: stringifyWithBigIntAndCycles(part) };
 }
 
 export function serializeMistralToolCallArguments(input: unknown): string {
@@ -177,7 +227,7 @@ export function convertToMistralChatMessages(
           }
           const output = toolResponse.output;
 
-          let contentValue: string;
+          let contentValue: string | Array<MistralUserMessageContent>;
           switch (output.type) {
             case 'text':
             case 'error-text':
@@ -187,6 +237,8 @@ export function convertToMistralChatMessages(
               contentValue = output.reason ?? 'Tool call execution denied.';
               break;
             case 'content':
+              contentValue = output.value.map(convertToolResultContentPart);
+              break;
             case 'json':
             case 'error-json':
               contentValue = stringifyWithBigIntAndCycles(output.value);

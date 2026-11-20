@@ -43,7 +43,7 @@ export type MistralAssistantMessageContent =
 export interface MistralToolMessage {
   role: 'tool';
   name: string;
-  content: string;
+  content: string | Array<MistralUserMessageContent>;
   tool_call_id: string;
 }
 
