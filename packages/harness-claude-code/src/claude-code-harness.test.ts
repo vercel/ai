@@ -4,6 +4,10 @@ import {
   type HarnessV1Prompt,
 } from '@ai-sdk/harness';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
+import {
+  BRIDGE_AUTH_PUBLIC_KEY_ENV,
+  createBridgeAuthKeyPair,
+} from '@ai-sdk/harness/utils';
 import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import type * as NodeFsPromises from 'node:fs/promises';
@@ -264,6 +268,7 @@ function fakeNetworkSandboxSessionForStartupFailure({
 }
 
 function fakeNetworkSandboxSessionForStartupSuccess({
+  id = 'test-sandbox',
   bridgePortUrl,
   bridgePortHeaders,
   spawns,
@@ -271,6 +276,7 @@ function fakeNetworkSandboxSessionForStartupSuccess({
   writes,
   runs,
 }: {
+  id?: string;
   bridgePortUrl: string;
   bridgePortHeaders?: Readonly<Record<string, string>>;
   spawns?: string[];
@@ -314,7 +320,7 @@ function fakeNetworkSandboxSessionForStartupSuccess({
     },
   };
   return {
-    id: 'test-sandbox',
+    id,
     defaultWorkingDirectory: '/vercel/sandbox',
     restricted: () => session,
     ports: [4319],
@@ -1055,6 +1061,50 @@ describe('createClaudeCode adapter', () => {
     expect(keepalives).toEqual([100, 100]);
     const attachedResumeFrom = await attachedSession.doDetach();
     expect(attachedResumeFrom.data).toMatchObject({ bridge: { privateKey } });
+  });
+
+  it('starts the bridge with a caller-minted key pair and keeps it for attach', async () => {
+    const customKeyPair = createBridgeAuthKeyPair();
+    const mintBridgeAuthKeyPair = vi.fn(
+      (_sandboxId: string | undefined) => customKeyPair,
+    );
+    const harness = createClaudeCode({ mintBridgeAuthKeyPair });
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      id: 'sbx-1',
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      spawnEnvs,
+      writes: [],
+      runs: [],
+    });
+
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+
+    expect(mintBridgeAuthKeyPair).toHaveBeenCalledWith('sbx-1');
+    const spawnEnv = spawnEnvs[0];
+    expect(spawnEnv?.[BRIDGE_AUTH_PUBLIC_KEY_ENV]).toBe(
+      customKeyPair.publicKey,
+    );
+
+    const resumeFrom = await session.doDetach();
+    expect(resumeFrom.data).toMatchObject({
+      bridge: { privateKey: customKeyPair.privateKey },
+    });
+
+    const attachedSession = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      resumeFrom,
+    });
+    const attachedResumeFrom = await attachedSession.doDetach();
+    expect(attachedResumeFrom.data).toMatchObject({
+      bridge: { privateKey: customKeyPair.privateKey },
+    });
   });
 
   it('ignores a mintBridgeToken callback and warns once at creation', async () => {
