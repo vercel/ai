@@ -12,7 +12,6 @@ import {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  convertInlineFileDataToUint8Array,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   deleteFromApi,
@@ -30,24 +29,26 @@ import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import type { GatewayConfig } from './gateway-config';
 import {
-  GATEWAY_FILE_PART,
   gatewayFileDeleteResponseSchema,
   gatewayFileResponseSchema,
-  getGatewayFileUploadFields,
+  getGatewayFileUploadBody,
   getGatewayFileUrl,
   getGatewayFilesUrl,
   getGatewayShouldRetry,
+  toGatewayFileDeleteResult,
   toGatewayFileDetails,
 } from './gateway-files-api';
-import {
-  gatewayFilesOptionsSchema,
-  type GatewayFilesOptions,
-} from './gateway-files-options';
+import { gatewayFilesOptionsSchema } from './gateway-files-options';
 
 const failedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: z.any(),
   errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
 });
+
+type GatewayFilesRequestHeaders = {
+  resolvedHeaders: Record<string, string | undefined> | undefined;
+  requestHeaders: Record<string, string | undefined>;
+};
 
 export class GatewayFiles implements FilesV4 {
   readonly specificationVersion = 'v4';
@@ -71,15 +72,20 @@ export class GatewayFiles implements FilesV4 {
     headers,
     providerOptions,
   }: FilesV4UploadFileCallOptions): Promise<FilesV4UploadFileResult> {
-    let gatewayOptions: GatewayFilesOptions | undefined;
-    let resolvedHeaders: Record<string, string | undefined> | undefined;
+    let requestHeaders: GatewayFilesRequestHeaders;
+    let body: ReturnType<typeof getGatewayFileUploadBody>;
     try {
-      gatewayOptions = await parseProviderOptions({
+      const gatewayOptions = await parseProviderOptions({
         provider: 'gateway',
         providerOptions,
         schema: gatewayFilesOptionsSchema,
       });
-      resolvedHeaders = await this.resolveHeaders();
+      requestHeaders = await this.getRequestHeaders(headers);
+      body = getGatewayFileUploadBody({
+        data,
+        filename,
+        expiresAfter: gatewayOptions?.expiresAfter,
+      });
     } catch (error) {
       // rejected before any request: release the caller's stream
       if (data.type === 'stream') {
@@ -89,33 +95,17 @@ export class GatewayFiles implements FilesV4 {
     }
 
     const url = getGatewayFilesUrl(this.config.baseURL);
-    const requestHeaders = await this.getRequestHeaders(
-      resolvedHeaders,
-      headers,
-    );
-    const fields = getGatewayFileUploadFields({
-      filename,
-      expiresAfter: gatewayOptions?.expiresAfter,
-    });
     const successfulResponseHandler = createJsonResponseHandler(
       gatewayFileResponseSchema,
     );
 
     try {
       const { value: response } =
-        data.type === 'stream'
+        body.type === 'stream'
           ? await postMultipartStreamToApi({
               url,
-              headers: requestHeaders,
-              parts: [
-                ...fields.map(field => ({ type: 'field' as const, ...field })),
-                {
-                  type: 'file',
-                  name: GATEWAY_FILE_PART.name,
-                  mediaType: GATEWAY_FILE_PART.mediaType,
-                  content: data.stream,
-                },
-              ],
+              headers: requestHeaders.requestHeaders,
+              parts: body.parts,
               failedResponseHandler,
               successfulResponseHandler,
               abortSignal,
@@ -123,8 +113,8 @@ export class GatewayFiles implements FilesV4 {
             })
           : await postFormDataToApi({
               url,
-              headers: requestHeaders,
-              formData: toFormData({ fields, data }),
+              headers: requestHeaders.requestHeaders,
+              formData: body.formData,
               failedResponseHandler,
               successfulResponseHandler,
               abortSignal,
@@ -132,12 +122,11 @@ export class GatewayFiles implements FilesV4 {
             });
 
       const details = toGatewayFileDetails(response);
-      const storedMediaType = details.mediaType ?? mediaType;
       const storedFilename = details.filename ?? filename;
 
       return {
         ...details,
-        mediaType: storedMediaType,
+        mediaType: details.mediaType ?? mediaType,
         ...(storedFilename != null ? { filename: storedFilename } : {}),
         warnings: getMediaTypeWarnings({
           declared: mediaType,
@@ -145,7 +134,7 @@ export class GatewayFiles implements FilesV4 {
         }),
       };
     } catch (error) {
-      throw await toGatewayFilesError(error, resolvedHeaders);
+      throw await toGatewayFilesError({ error, requestHeaders, abortSignal });
     }
   }
 
@@ -155,12 +144,12 @@ export class GatewayFiles implements FilesV4 {
     headers,
   }: FilesV4GetFileMetadataCallOptions): Promise<FilesV4GetFileMetadataResult> {
     const fileId = getGatewayFileId(file);
-    const resolvedHeaders = await this.resolveHeaders();
+    const requestHeaders = await this.getRequestHeaders(headers);
 
     try {
       const { value: response } = await getFromApi({
         url: getGatewayFileUrl(this.config.baseURL, fileId),
-        headers: await this.getRequestHeaders(resolvedHeaders, headers),
+        headers: requestHeaders.requestHeaders,
         failedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(
           gatewayFileResponseSchema,
@@ -172,7 +161,7 @@ export class GatewayFiles implements FilesV4 {
 
       return { warnings: [], ...toGatewayFileDetails(response) };
     } catch (error) {
-      throw await toGatewayFilesError(error, resolvedHeaders);
+      throw await toGatewayFilesError({ error, requestHeaders, abortSignal });
     }
   }
 
@@ -182,12 +171,12 @@ export class GatewayFiles implements FilesV4 {
     headers,
   }: FilesV4DeleteFileCallOptions): Promise<FilesV4DeleteFileResult> {
     const fileId = getGatewayFileId(file);
-    const resolvedHeaders = await this.resolveHeaders();
+    const requestHeaders = await this.getRequestHeaders(headers);
 
     try {
       const { value: response } = await deleteFromApi({
         url: getGatewayFileUrl(this.config.baseURL, fileId),
-        headers: await this.getRequestHeaders(resolvedHeaders, headers),
+        headers: requestHeaders.requestHeaders,
         failedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(
           gatewayFileDeleteResponseSchema,
@@ -196,29 +185,26 @@ export class GatewayFiles implements FilesV4 {
         fetch: this.config.fetch,
       });
 
-      return {
-        warnings: [],
-        providerReference: { gateway: response.id },
-        deleted: response.deleted,
-      };
+      return { warnings: [], ...toGatewayFileDeleteResult(response) };
     } catch (error) {
-      throw await toGatewayFilesError(error, resolvedHeaders);
+      throw await toGatewayFilesError({ error, requestHeaders, abortSignal });
     }
   }
 
-  private async resolveHeaders() {
-    return this.config.headers ? await resolve(this.config.headers) : undefined;
-  }
-
   private async getRequestHeaders(
-    resolvedHeaders: Record<string, string | undefined> | undefined,
     headers: Record<string, string | undefined> | undefined,
-  ) {
-    return combineHeaders(
+  ): Promise<GatewayFilesRequestHeaders> {
+    const resolvedHeaders = this.config.headers
+      ? await resolve(this.config.headers)
+      : undefined;
+    return {
       resolvedHeaders,
-      headers,
-      await resolve(this.config.o11yHeaders),
-    );
+      requestHeaders: combineHeaders(
+        resolvedHeaders,
+        headers,
+        await resolve(this.config.o11yHeaders),
+      ),
+    };
   }
 }
 
@@ -226,15 +212,29 @@ function getGatewayFileId(file: SharedV4ProviderReference): string {
   return resolveProviderReference({ reference: file, provider: 'gateway' });
 }
 
-async function toGatewayFilesError(
-  error: unknown,
-  resolvedHeaders: Record<string, string | undefined> | undefined,
-) {
-  return asGatewayError(error, await parseAuthMethod(resolvedHeaders ?? {}), {
-    isRetryable: APICallError.isInstance(error)
-      ? getGatewayShouldRetry(error.responseHeaders)
-      : undefined,
-  });
+async function toGatewayFilesError({
+  error,
+  requestHeaders,
+  abortSignal,
+}: {
+  error: unknown;
+  requestHeaders: GatewayFilesRequestHeaders;
+  abortSignal: AbortSignal | undefined;
+}): Promise<unknown> {
+  // caller cancellation, whatever its reason, is not a gateway failure
+  if (abortSignal?.aborted) {
+    return error;
+  }
+
+  return asGatewayError(
+    error,
+    await parseAuthMethod(requestHeaders.resolvedHeaders ?? {}),
+    {
+      isRetryable: APICallError.isInstance(error)
+        ? getGatewayShouldRetry(error.responseHeaders)
+        : undefined,
+    },
+  );
 }
 
 function getMediaTypeWarnings({
@@ -262,25 +262,4 @@ function getMediaTypeWarnings({
 
 function normalizeMediaType(mediaType: string): string {
   return mediaType.split(';')[0].trim().toLowerCase();
-}
-
-function toFormData({
-  fields,
-  data,
-}: {
-  fields: Array<{ name: string; value: string }>;
-  data: Exclude<FilesV4UploadFileCallOptions['data'], { type: 'stream' }>;
-}): FormData {
-  const formData = new FormData();
-  for (const field of fields) {
-    formData.append(field.name, field.value);
-  }
-  formData.append(
-    GATEWAY_FILE_PART.name,
-    new Blob(
-      [convertInlineFileDataToUint8Array(data) as Uint8Array<ArrayBuffer>],
-      { type: GATEWAY_FILE_PART.mediaType },
-    ),
-  );
-  return formData;
 }

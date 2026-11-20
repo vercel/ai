@@ -1,8 +1,11 @@
+import type { FilesV4UploadFileCallOptions } from '@ai-sdk/provider';
 import {
+  convertInlineFileDataToUint8Array,
   encodePathSegment,
   lazySchema,
   zodSchema,
   type InferSchema,
+  type MultipartStreamPart,
 } from '@ai-sdk/provider-utils';
 import { z } from './zod';
 
@@ -15,30 +18,54 @@ export function getGatewayFileUrl(baseURL: string, fileId: string): string {
 }
 
 /**
- * The upload's file part. The Gateway detects the media type from the bytes
- * and ignores the part's own filename and content type.
+ * Builds the upload request body: a multipart form with the file and its
+ * optional fields. The Gateway detects the media type from the bytes.
  */
-export const GATEWAY_FILE_PART = {
-  name: 'file',
-  mediaType: 'application/octet-stream',
-} as const;
-
-/**
- * Text fields sent with an upload, before the file part.
- */
-export function getGatewayFileUploadFields({
+export function getGatewayFileUploadBody({
+  data,
   filename,
   expiresAfter,
 }: {
+  data: FilesV4UploadFileCallOptions['data'];
   filename?: string;
   expiresAfter?: number;
-}): Array<{ name: string; value: string }> {
-  return [
+}):
+  | { type: 'stream'; parts: Array<MultipartStreamPart> }
+  | { type: 'form-data'; formData: FormData } {
+  const fields = [
     ...(filename != null ? [{ name: 'filename', value: filename }] : []),
     ...(expiresAfter != null
       ? [{ name: 'expiresAfter', value: String(expiresAfter) }]
       : []),
   ];
+
+  if (data.type === 'stream') {
+    return {
+      type: 'stream',
+      parts: [
+        ...fields.map(field => ({ type: 'field' as const, ...field })),
+        {
+          type: 'file',
+          name: 'file',
+          mediaType: 'application/octet-stream',
+          content: data.stream,
+        },
+      ],
+    };
+  }
+
+  const formData = new FormData();
+  for (const field of fields) {
+    formData.append(field.name, field.value);
+  }
+  formData.append(
+    'file',
+    new Blob(
+      [convertInlineFileDataToUint8Array(data) as Uint8Array<ArrayBuffer>],
+      { type: 'application/octet-stream' },
+    ),
+  );
+  return { type: 'form-data', formData };
 }
 
 /**
@@ -75,6 +102,15 @@ export const gatewayFileDeleteResponseSchema = lazySchema(() =>
 );
 
 type GatewayFileResponse = InferSchema<typeof gatewayFileResponseSchema>;
+
+export function toGatewayFileDeleteResult(
+  response: InferSchema<typeof gatewayFileDeleteResponseSchema>,
+) {
+  return {
+    providerReference: { gateway: response.id },
+    deleted: response.deleted,
+  };
+}
 
 export function toGatewayFileDetails(response: GatewayFileResponse): {
   providerReference: { gateway: string };

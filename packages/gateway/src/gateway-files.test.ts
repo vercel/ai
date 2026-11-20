@@ -7,6 +7,7 @@ import {
   GatewayNotFoundError,
   GatewayRateLimitError,
 } from './errors';
+import { GatewayFiles } from './gateway-files';
 import { createGateway } from './gateway-provider';
 
 const BASE_URL = 'https://api.test.com/v4/ai';
@@ -494,6 +495,109 @@ describe('GatewayFiles', () => {
         provider: 'gateway',
       });
       expect(server.calls).toHaveLength(0);
+    });
+  });
+
+  describe('local failures', () => {
+    function createFilesWithFailingO11yHeaders(error: Error) {
+      return new GatewayFiles({
+        provider: 'gateway.files',
+        baseURL: BASE_URL,
+        headers: () => ({ Authorization: 'Bearer test-key' }),
+        o11yHeaders: async () => {
+          throw error;
+        },
+      });
+    }
+
+    it('should cancel the stream and rethrow when upload headers cannot be resolved', async () => {
+      const failure = new Error('no request id');
+      let cancelled = false;
+      const stream = new ReadableStream<Uint8Array>({
+        cancel() {
+          cancelled = true;
+        },
+      });
+
+      await expect(
+        createFilesWithFailingO11yHeaders(failure).uploadFile({
+          data: { type: 'stream', stream },
+          mediaType: 'application/pdf',
+        }),
+      ).rejects.toBe(failure);
+
+      expect(cancelled).toBe(true);
+      expect(server.calls).toHaveLength(0);
+    });
+
+    it('should rethrow when metadata or delete headers cannot be resolved', async () => {
+      const failure = new Error('no request id');
+      const files = createFilesWithFailingO11yHeaders(failure);
+
+      await expect(
+        files.getFileMetadata!({ file: { gateway: 'gwfile_123' } }),
+      ).rejects.toBe(failure);
+      await expect(
+        files.deleteFile!({ file: { gateway: 'gwfile_123' } }),
+      ).rejects.toBe(failure);
+
+      expect(server.calls).toHaveLength(0);
+    });
+  });
+
+  describe('caller cancellation', () => {
+    it('should rethrow a custom abort reason from every operation', async () => {
+      prepareJsonResponse(FILES_URL);
+      prepareJsonResponse(FILE_URL);
+      const reason = new Error('stop');
+      const controller = new AbortController();
+      controller.abort(reason);
+      const files = createFiles();
+
+      await expect(
+        files.uploadFile({
+          data: { type: 'data', data: new Uint8Array([1]) },
+          mediaType: 'application/pdf',
+          abortSignal: controller.signal,
+        }),
+      ).rejects.toBe(reason);
+      await expect(
+        files.getFileMetadata!({
+          file: { gateway: 'gwfile_123' },
+          abortSignal: controller.signal,
+        }),
+      ).rejects.toBe(reason);
+      await expect(
+        files.deleteFile!({
+          file: { gateway: 'gwfile_123' },
+          abortSignal: controller.signal,
+        }),
+      ).rejects.toBe(reason);
+    });
+
+    it('should rethrow a custom abort reason during a streaming upload', async () => {
+      const reason = new Error('stop');
+      const controller = new AbortController();
+      const files = new GatewayFiles({
+        provider: 'gateway.files',
+        baseURL: BASE_URL,
+        headers: () => ({ Authorization: 'Bearer test-key' }),
+        o11yHeaders: {},
+        fetch: async (_url, init) => {
+          const reader = (init!.body as ReadableStream<Uint8Array>).getReader();
+          await reader.read();
+          controller.abort(reason);
+          throw init!.signal!.reason;
+        },
+      });
+
+      await expect(
+        files.uploadFile({
+          data: { type: 'stream', stream: streamFromChunks(['a', 'b']) },
+          mediaType: 'text/plain',
+          abortSignal: controller.signal,
+        }),
+      ).rejects.toBe(reason);
     });
   });
 });
