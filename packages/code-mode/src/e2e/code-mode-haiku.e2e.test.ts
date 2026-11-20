@@ -6,7 +6,7 @@ import { z } from 'zod/v4';
 import {
   experimental_createCodeModeTool as createCodeModeTool,
   experimental_setMaxWorkers as setMaxWorkers,
-} from '../../dist/index.js';
+} from '../index.js';
 
 const HAIKU_MODEL_ID = 'anthropic/claude-haiku-4.5';
 const CODE_SAMPLES_DIR = join(process.cwd(), 'code-samples');

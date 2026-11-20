@@ -1,0 +1,16 @@
+{
+  "name": "ai-sdk-load-time",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:load-time": "node check.mjs"
+  },
+  "devDependencies": {
+    "@ai-sdk/anthropic": "workspace:*",
+    "@ai-sdk/google": "workspace:*",
+    "@ai-sdk/openai": "workspace:*",
+    "@ai-sdk/openai-compatible": "workspace:*",
+    "ai": "workspace:*"
+  }
+}

@@ -11,7 +11,7 @@ vi.mock('./version', () => ({
 
 const audioData = await readFile(path.join(__dirname, 'transcript-test.mp3'));
 const provider = createAssemblyAI({ apiKey: 'test-api-key' });
-const model = provider.transcription('best');
+const model = provider.transcription('assemblyai-stt-3-7');
 
 const server = createTestServer({
   'https://api.assemblyai.com/v2/transcript': {},
@@ -266,35 +266,28 @@ describe('doGenerate', () => {
     };
   }
 
-  it('should pass the legacy model via the speech_model parameter', async () => {
+  it('should pass newer models via the speech_models parameter', async () => {
     prepareJsonResponse();
 
-    const result = await model.doGenerate({
-      audio: audioData,
-      mediaType: 'audio/wav',
-    });
+    const result = await provider
+      .transcription('assemblyai-stt-3-7')
+      .doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
 
     const requestBody = await server.calls[1].requestBodyJson;
     expect(requestBody).toMatchObject({
       audio_url: 'https://storage.assemblyai.com/mock-upload-url',
-      speech_model: 'best',
+      speech_models: ['assemblyai-stt-3-7'],
     });
-    expect(requestBody.speech_models).toBeUndefined();
+    expect(requestBody.speech_model).toBeUndefined();
 
-    expect(result.warnings).toContainEqual({
-      type: 'deprecated',
-      setting: "model 'best'",
-      message: expect.stringContaining('universal-3-5-pro'),
-    });
-    const [deprecation] = result.warnings.filter(
-      warning => warning.type === 'deprecated',
-    );
-    expect(deprecation?.message).toContain(
-      'https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model',
-    );
+    // No deprecation and no nudge for the latest flagship model.
+    expect(result.warnings).toEqual([]);
   });
 
-  it('should pass newer models via the speech_models parameter', async () => {
+  it('should route deprecated universal-3-5-pro via speech_models with a deprecation warning', async () => {
     prepareJsonResponse();
 
     const result = await provider
@@ -305,36 +298,20 @@ describe('doGenerate', () => {
       });
 
     const requestBody = await server.calls[1].requestBodyJson;
-    expect(requestBody).toMatchObject({
-      audio_url: 'https://storage.assemblyai.com/mock-upload-url',
-      speech_models: ['universal-3-5-pro'],
-    });
+    expect(requestBody.speech_models).toEqual(['universal-3-5-pro']);
     expect(requestBody.speech_model).toBeUndefined();
 
-    // No deprecation and no nudge for the latest flagship model.
-    expect(result.warnings).toEqual([]);
+    expect(result.warnings).toEqual([
+      {
+        type: 'deprecated',
+        setting: "model 'universal-3-5-pro'",
+        message:
+          "AssemblyAI has deprecated 'universal-3-5-pro'. Use 'assemblyai-stt-3-7' instead. See documentation: https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model",
+      },
+    ]);
   });
 
-  it('should route universal-3-pro via speech_models and nudge to universal-3-5-pro', async () => {
-    prepareJsonResponse();
-
-    const result = await provider.transcription('universal-3-pro').doGenerate({
-      audio: audioData,
-      mediaType: 'audio/wav',
-    });
-
-    const requestBody = await server.calls[1].requestBodyJson;
-    expect(requestBody.speech_models).toEqual(['universal-3-pro']);
-    expect(requestBody.speech_model).toBeUndefined();
-
-    // universal-3-pro is the model universal-3-5-pro replaces, so the message
-    // names it explicitly.
-    const [nudge] = result.warnings.filter(w => w.type === 'other');
-    expect(nudge?.message).toContain('universal-3-5-pro');
-    expect(nudge?.message).toContain("replace 'universal-3-pro'");
-  });
-
-  it('should nudge universal-2 users toward universal-3-5-pro', async () => {
+  it('should nudge universal-2 users toward assemblyai-stt-3-7 without deprecating it', async () => {
     prepareJsonResponse();
 
     const result = await provider.transcription('universal-2').doGenerate({
@@ -342,34 +319,38 @@ describe('doGenerate', () => {
       mediaType: 'audio/wav',
     });
 
-    // The nudge for universal-2 must not claim it is replaced by universal-3-pro.
-    const [nudge] = result.warnings.filter(w => w.type === 'other');
-    expect(nudge?.message).toContain('universal-3-5-pro');
-    expect(nudge?.message).not.toContain("replace 'universal-3-pro'");
+    expect(result.warnings).toEqual([
+      {
+        type: 'other',
+        message:
+          "'assemblyai-stt-3-7' is AssemblyAI's latest flagship model; 'universal-2' remains available for languages it does not support. See https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model",
+      },
+    ]);
   });
 
-  it('should not special-case the removed nano model', async () => {
-    prepareJsonResponse();
+  it.each(['best', 'slam-1', 'nano', 'universal-3-pro'])(
+    'should not special-case the removed %s model',
+    async modelId => {
+      prepareJsonResponse();
 
-    const result = await provider.transcription('nano').doGenerate({
-      audio: audioData,
-      mediaType: 'audio/wav',
-    });
+      const result = await provider.transcription(modelId).doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
 
-    // `nano` is no longer a legacy `speech_model` alias: it falls through to
-    // `speech_models` (where the live API rejects it) and emits no warning.
-    const requestBody = await server.calls[1].requestBodyJson;
-    expect(requestBody.speech_models).toEqual(['nano']);
-    expect(requestBody.speech_model).toBeUndefined();
-    expect(
-      result.warnings.filter(warning => warning.type === 'deprecated'),
-    ).toEqual([]);
-  });
+      // Unlisted models fall through to `speech_models` unchanged and emit no
+      // warning; the live API rejects the ones it no longer accepts.
+      const requestBody = await server.calls[1].requestBodyJson;
+      expect(requestBody.speech_models).toEqual([modelId]);
+      expect(requestBody.speech_model).toBeUndefined();
+      expect(result.warnings).toEqual([]);
+    },
+  );
 
   it('should still send provider options alongside speech_models', async () => {
     prepareJsonResponse();
 
-    await provider.transcription('universal-3-5-pro').doGenerate({
+    await provider.transcription('assemblyai-stt-3-7').doGenerate({
       audio: audioData,
       mediaType: 'audio/wav',
       providerOptions: {
@@ -382,7 +363,7 @@ describe('doGenerate', () => {
 
     const requestBody = await server.calls[1].requestBodyJson;
     expect(requestBody).toMatchObject({
-      speech_models: ['universal-3-5-pro'],
+      speech_models: ['assemblyai-stt-3-7'],
       language_detection: true,
       punctuate: false,
     });
@@ -392,7 +373,7 @@ describe('doGenerate', () => {
     prepareJsonResponse();
 
     const result = await provider
-      .transcription('universal-3-5-pro')
+      .transcription('assemblyai-stt-3-7')
       .doGenerate({
         audio: audioData,
         mediaType: 'audio/wav',
@@ -427,7 +408,7 @@ describe('doGenerate', () => {
     prepareJsonResponse();
 
     const result = await provider
-      .transcription('universal-3-5-pro')
+      .transcription('assemblyai-stt-3-7')
       .doGenerate({
         audio: audioData,
         mediaType: 'audio/wav',
@@ -442,10 +423,10 @@ describe('doGenerate', () => {
     expect(body.summary).toBe('- Hello, world!');
   });
 
-  it('should pass the Universal-3-Pro input params', async () => {
+  it('should pass the prompted-model input params', async () => {
     prepareJsonResponse();
 
-    await provider.transcription('universal-3-5-pro').doGenerate({
+    await provider.transcription('assemblyai-stt-3-7').doGenerate({
       audio: audioData,
       mediaType: 'audio/wav',
       providerOptions: {
@@ -461,7 +442,7 @@ describe('doGenerate', () => {
 
     const requestBody = await server.calls[1].requestBodyJson;
     expect(requestBody).toMatchObject({
-      speech_models: ['universal-3-5-pro'],
+      speech_models: ['assemblyai-stt-3-7'],
       prompt: 'This is a conversation about the AI SDK.',
       keyterms_prompt: ['Vercel', 'AI SDK'],
       temperature: 0.2,
@@ -473,7 +454,7 @@ describe('doGenerate', () => {
   it('should pass the GA nested input params', async () => {
     prepareJsonResponse();
 
-    await provider.transcription('universal-3-5-pro').doGenerate({
+    await provider.transcription('assemblyai-stt-3-7').doGenerate({
       audio: audioData,
       mediaType: 'audio/wav',
       providerOptions: {
@@ -518,7 +499,7 @@ describe('doGenerate', () => {
     prepareJsonResponse();
 
     const result = await provider
-      .transcription('universal-3-5-pro')
+      .transcription('assemblyai-stt-3-7')
       .doGenerate({
         audio: audioData,
         mediaType: 'audio/wav',
@@ -538,7 +519,7 @@ describe('doGenerate', () => {
     prepareJsonResponse();
 
     const result = await provider
-      .transcription('universal-3-5-pro')
+      .transcription('assemblyai-stt-3-7')
       .doGenerate({
         audio: audioData,
         mediaType: 'audio/wav',
@@ -556,7 +537,7 @@ describe('doGenerate', () => {
     prepareJsonResponse();
 
     const result = await provider
-      .transcription('universal-3-5-pro')
+      .transcription('assemblyai-stt-3-7')
       .doGenerate({
         audio: audioData,
         mediaType: 'audio/wav',
@@ -576,7 +557,7 @@ describe('doGenerate', () => {
     prepareJsonResponse();
 
     const result = await provider
-      .transcription('universal-3-5-pro')
+      .transcription('assemblyai-stt-3-7')
       .doGenerate({
         audio: audioData,
         mediaType: 'audio/wav',
@@ -599,7 +580,7 @@ describe('doGenerate', () => {
     prepareJsonResponse();
 
     const result = await provider
-      .transcription('universal-3-5-pro')
+      .transcription('assemblyai-stt-3-7')
       .doGenerate({
         audio: audioData,
         mediaType: 'audio/wav',
@@ -641,7 +622,7 @@ describe('doGenerate', () => {
       },
     });
 
-    await provider.transcription('best').doGenerate({
+    await provider.transcription('assemblyai-stt-3-7').doGenerate({
       audio: audioData,
       mediaType: 'audio/wav',
       headers: {
@@ -700,7 +681,7 @@ describe('doGenerate', () => {
     });
 
     const testDate = new Date(0);
-    const customModel = new AssemblyAITranscriptionModel('best', {
+    const customModel = new AssemblyAITranscriptionModel('assemblyai-stt-3-7', {
       provider: 'test-provider',
       url: ({ path }) => `https://api.assemblyai.com${path}`,
       headers: () => ({}),
@@ -716,7 +697,7 @@ describe('doGenerate', () => {
 
     expect(result.response).toMatchObject({
       timestamp: testDate,
-      modelId: 'best',
+      modelId: 'assemblyai-stt-3-7',
       headers: {
         'content-type': 'application/json',
         'x-request-id': 'test-request-id',
@@ -729,7 +710,7 @@ describe('doGenerate', () => {
     prepareJsonResponse();
 
     const testDate = new Date(0);
-    const customModel = new AssemblyAITranscriptionModel('best', {
+    const customModel = new AssemblyAITranscriptionModel('assemblyai-stt-3-7', {
       provider: 'test-provider',
       url: ({ path }) => `https://api.assemblyai.com${path}`,
       headers: () => ({}),
@@ -744,6 +725,6 @@ describe('doGenerate', () => {
     });
 
     expect(result.response.timestamp.getTime()).toEqual(testDate.getTime());
-    expect(result.response.modelId).toBe('best');
+    expect(result.response.modelId).toBe('assemblyai-stt-3-7');
   });
 });

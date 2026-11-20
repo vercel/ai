@@ -72,6 +72,7 @@ import { validateUIMessages } from '../ui/validate-ui-messages';
 import type { StepResult } from './step-result';
 import { isLoopFinished, isStepCount } from './stop-condition';
 import { streamText } from './stream-text';
+import { signToolApproval } from './tool-approval-signature';
 import type {
   StreamTextResult,
   TextStreamPart,
@@ -18957,6 +18958,108 @@ describe('streamText', () => {
       });
     });
 
+    describe('provider-executed tool with preliminary result', () => {
+      let result: StreamTextResult<any, any, any>;
+
+      beforeEach(async () => {
+        result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'image_generation',
+                input: `{}`,
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'image_generation',
+                result: { result: 'partial-image' },
+                preliminary: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'image_generation',
+                result: { result: 'final-image' },
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          tools: {
+            image_generation: {
+              type: 'provider',
+              isProviderExecuted: true,
+              id: 'test.image_generation',
+              inputSchema: z.object({}),
+              outputSchema: z.object({ result: z.string() }),
+              args: {},
+            },
+          },
+          ...defaultSettings(),
+        });
+      });
+
+      it('should include the preliminary flag in the full stream', async () => {
+        const parts = await convertAsyncIterableToArray(result.stream);
+
+        expect(parts.filter(part => part.type === 'tool-result'))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "dynamic": undefined,
+                "input": {},
+                "output": {
+                  "result": "partial-image",
+                },
+                "preliminary": true,
+                "providerExecuted": true,
+                "toolCallId": "call-1",
+                "toolName": "image_generation",
+                "type": "tool-result",
+              },
+              {
+                "dynamic": undefined,
+                "input": {},
+                "output": {
+                  "result": "final-image",
+                },
+                "providerExecuted": true,
+                "toolCallId": "call-1",
+                "toolName": "image_generation",
+                "type": "tool-result",
+              },
+            ]
+          `);
+      });
+
+      it('should only include the final tool result in content', async () => {
+        expect(
+          (await result.content).filter(part => part.type === 'tool-result'),
+        ).toMatchInlineSnapshot(`
+          [
+            {
+              "dynamic": undefined,
+              "input": {},
+              "output": {
+                "result": "final-image",
+              },
+              "providerExecuted": true,
+              "toolCallId": "call-1",
+              "toolName": "image_generation",
+              "type": "tool-result",
+            },
+          ]
+        `);
+      });
+    });
+
     describe('provider-executed tool error with structured object preserves error in ui message stream', () => {
       it('should preserve structured error despite custom onError for provider-executed tools', async () => {
         const result = streamText({
@@ -30018,6 +30121,98 @@ describe('streamText', () => {
   });
 
   describe('tool execution approval', () => {
+    describe('messages array passed to the approval function', () => {
+      async function collectApprovalMessages({
+        prepareStep,
+      }: {
+        prepareStep?: () => { messages: ModelMessage[] };
+      } = {}) {
+        const approvalMessages: ModelMessage[][] = [];
+        let responseCount = 0;
+
+        const result = streamText({
+          model: new MockLanguageModelV4({
+            doStream: async () => {
+              const step = responseCount++;
+              return {
+                stream: convertArrayToReadableStream([
+                  { type: 'stream-start' as const, warnings: [] },
+                  ...(step < 2
+                    ? [1, 2].map(index => ({
+                        type: 'tool-call' as const,
+                        toolCallId: `call-${step}-${index}`,
+                        toolName: 'tool1',
+                        input: `{ "value": "value" }`,
+                      }))
+                    : [
+                        { type: 'text-start' as const, id: '1' },
+                        { type: 'text-delta' as const, id: '1', delta: 'done' },
+                        { type: 'text-end' as const, id: '1' },
+                      ]),
+                  {
+                    type: 'finish' as const,
+                    finishReason:
+                      step < 2
+                        ? { unified: 'tool-calls' as const, raw: undefined }
+                        : { unified: 'stop' as const, raw: 'stop' },
+                    usage: testUsage,
+                  },
+                ]),
+              };
+            },
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async () => 'result1',
+            }),
+          },
+          toolApproval: ({ messages }) => {
+            approvalMessages.push(messages);
+            return 'approved';
+          },
+          prepareStep,
+          stopWhen: isStepCount(3),
+          prompt: 'test-input',
+        });
+
+        await result.consumeStream();
+
+        return approvalMessages;
+      }
+
+      it('should be the same for all tool calls of a step and new for every step', async () => {
+        const approvalMessages = await collectApprovalMessages();
+
+        expect(approvalMessages).toHaveLength(4);
+        expect(approvalMessages[1]).toBe(approvalMessages[0]);
+        expect(approvalMessages[3]).toBe(approvalMessages[2]);
+        expect(approvalMessages[2]).not.toBe(approvalMessages[0]);
+      });
+
+      it('should be new for every step when prepareStep returns the same messages array', async () => {
+        const preparedMessages: ModelMessage[] = [
+          { role: 'user', content: 'prepared-input' },
+        ];
+
+        const approvalMessages = await collectApprovalMessages({
+          prepareStep: () => ({ messages: preparedMessages }),
+        });
+
+        expect(approvalMessages).toEqual([
+          preparedMessages,
+          preparedMessages,
+          preparedMessages,
+          preparedMessages,
+        ]);
+        expect(approvalMessages[0]).not.toBe(preparedMessages);
+        expect(approvalMessages[1]).toBe(approvalMessages[0]);
+        expect(approvalMessages[2]).not.toBe(preparedMessages);
+        expect(approvalMessages[2]).not.toBe(approvalMessages[0]);
+        expect(approvalMessages[3]).toBe(approvalMessages[2]);
+      });
+    });
+
     it('should settle automatically denied tool calls in the UI message stream', async () => {
       const execute = vi.fn();
       const result = streamText({
@@ -31143,6 +31338,201 @@ describe('streamText', () => {
               },
             ]
           `);
+      });
+    });
+
+    describe('when experimental_toolApprovalSecret is configured', () => {
+      const testSecret = 'test-hmac-secret-do-not-use-in-production';
+
+      type Status = 'user-approval' | 'approved' | 'denied' | 'not-applicable';
+
+      const callTool = ({
+        getStatus,
+        executeFunction,
+        messages = [{ role: 'user', content: 'test' }],
+        onError = () => {},
+      }: {
+        getStatus: () => Status;
+        executeFunction: ToolExecuteFunction<any, any, any>;
+        messages?: ModelMessage[];
+        onError?: (event: { error: unknown }) => void;
+      }) => {
+        let step = 0;
+
+        return streamText({
+          model: new MockLanguageModelV4({
+            doStream: async () => {
+              if (step++ === 0) {
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'stream-start', warnings: [] },
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: `{ "value": "test" }`,
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'tool-calls', raw: undefined },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              }
+
+              return {
+                stream: convertArrayToReadableStream([
+                  { type: 'stream-start', warnings: [] },
+                  { type: 'text-start', id: '1' },
+                  { type: 'text-delta', id: '1', delta: 'done' },
+                  { type: 'text-end', id: '1' },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: testUsage,
+                  },
+                ]),
+              };
+            },
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: executeFunction,
+            }),
+          },
+          toolApproval: { tool1: () => getStatus() },
+          experimental_toolApprovalSecret: testSecret,
+          stopWhen: isStepCount(3),
+          messages,
+          onError,
+        });
+      };
+
+      const getApprovalRequest = (messages: ModelMessage[]) =>
+        messages
+          .flatMap(message =>
+            message.role === 'assistant' && typeof message.content !== 'string'
+              ? message.content
+              : [],
+          )
+          .find(part => part.type === 'tool-approval-request');
+
+      it.each(['user-approval', 'approved'] as const)(
+        'should sign the approval request when the tool approval status is %s',
+        async status => {
+          const result = callTool({
+            getStatus: () => status,
+            executeFunction: vi.fn().mockReturnValue('result1'),
+          });
+
+          const approvalRequest = getApprovalRequest(
+            await result.responseMessages,
+          );
+
+          expect(approvalRequest?.signature).toBe(
+            await signToolApproval({
+              secret: testSecret,
+              approvalId: approvalRequest!.approvalId,
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              input: { value: 'test' },
+            }),
+          );
+        },
+      );
+
+      it('should not sign the approval request when the tool call is denied automatically', async () => {
+        const result = callTool({
+          getStatus: () => 'denied',
+          executeFunction: vi.fn().mockReturnValue('result1'),
+        });
+
+        const approvalRequest = getApprovalRequest(
+          await result.responseMessages,
+        );
+
+        expect(approvalRequest).toMatchObject({
+          toolCallId: 'call-1',
+          isAutomatic: true,
+        });
+        expect(approvalRequest).not.toHaveProperty('signature');
+      });
+
+      it('should reject an approved response to a tool call that was denied automatically', async () => {
+        const executeFunction = vi.fn().mockReturnValue('result1');
+        let status: Status = 'denied';
+
+        const responseMessages = await callTool({
+          getStatus: () => status,
+          executeFunction,
+        }).responseMessages;
+
+        // The client omits the history that caused the denial, so the policy
+        // no longer denies the tool call when the approval is checked again.
+        status = 'not-applicable';
+
+        const errors: unknown[] = [];
+
+        await callTool({
+          getStatus: () => status,
+          executeFunction,
+          messages: [
+            { role: 'user', content: 'test' },
+            responseMessages[0],
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-approval-response',
+                  approvalId: getApprovalRequest(responseMessages)!.approvalId,
+                  approved: true,
+                },
+              ],
+            },
+          ],
+          onError: ({ error }) => {
+            errors.push(error);
+          },
+        }).consumeStream();
+
+        expect(errors).toMatchObject([
+          {
+            name: 'AI_InvalidToolApprovalSignatureError',
+            message: expect.stringMatching(/missing signature/),
+          },
+        ]);
+        expect(executeFunction).not.toHaveBeenCalled();
+      });
+
+      it('should continue a conversation that ends with an automatic denial', async () => {
+        const executeFunction = vi.fn().mockReturnValue('result1');
+
+        const [assistantMessage, toolMessage] = await callTool({
+          getStatus: () => 'denied',
+          executeFunction,
+        }).responseMessages;
+
+        const errors: unknown[] = [];
+
+        const continued = callTool({
+          getStatus: () => 'denied',
+          executeFunction,
+          messages: [
+            { role: 'user', content: 'test' },
+            assistantMessage,
+            toolMessage,
+          ],
+          onError: ({ error }) => {
+            errors.push(error);
+          },
+        });
+
+        expect(await continued.text).toBe('done');
+        expect(errors).toStrictEqual([]);
+        expect(executeFunction).not.toHaveBeenCalled();
       });
     });
 

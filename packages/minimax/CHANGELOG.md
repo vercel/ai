@@ -1,5 +1,14 @@
 # @ai-sdk/minimax
 
+## 3.0.84
+
+### Patch Changes
+
+- 0bd2190: Derive image model IDs from the model catalog without changing supported models.
+- Updated dependencies [1d2c2ff]
+  - @ai-sdk/provider-utils@5.0.83
+  - @ai-sdk/anthropic@4.0.107
+
 ## 3.0.83
 
 ### Patch Changes

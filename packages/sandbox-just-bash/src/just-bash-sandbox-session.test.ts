@@ -32,6 +32,34 @@ describe('JustBashSandboxSession', () => {
   });
 
   describe('run', () => {
+    it('returns capped prefixes and full lengths after completing the command', async () => {
+      expect(
+        await sandbox.run({
+          command: 'seq 1 100000; printf error >&2; echo done > marker; exit 7',
+          maxOutputLength: 4,
+        }),
+      ).toEqual({
+        stdout: '1\n2\n',
+        stderr: 'erro',
+        stdoutLength: 588895,
+        stderrLength: 5,
+        exitCode: 7,
+      });
+      expect(await sandbox.readTextFile({ path: 'marker' })).toBe('done\n');
+    });
+
+    it('preserves code-unit truncation with a cap', async () => {
+      expect(
+        await sandbox.run({ command: 'printf "a😀b"', maxOutputLength: 2 }),
+      ).toEqual({
+        stdout: 'a\ud83d',
+        stderr: '',
+        stdoutLength: 4,
+        stderrLength: 0,
+        exitCode: 0,
+      });
+    });
+
     it('returns stdout, stderr, and exitCode', async () => {
       const result = await sandbox.run({
         command: 'echo hello && echo bye >&2',

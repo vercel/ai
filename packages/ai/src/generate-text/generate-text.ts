@@ -440,8 +440,9 @@ async function generateTextInternal<
 
       /**
        * Secret for HMAC-signing tool approval requests. When set, the server
-       * signs each approval request at issuance and verifies the signature when
+       * signs approval requests at issuance and verifies the signature when
        * the approval is replayed, preventing client-forged approvals.
+       * Approval requests for automatically denied tool calls are not signed.
        */
       experimental_toolApprovalSecret?: string | Uint8Array;
 
@@ -1147,8 +1148,17 @@ async function generateTextInternal<
                   const stepExecutionTools =
                     stepToolChoice.type === 'none' ? undefined : executionTools;
 
+                  // The messages array of a step is created for that step.
+                  // `prepareStep` can return the same array for several steps
+                  // or calls, so its messages are copied. Tool approval
+                  // functions can then tell the tool calls of one response
+                  // from the tool calls of another response by the array they
+                  // receive.
                   const stepMessages = appendToolCallerMessages({
-                    messages: prepareStepResult?.messages ?? stepInputMessages,
+                    messages:
+                      prepareStepResult?.messages != null
+                        ? [...prepareStepResult.messages]
+                        : stepInputMessages,
                     toolCallerMessages,
                   });
 
@@ -1511,13 +1521,20 @@ async function generateTextInternal<
                     }
 
                     const approvalId = generateId();
-                    const signature = await maybeSignApproval({
-                      secret: experimental_toolApprovalSecret,
-                      approvalId,
-                      toolCallId: toolCall.toolCallId,
-                      toolName: toolCall.toolName,
-                      input: toolCall.input,
-                    });
+
+                    // A signature lets a later request execute this tool call by
+                    // replaying the approval from client-supplied history, so a
+                    // denied tool call must not get one.
+                    const signature =
+                      toolApprovalStatus.type === 'denied'
+                        ? undefined
+                        : await maybeSignApproval({
+                            secret: experimental_toolApprovalSecret,
+                            approvalId,
+                            toolCallId: toolCall.toolCallId,
+                            toolName: toolCall.toolName,
+                            input: toolCall.input,
+                          });
 
                     switch (toolApprovalStatus.type) {
                       case 'user-approval': {
@@ -1559,7 +1576,6 @@ async function generateTextInternal<
                           approvalId,
                           toolCall,
                           isAutomatic: true,
-                          ...(signature != null ? { signature } : {}),
                         };
                         stepToolApprovalResponses[toolCall.toolCallId] = {
                           type: 'tool-approval-response',

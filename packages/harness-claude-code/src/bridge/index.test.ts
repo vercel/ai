@@ -702,6 +702,35 @@ describe('Claude Code bridge configuration', () => {
     expect(state.onStop?.()).toEqual({ claudeSessionId: 'claude-session-2' });
   });
 
+  test('surfaces the observed session id when a turn ends without finish', async () => {
+    state.messages = [
+      {
+        type: 'system',
+        subtype: 'init',
+        session_id: 'claude-session-3',
+      },
+      {
+        type: 'result',
+        subtype: 'error_during_execution',
+        errors: ['boom'],
+        session_id: 'claude-session-3',
+      },
+    ];
+
+    await import('./index');
+
+    expect(state.emitted.some(msg => msg.type === 'finish')).toBe(false);
+    expect(state.emitted).toContainEqual({
+      type: 'raw',
+      rawValue: {
+        type: 'system',
+        subtype: 'init',
+        sessionId: 'claude-session-3',
+      },
+    });
+    expect(state.onStop?.()).toEqual({ claudeSessionId: 'claude-session-3' });
+  });
+
   test('reports the latest cumulative cost when one bridge turn receives multiple results', async () => {
     state.steering = true;
     state.createQuery = args =>

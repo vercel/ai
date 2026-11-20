@@ -348,16 +348,6 @@ export type AssemblyAITranscriptionAPITypes = {
   speakers_expected?: number;
 
   /**
-   * The speech model to use for the transcription.
-   *
-   * @deprecated This parameter has been replaced with `speech_models`. It only
-   * supports the legacy `best` model. Use `speech_models` for `universal-2`,
-   * `universal-3-pro`, `universal-3-5-pro`, etc.
-   * @see https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model
-   */
-  speech_model?: 'best';
-
-  /**
    * List of speech models in priority order, allowing the system to
    * automatically route the audio to the best available option. When omitted,
    * the API defaults to `['universal-3-pro', 'universal-2']`.
@@ -409,20 +399,20 @@ export type AssemblyAITranscriptionAPITypes = {
 
   /**
    * The list of custom vocabulary to boost transcription probability for
-   * @deprecated Rejected by `universal-3-pro` / `universal-3-5-pro` and
-   * `slam-1` (works only on `universal-2`/`best`). Use `keyterms_prompt`.
+   * @deprecated Rejected by `assemblyai-stt-3-7` and `universal-3-5-pro`
+   * (works only on `universal-2`). Use `keyterms_prompt`.
    */
   word_boost?: string[];
 
   /**
    * Domain-specific keyterms to boost (max 6 words per phrase). Replaces
-   * `word_boost` for `universal-3-pro` / `universal-3-5-pro` and `slam-1`.
+   * `word_boost` for `assemblyai-stt-3-7` and `universal-3-5-pro`.
    */
   keyterms_prompt?: string[];
 
   /**
    * Natural-language context (up to 1,500 words) to steer the model.
-   * Only supported by `universal-3-pro` / `universal-3-5-pro` and `slam-1`.
+   * Only supported by `assemblyai-stt-3-7` and `universal-3-5-pro`.
    */
   prompt?: string;
 
