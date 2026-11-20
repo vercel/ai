@@ -505,6 +505,8 @@ export class HttpMCPTransport implements MCPTransport {
       }
     };
 
+    // throw JSON-RPC errors returned by attempt() outside the try/catch
+    // so that they don't trigger onerror / onUncaughtError.
     const jsonRpcError = await attempt();
     if (jsonRpcError != null) {
       throw jsonRpcError;
