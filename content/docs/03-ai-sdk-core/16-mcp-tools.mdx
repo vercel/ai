@@ -267,7 +267,9 @@ const tools = createMCPTools(definitions);
 ```
 
 Pass `tools` to `streamText` and to `convertToModelMessages(messages, { tools })`
-so returned MCP results are converted to model content.
+so returned MCP results are converted to model content. The
+[shopping cart example](https://github.com/vercel/ai/tree/main/examples/ai-e2e-next/app/chat/webmcp)
+demonstrates this flow with live page state.
 
 Tool lists are snapshots. List tools again when the page's available tools change,
 and close the client when the consuming component or browser connection is
