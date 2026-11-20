@@ -2,6 +2,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import {
   GatewayAuthenticationError,
+  GatewayForbiddenError,
   GatewayInternalServerError,
   GatewayInvalidRequestError,
   GatewayNotFoundError,
@@ -325,6 +326,7 @@ describe('GatewayFiles', () => {
     it.each([
       [400, 'invalid_request_error', GatewayInvalidRequestError],
       [401, 'authentication_error', GatewayAuthenticationError],
+      [403, 'forbidden', GatewayForbiddenError],
       [429, 'rate_limit_exceeded', GatewayRateLimitError],
       [503, 'service_unavailable_error', GatewayInternalServerError],
     ])(
@@ -345,7 +347,8 @@ describe('GatewayFiles', () => {
     );
 
     it.each([
-      [409, 'invalid_request_error', 'false', false],
+      [409, 'forbidden', 'false', false],
+      [403, 'forbidden', 'false', false],
       [408, 'timeout', 'false', false],
       [503, 'service_unavailable_error', 'false', false],
       [503, 'service_unavailable_error', 'true', true],
@@ -475,7 +478,7 @@ describe('GatewayFiles', () => {
     it('should not retry a conflict marked x-should-retry: false', async () => {
       prepareErrorResponse(FILE_URL, {
         status: 409,
-        type: 'invalid_request_error',
+        type: 'forbidden',
         message: 'file is on hold',
         headers: { 'x-should-retry': 'false' },
       });
@@ -484,7 +487,7 @@ describe('GatewayFiles', () => {
         createFiles().deleteFile!({ file: { gateway: 'gwfile_123' } }),
       );
 
-      expect(GatewayInvalidRequestError.isInstance(error)).toBe(true);
+      expect(GatewayForbiddenError.isInstance(error)).toBe(true);
       expect(error.statusCode).toBe(409);
       expect(error.isRetryable).toBe(false);
     });
