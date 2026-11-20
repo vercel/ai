@@ -304,4 +304,44 @@ describe('getOpenAILanguageModelCapabilities', () => {
       },
     );
   });
+
+  describe('Amazon Bedrock OpenAI-compatible model ids', () => {
+    it.each([
+      'global.openai.gpt-5.6-sol',
+      'us.openai.gpt-5.6-sol',
+      'eu.openai.gpt-5.6-sol',
+      'apac.openai.gpt-5.6-sol',
+      'us-gov.openai.gpt-5.6-sol',
+      'jp.openai.gpt-5.6-sol',
+      'au.openai.gpt-5.6-sol',
+      'ca.openai.gpt-5.6-sol',
+      'openai.gpt-5.6-sol',
+    ])('%s is classified like the unprefixed model id', modelId => {
+      expect(getOpenAILanguageModelCapabilities(modelId)).toEqual(
+        getOpenAILanguageModelCapabilities('gpt-5.6-sol'),
+      );
+    });
+
+    it.each([
+      ['global.openai.gpt-6.1-sol', 'gpt-6.1-sol'],
+      ['us.openai.gpt-5.6', 'gpt-5.6'],
+      ['openai.gpt-4.1', 'gpt-4.1'],
+      ['global.openai.o3', 'o3'],
+    ])('%s is classified like %s', (modelId, baseModelId) => {
+      expect(getOpenAILanguageModelCapabilities(modelId)).toEqual(
+        getOpenAILanguageModelCapabilities(baseModelId),
+      );
+    });
+
+    it('does not classify unrelated ids as prefixed ids', () => {
+      expect(
+        getOpenAILanguageModelCapabilities('acme-gpt-99-proxy')
+          .isReasoningModel,
+      ).toBe(false);
+      expect(
+        getOpenAILanguageModelCapabilities('ft:gpt-99:org:custom:abc123')
+          .isReasoningModel,
+      ).toBe(false);
+    });
+  });
 });
