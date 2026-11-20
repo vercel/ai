@@ -1,5 +1,5 @@
 import { gateway, type GatewayFilesOptions } from '@ai-sdk/gateway';
-import { experimental_decide, uploadFile } from 'ai';
+import { experimental_decide, experimental_extract, uploadFile } from 'ai';
 import fs from 'node:fs';
 import { run } from '../../lib/run';
 
@@ -22,19 +22,34 @@ run(async () => {
   console.log('Expires at:', expiresAt);
   console.log('Warnings:', warnings);
 
+  const file = {
+    type: 'file' as const,
+    mediaType: mediaType ?? 'application/pdf',
+    data: providerReference,
+  };
+
   try {
     const metadata = await files.getFileMetadata?.({ file: providerReference });
     console.log('Metadata:', metadata);
 
-    const result = await experimental_decide({
-      model: 'google/gemini-decision-1',
-      state: [
-        {
-          type: 'file',
-          mediaType: mediaType ?? 'application/pdf',
-          data: providerReference,
+    const extraction = await experimental_extract({
+      model: gateway.extractionModel('scaledown/extract-1'),
+      state: [file],
+      fields: {
+        title: { type: 'text', instructions: 'The title of the document' },
+        topics: {
+          type: 'list',
+          items: 'text',
+          instructions: 'The main topics the document covers',
         },
-      ],
+      },
+    });
+
+    console.log('Extraction answers:', extraction.answers);
+
+    const decision = await experimental_decide({
+      model: 'google/gemini-decision-1',
+      state: [file],
       questions: {
         topic: {
           type: 'choice',
@@ -52,8 +67,7 @@ run(async () => {
       },
     });
 
-    console.log('Answers:', result.answers);
-    console.log('Usage:', result.usage);
+    console.log('Decision answers:', decision.answers);
   } finally {
     const deleted = await files.deleteFile?.({ file: providerReference });
     console.log('Deleted:', deleted?.deleted);

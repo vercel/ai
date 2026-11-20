@@ -512,10 +512,11 @@ const { answers } = await experimental_decide({
 });
 ```
 
-File references are currently accepted by decision models. When a reference
-holds IDs for several providers, the gateway decision model sends only the
-`gateway` ID, and it throws a `NoSuchProviderReferenceError` before sending
-the request when there is no `gateway` ID.
+Decision and [extraction](#extraction-models) models accept file references.
+When a reference holds IDs for several providers, the gateway decision model
+sends only the `gateway` ID, and it throws a `NoSuchProviderReferenceError`
+before sending the request when there is no `gateway` ID. The gateway
+extraction model sends the reference unchanged.
 
 AI Gateway detects a file's media type from its bytes. The `mediaType` in the
 upload result is the stored type, and the result has a warning when it differs
@@ -600,7 +601,7 @@ console.log(answers.contacts.value); // ['Ana', 'Bo']
 ```
 
 - **Field types:** which field types are supported depends on the model. A field the model cannot extract throws `Experimental_ExtractionUnsupportedFieldTypeError` with the `fieldId` and `fieldType`, after the request reaches the gateway.
-- **Files:** send file state inline, as bytes or base64. Files given as a URL are downloaded by `experimental_extract` when you pass `experimental_download`. File references are sent to the gateway unchanged, which rejects them for now, so they fail after the request is sent.
+- **Files:** send file state inline, as bytes or base64. Files given as a URL are downloaded by `experimental_extract` when you pass `experimental_download`. File references, such as one returned by [`gateway.files()`](#files), are sent to the gateway unchanged.
 - **Provider options:** [gateway provider options](#gateway-provider-options) such as `user` and `tags` go under `providerOptions.gateway`.
 
 ## Streaming Speech Models
