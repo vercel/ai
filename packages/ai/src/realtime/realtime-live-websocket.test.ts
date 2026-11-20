@@ -719,6 +719,20 @@ describe('Live with a client-secret WebSocket', () => {
     expect(session.snapshot.status).toBe('error');
   });
 
+  it('requires an explicit client-secret declaration for continuous token sessions', async () => {
+    const onError = vi.fn();
+    const model = secretModel();
+    const { connections: _omitted, ...capabilities } = model.capabilities!;
+    const session = create({ model: { ...model, capabilities }, onError });
+    await session.connect();
+    await flushEvents();
+    expect(onError.mock.calls[0][0].message).toBe(
+      'Realtime model does not support client-secret-websocket',
+    );
+    expect(browser.fetch).not.toHaveBeenCalled();
+    expect(FakeWebSocket.instances).toHaveLength(0);
+  });
+
   it('still rejects tokens for continuous models without client-secret WebSockets', async () => {
     const onError = vi.fn();
     const session = create({ model: liveModel(), onError });

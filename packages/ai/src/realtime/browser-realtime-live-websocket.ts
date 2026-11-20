@@ -8,7 +8,7 @@ import type {
 import { BrowserRealtimeAudio } from './browser-realtime-audio';
 import { BrowserRealtimeTransport } from './browser-realtime-transport';
 
-/** Continuous PCM16 audio-chunk media for an application-owned WebSocket relay. */
+/** Continuous PCM16 audio-chunk media over a WebSocket relay or client-secret connection. */
 export class BrowserRealtimeLiveWebSocket {
   private readonly transport: BrowserRealtimeTransport;
   private readonly audio: BrowserRealtimeAudio;

@@ -26,6 +26,14 @@ export type GatewayLiveModelConfig = {
   }) => PromiseLike<{ token: string; expiresAt?: number }>;
 };
 
+const supportedOpenAILiveOptions = new Set([
+  'delegation',
+  'input',
+  'store',
+  'voice',
+]);
+const contextChannels = new Set(['commentary', 'instructions', 'thinking']);
+
 const supportedSessionSettings = new Set([
   'instructions',
   'voice',
@@ -154,6 +162,7 @@ export class GatewayLiveModel implements RealtimeModelV4 {
       case 'input-audio-append':
         return { type: 'input-audio-append', audio: event.audio, ...eventId };
       case 'context-append':
+        validateContextOptions(event.providerOptions);
         return {
           type: 'context-append',
           content: event.content,
@@ -182,6 +191,8 @@ export class GatewayLiveModel implements RealtimeModelV4 {
         });
       }
     }
+
+    validateSessionProviderOptions(config.providerOptions);
 
     const input = config.inputAudioFormat;
     const output = config.outputAudioFormat;
@@ -221,6 +232,77 @@ export class GatewayLiveModel implements RealtimeModelV4 {
       );
     }
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}
+
+/** Gateway options stay service-owned; OpenAI Live options are WebSocket-only. */
+function validateSessionProviderOptions(providerOptions: unknown): void {
+  if (providerOptions == null) return;
+  if (!isRecord(providerOptions))
+    throw new InvalidArgumentError({
+      argument: 'providerOptions',
+      message: 'providerOptions must be an object.',
+    });
+  for (const [namespace, options] of Object.entries(providerOptions)) {
+    if (options === undefined) continue;
+    if (namespace !== 'gateway' && namespace !== 'openai')
+      throw new UnsupportedFunctionalityError({
+        functionality: `AI Gateway Live provider options namespace: ${namespace}`,
+      });
+    if (!isRecord(options))
+      throw new InvalidArgumentError({
+        argument: `providerOptions.${namespace}`,
+        message: `providerOptions.${namespace} must be an object.`,
+      });
+  }
+  const openai = providerOptions.openai;
+  if (!isRecord(openai)) return;
+  for (const [key, value] of Object.entries(openai)) {
+    if (value === undefined) continue;
+    if (!supportedOpenAILiveOptions.has(key))
+      throw new UnsupportedFunctionalityError({
+        functionality: `AI Gateway Live OpenAI option: ${key}`,
+      });
+    if (key === 'delegation') {
+      if (value !== null && (!isRecord(value) || value.type !== 'client'))
+        throw new UnsupportedFunctionalityError({
+          functionality:
+            'AI Gateway Live delegation other than client delegation',
+        });
+    } else if (value === null) {
+      throw new InvalidArgumentError({
+        argument: `providerOptions.openai.${key}`,
+        message: `providerOptions.openai.${key} must not be null.`,
+      });
+    }
+  }
+}
+
+function validateContextOptions(providerOptions: unknown): void {
+  if (providerOptions == null) return;
+  const valid =
+    isRecord(providerOptions) &&
+    Object.entries(providerOptions).every(
+      ([namespace, options]) =>
+        options === undefined ||
+        (namespace === 'openai' &&
+          isRecord(options) &&
+          Object.entries(options).every(
+            ([key, value]) =>
+              value === undefined ||
+              (key === 'channel' &&
+                typeof value === 'string' &&
+                contextChannels.has(value)),
+          )),
+    );
+  if (!valid)
+    throw new UnsupportedFunctionalityError({
+      functionality:
+        'AI Gateway Live context options other than openai.channel commentary, instructions, or thinking',
+    });
 }
 
 function isSupportedAudioFormat(format: {

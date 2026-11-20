@@ -175,6 +175,15 @@ export abstract class AbstractRealtimeSession {
         throw new Error('Realtime model does not support WebRTC configuration');
       return;
     }
+    // Continuous token sessions need an explicit declaration, not the legacy default.
+    if (
+      this.continuous &&
+      api.token != null &&
+      !model.capabilities?.connections?.includes('client-secret-websocket')
+    )
+      throw new Error(
+        'Realtime model does not support client-secret-websocket',
+      );
     if (api.token != null && model.getWebSocketConfig == null)
       throw new Error(
         'Realtime model does not support client-secret WebSocket configuration',

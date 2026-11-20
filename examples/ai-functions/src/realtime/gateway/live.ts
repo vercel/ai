@@ -17,18 +17,25 @@ run(async () => {
     let audioTimer: ReturnType<typeof setInterval> | undefined;
     let quietTimer: ReturnType<typeof setTimeout> | undefined;
     let outputBytes = 0;
+    let done = false;
     const timeout = setTimeout(
       () => finish(new Error('Session timed out')),
       60_000,
     );
+    // Settle once and always end the billable session.
     const finish = (error?: Error) => {
+      if (done) return;
+      done = true;
       clearTimeout(timeout);
       clearTimeout(quietTimer);
       clearInterval(audioTimer);
+      if (socket.readyState === WebSocket.OPEN) socket.close(1000);
+      else socket.terminate();
       if (error) reject(error);
       else resolve();
     };
     const send = async (event: Experimental_RealtimeClientEvent) => {
+      if (done || socket.readyState !== WebSocket.OPEN) return;
       socket.send(
         JSON.stringify(await model.serializeClientEvent(event, options)),
       );
@@ -49,6 +56,7 @@ run(async () => {
       finish(new Error('Socket closed before final usage')),
     );
     socket.on('message', data => {
+      if (done) return;
       void (async () => {
         const raw = await parseJSON({ text: data.toString() });
         // Gateway sends normalized events, so parsing is stateless.
@@ -74,6 +82,7 @@ run(async () => {
             if (event.speaker === 'assistant') {
               process.stdout.write(event.delta);
               // Close once the spoken reply has finished.
+              if (done) break;
               clearTimeout(quietTimer);
               quietTimer = setTimeout(
                 () => void send({ type: 'session-close' }),
@@ -84,7 +93,6 @@ run(async () => {
           case 'session-closed':
             console.log('\nOutput audio bytes:', outputBytes);
             console.log('Final usage:', event.usage);
-            socket.close(1000);
             finish();
             break;
           case 'error':

@@ -2,6 +2,7 @@ import {
   InvalidArgumentError,
   UnsupportedFunctionalityError,
   type Experimental_RealtimeModelV4ClientEvent as RealtimeClientEvent,
+  type SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -203,6 +204,23 @@ describe('GatewayLiveModel', () => {
     );
 
     it.each([
+      { openai: { channel: 'shouting' } },
+      { openai: { channel: null } },
+      { openai: { priority: 'high' } },
+      { google: { channel: 'thinking' } },
+    ])('rejects context-append provider options %o', providerOptions => {
+      expect(() =>
+        createTestModel().serializeClientEvent({
+          type: 'context-append',
+          content: 'Note',
+          delegationId: null,
+          providerOptions:
+            providerOptions as unknown as SharedV4ProviderOptions,
+        }),
+      ).toThrow(UnsupportedFunctionalityError);
+    });
+
+    it.each([
       { type: 'session-update', config: {} },
       { type: 'input-audio-commit' },
       { type: 'input-audio-clear' },
@@ -229,6 +247,51 @@ describe('GatewayLiveModel', () => {
         ).toThrow(`AI Gateway Live session setting: ${key}`);
       },
     );
+
+    it.each([
+      [
+        { openai: { client: { dataChannel: {} } } },
+        UnsupportedFunctionalityError,
+      ],
+      [
+        { openai: { delegation: { type: 'responses' } } },
+        UnsupportedFunctionalityError,
+      ],
+      [{ openai: { delegation: 'client' } }, UnsupportedFunctionalityError],
+      [{ openai: { voice: null } }, InvalidArgumentError],
+      [{ openai: { store: null } }, InvalidArgumentError],
+      [{ openai: null }, InvalidArgumentError],
+      [{ gateway: 'tags' }, InvalidArgumentError],
+      [{ google: {} }, UnsupportedFunctionalityError],
+    ] as const)('rejects the provider options %o', (providerOptions, error) => {
+      expect(() =>
+        createTestModel().buildSessionConfig({
+          providerOptions: providerOptions as Record<string, unknown>,
+        }),
+      ).toThrow(error);
+    });
+
+    it('accepts supported provider options and leaves gateway options open', () => {
+      const providerOptions = {
+        gateway: { tags: ['demo'], futureOption: { nested: true } },
+        openai: {
+          delegation: null,
+          input: [
+            {
+              type: 'message',
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hi' }],
+            },
+          ],
+          store: false,
+          voice: { id: 'voice_1' },
+          unset: undefined,
+        },
+      };
+      expect(createTestModel().buildSessionConfig({ providerOptions })).toEqual(
+        { providerOptions },
+      );
+    });
 
     it('ignores unset settings', () => {
       expect(
