@@ -257,6 +257,133 @@ const baseten = createBaseten({
 When you opt in, the client handles batching itself, so values are sent in a
 single call rather than being split at 128.
 
+## Decision Models
+
+Use `baseten.decisionModel()` with
+[`experimental_decide`](/docs/reference/ai-sdk-core/decide) to call Baseten's
+[decision models](https://docs.baseten.co/inference/model-apis/decision-models)
+through the Model APIs
+[System One endpoint](https://docs.baseten.co/reference/inference-api/system-one).
+This API is experimental and may change in patch releases.
+
+```ts
+import { baseten } from '@ai-sdk/baseten';
+import { experimental_decide as decide } from 'ai';
+
+const result = await decide({
+  model: baseten.decisionModel('decision-models/baseten-bison-latest'),
+  state:
+    'I was charged twice for my subscription. Please refund the duplicate.',
+  questions: {
+    team: {
+      type: 'choice',
+      instructions: 'Which team should handle this ticket?',
+      criteria: {
+        billing: 'Charges, refunds, and payment methods',
+        engineering: 'Bugs and outages',
+      },
+    },
+    refund: {
+      type: 'boolean',
+      instructions: 'Is the customer asking for a refund?',
+    },
+    urgency: {
+      type: 'score',
+      instructions: 'How urgent is this ticket?',
+      criteria: ['Can wait', 'Handle today', 'Blocking revenue'],
+    },
+  },
+});
+
+result.answers.refund.probability; // P(true), from 0 to 1
+result.answers.team.choice; // 'billing' | 'engineering'
+result.answers.urgency.score; // Expected zero-based level, from 0 to 2
+```
+
+The provider maps SDK `boolean` questions to Baseten's native `noul` type and
+returns Choice and Score probability distributions without rounding. Decision
+models always use the Model APIs endpoint and ignore `modelURL`.
+
+### Images
+
+Add image file parts to `state`. When the state contains an image, the provider
+sends it as a conversation (`{ messages: [...] }`) with a single user message
+whose content holds the text, JSON, and image parts in request order. JSON parts
+are sent as text.
+
+```ts
+import { readFileSync } from 'node:fs';
+
+const result = await decide({
+  model: baseten.decisionModel('decision-models/baseten-groundhog-latest'),
+  state: [
+    { type: 'text', text: 'A screenshot from a customer report.' },
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: readFileSync('screenshot.png'),
+    },
+  ],
+  questions: {
+    error: {
+      type: 'boolean',
+      instructions: 'Is an error message visible?',
+    },
+  },
+});
+```
+
+Inline images must be JPEG, PNG, or WebP and are sent as base64 data URLs. URL
+file data is passed through; Baseten only fetches HTTPS URLs on Amazon S3, Google
+Cloud Storage, and Azure Blob Storage. A single text part is sent as a string and
+a single JSON part as structured JSON, including a conversation object you build
+yourself. Other combinations of text and JSON parts are joined with newlines.
+
+### Confidence, legends, and usage
+
+Baseten's confidence values and Score legends are available in
+`providerMetadata.baseten`, keyed by question ID. Confidence is distinct from the
+selected option's probability.
+
+```ts
+const metadata = result.providerMetadata?.baseten;
+console.log(metadata?.confidence); // Choice and Score confidence by question ID
+console.log(metadata?.legend); // Score index-to-description maps by question ID
+console.log(result.usage.inputTokens); // Includes image tokens
+console.log(result.usage.outputTokens); // One token per question
+```
+
+### Decision limits
+
+The provider validates these limits before sending the decision request:
+
+| Input          | Limit                                                  |
+| -------------- | ------------------------------------------------------ |
+| Choice options | 1–255                                                  |
+| Score levels   | 1–10                                                   |
+| Options        | At most 512 across all questions; yes/no counts as two |
+| Images         | At most 16                                             |
+
+Box questions, audio, and video are not supported. Each model's context limit is
+enforced by the API, which rejects prompts that exceed it instead of truncating
+them. Baseten decision models do not accept provider-specific options,
+`maxOutputTokens`, or `reasoning`; these produce unsupported warnings and are not
+sent to the API.
+
+### Decision Model Capabilities
+
+{/* model-capabilities:baseten-decision:start */}
+
+| Model                                        | Boolean   | Choice    | Score     | Box       | Image Input | Reasoning | Max Output Tokens |
+| -------------------------------------------- | --------- | --------- | --------- | --------- | ----------- | --------- | ----------------- |
+| `decision-models/baseten-bison-latest`       | <Check /> | <Check /> | <Check /> | <Cross /> | <Check />   | <Cross /> | <Cross />         |
+| `decision-models/baseten-groundhog-latest`   | <Check /> | <Check /> | <Check /> | <Cross /> | <Check />   | <Cross /> | <Cross />         |
+| `decision-models/baseten-mammoth-27b-latest` | <Check /> | <Check /> | <Check /> | <Cross /> | <Check />   | <Cross /> | <Cross />         |
+| `decision-models/baseten-elephant-9b-latest` | <Check /> | <Check /> | <Check /> | <Cross /> | <Check />   | <Cross /> | <Cross />         |
+| `decision-models/baseten-joey-2b-latest`     | <Check /> | <Check /> | <Check /> | <Cross /> | <Check />   | <Cross /> | <Cross />         |
+
+{/* model-capabilities:baseten-decision:end */}
+
 ## Error Handling
 
 The Baseten provider includes built-in error handling for common API errors:
