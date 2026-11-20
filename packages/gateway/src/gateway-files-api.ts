@@ -6,8 +6,6 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from './zod';
 
-export const GATEWAY_FILE_FIELD = 'file';
-
 export function getGatewayFilesUrl(baseURL: string): string {
   return `${baseURL}/files`;
 }
@@ -17,34 +15,52 @@ export function getGatewayFileUrl(baseURL: string, fileId: string): string {
 }
 
 /**
- * Form fields sent with an upload, before the file part.
+ * The upload's file part. The Gateway detects the media type from the bytes
+ * and ignores the part's own filename and content type.
+ */
+export const GATEWAY_FILE_PART = {
+  name: 'file',
+  mediaType: 'application/octet-stream',
+} as const;
+
+/**
+ * Text fields sent with an upload, before the file part.
  */
 export function getGatewayFileUploadFields({
+  filename,
   expiresAfter,
 }: {
+  filename?: string;
   expiresAfter?: number;
 }): Array<{ name: string; value: string }> {
   return [
-    { name: 'purpose', value: 'user_data' },
+    ...(filename != null ? [{ name: 'filename', value: filename }] : []),
     ...(expiresAfter != null
-      ? [
-          { name: 'expires_after[anchor]', value: 'created_at' },
-          { name: 'expires_after[seconds]', value: String(expiresAfter) },
-        ]
+      ? [{ name: 'expiresAfter', value: String(expiresAfter) }]
       : []),
   ];
+}
+
+/**
+ * Reads the Gateway's `x-should-retry` error header, which takes precedence
+ * over retryability derived from the status code.
+ */
+export function getGatewayShouldRetry(
+  responseHeaders: Record<string, string> | undefined,
+): boolean | undefined {
+  const value = responseHeaders?.['x-should-retry'];
+  return value === 'true' ? true : value === 'false' ? false : undefined;
 }
 
 export const gatewayFileResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       id: z.string(),
-      bytes: z.nullish(z.number()),
-      created_at: z.nullish(z.number()),
-      expires_at: z.nullish(z.number()),
+      mediaType: z.nullish(z.string()),
       filename: z.nullish(z.string()),
-      purpose: z.nullish(z.string()),
-      status: z.nullish(z.string()),
+      byteSize: z.nullish(z.number()),
+      createdAt: z.nullish(z.string()),
+      expiresAt: z.nullish(z.string()),
     }),
   ),
 );
@@ -60,30 +76,29 @@ export const gatewayFileDeleteResponseSchema = lazySchema(() =>
 
 type GatewayFileResponse = InferSchema<typeof gatewayFileResponseSchema>;
 
-export function toGatewayFileDetails(response: GatewayFileResponse) {
+export function toGatewayFileDetails(response: GatewayFileResponse): {
+  providerReference: { gateway: string };
+  mediaType?: string;
+  filename?: string;
+  byteSize?: number;
+  createdAt?: Date;
+  expiresAt?: Date;
+} {
+  const createdAt = parseTimestamp(response.createdAt);
+  const expiresAt = parseTimestamp(response.expiresAt);
+
   return {
     providerReference: { gateway: response.id },
+    ...(response.mediaType != null ? { mediaType: response.mediaType } : {}),
     ...(response.filename != null ? { filename: response.filename } : {}),
-    ...(response.bytes != null ? { byteSize: response.bytes } : {}),
-    ...(response.created_at != null
-      ? { createdAt: new Date(response.created_at * 1000) }
-      : {}),
-    ...(response.expires_at != null
-      ? { expiresAt: new Date(response.expires_at * 1000) }
-      : {}),
-    providerMetadata: {
-      gateway: {
-        ...(response.filename != null ? { filename: response.filename } : {}),
-        ...(response.purpose != null ? { purpose: response.purpose } : {}),
-        ...(response.bytes != null ? { bytes: response.bytes } : {}),
-        ...(response.created_at != null
-          ? { createdAt: response.created_at }
-          : {}),
-        ...(response.status != null ? { status: response.status } : {}),
-        ...(response.expires_at != null
-          ? { expiresAt: response.expires_at }
-          : {}),
-      },
-    },
+    ...(response.byteSize != null ? { byteSize: response.byteSize } : {}),
+    ...(createdAt != null ? { createdAt } : {}),
+    ...(expiresAt != null ? { expiresAt } : {}),
   };
+}
+
+function parseTimestamp(value: string | null | undefined): Date | undefined {
+  if (value == null) return undefined;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date;
 }

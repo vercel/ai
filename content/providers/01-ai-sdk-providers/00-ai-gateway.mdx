@@ -517,13 +517,19 @@ holds IDs for several providers, the gateway decision model sends only the
 `gateway` ID, and it throws a `NoSuchProviderReferenceError` before sending
 the request when there is no `gateway` ID.
 
+AI Gateway detects a file's media type from its bytes. The `mediaType` in the
+upload result is the stored type, and the result has a warning when it differs
+from the `mediaType` you passed. Stream data is sent as it is read, without
+buffering, but the whole upload must reach AI Gateway within 30 seconds.
+
 The following provider option is available for uploads:
 
 - **expiresAfter** _number_
 
   Seconds after upload before AI Gateway deletes the file. Must be a positive
-  whole number. When omitted, AI Gateway's default retention applies. The
-  effective expiry is returned as `expiresAt`.
+  whole number. AI Gateway rounds it up to whole days, up to 730 days. When
+  omitted, files are kept for 30 days. The effective expiry is returned as
+  `expiresAt`.
 
 The files interface also reads a file's metadata and deletes a file. Content
 download is not supported.
@@ -532,7 +538,8 @@ download is not supported.
 const files = gateway.files();
 
 const metadata = await files.getFileMetadata?.({ file: providerReference });
-// metadata.filename, metadata.byteSize, metadata.createdAt, metadata.expiresAt
+// metadata.mediaType, metadata.filename, metadata.byteSize,
+// metadata.createdAt, metadata.expiresAt
 
 const { deleted } = (await files.deleteFile?.({ file: providerReference })) ?? {
   deleted: false,

@@ -30,14 +30,16 @@ export class GatewayModelNotFoundError extends GatewayError {
     modelId,
     cause,
     generationId,
+    isRetryable,
   }: {
     message?: string;
     statusCode?: number;
     modelId?: string;
     cause?: unknown;
     generationId?: string;
+    isRetryable?: boolean;
   } = {}) {
-    super({ message, statusCode, cause, generationId });
+    super({ message, statusCode, cause, generationId, isRetryable });
     this.modelId = modelId;
   }
 

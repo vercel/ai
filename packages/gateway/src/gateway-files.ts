@@ -1,12 +1,14 @@
-import type {
-  FilesV4,
-  FilesV4DeleteFileCallOptions,
-  FilesV4DeleteFileResult,
-  FilesV4GetFileMetadataCallOptions,
-  FilesV4GetFileMetadataResult,
-  FilesV4UploadFileCallOptions,
-  FilesV4UploadFileResult,
-  SharedV4ProviderReference,
+import {
+  APICallError,
+  type FilesV4,
+  type FilesV4DeleteFileCallOptions,
+  type FilesV4DeleteFileResult,
+  type FilesV4GetFileMetadataCallOptions,
+  type FilesV4GetFileMetadataResult,
+  type FilesV4UploadFileCallOptions,
+  type FilesV4UploadFileResult,
+  type SharedV4ProviderReference,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -21,7 +23,6 @@ import {
   postMultipartStreamToApi,
   resolve,
   resolveProviderReference,
-  type MultipartStreamPart,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from './zod';
@@ -29,12 +30,13 @@ import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import type { GatewayConfig } from './gateway-config';
 import {
-  GATEWAY_FILE_FIELD,
+  GATEWAY_FILE_PART,
   gatewayFileDeleteResponseSchema,
   gatewayFileResponseSchema,
   getGatewayFileUploadFields,
   getGatewayFileUrl,
   getGatewayFilesUrl,
+  getGatewayShouldRetry,
   toGatewayFileDetails,
 } from './gateway-files-api';
 import {
@@ -92,6 +94,7 @@ export class GatewayFiles implements FilesV4 {
       headers,
     );
     const fields = getGatewayFileUploadFields({
+      filename,
       expiresAfter: gatewayOptions?.expiresAfter,
     });
     const successfulResponseHandler = createJsonResponseHandler(
@@ -105,14 +108,11 @@ export class GatewayFiles implements FilesV4 {
               url,
               headers: requestHeaders,
               parts: [
-                ...fields.map(
-                  (field): MultipartStreamPart => ({ type: 'field', ...field }),
-                ),
+                ...fields.map(field => ({ type: 'field' as const, ...field })),
                 {
                   type: 'file',
-                  name: GATEWAY_FILE_FIELD,
-                  filename,
-                  mediaType,
+                  name: GATEWAY_FILE_PART.name,
+                  mediaType: GATEWAY_FILE_PART.mediaType,
                   content: data.stream,
                 },
               ],
@@ -124,7 +124,7 @@ export class GatewayFiles implements FilesV4 {
           : await postFormDataToApi({
               url,
               headers: requestHeaders,
-              formData: toFormData({ fields, data, mediaType, filename }),
+              formData: toFormData({ fields, data }),
               failedResponseHandler,
               successfulResponseHandler,
               abortSignal,
@@ -132,17 +132,20 @@ export class GatewayFiles implements FilesV4 {
             });
 
       const details = toGatewayFileDetails(response);
+      const storedMediaType = details.mediaType ?? mediaType;
+      const storedFilename = details.filename ?? filename;
+
       return {
-        warnings: [],
-        mediaType,
-        ...(filename != null ? { filename } : {}),
         ...details,
+        mediaType: storedMediaType,
+        ...(storedFilename != null ? { filename: storedFilename } : {}),
+        warnings: getMediaTypeWarnings({
+          declared: mediaType,
+          stored: details.mediaType,
+        }),
       };
     } catch (error) {
-      throw await asGatewayError(
-        error,
-        await parseAuthMethod(resolvedHeaders ?? {}),
-      );
+      throw await toGatewayFilesError(error, resolvedHeaders);
     }
   }
 
@@ -169,10 +172,7 @@ export class GatewayFiles implements FilesV4 {
 
       return { warnings: [], ...toGatewayFileDetails(response) };
     } catch (error) {
-      throw await asGatewayError(
-        error,
-        await parseAuthMethod(resolvedHeaders ?? {}),
-      );
+      throw await toGatewayFilesError(error, resolvedHeaders);
     }
   }
 
@@ -202,10 +202,7 @@ export class GatewayFiles implements FilesV4 {
         deleted: response.deleted,
       };
     } catch (error) {
-      throw await asGatewayError(
-        error,
-        await parseAuthMethod(resolvedHeaders ?? {}),
-      );
+      throw await toGatewayFilesError(error, resolvedHeaders);
     }
   }
 
@@ -229,31 +226,61 @@ function getGatewayFileId(file: SharedV4ProviderReference): string {
   return resolveProviderReference({ reference: file, provider: 'gateway' });
 }
 
+async function toGatewayFilesError(
+  error: unknown,
+  resolvedHeaders: Record<string, string | undefined> | undefined,
+) {
+  return asGatewayError(error, await parseAuthMethod(resolvedHeaders ?? {}), {
+    isRetryable: APICallError.isInstance(error)
+      ? getGatewayShouldRetry(error.responseHeaders)
+      : undefined,
+  });
+}
+
+function getMediaTypeWarnings({
+  declared,
+  stored,
+}: {
+  declared: string;
+  stored: string | undefined;
+}): Array<SharedV4Warning> {
+  if (
+    stored == null ||
+    declared === 'application/octet-stream' ||
+    normalizeMediaType(declared) === normalizeMediaType(stored)
+  ) {
+    return [];
+  }
+
+  return [
+    {
+      type: 'other',
+      message: `AI Gateway detected the file as '${stored}' instead of the declared '${declared}'.`,
+    },
+  ];
+}
+
+function normalizeMediaType(mediaType: string): string {
+  return mediaType.split(';')[0].trim().toLowerCase();
+}
+
 function toFormData({
   fields,
   data,
-  mediaType,
-  filename,
 }: {
   fields: Array<{ name: string; value: string }>;
   data: Exclude<FilesV4UploadFileCallOptions['data'], { type: 'stream' }>;
-  mediaType: string;
-  filename: string | undefined;
 }): FormData {
   const formData = new FormData();
   for (const field of fields) {
     formData.append(field.name, field.value);
   }
-
-  const blob = new Blob(
-    [convertInlineFileDataToUint8Array(data) as Uint8Array<ArrayBuffer>],
-    { type: mediaType },
+  formData.append(
+    GATEWAY_FILE_PART.name,
+    new Blob(
+      [convertInlineFileDataToUint8Array(data) as Uint8Array<ArrayBuffer>],
+      { type: GATEWAY_FILE_PART.mediaType },
+    ),
   );
-  if (filename != null) {
-    formData.append(GATEWAY_FILE_FIELD, blob, filename);
-  } else {
-    formData.append(GATEWAY_FILE_FIELD, blob);
-  }
-
   return formData;
 }

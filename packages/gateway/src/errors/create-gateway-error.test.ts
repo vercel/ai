@@ -823,3 +823,29 @@ describe('authentication_error with authMethod context', () => {
     expect(error.statusCode).toBe(401);
   });
 });
+
+describe('isRetryable', () => {
+  it.each([
+    ['authentication_error', 401, true],
+    ['invalid_request_error', 409, false],
+    ['rate_limit_exceeded', 429, false],
+    ['model_not_found', 404, true],
+    ['not_found', 404, true],
+    ['internal_server_error', 503, false],
+    ['failed_dependency', 424, true],
+    ['forbidden', 403, true],
+    ['service_unavailable_error', 503, false],
+  ])(
+    'should apply isRetryable to a %s error',
+    async (type, statusCode, isRetryable) => {
+      const error = await createGatewayErrorFromResponse({
+        response: { error: { message: 'failed', type } },
+        statusCode,
+        isRetryable,
+      });
+
+      expect(error.statusCode).toBe(statusCode);
+      expect(error.isRetryable).toBe(isRetryable);
+    },
+  );
+});

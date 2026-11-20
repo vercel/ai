@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 run(async () => {
   const files = gateway.files();
 
-  const { providerReference, mediaType, byteSize, expiresAt } =
+  const { providerReference, mediaType, byteSize, expiresAt, warnings } =
     await uploadFile({
       api: files,
       data: fs.readFileSync('./data/ai.pdf'),
@@ -20,13 +20,14 @@ run(async () => {
   console.log('Media type:', mediaType);
   console.log('Size:', byteSize);
   console.log('Expires at:', expiresAt);
+  console.log('Warnings:', warnings);
 
   const result = await experimental_decide({
     model: 'openai/gpt-5.6-sol',
     state: [
       {
         type: 'file',
-        mediaType: 'application/pdf',
+        mediaType: mediaType ?? 'application/pdf',
         data: providerReference,
       },
     ],

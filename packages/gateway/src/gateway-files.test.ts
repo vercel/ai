@@ -20,15 +20,16 @@ const server = createTestServer({
   [ENCODED_FILE_URL]: {},
 });
 
+const CREATED_AT = '2026-01-01T00:00:00.000Z';
+const EXPIRES_AT = '2026-01-31T00:00:00.000Z';
+
 const fileObject = {
   id: 'gwfile_123',
-  object: 'file',
-  bytes: 3,
-  created_at: 1700000000,
-  expires_at: 1702592000,
+  mediaType: 'application/pdf',
   filename: 'report.pdf',
-  purpose: 'user_data',
-  status: 'processed',
+  byteSize: 3,
+  createdAt: CREATED_AT,
+  expiresAt: EXPIRES_AT,
 };
 
 function createFiles() {
@@ -48,14 +49,23 @@ function prepareJsonResponse(
 
 function prepareErrorResponse(
   url: keyof typeof server.urls,
-  status: number,
-  type: string,
-  message = 'files error',
+  {
+    status,
+    type,
+    message = 'files error',
+    headers,
+  }: {
+    status: number;
+    type: string;
+    message?: string;
+    headers?: Record<string, string>;
+  },
 ) {
   server.urls[url].response = {
     type: 'error',
     status,
-    body: JSON.stringify({ error: { message, type } }),
+    headers,
+    body: JSON.stringify({ error: { message, type, param: null } }),
   };
 }
 
@@ -89,7 +99,7 @@ describe('GatewayFiles', () => {
   });
 
   describe('uploadFile', () => {
-    it('should post a multipart upload with purpose user_data', async () => {
+    it('should post the file and filename as multipart form data', async () => {
       prepareJsonResponse(FILES_URL);
 
       await createFiles().uploadFile({
@@ -102,17 +112,28 @@ describe('GatewayFiles', () => {
       expect(server.calls[0].requestUrl).toBe(FILES_URL);
 
       const multipart = await server.calls[0].requestBodyMultipart;
-      expect(Object.keys(multipart!).sort()).toEqual(['file', 'purpose']);
-      expect(multipart!.purpose).toBe('user_data');
+      expect(Object.keys(multipart!).sort()).toEqual(['file', 'filename']);
+      expect(multipart!.filename).toBe('report.pdf');
       const file = multipart!.file as File;
-      expect(file.name).toBe('report.pdf');
-      expect(file.type).toBe('application/pdf');
+      expect(file.type).toBe('application/octet-stream');
       expect(new Uint8Array(await file.arrayBuffer())).toEqual(
         new Uint8Array([1, 2, 3]),
       );
     });
 
-    it('should send gateway auth, provider and call headers without an idempotency key', async () => {
+    it('should omit the filename field when no filename is given', async () => {
+      prepareJsonResponse(FILES_URL);
+
+      await createFiles().uploadFile({
+        data: { type: 'data', data: new Uint8Array([1]) },
+        mediaType: 'application/pdf',
+      });
+
+      const multipart = await server.calls[0].requestBodyMultipart;
+      expect(Object.keys(multipart!)).toEqual(['file']);
+    });
+
+    it('should send gateway auth, protocol, provider and call headers without an idempotency key', async () => {
       prepareJsonResponse(FILES_URL);
 
       await createFiles().uploadFile({
@@ -125,6 +146,7 @@ describe('GatewayFiles', () => {
       expect(headers).toMatchObject({
         authorization: 'Bearer test-key',
         'ai-gateway-auth-method': 'api-key',
+        'ai-gateway-protocol-version': '0.0.1',
         'x-provider-header': 'provider',
         'x-call-header': 'call',
       });
@@ -136,7 +158,7 @@ describe('GatewayFiles', () => {
 
       await createFiles().uploadFile({
         data: { type: 'data', data: 'AQID' },
-        mediaType: 'image/png',
+        mediaType: 'application/pdf',
       });
 
       const multipart = await server.calls[0].requestBodyMultipart;
@@ -159,18 +181,6 @@ describe('GatewayFiles', () => {
       expect(await (multipart!.file as File).text()).toBe('hello');
     });
 
-    it('should default the filename to "blob"', async () => {
-      prepareJsonResponse(FILES_URL);
-
-      await createFiles().uploadFile({
-        data: { type: 'data', data: new Uint8Array([1]) },
-        mediaType: 'application/pdf',
-      });
-
-      const multipart = await server.calls[0].requestBodyMultipart;
-      expect((multipart!.file as File).name).toBe('blob');
-    });
-
     it('should stream a multipart upload', async () => {
       prepareJsonResponse(FILES_URL);
 
@@ -185,17 +195,19 @@ describe('GatewayFiles', () => {
         /^multipart\/form-data; boundary=/,
       );
       const multipart = await server.calls[0].requestBodyMultipart;
+      expect(Object.keys(multipart!).sort()).toEqual([
+        'expiresAfter',
+        'file',
+        'filename',
+      ]);
       expect(multipart).toMatchObject({
-        purpose: 'user_data',
-        'expires_after[anchor]': 'created_at',
-        'expires_after[seconds]': '3600',
+        filename: 'table.csv',
+        expiresAfter: '3600',
       });
-      const file = multipart!.file as File;
-      expect(file.name).toBe('table.csv');
-      expect(await file.text()).toBe('a,b\n1,2\n');
+      expect(await (multipart!.file as File).text()).toBe('a,b\n1,2\n');
     });
 
-    it('should send expiresAfter as expiry fields', async () => {
+    it('should send expiresAfter as a field', async () => {
       prepareJsonResponse(FILES_URL);
 
       await createFiles().uploadFile({
@@ -205,16 +217,8 @@ describe('GatewayFiles', () => {
       });
 
       const multipart = await server.calls[0].requestBodyMultipart;
-      expect(Object.keys(multipart!).sort()).toEqual([
-        'expires_after[anchor]',
-        'expires_after[seconds]',
-        'file',
-        'purpose',
-      ]);
-      expect(multipart).toMatchObject({
-        'expires_after[anchor]': 'created_at',
-        'expires_after[seconds]': '86400',
-      });
+      expect(Object.keys(multipart!).sort()).toEqual(['expiresAfter', 'file']);
+      expect(multipart!.expiresAfter).toBe('86400');
     });
 
     it.each([0, -1, 1.5])(
@@ -240,7 +244,7 @@ describe('GatewayFiles', () => {
       },
     );
 
-    it('should return a gateway provider reference and file details', async () => {
+    it('should return a gateway provider reference and the stored file details', async () => {
       prepareJsonResponse(FILES_URL);
 
       const result = await createFiles().uploadFile({
@@ -255,23 +259,16 @@ describe('GatewayFiles', () => {
         mediaType: 'application/pdf',
         filename: 'report.pdf',
         byteSize: 3,
-        createdAt: new Date(1700000000 * 1000),
-        expiresAt: new Date(1702592000 * 1000),
-        providerMetadata: {
-          gateway: {
-            filename: 'report.pdf',
-            purpose: 'user_data',
-            bytes: 3,
-            createdAt: 1700000000,
-            status: 'processed',
-            expiresAt: 1702592000,
-          },
-        },
+        createdAt: new Date(CREATED_AT),
+        expiresAt: new Date(EXPIRES_AT),
       });
     });
 
-    it('should fall back to the request filename and omit missing fields', async () => {
-      prepareJsonResponse(FILES_URL, { id: 'gwfile_456' });
+    it('should fall back to the request media type and filename and omit missing fields', async () => {
+      prepareJsonResponse(FILES_URL, {
+        id: 'gwfile_456',
+        createdAt: 'not a date',
+      });
 
       const result = await createFiles().uploadFile({
         data: { type: 'data', data: new Uint8Array([1]) },
@@ -284,19 +281,53 @@ describe('GatewayFiles', () => {
         providerReference: { gateway: 'gwfile_456' },
         mediaType: 'image/png',
         filename: 'photo.png',
-        providerMetadata: { gateway: {} },
       });
     });
+
+    it('should warn when the stored media type differs from the declared one', async () => {
+      prepareJsonResponse(FILES_URL, { ...fileObject, mediaType: 'image/png' });
+
+      const result = await createFiles().uploadFile({
+        data: { type: 'data', data: new Uint8Array([1]) },
+        mediaType: 'image/jpeg',
+      });
+
+      expect(result.mediaType).toBe('image/png');
+      expect(result.warnings).toEqual([
+        {
+          type: 'other',
+          message:
+            "AI Gateway detected the file as 'image/png' instead of the declared 'image/jpeg'.",
+        },
+      ]);
+    });
+
+    it.each([
+      ['text/plain; charset=utf-8', 'TEXT/PLAIN'],
+      ['application/octet-stream', 'application/pdf'],
+    ])(
+      'should not warn for declared %s and stored %s',
+      async (declared, stored) => {
+        prepareJsonResponse(FILES_URL, { ...fileObject, mediaType: stored });
+
+        const result = await createFiles().uploadFile({
+          data: { type: 'data', data: new Uint8Array([1]) },
+          mediaType: declared,
+        });
+
+        expect(result.warnings).toEqual([]);
+      },
+    );
 
     it.each([
       [400, 'invalid_request_error', GatewayInvalidRequestError],
       [401, 'authentication_error', GatewayAuthenticationError],
       [429, 'rate_limit_exceeded', GatewayRateLimitError],
-      [503, 'internal_server_error', GatewayInternalServerError],
+      [503, 'service_unavailable_error', GatewayInternalServerError],
     ])(
       'should map a %i %s response to a gateway error',
       async (status, type, errorClass) => {
-        prepareErrorResponse(FILES_URL, status, type);
+        prepareErrorResponse(FILES_URL, { status, type });
 
         const error = await catchError(
           createFiles().uploadFile({
@@ -309,6 +340,49 @@ describe('GatewayFiles', () => {
         expect(error.statusCode).toBe(status);
       },
     );
+
+    it.each([
+      [409, 'invalid_request_error', 'false', false],
+      [408, 'timeout', 'false', false],
+      [503, 'service_unavailable_error', 'false', false],
+      [503, 'service_unavailable_error', 'true', true],
+      [400, 'invalid_request_error', 'true', true],
+    ])(
+      'should take retryability of a %i %s from x-should-retry: %s',
+      async (status, type, shouldRetry, isRetryable) => {
+        prepareErrorResponse(FILES_URL, {
+          status,
+          type,
+          headers: { 'x-should-retry': shouldRetry },
+        });
+
+        const error = await catchError(
+          createFiles().uploadFile({
+            data: { type: 'data', data: new Uint8Array([1]) },
+            mediaType: 'application/pdf',
+          }),
+        );
+
+        expect(error.statusCode).toBe(status);
+        expect(error.isRetryable).toBe(isRetryable);
+      },
+    );
+
+    it('should derive retryability from the status without x-should-retry', async () => {
+      prepareErrorResponse(FILES_URL, {
+        status: 429,
+        type: 'rate_limit_exceeded',
+      });
+
+      const error = await catchError(
+        createFiles().uploadFile({
+          data: { type: 'data', data: new Uint8Array([1]) },
+          mediaType: 'application/pdf',
+        }),
+      );
+
+      expect(error.isRetryable).toBe(true);
+    });
   });
 
   describe('getFileMetadata', () => {
@@ -324,25 +398,17 @@ describe('GatewayFiles', () => {
       expect(server.calls[0].requestUrl).toBe(FILE_URL);
       expect(server.calls[0].requestHeaders).toMatchObject({
         authorization: 'Bearer test-key',
+        'ai-gateway-protocol-version': '0.0.1',
         'x-call-header': 'call',
       });
       expect(result).toEqual({
         warnings: [],
         providerReference: { gateway: 'gwfile_123' },
+        mediaType: 'application/pdf',
         filename: 'report.pdf',
         byteSize: 3,
-        createdAt: new Date(1700000000 * 1000),
-        expiresAt: new Date(1702592000 * 1000),
-        providerMetadata: {
-          gateway: {
-            filename: 'report.pdf',
-            purpose: 'user_data',
-            bytes: 3,
-            createdAt: 1700000000,
-            status: 'processed',
-            expiresAt: 1702592000,
-          },
-        },
+        createdAt: new Date(CREATED_AT),
+        expiresAt: new Date(EXPIRES_AT),
       });
     });
 
@@ -355,7 +421,12 @@ describe('GatewayFiles', () => {
     });
 
     it('should map a not found response to a gateway error', async () => {
-      prepareErrorResponse(FILE_URL, 404, 'not_found', 'file not found');
+      prepareErrorResponse(FILE_URL, {
+        status: 404,
+        type: 'not_found',
+        message: 'file not found',
+        headers: { 'x-should-retry': 'false' },
+      });
 
       const error = await catchError(
         createFiles().getFileMetadata!({ file: { gateway: 'gwfile_123' } }),
@@ -363,6 +434,7 @@ describe('GatewayFiles', () => {
 
       expect(GatewayNotFoundError.isInstance(error)).toBe(true);
       expect(error.message).toBe('file not found');
+      expect(error.isRetryable).toBe(false);
     });
 
     it('should reject a reference without a gateway file id', async () => {
@@ -378,11 +450,7 @@ describe('GatewayFiles', () => {
 
   describe('deleteFile', () => {
     it('should delete the file by its gateway id', async () => {
-      prepareJsonResponse(FILE_URL, {
-        id: 'gwfile_123',
-        object: 'file',
-        deleted: true,
-      });
+      prepareJsonResponse(FILE_URL, { id: 'gwfile_123', deleted: true });
 
       const result = await createFiles().deleteFile!({
         file: { gateway: 'gwfile_123' },
@@ -392,6 +460,7 @@ describe('GatewayFiles', () => {
       expect(server.calls[0].requestUrl).toBe(FILE_URL);
       expect(server.calls[0].requestHeaders).toMatchObject({
         authorization: 'Bearer test-key',
+        'ai-gateway-protocol-version': '0.0.1',
       });
       expect(result).toEqual({
         warnings: [],
@@ -400,14 +469,21 @@ describe('GatewayFiles', () => {
       });
     });
 
-    it('should map an error response to a gateway error', async () => {
-      prepareErrorResponse(FILE_URL, 429, 'rate_limit_exceeded');
+    it('should not retry a conflict marked x-should-retry: false', async () => {
+      prepareErrorResponse(FILE_URL, {
+        status: 409,
+        type: 'invalid_request_error',
+        message: 'file is on hold',
+        headers: { 'x-should-retry': 'false' },
+      });
 
       const error = await catchError(
         createFiles().deleteFile!({ file: { gateway: 'gwfile_123' } }),
       );
 
-      expect(GatewayRateLimitError.isInstance(error)).toBe(true);
+      expect(GatewayInvalidRequestError.isInstance(error)).toBe(true);
+      expect(error.statusCode).toBe(409);
+      expect(error.isRetryable).toBe(false);
     });
 
     it('should reject a reference without a gateway file id', async () => {

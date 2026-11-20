@@ -78,6 +78,7 @@ export async function createGatewayErrorFromResponse({
         statusCode,
         cause,
         generationId,
+        isRetryable,
       });
     case 'invalid_request_error':
       return new GatewayInvalidRequestError({
@@ -85,6 +86,7 @@ export async function createGatewayErrorFromResponse({
         statusCode,
         cause,
         generationId,
+        isRetryable,
       });
     case 'rate_limit_exceeded':
       return new GatewayRateLimitError({
@@ -92,6 +94,7 @@ export async function createGatewayErrorFromResponse({
         statusCode,
         cause,
         generationId,
+        isRetryable,
       });
     case 'model_not_found': {
       const modelResult = await safeValidateTypes({
@@ -105,6 +108,7 @@ export async function createGatewayErrorFromResponse({
         modelId: modelResult.success ? modelResult.value.modelId : undefined,
         cause,
         generationId,
+        isRetryable,
       });
     }
     case 'not_found':
@@ -113,6 +117,7 @@ export async function createGatewayErrorFromResponse({
         statusCode,
         cause,
         generationId,
+        isRetryable,
       });
     case 'internal_server_error':
       return new GatewayInternalServerError({
@@ -120,6 +125,7 @@ export async function createGatewayErrorFromResponse({
         statusCode,
         cause,
         generationId,
+        isRetryable,
       });
     case 'failed_dependency':
       return new GatewayFailedDependencyError({
@@ -127,6 +133,7 @@ export async function createGatewayErrorFromResponse({
         statusCode,
         cause,
         generationId,
+        isRetryable,
       });
     case 'forbidden': {
       const ruleResult = await safeValidateTypes({
@@ -139,6 +146,7 @@ export async function createGatewayErrorFromResponse({
         statusCode,
         cause,
         generationId,
+        isRetryable,
         ruleId: ruleResult.success ? ruleResult.value.ruleId : undefined,
       });
     }
@@ -165,6 +173,7 @@ export async function createGatewayErrorFromResponse({
         statusCode,
         cause,
         generationId,
+        isRetryable,
       });
   }
 }

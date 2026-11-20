@@ -10,8 +10,8 @@ export const gatewayFilesOptionsSchema = lazySchema(() =>
     z.catchall(
       z.object({
         /**
-         * Seconds after upload before the file expires. Omit it to use the
-         * Gateway's default retention.
+         * Seconds after upload before the file expires. AI Gateway rounds it up
+         * to whole days, up to 730 days. Defaults to 30 days.
          */
         expiresAfter: z.optional(z.number().check(z.int()).check(z.minimum(1))),
       }),

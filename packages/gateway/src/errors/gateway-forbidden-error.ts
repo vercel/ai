@@ -30,15 +30,17 @@ export class GatewayForbiddenError extends GatewayError {
     statusCode = 403,
     cause,
     generationId,
+    isRetryable,
     ruleId,
   }: {
     message?: string;
     statusCode?: number;
     cause?: unknown;
     generationId?: string;
+    isRetryable?: boolean;
     ruleId?: string;
   } = {}) {
-    super({ message, statusCode, cause, generationId });
+    super({ message, statusCode, cause, generationId, isRetryable });
     this.ruleId = ruleId;
   }
 
