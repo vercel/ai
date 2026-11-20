@@ -1,45 +1,61 @@
-import {
-  APICallError,
-  type FilesV4,
-  type FilesV4UploadFileCallOptions,
-  type FilesV4UploadFileResult,
+import type {
+  FilesV4,
+  FilesV4DeleteFileCallOptions,
+  FilesV4DeleteFileResult,
+  FilesV4GetFileMetadataCallOptions,
+  FilesV4GetFileMetadataResult,
+  FilesV4UploadFileCallOptions,
+  FilesV4UploadFileResult,
+  SharedV4ProviderReference,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertInlineFileDataToUint8Array,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  deleteFromApi,
   getErrorMessage,
-  lazySchema,
+  getFromApi,
+  parseProviderOptions,
   postFormDataToApi,
   postMultipartStreamToApi,
   resolve,
-  zodSchema,
-  type FetchFunction,
-  type InferSchema,
+  resolveProviderReference,
   type MultipartStreamPart,
   type Resolvable,
-  type ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { z } from './zod';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
+import type { GatewayConfig } from './gateway-config';
+import {
+  GATEWAY_FILE_FIELD,
+  gatewayFileDeleteResponseSchema,
+  gatewayFileResponseSchema,
+  getGatewayFileUploadFields,
+  getGatewayFileUrl,
+  getGatewayFilesUrl,
+  toGatewayFileDetails,
+} from './gateway-files-api';
+import {
+  gatewayFilesOptionsSchema,
+  type GatewayFilesOptions,
+} from './gateway-files-options';
 
-export type GatewayFilesConfig = {
-  provider: string;
-  /** URL of the files collection; uploads are posted to it. */
-  filesURL: string;
-  headers: Resolvable<Record<string, string | undefined>>;
-  fetch?: FetchFunction;
-  o11yHeaders: Resolvable<Record<string, string>>;
-};
-
-const GATEWAY_FILE_PURPOSE = 'user_data';
+const failedResponseHandler = createJsonErrorResponseHandler({
+  errorSchema: z.any(),
+  errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
+});
 
 export class GatewayFiles implements FilesV4 {
   readonly specificationVersion = 'v4';
 
-  constructor(private readonly config: GatewayFilesConfig) {}
+  constructor(
+    private readonly config: GatewayConfig & {
+      provider: string;
+      o11yHeaders: Resolvable<Record<string, string>>;
+    },
+  ) {}
 
   get provider(): string {
     return this.config.provider;
@@ -51,10 +67,17 @@ export class GatewayFiles implements FilesV4 {
     filename,
     abortSignal,
     headers,
+    providerOptions,
   }: FilesV4UploadFileCallOptions): Promise<FilesV4UploadFileResult> {
-    let resolvedHeaders: Record<string, string | undefined>;
+    let gatewayOptions: GatewayFilesOptions | undefined;
+    let resolvedHeaders: Record<string, string | undefined> | undefined;
     try {
-      resolvedHeaders = await resolve(this.config.headers);
+      gatewayOptions = await parseProviderOptions({
+        provider: 'gateway',
+        providerOptions,
+        schema: gatewayFilesOptionsSchema,
+      });
+      resolvedHeaders = await this.resolveHeaders();
     } catch (error) {
       // rejected before any request: release the caller's stream
       if (data.type === 'stream') {
@@ -63,177 +86,174 @@ export class GatewayFiles implements FilesV4 {
       throw error;
     }
 
-    const requestHeaders = combineHeaders(
+    const url = getGatewayFilesUrl(this.config.baseURL);
+    const requestHeaders = await this.getRequestHeaders(
       resolvedHeaders,
       headers,
-      await resolve(this.config.o11yHeaders),
     );
-    const url = this.config.filesURL;
+    const fields = getGatewayFileUploadFields({
+      expiresAfter: gatewayOptions?.expiresAfter,
+    });
+    const successfulResponseHandler = createJsonResponseHandler(
+      gatewayFileResponseSchema,
+    );
 
     try {
-      let response: GatewayFileResponse;
+      const { value: response } =
+        data.type === 'stream'
+          ? await postMultipartStreamToApi({
+              url,
+              headers: requestHeaders,
+              parts: [
+                ...fields.map(
+                  (field): MultipartStreamPart => ({ type: 'field', ...field }),
+                ),
+                {
+                  type: 'file',
+                  name: GATEWAY_FILE_FIELD,
+                  filename,
+                  mediaType,
+                  content: data.stream,
+                },
+              ],
+              failedResponseHandler,
+              successfulResponseHandler,
+              abortSignal,
+              fetch: this.config.fetch,
+            })
+          : await postFormDataToApi({
+              url,
+              headers: requestHeaders,
+              formData: toFormData({ fields, data, mediaType, filename }),
+              failedResponseHandler,
+              successfulResponseHandler,
+              abortSignal,
+              fetch: this.config.fetch,
+            });
 
-      if (data.type === 'stream') {
-        const parts: Array<MultipartStreamPart> = [
-          { type: 'field', name: 'purpose', value: GATEWAY_FILE_PURPOSE },
-          {
-            type: 'file',
-            name: 'file',
-            filename,
-            mediaType,
-            content: data.stream,
-          },
-        ];
+      const details = toGatewayFileDetails(response);
+      return {
+        warnings: [],
+        mediaType,
+        ...(filename != null ? { filename } : {}),
+        ...details,
+      };
+    } catch (error) {
+      throw await asGatewayError(
+        error,
+        await parseAuthMethod(resolvedHeaders ?? {}),
+      );
+    }
+  }
 
-        ({ value: response } = await postMultipartStreamToApi({
-          url,
-          headers: requestHeaders,
-          parts,
-          failedResponseHandler: gatewayFilesFailedResponseHandler,
-          successfulResponseHandler: createJsonResponseHandler(
-            gatewayFileResponseSchema,
-          ),
-          abortSignal,
-          fetch: this.config.fetch,
-        }));
-      } else {
-        const blob = new Blob(
-          [convertInlineFileDataToUint8Array(data) as Uint8Array<ArrayBuffer>],
-          { type: mediaType },
-        );
+  async getFileMetadata({
+    file,
+    abortSignal,
+    headers,
+  }: FilesV4GetFileMetadataCallOptions): Promise<FilesV4GetFileMetadataResult> {
+    const fileId = getGatewayFileId(file);
+    const resolvedHeaders = await this.resolveHeaders();
 
-        const formData = new FormData();
-        formData.append('purpose', GATEWAY_FILE_PURPOSE);
-        if (filename != null) {
-          formData.append('file', blob, filename);
-        } else {
-          formData.append('file', blob);
-        }
+    try {
+      const { value: response } = await getFromApi({
+        url: getGatewayFileUrl(this.config.baseURL, fileId),
+        headers: await this.getRequestHeaders(resolvedHeaders, headers),
+        failedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(
+          gatewayFileResponseSchema,
+        ),
+        abortSignal,
+        fetch: this.config.fetch,
+        validateUrl: false,
+      });
 
-        ({ value: response } = await postFormDataToApi({
-          url,
-          headers: requestHeaders,
-          formData,
-          failedResponseHandler: gatewayFilesFailedResponseHandler,
-          successfulResponseHandler: createJsonResponseHandler(
-            gatewayFileResponseSchema,
-          ),
-          abortSignal,
-          fetch: this.config.fetch,
-        }));
-      }
+      return { warnings: [], ...toGatewayFileDetails(response) };
+    } catch (error) {
+      throw await asGatewayError(
+        error,
+        await parseAuthMethod(resolvedHeaders ?? {}),
+      );
+    }
+  }
 
-      const responseFilename = response.filename ?? filename;
+  async deleteFile({
+    file,
+    abortSignal,
+    headers,
+  }: FilesV4DeleteFileCallOptions): Promise<FilesV4DeleteFileResult> {
+    const fileId = getGatewayFileId(file);
+    const resolvedHeaders = await this.resolveHeaders();
+
+    try {
+      const { value: response } = await deleteFromApi({
+        url: getGatewayFileUrl(this.config.baseURL, fileId),
+        headers: await this.getRequestHeaders(resolvedHeaders, headers),
+        failedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(
+          gatewayFileDeleteResponseSchema,
+        ),
+        abortSignal,
+        fetch: this.config.fetch,
+      });
 
       return {
         warnings: [],
         providerReference: { gateway: response.id },
-        mediaType,
-        ...(responseFilename != null ? { filename: responseFilename } : {}),
-        ...(response.bytes != null ? { byteSize: response.bytes } : {}),
-        ...(response.created_at != null
-          ? { createdAt: new Date(response.created_at * 1000) }
-          : {}),
-        ...(response.expires_at != null
-          ? { expiresAt: new Date(response.expires_at * 1000) }
-          : {}),
-        providerMetadata: { gateway: toFileMetadata(response) },
+        deleted: response.deleted,
       };
     } catch (error) {
-      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));
+      throw await asGatewayError(
+        error,
+        await parseAuthMethod(resolvedHeaders ?? {}),
+      );
     }
   }
-}
 
-const gatewayFileResponseSchema = lazySchema(() =>
-  zodSchema(
-    z.object({
-      id: z.string(),
-      bytes: z.nullish(z.number()),
-      created_at: z.nullish(z.number()),
-      expires_at: z.nullish(z.number()),
-      filename: z.nullish(z.string()),
-      purpose: z.nullish(z.string()),
-      status: z.nullish(z.string()),
-    }),
-  ),
-);
+  private async resolveHeaders() {
+    return this.config.headers ? await resolve(this.config.headers) : undefined;
+  }
 
-type GatewayFileResponse = InferSchema<typeof gatewayFileResponseSchema>;
-
-function toFileMetadata(
-  response: GatewayFileResponse,
-): Record<string, string | number> {
-  return {
-    ...(response.filename != null ? { filename: response.filename } : {}),
-    ...(response.purpose != null ? { purpose: response.purpose } : {}),
-    ...(response.bytes != null ? { bytes: response.bytes } : {}),
-    ...(response.created_at != null ? { createdAt: response.created_at } : {}),
-    ...(response.status != null ? { status: response.status } : {}),
-    ...(response.expires_at != null ? { expiresAt: response.expires_at } : {}),
-  };
-}
-
-const jsonErrorResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: z.any(),
-  errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
-});
-
-// The files API reports OpenAI-style types (`invalid_request_error` for every
-// 4xx, `server_error` for 5xx), so the gateway error class follows the status.
-const gatewayFilesFailedResponseHandler: ResponseHandler<
-  APICallError
-> = async options => {
-  const result = await jsonErrorResponseHandler(options);
-  const error = result.value;
-  const body = error.data as { error?: { type?: unknown } } | undefined;
-  const type = body?.error?.type;
-
-  if (
-    error.statusCode == null ||
-    body?.error == null ||
-    (type != null &&
-      type !== 'invalid_request_error' &&
-      type !== 'server_error')
+  private async getRequestHeaders(
+    resolvedHeaders: Record<string, string | undefined> | undefined,
+    headers: Record<string, string | undefined> | undefined,
   ) {
-    return result;
+    return combineHeaders(
+      resolvedHeaders,
+      headers,
+      await resolve(this.config.o11yHeaders),
+    );
+  }
+}
+
+function getGatewayFileId(file: SharedV4ProviderReference): string {
+  return resolveProviderReference({ reference: file, provider: 'gateway' });
+}
+
+function toFormData({
+  fields,
+  data,
+  mediaType,
+  filename,
+}: {
+  fields: Array<{ name: string; value: string }>;
+  data: Exclude<FilesV4UploadFileCallOptions['data'], { type: 'stream' }>;
+  mediaType: string;
+  filename: string | undefined;
+}): FormData {
+  const formData = new FormData();
+  for (const field of fields) {
+    formData.append(field.name, field.value);
   }
 
-  return {
-    ...result,
-    value: new APICallError({
-      message: error.message,
-      url: error.url,
-      requestBodyValues: error.requestBodyValues,
-      statusCode: error.statusCode,
-      responseHeaders: error.responseHeaders,
-      responseBody: error.responseBody,
-      cause: error.cause,
-      isRetryable: error.isRetryable,
-      data: {
-        ...body,
-        error: {
-          ...body.error,
-          type: toGatewayErrorType(error.statusCode),
-        },
-      },
-    }),
-  };
-};
-
-function toGatewayErrorType(statusCode: number): string {
-  switch (statusCode) {
-    case 401:
-      return 'authentication_error';
-    case 403:
-      return 'forbidden';
-    case 404:
-      return 'not_found';
-    case 429:
-      return 'rate_limit_exceeded';
-    default:
-      return statusCode >= 500
-        ? 'internal_server_error'
-        : 'invalid_request_error';
+  const blob = new Blob(
+    [convertInlineFileDataToUint8Array(data) as Uint8Array<ArrayBuffer>],
+    { type: mediaType },
+  );
+  if (filename != null) {
+    formData.append(GATEWAY_FILE_FIELD, blob, filename);
+  } else {
+    formData.append(GATEWAY_FILE_FIELD, blob);
   }
+
+  return formData;
 }

@@ -36,6 +36,7 @@ import {
   type GatewayGenerationInfo,
 } from './gateway-generation-info';
 import { GatewayBatch } from './gateway-batch';
+import { GatewayFiles } from './gateway-files';
 import { GatewayLanguageModel } from './gateway-language-model';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
@@ -65,6 +66,7 @@ import {
   LoadAPIKeyError,
   type EmbeddingModelV4,
   type Experimental_BatchV4 as BatchV4,
+  type FilesV4,
   type ImageModelV4,
   type RerankingModelV4,
   type SpeechModelV4,
@@ -95,6 +97,12 @@ export interface GatewayProvider extends ProviderV4 {
 
   /** Returns a BatchV4 interface for processing batches with AI Gateway. */
   experimental_batch(): BatchV4<{ text: GatewayModelId }>;
+
+  /**
+   * Returns a FilesV4 interface for uploading files to AI Gateway. Uploaded
+   * files are referenced as `{ gateway: '<file id>' }`.
+   */
+  files(): FilesV4;
 
   /**
    * Returns available providers and models for use with the remote provider.
@@ -546,6 +554,15 @@ export function createGateway(
       o11yHeaders: createO11yHeaders(),
     });
 
+  const createFiles = () =>
+    new GatewayFiles({
+      provider: 'gateway.files',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      o11yHeaders: createO11yHeaders(),
+    });
+
   const getAvailableModels = async () => {
     const now = options._internal?.currentDate?.().getTime() ?? Date.now();
     if (!pendingMetadata || now - lastFetchTime > cacheRefreshMillis) {
@@ -659,6 +676,7 @@ export function createGateway(
   };
   provider.languageModel = createLanguageModel;
   provider.experimental_batch = createBatch;
+  provider.files = createFiles;
   const createEmbeddingModel = (modelId: GatewayEmbeddingModelId) => {
     return new GatewayEmbeddingModel(modelId, {
       provider: 'gateway',

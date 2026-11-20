@@ -169,12 +169,13 @@ the request — each provider will find its own file ID.
 
 The following providers support `files()` and file uploads:
 
-| Provider  | Factory Method      |
-| --------- | ------------------- |
-| Anthropic | `anthropic.files()` |
-| Google    | `google.files()`    |
-| OpenAI    | `openai.files()`    |
-| xAI       | `xai.files()`       |
+| Provider   | Factory Method      |
+| ---------- | ------------------- |
+| AI Gateway | `gateway.files()`   |
+| Anthropic  | `anthropic.files()` |
+| Google     | `google.files()`    |
+| OpenAI     | `openai.files()`    |
+| xAI        | `xai.files()`       |
 
 Providers without file upload support will throw an `UnsupportedFunctionalityError`
 if they encounter a provider reference in a message.

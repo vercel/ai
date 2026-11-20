@@ -59,6 +59,7 @@ export type {
   /** @deprecated Use `GatewayProviderOptions` instead. */
   GatewayProviderOptions as GatewayLanguageModelOptions,
 } from './gateway-provider-options';
+export type { GatewayFilesOptions } from './gateway-files-options';
 export {
   GatewayError,
   GatewayAccessPolicyDeniedError,

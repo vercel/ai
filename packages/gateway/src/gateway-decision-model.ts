@@ -55,7 +55,12 @@ export class GatewayDecisionModel implements DecisionModelV4 {
   }: Parameters<DecisionModelV4['doDecide']>[0]): Promise<
     Awaited<ReturnType<DecisionModelV4['doDecide']>>
   > {
-    const stateParts = toGatewayStateParts({ state, modelType: 'decision' });
+    const stateParts = toGatewayStateParts({
+      state,
+      modelType: 'decision',
+      allowReferences: true,
+      narrowReferences: true,
+    });
     const gatewayOptions = await parseProviderOptions({
       provider: 'gateway',
       providerOptions,
