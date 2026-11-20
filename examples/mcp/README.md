@@ -43,6 +43,7 @@ Available examples/folders:
 - `elicitation` - MCP elicitation example
 - `elicitation-multi-step` - MCP multi-step elicitation example
 - `elicitation-ui` - MCP elicitation with UI (server only)
+- `pkgdiet` - PkgDiet dependency guardrail MCP client (stdio)
 
 Example usage:
 
