@@ -144,6 +144,31 @@ const legacyRedirectData = [
   ['/docs', '/docs/introduction', true],
   ['/docs/ai-sdk-rsc/generative-ui', '/docs/ai-sdk-rsc/overview', true],
   ['/providers', '/providers/ai-sdk-providers', true],
+  [
+    '/providers/community-providers/cloudflare-ai-gateway',
+    '/providers/community-providers',
+    true,
+  ],
+  [
+    '/providers/community-providers/cloudflare-workers-ai',
+    '/providers/community-providers',
+    true,
+  ],
+  [
+    '/providers/community-providers/crosshatch',
+    '/providers/community-providers',
+    true,
+  ],
+  [
+    '/providers/community-providers/gemini-cli',
+    '/providers/community-providers',
+    true,
+  ],
+  [
+    '/providers/community-providers/minimax',
+    '/providers/ai-sdk-providers/minimax',
+    true,
+  ],
   ['/docs/ai-core', '/docs/ai-sdk-core', true],
   ['/docs/ai-core/generate-text', '/docs/ai-sdk-core/generate-text', true],
   ['/docs/ai-core/generate-object', '/docs/ai-sdk-core/generate-object', true],

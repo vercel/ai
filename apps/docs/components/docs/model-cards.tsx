@@ -3,7 +3,6 @@ import {
   IconApi,
   IconDisplay,
   IconLogs,
-  IconSandbox,
   IconSparkles,
   IconWrench,
 } from '@vercel/geistdocs/assets/icons';
@@ -24,9 +23,12 @@ interface ModelFeatures {
 }
 
 interface ModelLogo {
+  /** Official alternate artwork for dark backgrounds. */
+  darkSrc?: string;
   /** Invert in dark mode (monochrome black marks). */
   invert?: boolean;
   src: string;
+  width?: number;
 }
 
 interface ModelCardData {
@@ -60,6 +62,10 @@ const FEATURE_BADGES: [
 
 const FeatureBadges = ({ features }: { features: ModelFeatures }) => {
   const active = FEATURE_BADGES.filter(([key]) => features[key]);
+  if (active.length === 0) {
+    return null;
+  }
+
   return (
     <div className="flex w-full flex-row flex-wrap gap-2">
       {active.map(([key, label, Icon]) => (
@@ -71,12 +77,6 @@ const FeatureBadges = ({ features }: { features: ModelFeatures }) => {
           {label}
         </Badge>
       ))}
-      {active.length === 0 ? (
-        <Badge className="gap-1 border-none bg-gray-200 font-normal text-gray-900">
-          <IconSandbox className="size-3.5" />
-          Provider Dependent
-        </Badge>
-      ) : null}
     </div>
   );
 };
@@ -89,26 +89,6 @@ const Monogram = ({ title }: { title: string }) => (
   >
     {title.slice(0, 1)}
   </span>
-);
-
-/** Cloudflare mark (no static asset; ported from the legacy docs app). */
-const CloudflareIcon = ({ size = 78 }: { size?: number }) => (
-  <svg
-    aria-hidden
-    height={size}
-    viewBox="0 0 32 32"
-    width={size}
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      d="M22.012 22.222c.197-.675.122-1.294-.206-1.754-.3-.422-.807-.666-1.416-.694l-11.545-.15c-.075 0-.14-.038-.178-.094s-.047-.13-.028-.206c.038-.113.15-.197.272-.206l11.648-.15c1.38-.066 2.88-1.182 3.404-2.55l.666-1.735a.38.38 0 0 0 .02-.225c-.75-3.395-3.78-5.927-7.4-5.927-3.34 0-6.17 2.157-7.184 5.15-.657-.488-1.5-.75-2.392-.666-1.604.16-2.9 1.444-3.048 3.048a3.58 3.58 0 0 0 .084 1.191A4.84 4.84 0 0 0 0 22.1c0 .234.02.47.047.703.02.113.113.197.225.197H21.58a.29.29 0 0 0 .272-.206l.16-.572z"
-      fill="#f38020"
-    />
-    <path
-      d="M25.688 14.803l-.32.01c-.075 0-.14.056-.17.13l-.45 1.566c-.197.675-.122 1.294.206 1.754.3.422.807.666 1.416.694l2.457.15c.075 0 .14.038.178.094s.047.14.028.206c-.038.113-.15.197-.272.206l-2.56.15c-1.388.066-2.88 1.182-3.404 2.55l-.188.478c-.038.094.028.188.13.188h8.797a.23.23 0 0 0 .225-.169A6.41 6.41 0 0 0 32 21.106a6.32 6.32 0 0 0-6.312-6.302"
-      fill="#faae40"
-    />
-  </svg>
 );
 
 /** Plus mark (mirrors Geist's `Plus` icon used by production). */
@@ -146,14 +126,26 @@ const ModelLogoImage = ({
   title: string;
 }) => (
   // Static brand SVGs skip the Next image optimizer deliberately.
-  // eslint-disable-next-line @next/next/no-img-element
-  <img
-    alt={`${title} logo`}
-    className={logo.invert ? 'dark:invert' : undefined}
-    height={size}
-    src={logo.src}
-    width={size}
-  />
+  <>
+    {/* eslint-disable-next-line @next/next/no-img-element */}
+    <img
+      alt={`${title} logo`}
+      className={`object-contain ${logo.darkSrc ? 'dark:hidden' : logo.invert ? 'dark:invert' : ''}`}
+      height={size}
+      src={logo.src}
+      width={logo.width ?? size}
+    />
+    {logo.darkSrc ? (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        alt={`${title} logo`}
+        className="hidden object-contain dark:block"
+        height={size}
+        src={logo.darkSrc}
+        width={logo.width ?? size}
+      />
+    ) : null}
+  </>
 );
 
 export const ModelCard = ({
@@ -397,37 +389,87 @@ const OFFICIAL_MODELS: ModelCardData[] = [
 ];
 
 const COMMUNITY_MODELS: ModelCardData[] = [
+  // Active community packages with 100k+ npm downloads, 2026-10-17–2026-11-15.
+  {
+    title: 'OpenRouter',
+    logo: {
+      src: '/images/icons/openrouter.svg',
+      darkSrc: '/images/icons/openrouter-dark.svg',
+      width: 110,
+    },
+    href: '/providers/community-providers/openrouter',
+    color: '7624F4',
+    features: {},
+  },
   {
     title: 'Ollama',
-    logo: { src: '/images/icons/ollama.png', invert: true },
+    logo: { src: '/images/icons/ollama.svg', invert: true },
     href: '/providers/community-providers/ollama',
-    color: '020210',
+    color: '000000',
     features: {},
   },
   {
-    title: 'Anthropic Vertex',
-    // No Google Cloud mark ships in public/images/icons; reuse the Google mark.
-    logos: [
-      { src: '/images/icons/anthropic.svg', invert: true },
-      { src: '/images/icons/google.svg' },
-    ],
-    href: '/providers/community-providers/anthropic-vertex-ai',
-    color: 'F3801F',
+    title: 'React Native Apple',
+    logo: { src: '/images/icons/react-native-ai.svg' },
+    href: '/providers/community-providers/react-native-apple',
+    color: '3FAE6A',
     features: {},
   },
   {
-    title: 'Portkey',
-    logo: { src: '/images/icons/portkey.png' },
-    href: '/providers/community-providers/portkey',
-    color: 'F3801F',
+    title: 'SAP AI Core',
+    logo: { src: '/images/icons/sap.svg', width: 156 },
+    href: '/providers/community-providers/sap-ai',
+    color: '0069B4',
     features: {},
   },
   {
-    title: 'Cloudflare Workers AI',
-    href: '/providers/community-providers/cloudflare-workers-ai',
-    color: 'F3801F',
+    title: 'OpenCode',
+    logo: { src: '/images/icons/opencode.svg' },
+    href: '/providers/community-providers/opencode-sdk',
+    color: '131010',
     features: {},
-    logoIcon: CloudflareIcon,
+  },
+  {
+    title: 'Dify',
+    logo: { src: '/images/icons/dify.svg' },
+    href: '/providers/community-providers/dify',
+    color: '0033FF',
+    features: {},
+  },
+  {
+    title: 'Claude Code',
+    logo: { src: '/images/icons/claude-code.svg' },
+    href: '/providers/community-providers/claude-code',
+    color: 'D97757',
+    features: {},
+  },
+  {
+    title: 'Codex CLI',
+    logo: { src: '/images/icons/codex.svg', invert: true },
+    href: '/providers/community-providers/codex-cli',
+    color: '000000',
+    features: {},
+  },
+  {
+    title: 'Voyage AI',
+    logo: { src: '/images/icons/voyage.svg' },
+    href: '/providers/community-providers/voyage-ai',
+    color: '00ED64',
+    features: {},
+  },
+  {
+    title: 'Mem0',
+    logo: { src: '/images/icons/mem0.svg' },
+    href: '/providers/community-providers/mem0',
+    color: 'CBB2FF',
+    features: {},
+  },
+  {
+    title: 'Aihubmix',
+    logo: { src: '/images/icons/aihubmix.svg' },
+    href: '/providers/community-providers/aihubmix',
+    color: '2563EB',
+    features: {},
   },
   {
     title: 'Write your own',

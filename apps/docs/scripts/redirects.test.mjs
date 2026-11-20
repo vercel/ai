@@ -58,7 +58,7 @@ test('evaluation URLs permanently redirect to decision pages and preserve query 
 });
 
 test('legacy redirects are unique and cannot capture live or migrated routes', () => {
-  assert.equal(legacyRedirects.length, 286);
+  assert.equal(legacyRedirects.length, 291);
   assert.equal(redirects.size, legacyRedirects.length);
 
   for (const source of [
