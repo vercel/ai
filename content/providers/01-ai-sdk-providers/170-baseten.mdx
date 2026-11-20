@@ -333,11 +333,15 @@ const result = await decide({
 });
 ```
 
-Inline images must be JPEG, PNG, or WebP and are sent as base64 data URLs. URL
-file data is passed through; Baseten only fetches HTTPS URLs on Amazon S3, Google
-Cloud Storage, and Azure Blob Storage. A single text part is sent as a string and
-a single JSON part as structured JSON, including a conversation object you build
-yourself. Other combinations of text and JSON parts are joined with newlines.
+Images must be JPEG, PNG, or WebP and are sent as base64 data URLs. For URL file
+state, `experimental_decide` requires `experimental_download` and downloads the
+image before calling the provider, so it is also sent inline. URL file data
+passed to the model directly is forwarded as is; Baseten accepts only HTTPS URLs
+on Amazon S3, Google Cloud Storage, and Azure Blob Storage and rejects others.
+
+A single text part is sent as a string and a single JSON part as structured
+JSON, including a conversation object you build yourself. Other combinations of
+text and JSON parts are joined with newlines.
 
 ### Confidence, legends, and usage
 
@@ -357,12 +361,12 @@ console.log(result.usage.outputTokens); // One token per question
 
 The provider validates these limits before sending the decision request:
 
-| Input          | Limit                                                  |
-| -------------- | ------------------------------------------------------ |
-| Choice options | 1–255                                                  |
-| Score levels   | 1–10                                                   |
-| Options        | At most 512 across all questions; yes/no counts as two |
-| Images         | At most 16                                             |
+| Input          | Limit                                                                                                           |
+| -------------- | --------------------------------------------------------------------------------------------------------------- |
+| Choice options | 1–255                                                                                                           |
+| Score levels   | 1–10                                                                                                            |
+| Options        | At most 512 across all questions: each Choice option and Score level counts as one, each yes/no question as two |
+| Images         | At most 16                                                                                                      |
 
 Box questions, audio, and video are not supported. Each model's context limit is
 enforced by the API, which rejects prompts that exceed it instead of truncating
