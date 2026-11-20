@@ -153,6 +153,7 @@ describe('doGenerate', () => {
     refusal = null,
     reasoning_content = '',
     reasoning = '',
+    reasoning_signature,
     tool_calls,
     function_call,
     usage = {
@@ -170,6 +171,7 @@ describe('doGenerate', () => {
     refusal?: string | null;
     reasoning_content?: string;
     reasoning?: string;
+    reasoning_signature?: string;
     tool_calls?: Array<{
       id: string;
       type: 'function';
@@ -223,6 +225,7 @@ describe('doGenerate', () => {
               refusal,
               reasoning_content,
               reasoning,
+              reasoning_signature,
               tool_calls,
               function_call,
             },
@@ -572,6 +575,26 @@ describe('doGenerate', () => {
         },
       ]
     `);
+  });
+
+  it('should carry the reasoning signature on the reasoning part', async () => {
+    prepareJsonResponse({
+      content: 'Checking.',
+      reasoning_content: 'The user wants the time.',
+      reasoning_signature: 'sig-abc',
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content[0]).toEqual({
+      type: 'reasoning',
+      text: 'The user wants the time.',
+      providerOptions: {
+        'test-provider': { reasoningSignature: 'sig-abc' },
+      },
+    });
   });
 
   it('should prefer reasoning_content over reasoning field when both are provided', async () => {
@@ -2425,6 +2448,35 @@ describe('doStream', () => {
       ],
     };
   }
+
+  it('should carry the reasoning signature on reasoning-end', async () => {
+    const chunk = (delta: object) =>
+      `data: {"id":"chatcmpl-sig","object":"chat.completion.chunk","created":1702657020,"model":"grok-3","system_fingerprint":null,"choices":[{"index":0,"delta":${JSON.stringify(delta)},"finish_reason":null}]}\n\n`;
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        chunk({ role: 'assistant', reasoning_content: 'The user wants ' }),
+        chunk({
+          reasoning_content: 'the time.',
+          reasoning_signature: 'sig-abc',
+        }),
+        chunk({ content: 'Checking.' }),
+        `data: {"id":"chatcmpl-sig","object":"chat.completion.chunk","created":1702657020,"model":"grok-3","system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+    const parts = await convertReadableStreamToArray(stream);
+
+    const end = parts.find(part => part.type === 'reasoning-end');
+    expect(end).toMatchObject({
+      type: 'reasoning-end',
+      providerMetadata: {
+        'test-provider': { reasoningSignature: 'sig-abc' },
+      },
+    });
+  });
 
   describe('text (fixture)', () => {
     beforeEach(() => {

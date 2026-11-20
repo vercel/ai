@@ -1963,3 +1963,88 @@ describe('top-level-only media type resolution', () => {
     });
   });
 });
+
+describe('reasoning signatures', () => {
+  it('replays the thinking signature a reasoning part carries', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'The user wants the time.',
+            providerOptions: {
+              openaiCompatible: { reasoningSignature: 'sig-abc' },
+            },
+          },
+          { type: 'text', text: 'Checking.' },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: 'Checking.',
+        reasoning_content: 'The user wants the time.',
+        reasoning_signature: 'sig-abc',
+        tool_calls: undefined,
+      },
+    ]);
+  });
+
+  it('omits the signature when several reasoning parts are merged into one text', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'plan A',
+            providerOptions: {
+              openaiCompatible: { reasoningSignature: 'sig-A' },
+            },
+          },
+          {
+            type: 'reasoning',
+            text: 'plan B',
+            providerOptions: {
+              openaiCompatible: { reasoningSignature: 'sig-B' },
+            },
+          },
+          { type: 'text', text: 'Answer.' },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: 'Answer.',
+        reasoning_content: 'plan Aplan B',
+        tool_calls: undefined,
+      },
+    ]);
+  });
+
+  it('omits the signature key when no reasoning part carries one', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          { type: 'reasoning', text: 'plain reasoning' },
+          { type: 'text', text: 'Answer.' },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: 'Answer.',
+        reasoning_content: 'plain reasoning',
+        tool_calls: undefined,
+      },
+    ]);
+  });
+});
