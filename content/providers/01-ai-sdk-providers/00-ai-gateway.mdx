@@ -475,6 +475,78 @@ await cancelBatch({ provider: gateway, batch });
 
 Cancellation is asynchronous. Continue checking `experimental_getBatchStatus` until the batch is terminal, then read `experimental_getBatchResults` for any partial results. A batch may finish before cancellation takes effect, and successful requests remain billable. Cancellation returns acknowledgement metadata, not confirmation that provider execution has stopped.
 
+## Files
+
+You can upload a file to AI Gateway once with [`uploadFile`](/docs/reference/ai-sdk-core/upload-file)
+and the `files` method on the provider instance, then reference it in later
+calls instead of sending its bytes each time. AI Gateway accepts PDFs, images,
+and text files up to 20 MiB.
+
+```ts
+import { gateway, type GatewayFilesOptions } from '@ai-sdk/gateway';
+import { experimental_decide, uploadFile } from 'ai';
+import { readFile } from 'node:fs/promises';
+
+const { providerReference } = await uploadFile({
+  api: gateway.files(),
+  data: await readFile('./report.pdf'),
+  filename: 'report.pdf',
+  providerOptions: {
+    gateway: { expiresAfter: 24 * 60 * 60 } satisfies GatewayFilesOptions,
+  },
+});
+
+// providerReference: { gateway: '<file id>' }
+
+const { answers } = await experimental_decide({
+  model: 'google/gemini-decision-1',
+  state: [
+    { type: 'file', mediaType: 'application/pdf', data: providerReference },
+  ],
+  questions: {
+    isInvoice: {
+      type: 'boolean',
+      instructions: 'Is this document an invoice?',
+    },
+  },
+});
+```
+
+Decision and [extraction](#extraction-models) models accept file references.
+When a reference holds IDs for several providers, the gateway decision model
+sends only the `gateway` ID, and it throws a `NoSuchProviderReferenceError`
+before sending the request when there is no `gateway` ID. The gateway
+extraction model sends the reference unchanged.
+
+AI Gateway detects a file's media type from its bytes. The `mediaType` in the
+upload result is the stored type, and the result has a warning when it differs
+from the `mediaType` you passed. Stream data is sent as it is read, without
+buffering, but the whole upload must reach AI Gateway within 30 seconds.
+
+The following provider option is available for uploads:
+
+- **expiresAfter** _number_
+
+  Seconds after upload before AI Gateway deletes the file. Must be a positive
+  whole number. AI Gateway rounds it up to whole days, up to 730 days. When
+  omitted, files are kept for 30 days. The effective expiry is returned as
+  `expiresAt`.
+
+The files interface also reads a file's metadata and deletes a file. Content
+download is not supported.
+
+```ts
+const files = gateway.files();
+
+const metadata = await files.getFileMetadata?.({ file: providerReference });
+// metadata.mediaType, metadata.filename, metadata.byteSize,
+// metadata.createdAt, metadata.expiresAt
+
+const { deleted } = (await files.deleteFile?.({ file: providerReference })) ?? {
+  deleted: false,
+};
+```
+
 ## Reranking Models
 
 You can create reranking models using the `rerankingModel` method on the provider instance:
@@ -529,7 +601,7 @@ console.log(answers.contacts.value); // ['Ana', 'Bo']
 ```
 
 - **Field types:** which field types are supported depends on the model. A field the model cannot extract throws `Experimental_ExtractionUnsupportedFieldTypeError` with the `fieldId` and `fieldType`, after the request reaches the gateway.
-- **Files:** send file state inline, as bytes or base64. Files given as a URL are downloaded by `experimental_extract` when you pass `experimental_download`. File references are sent to the gateway unchanged, which rejects them for now, so they fail after the request is sent.
+- **Files:** send file state inline, as bytes or base64. Files given as a URL are downloaded by `experimental_extract` when you pass `experimental_download`. File references, such as one returned by [`gateway.files()`](#files), are sent to the gateway unchanged.
 - **Provider options:** [gateway provider options](#gateway-provider-options) such as `user` and `tags` go under `providerOptions.gateway`.
 
 ## Streaming Speech Models

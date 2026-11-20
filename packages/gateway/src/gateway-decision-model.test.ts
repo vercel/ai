@@ -181,6 +181,54 @@ describe('GatewayDecisionModel', () => {
     });
   });
 
+  it('sends a file reference narrowed to the gateway file id', async () => {
+    prepareJsonResponse();
+
+    await createTestModel().doDecide({
+      state: [
+        {
+          type: 'file',
+          mediaType: 'application/pdf',
+          data: {
+            type: 'reference',
+            reference: { openai: 'file-abc', gateway: 'gwfile_123' },
+          },
+        },
+      ],
+      questions: testQuestions,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toEqual({
+      stateParts: [
+        {
+          type: 'file',
+          mediaType: 'application/pdf',
+          data: { type: 'reference', reference: { gateway: 'gwfile_123' } },
+        },
+      ],
+      questions: testQuestions,
+    });
+  });
+
+  it('rejects a file reference without a gateway file id before sending a Gateway request', async () => {
+    await expect(
+      createTestModel().doDecide({
+        state: [
+          {
+            type: 'file',
+            mediaType: 'application/pdf',
+            data: { type: 'reference', reference: { openai: 'file-abc' } },
+          },
+        ],
+        questions: testQuestions,
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_NoSuchProviderReferenceError',
+      provider: 'gateway',
+    });
+    expect(server.calls).toHaveLength(0);
+  });
+
   it('rejects URL file data before sending a Gateway request', async () => {
     await expect(
       createTestModel().doDecide({

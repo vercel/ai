@@ -168,17 +168,24 @@ describe('GatewayExtractionModel', () => {
       ]);
     });
 
-    it('sends file references unchanged', async () => {
+    it.each<{ case: string; reference: Record<string, string> }>([
+      { case: 'a gateway ID', reference: { gateway: 'file_123' } },
+      {
+        case: 'several provider IDs',
+        reference: { openai: 'file-abc', gateway: 'file_123' },
+      },
+      { case: 'no gateway ID', reference: { openai: 'file-abc' } },
+    ])('sends a file reference with $case unchanged', async ({ reference }) => {
       prepareJsonResponse();
       const file = {
         type: 'file' as const,
         mediaType: 'application/pdf',
-        data: {
-          type: 'reference' as const,
-          reference: { gateway: 'file_123' },
-        },
+        data: { type: 'reference' as const, reference },
       };
-      await createTestModel().doExtract({ state: [file], fields: testFields });
+      await createTestModel().doExtract({
+        state: [file],
+        fields: testFields,
+      });
 
       expect((await server.calls[0].requestBodyJson).stateParts).toEqual([
         file,

@@ -28,6 +28,44 @@ describe('asGatewayError', () => {
     );
   });
 
+  describe('retryability override', () => {
+    function createApiCallError(statusCode: number) {
+      return new APICallError({
+        message: 'failed',
+        url: 'https://api.test.com/files',
+        requestBodyValues: {},
+        statusCode,
+        responseBody: JSON.stringify({
+          error: { message: 'failed', type: 'service_unavailable_error' },
+        }),
+      });
+    }
+
+    it('should derive retryability from the status without an override', async () => {
+      const result = await asGatewayError(createApiCallError(503));
+
+      expect(result.isRetryable).toBe(true);
+    });
+
+    it.each([
+      [503, false],
+      [409, false],
+      [400, true],
+    ])(
+      'should apply isRetryable for a %i when given %s',
+      async (statusCode, isRetryable) => {
+        const result = await asGatewayError(
+          createApiCallError(statusCode),
+          undefined,
+          { isRetryable },
+        );
+
+        expect(result.statusCode).toBe(statusCode);
+        expect(result.isRetryable).toBe(isRetryable);
+      },
+    );
+  });
+
   describe('timeout error detection', () => {
     it('should detect error with UND_ERR_HEADERS_TIMEOUT code', async () => {
       const error = Object.assign(new Error('Request timeout'), {

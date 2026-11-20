@@ -1913,5 +1913,55 @@ describe('GatewayLanguageModel', () => {
         url: 'https://example.com/a.png',
       });
     });
+
+    it('should send provider reference file data unchanged', async () => {
+      prepareResponse();
+      const reference = { gateway: 'gwfile_123', openai: 'file-abc' };
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: { type: 'reference', reference },
+              mediaType: 'application/pdf',
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call_1',
+              toolName: 'read',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file',
+                    data: { type: 'reference', reference },
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ];
+
+      await createTestModel().doGenerate({ prompt });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.prompt[0].content[0]).toEqual({
+        type: 'file',
+        data: { type: 'reference', reference },
+        mediaType: 'application/pdf',
+      });
+      expect(requestBody.prompt[1].content[0].output.value[0].data).toEqual({
+        type: 'reference',
+        reference,
+      });
+    });
   });
 });

@@ -1,0 +1,75 @@
+import { gateway, type GatewayFilesOptions } from '@ai-sdk/gateway';
+import { experimental_decide, experimental_extract, uploadFile } from 'ai';
+import fs from 'node:fs';
+import { run } from '../../lib/run';
+
+run(async () => {
+  const files = gateway.files();
+
+  const { providerReference, mediaType, byteSize, expiresAt, warnings } =
+    await uploadFile({
+      api: files,
+      data: fs.readFileSync('./data/ai.pdf'),
+      filename: 'ai.pdf',
+      providerOptions: {
+        gateway: { expiresAfter: 24 * 60 * 60 } satisfies GatewayFilesOptions,
+      },
+    });
+
+  console.log('Provider reference:', providerReference);
+  console.log('Media type:', mediaType);
+  console.log('Size:', byteSize);
+  console.log('Expires at:', expiresAt);
+  console.log('Warnings:', warnings);
+
+  const file = {
+    type: 'file' as const,
+    mediaType: mediaType ?? 'application/pdf',
+    data: providerReference,
+  };
+
+  try {
+    const metadata = await files.getFileMetadata?.({ file: providerReference });
+    console.log('Metadata:', metadata);
+
+    const extraction = await experimental_extract({
+      model: gateway.extractionModel('scaledown/extract-1'),
+      state: [file],
+      fields: {
+        title: { type: 'text', instructions: 'The title of the document' },
+        topics: {
+          type: 'list',
+          items: 'text',
+          instructions: 'The main topics the document covers',
+        },
+      },
+    });
+
+    console.log('Extraction answers:', extraction.answers);
+
+    const decision = await experimental_decide({
+      model: 'google/gemini-decision-1',
+      state: [file],
+      questions: {
+        topic: {
+          type: 'choice',
+          instructions: 'What is this document mainly about?',
+          criteria: {
+            technology: 'Software, AI or computing',
+            finance: 'Money, markets or accounting',
+            other: null,
+          },
+        },
+        isTechnical: {
+          type: 'boolean',
+          instructions: 'Is the document written for a technical audience?',
+        },
+      },
+    });
+
+    console.log('Decision answers:', decision.answers);
+  } finally {
+    const deleted = await files.deleteFile?.({ file: providerReference });
+    console.log('Deleted:', deleted?.deleted);
+  }
+});

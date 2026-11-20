@@ -30,6 +30,10 @@ function isTimeoutError(error: unknown): boolean {
 export async function asGatewayError(
   error: unknown,
   authMethod?: 'api-key' | 'oidc',
+  options?: {
+    /** Overrides the status-derived retryability of a failed API call. */
+    isRetryable?: boolean;
+  },
 ) {
   // Caller cancellation is not a gateway failure and must not become a retryable 500.
   if (
@@ -69,10 +73,11 @@ export async function asGatewayError(
       cause: error,
       authMethod,
       isRetryable:
-        error.isRetryable &&
+        options?.isRetryable ??
+        (error.isRetryable &&
         (error.statusCode == null || error.statusCode < 400)
           ? true
-          : undefined,
+          : undefined),
     });
   }
 

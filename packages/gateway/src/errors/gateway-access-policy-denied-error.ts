@@ -48,6 +48,7 @@ export class GatewayAccessPolicyDeniedError extends GatewayError {
     statusCode = 403,
     cause,
     generationId,
+    isRetryable,
     policyIds,
     removedModels,
     removedProviders,
@@ -56,11 +57,12 @@ export class GatewayAccessPolicyDeniedError extends GatewayError {
     statusCode?: number;
     cause?: unknown;
     generationId?: string;
+    isRetryable?: boolean;
     policyIds?: string[];
     removedModels?: string[];
     removedProviders?: string[];
   } = {}) {
-    super({ message, statusCode, cause, generationId });
+    super({ message, statusCode, cause, generationId, isRetryable });
     this.policyIds = policyIds;
     this.removedModels = removedModels;
     this.removedProviders = removedProviders;
