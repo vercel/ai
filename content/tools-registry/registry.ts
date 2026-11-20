@@ -1032,4 +1032,35 @@ console.log(text);`,
     websiteUrl: 'https://upstash.com',
     npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
   },
+  {
+    slug: 'socialscrape',
+    name: 'SocialScrape',
+    description:
+      'Social media data for agents: profiles, posts, comments, search and video transcripts across 29 platforms, in one JSON shape with one API key. Includes a tool that runs any other endpoint by id.',
+    packageName: '@socialscrape/ai-sdk',
+    tags: ['social-media', 'transcripts', 'search', 'data', 'web-data'],
+    apiKeyEnvName: 'SOCIALSCRAPE_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @socialscrape/ai-sdk',
+      npm: 'npm install @socialscrape/ai-sdk',
+      yarn: 'yarn add @socialscrape/ai-sdk',
+      bun: 'bun add @socialscrape/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { socialscrapeTools } from '@socialscrape/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt:
+    'What did NASA post on YouTube this week, and what are people saying in the comments?',
+  tools: socialscrapeTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://socialscrape.dev/docs/ai-sdk',
+    apiKeyUrl: 'https://socialscrape.dev/app',
+    websiteUrl: 'https://socialscrape.dev',
+    npmUrl: 'https://www.npmjs.com/package/@socialscrape/ai-sdk',
+  },
 ];
