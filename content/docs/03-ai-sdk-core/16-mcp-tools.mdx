@@ -218,6 +218,50 @@ const mcpClient = await createMCPClient({
 
 You can also bring your own transport by implementing the `MCPTransport` interface for specific requirements not covered by the standard transports.
 
+### WebMCP Transport
+
+`Experimental_WebMCPTransport` (aliased below as `WebMCPTransport`) adapts tools
+registered with the browser's
+[`document.modelContext`](https://webmachinelearning.github.io/webmcp/) to the
+existing MCP client:
+
+```ts
+import {
+  createMCPClient,
+  Experimental_WebMCPTransport as WebMCPTransport,
+} from '@ai-sdk/mcp';
+
+// Run in a browser with WebMCP enabled, after checking API availability.
+const client = await createMCPClient({
+  transport: new WebMCPTransport({ modelContext: document.modelContext }),
+});
+
+const tools = await client.tools();
+```
+
+The required `modelContext` provides WebMCP's `getTools` and `executeTool`
+methods. The optional `fromOrigins: string[]` constructor option discovers tools
+exposed by additional frame origins, subject to browser permissions. The package
+exports structural `Experimental_WebMCPModelContext` and
+`Experimental_WebMCPTool` types; use browser API
+typings such as `webmcp-types` to declare `document.modelContext`.
+
+Use the tool names returned by `listTools` or `tools`: duplicate names across
+frames receive stable aliases such as `getCart_2`. Results include text `content`
+and parsed `structuredContent`. WebMCP `OperationError` failures become tool
+results with `isError: true`; other failures reject the request.
+
+WebMCP is an experimental browser API, not an HTTP MCP endpoint. Tool discovery
+and execution happen in the page. To keep model inference on your backend, send
+tool definitions to your API route, then execute the returned calls in
+[`useChat.onToolCall`](/docs/ai-sdk-ui/chatbot-tool-usage) and return results with
+`addToolOutput`.
+
+Tool lists are snapshots. List tools again when the page's available tools change,
+and close the client when the consuming component or browser connection is
+disposed. Cancellation is forwarded to tool execution. Closing the client aborts
+pending calls without unregistering the page's tools.
+
 <Note>
   The client returned by the `createMCPClient` function is a
   lightweight client intended for use in tool conversion. It currently does not
