@@ -1463,7 +1463,8 @@ describe('Anthropic batch', () => {
       batchId: 'msgbatch_123',
     });
 
-    await expect(convertReadableStreamToArray(stream)).resolves.toMatchObject([
+    const results = await convertReadableStreamToArray(stream);
+    expect(results).toMatchObject([
       {
         id: 'citation',
         status: 'succeeded',
@@ -1546,6 +1547,15 @@ describe('Anthropic batch', () => {
         },
       },
     ]);
+    const result = results[0];
+    if (result?.type !== 'text' || result.status !== 'succeeded') {
+      throw new Error('Expected a succeeded batch result.');
+    }
+    const text = result.result.content.find(part => part.type === 'text');
+    expect(text?.providerMetadata?.anthropic?.citations).toHaveLength(3);
+    expect(
+      text?.citations?.map(citation => citation.source.providerMetadata),
+    ).toEqual([undefined, undefined, undefined]);
   });
 
   it('accepts nullable web result fields', async () => {

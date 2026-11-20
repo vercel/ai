@@ -3937,16 +3937,6 @@ describe('AnthropicLanguageModel', () => {
                   "filename": "financial-report.pdf",
                   "id": "0",
                   "mediaType": "application/pdf",
-                  "providerMetadata": {
-                    "anthropic": {
-                      "cited_text": "Revenue increased by 25% year over year",
-                      "document_index": 0,
-                      "document_title": "Financial Report 2023",
-                      "end_page_number": 6,
-                      "start_page_number": 5,
-                      "type": "page_location",
-                    },
-                  },
                   "sourceType": "document",
                   "title": "Financial Report 2023",
                   "type": "source",
@@ -4063,16 +4053,6 @@ describe('AnthropicLanguageModel', () => {
                   "filename": "test.txt",
                   "id": "0",
                   "mediaType": "text/plain",
-                  "providerMetadata": {
-                    "anthropic": {
-                      "cited_text": "important information",
-                      "document_index": 0,
-                      "document_title": "Test Document",
-                      "end_char_index": 35,
-                      "start_char_index": 15,
-                      "type": "char_location",
-                    },
-                  },
                   "sourceType": "document",
                   "title": "Test Document",
                   "type": "source",
@@ -8621,6 +8601,15 @@ describe('AnthropicLanguageModel', () => {
         const end = events.find(event => event.type === 'text-end');
         const text = generated.content.find(part => part.type === 'text');
         expect(end?.citations).toEqual(text?.citations);
+        expect(text?.providerMetadata).toEqual({
+          anthropic: { citations: [citation] },
+        });
+        expect(text?.citations?.[0]?.source).not.toHaveProperty(
+          'providerMetadata',
+        );
+        expect(end?.citations?.[0]?.source).not.toHaveProperty(
+          'providerMetadata',
+        );
         expect(end?.citations).toEqual([
           expect.objectContaining({
             citedText: 'Supporting passage',
@@ -11784,16 +11773,6 @@ describe('AnthropicLanguageModel', () => {
                     "filename": "financial-report.pdf",
                     "id": "0",
                     "mediaType": "application/pdf",
-                    "providerMetadata": {
-                      "anthropic": {
-                        "cited_text": "Revenue increased by 25% year over year",
-                        "document_index": 0,
-                        "document_title": "Financial Report 2023",
-                        "end_page_number": 6,
-                        "start_page_number": 5,
-                        "type": "page_location",
-                      },
-                    },
                     "sourceType": "document",
                     "title": "Financial Report 2023",
                     "type": "source",
