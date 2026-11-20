@@ -95,9 +95,9 @@ const assemblyaiTranscriptionModelOptionsSchema = lazySchema(() =>
       iabCategories: z.boolean().nullish(),
       /**
        * Domain-specific keyterms to boost recognition for (max 6 words per phrase).
-       * Replaces `wordBoost` for newer models: supported by `universal-3-pro` /
-       * `universal-3-5-pro` and `slam-1` (and `universal-2` when metaphone is
-       * enabled for the account).
+       * Replaces `wordBoost` for newer models: supported by `assemblyai-stt-3-7`
+       * and `universal-3-5-pro` (and `universal-2` when metaphone is enabled for
+       * the account).
        */
       keytermsPrompt: z.array(z.string()).nullish(),
       /**
@@ -133,7 +133,7 @@ const assemblyaiTranscriptionModelOptionsSchema = lazySchema(() =>
       multichannel: z.boolean().nullish(),
       /**
        * Provide natural-language context (up to 1,500 words) to steer the model.
-       * Only supported by `universal-3-pro` / `universal-3-5-pro` and `slam-1`.
+       * Only supported by `assemblyai-stt-3-7` and `universal-3-5-pro`.
        */
       prompt: z.string().nullish(),
       /**
@@ -184,7 +184,8 @@ const assemblyaiTranscriptionModelOptionsSchema = lazySchema(() =>
       redactStaticEntities: z.record(z.string(), z.array(z.string())).nullish(),
       /**
        * Remove inline annotations from rich transcripts. `'all'` removes all inline
-       * annotations; `'speaker'` removes only speaker cues. Universal-3 Pro models.
+       * annotations; `'speaker'` removes only speaker cues. AssemblyAI-STT-3.7 and
+       * Universal-3 Pro models.
        */
       removeAudioTags: z.enum(['all', 'speaker']).nullish(),
       /**
@@ -227,7 +228,8 @@ const assemblyaiTranscriptionModelOptionsSchema = lazySchema(() =>
        */
       summaryType: z.string().nullish(),
       /**
-       * Sampling temperature (0-1) controlling randomness. Universal-3 Pro models.
+       * Sampling temperature (0-1) controlling randomness. AssemblyAI-STT-3.7 and
+       * Universal-3 Pro models.
        */
       temperature: z.number().min(0).max(1).nullish(),
       /**
@@ -245,8 +247,8 @@ const assemblyaiTranscriptionModelOptionsSchema = lazySchema(() =>
       /**
        * List of words to boost recognition for.
        *
-       * @deprecated `wordBoost` is rejected by `universal-3-pro` /
-       * `universal-3-5-pro` and `slam-1` (it only works on `universal-2`/`best`).
+       * @deprecated `wordBoost` is rejected by `assemblyai-stt-3-7` and
+       * `universal-3-5-pro` (it only works on `universal-2`).
        * Use `keytermsPrompt` instead.
        */
       wordBoost: z.array(z.string()).nullish(),
@@ -295,38 +297,23 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV3 {
 
     const body: Omit<AssemblyAITranscriptionAPITypes, 'audio_url'> = {};
 
-    // The legacy `best` model is selected via the deprecated singular
-    // `speech_model` parameter. All other models (e.g. `universal-2`,
-    // `universal-3-pro`, `universal-3-5-pro`) are only accessible via the
-    // `speech_models` array and are rejected by `speech_model`.
+    // AssemblyAI selects models only through the `speech_models` array; the
+    // singular `speech_model` parameter is rejected.
     // See https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model
-    if (this.modelId === 'best') {
-      body.speech_model = this.modelId as 'best';
+    body.speech_models = [this.modelId];
+
+    const docsUrl =
+      'https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model';
+    if (this.modelId === 'universal-3-5-pro') {
       warnings.push({
         type: 'other',
-        message:
-          "The 'best' model is a legacy AssemblyAI model. Use 'universal-3-5-pro' instead. See documentation: https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model",
+        message: `AssemblyAI has deprecated 'universal-3-5-pro'. Use 'assemblyai-stt-3-7' instead. See documentation: ${docsUrl}`,
       });
-    } else {
-      body.speech_models = [this.modelId];
-
-      // Forward-looking nudge: universal-3-5-pro is AssemblyAI's latest
-      // flagship and is set to replace universal-3-pro. Not a deprecation —
-      // both models still work — so this is an informational warning only.
-      if (
-        this.modelId === 'universal-3-pro' ||
-        this.modelId === 'universal-2'
-      ) {
-        const docsUrl =
-          'https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model';
-        warnings.push({
-          type: 'other',
-          message:
-            this.modelId === 'universal-3-pro'
-              ? `'universal-3-5-pro' is AssemblyAI's latest flagship model and is set to replace 'universal-3-pro'. See ${docsUrl}`
-              : `'universal-3-5-pro' is AssemblyAI's latest flagship model. See ${docsUrl}`,
-        });
-      }
+    } else if (this.modelId === 'universal-2') {
+      warnings.push({
+        type: 'other',
+        message: `'assemblyai-stt-3-7' is AssemblyAI's latest flagship model; 'universal-2' remains available for languages it does not support. See ${docsUrl}`,
+      });
     }
 
     // Add provider-specific options
@@ -436,7 +423,7 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV3 {
           type: 'other',
           message: `${deprecatedBoostOptions.join(', ')} ${
             deprecatedBoostOptions.length > 1 ? 'are' : 'is'
-          } deprecated and rejected by 'universal-3-pro' / 'universal-3-5-pro' and 'slam-1'. Use 'keytermsPrompt' instead.`,
+          } deprecated and rejected by 'assemblyai-stt-3-7' and 'universal-3-5-pro'. Use 'keytermsPrompt' instead.`,
         });
       }
 
