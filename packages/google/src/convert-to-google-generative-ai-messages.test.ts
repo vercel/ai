@@ -767,6 +767,52 @@ describe('tool messages', () => {
     });
   });
 
+  it('should serialize JSON Schema references in function response content', async () => {
+    const toolResult = {
+      tools: [
+        {
+          name: 'find_records',
+          inputSchema: {
+            $defs: {
+              Node: {
+                type: 'object',
+                properties: {
+                  child: { $ref: '#/$defs/Node' },
+                },
+              },
+            },
+            $ref: '#/$defs/Node',
+          },
+        },
+      ],
+    };
+
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'get_schema',
+            toolCallId: 'testCallId',
+            output: { type: 'json', value: toolResult },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        id: 'testCallId',
+        name: 'get_schema',
+        response: {
+          name: 'get_schema',
+          content: JSON.stringify(toolResult),
+        },
+      },
+    });
+  });
+
   it('should convert tool result content with image-data into functionResponse parts', async () => {
     const result = convertToGoogleGenerativeAIMessages([
       {
@@ -1401,11 +1447,13 @@ describe('parallel tool calls', () => {
 
     const content = (result.contents[0].parts[0] as any).functionResponse
       .response.content;
-    expect(content).toEqual({
-      $ref: '#/components/schemas/Item',
-      count: '100',
-      self: '[Circular]',
-    });
+    expect(content).toBe(
+      JSON.stringify({
+        $ref: '#/components/schemas/Item',
+        count: '100',
+        self: '[Circular]',
+      }),
+    );
   });
 
   it('should preserve reused non-circular objects with $ref in tool-result', async () => {
@@ -1432,8 +1480,12 @@ describe('parallel tool calls', () => {
 
     const content = (result.contents[0].parts[0] as any).functionResponse
       .response.content;
-    expect(content).toEqual(schema);
-    expect(content.first).toBe(content.second);
+    expect(content).toBe(JSON.stringify(schema));
+    expect(JSON.parse(content)).toEqual({
+      $ref: '#/components/schemas/Item',
+      first: { id: 1 },
+      second: { id: 1 },
+    });
   });
 });
 
