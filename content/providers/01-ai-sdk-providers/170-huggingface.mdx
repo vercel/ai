@@ -186,10 +186,10 @@ const result = streamText({
 });
 
 for await (const part of result.stream) {
-  if (part.type === 'reasoning') {
-    console.log(`Reasoning: ${part.textDelta}`);
+  if (part.type === 'reasoning-delta') {
+    console.log(`Reasoning: ${part.text}`);
   } else if (part.type === 'text-delta') {
-    process.stdout.write(part.textDelta);
+    process.stdout.write(part.text);
   }
 }
 ```
