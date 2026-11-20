@@ -32,6 +32,7 @@ import { VERSION } from './version';
 import { XaiFiles } from './files/xai-files';
 import { XaiVideoModel } from './xai-video-model';
 import type { XaiVideoModelId } from './xai-video-settings';
+import { xaiDefaultAudioModelId } from './xai-model-catalog';
 import { XaiSpeechModel } from './xai-speech-model';
 import { XaiTranscriptionModel } from './xai-transcription-model';
 import type { XaiTranscriptionModelId } from './xai-transcription-model-options';
@@ -204,7 +205,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   };
 
   const createSpeechModel = () => {
-    return new XaiSpeechModel('', {
+    return new XaiSpeechModel(xaiDefaultAudioModelId, {
       provider: 'xai.speech',
       baseURL,
       headers: getHeaders,
@@ -212,7 +213,9 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     });
   };
 
-  const createTranscriptionModel = (modelId: XaiTranscriptionModelId = '') => {
+  const createTranscriptionModel = (
+    modelId: XaiTranscriptionModelId = xaiDefaultAudioModelId,
+  ) => {
     return new XaiTranscriptionModel(modelId, {
       provider: 'xai.transcription',
       baseURL,

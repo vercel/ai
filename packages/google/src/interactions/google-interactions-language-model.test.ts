@@ -894,7 +894,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       ]);
     });
 
-    it.each(['gemini-4-hydrogen', 'gemini-4-hydrogen-eap'])(
+    it.each(['gemini-4-hydrogen', 'gemini-4-hydrogen-eap', 'gemini-4-neon'])(
       'passes the xhigh thinking level for %s',
       async modelId => {
         const result = await provider.interactions(modelId).doGenerate({

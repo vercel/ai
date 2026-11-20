@@ -1,5 +1,29 @@
 # @ai-sdk/devtools
 
+## 1.0.81
+
+### Patch Changes
+
+- 239b95b: Restrict the DevTools storage directory and database to owner-only permissions, including existing storage, before writing potentially sensitive prompts and responses.
+
+  Reject symlinked, hard-linked, unowned, or unsafe shared storage before changing permissions or writing, and verify the opened database before updating it through the same file handle.
+
+- Updated dependencies [0b8cbfa]
+- Updated dependencies [6815153]
+- Updated dependencies [15bfd6b]
+- Updated dependencies [15bfd6b]
+- Updated dependencies [2613bb4]
+- Updated dependencies [63593a7]
+  - ai@7.0.178
+
+## 1.0.80
+
+### Patch Changes
+
+- Updated dependencies [e403988]
+- Updated dependencies [b792b56]
+  - ai@7.0.177
+
 ## 1.0.79
 
 ### Patch Changes

@@ -1,5 +1,27 @@
 # @ai-sdk/otel
 
+## 1.0.178
+
+### Patch Changes
+
+- 15bfd6b: add telemetry, runtime context and lifecycle callbacks to `experimental_extract`
+- Updated dependencies [0b8cbfa]
+- Updated dependencies [6815153]
+- Updated dependencies [15bfd6b]
+- Updated dependencies [15bfd6b]
+- Updated dependencies [2613bb4]
+- Updated dependencies [63593a7]
+  - ai@7.0.178
+
+## 1.0.177
+
+### Patch Changes
+
+- e403988: fix(otel): end the span of a model call when a stream retry or a steering interrupt starts a new one
+- Updated dependencies [e403988]
+- Updated dependencies [b792b56]
+  - ai@7.0.177
+
 ## 1.0.176
 
 ### Patch Changes

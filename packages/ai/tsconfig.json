@@ -5,7 +5,6 @@
     "types": [
       "@types/node"
     ],
-    "composite": true,
     "rootDir": ".",
     "outDir": "dist"
   },
@@ -16,43 +15,5 @@
     "tsdown.config.ts",
     "internal.d.ts",
     "test.d.ts"
-  ],
-  "references": [
-    {
-      "path": "../amazon-bedrock"
-    },
-    {
-      "path": "../deepseek"
-    },
-    {
-      "path": "../gateway"
-    },
-    {
-      "path": "../google"
-    },
-    {
-      "path": "../groq"
-    },
-    {
-      "path": "../huggingface"
-    },
-    {
-      "path": "../moonshotai"
-    },
-    {
-      "path": "../openai"
-    },
-    {
-      "path": "../provider"
-    },
-    {
-      "path": "../provider-utils"
-    },
-    {
-      "path": "../test-server"
-    },
-    {
-      "path": "../xai"
-    }
   ]
 }

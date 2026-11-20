@@ -82,8 +82,10 @@ export const revaiProviderOptions = {
   >,
 } as const satisfies ProviderOptionDefinitions;
 
+const legacyTranscriptionModelIds = ['machine'] as const;
+
 export const revaiTranscriptionModelIds = [
-  'machine',
+  ...legacyTranscriptionModelIds,
   'low_cost',
   'fusion',
 ] as const;
@@ -135,5 +137,6 @@ export const revaiModelCatalog = Object.fromEntries(
 
 /** Known model IDs, derived from the declarations used to build the catalog. */
 export type RevaiModelIds = {
+  legacyTranscription: (typeof legacyTranscriptionModelIds)[number];
   transcription: (typeof revaiTranscriptionModelIds)[number];
 };

@@ -46,10 +46,6 @@ Packages are installed directly from immutable deployment URLs.
 Complete the [maintainer setup](./package-previews.md#maintainer-setup) to connect
 the project. There is no manual snapshot option in the release workflow.
 
-## New Major Releases
-
-- Update version in `skills/use-ai-sdk/SKILL.md`.
-
 ## Provenance
 
 All packages are published with [npm provenance](https://docs.npmjs.com/generating-provenance-statements). This is enabled via:

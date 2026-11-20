@@ -1,5 +1,18 @@
 # @ai-sdk/google-vertex
 
+## 5.0.143
+
+### Patch Changes
+
+- 875de7b: feat(google): add the `gemini-4-neon` model ID with `xhigh` thinking support
+- Updated dependencies [1d2c2ff]
+- Updated dependencies [875de7b]
+- Updated dependencies [1f53cc2]
+  - @ai-sdk/provider-utils@5.0.83
+  - @ai-sdk/anthropic@4.0.107
+  - @ai-sdk/google@4.0.123
+  - @ai-sdk/openai-compatible@3.0.94
+
 ## 5.0.142
 
 ### Patch Changes

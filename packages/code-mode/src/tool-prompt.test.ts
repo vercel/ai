@@ -4,7 +4,7 @@ import { z } from 'zod/v4';
 import {
   experimental_codeModeTool as codeModeTool,
   experimental_createCodeModeTool as createCodeModeTool,
-} from '../dist/index.js';
+} from './index.js';
 
 const BASE_RULES = `Execute code-mode TypeScript in an isolated sandbox.
 

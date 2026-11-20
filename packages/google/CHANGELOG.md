@@ -1,5 +1,14 @@
 # @ai-sdk/google
 
+## 4.0.123
+
+### Patch Changes
+
+- 875de7b: feat(google): add the `gemini-4-neon` model ID with `xhigh` thinking support
+- 1f53cc2: Derive model ID types from the model catalog while preserving the IDs accepted by each model type and endpoint.
+- Updated dependencies [1d2c2ff]
+  - @ai-sdk/provider-utils@5.0.83
+
 ## 4.0.122
 
 ### Patch Changes
