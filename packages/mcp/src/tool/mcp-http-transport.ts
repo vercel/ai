@@ -274,7 +274,9 @@ export class HttpMCPTransport implements MCPTransport {
           ? options.signal
           : AbortSignal.any([transportSignal, options.signal]);
 
-    const attempt = async (triedAuth: boolean = false): Promise<void> => {
+    const attempt = async (
+      triedAuth: boolean = false,
+    ): Promise<MCPClientError | undefined> => {
       try {
         const isInitializeRequest =
           'method' in message && message.method === 'initialize';
@@ -344,13 +346,17 @@ export class HttpMCPTransport implements MCPTransport {
             const jsonRpcMessage = await parseJSONRPCMessage(text).catch(
               () => undefined,
             );
+
             if (jsonRpcMessage != null && 'error' in jsonRpcMessage) {
-              this.onmessage?.(
-                jsonRpcMessage.id == null
-                  ? { ...jsonRpcMessage, id: message.id }
-                  : jsonRpcMessage,
-              );
-              return;
+              return new MCPClientError({
+                message: jsonRpcMessage.error.message,
+                code: jsonRpcMessage.error.code,
+                data: jsonRpcMessage.error.data,
+                cause: jsonRpcMessage.error,
+                statusCode: response.status,
+                url: this.url.href,
+                responseBody: text,
+              });
             }
           }
 
@@ -499,7 +505,10 @@ export class HttpMCPTransport implements MCPTransport {
       }
     };
 
-    await attempt();
+    const jsonRpcError = await attempt();
+    if (jsonRpcError != null) {
+      throw jsonRpcError;
+    }
   }
 
   private getStandardRequestHeaders(

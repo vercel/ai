@@ -390,6 +390,8 @@ describe('HttpMCPTransport', () => {
       message: expect.stringContaining('protocolVersionDiscovery: false'),
       code: -32022,
       data,
+      statusCode: 400,
+      url: 'http://localhost:4000/mcp',
       cause: expect.any(MCPClientError),
     });
     expect(methods).toEqual(['server/discover']);
@@ -899,6 +901,51 @@ describe('HttpMCPTransport', () => {
     expect((error as MCPClientError).responseBody).toBe(
       'Internal Server Error',
     );
+  });
+
+  it('should expose HTTP status and JSON-RPC error details on a JSON-RPC error from POST', async () => {
+    const body = {
+      jsonrpc: '2.0',
+      id: 1,
+      error: {
+        code: -32000,
+        message: 'Unauthorized: token expired',
+        data: { reason: 'expired' },
+      },
+    };
+    server.urls['http://localhost:4000/mcp'].response = {
+      type: 'error',
+      status: 401,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    };
+
+    transport = new HttpMCPTransport({ url: 'http://localhost:4000/mcp' });
+    await transport.start();
+
+    const onmessage = vi.fn();
+    const onerror = vi.fn();
+    transport.onmessage = onmessage;
+    transport.onerror = onerror;
+
+    const error = await transport
+      .send({ jsonrpc: '2.0', method: 'tools/list', id: 1, params: {} })
+      .catch(error => error);
+
+    expect(MCPClientError.isInstance(error)).toBe(true);
+    expect(error).toMatchObject({
+      message: 'Unauthorized: token expired',
+      code: -32000,
+      data: { reason: 'expired' },
+      statusCode: 401,
+      url: 'http://localhost:4000/mcp',
+      responseBody: JSON.stringify(body),
+      cause: body.error,
+    });
+    expect(onmessage).not.toHaveBeenCalled();
+    // the caller handles the rejection, so it is not reported as uncaught
+    // (the inbound SSE GET to the same URL may report its own 401)
+    expect(onerror).not.toHaveBeenCalledWith(error);
   });
 
   it('should expose HTTP status, URL, and response body on 404 from POST', async () => {
