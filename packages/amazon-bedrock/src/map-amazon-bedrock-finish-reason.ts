@@ -10,6 +10,7 @@ export function mapAmazonBedrockFinishReason(
     case 'end_turn':
       return 'stop';
     case 'max_tokens':
+    case 'model_context_window_exceeded':
       return 'length';
     case 'content_filtered':
     case 'guardrail_intervened':
