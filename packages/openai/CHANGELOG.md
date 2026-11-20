@@ -1,5 +1,13 @@
 # @ai-sdk/openai
 
+## 4.0.122
+
+### Patch Changes
+
+- 2af50d0: Derive completion and decision model IDs from endpoint-specific catalog declarations without changing supported models.
+- Updated dependencies [1d2c2ff]
+  - @ai-sdk/provider-utils@5.0.83
+
 ## 4.0.121
 
 ### Patch Changes
