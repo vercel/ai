@@ -1032,4 +1032,35 @@ console.log(text);`,
     websiteUrl: 'https://upstash.com',
     npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
   },
+  {
+    slug: 'rizamo',
+    name: 'Rizamo',
+    description:
+      'Publish, schedule and measure social posts on Instagram, Facebook, TikTok, Threads, LinkedIn and YouTube, and answer comments and messages. Posts are drafts unless the agent gives a time; publishing now and replies are opt-in.',
+    packageName: '@rizamo/ai-sdk',
+    tags: ['social-media', 'publishing', 'analytics', 'automation'],
+    apiKeyEnvName: 'RIZAMO_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @rizamo/ai-sdk',
+      npm: 'npm install @rizamo/ai-sdk',
+      yarn: 'yarn add @rizamo/ai-sdk',
+      bun: 'bun add @rizamo/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createRizamoTools } from '@rizamo/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt:
+    "List my Instagram accounts, then save a draft for the first one: 'Doors open at 10.'",
+  tools: createRizamoTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.rizamo.com/frameworks/vercel-ai-sdk',
+    apiKeyUrl: 'https://app.rizamo.com/developers',
+    websiteUrl: 'https://rizamo.com',
+    npmUrl: 'https://www.npmjs.com/package/@rizamo/ai-sdk',
+  },
 ];
