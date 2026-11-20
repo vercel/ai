@@ -8,6 +8,7 @@ export type {
 } from './tool/json-rpc-message';
 
 // Stable exports
+export { createMCPTools } from './tool/create-mcp-tools';
 export {
   createMCPClient,
   type MCPClientConfig,

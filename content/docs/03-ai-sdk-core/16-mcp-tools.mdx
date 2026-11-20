@@ -255,7 +255,19 @@ WebMCP is an experimental browser API, not an HTTP MCP endpoint. Tool discovery
 and execution happen in the page. To keep model inference on your backend, send
 tool definitions to your API route, then execute the returned calls in
 [`useChat.onToolCall`](/docs/ai-sdk-ui/chatbot-tool-usage) and return results with
-`addToolOutput`.
+`addToolOutput`. On the backend,
+[`createMCPTools`](/docs/reference/ai-sdk-core/create-mcp-tools) validates and
+converts those definitions into model-facing tools without `execute` functions:
+
+```ts
+import { createMCPTools } from '@ai-sdk/mcp';
+
+const { messages, tools: definitions } = await request.json();
+const tools = createMCPTools(definitions);
+```
+
+Pass `tools` to `streamText` and to `convertToModelMessages(messages, { tools })`
+so returned MCP results are converted to model content.
 
 Tool lists are snapshots. List tools again when the page's available tools change,
 and close the client when the consuming component or browser connection is
