@@ -14,6 +14,7 @@ export type {
 } from './anthropic-language-model-options';
 export type { AnthropicToolOptions } from './anthropic-prepare-tools';
 export { anthropic, createAnthropic } from './anthropic-provider';
+export { anthropicModelCapabilities } from './anthropic-model-catalog';
 export type {
   AnthropicProvider,
   AnthropicProviderSettings,

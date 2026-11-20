@@ -91,3 +91,4 @@ export type {
 } from './speech-translation/google-speech-translation-model-options';
 
 export { VERSION } from './version';
+export { googleModelCapabilities } from './google-model-catalog';

@@ -5,7 +5,22 @@ import type {
   ProviderOptionDefinition,
   ProviderOptionDefinitions,
 } from '@ai-sdk/provider';
+import {
+  createModelCapabilities,
+  createModelCapabilitiesEndpoint,
+  declareModelProviderOptions,
+} from '@ai-sdk/provider-utils';
 import type { OpenAILanguageModelResponsesOptions } from './responses/openai-responses-language-model-options';
+import type { OpenAILanguageModelChatOptions } from './chat/openai-chat-language-model-options';
+import type { OpenAILanguageModelCompletionOptions } from './completion/openai-completion-language-model-options';
+import type { OpenAIEmbeddingModelOptions } from './embedding/openai-embedding-model-options';
+import type {
+  OpenAIImageModelGenerationOptions,
+  OpenAIImageModelEditOptions,
+} from './image/openai-image-model-options';
+import type { OpenAITranscriptionModelOptions } from './transcription/openai-transcription-model-options';
+import type { OpenAISpeechModelOptions } from './speech/openai-speech-model-options';
+import type { OpenAIDecisionModelOptions } from './openai-decision-model-options';
 
 type OpenAILanguageProviderOption = keyof OpenAILanguageModelResponsesOptions;
 
@@ -56,7 +71,93 @@ export const openaiProviderOptions = {
     compactionTrigger: { description: 'Request explicit compaction.' },
     allowedTools: { description: 'Restrict callable tools to a subset.' },
   } satisfies Record<OpenAILanguageProviderOption, ProviderOptionDefinition>,
+  embedding: {
+    dimensions: { description: 'Number of embedding dimensions.' },
+    user: { description: 'End-user identifier for abuse monitoring.' },
+  } satisfies Record<
+    keyof OpenAIEmbeddingModelOptions,
+    ProviderOptionDefinition
+  >,
+  image: {
+    quality: { description: 'Image generation quality.' },
+    background: { description: 'Image background behavior.' },
+    outputFormat: { description: 'Output image format.' },
+    complexity: { description: 'Level of image detail.' },
+    outputCompression: { description: 'JPEG or WebP compression level.' },
+    user: { description: 'End-user identifier for abuse monitoring.' },
+    safetyIdentifier: { description: 'Identifier for safety monitoring.' },
+    style: { description: 'Style of generated images.' },
+    frameCount: { description: 'Number of animated GIF frames.' },
+    frameDurationMs: { description: 'Duration of each animated GIF frame.' },
+    moderation: { description: 'Content moderation level.' },
+    inputFidelity: { description: 'Fidelity to input images when editing.' },
+    markup: { description: 'Annotated input image for editing.' },
+  } satisfies Record<
+    keyof OpenAIImageModelGenerationOptions | keyof OpenAIImageModelEditOptions,
+    ProviderOptionDefinition
+  >,
+  transcription: {
+    include: { description: 'Additional response fields.' },
+    language: { description: 'Input audio language.' },
+    languages: { description: 'Expected input audio languages.' },
+    keywords: { description: 'Vocabulary hints.' },
+    prompt: { description: 'Transcription style or context.' },
+    temperature: { description: 'Sampling temperature.' },
+    timestampGranularities: { description: 'Timestamp granularities.' },
+    responseFormat: { description: 'Transcription response format.' },
+    chunkingStrategy: { description: 'Audio chunking strategy.' },
+    streaming: { description: 'Streaming transcription options.' },
+  } satisfies Record<
+    keyof OpenAITranscriptionModelOptions,
+    ProviderOptionDefinition
+  >,
+  speech: {
+    instructions: { description: 'Instructions for speech generation.' },
+    speed: { description: 'Speech playback speed.' },
+  } satisfies Record<keyof OpenAISpeechModelOptions, ProviderOptionDefinition>,
+  decision: {
+    safetyIdentifier: { description: 'Identifier for safety monitoring.' },
+    promptCacheKey: { description: 'Cache key for prompt caching.' },
+  } satisfies Record<
+    keyof OpenAIDecisionModelOptions,
+    ProviderOptionDefinition
+  >,
 } as const satisfies ProviderOptionDefinitions;
+
+const openaiChatProviderOptions = {
+  logitBias: { description: 'Adjust token likelihoods.' },
+  logprobs: openaiProviderOptions.language.logprobs,
+  parallelToolCalls: openaiProviderOptions.language.parallelToolCalls,
+  user: openaiProviderOptions.language.user,
+  reasoningEffort: openaiProviderOptions.language.reasoningEffort,
+  maxCompletionTokens: { description: 'Maximum completion token count.' },
+  store: openaiProviderOptions.language.store,
+  metadata: openaiProviderOptions.language.metadata,
+  prediction: { description: 'Predicted output to accelerate generation.' },
+  serviceTier: openaiProviderOptions.language.serviceTier,
+  strictJsonSchema: openaiProviderOptions.language.strictJsonSchema,
+  textVerbosity: openaiProviderOptions.language.textVerbosity,
+  promptCacheKey: openaiProviderOptions.language.promptCacheKey,
+  promptCacheOptions: openaiProviderOptions.language.promptCacheOptions,
+  promptCacheRetention: openaiProviderOptions.language.promptCacheRetention,
+  safetyIdentifier: openaiProviderOptions.language.safetyIdentifier,
+  systemMessageMode: openaiProviderOptions.language.systemMessageMode,
+  forceReasoning: openaiProviderOptions.language.forceReasoning,
+} satisfies Record<
+  keyof OpenAILanguageModelChatOptions,
+  ProviderOptionDefinition
+>;
+
+const openaiCompletionProviderOptions = {
+  echo: { description: 'Include the prompt in the completion.' },
+  logitBias: openaiChatProviderOptions.logitBias,
+  suffix: { description: 'Text following the completion.' },
+  user: openaiProviderOptions.language.user,
+  logprobs: openaiProviderOptions.language.logprobs,
+} satisfies Record<
+  keyof OpenAILanguageModelCompletionOptions,
+  ProviderOptionDefinition
+>;
 
 export type OpenAILanguageModelEntry = {
   capabilities: {
@@ -473,7 +574,7 @@ function createOpenAILanguageModelEntry(
   return {
     ...entry,
     providerOptions: {
-      language: declareProviderOptions(
+      language: declareModelProviderOptions(
         openaiProviderOptions.language,
         definition != null ? true : 'unknown',
         {
@@ -492,20 +593,6 @@ function createOpenAILanguageModelEntry(
       ),
     },
   };
-}
-
-/** Applies one default support value to every option, except the listed ones. */
-function declareProviderOptions<Option extends string>(
-  definitions: Readonly<Record<Option, ProviderOptionDefinition>>,
-  support: ModelCapability,
-  exceptions: Partial<Record<Option, ModelCapability>>,
-): Record<Option, ModelCapability> {
-  return Object.fromEntries(
-    (Object.keys(definitions) as Option[]).map(option => [
-      option,
-      exceptions[option] ?? support,
-    ]),
-  ) as Record<Option, ModelCapability>;
 }
 
 function getGpt5ReasoningEfforts(minor: number): readonly string[] {
@@ -895,6 +982,20 @@ type OpenAIModelEntry = ModelEntry<OpenAIRequestConfig> & {
   };
 };
 
+type OpenAILanguageEndpointCapabilities = Omit<
+  OpenAILanguageModelEntry['capabilities']['language'],
+  'endpoints' | 'reasoning' | 'tools' | 'configurationUpdates'
+> & {
+  readonly configurationUpdates: ModelCapability;
+  readonly reasoning: Omit<
+    OpenAILanguageModelEntry['capabilities']['language']['reasoning'],
+    'sampling'
+  >;
+  readonly tools: OpenAILanguageModelEntry['capabilities']['language']['tools'] & {
+    readonly withReasoning: ModelCapability;
+  };
+};
+
 const liveModelEntry = {
   capabilities: {
     realtime: {
@@ -962,6 +1063,246 @@ export const openaiModelCatalog: Readonly<Record<string, OpenAIModelEntry>> =
     openaiSpeechModelEntries,
     realtimeModelEntries,
   ]);
+
+function createModelEndpoints(modelId: string, entry: OpenAIModelEntry) {
+  const definition = Object.prototype.hasOwnProperty.call(
+    openaiModelDefinitions,
+    modelId,
+  )
+    ? openaiModelDefinitions[modelId as keyof typeof openaiModelDefinitions]
+    : undefined;
+  const languageEntry =
+    definition == null
+      ? undefined
+      : createOpenAILanguageModelEntry(modelId, definition.definition);
+  const language = languageEntry?.capabilities.language;
+  const declaredEndpoints: readonly string[] = definition?.endpoints ?? [];
+  const responses =
+    language != null && declaredEndpoints.includes('responses')
+      ? languageEndpointCapabilities(language, 'responses')
+      : undefined;
+  const chat =
+    language != null && declaredEndpoints.includes('chat')
+      ? languageEndpointCapabilities(language, 'chat')
+      : undefined;
+  const image =
+    entry.capabilities.image ??
+    (Object.prototype.hasOwnProperty.call(imageModelAliases, modelId)
+      ? resolveOpenAIImageModelEntry(modelId).capabilities.image
+      : undefined);
+  const transcription =
+    entry.capabilities.transcription ??
+    (Object.prototype.hasOwnProperty.call(
+      openaiTranscriptionModelEntries,
+      modelId,
+    )
+      ? resolveOpenAITranscriptionModelEntry(modelId).capabilities.transcription
+      : undefined);
+  const speech =
+    entry.capabilities.speech ??
+    (Object.prototype.hasOwnProperty.call(openaiSpeechModelEntries, modelId)
+      ? { instructions: 'unknown' as const }
+      : undefined);
+
+  return {
+    responses: createModelCapabilitiesEndpoint(
+      'language',
+      responses,
+      openaiProviderOptions.language,
+      {
+        ...languageEntry?.providerOptions.language,
+        logprobs: responses?.sampling.logprobs,
+        reasoningEffortUpdate: responses?.configurationUpdates,
+      },
+    ),
+    chat: createModelCapabilitiesEndpoint(
+      'language',
+      chat,
+      openaiChatProviderOptions,
+      {
+        ...languageEntry?.providerOptions.language,
+        logprobs: chat?.sampling.logprobs,
+        logitBias:
+          language?.reasoning.support === true
+            ? false
+            : language?.reasoning.support === false
+              ? true
+              : 'unknown',
+        maxCompletionTokens: definition?.definition == null ? 'unknown' : true,
+        prediction: 'unknown',
+      },
+    ),
+    completion: createModelCapabilitiesEndpoint(
+      'language',
+      declaredEndpoints.includes('completion')
+        ? {
+            inputs: { image: false, audio: false },
+            objectGeneration: false,
+            tools: { usage: false, streaming: false },
+            reasoning: { support: false },
+            sampling: { temperature: true, topP: true, logprobs: true },
+          }
+        : undefined,
+      openaiCompletionProviderOptions,
+      declareModelProviderOptions(openaiCompletionProviderOptions, true, {}),
+    ),
+    embeddings: createModelCapabilitiesEndpoint(
+      'embedding',
+      entry.capabilities.embedding,
+      openaiProviderOptions.embedding,
+      { dimensions: entry.capabilities.embedding?.customDimensions },
+    ),
+    images: createModelCapabilitiesEndpoint(
+      'image',
+      image,
+      openaiProviderOptions.image,
+    ),
+    transcription: createModelCapabilitiesEndpoint(
+      'transcription',
+      transcription,
+      openaiProviderOptions.transcription,
+      declareModelProviderOptions(
+        openaiProviderOptions.transcription,
+        transcription?.transcription === false
+          ? false
+          : transcription?.streaming === true
+            ? {
+                condition:
+                  'Only applies to non-streaming transcription; support depends on the selected option and model.',
+              }
+            : 'unknown',
+        {
+          language: 'unknown',
+          streaming: transcription?.streaming ?? 'unknown',
+        },
+      ),
+    ),
+    speech: createModelCapabilitiesEndpoint(
+      'speech',
+      speech,
+      openaiProviderOptions.speech,
+      { instructions: speech?.instructions },
+    ),
+    speechTranslation: createModelCapabilitiesEndpoint(
+      'speechTranslation',
+      entry.capabilities.speechTranslation,
+    ),
+    realtime: createModelCapabilitiesEndpoint(
+      'realtime',
+      entry.requestConfig?.realtime?.api === 'realtime'
+        ? entry.capabilities.realtime
+        : undefined,
+    ),
+    live: createModelCapabilitiesEndpoint(
+      'realtime',
+      entry.requestConfig?.realtime?.api === 'live'
+        ? entry.capabilities.realtime
+        : undefined,
+    ),
+    decisions: createModelCapabilitiesEndpoint(
+      'decision',
+      declaredEndpoints.includes('decision')
+        ? {
+            questionTypes: {
+              boolean: true,
+              choice: true,
+              score: true,
+              box: false,
+            },
+            inputs: { image: true },
+            reasoning: false,
+            maxOutputTokens: false,
+          }
+        : undefined,
+      openaiProviderOptions.decision,
+      { safetyIdentifier: true, promptCacheKey: true },
+    ),
+  };
+}
+
+function languageEndpointLogprobs(
+  language: OpenAILanguageModelEntry['capabilities']['language'],
+  endpoint: 'chat' | 'responses',
+): ModelCapability {
+  if (
+    endpoint === 'chat' ||
+    language.endpoints.responses.logprobsRequireNonReasoning
+  ) {
+    return language.sampling.topP;
+  }
+  return language.reasoning.support === true
+    ? 'unknown'
+    : language.sampling.logprobs;
+}
+
+function languageEndpointCapabilities(
+  language: OpenAILanguageModelEntry['capabilities']['language'],
+  endpoint: 'chat' | 'responses',
+): OpenAILanguageEndpointCapabilities {
+  const {
+    endpoints,
+    reasoning: { sampling: _sampling, ...reasoning },
+    ...capabilities
+  } = language;
+  return {
+    ...capabilities,
+    inputs: { ...language.inputs },
+    configurationUpdates:
+      endpoint === 'responses' && language.configurationUpdates
+        ? {
+            condition:
+              'Requires standard reasoning mode without automatic compaction or automatic truncation.',
+          }
+        : false,
+    reasoning: {
+      ...reasoning,
+      ...(reasoning.efforts == null
+        ? {}
+        : {
+            efforts:
+              endpoint === 'chat'
+                ? reasoning.efforts.filter(effort => effort !== 'max')
+                : reasoning.efforts,
+          }),
+    },
+    tools: {
+      ...language.tools,
+      async: endpoint === 'responses' && language.tools.async,
+      withReasoning:
+        language.reasoning.support === false ||
+        language.tools.usage === false ||
+        (endpoint === 'chat' && !endpoints.chat.functionToolsWithReasoning)
+          ? false
+          : language.reasoning.support === true
+            ? language.tools.usage
+            : language.reasoning.support,
+    },
+    sampling: {
+      ...language.sampling,
+      temperature:
+        endpoint === 'chat'
+          ? endpoints.chat.temperatureWithoutReasoning
+            ? language.sampling.topP
+            : false
+          : language.sampling.topP,
+      logprobs: languageEndpointLogprobs(language, endpoint),
+    },
+  };
+}
+
+/** Returns declared endpoint capabilities without making an API request. */
+export function openaiModelCapabilities(
+  modelId: OpenAIModelIds[keyof OpenAIModelIds] | (string & {}),
+) {
+  return createModelCapabilities(
+    'openai',
+    modelId,
+    createModelEndpoints(
+      modelId,
+      findModelEntry(modelId) ?? { capabilities: {} },
+    ),
+  );
+}
 
 function combineModelEntries(
   catalogs: ReadonlyArray<

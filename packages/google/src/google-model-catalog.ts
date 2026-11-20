@@ -6,6 +6,12 @@ import type {
   ProviderOptionDefinitions,
 } from '@ai-sdk/provider';
 import type { GoogleLanguageModelOptions } from './google-language-model-options';
+import type { GoogleLanguageModelInteractionsOptions } from './interactions/google-interactions-language-model-options';
+import {
+  createModelCapabilities,
+  createModelCapabilitiesEndpoint,
+  declareModelProviderOptions,
+} from '@ai-sdk/provider-utils';
 
 const gemini1ModelPattern = /(^|[/.])gemini-1(?:[.-]|$)/i;
 const gemini2ModelPattern = /(^|[/.])gemini-2(?:[.-]|$)/i;
@@ -49,6 +55,30 @@ export const googleProviderOptions = {
     requestType: { description: 'Request routing type. Vertex AI only.' },
   } satisfies Record<GoogleLanguageProviderOption, ProviderOptionDefinition>,
 } as const satisfies ProviderOptionDefinitions;
+
+const googleInteractionsProviderOptions = {
+  labels: { description: 'Request metadata.' },
+  previousInteractionId: { description: 'Previous interaction to continue.' },
+  store: { description: 'Whether to store the interaction.' },
+  agent: { description: 'Agent to run.' },
+  agentConfig: { description: 'Agent configuration.' },
+  thinkingLevel: { description: 'Reasoning effort level.' },
+  thinkingSummaries: { description: 'Whether to return thought summaries.' },
+  responseFormat: { description: 'Output formats and modalities.' },
+  imageConfig: { description: 'Image output configuration.' },
+  mediaResolution: { description: 'Input media resolution.' },
+  responseModalities: { description: 'Output modalities.' },
+  serviceTier: { description: 'Request service tier.' },
+  systemInstruction: { description: 'System instructions.' },
+  signature: { description: 'Tool-call thought signature.' },
+  interactionId: { description: 'Interaction to resume.' },
+  pollingTimeoutMs: { description: 'Background polling timeout.' },
+  background: { description: 'Run the interaction in the background.' },
+  environment: { description: 'Execution environment.' },
+} satisfies Record<
+  keyof GoogleLanguageModelInteractionsOptions,
+  ProviderOptionDefinition
+>;
 
 type GoogleLanguageCapabilities = NonNullable<ModelCapabilities['language']> & {
   tools: NonNullable<ModelCapabilities['language']>['tools'] & {
@@ -414,6 +444,109 @@ export function getGoogleLanguageModelEntry(
     : createGoogleLanguageModelEntry(modelId);
 }
 
+/** Returns every declared Google endpoint without making an API request. */
+export function googleModelCapabilities(
+  modelId: GoogleModelIds[keyof GoogleModelIds] | (string & {}),
+) {
+  const definition = Object.prototype.hasOwnProperty.call(
+    modelDefinitions,
+    modelId,
+  )
+    ? modelDefinitions[modelId as keyof typeof modelDefinitions]
+    : undefined;
+  const types: readonly string[] = definition?.types ?? [];
+  const entry =
+    definition == null ? undefined : getGoogleLanguageModelEntry(modelId);
+  const language = entry?.capabilities.language;
+
+  return createModelCapabilities('google', modelId, {
+    generateContent: createModelCapabilitiesEndpoint(
+      'language',
+      language != null && types.includes('language')
+        ? {
+            ...language,
+            sampling: {
+              ...language.sampling,
+              penalties: gemini25ModelPattern.test(modelId)
+                ? false
+                : language.sampling.penalties,
+            },
+          }
+        : undefined,
+      googleProviderOptions.language,
+      {
+        ...entry?.providerOptions.language,
+        labels: false,
+        sharedRequestType: false,
+        requestType: false,
+        streamFunctionCallArguments: false,
+        serviceTier: definition?.definition == null ? 'unknown' : true,
+      },
+    ),
+    interactions: createModelCapabilitiesEndpoint(
+      'language',
+      language != null && types.includes('interactions')
+        ? {
+            ...language,
+            sampling: { ...language.sampling, penalties: false },
+          }
+        : undefined,
+      googleInteractionsProviderOptions,
+    ),
+    embedContent: createModelCapabilitiesEndpoint(
+      'embedding',
+      types.includes('embedding')
+        ? { customDimensions: 'unknown' as const }
+        : undefined,
+    ),
+    batchEmbedContents: createModelCapabilitiesEndpoint(
+      'embedding',
+      types.includes('embedding')
+        ? { customDimensions: 'unknown' as const }
+        : undefined,
+    ),
+    images: createModelCapabilitiesEndpoint(
+      'image',
+      types.includes('image')
+        ? { fileInput: 'unknown' as const, maskInput: 'unknown' as const }
+        : undefined,
+    ),
+    videos: createModelCapabilitiesEndpoint(
+      'video',
+      types.includes('video') ? {} : undefined,
+    ),
+    speech: createModelCapabilitiesEndpoint(
+      'speech',
+      types.includes('speech')
+        ? { instructions: 'unknown' as const }
+        : undefined,
+    ),
+    transcription: createModelCapabilitiesEndpoint(
+      'transcription',
+      types.includes('transcription')
+        ? {
+            transcription: 'unknown' as const,
+            streaming: 'unknown' as const,
+          }
+        : undefined,
+    ),
+    speechTranslation: createModelCapabilitiesEndpoint(
+      'speechTranslation',
+      types.includes('speechTranslation')
+        ? {
+            translatedAudio: 'unknown' as const,
+            translatedText: 'unknown' as const,
+            sourceTranscript: 'unknown' as const,
+          }
+        : undefined,
+    ),
+    decisions: createModelCapabilitiesEndpoint(
+      'decision',
+      types.includes('decision') ? {} : undefined,
+    ),
+  });
+}
+
 function createGoogleLanguageModelEntry(
   modelId: string,
   documented?: DocumentedCapabilities,
@@ -480,18 +613,22 @@ function createGoogleLanguageModelEntry(
   return {
     capabilities: { language },
     providerOptions: {
-      language: declareProviderOptions(declared ? true : 'unknown', {
-        labels: { condition: 'Only supported on the Vertex AI API.' },
-        sharedRequestType: {
-          condition: 'Only supported on the Vertex AI API.',
+      language: declareModelProviderOptions(
+        googleProviderOptions.language,
+        declared ? true : 'unknown',
+        {
+          labels: { condition: 'Only supported on the Vertex AI API.' },
+          sharedRequestType: {
+            condition: 'Only supported on the Vertex AI API.',
+          },
+          requestType: { condition: 'Only supported on the Vertex AI API.' },
+          serviceTier: { condition: 'Only supported on the Gemini API.' },
+          streamFunctionCallArguments: {
+            condition:
+              'Only supported for streaming requests on the Vertex AI API with Gemini 3 or newer.',
+          },
         },
-        requestType: { condition: 'Only supported on the Vertex AI API.' },
-        serviceTier: { condition: 'Only supported on the Gemini API.' },
-        streamFunctionCallArguments: {
-          condition:
-            'Only supported for streaming requests on the Vertex AI API with Gemini 3 or newer.',
-        },
-      }),
+      ),
     },
     requestConfig: {
       language: {
@@ -502,19 +639,6 @@ function createGoogleLanguageModelEntry(
       },
     },
   };
-}
-
-function declareProviderOptions(
-  support: ModelCapability,
-  exceptions: Partial<Record<GoogleLanguageProviderOption, ModelCapability>>,
-): Record<GoogleLanguageProviderOption, ModelCapability> {
-  return Object.fromEntries(
-    (
-      Object.keys(
-        googleProviderOptions.language,
-      ) as GoogleLanguageProviderOption[]
-    ).map(option => [option, exceptions[option] ?? support]),
-  ) as Record<GoogleLanguageProviderOption, ModelCapability>;
 }
 
 function isKnownPreGemini2Model(modelId: string): boolean {
