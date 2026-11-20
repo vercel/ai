@@ -1032,4 +1032,41 @@ console.log(text);`,
     websiteUrl: 'https://upstash.com',
     npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
   },
+  {
+    slug: 'helve',
+    name: 'Helve',
+    description:
+      'Metered pay-per-call AI tool gateway giving agents access to 313 tools across 255 providers with one API key, deterministic spend_limit_usd caps, and $0 failed-call escrow.',
+    packageName: '@helve-dev/ai-sdk',
+    tags: ['search', 'extraction', 'transcription', 'tools-gateway'],
+    apiKeyEnvName: 'HELVE_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @helve-dev/ai-sdk',
+      npm: 'npm install @helve-dev/ai-sdk',
+      yarn: 'yarn add @helve-dev/ai-sdk',
+      bun: 'bun add @helve-dev/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount, tool } from 'ai';
+import { z } from 'zod';
+import { createHelveGateway } from '@helve-dev/ai-sdk';
+
+const helve = createHelveGateway({
+  apiKey: process.env.HELVE_API_KEY,
+  toolFn: tool,
+  z,
+});
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Search for live web extraction tools on Helve and run one.',
+  tools: helve,
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.helve.dev/sdks',
+    apiKeyUrl: 'https://helve.dev',
+    websiteUrl: 'https://helve.dev',
+    npmUrl: 'https://www.npmjs.com/package/@helve-dev/ai-sdk',
+  },
 ];
