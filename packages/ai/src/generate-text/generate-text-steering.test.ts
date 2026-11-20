@@ -379,6 +379,15 @@ describe('generateText experimental_steering', () => {
       type: 'not-delivered',
       reason: 'aborted',
     });
+
+    expect(await steering.steer('after the abort')).toMatchObject({
+      type: 'not-delivered',
+      reason: 'aborted',
+    });
+    expect(await steering.queue('queued after the abort')).toMatchObject({
+      type: 'not-delivered',
+      reason: 'aborted',
+    });
   });
 
   it('should not deliver messages when the run fails', async () => {
@@ -404,7 +413,7 @@ describe('generateText experimental_steering', () => {
     });
     expect(await steering.steer('after the failure')).toMatchObject({
       type: 'not-delivered',
-      reason: 'finished',
+      reason: 'error',
     });
   });
 
@@ -582,8 +591,58 @@ describe('generateText experimental_steering', () => {
     });
     expect(await steering.steer('after the failure')).toMatchObject({
       type: 'not-delivered',
-      reason: 'finished',
+      reason: 'error',
     });
+  });
+
+  it('should deliver messages that prepareStep turns into text parts with provider options', async () => {
+    const steering = createSteering();
+    let outcome: Promise<SteeringOutcome> | undefined;
+
+    const model = createModel([
+      () => toolCallResponse,
+      () => textResponse('It is sunny in Paris, Texas.'),
+    ]);
+
+    const result = await generateText({
+      model,
+      prompt: 'What is the weather in Paris?',
+      tools: {
+        weather: tool({
+          inputSchema: z.object({ city: z.string() }),
+          execute: async () => {
+            outcome = steering.steer('I meant Paris, Texas.');
+            return 'sunny';
+          },
+        }),
+      },
+      stopWhen: isStepCount(5),
+      experimental_steering: steering,
+      prepareStep: ({ messages }) => ({
+        messages: messages.map(message =>
+          message.role === 'user' && typeof message.content === 'string'
+            ? {
+                ...message,
+                content: [
+                  {
+                    type: 'text' as const,
+                    text: message.content,
+                    providerOptions: {
+                      anthropic: { cacheControl: { type: 'ephemeral' } },
+                    },
+                  },
+                ],
+              }
+            : message,
+        ),
+      }),
+    });
+
+    expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 1 });
+    expect(result.steps[1].experimental_steeringMessages).toHaveLength(1);
+    expect(lastUserText(model.doGenerateCalls[1])).toBe(
+      'I meant Paris, Texas.',
+    );
   });
 
   it('should not deliver messages that prepareStep removes', async () => {
