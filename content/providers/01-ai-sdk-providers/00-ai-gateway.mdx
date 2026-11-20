@@ -365,6 +365,9 @@ It returns a `GatewayGenerationInfo` object with the following fields:
 
 - **id** _string_ - The generation ID
 - **totalCost** _number_ - Total cost in USD
+- **marketCost** _number (optional)_ - Market cost in USD, excluding surcharges
+- **surchargeCost** _number (optional)_ - Total surcharges applied in USD
+- **gatewayCost** _number (optional)_ - Total amount debited in USD
 - **upstreamInferenceCost** _number_ - Upstream inference cost in USD (relevant for BYOK)
 - **usage** _number_ - Usage cost in USD (same as totalCost)
 - **createdAt** _string_ - ISO 8601 timestamp when the generation was created
@@ -381,6 +384,11 @@ It returns a `GatewayGenerationInfo` object with the following fields:
 - **cachedTokens** _number_ - Cached tokens used (if applicable)
 - **cacheCreationTokens** _number_ - Cache creation input tokens
 - **billableWebSearchCalls** _number_ - Number of billable web search calls
+
+The optional cost breakdown fields contain the values reported by AI Gateway.
+Fields that are missing or `null` in the API response are omitted from the result,
+so unavailable costs remain distinct from a reported cost of zero. The SDK does
+not calculate these fields from other costs.
 
 ## Examples
 
