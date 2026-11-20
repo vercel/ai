@@ -417,16 +417,13 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
     const warnings: SharedV4Warning[] = [];
 
     // options that only apply to the REST transcription endpoint
-    // (checked on the raw options because some have schema defaults):
+    // (checked on the raw options because some have schema defaults).
+    // `prompt`, `keywords` and `languages` are NOT in this list: the realtime
+    // transcription session accepts all three under
+    // `session.audio.input.transcription`, and they are what makes the model
+    // get domain vocabulary right.
     const rawOpenAIOptions = options.providerOptions?.openai ?? {};
-    for (const option of [
-      'include',
-      'languages',
-      'keywords',
-      'prompt',
-      'temperature',
-      'timestampGranularities',
-    ]) {
+    for (const option of ['include', 'temperature', 'timestampGranularities']) {
       if (rawOpenAIOptions[option as keyof typeof rawOpenAIOptions] != null) {
         warnings.push({
           type: 'unsupported',
@@ -640,6 +637,37 @@ function createOpenAIRealtimeTranscriptionStream({
   });
 }
 
+/**
+ * The expected-language field for a realtime transcription session. Models
+ * that document the plural `languages` take it directly when supplied, and
+ * otherwise receive the singular `language` wrapped in an array; OpenAI
+ * rejects a session that carries both.
+ */
+function buildRealtimeTranscriptionLanguage(
+  modelId: string,
+  providerOptions: OpenAITranscriptionModelOptions | undefined,
+): { languages: string[] } | { language: string } | Record<string, never> {
+  const plural =
+    getOpenAITranscriptionModelEntry(modelId).requestConfig.transcription
+      .languageField === 'languages';
+
+  if (providerOptions?.languages != null) {
+    return plural
+      ? { languages: providerOptions.languages }
+      : // The model only knows the singular field, so the first entry is all
+        // that can be expressed.
+        providerOptions.languages[0] != null
+        ? { language: providerOptions.languages[0] }
+        : {};
+  }
+  if (providerOptions?.language != null) {
+    return plural
+      ? { languages: [providerOptions.language] }
+      : { language: providerOptions.language };
+  }
+  return {};
+}
+
 function buildOpenAIRealtimeTranscriptionSession({
   modelId,
   inputAudioFormat,
@@ -665,11 +693,16 @@ function buildOpenAIRealtimeTranscriptionSession({
           },
           transcription: {
             model: modelId,
-            ...(providerOptions?.language != null
-              ? getOpenAITranscriptionModelEntry(modelId).requestConfig
-                  .transcription.languageField === 'languages'
-                ? { languages: [providerOptions.language] }
-                : { language: providerOptions.language }
+            ...buildRealtimeTranscriptionLanguage(modelId, providerOptions),
+            // Free-form context about the recording, and literal terms that
+            // may appear in it. OpenAI reports semantic accuracy rising from
+            // 38.5% to 44.6% on their context-aware ASR benchmark when
+            // `prompt` is supplied.
+            ...(providerOptions?.prompt != null
+              ? { prompt: providerOptions.prompt }
+              : {}),
+            ...(providerOptions?.keywords != null
+              ? { keywords: providerOptions.keywords }
               : {}),
             ...(supportsDelay && providerOptions?.streaming?.delay != null
               ? { delay: providerOptions.streaming.delay }
