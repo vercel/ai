@@ -53,6 +53,7 @@ import { codeExecution_20260120OutputSchema } from './tool/code-execution_202601
 import { toolSearchRegex_20251119OutputSchema as toolSearchOutputSchema } from './tool/tool-search-regex_20251119';
 import { webFetch_20250910OutputSchema } from './tool/web-fetch-20250910';
 import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
+import { wrapToolInput } from './wrap-tool-input';
 
 function convertBytesDataToString(data: Uint8Array | string): string {
   if (typeof data === 'string') {
@@ -150,6 +151,7 @@ export type AnthropicInlineToolConverter = (
   definition: AnthropicTool | undefined;
   warnings: SharedV4Warning[];
   betas: Set<string>;
+  wrappedToolNames: Set<string>;
 }>;
 
 export async function convertToAnthropicPrompt({
@@ -159,6 +161,7 @@ export async function convertToAnthropicPrompt({
   cacheControlValidator,
   toolNameMapping,
   toolsetNames = {},
+  wrappedToolInputNames: initialWrappedToolInputNames = new Set(),
   convertMediaPart,
   convertInlineTool,
 }: {
@@ -177,6 +180,14 @@ export async function convertToAnthropicPrompt({
   toolsetNames?: Record<string, string>;
 
   /**
+   * Names of the declared function tools whose input schema is sent wrapped
+   * in an `input` property. Their tool calls are replayed wrapped as well.
+   * Tools that tool changes add by value replace the declared tool from that
+   * point on, so they update this set while the prompt is converted.
+   */
+  wrappedToolInputNames?: Set<string>;
+
+  /**
    * Converts tools that are added by value in mid-conversation tool changes.
    * Required when the prompt contains such additions.
    */
@@ -184,8 +195,15 @@ export async function convertToAnthropicPrompt({
 }): Promise<{
   prompt: AnthropicPrompt;
   betas: Set<string>;
+
+  /**
+   * Names of the function tools whose input is wrapped in the request,
+   * including the changes of tools added by value in the prompt.
+   */
+  wrappedToolInputNames: Set<string>;
 }> {
   const betas = new Set<string>();
+  const wrappedToolInputNames = new Set(initialWrappedToolInputNames);
   const blocks = groupIntoBlocks(prompt);
   const validator = cacheControlValidator || new CacheControlValidator();
 
@@ -305,6 +323,7 @@ export async function convertToAnthropicPrompt({
                 definition,
                 warnings: toolWarnings,
                 betas: toolBetas,
+                wrappedToolNames,
               } = await convertInlineTool(tool);
               warnings.push(...toolWarnings);
               for (const beta of toolBetas) {
@@ -313,6 +332,14 @@ export async function convertToAnthropicPrompt({
 
               if (definition == null) {
                 continue;
+              }
+
+              // the added tool replaces a declared tool of the same name, so
+              // its tool calls are wrapped as its own definition says:
+              if (wrappedToolNames.has(tool.name)) {
+                wrappedToolInputNames.add(tool.name);
+              } else {
+                wrappedToolInputNames.delete(tool.name);
               }
 
               content.push({
@@ -1197,7 +1224,9 @@ export async function convertToAnthropicPrompt({
                   type: 'tool_use',
                   id: part.toolCallId,
                   name: part.toolName,
-                  input: toAnthropicToolInput(part.input),
+                  input: wrappedToolInputNames.has(part.toolName)
+                    ? wrapToolInput(part.input)
+                    : toAnthropicToolInput(part.input),
                   ...(caller && { caller }),
                   cache_control: cacheControl,
                 });
@@ -1723,6 +1752,7 @@ export async function convertToAnthropicPrompt({
   return {
     prompt: { system, messages },
     betas,
+    wrappedToolInputNames,
   };
 }
 
