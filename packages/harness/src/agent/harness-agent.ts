@@ -1187,6 +1187,7 @@ export class HarnessAgent<
       const t = tool as {
         description?: string;
         inputSchema?: unknown;
+        deferLoading?: boolean;
       };
       let inputSchema: HarnessAgentToolSpec['inputSchema'];
       if (t.inputSchema != null) {
@@ -1198,7 +1199,12 @@ export class HarnessAgent<
           // tools without a usable schema are still forwarded by name
         }
       }
-      specs.push({ name, description: t.description, inputSchema });
+      specs.push({
+        name,
+        description: t.description,
+        inputSchema,
+        ...(t.deferLoading == null ? {} : { deferLoading: t.deferLoading }),
+      });
     }
     return specs;
   }

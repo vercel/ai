@@ -28,4 +28,7 @@ export type HarnessV1ToolSpec = {
    * some runtimes accept tools without schemas (free-form arguments).
    */
   readonly inputSchema?: JSONSchema7;
+
+  /** Whether the runtime should load this tool only when it is requested. */
+  readonly deferLoading?: boolean;
 };
