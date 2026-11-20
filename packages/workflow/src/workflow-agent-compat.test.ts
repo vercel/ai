@@ -1344,6 +1344,120 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         expect(calls).toEqual(['constructor-onStepEnd', 'method-onStepEnd']);
       });
     });
+
+    // https://github.com/vercel/ai/issues/24874
+    it.each(['generate', 'stream'] as const)(
+      '%s: calls onStepEnd once for a step that pauses on a client-side tool',
+      async mode => {
+        const onStepEnd = vi.fn();
+        const model = new MockLanguageModelV4({
+          doGenerate: [
+            {
+              content: [
+                {
+                  type: 'tool-call' as const,
+                  toolCallId: 'lookup-1',
+                  toolName: 'lookUp',
+                  input: '{"city":"London"}',
+                },
+                {
+                  type: 'tool-call' as const,
+                  toolCallId: 'ask-user-1',
+                  toolName: 'askUser',
+                  input: '{"question":"Continue?"}',
+                },
+              ],
+              finishReason: {
+                unified: 'tool-calls' as const,
+                raw: 'raw-tool-calls',
+              },
+              usage: {
+                inputTokens: {
+                  total: 5,
+                  noCache: 5,
+                  cacheRead: undefined,
+                  cacheWrite: undefined,
+                },
+                outputTokens: {
+                  total: 3,
+                  text: 1,
+                  reasoning: undefined,
+                },
+              },
+              warnings: [],
+              providerMetadata: {},
+              request: { body: 'request-body' },
+              response: {
+                id: 'response-id',
+                timestamp: new Date(0),
+                modelId: 'response-model',
+                headers: {},
+                body: 'response-body',
+              },
+            },
+          ],
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start' as const, warnings: [] },
+              {
+                type: 'response-metadata' as const,
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call' as const,
+                toolCallId: 'lookup-1',
+                toolName: 'lookUp',
+                input: '{"city":"London"}',
+              },
+              {
+                type: 'tool-call' as const,
+                toolCallId: 'ask-user-1',
+                toolName: 'askUser',
+                input: '{"question":"Continue?"}',
+              },
+              {
+                ...dummyStreamFinish,
+                finishReason: {
+                  unified: 'tool-calls' as const,
+                  raw: undefined,
+                },
+              },
+            ]),
+          }),
+        });
+        const agent = new WorkflowAgent({
+          model,
+          tools: {
+            lookUp: tool({
+              inputSchema: z.object({ city: z.string() }),
+              execute: async () => 'sunny',
+            }),
+            askUser: tool({
+              inputSchema: z.object({ question: z.string() }),
+            }),
+          },
+          onStepEnd,
+        });
+
+        const result =
+          mode === 'generate'
+            ? await agent.generate({
+                prompt: 'Check the weather, then ask me.',
+              })
+            : await agent.stream({
+                messages: [{ role: 'user' as const, content: 'test' }],
+                writable: createMockWritable().writable,
+              });
+
+        // The paused step is returned in result.steps in both modes, so
+        // onStepEnd must run once for it in both modes.
+        expect(result.steps).toHaveLength(1);
+        expect(onStepEnd).toHaveBeenCalledTimes(1);
+        expect(onStepEnd.mock.calls[0][0].toolCalls).toHaveLength(2);
+      },
+    );
   });
 
   describe('completed step tool results', () => {
