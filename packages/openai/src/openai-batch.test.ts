@@ -678,6 +678,7 @@ describe('OpenAI batch service', () => {
             reason: 'prefix_mismatch',
           },
         ],
+        access_programs: { cyber: 'daybreak_blue' },
       },
     });
     const second = resultLine({
@@ -734,6 +735,7 @@ describe('OpenAI batch service', () => {
                 reason: 'prefix_mismatch',
               },
             ],
+            accessPrograms: { cyber: 'daybreak_blue' },
           },
         },
       },
