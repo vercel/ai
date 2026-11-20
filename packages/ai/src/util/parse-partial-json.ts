@@ -1,6 +1,6 @@
 import type { JSONValue } from '@ai-sdk/provider';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
-import { fixJson } from './fix-json';
+import { repairJson } from './fix-json';
 
 export async function parsePartialJson(jsonText: string | undefined): Promise<{
   value: JSONValue | undefined;
@@ -14,13 +14,19 @@ export async function parsePartialJson(jsonText: string | undefined): Promise<{
     return { value: undefined, state: 'undefined-input' };
   }
 
-  let result = await safeParseJSON({ text: jsonText });
+  const repaired = repairJson(jsonText);
 
-  if (result.success) {
-    return { value: result.value, state: 'successful-parse' };
+  // While streaming, the text almost always ends inside an unclosed string,
+  // object, or array. Parsing it as-is would always fail, so skip that attempt.
+  if (!repaired.isTruncated) {
+    const result = await safeParseJSON({ text: jsonText });
+
+    if (result.success) {
+      return { value: result.value, state: 'successful-parse' };
+    }
   }
 
-  result = await safeParseJSON({ text: fixJson(jsonText) });
+  const result = await safeParseJSON({ text: repaired.text });
 
   if (result.success) {
     return { value: result.value, state: 'repaired-parse' };
