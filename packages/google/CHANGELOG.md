@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.112
+
+### Patch Changes
+
+- 9ba6eea: Backport: fix(google): serialize JSON Schema references in function responses
+
 ## 2.0.111
 
 ### Patch Changes
