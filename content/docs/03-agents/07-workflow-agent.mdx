@@ -192,6 +192,42 @@ retries.
 Clients remove partial parts from the failed model-call step before processing
 the retried output.
 
+### Custom Data Parts
+
+To send app-specific [data parts](/docs/ai-sdk-ui/streaming-data) alongside the
+model output, write `data-*` chunks to the same workflow stream with
+`getWritable()` from any step, inside a tool or outside one.
+`createModelCallToUIChunkTransform()` forwards `data-*` chunks unchanged, so
+they reach `useChat` live and are replayed when `WorkflowChatTransport`
+reconnects:
+
+```ts
+import type { UIMessageChunk } from 'ai';
+import { getWritable } from 'workflow';
+
+async function reportProgress(percent: number) {
+  'use step';
+
+  const writer = getWritable<UIMessageChunk>().getWriter();
+  try {
+    await writer.write({
+      type: 'data-progress',
+      id: 'progress',
+      data: { percent },
+    });
+  } finally {
+    writer.releaseLock();
+  }
+}
+```
+
+Data parts are not part of the model loop, so they do not appear in
+`result.steps` or `result.messages`. If you need them in your stored chat
+history, persist them from the workflow (for example, return them from the
+step that writes them and save them with the turn's messages), or persist the
+assembled `UIMessage` on the client. Set `transient: true` on data parts that
+should not be added to `message.parts`.
+
 ## Resumable Streaming with WorkflowChatTransport
 
 Workflow functions can time out or be interrupted by network failures. `WorkflowChatTransport` is a [`ChatTransport`](/docs/ai-sdk-ui/transport) implementation that handles these interruptions automatically — it detects when a stream ends without a `finish` event and reconnects to resume from where it left off.
