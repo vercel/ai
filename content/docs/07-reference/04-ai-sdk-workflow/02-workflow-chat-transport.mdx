@@ -13,7 +13,7 @@ Unlike [`DefaultChatTransport`](/docs/ai-sdk-ui/transport) which assumes the ful
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { WorkflowChatTransport } from '@ai-sdk/workflow/client';
+import { WorkflowChatTransport } from '@ai-sdk/workflow';
 
 export default function Chat() {
   const { messages, sendMessage } = useChat({
@@ -30,9 +30,16 @@ export default function Chat() {
 ## Import
 
 <Snippet
-  text={`import { WorkflowChatTransport } from "@ai-sdk/workflow/client"`}
+  text={`import { WorkflowChatTransport } from "@ai-sdk/workflow"`}
   prompt={false}
 />
+
+<Note>
+  The root import works in client components because `workflow` ships a browser
+  build. If your app uses a `workflow` release without the browser build, import
+  the transport from `@ai-sdk/workflow/client` instead, which only contains the
+  browser-safe exports.
+</Note>
 
 ## Constructor
 
@@ -238,7 +245,7 @@ See the [WorkflowAgent guide](/docs/agents/workflow-agent) for complete endpoint
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { WorkflowChatTransport } from '@ai-sdk/workflow/client';
+import { WorkflowChatTransport } from '@ai-sdk/workflow';
 import { useMemo } from 'react';
 
 export default function Chat() {
@@ -271,7 +278,7 @@ export default function Chat() {
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { WorkflowChatTransport } from '@ai-sdk/workflow/client';
+import { WorkflowChatTransport } from '@ai-sdk/workflow';
 import { useMemo } from 'react';
 
 export default function Chat() {
