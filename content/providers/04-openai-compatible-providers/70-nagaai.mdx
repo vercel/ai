@@ -1,0 +1,130 @@
+---
+title: NagaAI
+description: Use the NagaAI OpenAI compatible API with the AI SDK.
+---
+
+# NagaAI Provider
+
+[NagaAI](https://naga.ac/) is an API gateway that serves models from multiple AI labs through an OpenAI-compatible API. It accepts the Responses API and Chat Completions on the same base URL. With the AI SDK, use the `@ai-sdk/openai` module for the Responses API, or `@ai-sdk/openai-compatible` for Chat Completions.
+
+## Setup
+
+Install the OpenAI provider:
+
+<InstallPackages packages="@ai-sdk/openai" />
+
+Create a NagaAI API key in the [dashboard](https://naga.ac/dashboard/api-keys) and set it as a server-side environment variable:
+
+```bash
+export NAGA_API_KEY=your-api-key
+```
+
+## Provider Instance
+
+Create a NagaAI provider instance with `createOpenAI`:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai';
+
+const naga = createOpenAI({
+  apiKey: process.env.NAGA_API_KEY,
+  baseURL: 'https://api.naga.ac/v1',
+});
+```
+
+The `apiKey` setting sends your key as a Bearer token in the `Authorization` header.
+
+## Language Models
+
+Create a language model by passing a NagaAI model ID to the provider instance. Model IDs carry the vendor prefix:
+
+```ts
+const model = naga('anthropic/claude-sonnet-5.5');
+```
+
+NagaAI does not store responses. Set `store: false` in the OpenAI provider options, so each request carries the full conversation instead of references to earlier responses.
+
+### Generate Text
+
+Use `generateText` to generate text with the model:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const naga = createOpenAI({
+  apiKey: process.env.NAGA_API_KEY,
+  baseURL: 'https://api.naga.ac/v1',
+});
+
+const { text } = await generateText({
+  model: naga('anthropic/claude-sonnet-5.5'),
+  prompt: 'Explain what an API gateway does in one sentence.',
+  providerOptions: { openai: { store: false } },
+});
+
+console.log(text);
+```
+
+### Stream Text
+
+Use `streamText` to stream text as it is generated:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai';
+import { streamText } from 'ai';
+
+const naga = createOpenAI({
+  apiKey: process.env.NAGA_API_KEY,
+  baseURL: 'https://api.naga.ac/v1',
+});
+
+const result = streamText({
+  model: naga('deepseek/deepseek-v4.1-flash'),
+  prompt: 'Count from 1 to 5, separated by spaces.',
+  providerOptions: { openai: { store: false } },
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+### Reasoning Effort
+
+Pass `reasoningEffort` in the OpenAI provider options. NagaAI accepts `none` to `max` and runs the nearest level the model supports. The provider recognizes reasoning models by OpenAI model IDs, so set `forceReasoning: true` for NagaAI model IDs, otherwise `reasoningEffort` is dropped with a warning:
+
+```ts
+const { text } = await generateText({
+  model: naga('openai/gpt-6.1-sol'),
+  prompt: 'How many prime numbers are there below 100?',
+  providerOptions: {
+    openai: { store: false, forceReasoning: true, reasoningEffort: 'high' },
+  },
+});
+```
+
+### Chat Completions
+
+To call Chat Completions instead, create the provider with `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const naga = createOpenAICompatible({
+  name: 'nagaai',
+  apiKey: process.env.NAGA_API_KEY,
+  baseURL: 'https://api.naga.ac/v1',
+});
+```
+
+## Supported Models and Capabilities
+
+Support for tools, vision, and reasoning depends on the selected model. The public [`GET /v1/models`](https://api.naga.ac/v1/models) endpoint lists current model IDs with their context windows, supported parameters, and pricing; no API key is needed.
+
+## Resources
+
+- [NagaAI Vercel AI SDK guide](https://docs.naga.ac/integrations/frameworks/vercel-ai-sdk)
+- [NagaAI API documentation](https://docs.naga.ac)
+- [NagaAI model catalog](https://naga.ac/models)
+- [AI SDK OpenAI provider](/providers/ai-sdk-providers/openai)
