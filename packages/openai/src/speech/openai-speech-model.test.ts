@@ -99,6 +99,45 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass provider options', async () => {
+    prepareAudioResponse();
+
+    await model.doGenerate({
+      text: 'Hello from the AI SDK!',
+      speed: 1.5,
+      providerOptions: {
+        openai: {
+          speed: 0.75,
+          instructions: 'Speak slowly.',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      speed: 0.75,
+      instructions: 'Speak slowly.',
+    });
+  });
+
+  it('should preserve top-level options that provider options do not override', async () => {
+    prepareAudioResponse();
+
+    await model.doGenerate({
+      text: 'Hello from the AI SDK!',
+      speed: 1.5,
+      providerOptions: {
+        openai: {
+          instructions: 'Speak slowly.',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      speed: 1.5,
+      instructions: 'Speak slowly.',
+    });
+  });
+
   it('should return audio data with correct content type', async () => {
     const audio = new Uint8Array(100); // Mock audio data
     prepareAudioResponse({
