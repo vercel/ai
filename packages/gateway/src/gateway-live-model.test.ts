@@ -283,6 +283,7 @@ describe('GatewayLiveModel', () => {
       ['voice', { id: 'v', name: 'extra' }],
       ['store', 'false'],
       ['input', {}],
+      ['input', new Array(1)],
       ['input', [message('user', 'text')]],
       ['input', [message('assistant', 'input_text')]],
       ['input', [message('system', 'input_text')]],

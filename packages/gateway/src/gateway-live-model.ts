@@ -307,7 +307,8 @@ function isValidOpenAILiveOption(key: string, value: unknown): boolean {
       return (
         Array.isArray(value) &&
         value.length <= 128 &&
-        value.every(isInputMessage)
+        // Array.from visits holes, which `every` would skip.
+        Array.from(value).every(isInputMessage)
       );
     default:
       return false;
