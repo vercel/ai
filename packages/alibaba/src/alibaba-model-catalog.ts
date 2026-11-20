@@ -82,6 +82,14 @@ export const alibabaProviderOptions = {
     thinkingBudget: {
       description: 'Maximum number of reasoning tokens to generate.',
     },
+    reasoningEffort: {
+      description:
+        'Reasoning effort level, sent as `reasoning_effort`: `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, or `max`. Alibaba maps the value to the levels a model supports, and `none` disables thinking. Some models reject it together with `thinkingBudget`.',
+    },
+    promptCacheOptions: {
+      description:
+        'Request-level prompt cache settings, sent as `prompt_cache_options`. `mode: implicit` places an automatic cache breakpoint at the end of the input; `mode: explicit` caches only at `cacheControl` breakpoints. `ttl` (`5m` or `1h`, default `5m`) applies to every breakpoint in the request.',
+    },
     preserveThinking: {
       description:
         'Whether to preserve reasoning from previous assistant messages. When enabled, historical reasoning is sent separately as `reasoning_content` and Alibaba receives `preserve_thinking: true`. Defaults to `true` for models that support preserved thinking; set to `false` to opt out.',
@@ -159,6 +167,7 @@ export const alibabaProviderOptions = {
 } as const satisfies ProviderOptionDefinitions;
 
 const languageModelIds = [
+  'qwen4-max',
   'qwen3.7-max',
   'qwen3-max',
   'qwen3-max-preview',
@@ -202,6 +211,7 @@ const JSON_SCHEMA_MODEL_PREFIXES = [
   'qwen3.7-max',
   'qwen3.8-max',
   'qwen3.8-flash',
+  'qwen4-max',
 ];
 
 function supportsJsonSchemaOutput(modelId: string): boolean {
@@ -235,6 +245,7 @@ const preservedThinkingModelIds = new Set([
   'qwen3.8-flash',
   'qwen3.8-max',
   'qwen3.8-max-0902',
+  'qwen4-max',
 ]);
 
 function supportsPreservedThinking(modelId: string): boolean {

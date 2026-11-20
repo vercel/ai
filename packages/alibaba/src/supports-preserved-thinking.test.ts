@@ -6,6 +6,7 @@ describe('supportsPreservedThinking', () => {
     expect(supportsPreservedThinking('qwen3.7-max')).toBe(true);
     expect(supportsPreservedThinking('qwen3.8-max')).toBe(true);
     expect(supportsPreservedThinking('qwen3.7-max-2026-06-08')).toBe(true);
+    expect(supportsPreservedThinking('qwen4-max')).toBe(true);
   });
 
   it('should not support other models', () => {

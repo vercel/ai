@@ -319,6 +319,23 @@ describe('doGenerate', () => {
       expect(body.enable_thinking).toBe(true);
     });
 
+    it('should send reasoningEffort as reasoning_effort instead of a budget', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'low',
+        providerOptions: {
+          alibaba: {
+            reasoningEffort: 'xhigh',
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.reasoning_effort).toBe('xhigh');
+      expect(body.enable_thinking).toBeUndefined();
+      expect(body.thinking_budget).toBeUndefined();
+    });
+
     it('should not set thinking when reasoning is not specified', async () => {
       await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -352,6 +369,10 @@ describe('doGenerate', () => {
           prompt_tokens_details: {
             cached_tokens: 80,
             cache_creation_input_tokens: 20,
+            cache_creation: {
+              ephemeral_5m_input_tokens: 5,
+              ephemeral_1h_input_tokens: 15,
+            },
           },
           completion_tokens_details: {
             reasoning_tokens: 10,
@@ -384,6 +405,10 @@ describe('doGenerate', () => {
           },
           "prompt_tokens": 100,
           "prompt_tokens_details": {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 15,
+              "ephemeral_5m_input_tokens": 5,
+            },
             "cache_creation_input_tokens": 20,
             "cached_tokens": 80,
           },
@@ -391,6 +416,35 @@ describe('doGenerate', () => {
         },
       }
     `);
+  });
+
+  it('should send promptCacheOptions and cache control ttl', async () => {
+    prepareJsonFixtureResponse('alibaba-text');
+
+    await model.doGenerate({
+      prompt: [
+        {
+          role: 'system',
+          content: 'You are a helpful assistant.',
+          providerOptions: {
+            alibaba: { cacheControl: { type: 'ephemeral', ttl: '1h' } },
+          },
+        },
+        { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+      ],
+      providerOptions: {
+        alibaba: {
+          promptCacheOptions: { mode: 'implicit', ttl: '1h' },
+        },
+      },
+    });
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body.prompt_cache_options).toEqual({ mode: 'implicit', ttl: '1h' });
+    expect(body.messages[0].content[0].cache_control).toEqual({
+      type: 'ephemeral',
+      ttl: '1h',
+    });
   });
 
   it('should preserve unmapped usage fields through raw', async () => {
