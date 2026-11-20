@@ -35,10 +35,11 @@ run(async () => {
       else resolve();
     };
     const send = async (event: Experimental_RealtimeClientEvent) => {
-      if (done || socket.readyState !== WebSocket.OPEN) return;
-      socket.send(
-        JSON.stringify(await model.serializeClientEvent(event, options)),
+      const frame = JSON.stringify(
+        await model.serializeClientEvent(event, options),
       );
+      if (done || socket.readyState !== WebSocket.OPEN) return;
+      socket.send(frame);
     };
 
     socket.on('open', () => {
@@ -61,6 +62,7 @@ run(async () => {
         const raw = await parseJSON({ text: data.toString() });
         // Gateway sends normalized events, so parsing is stateless.
         const event = model.parseServerEvent(raw);
+        if (done) return;
         switch (event.type) {
           case 'session-started':
             console.log('Session started:', event.sessionId);
@@ -70,6 +72,8 @@ run(async () => {
               delegationId: null,
               providerOptions: { openai: { channel: 'instructions' } },
             });
+            // Another frame may have finished the session during the await.
+            if (done) break;
             audioTimer = setInterval(
               () => void send({ type: 'input-audio-append', audio: silence }),
               20,

@@ -266,19 +266,80 @@ function validateSessionProviderOptions(providerOptions: unknown): void {
       throw new UnsupportedFunctionalityError({
         functionality: `AI Gateway Live OpenAI option: ${key}`,
       });
-    if (key === 'delegation') {
-      if (value !== null && (!isRecord(value) || value.type !== 'client'))
-        throw new UnsupportedFunctionalityError({
-          functionality:
-            'AI Gateway Live delegation other than client delegation',
-        });
-    } else if (value === null) {
+    if (
+      key === 'delegation' &&
+      value !== null &&
+      !(hasExactKeys(value, ['type']) && value.type === 'client')
+    )
+      throw new UnsupportedFunctionalityError({
+        functionality:
+          'AI Gateway Live delegation other than { type: "client" } or null',
+      });
+    if (!isValidOpenAILiveOption(key, value))
       throw new InvalidArgumentError({
         argument: `providerOptions.openai.${key}`,
-        message: `providerOptions.openai.${key} must not be null.`,
+        message: openaiLiveOptionMessages[key],
       });
-    }
   }
+}
+
+const openaiLiveOptionMessages: Record<string, string> = {
+  delegation: 'delegation must be { type: "client" } or null.',
+  input:
+    'input must be at most 128 messages, each { type: "message", role, content: [{ type, text }] }.',
+  store: 'store must be a boolean.',
+  voice: 'voice must be { id: string } with a nonempty id.',
+};
+
+function isValidOpenAILiveOption(key: string, value: unknown): boolean {
+  switch (key) {
+    case 'delegation':
+      return true;
+    case 'store':
+      return typeof value === 'boolean';
+    case 'voice':
+      return (
+        hasExactKeys(value, ['id']) &&
+        typeof value.id === 'string' &&
+        value.id.length > 0
+      );
+    case 'input':
+      return (
+        Array.isArray(value) &&
+        value.length <= 128 &&
+        value.every(isInputMessage)
+      );
+    default:
+      return false;
+  }
+}
+
+function isInputMessage(message: unknown): boolean {
+  if (
+    !hasExactKeys(message, ['type', 'role', 'content']) ||
+    message.type !== 'message' ||
+    !Array.isArray(message.content) ||
+    message.content.length !== 1
+  )
+    return false;
+  const [part] = message.content;
+  if (!hasExactKeys(part, ['type', 'text']) || typeof part.text !== 'string')
+    return false;
+  return message.role === 'assistant'
+    ? part.type === 'text' || part.type === 'output_text'
+    : (message.role === 'developer' || message.role === 'user') &&
+        part.type === 'input_text';
+}
+
+function hasExactKeys(
+  value: unknown,
+  keys: string[],
+): value is Record<string, unknown> {
+  if (!isRecord(value)) return false;
+  const present = Object.keys(value).filter(key => value[key] !== undefined);
+  return (
+    present.length === keys.length && keys.every(key => present.includes(key))
+  );
 }
 
 function validateContextOptions(providerOptions: unknown): void {

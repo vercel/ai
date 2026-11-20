@@ -271,6 +271,74 @@ describe('GatewayLiveModel', () => {
       ).toThrow(error);
     });
 
+    const message = (role: string, type: string) => ({
+      type: 'message',
+      role,
+      content: [{ type, text: 'Hi' }],
+    });
+
+    it.each([
+      ['voice', 'marin'],
+      ['voice', { id: '' }],
+      ['voice', { id: 'v', name: 'extra' }],
+      ['store', 'false'],
+      ['input', {}],
+      ['input', [message('user', 'text')]],
+      ['input', [message('assistant', 'input_text')]],
+      ['input', [message('system', 'input_text')]],
+      ['input', [{ ...message('user', 'input_text'), extra: true }]],
+      ['input', [{ type: 'message', role: 'user', content: [] }]],
+      [
+        'input',
+        Array.from({ length: 129 }, () => message('user', 'input_text')),
+      ],
+    ])('rejects the malformed openai.%s value %o', (key, value) => {
+      expect(() =>
+        createTestModel().buildSessionConfig({
+          providerOptions: { openai: { [key]: value } },
+        }),
+      ).toThrow(InvalidArgumentError);
+    });
+
+    it('rejects delegation objects with extra keys', () => {
+      expect(() =>
+        createTestModel().buildSessionConfig({
+          providerOptions: {
+            openai: { delegation: { type: 'client', extra: true } },
+          },
+        }),
+      ).toThrow(UnsupportedFunctionalityError);
+    });
+
+    it('accepts 128 input messages and every supported role and part type', () => {
+      const input = [
+        message('developer', 'input_text'),
+        message('user', 'input_text'),
+        message('assistant', 'text'),
+        message('assistant', 'output_text'),
+        ...Array.from({ length: 124 }, () => message('user', 'input_text')),
+      ];
+      expect(() =>
+        createTestModel().buildSessionConfig({
+          providerOptions: { openai: { input } },
+        }),
+      ).not.toThrow();
+    });
+
+    it.each(['commentary', 'instructions', 'thinking'])(
+      'accepts the %s context channel',
+      channel => {
+        expect(
+          createTestModel().serializeClientEvent({
+            type: 'context-append',
+            content: 'Note',
+            delegationId: null,
+            providerOptions: { openai: { channel } },
+          }),
+        ).toMatchObject({ providerOptions: { openai: { channel } } });
+      },
+    );
+
     it('accepts supported provider options and leaves gateway options open', () => {
       const providerOptions = {
         gateway: { tags: ['demo'], futureOption: { nested: true } },
