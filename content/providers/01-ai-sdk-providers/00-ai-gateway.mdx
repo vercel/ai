@@ -661,6 +661,72 @@ the short-lived setup response from `getToken()`.
   should stay compact (under an 8 KiB safe header budget).
 </Note>
 
+### Live Models
+
+Live models such as `openai/gpt-live-1.1` hold one continuous conversation: a
+`session-start` event opens the session, PCM16 audio streams in both directions,
+and `session-close` ends it with final usage. `gateway.experimental_realtime()`
+returns a Live model for known Live model IDs. It connects to the Gateway Live
+route and speaks the normalized Live protocol. Pass `{ api: 'live' }` for a Live
+model ID the SDK does not know yet, or `{ api: 'realtime' }` to force the
+realtime route.
+
+```ts
+import { gateway } from '@ai-sdk/gateway';
+
+const live = gateway.experimental_realtime('openai/gpt-live-1.1');
+const newerLive = gateway.experimental_realtime('openai/gpt-live-2', {
+  api: 'live',
+});
+```
+
+`getToken()` mints a client secret bound to the Live route for Live models, so
+the browser can connect straight to the Gateway:
+
+```ts filename='app/api/live/setup/route.ts'
+import { gateway } from '@ai-sdk/gateway';
+
+export async function POST() {
+  const token = await gateway.experimental_realtime.getToken({
+    model: 'openai/gpt-live-1.1',
+  });
+
+  return Response.json(token);
+}
+```
+
+```tsx filename='app/live/page.tsx'
+'use client';
+
+import { gateway } from '@ai-sdk/gateway';
+import { experimental_useRealtime } from '@ai-sdk/react';
+
+const model = gateway.experimental_realtime('openai/gpt-live-1.1');
+
+export default function LivePage() {
+  const live = experimental_useRealtime({
+    model,
+    api: { token: '/api/live/setup' },
+    sessionConfig: { instructions: 'Keep replies brief.' },
+  });
+
+  // live.connect(), live.close(), live.session?.usage, ...
+}
+```
+
+Live sessions accept `instructions`, `voice`, `inputAudioFormat`,
+`outputAudioFormat` and `providerOptions` (`gateway`, and `openai` with
+`delegation`, `input`, `store` and `voice`). Audio is `audio/pcm` at 16000 or
+24000 Hz, with the same format in both directions. Live uses client delegation:
+your application submits context with `context-append` instead of the
+turn-based tool loop, and `sendTextMessage()` and `addToolOutput()` are not
+available. Live model IDs must be fully qualified (`creator/model-name`).
+
+<Note>
+  Live through the Gateway provider uses WebSocket only. For WebRTC or Responses
+  delegation, use `@ai-sdk/openai` directly.
+</Note>
+
 ### Provider Options
 
 Gateway [provider options](#gateway-provider-options) — `tags`, `user`, `byok`, compliance flags, and so on — are set under `providerOptions.gateway` in the **session configuration**, mirroring how they ride the request body on the non-realtime routes. Include them in the session configuration you send to the Gateway, and the Gateway applies them server-side:
