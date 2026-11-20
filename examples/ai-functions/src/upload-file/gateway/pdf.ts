@@ -22,36 +22,40 @@ run(async () => {
   console.log('Expires at:', expiresAt);
   console.log('Warnings:', warnings);
 
-  const result = await experimental_decide({
-    model: 'openai/gpt-5.6-sol',
-    state: [
-      {
-        type: 'file',
-        mediaType: mediaType ?? 'application/pdf',
-        data: providerReference,
-      },
-    ],
-    questions: {
-      topic: {
-        type: 'choice',
-        instructions: 'What is this document mainly about?',
-        criteria: {
-          technology: 'Software, AI or computing',
-          finance: 'Money, markets or accounting',
-          other: null,
+  try {
+    const metadata = await files.getFileMetadata?.({ file: providerReference });
+    console.log('Metadata:', metadata);
+
+    const result = await experimental_decide({
+      model: 'google/gemini-decision-1',
+      state: [
+        {
+          type: 'file',
+          mediaType: mediaType ?? 'application/pdf',
+          data: providerReference,
+        },
+      ],
+      questions: {
+        topic: {
+          type: 'choice',
+          instructions: 'What is this document mainly about?',
+          criteria: {
+            technology: 'Software, AI or computing',
+            finance: 'Money, markets or accounting',
+            other: null,
+          },
+        },
+        isTechnical: {
+          type: 'boolean',
+          instructions: 'Is the document written for a technical audience?',
         },
       },
-      isTechnical: {
-        type: 'boolean',
-        instructions: 'Is the document written for a technical audience?',
-      },
-    },
-  });
+    });
 
-  console.log('Answers:', result.answers);
-
-  const { deleted } = (await files.deleteFile?.({
-    file: providerReference,
-  })) ?? { deleted: false };
-  console.log('Deleted:', deleted);
+    console.log('Answers:', result.answers);
+    console.log('Usage:', result.usage);
+  } finally {
+    const deleted = await files.deleteFile?.({ file: providerReference });
+    console.log('Deleted:', deleted?.deleted);
+  }
 });

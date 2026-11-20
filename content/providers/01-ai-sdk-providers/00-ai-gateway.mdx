@@ -499,7 +499,7 @@ const { providerReference } = await uploadFile({
 // providerReference: { gateway: '<file id>' }
 
 const { answers } = await experimental_decide({
-  model: 'openai/gpt-5.6-sol',
+  model: 'google/gemini-decision-1',
   state: [
     { type: 'file', mediaType: 'application/pdf', data: providerReference },
   ],
