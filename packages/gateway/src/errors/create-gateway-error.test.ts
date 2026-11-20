@@ -834,6 +834,7 @@ describe('isRetryable', () => {
     ['internal_server_error', 503, false],
     ['failed_dependency', 424, true],
     ['forbidden', 403, true],
+    ['access_policy_denied', 403, true],
     ['service_unavailable_error', 503, false],
   ])(
     'should apply isRetryable to a %s error',

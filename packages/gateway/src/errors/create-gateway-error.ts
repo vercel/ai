@@ -162,6 +162,7 @@ export async function createGatewayErrorFromResponse({
         statusCode,
         cause,
         generationId,
+        isRetryable,
         policyIds: param?.policyIds,
         removedModels: param?.removedModels,
         removedProviders: param?.removedProviders,
