@@ -1032,4 +1032,47 @@ console.log(text);`,
     websiteUrl: 'https://upstash.com',
     npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
   },
+  {
+    slug: 'qdrant',
+    name: 'Qdrant',
+    description:
+      'Give agents semantic search and long-term memory in a Qdrant collection. The qdrant-store tool adds text to the collection and the qdrant-find tool searches it. Use any AI SDK embedding model or Qdrant Cloud Inference, and keep the data of each user apart with a scope that the model cannot change.',
+    packageName: 'qdrant-ai-sdk',
+    tags: ['memory', 'rag', 'semantic-search', 'qdrant'],
+    apiKeyEnvName: 'QDRANT_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add qdrant-ai-sdk @qdrant/js-client-rest',
+      npm: 'npm install qdrant-ai-sdk @qdrant/js-client-rest',
+      yarn: 'yarn add qdrant-ai-sdk @qdrant/js-client-rest',
+      bun: 'bun add qdrant-ai-sdk @qdrant/js-client-rest',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { QdrantClient } from '@qdrant/js-client-rest';
+import { createQdrantTools } from 'qdrant-ai-sdk';
+
+const client = new QdrantClient({
+  url: process.env.QDRANT_URL,
+  apiKey: process.env.QDRANT_API_KEY,
+});
+
+// the 'memories' collection has 384-dimensional vectors
+// and a keyword index on metadata.userId
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Remember that my favorite editor is Neovim.',
+  tools: createQdrantTools({
+    client,
+    collectionName: 'memories',
+    cloudInference: { model: 'sentence-transformers/all-minilm-l6-v2' },
+    scope: { userId: 'user-123' },
+  }),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://ai-sdk.dev/providers/community-providers/qdrant',
+    apiKeyUrl: 'https://cloud.qdrant.io',
+    websiteUrl: 'https://qdrant.tech',
+    npmUrl: 'https://www.npmjs.com/package/qdrant-ai-sdk',
+  },
 ];
