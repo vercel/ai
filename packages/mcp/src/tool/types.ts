@@ -111,6 +111,7 @@ export type RequestOptions = {
   signal?: AbortSignal;
   timeout?: number;
   maxTotalTimeout?: number;
+  allowInputRequired?: boolean;
 };
 
 export type Notification = z.infer<typeof RequestSchema>;
@@ -119,6 +120,8 @@ export type Notification = z.infer<typeof RequestSchema>;
 const ElicitationCapabilitySchema = z
   .object({
     applyDefaults: z.optional(z.boolean()),
+    form: z.optional(z.object({}).loose()),
+    url: z.optional(z.object({}).loose()),
   })
   .loose();
 
@@ -490,9 +493,25 @@ export const InputRequiredResultSchema = ResultSchema.extend({
 );
 
 // Only form elicitation is supported by the client's existing handler API.
-export const InputRequiredElicitationSchema = ElicitationRequestSchema.extend({
+export type InputRequiredResult = z.infer<typeof InputRequiredResultSchema>;
+
+const FormElicitationRequestSchema = ElicitationRequestSchema.extend({
   params: ElicitationRequestParamsSchema.extend({
     mode: z.literal('form').optional(),
     requestedSchema: z.looseObject({ type: z.literal('object') }),
   }),
 });
+
+const UrlElicitationRequestSchema = ElicitationRequestSchema.extend({
+  params: BaseParamsSchema.extend({
+    mode: z.literal('url'),
+    message: z.string(),
+    url: z.string(),
+    elicitationId: z.optional(z.string()),
+  }),
+});
+
+export const InputRequiredElicitationSchema = z.union([
+  FormElicitationRequestSchema,
+  UrlElicitationRequestSchema,
+]);
