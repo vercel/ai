@@ -882,7 +882,7 @@ export class HarnessAgent<
   }): Promise<
     HarnessAgentTurnResult<THarness, TUserTools, RUNTIME_CONTEXT, OUTPUT>
   > {
-    const turnInput = this._prepareContinueTurnInput(input.turnInput);
+    const turnInput = await this._prepareContinueTurnInput(input.turnInput);
     const responseFormat = await this._resolveResponseFormat();
 
     return input.session.continueTurn<
@@ -1107,40 +1107,40 @@ export class HarnessAgent<
       prompt: this._resolvePromptTurnInput(preparedCallArgs),
       runtimeContext:
         preparedCallArgs.runtimeContext ?? ({} as RUNTIME_CONTEXT),
-      ...this._prepareTurnSettings({
+      ...(await this._prepareTurnSettings({
         model: preparedCallArgs.model,
         skills: preparedCallArgs.skills,
         instructions: preparedCallArgs.instructions,
         tools: preparedCallArgs.tools,
         toolsContext: preparedCallArgs.toolsContext,
-      }),
+      })),
     };
   }
 
-  private _prepareContinueTurnInput(options: {
+  private async _prepareContinueTurnInput(options: {
     toolApprovalContinuations?: readonly ToolApprovalResponse[];
     toolResultContinuations?: readonly ToolResultPart[];
-  }): PreparedHarnessAgentContinueTurnInput<THarness, TUserTools> {
+  }): Promise<PreparedHarnessAgentContinueTurnInput<THarness, TUserTools>> {
     return {
-      ...this._prepareTurnSettings({
+      ...(await this._prepareTurnSettings({
         model: this.settings.model,
         skills: this.settings.skills,
         instructions: this.settings.instructions,
         tools: this.settings.tools,
         toolsContext: this.settings.toolsContext,
-      }),
+      })),
       toolApprovalContinuations: options.toolApprovalContinuations ?? [],
       toolResultContinuations: options.toolResultContinuations ?? [],
     };
   }
 
-  private _prepareTurnSettings(options: {
+  private async _prepareTurnSettings(options: {
     model?: string;
     skills?: ReadonlyArray<HarnessAgentSkill>;
     instructions?: string | SystemModelMessage;
     tools?: TUserTools;
     toolsContext?: InferToolSetContext<TUserTools>;
-  }): PreparedHarnessAgentTurnSettings<THarness, TUserTools> {
+  }): Promise<PreparedHarnessAgentTurnSettings<THarness, TUserTools>> {
     const userTools = options.tools ?? ({} as TUserTools);
     assertNoReservedQuestionTool({
       harness: this.settings.harness,
@@ -1169,7 +1169,7 @@ export class HarnessAgent<
         HarnessAllTools<THarness, TUserTools>
       >,
       activeTools: toolFiltering.activeUserTools,
-      toolSpecs: this._toToolSpecs(toolFiltering.activeUserTools),
+      toolSpecs: await this._toToolSpecs(toolFiltering.activeUserTools),
       builtinToolFiltering: toolFiltering.builtinToolFiltering,
     };
   }
@@ -1179,7 +1179,9 @@ export class HarnessAgent<
    * executed by the runtime and the bridge already knows about them — we
    * never re-declare them over the wire.
    */
-  private _toToolSpecs(activeUserTools: TUserTools): HarnessAgentToolSpec[] {
+  private async _toToolSpecs(
+    activeUserTools: TUserTools,
+  ): Promise<HarnessAgentToolSpec[]> {
     const specs: HarnessAgentToolSpec[] = [];
     for (const [name, tool] of Object.entries(
       activeUserTools as Record<string, unknown>,
@@ -1191,9 +1193,12 @@ export class HarnessAgent<
       let inputSchema: HarnessAgentToolSpec['inputSchema'];
       if (t.inputSchema != null) {
         try {
-          inputSchema = asSchema(
+          // A tool may declare its schema with `jsonSchema(async () => ...)`,
+          // which `generateText` and `ToolLoopAgent` support. Without the
+          // await the spec carries a Promise and the provider rejects it.
+          inputSchema = (await asSchema(
             t.inputSchema as Parameters<typeof asSchema>[0],
-          ).jsonSchema as HarnessAgentToolSpec['inputSchema'];
+          ).jsonSchema) as HarnessAgentToolSpec['inputSchema'];
         } catch {
           // tools without a usable schema are still forwarded by name
         }

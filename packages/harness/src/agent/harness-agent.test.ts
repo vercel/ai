@@ -13,6 +13,7 @@ import type {
   HarnessV1ToolSpec,
 } from '../v1';
 import {
+  jsonSchema,
   tool,
   type Experimental_SandboxSession as SandboxSession,
 } from '@ai-sdk/provider-utils';
@@ -1000,6 +1001,43 @@ describe('HarnessAgent', () => {
     expect(doStart.mock.calls[0]?.[0]).not.toHaveProperty('model');
     expect(promptOptions[0]).toMatchObject({
       model: 'harness-specific-model',
+    });
+    await session.destroy();
+  });
+
+  test('resolves an async tool input schema before it goes over the wire', async () => {
+    const promptOptions: HarnessV1PromptTurnOptions[] = [];
+    const { harness } = mockHarness({
+      script: () => finishEvents(),
+      onPromptTurn: options => promptOptions.push(options),
+    });
+    const agent = new HarnessAgent({
+      harness,
+      tools: {
+        lookup: tool({
+          inputSchema: jsonSchema(async () => ({
+            type: 'object',
+            properties: { term: { type: 'string' } },
+            required: ['term'],
+          })),
+        }),
+      },
+    });
+
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
+    await agent.generate({ session, prompt: 'Hello' });
+
+    const spec = (
+      promptOptions[0] as unknown as {
+        tools: { name: string; inputSchema: unknown }[];
+      }
+    ).tools.find(candidate => candidate.name === 'lookup');
+    expect(spec?.inputSchema).toEqual({
+      type: 'object',
+      properties: { term: { type: 'string' } },
+      required: ['term'],
     });
     await session.destroy();
   });
