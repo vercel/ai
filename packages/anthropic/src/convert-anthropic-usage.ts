@@ -36,8 +36,9 @@ export type AnthropicUsage = {
   /**
    * When compaction is triggered or the advisor tool is invoked, this
    * array contains usage for each sampling iteration. Top-level
-   * input_tokens and output_tokens exclude compaction iteration usage,
-   * and the advisor sub-inference is also not rolled into the top-level
+   * input_tokens, output_tokens, cache_creation_input_tokens and
+   * cache_read_input_tokens exclude compaction iteration usage (they only
+   * reflect the final message iteration), and the advisor sub-inference is also not rolled into the top-level
    * totals because it bills at a different rate. Use this array for
    * per-iteration cost tracking.
    */
@@ -51,14 +52,16 @@ export function convertAnthropicUsage({
   usage: AnthropicUsage;
   rawUsage?: JSONObject;
 }): LanguageModelV4Usage {
-  const cacheCreationTokens = usage.cache_creation_input_tokens ?? 0;
-  const cacheReadTokens = usage.cache_read_input_tokens ?? 0;
+  let cacheCreationTokens = usage.cache_creation_input_tokens ?? 0;
+  let cacheReadTokens = usage.cache_read_input_tokens ?? 0;
   const reasoningTokens =
     usage.output_tokens_details?.thinking_tokens ?? undefined;
 
   // When iterations is present (compaction or advisor), sum across executor
-  // iterations to get the true executor totals. The top-level input_tokens
-  // and output_tokens exclude compaction usage. Advisor (`advisor_message`)
+  // iterations to get the true executor totals. The top-level input_tokens,
+  // output_tokens and cache_creation_input_tokens / cache_read_input_tokens
+  // exclude compaction usage (cache fields are summed only when every executor
+  // iteration reports them). Advisor (`advisor_message`)
   // iterations are filtered out: they bill at the advisor model's rates,
   // not the executor's, so they don't belong in the top-level totals.
   //
@@ -88,6 +91,27 @@ export function convertAnthropicUsage({
       );
       inputTokens = totals.input;
       outputTokens = totals.output;
+
+      // The top-level cache fields also only reflect the final message
+      // iteration, so sum them across executor iterations as well. Each field
+      // is summed only when every executor iteration reports it; otherwise the
+      // top-level value is kept, since an iteration's missing value is unknown.
+      const sumCacheField = (
+        field: 'cache_creation_input_tokens' | 'cache_read_input_tokens',
+        fallback: number,
+      ) =>
+        executorIterations.every(iter => iter[field] != null)
+          ? executorIterations.reduce((acc, iter) => acc + iter[field]!, 0)
+          : fallback;
+
+      cacheCreationTokens = sumCacheField(
+        'cache_creation_input_tokens',
+        cacheCreationTokens,
+      );
+      cacheReadTokens = sumCacheField(
+        'cache_read_input_tokens',
+        cacheReadTokens,
+      );
     } else {
       inputTokens = usage.input_tokens;
       outputTokens = usage.output_tokens;
