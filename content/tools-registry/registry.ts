@@ -1058,7 +1058,10 @@ const db = new Database('app.db');
 // fix as the tool result, so it can rewrite the query and try again.
 const runSql = sqlTool({
   dialect: 'sqlite',
-  execute: sql => db.prepare(sql).all(),
+  execute: sql => {
+    const statement = db.prepare(sql);
+    return statement.reader ? statement.all() : statement.run();
+  },
 });
 
 const { text } = await generateText({
