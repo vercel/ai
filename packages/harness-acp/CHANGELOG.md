@@ -1,5 +1,68 @@
 # @ai-sdk/harness-acp
 
+## 1.0.130
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.190
+
+## 1.0.129
+
+### Patch Changes
+
+- 04a8f38: fix(harness): keep silent sandbox bridge connections alive with WebSocket pings and reconnect when a peer stops responding, controllable via `keepAliveMs` option for bridge-backed harness adapters
+- b5e2f7d: fix(harness-acp): prompt restored sessions before refreshing host tools
+- Updated dependencies [1d2c2ff]
+- Updated dependencies [04a8f38]
+  - @ai-sdk/provider-utils@5.0.83
+  - @ai-sdk/harness@1.0.189
+
+## 1.0.128
+
+### Patch Changes
+
+- e845694: fix(harness-acp): validate alternate tool path interpretations
+- Updated dependencies [679b5b5]
+  - @ai-sdk/harness@1.0.188
+
+## 1.0.127
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.187
+
+## 1.0.126
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.186
+
+## 1.0.125
+
+### Patch Changes
+
+- f630e0d: fix(harness): update bridge zod dependency to 4.6.7 to address GHSA-mrhx-c7xc-m3w5
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/provider-utils@5.0.82
+  - @ai-sdk/harness@1.0.185
+
+## 1.0.124
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.184
+
+## 1.0.123
+
+### Patch Changes
+
+- 71bef69: feat(harness): require approval for sensitive workspace file changes in `allow-edits` permission mode
+- Updated dependencies [6d50947]
+- Updated dependencies [71bef69]
+  - @ai-sdk/provider-utils@5.0.81
+  - @ai-sdk/harness@1.0.183
+
 ## 1.0.122
 
 ### Patch Changes

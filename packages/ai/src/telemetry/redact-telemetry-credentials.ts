@@ -1,10 +1,13 @@
-import { redactTelemetryValue } from '@ai-sdk/provider-utils';
+import { DownloadError, redactTelemetryValue } from '@ai-sdk/provider-utils';
 
 /**
  * Apply provider-owned credential redaction on telemetry-only copies. Only visit SDK
  * metadata containers, never arbitrary prompts, tool outputs, or user context.
  */
 export function redactTelemetryCredentials<T>(value: T): T {
+  if (DownloadError.isInstance(value)) {
+    return redactDownloadError(value) as T;
+  }
   return replaceProperties(value, {
     args: redactTelemetryValue,
     tools: redactTools,
@@ -20,6 +23,15 @@ export function redactTelemetryCredentials<T>(value: T): T {
     lastError: redactTelemetryCredentials,
     // Provider errors carry the same request body outside request metadata.
     requestBodyValues: redactBody,
+  });
+}
+
+function redactDownloadError(error: DownloadError): DownloadError {
+  return new DownloadError({
+    url: '[redacted]',
+    statusCode: error.statusCode,
+    statusText: error.statusText,
+    message: 'Failed to download a file.',
   });
 }
 
@@ -58,7 +70,7 @@ function mapArray(
   return copy.some((entry, index) => entry !== value[index]) ? copy : value;
 }
 
-/** Preserve result getters, streams, and property descriptors without mutation. */
+/** Preserve result getters and property descriptors without mutation. */
 function replaceProperties<T>(
   value: T,
   redactors: Record<string, (value: unknown) => unknown>,
@@ -74,7 +86,25 @@ function replaceProperties<T>(
       descriptors[key] = { ...descriptor, value: redacted };
     }
   }
-  return descriptors == null
-    ? value
-    : Object.create(Object.getPrototypeOf(value), descriptors);
+  if (descriptors == null) return value;
+
+  // Instrumentation replaces result.stream with a tapped stream, locking the
+  // original. Forward replacements so the application consumes the tapped stream.
+  const streamDescriptor = descriptors.stream;
+  if (
+    streamDescriptor?.writable &&
+    streamDescriptor.value instanceof ReadableStream
+  ) {
+    const original: Record<string, unknown> = value;
+    descriptors.stream = {
+      configurable: streamDescriptor.configurable,
+      enumerable: streamDescriptor.enumerable,
+      get: () => original.stream,
+      set: stream => {
+        original.stream = stream;
+      },
+    };
+  }
+
+  return Object.create(Object.getPrototypeOf(value), descriptors);
 }

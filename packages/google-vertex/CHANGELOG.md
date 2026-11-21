@@ -1,5 +1,74 @@
 # @ai-sdk/google-vertex
 
+## 5.0.144
+
+### Patch Changes
+
+- 378af05: fix(google, google-vertex): finish live transcription streams without the 3-second grace period
+
+  `gemini-3.5-transcribe-live` ends each segment with `generationComplete` and never sends `turnComplete`, so live transcription streams always waited out the 3-second finish grace period and merged all segments into one `transcript-final` without separating whitespace. Segments now complete on `generationComplete`, and streams finish as soon as server voice activity detection shows that all sent audio has been transcribed.
+
+  Adds `providerOptions.google.streaming.automaticActivityDetection.disabled` (`googleVertex` on Vertex) for push-to-talk input: the audio stream is transcribed as a single turn without splitting at pauses, and the transcript is finalized as soon as the audio input closes.
+
+- Updated dependencies [378af05]
+  - @ai-sdk/google@4.0.124
+
+## 5.0.143
+
+### Patch Changes
+
+- 875de7b: feat(google): add the `gemini-4-neon` model ID with `xhigh` thinking support
+- Updated dependencies [1d2c2ff]
+- Updated dependencies [875de7b]
+- Updated dependencies [1f53cc2]
+  - @ai-sdk/provider-utils@5.0.83
+  - @ai-sdk/anthropic@4.0.107
+  - @ai-sdk/google@4.0.123
+  - @ai-sdk/openai-compatible@3.0.94
+
+## 5.0.142
+
+### Patch Changes
+
+- b0fccbd: fix(provider/google): redact MCP server credentials in telemetry
+
+  Expose `googleVertex.tools.mcpServer` for Google Vertex Interactions models. Its
+  MCP server header values are redacted from telemetry, matching
+  `@ai-sdk/google`.
+
+- Updated dependencies [3bea041]
+- Updated dependencies [10ff0b1]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+- Updated dependencies [b0fccbd]
+- Updated dependencies [a4de3a2]
+  - @ai-sdk/google@4.0.122
+  - @ai-sdk/provider@4.0.39
+  - @ai-sdk/provider-utils@5.0.82
+  - @ai-sdk/anthropic@4.0.106
+  - @ai-sdk/openai-compatible@3.0.93
+
+## 5.0.141
+
+### Patch Changes
+
+- f5fc6ba: Derive known model ID suggestions from each provider's model catalog declarations so catalog updates automatically update autocomplete, while preserving existing suggestions, endpoint-specific model lists, and support for custom model IDs.
+- c8fb453: Add the missing `gemini-4-hydrogen` model ID to the Vertex catalog so model suggestions and generated capability documentation include it.
+- Updated dependencies [f5fc6ba]
+- Updated dependencies [8e60cb4]
+  - @ai-sdk/anthropic@4.0.105
+  - @ai-sdk/google@4.0.121
+
+## 5.0.140
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+  - @ai-sdk/anthropic@4.0.104
+  - @ai-sdk/google@4.0.120
+  - @ai-sdk/openai-compatible@3.0.92
+
 ## 5.0.139
 
 ### Patch Changes

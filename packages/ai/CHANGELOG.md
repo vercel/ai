@@ -1,5 +1,112 @@
 # ai
 
+## 7.0.179
+
+### Patch Changes
+
+- 7e55599: feat(gateway): support Live models over WebSocket
+
+  - `gateway.experimental_realtime()` returns a continuous Live model for `openai/gpt-live-1` and `openai/gpt-live-1.1`. It connects to the Gateway Live route and speaks the normalized Live protocol (`session-start`, PCM16 audio, `context-append`, `session-close` with final usage). Pass `{ api: 'live' }` for other Live model IDs or `{ api: 'realtime' }` to force the realtime route. Before, these model IDs opened the realtime route, which rejected them with `invalid_model`.
+  - `gateway.experimental_realtime.getToken()` mints Live-bound client secrets for Live models.
+  - `experimental_useRealtime` and the realtime session can connect a continuous model straight to the provider with a short-lived token (`api.token`) when the model explicitly declares the `client-secret-websocket` connection. Before, continuous WebSocket sessions required an application relay.
+
+- Updated dependencies [7e55599]
+- Updated dependencies [beccad3]
+  - @ai-sdk/gateway@4.0.152
+
+## 7.0.178
+
+### Patch Changes
+
+- 0b8cbfa: `generateText` and `streamText` passed the messages array that `prepareStep` returned to tools and tool approval functions as it was. When `prepareStep` returned the same array for several steps or calls, tool approval functions could not tell the tool calls of one model response from the tool calls of another. The messages array of every step is now created for that step, so the messages that `prepareStep` returns are copied.
+- 6815153: fix(ai): forward the `preliminary` flag on provider-executed tool results in `streamText`, so preliminary results (e.g. OpenAI image generation previews) are no longer recorded as final tool results in step content and response messages
+- 15bfd6b: add telemetry, runtime context and lifecycle callbacks to `experimental_extract`
+- 15bfd6b: redact file urls from download errors sent to telemetry
+- 2613bb4: fix(ai): build the `ai`, `ai/internal`, and `ai/test` entrypoints together so their types stay compatible with each other
+- 63593a7: With `experimental_toolApprovalSecret` configured, `generateText` and `streamText` signed the approval request of a tool call that the tool approval policy had denied automatically. A client that controls the message history could send that request back with an approved response and have the denied tool call executed. Approval requests of automatically denied tool calls are no longer signed, so such a response is rejected with `AI_InvalidToolApprovalSignatureError`.
+
+  Signatures that earlier versions issued for automatic denials stay valid. To invalidate them, rotate the secret passed to `experimental_toolApprovalSecret`. Approval requests that are still waiting for a user decision then have to be requested again.
+
+- Updated dependencies [1d2c2ff]
+- Updated dependencies [a51981c]
+- Updated dependencies [875de7b]
+  - @ai-sdk/provider-utils@5.0.83
+  - @ai-sdk/gateway@4.0.151
+
+## 7.0.177
+
+### Patch Changes
+
+- e403988: add an interrupt option to steering so a steer can cancel a model call that has not produced output yet
+- b792b56: feat(ai): ship the AI SDK skill in the package at `skills/ai-sdk` for pnpm agent skills
+- Updated dependencies [700089c]
+  - @ai-sdk/gateway@4.0.150
+
+## 7.0.176
+
+### Patch Changes
+
+- Updated dependencies [f886264]
+- Updated dependencies [d03d74a]
+  - @ai-sdk/gateway@4.0.149
+
+## 7.0.175
+
+### Patch Changes
+
+- Updated dependencies [ed981f8]
+  - @ai-sdk/gateway@4.0.148
+
+## 7.0.174
+
+### Patch Changes
+
+- 3bea041: feat(ai): support `output` in `startBatch` and parse it in `getBatchResults`
+- 30d35eb: Fix `streamText` passing `tools: undefined` to `experimental_transform` factories when no `tools` are provided. Transforms now receive an empty tool set, matching the `StreamTextTransform` type.
+- fab7478: Fix locked stream errors when telemetry subscribers or integrations replace a model stream whose request or response metadata requires credential redaction.
+- 10ff0b1: add extraction model support to provider registries, custom providers and string model ids
+- 718824c: Prevent excessive memory and CPU usage when validating UI messages with deeply nested provider or tool metadata. `validateUIMessages`, `safeValidateUIMessages`, and the agent UI stream helpers validated JSON values in `providerMetadata`, `callProviderMetadata`, `resultProviderMetadata`, `toolMetadata`, and citation metadata with a recursive union schema that needed several times the memory of the value, so a valid request could exhaust the memory of a worker before the model was called. These values are now validated in a single pass and are no longer copied, except to remove `__proto__` keys.
+- d99098a: Centralize empty extraction value normalization in `experimental_extract`, preserving missing-value behavior while removing duplicated conversion from extraction providers.
+- Updated dependencies [74042c5]
+- Updated dependencies [b8c01eb]
+- Updated dependencies [10ff0b1]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/gateway@4.0.147
+  - @ai-sdk/provider@4.0.39
+  - @ai-sdk/provider-utils@5.0.82
+
+## 7.0.173
+
+### Patch Changes
+
+- 3c09e00: Prevent in-place schema validation or input refinement from changing approved tool arguments during approval replay.
+- f43ee39: fix(workflow): log the default step limit warning when `WorkflowAgent.generate()` stops at the default limit.
+- 7ce7ffc: fix(workflow): log provider warnings in `WorkflowAgent`
+
+  `WorkflowAgent.generate()` and `WorkflowAgent.stream()` now log the warnings of every model call through the AI SDK warning logger, like `ToolLoopAgent`. The `AI_SDK_LOG_WARNINGS` global controls the output.
+
+- f6809e3: fix(workflow): align the `prepareStep` results of `WorkflowAgent` with `ToolLoopAgent`. Returned `instructions` (or the deprecated `system`) replace the instructions of the step and carry forward to later steps, returned `providerOptions` are merged with the agent options, and returned `headers` are merged over the headers of the call.
+- 2559173: feat(workflow): support `toolApproval` in `WorkflowAgent`
+
+  `WorkflowAgent` accepts a `toolApproval` configuration in the constructor and per `generate()` or `stream()` call. The configuration takes precedence over a tool's `needsApproval` setting, and its functions run in workflow context, outside of the durable model steps. Calls that the configuration approves run in the same step, and calls that it denies receive an `execution-denied` tool result without pausing the workflow.
+
+- f1de9cb: feat(workflow): support the `timeout` object in `WorkflowAgent`
+
+  `generate()` and `stream()` accept `timeout: { totalMs, stepMs, firstChunkMs, chunkMs }` in addition to a number. `stepMs` limits each model call. In `stream()`, `firstChunkMs` and `chunkMs` limit the wait for model output. Invalid timeout values are rejected with an `InvalidArgumentError`. A timeout now also ends a model step when the provider stream ignores the abort signal.
+
+- Updated dependencies [9baa2d0]
+  - @ai-sdk/gateway@4.0.146
+
+## 7.0.172
+
+### Patch Changes
+
+- 79d2004: Require an explicit `experimental_download` hook for remote file URLs in `experimental_extract` and `experimental_decide` instead of silently downloading through global fetch. Callers can use `createDownload({ fetch })` with a DNS-protected transport for untrusted URLs; inline file data continues to work without a hook.
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+  - @ai-sdk/gateway@4.0.145
+
 ## 7.0.171
 
 ### Patch Changes

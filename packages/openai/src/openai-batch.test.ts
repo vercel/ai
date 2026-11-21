@@ -670,6 +670,14 @@ describe('OpenAI batch service', () => {
           reason: 'input_changed',
           cache_missed_tokens: 1200,
         },
+        input_transformations: [
+          {
+            id: 'rs_1',
+            type: 'reasoning',
+            action: 'removed',
+            reason: 'prefix_mismatch',
+          },
+        ],
       },
     });
     const second = resultLine({
@@ -718,6 +726,14 @@ describe('OpenAI batch service', () => {
               reason: 'input_changed',
               cache_missed_tokens: 1200,
             },
+            inputTransformations: [
+              {
+                id: 'rs_1',
+                type: 'reasoning',
+                action: 'removed',
+                reason: 'prefix_mismatch',
+              },
+            ],
           },
         },
       },

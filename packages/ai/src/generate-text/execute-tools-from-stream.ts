@@ -146,13 +146,20 @@ export function executeToolsFromStream<
             }
 
             const approvalId = generateId();
-            const signature = await maybeSignApproval({
-              secret: toolApprovalSecret,
-              approvalId,
-              toolCallId: chunk.toolCallId,
-              toolName: chunk.toolName,
-              input: chunk.input,
-            });
+
+            // A signature lets a later request execute this tool call by
+            // replaying the approval from client-supplied history, so a denied
+            // tool call must not get one.
+            const signature =
+              toolApprovalStatus.type === 'denied'
+                ? undefined
+                : await maybeSignApproval({
+                    secret: toolApprovalSecret,
+                    approvalId,
+                    toolCallId: chunk.toolCallId,
+                    toolName: chunk.toolName,
+                    input: chunk.input,
+                  });
 
             switch (toolApprovalStatus.type) {
               case 'user-approval': {
@@ -175,7 +182,6 @@ export function executeToolsFromStream<
                   approvalId,
                   toolCall: chunk,
                   isAutomatic: true,
-                  ...(signature != null ? { signature } : {}),
                 });
                 controller.enqueue({
                   type: 'tool-approval-response',

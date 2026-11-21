@@ -11,7 +11,11 @@ import { join } from 'path';
 // The opt-in useChat message queue adds ~3 KiB.
 // Bounded validation of malformed UI messages adds ~1.5 KiB.
 // The experimental extract API adds ~5 KiB.
-const LIMIT = 651 * 1024;
+// The bundled Gateway extraction client adds ~4 KiB.
+// Steering interrupts add ~3 KiB.
+// Extraction telemetry adds ~2.5 KiB.
+// The bundled Gateway Live model and continuous client-secret sessions add ~6 KiB.
+const LIMIT = 670 * 1024;
 
 interface BundleResult {
   size: number;
@@ -62,7 +66,7 @@ async function bundleForNode(
       entry === 'tool'
         ? 8 * 1024
         : entry === 'generateText'
-          ? 300 * 1024
+          ? 306 * 1024
           : LIMIT,
   };
 }
@@ -110,7 +114,7 @@ async function bundleForBrowser(
       entry === 'tool'
         ? 8 * 1024
         : entry === 'generateText'
-          ? 292 * 1024
+          ? 294 * 1024
           : LIMIT,
   };
 }

@@ -42,7 +42,7 @@ export async function POST(req: Request) {
   );
 
   const result = streamText({
-    model: google.interactions('gemini-3.8-flash'),
+    model: google.interactions('gemini-4-hydrogen'),
     messages: modelMessages,
     abortSignal: req.signal,
     providerOptions: {

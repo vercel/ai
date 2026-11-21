@@ -49,6 +49,7 @@
     "@ai-sdk/hume": "workspace:*",
     "@ai-sdk/klingai": "workspace:*",
     "@ai-sdk/langchain": "workspace:*",
+    "@ai-sdk/liquid": "workspace:*",
     "@ai-sdk/luma": "workspace:*",
     "@ai-sdk/mcp": "workspace:*",
     "@ai-sdk/minimax": "workspace:*",
@@ -112,12 +113,12 @@
     "valibot": "1.1.0",
     "workflow": "5.1.0",
     "ws": "^8.21.0",
-    "zod": "3.25.76"
+    "zod": "4.6.7"
   },
   "scripts": {
     "test:e2e:all": "vitest run src/e2e/*.test.ts",
     "test:file": "vitest run",
-    "type-check": "tsc --build"
+    "type-check": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/node": "22.19.19",

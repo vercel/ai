@@ -1,5 +1,53 @@
 # @ai-sdk/openai
 
+## 4.0.122
+
+### Patch Changes
+
+- 2af50d0: Derive completion and decision model IDs from endpoint-specific catalog declarations without changing supported models.
+- Updated dependencies [1d2c2ff]
+  - @ai-sdk/provider-utils@5.0.83
+
+## 4.0.121
+
+### Patch Changes
+
+- 1a7440b: return input transformations in responses provider metadata
+
+## 4.0.120
+
+### Patch Changes
+
+- ed981f8: feat(openai): add GPT-6.2 Astra and GPT-6.2 Sol model support
+
+## 4.0.119
+
+### Patch Changes
+
+- 5aa836f: fix(openai): send `additionalTools` definitions only for tools registered in the request
+
+  `additionalTools` entries can come from replayed, client-supplied conversation history. The Responses provider now uses an entry only to select a tool registered in the call's `tools` and sends the definition derived from that tool: its description, input schema, `strict` setting, and `deferLoading` option instead of the values in the history. Entries for tools that are not registered are dropped with a warning, and a namespace entry loads only the registered tools it names.
+
+- Updated dependencies [10ff0b1]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/provider@4.0.39
+  - @ai-sdk/provider-utils@5.0.82
+
+## 4.0.118
+
+### Patch Changes
+
+- f5fc6ba: Derive known model ID suggestions from each provider's model catalog declarations so catalog updates automatically update autocomplete, while preserving existing suggestions, endpoint-specific model lists, and support for custom model IDs.
+
+## 4.0.117
+
+### Patch Changes
+
+- 6d50947: add experimental extraction models backed by structured language model output
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+
 ## 4.0.116
 
 ### Patch Changes

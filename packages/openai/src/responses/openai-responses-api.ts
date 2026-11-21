@@ -25,6 +25,18 @@ const jsonValueSchema = (): z.ZodType<JSONValue> =>
 const jsonObjectSchema = () =>
   z.record(z.string(), jsonValueSchema().optional());
 
+const openaiResponsesInputTransformationSchema = () =>
+  z.object({
+    id: z.string().nullish(),
+    type: z.string(),
+    action: z.string(),
+    reason: z.string(),
+  });
+
+export type OpenAIResponsesInputTransformation = z.infer<
+  ReturnType<typeof openaiResponsesInputTransformationSchema>
+>;
+
 const openaiResponsesPromptCacheDiagnosticsSchema = () =>
   z.object({
     type: z.string(),
@@ -983,6 +995,9 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
         response: z.object({
           prompt_cache_diagnostics:
             openaiResponsesPromptCacheDiagnosticsSchema().nullish(),
+          input_transformations: z
+            .array(openaiResponsesInputTransformationSchema())
+            .nullish(),
           incomplete_details: z.object({ reason: z.string() }).nullish(),
           usage: openaiResponsesUsageSchema().nullish(),
           reasoning: z
@@ -999,6 +1014,9 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
         response: z.object({
           prompt_cache_diagnostics:
             openaiResponsesPromptCacheDiagnosticsSchema().nullish(),
+          input_transformations: z
+            .array(openaiResponsesInputTransformationSchema())
+            .nullish(),
           error: z
             .object({
               code: z.string().nullish(),
@@ -1882,6 +1900,9 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
       service_tier: z.string().nullish(),
       prompt_cache_diagnostics:
         openaiResponsesPromptCacheDiagnosticsSchema().nullish(),
+      input_transformations: z
+        .array(openaiResponsesInputTransformationSchema())
+        .nullish(),
       reasoning: z
         .object({
           context: z.string().nullish(),

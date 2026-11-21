@@ -1,5 +1,26 @@
 # @ai-sdk/provider-utils
 
+## 5.0.83
+
+### Patch Changes
+
+- 1d2c2ff: Bound bash tool output collection before returning it from supporting sandbox adapters, and copy retained prefixes so truncated results do not keep large source strings alive. Preserve output text, omission counts, command completion, exit codes, and timeout behavior. Custom sandbox implementations remain compatible; just-bash's interpreter buffering remains subject to its native execution limits.
+
+## 5.0.82
+
+### Patch Changes
+
+- e878ab3: Fix validation of non-Zod Standard Schema results: a result that contains `issues` is now always treated as a failure, even when it also carries a `value`. Previously a failing schema such as Valibot's through `toStandardJsonSchema()` could be reported as valid, so rejected input, including tool input, was accepted.
+- d99098a: Centralize empty extraction value normalization in `experimental_extract`, preserving missing-value behavior while removing duplicated conversion from extraction providers.
+- Updated dependencies [10ff0b1]
+  - @ai-sdk/provider@4.0.39
+
+## 5.0.81
+
+### Patch Changes
+
+- 6d50947: add experimental extraction models backed by structured language model output
+
 ## 5.0.80
 
 ### Patch Changes

@@ -12,7 +12,8 @@ string, JSON object, or an array of ordered text, file, and JSON parts, the same
 as [decisions](/docs/ai-sdk-core/decisions).
 
 This API and the extraction model specification are experimental and may change
-in patch releases. Pass an extraction model instance.
+in patch releases. Pass an extraction model instance, resolve a model through a
+provider registry, or use a string ID resolved by the default provider.
 
 ```ts
 import { experimental_extract, type Experimental_ExtractionModel } from 'ai';
@@ -109,7 +110,7 @@ Use a provider's `extractionModel` factory:
 | --------- | ------------------------------------------------ |
 | OpenAI    | `openai.extractionModel('gpt-6.1-sol')`          |
 | Anthropic | `anthropic.extractionModel('claude-sonnet-5-5')` |
-| Google    | `google.extractionModel('gemini-3.8-flash')`     |
+| Google    | `google.extractionModel('gemini-4-hydrogen')`    |
 
 These adapt structured language-model output and extract every field in one
 prompt. Anthropic sends more than 16 fields as parallel calls, see
@@ -123,6 +124,69 @@ choosing a model for a task.
 - When the provider refuses a request, the fields in that request are reported
   as refused and `experimental_extract` throws
   `Experimental_ExtractionRefusalError`.
+
+The [AI Gateway](/providers/ai-sdk-providers/ai-gateway#extraction-models) serves
+extraction models from several providers through
+`gateway.extractionModel('scaledown/extract-1')`. Supported field types depend on
+the model, so the gateway reports an unsupported field after the request is sent.
+
+## Model aliases and registries
+
+Use `customProvider` to give extraction models application-specific names, then
+register providers with `createProviderRegistry`:
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { openai } from '@ai-sdk/openai';
+import {
+  createProviderRegistry,
+  customProvider,
+  experimental_extract,
+} from 'ai';
+
+const registry = createProviderRegistry({
+  invoices: customProvider({
+    extractionModels: {
+      fast: openai.extractionModel('gpt-6.1-sol'),
+      careful: anthropic.extractionModel('claude-sonnet-5-5'),
+    },
+    fallbackProvider: openai,
+  }),
+  anthropic,
+});
+
+const { answers } = await experimental_extract({
+  model: registry.extractionModel('invoices:fast'),
+  state: 'Invoice INV-2041, total due $1,250.00.',
+  fields: { total: { type: 'number', decimals: 2 } },
+});
+```
+
+Registry IDs use `providerId:modelId`. Custom aliases take precedence over a
+fallback provider, and a fallback only resolves unknown model IDs.
+
+String IDs passed directly to `experimental_extract` resolve through the default
+provider. That is the
+[AI Gateway](/providers/ai-sdk-providers/ai-gateway#extraction-models) unless
+`globalThis.AI_SDK_DEFAULT_PROVIDER` is set, so `model: 'scaledown/extract-1'`
+works without a provider import. A configured default provider must have an
+`extractionModel` method. This exposes an alias from the registry above through
+a custom provider:
+
+```ts
+globalThis.AI_SDK_DEFAULT_PROVIDER = customProvider({
+  extractionModels: { careful: registry.extractionModel('invoices:careful') },
+});
+
+await experimental_extract({
+  model: 'careful',
+  state: 'Invoice INV-2041, total due $1,250.00.',
+  fields: { total: { type: 'number', decimals: 2 } },
+});
+```
+
+Resolution errors use `NoSuchModelError` and `NoSuchProviderError` with
+`modelType: 'extractionModel'`.
 
 ## Answers
 
@@ -142,11 +206,28 @@ List answers can include `items`, one `{ confidence?, source? }` entry per value
 
 ## Errors
 
-Unsupported field types throw `Experimental_ExtractionUnsupportedFieldTypeError`
-before provider I/O. Invalid inputs throw `InvalidArgumentError`; malformed
-answers throw `InvalidResponseDataError`. Fields the model refuses throw
-`Experimental_ExtractionRefusalError`. Invalid answers and refusals are not
+Unsupported field types throw
+[`Experimental_ExtractionUnsupportedFieldTypeError`](/docs/reference/ai-sdk-errors/ai-extraction-unsupported-field-type-error),
+before provider I/O or, for AI Gateway models, after the gateway rejects the
+field. Invalid inputs throw `InvalidArgumentError`; malformed answers throw
+`InvalidResponseDataError`. Fields the model refuses throw
+[`Experimental_ExtractionRefusalError`](/docs/reference/ai-sdk-errors/ai-extraction-refusal-error). Invalid answers and refusals are not
 retried, and partial results are not supported.
+
+## Telemetry
+
+`experimental_extract` accepts the standard `telemetry` option, `runtimeContext`,
+and [`onStart` and `onEnd` callbacks](/docs/ai-sdk-core/lifecycle-callbacks#experimental_extract).
+Because extraction is experimental, custom integrations receive its lifecycle
+through `experimental_onExtractStart`, `experimental_onExtractionModelCallStart`,
+`experimental_onExtractionModelCallEnd`, and `experimental_onExtractEnd`; errors
+use `onError`. With `recordInputs: false`, integrations do not receive the state,
+fields, or reference date, and with `recordOutputs: false` they do not receive
+answers. Request headers and provider options are never sent to telemetry
+because they can contain credentials, and file URLs and references in the state
+are replaced with `[redacted]`; `onStart` and `onEnd` still receive the
+original values. See [Telemetry](/docs/ai-sdk-core/telemetry#experimental_extract) for
+the OpenTelemetry spans.
 
 ## Testing
 

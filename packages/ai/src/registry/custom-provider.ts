@@ -1,6 +1,7 @@
 import {
   type Experimental_DecisionModelV4 as DecisionModelV4,
   type EmbeddingModelV4,
+  type Experimental_ExtractionModelV4 as ExtractionModelV4,
   type Experimental_VideoModelV3,
   type Experimental_VideoModelV4,
   type FilesV4,
@@ -17,6 +18,8 @@ import {
 } from '@ai-sdk/provider';
 import type { DecisionModel } from '../decide/decision-result';
 import type { DecisionProvider } from '../decide/decision-provider';
+import type { ExtractionModel } from '../extract/extraction-result';
+import type { ExtractionProvider } from '../extract/extraction-provider';
 import { asProviderV4 } from '../model/as-provider-v4';
 import {
   resolveEmbeddingModel,
@@ -27,6 +30,7 @@ import {
   resolveTranscriptionModel,
   resolveVideoModel,
   resolveDecisionModel,
+  resolveExtractionModel,
   asEvaluationModel,
 } from '../model/resolve-model';
 import type { EmbeddingModel } from '../types/embedding-model';
@@ -55,6 +59,7 @@ type ProviderWithOptionalVideoModel = {
  * @param {Record<string, RerankingModel>} [options.rerankingModels] - A record of reranking models, where keys are model IDs and values are reranking model instances.
  * @param {Record<string, VideoModel>} [options.videoModels] - A record of video models, where keys are model IDs and values are video model instances.
  * @param {Record<string, DecisionModel>} [options.decisionModels] - Experimental decision models or default-provider model IDs, keyed by alias.
+ * @param {Record<string, ExtractionModel>} [options.extractionModels] - Experimental extraction models or default-provider model IDs, keyed by alias.
  * @param {FilesV4} [options.files] - A files interface for uploading files.
  * @param {SkillsV4} [options.skills] - A skills interface for uploading skills.
  * @param {ProviderV2 | ProviderV3 | ProviderV4} [options.fallbackProvider] - An optional fallback provider to use when a requested model is not found in the custom provider.
@@ -77,6 +82,10 @@ export function customProvider<
     string,
     DecisionModel
   >,
+  EXTRACTION_MODELS extends Record<string, ExtractionModel> = Record<
+    string,
+    ExtractionModel
+  >,
 >({
   languageModels,
   embeddingModels,
@@ -87,6 +96,7 @@ export function customProvider<
   videoModels,
   decisionModels: decisionModelsArg,
   evaluationModels,
+  extractionModels,
   files,
   skills,
   fallbackProvider: fallbackProviderArg,
@@ -101,6 +111,7 @@ export function customProvider<
   decisionModels?: DECISION_MODELS;
   /** @deprecated Use `decisionModels` instead. When both are set, `decisionModels` takes precedence. */
   evaluationModels?: DECISION_MODELS;
+  extractionModels?: EXTRACTION_MODELS;
   files?: FILES;
   skills?: SKILLS;
   fallbackProvider?: FALLBACK;
@@ -119,6 +130,9 @@ export function customProvider<
   evaluationModel(modelId: ExtractModelId<DECISION_MODELS>): DecisionModelV4 & {
     doEvaluate: DecisionModelV4['doDecide'];
   };
+  extractionModel(
+    modelId: ExtractModelId<EXTRACTION_MODELS>,
+  ): ExtractionModelV4;
 } & (FILES extends FilesV4
     ? { files(): FilesV4 }
     : [FALLBACK] extends [{ files: () => FilesV4 }]
@@ -152,6 +166,9 @@ export function customProvider<
     ): DecisionModelV4 & {
       doEvaluate: DecisionModelV4['doDecide'];
     };
+    extractionModel(
+      modelId: ExtractModelId<EXTRACTION_MODELS>,
+    ): ExtractionModelV4;
   } = {
     specificationVersion: 'v4',
     languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV4 {
@@ -258,6 +275,26 @@ export function customProvider<
     },
     evaluationModel(modelId: ExtractModelId<DECISION_MODELS>) {
       return asEvaluationModel(this.decisionModel(modelId));
+    },
+    extractionModel(
+      modelId: ExtractModelId<EXTRACTION_MODELS>,
+    ): ExtractionModelV4 {
+      if (
+        extractionModels != null &&
+        Object.hasOwn(extractionModels, modelId)
+      ) {
+        return resolveExtractionModel(extractionModels[modelId]);
+      }
+
+      const provider = fallbackProviderArg as ExtractionProvider | undefined;
+      if (typeof provider?.extractionModel === 'function') {
+        const model = provider.extractionModel(modelId);
+        if (model != null) {
+          return resolveExtractionModel(model);
+        }
+      }
+
+      throw new NoSuchModelError({ modelId, modelType: 'extractionModel' });
     },
     videoModel(
       modelId: ExtractModelId<VIDEO_MODELS>,

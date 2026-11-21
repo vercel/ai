@@ -60,6 +60,13 @@ for await (const item of getBatchResults({ provider: anthropic, batch })) {
         'The client-defined tools provided on requests in the batch. Used to validate and normalize returned tool calls; execute functions are never invoked.',
     },
     {
+      name: 'output',
+      type: 'Output',
+      isOptional: true,
+      description:
+        'The output specification that was provided on requests in the batch. When set, the text of each successful item is parsed and validated. Items have either an `output` or an `outputError`; a parsing failure does not fail the item.',
+    },
+    {
       name: 'providerOptions',
       type: 'ProviderOptions',
       isOptional: true,

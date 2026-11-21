@@ -1,5 +1,70 @@
 # @ai-sdk/gateway
 
+## 4.0.152
+
+### Patch Changes
+
+- 7e55599: feat(gateway): support Live models over WebSocket
+
+  - `gateway.experimental_realtime()` returns a continuous Live model for `openai/gpt-live-1` and `openai/gpt-live-1.1`. It connects to the Gateway Live route and speaks the normalized Live protocol (`session-start`, PCM16 audio, `context-append`, `session-close` with final usage). Pass `{ api: 'live' }` for other Live model IDs or `{ api: 'realtime' }` to force the realtime route. Before, these model IDs opened the realtime route, which rejected them with `invalid_model`.
+  - `gateway.experimental_realtime.getToken()` mints Live-bound client secrets for Live models.
+  - `experimental_useRealtime` and the realtime session can connect a continuous model straight to the provider with a short-lived token (`api.token`) when the model explicitly declares the `client-secret-websocket` connection. Before, continuous WebSocket sessions required an application relay.
+
+- beccad3: chore(provider/gateway): update gateway model settings files
+
+## 4.0.151
+
+### Patch Changes
+
+- a51981c: Derive model ID types from a single modality-specific catalog and update model generation to maintain the catalog.
+- 875de7b: feat(google): add the `gemini-4-neon` model ID with `xhigh` thinking support
+- Updated dependencies [1d2c2ff]
+  - @ai-sdk/provider-utils@5.0.83
+
+## 4.0.150
+
+### Patch Changes
+
+- 700089c: chore(provider/gateway): update gateway model settings files
+
+## 4.0.149
+
+### Patch Changes
+
+- f886264: feat(gateway): add experimental extraction model support. String model ids passed to `experimental_extract` now resolve through the AI Gateway by default.
+- d03d74a: chore(provider/gateway): update gateway model settings files
+
+## 4.0.148
+
+### Patch Changes
+
+- ed981f8: feat(openai): add GPT-6.2 Astra and GPT-6.2 Sol model support
+
+## 4.0.147
+
+### Patch Changes
+
+- 74042c5: chore(provider/gateway): update gateway model settings files
+- b8c01eb: Map AI Gateway `access_policy_denied` error responses (HTTP 403) to the new `GatewayAccessPolicyDeniedError` instead of `GatewayInternalServerError`. Use `GatewayAccessPolicyDeniedError.isInstance(error)` to tell an access policy denial from other 403 errors. When the response includes them, the error exposes the denying policy IDs (`policyIds`) and the models and providers the policies removed (`removedModels`, `removedProviders`).
+- Updated dependencies [10ff0b1]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/provider@4.0.39
+  - @ai-sdk/provider-utils@5.0.82
+
+## 4.0.146
+
+### Patch Changes
+
+- 9baa2d0: chore(provider/gateway): update gateway model settings files
+
+## 4.0.145
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+
 ## 4.0.144
 
 ### Patch Changes

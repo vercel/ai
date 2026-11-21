@@ -1,5 +1,59 @@
 # @ai-sdk/google
 
+## 4.0.124
+
+### Patch Changes
+
+- 378af05: fix(google, google-vertex): finish live transcription streams without the 3-second grace period
+
+  `gemini-3.5-transcribe-live` ends each segment with `generationComplete` and never sends `turnComplete`, so live transcription streams always waited out the 3-second finish grace period and merged all segments into one `transcript-final` without separating whitespace. Segments now complete on `generationComplete`, and streams finish as soon as server voice activity detection shows that all sent audio has been transcribed.
+
+  Adds `providerOptions.google.streaming.automaticActivityDetection.disabled` (`googleVertex` on Vertex) for push-to-talk input: the audio stream is transcribed as a single turn without splitting at pauses, and the transcript is finalized as soon as the audio input closes.
+
+## 4.0.123
+
+### Patch Changes
+
+- 875de7b: feat(google): add the `gemini-4-neon` model ID with `xhigh` thinking support
+- 1f53cc2: Derive model ID types from the model catalog while preserving the IDs accepted by each model type and endpoint.
+- Updated dependencies [1d2c2ff]
+  - @ai-sdk/provider-utils@5.0.83
+
+## 4.0.122
+
+### Patch Changes
+
+- 3bea041: fix(google): reject structured output schemas in batch requests because inline Google batch requests ignore `responseJsonSchema`
+- b0fccbd: fix(provider/google): redact MCP server credentials in telemetry
+
+  Google Interactions MCP server headers can contain connector credentials, which
+  were recorded in tool telemetry. `google.tools.mcpServer` now provides a
+  redacted telemetry view of its header values, and Interactions request bodies do
+  the same for provider error reporting, while the actual request keeps the
+  credentials.
+
+- a4de3a2: fix(google): include `promptFeedback.blockReasonMessage` in provider metadata
+- Updated dependencies [10ff0b1]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/provider@4.0.39
+  - @ai-sdk/provider-utils@5.0.82
+
+## 4.0.121
+
+### Patch Changes
+
+- f5fc6ba: Derive known model ID suggestions from each provider's model catalog declarations so catalog updates automatically update autocomplete, while preserving existing suggestions, endpoint-specific model lists, and support for custom model IDs.
+- 8e60cb4: Fix Google Interactions ignoring top-level `reasoning` in generation and streaming calls. Map reasoning to model-supported thinking levels, including Hydrogen's `xhigh`, preserve explicit `thinkingLevel` overrides and API defaults, and warn when reasoning is unsupported.
+
+## 4.0.120
+
+### Patch Changes
+
+- 6d50947: add experimental extraction models backed by structured language model output
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+
 ## 4.0.119
 
 ### Patch Changes
