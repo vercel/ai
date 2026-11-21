@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/harness-pi",
-  "version": "1.0.191",
+  "version": "1.0.193",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -20,8 +20,8 @@
   "scripts": {
     "build": "pnpm clean && tsdown",
     "build:watch": "pnpm clean && tsdown --watch",
-    "clean": "del-cli dist *.tsbuildinfo",
-    "type-check": "tsc --build",
+    "clean": "del-cli dist",
+    "type-check": "tsc --noEmit",
     "test": "pnpm test:node",
     "test:watch": "vitest --config vitest.node.config.js",
     "test:node": "vitest --config vitest.node.config.js --run"

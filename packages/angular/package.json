@@ -1,16 +1,15 @@
 {
   "name": "@ai-sdk/angular",
-  "version": "3.0.177",
+  "version": "3.0.179",
   "type": "module",
   "description": "Angular implementation of ai-sdk.",
   "license": "Apache-2.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "pnpm clean && tsdown",
-    "build:watch": "pnpm clean && tsdown --watch",
-    "clean": "del-cli *.tsbuildinfo",
-    "type-check": "tsc --build",
+    "build": "tsdown",
+    "build:watch": "tsdown --watch",
+    "type-check": "tsc --noEmit",
     "test": "vitest --config vitest.config.ts --run",
     "test:update": "vitest --config vitest.config.ts --run -u",
     "test:watch": "vitest --config vitest.config.ts"

@@ -28,5 +28,5 @@ When raising the version, update `packages/ai/package.json` and every other mani
 Not affected by this rule:
 
 - Published packages keep their Zod 3 and Zod 4 peer dependency range (for example `^3.25.76 || ^4.1.8`). This range defines consumer compatibility, not the installed version.
-- The bundler test matrix in `tools/bundler-tests/run.mjs` and `.github/workflows/ci.yml` installs the minimum supported Zod versions on purpose.
+- The bundler tests in `tools/bundler-tests/run.mjs` install the minimum supported Zod versions on purpose.
 - Implementation code still imports from `zod/v4` (or `zod/v3` for compatibility code), as described in `AGENTS.md`.

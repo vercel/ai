@@ -87,3 +87,18 @@ it('keeps numeric list values in the answer type for widened fields', async () =
       : false
   >().toEqualTypeOf<true>();
 });
+
+it('passes the runtime context type to the lifecycle callbacks', async () => {
+  await extract({
+    model: new ExtractionMockModelV4(),
+    state: 'Invoice INV-2041',
+    fields: { invoiceNumber: { type: 'text' } },
+    runtimeContext: { requestId: 'request-1' },
+    onStart: event => {
+      expectTypeOf(event.runtimeContext).toEqualTypeOf<{ requestId: string }>();
+    },
+    onEnd: event => {
+      expectTypeOf(event.runtimeContext).toEqualTypeOf<{ requestId: string }>();
+    },
+  });
+});

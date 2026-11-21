@@ -2716,6 +2716,115 @@ Older models continue to use labelled transcripts, such as
 | `gemini-3.8-flash-tts`         | <Check />     | <Check />              |
 | `gemini-3.8-flash-lite-tts`    | <Check />     | <Check />              |
 
+## Transcription Models
+
+You can create models that call the [Gemini transcription API](https://ai.google.dev/gemini-api/docs/transcribe)
+using the `.transcription()` factory method. `gemini-3.5-transcribe` transcribes
+recorded audio with [`transcribe()`](/docs/reference/ai-sdk-core/transcribe), and
+`gemini-3.5-transcribe-live` transcribes live audio with
+[`experimental_streamTranscribe`](/docs/ai-sdk-core/transcription#streaming-transcription)
+over the [Live API](https://ai.google.dev/gemini-api/docs/live-api/live-transcribe).
+
+```ts
+import { google } from '@ai-sdk/google';
+import { transcribe } from 'ai';
+import { readFile } from 'node:fs/promises';
+
+const result = await transcribe({
+  model: google.transcription('gemini-3.5-transcribe'),
+  audio: await readFile('audio.mp3'),
+});
+```
+
+The following provider options are available under `providerOptions.google`:
+
+- **languageCodes** _string[]_
+
+  BCP-47 language codes that hint at the languages in the audio. Defaults to
+  automatic language detection.
+
+- **customVocabulary** _string[]_
+
+  Phrases that bias recognition toward specific terms.
+
+- **wordTimestamp** _boolean_
+
+  Enables word-level timestamps.
+
+- **diarization** _boolean_
+
+  Enables speaker diarization.
+
+- **mode** _'VERBATIM' | 'SMART'_
+
+  `VERBATIM` (default) returns the literal transcript, including filler words
+  and false starts. `SMART` removes disfluencies, applies inline
+  self-corrections, and formats lists, numbers, and dates.
+
+- **streaming** _object_
+
+  Options for live transcription with `gemini-3.5-transcribe-live`.
+  - **automaticActivityDetection** _object_
+    - **disabled** _boolean_
+
+      Disables server-side voice activity detection, so the whole audio stream
+      is transcribed as a single turn. See [Push-to-talk](#push-to-talk).
+
+### Live Transcription
+
+```ts
+import { google } from '@ai-sdk/google';
+import { experimental_streamTranscribe as streamTranscribe } from 'ai';
+
+const result = streamTranscribe({
+  model: google.transcription('gemini-3.5-transcribe-live'),
+  audio: audioStream, // ReadableStream<Uint8Array | string>
+  inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'transcript-final') {
+    console.log(part.text);
+  }
+}
+
+console.log(await result.text);
+```
+
+Input chunks contain raw 16kHz 16-bit little-endian mono PCM. Strings contain
+base64-encoded audio. The Live API authenticates with the API key in the
+WebSocket URL, so native WebSockets work; keep the API key on the server.
+
+By default, server-side voice activity detection splits the audio into segments
+at pauses, and each segment is emitted as a `transcript-final` part while audio
+is still streaming. Closing the audio input transcribes any remaining speech
+before the result finishes. If the audio ends in silence after the last
+segment, the Live API sends no further messages, and the result finishes after
+a 3-second grace period.
+
+### Push-to-talk
+
+When the start and end of speech are known, for example while a push-to-talk
+button is held, disable automatic activity detection. The whole audio stream is
+then transcribed as a single turn: pauses do not split it, and the transcript is
+finalized as soon as the audio input closes, regardless of trailing silence.
+
+```ts highlight="5-9"
+const result = streamTranscribe({
+  model: google.transcription('gemini-3.5-transcribe-live'),
+  audio: audioStream,
+  inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+  providerOptions: {
+    google: {
+      streaming: { automaticActivityDetection: { disabled: true } },
+    },
+  },
+});
+```
+
+`transcript-partial` parts still arrive while audio streams, but there is a
+single `transcript-final` part for the whole stream.
+
 ## Decision Models
 
 Create an experimental decision model with `google.decisionModel(modelId)`.

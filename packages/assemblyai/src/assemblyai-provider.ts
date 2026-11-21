@@ -1,6 +1,7 @@
 import {
   NoSuchModelError,
   type TranscriptionModelV4,
+  type SpeechModelV4,
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
@@ -10,6 +11,8 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
+import { AssemblyAISpeechModel } from './assemblyai-speech-model';
+import type { AssemblyAISpeechModelId } from './assemblyai-speech-settings';
 import { AssemblyAITranscriptionModel } from './assemblyai-transcription-model';
 import type { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
 import { VERSION } from './version';
@@ -26,6 +29,11 @@ export interface AssemblyAIProvider extends ProviderV4 {
    * Creates a model for transcription.
    */
   transcription(modelId: AssemblyAITranscriptionModelId): TranscriptionModelV4;
+
+  /**
+   * Creates a model for speech generation.
+   */
+  speech(modelId: AssemblyAISpeechModelId): SpeechModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -81,6 +89,14 @@ export function createAssemblyAI(
       fetch: options.fetch,
     });
 
+  const createSpeechModel = (modelId: AssemblyAISpeechModelId) =>
+    new AssemblyAISpeechModel(modelId, {
+      provider: `assemblyai.speech`,
+      url: ({ path }) => `https://tts.us.assemblyai.com${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = function (modelId: AssemblyAITranscriptionModelId) {
     return {
       transcription: createTranscriptionModel(modelId),
@@ -90,6 +106,8 @@ export function createAssemblyAI(
   provider.specificationVersion = 'v4' as const;
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
+  provider.speech = createSpeechModel;
+  provider.speechModel = createSpeechModel;
 
   provider.languageModel = () => {
     throw new NoSuchModelError({

@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "build": "nuxt build",
+    "type-check": "tsc --noEmit",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
