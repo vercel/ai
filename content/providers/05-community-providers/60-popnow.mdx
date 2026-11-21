@@ -1,0 +1,188 @@
+---
+title: PopNow
+description: PopNow provider for AI SDK 7
+---
+
+# PopNow Provider
+
+[PopNow](https://popnow.ai) is an AI studio and API for image, video and audio generation and chat models. The PopNow API serves image, video, audio and chat models from many makers through one API key, billed in US dollars from a separate API balance.
+
+The PopNow provider for the AI SDK supports:
+
+- **Image generation and editing** with `generateImage`: Nano Banana, GPT Image, Seedream, FLUX, Qwen Image and more
+- **Text to speech** with `generateSpeech`
+- **Speech to text** with `transcribe`
+- **Chat models** with `generateText` and `streamText`, through PopNow's OpenAI-compatible endpoint
+
+Learn more in the [PopNow API documentation](https://popnow.ai/docs).
+
+## Setup
+
+The PopNow provider is available in the `@popnow/ai-sdk-provider` module. It supports AI SDK 7 and the Provider V4 specification. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @popnow/ai-sdk-provider ai@^7" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @popnow/ai-sdk-provider ai@^7" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @popnow/ai-sdk-provider ai@^7" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @popnow/ai-sdk-provider ai@^7" dark />
+  </Tab>
+</Tabs>
+
+Create an API key in the [PopNow API console](https://popnow.ai/api/console/keys) and set it as an environment variable:
+
+```bash
+export POPNOW_API_KEY="sk-popnow-..."
+```
+
+## Provider Instance
+
+You can import the default provider instance `popnow`, which reads `POPNOW_API_KEY`:
+
+```ts
+import { popnow } from '@popnow/ai-sdk-provider';
+```
+
+If you need a customized setup, use `createPopNow`:
+
+```ts
+import { createPopNow } from '@popnow/ai-sdk-provider';
+
+const popnow = createPopNow({
+  apiKey: process.env.POPNOW_API_KEY, // optional, defaults to POPNOW_API_KEY
+  baseURL: 'https://api.popnow.ai', // optional
+  headers: {}, // optional
+});
+```
+
+You can use the following optional settings to customize the PopNow provider instance:
+
+- **apiKey** _string_
+
+  API key (`sk-popnow-...`). Defaults to the `POPNOW_API_KEY` environment variable.
+
+- **baseURL** _string_
+
+  API origin. Defaults to `POPNOW_BASE_URL` or `https://api.popnow.ai`.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+
+## Image Models
+
+Create image models with the `.image()` factory method. Model IDs have the form `<maker>/<model>/<task>`:
+
+```ts
+import { popnow } from '@popnow/ai-sdk-provider';
+import { generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: popnow.image('google/nano-banana-2.1/text-to-image'),
+  prompt: 'A cozy reading nook beside a rain-streaked window, warm lamp light',
+  aspectRatio: '16:9',
+  providerOptions: {
+    popnow: { resolution: '2k' },
+  },
+});
+```
+
+Edit models have IDs that end in `/edit` and take the source images from the prompt:
+
+```ts
+const { image } = await generateImage({
+  model: popnow.image('google/nano-banana-2.1/edit'),
+  prompt: {
+    text: 'Change the jacket to deep forest green; keep the face and background',
+    images: ['https://example.com/portrait.jpg'],
+  },
+});
+```
+
+The provider reads each model's input schema and sends `aspectRatio`, `size`, `seed`, `n`, input images and masks only when the model has the matching field. Settings a model does not support are reported as warnings. Pass any other model field in `providerOptions.popnow`, spelled as in the model's schema (for example `resolution`, `output_format` or `quality`).
+
+PopNow generation is asynchronous: the provider creates a task, polls it until it finishes and downloads the result. You can tune polling with `providerOptions.popnow.pollIntervalMs` and `pollTimeoutMs`. Tasks that fail are not charged.
+
+Some example image model IDs:
+
+| Model                                    | Image Editing       |
+| ---------------------------------------- | ------------------- |
+| `google/nano-banana-2.1/text-to-image`   | <Cross size={18} /> |
+| `google/nano-banana-2.1/edit`            | <Check size={18} /> |
+| `openai/gpt-image-2/text-to-image`       | <Cross size={18} /> |
+| `openai/gpt-image-2/edit`                | <Check size={18} /> |
+| `bytedance/seedream-5.0-pro/text-to-image` | <Cross size={18} /> |
+| `black-forest-labs/flux-2-pro/text-to-image` | <Cross size={18} /> |
+
+See the [PopNow model list](https://popnow.ai/docs/models) for every model, its parameters and its price.
+
+## Speech Models
+
+Create text-to-speech models with the `.speech()` factory method:
+
+```ts
+import { popnow } from '@popnow/ai-sdk-provider';
+import { generateSpeech } from 'ai';
+
+const { audio } = await generateSpeech({
+  model: popnow.speech('openai/tts-1/text-to-speech'),
+  text: 'Hello from PopNow.',
+  voice: 'nova',
+});
+```
+
+## Transcription Models
+
+Create speech-to-text models with the `.transcription()` factory method:
+
+```ts
+import { popnow } from '@popnow/ai-sdk-provider';
+import { transcribe } from 'ai';
+import { readFile } from 'node:fs/promises';
+
+const result = await transcribe({
+  model: popnow.transcription('openai/whisper-1/speech-to-text'),
+  audio: await readFile('./meeting.mp3'),
+});
+
+console.log(result.text);
+```
+
+## Language Models
+
+PopNow serves chat models through an OpenAI-compatible API. Call the provider directly or use `.chat()`:
+
+```ts
+import { popnow } from '@popnow/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: popnow('anthropic/claude-haiku-5.5/chat'),
+  prompt: 'Suggest three names for a kite shop by the sea.',
+});
+```
+
+The list of chat models and the parameters each one accepts is on the [PopNow chat models page](https://popnow.ai/docs/chat).
+
+## Pricing
+
+API usage is billed in US dollars from a separate PopNow API balance. Prices are listed per model in the [PopNow model list](https://popnow.ai/docs/models), and you can compare them on the [PopNow AI price index](https://popnow.ai/ai-price-index).
+
+## Additional Resources
+
+- [PopNow](https://popnow.ai)
+- [PopNow API documentation](https://popnow.ai/docs)
+- [PopNow model list](https://popnow.ai/docs/models)
+- [PopNow AI price index](https://popnow.ai/ai-price-index)
+- [Provider repository](https://github.com/popnow-ai/popnow-ai-sdk-provider)
+- [npm package](https://www.npmjs.com/package/@popnow/ai-sdk-provider)
