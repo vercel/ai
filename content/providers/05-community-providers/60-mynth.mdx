@@ -1,0 +1,168 @@
+---
+title: Mynth
+description: Learn how to use the Mynth provider for image and video generation with the AI SDK.
+---
+
+# Mynth Provider
+
+[Mynth](https://mynth.io) is an image and video generation API. One API key covers its whole model catalog, which includes FLUX, Gemini, GPT Image, Seedream, Kling and Grok Imagine.
+
+The Mynth provider for the AI SDK supports:
+
+- **Image generation** with `generateImage`: text to image, and image editing with reference images
+- **Video generation** with `experimental_generateVideo`: text to video, and image to video from a first frame (or a first and last frame)
+
+It is a thin layer over [`@mynthio/sdk`](https://www.npmjs.com/package/@mynthio/sdk), which handles uploads, safe retries and task polling.
+
+## Setup
+
+The Mynth provider is available in the `@mynthio/ai-sdk-provider` module. You can install it with:
+
+<InstallPackages packages="@mynthio/ai-sdk-provider" />
+
+Create an API key in the [Mynth dashboard](https://mynth.io/dashboard/keys) and set it as an environment variable:
+
+```bash
+MYNTH_API_KEY=mak_...
+```
+
+Mynth is prepaid. Until the account has credit, calls fail with `402 insufficient_balance`.
+
+## Provider Instance
+
+You can import the default provider instance `mynth` from `@mynthio/ai-sdk-provider`:
+
+```ts
+import { mynth } from '@mynthio/ai-sdk-provider';
+```
+
+If you need a customized setup, you can use `createMynth` and create a provider instance with your settings:
+
+```ts
+import { createMynth } from '@mynthio/ai-sdk-provider';
+
+const mynth = createMynth({
+  apiKey: process.env.MYNTH_API_KEY,
+});
+```
+
+You can use the following optional settings to customize the Mynth provider instance:
+
+- **apiKey** _string_
+
+  API key (`mak_...`). It defaults to the `MYNTH_API_KEY` environment variable.
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `https://api.mynth.io`.
+
+## Image Models
+
+You can create image models with the `.image()` factory method. The first argument is the model ID:
+
+```ts
+import { mynth } from '@mynthio/ai-sdk-provider';
+import { generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: mynth.image('black-forest-labs/flux.2-pro'),
+  prompt: 'A lighthouse on a cliff at dusk, oil painting',
+  aspectRatio: '16:9',
+});
+```
+
+To edit an image or guide the result with references, pass images in the prompt. Byte inputs are uploaded for you:
+
+```ts
+const { image } = await generateImage({
+  model: mynth.image('google/gemini-nano-banana-2.1'),
+  prompt: {
+    text: 'Make it winter',
+    images: ['https://example.com/house.png'],
+  },
+});
+```
+
+Mynth sizes images by aspect ratio, not by pixels. `aspectRatio` maps to the closest supported ratio, and `size` is reduced to its ratio with a warning. `n` maps to Mynth's `count`, up to 20 images per task.
+
+## Video Models
+
+You can create video models with the `.video()` factory method:
+
+```ts
+import { mynth } from '@mynthio/ai-sdk-provider';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: mynth.video('xai/grok-imagine-video-1.5-lite'),
+  prompt: 'A cat surfing a wave at sunset',
+  duration: 6,
+  aspectRatio: '16:9',
+  resolution: '1280x720',
+});
+```
+
+For image to video, pass the first frame as the prompt image, or use `frameImages` for a first and last frame:
+
+```ts
+const { video } = await generateVideo({
+  model: mynth.video('google/gemini-omni-flash-1.1'),
+  prompt: {
+    image: 'https://example.com/cat.png',
+    text: 'The cat starts surfing',
+  },
+});
+```
+
+Video renders can take minutes. `experimental_generateVideo` waits for the task to finish. Pass `abortSignal` to stop waiting; the task itself keeps running on Mynth.
+
+`resolution` maps to Mynth's resolution tier (480p, 720p, 1080p or 4k) from the short side, and `generateAudio` maps to `audio`.
+
+## Provider Options
+
+Other Mynth request fields go in `providerOptions.mynth` and are sent as they are. A `size` set there takes precedence over `aspectRatio`, `size` and `resolution`:
+
+```ts
+import { mynth, type MynthImageProviderOptions } from '@mynthio/ai-sdk-provider';
+import { generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: mynth.image('black-forest-labs/flux.2-pro'),
+  prompt: 'A lighthouse at dusk',
+  providerOptions: {
+    mynth: {
+      size: '16:9_4k',
+      magic_prompt: true,
+      negative_prompt: 'text, watermark',
+    } satisfies MynthImageProviderOptions,
+  },
+});
+```
+
+`MynthVideoProviderOptions` types the same object for video models.
+
+Not supported (the call goes ahead with a warning): `seed`; `mask` for images; `fps` for video; custom `headers`.
+
+## Provider Metadata
+
+`providerMetadata.mynth` carries the Mynth task. For images, each entry in `images` has its `id`, `taskId`, `taskCost`, `model`, URLs and size. For video it has `taskId`, `cost`, `model` and `videos`. Costs are in USD. Generated files stay on the Mynth CDN for 7 days.
+
+## Errors
+
+Mynth API errors are thrown as `APICallError` with `statusCode` and `data.code`, for example `insufficient_balance` or `validation_error` (with `data.issues`). Only 429 responses are retryable. A create that failed with a 5xx has already been retried by `@mynthio/sdk` with the same idempotency key, so a further retry would start a second task that is charged separately.
+
+## Models
+
+<Note>
+  See [mynth.io/models](https://mynth.io/models) for the current list of image
+  and video model IDs, their modes and prices. Pass `'auto'` as an image model
+  ID to let Mynth pick a model.
+</Note>
+
+## Additional Resources
+
+- [Mynth Provider Repository](https://github.com/mynthio/oss/tree/main/packages/ai-sdk-provider)
+- [NPM Package](https://www.npmjs.com/package/@mynthio/ai-sdk-provider)
+- [Mynth Documentation](https://mynth.io/docs)
+- [Mynth Models](https://mynth.io/models)
