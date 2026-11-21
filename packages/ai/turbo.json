@@ -1,12 +1,11 @@
 {
-  "extends": [
-    "//"
-  ],
+  "extends": ["//"],
   "tasks": {
     "build": {
-      "outputs": [
-        "**/dist/**"
-      ]
+      "outputs": ["**/dist/**"]
+    },
+    "test": {
+      "tags": ["$TURBO_EXTENDS$", "ci:cpus:8"]
     }
   }
 }

@@ -27,10 +27,17 @@ Extracts a nonempty map of typed fields from one state. See
 | `experimental_download` | `Experimental_DownloadFunction`                                                                | Required for remote file URLs in state. Use `createDownload({ fetch })` with a DNS-protected transport for untrusted URLs.                     |
 | `headers`               | `Record<string, string>`                                                                       | Additional HTTP headers.                                                                                                                       |
 | `providerOptions`       | `ProviderOptions`                                                                              | Provider-specific options.                                                                                                                     |
+| `telemetry`             | `TelemetryOptions`                                                                             | Telemetry configuration, including per-call integrations, input/output recording, and a function ID.                                           |
+| `runtimeContext`        | `Record<string, unknown>`                                                                      | Context available to lifecycle callbacks and selectively included in telemetry with `telemetry.includeRuntimeContext`.                         |
+| `onStart`               | `(event: Experimental_ExtractStartEvent) => void`                                              | Called when the extraction operation begins.                                                                                                   |
+| `onEnd`                 | `(event: Experimental_ExtractEndEvent) => void`                                                | Called when the extraction operation completes successfully.                                                                                   |
 
 Remote file URLs are rejected with `DownloadError` unless `experimental_download`
 is supplied. The model's `fetch` option does not apply to these downloads. See
 [Secure URL Fetching](/docs/advanced/secure-url-fetching#core-file-downloads).
+
+See [Lifecycle Callbacks](/docs/ai-sdk-core/lifecycle-callbacks#experimental_extract)
+for the complete `onStart` and `onEnd` event fields.
 
 ## Fields
 

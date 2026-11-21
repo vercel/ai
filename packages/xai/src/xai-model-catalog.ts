@@ -365,6 +365,10 @@ const xaiRealtimeModelEntries = {
   },
 } satisfies Record<string, XaiModelEntry>;
 
+const videoModelIds = ['grok-imagine-video', 'grok-imagine-video-1.5'] as const;
+
+export const xaiDefaultAudioModelId = '';
+
 export const xaiModelCatalog: Readonly<Record<string, XaiModelEntry>> = {
   ...Object.fromEntries(
     Object.entries(languageDefinitions)
@@ -378,7 +382,7 @@ export const xaiModelCatalog: Readonly<Record<string, XaiModelEntry>> = {
 
   // The factories use the empty model ID for both default speech and default
   // transcription. Keep one record containing both independent operations.
-  '': {
+  [xaiDefaultAudioModelId]: {
     capabilities: {
       ...defaultSpeechModelEntry.capabilities,
       ...defaultTranscriptionModelEntry.capabilities,
@@ -456,6 +460,8 @@ function declareProviderOptions<Option extends string>(
 
 /** Known model IDs, derived from the declarations used to build the catalog. */
 export type XaiModelIds = {
+  video: (typeof videoModelIds)[number];
+  speech: typeof xaiDefaultAudioModelId;
   language: keyof typeof languageDefinitions;
   image: keyof typeof xaiImageModelEntries;
   transcription: keyof typeof xaiTranscriptionModelEntries;
