@@ -1153,6 +1153,41 @@ describe('doGenerate', () => {
       });
     });
 
+    it('should preserve extra JSON usage metadata with nullish known fields', async () => {
+      const metadata = {
+        promptTokenCount: null,
+        cachedContentTokenCount: null,
+        trafficType: null,
+        promptTokensDetails: [
+          {
+            modality: 'TEXT',
+            tokenCount: 12,
+            extraDetail: { values: [null, true, 4, 'future'] },
+          },
+        ],
+        extraUsage: { values: [null, false, 5, 'future'] },
+      };
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: { parts: [{ text: 'Blue.' }], role: 'model' },
+              finishReason: 'STOP',
+            },
+          ],
+          usageMetadata: metadata,
+        },
+      };
+
+      const { usage, providerMetadata } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(usage.raw).toEqual(metadata);
+      expect(providerMetadata?.google?.usageMetadata).toEqual(metadata);
+    });
+
     it('should send additional response information', async () => {
       const { response } = await model.doGenerate({
         prompt: TEST_PROMPT,
