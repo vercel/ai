@@ -1036,9 +1036,9 @@ console.log(text);`,
     slug: 'cloro',
     name: 'cloro',
     description:
-      'cloro gives agents live Google search results: the AI Overview and the top organic results with title, link and snippet, for a country you choose. A second tool returns the answer of ChatGPT, Gemini, Google AI Mode or Bing AI Mode with the sources it cites.',
+      'cloro gives agents live Google or Bing search results: the AI Overview and the top organic results with title, link and snippet, for a country you choose. A second tool returns the answer of ChatGPT, Gemini, Google AI Mode or Bing AI Mode with the sources it cites.',
     packageName: '@cloro-dev/ai-sdk',
-    tags: ['search', 'web-search', 'google', 'ai-overview'],
+    tags: ['search', 'web-search', 'google', 'bing', 'ai-overview'],
     apiKeyEnvName: 'CLORO_API_KEY',
     installCommand: {
       pnpm: 'pnpm add @cloro-dev/ai-sdk',
