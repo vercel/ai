@@ -1,0 +1,39 @@
+---
+title: Magic Hour
+description: Generate and edit images and generate videos with the Magic Hour provider for the AI SDK.
+---
+
+# Magic Hour
+
+The [Magic Hour provider](https://github.com/magichourhq/ai-sdk-provider) supports text-to-image, image editing, text-to-video, and image-to-video.
+
+## Setup
+
+<InstallPackages packages="@magichourhq/ai-sdk-provider ai" />
+
+The provider requires AI SDK 7 and Node.js 22 or newer. Create an API key using the [Magic Hour API quickstart](https://docs.magichour.ai/quickstart) and set `MAGIC_HOUR_API_KEY` on the server.
+
+## Generate an image and animate it
+
+```ts
+import { generateImage, experimental_generateVideo as generateVideo } from 'ai';
+import { magichour } from '@magichourhq/ai-sdk-provider';
+
+const { image } = await generateImage({
+  model: magichour.image('flux-2-klein'),
+  prompt: 'A blue ceramic mug on a plain studio background',
+  aspectRatio: '1:1',
+});
+
+const { video } = await generateVideo({
+  model: magichour.video('ltx-2.5'),
+  prompt: {
+    image: image.uint8Array,
+    text: 'A slow camera push toward the mug',
+  },
+});
+```
+
+To edit an existing image, pass its bytes with the instruction as `prompt: { text, images }` to `generateImage`. For text-to-video, pass a string as the video prompt.
+
+Generations consume Magic Hour credits. The provider does not retry paid submissions. If waiting fails after Magic Hour accepts a job, use the returned project ID to fetch its result. See the [integration guide](https://docs.magichour.ai/integration/vercel-ai-sdk) for setup, recovery, and supported options.
