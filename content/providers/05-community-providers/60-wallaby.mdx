@@ -1,0 +1,62 @@
+---
+title: Wallaby
+description: Learn how to use the Wallaby provider with the AI SDK.
+---
+
+# Wallaby Provider
+
+The [Wallaby AI SDK provider](https://www.npmjs.com/package/wallaby-ai-provider) lets you use Moonshot AI's Kimi models through Wallaby's OpenAI-compatible endpoint, with one prepaid USD balance and per-token itemized billing.
+
+## Supported Models
+
+- `kimi-k3.1-pro` — lead reasoning model: 1M token context, tool calling, text and image input, reasoning effort control (`low`, `high`, `max`)
+- `kimi-k3.1-pro-highspeed` — high-speed variant of the lead model
+- `kimi-k3` — open-weight reasoning model
+
+## Setup
+
+You can install the Wallaby provider with:
+
+<InstallPackages packages="wallaby-ai-provider" />
+
+## Provider Instance
+
+Import the default `wallaby` instance, or create a custom one with `createWallaby`:
+
+```ts
+import { wallaby, createWallaby } from 'wallaby-ai-provider';
+
+// Default instance: reads WALLABY_API_KEY and uses Wallaby's endpoint
+// Custom instance:
+const custom = createWallaby({
+  apiKey: '<your-wallaby-key>',
+  baseURL: 'https://api.wallabytoken.com/v1',
+});
+```
+
+## Basic Usage
+
+Get your API key from [wallabytoken.com](https://wallabytoken.com) ($0.50 trial credit, no card required).
+
+```bash
+# .env
+WALLABY_API_KEY=your-wallaby-api-key
+```
+
+```typescript
+import { wallaby } from 'wallaby-ai-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: wallaby('kimi-k3.1-pro'),
+  prompt: 'Explain what an OpenAI-compatible endpoint is in one sentence.',
+});
+
+console.log(text);
+```
+
+## Notes
+
+- Pricing for Kimi K3.1 Pro: $1.80 per 1M input tokens ($0.18 cached), $9.00 per 1M output tokens. Machine-readable rate card: [pricing.json](https://wallabytoken.com/pricing.json).
+- Reasoning tokens are billed as output, matching the official Kimi API.
+- Public status page: [status.wallabytoken.com](https://status.wallabytoken.com).
