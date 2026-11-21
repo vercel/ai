@@ -16,6 +16,8 @@ node_modules
 public/dist
 server/dist
 test-results
+test-results.json
+playwright-report
 tsconfig.vitest-temp.json
 *.log
 *.local

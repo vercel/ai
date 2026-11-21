@@ -72,6 +72,7 @@ import { validateUIMessages } from '../ui/validate-ui-messages';
 import type { StepResult } from './step-result';
 import { isLoopFinished, isStepCount } from './stop-condition';
 import { streamText } from './stream-text';
+import { signToolApproval } from './tool-approval-signature';
 import type {
   StreamTextResult,
   TextStreamPart,
@@ -31337,6 +31338,201 @@ describe('streamText', () => {
               },
             ]
           `);
+      });
+    });
+
+    describe('when experimental_toolApprovalSecret is configured', () => {
+      const testSecret = 'test-hmac-secret-do-not-use-in-production';
+
+      type Status = 'user-approval' | 'approved' | 'denied' | 'not-applicable';
+
+      const callTool = ({
+        getStatus,
+        executeFunction,
+        messages = [{ role: 'user', content: 'test' }],
+        onError = () => {},
+      }: {
+        getStatus: () => Status;
+        executeFunction: ToolExecuteFunction<any, any, any>;
+        messages?: ModelMessage[];
+        onError?: (event: { error: unknown }) => void;
+      }) => {
+        let step = 0;
+
+        return streamText({
+          model: new MockLanguageModelV4({
+            doStream: async () => {
+              if (step++ === 0) {
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'stream-start', warnings: [] },
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: `{ "value": "test" }`,
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'tool-calls', raw: undefined },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              }
+
+              return {
+                stream: convertArrayToReadableStream([
+                  { type: 'stream-start', warnings: [] },
+                  { type: 'text-start', id: '1' },
+                  { type: 'text-delta', id: '1', delta: 'done' },
+                  { type: 'text-end', id: '1' },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: testUsage,
+                  },
+                ]),
+              };
+            },
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: executeFunction,
+            }),
+          },
+          toolApproval: { tool1: () => getStatus() },
+          experimental_toolApprovalSecret: testSecret,
+          stopWhen: isStepCount(3),
+          messages,
+          onError,
+        });
+      };
+
+      const getApprovalRequest = (messages: ModelMessage[]) =>
+        messages
+          .flatMap(message =>
+            message.role === 'assistant' && typeof message.content !== 'string'
+              ? message.content
+              : [],
+          )
+          .find(part => part.type === 'tool-approval-request');
+
+      it.each(['user-approval', 'approved'] as const)(
+        'should sign the approval request when the tool approval status is %s',
+        async status => {
+          const result = callTool({
+            getStatus: () => status,
+            executeFunction: vi.fn().mockReturnValue('result1'),
+          });
+
+          const approvalRequest = getApprovalRequest(
+            await result.responseMessages,
+          );
+
+          expect(approvalRequest?.signature).toBe(
+            await signToolApproval({
+              secret: testSecret,
+              approvalId: approvalRequest!.approvalId,
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              input: { value: 'test' },
+            }),
+          );
+        },
+      );
+
+      it('should not sign the approval request when the tool call is denied automatically', async () => {
+        const result = callTool({
+          getStatus: () => 'denied',
+          executeFunction: vi.fn().mockReturnValue('result1'),
+        });
+
+        const approvalRequest = getApprovalRequest(
+          await result.responseMessages,
+        );
+
+        expect(approvalRequest).toMatchObject({
+          toolCallId: 'call-1',
+          isAutomatic: true,
+        });
+        expect(approvalRequest).not.toHaveProperty('signature');
+      });
+
+      it('should reject an approved response to a tool call that was denied automatically', async () => {
+        const executeFunction = vi.fn().mockReturnValue('result1');
+        let status: Status = 'denied';
+
+        const responseMessages = await callTool({
+          getStatus: () => status,
+          executeFunction,
+        }).responseMessages;
+
+        // The client omits the history that caused the denial, so the policy
+        // no longer denies the tool call when the approval is checked again.
+        status = 'not-applicable';
+
+        const errors: unknown[] = [];
+
+        await callTool({
+          getStatus: () => status,
+          executeFunction,
+          messages: [
+            { role: 'user', content: 'test' },
+            responseMessages[0],
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-approval-response',
+                  approvalId: getApprovalRequest(responseMessages)!.approvalId,
+                  approved: true,
+                },
+              ],
+            },
+          ],
+          onError: ({ error }) => {
+            errors.push(error);
+          },
+        }).consumeStream();
+
+        expect(errors).toMatchObject([
+          {
+            name: 'AI_InvalidToolApprovalSignatureError',
+            message: expect.stringMatching(/missing signature/),
+          },
+        ]);
+        expect(executeFunction).not.toHaveBeenCalled();
+      });
+
+      it('should continue a conversation that ends with an automatic denial', async () => {
+        const executeFunction = vi.fn().mockReturnValue('result1');
+
+        const [assistantMessage, toolMessage] = await callTool({
+          getStatus: () => 'denied',
+          executeFunction,
+        }).responseMessages;
+
+        const errors: unknown[] = [];
+
+        const continued = callTool({
+          getStatus: () => 'denied',
+          executeFunction,
+          messages: [
+            { role: 'user', content: 'test' },
+            assistantMessage,
+            toolMessage,
+          ],
+          onError: ({ error }) => {
+            errors.push(error);
+          },
+        });
+
+        expect(await continued.text).toBe('done');
+        expect(errors).toStrictEqual([]);
+        expect(executeFunction).not.toHaveBeenCalled();
       });
     });
 

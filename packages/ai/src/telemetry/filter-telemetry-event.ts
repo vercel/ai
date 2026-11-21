@@ -56,6 +56,8 @@ export function filterTelemetryEvent<EVENT>(
           ? ''
           : {},
       questions: {},
+      fields: {},
+      referenceDate: undefined,
       ...(isSpeech ? { text: '' } : {}),
     });
     if (filtered.toolCall != null) {

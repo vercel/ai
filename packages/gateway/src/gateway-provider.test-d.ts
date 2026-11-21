@@ -1,5 +1,6 @@
 import type {
   Experimental_BatchV4 as BatchV4,
+  Experimental_RealtimeModelV4 as RealtimeModelV4,
   LanguageModelV4,
 } from '@ai-sdk/provider';
 import { expectTypeOf, it } from 'vitest';
@@ -121,4 +122,23 @@ it('types structured-output in has', () => {
   expectTypeOf<'structured-outputs'>().not.toMatchTypeOf<
     NonNullable<GatewayProviderOptions['has']>[number]
   >();
+});
+
+it('types Live and realtime models from experimental_realtime', () => {
+  const live = gateway.experimental_realtime('openai/gpt-live-1.1');
+  expectTypeOf(live.capabilities.conversation).toEqualTypeOf<'continuous'>();
+  expectTypeOf(
+    gateway.experimental_realtime('openai/next-live', { api: 'live' })
+      .capabilities.startup,
+  ).toEqualTypeOf<'session-start'>();
+  expectTypeOf(
+    gateway.experimental_realtime('openai/gpt-live-1.1', { api: 'realtime' })
+      .capabilities.conversation,
+  ).toEqualTypeOf<'turn-based'>();
+  expectTypeOf(
+    gateway.experimental_realtime('openai/gpt-realtime-2'),
+  ).toMatchTypeOf<RealtimeModelV4>();
+  expectTypeOf(gateway.experimental_realtime.getToken)
+    .parameter(0)
+    .toMatchTypeOf<{ model: string; api?: 'live' | 'realtime' }>();
 });

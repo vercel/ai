@@ -17,10 +17,9 @@
     "README.md"
   ],
   "scripts": {
-    "build": "pnpm clean && tsdown",
-    "clean": "del-cli *.tsbuildinfo",
+    "build": "tsdown",
     "dev": "tsdown --watch",
-    "type-check": "tsc --build",
+    "type-check": "tsc --noEmit",
     "test": "vitest --config vitest.config.ts --run",
     "test:watch": "vitest",
     "test:update": "UPDATE_SNAPSHOT=true vitest -u --run",

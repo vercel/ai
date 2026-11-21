@@ -1,0 +1,10 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "test:site": {
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/content/**"],
+      "tags": ["ci"]
+    }
+  }
+}
