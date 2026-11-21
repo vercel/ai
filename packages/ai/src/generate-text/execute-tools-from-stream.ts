@@ -236,7 +236,7 @@ export function executeToolsFromStream<
             }
 
             await mapWithConcurrency({
-              items: toolCallsToExecute,
+              items: toolCallsToExecute.splice(0),
               concurrency: toolCallConcurrency,
               abortSignal,
               execute: async toolCall => {
