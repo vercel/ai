@@ -1,0 +1,157 @@
+---
+title: Decart
+description: Decart Provider for the AI SDK
+---
+
+# Decart
+
+[Decart](https://decart.ai) is a real-time generative AI platform specializing in ultra-fast image and video generation. The Decart provider for the AI SDK enables seamless integration with Decart's high-quality image generation capabilities while offering unique advantages:
+
+- **High-Quality Generation**: Lucy Pro models optimized for professional-grade image quality
+- **Fast Processing**: Optimized infrastructure built for speed and low latency
+- **Simple Integration**: Clean, developer-friendly API designed for the AI SDK
+
+## Setup
+
+The Decart provider is available in the `@decartai/ai-sdk-provider` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @decartai/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @decartai/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @decartai/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @decartai/ai-sdk-provider" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `decart` from `@decartai/ai-sdk-provider`:
+
+```typescript
+import { decart } from '@decartai/ai-sdk-provider';
+```
+
+If you need a customized setup, you can import `createDecart` and create a provider instance with your settings:
+
+```typescript
+import { createDecart } from '@decartai/ai-sdk-provider';
+const decart = createDecart({
+  apiKey: process.env.DECART_API_KEY, // optional, defaults to DECART_API_KEY environment variable
+  baseURL: 'https://api.decart.ai', // optional
+  headers: {
+    /* custom headers */
+  }, // optional
+});
+```
+
+You can obtain your Decart API key from the [Decart Platform](https://platform.decart.ai/api-keys). New accounts receive free credits to get started.
+
+## Configuration Options
+
+The following optional settings are available to customize the Decart provider instance:
+
+- **apiKey** `string`
+
+  API key that is sent using the `X-API-KEY` header. It defaults to the `DECART_API_KEY` environment variable.
+
+- **baseURL** `string`
+
+  Use a different URL prefix for API calls, e.g., to use proxy servers. The default prefix is `https://api.decart.ai`.
+
+- **headers** `Record<string, string>`
+
+  Custom headers to include in the requests.
+
+- **fetch** `(input: RequestInfo, init?: RequestInit) => Promise<Response>`
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation. You can use it as middleware to intercept requests or to provide a custom fetch implementation for testing.
+
+## Image Models
+
+Decart specializes in image and video generation. The AI SDK provider currently supports image generation through the `.image()` method, which works with the AI SDK's `experimental_generateImage` function.
+
+```typescript
+const imageModel = decart.image('lucy-pro-t2i');
+```
+
+### Available Models
+
+| Model          | Description                           |
+| -------------- | ------------------------------------- |
+| `lucy-pro-t2i` | High-quality text-to-image generation |
+
+Lucy Pro supports resolutions up to 720p (1280×720) and both landscape and portrait orientations.
+
+## Examples
+
+Here are examples of using Decart with the AI SDK:
+
+### Basic Image Generation
+
+```typescript
+import { decart } from '@decartai/ai-sdk-provider';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: decart.image('lucy-pro-t2i'),
+  prompt: 'Three dogs playing in the snow',
+});
+```
+
+### Detailed Image Generation
+
+```typescript
+import { decart } from '@decartai/ai-sdk-provider';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: decart.image('lucy-pro-t2i'),
+  prompt:
+    'A serene mountain landscape at sunset, golden hour lighting casting warm hues across snow-capped peaks, ' +
+    'dramatic clouds in the sky, crystal clear alpine lake reflecting the mountains, ' +
+    'cinematic composition with depth and atmosphere, professional photography style',
+  aspectRatio: '16:9', // Landscape orientation
+});
+```
+
+### Reproducible Generation with Seed
+
+```typescript
+import { decart } from '@decartai/ai-sdk-provider';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: decart.image('lucy-pro-t2i'),
+  prompt: 'Portrait of a wise old wizard',
+  aspectRatio: '9:16', // Portrait orientation
+  seed: 42, // Same seed = same image
+});
+```
+
+## Prompt Engineering Tips
+
+For best results with Lucy Pro models:
+
+1. **Be Descriptive**: Use 80-100 word prompts with visual design language
+2. **Include Style Details**: Specify artistic style, lighting, atmosphere, and composition
+3. **Use Visual Language**: Describe colors, textures, camera angles, and mood
+4. **Be Specific or Broad**: Detailed prompts give precise control; broad prompts let Lucy be creative
+
+Example of a well-crafted prompt:
+
+```
+"A majestic eagle soaring through mountain valleys at golden hour, dramatic clouds in the background, professional wildlife photography, shallow depth of field, warm color grading, cinematic composition with the eagle in sharp focus against soft bokeh mountains"
+```
+
+## Additional Resources
+
+- [Decart Provider Repository](https://github.com/DecartAI/ai-sdk-provider)
+- [Decart Platform](https://platform.decart.ai)
+- [Decart Documentation](https://docs.platform.decart.ai)
