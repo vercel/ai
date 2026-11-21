@@ -7,261 +7,195 @@ import {
   createUIMessageStreamResponse,
   toUIMessageStream,
 } from 'ai';
+import { createMCPClient, auth } from '@ai-sdk/mcp';
+import { createGuardedFetch } from 'guarded-fetch';
+import { isLocalDevelopmentRequest } from '../../code-execution-files/is-local-development-request';
 import {
-  createMCPClient,
-  auth,
-  type OAuthClientInformation,
-  type OAuthClientMetadata,
-  type OAuthTokens,
-} from '@ai-sdk/mcp';
-import { createServer } from 'node:http';
+  createOAuthSession,
+  getOAuthSession,
+  sessionCookieName,
+  sessionMaxAge,
+} from './oauth-session';
 
-type AuthGlobalState = {
-  pendingAuthorizationUrl: string | null;
+const responseHeaders = {
+  'Cache-Control': 'no-store',
+  'Referrer-Policy': 'no-referrer',
 };
 
-const AUTH_GLOBAL_KEY = '__mcpAuth';
+// On server runtimes, OAuth discovery requires a fetch with connect-time DNS
+// validation when the authorization server is on a different origin than the
+// MCP server. One instance is reused across requests for the process lifetime.
+const guardedFetch = createGuardedFetch();
 
-function getAuthState(): AuthGlobalState {
-  const g = globalThis as any;
-  if (!g[AUTH_GLOBAL_KEY]) {
-    g[AUTH_GLOBAL_KEY] = {
-      pendingAuthorizationUrl: null,
-    } as AuthGlobalState;
-  }
-  return g[AUTH_GLOBAL_KEY] as AuthGlobalState;
+function response(message: string, status: number) {
+  return new Response(message, { status, headers: responseHeaders });
 }
 
-function setPendingAuthorizationUrl(url: string | null): void {
-  getAuthState().pendingAuthorizationUrl = url;
-}
-
-// In-memory storage for OAuth state per server origin
-const oauthStateStore = new Map<
-  string,
-  {
-    tokens?: OAuthTokens;
-    codeVerifier?: string;
-    clientInformation?: OAuthClientInformation;
-  }
->();
-
-class InMemoryOAuthClientProvider {
-  private serverOrigin: string;
-  private _redirectUrl: string;
-
-  constructor(serverUrl: string | URL, callbackPort: number) {
-    this.serverOrigin = new URL(serverUrl).origin;
-    this._redirectUrl = `http://localhost:${callbackPort}/callback`;
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const isCallback = url.searchParams.size > 0;
+  // OAuth redirects are cross-site navigations. Keep the loopback/host/proxy
+  // checks, then require the initiating browser's cookie AND one-time state.
+  const headers = new Headers(req.headers);
+  if (isCallback) headers.delete('sec-fetch-site');
+  if (!isLocalDevelopmentRequest(new Request(req.url, { headers }))) {
+    return response('MCP OAuth is only available in local development.', 403);
   }
 
-  private getState() {
-    if (!oauthStateStore.has(this.serverOrigin)) {
-      oauthStateStore.set(this.serverOrigin, {});
-    }
-    return oauthStateStore.get(this.serverOrigin)!;
+  const session = getOAuthSession(req);
+  if (!isCallback) {
+    if (session) return response('Session ready.', 200);
+    const id = createOAuthSession(req);
+    if (!id) return response('Too many sessions. Try again later.', 429);
+    return new Response('Session ready.', {
+      headers: {
+        ...responseHeaders,
+        'Set-Cookie': `${sessionCookieName}=${id}; HttpOnly; SameSite=Lax; Path=/api/chat/mcp-with-auth; Max-Age=${sessionMaxAge}${url.protocol === 'https:' ? '; Secure' : ''}`,
+      },
+    });
   }
 
-  async tokens(): Promise<OAuthTokens | undefined> {
-    return this.getState().tokens;
+  if (!session) return response('Session required.', 401);
+  if (session.busy)
+    return response('Authorization is already in progress.', 409);
+  const provider = session.provider;
+  const state = url.searchParams.get('state');
+  if (
+    url.searchParams.get('callback') !== '1' ||
+    !state ||
+    state !== provider.storedState() ||
+    !provider.pendingAuthorization ||
+    provider.pendingAuthorization.expiresAt <= Date.now()
+  ) {
+    return response('Invalid or expired authorization callback.', 400);
   }
 
-  async saveTokens(tokens: OAuthTokens): Promise<void> {
-    this.getState().tokens = tokens;
-  }
-
-  async redirectToAuthorization(authorizationUrl: URL): Promise<void> {
-    setPendingAuthorizationUrl(authorizationUrl.toString());
-  }
-
-  async saveCodeVerifier(codeVerifier: string): Promise<void> {
-    this.getState().codeVerifier = codeVerifier;
-  }
-
-  async codeVerifier(): Promise<string> {
-    const verifier = this.getState().codeVerifier;
-    if (!verifier) throw new Error('No code verifier saved');
-    return verifier;
-  }
-
-  get redirectUrl(): string | URL {
-    return this._redirectUrl;
-  }
-
-  get clientMetadata(): OAuthClientMetadata {
-    return {
-      client_name: 'AI SDK MCP OAuth Example (Next.js)',
-      redirect_uris: [String(this._redirectUrl)],
-      grant_types: ['authorization_code', 'refresh_token'],
-      response_types: ['code'],
-      token_endpoint_auth_method: 'client_secret_post',
-    } as any;
-  }
-
-  async clientInformation(): Promise<OAuthClientInformation | undefined> {
-    return this.getState().clientInformation;
-  }
-
-  async saveClientInformation(info: OAuthClientInformation): Promise<void> {
-    this.getState().clientInformation = info;
-  }
-
-  addClientAuthentication = async (
-    headers: Headers,
-    params: URLSearchParams,
-    _url: string | URL,
-  ): Promise<void> => {
-    const info = this.getState().clientInformation;
-    if (!info) {
-      return;
-    }
-
-    const method = (info as any).token_endpoint_auth_method as
-      | 'client_secret_post'
-      | 'client_secret_basic'
-      | 'none'
-      | undefined;
-
-    const hasSecret = Boolean((info as any).client_secret);
-    const clientId = info.client_id;
-    const clientSecret = (info as any).client_secret as string | undefined;
-
-    const chosen = method ?? (hasSecret ? 'client_secret_post' : 'none');
-
-    if (chosen === 'client_secret_basic') {
-      if (!clientSecret) {
-        params.set('client_id', clientId);
-        return;
-      }
-      const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString(
-        'base64',
+  // Consume the pending callback before awaiting the token exchange. Retain
+  // state/PKCE until auth() has independently verified them.
+  session.busy = true;
+  provider.pendingAuthorization = undefined;
+  try {
+    const code = url.searchParams.get('code');
+    if (!code || url.searchParams.has('error')) {
+      return response(
+        'Authorization was not completed. Retry your message.',
+        400,
       );
-      headers.set('Authorization', `Basic ${credentials}`);
-      return;
     }
-
-    if (chosen === 'client_secret_post') {
-      params.set('client_id', clientId);
-      if (clientSecret) params.set('client_secret', clientSecret);
-      return;
-    }
-
-    params.set('client_id', clientId);
-  };
-
-  async invalidateCredentials(scope: 'all' | 'client' | 'tokens' | 'verifier') {
-    const state = this.getState();
-    if (scope === 'all' || scope === 'tokens') state.tokens = undefined;
-    if (scope === 'all' || scope === 'client')
-      state.clientInformation = undefined;
-    if (scope === 'all' || scope === 'verifier') state.codeVerifier = undefined;
+    const result = await auth(provider, {
+      serverUrl: provider.serverUrl,
+      authorizationCode: code,
+      callbackState: state,
+      callbackIssuer: url.searchParams.get('iss') ?? undefined,
+      fetchFn: guardedFetch,
+    });
+    if (result !== 'AUTHORIZED') return response('Authorization failed.', 400);
+    return response(
+      'Connected. Close this tab and retry your message in the chat.',
+      200,
+    );
+  } catch {
+    return response('Authorization failed. Retry your message.', 400);
+  } finally {
+    provider.clearAuthorization();
+    session.busy = false;
   }
-}
-
-function waitForAuthorizationCode(port: number): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const server = createServer((req, res) => {
-      if (!req.url) {
-        res.writeHead(400).end('Bad request');
-        return;
-      }
-      const url = new URL(req.url, `http://localhost:${port}`);
-      if (url.pathname !== '/callback') {
-        res.writeHead(404).end('Not found');
-        return;
-      }
-      const code = url.searchParams.get('code');
-      const err = url.searchParams.get('error');
-      if (code) {
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(
-          '<html><body><h1>Authorization Successful</h1><p>You can close this window.</p><script>window.close();</script></body></html>',
-        );
-        setTimeout(() => server.close(), 100);
-        resolve(code);
-      } else {
-        res
-          .writeHead(400)
-          .end(`Authorization failed: ${err ?? 'missing code'}`);
-        setTimeout(() => server.close(), 100);
-        reject(new Error(`Authorization failed: ${err ?? 'missing code'}`));
-      }
-    });
-    server.listen(port, () => {
-      console.log(`OAuth callback server: http://localhost:${port}/callback`);
-    });
-  });
 }
 
 export async function POST(req: Request) {
-  const body = await req.json();
-  const messages = body.messages;
-  const serverUrl: string = 'https://mcp.vercel.com/';
-  const callbackPort = 8090;
+  if (!isLocalDevelopmentRequest(req)) {
+    return response('MCP OAuth is only available in local development.', 403);
+  }
+  const session = getOAuthSession(req);
+  if (!session) return response('Session required.', 401);
+  if (session.busy) return response('A request is already in progress.', 409);
+  session.busy = true;
 
   try {
+    const { messages } = await req.json();
     const stream = createUIMessageStream({
       originalMessages: messages,
       execute: async ({ writer }) => {
-        const authProvider = new InMemoryOAuthClientProvider(
-          serverUrl,
-          callbackPort,
-        );
-
-        // Attempt auth; if redirect is needed, instruct client to open URL, then wait and complete.
-        const result = await auth(authProvider, {
-          serverUrl: new URL(serverUrl),
-        });
-
-        if (result !== 'AUTHORIZED') {
-          const url = getAuthState().pendingAuthorizationUrl;
-          if (url) {
+        const provider = session.provider;
+        try {
+          if (
+            provider.pendingAuthorization &&
+            provider.pendingAuthorization.expiresAt <= Date.now()
+          ) {
+            provider.clearAuthorization();
+          }
+          // Try saved access tokens first. The transport handles refresh or
+          // fresh authorization if the MCP server rejects the token.
+          if (
+            !provider.tokens()?.access_token &&
+            !provider.pendingAuthorization
+          ) {
+            provider.clearAuthorization();
+            const result = await auth(provider, {
+              serverUrl: provider.serverUrl,
+              fetchFn: guardedFetch,
+            });
+            if (result !== 'AUTHORIZED' && !provider.pendingAuthorization) {
+              throw new Error('Authorization required');
+            }
+          }
+          if (provider.pendingAuthorization) {
             writer.write({
               type: 'data-oauth',
-              data: { url },
+              data: { url: provider.pendingAuthorization.url },
               transient: true,
             });
+            return;
           }
+          if (!provider.tokens()?.access_token)
+            throw new Error('Authorization required');
 
-          const authorizationCode =
-            await waitForAuthorizationCode(callbackPort);
-          await auth(authProvider, {
-            serverUrl: new URL(serverUrl),
-            authorizationCode,
+          const mcpClient = await createMCPClient({
+            transport: {
+              type: 'http',
+              url: provider.serverUrl.toString(),
+              authProvider: provider,
+              fetch: guardedFetch,
+            },
           });
-        }
-
-        const mcpClient = await createMCPClient({
-          transport: { type: 'http', url: serverUrl, authProvider },
-        });
-
-        try {
-          const tools = await mcpClient.tools();
-
-          const result = streamText({
-            model: openai('gpt-6-luna'),
-            tools,
-            stopWhen: isStepCount(10),
-            instructions:
-              'You are a helpful assistant with access to protected tools.',
-            messages: await convertToModelMessages(messages),
+          try {
+            const tools = await mcpClient.tools();
+            const result = streamText({
+              model: openai('gpt-6-luna'),
+              tools,
+              stopWhen: isStepCount(10),
+              instructions:
+                'You are a helpful assistant with access to protected tools.',
+              messages: await convertToModelMessages(messages),
+              abortSignal: req.signal,
+            });
+            writer.merge(
+              toUIMessageStream({
+                stream: result.stream,
+                originalMessages: messages,
+              }),
+            );
+            await result.consumeStream();
+          } finally {
+            await mcpClient.close();
+          }
+        } catch (error) {
+          // The transport can request consent while connecting or listing tools.
+          if (!provider.pendingAuthorization) throw error;
+          writer.write({
+            type: 'data-oauth',
+            data: { url: provider.pendingAuthorization.url },
+            transient: true,
           });
-
-          writer.merge(
-            toUIMessageStream({
-              stream: result.stream,
-              originalMessages: messages,
-            }),
-          );
         } finally {
-          await mcpClient.close();
+          session.busy = false;
         }
       },
     });
-
-    return createUIMessageStreamResponse({ stream });
+    return createUIMessageStreamResponse({ stream, headers: responseHeaders });
   } catch (error) {
+    session.busy = false;
     console.error('MCP with auth error:', error);
-    return Response.json({ error: 'Unexpected error' }, { status: 500 });
+    return response('Unexpected error.', 500);
   }
 }

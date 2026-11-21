@@ -95,15 +95,15 @@ export class GatewayGenerationInfoFetcher {
 
 const gatewayGenerationInfoResponseSchema = lazySchema(() =>
   zodSchema(
-    z
-      .object({
-        data: z
-          .object({
+    z.pipe(
+      z.object({
+        data: z.pipe(
+          z.object({
             id: z.string(),
             total_cost: z.number(),
-            market_cost: z.number().nullish(),
-            surcharge_cost: z.number().nullish(),
-            gateway_cost: z.number().nullish(),
+            market_cost: z.nullish(z.number()),
+            surcharge_cost: z.nullish(z.number()),
+            gateway_cost: z.nullish(z.number()),
             upstream_inference_cost: z.number(),
             usage: z.number(),
             created_at: z.string(),
@@ -120,8 +120,8 @@ const gatewayGenerationInfoResponseSchema = lazySchema(() =>
             native_tokens_cached: z.number(),
             native_tokens_cache_creation: z.number(),
             billable_web_search_calls: z.number(),
-          })
-          .transform(
+          }),
+          z.transform(
             ({
               total_cost,
               market_cost,
@@ -162,7 +162,9 @@ const gatewayGenerationInfoResponseSchema = lazySchema(() =>
               billableWebSearchCalls: billable_web_search_calls,
             }),
           ),
-      })
-      .transform(({ data }) => data),
+        ),
+      }),
+      z.transform(({ data }) => data),
+    ),
   ),
 );

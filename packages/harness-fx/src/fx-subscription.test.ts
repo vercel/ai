@@ -13,7 +13,7 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { resolveFxAuthentication } from './fx-subscription';
+import { resolveFxAuthentication, resolveFxModel } from './fx-subscription';
 
 const scope = 'https://auth.x.ai::b1a00492-073a-47ea-816f-4c329264a828';
 let directory: string;
@@ -421,5 +421,70 @@ describe('native Codex credential stores', () => {
     });
     if (auth.provider === 'gateway') throw new Error('Expected subscription');
     expect((await auth.subscription.read()).accessToken).toBe('native-codex');
+  });
+});
+
+describe('resolveFxModel', () => {
+  it('prefers the explicit model', async () => {
+    await put({
+      file: '.fx/settings.json',
+      value: { models: { grok: 'saved-grok' } },
+    });
+    await expect(
+      resolveFxModel({
+        provider: 'grok',
+        model: 'explicit',
+        homeDirectory: directory,
+      }),
+    ).resolves.toBe('explicit');
+  });
+
+  it('leaves the AI Gateway model to libfx', async () => {
+    await expect(
+      resolveFxModel({
+        provider: 'gateway',
+        model: undefined,
+        homeDirectory: directory,
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  it('uses the model saved for the subscription provider', async () => {
+    await put({
+      file: '.fx/settings.json',
+      value: {
+        codex_model: 'legacy-codex',
+        grok_model: 'legacy-grok',
+        models: { gateway: 'saved-gateway', codex: 'saved-codex' },
+      },
+    });
+    await expect(
+      resolveFxModel({
+        provider: 'codex',
+        model: undefined,
+        homeDirectory: directory,
+      }),
+    ).resolves.toBe('saved-codex');
+    await expect(
+      resolveFxModel({
+        provider: 'grok',
+        model: undefined,
+        homeDirectory: directory,
+      }),
+    ).resolves.toBe('legacy-grok');
+  });
+
+  it('returns undefined when no subscription model is set or saved', async () => {
+    await put({
+      file: '.fx/settings.json',
+      value: { models: { gateway: 'saved-gateway' } },
+    });
+    await expect(
+      resolveFxModel({
+        provider: 'grok',
+        model: undefined,
+        homeDirectory: directory,
+      }),
+    ).resolves.toBeUndefined();
   });
 });

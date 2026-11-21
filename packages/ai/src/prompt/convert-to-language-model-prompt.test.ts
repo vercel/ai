@@ -1304,6 +1304,7 @@ describe('convertToLanguageModelPrompt', () => {
 
   describe('custom download function', () => {
     it('should use custom download function to fetch URL content', async () => {
+      const abortSignal = new AbortController().signal;
       const mockDownload = vi.fn().mockResolvedValue([
         {
           url: new URL('https://example.com/test-file.txt'),
@@ -1330,6 +1331,7 @@ describe('convertToLanguageModelPrompt', () => {
         },
         supportedUrls: {}, // No URL support, so download should be triggered
         download: mockDownload,
+        abortSignal,
       });
 
       expect(mockDownload).toHaveBeenCalledOnce();
@@ -1337,6 +1339,7 @@ describe('convertToLanguageModelPrompt', () => {
         {
           url: new URL('https://example.com/test-file.txt'),
           isUrlSupportedByModel: false,
+          abortSignal,
         },
       ]);
 

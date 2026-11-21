@@ -56,6 +56,8 @@ export function filterTelemetryEvent<EVENT>(
           ? ''
           : {},
       questions: {},
+      fields: {},
+      referenceDate: undefined,
       ...(isSpeech ? { text: '' } : {}),
     });
     if (filtered.toolCall != null) {
@@ -95,6 +97,7 @@ export function filterTelemetryEvent<EVENT>(
       ranking: [],
       answers: {},
       segments: [],
+      words: [],
     });
     if (filtered.toolOutput != null) {
       filtered.toolOutput = {

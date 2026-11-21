@@ -2,7 +2,6 @@
   "compilerOptions": {
     "allowJs": true,
     "checkJs": true,
-    "composite": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
@@ -18,26 +17,10 @@
     "stripInternal": true,
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
-    "lib": [
-      "esnext",
-      "dom",
-      "dom.iterable"
-    ],
     "types": [],
     "rootDir": "src",
     "outDir": "dist"
   },
-  "references": [
-    {
-      "path": "../ai"
-    },
-    {
-      "path": "../provider-utils"
-    },
-    {
-      "path": "../test-server"
-    }
-  ],
   "include": [
     "./src/**/*.js",
     "./src/**/*.ts",

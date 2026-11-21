@@ -1,4 +1,4 @@
+import type { CartesiaModelIds } from './cartesia-model-catalog';
 export type CartesiaTranscriptionModelId =
-  | 'ink-whisper'
-  | 'ink-2'
+  | CartesiaModelIds['transcription']
   | (string & {});

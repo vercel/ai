@@ -1,3 +1,4 @@
+import { getAmazonBedrockImageModelEntry } from './amazon-bedrock-model-catalog';
 import type {
   ImageModelV4,
   ImageModelV4File,
@@ -18,10 +19,7 @@ import {
   type FetchFunction,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
-import {
-  modelMaxImagesPerCall,
-  type AmazonBedrockImageModelId,
-} from './amazon-bedrock-image-settings';
+import { type AmazonBedrockImageModelId } from './amazon-bedrock-image-settings';
 import { amazonBedrockImageModelOptionsSchema } from './amazon-bedrock-image-model-options';
 import { amazonBedrockFailedResponseHandler } from './amazon-bedrock-error';
 import { z } from 'zod/v4';
@@ -54,15 +52,24 @@ export class AmazonBedrockImageModel implements ImageModelV4 {
   }
 
   get maxImagesPerCall(): number {
-    return modelMaxImagesPerCall[this.modelId] ?? 1;
+    return (
+      getAmazonBedrockImageModelEntry(this.modelId).capabilities.image
+        ?.maxImagesPerCall ?? 1
+    );
   }
 
   get supportsFileInputs(): boolean | undefined {
-    return this.modelId === 'amazon.nova-canvas-v1:0' ? true : undefined;
+    return getAmazonBedrockImageModelEntry(this.modelId).capabilities.image
+      ?.fileInput === true
+      ? true
+      : undefined;
   }
 
   get supportsMaskInputs(): boolean | undefined {
-    return this.modelId === 'amazon.nova-canvas-v1:0' ? true : undefined;
+    return getAmazonBedrockImageModelEntry(this.modelId).capabilities.image
+      ?.maskInput === true
+      ? true
+      : undefined;
   }
 
   private getUrl(modelId: string): string {

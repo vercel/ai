@@ -1,3 +1,4 @@
+import { getAmazonBedrockEmbeddingModelFamily } from './amazon-bedrock-model-catalog';
 import {
   TooManyEmbeddingValuesForCallError,
   type EmbeddingModelV4,
@@ -43,7 +44,10 @@ export class AmazonBedrockEmbeddingModel implements EmbeddingModelV4 {
   }
 
   private get modelFamily() {
-    return this.config.modelFamily ?? detectEmbeddingModelFamily(this.modelId);
+    return (
+      this.config.modelFamily ??
+      getAmazonBedrockEmbeddingModelFamily(this.modelId)
+    );
   }
 
   static [WORKFLOW_SERIALIZE](model: AmazonBedrockEmbeddingModel) {
@@ -197,26 +201,6 @@ export class AmazonBedrockEmbeddingModel implements EmbeddingModelV4 {
       warnings: [],
     };
   }
-}
-
-function isCohereEmbeddingModel(modelId: string) {
-  // Use `includes` so cross-region inference profile ids (e.g.
-  // `us.cohere.embed-v4:0`, `global.cohere.embed-v4:0`) are detected too.
-  return modelId.includes('cohere.embed-');
-}
-
-function isNovaEmbeddingModel(modelId: string) {
-  return modelId.includes('amazon.nova-') && modelId.includes('embed');
-}
-
-function detectEmbeddingModelFamily(
-  modelId: string,
-): NonNullable<AmazonBedrockEmbeddingModelSettings['modelFamily']> {
-  return isNovaEmbeddingModel(modelId)
-    ? 'nova'
-    : isCohereEmbeddingModel(modelId)
-      ? 'cohere'
-      : 'titan';
 }
 
 const AmazonBedrockEmbeddingResponseSchema = lazySchema(() =>

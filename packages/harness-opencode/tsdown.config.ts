@@ -30,6 +30,14 @@ export default defineConfig(
       },
     },
     {
+      entry: {
+        'bridge/opencode-read-plugin': 'src/bridge/opencode-read-plugin.ts',
+      },
+      outExtensions: () => ({ js: '.mjs' }),
+      dts: false,
+      deps: { neverBundle: true },
+    },
+    {
       entry: { 'bridge/host-tool-mcp': 'src/bridge/host-tool-mcp.ts' },
       outExtensions: () => ({ js: '.mjs' }),
       dts: false,

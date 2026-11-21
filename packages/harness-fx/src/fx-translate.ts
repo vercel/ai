@@ -40,7 +40,7 @@ export function createFxTranslator(options: {
     const id = `${options.turnId}:${requestIndex}:${record.attempt}:${type}`;
     const start = offsets.get(id) ?? 0;
     offsets.set(id, start + delta.length);
-    const output = (record.emittedOutput ??= { text: 0, reasoning: 0 });
+    const output = record.emittedOutput;
     const unseen = delta.slice(Math.max(0, output[type] - start));
     if (!unseen) return;
     if (output[type] === 0)
@@ -55,7 +55,7 @@ export function createFxTranslator(options: {
   function endOutput(input: { requestIndex: number; record: FxModelRecord }) {
     const { record, requestIndex } = input;
     const output = record.emittedOutput;
-    if (output && !output.finished) {
+    if (!output.finished) {
       for (const type of ['text', 'reasoning'] as const) {
         if (output[type] === 0) continue;
         const id = `${options.turnId}:${requestIndex}:${record.attempt}:${type}`;

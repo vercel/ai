@@ -1,4 +1,3 @@
-export type XaiVideoModelId =
-  | 'grok-imagine-video'
-  | 'grok-imagine-video-1.5'
-  | (string & {});
+import type { XaiModelIds } from './xai-model-catalog';
+
+export type XaiVideoModelId = XaiModelIds['video'] | (string & {});

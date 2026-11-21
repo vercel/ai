@@ -1,0 +1,50 @@
+{
+  "model": "d1.2",
+  "answers": {
+    "department": {
+      "type": "choice",
+      "choice": "billing",
+      "probabilities": {
+        "billing": 0.7977884625727154,
+        "technical": 0.1945331761734925,
+        "sales": 0.007678361253792198
+      },
+      "confidence": 0.6966826938590731
+    },
+    "is_urgent": {
+      "type": "noul",
+      "noul": 0.946241977297085
+    },
+    "frustration": {
+      "type": "score",
+      "score": 0.9021501653859363,
+      "legend": {
+        "0": "Calm",
+        "1": "Frustrated",
+        "2": "Very angry"
+      },
+      "probabilities": {
+        "0": 0.23247550647082207,
+        "1": 0.6328988216724196,
+        "2": 0.13462567185675836
+      },
+      "confidence": 0.4493482325086293
+    },
+    "subject": {
+      "type": "box",
+      "box": {
+        "top": 0.005667045050048388,
+        "bottom": 0.9912829814932079,
+        "left": 0.012289810011782244,
+        "right": 0.9958878113456595
+      },
+      "found": 1,
+      "confidence": 0.9874605055292258
+    }
+  },
+  "usage": {
+    "input_tokens": 612,
+    "output_tokens": 0,
+    "cost": 0.00001224
+  }
+}

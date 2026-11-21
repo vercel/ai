@@ -41,25 +41,34 @@ import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
 import { GatewayVideoModel } from './gateway-video-model';
 import { GatewayDecisionModel } from './gateway-decision-model';
+import { GatewayExtractionModel } from './gateway-extraction-model';
 import { GatewayRerankingModel } from './gateway-reranking-model';
 import { GatewaySpeechModel, toGatewaySpeechUrl } from './gateway-speech-model';
 import {
   GatewayTranscriptionModel,
   toGatewayTranscriptionUrl,
 } from './gateway-transcription-model';
+import { GatewayRealtimeModelLive } from './gateway-realtime-model-live';
 import { GatewayRealtimeModel } from './gateway-realtime-model';
 import type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
 import type { GatewayDecisionModelId } from './gateway-decision-model-settings';
+import type { GatewayExtractionModelId } from './gateway-extraction-model-settings';
 import type { GatewayImageModelId } from './gateway-image-model-settings';
 import type { GatewayRerankingModelId } from './gateway-reranking-model-settings';
 import type { GatewaySpeechModelId } from './gateway-speech-model-settings';
 import type { GatewayTranscriptionModelId } from './gateway-transcription-model-settings';
-import type { GatewayRealtimeModelId } from './gateway-realtime-model-settings';
+import {
+  gatewayLiveModelIds,
+  type GatewayKnownLiveModelId,
+  type GatewayRealtimeModelId,
+  type GatewayRealtimeOptions,
+} from './gateway-realtime-model-settings';
 import type { GatewayVideoModelId } from './gateway-video-model-settings';
 import { gatewayTools } from './gateway-tools';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import {
+  InvalidArgumentError,
   LoadAPIKeyError,
   type EmbeddingModelV4,
   type Experimental_BatchV4 as BatchV4,
@@ -69,9 +78,12 @@ import {
   type TranscriptionModelV4,
   type Experimental_VideoModelV4,
   type Experimental_DecisionModelV4,
+  type Experimental_ExtractionModelV4,
   type Experimental_StreamingSpeechModelV4,
   type Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
   type Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
+  type Experimental_RealtimeFactoryV4GetTokenResult as RealtimeFactoryV4GetTokenResult,
+  type Experimental_RealtimeModelV4 as RealtimeModelV4,
   type ProviderV4,
   type LanguageModelV4,
 } from '@ai-sdk/provider';
@@ -185,6 +197,18 @@ export interface GatewayProvider extends ProviderV4 {
   ): ReturnType<GatewayProvider['evaluationModel']>;
 
   /**
+   * Creates a model for extracting typed field values from shared state.
+   */
+  extraction(modelId: GatewayExtractionModelId): Experimental_ExtractionModelV4;
+
+  /**
+   * Creates a model for extracting typed field values from shared state.
+   */
+  extractionModel(
+    modelId: GatewayExtractionModelId,
+  ): Experimental_ExtractionModelV4;
+
+  /**
    * Creates a model for text-to-speech generation.
    */
   speech(modelId: GatewaySpeechModelId): SpeechModelV4;
@@ -208,9 +232,10 @@ export interface GatewayProvider extends ProviderV4 {
 
   /**
    * Creates an experimental realtime model for bidirectional audio/text
-   * communication over WebSocket, normalized through the AI Gateway.
+   * communication over WebSocket, normalized through the AI Gateway. Known
+   * Live model IDs return a continuous Live model; `{ api }` overrides routing.
    */
-  experimental_realtime: RealtimeFactoryV4;
+  experimental_realtime: GatewayRealtimeFactory;
 
   /**
    * Experimental streaming-transcription entry point. Callable like
@@ -232,6 +257,28 @@ export interface GatewayProvider extends ProviderV4 {
    * Gateway-specific tools executed server-side.
    */
   tools: typeof gatewayTools;
+}
+
+/**
+ * Realtime factory: returns a turn-based realtime model or, for Live model IDs
+ * or `{ api: 'live' }`, a continuous Live model. `getToken` mints a client
+ * secret bound to the matching Gateway WebSocket route.
+ */
+export interface GatewayRealtimeFactory extends RealtimeFactoryV4 {
+  (modelId: string, options: { api: 'live' }): GatewayRealtimeModelLive;
+  (modelId: string, options: { api: 'realtime' }): GatewayRealtimeModel;
+  (
+    modelId: GatewayKnownLiveModelId,
+    options?: { api?: undefined },
+  ): GatewayRealtimeModelLive;
+  (
+    modelId: GatewayRealtimeModelId,
+    options?: GatewayRealtimeOptions,
+  ): RealtimeModelV4;
+
+  getToken(
+    options: RealtimeFactoryV4GetTokenOptions & GatewayRealtimeOptions,
+  ): Promise<RealtimeFactoryV4GetTokenResult>;
 }
 
 export type GatewayTranscriptionFactoryGetTokenOptions = {
@@ -310,6 +357,14 @@ export interface GatewayProviderSettings {
    * API key or Vercel access token that is being sent using the `Authorization`
    * header. It defaults to the `AI_GATEWAY_API_KEY` environment variable.
    * A callback is resolved before each request and must return a non-empty key.
+   *
+   * If neither `apiKey` nor `AI_GATEWAY_API_KEY` is set to a non-empty value,
+   * the provider authenticates with the Vercel OIDC token instead, resolved for
+   * each request. On Vercel deployments this requires no configuration. For
+   * local development, run `vercel env pull` or `vercel dev` to get a token.
+   * A non-empty configured API key is always used instead of OIDC, even if the
+   * key is invalid. If no OIDC token is available either, requests fail with a
+   * `GatewayAuthenticationError` ("No authentication provided").
    */
   apiKey?: Resolvable<string>;
 
@@ -358,7 +413,7 @@ const gatewayClientSecretResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       token: z.string(),
-      expiresAt: z.number().nullish(),
+      expiresAt: z.nullish(z.number()),
     }),
   ),
 );
@@ -438,7 +493,7 @@ export function createGateway(
   const mintClientSecret = async (params: {
     modelId: string;
     expiresAfterSeconds?: number;
-    routeKind?: 'speech' | 'transcription';
+    routeKind?: 'live' | 'speech' | 'transcription';
   }): Promise<{ token: string; expiresAt?: number }> => {
     assertGatewayClientSecretServerEnvironment();
     const auth = await getRealtimeAuthToken();
@@ -680,6 +735,17 @@ export function createGateway(
   provider.decision = createDecisionModel;
   provider.evaluationModel = createDecisionModel;
   provider.evaluation = createDecisionModel;
+  const createExtractionModel = (modelId: GatewayExtractionModelId) => {
+    return new GatewayExtractionModel(modelId, {
+      provider: 'gateway',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      o11yHeaders: createO11yHeaders(),
+    });
+  };
+  provider.extractionModel = createExtractionModel;
+  provider.extraction = createExtractionModel;
   const createSpeechModel = (modelId: GatewaySpeechModelId) => {
     return new GatewaySpeechModel(modelId, {
       provider: 'gateway',
@@ -758,20 +824,36 @@ export function createGateway(
   // needs to drive the transport with a server-minted client secret. The
   // server-only boundary is enforced on minting itself (`mintClientSecret`),
   // which requires the Gateway credential.
-  const createRealtimeModel = (modelId: GatewayRealtimeModelId) =>
-    new GatewayRealtimeModel(modelId, {
-      provider: 'gateway.realtime',
-      baseURL,
-      teamIdOrSlug: options.teamIdOrSlug,
-      createClientSecret: mintClientSecret,
-      getHeaders,
-    });
+  const createRealtimeModel = (
+    modelId: GatewayRealtimeModelId,
+    realtimeOptions?: GatewayRealtimeOptions,
+  ) =>
+    resolveGatewayRealtimeApi(modelId, realtimeOptions) === 'live'
+      ? new GatewayRealtimeModelLive(modelId, {
+          provider: 'gateway.live',
+          baseURL,
+          teamIdOrSlug: options.teamIdOrSlug,
+          createClientSecret: mintClientSecret,
+          getHeaders,
+        })
+      : new GatewayRealtimeModel(modelId, {
+          provider: 'gateway.realtime',
+          baseURL,
+          teamIdOrSlug: options.teamIdOrSlug,
+          createClientSecret: mintClientSecret,
+          getHeaders,
+        });
   provider.experimental_realtime = Object.assign(
-    (modelId: GatewayRealtimeModelId) => createRealtimeModel(modelId),
+    (
+      modelId: GatewayRealtimeModelId,
+      realtimeOptions?: GatewayRealtimeOptions,
+    ) => createRealtimeModel(modelId, realtimeOptions),
     {
-      getToken: async (tokenOptions: RealtimeFactoryV4GetTokenOptions) => {
-        const { model: modelId, ...secretOptions } = tokenOptions;
-        const model = createRealtimeModel(modelId);
+      getToken: async (
+        tokenOptions: RealtimeFactoryV4GetTokenOptions & GatewayRealtimeOptions,
+      ) => {
+        const { model: modelId, api, ...secretOptions } = tokenOptions;
+        const model = createRealtimeModel(modelId, { api });
         const secret = await model.doCreateClientSecret(secretOptions);
         return {
           token: secret.token,
@@ -780,7 +862,7 @@ export function createGateway(
         };
       },
     },
-  ) as RealtimeFactoryV4;
+  ) as GatewayRealtimeFactory;
 
   provider.chat = provider.languageModel;
   provider.embedding = provider.embeddingModel;
@@ -792,6 +874,20 @@ export function createGateway(
 
 export const gateway = createGateway();
 
+/**
+ * Resolves the credential for a Gateway request, in this order:
+ *
+ * 1. The `apiKey` setting (a string, or a callback resolved per request).
+ * 2. The `AI_GATEWAY_API_KEY` environment variable.
+ * 3. The Vercel OIDC token from `getVercelOidcToken()`. It is available
+ *    automatically on Vercel deployments, and locally after `vercel env pull`
+ *    or under `vercel dev`.
+ *
+ * A non-empty configured API key is never replaced by OIDC, even if the key is
+ * invalid. An empty string option or environment variable falls through to
+ * OIDC; a callback must return a non-empty key. Callers wrap a failure here in a
+ * `GatewayAuthenticationError` ("No authentication provided").
+ */
 export async function getGatewayAuthToken(
   options: GatewayProviderSettings,
 ): Promise<{ token: string; authMethod: 'api-key' | 'oidc' }> {
@@ -826,6 +922,25 @@ export async function getGatewayAuthToken(
     token: oidcToken,
     authMethod: 'oidc',
   };
+}
+
+function resolveGatewayRealtimeApi(
+  modelId: string,
+  options?: GatewayRealtimeOptions,
+): 'live' | 'realtime' {
+  const api = options?.api;
+  if (api !== undefined) {
+    if (api !== 'live' && api !== 'realtime') {
+      throw new InvalidArgumentError({
+        argument: 'api',
+        message: 'AI Gateway realtime api must be "live" or "realtime".',
+      });
+    }
+    return api;
+  }
+  return (gatewayLiveModelIds as readonly string[]).includes(modelId)
+    ? 'live'
+    : 'realtime';
 }
 
 function assertGatewayClientSecretServerEnvironment(): void {

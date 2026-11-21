@@ -150,4 +150,96 @@ describe('file permission paths', () => {
       }),
     ).resolves.toBe(false);
   });
+
+  describe('additional directories', () => {
+    let shared: string;
+    beforeEach(async () => {
+      shared = path.join(directory, 'shared');
+      await mkdir(shared);
+      await mkdir(path.join(directory, 'shared-evil'));
+      await writeFile(path.join(shared, 'file.txt'), 'shared fixture');
+      await symlink(path.join(directory, 'other'), path.join(shared, 'escape'));
+    });
+
+    const trusted = (
+      paths: string[],
+      options: {
+        access?: 'read' | 'write';
+        additionalDirectories?: string[];
+        cwd?: string;
+      } = {},
+    ) =>
+      areFileToolPathsTrusted({
+        workDir,
+        cwd: options.cwd ?? workDir,
+        paths,
+        access: options.access ?? 'read',
+        readableSkillRoots: [],
+        additionalDirectories: options.additionalDirectories ?? [shared],
+      });
+
+    it.each(['read', 'write'] as const)(
+      'trusts %s access inside an additional directory',
+      async access => {
+        await expect(
+          trusted([path.join(shared, 'file.txt')], { access }),
+        ).resolves.toBe(true);
+        await expect(
+          trusted([path.join(shared, 'new', 'file.txt')], { access }),
+        ).resolves.toBe(true);
+        await expect(
+          trusted(['file.txt'], { access, cwd: shared }),
+        ).resolves.toBe(true);
+      },
+    );
+
+    it.each([
+      {
+        name: 'a sibling that shares the prefix',
+        target: () => path.join(directory, 'shared-evil', 'file.txt'),
+      },
+      {
+        name: 'a parent traversal out of it',
+        target: () => path.join(shared, '..', 'other', 'file.txt'),
+      },
+      {
+        name: 'a symlink inside it that points outside',
+        target: () => path.join(shared, 'escape', 'file.txt'),
+      },
+      {
+        name: 'an unrelated directory',
+        target: () => path.join(directory, 'other', 'file.txt'),
+      },
+    ])('does not trust $name', async ({ target }) => {
+      await expect(trusted([target()])).resolves.toBe(false);
+      await expect(trusted([target()], { access: 'write' })).resolves.toBe(
+        false,
+      );
+    });
+
+    it('ignores relative additional directories', async () => {
+      await expect(
+        trusted([path.join(directory, 'other', 'file.txt')], {
+          additionalDirectories: ['../other'],
+        }),
+      ).resolves.toBe(false);
+    });
+
+    it('ignores additional directories that do not exist', async () => {
+      await expect(
+        trusted([path.join(directory, 'missing', 'file.txt')], {
+          additionalDirectories: [path.join(directory, 'missing')],
+        }),
+      ).resolves.toBe(false);
+    });
+
+    it('requires every path to be trusted', async () => {
+      await expect(
+        trusted([
+          path.join(shared, 'file.txt'),
+          path.join(directory, 'other', 'file.txt'),
+        ]),
+      ).resolves.toBe(false);
+    });
+  });
 });

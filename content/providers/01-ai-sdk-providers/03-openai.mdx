@@ -250,7 +250,8 @@ The following provider options are available:
 <Note>
   Supported reasoning efforts vary by model. GPT-5.6, GPT-6 Sol, GPT-6 Luna, and
   GPT-6.1 Terra support `'none'`, `'low'`, `'medium'`, `'high'`, `'xhigh'`, and
-  `'max'`. GPT-6 Astra and GPT-6.1 Sol do not support `'none'`.
+  `'max'`. GPT-6 Astra, GPT-6.1 Sol, GPT-6.2 Astra, and GPT-6.2 Sol do not
+  support `'none'`.
 </Note>
 
 <Note type="warning">
@@ -306,6 +307,13 @@ The following provider options are available:
   Controls the verbosity of the model's response. Lower values result in more concise responses,
   while higher values result in more verbose responses. Defaults to `'medium'`.
 
+- **textFormat** _object_
+  Overrides the request-level `text.format` while keeping `Output` parsing and
+  validation unchanged. Use `{ type: 'text' }` or
+  `{ type: 'json_schema', name, schema, description?, strict? }`. Keep this
+  original format unchanged when replaying message-level `textFormatUpdate`
+  controls. Without this option, the format is derived from `Output` as usual.
+
 - **include** _Array&lt;string&gt;_
   Specifies additional content to include in the response. Supported values:
   `['file_search_call.results']` for including file search results in responses.
@@ -322,6 +330,9 @@ The following provider options are available:
 
 - **promptCacheOptions** _object_
   Configures prompt caching for GPT-5.6 and later models. `mode` can be `'implicit'` or `'explicit'`. `ttl` sets the minimum cache lifetime: `'30m'` (default) or `'12h'`. 12-hour writes are billed at a higher rate, and `usage.raw.input_tokens_details.cache_write_tokens_details` splits cache writes into `ttl_30m_tokens` and `ttl_12h_tokens`. Set `prewarm` to `true` to write the prompt to the cache without generating output. In explicit mode, only content blocks marked with a prompt cache breakpoint are cached.
+  Set `comparisonResponseId` to a recent completed response ID from the same
+  organization to request [cache diagnostics](#cache-diagnostics). This requests
+  a comparison; it does not load the earlier conversation or change caching.
 
 - **promptCacheRetention** _'in_memory' | '24h'_
   The legacy retention policy for models before GPT-5.6. Set to `'24h'` to enable extended prompt caching on supported models. For GPT-5.6 and later models, use `promptCacheOptions.ttl` instead.
@@ -376,6 +387,171 @@ The following OpenAI-specific metadata may be returned:
   Service tier information returned by the API.
 - **reasoningContext** _(optional)_
   Effective persisted-reasoning context returned by GPT-5.6 (`'current_turn'` or `'all_turns'`).
+- **promptCacheDiagnostics** _(optional)_
+  Cache comparison result. Contains `type` and, when supplied by OpenAI, `reason`,
+  `cache_missed_tokens`, and `comparison_reusable_tokens`. Inner field names match
+  the API response. Available on generation, streaming, and batch results.
+- **inputTransformations** _(optional)_
+  Input items that OpenAI changed before generation, such as dropped reasoning
+  items. Each entry contains `type`, `action`, `reason`, and, when supplied by
+  OpenAI, `id`. Available on generation, streaming, and batch results.
+
+#### Preserving Reasoning Across Turns
+
+OpenAI may drop reasoning items after edits to the context that precedes them.
+This can increase reasoning token usage and reduce output quality. Preserve the
+original request settings and history, and append changes where possible:
+
+- Use positioned configuration updates for [reasoning effort](#changing-reasoning-effort-mid-conversation)
+  and [response formats](#changing-response-formats-mid-conversation).
+- Keep tool definitions stable. Use `allowedTools` or `toolChoice` to restrict
+  calls; `activeTools` changes the request's tool definitions. To add function
+  tools after a tool result, use [additional tools](#load-tools-after-an-ordinary-tool-result).
+- Append trusted system messages with `allowSystemInMessages: true` for updated
+  developer instructions, instead of replacing earlier instructions. Reasoning
+  models map these to the developer role by default.
+- Truncate tool results and downsize images or files before first sending them.
+  Editing earlier results or pruning historical messages changes the prefix.
+- Prefer [OpenAI compaction](#compaction-1) when supported. With custom compaction,
+  place summary items as late in the context as possible to limit reasoning loss.
+  Configuration updates have the [compaction restrictions](#compaction) below.
+
+To check whether reasoning was dropped, read
+`providerMetadata.openai.inputTransformations`:
+
+```ts
+const result = await generateText({
+  model: openai.responses('gpt-6.2-astra'),
+  messages,
+});
+
+console.log(result.providerMetadata?.openai?.inputTransformations);
+// [{ id: 'rs_...', type: 'reasoning', action: 'removed', reason: 'prefix_mismatch' }]
+```
+
+Each removed reasoning item is listed with its `id` and a `reason`, for example
+`prefix_mismatch`, `model_mismatch`, or `end_user_mismatch`. OpenAI returns an
+empty array when nothing was removed. For streams, await
+`result.providerMetadata` after consuming the stream.
+
+See [OpenAI's preserved reasoning guide](https://developers.openai.com/api/docs/guides/preserved-reasoning).
+
+#### Changing Response Formats Mid-Conversation
+
+Append an empty system message with `providerOptions.openai.textFormatUpdate`
+to change the model's response format at that position. It emits a
+`configuration_update` input item and accepts the same format shape as
+request-level `textFormat`. Keep the original request-level `textFormat` on
+every call, and use `Output.object` with the current schema to parse and validate
+the response:
+
+<Note>
+  If the first turn already uses `Output.object`, set `textFormat` to that
+  initial JSON schema format from the first call and keep it unchanged on later
+  calls. For an existing conversation that began without `textFormat`, match
+  the originally emitted `text.format` exactly, including the schema, its
+  normalization, the name (default `'response'`), strictness (default `true`),
+  and any description. Switching such a conversation to `{ type: 'text' }`
+  changes its prefix. The example below starts with plain text, so its original
+  format is `{ type: 'text' }`.
+</Note>
+
+```ts
+import {
+  openai,
+  type OpenAIResponsesSystemMessageOptions,
+} from '@ai-sdk/openai';
+import { generateText, Output, zodSchema, type ModelMessage } from 'ai';
+import type { JSONValue } from '@ai-sdk/provider';
+import { z } from 'zod/v4';
+
+const model = openai.responses('gpt-6-astra');
+const providerOptions = {
+  openai: { store: false, textFormat: { type: 'text' as const } },
+};
+const messages: ModelMessage[] = [
+  { role: 'user', content: 'Summarize 17 red crates and 26 blue crates.' },
+];
+const first = await generateText({ model, messages, providerOptions });
+const schema = z.object({ totalCrates: z.number().int() });
+
+messages.push(
+  ...first.responseMessages,
+  {
+    role: 'system',
+    content: '',
+    providerOptions: {
+      openai: {
+        textFormatUpdate: {
+          type: 'json_schema',
+          name: 'crate_count',
+          strict: true,
+          schema: (await zodSchema(schema).jsonSchema) as Record<
+            string,
+            JSONValue
+          >,
+        },
+      } satisfies OpenAIResponsesSystemMessageOptions,
+    },
+  },
+  { role: 'user', content: 'How many crates are there altogether?' },
+);
+
+const second = await generateText({
+  model,
+  messages,
+  allowSystemInMessages: true,
+  providerOptions,
+  output: Output.object({ schema }),
+});
+console.log(second.output);
+messages.push(...second.responseMessages);
+```
+
+Replay all earlier update messages in their original positions. To return to
+plain text, append `textFormatUpdate: { type: 'text' }` and omit `Output.object`
+on that call. For schema-to-schema changes, append the new schema and use the
+matching `Output.object` while keeping the original `textFormat` unchanged.
+`textFormat` overrides the wire format, so it must agree with the effective
+format after all updates; `Output` still validates against its own schema.
+
+These controls also work with `streamText` and `previousResponseId`, and share
+the [reasoning update restrictions](#restrictions). Combine `textFormatUpdate`
+and `reasoningEffortUpdate` in one empty system message to change both settings;
+consecutive configuration updates are rejected. After explicit compaction,
+append a fresh update with the desired format and effort.
+
+Omit request-level `reasoningEffortUpdate` when using message-level format
+updates. It prepends an effort update and would create an invalid consecutive
+pair if the input starts with a format update. Combine the changes in one empty
+system message instead; earlier history is never merged or rewritten for you.
+
+#### Cache Diagnostics
+
+Set `providerOptions.openai.promptCacheOptions.comparisonResponseId` to compare
+the current request with an earlier response:
+
+```ts
+const result = await generateText({
+  model: openai.responses('gpt-6-astra'),
+  messages,
+  providerOptions: {
+    openai: {
+      promptCacheOptions: { comparisonResponseId: previousResponse.id },
+    },
+  },
+});
+console.log(result.providerMetadata?.openai?.promptCacheDiagnostics);
+```
+
+For streams, await `result.providerMetadata` after consuming the stream.
+Diagnostic types include `cache_hit`, `cache_miss`,
+`comparison_response_not_found`, and `unavailable`. Diagnostics are best effort:
+missing or unavailable diagnostics do not fail the generation. A `cache_hit`
+means no miss was detected for that comparison; it does not prove reasoning
+retention or that all input tokens were cached. Use
+`result.usage.inputTokenDetails.cacheReadTokens` to measure reported cache reuse.
+See [OpenAI's cache diagnostics guide](https://developers.openai.com/api/docs/guides/prompt-caching/diagnostics).
 
 #### Changing Reasoning Effort Mid-Conversation
 
@@ -1639,6 +1815,11 @@ When your own search function discovers tools, attach
 provider preserves the ordinary result and emits an `additional_tools` item
 immediately after it. Replaying the same messages preserves that insertion point.
 
+Because messages can contain replayed, client-supplied history, each entry only
+selects a tool that is registered in `tools`; the provider sends the definition
+it derives from that tool, including its description and input schema. Entries
+for tools that are not registered for the request are dropped with a warning.
+
 ```ts
 import {
   openai,
@@ -1696,6 +1877,7 @@ const messages: ModelMessage[] = [
 const tools = {
   search: tool({ inputSchema: z.object({}) }),
   list_issues: tool({
+    description: 'List Linear issues.',
     inputSchema: z.object({}),
     execute: async () => ({ issues: ['Example issue'] }),
     providerOptions: {
@@ -1722,15 +1904,88 @@ await generateText({
 });
 ```
 
-`additionalTools` currently accepts function definitions with `type: 'function'`,
-`name`, `parameters`, and optional `description` and `strict`. An empty array emits
-no item. These are OpenAI-format definitions; keep their names and schemas aligned
-with the SDK tools used for local validation and execution.
+`additionalTools` accepts OpenAI-format tool definitions:
+
+- `type: 'function'` with `name`, `parameters`, and optional `description`, `strict`
+  and `defer_loading`
+- `type: 'custom'` with `name` and optional `description` and `format`
+- `type: 'namespace'` with `name`, `description`, and a non-empty `tools` list of
+  function definitions
+
+Entries only select registered tools; the `description`, `parameters`,
+`strict`, `defer_loading`, and `format` in an entry are not sent. The provider
+sends the definition derived from the registered tool instead: function and
+namespace entries use that tool's description, input schema, `strict` setting,
+and `deferLoading` option, and custom entries use its `description` and `format`.
+A namespace entry loads only the registered tools whose names it lists. An entry
+can also name a tool that is already part of the request tools; the provider then
+sends that tool's definition again at the named position. Tools that set
+`allowedCallers` cannot be loaded from history, because an inserted definition
+cannot carry that restriction; their entries are dropped with a warning. When the
+request sets `allowedTools`, history can only load tools in that set, and
+namespace entries are not loaded. Register every tool you load this way, usually
+with `omitFromRequestTools: true`, and keep its name aligned with the entry. An
+empty array emits no item.
+
+##### Load tools at any point in the conversation
+
+To add tools somewhere other than after a tool result, add an empty system message
+with `providerOptions.openai.additionalTools` at that point. The Responses provider
+emits an `additional_tools` item in its place, so the earlier history and the
+top-level tool list stay unchanged. This requires `allowSystemInMessages: true`.
+The same registration check applies: every entry must refer to a tool in `tools`,
+and the provider sends the registered definition.
+
+```ts
+import {
+  openai,
+  type OpenAIResponsesSystemMessageOptions,
+} from '@ai-sdk/openai';
+
+messages.push(
+  {
+    role: 'system',
+    content: '',
+    providerOptions: {
+      openai: {
+        additionalTools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get the weather for a city.',
+            parameters: {
+              type: 'object',
+              properties: { city: { type: 'string' } },
+              required: ['city'],
+              additionalProperties: false,
+            },
+          },
+        ],
+      } satisfies OpenAIResponsesSystemMessageOptions,
+    },
+  },
+  { role: 'user', content: 'What is the weather in Rome?' },
+);
+
+await generateText({
+  model: openai.responses('gpt-5.4'),
+  tools, // includes get_weather with omitFromRequestTools: true and its description
+  messages,
+  allowSystemInMessages: true,
+});
+```
+
+The control message must have empty content. It can be combined with
+`reasoningEffortUpdate` or `textFormatUpdate` on the same message, in which case
+the configuration update comes first.
 
 `omitFromRequestTools: true` omits only the function's top-level Responses tool
 definition. Keep the function in `tools` and, if you use `activeTools`, include it
 there too: inactive tools cannot be executed. Use automatic tool choice for these
 functions; OpenAI cannot force or allow-list a tool absent from the top-level list.
+Omission only affects serialization: decide which tools a user may run with
+`activeTools` or by choosing which tools to register on the server, not by
+leaving them out of the request.
 
 Both `generateText` and `streamText` support this representation. For streaming,
 append `await result.responseMessages` when replaying the conversation. This
@@ -2004,6 +2259,47 @@ messages marked with `phase: 'final_answer'`, the SDK parses only the last such
 message into `result.output`. This prevents commentary or repeated final answers
 from being joined into invalid JSON. The returned `text`, `content`, response
 messages, and token usage still include the complete response as before.
+
+#### Refusals
+
+The Responses API can answer a request with a `refusal` content part instead of
+`output_text`. The provider surfaces the refusal explanation as text, and
+reports a `content-filter` finish reason in both `generateText` and
+`streamText`. When the same response also contains a client-side function call,
+the finish reason is `tool-calls` instead, so the tools are still executed; the
+refusal text remains part of the content.
+
+Refusal content parts mainly appear with structured outputs (`Output.object` or
+a JSON schema passed to the model). With structured output, a refusal means no
+object can be generated: `generateText` throws `NoObjectGeneratedError` with the
+refusal text on `error.text` and `error.finishReason` set to `'content-filter'`.
+
+```ts
+import { NoObjectGeneratedError, Output, generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+
+try {
+  await generateText({
+    model: openai.responses('gpt-4o'),
+    output: Output.object({
+      schema: z.object({ steps: z.array(z.string()) }),
+    }),
+    prompt: '...',
+  });
+} catch (error) {
+  if (NoObjectGeneratedError.isInstance(error)) {
+    // the model's refusal explanation
+    console.log(error.text);
+    // 'content-filter'
+    console.log(error.finishReason);
+  }
+}
+```
+
+Without structured output, the model may still decline in plain text. Such a
+response arrives as ordinary text with a `stop` finish reason, so check the text
+in your application if you need to detect declines.
 
 #### Typed providerMetadata in Text Parts
 
@@ -2705,6 +3001,33 @@ You need to change Zod `.nullish()` and `.optional()` to `.nullable()`.
 
 </Note>
 
+#### Refusals
+
+Refusals mainly happen when you request structured outputs. When OpenAI declines
+a request, the provider surfaces the refusal explanation as text and reports a
+`content-filter` finish reason in both `generateText` and `streamText`:
+
+```ts
+const { text, finishReason } = await generateText({
+  model: openai.chat('gpt-4o'),
+  prompt: '...',
+});
+
+if (finishReason === 'content-filter') {
+  // `text` contains the model's refusal explanation
+}
+```
+
+When you request structured output, a refusal means that no object can be
+generated: `generateText` throws `NoObjectGeneratedError` with the refusal text
+on `error.text`.
+
+When you request logprobs, `providerMetadata.openai.logprobs` contains the
+logprobs of all emitted tokens: the content logprobs first, followed by the
+refusal logprobs. This is the same for `generateText` and `streamText`; with
+`streamText`, the logprobs of all streamed tokens are reported when the stream
+finishes.
+
 #### Logprobs
 
 OpenAI provides logprobs information for completion/chat models.
@@ -3156,6 +3479,8 @@ The following optional provider options are available for OpenAI completion mode
 
 | Model                 | Image Input | Audio Input | Object Generation | Tool Usage |
 | --------------------- | ----------- | ----------- | ----------------- | ---------- |
+| `gpt-6.2-astra`       | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-6.2-sol`         | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-6-astra`         | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-6.1-sol`         | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-6.1-terra`       | <Check />   | <Cross />   | <Check />         | <Check />  |
@@ -3210,6 +3535,8 @@ is supported.
 
 | Model                 | Reasoning | Reasoning Efforts                               | Temperature                                      | Top P                                            |
 | --------------------- | --------- | ----------------------------------------------- | ------------------------------------------------ | ------------------------------------------------ |
+| `gpt-6.2-astra`       | <Check /> | `low`, `medium`, `high`, `xhigh`, `max`         | <Cross />                                        | <Cross />                                        |
+| `gpt-6.2-sol`         | <Check /> | `low`, `medium`, `high`, `xhigh`, `max`         | <Cross />                                        | <Cross />                                        |
 | `gpt-6-astra`         | <Check /> | `low`, `medium`, `high`, `xhigh`, `max`         | <Cross />                                        | <Cross />                                        |
 | `gpt-6.1-sol`         | <Check /> | `low`, `medium`, `high`, `xhigh`, `max`         | <Cross />                                        | <Cross />                                        |
 | `gpt-6.1-terra`       | <Check /> | `none`, `low`, `medium`, `high`, `xhigh`, `max` | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
@@ -3448,6 +3775,13 @@ const model = openai.image('gpt-image-2.5-sunburst');
 ### Image Editing
 
 OpenAI's `gpt-image-*` models support powerful image editing capabilities. Pass input images via `prompt.images` to transform, combine, or edit existing images.
+
+<Note type="warning">
+  The provider downloads remote input images and masks before uploading them to
+  OpenAI, using the `fetch` option of `createOpenAI`. For untrusted URLs on
+  Node.js, pass a `guarded-fetch` transport there. See [Secure URL
+  Fetching](/docs/advanced/secure-url-fetching#opt-in-dns-protection-on-nodejs).
+</Note>
 
 #### Basic Image Editing
 
@@ -4008,3 +4342,33 @@ Decision models can also be accessed through `customProvider` aliases or
 use Gateway by default, or an explicitly configured default provider with an
 `decisionModel` method. See
 [model aliases and registries](/docs/ai-sdk-core/decisions#model-aliases-and-registries).
+
+## Extraction Models
+
+Create an experimental extraction model with `openai.extractionModel(modelId)`.
+It wraps an OpenAI language model and uses the Responses API's structured output
+to extract typed fields in one call.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { experimental_extract } from 'ai';
+
+const { answers } = await experimental_extract({
+  model: openai.extractionModel('gpt-6.1-sol'),
+  referenceDate: '2026-11-11',
+  state: 'Invoice INV-2041. Total due $1,250.00 by March 3.',
+  fields: {
+    invoiceNumber: { type: 'text', instructions: 'The invoice number' },
+    total: { type: 'number', instructions: 'Total due', decimals: 2 },
+    dueDate: { type: 'date', instructions: 'Payment due date' },
+  },
+});
+```
+
+The adapter supports every field type and returns `null` when the state has no
+value for a field. It does not return `pNull`, `confidence`, `guess`, or
+`source`, since a prompted model cannot give calibrated estimates or exact
+offsets. Image and PDF files are passed to the language model, which must
+support them. The adapter requests `reasoning: 'none'` by default. Models that
+do not support `'none'` use their lowest reasoning effort and return a
+compatibility warning. The adapter forwards `providerOptions.openai`. See [Extractions](/docs/ai-sdk-core/extractions).

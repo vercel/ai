@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { TypeValidationError } from '@ai-sdk/provider';
+import { describe, expect, it, vi } from 'vitest';
 import * as z4 from 'zod/v4';
+import * as z4mini from 'zod/v4/mini';
 import { safeParseJSON } from './parse-json';
 import { asSchema, zodSchema, type StandardSchema } from './schema';
 
@@ -292,6 +294,28 @@ describe('zodSchema', () => {
     });
 
     describe('output validation', () => {
+      it.each(['max', 'length'] as const)(
+        'should reject an array exceeding its %s bound before validating elements',
+        async bound => {
+          const validateElement = vi.fn();
+          const array = z4.array(z4.string().superRefine(validateElement));
+          const schema = zodSchema(z4.object({ items: array[bound](2) }));
+
+          const result = await schema.validate?.({ items: ['a', 'b', 'c'] });
+
+          expect(result?.success).toBe(false);
+          expect(validateElement).not.toHaveBeenCalled();
+
+          if (result?.success !== false) {
+            throw new Error('Expected validation to fail');
+          }
+
+          expect((result.error as z4.ZodError).issues).toEqual([
+            expect.objectContaining({ code: 'too_big', path: ['items'] }),
+          ]);
+        },
+      );
+
       it('should return a classic ZodError for invalid output', async () => {
         const schema = zodSchema(
           z4.object({
@@ -312,6 +336,45 @@ describe('zodSchema', () => {
         expect(error.name).toBe('ZodError');
         expect(typeof error.format).toBe('function');
         expect(typeof error.flatten).toBe('function');
+      });
+
+      it('preserves default error messages for Mini schemas', async () => {
+        const localeError = z4.core.config().localeError;
+        try {
+          z4.core.config({ localeError: undefined });
+          const schema = zodSchema(z4mini.object({ text: z4mini.string() }));
+          const result = await schema.validate?.({ text: 123 });
+
+          expect(result?.success).toBe(false);
+          if (result?.success !== false) {
+            throw new Error('Expected validation to fail');
+          }
+          expect(result.error).toBeInstanceOf(z4.ZodError);
+          expect((result.error as z4.ZodError).issues[0].message).toBe(
+            'Invalid input: expected string, received number',
+          );
+        } finally {
+          z4.core.config({ localeError });
+        }
+      });
+
+      it('preserves a configured locale for Mini schemas', async () => {
+        const localeError = z4.core.config().localeError;
+        try {
+          z4.core.config({ localeError: () => 'Configured error message' });
+          const schema = zodSchema(z4mini.object({ text: z4mini.string() }));
+          const result = await schema.validate?.({ text: 123 });
+
+          expect(result?.success).toBe(false);
+          if (result?.success !== false) {
+            throw new Error('Expected validation to fail');
+          }
+          expect((result.error as z4.ZodError).issues[0].message).toBe(
+            'Configured error message',
+          );
+        } finally {
+          z4.core.config({ localeError });
+        }
       });
 
       it('should validate output with transform', async () => {
@@ -346,7 +409,7 @@ describe('StandardSchema (StandardJSONSchemaV1)', () => {
   // Helper to create a StandardSchema mock
   function createStandardSchema<T>(options: {
     jsonSchema: object;
-    validate: (value: unknown) => Promise<{ value: T } | { issues: Error[] }>;
+    validate: StandardSchema<T>['~standard']['validate'];
   }): StandardSchema<T> {
     return {
       '~standard': {
@@ -503,6 +566,55 @@ describe('StandardSchema (StandardJSONSchemaV1)', () => {
   });
 
   describe('output validation', () => {
+    describe.each([false, true])('async validation: %s', asyncValidation => {
+      it.each([
+        { issues: [{ message: 'Invalid input' }], includeValue: false },
+        { issues: [{ message: 'Invalid input' }], includeValue: true },
+        { issues: [], includeValue: false },
+        { issues: [], includeValue: true },
+      ])(
+        'should reject issues $issues with includeValue=$includeValue',
+        async ({ issues, includeValue }) => {
+          const input = { text: 123 };
+          const failure = { issues, ...(includeValue ? { value: input } : {}) };
+          const standardSchema = createStandardSchema<{ text: string }>({
+            jsonSchema: { type: 'object' },
+            validate: () =>
+              asyncValidation ? Promise.resolve(failure) : failure,
+          });
+
+          const result = await asSchema(standardSchema).validate!(input);
+
+          expect(result.success).toBe(false);
+          if (result.success) {
+            throw new Error('Expected validation to fail');
+          }
+          expect(result.error).toBeInstanceOf(TypeValidationError);
+          expect(result.error).toMatchObject({ value: input, cause: issues });
+
+          // JSON parsing must not turn a rejected schema result into success.
+          const parsed = await safeParseJSON({
+            text: JSON.stringify(input),
+            schema: standardSchema,
+          });
+          expect(parsed.success).toBe(false);
+        },
+      );
+
+      it('should accept an undefined value when issues are undefined', async () => {
+        const success = { value: undefined, issues: undefined };
+        const standardSchema = createStandardSchema<undefined>({
+          jsonSchema: {},
+          validate: () =>
+            asyncValidation ? Promise.resolve(success) : success,
+        });
+
+        await expect(
+          asSchema(standardSchema).validate!(undefined),
+        ).resolves.toEqual({ success: true, value: undefined });
+      });
+    });
+
     it('should validate and return value for valid input', async () => {
       const standardSchema = createStandardSchema<{
         name: string;

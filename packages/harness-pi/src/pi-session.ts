@@ -45,6 +45,8 @@ import {
 import {
   getRestrictedSandboxSession,
   convertHarnessToolModelOutput,
+  encodeHarnessPathSegment,
+  isSandboxWriteProtectedPath,
   resolveSandboxHomeDir,
   writeSkills,
 } from '@ai-sdk/harness/utils';
@@ -69,6 +71,7 @@ import {
   type PiRemoteOps,
 } from './pi-remote-ops';
 import { executePiSandboxRead } from './pi-read-operations';
+import { loadPiRepositoryResources } from './pi-repository-resources';
 import { expandPiSkillCommand } from './pi-skill-command';
 import {
   truncatePiToolModelOutput,
@@ -184,6 +187,14 @@ const PI_NATIVE_TOOL_KINDS: Readonly<
   find: 'readonly',
   ls: 'readonly',
 };
+
+/*
+ * Workspace paths that hold Pi configuration or skills the adapter loads from
+ * the workspace, which can change the agent's behavior in later sessions.
+ * Writes to them always require host approval unless the permission mode is
+ * `allow-all`.
+ */
+const PI_WRITE_PROTECTED_PATHS = ['.agents/skills', '.pi'];
 
 function resolveActivePiBuiltinNames(
   toolFiltering: HarnessV1BuiltinToolFiltering | undefined,
@@ -480,8 +491,12 @@ export async function createPiSession(
   assertPiMcpSettingsSupported(input.settings.mcpSettings);
   const mcpServers = resolvePiMcpServers(input.settings.mcpServers);
 
-  const safeSessionId = input.sessionId.replace(/[\\/: ]/g, '-');
-  const hostRoot = path.join(tmpdir(), 'ai-sdk-harness', 'pi', safeSessionId);
+  const hostRoot = path.join(
+    tmpdir(),
+    'ai-sdk-harness',
+    'pi',
+    encodeHarnessPathSegment(input.sessionId),
+  );
   const hostAgentDir = path.join(hostRoot, 'agent');
   const toolSafeSandboxSession = getRestrictedSandboxSession(
     input.sandboxSession,
@@ -772,6 +787,9 @@ export async function createPiSession(
   let currentExtensionsResult:
     | ReturnType<DefaultResourceLoader['getExtensions']>
     | undefined;
+  let repositoryResources: Awaited<
+    ReturnType<typeof loadPiRepositoryResources>
+  > = { agentsFiles: [], skills: [], diagnostics: [] };
 
   const resourceLoader = new DefaultResourceLoader({
     cwd: sessionWorkDir,
@@ -801,10 +819,24 @@ export async function createPiSession(
     noPromptTemplates: true,
     noSkills: true,
     noContextFiles: true,
-    skillsOverride: base => ({
-      ...base,
-      skills: [...configuredSkills, ...harnessSkills],
+    agentsFilesOverride: () => ({
+      agentsFiles: repositoryResources.agentsFiles,
     }),
+    skillsOverride: base => {
+      const skills = [...configuredSkills, ...harnessSkills];
+      const names = new Set(skills.map(skill => skill.name));
+      for (const skill of repositoryResources.skills) {
+        if (!names.has(skill.name)) {
+          skills.push(skill);
+          names.add(skill.name);
+        }
+      }
+      return {
+        ...base,
+        skills,
+        diagnostics: [...base.diagnostics, ...repositoryResources.diagnostics],
+      };
+    },
   });
   await resourceLoader.reload();
   if (mcpRegistrationError != null) throw mcpRegistrationError;
@@ -1258,12 +1290,16 @@ export async function createPiSession(
   async function requestBuiltinToolApproval(args: {
     toolCallId: string;
     nativeName: (typeof PI_NATIVE_BUILTIN_NAMES)[number];
+    filePath?: string;
   }): Promise<{ approved: boolean; reason?: string }> {
+    const kind = PI_NATIVE_TOOL_KINDS[args.nativeName];
     if (
-      !piBuiltinToolRequiresApproval({
-        permissionMode,
-        kind: PI_NATIVE_TOOL_KINDS[args.nativeName],
-      })
+      !piBuiltinToolRequiresApproval({ permissionMode, kind }) &&
+      !(
+        permissionMode === 'allow-edits' &&
+        kind === 'edit' &&
+        (await isPiWriteProtected({ filePath: args.filePath }))
+      )
     ) {
       return { approved: true };
     }
@@ -1280,6 +1316,28 @@ export async function createPiSession(
     return new Promise(resolve => {
       pendingToolApprovals.set(args.toolCallId, { resolve });
       emitEarlyFinishStepIfReady();
+    });
+  }
+
+  async function isPiWriteProtected({
+    filePath,
+  }: {
+    filePath: string | undefined;
+  }): Promise<boolean> {
+    if (filePath == null) return true;
+    let sandboxPath: string;
+    try {
+      sandboxPath = (await resolveSandboxPaths()).remoteOps.paths.toSandboxPath(
+        filePath,
+      );
+    } catch {
+      return true;
+    }
+    return isSandboxWriteProtectedPath({
+      sandbox: toolSafeSandboxSession,
+      workDir: sessionWorkDir,
+      paths: [sandboxPath],
+      writeProtectedPaths: PI_WRITE_PROTECTED_PATHS,
     });
   }
 
@@ -1351,6 +1409,11 @@ export async function createPiSession(
         await resourceLoader.reload();
         resourcesReloaded = true;
       }
+    }
+
+    if (!resourcesReloaded) {
+      await reloadResourcesOnly();
+      resourcesReloaded = true;
     }
 
     const { customTools, builtinNames } = buildToolDefinitions(userTools);
@@ -1472,6 +1535,17 @@ export async function createPiSession(
       }
     }
 
+    const nextRepositoryResources = await loadPiRepositoryResources({
+      sandbox: toolSafeSandboxSession,
+      workDir: sessionWorkDir,
+      deniedRoots: fileToolPathPolicy?.deniedRoots,
+      abortSignal: turnOpts.abortSignal,
+    });
+    const repositoryResourcesChanged =
+      JSON.stringify(repositoryResources) !==
+      JSON.stringify(nextRepositoryResources);
+    repositoryResources = nextRepositoryResources;
+
     const userTools = turnOpts.tools;
     currentEmit = turnOpts.emit;
     const turnAbortController = new AbortController();
@@ -1535,6 +1609,15 @@ export async function createPiSession(
         if (!resourcesReloaded) {
           await reloadResourcesOnly();
           turnAbortController.signal.throwIfAborted();
+        }
+
+        if (!needsRebuild && repositoryResourcesChanged) {
+          /*
+           * Reloading the resource loader does not rebuild an existing Pi
+           * session's cached system prompt. Reapplying its current tool set
+           * refreshes instructions and skill listings without changing tools.
+           */
+          piSession!.setActiveToolsByName(piSession!.getActiveToolNames());
         }
 
         // Fresh translator state for the new turn — keep the tool sets the
@@ -1958,14 +2041,17 @@ function asPiToolResult(text: string): AgentToolResult<unknown> {
 async function maybeDenyPiBuiltinTool(input: {
   toolCallId: string;
   nativeName: (typeof PI_NATIVE_BUILTIN_NAMES)[number];
+  filePath?: string;
   requestApproval: (args: {
     toolCallId: string;
     nativeName: (typeof PI_NATIVE_BUILTIN_NAMES)[number];
+    filePath?: string;
   }) => Promise<{ approved: boolean; reason?: string }>;
 }): Promise<AgentToolResult<unknown> | undefined> {
   const decision = await input.requestApproval({
     toolCallId: input.toolCallId,
     nativeName: input.nativeName,
+    ...(input.filePath != null ? { filePath: input.filePath } : {}),
   });
   if (decision.approved) return undefined;
   return asPiToolResult(
@@ -1992,6 +2078,7 @@ function buildBuiltinToolDefinition(input: {
   requestApproval: (args: {
     toolCallId: string;
     nativeName: (typeof PI_NATIVE_BUILTIN_NAMES)[number];
+    filePath?: string;
   }) => Promise<{ approved: boolean; reason?: string }>;
 }): ToolDefinition {
   switch (input.native) {
@@ -2049,6 +2136,7 @@ function buildBuiltinToolDefinition(input: {
           const denied = await maybeDenyPiBuiltinTool({
             toolCallId,
             nativeName: 'write',
+            filePath: params.file_path,
             requestApproval: input.requestApproval,
           });
           if (denied) return denied;
@@ -2071,6 +2159,7 @@ function buildBuiltinToolDefinition(input: {
           const denied = await maybeDenyPiBuiltinTool({
             toolCallId,
             nativeName: 'edit',
+            filePath: params.file_path,
             requestApproval: input.requestApproval,
           });
           if (denied) return denied;

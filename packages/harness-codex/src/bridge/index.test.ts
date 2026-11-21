@@ -20,6 +20,7 @@ const CODEX_ENV_KEYS = [
 ] as const;
 
 const state = vi.hoisted(() => ({
+  hostDisconnectTimeoutMs: undefined as number | undefined,
   startModel: 'gpt-5.5',
   startResponseFormat: undefined as
     | { type: 'json'; schema: Record<string, unknown> }
@@ -62,11 +63,14 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
     onStart,
     onStop,
     onDestroy,
+    hostDisconnectTimeoutMs,
   }: {
     onStart: (start: unknown, turn: unknown) => Promise<void>;
     onStop: () => Promise<unknown>;
     onDestroy: () => Promise<void>;
+    hostDisconnectTimeoutMs?: number;
   }) => {
+    state.hostDisconnectTimeoutMs = hostDisconnectTimeoutMs;
     const start = {
       prompt: 'Use the weather tool.',
       responseFormat: state.startResponseFormat,
@@ -186,6 +190,21 @@ describe('Codex bridge config', () => {
     expect(state.appServerOptions).toHaveLength(1);
     expect(state.appServerOptions[0]?.start.tools).toEqual([]);
   });
+
+  test.each([
+    [['--host-disconnect-timeout-ms', '60000'], 60_000],
+    [[], undefined],
+  ])(
+    'passes the host disconnect timeout argument to the bridge (%j)',
+    async (extraArgs, expected) => {
+      state.hostDisconnectTimeoutMs = undefined;
+      process.argv.push(...extraArgs);
+
+      await import('./index');
+
+      expect(state.hostDisconnectTimeoutMs).toBe(expected);
+    },
+  );
 
   test('reuses one runtime for turns and closes on stop and destroy', async () => {
     state.runSecondTurn = true;
@@ -317,8 +336,10 @@ describe('Codex bridge config', () => {
           supports_websockets: false,
         },
       },
-      preferred_auth_method: 'apikey',
     });
+    expect(state.appServerOptions[0]?.codexConfig).not.toHaveProperty(
+      'preferred_auth_method',
+    );
   });
 
   test('enables standalone web search for the ChatGPT Codex backend', async () => {

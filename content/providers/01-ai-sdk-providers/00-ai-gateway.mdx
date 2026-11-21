@@ -503,6 +503,35 @@ console.log(ranking);
 
 Reranking models are useful for improving search results in retrieval-augmented generation (RAG) pipelines by re-scoring candidate documents after an initial retrieval step.
 
+## Extraction Models
+
+<Note type="warning">
+  Extraction is experimental and the API may change in patch releases.
+</Note>
+
+You can create extraction models using the `extractionModel` method on the provider instance and use them with [`experimental_extract`](/docs/ai-sdk-core/extractions):
+
+```ts
+import { gateway } from '@ai-sdk/gateway';
+import { experimental_extract } from 'ai';
+
+const { answers } = await experimental_extract({
+  model: gateway.extractionModel('scaledown/extract-1'),
+  state: 'Invoice INV-2041 from Acme Corp. Contacts: Ana, Bo.',
+  fields: {
+    invoiceNumber: { type: 'text', instructions: 'The invoice number' },
+    contacts: { type: 'list', items: 'text', instructions: 'Contact names' },
+  },
+});
+
+console.log(answers.invoiceNumber.value); // 'INV-2041'
+console.log(answers.contacts.value); // ['Ana', 'Bo']
+```
+
+- **Field types:** which field types are supported depends on the model. A field the model cannot extract throws `Experimental_ExtractionUnsupportedFieldTypeError` with the `fieldId` and `fieldType`, after the request reaches the gateway.
+- **Files:** send file state inline, as bytes or base64. Files given as a URL are downloaded by `experimental_extract` when you pass `experimental_download`. File references are sent to the gateway unchanged, which rejects them for now, so they fail after the request is sent.
+- **Provider options:** [gateway provider options](#gateway-provider-options) such as `user` and `tags` go under `providerOptions.gateway`.
+
 ## Streaming Speech Models
 
 <Note type="warning">
@@ -630,6 +659,72 @@ the short-lived setup response from `getToken()`.
   `ai-model-id` headers the HTTP routes use. Subprotocol values must fit the
   WebSocket token grammar, and the complete `Sec-WebSocket-Protocol` header
   should stay compact (under an 8 KiB safe header budget).
+</Note>
+
+### Live Models
+
+Live models such as `openai/gpt-live-1.1` hold one continuous conversation: a
+`session-start` event opens the session, PCM16 audio streams in both directions,
+and `session-close` ends it with final usage. `gateway.experimental_realtime()`
+returns a Live model for known Live model IDs. It connects to the Gateway Live
+route and speaks the normalized Live protocol. Pass `{ api: 'live' }` for a Live
+model ID the SDK does not know yet, or `{ api: 'realtime' }` to force the
+realtime route.
+
+```ts
+import { gateway } from '@ai-sdk/gateway';
+
+const live = gateway.experimental_realtime('openai/gpt-live-1.1');
+const newerLive = gateway.experimental_realtime('openai/gpt-live-2', {
+  api: 'live',
+});
+```
+
+`getToken()` mints a client secret bound to the Live route for Live models, so
+the browser can connect straight to the Gateway:
+
+```ts filename='app/api/live/setup/route.ts'
+import { gateway } from '@ai-sdk/gateway';
+
+export async function POST() {
+  const token = await gateway.experimental_realtime.getToken({
+    model: 'openai/gpt-live-1.1',
+  });
+
+  return Response.json(token);
+}
+```
+
+```tsx filename='app/live/page.tsx'
+'use client';
+
+import { gateway } from '@ai-sdk/gateway';
+import { experimental_useRealtime } from '@ai-sdk/react';
+
+const model = gateway.experimental_realtime('openai/gpt-live-1.1');
+
+export default function LivePage() {
+  const live = experimental_useRealtime({
+    model,
+    api: { token: '/api/live/setup' },
+    sessionConfig: { instructions: 'Keep replies brief.' },
+  });
+
+  // live.connect(), live.close(), live.session?.usage, ...
+}
+```
+
+Live sessions accept `instructions`, `voice`, `inputAudioFormat`,
+`outputAudioFormat` and `providerOptions` (`gateway`, and `openai` with
+`delegation`, `input`, `store` and `voice`). Audio is `audio/pcm` at 16000 or
+24000 Hz, with the same format in both directions. Live uses client delegation:
+your application submits context with `context-append` instead of the
+turn-based tool loop, and `sendTextMessage()` and `addToolOutput()` are not
+available. Live model IDs must be fully qualified (`creator/model-name`).
+
+<Note>
+  Live through the Gateway provider uses WebSocket only. For WebRTC, use
+  `@ai-sdk/openai` directly. Responses delegation is not supported.
 </Note>
 
 ### Provider Options
@@ -1256,7 +1351,7 @@ console.log('Tool calls:', JSON.stringify(result.toolCalls, null, 2));
 console.log('Tool results:', JSON.stringify(result.toolResults, null, 2));
 ```
 
-Configure the search with effort, source selection, and localization defaults. These defaults override values the model includes in a tool call:
+Configure the search with effort, source selection, and localization defaults. These defaults override values the model includes in a tool call. `variableCost`, `maxVariableCostUsd`, and `extraBody` are developer-only: the model can't see or set them.
 
 ```ts
 import { gateway, generateText } from 'ai';
@@ -1311,6 +1406,43 @@ The Tako Search tool supports these optional configuration options:
 - **timezone** _string_ - IANA timezone, such as `'America/New_York'`.
 - **outputSettings** _object_ - Card rendering controls. `forceRefresh` is available only with `'instant'` effort.
 - **includeRelated** _number_ - Number of related search suggestions to include (1-20).
+- **variableCost** _boolean_ - Serve data from sources priced per unit, such as web traffic and SEO. Each such card adds a charge, and the total per call is capped by `maxVariableCostUsd`. Defaults to `true`. Set it to `false` to opt out; those cards then come back as placeholders. Only searches that include the data index (`sources.data` set, or `sources` omitted) return these cards.
+- **maxVariableCostUsd** _number | null_ - The most one search call can be charged in variable cost, in USD.
+  - Defaults to `0.25`, and `null` removes the cap.
+  - Tako checks each card's maximum charge (`content.export_pricing.variable_cost_max_usd`) in rank order. A card that doesn't fit comes back as a placeholder with `reason: 'over_cap'`, even if its actual charge would have fit.
+  - `0` returns only the cards whose charge the base price already covers.
+  - It can't be combined with `variableCost: false`.
+- **extraBody** _Record&lt;string, unknown&gt;_ - Extra Tako request fields, in snake_case, deep-merged into the request body last. Objects merge, and scalars and arrays replace. Use it for Tako parameters this tool doesn't model yet. Its limits:
+  - It can't set a field the tool already models, including the `sources.data` variable-cost fields. The gateway answers `invalid_input`.
+  - Tako rejects unknown keys, so a typo comes back as an `api_error`.
+  - It's limited to 16,384 serialized characters.
+
+When Tako withholds a card's data, it returns a placeholder card instead. A placeholder keeps its title and a description but carries no data. `placeholder.withheld_source` names the source, and `placeholder.reason` is `'not_served'` (variable cost is off, or the account isn't served that source) or `'over_cap'`. `usage.variable_cost.cost_usd` reports the variable-cost charge for the call:
+
+```ts
+import { gateway, generateText } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-5.4-nano',
+  prompt: 'How much monthly web traffic does vercel.com get?',
+  tools: {
+    tako_search: gateway.tools.takoSearch({
+      sources: { data: {}, web: {} },
+      maxVariableCostUsd: 0.1,
+    }),
+  },
+});
+
+for (const toolResult of result.toolResults) {
+  if (toolResult.dynamic || 'error' in toolResult.output) continue;
+  for (const card of toolResult.output.cards ?? []) {
+    if (card.placeholder) {
+      const reason = card.placeholder.reason ?? 'not_served';
+      console.log(`Withheld (${reason}):`, card.title);
+    }
+  }
+}
+```
 
 For precise entity matching, quote a phrase in the query and optionally append a label: `"Tesla":PRODUCT price`. Tako treats the quoted phrase as one entity before searching.
 
@@ -1715,7 +1847,7 @@ The following gateway provider options are available:
 
   Specifies fallback models in attempt order. String entries keep their existing behavior: the gateway tries them when the primary model fails or is unavailable. Decision requests can also start the list with one conditional `{ model, when }` entry to retry a successful but uncertain decision with another model. Only the first entry can be conditional, and only one conditional entry is allowed. If the primary model fails, the gateway also advances to the conditional entry under its existing error fallback behavior. Conditional entries are rejected on non-decision requests.
 
-  Example: `models: ['openai/gpt-5.4-nano', 'google/gemini-3.8-flash']` will try the fallback models in order if the primary model fails.
+  Example: `models: ['openai/gpt-5.4-nano', 'google/gemini-4-hydrogen']` will try the fallback models in order if the primary model fails.
 
   A direct condition uses `{ question, confidenceBelow }` for Choice and Score questions, or `{ question, probabilityBetween: [minimum, maximum] }` for Boolean questions. Leave out `question` to check every question of that type: `{ confidenceBelow: 0.6 }` matches when any Choice or Score answer is below 0.6, and a request with no Choice or Score questions never matches it. Boolean probability is P(true), not confidence in the selected Boolean outcome. Bounds are inclusive, finite, ordered, and within `[0, 1]`.
 
@@ -1754,6 +1886,10 @@ The following gateway provider options are available:
 - **disallowPromptTraining** _boolean_
 
   Restricts routing to providers that have agreements with Vercel for AI Gateway to not use prompts for model training. When using BYOK credentials, this filter is not applied. If BYOK credentials fail and the request falls back to system credentials, only providers that do not train on prompt data will be used. If there are no providers available for the model that disallow prompt training, the request will fail.
+
+- **headquarters** _string[]_
+
+  Restricts routing to providers whose parent company is headquartered in the listed countries, given as ISO 3166-1 alpha-2 codes (for example `['US', 'DE']`). To exclude countries instead, prefix every code with `!`, as in `['!US']`. A list can't mix allowed and excluded countries. The filter applies to both BYOK and system credentials, since it's about the provider rather than the credential. Providers without a recorded headquarters country are always excluded. If no provider for the model is headquartered in an allowed country, the request fails.
 
 - **quotaEntityId** _string_
 
@@ -1839,7 +1975,7 @@ const { text } = await generateText({
   prompt: 'Write a TypeScript haiku',
   providerOptions: {
     gateway: {
-      models: ['openai/gpt-5.4-nano', 'google/gemini-3.8-flash'], // Fallback models
+      models: ['openai/gpt-5.4-nano', 'google/gemini-4-hydrogen'], // Fallback models
     } satisfies GatewayProviderOptions,
   },
 });
@@ -1847,7 +1983,7 @@ const { text } = await generateText({
 // This will:
 // 1. Try openai/gpt-6-astra first
 // 2. If it fails, try openai/gpt-5.4-nano
-// 3. If that fails, try google/gemini-3.8-flash
+// 3. If that fails, try google/gemini-4-hydrogen
 // 4. Return the result from the first model that succeeds
 ```
 

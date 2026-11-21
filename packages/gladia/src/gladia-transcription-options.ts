@@ -1,3 +1,4 @@
+import type { GladiaModelIds } from './gladia-model-catalog';
 /**
  * Transcription model to use.
  *
@@ -12,6 +13,5 @@
  * If omitted, the Gladia API uses its default model (`solaria-1`).
  */
 export type GladiaTranscriptionModelId =
-  | 'solaria-1'
-  | 'solaria-3'
+  | GladiaModelIds['transcription']
   | (string & {});

@@ -30,7 +30,6 @@ Quick reference:
 
 - Enter beta mode: `pnpm changeset pre enter beta`
 - Exit beta mode: `pnpm changeset pre exit`
-- Backport fixes: add the `backport` label to the merged PR
 
 ## Pull Request Package Previews
 
@@ -46,10 +45,6 @@ Packages are installed directly from immutable deployment URLs.
 
 Complete the [maintainer setup](./package-previews.md#maintainer-setup) to connect
 the project. There is no manual snapshot option in the release workflow.
-
-## New Major Releases
-
-- Update version in `skills/use-ai-sdk/SKILL.md`.
 
 ## Provenance
 

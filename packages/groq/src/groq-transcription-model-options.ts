@@ -4,10 +4,10 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { GroqModelIds } from './groq-model-catalog';
 
 export type GroqTranscriptionModelId =
-  | 'whisper-large-v3-turbo'
-  | 'whisper-large-v3'
+  | GroqModelIds['transcription']
   | (string & {});
 
 // https://console.groq.com/docs/speech-to-text

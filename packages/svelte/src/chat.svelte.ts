@@ -25,6 +25,7 @@ class SvelteChatState<
   messages: UI_MESSAGE[];
   status = $state<ChatStatus>('ready');
   error = $state<Error | undefined>(undefined);
+  experimental_queuedMessages = $state<UI_MESSAGE[]>([]);
 
   constructor(messages: UI_MESSAGE[] = []) {
     this.messages = $state(messages);

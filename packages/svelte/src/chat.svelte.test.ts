@@ -7,6 +7,8 @@ import {
   DefaultChatTransport,
   isStaticToolUIPart,
   TextStreamChatTransport,
+  type ChatTransport,
+  type UIMessage,
   type UIMessageChunk,
 } from 'ai';
 import { flushSync } from 'svelte';
@@ -1371,5 +1373,43 @@ describe('reactivity', () => {
     // If this isn't handled correctly, it'd show a `state_unsafe_mutation` error.
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     chat.messages;
+  });
+});
+
+describe('experimental_queue', () => {
+  it('should expose queued messages and send them after the response finishes', async () => {
+    const controllers: ReadableStreamDefaultController<UIMessageChunk>[] = [];
+    const transport: ChatTransport<UIMessage> = {
+      sendMessages: async () =>
+        new ReadableStream<UIMessageChunk>({
+          start(controller) {
+            controllers.push(controller);
+          },
+        }),
+      reconnectToStream: async () => null,
+    };
+    const chat = new Chat({ transport, experimental_queue: true });
+    const text = (message: UIMessage) =>
+      message.parts
+        .map(part => (part.type === 'text' ? part.text : ''))
+        .join('');
+
+    const sent = chat.sendMessage({ text: 'first' });
+    await vi.waitFor(() => expect(controllers).toHaveLength(1));
+    await chat.sendMessage({ text: 'second' });
+
+    expect(chat.experimental_queuedMessages.map(text)).toEqual(['second']);
+
+    controllers[0].enqueue({ type: 'start' });
+    controllers[0].enqueue({ type: 'finish' });
+    controllers[0].close();
+    await vi.waitFor(() => expect(controllers).toHaveLength(2));
+
+    expect(chat.experimental_queuedMessages).toEqual([]);
+
+    controllers[1].enqueue({ type: 'start' });
+    controllers[1].enqueue({ type: 'finish' });
+    controllers[1].close();
+    await sent;
   });
 });

@@ -217,7 +217,7 @@ it('preserves literal Choice inference with public JSON instructions and criteri
   expectTypeOf(providerQuestion).toExtend<DecisionQuestion>();
 });
 
-it('infers answers for criteria-only questions and still requires Box instructions', async () => {
+it('infers answers for criteria-only questions and optional Box instructions', async () => {
   const result = await decide({
     model: new DecisionMockModelV4(),
     state: 'message',
@@ -232,6 +232,9 @@ it('infers answers for criteria-only questions and still requires Box instructio
         criteria: ['Low', 'High'],
       },
       urgent: { type: 'boolean', criteria: { true: { severity: 'high' } } },
+      refund: { type: 'boolean', instructions: 'Refund?', criteria: null },
+      boxOmitted: { type: 'box' },
+      boxNull: { type: 'box', instructions: null },
     },
   });
   expectTypeOf(result.answers.department.choice).toEqualTypeOf<
@@ -239,13 +242,14 @@ it('infers answers for criteria-only questions and still requires Box instructio
   >();
   expectTypeOf(result.answers.severity.score).toEqualTypeOf<number>();
   expectTypeOf(result.answers.urgent.probability).toEqualTypeOf<number>();
-  // @ts-expect-error Box has no criteria and still requires instructions.
-  const missing: DecisionQuestion = { type: 'box' };
-  // @ts-expect-error Box instructions cannot be null.
-  const nullInstructions: DecisionQuestion = {
-    type: 'box',
-    instructions: null,
-  };
-  void missing;
-  void nullInstructions;
+  expectTypeOf(result.answers.refund.probability).toEqualTypeOf<number>();
+  expectTypeOf(result.answers.boxOmitted.box).toEqualTypeOf<{
+    top: number;
+    bottom: number;
+    left: number;
+    right: number;
+  }>();
+  expectTypeOf(result.answers.boxNull).toEqualTypeOf<
+    typeof result.answers.boxOmitted
+  >();
 });

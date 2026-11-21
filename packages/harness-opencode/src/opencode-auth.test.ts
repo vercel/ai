@@ -162,6 +162,44 @@ describe('OpenCode auth', () => {
     },
   );
 
+  it('uses only the selected provider credentials with direct auth', () => {
+    const processEnv = {
+      AI_GATEWAY_API_KEY: 'gateway-key',
+      VERCEL_OIDC_TOKEN: 'oidc-token',
+      GITHUB_TOKEN: 'github-token',
+      OPENAI_API_KEY: 'openai-key',
+    };
+
+    expect(
+      resolveOpenCodeEnv({
+        auth: 'direct',
+        provider: 'github-copilot',
+        processEnv,
+      }),
+    ).toEqual({ GITHUB_TOKEN: 'github-token' });
+    expect(
+      resolveOpenCodeAuthenticationMode({
+        auth: 'direct',
+        provider: 'github-copilot',
+        processEnv,
+      }),
+    ).toBe('github-copilot');
+  });
+
+  it('resolves direct auth without a provider to the default provider', () => {
+    const processEnv = {
+      VERCEL_OIDC_TOKEN: 'oidc-token',
+      ANTHROPIC_API_KEY: 'anthropic-key',
+    };
+
+    expect(resolveOpenCodeEnv({ auth: 'direct', processEnv })).toEqual({
+      ANTHROPIC_API_KEY: 'anthropic-key',
+    });
+    expect(
+      resolveOpenCodeAuthenticationMode({ auth: 'direct', processEnv }),
+    ).toBe('anthropic');
+  });
+
   it('preserves the Anthropic fallback for mixed direct-provider credentials', () => {
     const processEnv = {
       ANTHROPIC_API_KEY: 'anthropic-key',
@@ -264,6 +302,90 @@ describe('resolveOpenCodeAuthentication', () => {
     });
     expect(readSubscription).not.toHaveBeenCalled();
   });
+
+  it.each([
+    'openai',
+    'xai',
+    'github-copilot',
+    'poe',
+    'opencode-go',
+    'gitlab',
+  ] as const)(
+    'reads the native %s subscription with direct auth despite ambient Gateway credentials',
+    async provider => {
+      const processEnv = {
+        AI_GATEWAY_API_KEY: 'gateway-key',
+        VERCEL_OIDC_TOKEN: 'oidc-token',
+      };
+      const readSubscription = vi.fn(async () => ({
+        providerId: provider,
+        accessToken: 'subscription-token',
+      }));
+
+      await expect(
+        resolveOpenCodeAuthentication({
+          auth: 'direct',
+          provider,
+          processEnv,
+          readSubscription,
+        }),
+      ).resolves.toEqual({
+        authenticationMode: provider,
+        environment: {
+          AI_SDK_OPENCODE_NATIVE_ACCESS_TOKEN: 'subscription-token',
+        },
+        subscription: {
+          providerId: provider,
+          accessToken: 'subscription-token',
+        },
+      });
+      expect(readSubscription).toHaveBeenCalledExactlyOnceWith({
+        providerId: provider,
+        env: processEnv,
+      });
+    },
+  );
+
+  it('prefers a provider API key before native subscriptions with direct auth', async () => {
+    const readSubscription = vi.fn();
+    await expect(
+      resolveOpenCodeAuthentication({
+        auth: 'direct',
+        provider: 'xai',
+        processEnv: {
+          VERCEL_OIDC_TOKEN: 'oidc-token',
+          XAI_API_KEY: 'environment-key',
+        },
+        readSubscription,
+      }),
+    ).resolves.toEqual({
+      authenticationMode: 'xai',
+      environment: { XAI_API_KEY: 'environment-key' },
+    });
+    expect(readSubscription).not.toHaveBeenCalled();
+  });
+
+  it.each([undefined, 'auto'] as const)(
+    'keeps resolving an ambient OIDC token to Gateway auth with auth %s',
+    async auth => {
+      const readSubscription = vi.fn();
+      await expect(
+        resolveOpenCodeAuthentication({
+          auth,
+          provider: 'github-copilot',
+          processEnv: { VERCEL_OIDC_TOKEN: 'oidc-token' },
+          readSubscription,
+        }),
+      ).resolves.toEqual({
+        authenticationMode: 'ai-gateway',
+        environment: {
+          AI_GATEWAY_API_KEY: 'oidc-token',
+          AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh/v1',
+        },
+      });
+      expect(readSubscription).not.toHaveBeenCalled();
+    },
+  );
 });
 
 describe('resolveOpenCodeAuthenticationMode', () => {
@@ -276,6 +398,22 @@ describe('resolveOpenCodeAuthenticationMode', () => {
       }),
     ).toBe('openai');
   });
+
+  it.each(['xai', 'github-copilot', 'poe', 'opencode-go', 'gitlab'] as const)(
+    'resolves direct %s auth despite ambient Gateway credentials',
+    provider => {
+      expect(
+        resolveOpenCodeAuthenticationMode({
+          auth: 'direct',
+          provider,
+          processEnv: {
+            AI_GATEWAY_API_KEY: 'gateway-key',
+            VERCEL_OIDC_TOKEN: 'oidc-token',
+          },
+        }),
+      ).toBe(provider);
+    },
+  );
 
   it('resolves ambient Gateway credentials to Gateway auth', () => {
     expect(

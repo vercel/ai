@@ -403,11 +403,12 @@ function maybeEncodeVideoFile(file: VideoModelV4File) {
 }
 
 const providerMetadataEntrySchema = () =>
-  z
-    .object({
-      videos: z.array(z.unknown()).optional(),
-    })
-    .catchall(z.unknown());
+  z.catchall(
+    z.object({
+      videos: z.optional(z.array(z.unknown())),
+    }),
+    z.unknown(),
+  );
 
 const gatewayVideoDataSchema = () =>
   z.union([
@@ -432,12 +433,12 @@ const gatewayVideoWarningSchema = () =>
     z.object({
       type: z.literal('unsupported'),
       feature: z.string(),
-      details: z.string().optional(),
+      details: z.optional(z.string()),
     }),
     z.object({
       type: z.literal('compatibility'),
       feature: z.string(),
-      details: z.string().optional(),
+      details: z.optional(z.string()),
     }),
     z.object({
       type: z.literal('deprecated'),
@@ -456,17 +457,17 @@ const gatewayVideoEventSchema = lazySchema(() =>
       z.object({
         type: z.literal('result'),
         videos: z.array(gatewayVideoDataSchema()),
-        warnings: z.array(gatewayVideoWarningSchema()).optional(),
-        providerMetadata: z
-          .record(z.string(), providerMetadataEntrySchema())
-          .optional(),
+        warnings: z.optional(z.array(gatewayVideoWarningSchema())),
+        providerMetadata: z.optional(
+          z.record(z.string(), providerMetadataEntrySchema()),
+        ),
       }),
       z.object({
         type: z.literal('error'),
         message: z.string(),
         errorType: z.string(),
         statusCode: z.number(),
-        param: z.unknown().nullable(),
+        param: z.nullable(z.unknown()),
       }),
     ]),
   ),
@@ -476,10 +477,10 @@ const gatewayVideoStartResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       operation: z.unknown(),
-      warnings: z.array(gatewayVideoWarningSchema()).nullish(),
-      providerMetadata: z
-        .record(z.string(), providerMetadataEntrySchema())
-        .nullish(),
+      warnings: z.nullish(z.array(gatewayVideoWarningSchema())),
+      providerMetadata: z.nullish(
+        z.record(z.string(), providerMetadataEntrySchema()),
+      ),
     }),
   ),
 );
@@ -489,31 +490,31 @@ const gatewayVideoStatusResponseSchema = lazySchema(() =>
     z.discriminatedUnion('status', [
       z.object({
         status: z.literal('pending'),
-        warnings: z.array(gatewayVideoWarningSchema()).nullish(),
-        providerMetadata: z
-          .record(z.string(), providerMetadataEntrySchema())
-          .nullish(),
+        warnings: z.nullish(z.array(gatewayVideoWarningSchema())),
+        providerMetadata: z.nullish(
+          z.record(z.string(), providerMetadataEntrySchema()),
+        ),
       }),
       z.object({
         status: z.literal('completed'),
         videos: z.array(gatewayVideoDataSchema()),
-        warnings: z.array(gatewayVideoWarningSchema()).nullish(),
-        providerMetadata: z
-          .record(z.string(), providerMetadataEntrySchema())
-          .nullish(),
+        warnings: z.nullish(z.array(gatewayVideoWarningSchema())),
+        providerMetadata: z.nullish(
+          z.record(z.string(), providerMetadataEntrySchema()),
+        ),
       }),
       z.object({
         status: z.literal('error'),
         error: z.string(),
-        providerMetadata: z
-          .record(z.string(), providerMetadataEntrySchema())
-          .nullish(),
+        providerMetadata: z.nullish(
+          z.record(z.string(), providerMetadataEntrySchema()),
+        ),
       }),
       z.object({
         status: z.literal('cancelled'),
-        providerMetadata: z
-          .record(z.string(), providerMetadataEntrySchema())
-          .nullish(),
+        providerMetadata: z.nullish(
+          z.record(z.string(), providerMetadataEntrySchema()),
+        ),
       }),
     ]),
   ),
