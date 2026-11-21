@@ -1,0 +1,2 @@
+{"id":"response-1","created":1769088854,"model":"mistral-small-latest","object":"chat.completion.chunk","choices":[{"index":0,"delta":{"role":"assistant","tool_calls":[{"index":0,"id":"gSIMJiOkT","function":{"name":"weather","arguments":{"location":"San Francisco"}}}]},"finish_reason":null}]}
+{"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":124,"total_tokens":146,"completion_tokens":22}}
