@@ -1,5 +1,27 @@
 # @ai-sdk/harness
 
+## 1.0.190
+
+### Patch Changes
+
+- Updated dependencies [7e55599]
+  - ai@7.0.179
+
+## 1.0.189
+
+### Patch Changes
+
+- 04a8f38: fix(harness): keep silent sandbox bridge connections alive with WebSocket pings and reconnect when a peer stops responding, controllable via `keepAliveMs` option for bridge-backed harness adapters
+- Updated dependencies [0b8cbfa]
+- Updated dependencies [1d2c2ff]
+- Updated dependencies [6815153]
+- Updated dependencies [15bfd6b]
+- Updated dependencies [15bfd6b]
+- Updated dependencies [2613bb4]
+- Updated dependencies [63593a7]
+  - ai@7.0.178
+  - @ai-sdk/provider-utils@5.0.83
+
 ## 1.0.188
 
 ### Patch Changes

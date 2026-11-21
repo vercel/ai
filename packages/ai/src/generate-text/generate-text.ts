@@ -440,8 +440,9 @@ async function generateTextInternal<
 
       /**
        * Secret for HMAC-signing tool approval requests. When set, the server
-       * signs each approval request at issuance and verifies the signature when
+       * signs approval requests at issuance and verifies the signature when
        * the approval is replayed, preventing client-forged approvals.
+       * Approval requests for automatically denied tool calls are not signed.
        */
       experimental_toolApprovalSecret?: string | Uint8Array;
 
@@ -1520,13 +1521,20 @@ async function generateTextInternal<
                     }
 
                     const approvalId = generateId();
-                    const signature = await maybeSignApproval({
-                      secret: experimental_toolApprovalSecret,
-                      approvalId,
-                      toolCallId: toolCall.toolCallId,
-                      toolName: toolCall.toolName,
-                      input: toolCall.input,
-                    });
+
+                    // A signature lets a later request execute this tool call by
+                    // replaying the approval from client-supplied history, so a
+                    // denied tool call must not get one.
+                    const signature =
+                      toolApprovalStatus.type === 'denied'
+                        ? undefined
+                        : await maybeSignApproval({
+                            secret: experimental_toolApprovalSecret,
+                            approvalId,
+                            toolCallId: toolCall.toolCallId,
+                            toolName: toolCall.toolName,
+                            input: toolCall.input,
+                          });
 
                     switch (toolApprovalStatus.type) {
                       case 'user-approval': {
@@ -1568,7 +1576,6 @@ async function generateTextInternal<
                           approvalId,
                           toolCall,
                           isAutomatic: true,
-                          ...(signature != null ? { signature } : {}),
                         };
                         stepToolApprovalResponses[toolCall.toolCallId] = {
                           type: 'tool-approval-response',

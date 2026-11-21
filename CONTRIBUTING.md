@@ -101,10 +101,6 @@ To test the package that you're working on, run `pnpm test` in the package folde
 You do not need to rebuild your package to test it (only dependencies need to be built).
 Some packages like `ai` also have more details tests and watch mode, see their `package.json` for more information.
 
-#### Adding package dependencies
-
-Please run `pnpm update-references` in workspace root to update the `references` section in the `tsconfig.json` file.
-
 ### Submitting Pull Requests
 
 We greatly appreciate focused pull requests. Before investing in an implementation, please review [how we value contributions](#how-we-value-contributions) and open or improve an issue first. Please avoid submitting fixes or feature implementations for issues you did not author, unless the purpose of the pull request is to add useful context best expressed with code. Our specialized agents work on open issues, and we will credit high-quality reports that lead to fixes.

@@ -1,7 +1,6 @@
 {
   "extends": "./node_modules/@vercel/ai-tsconfig/ts-library.json",
   "compilerOptions": {
-    "composite": true,
     "declaration": true,
     "declarationMap": true,
     "outDir": "dist",
@@ -17,16 +16,5 @@
   "exclude": [
     "dist",
     "node_modules"
-  ],
-  "references": [
-    {
-      "path": "../ai"
-    },
-    {
-      "path": "../provider-utils"
-    },
-    {
-      "path": "../test-server"
-    }
   ]
 }

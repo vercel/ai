@@ -4,10 +4,10 @@ import {
   type FlexibleSchema,
 } from '@ai-sdk/provider-utils';
 import * as z from 'zod/v4';
+import type { ScaleDownModelIds } from './scaledown-model-catalog';
 
 export type ScaleDownExtractionModelId =
-  | 'extract'
-  | 'extract-1'
+  | ScaleDownModelIds['extraction']
   | (string & {});
 
 export type ScaleDownExtractionModelOptions = {
