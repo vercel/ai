@@ -4136,9 +4136,6 @@ importers:
       '@opentelemetry/api':
         specifier: 1.9.1
         version: 1.9.1
-      ai:
-        specifier: workspace:*
-        version: link:../ai
     devDependencies:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
@@ -4158,6 +4155,9 @@ importers:
       '@vercel/ai-tsdown-config':
         specifier: workspace:*
         version: link:../../tools/tsdown-config
+      ai:
+        specifier: workspace:*
+        version: link:../ai
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.3.21)(tsx@4.23.12)(typescript@6.0.3)
