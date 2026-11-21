@@ -625,6 +625,171 @@ describe('StreamingToolCallTracker', () => {
       },
     );
 
+    it('should ignore continuation chunks after a blank-name opener without aborting later calls', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
+
+      tracker.processDelta({
+        index: 0,
+        id: '',
+        type: 'function',
+        function: { name: '', arguments: '' },
+      });
+      tracker.processDelta({
+        index: 0,
+        function: { arguments: '{}' },
+      });
+      tracker.processDelta({
+        index: 1,
+        id: 'call_2',
+        type: 'function',
+        function: { name: 'remember', arguments: '{"note":"x"}' },
+      });
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'call_2',
+          toolName: 'remember',
+          input: '{"note":"x"}',
+        },
+      ]);
+    });
+
+    it('should ignore id-only and index-only continuations after a blank-name opener with an id', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
+
+      tracker.processDelta({
+        index: 0,
+        id: 'call_bad',
+        type: 'function',
+        function: { name: '', arguments: '' },
+      });
+      tracker.processDelta({
+        id: 'call_bad',
+        function: { arguments: '{}' },
+      });
+      tracker.processDelta({
+        index: 0,
+        function: { arguments: ' ' },
+      });
+      tracker.processDelta({
+        index: 1,
+        id: 'call_good',
+        type: 'function',
+        function: { name: 'remember', arguments: '{"ok":true}' },
+      });
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'call_good',
+          toolName: 'remember',
+          input: '{"ok":true}',
+        },
+      ]);
+    });
+
+    it('should not let a blank-name opener and continuation on another index corrupt an active tool call', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
+
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'lookup', arguments: '{"q":' },
+      });
+      tracker.processDelta({
+        index: 1,
+        id: '',
+        type: 'function',
+        function: { name: '', arguments: '' },
+      });
+      tracker.processDelta({
+        index: 1,
+        function: { arguments: '{}' },
+      });
+      tracker.processDelta({
+        index: 0,
+        function: { arguments: '"ai"}' },
+      });
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'lookup',
+          input: '{"q":"ai"}',
+        },
+      ]);
+    });
+
+    it('should allow reusing an ignored blank-name index and id for a later valid tool call', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
+
+      tracker.processDelta({
+        index: 0,
+        id: 'call_reused',
+        type: 'function',
+        function: { name: '', arguments: '' },
+      });
+      tracker.processDelta({
+        index: 0,
+        id: 'call_reused',
+        type: 'function',
+        function: { name: 'remember', arguments: '{"note":' },
+      });
+      tracker.processDelta({
+        index: 0,
+        function: { arguments: '"ok"}' },
+      });
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'call_reused',
+          toolName: 'remember',
+          input: '{"note":"ok"}',
+        },
+      ]);
+    });
+
+    it('should ignore unlabeled continuations after an unlabeled blank-name opener', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
+
+      tracker.processDelta({
+        type: 'function',
+        function: { name: '', arguments: '' },
+      });
+      tracker.processDelta({
+        function: { arguments: '{}' },
+      });
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'remember', arguments: '{"note":"ok"}' },
+      });
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'remember',
+          input: '{"note":"ok"}',
+        },
+      ]);
+    });
+
     it('should keep id-less calls distinct when an index is reused and type is omitted', () => {
       const { parts, controller } = createCollector();
       const generateId = vi
