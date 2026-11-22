@@ -9,7 +9,7 @@
 
 import { createConnection, createServer, type Socket } from 'node:net';
 import { afterEach, describe, expect, it } from 'vitest';
-import { WebSocket, type RawData } from 'ws';
+import { WebSocket, WebSocketServer, type RawData } from 'ws';
 import { z } from 'zod/v4';
 import { runBridge, type BridgeHandle, type BridgeTurn } from './index';
 import { SandboxChannel } from '../utils/sandbox-channel';
@@ -469,6 +469,74 @@ describe('SandboxChannel ↔ runBridge reconnect', () => {
 
     // No gap (got the whole tail) and no duplicate (none of slice 1's events).
     expect(deltasB).toEqual(['three', 'four']);
+  });
+
+  it('keeps a connection alive while a large frame is still arriving', async () => {
+    // Real `ws` socket: the server stops reading (so the client's pings are
+    // never answered) and streams one event in fragments. Only the socket's
+    // inbound byte counter proves progress between heartbeats.
+    const wss = new WebSocketServer({ port: 0, host: '127.0.0.1' });
+    await new Promise<void>(resolve => wss.once('listening', resolve));
+
+    const payloadLength = 200_000;
+    const frame = JSON.stringify({
+      type: 'text-delta',
+      id: 'm',
+      delta: 'x'.repeat(payloadLength),
+    });
+    const fragmentLength = 20_000;
+    let connections = 0;
+    const serverSockets = new Set<WebSocket>();
+    const clientSockets: WebSocket[] = [];
+    wss.on('connection', ws => {
+      serverSockets.add(ws);
+      ws.on('close', () => serverSockets.delete(ws));
+      (ws as WebSocket & { _socket: Socket })._socket.pause();
+      let offset = 0;
+      const timer = setInterval(() => {
+        const next = Math.min(offset + fragmentLength, frame.length);
+        ws.send(frame.slice(offset, next), { fin: next === frame.length });
+        offset = next;
+        if (offset >= frame.length) clearInterval(timer);
+      }, 40);
+      ws.on('close', () => clearInterval(timer));
+    });
+    const address = wss.address();
+    if (!address || typeof address === 'string') throw new Error('No TCP port');
+
+    const debug: string[] = [];
+    const channel = new SandboxChannel<Outbound, Inbound>({
+      connect: () => {
+        connections++;
+        return new Promise((resolve, reject) => {
+          const ws = new WebSocket(`ws://127.0.0.1:${address.port}`);
+          clientSockets.push(ws);
+          ws.once('open', () => resolve(ws));
+          ws.once('error', reject);
+        });
+      },
+      outboundSchema,
+      keepAliveMs: 100,
+      reconnect: { initialDelayMs: 5, maxDelayMs: 20, maxElapsedMs: 2000 },
+      onDebug: event => debug.push(event.event),
+    });
+    cleanups.push(() => {
+      // The paused server socket never completes a close handshake.
+      channel.close();
+      for (const ws of clientSockets) ws.terminate();
+      for (const ws of serverSockets) ws.terminate();
+      return new Promise<void>(resolve => wss.close(() => resolve()));
+    });
+
+    const deltas: string[] = [];
+    channel.on('text-delta', event => deltas.push(event.delta));
+    await channel.open();
+    // The transfer takes ~360 ms, longer than the 300 ms timeout window.
+    await waitUntil(() => deltas.length === 1, 5_000);
+
+    expect(deltas[0]).toHaveLength(payloadLength);
+    expect(connections).toBe(1);
+    expect(debug).toEqual([]);
   });
 });
 

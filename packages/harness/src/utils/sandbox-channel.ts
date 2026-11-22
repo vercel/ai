@@ -63,8 +63,10 @@ export interface SandboxChannelOptions<TOut> {
   /**
    * Interval between WebSocket pings in milliseconds. Keeps idle connections
    * alive and terminates an unresponsive socket after two unanswered pings so
-   * reconnection can begin. Default 20_000. Set to 0 to disable. Sockets without
-   * ping support are left unchanged.
+   * reconnection can begin. Inbound progress counts as a response too: a peer
+   * that is still sending a large frame has not died just because its pong is
+   * queued behind that frame. Default 20_000. Set to 0 to disable. Sockets
+   * without ping support are left unchanged.
    */
   keepAliveMs?: number;
 
@@ -132,6 +134,14 @@ export function pinSandboxChannelEventCheckpoint(
   )[sandboxChannelEventCheckpointSymbol]?.pin();
 }
 
+/*
+ * Give up after this many consecutive heartbeat timeouts on connections that
+ * never proved the peer alive and delivered no event: each reconnect would only
+ * replay the same unread frame, so the loop has to end. External close/error
+ * drops are not heartbeat timeouts and do not count.
+ */
+const maxStalledReconnects = 3;
+
 function getAbortReason({
   abortSignal,
 }: {
@@ -155,6 +165,35 @@ function closeWebSocket({ ws }: { ws: WebSocket }): void {
       // best-effort
     }
   }
+}
+
+/**
+ * Number of bytes the underlying transport has received on this socket, when
+ * the implementation exposes a byte counter. The `ws` package exposes the Node
+ * socket as `_socket`; browser-like implementations do not, in which case
+ * callers fall back to counting completed frames.
+ */
+function getReceivedByteCount(ws: WebSocket): number | undefined {
+  const socket = (ws as WebSocket & { _socket?: { bytesRead?: unknown } })
+    ._socket;
+  const bytesRead = socket?.bytesRead;
+  return typeof bytesRead === 'number' && Number.isFinite(bytesRead)
+    ? bytesRead
+    : undefined;
+}
+
+/**
+ * A frame larger than the receiver's `maxPayload` is rejected before the cursor
+ * can advance, so reconnecting would only download and reject the same frame
+ * again. `ws` reports this as an unsupported message length (close code 1009);
+ * other implementations surface a generic error and keep retrying.
+ */
+function getOversizedMessageError(error: unknown): Error | undefined {
+  if (!(error instanceof Error)) return undefined;
+  return (error as { code?: unknown }).code ===
+    'WS_ERR_UNSUPPORTED_MESSAGE_LENGTH'
+    ? error
+    : undefined;
 }
 
 async function awaitWebSocketConnection({
@@ -255,6 +294,20 @@ export class SandboxChannel<
 
   private readonly keepAliveMs: number;
   private stopKeepalive: (() => void) | undefined;
+
+  /**
+   * The current (or most recently dropped) connection has proven the peer
+   * alive: it answered a ping, delivered an inbound frame, or kept the inbound
+   * byte counter moving.
+   */
+  private connectionProvenAlive = false;
+  /**
+   * Consecutive heartbeat-timeout drops on connections that never proved the
+   * peer alive and delivered no event. External close/error drops do not count
+   * and reset the streak.
+   */
+  private stalledReconnects = 0;
+  private reconnectStallCursor: number | undefined;
 
   private ws: WebSocket | undefined;
   private connected = false;
@@ -498,6 +551,13 @@ export class SandboxChannel<
 
   private wire(ws: WebSocket): void {
     let dropped = false;
+    this.connectionProvenAlive = false;
+    let inboundFrames = 0;
+    const markAlive = () => {
+      this.connectionProvenAlive = true;
+    };
+    let heartbeatTimedOut = false;
+    let oversizedMessage: Error | undefined;
     const onDrop = (code: number, reason: string) => {
       if (dropped) return;
       dropped = true;
@@ -507,20 +567,35 @@ export class SandboxChannel<
       if (this.closing) {
         this.enqueue(() => this.finalizeClose(code, reason));
       } else {
-        this.enqueue(() => this.reconnectLoop());
+        this.enqueue(() =>
+          this.reconnectLoop({
+            heartbeatTimeout: heartbeatTimedOut,
+            nonRetryableCause: oversizedMessage,
+          }),
+        );
       }
     };
 
-    const stopKeepalive = this.keepalive(ws, () => {
-      closeWebSocket({ ws });
-      onDrop(1006, 'heartbeat timeout');
-    });
+    const stopKeepalive = this.keepalive(
+      ws,
+      () => {
+        // Set before closing: some implementations emit `close` synchronously
+        // from `terminate()`, and the classification must not depend on that.
+        heartbeatTimedOut = true;
+        closeWebSocket({ ws });
+        onDrop(1006, 'heartbeat timeout');
+      },
+      markAlive,
+      () => inboundFrames,
+    );
     this.stopKeepalive = stopKeepalive;
 
     ws.on('message', (raw: ArrayBufferLike | string) => {
       // Once suspended, ignore further frames so the cursor freezes exactly at
       // the last delivered event (the bridge replays the rest to the next slice).
       if (this.suspended) return;
+      inboundFrames++;
+      markAlive();
       const text =
         typeof raw === 'string' ? raw : Buffer.from(raw).toString('utf8');
       this.enqueue(() => this.handleIncoming(text));
@@ -528,20 +603,64 @@ export class SandboxChannel<
     ws.on('close', (code: number, reason: Buffer) =>
       onDrop(code, reason?.toString?.('utf8') ?? ''),
     );
-    ws.on('error', () => onDrop(1006, 'socket error'));
+    ws.on('error', (error: unknown) => {
+      // Read inside the queued reconnect: the receiver may emit `close` before
+      // `error`, and the loop must still see the classification.
+      oversizedMessage ??= getOversizedMessageError(error);
+      onDrop(1006, 'socket error');
+    });
   }
 
-  private keepalive(ws: WebSocket, onTimeout: () => void): () => void {
+  private keepalive(
+    ws: WebSocket,
+    onTimeout: () => void,
+    onLiveness: () => void,
+    inboundFrameCount: () => number,
+  ): () => void {
     if (!(this.keepAliveMs > 0) || typeof ws.ping !== 'function') {
       return () => {};
     }
     let unansweredPings = 0;
+    let lastReceivedBytes = getReceivedByteCount(ws);
+    let lastInboundFrames = inboundFrameCount();
+    /*
+     * A pong is not the only proof of life: on a slow link the peer's pong
+     * queues behind a large frame that is still being received (head-of-line
+     * blocking), so a transfer that keeps making progress must not be treated
+     * as a dead peer. Any inbound bytes or completed frames since the previous
+     * interval count as liveness. Implementations that expose neither keep the
+     * pong-only behavior.
+     */
+    const hasInboundProgress = (): boolean => {
+      let progressed = false;
+      const receivedBytes = getReceivedByteCount(ws);
+      if (receivedBytes !== undefined) {
+        if (
+          lastReceivedBytes !== undefined &&
+          receivedBytes > lastReceivedBytes
+        ) {
+          progressed = true;
+        }
+        lastReceivedBytes = receivedBytes;
+      }
+      const receivedFrames = inboundFrameCount();
+      if (receivedFrames > lastInboundFrames) {
+        progressed = true;
+      }
+      lastInboundFrames = receivedFrames;
+      return progressed;
+    };
     const onPong = () => {
       unansweredPings = 0;
+      onLiveness();
     };
     ws.on('pong', onPong);
     const timer = setInterval(() => {
       if (ws.readyState !== ws.OPEN) return;
+      if (hasInboundProgress()) {
+        unansweredPings = 0;
+        onLiveness();
+      }
       if (unansweredPings >= 2) {
         onTimeout();
         return;
@@ -560,8 +679,46 @@ export class SandboxChannel<
     };
   }
 
-  private async reconnectLoop(): Promise<void> {
+  private async reconnectLoop({
+    heartbeatTimeout,
+    nonRetryableCause,
+  }: {
+    heartbeatTimeout: boolean;
+    nonRetryableCause?: Error;
+  }): Promise<void> {
     if (this.terminal || this.closing) return;
+    if (nonRetryableCause != null) {
+      // The same unreadable frame would be replayed on every reconnect.
+      this.failReconnect({ attempts: 0, cause: nonRetryableCause });
+      return;
+    }
+    /*
+     * Bound only our own heartbeat-driven loops. A connection that the
+     * keep-alive killed without ever proving the peer alive and without
+     * delivering an event is the signature of a peer replaying a frame the
+     * other side cannot finish reading; after a few of those, give up instead
+     * of replaying forever. External close/error drops always get a fresh
+     * `maxElapsedMs` budget, as before, so an idle session behind a proxy that
+     * cuts idle connections keeps reconnecting.
+     */
+    const cursorProgressed =
+      this.reconnectStallCursor !== undefined &&
+      this._lastSeenEventId !== this.reconnectStallCursor;
+    if (heartbeatTimeout && !this.connectionProvenAlive && !cursorProgressed) {
+      this.stalledReconnects++;
+    } else {
+      this.stalledReconnects = 0;
+    }
+    this.reconnectStallCursor = this._lastSeenEventId;
+    if (this.stalledReconnects > maxStalledReconnects) {
+      this.failReconnect({
+        attempts: 0,
+        cause: new Error(
+          `Gave up reconnecting after ${this.stalledReconnects} heartbeat timeouts without event progress`,
+        ),
+      });
+      return;
+    }
     const deadline = Date.now() + this.maxElapsedMs;
     let attempt = 0;
     let delay = this.initialDelayMs;

@@ -10,6 +10,8 @@ import {
 class HeartbeatSocket extends EventEmitter {
   readonly OPEN = 1;
   readyState = 1;
+  /** The `ws` package exposes the Node socket here; `bytesRead` grows as data arrives. */
+  _socket = { bytesRead: 0 };
   ping = vi.fn();
   send = vi.fn();
   close = vi.fn(() => {
@@ -17,6 +19,10 @@ class HeartbeatSocket extends EventEmitter {
     this.emit('close', 1000, Buffer.from('closed'));
   });
   terminate = vi.fn(() => {
+    this.readyState = 3;
+    this.emit('close', 1006, Buffer.from(''));
+  });
+  drop = vi.fn(() => {
     this.readyState = 3;
     this.emit('close', 1006, Buffer.from(''));
   });
@@ -28,6 +34,7 @@ const channels: SandboxChannel<z.infer<typeof outboundSchema>>[] = [];
 function makeChannel(
   options: {
     keepAliveMs?: number;
+    maxElapsedMs?: number;
     connect?: () => Promise<WebSocket>;
   } = {},
 ) {
@@ -43,7 +50,11 @@ function makeChannel(
     connect,
     outboundSchema,
     keepAliveMs: options.keepAliveMs,
-    reconnect: { maxElapsedMs: 200, initialDelayMs: 50, maxDelayMs: 50 },
+    reconnect: {
+      maxElapsedMs: options.maxElapsedMs ?? 200,
+      initialDelayMs: 50,
+      maxDelayMs: 50,
+    },
     onDebug: event => debug.push(event),
   });
   channels.push(channel);
@@ -196,5 +207,196 @@ describe('SandboxChannel keepalive', () => {
     expect(sockets[0].terminate).toHaveBeenCalledTimes(1);
     expect(sockets[0].listenerCount('pong')).toBe(0);
     expect(sockets).toHaveLength(2);
+  });
+
+  it('treats inbound byte progress as liveness while pongs are missing', async () => {
+    // A large frame arrives over many TCP chunks; the peer's pong queues behind
+    // it (head-of-line blocking), so only the byte counter proves progress.
+    const { channel, sockets } = makeChannel({ keepAliveMs: 100 });
+    await channel.open();
+    const socket = sockets[0];
+    for (const bytesRead of [1_024, 2_048, 4_096, 8_192]) {
+      socket._socket.bytesRead = bytesRead;
+      await vi.advanceTimersByTimeAsync(100);
+    }
+    expect(socket.terminate).not.toHaveBeenCalled();
+    expect(socket.ping).toHaveBeenCalledTimes(4);
+
+    // Bytes stop arriving and pongs stay missing: the peer is treated as dead.
+    await vi.advanceTimersByTimeAsync(300);
+    expect(socket.terminate).toHaveBeenCalledTimes(1);
+  });
+
+  it('treats received frames as liveness while pongs are missing', async () => {
+    const { channel, sockets } = makeChannel({ keepAliveMs: 100 });
+    await channel.open();
+    for (let index = 0; index < 5; index++) {
+      sockets[0].emit('message', JSON.stringify({ type: 'finish' }));
+      await vi.advanceTimersByTimeAsync(100);
+    }
+    expect(sockets[0].terminate).not.toHaveBeenCalled();
+  });
+
+  it('still times out when the byte counter is exposed but never advances', async () => {
+    const { channel, sockets } = makeChannel({ keepAliveMs: 100 });
+    await channel.open();
+    await vi.advanceTimersByTimeAsync(200);
+    expect(sockets[0].ping).toHaveBeenCalledTimes(2);
+    expect(sockets[0].terminate).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(100);
+    expect(sockets[0].terminate).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to pongs when the socket exposes no byte counter', async () => {
+    const socket = new HeartbeatSocket();
+    delete (socket as unknown as { _socket?: unknown })._socket;
+    const { channel } = makeChannel({
+      keepAliveMs: 100,
+      connect: async () => socket as unknown as WebSocket,
+    });
+    await channel.open();
+    await vi.advanceTimersByTimeAsync(200);
+    expect(socket.ping).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(100);
+    expect(socket.terminate).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails instead of reconnecting when a frame exceeds the size limit', async () => {
+    // A frame rejected by the receiver can never advance the cursor, so replay
+    // would repeat the same oversized frame forever.
+    const { channel, sockets, debug, connect } = makeChannel({
+      keepAliveMs: 100,
+    });
+    const onClose = vi.fn();
+    channel.onClose(onClose);
+    await channel.open();
+    sockets[0].emit(
+      'error',
+      Object.assign(new RangeError('Max payload size exceeded'), {
+        code: 'WS_ERR_UNSUPPORTED_MESSAGE_LENGTH',
+      }),
+    );
+    await vi.advanceTimersByTimeAsync(1);
+
+    expect(connect).toHaveBeenCalledTimes(1);
+    expect(sockets).toHaveLength(1);
+    expect(channel.isClosed()).toBe(true);
+    expect(onClose).toHaveBeenCalledExactlyOnceWith(1006, 'reconnect failed');
+    expect(debug.at(-1)?.event).toBe('reconnect-failed');
+  });
+
+  it('stops reconnecting after repeated heartbeat timeouts without progress', async () => {
+    // Each successful handshake resumes at the same cursor and then dies with
+    // no pong, frame, byte, or outbound drain: after a few heartbeat-driven
+    // reconnects the channel gives up instead of replaying forever.
+    const { channel, sockets, debug } = makeChannel({ keepAliveMs: 100 });
+    const onClose = vi.fn();
+    channel.onClose(onClose);
+    await channel.open();
+    await vi.advanceTimersByTimeAsync(1_300);
+
+    expect(sockets).toHaveLength(4);
+    expect(channel.isClosed()).toBe(true);
+    expect(onClose).toHaveBeenCalledExactlyOnceWith(1006, 'reconnect failed');
+    const failed = debug.find(
+      (
+        event,
+      ): event is Extract<
+        SandboxChannelDebugEvent,
+        { event: 'reconnect-failed' }
+      > => event.event === 'reconnect-failed',
+    );
+    expect(String((failed?.cause as Error | undefined)?.message)).toContain(
+      'without event progress',
+    );
+  });
+
+  it.each(['pong', 'bytes', 'frame', 'cursor'] as const)(
+    'keeps reconnecting when %s proves the peer alive',
+    async mechanism => {
+      const { channel, sockets, debug } = makeChannel({ keepAliveMs: 100 });
+      const onClose = vi.fn();
+      channel.onClose(onClose);
+      await channel.open();
+
+      // Five heartbeat-driven reconnects, each preceded by one liveness signal:
+      // without the reset the channel would give up after three.
+      for (let cycle = 1; cycle <= 5; cycle++) {
+        const socket = sockets.at(-1)!;
+        if (mechanism === 'pong') socket.emit('pong');
+        if (mechanism === 'bytes') socket._socket.bytesRead += 1_024;
+        if (mechanism === 'frame') {
+          socket.emit('message', JSON.stringify({ type: 'finish' }));
+        }
+        if (mechanism === 'cursor') {
+          socket.emit(
+            'message',
+            JSON.stringify({ type: 'finish', seq: cycle }),
+          );
+        }
+        await vi.advanceTimersByTimeAsync(300);
+      }
+
+      expect(sockets).toHaveLength(6);
+      expect(channel.isClosed()).toBe(false);
+      expect(onClose).not.toHaveBeenCalled();
+      expect(debug.filter(event => event.event === 'reconnect-failed')).toEqual(
+        [],
+      );
+    },
+  );
+
+  it('keeps reconnecting external drops with keepalive disabled', async () => {
+    // Without heartbeats nothing can distinguish an idle, healthy session from
+    // a stalled one, so external drops must keep getting a fresh budget.
+    const { channel, sockets, debug } = makeChannel({
+      keepAliveMs: 0,
+      maxElapsedMs: 200,
+    });
+    const onClose = vi.fn();
+    channel.onClose(onClose);
+    await channel.open();
+
+    // Each drop is followed by more than maxElapsedMs of idle time.
+    for (let drop = 0; drop < 3; drop++) {
+      sockets.at(-1)!.drop();
+      await vi.advanceTimersByTimeAsync(300);
+    }
+
+    expect(sockets).toHaveLength(4);
+    expect(channel.isClosed()).toBe(false);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(debug.filter(event => event.event === 'reconnect-failed')).toEqual(
+      [],
+    );
+  });
+
+  it('keeps reconnecting external drops when the socket has no ping support', async () => {
+    const sockets: HeartbeatSocket[] = [];
+    const { channel, debug } = makeChannel({
+      keepAliveMs: 100,
+      maxElapsedMs: 200,
+      connect: async () => {
+        const socket = new HeartbeatSocket();
+        Object.defineProperty(socket, 'ping', { value: undefined });
+        sockets.push(socket);
+        return socket as unknown as WebSocket;
+      },
+    });
+    const onClose = vi.fn();
+    channel.onClose(onClose);
+    await channel.open();
+
+    for (let drop = 0; drop < 3; drop++) {
+      sockets.at(-1)!.drop();
+      await vi.advanceTimersByTimeAsync(300);
+    }
+
+    expect(sockets).toHaveLength(4);
+    expect(channel.isClosed()).toBe(false);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(debug.filter(event => event.event === 'reconnect-failed')).toEqual(
+      [],
+    );
   });
 });
