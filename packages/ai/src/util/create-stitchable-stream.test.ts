@@ -292,14 +292,25 @@ describe('createStitchableStream', () => {
       expect(stream2Cancelled).toBe(true);
     });
 
-    it('should throw an error when adding a stream after terminating', async () => {
+    it('should discard streams added after terminating', async () => {
       const { addStream, terminate } = createStitchableStream<number>();
+      let lateStreamCancelled = false;
 
       terminate();
 
-      expect(() => addStream(convertArrayToReadableStream([1, 2]))).toThrow(
-        'Cannot add inner stream: outer stream is closed',
-      );
+      expect(() =>
+        addStream(
+          new ReadableStream({
+            cancel() {
+              lateStreamCancelled = true;
+            },
+          }),
+        ),
+      ).not.toThrow();
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(lateStreamCancelled).toBe(true);
     });
   });
 });

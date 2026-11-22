@@ -33,6 +33,7 @@ export function createStitchableStream<T>(): {
       return;
     }
 
+    isCancelled = true;
     isClosed = true;
     waitForNewStream.resolve();
 
