@@ -62,6 +62,24 @@ export function createACPPermissionController({
     ...(writeProtectedPaths ?? []),
   ];
 
+  const cancelAll = (): void => {
+    cancellationGeneration += 1;
+    for (const pending of pendingPermissions.values()) {
+      pending.cancel();
+    }
+    pendingPermissions.clear();
+  };
+  /*
+   * An aborted turn cancels its pending approvals whichever code path observes
+   * the abort first, so a request that is waiting for the host cannot still be
+   * answered with an approval after the abort.
+   */
+  if (turn.abortSignal.aborted) {
+    cancelAll();
+  } else {
+    turn.abortSignal.addEventListener('abort', cancelAll, { once: true });
+  }
+
   return {
     async requestPermission(request) {
       /*
@@ -180,13 +198,7 @@ export function createACPPermissionController({
         pendingPermissions.delete(approvalId);
       }
     },
-    cancelAll() {
-      cancellationGeneration += 1;
-      for (const pending of pendingPermissions.values()) {
-        pending.cancel();
-      }
-      pendingPermissions.clear();
-    },
+    cancelAll,
   };
 }
 

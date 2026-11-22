@@ -1104,7 +1104,6 @@ describe('ACP permission controller', () => {
       );
 
       fake.abort();
-      controller.cancelAll();
       fake.respond({ approvalId, approved: true });
 
       await expect(request).resolves.toEqual({
