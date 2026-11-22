@@ -351,6 +351,8 @@ Defaults for uncovered tools:
 - `'denied'`: hard allowlist mode. The policy enumerates what is allowed; everything else is rejected.
 - `'approved'`: allow. Only when the discovery source is fully trusted.
 
+When the approval is an `opaPolicy` approval, the fallback is applied to each policy evaluation for a tool call, before the evaluations are compared. This holds when you pass `opaPolicy(...)` or `shadow(opaPolicy(...))` directly. A custom wrapper function around it hides the fallback from the policy, so the fallback then applies to the combined decision only.
+
 Despite the name, it works on any `Record<string, Tool>`.
 
 ## Allow-all when no policy is configured
