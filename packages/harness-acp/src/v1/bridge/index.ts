@@ -42,6 +42,7 @@ import {
 import { createHostToolRelayAuthorization } from './host-tool-relay-authorization';
 import { createHostToolMcpServerDefinition } from './host-tool-mcp-definition';
 import { dispatchTurnPrompt } from './dispatch-turn-prompt';
+import { drainCancelledPrompt } from './drain-cancelled-prompt';
 import { refreshHostToolCatalog } from './refresh-host-tool-catalog';
 import { createACPPermissionController } from './permission-controller';
 import { configureACPPermissionMode } from './permission-mode';
@@ -60,6 +61,7 @@ import {
 
 const HOST_TOOL_MCP_SERVER_NAME = 'ai-sdk-harness-tools';
 const CATALOG_REFRESH_TIMEOUT_MS = 10_000;
+const CANCELLED_PROMPT_DRAIN_TIMEOUT_MS = 10_000;
 
 const args = parseArgs({ args: argv.slice(2) });
 const workDir = requireArg({ value: args.workDir, name: '--workdir' });
@@ -333,7 +335,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   activeHostToolRelay.bindTurn({ turn: relayTurn });
   try {
     const promptMeta = createOutputSchemaPromptMeta({ start });
+    let promptStarted = false;
     const startPrompt = () => {
+      promptStarted = true;
       sessionPrompted = true;
       return promptActiveSession({
         session: activeSession,
@@ -370,13 +374,28 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         },
       }));
     } catch (error) {
-      /*
-       * A host abort is not a session configuration failure: the catalog was
-       * never confirmed for this turn, and the next turn refreshes it before
-       * prompting, so keep the session usable instead of failing every later
-       * turn.
-       */
-      if (!turn.abortSignal.aborted) {
+      if (turn.abortSignal.aborted) {
+        /*
+         * The host aborted a turn whose prompt is still in flight. The ACP
+         * session keeps queueing that prompt's updates and its final stop, so
+         * discard them before the next turn can read them as its own. A host
+         * abort is not a session configuration failure: the session stays
+         * usable once the agent acknowledges the cancellation.
+         */
+        if (promptStarted) {
+          try {
+            await drainCancelledPrompt({
+              nextUpdate: () => activeSession.nextUpdate(),
+              timeoutMs: CANCELLED_PROMPT_DRAIN_TIMEOUT_MS,
+            });
+            /* Captured frames of the discarded updates belong to this turn. */
+            streamCapture?.drainRawValues();
+          } catch (drainError) {
+            sessionConfigurationFailure = { error: drainError };
+            throw drainError;
+          }
+        }
+      } else {
         if (HarnessBridgeCapabilityUnsupportedError.isInstance(error)) {
           catalogRefreshError = error;
         }
