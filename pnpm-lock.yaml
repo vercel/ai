@@ -22840,9 +22840,9 @@ packages:
     resolution: {integrity: sha512-RNEqWOyhhUQYN9V1GfHwu9AR/g+NTciH6Z5u3/no6X3/w+04J2lVDL+svFQVXgXrEGBMG2puMVN3gq2SNGuTGw==}
     engines: {node: '>=20.0.0'}
 
-  seroval@1.6.2:
-    resolution: {integrity: sha512-mPT+SD2TrlB6wvte1KkYOYUkubaTbd6pZ/6Kk3C9nxzrHmCZyhxOO7XGAeL7f+yLKZglzGtM9odUVvg/EhO+vQ==}
-    engines: {node: '>=10'}
+  seroval@1.8.2:
+    resolution: {integrity: sha512-zmMxi/9MdLK1MKazLmIP6Rk39RuK0Xydd+QHeOYntS37olJeTjB3+nwVj4ce/ZWiZJeRhcO5htfxt0mUzQBscQ==}
+    engines: {node: '>=20'}
 
   serve-index@1.9.2:
     resolution: {integrity: sha512-KDj11HScOaLmrPxl70KYNW1PksP4Nb/CLL2yvC+Qd2kHMPEEpfc4Re2e4FOay+bC/+XQl/7zAcWON3JVo5v3KQ==}
@@ -31504,7 +31504,7 @@ snapshots:
       perfect-debounce: 2.1.0
       pkg-types: 2.3.1
       postcss: 8.5.26
-      seroval: 1.6.2
+      seroval: 1.8.2
       std-env: 4.2.0
       ufo: 1.6.4
       unenv: 2.0.0-rc.24
@@ -48897,7 +48897,7 @@ snapshots:
 
   serialize-javascript@7.1.0: {}
 
-  seroval@1.6.2: {}
+  seroval@1.8.2: {}
 
   serve-index@1.9.2(supports-color@10.2.2):
     dependencies:
