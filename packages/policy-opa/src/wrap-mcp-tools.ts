@@ -1,39 +1,9 @@
-import type { Context, ModelMessage, Tool } from '@ai-sdk/provider-utils';
+import type { Context, Tool } from '@ai-sdk/provider-utils';
 import type { ToolApprovalConfiguration } from 'ai';
 import {
   type ApprovalFallbackStatus,
   getApprovalFallbackHook,
 } from './approval-fallback';
-
-/**
- * The arguments the SDK passes to a generic approval function, with the tool
- * call narrowed to what this helper needs.
- */
-interface GenericApprovalArgs {
-  toolCall: {
-    type: 'tool-call';
-    toolCallId: string;
-    toolName: string;
-    input: unknown;
-    dynamic: boolean;
-  };
-  tools: unknown;
-  toolsContext: unknown;
-  runtimeContext: unknown;
-  messages: ModelMessage[];
-}
-
-type GenericApproval = (args: GenericApprovalArgs) => unknown;
-
-/**
- * The options the SDK passes to a per-tool approval function.
- */
-interface PerToolApprovalOptions {
-  toolCallId: string;
-  messages: ModelMessage[];
-  toolContext: unknown;
-  runtimeContext: unknown;
-}
 
 /**
  * Result returned by {@link wrapMcpTools}: the original tool set plus a
@@ -67,10 +37,7 @@ export interface WrappedMcpTools<
  * every policy evaluation for a tool call, not only to the final decision. With
  * `{ default: 'denied' }` that keeps hard allowlist mode intact: a tool call
  * that the policy does not match is denied even when the evaluation with the
- * earlier tool calls of the same response asks for user approval. The same
- * applies to per-tool approval functions created by `opaPolicy`. Such a
- * function only receives the context of its own tool, so an `opaPolicy`
- * `toInput` that reads the context of another tool sees `undefined` there.
+ * earlier tool calls of the same response asks for user approval.
  *
  * @example
  * ```ts
@@ -143,48 +110,16 @@ export function wrapMcpTools<
       // Tool the user did not list: force it through the fallback.
       filled[name] = fallback;
     } else if (typeof configured === 'function') {
-      // Per-tool approval function. An `opaPolicy` approval handles the
-      // fallback itself (see the generic-function form) and needs the generic
-      // arguments, which carry the tool name.
+      // Per-tool approval function: mirror the generic-function form so a
+      // "no opinion" result (`not-applicable`/`undefined`) is forced through
+      // the fallback instead of letting the tool run unapproved.
       const original = configured as (
         ...args: unknown[]
       ) => Promise<unknown> | unknown;
-      const applyFallbackToPolicy =
-        getApprovalFallbackHook<GenericApproval>(original);
-
-      if (applyFallbackToPolicy != null) {
-        const policy = applyFallbackToPolicy(fallback);
-        filled[name] = async (
-          input: unknown,
-          options: PerToolApprovalOptions,
-        ) => {
-          const status = await policy({
-            toolCall: {
-              type: 'tool-call',
-              toolCallId: options.toolCallId,
-              toolName: String(name),
-              input,
-              dynamic: false,
-            },
-            tools,
-            // A per-tool approval function only receives the context of its own
-            // tool, so a custom `toInput` that reads another tool's context
-            // sees `undefined` here.
-            toolsContext: { [name]: options.toolContext },
-            runtimeContext: options.runtimeContext,
-            messages: options.messages,
-          });
-          return isNotApplicable(status) ? fallback : status;
-        };
-      } else {
-        // Mirror the generic-function form so a "no opinion" result
-        // (`not-applicable`/`undefined`) is forced through the fallback
-        // instead of letting the tool run unapproved.
-        filled[name] = async (...args: unknown[]) => {
-          const status = await original(...args);
-          return isNotApplicable(status) ? fallback : status;
-        };
-      }
+      filled[name] = async (...args: unknown[]) => {
+        const status = await original(...args);
+        return isNotApplicable(status) ? fallback : status;
+      };
     } else {
       // Static status the user explicitly configured: keep it as-is.
       filled[name] = configured;

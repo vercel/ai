@@ -461,42 +461,6 @@ describe('wrapMcpTools with an opaPolicy approval', () => {
     expect(await decide(toolApproval, deleteBackupCall, [])).toBe('denied');
   });
 
-  it('applies the fallback per evaluation to per-tool approval functions', async () => {
-    const policy = opaPolicy({ client, path: 'agent/call/decision' });
-    const { toolApproval } = wrapMcpTools<OpaTools>(
-      opaTools,
-      { read_config: policy as never, delete_backup: policy as never },
-      { default: 'denied' },
-    );
-
-    if (typeof toolApproval === 'function') {
-      throw new Error('expected per-tool object form');
-    }
-
-    const messages: ModelMessage[] = [];
-    const readEntry = toolApproval.read_config as (
-      ...args: unknown[]
-    ) => unknown;
-    const deleteEntry = toolApproval.delete_backup as (
-      ...args: unknown[]
-    ) => unknown;
-
-    expect([
-      await readEntry(readConfigCall.input, {
-        toolCallId: 'call-read',
-        messages,
-        toolContext: undefined,
-        runtimeContext: undefined,
-      }),
-      await deleteEntry(deleteBackupCall.input, {
-        toolCallId: 'call-delete',
-        messages,
-        toolContext: undefined,
-        runtimeContext: undefined,
-      }),
-    ]).toEqual([{ type: 'approved' }, 'denied']);
-  });
-
   // The SDK checks a tool call that a user approved once more before it runs,
   // with the messages that contain the response and its approval, so there is
   // a single evaluation. The fallback applies to it as well.
@@ -551,44 +515,6 @@ describe('wrapMcpTools with an opaPolicy approval', () => {
         await decide(toolApproval, { ...deleteBackupCall, input }, messages),
       ).toEqual({ type: 'user-approval', reason: 'delete after read' });
     });
-  });
-
-  it('keeps the default fallback for per-tool approval functions', async () => {
-    const policy = opaPolicy({ client, path: 'agent/call/decision' });
-    const { toolApproval } = wrapMcpTools<OpaTools>(opaTools, {
-      read_config: policy as never,
-      delete_backup: policy as never,
-    });
-
-    if (typeof toolApproval === 'function') {
-      throw new Error('expected per-tool object form');
-    }
-
-    const messages: ModelMessage[] = [];
-    const readEntry = toolApproval.read_config as (
-      ...args: unknown[]
-    ) => unknown;
-    const deleteEntry = toolApproval.delete_backup as (
-      ...args: unknown[]
-    ) => unknown;
-
-    expect([
-      await readEntry(readConfigCall.input, {
-        toolCallId: 'call-read',
-        messages,
-        toolContext: undefined,
-        runtimeContext: undefined,
-      }),
-      await deleteEntry(deleteBackupCall.input, {
-        toolCallId: 'call-delete',
-        messages,
-        toolContext: undefined,
-        runtimeContext: undefined,
-      }),
-    ]).toEqual([
-      { type: 'approved' },
-      { type: 'user-approval', reason: 'delete after read' },
-    ]);
   });
 
   it('denies when the evaluation with the sibling is the not-applicable one', async () => {
