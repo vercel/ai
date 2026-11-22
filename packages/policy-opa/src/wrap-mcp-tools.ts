@@ -67,7 +67,8 @@ export interface WrappedMcpTools<
  * every policy evaluation for a tool call, not only to the final decision. With
  * `{ default: 'denied' }` that keeps hard allowlist mode intact: a tool call
  * that the policy does not match is denied even when the evaluation with the
- * earlier tool calls of the same response asks for user approval.
+ * earlier tool calls of the same response asks for user approval. The same
+ * applies to per-tool approval functions created by `opaPolicy`.
  *
  * @example
  * ```ts
@@ -164,6 +165,9 @@ export function wrapMcpTools<
               dynamic: false,
             },
             tools,
+            // A per-tool approval function only receives the context of its own
+            // tool, so a custom `toInput` that reads another tool's context
+            // sees `undefined` here.
             toolsContext: { [name]: options.toolContext },
             runtimeContext: options.runtimeContext,
             messages: options.messages,
