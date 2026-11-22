@@ -395,7 +395,7 @@ describe('wrapMcpTools with an opaPolicy approval', () => {
       { type: 'approved' },
       // Without the fallback, the evaluation with the earlier `read_config`
       // call would turn this into `user-approval` and make it approvable.
-      { type: 'denied' },
+      'denied',
     ]);
   });
 
@@ -431,9 +431,7 @@ describe('wrapMcpTools with an opaPolicy approval', () => {
       { default: 'denied' },
     );
 
-    expect(await decide(toolApproval, deleteBackupCall, [])).toEqual({
-      type: 'denied',
-    });
+    expect(await decide(toolApproval, deleteBackupCall, [])).toBe('denied');
   });
 
   it('applies the fallback per evaluation to per-tool approval functions', async () => {
@@ -469,7 +467,7 @@ describe('wrapMcpTools with an opaPolicy approval', () => {
         toolContext: undefined,
         runtimeContext: undefined,
       }),
-    ]).toEqual([{ type: 'approved' }, { type: 'denied' }]);
+    ]).toEqual([{ type: 'approved' }, 'denied']);
   });
 
   it('applies the fallback per evaluation when the policy is in shadow mode', async () => {
@@ -483,7 +481,7 @@ describe('wrapMcpTools with an opaPolicy approval', () => {
 
     expect(await decideResponse(toolApproval)).toEqual([
       { type: 'approved' },
-      { type: 'denied' },
+      'denied',
     ]);
   });
 });

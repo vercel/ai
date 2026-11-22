@@ -139,12 +139,20 @@ export function opaPolicy<
   const createApproval = (
     fallback?: ApprovalFallbackStatus,
   ): ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT> => {
+    // The fallback is only used to compare the evaluations of a tool call.
+    // The decision of the evaluation the engine made is returned, so the
+    // approval keeps its reason and `wrapMcpTools` still applies the fallback
+    // to a returned `not-applicable` as before.
     const evaluateFallback = (decision: PolicyDecision): PolicyEvaluation =>
       fallback != null &&
       fallback !== 'not-applicable' &&
       decision.type === 'not-applicable'
-        ? { decision: { type: fallback }, replacedNotApplicable: true }
-        : { decision, replacedNotApplicable: false };
+        ? {
+            decision,
+            effective: { type: fallback },
+            replacedNotApplicable: true,
+          }
+        : { decision, effective: decision, replacedNotApplicable: false };
 
     return ({ toolCall, tools, toolsContext, runtimeContext, messages }) => {
       const toOpaInput = (inputMessages: ModelMessage[]) =>
@@ -165,11 +173,10 @@ export function opaPolicy<
       // The SDK checks a tool call that a user approved once more before it
       // runs it. `messages` then contain the response with that tool call and
       // with the other tool calls of the response, so there is nothing to
-      // append. The fallback applies here as well: a re-evaluation that does
-      // not match the call is denied instead of allowed.
+      // append. There is a single evaluation, so the fallback does not change
+      // the result; `wrapMcpTools` applies it to a returned `not-applicable`.
       if (isToolCallFromMessages(messages, toolCall)) {
-        return (async () =>
-          evaluateFallback(await decide(toOpaInput(messages))).decision)();
+        return (async () => decide(toOpaInput(messages)))();
       }
 
       let response = responses.get(messages);
@@ -191,7 +198,7 @@ export function opaPolicy<
         let evaluation = evaluateFallback(await decide(opaInput));
 
         // A denial cannot become more restrictive.
-        if (evaluation.decision.type !== 'denied') {
+        if (evaluation.effective.type !== 'denied') {
           const messagesWithEarlierToolCalls = appendEarlierToolCalls(
             messages,
             earlierToolCalls,
@@ -218,7 +225,9 @@ export function opaPolicy<
           }
         }
 
-        currentToolCall.decision = evaluation.decision;
+        // Later evaluations of the response see the decision the SDK acts on,
+        // which includes the fallback.
+        currentToolCall.decision = evaluation.effective;
         return evaluation.decision;
       };
 
@@ -337,11 +346,19 @@ const decisionRestrictiveness: Record<PolicyDecision['type'], number> = {
 };
 
 interface PolicyEvaluation {
+  /**
+   * The decision of this evaluation. It is returned when the evaluation is the
+   * most restrictive one.
+   */
   decision: PolicyDecision;
   /**
-   * Whether a fallback replaced a `not-applicable` decision. The replaced
-   * decision only exists for the comparison; the engine's own decision keeps
-   * its reason when both are equally restrictive.
+   * The decision with the fallback applied. It is only used for the comparison,
+   * so the engine's own decision keeps its reason when both are equally
+   * restrictive.
+   */
+  effective: PolicyDecision;
+  /**
+   * Whether the fallback replaced a `not-applicable` decision.
    */
   replacedNotApplicable: boolean;
 }
@@ -354,8 +371,8 @@ function moreRestrictiveDecision(
   evaluation: PolicyEvaluation,
   other: PolicyEvaluation,
 ): PolicyEvaluation {
-  const restrictiveness = decisionRestrictiveness[other.decision.type];
-  const current = decisionRestrictiveness[evaluation.decision.type];
+  const restrictiveness = decisionRestrictiveness[other.effective.type];
+  const current = decisionRestrictiveness[evaluation.effective.type];
 
   if (restrictiveness > current) return other;
   if (restrictiveness === current && evaluation.replacedNotApplicable) {
