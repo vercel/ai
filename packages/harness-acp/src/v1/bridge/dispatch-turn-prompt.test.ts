@@ -50,20 +50,15 @@ describe('dispatchTurnPrompt', () => {
     expect(onAbortedBeforePrompt).toHaveBeenCalledOnce();
   });
 
-  it('registers cancellation before the prompt is dispatched', async () => {
-    const turnAbort = new AbortController();
+  it('dispatches the initial prompt before waiting for the catalog', async () => {
     const calls: string[] = [];
-    const startPrompt = vi.fn(async () => {
-      calls.push('prompt');
-    });
-    const cancel = vi.fn(async () => {
-      calls.push('cancel');
-    });
 
     await dispatchTurnPrompt({
-      startPrompt,
-      abortSignal: turnAbort.signal,
-      cancel,
+      startPrompt: async () => {
+        calls.push('prompt');
+      },
+      abortSignal: new AbortController().signal,
+      cancel: async () => {},
       onAbortedBeforePrompt: () => {},
       initialCatalogRefresh: initialCatalogRefresh({
         waitForCatalogRefresh: async () => {
@@ -74,6 +69,27 @@ describe('dispatchTurnPrompt', () => {
     });
 
     expect(calls).toEqual(['prompt', 'wait']);
+  });
+
+  it('registers cancellation before the prompt is dispatched', async () => {
+    const turnAbort = new AbortController();
+    const cancel = vi.fn(async () => {});
+    const startPrompt = vi.fn(async () => {
+      /* Abort inside the dispatch: only a listener registered beforehand runs. */
+      turnAbort.abort();
+    });
+
+    await expect(
+      dispatchTurnPrompt({
+        startPrompt,
+        abortSignal: turnAbort.signal,
+        cancel,
+        onAbortedBeforePrompt: () => {},
+      }),
+    ).resolves.toEqual({ promptDispatched: true });
+
+    expect(startPrompt).toHaveBeenCalledOnce();
+    expect(cancel).toHaveBeenCalledOnce();
   });
 
   it('cancels the dispatched prompt as soon as the turn is aborted during the catalog wait', async () => {
