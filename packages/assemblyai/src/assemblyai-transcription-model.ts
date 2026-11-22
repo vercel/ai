@@ -1,8 +1,9 @@
 import { getAssemblyAITranscriptionModelEntry } from './assemblyai-model-catalog';
-import type {
-  TranscriptionModelV4,
-  SharedV4Warning,
-  SharedV4ProviderMetadata,
+import {
+  UnsupportedFunctionalityError,
+  type TranscriptionModelV4,
+  type SharedV4Warning,
+  type SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   resolve,
@@ -19,16 +20,16 @@ import {
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import type { AssemblyAIConfig } from './assemblyai-config';
+import {
+  streamAssemblyAITranscription,
+  type AssemblyAIStreamingConfig,
+} from './assemblyai-streaming-transcription';
 import { assemblyaiFailedResponseHandler } from './assemblyai-error';
 import { assemblyaiTranscriptionModelOptionsSchema } from './assemblyai-transcription-model-options';
 import type { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
 import type { AssemblyAITranscriptionAPITypes } from './assemblyai-api-types';
 
-interface AssemblyAITranscriptionModelConfig extends AssemblyAIConfig {
-  _internal?: {
-    currentDate?: () => Date;
-  };
+interface AssemblyAITranscriptionModelConfig extends AssemblyAIStreamingConfig {
   /**
    * The polling interval for checking transcript status in milliseconds.
    */
@@ -326,9 +327,27 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
     }
   }
 
+  async doStream(
+    options: Parameters<NonNullable<TranscriptionModelV4['doStream']>>[0],
+  ): Promise<
+    Awaited<ReturnType<NonNullable<TranscriptionModelV4['doStream']>>>
+  > {
+    return streamAssemblyAITranscription(this.modelId, this.config, options);
+  }
+
   async doGenerate(
     options: Parameters<TranscriptionModelV4['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
+    if (
+      !getAssemblyAITranscriptionModelEntry(this.modelId).capabilities
+        .transcription.transcription
+    ) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'pre-recorded transcription',
+        message: `'${this.modelId}' is a streaming model. Use it with experimental_streamTranscribe, or use 'assemblyai-stt-3-7' with transcribe.`,
+      });
+    }
+
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
     const { value: uploadResponse } = await postToApi({

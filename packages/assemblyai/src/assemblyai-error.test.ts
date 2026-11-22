@@ -102,6 +102,28 @@ describe('assemblyaiErrorDataSchema', () => {
 });
 
 describe('assemblyaiFailedResponseHandler', () => {
+  it('should join detail validation messages from the temporary token API', async () => {
+    const body = {
+      detail: ['expires_in_seconds must be 1..600', { msg: 'field required' }],
+    };
+
+    const error = await handleErrorResponse(body, 422);
+
+    expect(error.message).toBe(
+      'expires_in_seconds must be 1..600; field required',
+    );
+  });
+
+  it('should use the detail message from the temporary token API', async () => {
+    const body = { detail: 'Invalid API key' };
+
+    const error = await handleErrorResponse(body, 404);
+
+    expect(error.message).toBe('Invalid API key');
+    expect(error.statusCode).toBe(404);
+    expect(error.data).toStrictEqual(body);
+  });
+
   it('should use the flat error message', async () => {
     const body = { error: 'Invalid API key' };
 
