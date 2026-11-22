@@ -66,6 +66,7 @@ function permissionRequest({
 function createFakeTurn() {
   const events: BridgeEvent[] = [];
   const warnings: string[] = [];
+  const turnAbort = new AbortController();
   const approvalResolvers = new Map<
     string,
     (response: { approved: boolean; reason?: string }) => void
@@ -77,11 +78,15 @@ function createFakeTurn() {
         approvalResolvers.set(approvalId, resolve);
       }),
     emitWarning: ({ message }: { message: string }) => warnings.push(message),
+    abortSignal: turnAbort.signal,
   } as unknown as BridgeTurn;
   return {
     turn,
     events,
     warnings,
+    abort() {
+      turnAbort.abort();
+    },
     respond({
       approvalId,
       approved,
@@ -1011,5 +1016,100 @@ describe('ACP permission controller', () => {
         expect(fake.events).toEqual([]);
       },
     );
+  });
+
+  describe('aborted turns', () => {
+    it.each(['edit', 'delete', 'move'] as const)(
+      'cancels an %s request that arrives after the turn was aborted',
+      async kind => {
+        const fake = createFakeTurn();
+        const emitToolCall = vi.fn();
+        const controller = createACPPermissionController({
+          turn: fake.turn,
+          workDir,
+          sessionId: 'session-1',
+          permissionMode: 'allow-edits',
+          hasPermissionModeMapping: false,
+          emitToolCall,
+          claimHostToolPermission: async () => undefined,
+        });
+        fake.abort();
+
+        await expect(
+          controller.requestPermission(
+            permissionRequest({ toolCallId: 'call-1', kind }),
+          ),
+        ).resolves.toEqual({ outcome: { outcome: 'cancelled' } });
+        expect(emitToolCall).not.toHaveBeenCalled();
+        expect(fake.events).toEqual([]);
+      },
+    );
+
+    it('does not auto-approve a request whose resolution outlives the turn', async () => {
+      const fake = createFakeTurn();
+      let releaseClaim!: () => void;
+      const claimGate = new Promise<void>(resolve => {
+        releaseClaim = resolve;
+      });
+      let noteClaimed!: () => void;
+      const claimed = new Promise<void>(resolve => {
+        noteClaimed = resolve;
+      });
+      const controller = createACPPermissionController({
+        turn: fake.turn,
+        workDir,
+        sessionId: 'session-1',
+        permissionMode: 'allow-edits',
+        hasPermissionModeMapping: false,
+        emitToolCall: () => {},
+        claimHostToolPermission: async () => {
+          noteClaimed();
+          await claimGate;
+          return undefined;
+        },
+      });
+      const request = controller.requestPermission(
+        permissionRequest({ toolCallId: 'call-1', kind: 'edit' }),
+      );
+      await claimed;
+      fake.abort();
+      releaseClaim();
+
+      await expect(request).resolves.toEqual({
+        outcome: { outcome: 'cancelled' },
+      });
+    });
+
+    it('cancels a pending approval when the turn is aborted', async () => {
+      const fake = createFakeTurn();
+      const controller = createACPPermissionController({
+        turn: fake.turn,
+        workDir,
+        sessionId: 'session-1',
+        permissionMode: 'allow-edits',
+        hasPermissionModeMapping: false,
+        writeProtectedPaths: ['.claude'],
+        emitToolCall: () => {},
+        claimHostToolPermission: async () => undefined,
+      });
+      const request = controller.requestPermission(
+        permissionRequest({
+          toolCallId: 'call-1',
+          kind: 'edit',
+          toolCall: { locations: [{ path: '.claude/settings.json' }] },
+        }),
+      );
+      const approvalId = await vi.waitFor(() =>
+        getApprovalId({ events: fake.events }),
+      );
+
+      fake.abort();
+      controller.cancelAll();
+      fake.respond({ approvalId, approved: true });
+
+      await expect(request).resolves.toEqual({
+        outcome: { outcome: 'cancelled' },
+      });
+    });
   });
 });

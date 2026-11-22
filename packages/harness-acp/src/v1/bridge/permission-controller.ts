@@ -64,6 +64,11 @@ export function createACPPermissionController({
 
   return {
     async requestPermission(request) {
+      /*
+       * Once the host aborts the turn, no answer may grant the agent access:
+       * the turn is over and every request is reported as cancelled.
+       */
+      if (turn.abortSignal.aborted) return cancelled();
       if (request.sessionId !== sessionId) {
         turn.emitWarning({
           message:
@@ -91,10 +96,12 @@ export function createACPPermissionController({
         return cancelled();
       }
       const generation = cancellationGeneration;
+      const isCancelled = () =>
+        generation !== cancellationGeneration || turn.abortSignal.aborted;
       const call = await claimHostToolPermission({
         toolCall: request.toolCall,
       });
-      if (generation !== cancellationGeneration) return cancelled();
+      if (isCancelled()) return cancelled();
       if (call != null) {
         onHostToolPermissionAllowed?.({
           toolCallId: request.toolCall.toolCallId,
@@ -126,7 +133,7 @@ export function createACPPermissionController({
                 writeProtectedPaths: effectiveWriteProtectedPaths,
               }))
             )));
-      if (generation !== cancellationGeneration) return cancelled();
+      if (isCancelled()) return cancelled();
       if (autoApprove) {
         return {
           outcome: {

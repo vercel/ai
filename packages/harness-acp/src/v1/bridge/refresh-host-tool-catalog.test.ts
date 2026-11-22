@@ -109,4 +109,48 @@ describe('refreshHostToolCatalog', () => {
       return true;
     });
   });
+
+  it('stops waiting for the initial catalog as soon as the turn is aborted', async () => {
+    const turnAbort = new AbortController();
+    const startPrompt = vi.fn(async () => {});
+    const waitForCatalogRefresh = vi.fn(() => new Promise<boolean>(() => {}));
+
+    const promise = promptAndRefreshInitialHostToolCatalog({
+      startPrompt,
+      relay: {
+        updateCatalog: () => ({ changed: true, revision: 2 }),
+        waitForCatalogRefresh,
+      },
+      tools: [{ name: 'weather', inputSchema: { type: 'object' } }],
+      harnessId: 'lazy-acp',
+      timeoutMs: 10_000,
+      abortSignal: turnAbort.signal,
+    });
+    expect(waitForCatalogRefresh).toHaveBeenCalledOnce();
+
+    turnAbort.abort();
+
+    await expect(promise).rejects.toBe(turnAbort.signal.reason);
+    expect(startPrompt).toHaveBeenCalledOnce();
+  });
+
+  it('does not wait for a catalog once the turn is aborted', async () => {
+    const turnAbort = new AbortController();
+    turnAbort.abort();
+    const waitForCatalogRefresh = vi.fn(async () => true);
+
+    await expect(
+      refreshHostToolCatalog({
+        relay: {
+          updateCatalog: () => ({ changed: true, revision: 3 }),
+          waitForCatalogRefresh,
+        },
+        tools: [{ name: 'weather', inputSchema: { type: 'object' } }],
+        harnessId: 'generic-acp',
+        timeoutMs: 100,
+        abortSignal: turnAbort.signal,
+      }),
+    ).rejects.toBe(turnAbort.signal.reason);
+    expect(waitForCatalogRefresh).not.toHaveBeenCalled();
+  });
 });
