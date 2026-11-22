@@ -5,6 +5,10 @@ import type {
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { ToolApprovalConfiguration } from 'ai';
+import {
+  applyApprovalFallback,
+  type ApprovalFallbackStatus,
+} from '../approval-fallback';
 import type { PolicyClient } from '../policy-client';
 import type { PolicyDecision } from '../policy-decision';
 import { evaluatePolicy } from './evaluate-policy';
@@ -127,90 +131,121 @@ export function opaPolicy<
     return normalizeOpaDecision(outcome.result);
   };
 
-  return ({ toolCall, tools, toolsContext, runtimeContext, messages }) => {
-    const toOpaInput = (inputMessages: ModelMessage[]) =>
-      toInput?.({
-        toolCall,
-        tools,
-        toolsContext,
-        runtimeContext,
-        messages: inputMessages,
-      }) ??
-      ({
-        tool: { name: toolCall.toolName },
-        args: toolCall.input,
-        messages: inputMessages,
-        runtimeContext,
-      } satisfies DefaultOpaInput);
+  // `fallback` is only set through the internal hook below, by
+  // `wrapMcpTools`. It is applied to every evaluation of a tool call, before
+  // the decisions are compared: otherwise an evaluation with the earlier tool
+  // calls of the response can return `user-approval`, which is more
+  // restrictive than `not-applicable`, and lift a fallback of `denied`.
+  const createApproval = (
+    fallback?: ApprovalFallbackStatus,
+  ): ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT> => {
+    const evaluateFallback = (decision: PolicyDecision): PolicyEvaluation =>
+      fallback != null &&
+      fallback !== 'not-applicable' &&
+      decision.type === 'not-applicable'
+        ? { decision: { type: fallback }, replacedNotApplicable: true }
+        : { decision, replacedNotApplicable: false };
 
-    // The SDK checks a tool call that a user approved once more before it runs
-    // it. `messages` then contain the response with that tool call and with
-    // the other tool calls of the response, so there is nothing to append.
-    if (isToolCallFromMessages(messages, toolCall)) {
-      return (async () => decide(toOpaInput(messages)))();
-    }
+    return ({ toolCall, tools, toolsContext, runtimeContext, messages }) => {
+      const toOpaInput = (inputMessages: ModelMessage[]) =>
+        toInput?.({
+          toolCall,
+          tools,
+          toolsContext,
+          runtimeContext,
+          messages: inputMessages,
+        }) ??
+        ({
+          tool: { name: toolCall.toolName },
+          args: toolCall.input,
+          messages: inputMessages,
+          runtimeContext,
+        } satisfies DefaultOpaInput);
 
-    let response = responses.get(messages);
-    if (response == null) {
-      response = { toolCalls: [], lastEvaluation: Promise.resolve() };
-      responses.set(messages, response);
-    }
-
-    const earlierToolCalls = [...response.toolCalls];
-    const currentToolCall: EvaluatedToolCall = {
-      toolCallId: toolCall.toolCallId,
-      toolName: toolCall.toolName,
-      input: toolCall.input,
-    };
-    response.toolCalls.push(currentToolCall);
-
-    const evaluate = async (): Promise<PolicyDecision> => {
-      const opaInput = toOpaInput(messages);
-      let decision = await decide(opaInput);
-
-      // A denial cannot become more restrictive.
-      if (decision.type !== 'denied') {
-        const messagesWithEarlierToolCalls = appendEarlierToolCalls(
-          messages,
-          earlierToolCalls,
-        );
-
-        if (messagesWithEarlierToolCalls !== messages) {
-          const opaInputWithEarlierToolCalls = toOpaInput(
-            messagesWithEarlierToolCalls,
-          );
-
-          // A custom `toInput` that does not use `messages` produces the same
-          // input twice. OPA receives its input as JSON, so two inputs with
-          // the same JSON are one input, and evaluating it again cannot change
-          // the decision.
-          if (
-            toInput == null ||
-            !isSameInput(opaInput, opaInputWithEarlierToolCalls)
-          ) {
-            decision = moreRestrictiveDecision(
-              decision,
-              await decide(opaInputWithEarlierToolCalls),
-            );
-          }
-        }
+      // The SDK checks a tool call that a user approved once more before it
+      // runs it. `messages` then contain the response with that tool call and
+      // with the other tool calls of the response, so there is nothing to
+      // append. The fallback applies here as well: a re-evaluation that does
+      // not match the call is denied instead of allowed.
+      if (isToolCallFromMessages(messages, toolCall)) {
+        return (async () =>
+          evaluateFallback(await decide(toOpaInput(messages))).decision)();
       }
 
-      currentToolCall.decision = decision;
-      return decision;
-    };
+      let response = responses.get(messages);
+      if (response == null) {
+        response = { toolCalls: [], lastEvaluation: Promise.resolve() };
+        responses.set(messages, response);
+      }
 
-    // Evaluate the calls of a response one after the other, in the order they
-    // arrived, so that each evaluation knows which earlier calls were denied.
-    // This also holds when the caller does not wait for one decision before
-    // it asks for the next.
-    const evaluation = response.lastEvaluation.then(evaluate);
-    response.lastEvaluation = evaluation.then(
-      () => undefined,
-      () => undefined,
-    );
-    return evaluation;
+      const earlierToolCalls = [...response.toolCalls];
+      const currentToolCall: EvaluatedToolCall = {
+        toolCallId: toolCall.toolCallId,
+        toolName: toolCall.toolName,
+        input: toolCall.input,
+      };
+      response.toolCalls.push(currentToolCall);
+
+      const evaluate = async (): Promise<PolicyDecision> => {
+        const opaInput = toOpaInput(messages);
+        let evaluation = evaluateFallback(await decide(opaInput));
+
+        // A denial cannot become more restrictive.
+        if (evaluation.decision.type !== 'denied') {
+          const messagesWithEarlierToolCalls = appendEarlierToolCalls(
+            messages,
+            earlierToolCalls,
+          );
+
+          if (messagesWithEarlierToolCalls !== messages) {
+            const opaInputWithEarlierToolCalls = toOpaInput(
+              messagesWithEarlierToolCalls,
+            );
+
+            // A custom `toInput` that does not use `messages` produces the same
+            // input twice. OPA receives its input as JSON, so two inputs with
+            // the same JSON are one input, and evaluating it again cannot
+            // change the decision.
+            if (
+              toInput == null ||
+              !isSameInput(opaInput, opaInputWithEarlierToolCalls)
+            ) {
+              evaluation = moreRestrictiveDecision(
+                evaluation,
+                evaluateFallback(await decide(opaInputWithEarlierToolCalls)),
+              );
+            }
+          }
+        }
+
+        currentToolCall.decision = evaluation.decision;
+        return evaluation.decision;
+      };
+
+      // Evaluate the calls of a response one after the other, in the order
+      // they arrived, so that each evaluation knows which earlier calls were
+      // denied. This also holds when the caller does not wait for one decision
+      // before it asks for the next.
+      const evaluation = response.lastEvaluation.then(evaluate);
+      response.lastEvaluation = evaluation.then(
+        () => undefined,
+        () => undefined,
+      );
+      return evaluation;
+    };
   };
+
+  const approval = createApproval();
+
+  // Internal hook for `wrapMcpTools`; not part of the public API. The wrapper
+  // hands its fallback to the policy so that the fallback is applied to every
+  // evaluation of a tool call, not only to the combined decision.
+  Object.defineProperty(approval, applyApprovalFallback, {
+    value: (fallback: ApprovalFallbackStatus) => createApproval(fallback),
+    enumerable: false,
+  });
+
+  return approval;
 }
 
 /**
@@ -301,18 +336,32 @@ const decisionRestrictiveness: Record<PolicyDecision['type'], number> = {
   denied: 3,
 };
 
+interface PolicyEvaluation {
+  decision: PolicyDecision;
+  /**
+   * Whether a fallback replaced a `not-applicable` decision. The replaced
+   * decision only exists for the comparison; the engine's own decision keeps
+   * its reason when both are equally restrictive.
+   */
+  replacedNotApplicable: boolean;
+}
+
 /**
- * Returns `other` when it restricts the tool call more than `decision` does,
- * and `decision` otherwise.
+ * Returns `other` when it restricts the tool call more than `evaluation` does,
+ * and `evaluation` otherwise.
  */
 function moreRestrictiveDecision(
-  decision: PolicyDecision,
-  other: PolicyDecision,
-): PolicyDecision {
-  return decisionRestrictiveness[other.type] >
-    decisionRestrictiveness[decision.type]
-    ? other
-    : decision;
+  evaluation: PolicyEvaluation,
+  other: PolicyEvaluation,
+): PolicyEvaluation {
+  const restrictiveness = decisionRestrictiveness[other.decision.type];
+  const current = decisionRestrictiveness[evaluation.decision.type];
+
+  if (restrictiveness > current) return other;
+  if (restrictiveness === current && evaluation.replacedNotApplicable) {
+    return other;
+  }
+  return evaluation;
 }
 
 function isSameInput(input: unknown, other: unknown): boolean {
