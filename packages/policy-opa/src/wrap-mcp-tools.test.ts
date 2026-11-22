@@ -1,6 +1,10 @@
 import { jsonSchema, tool, type ModelMessage } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
-import { opaPolicy, type DefaultOpaInput } from './opa/opa-policy';
+import {
+  opaPolicy,
+  optionalOpaPolicy,
+  type DefaultOpaInput,
+} from './opa/opa-policy';
 import type { PolicyClient } from './policy-client';
 import { shadow } from './shadow';
 import { wrapMcpTools } from './wrap-mcp-tools';
@@ -307,6 +311,20 @@ describe('wrapMcpTools', () => {
     });
   });
 });
+function containsToolCall(
+  messages: readonly ModelMessage[],
+  toolName: string,
+): boolean {
+  return messages.some(
+    message =>
+      message.role === 'assistant' &&
+      Array.isArray(message.content) &&
+      message.content.some(
+        part => part.type === 'tool-call' && part.toolName === toolName,
+      ),
+  );
+}
+
 describe('wrapMcpTools with an opaPolicy approval', () => {
   // The policy allows `read_config`, never matches `delete_backup` on its own
   // (not-applicable), and asks for approval of `delete_backup` only when the
@@ -321,20 +339,29 @@ describe('wrapMcpTools with an opaPolicy approval', () => {
       }
       if (toolIdentifier.name !== 'delete_backup') return null as never;
 
-      const hasReadConfig = messages.some(
-        message =>
-          message.role === 'assistant' &&
-          Array.isArray(message.content) &&
-          message.content.some(
-            part =>
-              part.type === 'tool-call' && part.toolName === 'read_config',
-          ),
-      );
-
       return (
-        hasReadConfig
+        containsToolCall(messages, 'read_config')
           ? { decision: 'requires-approval', reason: 'delete after read' }
           : null
+      ) as never;
+    },
+  };
+
+  // The reverse of the rule above: the policy asks for approval of
+  // `delete_backup` on its own and stops matching once the sibling call is part
+  // of the messages.
+  const reverseClient: PolicyClient = {
+    async evaluate(_path, input) {
+      const { tool: toolIdentifier, messages } = input as DefaultOpaInput;
+
+      if (toolIdentifier.name !== 'delete_backup') {
+        return { decision: 'allow' } as never;
+      }
+
+      return (
+        containsToolCall(messages, 'read_config')
+          ? null
+          : { decision: 'requires-approval', reason: 'delete' }
       ) as never;
     },
   };
@@ -561,6 +588,57 @@ describe('wrapMcpTools with an opaPolicy approval', () => {
     ]).toEqual([
       { type: 'approved' },
       { type: 'user-approval', reason: 'delete after read' },
+    ]);
+  });
+
+  it('denies when the evaluation with the sibling is the not-applicable one', async () => {
+    const { toolApproval } = wrapMcpTools<OpaTools>(
+      opaTools,
+      opaPolicy({ client: reverseClient, path: 'agent/call/decision' }),
+      { default: 'denied' },
+    );
+
+    expect(await decideResponse(toolApproval)).toEqual([
+      { type: 'approved' },
+      'denied',
+    ]);
+  });
+
+  it('applies the fallback per evaluation through optionalOpaPolicy', async () => {
+    const approval = optionalOpaPolicy<OpaTools>({
+      client,
+      path: 'agent/call/decision',
+    });
+    if (approval == null) throw new Error('expected an approval');
+
+    const { toolApproval } = wrapMcpTools<OpaTools>(opaTools, approval, {
+      default: 'denied',
+    });
+
+    expect(await decideResponse(toolApproval)).toEqual([
+      { type: 'approved' },
+      'denied',
+    ]);
+  });
+
+  it('reports the policy decision to shadow telemetry when a fallback applies', async () => {
+    const decisions: Array<{ type: string }> = [];
+    const { toolApproval } = wrapMcpTools<OpaTools>(
+      opaTools,
+      shadow(opaPolicy({ client, path: 'agent/call/decision' }), {
+        enforce: true,
+        onDecision: event => void decisions.push(event.decision),
+      }),
+      { default: 'denied' },
+    );
+
+    expect(await decideResponse(toolApproval)).toEqual([
+      { type: 'approved' },
+      'denied',
+    ]);
+    expect(decisions.map(decision => decision.type)).toEqual([
+      'approved',
+      'not-applicable',
     ]);
   });
 
