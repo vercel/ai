@@ -297,8 +297,9 @@ export class SandboxChannel<
 
   /**
    * The current (or most recently dropped) connection has proven the peer
-   * alive: it answered a ping, delivered an inbound frame, or kept the inbound
-   * byte counter moving.
+   * alive: it answered a ping or delivered a complete inbound frame. Inbound
+   * bytes alone keep the connection alive against the heartbeat but do not
+   * reset the stalled-reconnect count.
    */
   private connectionProvenAlive = false;
   /**
