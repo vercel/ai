@@ -470,6 +470,100 @@ describe('wrapMcpTools with an opaPolicy approval', () => {
     ]).toEqual([{ type: 'approved' }, 'denied']);
   });
 
+  // The SDK checks a tool call that a user approved once more before it runs,
+  // with the messages that contain the response and its approval, so there is
+  // a single evaluation. The fallback applies to it as well.
+  describe('re-evaluation from messages', () => {
+    function messagesWithCalls(
+      calls: Array<{ toolCallId: string; toolName: string; input: unknown }>,
+    ): ModelMessage[] {
+      return [
+        { role: 'user', content: 'go' },
+        {
+          role: 'assistant',
+          content: calls.map(call => ({
+            type: 'tool-call' as const,
+            toolCallId: call.toolCallId,
+            toolName: call.toolName,
+            input: call.input,
+          })),
+        },
+      ];
+    }
+
+    it('denies a re-evaluation the policy does not match in hard allowlist mode', async () => {
+      const { toolApproval } = wrapMcpTools<OpaTools>(
+        opaTools,
+        opaPolicy({ client, path: 'agent/call/decision' }),
+        { default: 'denied' },
+      );
+
+      // `isToolCallFromMessages` compares the input by identity.
+      const input = deleteBackupCall.input;
+      const messages = messagesWithCalls([{ ...deleteBackupCall, input }]);
+
+      expect(
+        await decide(toolApproval, { ...deleteBackupCall, input }, messages),
+      ).toBe('denied');
+    });
+
+    it('keeps a user-approval request of a re-evaluation that matches', async () => {
+      const { toolApproval } = wrapMcpTools<OpaTools>(
+        opaTools,
+        opaPolicy({ client, path: 'agent/call/decision' }),
+        { default: 'denied' },
+      );
+
+      const input = deleteBackupCall.input;
+      const messages = messagesWithCalls([
+        readConfigCall,
+        { ...deleteBackupCall, input },
+      ]);
+
+      expect(
+        await decide(toolApproval, { ...deleteBackupCall, input }, messages),
+      ).toEqual({ type: 'user-approval', reason: 'delete after read' });
+    });
+  });
+
+  it('keeps the default fallback for per-tool approval functions', async () => {
+    const policy = opaPolicy({ client, path: 'agent/call/decision' });
+    const { toolApproval } = wrapMcpTools<OpaTools>(opaTools, {
+      read_config: policy as never,
+      delete_backup: policy as never,
+    });
+
+    if (typeof toolApproval === 'function') {
+      throw new Error('expected per-tool object form');
+    }
+
+    const messages: ModelMessage[] = [];
+    const readEntry = toolApproval.read_config as (
+      ...args: unknown[]
+    ) => unknown;
+    const deleteEntry = toolApproval.delete_backup as (
+      ...args: unknown[]
+    ) => unknown;
+
+    expect([
+      await readEntry(readConfigCall.input, {
+        toolCallId: 'call-read',
+        messages,
+        toolContext: undefined,
+        runtimeContext: undefined,
+      }),
+      await deleteEntry(deleteBackupCall.input, {
+        toolCallId: 'call-delete',
+        messages,
+        toolContext: undefined,
+        runtimeContext: undefined,
+      }),
+    ]).toEqual([
+      { type: 'approved' },
+      { type: 'user-approval', reason: 'delete after read' },
+    ]);
+  });
+
   it('applies the fallback per evaluation when the policy is in shadow mode', async () => {
     const { toolApproval } = wrapMcpTools<OpaTools>(
       opaTools,
