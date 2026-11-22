@@ -24,6 +24,7 @@ import type { GatewayConfig } from './gateway-config';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
+import { splitClientGatewayOptions } from './client-gateway-options';
 
 export type GatewayChatConfig = GatewayConfig & {
   provider: string;
@@ -59,17 +60,24 @@ export class GatewayLanguageModel implements LanguageModelV4 {
 
   private async getArgs(options: LanguageModelV4CallOptions) {
     const { abortSignal: _abortSignal, ...optionsWithoutSignal } = options;
+    const { streamingImageDecoding, providerOptions } =
+      splitClientGatewayOptions(options.providerOptions);
 
     return {
-      args: this.maybeEncodeFileParts(optionsWithoutSignal),
+      args: this.maybeEncodeFileParts({
+        ...optionsWithoutSignal,
+        providerOptions,
+      }),
       warnings: [],
+      streamingImageDecoding,
     };
   }
 
   async doGenerate(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
-    const { args, warnings } = await this.getArgs(options);
+    const { args, warnings, streamingImageDecoding } =
+      await this.getArgs(options);
     const { abortSignal } = options;
 
     const resolvedHeaders = this.config.headers
@@ -90,7 +98,14 @@ export class GatewayLanguageModel implements LanguageModelV4 {
           await resolve(this.config.o11yHeaders),
         ),
         body: args,
-        successfulResponseHandler: createJsonResponseHandler(z.any()),
+        successfulResponseHandler: createJsonResponseHandler(
+          z.any(),
+          // Generated files arrive as base64 strings in `content[*].data.data`;
+          // large ones are decoded to bytes while the response is read.
+          streamingImageDecoding
+            ? { experimental_binaryFields: ['content[*].data.data'] }
+            : undefined,
+        ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
           errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
