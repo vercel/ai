@@ -9,8 +9,8 @@ description: Use Drex decision models through AI Gateway or the Nace-maintained 
 and score questions about shared text, JSON, and images. Each request can answer
 multiple questions and return probabilities for the available answers.
 
-Drex is available through [AI Gateway](https://vercel.com/ai-gateway/models/providers/nace-ai).
-For direct access with a Nace API key, use the Nace-maintained
+Use Drex through [AI Gateway](https://vercel.com/ai-gateway/models/providers/nace-ai)
+(recommended), or connect directly with the Nace-maintained
 [`@nace-ai/ai-sdk-provider`](https://www.npmjs.com/package/@nace-ai/ai-sdk-provider) package.
 Its [source code and examples](https://github.com/nace-ai/vercel-ai-sdk-provider)
 are public.
@@ -21,7 +21,10 @@ are public.
   direct Nace provider requires Node.js 22 or newer and `ai >=7.0.157 <8`.
 </Note>
 
-## Using AI Gateway
+## Using AI Gateway (recommended)
+
+AI Gateway gives you one credential for Drex and other providers, along with
+usage and cost tracking.
 
 <InstallPackages packages="ai@^7" />
 
@@ -50,6 +53,10 @@ Use model IDs from the [Gateway catalog](https://vercel.com/ai-gateway/models/pr
 The direct provider package and a Nace API key are not required for this path.
 
 ## Using the direct Nace provider
+
+Use the direct provider when you need Nace authentication or a custom
+Nace-compatible endpoint. The sections below describe the direct provider;
+model availability and provider-specific options can differ from Gateway.
 
 <InstallPackages packages="ai@^7 @nace-ai/ai-sdk-provider zod" />
 
