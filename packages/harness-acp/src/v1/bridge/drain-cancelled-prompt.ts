@@ -4,9 +4,11 @@
  *
  * The ACP session keeps queueing the cancelled prompt's `session/update`
  * notifications and its stop, so leaving them in the queue would surface the
- * aborted turn's output in the next turn. A cancel the agent never
- * acknowledges leaves the session state unknown, which the caller must treat
- * as a session failure rather than prompt on top of it.
+ * aborted turn's output in the next turn. An agent that answers the cancelled
+ * prompt with an error instead of a stop ends the drain too: the ACP SDK
+ * clears queued errors at the start of the next prompt. Only an agent that
+ * acknowledges the cancellation at all leaves the session state unknown, which
+ * the caller must treat as a session failure rather than prompt on top of it.
  */
 export async function drainCancelledPrompt({
   nextUpdate,
@@ -27,14 +29,13 @@ export async function drainCancelledPrompt({
     }, timeoutMs);
     timer.unref?.();
   });
+  /* A rejected prompt is the end of the cancelled turn, not a drain failure. */
   const drain = (async () => {
     for (;;) {
       if (stopped) return;
       if ((await nextUpdate()).kind !== 'session_update') return;
     }
-  })();
-  /* The losing side of the race may settle later; keep it handled. */
-  void drain.catch(() => {});
+  })().catch(() => {});
   try {
     await Promise.race([drain, timedOut]);
   } finally {

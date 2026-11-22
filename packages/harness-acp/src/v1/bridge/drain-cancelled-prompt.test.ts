@@ -72,16 +72,14 @@ describe('drainCancelledPrompt', () => {
     expect(nextUpdate).toHaveBeenCalledOnce();
   });
 
-  it('surfaces an update-stream failure', async () => {
-    const failure = new Error('ACP connection closed');
-
+  it('treats a rejected cancelled prompt as the end of the cancelled turn', async () => {
     await expect(
       drainCancelledPrompt({
         nextUpdate: async () => {
-          throw failure;
+          throw new Error('ACP request failed');
         },
         timeoutMs: 10_000,
       }),
-    ).rejects.toBe(failure);
+    ).resolves.toBeUndefined();
   });
 });
