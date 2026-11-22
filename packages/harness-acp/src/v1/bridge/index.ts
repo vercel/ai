@@ -61,7 +61,9 @@ import {
 
 const HOST_TOOL_MCP_SERVER_NAME = 'ai-sdk-harness-tools';
 const CATALOG_REFRESH_TIMEOUT_MS = 10_000;
-const CANCELLED_PROMPT_DRAIN_TIMEOUT_MS = 10_000;
+/* Bounded below the bridge's 10 s turn teardown grace, so a stuck drain fails
+ * the session before a replacement turn can start. */
+const CANCELLED_PROMPT_DRAIN_TIMEOUT_MS = 5_000;
 
 const args = parseArgs({ args: argv.slice(2) });
 const workDir = requireArg({ value: args.workDir, name: '--workdir' });

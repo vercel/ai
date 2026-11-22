@@ -16,6 +16,7 @@ export async function drainCancelledPrompt({
   timeoutMs: number;
 }): Promise<void> {
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let stopped = false;
   const timedOut = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
       reject(
@@ -28,6 +29,7 @@ export async function drainCancelledPrompt({
   });
   const drain = (async () => {
     for (;;) {
+      if (stopped) return;
       if ((await nextUpdate()).kind !== 'session_update') return;
     }
   })();
@@ -36,6 +38,7 @@ export async function drainCancelledPrompt({
   try {
     await Promise.race([drain, timedOut]);
   } finally {
+    stopped = true;
     clearTimeout(timer);
   }
 }

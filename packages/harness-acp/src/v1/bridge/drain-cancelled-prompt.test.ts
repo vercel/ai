@@ -49,6 +49,29 @@ describe('drainCancelledPrompt', () => {
     );
   });
 
+  it('stops reading updates once the drain timed out', async () => {
+    vi.useFakeTimers();
+    const pendingReads: Array<(message: { kind: string }) => void> = [];
+    const nextUpdate = vi.fn(
+      () =>
+        new Promise<{ kind: string }>(resolve => {
+          pendingReads.push(resolve);
+        }),
+    );
+
+    const drain = drainCancelledPrompt({ nextUpdate, timeoutMs: 1_000 });
+    const outcome = drain.catch((error: unknown) => error);
+    await vi.advanceTimersByTimeAsync(1_000);
+    await expect(outcome).resolves.toMatchObject({
+      message:
+        'The ACP agent did not acknowledge the cancelled prompt before the next turn.',
+    });
+
+    pendingReads[0]({ kind: 'session_update' });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(nextUpdate).toHaveBeenCalledOnce();
+  });
+
   it('surfaces an update-stream failure', async () => {
     const failure = new Error('ACP connection closed');
 
