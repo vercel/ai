@@ -41,11 +41,18 @@ const liveWebSocketPath =
   'google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
 
 /**
- * After the input audio has ended, finish when no terminal signal
- * (`turnComplete` / idle `interactionStatus`) arrives within this window.
+ * After the input audio has ended, finish when no terminal signal (idle
+ * `interactionStatus`, `turnComplete`, or server VAD showing that all audio
+ * was transcribed) arrives within this window.
  * Trailing transcripts reset the timer.
  */
 const defaultFinishGraceMs = 3000;
+
+/**
+ * Speech that server VAD ended within this distance of the end of the sent
+ * audio counts as ending at the end of the audio.
+ */
+const audioEndToleranceMs = 250;
 
 function getLiveWebSocketURL(baseURL: string, apiKey: string): URL {
   const url = getRealtimeWebSocketURL(baseURL, liveWebSocketPath);
@@ -83,6 +90,7 @@ type GoogleLiveServerMessage = {
     interactionStatus?: string;
   };
   inputTranscription?: GoogleLiveTranscription;
+  voiceActivity?: { type?: string; audioOffset?: string };
   usageMetadata?: JSONObject;
   error?: { message?: string };
 };
@@ -279,6 +287,9 @@ export class GoogleTranscriptionModel implements TranscriptionModelV4 {
       ),
     );
 
+    const manualActivityDetection =
+      googleOptions?.streaming?.automaticActivityDetection?.disabled === true;
+
     // NOTE: Google's GA announcement shows the setup with
     // `generationConfig: { responseModalities: ['TEXT'] }`, but sending it
     // suppresses the final `inputTranscription` segments on the current
@@ -289,6 +300,13 @@ export class GoogleTranscriptionModel implements TranscriptionModelV4 {
       model: getModelPath(this.modelId),
       inputAudioTranscription:
         buildAudioTranscriptionConfig(googleOptions) ?? {},
+      ...(manualActivityDetection
+        ? {
+            realtimeInputConfig: {
+              automaticActivityDetection: { disabled: true },
+            },
+          }
+        : {}),
     };
 
     return {
@@ -303,6 +321,7 @@ export class GoogleTranscriptionModel implements TranscriptionModelV4 {
         headers: webSocketHeaders,
         setup,
         inputAudioRate: options.inputAudioFormat.rate ?? 16000,
+        manualActivityDetection,
         finishGraceMs:
           this.config._internal?.finishGraceMs ?? defaultFinishGraceMs,
         warnings,
@@ -320,6 +339,7 @@ function createGoogleLiveTranscriptionStream({
   headers,
   setup,
   inputAudioRate,
+  manualActivityDetection,
   finishGraceMs,
   warnings,
   audio,
@@ -331,6 +351,7 @@ function createGoogleLiveTranscriptionStream({
   headers: Record<string, string | undefined>;
   setup: unknown;
   inputAudioRate: number;
+  manualActivityDetection: boolean;
   finishGraceMs: number;
   warnings: SharedV4Warning[];
   audio: ReadableStream<Uint8Array | string>;
@@ -358,7 +379,8 @@ function createGoogleLiveTranscriptionStream({
       // Google Live messages carry no response/item IDs; a segment counter
       // generates consistent synthetic IDs. Transcription fragments arrive
       // incrementally and are accumulated per segment; a `finished: true`
-      // transcription or `turnComplete` finalizes the current segment.
+      // transcription, `generationComplete`, or `turnComplete` finalizes the
+      // current segment.
       let segmentCounter = 0;
       let segmentBuffer = '';
       let fullText = '';
@@ -369,6 +391,11 @@ function createGoogleLiveTranscriptionStream({
       let audioEnded = false;
       let usageMetadata: JSONObject | undefined;
       let finishTimer: ReturnType<typeof setTimeout> | undefined;
+      // latest server VAD signal (`ACTIVITY_START` / `ACTIVITY_END`)
+      let lastVoiceActivity:
+        | { type: string; audioOffsetMs: number | undefined }
+        | undefined;
+      let sentAudioBytes = 0;
 
       const segmentId = () => `google-segment-${segmentCounter}`;
 
@@ -427,6 +454,23 @@ function createGoogleLiveTranscriptionStream({
         segmentCounter++;
       };
 
+      const getSentAudioMs = () =>
+        (sentAudioBytes / (inputAudioRate * 2)) * 1000;
+
+      // Once the audio has ended, the server has transcribed all of it when
+      // server VAD ended the last speech at the end of the sent audio and no
+      // transcript is pending. VAD ends speech at the end of the audio when
+      // the audio ends mid-speech (the server transcribes the rest as one
+      // segment) and, with manual activity detection, always (`activityEnd`
+      // closes the single turn). Earlier `ACTIVITY_END` offsets can mean the
+      // server is still processing buffered audio with further segments.
+      const isTranscriptionComplete = () =>
+        lastVoiceActivity?.type === 'ACTIVITY_END' &&
+        segmentBuffer === '' &&
+        latestInterim === '' &&
+        (lastVoiceActivity.audioOffsetMs ?? 0) >=
+          getSentAudioMs() - audioEndToleranceMs;
+
       const finish = () => {
         if (finished) return;
         completeSegment();
@@ -447,16 +491,27 @@ function createGoogleLiveTranscriptionStream({
       };
 
       const sendAudio = async (socket: WebSocketLike) => {
+        // with manual activity detection, the audio stream is one user turn
+        if (manualActivityDetection) {
+          socket.send(JSON.stringify({ realtimeInput: { activityStart: {} } }));
+        }
         audioReader = audio.getReader();
         try {
           while (true) {
             const { done, value } = await audioReader.read();
             if (done || finished) break;
+            const data = convertToBase64(value);
+            const padding = data.endsWith('==')
+              ? 2
+              : data.endsWith('=')
+                ? 1
+                : 0;
+            sentAudioBytes += (data.length * 3) / 4 - padding;
             socket.send(
               JSON.stringify({
                 realtimeInput: {
                   audio: {
-                    data: convertToBase64(value),
+                    data,
                     mimeType: `audio/pcm;rate=${inputAudioRate}`,
                   },
                 },
@@ -472,10 +527,18 @@ function createGoogleLiveTranscriptionStream({
         }
         if (!finished) {
           socket.send(
-            JSON.stringify({ realtimeInput: { audioStreamEnd: true } }),
+            JSON.stringify({
+              realtimeInput: manualActivityDetection
+                ? { activityEnd: {} }
+                : { audioStreamEnd: true },
+            }),
           );
           audioEnded = true;
-          schedulePendingFinish();
+          if (isTranscriptionComplete()) {
+            finish();
+          } else {
+            schedulePendingFinish();
+          }
         }
       };
 
@@ -510,6 +573,19 @@ function createGoogleLiveTranscriptionStream({
 
           if (message.usageMetadata != null) {
             usageMetadata = message.usageMetadata;
+          }
+
+          if (message.voiceActivity?.type != null) {
+            const audioOffsetSeconds = parseOffsetSeconds(
+              message.voiceActivity.audioOffset,
+            );
+            lastVoiceActivity = {
+              type: message.voiceActivity.type,
+              audioOffsetMs:
+                audioOffsetSeconds != null
+                  ? audioOffsetSeconds * 1000
+                  : undefined,
+            };
           }
 
           if (message.error != null) {
@@ -555,7 +631,12 @@ function createGoogleLiveTranscriptionStream({
             }
           }
 
-          if (serverContent?.turnComplete) {
+          // `gemini-3.5-transcribe-live` ends each segment with
+          // `generationComplete` and never sends `turnComplete`.
+          if (
+            serverContent?.generationComplete ||
+            serverContent?.turnComplete
+          ) {
             completeSegment();
           }
 
@@ -568,7 +649,8 @@ function createGoogleLiveTranscriptionStream({
             (interactionStatus === 'IDLE' ||
               interactionStatus === 'REQUIRES_ACTION' ||
               (serverContent?.turnComplete === true &&
-                interactionStatus == null))
+                interactionStatus == null) ||
+              isTranscriptionComplete())
           ) {
             finish();
           }

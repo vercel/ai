@@ -83,8 +83,12 @@ function LiveConversation() {
 }
 ```
 
-The current continuous browser runtime supports a JSON/PCM16 WebSocket relay media
-profile. Continuous conversation semantics alone do not guarantee support for every
+The current continuous browser runtime supports a JSON/PCM16 WebSocket media
+profile, through an application relay (`api.websocket`) or, for models that declare
+the `client-secret-websocket` connection, straight to the provider with a
+short-lived token (`api.token`). AI Gateway Live models support the token flow; see
+[AI Gateway Live models](/providers/ai-sdk-providers/ai-gateway#live-models).
+Continuous conversation semantics alone do not guarantee support for every
 codec or transport. Applications with their own audio pipeline can use the low-level
 provider for other supported codecs. OpenAI-specific settings
 live under `providerOptions.openai` and use camelCase fields; the provider converts
