@@ -517,6 +517,38 @@ describe('wrapMcpTools with an opaPolicy approval', () => {
     });
   });
 
+  // The wrapper returns the bare fallback for a `not-applicable` result. An
+  // equally restrictive `approved` decision of the engine must not replace that
+  // with a reasoned object.
+  it('does not add a reason to the bare approved fallback', async () => {
+    const ownApprovalClient: PolicyClient = {
+      async evaluate(_path, input) {
+        const { tool: toolIdentifier, messages } = input as DefaultOpaInput;
+
+        if (toolIdentifier.name !== 'delete_backup') {
+          return { decision: 'allow' } as never;
+        }
+
+        return (
+          containsToolCall(messages, 'read_config')
+            ? null
+            : { decision: 'allow', reason: 'backup owner approved' }
+        ) as never;
+      },
+    };
+
+    const { toolApproval } = wrapMcpTools<OpaTools>(
+      opaTools,
+      opaPolicy({ client: ownApprovalClient, path: 'agent/call/decision' }),
+      { default: 'approved' },
+    );
+
+    expect(await decideResponse(toolApproval)).toEqual([
+      { type: 'approved' },
+      'approved',
+    ]);
+  });
+
   it('denies when the evaluation with the sibling is the not-applicable one', async () => {
     const { toolApproval } = wrapMcpTools<OpaTools>(
       opaTools,

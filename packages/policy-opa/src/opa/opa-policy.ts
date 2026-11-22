@@ -349,9 +349,10 @@ const decisionRestrictiveness: Record<PolicyDecision['type'], number> = {
 
 /**
  * Returns `other` when it restricts the tool call more than `decision` does,
- * and `decision` otherwise. Two decisions that count as the same type are
- * equal; `not-applicable` then yields to `other`, so the engine's own decision
- * keeps its reason.
+ * and `decision` otherwise. Decisions that count as the same type after the
+ * fallback are compared again by their own type, so a replaced
+ * `not-applicable` neither hides nor adds a reason that `wrapMcpTools` would
+ * not return without the fallback.
  */
 function moreRestrictiveDecision(
   decision: PolicyDecision,
@@ -361,8 +362,11 @@ function moreRestrictiveDecision(
   const restrictiveness = decisionRestrictiveness[effectiveType(other)];
   const current = decisionRestrictiveness[effectiveType(decision)];
 
-  return restrictiveness > current ||
-    (restrictiveness === current && decision.type === 'not-applicable')
+  if (restrictiveness > current) return other;
+  if (restrictiveness < current) return decision;
+
+  return decisionRestrictiveness[other.type] >
+    decisionRestrictiveness[decision.type]
     ? other
     : decision;
 }
