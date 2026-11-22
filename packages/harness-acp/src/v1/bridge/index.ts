@@ -394,6 +394,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
             sessionConfigurationFailure = { error: drainError };
             throw drainError;
           }
+          /*
+           * The cancel may have stopped the agent before it loaded the
+           * session MCP servers, and a lazy agent only discovers them after
+           * receiving a prompt. Route the next turn back through the
+           * prompt-then-catalog path instead of waiting for a catalog without
+           * prompting.
+           */
+          sessionPrompted = false;
         }
       } else {
         if (HarnessBridgeCapabilityUnsupportedError.isInstance(error)) {
