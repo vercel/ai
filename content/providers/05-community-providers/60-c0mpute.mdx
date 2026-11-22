@@ -1,0 +1,117 @@
+---
+title: c0mpute
+description: Learn how to use the c0mpute provider for the AI SDK.
+---
+
+# c0mpute
+
+[c0mpute](https://c0mpute.com) is a decentralized, peer-to-peer compute network. Requests run on independently operated nodes that serve open-weight models such as Qwen, Devstral and Nemotron. There is no rate card: each job is a sealed-bid auction among the nodes online, and the lowest bid under the buyer's cap wins. Speed and quality vary by node and model. The network is open source under the MIT license ([GitHub](https://github.com/profullstack/c0mpute)).
+
+The c0mpute provider for the AI SDK supports:
+
+- **Text generation**: `generateText` and `streamText`
+- **Model routing**: `auto` model ids that let the c0mpute router pick an open model per request
+
+It does not support tool calling, image or file input, structured output enforcement, or embeddings.
+
+## Setup
+
+The c0mpute provider is available in the `@profullstack/ai-sdk-c0mpute` module. You can install it with:
+
+<InstallPackages packages="@profullstack/ai-sdk-c0mpute" />
+
+Get an API key from the keys tab of [c0mpute chat](https://c0mpute.com/chat) and set it as an environment variable:
+
+```bash
+C0MPUTE_API_KEY=c0k_...
+```
+
+## Provider Instance
+
+You can import the default provider instance `c0mpute` from `@profullstack/ai-sdk-c0mpute`:
+
+```ts
+import { c0mpute } from '@profullstack/ai-sdk-c0mpute';
+```
+
+If you need a customized setup, you can use `createC0mpute` and create a provider instance with your settings:
+
+```ts
+import { createC0mpute } from '@profullstack/ai-sdk-c0mpute';
+
+const c0mpute = createC0mpute({
+  apiKey: process.env.C0MPUTE_API_KEY ?? '',
+});
+```
+
+You can use the following optional settings to customize the c0mpute provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `https://c0mpute.com/v1`.
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header.
+  It defaults to the `C0MPUTE_API_KEY` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+
+## Language Models
+
+You can create language models using a provider instance.
+The first argument is the model ID, for example:
+
+```ts
+const model = c0mpute('auto');
+```
+
+### Example
+
+You can use c0mpute language models to generate text with the `generateText` function:
+
+```ts
+import { c0mpute } from '@profullstack/ai-sdk-c0mpute';
+import { generateText } from 'ai';
+
+const { text, response } = await generateText({
+  model: c0mpute('auto'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+
+console.log(response.modelId); // the model that served the request
+```
+
+c0mpute language models can also be used in the `streamText` function
+(see [AI SDK Core](/docs/ai-sdk-core)). A job waits for an auction and a queue before a node starts it, so the first text can take several seconds.
+
+### Model Capabilities
+
+| Model                                                 | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ----------------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `auto`                                                | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `auto:fast`, `auto:standard`, `auto:high`, `auto:max` | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `qwen3:4b`                                            | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `qwen2.5-coder:7b`                                    | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `qwen3-coder:30b`                                     | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `devstral:24b`                                        | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+
+<Note>
+  Concrete models are available only while a node that serves them is online.
+  See [c0mpute.com/v1/models](https://c0mpute.com/v1/models) for the current
+  list. You can also pass any listed model ID as a string.
+</Note>
+
+## Additional Resources
+
+- [c0mpute Provider Repository](https://github.com/profullstack/ai-sdk-c0mpute)
+- [NPM Package](https://www.npmjs.com/package/@profullstack/ai-sdk-c0mpute)
+- [c0mpute Documentation](https://c0mpute.com/docs)
+- [Run a c0mpute node](https://c0mpute.com/providers)
