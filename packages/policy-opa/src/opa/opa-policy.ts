@@ -350,9 +350,9 @@ const decisionRestrictiveness: Record<PolicyDecision['type'], number> = {
 /**
  * Returns `other` when it restricts the tool call more than `decision` does,
  * and `decision` otherwise. Decisions that count as the same type after the
- * fallback are compared again by their own type, so a replaced
- * `not-applicable` neither hides nor adds a reason that `wrapMcpTools` would
- * not return without the fallback.
+ * fallback are compared again by their own type, so the fallback neither hides
+ * nor adds a reason when an `approved` or `user-approval` decision ties with a
+ * replaced `not-applicable` one.
  */
 function moreRestrictiveDecision(
   decision: PolicyDecision,
