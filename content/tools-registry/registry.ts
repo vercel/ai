@@ -1032,4 +1032,35 @@ console.log(text);`,
     websiteUrl: 'https://upstash.com',
     npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
   },
+  {
+    slug: 'flatverify',
+    name: 'Flatverify',
+    description:
+      'Email verification for agents. Verify one address or a list and get valid, invalid, risky or unknown, with a sub_status reason (catch_all, role_account, disposable, mailbox_not_found and more) and disposable, role, free and catch_all flags. Every plan is unlimited and plans differ only in speed, so agents can verify every address they touch.',
+    packageName: 'flatverify-ai-sdk',
+    tags: ['email', 'email-verification', 'validation', 'data-quality'],
+    apiKeyEnvName: 'FLATVERIFY_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add flatverify-ai-sdk ai',
+      npm: 'npm install flatverify-ai-sdk ai',
+      yarn: 'yarn add flatverify-ai-sdk ai',
+      bun: 'bun add flatverify-ai-sdk ai',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { flatverifyTools } from 'flatverify-ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt:
+    'Which of these addresses can I safely email? maya.chen@amazon.com, info@shopify.com, no.one@stripe.com',
+  tools: flatverifyTools(),
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/argorant/flatverify-ai-sdk#readme',
+    apiKeyUrl: 'https://app.flatverify.com',
+    websiteUrl: 'https://flatverify.com',
+    npmUrl: 'https://www.npmjs.com/package/flatverify-ai-sdk',
+  },
 ];
