@@ -311,7 +311,7 @@ describe('SandboxChannel keepalive', () => {
     );
   });
 
-  it.each(['pong', 'bytes', 'frame', 'cursor'] as const)(
+  it.each(['pong', 'frame', 'cursor'] as const)(
     'keeps reconnecting when %s proves the peer alive',
     async mechanism => {
       const { channel, sockets, debug } = makeChannel({ keepAliveMs: 100 });
@@ -324,7 +324,6 @@ describe('SandboxChannel keepalive', () => {
       for (let cycle = 1; cycle <= 5; cycle++) {
         const socket = sockets.at(-1)!;
         if (mechanism === 'pong') socket.emit('pong');
-        if (mechanism === 'bytes') socket._socket.bytesRead += 1_024;
         if (mechanism === 'frame') {
           socket.emit('message', JSON.stringify({ type: 'finish' }));
         }
@@ -345,6 +344,40 @@ describe('SandboxChannel keepalive', () => {
       );
     },
   );
+
+  it('gives up on repeated byte-only stalls without a completed event', async () => {
+    // Bytes keep the connection alive past the timeout, then stop before the
+    // frame completes. Byte progress is not event progress, so the stall count
+    // still reaches the cap instead of replaying the same frame forever.
+    const { channel, sockets, debug } = makeChannel({ keepAliveMs: 100 });
+    const onClose = vi.fn();
+    channel.onClose(onClose);
+    await channel.open();
+
+    for (let cycle = 0; cycle < 4; cycle++) {
+      const socket = sockets.at(-1)!;
+      for (let tick = 0; tick < 4; tick++) {
+        socket._socket.bytesRead += 1_024;
+        await vi.advanceTimersByTimeAsync(100);
+      }
+      await vi.advanceTimersByTimeAsync(300); // bytes stop: heartbeat timeout
+    }
+
+    expect(sockets).toHaveLength(4);
+    expect(channel.isClosed()).toBe(true);
+    expect(onClose).toHaveBeenCalledExactlyOnceWith(1006, 'reconnect failed');
+    const failed = debug.find(
+      (
+        event,
+      ): event is Extract<
+        SandboxChannelDebugEvent,
+        { event: 'reconnect-failed' }
+      > => event.event === 'reconnect-failed',
+    );
+    expect(String((failed?.cause as Error | undefined)?.message)).toContain(
+      'without event progress',
+    );
+  });
 
   it('keeps reconnecting external drops with keepalive disabled', async () => {
     // Without heartbeats nothing can distinguish an idle, healthy session from

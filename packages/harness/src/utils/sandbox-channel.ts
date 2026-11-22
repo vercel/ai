@@ -628,8 +628,10 @@ export class SandboxChannel<
      * queues behind a large frame that is still being received (head-of-line
      * blocking), so a transfer that keeps making progress must not be treated
      * as a dead peer. Any inbound bytes or completed frames since the previous
-     * interval count as liveness. Implementations that expose neither keep the
-     * pong-only behavior.
+     * interval reset the ping count. Only completed frames and pongs mark the
+     * connection alive for the reconnect bound: bytes alone can arrive from a
+     * frame a middlebox keeps cutting, which must not defeat the bound.
+     * Implementations that expose neither counter keep the pong-only behavior.
      */
     const hasInboundProgress = (): boolean => {
       let progressed = false;
@@ -659,7 +661,6 @@ export class SandboxChannel<
       if (ws.readyState !== ws.OPEN) return;
       if (hasInboundProgress()) {
         unansweredPings = 0;
-        onLiveness();
       }
       if (unansweredPings >= 2) {
         onTimeout();
