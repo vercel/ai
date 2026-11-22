@@ -1,0 +1,94 @@
+---
+title: 'Yoob'
+description: 'Learn how to use the Yoob provider for the AI SDK.'
+---
+
+# Yoob Provider
+
+The [Yoob provider](https://github.com/Yoob-com/ai-sdk-provider) adds [Yoob](https://yoob.com) speech-to-text and expressive text-to-speech to the AI SDK.
+
+- **Transcription:** `yoob-asr-turbo-v1` (25 languages, fastest) and `yoob-asr-pro-v1` (47 languages, most accurate). Each segment also reports emotion, sounds such as laughs and sighs, and speaker traits.
+- **Speech:** `yoob-tts-1`. Inline tags such as `[laughing]`, `[sigh]` or `[whisper] ... [/whisper]` are performed, not read out.
+
+## Installation
+
+<InstallPackages packages="yoob-ai-sdk-provider" />
+
+## Authentication
+
+Set `YOOB_API_KEY` in your environment or pass `apiKey` when creating the provider.
+Get your API key from the [Yoob console](https://app.yoob.com).
+
+## Provider Instance
+
+You can import the default provider instance `yoob`:
+
+```ts
+import { yoob } from 'yoob-ai-sdk-provider';
+```
+
+Use `createYoob` to customize it:
+
+```ts
+import { createYoob } from 'yoob-ai-sdk-provider';
+
+const yoob = createYoob({
+  apiKey: process.env.YOOB_API_KEY,
+});
+```
+
+Options:
+
+- `apiKey`: overrides `YOOB_API_KEY`.
+- `baseURL`: API base URL. Defaults to `https://tts-api.yoob.com/v1`.
+- `headers`: additional request headers.
+- `fetch`: custom fetch implementation.
+
+## Transcription Models
+
+```ts
+import { yoob } from 'yoob-ai-sdk-provider';
+import { transcribe } from 'ai';
+import { readFile } from 'node:fs/promises';
+
+const result = await transcribe({
+  model: yoob.transcription('yoob-asr-pro-v1'),
+  audio: await readFile('audio.mp3'),
+  providerOptions: { yoob: { language: 'en' } },
+});
+
+console.log(result.text);
+console.log(result.providerMetadata?.yoob.segments); // emotion and sound tags per segment
+```
+
+Provider options (`providerOptions.yoob`):
+
+- `language`: the spoken language as a code (`de`), a regional tag (`de-DE`) or an English name (`german`).
+- `vocabulary`: words and names to favour, comma separated.
+- `emotion`: emotion, sounds and speaker traits per segment. Defaults to `true`.
+
+## Speech Models
+
+```ts
+import { yoob } from 'yoob-ai-sdk-provider';
+import { generateSpeech } from 'ai';
+
+const { audio } = await generateSpeech({
+  model: yoob.speech('yoob-tts-1'),
+  text: "[laughing] Oh, that's brilliant. [whisper] Don't tell anyone. [/whisper]",
+  voice: 'w1243',
+  outputFormat: 'mp3',
+  instructions: 'warm, softly spoken',
+});
+```
+
+- `voice`: a built-in voice id or one of your cloned voices (`GET https://tts-api.yoob.com/v1/voices`).
+- `outputFormat`: `mp3` (default), `wav`, `pcm`, `flac`, `opus` or `aac`.
+- `instructions` and `speed` are supported.
+
+Provider options (`providerOptions.yoob`):
+
+- `quality`: `best` (default) or `fast` for a quicker first sound.
+- `seed`: makes renders repeatable.
+
+For more, see the [Yoob documentation](https://app.yoob.com/public/docs/speech-to-text).
