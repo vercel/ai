@@ -1841,9 +1841,8 @@ function getAnthropicToolsetName({
   providerOptions: SharedV4ProviderMetadata | undefined;
   toolsetNames: Record<string, string>;
 }): string | undefined {
-  const fromTools = toolsetNames[toolName];
-  if (fromTools != null) {
-    return fromTools;
+  if (Object.hasOwn(toolsetNames, toolName)) {
+    return toolsetNames[toolName];
   }
 
   const fromMetadata = (
