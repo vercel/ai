@@ -139,20 +139,21 @@ export function opaPolicy<
   const createApproval = (
     fallback?: ApprovalFallbackStatus,
   ): ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT> => {
-    // The fallback is only used to compare the evaluations of a tool call.
-    // The decision of the evaluation the engine made is returned, so the
-    // approval keeps its reason and `wrapMcpTools` still applies the fallback
-    // to a returned `not-applicable` as before.
-    const evaluateFallback = (decision: PolicyDecision): PolicyEvaluation =>
+    // A decision counts as its own type, or as the fallback when the policy
+    // does not match it. The fallback is only used for the comparison; the
+    // engine's decision is returned, so it keeps its reason and `wrapMcpTools`
+    // still applies the fallback to a returned `not-applicable` as before.
+    const effectiveType = (decision: PolicyDecision): PolicyDecision['type'] =>
       fallback != null &&
       fallback !== 'not-applicable' &&
       decision.type === 'not-applicable'
-        ? {
-            decision,
-            effective: { type: fallback },
-            replacedNotApplicable: true,
-          }
-        : { decision, effective: decision, replacedNotApplicable: false };
+        ? fallback
+        : decision.type;
+
+    const effectiveDecision = (decision: PolicyDecision): PolicyDecision =>
+      effectiveType(decision) === decision.type
+        ? decision
+        : { type: effectiveType(decision) };
 
     return ({ toolCall, tools, toolsContext, runtimeContext, messages }) => {
       const toOpaInput = (inputMessages: ModelMessage[]) =>
@@ -195,10 +196,10 @@ export function opaPolicy<
 
       const evaluate = async (): Promise<PolicyDecision> => {
         const opaInput = toOpaInput(messages);
-        let evaluation = evaluateFallback(await decide(opaInput));
+        let decision = await decide(opaInput);
 
         // A denial cannot become more restrictive.
-        if (evaluation.effective.type !== 'denied') {
+        if (effectiveType(decision) !== 'denied') {
           const messagesWithEarlierToolCalls = appendEarlierToolCalls(
             messages,
             earlierToolCalls,
@@ -217,9 +218,10 @@ export function opaPolicy<
               toInput == null ||
               !isSameInput(opaInput, opaInputWithEarlierToolCalls)
             ) {
-              evaluation = moreRestrictiveDecision(
-                evaluation,
-                evaluateFallback(await decide(opaInputWithEarlierToolCalls)),
+              decision = moreRestrictiveDecision(
+                decision,
+                await decide(opaInputWithEarlierToolCalls),
+                effectiveType,
               );
             }
           }
@@ -227,8 +229,8 @@ export function opaPolicy<
 
         // Later evaluations of the response see the decision the SDK acts on,
         // which includes the fallback.
-        currentToolCall.decision = evaluation.effective;
-        return evaluation.decision;
+        currentToolCall.decision = effectiveDecision(decision);
+        return decision;
       };
 
       // Evaluate the calls of a response one after the other, in the order
@@ -345,40 +347,24 @@ const decisionRestrictiveness: Record<PolicyDecision['type'], number> = {
   denied: 3,
 };
 
-interface PolicyEvaluation {
-  /**
-   * The decision of this evaluation. It is returned when the evaluation is the
-   * most restrictive one.
-   */
-  decision: PolicyDecision;
-  /**
-   * The decision with the fallback applied. It is only used for the comparison,
-   * so the engine's own decision keeps its reason when both are equally
-   * restrictive.
-   */
-  effective: PolicyDecision;
-  /**
-   * Whether the fallback replaced a `not-applicable` decision.
-   */
-  replacedNotApplicable: boolean;
-}
-
 /**
- * Returns `other` when it restricts the tool call more than `evaluation` does,
- * and `evaluation` otherwise.
+ * Returns `other` when it restricts the tool call more than `decision` does,
+ * and `decision` otherwise. Two decisions that count as the same type are
+ * equal; `not-applicable` then yields to `other`, so the engine's own decision
+ * keeps its reason.
  */
 function moreRestrictiveDecision(
-  evaluation: PolicyEvaluation,
-  other: PolicyEvaluation,
-): PolicyEvaluation {
-  const restrictiveness = decisionRestrictiveness[other.effective.type];
-  const current = decisionRestrictiveness[evaluation.effective.type];
+  decision: PolicyDecision,
+  other: PolicyDecision,
+  effectiveType: (decision: PolicyDecision) => PolicyDecision['type'],
+): PolicyDecision {
+  const restrictiveness = decisionRestrictiveness[effectiveType(other)];
+  const current = decisionRestrictiveness[effectiveType(decision)];
 
-  if (restrictiveness > current) return other;
-  if (restrictiveness === current && evaluation.replacedNotApplicable) {
-    return other;
-  }
-  return evaluation;
+  return restrictiveness > current ||
+    (restrictiveness === current && decision.type === 'not-applicable')
+    ? other
+    : decision;
 }
 
 function isSameInput(input: unknown, other: unknown): boolean {
