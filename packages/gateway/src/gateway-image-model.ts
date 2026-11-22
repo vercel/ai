@@ -23,6 +23,7 @@ import { z } from './zod';
 import type { GatewayConfig } from './gateway-config';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
+import { withGatewayRequestTelemetryRedaction } from './redact-gateway-request-credentials';
 
 type GatewayImageConfig = GatewayConfig & {
   provider: string;
@@ -104,7 +105,7 @@ export class GatewayImageModel implements ImageModelV4 {
           this.getModelConfigHeaders(),
           await resolve(this.config.o11yHeaders),
         ),
-        body: {
+        body: withGatewayRequestTelemetryRedaction({
           prompt,
           n,
           ...(size && { size }),
@@ -117,7 +118,7 @@ export class GatewayImageModel implements ImageModelV4 {
             files: files.map(file => maybeEncodeImageFile(file)),
           }),
           ...(mask && { mask: maybeEncodeImageFile(mask) }),
-        },
+        }),
         successfulResponseHandler: createJsonResponseHandler(
           gatewayImageResponseSchema,
           streamingImageDecoding

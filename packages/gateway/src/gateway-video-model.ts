@@ -28,6 +28,7 @@ import { z } from './zod';
 import type { GatewayConfig } from './gateway-config';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
+import { withGatewayRequestTelemetryRedaction } from './redact-gateway-request-credentials';
 
 export class GatewayVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4' as const;
@@ -70,7 +71,9 @@ export class GatewayVideoModel implements VideoModelV4 {
           await resolve(this.config.o11yHeaders),
           { accept: 'text/event-stream' },
         ),
-        body: this.buildRequestBody(options),
+        body: withGatewayRequestTelemetryRedaction(
+          this.buildRequestBody(options),
+        ),
         successfulResponseHandler: async ({
           response,
           url,
@@ -209,12 +212,12 @@ export class GatewayVideoModel implements VideoModelV4 {
           this.getModelConfigHeaders(),
           await resolve(this.config.o11yHeaders),
         ),
-        body: {
+        body: withGatewayRequestTelemetryRedaction({
           ...this.buildRequestBody(options),
           // The spec option is `webhookUrl`; the Gateway's wire contract for a
           // completion webhook is `callbackUrl`.
           ...(webhookUrl && { callbackUrl: webhookUrl }),
-        },
+        }),
         successfulResponseHandler: createJsonResponseHandler(
           gatewayVideoStartResponseSchema,
         ),
