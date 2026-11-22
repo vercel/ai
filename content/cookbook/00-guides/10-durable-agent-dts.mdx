@@ -1,0 +1,675 @@
+---
+title: Build a Durable Agent with Azure Durable Task Scheduler
+description: Run an AI SDK agent on Durable Task, add human approval, and reconnect a Next.js chat after a refresh.
+tags: ['agents', 'durability', 'tools', 'azure']
+---
+
+# Build a Durable Agent with Azure Durable Task Scheduler
+
+In this guide, you will build a support agent with
+`@microsoft/durabletask-vercel-ai`. Its model steps and tool executions run on a
+Durable Task worker. A Next.js chat submits work, displays approval requests, and
+reconnects after a page refresh.
+
+The example issues **demo credit receipts only**. No money moves. See
+[Durability](/docs/agents/durability) for the execution model and other approaches.
+
+## Prerequisites
+
+- Node.js 22.15 or later, npm, and Docker.
+- A Next.js App Router application with TypeScript and the `@/*` import alias.
+- An OpenAI API key available to the worker as `OPENAI_API_KEY`.
+- A registry release of the extension, or an approved, built local package tarball.
+
+The extension declares support for AI SDK 6 and 7, with peer range
+`>=6.0.303 <8.0.0`. This example uses SDK 6; keep the React and provider packages
+on compatible majors.
+
+```bash
+npm install ai@6 @ai-sdk/react@3 @ai-sdk/openai@3 zod pg@8 redis@5 server-only \
+  @microsoft/durabletask-vercel-ai \
+  @microsoft/durabletask-js @microsoft/durabletask-js-azuremanaged
+npm install --save-dev tsx typescript @types/node @types/pg
+```
+
+If the extension is not yet available in your registry, install its approved local
+tarball in place of the package name. These instructions do not imply that a
+registry release is already available.
+
+## 1. Start the local services
+
+The basic DTS Emulator command is:
+
+```bash
+docker run -d -p 8080:8080 -p 8082:8082 mcr.microsoft.com/dts/dts-emulator:latest
+```
+
+For this tutorial, **use the following variant instead**, not both commands. It
+enables the named task hub `vercel-ai` and binds the unauthenticated emulator to
+loopback:
+
+```bash
+docker run --name dts-ai -d -e DTS_USE_DYNAMIC_TASK_HUBS=true \
+  -p 127.0.0.1:8080:8080 -p 127.0.0.1:8082:8082 \
+  mcr.microsoft.com/dts/dts-emulator:latest
+docker run --name dts-ai-postgres -d \
+  -e POSTGRES_PASSWORD=local-demo-only -e POSTGRES_DB=durable_ai \
+  -p 127.0.0.1:5432:5432 postgres:17
+docker run --name dts-ai-redis -d -p 127.0.0.1:6379:6379 redis:7
+```
+
+Open the DTS dashboard at **[http://localhost:8082](http://localhost:8082)**.
+The scheduler endpoint is `http://localhost:8080`.
+
+PostgreSQL stores conversation history and pending decisions. Redis stores UI
+stream events shared by the worker and web app. Using process-local stores here
+would break recovery across those two processes.
+
+Supply these environment variables to **both** processes:
+
+```text
+DTS_ENDPOINT=http://localhost:8080
+DTS_TASKHUB=vercel-ai
+DATABASE_URL=postgresql://postgres:local-demo-only@localhost:5432/durable_ai
+REDIS_URL=redis://localhost:6379
+```
+
+The password above is for the isolated local demo only. Use your secret manager
+for production connection settings. The worker also needs `OPENAI_API_KEY`; do
+not expose it through a `NEXT_PUBLIC_` variable. Next.js loads its environment
+configuration, but a standalone `tsx` worker needs these variables supplied by
+its shell or process supervisor.
+
+## 2. Configure shared state
+
+Create a module that both processes can import. It contains no model or worker
+code.
+
+```ts filename="lib/durable-state.ts"
+import {
+  PostgresHistoryStore,
+  PostgresDecisionStore,
+} from '@microsoft/durabletask-vercel-ai/stores/postgres';
+import { RedisStreamBroker } from '@microsoft/durabletask-vercel-ai/streaming/redis';
+
+export const agentName = 'cookbook_support';
+export const endpoint = process.env.DTS_ENDPOINT ?? 'http://localhost:8080';
+export const taskhub = process.env.DTS_TASKHUB ?? 'vercel-ai';
+
+export async function openState() {
+  const scope = { namespace: 'durable-agent-cookbook', tenantId: 'local-demo' };
+  const historyStore = new PostgresHistoryStore({
+    ...scope,
+    connectionString: process.env.DATABASE_URL!,
+  });
+  const decisionStore = new PostgresDecisionStore({
+    ...scope,
+    connectionString: process.env.DATABASE_URL!,
+  });
+  const broker = new RedisStreamBroker({
+    ...scope,
+    url: process.env.REDIS_URL!,
+    maxLength: 10_000,
+  });
+  try {
+    await Promise.all([
+      historyStore.initialize(),
+      decisionStore.initialize(),
+      broker.probe(),
+    ]);
+    return { historyStore, decisionStore, broker };
+  } catch (error) {
+    await Promise.allSettled([
+      historyStore.close(),
+      decisionStore.close(),
+      broker.close(),
+    ]);
+    throw error;
+  }
+}
+```
+
+## 3. Define the agent and start a worker
+
+Durable tools receive a stable effect key in `options.durable.idempotencyKey`.
+The `toolApproval` rule below requires approval before issuing a demo receipt.
+The gate can remain parked for up to seven days.
+
+```ts filename="worker.mts"
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+import {
+  DurableTaskAgent,
+  durableTool,
+  ToolExecution,
+  ToolPolicy,
+} from '@microsoft/durabletask-vercel-ai';
+import { createWorker } from '@microsoft/durabletask-vercel-ai/worker';
+import { agentName, endpoint, taskhub, openState } from './lib/durable-state';
+
+const state = await openState();
+const settings = {
+  model: openai('gpt-4.1-mini'),
+  instructions:
+    'Help with demo credits. Call credit when asked, then summarize the result.',
+  tools: {
+    credit: durableTool({
+      description:
+        'Issue a demo credit receipt after human approval. No money moves.',
+      inputSchema: z.object({ amount: z.number().positive().max(500) }),
+      policy: new ToolPolicy({ execution: ToolExecution.DURABLE }),
+      execute: async ({ amount }, options) => ({
+        amount,
+        receiptId: `demo-${options.durable.idempotencyKey}`,
+      }),
+    }),
+  },
+};
+const agent = new DurableTaskAgent({
+  name: agentName,
+  ...settings,
+  historyStore: state.historyStore,
+  decisionStore: state.decisionStore,
+  streamPublisher: state.broker,
+  toolApproval: { credit: 'user-approval' },
+  approvalTimeoutMs: 7 * 24 * 60 * 60 * 1000,
+});
+const service = createWorker({
+  endpoint,
+  taskhub,
+  credential: null,
+  register: worker => {
+    agent.register(worker);
+  },
+});
+await service.start();
+
+let stopping = false;
+async function shutdown() {
+  if (stopping) return;
+  stopping = true;
+  try {
+    await service.stop();
+  } finally {
+    await Promise.allSettled([
+      state.historyStore.close(),
+      state.decisionStore.close(),
+      state.broker.close(),
+    ]);
+  }
+}
+process.once('SIGINT', () => {
+  void shutdown();
+});
+process.once('SIGTERM', () => {
+  void shutdown();
+});
+```
+
+Run `npx tsx worker.mts` in a separate terminal with the worker's environment.
+The `.mts` extension enables ES modules and top-level `await` without changing
+the Next.js application's package configuration. Leave it running while you use
+the chat.
+
+### Wrap an existing ToolLoopAgent instead
+
+If you already have an agent, replace the `new DurableTaskAgent(...)` definition
+above with:
+
+```ts
+import { ToolLoopAgent } from 'ai';
+import { attachDurability } from '@microsoft/durabletask-vercel-ai';
+
+const nativeAgent = new ToolLoopAgent(settings);
+const agent = attachDurability(nativeAgent, {
+  name: agentName,
+  ...settings,
+  historyStore: state.historyStore,
+  decisionStore: state.decisionStore,
+  streamPublisher: state.broker,
+  toolApproval: { credit: 'user-approval' },
+  approvalTimeoutMs: 7 * 24 * 60 * 60 * 1000,
+});
+```
+
+Keep the original settings explicitly. A native `ToolLoopAgent` exposes its tools,
+but the wrapper does not inspect private model or instruction fields. Register
+the returned durable agent on the worker. Calls to `nativeAgent.generate()` or
+`nativeAgent.stream()` still run without this durability layer.
+
+## 4. Create a route-side client
+
+<Note>
+  Next.js routes are thin **Node.js clients only, never Edge**. A separate,
+  long-lived Node.js worker executes orchestrations, model steps, and tools. Do
+  not start workers in route handlers or rely on background promises after a
+  response. Only the `/transport` entry point belongs in the browser.
+</Note>
+
+The following routes are for a **single-user localhost tutorial only**. Start
+Next.js with `npm run dev -- --hostname 127.0.0.1`; do not expose these routes
+publicly. Before deployment, add authentication, CSRF protection, tenant-scoped
+run ownership checks, and reviewer authorization to every relevant route.
+
+```ts filename="lib/durable-client.ts"
+import 'server-only';
+import { DurableTaskAzureManagedClientBuilder } from '@microsoft/durabletask-js-azuremanaged';
+import { createDurableClient } from '@microsoft/durabletask-vercel-ai/client';
+import { agentName, endpoint, taskhub, openState } from './durable-state';
+
+async function connect() {
+  const state = await openState();
+  const sdk = new DurableTaskAzureManagedClientBuilder()
+    .endpoint(endpoint, taskhub, null)
+    .build();
+  const client = createDurableClient(sdk, {
+    name: agentName,
+    historyStore: state.historyStore,
+    decisionStore: state.decisionStore,
+    streamSubscriber: state.broker,
+  });
+  return { client, sdk, ...state };
+}
+let connection: ReturnType<typeof connect> | undefined;
+export function getDurableClient() {
+  return (connection ??= connect().catch(error => {
+    connection = undefined;
+    throw error;
+  }));
+}
+```
+
+Keep the agent name, version, namespaces, and storage configuration aligned with
+the worker. The client does not import the agent or the provider.
+
+### Submit a chat turn
+
+The transport sends a prompt, a thread ID, and an `idempotency-key` header.
+Use one session orchestration per thread and a stable turn ID per submission.
+The receipt binds retries to the same submitted content.
+
+This tutorial accepts text only; add validated UI-message conversion for files
+and other multimodal inputs.
+
+```ts filename="app/api/runs/route.ts"
+import { createHash } from 'node:crypto';
+import { z } from 'zod';
+import { bindRunReceipt } from '@microsoft/durabletask-vercel-ai/client';
+import { getDurableClient } from '@/lib/durable-client';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+const hash = (value: string) =>
+  createHash('sha256').update(value).digest('hex');
+
+export async function POST(request: Request) {
+  const { prompt, threadId } = z
+    .object({
+      prompt: z.string().min(1).max(16_000),
+      threadId: z.string().min(1).max(200),
+    })
+    .parse(await request.json());
+  const key = request.headers.get('idempotency-key');
+  if (!key || key.length > 200) {
+    return Response.json(
+      { error: 'A stable idempotency-key is required' },
+      { status: 400 },
+    );
+  }
+  const instanceId = `support-${hash(threadId)}`;
+  const turnId = hash(key);
+  const { client, historyStore } = await getDurableClient();
+  await bindRunReceipt(historyStore, `${instanceId}:${turnId}`, prompt);
+  const handle = await client.runSession(prompt, {
+    instanceId,
+    threadId,
+    turnId,
+    reuseExisting: true,
+  });
+  return Response.json(
+    {
+      instanceId: handle.instanceId,
+      turnId: handle.turnId,
+    },
+    { status: 202 },
+  );
+}
+```
+
+### Reconnect the stream
+
+The transport reads native AI SDK SSE from this endpoint. A reader timeout or
+disconnect does not cancel the durable session.
+
+```ts filename="app/api/runs/[id]/stream/route.ts"
+import { getDurableClient } from '@/lib/durable-client';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
+
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  const query = new URL(request.url).searchParams;
+  const cursor = Number(query.get('cursor') ?? '0');
+  if (!Number.isSafeInteger(cursor) || cursor < 0) {
+    return Response.json({ error: 'Invalid cursor' }, { status: 400 });
+  }
+  const { client } = await getDurableClient();
+  return client
+    .reconnect(id, {
+      turnId: query.get('turnId') ?? undefined,
+    })
+    .toUIMessageStreamResponse({
+      cursor,
+      signal: request.signal,
+      readerTimeoutSeconds: 240,
+      resolvedApprovalToken: query.get('resolvedApprovalToken') ?? undefined,
+      resolvedApprovalTokens: query.get('resolvedApprovalTokens')?.split(','),
+    });
+}
+```
+
+### Accept an approval
+
+Submit the token for the exact displayed gate. Do not use a run ID alone as
+permission to approve an operation.
+
+```ts filename="app/api/runs/[id]/decisions/route.ts"
+import { z } from 'zod';
+import { getDurableClient } from '@/lib/durable-client';
+
+export const runtime = 'nodejs';
+const decision = z
+  .object({
+    approvalToken: z.string().min(1).max(64),
+    approved: z.boolean(),
+    reason: z.string().max(2000).optional(),
+  })
+  .strict();
+
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  const input = decision.parse(await request.json());
+  await (await getDurableClient()).client.approvePending(id, input);
+  return Response.json({ accepted: true }, { status: 202 });
+}
+```
+
+The transport can also request run status. Expose the persisted pending decision
+so an application can display its full input before approval.
+
+```ts filename="app/api/runs/[id]/route.ts"
+import { getDurableClient } from '@/lib/durable-client';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  const { client, sdk } = await getDurableClient();
+  if (!(await sdk.getOrchestrationState(id, false))) {
+    return Response.json({ error: 'Run not found' }, { status: 404 });
+  }
+  const handle = client.reconnect(id);
+  return Response.json(
+    {
+      instanceId: id,
+      status: await handle.customStatus(),
+      pendingDecision: await handle.pendingDecision(),
+    },
+    { headers: { 'cache-control': 'private, no-store' } },
+  );
+}
+```
+
+## 5. Connect useChat and persist reconnection state
+
+Persist **both messages and the complete transport cursor**. The component below
+loads the browser cache before mounting `useChat`, keeps stable message IDs, and
+uses `resume: true` to reconnect instead of scheduling a replacement run.
+
+```tsx filename="app/page.tsx"
+'use client';
+
+import { useEffect, useState, type FormEvent } from 'react';
+import { useChat } from '@ai-sdk/react';
+import {
+  isToolUIPart,
+  lastAssistantMessageIsCompleteWithApprovalResponses,
+  type UIMessage,
+} from 'ai';
+import {
+  DurableChatTransport,
+  type DurableUiCursor,
+} from '@microsoft/durabletask-vercel-ai/transport';
+
+type Cache = { id: string; messages: UIMessage[] };
+const cacheKey = 'durable-support-chat';
+
+export default function Page() {
+  const [cache, setCache] = useState<Cache | null>(null);
+  useEffect(() => {
+    const saved = sessionStorage.getItem(cacheKey);
+    setCache(
+      saved ? JSON.parse(saved) : { id: crypto.randomUUID(), messages: [] },
+    );
+  }, []);
+  return cache ? <Chat cache={cache} /> : <p>Loading chat…</p>;
+}
+
+function Chat({ cache }: { cache: Cache }) {
+  const [input, setInput] = useState('');
+  const [responding, setResponding] = useState(false);
+  const [actionError, setActionError] = useState<string>();
+  const [transport] = useState(
+    () =>
+      new DurableChatTransport({
+        api: '/api/runs',
+        storage: {
+          get: id => {
+            const saved = sessionStorage.getItem(`durable-cursor:${id}`);
+            return saved ? (JSON.parse(saved) as DurableUiCursor) : undefined;
+          },
+          set: (id, cursor) =>
+            sessionStorage.setItem(
+              `durable-cursor:${id}`,
+              JSON.stringify(cursor),
+            ),
+        },
+      }),
+  );
+  const chat = useChat({
+    id: cache.id,
+    messages: cache.messages,
+    transport,
+    resume: true,
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
+  });
+  const { messages, status, error, sendMessage } = chat;
+  useEffect(() => {
+    sessionStorage.setItem(
+      cacheKey,
+      JSON.stringify({ id: cache.id, messages }),
+    );
+  }, [cache.id, messages]);
+  const waiting = messages.some(message =>
+    message.parts.some(
+      part => isToolUIPart(part) && part.state === 'approval-requested',
+    ),
+  );
+  const busy = status === 'submitted' || status === 'streaming';
+
+  async function approve(id: string, approved: boolean) {
+    setResponding(true);
+    setActionError(undefined);
+    try {
+      await chat.stop();
+      await chat.addToolApprovalResponse({ id, approved });
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : 'Approval failed',
+      );
+    } finally {
+      setResponding(false);
+    }
+  }
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!input.trim() || busy || waiting || responding) return;
+    const text = input.trim();
+    setInput('');
+    setActionError(undefined);
+    try {
+      await sendMessage({ text });
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Message failed');
+    }
+  }
+  return (
+    <main>
+      <h1>Durable support agent</h1>
+      {messages.map(message => (
+        <article key={message.id}>
+          <strong>{message.role}</strong>
+          {message.parts.map((part, index) => {
+            if (part.type === 'text') return <p key={index}>{part.text}</p>;
+            if (!isToolUIPart(part)) return null;
+            return (
+              <div key={part.toolCallId}>
+                <pre>{JSON.stringify(part.input, null, 2)}</pre>
+                {part.state === 'approval-requested' && (
+                  <>
+                    <button
+                      disabled={responding}
+                      onClick={() => void approve(part.approval.id, true)}
+                    >
+                      Approve
+                    </button>
+                    <button
+                      disabled={responding}
+                      onClick={() => void approve(part.approval.id, false)}
+                    >
+                      Deny
+                    </button>
+                  </>
+                )}
+                {part.state === 'output-available' && (
+                  <pre>{JSON.stringify(part.output, null, 2)}</pre>
+                )}
+                {part.state === 'output-denied' && (
+                  <p>Tool execution denied.</p>
+                )}
+                {part.state === 'output-error' && <p>{part.errorText}</p>}
+              </div>
+            );
+          })}
+        </article>
+      ))}
+      {(actionError || error) && (
+        <p role="alert">{actionError ?? error?.message}</p>
+      )}
+      <form onSubmit={submit}>
+        <input
+          aria-label="Message"
+          value={input}
+          onChange={event => setInput(event.target.value)}
+        />
+        <button disabled={busy || waiting || responding || !input.trim()}>
+          Send
+        </button>
+      </form>
+    </main>
+  );
+}
+```
+
+Stopping the chat reader before sending approval avoids a race with an SSE
+connection that is still closing at the gate. It does not stop the durable run.
+The transport submits the decision and reconnects the same run.
+
+`sessionStorage` survives a refresh in the same tab, not closing that tab. For a
+production app, persist conversation messages server-side, scope all cache keys
+to the signed-in user and tenant, and clear them on sign-out. If no message cache
+exists, reset the stream cursor to zero and rebuild from retained events.
+
+## 6. Try interruption and recovery
+
+1. Start DTS, PostgreSQL, Redis, the worker, and Next.js.
+2. Ask: “Issue a demo credit for 150.”
+3. Wait for the approval buttons. Inspect the parked run in the DTS dashboard.
+4. Stop the worker with Ctrl+C, then refresh the browser. The pending gate remains.
+5. Restart `npx tsx worker.mts` with the same configuration.
+6. Approve the displayed operation. The agent returns a demo receipt and summary.
+7. Send another message. It joins the same durable conversation.
+
+The extension uses **committed-step streaming**: it publishes model output after
+the model checkpoint commits, not immediately as each provider token arrives.
+Refreshing replays retained UI events; it does not rerun committed model steps.
+
+## At-least-once execution
+
+Durable activities execute **at least once**. A worker can perform an external
+mutation and crash before recording success. Recovery may execute that activity
+again, even though the mutation already happened.
+
+For a real credit API, replace the demo receipt with an idempotent mutation:
+
+```ts
+const credit = durableTool({
+  inputSchema: z.object({ amount: z.number().positive().max(500) }),
+  policy: new ToolPolicy({ execution: ToolExecution.DURABLE }),
+  execute: async ({ amount }, options) => {
+    const response = await fetch(process.env.CREDIT_API_URL!, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'idempotency-key': options.durable.idempotencyKey,
+      },
+      body: JSON.stringify({ amount }),
+    });
+    if (!response.ok) throw new Error(`Credit API failed: ${response.status}`);
+    return response.json();
+  },
+});
+```
+
+Use this tool in place of `tools.credit`, keeping the approval rule.
+The downstream service must atomically deduplicate operations by that key and
+return the original result for repeated attempts. Sending a header alone is not
+an exactly-once guarantee. Configure authentication and server-owned customer
+scope before connecting a real financial operation.
+
+The per-tool effect key is distinct from the submission's `idempotency-key`, which
+deduplicates scheduling a turn. Approval authorizes an operation; it does not make
+its effects exactly once.
+
+## Move to production
+
+- Use [Azure Managed Durable Task Scheduler](https://learn.microsoft.com/azure/azure-functions/durable/durable-task-scheduler/durable-task-scheduler)
+  instead of the emulator. Provision the task hub and configure its endpoint and
+  Azure credentials on both client and worker. `credential: null` is emulator-only.
+- Run the worker as a supervised, long-lived Node.js service with graceful shutdown
+  and scheduler connectivity. Web routes remain Node.js clients, never Edge workers.
+- Use shared, persistent PostgreSQL and Redis with TLS, tenant isolation, backups,
+  and retention that covers your approval and reconnection windows. The local
+  Docker commands do not configure durable volumes or production security.
+- Add authenticated ownership checks to submission, status, streaming, and
+  decisions; require reviewer permissions for approval. Handle invalid input,
+  expired stream cursors (HTTP 410), stale approval tokens, and receipt conflicts
+  explicitly rather than retrying mutations blindly.
+- Keep compatible worker versions available for in-flight runs. Configure session
+  limits and retention; call a session handle's `finish()` when the conversation
+  is closed so it does not remain open indefinitely.
+
+For API details and deployment guidance, see the
+[extension's developer guide](https://github.com/microsoft/durabletask-vercel-ai/blob/main/docs/user-guide.md).
