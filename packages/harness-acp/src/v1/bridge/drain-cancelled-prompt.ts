@@ -7,7 +7,7 @@
  * aborted turn's output in the next turn. An agent that answers the cancelled
  * prompt with an error instead of a stop ends the drain too: the ACP SDK
  * clears queued errors at the start of the next prompt. Only an agent that
- * acknowledges the cancellation at all leaves the session state unknown, which
+ * never acknowledges the cancellation leaves the session state unknown, which
  * the caller must treat as a session failure rather than prompt on top of it.
  */
 export async function drainCancelledPrompt({
