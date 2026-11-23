@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: xai.responses('grok-4-1-fast-reasoning'),
+    model: xai.responses('grok-4.7'),
     tools: {
       mcp_server: xai.tools.mcpServer({
         serverUrl: 'https://mcp.deepwiki.com/mcp',
@@ -22,7 +22,7 @@ run(async () => {
   for (const content of result.content) {
     if (content.type === 'tool-call') {
       console.log(
-        `  - ${content.toolName} (${content.providerExecuted ? 'server-side' : 'client-side'})`,
+        `  - ${content.toolName} ${JSON.stringify(content.input)} (${content.providerExecuted ? 'server-side' : 'client-side'})`,
       );
     }
   }
