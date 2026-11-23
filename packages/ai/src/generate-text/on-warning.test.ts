@@ -1,4 +1,5 @@
 import type {
+  LanguageModelV2StreamPart,
   LanguageModelV4Content,
   LanguageModelV4FinishReason,
   LanguageModelV4StreamPart,
@@ -11,6 +12,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { ToolLoopAgent } from '../agent/tool-loop-agent';
 import { resetLogWarningsState } from '../logger/log-warnings';
+import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { generateText } from './generate-text';
 import { isStepCount } from './stop-condition';
@@ -96,6 +98,34 @@ function createModel(
     },
   });
 }
+
+function createV2Model() {
+  const v2Usage = { inputTokens: 3, outputTokens: 10, totalTokens: 13 };
+  return new MockLanguageModelV2({
+    doGenerate: async () => ({
+      content: [{ type: 'text', text: 'Hello' }],
+      finishReason: 'stop',
+      usage: v2Usage,
+      warnings: [],
+    }),
+    doStream: async () => ({
+      stream: convertArrayToReadableStream<LanguageModelV2StreamPart>([
+        { type: 'stream-start', warnings: [] },
+        { type: 'text-start', id: '1' },
+        { type: 'text-delta', id: '1', delta: 'Hello' },
+        { type: 'text-end', id: '1' },
+        { type: 'finish', finishReason: 'stop', usage: v2Usage },
+      ]),
+    }),
+  });
+}
+
+const v2CompatibilityWarning = {
+  type: 'compatibility',
+  feature: 'specificationVersion',
+  details:
+    'Using v2 specification compatibility mode. Some features may not be available.',
+} as const;
 
 const weather = tool({
   inputSchema: z.object({ city: z.string() }),
@@ -271,6 +301,61 @@ describe.each(['generate', 'stream'] as const)('onWarning (%s)', method => {
       type: 'DeprecationWarning',
       code: 'AISDK_DEP_IMAGE_CONTENT_PART',
     });
+  });
+
+  it('sends the v2 compatibility warning to onWarning', async () => {
+    const globalLogger = vi.fn();
+    vi.stubGlobal('AI_SDK_LOG_WARNINGS', globalLogger);
+    const onWarning = vi.fn();
+    const options = { model: createV2Model(), prompt: 'Hello', onWarning };
+
+    if (method === 'generate') {
+      await generateText(options);
+    } else {
+      await streamText(options).consumeStream();
+    }
+
+    expect(onWarning.mock.calls).toEqual([
+      [
+        {
+          warnings: [v2CompatibilityWarning],
+          provider: 'mock-provider',
+          model: 'mock-model-id',
+        },
+      ],
+    ]);
+    expect(globalLogger).not.toHaveBeenCalled();
+  });
+
+  it('sends the v2 compatibility warning of a prepareStep model to onWarning', async () => {
+    const globalLogger = vi.fn();
+    vi.stubGlobal('AI_SDK_LOG_WARNINGS', globalLogger);
+    const onWarning = vi.fn();
+    const stepModel = createV2Model();
+    const options = {
+      model: createModel([]),
+      prompt: 'Hello',
+      prepareStep: () => ({ model: stepModel }),
+      onWarning,
+    };
+
+    if (method === 'generate') {
+      await generateText(options);
+    } else {
+      await streamText(options).consumeStream();
+    }
+
+    expect(
+      method === 'generate'
+        ? stepModel.doGenerateCalls
+        : stepModel.doStreamCalls,
+    ).toHaveLength(1);
+    expect(onWarning).toHaveBeenCalledWith({
+      warnings: [v2CompatibilityWarning],
+      provider: 'mock-provider',
+      model: 'mock-model-id',
+    });
+    expect(globalLogger).not.toHaveBeenCalled();
   });
 
   it('keeps the file URLs of prompt warnings out of telemetry without recorded inputs', async () => {

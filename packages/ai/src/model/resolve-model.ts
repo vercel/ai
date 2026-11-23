@@ -32,10 +32,14 @@ import { asTranscriptionModelV4 } from './as-transcription-model-v4';
 import { asVideoModelV4 } from './as-video-model-v4';
 import { asProviderV4 } from './as-provider-v4';
 import type { ImageModel } from '../types/image-model';
+import type { LogWarningsFunction } from '../logger/log-warnings';
 import type { RerankingModel } from '../types/reranking-model';
 import type { VideoModel } from '../types/video-model';
 
-export function resolveLanguageModel(model: LanguageModel): LanguageModelV4 {
+export function resolveLanguageModel(
+  model: LanguageModel,
+  onWarning?: LogWarningsFunction,
+): LanguageModelV4 {
   if (typeof model === 'string') {
     return getGlobalProvider().languageModel(model);
   }
@@ -49,7 +53,7 @@ export function resolveLanguageModel(model: LanguageModel): LanguageModelV4 {
     });
   }
 
-  return asLanguageModelV4(model);
+  return asLanguageModelV4(model, onWarning);
 }
 
 export function resolveEmbeddingModel(model: EmbeddingModel): EmbeddingModelV4 {

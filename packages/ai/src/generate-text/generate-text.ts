@@ -674,7 +674,7 @@ async function generateTextInternal<
 
   const resolvedToolCallConcurrency =
     prepareToolCallConcurrency(toolCallConcurrency);
-  const model = resolveLanguageModel(modelArg);
+  const model = resolveLanguageModel(modelArg, onWarning);
   const resolvedToolCallers = resolveToolCallerConfiguration({
     tools,
     toolCallers: experimental_toolCallers,
@@ -1107,6 +1107,7 @@ async function generateTextInternal<
 
                   const stepModel = resolveLanguageModel(
                     prepareStepResult?.model ?? model,
+                    onWarning,
                   );
 
                   const stepInstructions =

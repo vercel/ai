@@ -967,7 +967,7 @@ function streamTextInternal<
   const resolvedOnStepEnd = onStepEnd ?? onStepFinish;
   return new DefaultStreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
     retention,
-    model: resolveLanguageModel(model),
+    model: resolveLanguageModel(model, onWarning),
     telemetry,
     headers,
     settings,
@@ -2677,6 +2677,7 @@ class DefaultStreamTextResult<
 
           const stepModel = resolveLanguageModel(
             prepareStepResult?.model ?? model,
+            onWarning,
           );
           currentStepModel = stepModel;
 
@@ -2835,7 +2836,7 @@ class DefaultStreamTextResult<
             runInStepTracingChannelContext(() =>
               retry(async () =>
                 streamLanguageModelCall({
-                  model: prepareStepResult?.model ?? model,
+                  model: stepModel,
                   tools: stepModelTools as TOOLS,
                   toolOrder: stepToolOrder,
                   toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
