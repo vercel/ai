@@ -9,7 +9,10 @@ import type {
 } from '../run-agent-tui';
 import { renderScreenViewport, sliceVisible, visibleLength } from './layout';
 import { renderMarkdown } from './markdown';
-import { sanitizeTerminalText } from './sanitize-terminal-text';
+import {
+  escapeFormatCharacters,
+  sanitizeTerminalText,
+} from './sanitize-terminal-text';
 import { TerminalFrameBuffer } from './terminal-frame-buffer';
 import {
   getToolName,
@@ -356,7 +359,7 @@ export class TerminalRenderer {
           case 'character': {
             const value = key.value.toLowerCase();
 
-            if (value === 'y') {
+            if (value === 'y' && !this.#toolApprovalContinuesBelowViewport()) {
               this.#status = `Approved · ${processingStatus}`;
               this.#detachInput();
               finishToolApprovalRequest('approved');
@@ -837,7 +840,7 @@ export class TerminalRenderer {
       inputActive: this.#inputActive,
       inputCursorVisible: this.#inputCursorVisible,
       status: this.#toolApprovalContinuesBelowViewport()
-        ? `More input below · ${this.#status}`
+        ? `Scroll to the end of the input to approve · n to deny · ${activeControls}`
         : this.#status,
     });
 
@@ -1321,9 +1324,13 @@ function createSectionLines(section: ChatSection, width: number) {
   const content =
     section.content.length === 0
       ? colors.dim + '(streaming...)' + colors.reset
-      : section.kind === 'approval'
-        ? // show the input that is being approved as is, without markdown formatting:
-          sanitizeTerminalText(section.content, { multiline: true })
+      : section.kind === 'tool' ||
+          section.kind === 'approval' ||
+          section.kind === 'error'
+        ? // tool input, tool output, and errors are data: show them exactly
+          escapeFormatCharacters(
+            sanitizeTerminalText(section.content, { multiline: true }),
+          )
         : renderMarkdown(section.content);
   const lines = content
     .split('\n')

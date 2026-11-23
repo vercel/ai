@@ -112,6 +112,40 @@ describe('terminal output sanitization', () => {
     },
   );
 
+  it('shows invisible format characters in tool cards and approval prompts', async () => {
+    const { screen, input, renderer } = createTerminal();
+    await renderer.renderStream(
+      {
+        message: {
+          id: 'message-1',
+          role: 'assistant',
+          parts: [{ ...toolPart, output: 'admin\u200b@example.com' }],
+        },
+        uiMessageStream: (async function* () {
+          yield {
+            type: 'finish' as const,
+            messageMetadata: { complete: true },
+          };
+        })(),
+      },
+      { continueSession: true, waitForExit: false },
+    );
+    const approval = renderer.readToolApproval({
+      approvalId: 'approval-1',
+      toolCallId: 'call-2',
+      toolName: 'test',
+      input: 'report_\u202efdp.exe\u{e0041}',
+      messageId: 'message-1',
+      partIndex: 1,
+    });
+    input.type('n');
+    await approval;
+
+    expect(screen.rawOutput()).not.toMatch(/\p{Cf}/u);
+    expect(screen.rawOutput()).toContain('admin\\u{200b}@example.com');
+    expect(screen.rawOutput()).toContain('report_\\u{202e}fdp.exe\\u{e0041}');
+  });
+
   it('escapes stream errors', async () => {
     const { screen, renderer } = createTerminal();
     await renderer.renderStream(
