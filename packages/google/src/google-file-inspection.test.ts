@@ -11,7 +11,7 @@ import { createGoogle } from './google-provider';
 import { convertToGoogleInteractionsInput } from './interactions/convert-to-google-interactions-input';
 import { type GoogleInteractionsFileOptions } from './interactions/google-interactions-file-options';
 
-const modelId = 'gemini-4-argon-file-processing-eap';
+const modelId = 'gemini-4-hydrogen';
 const fileUri =
   'https://generativelanguage.googleapis.com/v1beta/files/inspection';
 

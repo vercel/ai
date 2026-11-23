@@ -5889,12 +5889,12 @@ describe('doGenerate', () => {
 
       it.each([
         {
-          modelId: 'gemini-4-hydrogen-eap',
+          modelId: 'gemini-4-hydrogen-001',
           reasoning: 'xhigh' as const,
           expectedThinkingLevel: 'xhigh',
         },
         {
-          modelId: 'models/gemini-4-hydrogen-eap',
+          modelId: 'models/gemini-4-hydrogen-001',
           reasoning: 'xhigh' as const,
           expectedThinkingLevel: 'xhigh',
         },
@@ -5939,12 +5939,12 @@ describe('doGenerate', () => {
           expectedThinkingLevel: 'high',
         },
         {
-          modelId: 'gemini-3.7-flash-video-understanding-eap',
+          modelId: 'gemini-3.7-flash-preview',
           reasoning: 'minimal' as const,
           expectedThinkingLevel: 'low',
         },
         {
-          modelId: 'gemini-3.7-flash-video-understanding-eap',
+          modelId: 'gemini-3.7-flash-preview',
           reasoning: 'none' as const,
           expectedThinkingLevel: 'low',
         },

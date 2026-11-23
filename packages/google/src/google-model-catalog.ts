@@ -318,14 +318,6 @@ const modelDefinitions = {
     types: ['interactions'],
     definition: undefined,
   },
-  'gemini-3.8-flash-file-processing-eap': {
-    types: ['language', 'interactions'],
-    definition: undefined,
-  },
-  'gemini-4-argon-file-processing-eap': {
-    types: ['language', 'interactions'],
-    definition: undefined,
-  },
   'lyria-3-clip-preview': {
     types: ['interactions'],
     definition: undefined,
