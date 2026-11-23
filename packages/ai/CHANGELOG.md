@@ -1,5 +1,16 @@
 # ai
 
+## 7.0.181
+
+### Patch Changes
+
+- d834c5b: add per-call `onWarning` callback and include prompt conversion warnings in the step warnings
+- 7760e33: add stoppedBy to generateText and streamText results, onEnd, and the finish part to tell why the tool loop stopped
+- 28d17e6: report why the run ended for steering messages sent after it, and count steering messages as delivered when prepareStep turns their text into parts or adds provider options
+- 797dc02: Strip provider options from text and file parts in extraction telemetry while preserving arbitrary JSON state and the options sent to the provider.
+- Updated dependencies [f2732a6]
+  - @ai-sdk/gateway@4.0.154
+
 ## 7.0.180
 
 ### Patch Changes
