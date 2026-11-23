@@ -5,17 +5,17 @@ description: Use Gnani Prisma for transcription and Gnani Timbre for speech gene
 
 # Gnani AI
 
-The community-maintained `gnani` package connects the AI SDK to Gnani AI’s speech APIs. It supports Prisma v2.5 and v3.0 for transcription and Timbre v2.5 and v3.0 for speech generation. [Provider repository](https://github.com/ANAMASGARD/gnani-ai-sdk)
+The community-maintained `gnani-ai` package connects the AI SDK to Gnani AI’s speech APIs. It supports Prisma v2.5 and v3.0 for transcription and Timbre v2.5 and v3.0 for speech generation. [Provider repository](https://github.com/ANAMASGARD/gnani-ai-sdk)
 
 ## Setup
 
 Install the provider in an AI SDK 7 project.
 
-<InstallPackages packages="gnani" />
+<InstallPackages packages="gnani-ai" />
 
 Set `GNANI_API_KEY` in your server environment. The `gnani` export reads this variable at request time. To pass a key explicitly, use `new Gnani({ apiKey })`. [Gnani dashboard](https://app.gnani.ai)
 
-In a new application, installing `gnani` also provides the AI SDK's `transcribe` and `generateSpeech` functions as named exports from `gnani`.
+In a new application, installing `gnani-ai` also provides the AI SDK's `transcribe` and `generateSpeech` functions as named exports from `gnani-ai`.
 
 ## Transcription
 
@@ -24,7 +24,7 @@ Prisma accepts recordings up to 30 seconds. Use `prisma-v3.0` for automatic lang
 ```ts
 import { readFile } from 'node:fs/promises';
 import { transcribe } from 'ai';
-import { gnani } from 'gnani';
+import { gnani } from 'gnani-ai';
 
 const { text } = await transcribe({
   model: gnani.transcription('prisma-v3.0'),
@@ -39,7 +39,7 @@ Pass a voice from the catalog for the selected model. For example, use `Shivani`
 ```ts
 import { writeFile } from 'node:fs/promises';
 import { generateSpeech } from 'ai';
-import { gnani } from 'gnani';
+import { gnani } from 'gnani-ai';
 
 const { audio } = await generateSpeech({
   model: gnani.speech('timbre-v3.0'),
