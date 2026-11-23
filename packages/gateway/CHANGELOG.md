@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 4.0.154
+
+### Patch Changes
+
+- f2732a6: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.153
 
 ### Patch Changes
