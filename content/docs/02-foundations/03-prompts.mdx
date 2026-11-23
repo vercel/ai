@@ -423,7 +423,11 @@ A custom download function replaces the default implementation, including the
 URL checks and the DNS-pinned Node.js transport described above. Your function
 is responsible for validating the URLs it downloads and the addresses they
 resolve to. To keep those checks for a URL your function does not handle itself,
-download it with `createDownload()` from `ai`.
+download it with `createDownload()` from `ai`. On Node.js 20.19 or later,
+[`guarded-fetch`](https://github.com/vercel-labs/guarded-fetch) provides a
+transport that validates the addresses a hostname resolves to and pins the
+connection to them, for requests your function makes itself. It does not run on
+Bun, Deno, or edge runtimes.
 
 <Note>
   The `experimental_download` option is experimental and may change in future
