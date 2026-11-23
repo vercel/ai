@@ -12,6 +12,8 @@
     "type-check": "tsc --noEmit",
     "test:watch": "vitest --config vitest.config.js",
     "test": "pnpm test:node && pnpm test:ui && pnpm test:edge",
+    "test:node22": "node ../../tools/with-node.mjs 22 pnpm test",
+    "test:node26": "node ../../tools/with-node.mjs 26 pnpm test",
     "test:e2e": "playwright test",
     "test:browser": "playwright install ${CI:+--with-deps} chromium && pnpm test:e2e",
     "test:edge": "vitest --config vitest.edge.config.js --run",

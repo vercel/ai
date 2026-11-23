@@ -97,8 +97,18 @@
     },
     "test": {
       "dependsOn": ["^build", "build"],
-      "env": ["TEST_NODE_VERSION"],
-      "passThroughEnv": ["VITEST_MAX_WORKERS"],
+      "tags": ["ci"]
+    },
+    // `test` on other Node.js versions. Vercel CI runs every task on Node.js 24,
+    // so these tasks run `test` through tools/with-node.mjs.
+    "test:node22": {
+      "dependsOn": ["^build", "build"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tools/with-node.mjs"],
+      "tags": ["ci"]
+    },
+    "test:node26": {
+      "dependsOn": ["^build", "build"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tools/with-node.mjs"],
       "tags": ["ci"]
     },
     "test:browser": {

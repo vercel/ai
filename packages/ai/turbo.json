@@ -6,6 +6,12 @@
     },
     "test": {
       "tags": ["$TURBO_EXTENDS$", "ci:cpus:8"]
+    },
+    "test:node22": {
+      "tags": ["$TURBO_EXTENDS$", "ci:cpus:8"]
+    },
+    "test:node26": {
+      "tags": ["$TURBO_EXTENDS$", "ci:cpus:8"]
     }
   }
 }

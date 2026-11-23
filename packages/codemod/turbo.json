@@ -7,6 +7,14 @@
     "test": {
       "dependsOn": ["^build", "build"],
       "env": ["$TURBO_EXTENDS$", "UPDATE_SNAPSHOT"]
+    },
+    "test:node22": {
+      "dependsOn": ["^build", "build"],
+      "env": ["$TURBO_EXTENDS$", "UPDATE_SNAPSHOT"]
+    },
+    "test:node26": {
+      "dependsOn": ["^build", "build"],
+      "env": ["$TURBO_EXTENDS$", "UPDATE_SNAPSHOT"]
     }
   }
 }

@@ -6,6 +6,8 @@
     "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
     "test": "pnpm test:mcp-auth && pnpm test:mcp-elicitation",
+    "test:node22": "node ../../tools/with-node.mjs 22 pnpm test",
+    "test:node26": "node ../../tools/with-node.mjs 26 pnpm test",
     "start": "next start",
     "lint": "ultracite check",
     "dev:websocket": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx scripts/websocket-chat-server.ts",

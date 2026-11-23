@@ -30,6 +30,8 @@
     "generate-model-settings": "tsx scripts/generate-model-settings.ts",
     "type-check": "tsc --noEmit",
     "test": "pnpm test:node && pnpm test:edge",
+    "test:node22": "node ../../tools/with-node.mjs 22 pnpm test",
+    "test:node26": "node ../../tools/with-node.mjs 26 pnpm test",
     "test:update": "pnpm test:node -u",
     "test:watch": "vitest --config vitest.node.config.js",
     "test:edge": "vitest --config vitest.edge.config.js --run",

@@ -10,6 +10,28 @@
         "$TURBO_ROOT$/tools/discover-guidelines.mts",
         "$TURBO_ROOT$/tools/run-verifiers.mts"
       ]
+    },
+    "test:node22": {
+      "dependsOn": [],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/tools/with-node.mjs",
+        "$TURBO_ROOT$/.agents/guidelines/**",
+        "$TURBO_ROOT$/.agents/verifiers/**",
+        "$TURBO_ROOT$/tools/discover-guidelines.mts",
+        "$TURBO_ROOT$/tools/run-verifiers.mts"
+      ]
+    },
+    "test:node26": {
+      "dependsOn": [],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/tools/with-node.mjs",
+        "$TURBO_ROOT$/.agents/guidelines/**",
+        "$TURBO_ROOT$/.agents/verifiers/**",
+        "$TURBO_ROOT$/tools/discover-guidelines.mts",
+        "$TURBO_ROOT$/tools/run-verifiers.mts"
+      ]
     }
   }
 }

@@ -11,6 +11,8 @@
     "type-check": "svelte-check --tsconfig ./tsconfig.json",
     "type-check:watch": "svelte-check --tsconfig ./tsconfig.json --watch",
     "test": "vitest --run",
+    "test:node22": "node ../../tools/with-node.mjs 22 pnpm test",
+    "test:node26": "node ../../tools/with-node.mjs 26 pnpm test",
     "test:update": "vitest --run -u",
     "test:watch": "vitest",
     "clean": "del-cli dist"

@@ -22,15 +22,17 @@ coverage, and the limitations of the historical Zod regression reproduction.
 CI is defined in `turbo.json`. [Vercel CI](https://vercel.com/docs/ci) runs every
 task tagged `ci` on Node.js 24, on Linux, and skips tasks whose inputs haven't
 changed since a cached run. `.github/workflows/ci.yml` covers what Vercel CI
-can't: `test` on Node.js 22 and 26, and `test:windows` on Windows.
+can't: `test:windows` on Windows.
 
 To add a check to CI, add a script to the package and a task with the `ci` tag
 in `turbo.json`. Declare every file the task reads outside its package in
 `inputs`, so cached results can't hide a failure.
 
-In the Node.js version jobs, `TEST_NODE_VERSION` keeps each version's test
-results in a separate cache entry, and `VITEST_MAX_WORKERS=2` limits each
-package's Vitest worker pool while Turbo runs packages in parallel.
+Every package with a `test` script also has `test:node22` and `test:node26`
+scripts. They run `test` on those Node.js versions through
+`tools/with-node.mjs`, which downloads the runtime with pnpm. A package that
+overrides `test` in its own `turbo.json` needs the same override for
+`test:node22` and `test:node26`.
 
 ## Providers
 
