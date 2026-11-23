@@ -1343,7 +1343,8 @@ function renderSectionContent({ kind, content }: ChatSection) {
 
   const text = sanitizeTerminalText(content, { multiline: true });
 
-  // tool input, tool output, and errors are data: show them exactly
+  // the prompt is shown as typed; tool input, tool output, and errors are
+  // data, so they also show characters that are invisible on their own:
   return kind === 'user' ? text : escapeInvisibleCharacters(text);
 }
 
