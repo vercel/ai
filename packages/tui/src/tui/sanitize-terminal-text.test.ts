@@ -1,5 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { sanitizeTerminalText } from './sanitize-terminal-text';
+import {
+  escapeFormatCharacters,
+  sanitizeTerminalText,
+} from './sanitize-terminal-text';
+
+describe('escapeFormatCharacters', () => {
+  it('escapes bidirectional controls, zero-width characters, and tag characters', () => {
+    expect(
+      escapeFormatCharacters('a\u202eb\u2066c\u200bd\u200de\ufefff\u{e0041}g'),
+    ).toBe('a\\u{202e}b\\u{2066}c\\u{200b}d\\u{200d}e\\u{feff}f\\u{e0041}g');
+  });
+
+  it('preserves visible characters', () => {
+    expect(escapeFormatCharacters('Hello 日本語 😀 e\u0301 ☀\ufe0f')).toBe(
+      'Hello 日本語 😀 e\u0301 ☀\ufe0f',
+    );
+  });
+});
 
 describe('sanitizeTerminalText', () => {
   it('preserves printable Unicode and expands tabs to spaces', () => {

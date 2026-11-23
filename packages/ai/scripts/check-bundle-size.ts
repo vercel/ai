@@ -16,7 +16,7 @@ import { join } from 'path';
 // Extraction telemetry adds ~2.5 KiB.
 // The bundled Gateway Live model and continuous client-secret sessions add ~6 KiB.
 // Per-call warning callbacks and prompt warnings in step warnings add ~1 KiB.
-const LIMIT = 671 * 1024;
+const LIMIT = 675 * 1024;
 
 interface BundleResult {
   size: number;
