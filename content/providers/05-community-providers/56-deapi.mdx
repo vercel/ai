@@ -5,10 +5,11 @@ description: Learn how to use the deAPI provider for the AI SDK.
 
 # deAPI
 
-[deAPI](https://deapi.ai) runs open-source image, video, audio and embedding models on a distributed GPU network and exposes them through an OpenAI-compatible API.
+[deAPI](https://deapi.ai) runs open-source image, video, audio and embedding models on a distributed GPU network, serves open chat models, and exposes them through an OpenAI-compatible API.
 
 The deAPI provider for the AI SDK supports:
 
+- **Language models**: DeepSeek, Qwen, Kimi, GLM, Seed and other open models with tools, structured output, reasoning and the cost of every call
 - **Image generation and editing**: Flux, Z-Image and Qwen image models, including instruction-based editing with input images
 - **Video generation**: text-to-video and image-to-video with LTX and MiniMax models
 - **Embeddings**: 1024-dimensional BGE-M3 embeddings
@@ -68,10 +69,74 @@ You can use the following optional settings to customize the deAPI provider inst
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
-<Note>
-  This provider package does not include language models.
-  `deapi.languageModel()` throws a `NoSuchModelError`.
-</Note>
+## Language Models
+
+You can create models that call the deAPI chat completions API using the provider instance.
+The first argument is the model id, e.g. `deepseek-v4.1-flash`:
+
+```ts
+import { deapi } from '@deapi/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text, providerMetadata } = await generateText({
+  model: deapi('deepseek-v4.1-flash'),
+  prompt: 'Write a haiku about open-source models.',
+});
+
+console.log(providerMetadata?.deapi?.cost); // USD charged for this call
+```
+
+`deapi.languageModel()` and `deapi.chatModel()` return the same model. The models work with `generateText` and `streamText`, including tools and structured output through `Output`.
+
+### Cost
+
+deAPI returns the amount it charged for each call, and the provider exposes it as `providerMetadata.deapi.cost` (USD).
+With `streamText` the provider always requests the final usage chunk, so `await result.providerMetadata` carries the cost as well.
+
+### Reasoning
+
+Set the reasoning effort with the `reasoning` call option or with `providerOptions.deapi.reasoningEffort`.
+Both are sent as `reasoning_effort` (`none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`); the reasoning comes back as `reasoningText`:
+
+```ts
+const { text, reasoningText } = await generateText({
+  model: deapi('qwen3.8-flash'),
+  prompt: 'How many minutes from 09:47 to 13:15?',
+  reasoning: 'low',
+});
+```
+
+Models differ in the levels they accept (`glm-5.3` takes `low`, `high` and `max`); an unsupported level returns a 400 that lists the accepted values.
+
+### Listing Models
+
+`deapi.listModels()` returns the chat models available to your API key, with context window, output limit, input modalities and prices in USD per token:
+
+```ts
+const models = await deapi.listModels();
+```
+
+### Model Capabilities
+
+| Model                         | Image Input | Object Generation | Tool Usage |
+| ----------------------------- | ----------- | ----------------- | ---------- |
+| `deepseek-v4.1-flash`         | <Check />   | <Check />         | <Check />  |
+| `deepseek-v4.1-flash:economy` | <Check />   | <Check />         | <Check />  |
+| `glm-5.3`                     | <Cross />   | <Check />         | <Check />  |
+| `glm-5.3-flash`               | <Check />   | <Check />         | <Check />  |
+| `gpt-6-luna`                  | <Check />   | <Check />         | <Check />  |
+| `hy3`                         | <Cross />   | <Check />         | <Check />  |
+| `kimi-k3`                     | <Check />   | <Check />         | <Check />  |
+| `qwen3.8-flash`               | <Check />   | <Check />         | <Check />  |
+| `qwen3.8-max`                 | <Check />   | <Check />         | <Check />  |
+| `seed-2.0-lite`               | <Check />   | <Check />         | <Check />  |
+| `seed-2.0-mini`               | <Check />   | <Check />         | <Check />  |
+| `seed-2.0-pro`                | <Check />   | <Check />         | <Check />  |
+| `seed-2.1-turbo`              | <Check />   | <Check />         | <Check />  |
+
+The table follows the input modalities and supported parameters that `GET /v1/models` reports for each model.
+`glm-5.3` does not accept `json_schema`, so for that model the provider requests `json_object` and puts the schema in a system message.
+See the [deAPI chat reference](https://docs.deapi.ai/openai-compatibility#chat-completions-llms) for limits and prices per model.
 
 ## Image Models
 
