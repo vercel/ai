@@ -76,6 +76,255 @@ function prepareJsonFixtureResponse(
 }
 
 describe('doGenerate', () => {
+  it.each<{
+    providerOptions: Parameters<typeof model.doGenerate>[0]['providerOptions'];
+  }>([
+    { providerOptions: undefined },
+    { providerOptions: {} },
+    { providerOptions: { openai: {} } },
+    { providerOptions: { openai: { prompt: 'A spoken recording.' } } },
+  ])(
+    'should map shared timestamps with provider options $providerOptions',
+    async ({ providerOptions }) => {
+      prepareJsonFixtureResponse('openai-transcription');
+
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        timestampGranularities: ['word'],
+        providerOptions,
+      });
+
+      const body = await server.calls[0].requestBodyMultipart;
+      expect(body?.['timestamp_granularities[]']).toBe('word');
+      expect(result.warnings).toEqual([]);
+    },
+  );
+
+  it.each([
+    { providerGranularity: 'word', excludedGranularity: 'segment' },
+    { providerGranularity: 'segment', excludedGranularity: 'word' },
+  ] as const)(
+    'should warn when the OpenAI timestamp option excludes $excludedGranularity',
+    async ({ providerGranularity, excludedGranularity }) => {
+      prepareJsonFixtureResponse('openai-transcription');
+
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        timestampGranularities: ['word', 'segment'],
+        providerOptions: {
+          openai: { timestampGranularities: [providerGranularity] },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyMultipart;
+      expect(body?.['timestamp_granularities[]']).toBe(providerGranularity);
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'timestampGranularities',
+          details: `The "${excludedGranularity}" timestamp granularity is excluded by providerOptions.openai.timestampGranularities.`,
+        },
+      ]);
+    },
+  );
+
+  it('should not warn when the OpenAI timestamp option includes the shared request', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      timestampGranularities: ['word'],
+      providerOptions: {
+        openai: { timestampGranularities: ['word'] },
+      },
+    });
+
+    expect(
+      (await server.calls[0].requestBodyMultipart)?.[
+        'timestamp_granularities[]'
+      ],
+    ).toBe('word');
+    expect(result.warnings).toEqual([]);
+  });
+
+  it.each([
+    { timestampGranularities: [] },
+    { providerOptions: { openai: { timestampGranularities: [] } } },
+  ])('should preserve an empty timestamp request %j', async options => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      ...options,
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body!.response_format).toBe('verbose_json');
+    expect(body!['timestamp_granularities[]']).toBeUndefined();
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should let an empty OpenAI timestamp option override the shared request and warn', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      timestampGranularities: ['word', 'segment'],
+      providerOptions: {
+        openai: { timestampGranularities: [] },
+      },
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body!['timestamp_granularities[]']).toBeUndefined();
+    expect(result.warnings).toEqual(
+      ['word', 'segment'].map(granularity => ({
+        type: 'unsupported',
+        feature: 'timestampGranularities',
+        details: `The "${granularity}" timestamp granularity is excluded by providerOptions.openai.timestampGranularities.`,
+      })),
+    );
+  });
+
+  it.each(['gpt-4o-transcribe', 'gpt-4o-mini-transcribe', 'gpt-transcribe'])(
+    'should omit unsupported shared timestamps for %s JSON responses and warn',
+    async modelId => {
+      server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+        type: 'json-value',
+        body: { text: 'Hello world' },
+      };
+
+      const result = await provider.transcription(modelId).doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        timestampGranularities: ['word', 'segment'],
+      });
+
+      const body = await server.calls[0].requestBodyMultipart;
+      expect(body!.response_format).toBeUndefined();
+      expect(body!['timestamp_granularities[]']).toBeUndefined();
+      expect(result.warnings).toEqual(
+        ['word', 'segment'].map(granularity => ({
+          type: 'unsupported',
+          feature: 'timestampGranularities',
+          details: `OpenAI transcription with the default JSON response format does not support ${granularity} timestamps.`,
+        })),
+      );
+    },
+  );
+
+  it.each(['shared', 'provider'] as const)(
+    'should omit unsupported %s timestamps for an explicit JSON response and warn',
+    async source => {
+      server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+        type: 'json-value',
+        body: { text: 'Hello world' },
+      };
+
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        ...(source === 'shared' && {
+          timestampGranularities: ['word', 'segment'],
+        }),
+        providerOptions: {
+          openai: {
+            responseFormat: 'json',
+            ...(source === 'provider' && {
+              timestampGranularities: ['word', 'segment'],
+            }),
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyMultipart;
+      expect(body!.response_format).toBe('json');
+      expect(body!['timestamp_granularities[]']).toBeUndefined();
+      expect(result.warnings).toEqual(
+        ['word', 'segment'].map(granularity => ({
+          type: 'unsupported',
+          feature:
+            source === 'shared'
+              ? 'timestampGranularities'
+              : 'providerOptions.openai.timestampGranularities',
+          details: `OpenAI transcription with the json response format does not support ${granularity} timestamps.`,
+        })),
+      );
+    },
+  );
+
+  it.each(['shared', 'provider'] as const)(
+    'should return diarized segments without sending %s timestamp controls',
+    async source => {
+      prepareJsonFixtureResponse('openai-diarized-transcription');
+
+      const result = await provider
+        .transcription('gpt-4o-transcribe-diarize')
+        .doGenerate({
+          audio: audioData,
+          mediaType: 'audio/mpeg',
+          ...(source === 'shared'
+            ? { timestampGranularities: ['segment'] }
+            : {
+                providerOptions: {
+                  openai: { timestampGranularities: ['segment'] },
+                },
+              }),
+        });
+
+      const body = await server.calls[0].requestBodyMultipart;
+      expect(body!.response_format).toBe('diarized_json');
+      expect(body!['timestamp_granularities[]']).toBeUndefined();
+      expect(result.warnings).toEqual([]);
+      expect(result.segments).toEqual([
+        { text: 'Hello from Alice.', startSecond: 0, endSecond: 1.5 },
+        { text: 'Hello from Bob.', startSecond: 1.5, endSecond: 3.2 },
+      ]);
+    },
+  );
+
+  it.each(['shared', 'provider'] as const)(
+    'should warn only about unavailable diarized word timings requested through %s options',
+    async source => {
+      prepareJsonFixtureResponse('openai-diarized-transcription');
+
+      const result = await provider
+        .transcription('gpt-4o-transcribe-diarize')
+        .doGenerate({
+          audio: audioData,
+          mediaType: 'audio/mpeg',
+          ...(source === 'shared'
+            ? { timestampGranularities: ['word', 'segment'] }
+            : {
+                providerOptions: {
+                  openai: { timestampGranularities: ['word', 'segment'] },
+                },
+              }),
+        });
+
+      const body = await server.calls[0].requestBodyMultipart;
+      expect(body!['timestamp_granularities[]']).toBeUndefined();
+      expect(result.words).toBeUndefined();
+      expect(result.segments).toHaveLength(2);
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature:
+            source === 'shared'
+              ? 'timestampGranularities'
+              : 'providerOptions.openai.timestampGranularities',
+          details:
+            'OpenAI transcription with the diarized_json response format does not support word timestamps.',
+        },
+      ]);
+    },
+  );
+
   describe('detected languages', () => {
     it.each([
       { language: 'english', expected: 'en' },
@@ -200,6 +449,51 @@ describe('doGenerate', () => {
     });
   });
 
+  it.each([
+    'gpt-transcribe',
+    'openai/gpt-transcribe',
+    'custom-transcription-model',
+  ])('should send language and vocabulary hints for %s', async modelId => {
+    let body: FormData | undefined;
+    const hintProvider = createOpenAI({
+      apiKey: 'test-api-key',
+      fetch: async (_url, init) => {
+        body = init?.body as FormData;
+        return Response.json({ text: 'Hello world' });
+      },
+    });
+    const result = await hintProvider.transcription(modelId).doGenerate({
+      audio: audioData,
+      mediaType: 'audio/mpeg',
+      providerOptions: {
+        openai: {
+          languages: ['en', 'fr'],
+          keywords: ['premium plan', 'AC-42'],
+          prompt: 'A customer support call.',
+        },
+      },
+    });
+    expect(body!.getAll('languages[]')).toEqual(['en', 'fr']);
+    expect(body!.getAll('keywords[]')).toEqual(['premium plan', 'AC-42']);
+    expect(body!.get('prompt')).toBe('A customer support call.');
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should omit empty hint arrays while preserving the singular language option', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/mpeg',
+      providerOptions: {
+        openai: { language: 'en', languages: [], keywords: [] },
+      },
+    });
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body!.language).toBe('en');
+    expect(body!['languages[]']).toBeUndefined();
+    expect(body!['keywords[]']).toBeUndefined();
+  });
+
   it('should pass the model', async () => {
     prepareJsonFixtureResponse('openai-transcription');
 
@@ -224,6 +518,7 @@ describe('doGenerate', () => {
     expect(await server.calls[0].requestBodyMultipart).toMatchObject({
       model: 'whisper-1',
       response_format: 'verbose_json',
+      'timestamp_granularities[]': 'segment',
     });
     expect(result.durationInSeconds).toBe(36.709999084472656);
   });
@@ -458,11 +753,11 @@ describe('doGenerate', () => {
     `);
   });
 
-  it('should not set pass response_format to "verbose_json" when model is "gpt-4o-transcribe"', async () => {
+  it('should omit unsupported provider timestamps for gpt-4o-transcribe and warn', async () => {
     prepareJsonFixtureResponse('openai-transcription');
 
     const model = provider.transcription('gpt-4o-transcribe');
-    await model.doGenerate({
+    const result = await model.doGenerate({
       audio: audioData,
       mediaType: 'audio/wav',
       providerOptions: {
@@ -479,9 +774,16 @@ describe('doGenerate', () => {
       {
         "model": "gpt-4o-transcribe",
         "temperature": "0",
-        "timestamp_granularities[]": "word",
       }
     `);
+    expect(result.warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'providerOptions.openai.timestampGranularities',
+        details:
+          'OpenAI transcription with the default JSON response format does not support word timestamps.',
+      },
+    ]);
   });
 
   it('should support gpt-4o-transcribe-diarize', async () => {
@@ -834,6 +1136,53 @@ describe('doGenerate', () => {
         },
       ]
     `);
+    expect(result.words).toEqual([
+      { text: 'Hello', startSecond: 0, endSecond: 1 },
+      { text: 'world', startSecond: 1, endSecond: 2 },
+    ]);
+  });
+
+  it('should keep word timings when segments are also present', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'json-value',
+      body: {
+        text: 'Hello world',
+        words: [
+          { word: 'Hello', start: 0, end: 0.4 },
+          { word: 'world', start: 0.4, end: 1 },
+        ],
+        segments: [
+          {
+            id: 0,
+            seek: 0,
+            start: 0,
+            end: 1,
+            text: 'Hello world',
+            tokens: [1],
+            temperature: 0,
+            avg_logprob: -0.2,
+            compression_ratio: 1,
+            no_speech_prob: 0.01,
+          },
+        ],
+      },
+    };
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        openai: { timestampGranularities: ['word', 'segment'] },
+      },
+    });
+
+    expect(result.segments).toEqual([
+      { text: 'Hello world', startSecond: 0, endSecond: 1 },
+    ]);
+    expect(result.words).toEqual([
+      { text: 'Hello', startSecond: 0, endSecond: 0.4 },
+      { text: 'world', startSecond: 0.4, endSecond: 1 },
+    ]);
   });
 
   it('should handle empty segments array', async () => {
@@ -1368,6 +1717,8 @@ describe('doStream', () => {
       inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
       providerOptions: {
         openai: {
+          languages: ['en', 'fr'],
+          keywords: ['AC-42'],
           prompt: 'context prompt',
           temperature: 0.5,
         },
@@ -1388,6 +1739,16 @@ describe('doStream', () => {
     expect(parts[0]).toEqual({
       type: 'stream-start',
       warnings: [
+        {
+          type: 'unsupported',
+          feature: 'providerOptions.openai.languages',
+          details: 'OpenAI streaming transcription does not support languages.',
+        },
+        {
+          type: 'unsupported',
+          feature: 'providerOptions.openai.keywords',
+          details: 'OpenAI streaming transcription does not support keywords.',
+        },
         {
           type: 'unsupported',
           feature: 'providerOptions.openai.prompt',

@@ -1,16 +1,15 @@
 {
   "name": "@ai-sdk/vue",
-  "version": "4.0.157",
+  "version": "4.0.181",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "pnpm clean && tsdown",
-    "build:watch": "pnpm clean && tsdown --watch",
-    "clean": "del-cli *.tsbuildinfo",
-    "type-check": "tsc --build",
+    "build": "tsdown",
+    "build:watch": "tsdown --watch",
+    "type-check": "tsc --noEmit",
     "test": "vitest --config vitest.config.js --run",
     "test:update": "vitest --config vitest.config.js --run -u",
     "test:watch": "vitest --config vitest.config.js"
@@ -53,7 +52,7 @@
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
     "vitest": "4.1.11",
-    "zod": "3.25.76"
+    "zod": "4.6.7"
   },
   "peerDependencies": {
     "vue": "^3.3.4"

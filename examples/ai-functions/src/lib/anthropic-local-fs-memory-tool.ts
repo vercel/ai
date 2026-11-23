@@ -17,7 +17,7 @@ export const anthropicLocalFsMemoryTool = ({
   }
 
   function validatePath(memoryPath: string): string {
-    if (!memoryPath.startsWith('/memories')) {
+    if (memoryPath !== '/memories' && !memoryPath.startsWith('/memories/')) {
       throw new Error(`Path must start with /memories, got: ${memoryPath}`);
     }
 
@@ -30,7 +30,10 @@ export const anthropicLocalFsMemoryTool = ({
 
     const resolvedPath = path.resolve(fullPath);
     const resolvedRoot = path.resolve(memoryRoot);
-    if (!resolvedPath.startsWith(resolvedRoot)) {
+    if (
+      resolvedPath !== resolvedRoot &&
+      !resolvedPath.startsWith(`${resolvedRoot}${path.sep}`)
+    ) {
       throw new Error(`Path ${memoryPath} would escape /memories directory`);
     }
 

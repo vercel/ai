@@ -60,6 +60,14 @@ export interface SandboxChannelOptions<TOut> {
 
   reconnect?: SandboxChannelReconnectOptions;
 
+  /**
+   * Interval between WebSocket pings in milliseconds. Keeps idle connections
+   * alive and terminates an unresponsive socket after two unanswered pings so
+   * reconnection can begin. Default 20_000. Set to 0 to disable. Sockets without
+   * ping support are left unchanged.
+   */
+  keepAliveMs?: number;
+
   onDebug?: (event: SandboxChannelDebugEvent) => void;
 
   /**
@@ -93,6 +101,11 @@ type Listener<TOut extends { type: string }, T extends EventTypeOf<TOut>> = (
 type BufferedEvent<TOut extends { type: string }> = {
   message: TOut;
   listeners?: ReadonlyArray<Listener<TOut, EventTypeOf<TOut>>>;
+};
+
+type PendingSend = {
+  text: string;
+  onSent?: () => void;
 };
 
 /*
@@ -240,6 +253,9 @@ export class SandboxChannel<
   private readonly initialDelayMs: number;
   private readonly maxDelayMs: number;
 
+  private readonly keepAliveMs: number;
+  private stopKeepalive: (() => void) | undefined;
+
   private ws: WebSocket | undefined;
   private connected = false;
   /** Host has begun teardown; suppresses reconnect so a bridge-side close finalises. */
@@ -257,7 +273,7 @@ export class SandboxChannel<
   /** Channel is fully torn down; `send` throws and `onClose` has fired. */
   private terminal = false;
   private _lastSeenEventId = 0;
-  private readonly pendingSends: string[] = [];
+  private readonly pendingSends: PendingSend[] = [];
   private dispatchChain: Promise<void> = Promise.resolve();
   private activeConnectAbortController: AbortController | undefined;
   private reconnectAbortController: AbortController | undefined;
@@ -271,6 +287,7 @@ export class SandboxChannel<
     this.maxElapsedMs = options.reconnect?.maxElapsedMs ?? 30_000;
     this.initialDelayMs = options.reconnect?.initialDelayMs ?? 50;
     this.maxDelayMs = options.reconnect?.maxDelayMs ?? 2_000;
+    this.keepAliveMs = options.keepAliveMs ?? 20_000;
     this._lastSeenEventId = options.initialLastSeenEventId ?? 0;
   }
 
@@ -385,13 +402,26 @@ export class SandboxChannel<
     };
   }
 
-  send(message: TIn): void {
+  /**
+   * Queue a frame if disconnected. `onSent` runs in a microtask after the frame
+   * is handed to the socket, not after bridge acknowledgement. Reconnect
+   * handlers run before notifications for frames flushed on that connection.
+   * Set `queueIfDisconnected` to false when the caller owns reconnect replay;
+   * an unsent frame is then discarded and its `onSent` callback never runs.
+   */
+  send(
+    message: TIn,
+    {
+      onSent,
+      queueIfDisconnected = true,
+    }: { onSent?: () => void; queueIfDisconnected?: boolean } = {},
+  ): void {
     if (this.terminal) {
       throw new Error(
         `SandboxChannel: cannot send ${message.type} — channel is closed.`,
       );
     }
-    this.rawSend(JSON.stringify(message));
+    this.rawSend(JSON.stringify(message), onSent, queueIfDisconnected);
   }
 
   /**
@@ -402,13 +432,13 @@ export class SandboxChannel<
    */
   beginClose(): void {
     this.closing = true;
+    this.stopKeepalive?.();
     this.abortActiveConnect();
   }
 
   close(): void {
     if (this.terminal) return;
-    this.closing = true;
-    this.abortActiveConnect();
+    this.beginClose();
     try {
       this.ws?.close();
     } catch {
@@ -441,8 +471,7 @@ export class SandboxChannel<
       // Stop counting/dispatching further inbound frames immediately, and
       // suppress reconnect so the socket close finalises.
       this.suspended = true;
-      this.closing = true;
-      this.abortActiveConnect();
+      this.beginClose();
       this.onClose(() =>
         resolve(pinnedSuspensionCursor ?? this._lastSeenEventId),
       );
@@ -450,7 +479,9 @@ export class SandboxChannel<
       // delivered to the consumer is reflected in the final cursor.
       this.enqueue(() => {
         try {
-          this.ws?.close();
+          // The bridge reads this reason to keep a suspended turn running
+          // instead of treating the close as a host that disconnected:
+          this.ws?.close(1000, 'suspended');
         } catch {
           // best-effort
         }
@@ -470,6 +501,7 @@ export class SandboxChannel<
     const onDrop = (code: number, reason: string) => {
       if (dropped) return;
       dropped = true;
+      stopKeepalive();
       if (ws !== this.ws) return;
       this.connected = false;
       if (this.closing) {
@@ -478,6 +510,12 @@ export class SandboxChannel<
         this.enqueue(() => this.reconnectLoop());
       }
     };
+
+    const stopKeepalive = this.keepalive(ws, () => {
+      closeWebSocket({ ws });
+      onDrop(1006, 'heartbeat timeout');
+    });
+    this.stopKeepalive = stopKeepalive;
 
     ws.on('message', (raw: ArrayBufferLike | string) => {
       // Once suspended, ignore further frames so the cursor freezes exactly at
@@ -491,6 +529,35 @@ export class SandboxChannel<
       onDrop(code, reason?.toString?.('utf8') ?? ''),
     );
     ws.on('error', () => onDrop(1006, 'socket error'));
+  }
+
+  private keepalive(ws: WebSocket, onTimeout: () => void): () => void {
+    if (!(this.keepAliveMs > 0) || typeof ws.ping !== 'function') {
+      return () => {};
+    }
+    let unansweredPings = 0;
+    const onPong = () => {
+      unansweredPings = 0;
+    };
+    ws.on('pong', onPong);
+    const timer = setInterval(() => {
+      if (ws.readyState !== ws.OPEN) return;
+      if (unansweredPings >= 2) {
+        onTimeout();
+        return;
+      }
+      unansweredPings++;
+      try {
+        ws.ping();
+      } catch {
+        onTimeout();
+      }
+    }, this.keepAliveMs);
+    (timer as { unref?: () => void }).unref?.();
+    return () => {
+      clearInterval(timer);
+      ws.off('pong', onPong);
+    };
   }
 
   private async reconnectLoop(): Promise<void> {
@@ -634,11 +701,16 @@ export class SandboxChannel<
     });
   }
 
-  private rawSend(text: string): void {
+  private rawSend(
+    text: string,
+    onSent?: () => void,
+    queueIfDisconnected = true,
+  ): void {
     if (this.connected && this.ws && this.ws.readyState === this.ws.OPEN) {
       this.ws.send(text);
-    } else {
-      this.pendingSends.push(text);
+      if (onSent) queueMicrotask(onSent);
+    } else if (queueIfDisconnected) {
+      this.pendingSends.push({ text, onSent });
     }
   }
 
@@ -651,8 +723,10 @@ export class SandboxChannel<
         this.ws &&
         this.ws.readyState === this.ws.OPEN
       ) {
-        this.ws.send(this.pendingSends[sent]);
+        const { text, onSent } = this.pendingSends[sent];
+        this.ws.send(text);
         sent++;
+        if (onSent) queueMicrotask(onSent);
       }
     } finally {
       this.pendingSends.splice(0, sent);
@@ -855,6 +929,7 @@ export class SandboxChannel<
 
   private finalizeClose(code: number, reason: string): void {
     if (this.terminal) return;
+    this.stopKeepalive?.();
     this.abortActiveConnect();
     this.terminal = true;
     this.connected = false;

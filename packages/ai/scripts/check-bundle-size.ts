@@ -4,7 +4,19 @@ import { join } from 'path';
 
 // Both realtime transports add ~32 KiB to all exports; named probes guard tree shaking.
 // experimental_streamSpeech and the bundled gateway speech client add ~6 KiB.
-const LIMIT = 582 * 1024;
+// Streaming image decoding also ships through the bundled Gateway image client.
+// Shared provider credential redaction adds ~1.6 KiB to telemetry-enabled exports.
+// Patched Zod adds ~36 KiB; public message schemas retain the classic API.
+// Internal schemas use Mini, preserving the existing named-export budgets.
+// The opt-in useChat message queue adds ~3 KiB.
+// Bounded validation of malformed UI messages adds ~1.5 KiB.
+// The experimental extract API adds ~5 KiB.
+// The bundled Gateway extraction client adds ~4 KiB.
+// Steering interrupts add ~3 KiB.
+// Extraction telemetry adds ~2.5 KiB.
+// The bundled Gateway Live model and continuous client-secret sessions add ~6 KiB.
+// Per-call warning callbacks and prompt warnings in step warnings add ~1 KiB.
+const LIMIT = 675 * 1024;
 
 interface BundleResult {
   size: number;
@@ -55,7 +67,7 @@ async function bundleForNode(
       entry === 'tool'
         ? 8 * 1024
         : entry === 'generateText'
-          ? 292 * 1024
+          ? 310 * 1024
           : LIMIT,
   };
 }
@@ -103,7 +115,7 @@ async function bundleForBrowser(
       entry === 'tool'
         ? 8 * 1024
         : entry === 'generateText'
-          ? 292 * 1024
+          ? 298 * 1024
           : LIMIT,
   };
 }

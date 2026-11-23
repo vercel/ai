@@ -19,19 +19,23 @@ import {
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
   type FetchFunction,
+  type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { mistralFailedResponseHandler } from './mistral-error';
+import { getMistralTranscriptionModelEntry } from './mistral-model-catalog';
 import {
   mistralTranscriptionModelOptions,
   type MistralTranscriptionModelId,
 } from './mistral-transcription-model-options';
+import { streamMistralTranscription } from './mistral-transcription-stream';
 
 type MistralTranscriptionModelConfig = {
   provider: string;
   baseURL: string;
   headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
+  webSocket?: WebSocketConstructor;
   _internal?: {
     currentDate?: () => Date;
   };
@@ -75,14 +79,23 @@ export class MistralTranscriptionModel implements TranscriptionModelV4 {
       schema: mistralTranscriptionModelOptions,
     });
 
-    // Restrict only known legacy models so future and custom models can combine
-    // a pinned language with timestamps without an SDK update.
+    for (const option of [
+      'targetStreamingDelayMs',
+      'speakerReferences',
+      'turnDetection',
+    ] as const) {
+      if (mistralOptions?.[option] != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: `providerOptions.mistral.${option}`,
+          details: 'This option is only supported for realtime transcription.',
+        });
+      }
+    }
+
     if (
-      [
-        'voxtral-mini-2507',
-        'voxtral-mini-2602',
-        'voxtral-mini-latest',
-      ].includes(this.modelId) &&
+      !getMistralTranscriptionModelEntry(this.modelId).capabilities
+        .transcription.languageWithTimestamps &&
       mistralOptions?.language != null &&
       mistralOptions.timestampGranularities != null
     ) {
@@ -132,6 +145,22 @@ export class MistralTranscriptionModel implements TranscriptionModelV4 {
     }
 
     return { formData, warnings };
+  }
+
+  async doStream(
+    options: Parameters<NonNullable<TranscriptionModelV4['doStream']>>[0],
+  ) {
+    return streamMistralTranscription({
+      ...options,
+      modelId: this.modelId,
+      baseURL: this.config.baseURL,
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
+      webSocket: this.config.webSocket,
+      currentDate: this.config._internal?.currentDate?.() ?? new Date(),
+    });
   }
 
   async doGenerate(

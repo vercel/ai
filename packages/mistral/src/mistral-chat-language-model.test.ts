@@ -149,7 +149,10 @@ describe('doGenerate', () => {
           },
         },
       ],
-      tool_choice: 'any',
+      tool_choice: {
+        type: 'function',
+        function: { name: 'test-tool' },
+      },
     });
   });
 
@@ -1114,6 +1117,60 @@ describe('doGenerate', () => {
       });
     });
 
+    describe.each(['mistral-large-4', 'mistral-large-4-0'] as const)(
+      'low, medium and high reasoning effort model %s',
+      modelId => {
+        it.each([
+          ['minimal', 'low'],
+          ['low', 'low'],
+          ['medium', 'medium'],
+          ['high', 'high'],
+          ['xhigh', 'high'],
+          ['max', 'high'],
+        ] as const)(
+          'should map reasoning %s to reasoning_effort %s',
+          async (reasoning, effort) => {
+            await provider.chat(modelId).doGenerate({
+              prompt: TEST_PROMPT,
+              reasoning,
+            });
+
+            expect(await server.calls[0].requestBodyJson).toMatchObject({
+              reasoning_effort: effort,
+            });
+          },
+        );
+
+        it('preserves native medium reasoning effort without warnings', async () => {
+          const result = await provider.chat(modelId).doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: { mistral: { reasoningEffort: 'medium' } },
+          });
+          expect(await server.calls[0].requestBodyJson).toMatchObject({
+            reasoning_effort: 'medium',
+          });
+          expect(result.warnings).toEqual([]);
+        });
+
+        it('should map reasoning none to reasoning_effort low with a warning', async () => {
+          const result = await provider.chat(modelId).doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning: 'none',
+          });
+
+          expect(await server.calls[0].requestBodyJson).toMatchObject({
+            reasoning_effort: 'low',
+          });
+          expect(result.warnings).toContainEqual({
+            type: 'compatibility',
+            feature: 'reasoning',
+            details:
+              'reasoning "none" is not directly supported by this model. mapped to effort "low".',
+          });
+        });
+      },
+    );
+
     it.each(['low', 'max'] as const)(
       'should send provider reasoning_effort %s',
       async reasoningEffort => {
@@ -1165,6 +1222,40 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
+  it('sends native specific tool choice and keeps all function tools', async () => {
+    prepareChunksFixtureResponse('mistral-tool-call');
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'function',
+          name: 'selected',
+          inputSchema: { type: 'object', properties: {} },
+        },
+        {
+          type: 'function',
+          name: 'other',
+          inputSchema: { type: 'object', properties: {} },
+        },
+      ],
+      toolChoice: { type: 'tool', toolName: 'selected' },
+    });
+
+    await convertReadableStreamToArray(stream);
+
+    const request = await server.calls[0].requestBodyJson;
+    expect(request.tool_choice).toEqual({
+      type: 'function',
+      function: { name: 'selected' },
+    });
+    expect(
+      request.tools.map(
+        (tool: { function: { name: string } }) => tool.function.name,
+      ),
+    ).toEqual(['selected', 'other']);
+  });
+
   it.each([
     ['missing', 'interrupted'],
     ['unknown_reason', 'other'],

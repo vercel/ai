@@ -1,5 +1,195 @@
 # @ai-sdk/sandbox-vercel
 
+## 1.0.192
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.192
+
+## 1.0.191
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.191
+
+## 1.0.190
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.190
+
+## 1.0.189
+
+### Patch Changes
+
+- 1d2c2ff: Bound bash tool output collection before returning it from supporting sandbox adapters, and copy retained prefixes so truncated results do not keep large source strings alive. Preserve output text, omission counts, command completion, exit codes, and timeout behavior. Custom sandbox implementations remain compatible; just-bash's interpreter buffering remains subject to its native execution limits.
+- Updated dependencies [1d2c2ff]
+- Updated dependencies [04a8f38]
+  - @ai-sdk/provider-utils@5.0.83
+  - @ai-sdk/harness@1.0.189
+
+## 1.0.188
+
+### Patch Changes
+
+- Updated dependencies [679b5b5]
+  - @ai-sdk/harness@1.0.188
+
+## 1.0.187
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.187
+
+## 1.0.186
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.186
+
+## 1.0.185
+
+### Patch Changes
+
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/provider-utils@5.0.82
+  - @ai-sdk/harness@1.0.185
+
+## 1.0.184
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.184
+
+## 1.0.183
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+- Updated dependencies [71bef69]
+  - @ai-sdk/provider-utils@5.0.81
+  - @ai-sdk/harness@1.0.183
+
+## 1.0.182
+
+### Patch Changes
+
+- Updated dependencies [2ebc78b]
+- Updated dependencies [1a94af3]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/harness@1.0.182
+
+## 1.0.181
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.181
+
+## 1.0.180
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+  - @ai-sdk/harness@1.0.180
+
+## 1.0.179
+
+### Patch Changes
+
+- Updated dependencies [c849d37]
+- Updated dependencies [7f1c01e]
+- Updated dependencies [88b9575]
+  - @ai-sdk/harness@1.0.179
+  - @ai-sdk/provider-utils@5.0.78
+
+## 1.0.178
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+  - @ai-sdk/harness@1.0.178
+
+## 1.0.177
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.177
+
+## 1.0.176
+
+### Patch Changes
+
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/harness@1.0.176
+
+## 1.0.175
+
+### Patch Changes
+
+- Updated dependencies [8e8033a]
+- Updated dependencies [a54f0fd]
+  - @ai-sdk/harness@1.0.175
+
+## 1.0.174
+
+### Patch Changes
+
+- Updated dependencies [3bf70f8]
+- Updated dependencies [89aff56]
+  - @ai-sdk/harness@1.0.174
+  - @ai-sdk/provider-utils@5.0.75
+
+## 1.0.173
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+  - @ai-sdk/harness@1.0.173
+
+## 1.0.172
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [8a20b57]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+  - @ai-sdk/harness@1.0.172
+
+## 1.0.171
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.171
+
+## 1.0.170
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.170
+
+## 1.0.169
+
+### Patch Changes
+
+- 5c247e9: feat(sandbox): add `stat`, `listDirectory`, and `deleteFile` to `Experimental_SandboxSession`, and specify that relative paths in every method resolve against the directory `run` and `spawn` start in
+
+  The just-bash and Vercel Sandbox adapters implement the new methods. Both now resolve a relative `workingDirectory` for `run` and `spawn` against the sandbox's working directory, and the just-bash adapter rejects writes to a directory instead of replacing it with a file.
+
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/harness@1.0.169
+
 ## 1.0.168
 
 ### Patch Changes

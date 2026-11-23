@@ -29,8 +29,11 @@ describe('browserbaseFetch', () => {
     expect(inputSchema).toMatchObject({
       required: ['url'],
       properties: {
-        url: { type: 'string' },
-        allow_redirects: { type: 'boolean' },
+        url: { type: 'string', description: 'URL of the page to fetch.' },
+        allow_redirects: {
+          type: 'boolean',
+          description: 'Whether to follow HTTP redirects (default: false).',
+        },
         allow_insecure_ssl: { type: 'boolean' },
         proxies: { type: 'boolean' },
         format: { enum: ['raw', 'json', 'markdown'] },

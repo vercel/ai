@@ -74,10 +74,34 @@ export interface Steering {
    * @param message - The user message, or its text.
    * @param options.id - The id of the message. Sending a message again with
    * the same id returns the outcome of the first message.
+   * @param options.interrupt - Cancels the current model call when it has not
+   * produced any output yet, and makes it again in the same step with the
+   * message. Otherwise the message is added at the next step boundary. Running
+   * tools are never interrupted. A cancelled model call can still be billed by
+   * the provider, and it is not included in the usage. The step is not counted
+   * again, so stop conditions do not limit how often a step is redone.
    *
    * @returns The outcome of the message. It never rejects.
    */
   steer(
+    message: string | UserModelMessage,
+    options?: { id?: string; interrupt?: boolean },
+  ): Promise<SteeringOutcome>;
+
+  /**
+   * Adds a user message to the run once the model has finished its current
+   * task, i.e. when it gives a final answer without tool calls. The run then
+   * continues with the message unless a stop condition is met. Queued
+   * messages are delivered one per task, in order, after any waiting steering
+   * messages.
+   *
+   * @param message - The user message, or its text.
+   * @param options.id - The id of the message. Sending a message again with
+   * the same id returns the outcome of the first message.
+   *
+   * @returns The outcome of the message. It never rejects.
+   */
+  queue(
     message: string | UserModelMessage,
     options?: { id?: string },
   ): Promise<SteeringOutcome>;
@@ -90,6 +114,12 @@ export type SteeringRun = {
   hasPendingMessages(): boolean;
 
   /**
+   * Moves the oldest queued message to the waiting messages for the next
+   * step. Returns `false` when no message is queued.
+   */
+  promoteQueuedMessage(): boolean;
+
+  /**
    * Takes the waiting messages for the next step. They are resolved by
    * `resolveTakenMessages` once the prompt of the step is known.
    */
@@ -97,12 +127,21 @@ export type SteeringRun = {
 
   /**
    * Resolves the taken messages as delivered when they are part of the
-   * messages that are sent to the model, and returns the delivered messages.
+   * messages that are sent to the model, and returns the delivered messages
+   * with their ids.
    */
   resolveTakenMessages(options: {
     stepNumber: number;
     sentMessages: ReadonlyArray<ModelMessage>;
-  }): Array<UserModelMessage>;
+  }): Array<{ id: string; message: UserModelMessage }>;
+
+  /**
+   * Watches for interrupting messages while a model call has not produced any
+   * output yet. Calls `onInterrupt` at most once, right away when an
+   * interrupting message is already waiting. Returns a function that stops
+   * watching.
+   */
+  watchInterrupt(onInterrupt: () => void): () => void;
 
   end(reason: SteeringNotDeliveredReason): void;
 };
@@ -115,16 +154,64 @@ type PendingSteer = {
 
 class DefaultSteering implements Steering {
   private state: 'idle' | 'running' | 'ended' = 'idle';
+  private endReason: SteeringNotDeliveredReason = 'finished';
   private pending: Array<PendingSteer> = [];
+  private queued: Array<PendingSteer> = [];
   private taken: Array<PendingSteer> = [];
   private outcomes = new Map<string, Promise<SteeringOutcome>>();
+  // An interrupt that arrived while no model call was watching, e.g. during
+  // prepareStep or tool execution. It is dropped when the messages are taken
+  // at a step boundary, because they are then delivered without cancelling a
+  // model call.
+  private interruptRequested = false;
+  private onInterrupt: (() => void) | undefined;
 
   steer(
     message: string | UserModelMessage,
+    options?: { id?: string; interrupt?: boolean },
+  ): Promise<SteeringOutcome> {
+    const isNew = options?.id == null || !this.outcomes.has(options.id);
+    const outcome = this.add({
+      message,
+      id: options?.id,
+      target: this.pending,
+    });
+
+    if (options?.interrupt === true && isNew) {
+      this.requestInterrupt();
+    }
+
+    return outcome;
+  }
+
+  private requestInterrupt() {
+    const onInterrupt = this.onInterrupt;
+
+    if (onInterrupt == null) {
+      this.interruptRequested = true;
+      return;
+    }
+
+    this.onInterrupt = undefined;
+    onInterrupt();
+  }
+
+  queue(
+    message: string | UserModelMessage,
     options?: { id?: string },
   ): Promise<SteeringOutcome> {
-    const id = options?.id ?? generateSteeringId();
+    return this.add({ message, id: options?.id, target: this.queued });
+  }
 
+  private add({
+    message,
+    id = generateSteeringId(),
+    target,
+  }: {
+    message: string | UserModelMessage;
+    id?: string;
+    target: Array<PendingSteer>;
+  }): Promise<SteeringOutcome> {
     const existingOutcome = this.outcomes.get(id);
     if (existingOutcome != null) {
       return existingOutcome;
@@ -141,10 +228,10 @@ class DefaultSteering implements Steering {
             type: 'not-delivered',
             id,
             message: userMessage,
-            reason: 'finished',
+            reason: this.endReason,
           })
         : new Promise<SteeringOutcome>(resolve => {
-            this.pending.push({ id, message: userMessage, resolve });
+            target.push({ id, message: userMessage, resolve });
           });
 
     this.outcomes.set(id, outcome);
@@ -168,6 +255,16 @@ class DefaultSteering implements Steering {
       hasPendingMessages: () =>
         this.state === 'running' && this.pending.length > 0,
 
+      promoteQueuedMessage: () => {
+        const next = this.state === 'running' ? this.queued.shift() : undefined;
+        if (next == null) {
+          return false;
+        }
+
+        this.pending.push(next);
+        return true;
+      },
+
       takeMessages: () => {
         if (this.state !== 'running') {
           return [];
@@ -175,19 +272,40 @@ class DefaultSteering implements Steering {
 
         this.taken = [...this.taken, ...this.pending];
         this.pending = [];
+        this.interruptRequested = false;
 
         return this.taken.map(({ message }) => message);
+      },
+
+      watchInterrupt: onInterrupt => {
+        if (this.state !== 'running') {
+          return () => {};
+        }
+
+        if (this.interruptRequested) {
+          this.interruptRequested = false;
+          onInterrupt();
+          return () => {};
+        }
+
+        this.onInterrupt = onInterrupt;
+
+        return () => {
+          if (this.onInterrupt === onInterrupt) {
+            this.onInterrupt = undefined;
+          }
+        };
       },
 
       resolveTakenMessages: ({ stepNumber, sentMessages }) => {
         const taken = this.taken;
         this.taken = [];
 
-        const delivered: Array<UserModelMessage> = [];
+        const delivered: Array<{ id: string; message: UserModelMessage }> = [];
 
         for (const { id, message, resolve } of taken) {
           if (isSent({ message, sentMessages })) {
-            delivered.push(message);
+            delivered.push({ id, message });
             resolve({ type: 'delivered', id, message, stepNumber });
           } else {
             resolve({
@@ -207,10 +325,14 @@ class DefaultSteering implements Steering {
           return;
         }
 
-        const notDelivered = [...this.taken, ...this.pending];
+        const notDelivered = [...this.taken, ...this.pending, ...this.queued];
         this.taken = [];
         this.pending = [];
+        this.queued = [];
         this.state = 'ended';
+        this.endReason = reason;
+        this.interruptRequested = false;
+        this.onInterrupt = undefined;
 
         for (const { id, message, resolve } of notDelivered) {
           resolve({ type: 'not-delivered', id, message, reason });
@@ -220,8 +342,9 @@ class DefaultSteering implements Steering {
   }
 }
 
-// prepareStep can map messages to new objects, e.g. to add provider options,
-// so a message also counts as sent when a user message has the same content:
+// prepareStep can map messages to new objects, e.g. to add provider options or
+// to turn text into a text part, so a message also counts as sent when a user
+// message has the same content parts, ignoring the provider options of parts:
 function isSent({
   message,
   sentMessages,
@@ -229,13 +352,24 @@ function isSent({
   message: UserModelMessage;
   sentMessages: ReadonlyArray<ModelMessage>;
 }): boolean {
-  const content = JSON.stringify(message.content);
+  const content = normalizeContent(message.content);
 
   return sentMessages.some(
     sentMessage =>
       sentMessage === message ||
       (sentMessage.role === 'user' &&
-        JSON.stringify(sentMessage.content) === content),
+        normalizeContent(sentMessage.content) === content),
+  );
+}
+
+function normalizeContent(content: UserModelMessage['content']): string {
+  const parts =
+    typeof content === 'string'
+      ? [{ type: 'text' as const, text: content }]
+      : content;
+
+  return JSON.stringify(
+    parts.map(({ providerOptions: _providerOptions, ...part }) => part),
   );
 }
 

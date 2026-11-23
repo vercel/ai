@@ -24,6 +24,7 @@ import type { GatewayConfig } from './gateway-config';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
+import { withGatewayRequestTelemetryRedaction } from './redact-gateway-request-credentials';
 
 export type GatewayChatConfig = GatewayConfig & {
   provider: string;
@@ -61,7 +62,9 @@ export class GatewayLanguageModel implements LanguageModelV4 {
     const { abortSignal: _abortSignal, ...optionsWithoutSignal } = options;
 
     return {
-      args: this.maybeEncodeFileParts(optionsWithoutSignal),
+      args: withGatewayRequestTelemetryRedaction(
+        this.maybeEncodeFileParts(optionsWithoutSignal),
+      ),
       warnings: [],
     };
   }

@@ -1,3 +1,4 @@
+import { getCartesiaTranscriptionModelEntry } from './cartesia-model-catalog';
 import {
   InvalidArgumentError,
   UnsupportedFunctionalityError,
@@ -226,6 +227,21 @@ export class CartesiaTranscriptionModel implements TranscriptionModelV4 {
         details:
           'Cartesia streaming transcription does not support timestamp granularities.',
       });
+    }
+
+    for (const name of Object.keys(TURN_THRESHOLD_PARAMS) as Array<
+      keyof typeof TURN_THRESHOLD_PARAMS
+    >) {
+      if (
+        cartesiaOptions?.streaming?.turnDetection === false &&
+        cartesiaOptions.streaming[name] != null
+      ) {
+        warnings.push({
+          type: 'unsupported',
+          feature: `providerOptions.cartesia.streaming.${name}`,
+          details: 'Turn thresholds require turnDetection to be enabled.',
+        });
+      }
     }
 
     // Always validate the declared media type — an explicit
@@ -517,6 +533,13 @@ const LINEAR_PCM_STREAMING_ENCODINGS: ReadonlySet<string> = new Set(
   ),
 );
 
+const TURN_THRESHOLD_PARAMS = {
+  turnStartThreshold: 'turn_start_threshold',
+  turnEagerEndThreshold: 'turn_eager_end_threshold',
+  turnEndThreshold: 'turn_end_threshold',
+  turnEndTimeoutMs: 'turn_end_timeout_ms',
+} as const;
+
 function buildCartesiaStreamingTranscriptionUrl({
   baseURL,
   version,
@@ -550,6 +573,18 @@ function buildCartesiaStreamingTranscriptionUrl({
   if (!useTurnDetection && providerOptions?.language != null) {
     url.searchParams.set('language', providerOptions.language);
   }
+  const streaming = providerOptions?.streaming;
+  for (const keyterm of streaming?.keyterms ?? []) {
+    url.searchParams.append('keyterm', keyterm);
+  }
+  if (useTurnDetection) {
+    for (const [option, param] of Object.entries(TURN_THRESHOLD_PARAMS)) {
+      const value = streaming?.[option as keyof typeof TURN_THRESHOLD_PARAMS];
+      if (value != null) {
+        url.searchParams.set(param, String(value));
+      }
+    }
+  }
   return url;
 }
 
@@ -573,7 +608,8 @@ function isStreamingTranscriptionModelId(modelId: string): boolean {
   // Ink Whisper (including dated snapshots such as `ink-whisper-2025-06-04`)
   // is the known batch-only model family. Future IDs inherit the current
   // streaming protocol regardless of their name.
-  return modelId !== 'ink-whisper' && !modelId.startsWith('ink-whisper-');
+  return getCartesiaTranscriptionModelEntry(modelId).capabilities.transcription
+    .streaming;
 }
 
 const cartesiaTranscriptionResponseSchema = lazySchema(() =>

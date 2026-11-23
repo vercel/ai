@@ -6,6 +6,7 @@ import type { Output } from './output';
 import type { InferCompleteOutput } from './output-utils';
 import { convertToReasoningOutputs } from './reasoning-output';
 import type { ResponseMessage } from './response-message';
+import type { StoppedBy } from './stopped-by';
 
 export class DefaultGenerateTextResult<
   TOOLS extends ToolSet,
@@ -14,6 +15,7 @@ export class DefaultGenerateTextResult<
 > implements GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   readonly steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'];
   readonly totalUsage: LanguageModelUsage;
+  readonly stoppedBy: StoppedBy | undefined;
   private readonly _output: InferCompleteOutput<OUTPUT> | undefined;
 
   constructor(options: {
@@ -21,11 +23,13 @@ export class DefaultGenerateTextResult<
     steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'];
     output: InferCompleteOutput<OUTPUT> | undefined;
     totalUsage: LanguageModelUsage;
+    stoppedBy?: StoppedBy;
   }) {
     this.initialResponseMessages = options.initialResponseMessages;
     this.steps = options.steps;
     this._output = options.output;
     this.totalUsage = options.totalUsage;
+    this.stoppedBy = options.stoppedBy;
   }
 
   private readonly initialResponseMessages: Array<ResponseMessage>;

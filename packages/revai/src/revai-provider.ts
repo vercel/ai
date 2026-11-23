@@ -12,11 +12,12 @@ import {
 } from '@ai-sdk/provider-utils';
 import { RevaiTranscriptionModel } from './revai-transcription-model';
 import type { RevaiTranscriptionModelId } from './revai-transcription-options';
+import type { RevaiModelIds } from './revai-model-catalog';
 import { VERSION } from './version';
 
 export interface RevaiProvider extends ProviderV4 {
   (
-    modelId: 'machine',
+    modelId: RevaiModelIds['legacyTranscription'],
     settings?: {},
   ): {
     transcription: RevaiTranscriptionModel;

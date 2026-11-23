@@ -1,3 +1,4 @@
+import { getFalImageModelEntry } from './fal-model-catalog';
 import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   lazySchema,
@@ -34,50 +35,21 @@ interface FalImageModelConfig {
 
 export class FalImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
-  readonly maxImagesPerCall = 1;
+  get maxImagesPerCall(): number {
+    return getFalImageModelEntry(this.modelId).capabilities.image
+      .maxImagesPerCall;
+  }
 
   get supportsFileInputs(): boolean | undefined {
-    if (
-      [
-        'fal-ai/flux-2/edit',
-        'fal-ai/flux-pro/kontext',
-        'fal-ai/flux-pro/kontext/max',
-        'fal-ai/flux-general/image-to-image',
-        'fal-ai/flux-general/inpainting',
-        'fal-ai/flux-lora/image-to-image',
-        'fal-ai/flux-lora/inpainting',
-        'fal-ai/flux/dev/image-to-image',
-        'fal-ai/flux/krea/image-to-image',
-        'fal-ai/recraft/v3/image-to-image',
-      ].includes(this.modelId)
-    ) {
-      return true;
-    }
-
-    return [
-      'bria/text-to-image/3.2',
-      'fal-ai/bria/text-to-image/base',
-      'fal-ai/bria/text-to-image/fast',
-      'fal-ai/bria/text-to-image/hd',
-      'fal-ai/bytedance/dreamina/v3.1/text-to-image',
-      'fal-ai/flux-kontext-lora/text-to-image',
-      'fal-ai/recraft/v3/text-to-image',
-      'fal-ai/wan/v2.2-5b/text-to-image',
-      'fal-ai/wan/v2.2-a14b/text-to-image',
-    ].includes(this.modelId)
-      ? false
-      : undefined;
+    const support = getFalImageModelEntry(this.modelId).capabilities.image
+      .fileInput;
+    return support === 'unknown' ? undefined : support;
   }
 
   get supportsMaskInputs(): boolean | undefined {
-    if (
-      this.modelId === 'fal-ai/flux-general/inpainting' ||
-      this.modelId === 'fal-ai/flux-lora/inpainting'
-    ) {
-      return true;
-    }
-
-    return this.supportsFileInputs == null ? undefined : false;
+    const support = getFalImageModelEntry(this.modelId).capabilities.image
+      .maskInput;
+    return support === 'unknown' ? undefined : support;
   }
 
   get provider(): string {

@@ -13,6 +13,8 @@ import type {
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { ContentPart } from '../generate-text/content-part';
+import type { Output } from '../generate-text/output';
+import type { InferCompleteOutput } from '../generate-text/output-utils';
 import type { ToolOrder } from '../generate-text/tool-order';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import type { Prompt } from '../prompt/prompt';
@@ -126,6 +128,16 @@ export type StartBatchOptions<
   providerOptions?: ProviderOptions;
 
   /**
+   * Specification for structured data in the text responses. Its response
+   * format is sent with every text request in the batch; image requests
+   * ignore it.
+   *
+   * Pass the same specification to `getBatchResults` as `output` to parse and
+   * validate each result.
+   */
+  output?: Output;
+
+  /**
    * URL that the provider should notify when the batch reaches a terminal
    * state. Providers that do not support completion webhooks return an
    * unsupported warning.
@@ -193,16 +205,26 @@ export type GetBatchStatusOptions = {
 /**
  * Options for retrieving batch results.
  */
-export type GetBatchResultsOptions<TOOLS extends ToolSet = ToolSet> =
-  GetBatchStatusOptions & {
-    /**
-     * Definitions for client tools that were provided to `startBatch` requests.
-     *
-     * The definitions are used only to validate and normalize returned tool
-     * calls. Their `execute` functions are never invoked.
-     */
-    tools?: TOOLS;
-  };
+export type GetBatchResultsOptions<
+  TOOLS extends ToolSet = ToolSet,
+  OUTPUT extends Output | undefined = undefined,
+> = GetBatchStatusOptions & {
+  /**
+   * Definitions for client tools that were provided to `startBatch` requests.
+   *
+   * The definitions are used only to validate and normalize returned tool
+   * calls. Their `execute` functions are never invoked.
+   */
+  tools?: TOOLS;
+
+  /**
+   * The output specification that was provided to `startBatch` requests.
+   *
+   * When provided, the text of each successful item is parsed and validated
+   * with it. The item then has either `output` or `outputError`.
+   */
+  output?: OUTPUT;
+};
 
 /**
  * A normalized result for a successful text batch item.
@@ -223,15 +245,44 @@ export type TextBatchGenerationResult<TOOLS extends ToolSet = ToolSet> = {
 };
 
 /**
+ * The parsed output of a successful text batch item, or the reason it could
+ * not be produced. Only present when `output` is passed to `getBatchResults`.
+ *
+ * A parsing failure does not fail the item: `text`, `usage` and the other
+ * generation results remain available.
+ */
+export type TextBatchOutputResult<OUTPUT extends Output | undefined> =
+  OUTPUT extends Output
+    ?
+        | {
+            readonly output: InferCompleteOutput<OUTPUT>;
+            readonly outputError?: undefined;
+          }
+        | {
+            readonly output?: undefined;
+            /**
+             * Why no output is available, e.g. the text was not valid JSON,
+             * did not match the schema, or the item did not finish with a
+             * complete response.
+             */
+            readonly outputError: BatchError;
+          }
+    : unknown;
+
+/**
  * A complete terminal result for one request in a text batch.
  */
-export type TextBatchItemResult<TOOLS extends ToolSet = ToolSet> = {
+export type TextBatchItemResult<
+  TOOLS extends ToolSet = ToolSet,
+  OUTPUT extends Output | undefined = undefined,
+> = {
   readonly type: 'text';
 } & (
-  | (TextBatchGenerationResult<TOOLS> & {
-      readonly id: string;
-      readonly status: 'succeeded';
-    })
+  | (TextBatchGenerationResult<TOOLS> &
+      TextBatchOutputResult<OUTPUT> & {
+        readonly id: string;
+        readonly status: 'succeeded';
+      })
   | {
       readonly id: string;
       readonly status: 'failed';
@@ -282,6 +333,7 @@ export type ImageBatchItemResult = { readonly type: 'image' } & (
 /**
  * A complete terminal result for one request in a batch.
  */
-export type BatchItemResult<TOOLS extends ToolSet = ToolSet> =
-  | TextBatchItemResult<TOOLS>
-  | ImageBatchItemResult;
+export type BatchItemResult<
+  TOOLS extends ToolSet = ToolSet,
+  OUTPUT extends Output | undefined = undefined,
+> = TextBatchItemResult<TOOLS, OUTPUT> | ImageBatchItemResult;

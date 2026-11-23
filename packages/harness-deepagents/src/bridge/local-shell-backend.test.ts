@@ -27,7 +27,7 @@ describe('createLocalShellBackend', () => {
       env: {
         PATH: existingPath,
         ANTHROPIC_API_KEY: 'secret',
-        BRIDGE_CHANNEL_TOKEN: 'token',
+        BRIDGE_AUTH_PUBLIC_KEY: 'public-key',
       },
     });
 

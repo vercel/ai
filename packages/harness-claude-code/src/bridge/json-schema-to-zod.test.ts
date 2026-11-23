@@ -51,7 +51,17 @@ describe('jsonSchemaToZodObject', () => {
       ({ defaultValue }) => {
         const schema = jsonSchemaToZodObject({
           type: 'object',
-          properties: { value: { default: defaultValue } },
+          properties: {
+            value: {
+              type:
+                defaultValue === null
+                  ? 'null'
+                  : Array.isArray(defaultValue)
+                    ? 'array'
+                    : typeof defaultValue,
+              default: defaultValue,
+            },
+          },
           required: required ? ['value'] : [],
         });
 
@@ -59,7 +69,14 @@ describe('jsonSchemaToZodObject', () => {
           'default',
           defaultValue,
         );
-        expect(schema.parse({}).value).toBeUndefined();
+        if (required) {
+          expect(schema.safeParse({}).success).toBe(false);
+        } else {
+          expect(schema.parse({}).value).toBeUndefined();
+        }
+        expect(schema.parse({ value: defaultValue })).toEqual({
+          value: defaultValue,
+        });
       },
     );
   });
@@ -115,7 +132,6 @@ describe('jsonSchemaToZodObject', () => {
       properties: {
         ...input.properties,
         nullable: {
-          anyOf: [{ type: 'number' }, { type: 'null' }],
           minimum: 1,
           default: null,
         },
@@ -129,6 +145,7 @@ describe('jsonSchemaToZodObject', () => {
       extra: 0,
     };
     expect(schema.parse(value)).toEqual(value);
+    expect(schema.parse({ nullable: null })).toEqual({ nullable: null });
     expect(schema.parse({ nested: {} })).toEqual({ nested: {} });
   });
 

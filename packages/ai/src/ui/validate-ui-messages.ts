@@ -1,5 +1,9 @@
-import { citationSchema } from '../types/citation';
-import { TypeValidationError, type JSONObject } from '@ai-sdk/provider';
+import { createCitationSchema } from '../types/citation';
+import {
+  TypeValidationError,
+  type JSONObject,
+  type JSONValue,
+} from '@ai-sdk/provider';
 import {
   lazySchema,
   safeValidateTypes,
@@ -10,11 +14,11 @@ import {
   type Tool,
 } from '@ai-sdk/provider-utils';
 import { InvalidArgumentError } from '../error';
-import { jsonValueSchema } from '../types/json-value';
+import type { ProviderMetadata } from '../types/provider-metadata';
 import { getOwn } from '../util/get-own';
 import { isDeepEqualData } from '../util/is-deep-equal-data';
-import { providerMetadataSchema } from '../types/provider-metadata';
-import { z, type ZodType } from '../util/zod';
+import { normalizeJsonValue } from '../util/normalize-json-value';
+import { z, type ZodOutput, type ZodType } from '../util/zod';
 import type {
   DataUIPart,
   DynamicToolUIPart,
@@ -26,12 +30,55 @@ import type {
 import { markToolPartAsUnavailable } from './unavailable-tool';
 import { warnIfUIMessageHasDeprecatedRawInput } from './warn-if-ui-message-has-deprecated-raw-input';
 
-const toolMetadataSchema: ZodType<JSONObject> = z.record(
-  z.string(),
-  jsonValueSchema.optional(),
+/**
+ * Validates a JSON value in a single pass and reports an invalid JSON value
+ * with a single issue.
+ *
+ * UI messages are untrusted input. The recursive JSON value schema tries
+ * every alternative for every nested value and returns a copy of the value,
+ * so accepting a value would need several times the memory of the value. It
+ * also reports the issues of every alternative at every nesting level around
+ * an invalid value, so the size of a validation error would grow much faster
+ * than the input.
+ */
+const jsonValueSchema = z.pipe(
+  z.unknown(),
+  z.transform((value: unknown, context) => {
+    const result = normalizeJsonValue(value);
+
+    if (!result.success) {
+      context.issues.push({
+        code: 'custom',
+        message:
+          'Invalid JSON value. Expected null, a string, a finite number, ' +
+          'a boolean, an array, or an object.',
+        input: value,
+        path: result.path,
+      });
+
+      return z.NEVER;
+    }
+
+    return result.value;
+  }),
+);
+
+// The values of the records are JSON values that have already been validated.
+const validatedJsonValueSchema = z.custom<JSONValue | undefined>();
+
+const toolMetadataSchema: ZodType<JSONObject> = z.pipe(
+  jsonValueSchema,
+  z.record(z.string(), validatedJsonValueSchema),
+);
+
+const providerMetadataSchema: ZodType<ProviderMetadata> = z.pipe(
+  jsonValueSchema,
+  z.record(z.string(), z.record(z.string(), validatedJsonValueSchema)),
 );
 
 const providerReferenceSchema = z.record(z.string(), z.string());
+
+const uiCitationSchema = createCitationSchema(providerMetadataSchema);
 
 function isEmptyObject(value: unknown): value is Record<string, never> {
   return (
@@ -61,320 +108,417 @@ function getToolPartInputSchemaInput(
     : undefined;
 }
 
+/**
+ * Creates an array schema that validates its elements in order and stops at
+ * the first invalid element.
+ *
+ * UI messages are untrusted input. `z.array` validates every element and
+ * reports the issues of all invalid elements, so the memory and time needed to
+ * reject an input would grow with the number of invalid elements in it.
+ */
+function arrayUntilFirstInvalidElement<SCHEMA extends ZodType>(
+  selectElementSchema: (element: unknown) => SCHEMA,
+) {
+  return z.pipe(
+    z.array(z.unknown()),
+    z.transform((elements: unknown[], context) => {
+      const validatedElements: Array<ZodOutput<SCHEMA>> = [];
+
+      for (const [index, element] of elements.entries()) {
+        const result = z.safeParse(selectElementSchema(element), element);
+
+        if (!result.success) {
+          for (const issue of result.error.issues) {
+            // re-report the element's issues with their path in the array:
+            context.issues.push({
+              ...issue,
+              path: [index, ...issue.path],
+            } as (typeof context.issues)[number]);
+          }
+
+          return z.NEVER;
+        }
+
+        validatedElements.push(result.data);
+      }
+
+      return validatedElements;
+    }),
+  );
+}
+
 const uiMessagesSchema = lazySchema(() => {
   const approvalRequestedSchema = z.object({
     id: z.string(),
-    approved: z.never().optional(),
-    descriptor: z.unknown().optional(),
-    requestReason: z.string().optional(),
-    reason: z.never().optional(),
-    isAutomatic: z.boolean().optional(),
-    signature: z.string().optional(),
-    inputSchemaInput: z.unknown().optional(),
+    approved: z.optional(z.never()),
+    descriptor: z.optional(z.unknown()),
+    requestReason: z.optional(z.string()),
+    reason: z.optional(z.never()),
+    isAutomatic: z.optional(z.boolean()),
+    signature: z.optional(z.string()),
+    inputSchemaInput: z.optional(z.unknown()),
   });
-  const approvalRespondedSchema = approvalRequestedSchema.extend({
+  const approvalRespondedSchema = z.extend(approvalRequestedSchema, {
     approved: z.boolean(),
-    reason: z.string().optional(),
+    reason: z.optional(z.string()),
   });
-  const approvalGrantedSchema = approvalRespondedSchema.extend({
+  const approvalGrantedSchema = z.extend(approvalRespondedSchema, {
     approved: z.literal(true),
   });
-  const approvalDeniedSchema = approvalRespondedSchema.extend({
+  const approvalDeniedSchema = z.extend(approvalRespondedSchema, {
     approved: z.literal(false),
   });
 
+  const steeringMessagePartSchema = z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('text'),
+      text: z.string(),
+      providerMetadata: z.optional(providerMetadataSchema),
+    }),
+    z.object({
+      type: z.literal('file'),
+      mediaType: z.string(),
+      filename: z.optional(z.string()),
+      url: z.string(),
+      providerReference: z.optional(providerReferenceSchema),
+      providerMetadata: z.optional(providerMetadataSchema),
+    }),
+  ]);
+
+  // Parts with a missing or unknown type are validated against the static part
+  // schema, whose default error would only mention the static part types.
+  const invalidPartTypeMessage =
+    'Invalid UI message part type. Expected a known part type ' +
+    '(for example "text" or "dynamic-tool") or a type starting with "data-" or "tool-".';
+
+  const staticPartSchema = z.discriminatedUnion(
+    'type',
+    [
+      z.object({
+        type: z.literal('text'),
+        text: z.string(),
+        citations: z.optional(
+          arrayUntilFirstInvalidElement(() => uiCitationSchema),
+        ),
+        state: z.optional(z.enum(['streaming', 'done'])),
+        providerMetadata: z.optional(providerMetadataSchema),
+      }),
+      z.object({
+        type: z.literal('reasoning'),
+        id: z.optional(z.string()),
+        text: z.string(),
+        state: z.optional(z.enum(['streaming', 'done'])),
+        providerMetadata: z.optional(providerMetadataSchema),
+      }),
+      z.object({
+        type: z.literal('custom'),
+        kind: z.string(),
+        providerMetadata: z.optional(providerMetadataSchema),
+      }),
+      z.object({
+        type: z.literal('source-url'),
+        sourceId: z.string(),
+        url: z.string(),
+        title: z.optional(z.string()),
+        providerMetadata: z.optional(providerMetadataSchema),
+      }),
+      z.object({
+        type: z.literal('source-document'),
+        sourceId: z.string(),
+        mediaType: z.string(),
+        title: z.string(),
+        filename: z.optional(z.string()),
+        providerMetadata: z.optional(providerMetadataSchema),
+      }),
+      z.object({
+        type: z.literal('file'),
+        mediaType: z.string(),
+        filename: z.optional(z.string()),
+        url: z.string(),
+        providerReference: z.optional(providerReferenceSchema),
+        providerMetadata: z.optional(providerMetadataSchema),
+      }),
+      z.object({
+        type: z.literal('reasoning-file'),
+        mediaType: z.string(),
+        url: z.string(),
+        providerMetadata: z.optional(providerMetadataSchema),
+      }),
+      z.object({
+        type: z.literal('steering-message'),
+        id: z.string(),
+        parts: arrayUntilFirstInvalidElement(() => steeringMessagePartSchema),
+      }),
+      z.object({
+        type: z.literal('step-start'),
+      }),
+    ],
+    {
+      error: issue =>
+        issue.code === 'invalid_union' ? invalidPartTypeMessage : undefined,
+    },
+  );
+
+  const dataPartSchema = z.object({
+    type: z.string().check(z.startsWith('data-')),
+    id: z.optional(z.string()),
+    data: z.unknown(),
+  });
+
+  const dynamicToolPartSchema = z.discriminatedUnion('state', [
+    z.object({
+      type: z.literal('dynamic-tool'),
+      dynamic: z.optional(z.literal(false)),
+      toolName: z.string(),
+      toolCallId: z.string(),
+      title: z.optional(z.string()),
+      toolMetadata: z.optional(toolMetadataSchema),
+      state: z.literal('input-streaming'),
+      input: z.optional(z.unknown()),
+      rawInput: z.optional(z.string()),
+      inputEncoding: z.optional(z.enum(['json', 'text'])),
+      providerExecuted: z.optional(z.boolean()),
+      callProviderMetadata: z.optional(providerMetadataSchema),
+      output: z.optional(z.never()),
+      errorText: z.optional(z.never()),
+      approval: z.optional(z.never()),
+    }),
+    z.object({
+      type: z.literal('dynamic-tool'),
+      dynamic: z.optional(z.literal(false)),
+      toolName: z.string(),
+      toolCallId: z.string(),
+      title: z.optional(z.string()),
+      toolMetadata: z.optional(toolMetadataSchema),
+      state: z.literal('input-available'),
+      input: z.unknown(),
+      providerExecuted: z.optional(z.boolean()),
+      output: z.optional(z.never()),
+      errorText: z.optional(z.never()),
+      callProviderMetadata: z.optional(providerMetadataSchema),
+      approval: z.optional(z.never()),
+    }),
+    z.object({
+      type: z.literal('dynamic-tool'),
+      dynamic: z.optional(z.literal(false)),
+      toolName: z.string(),
+      toolCallId: z.string(),
+      title: z.optional(z.string()),
+      toolMetadata: z.optional(toolMetadataSchema),
+      state: z.literal('approval-requested'),
+      input: z.unknown(),
+      providerExecuted: z.optional(z.boolean()),
+      output: z.optional(z.never()),
+      errorText: z.optional(z.never()),
+      callProviderMetadata: z.optional(providerMetadataSchema),
+      approval: approvalRequestedSchema,
+    }),
+    z.object({
+      type: z.literal('dynamic-tool'),
+      dynamic: z.optional(z.literal(false)),
+      toolName: z.string(),
+      toolCallId: z.string(),
+      title: z.optional(z.string()),
+      toolMetadata: z.optional(toolMetadataSchema),
+      state: z.literal('approval-responded'),
+      input: z.unknown(),
+      providerExecuted: z.optional(z.boolean()),
+      output: z.optional(z.never()),
+      errorText: z.optional(z.never()),
+      callProviderMetadata: z.optional(providerMetadataSchema),
+      approval: approvalRespondedSchema,
+    }),
+    z.object({
+      type: z.literal('dynamic-tool'),
+      dynamic: z.optional(z.literal(false)),
+      toolName: z.string(),
+      toolCallId: z.string(),
+      title: z.optional(z.string()),
+      toolMetadata: z.optional(toolMetadataSchema),
+      state: z.literal('output-available'),
+      input: z.unknown(),
+      providerExecuted: z.optional(z.boolean()),
+      output: z.unknown(),
+      errorText: z.optional(z.never()),
+      callProviderMetadata: z.optional(providerMetadataSchema),
+      resultProviderMetadata: z.optional(providerMetadataSchema),
+      preliminary: z.optional(z.boolean()),
+      approval: z.optional(approvalGrantedSchema),
+    }),
+    z.object({
+      type: z.literal('dynamic-tool'),
+      dynamic: z.optional(z.literal(false)),
+      toolName: z.string(),
+      toolCallId: z.string(),
+      title: z.optional(z.string()),
+      toolMetadata: z.optional(toolMetadataSchema),
+      state: z.literal('output-error'),
+      input: z.optional(z.unknown()),
+      rawInput: z.optional(z.unknown()),
+      providerExecuted: z.optional(z.boolean()),
+      output: z.optional(z.never()),
+      errorText: z.string(),
+      callProviderMetadata: z.optional(providerMetadataSchema),
+      resultProviderMetadata: z.optional(providerMetadataSchema),
+      approval: z.optional(approvalGrantedSchema),
+    }),
+    z.object({
+      type: z.literal('dynamic-tool'),
+      dynamic: z.optional(z.literal(false)),
+      toolName: z.string(),
+      toolCallId: z.string(),
+      title: z.optional(z.string()),
+      toolMetadata: z.optional(toolMetadataSchema),
+      state: z.literal('output-denied'),
+      input: z.unknown(),
+      providerExecuted: z.optional(z.boolean()),
+      output: z.optional(z.never()),
+      errorText: z.optional(z.never()),
+      callProviderMetadata: z.optional(providerMetadataSchema),
+      approval: approvalDeniedSchema,
+    }),
+  ]);
+
+  const toolPartSchema = z.discriminatedUnion('state', [
+    z.object({
+      type: z.string().check(z.startsWith('tool-')),
+      toolCallId: z.string(),
+      title: z.optional(z.string()),
+      toolMetadata: z.optional(toolMetadataSchema),
+      state: z.literal('input-streaming'),
+      providerExecuted: z.optional(z.boolean()),
+      callProviderMetadata: z.optional(providerMetadataSchema),
+      input: z.optional(z.unknown()),
+      rawInput: z.optional(z.string()),
+      inputEncoding: z.optional(z.enum(['json', 'text'])),
+      output: z.optional(z.never()),
+      errorText: z.optional(z.never()),
+      approval: z.optional(z.never()),
+    }),
+    z.object({
+      type: z.string().check(z.startsWith('tool-')),
+      toolCallId: z.string(),
+      title: z.optional(z.string()),
+      toolMetadata: z.optional(toolMetadataSchema),
+      state: z.literal('input-available'),
+      providerExecuted: z.optional(z.boolean()),
+      input: z.unknown(),
+      output: z.optional(z.never()),
+      errorText: z.optional(z.never()),
+      callProviderMetadata: z.optional(providerMetadataSchema),
+      approval: z.optional(z.never()),
+    }),
+    z.object({
+      type: z.string().check(z.startsWith('tool-')),
+      toolCallId: z.string(),
+      title: z.optional(z.string()),
+      toolMetadata: z.optional(toolMetadataSchema),
+      state: z.literal('approval-requested'),
+      input: z.unknown(),
+      providerExecuted: z.optional(z.boolean()),
+      output: z.optional(z.never()),
+      errorText: z.optional(z.never()),
+      callProviderMetadata: z.optional(providerMetadataSchema),
+      approval: approvalRequestedSchema,
+    }),
+    z.object({
+      type: z.string().check(z.startsWith('tool-')),
+      toolCallId: z.string(),
+      title: z.optional(z.string()),
+      toolMetadata: z.optional(toolMetadataSchema),
+      state: z.literal('approval-responded'),
+      input: z.unknown(),
+      providerExecuted: z.optional(z.boolean()),
+      output: z.optional(z.never()),
+      errorText: z.optional(z.never()),
+      callProviderMetadata: z.optional(providerMetadataSchema),
+      approval: approvalRespondedSchema,
+    }),
+    z.object({
+      type: z.string().check(z.startsWith('tool-')),
+      toolCallId: z.string(),
+      title: z.optional(z.string()),
+      toolMetadata: z.optional(toolMetadataSchema),
+      state: z.literal('output-available'),
+      providerExecuted: z.optional(z.boolean()),
+      input: z.unknown(),
+      output: z.unknown(),
+      errorText: z.optional(z.never()),
+      callProviderMetadata: z.optional(providerMetadataSchema),
+      resultProviderMetadata: z.optional(providerMetadataSchema),
+      preliminary: z.optional(z.boolean()),
+      approval: z.optional(approvalGrantedSchema),
+    }),
+    z.object({
+      type: z.string().check(z.startsWith('tool-')),
+      toolCallId: z.string(),
+      title: z.optional(z.string()),
+      toolMetadata: z.optional(toolMetadataSchema),
+      state: z.literal('output-error'),
+      providerExecuted: z.optional(z.boolean()),
+      input: z.optional(z.unknown()),
+      rawInput: z.optional(z.unknown()),
+      output: z.optional(z.never()),
+      errorText: z.string(),
+      callProviderMetadata: z.optional(providerMetadataSchema),
+      resultProviderMetadata: z.optional(providerMetadataSchema),
+      approval: z.optional(approvalGrantedSchema),
+    }),
+    z.object({
+      type: z.string().check(z.startsWith('tool-')),
+      toolCallId: z.string(),
+      title: z.optional(z.string()),
+      toolMetadata: z.optional(toolMetadataSchema),
+      state: z.literal('output-denied'),
+      providerExecuted: z.optional(z.boolean()),
+      input: z.unknown(),
+      output: z.optional(z.never()),
+      errorText: z.optional(z.never()),
+      callProviderMetadata: z.optional(providerMetadataSchema),
+      approval: approvalDeniedSchema,
+    }),
+  ]);
+
+  const messageSchema = z
+    .object({
+      id: z.string(),
+      role: z.enum(['system', 'user', 'assistant']),
+      metadata: z.optional(z.unknown()),
+      // Validate each part only against the schemas for its type. A union of
+      // all part schemas would report the issues of every alternative for
+      // each invalid part.
+      parts: arrayUntilFirstInvalidElement((part: unknown) => {
+        const type = (part as { type?: unknown } | null | undefined)?.type;
+
+        if (typeof type === 'string') {
+          if (type.startsWith('data-')) return dataPartSchema;
+          if (type.startsWith('tool-')) return toolPartSchema;
+          if (type === 'dynamic-tool') return dynamicToolPartSchema;
+        }
+
+        return staticPartSchema;
+      }),
+    })
+    .check(context => {
+      const message = context.value;
+      if (message.role !== 'assistant' && message.parts.length === 0) {
+        context.issues.push({
+          continue: true,
+          origin: 'array',
+          code: 'too_small',
+          minimum: 1,
+          inclusive: true,
+          input: message.parts,
+          path: ['parts'],
+          message: 'Message must contain at least one part',
+        });
+      }
+    });
+
   return zodSchema(
-    z
-      .array(
-        z
-          .object({
-            id: z.string(),
-            role: z.enum(['system', 'user', 'assistant']),
-            metadata: z.unknown().optional(),
-            parts: z.array(
-              z.union([
-                z.object({
-                  type: z.literal('text'),
-                  text: z.string(),
-                  citations: z.array(citationSchema).optional(),
-                  state: z.enum(['streaming', 'done']).optional(),
-                  providerMetadata: providerMetadataSchema.optional(),
-                }),
-                z.object({
-                  type: z.literal('reasoning'),
-                  id: z.string().optional(),
-                  text: z.string(),
-                  state: z.enum(['streaming', 'done']).optional(),
-                  providerMetadata: providerMetadataSchema.optional(),
-                }),
-                z.object({
-                  type: z.literal('custom'),
-                  kind: z.string(),
-                  providerMetadata: providerMetadataSchema.optional(),
-                }),
-                z.object({
-                  type: z.literal('source-url'),
-                  sourceId: z.string(),
-                  url: z.string(),
-                  title: z.string().optional(),
-                  providerMetadata: providerMetadataSchema.optional(),
-                }),
-                z.object({
-                  type: z.literal('source-document'),
-                  sourceId: z.string(),
-                  mediaType: z.string(),
-                  title: z.string(),
-                  filename: z.string().optional(),
-                  providerMetadata: providerMetadataSchema.optional(),
-                }),
-                z.object({
-                  type: z.literal('file'),
-                  mediaType: z.string(),
-                  filename: z.string().optional(),
-                  url: z.string(),
-                  providerReference: providerReferenceSchema.optional(),
-                  providerMetadata: providerMetadataSchema.optional(),
-                }),
-                z.object({
-                  type: z.literal('reasoning-file'),
-                  mediaType: z.string(),
-                  url: z.string(),
-                  providerMetadata: providerMetadataSchema.optional(),
-                }),
-                z.object({
-                  type: z.literal('step-start'),
-                }),
-                z.object({
-                  type: z.string().startsWith('data-'),
-                  id: z.string().optional(),
-                  data: z.unknown(),
-                }),
-                z.object({
-                  type: z.literal('dynamic-tool'),
-                  dynamic: z.literal(false).optional(),
-                  toolName: z.string(),
-                  toolCallId: z.string(),
-                  title: z.string().optional(),
-                  toolMetadata: toolMetadataSchema.optional(),
-                  state: z.literal('input-streaming'),
-                  input: z.unknown().optional(),
-                  rawInput: z.string().optional(),
-                  inputEncoding: z.enum(['json', 'text']).optional(),
-                  providerExecuted: z.boolean().optional(),
-                  callProviderMetadata: providerMetadataSchema.optional(),
-                  output: z.never().optional(),
-                  errorText: z.never().optional(),
-                  approval: z.never().optional(),
-                }),
-                z.object({
-                  type: z.literal('dynamic-tool'),
-                  dynamic: z.literal(false).optional(),
-                  toolName: z.string(),
-                  toolCallId: z.string(),
-                  title: z.string().optional(),
-                  toolMetadata: toolMetadataSchema.optional(),
-                  state: z.literal('input-available'),
-                  input: z.unknown(),
-                  providerExecuted: z.boolean().optional(),
-                  output: z.never().optional(),
-                  errorText: z.never().optional(),
-                  callProviderMetadata: providerMetadataSchema.optional(),
-                  approval: z.never().optional(),
-                }),
-                z.object({
-                  type: z.literal('dynamic-tool'),
-                  dynamic: z.literal(false).optional(),
-                  toolName: z.string(),
-                  toolCallId: z.string(),
-                  title: z.string().optional(),
-                  toolMetadata: toolMetadataSchema.optional(),
-                  state: z.literal('approval-requested'),
-                  input: z.unknown(),
-                  providerExecuted: z.boolean().optional(),
-                  output: z.never().optional(),
-                  errorText: z.never().optional(),
-                  callProviderMetadata: providerMetadataSchema.optional(),
-                  approval: approvalRequestedSchema,
-                }),
-                z.object({
-                  type: z.literal('dynamic-tool'),
-                  dynamic: z.literal(false).optional(),
-                  toolName: z.string(),
-                  toolCallId: z.string(),
-                  title: z.string().optional(),
-                  toolMetadata: toolMetadataSchema.optional(),
-                  state: z.literal('approval-responded'),
-                  input: z.unknown(),
-                  providerExecuted: z.boolean().optional(),
-                  output: z.never().optional(),
-                  errorText: z.never().optional(),
-                  callProviderMetadata: providerMetadataSchema.optional(),
-                  approval: approvalRespondedSchema,
-                }),
-                z.object({
-                  type: z.literal('dynamic-tool'),
-                  dynamic: z.literal(false).optional(),
-                  toolName: z.string(),
-                  toolCallId: z.string(),
-                  title: z.string().optional(),
-                  toolMetadata: toolMetadataSchema.optional(),
-                  state: z.literal('output-available'),
-                  input: z.unknown(),
-                  providerExecuted: z.boolean().optional(),
-                  output: z.unknown(),
-                  errorText: z.never().optional(),
-                  callProviderMetadata: providerMetadataSchema.optional(),
-                  resultProviderMetadata: providerMetadataSchema.optional(),
-                  preliminary: z.boolean().optional(),
-                  approval: approvalGrantedSchema.optional(),
-                }),
-                z.object({
-                  type: z.literal('dynamic-tool'),
-                  dynamic: z.literal(false).optional(),
-                  toolName: z.string(),
-                  toolCallId: z.string(),
-                  title: z.string().optional(),
-                  toolMetadata: toolMetadataSchema.optional(),
-                  state: z.literal('output-error'),
-                  input: z.unknown().optional(),
-                  rawInput: z.unknown().optional(),
-                  providerExecuted: z.boolean().optional(),
-                  output: z.never().optional(),
-                  errorText: z.string(),
-                  callProviderMetadata: providerMetadataSchema.optional(),
-                  resultProviderMetadata: providerMetadataSchema.optional(),
-                  approval: approvalGrantedSchema.optional(),
-                }),
-                z.object({
-                  type: z.literal('dynamic-tool'),
-                  dynamic: z.literal(false).optional(),
-                  toolName: z.string(),
-                  toolCallId: z.string(),
-                  title: z.string().optional(),
-                  toolMetadata: toolMetadataSchema.optional(),
-                  state: z.literal('output-denied'),
-                  input: z.unknown(),
-                  providerExecuted: z.boolean().optional(),
-                  output: z.never().optional(),
-                  errorText: z.never().optional(),
-                  callProviderMetadata: providerMetadataSchema.optional(),
-                  approval: approvalDeniedSchema,
-                }),
-                z.object({
-                  type: z.string().startsWith('tool-'),
-                  toolCallId: z.string(),
-                  title: z.string().optional(),
-                  toolMetadata: toolMetadataSchema.optional(),
-                  state: z.literal('input-streaming'),
-                  providerExecuted: z.boolean().optional(),
-                  callProviderMetadata: providerMetadataSchema.optional(),
-                  input: z.unknown().optional(),
-                  rawInput: z.string().optional(),
-                  inputEncoding: z.enum(['json', 'text']).optional(),
-                  output: z.never().optional(),
-                  errorText: z.never().optional(),
-                  approval: z.never().optional(),
-                }),
-                z.object({
-                  type: z.string().startsWith('tool-'),
-                  toolCallId: z.string(),
-                  title: z.string().optional(),
-                  toolMetadata: toolMetadataSchema.optional(),
-                  state: z.literal('input-available'),
-                  providerExecuted: z.boolean().optional(),
-                  input: z.unknown(),
-                  output: z.never().optional(),
-                  errorText: z.never().optional(),
-                  callProviderMetadata: providerMetadataSchema.optional(),
-                  approval: z.never().optional(),
-                }),
-                z.object({
-                  type: z.string().startsWith('tool-'),
-                  toolCallId: z.string(),
-                  title: z.string().optional(),
-                  toolMetadata: toolMetadataSchema.optional(),
-                  state: z.literal('approval-requested'),
-                  input: z.unknown(),
-                  providerExecuted: z.boolean().optional(),
-                  output: z.never().optional(),
-                  errorText: z.never().optional(),
-                  callProviderMetadata: providerMetadataSchema.optional(),
-                  approval: approvalRequestedSchema,
-                }),
-                z.object({
-                  type: z.string().startsWith('tool-'),
-                  toolCallId: z.string(),
-                  title: z.string().optional(),
-                  toolMetadata: toolMetadataSchema.optional(),
-                  state: z.literal('approval-responded'),
-                  input: z.unknown(),
-                  providerExecuted: z.boolean().optional(),
-                  output: z.never().optional(),
-                  errorText: z.never().optional(),
-                  callProviderMetadata: providerMetadataSchema.optional(),
-                  approval: approvalRespondedSchema,
-                }),
-                z.object({
-                  type: z.string().startsWith('tool-'),
-                  toolCallId: z.string(),
-                  title: z.string().optional(),
-                  toolMetadata: toolMetadataSchema.optional(),
-                  state: z.literal('output-available'),
-                  providerExecuted: z.boolean().optional(),
-                  input: z.unknown(),
-                  output: z.unknown(),
-                  errorText: z.never().optional(),
-                  callProviderMetadata: providerMetadataSchema.optional(),
-                  resultProviderMetadata: providerMetadataSchema.optional(),
-                  preliminary: z.boolean().optional(),
-                  approval: approvalGrantedSchema.optional(),
-                }),
-                z.object({
-                  type: z.string().startsWith('tool-'),
-                  toolCallId: z.string(),
-                  title: z.string().optional(),
-                  toolMetadata: toolMetadataSchema.optional(),
-                  state: z.literal('output-error'),
-                  providerExecuted: z.boolean().optional(),
-                  input: z.unknown().optional(),
-                  rawInput: z.unknown().optional(),
-                  output: z.never().optional(),
-                  errorText: z.string(),
-                  callProviderMetadata: providerMetadataSchema.optional(),
-                  resultProviderMetadata: providerMetadataSchema.optional(),
-                  approval: approvalGrantedSchema.optional(),
-                }),
-                z.object({
-                  type: z.string().startsWith('tool-'),
-                  toolCallId: z.string(),
-                  title: z.string().optional(),
-                  toolMetadata: toolMetadataSchema.optional(),
-                  state: z.literal('output-denied'),
-                  providerExecuted: z.boolean().optional(),
-                  input: z.unknown(),
-                  output: z.never().optional(),
-                  errorText: z.never().optional(),
-                  callProviderMetadata: providerMetadataSchema.optional(),
-                  approval: approvalDeniedSchema,
-                }),
-              ]),
-            ),
-          })
-          .superRefine((message, context) => {
-            if (message.role !== 'assistant' && message.parts.length === 0) {
-              context.addIssue({
-                origin: 'array',
-                code: 'too_small',
-                minimum: 1,
-                inclusive: true,
-                input: message.parts,
-                path: ['parts'],
-                message: 'Message must contain at least one part',
-              });
-            }
-          }),
-      )
-      .nonempty('Messages array must not be empty'),
+    arrayUntilFirstInvalidElement(() => messageSchema).check(
+      z.minLength(1, 'Messages array must not be empty'),
+    ),
   );
 });
 

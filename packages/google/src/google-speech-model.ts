@@ -128,9 +128,16 @@ export class GoogleSpeechModel implements SpeechModelV4 {
 
     // Multi-speaker (provider option) takes precedence over the single voice.
     const multiSpeakerVoiceConfig = googleOptions?.multiSpeakerVoiceConfig;
+    const languageCode = language === 'auto' ? undefined : language;
     const speechConfig = multiSpeakerVoiceConfig
-      ? { multiSpeakerVoiceConfig }
-      : { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } };
+      ? {
+          multiSpeakerVoiceConfig,
+          ...(languageCode != null && { languageCode }),
+        }
+      : {
+          voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } },
+          ...(languageCode != null && { languageCode }),
+        };
 
     // Older models expect directions in the prompt. Prepending them to a
     // labelled multi-speaker transcript would break speaker parsing.
@@ -214,16 +221,6 @@ export class GoogleSpeechModel implements SpeechModelV4 {
         feature: 'speed',
         details:
           'Google Gemini TTS models do not support the `speed` option. It was ignored.',
-      });
-    }
-
-    if (language != null) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'language',
-        details:
-          'Google Gemini TTS models do not support the `language` option. ' +
-          'Language is detected automatically from the input text.',
       });
     }
 

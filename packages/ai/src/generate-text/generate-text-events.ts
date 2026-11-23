@@ -15,6 +15,7 @@ import type { Output } from './output';
 import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 import type { ToolOrder } from './tool-order';
+import type { StoppedBy } from './stopped-by';
 
 /**
  * Event passed to the `onStart` callback.
@@ -245,6 +246,12 @@ export type GenerateTextEndEvent<
     TOOLS,
     RUNTIME_CONTEXT
   >['rawFinishReason'];
+
+  /**
+   * Why the generation stopped its tool loop, e.g. because of a stop
+   * condition. `generateText`, `streamText`, and `ToolLoopAgent` always set it.
+   */
+  readonly stoppedBy?: StoppedBy;
 
   /** Aggregated token usage across all steps. */
   readonly usage: LanguageModelUsage;

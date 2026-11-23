@@ -27,6 +27,10 @@ import {
   perplexityErrorSchema,
   perplexityErrorToMessage,
 } from './perplexity-language-model';
+import {
+  getPerplexityEmbeddingModelEntry,
+  perplexityEmbeddingModelLimits,
+} from './perplexity-model-catalog';
 
 type PerplexityEmbeddingConfig = {
   provider: string;
@@ -38,9 +42,8 @@ type PerplexityEmbeddingConfig = {
 export class PerplexityEmbeddingModel implements EmbeddingModelV4 {
   readonly specificationVersion = 'v4';
   readonly modelId: PerplexityEmbeddingModelId;
-  // https://docs.perplexity.ai/docs/embeddings/standard-embeddings
-  readonly maxEmbeddingsPerCall = 512;
-  readonly supportsParallelCalls = true;
+  readonly maxEmbeddingsPerCall: typeof perplexityEmbeddingModelLimits.maxEmbeddingsPerCall;
+  readonly supportsParallelCalls: typeof perplexityEmbeddingModelLimits.supportsParallelCalls;
 
   private readonly config: PerplexityEmbeddingConfig;
 
@@ -68,6 +71,11 @@ export class PerplexityEmbeddingModel implements EmbeddingModelV4 {
   ) {
     this.modelId = modelId;
     this.config = config;
+    const limits =
+      getPerplexityEmbeddingModelEntry(modelId).capabilities.embedding ??
+      perplexityEmbeddingModelLimits;
+    this.maxEmbeddingsPerCall = limits.maxEmbeddingsPerCall;
+    this.supportsParallelCalls = limits.supportsParallelCalls;
   }
 
   async doEmbed({
@@ -96,7 +104,10 @@ export class PerplexityEmbeddingModel implements EmbeddingModelV4 {
       })) ?? {};
 
     // Perplexity only returns quantized (base64-encoded) embeddings.
-    const encodingFormat = perplexityOptions.encodingFormat ?? 'base64_int8';
+    const encodingFormat =
+      perplexityOptions.encodingFormat ??
+      getPerplexityEmbeddingModelEntry(this.modelId).requestConfig.embedding
+        .encodingFormat;
 
     const {
       responseHeaders,

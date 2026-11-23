@@ -30,7 +30,8 @@ export const socialCard = (
   title: string,
   description: string,
 ): Pick<Metadata, 'openGraph' | 'twitter'> => {
-  const url = `/og/docs?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}`;
+  // Bump the version when the design changes: these images are cached immutably.
+  const url = `/og/docs?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&v=4`;
   return {
     openGraph: { ...ogDefaults, title, description, images: [{ url }] },
     twitter: { card: 'summary_large_image', images: [{ url }] },

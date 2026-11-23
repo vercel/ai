@@ -5,7 +5,12 @@ import type {
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { ToolApprovalConfiguration } from 'ai';
+import {
+  applyApprovalFallback,
+  type ApprovalFallbackStatus,
+} from '../approval-fallback';
 import type { PolicyClient } from '../policy-client';
+import type { PolicyDecision } from '../policy-decision';
 import { evaluatePolicy } from './evaluate-policy';
 import { normalizeOpaDecision } from './normalize-opa-decision';
 
@@ -16,8 +21,39 @@ import { normalizeOpaDecision } from './normalize-opa-decision';
 export interface DefaultOpaInput {
   tool: { name: string };
   args: unknown;
+  /**
+   * The messages that were sent to the model to start the response that
+   * contains the tool call. They do not include that response. For a tool call
+   * that follows other tool calls in the same response, the policy is also
+   * evaluated with those earlier calls appended (see {@link opaPolicy}).
+   *
+   * A tool call that a user approved is evaluated once more before it runs.
+   * The messages then include the response with the tool call and the
+   * approval.
+   */
   messages: ReadonlyArray<ModelMessage>;
   runtimeContext: unknown;
+}
+
+/**
+ * A tool call that this policy has evaluated for one model response.
+ */
+interface EvaluatedToolCall {
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+  /**
+   * The decision for the call. `undefined` until the evaluation has finished.
+   */
+  decision?: PolicyDecision;
+}
+
+/**
+ * The tool calls of one model response, and the evaluation that runs last.
+ */
+interface ResponseEvaluations {
+  toolCalls: EvaluatedToolCall[];
+  lastEvaluation: Promise<void>;
 }
 
 /**
@@ -27,6 +63,17 @@ export interface DefaultOpaInput {
  * (`path`) for every tool call and maps the result to the SDK's approval
  * status via {@link normalizeOpaDecision}. Pass the result directly as
  * `toolApproval` on `generateText` / `streamText` / `ToolLoopAgent`.
+ *
+ * A model response can contain several tool calls. The SDK decides on all of
+ * them before it runs any of them, and passes the same `messages` for each:
+ * the conversation before that response. A rule that counts earlier calls,
+ * such as a budget or "only one delete", would approve each call on its own.
+ * So every call after the first one of a response is evaluated twice: with
+ * `messages` as passed, and with the earlier calls of the response appended
+ * as an assistant message (denied calls are followed by an `execution-denied`
+ * tool result). The more restrictive of the two decisions applies. A limit
+ * therefore counts the earlier calls, and a rule that requires an earlier call
+ * is not satisfied by a call that has not run yet.
  *
  * ```ts
  * import { wasmPolicyClient } from '@ai-sdk/policy-opa';
@@ -58,22 +105,18 @@ export function opaPolicy<
 }): ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT> {
   const { client, path, toInput } = opts;
 
-  return async ({
-    toolCall,
-    tools,
-    toolsContext,
-    runtimeContext,
-    messages,
-  }) => {
-    const opaInput =
-      toInput?.({ toolCall, tools, toolsContext, runtimeContext, messages }) ??
-      ({
-        tool: { name: toolCall.toolName },
-        args: toolCall.input,
-        messages,
-        runtimeContext,
-      } satisfies DefaultOpaInput);
+  // `generateText` and `streamText` create a `messages` array for every model
+  // response and pass it for all tool calls of that response, so the array
+  // identifies the response. Calls that reach this function with another
+  // array are not related to each other and are evaluated once, as before.
+  //
+  // Another caller has to do the same. If it passes one array for several
+  // responses, the tool calls of the earlier responses count as earlier tool
+  // calls of the later ones. The evaluation with the earlier tool calls can
+  // only make a decision more restrictive than the evaluation without them.
+  const responses = new WeakMap<ModelMessage[], ResponseEvaluations>();
 
+  const decide = async (opaInput: unknown): Promise<PolicyDecision> => {
     // Fail closed: a backend error must not be read as "no opinion". Deny so
     // the model sees a structured result it can reason about, rather than the
     // error rejecting out of the callback and aborting the run.
@@ -87,6 +130,254 @@ export function opaPolicy<
 
     return normalizeOpaDecision(outcome.result);
   };
+
+  // `fallback` is only set through the internal hook below, by
+  // `wrapMcpTools`. It is applied to every evaluation of a tool call, before
+  // the decisions are compared: otherwise an evaluation with the earlier tool
+  // calls of the response can return `user-approval`, which is more
+  // restrictive than `not-applicable`, and lift a fallback of `denied`.
+  const createApproval = (
+    fallback?: ApprovalFallbackStatus,
+  ): ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT> => {
+    // A decision counts as its own type, or as the fallback when the policy
+    // does not match it. The fallback is only used for the comparison; the
+    // engine's decision is returned, so it keeps its reason and `wrapMcpTools`
+    // still applies the fallback to a returned `not-applicable` as before.
+    const effectiveType = (decision: PolicyDecision): PolicyDecision['type'] =>
+      fallback != null &&
+      fallback !== 'not-applicable' &&
+      decision.type === 'not-applicable'
+        ? fallback
+        : decision.type;
+
+    const effectiveDecision = (decision: PolicyDecision): PolicyDecision =>
+      effectiveType(decision) === decision.type
+        ? decision
+        : { type: effectiveType(decision) };
+
+    return ({ toolCall, tools, toolsContext, runtimeContext, messages }) => {
+      const toOpaInput = (inputMessages: ModelMessage[]) =>
+        toInput?.({
+          toolCall,
+          tools,
+          toolsContext,
+          runtimeContext,
+          messages: inputMessages,
+        }) ??
+        ({
+          tool: { name: toolCall.toolName },
+          args: toolCall.input,
+          messages: inputMessages,
+          runtimeContext,
+        } satisfies DefaultOpaInput);
+
+      // The SDK checks a tool call that a user approved once more before it
+      // runs it. `messages` then contain the response with that tool call and
+      // with the other tool calls of the response, so there is nothing to
+      // append. There is a single evaluation, so the fallback does not change
+      // the result; `wrapMcpTools` applies it to a returned `not-applicable`.
+      if (isToolCallFromMessages(messages, toolCall)) {
+        return (async () => decide(toOpaInput(messages)))();
+      }
+
+      let response = responses.get(messages);
+      if (response == null) {
+        response = { toolCalls: [], lastEvaluation: Promise.resolve() };
+        responses.set(messages, response);
+      }
+
+      const earlierToolCalls = [...response.toolCalls];
+      const currentToolCall: EvaluatedToolCall = {
+        toolCallId: toolCall.toolCallId,
+        toolName: toolCall.toolName,
+        input: toolCall.input,
+      };
+      response.toolCalls.push(currentToolCall);
+
+      const evaluate = async (): Promise<PolicyDecision> => {
+        const opaInput = toOpaInput(messages);
+        let decision = await decide(opaInput);
+
+        // A denial cannot become more restrictive.
+        if (effectiveType(decision) !== 'denied') {
+          const messagesWithEarlierToolCalls = appendEarlierToolCalls(
+            messages,
+            earlierToolCalls,
+          );
+
+          if (messagesWithEarlierToolCalls !== messages) {
+            const opaInputWithEarlierToolCalls = toOpaInput(
+              messagesWithEarlierToolCalls,
+            );
+
+            // A custom `toInput` that does not use `messages` produces the same
+            // input twice. OPA receives its input as JSON, so two inputs with
+            // the same JSON are one input, and evaluating it again cannot
+            // change the decision.
+            if (
+              toInput == null ||
+              !isSameInput(opaInput, opaInputWithEarlierToolCalls)
+            ) {
+              decision = moreRestrictiveDecision(
+                decision,
+                await decide(opaInputWithEarlierToolCalls),
+                effectiveType,
+              );
+            }
+          }
+        }
+
+        // Later evaluations of the response see the decision the SDK acts on,
+        // which includes the fallback.
+        currentToolCall.decision = effectiveDecision(decision);
+        return decision;
+      };
+
+      // Evaluate the calls of a response one after the other, in the order
+      // they arrived, so that each evaluation knows which earlier calls were
+      // denied. This also holds when the caller does not wait for one decision
+      // before it asks for the next.
+      const evaluation = response.lastEvaluation.then(evaluate);
+      response.lastEvaluation = evaluation.then(
+        () => undefined,
+        () => undefined,
+      );
+      return evaluation;
+    };
+  };
+
+  const approval = createApproval();
+
+  // Internal hook for `wrapMcpTools`; not part of the public API. The wrapper
+  // hands its fallback to the policy so that the fallback is applied to every
+  // evaluation of a tool call, not only to the combined decision.
+  Object.defineProperty(approval, applyApprovalFallback, {
+    value: (fallback: ApprovalFallbackStatus) => createApproval(fallback),
+    enumerable: false,
+  });
+
+  return approval;
+}
+
+/**
+ * Returns `messages` followed by the earlier tool calls of the same response,
+ * in the shape they have once they are part of the conversation: an assistant
+ * message with the tool calls and, for denied calls, a tool message with their
+ * `execution-denied` results. Calls that are not denied have no result yet.
+ *
+ * Returns `messages` itself when there is nothing to append.
+ */
+function appendEarlierToolCalls(
+  messages: ModelMessage[],
+  earlierToolCalls: EvaluatedToolCall[],
+): ModelMessage[] {
+  if (earlierToolCalls.length === 0) return messages;
+
+  const appended: ModelMessage[] = [
+    {
+      role: 'assistant',
+      content: earlierToolCalls.map(({ toolCallId, toolName, input }) => ({
+        type: 'tool-call',
+        toolCallId,
+        toolName,
+        input,
+      })),
+    },
+  ];
+
+  const deniedToolCalls = earlierToolCalls.filter(
+    earlierToolCall => earlierToolCall.decision?.type === 'denied',
+  );
+  if (deniedToolCalls.length > 0) {
+    appended.push({
+      role: 'tool',
+      content: deniedToolCalls.map(({ toolCallId, toolName, decision }) => ({
+        type: 'tool-result',
+        toolCallId,
+        toolName,
+        output: {
+          type: 'execution-denied',
+          ...(decision?.type === 'denied' && decision.reason != null
+            ? { reason: decision.reason }
+            : {}),
+        },
+      })),
+    });
+  }
+
+  return [...messages, ...appended];
+}
+
+/**
+ * Returns whether the tool call is one of the tool calls in `messages`.
+ *
+ * When the SDK checks a tool call that a user approved, it passes the tool call
+ * of the conversation, with the same `input` object. A tool call of a new
+ * response is parsed from that response, so its `input` is a new object, also
+ * when it has the ID of a tool call in `messages`. Tool call IDs can repeat:
+ * some providers number the tool calls of every response from zero.
+ *
+ * An `input` that is not an object cannot be told apart this way. Such a tool
+ * call is treated as new, which can only make the decision more restrictive.
+ */
+function isToolCallFromMessages(
+  messages: ModelMessage[],
+  toolCall: { toolCallId: string; input: unknown },
+): boolean {
+  const { toolCallId, input } = toolCall;
+  if (typeof input !== 'object' || input === null) return false;
+
+  return messages.some(
+    message =>
+      message.role === 'assistant' &&
+      Array.isArray(message.content) &&
+      message.content.some(
+        part =>
+          part.type === 'tool-call' &&
+          part.toolCallId === toolCallId &&
+          part.input === input,
+      ),
+  );
+}
+
+const decisionRestrictiveness: Record<PolicyDecision['type'], number> = {
+  approved: 0,
+  'not-applicable': 1,
+  'user-approval': 2,
+  denied: 3,
+};
+
+/**
+ * Returns `other` when it restricts the tool call more than `decision` does,
+ * and `decision` otherwise. Decisions that count as the same type after the
+ * fallback are compared again by their own type, so the fallback neither hides
+ * nor adds a reason when an `approved` or `user-approval` decision ties with a
+ * replaced `not-applicable` one.
+ */
+function moreRestrictiveDecision(
+  decision: PolicyDecision,
+  other: PolicyDecision,
+  effectiveType: (decision: PolicyDecision) => PolicyDecision['type'],
+): PolicyDecision {
+  const restrictiveness = decisionRestrictiveness[effectiveType(other)];
+  const current = decisionRestrictiveness[effectiveType(decision)];
+
+  if (restrictiveness > current) return other;
+  if (restrictiveness < current) return decision;
+
+  return decisionRestrictiveness[other.type] >
+    decisionRestrictiveness[decision.type]
+    ? other
+    : decision;
+}
+
+function isSameInput(input: unknown, other: unknown): boolean {
+  try {
+    return JSON.stringify(input) === JSON.stringify(other);
+  } catch {
+    // Not serializable: treat the inputs as different and evaluate both.
+    return false;
+  }
 }
 
 function errorMessage(cause: unknown): string {

@@ -194,11 +194,7 @@ describe('host tool MCP HTTP transport', () => {
     const relay = await createRelay({
       tools: [{ name: 'weather', inputSchema: { type: 'object' } }],
     });
-    const authorization = createHostToolRelayAuthorization({
-      serverName: 'ai-sdk-harness-tools',
-      toolNames: ['weather'],
-      ttlMs: 20,
-    });
+    const authorization = createHostToolRelayAuthorization({ ttlMs: 20 });
     cleanups.push(async () => authorization.close());
     let notifyAuthorizationRequest: (() => void) | undefined;
     const turn = createTurn({
@@ -235,6 +231,7 @@ describe('host tool MCP HTTP transport', () => {
         rawInput: { city: 'Paris' },
         status: 'in_progress',
       },
+      hostToolCall: { toolName: 'weather', input: { city: 'Paris' } },
     });
     await expect(authorizedCall).resolves.toMatchObject({
       content: [{ type: 'text', text: '{"celsius":12}' }],
@@ -247,13 +244,28 @@ describe('host tool MCP HTTP transport', () => {
     const relay = await createRelay({
       tools: [{ name: 'weather', inputSchema: { type: 'object' } }],
     });
-    const client = await connect({ relay });
+    // The client opens the SSE stream that carries notifications in the
+    // background after connecting, and the server drops notifications sent
+    // before it is open, so wait for it before changing the catalog.
+    let notificationStreamOpened: () => void = () => {};
+    const notificationStreamOpen = new Promise<void>(resolve => {
+      notificationStreamOpened = resolve;
+    });
+    const client = await connect({
+      relay,
+      fetch: async (input, init) => {
+        const response = await fetch(input, init);
+        if (init?.method === 'GET' && response.ok) notificationStreamOpened();
+        return response;
+      },
+    });
     const listChanged = vi.fn();
     client.setNotificationHandler(
       ToolListChangedNotificationSchema,
       listChanged,
     );
     await client.listTools();
+    await notificationStreamOpen;
 
     const updated = relay.updateCatalog({
       tools: [
@@ -380,12 +392,19 @@ async function createRelay({
   return relay;
 }
 
-async function connect({ relay }: { relay: HostToolRelay }): Promise<Client> {
+async function connect({
+  relay,
+  fetch,
+}: {
+  relay: HostToolRelay;
+  fetch?: typeof globalThis.fetch;
+}): Promise<Client> {
   const client = new Client({ name: 'host-tool-test', version: '1.0.0' });
   const transport = new StreamableHTTPClientTransport(new URL(relay.mcpUrl!), {
     requestInit: {
       headers: { authorization: `Bearer ${relay.credential}` },
     },
+    ...(fetch == null ? {} : { fetch }),
   });
   await client.connect(transport);
   cleanups.push(() => client.close());

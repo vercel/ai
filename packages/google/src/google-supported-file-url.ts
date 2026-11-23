@@ -1,3 +1,6 @@
+export const googleFilesUrlPattern =
+  /^https:\/\/generativelanguage\.googleapis\.com\/v1beta\/files\/.*$/;
+
 export function isSupportedFileUrl(url: URL): boolean {
   const urlString = url.toString();
 

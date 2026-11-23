@@ -9,6 +9,7 @@ import {
   detectMediaType,
   isFullMediaType,
 } from '@ai-sdk/provider-utils';
+import { perplexityDecisionModelLimits } from './perplexity-model-catalog';
 
 export function convertToPerplexityDecisionState(state: DecisionModelV4State) {
   const parts = state.map((part): JSONValue => {
@@ -27,7 +28,9 @@ export function convertToPerplexityDecisionState(state: DecisionModelV4State) {
           ? part.mediaType
           : detectMediaType({ data: part.data.data, topLevelType: 'image' });
         if (
-          !['image/png', 'image/jpeg', 'image/webp'].includes(mediaType ?? '')
+          !perplexityDecisionModelLimits.supportedMediaTypes.some(
+            type => type === mediaType,
+          )
         ) {
           throw new UnsupportedFunctionalityError({
             functionality: `Perplexity decision image media type: ${part.mediaType}`,
@@ -45,11 +48,10 @@ export function convertToPerplexityDecisionState(state: DecisionModelV4State) {
     }
   });
 
-  if (countImages(parts) > 8) {
+  if (countImages(parts) > perplexityDecisionModelLimits.maxImages) {
     throw new InvalidArgumentError({
       argument: 'state',
-      message:
-        'Perplexity Decisions supports at most 8 images in the shared state.',
+      message: `Perplexity Decisions supports at most ${perplexityDecisionModelLimits.maxImages} images in the shared state.`,
     });
   }
 
@@ -72,12 +74,16 @@ function countImages(value: unknown): number {
   const object = value as Record<string, unknown>;
   if (object.type === 'image_url') {
     const image = object.image_url as { url?: unknown } | null | undefined;
+    const url = image?.url;
     if (
       image == null ||
       typeof image !== 'object' ||
       Array.isArray(image) ||
-      typeof image.url !== 'string' ||
-      !/^data:image\/(png|jpeg|webp);base64,/i.test(image.url)
+      typeof url !== 'string' ||
+      !perplexityDecisionModelLimits.supportedMediaTypes.some(mediaType => {
+        const prefix = `data:${mediaType};base64,`;
+        return url.slice(0, prefix.length).toLowerCase() === prefix;
+      })
     ) {
       throw new UnsupportedFunctionalityError({
         functionality:

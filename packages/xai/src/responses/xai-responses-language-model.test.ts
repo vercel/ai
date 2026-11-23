@@ -1,4 +1,5 @@
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import { safeParseJSON } from '@ai-sdk/provider-utils';
 import {
   convertReadableStreamToArray,
   mockId,
@@ -6,8 +7,22 @@ import {
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import fs from 'node:fs';
+import { mcpServer } from '../tool/mcp-server';
+import { xSearch } from '../tool/x-search';
 import { XaiResponsesLanguageModel } from './xai-responses-language-model';
 import type { XaiLanguageModelResponsesOptions } from './xai-responses-language-model-options';
+
+const MCP_SERVER_ARGS = {
+  serverUrl: 'https://mcp.deepwiki.com/mcp',
+  serverLabel: 'deepwiki',
+};
+
+const MCP_TOOL = {
+  type: 'provider' as const,
+  id: 'xai.mcp' as const,
+  name: 'mcp',
+  args: MCP_SERVER_ARGS,
+};
 
 const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'hello' }] },
@@ -1783,6 +1798,49 @@ describe('XaiResponsesLanguageModel', () => {
 
         expect(result.content).toMatchSnapshot();
       });
+
+      it('should keep the search arguments when the tool call input is parsed', async () => {
+        const searchArguments = { query: 'ai sdk', limit: '5', mode: 'Latest' };
+
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast-non-reasoning',
+          output: [
+            {
+              type: 'custom_tool_call',
+              id: 'ctc_123',
+              call_id: 'xs_call_123',
+              name: 'x_keyword_search',
+              input: JSON.stringify(searchArguments),
+              status: 'completed',
+            },
+          ],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.x_search',
+              name: 'x_search',
+              args: {},
+            },
+          ],
+        });
+
+        const toolCall = result.content.find(part => part.type === 'tool-call');
+
+        expect(
+          await safeParseJSON({
+            text: toolCall!.input,
+            schema: xSearch().inputSchema,
+          }),
+        ).toMatchObject({ success: true, value: searchArguments });
+      });
     });
 
     describe('code_interpreter tool', () => {
@@ -1802,6 +1860,31 @@ describe('XaiResponsesLanguageModel', () => {
         });
 
         expect(result.content).toMatchSnapshot();
+      });
+    });
+
+    describe('mcp tool', () => {
+      it('should keep the mcp arguments when the tool call input is parsed', async () => {
+        prepareJsonFixtureResponse('xai-mcp-tool.1');
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [MCP_TOOL],
+        });
+
+        const toolCall = result.content.find(part => part.type === 'tool-call');
+
+        expect(toolCall).toMatchObject({
+          toolName: 'mcp',
+          input: '{"repoName":"vercel/ai"}',
+          providerExecuted: true,
+        });
+        expect(
+          await safeParseJSON({
+            text: toolCall!.input,
+            schema: mcpServer(MCP_SERVER_ARGS).inputSchema,
+          }),
+        ).toMatchObject({ success: true, value: { repoName: 'vercel/ai' } });
       });
     });
 
@@ -3160,6 +3243,87 @@ describe('XaiResponsesLanguageModel', () => {
         expect(parts).toMatchSnapshot();
       });
 
+      it('should keep the search arguments when the streamed tool call input is parsed', async () => {
+        const searchArguments = { query: 'ai sdk', limit: '5', mode: 'Latest' };
+        const item = {
+          type: 'custom_tool_call',
+          id: 'ctc_123',
+          call_id: 'xs_call_123',
+          name: 'x_keyword_search',
+        };
+
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: { ...item, input: '', status: 'in_progress' },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.custom_tool_call_input.delta',
+            item_id: 'ctc_123',
+            output_index: 0,
+            delta: JSON.stringify(searchArguments),
+          }),
+          JSON.stringify({
+            type: 'response.custom_tool_call_input.done',
+            item_id: 'ctc_123',
+            output_index: 0,
+            input: JSON.stringify(searchArguments),
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              ...item,
+              input: JSON.stringify(searchArguments),
+              status: 'completed',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.completed',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.x_search',
+              name: 'x_search',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const toolCall = parts.find(part => part.type === 'tool-call');
+
+        expect(
+          await safeParseJSON({
+            text: toolCall!.input,
+            schema: xSearch().inputSchema,
+          }),
+        ).toMatchObject({ success: true, value: searchArguments });
+      });
+
       it('should not emit duplicate text-delta from response.output_item.done after streaming', async () => {
         prepareStreamChunks([
           JSON.stringify({
@@ -3257,6 +3421,50 @@ describe('XaiResponsesLanguageModel', () => {
     });
 
     describe('tool call streaming', () => {
+      it('should stream the mcp tool call with its arguments', async () => {
+        prepareChunksFixtureResponse('xai-mcp-tool.1');
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [MCP_TOOL],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const toolParts = parts.filter(
+          part =>
+            part.type === 'tool-input-start' ||
+            part.type === 'tool-input-delta' ||
+            part.type === 'tool-input-end' ||
+            part.type === 'tool-call' ||
+            part.type === 'tool-result',
+        );
+
+        expect(toolParts.map(part => part.type)).toEqual([
+          'tool-input-start',
+          'tool-input-delta',
+          'tool-input-end',
+          'tool-call',
+          'tool-result',
+        ]);
+        expect(toolParts[1]).toMatchObject({
+          delta: '{"repoName":"vercel/ai"}',
+        });
+
+        const toolCall = parts.find(part => part.type === 'tool-call');
+
+        expect(toolCall).toMatchObject({
+          toolName: 'mcp',
+          input: '{"repoName":"vercel/ai"}',
+          providerExecuted: true,
+        });
+        expect(
+          await safeParseJSON({
+            text: toolCall!.input,
+            schema: mcpServer(MCP_SERVER_ARGS).inputSchema,
+          }),
+        ).toMatchObject({ success: true, value: { repoName: 'vercel/ai' } });
+      });
+
       it('should stream web_search tool calls', async () => {
         prepareStreamChunks([
           JSON.stringify({
@@ -5158,6 +5366,59 @@ describe('XaiResponsesLanguageModel', () => {
           delta: 'Hi',
         }),
       );
+    });
+  });
+
+  describe('incomplete response handling (doGenerate)', () => {
+    it('should set finish reason to length for max_output_tokens', async () => {
+      prepareJsonResponse({
+        id: 'resp_123',
+        object: 'response',
+        model: 'grok-4-fast-non-reasoning',
+        status: 'incomplete',
+        incomplete_details: { reason: 'max_output_tokens' },
+        output: [
+          {
+            type: 'message',
+            id: 'msg_456',
+            role: 'assistant',
+            status: 'incomplete',
+            content: [
+              { type: 'output_text', text: 'partial output', annotations: [] },
+            ],
+          },
+        ],
+        usage: { input_tokens: 100, output_tokens: 4096 },
+      });
+
+      const result = await createModel().doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.finishReason).toStrictEqual({
+        unified: 'length',
+        raw: 'max_output_tokens',
+      });
+    });
+
+    it('should set finish reason to other when incomplete_details is missing', async () => {
+      prepareJsonResponse({
+        id: 'resp_123',
+        object: 'response',
+        model: 'grok-4-fast-non-reasoning',
+        status: 'incomplete',
+        output: [],
+        usage: { input_tokens: 50, output_tokens: 200 },
+      });
+
+      const result = await createModel().doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.finishReason).toStrictEqual({
+        unified: 'other',
+        raw: 'incomplete',
+      });
     });
   });
 

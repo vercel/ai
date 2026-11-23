@@ -4,6 +4,7 @@ import type {
   Experimental_RealtimeModelV4FunctionCallOutput as RealtimeModelV4FunctionCallOutput,
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
+  Experimental_RealtimeModelV4Usage as RealtimeModelV4Usage,
 } from '@ai-sdk/provider';
 import { isRecord, safeParseJSON } from '@ai-sdk/provider-utils';
 import { getModelPath } from '../get-model-path';
@@ -31,6 +32,22 @@ type GoogleRealtimeServerContent = {
   waitingForInput?: boolean;
 };
 
+type GoogleRealtimeTokenDetail = {
+  modality?: string;
+  tokenCount?: number;
+};
+
+type GoogleRealtimeUsageMetadata = {
+  promptTokenCount?: number;
+  responseTokenCount?: number;
+  totalTokenCount?: number;
+  toolUsePromptTokenCount?: number;
+  thoughtsTokenCount?: number;
+  cachedContentTokenCount?: number;
+  promptTokensDetails?: GoogleRealtimeTokenDetail[];
+  responseTokensDetails?: GoogleRealtimeTokenDetail[];
+};
+
 type GoogleRealtimeWireEvent = {
   setupComplete?: unknown;
   toolCall?: {
@@ -38,6 +55,7 @@ type GoogleRealtimeWireEvent = {
   };
   toolCallCancellation?: unknown;
   serverContent?: GoogleRealtimeServerContent;
+  usageMetadata?: GoogleRealtimeUsageMetadata;
   inputTranscription?: { text?: string; finished?: boolean };
   goAway?: { timeLeft?: string };
   sessionResumptionUpdate?: {
@@ -149,6 +167,37 @@ export class GoogleRealtimeEventMapper {
   }
 
   parseServerEvent(
+    raw: unknown,
+  ): RealtimeModelV4ServerEvent | RealtimeModelV4ServerEvent[] {
+    const events = this.parseEvent(raw);
+    const usage = mapGoogleUsage(
+      (raw as GoogleRealtimeWireEvent).usageMetadata,
+    );
+    if (usage == null) return events;
+    const list = Array.isArray(events) ? events : [events];
+    // Only a shared wire frame establishes an association with a completion.
+    if (list.some(event => event.type === 'response-done')) {
+      const mapped = list.map(event =>
+        event.type === 'response-done' ? { ...event, usage } : event,
+      );
+      return Array.isArray(events) ? mapped : mapped[0];
+    }
+    const update: RealtimeModelV4ServerEvent = {
+      type: 'custom',
+      rawType: 'usageMetadata',
+      usage,
+      raw,
+    };
+    if (
+      list.length === 1 &&
+      list[0].type === 'custom' &&
+      list[0].rawType === 'usageMetadata'
+    )
+      return update;
+    return [...list, update];
+  }
+
+  private parseEvent(
     raw: unknown,
   ): RealtimeModelV4ServerEvent | RealtimeModelV4ServerEvent[] {
     const data = raw as GoogleRealtimeWireEvent;
@@ -446,6 +495,80 @@ export class GoogleRealtimeEventMapper {
 
     return null;
   }
+}
+
+/**
+ * Maps Gemini Live `usageMetadata` to normalized usage. Google reports usage
+ * per modality in `promptTokensDetails` / `responseTokensDetails`.
+ *
+ * Field names are Live-API-specific: the Live `UsageMetadata` uses
+ * `responseTokenCount` / `responseTokensDetails` for output, NOT the
+ * `candidatesTokenCount` / `candidatesTokensDetails` of the regular
+ * `generateContent` response (see google-language-model.ts). Do not "align"
+ * these to `candidates*` — they are different wire shapes.
+ *
+ * Gross totals preserve provider counts even when modality details are absent
+ * or contain modalities without a dedicated normalized bucket. Never guess a
+ * text/audio split from those totals.
+ */
+function mapGoogleUsage(
+  usageMetadata: GoogleRealtimeUsageMetadata | undefined,
+): RealtimeModelV4Usage | undefined {
+  if (usageMetadata == null) return undefined;
+
+  const input = sumByModality(usageMetadata.promptTokensDetails);
+  const output = sumByModality(usageMetadata.responseTokensDetails);
+
+  return compactUsage({
+    inputTokens:
+      usageMetadata.promptTokenCount != null
+        ? usageMetadata.promptTokenCount +
+          (usageMetadata.toolUsePromptTokenCount ?? 0)
+        : undefined,
+    outputTokens:
+      usageMetadata.responseTokenCount != null
+        ? usageMetadata.responseTokenCount +
+          (usageMetadata.thoughtsTokenCount ?? 0)
+        : undefined,
+    cachedInputTokens: usageMetadata.cachedContentTokenCount,
+    inputTextTokens: input.text,
+    inputAudioTokens: input.audio,
+    outputTextTokens: output.text,
+    outputAudioTokens: output.audio,
+  });
+}
+
+/** Aggregate Gemini per-modality token details into text/audio buckets. */
+function sumByModality(details: GoogleRealtimeTokenDetail[] | undefined): {
+  text?: number;
+  audio?: number;
+} {
+  if (details == null) return {};
+  const totals: { text?: number; audio?: number } = {};
+  for (const detail of details) {
+    const count = detail.tokenCount;
+    if (count == null) continue;
+    const modality = detail.modality?.toUpperCase();
+    if (modality === 'AUDIO') {
+      totals.audio = (totals.audio ?? 0) + count;
+    } else if (modality === 'TEXT') {
+      totals.text = (totals.text ?? 0) + count;
+    }
+  }
+  return totals;
+}
+
+/** Drop `undefined` fields; return `undefined` when nothing is observable. */
+function compactUsage(
+  usage: RealtimeModelV4Usage,
+): RealtimeModelV4Usage | undefined {
+  const result: RealtimeModelV4Usage = {};
+  for (const [key, value] of Object.entries(usage)) {
+    if (value != null) {
+      result[key as keyof RealtimeModelV4Usage] = value;
+    }
+  }
+  return Object.keys(result).length > 0 ? result : undefined;
 }
 
 /**

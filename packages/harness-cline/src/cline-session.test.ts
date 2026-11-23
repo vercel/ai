@@ -1,6 +1,7 @@
 import type {
   HarnessV1BuiltinToolFiltering,
   HarnessV1NetworkSandboxSession,
+  HarnessV1PermissionMode,
 } from '@ai-sdk/harness';
 import type {
   AgentMessage,
@@ -29,12 +30,21 @@ const clineMock = vi.hoisted(() => ({
   runStatus: 'completed' as AgentRunResult['status'],
   runError: undefined as Error | undefined,
   outputText: '',
+  writeProtectedPaths: [] as string[][],
 }));
 
 vi.mock('@ai-sdk/harness/utils', async importOriginal => ({
   ...(await importOriginal()),
   resolveSandboxHomeDir: vi.fn(async () => '/sandbox/home'),
   shellQuote: vi.fn((value: string) => value),
+  isSandboxWriteProtectedPath: vi.fn(
+    async ({ paths }: { paths: ReadonlyArray<string> }) => {
+      clineMock.writeProtectedPaths.push([...paths]);
+      return paths.some(filePath =>
+        filePath.startsWith('/sandbox/work/.agents/skills/'),
+      );
+    },
+  ),
 }));
 
 vi.mock('@cline/agents', () => ({
@@ -1260,6 +1270,73 @@ describe('createClineSession tool execution', () => {
     }
   });
 
+  it('routes allow-edits writes through approval only for write-protected paths', async () => {
+    let releaseRun!: () => void;
+    clineMock.runGate = new Promise<void>(resolve => {
+      releaseRun = resolve;
+    });
+    clineMock.writeProtectedPaths = [];
+    const session = await createSession({ permissionMode: 'allow-edits' });
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'Edit files.',
+        emit: vi.fn(),
+      });
+      const config = clineMock.configs.at(-1);
+      if (config == null) throw new Error('expected agent config');
+      expect(config.toolPolicies).toEqual({
+        write: { autoApprove: false },
+        edit: { autoApprove: false },
+        bash: { autoApprove: false },
+      });
+      const requestToolApproval = config.requestToolApproval!;
+      const approvalRequest = (toolCallId: string, input: unknown) =>
+        requestToolApproval({
+          sessionId: 'session-1',
+          agentId: 'agent-1',
+          conversationId: 'conversation-1',
+          iteration: 1,
+          toolCallId,
+          toolName: 'write',
+          input,
+          policy: { autoApprove: false },
+        });
+
+      await expect(
+        approvalRequest('plain', { file_path: 'TEST.md', content: '' }),
+      ).resolves.toEqual({ approved: true });
+      expect(clineMock.writeProtectedPaths).toEqual([
+        ['/sandbox/work/TEST.md'],
+      ]);
+
+      let settled = false;
+      const protectedDecision = Promise.resolve(
+        approvalRequest('protected', {
+          file_path: '.agents/skills/test/SKILL.md',
+          content: '',
+        }),
+      ).then(decision => {
+        settled = true;
+        return decision;
+      });
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(settled).toBe(false);
+      await control.submitToolApproval!({
+        approvalId: 'protected',
+        approved: true,
+      });
+      await expect(protectedDecision).resolves.toEqual({ approved: true });
+
+      releaseRun();
+      await control.done;
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('rejects structured output for the tool-less Codex CLI provider', async () => {
     const session = await createSession({
       settings: { providerId: 'openai-codex-cli' },
@@ -1291,6 +1368,7 @@ async function createSession(
   input: {
     builtinToolFiltering?: HarnessV1BuiltinToolFiltering;
     isResume?: boolean;
+    permissionMode?: HarnessV1PermissionMode;
     settings?: Partial<ClineSessionSettings>;
   } = {},
 ) {
@@ -1308,6 +1386,7 @@ async function createSession(
     ...(input.builtinToolFiltering
       ? { builtinToolFiltering: input.builtinToolFiltering }
       : {}),
+    ...(input.permissionMode ? { permissionMode: input.permissionMode } : {}),
   });
 }
 

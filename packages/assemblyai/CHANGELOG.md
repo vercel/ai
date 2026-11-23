@@ -1,5 +1,137 @@
 # @ai-sdk/assemblyai
 
+## 3.0.85
+
+### Patch Changes
+
+- e6ad386: feat(assemblyai): add the `assemblyai-stt-3-7` transcription model and the `assemblyai-tts-1` speech model
+
+  - Add `assemblyai-stt-3-7`, AssemblyAI's latest pre-recorded transcription model, with prompting, keyterms, temperature, and `removeAudioTags` support.
+  - Emit a deprecation warning for `universal-3-5-pro`, which AssemblyAI has deprecated, and point the `universal-2` notice to `assemblyai-stt-3-7`.
+  - Stop listing `universal-3-pro`, which AssemblyAI has deprecated and no longer includes in its accepted models.
+  - Remove the `best` model and the singular `speech_model` request parameter it used, which AssemblyAI now rejects. `best` and `slam-1` are sent through `speech_models` like any other ID, so AssemblyAI's error lists the accepted models.
+  - Add `assemblyai.speech()` for the AssemblyAI text-to-speech API (`assemblyai-tts-1`), with `voice`, `language`, and `outputFormat` mapping, `encoding`/`container`/`sampleRate`/`bitRate` provider options, and billed characters reported as speech usage and in `providerMetadata`.
+
+## 3.0.84
+
+### Patch Changes
+
+- f2e49dc: Derive deprecated transcription model IDs from the model catalog while preserving the legacy model policy.
+- Updated dependencies [1d2c2ff]
+  - @ai-sdk/provider-utils@5.0.83
+
+## 3.0.83
+
+### Patch Changes
+
+- Updated dependencies [10ff0b1]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/provider@4.0.39
+  - @ai-sdk/provider-utils@5.0.82
+
+## 3.0.82
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+
+## 3.0.81
+
+### Patch Changes
+
+- 373b075: Add an AssemblyAI model catalog that drives transcription model ID suggestions, request policies, capability documentation, and provider option metadata.
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+
+## 3.0.80
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+
+## 3.0.79
+
+### Patch Changes
+
+- Updated dependencies [88b9575]
+  - @ai-sdk/provider-utils@5.0.78
+
+## 3.0.78
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+
+## 3.0.77
+
+### Patch Changes
+
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+
+## 3.0.76
+
+### Patch Changes
+
+- c87b19e: fix(assemblyai): surface AssemblyAI error messages from the documented flat error response shape
+
+## 3.0.75
+
+### Patch Changes
+
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
+## 3.0.74
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+
+## 3.0.73
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+
+## 3.0.72
+
+### Patch Changes
+
+- 7716e18: Support promises and synchronous or asynchronous callbacks in provider API key and token settings. Resolve credentials per authenticated request while preserving existing authentication behavior and synchronous credential serialization.
+
+  The experimental OpenAI Live `getServerWebSocketConfig()` method can now resolve asynchronously. Await its result before using the connection settings.
+
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
 ## 3.0.71
 
 ### Patch Changes

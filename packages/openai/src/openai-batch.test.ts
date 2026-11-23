@@ -663,7 +663,22 @@ describe('OpenAI batch service', () => {
     };
     const first = resultLine({
       id: 'france',
-      body: responsesResultBody('Paris'),
+      body: {
+        ...responsesResultBody('Paris'),
+        prompt_cache_diagnostics: {
+          type: 'cache_miss',
+          reason: 'input_changed',
+          cache_missed_tokens: 1200,
+        },
+        input_transformations: [
+          {
+            id: 'rs_1',
+            type: 'reasoning',
+            action: 'removed',
+            reason: 'prefix_mismatch',
+          },
+        ],
+      },
     });
     const second = resultLine({
       id: 'germany',
@@ -703,7 +718,23 @@ describe('OpenAI batch service', () => {
           modelId: 'gpt-5.6',
         },
         providerMetadata: {
-          openai: { responseId: 'resp_123', serviceTier: 'default' },
+          openai: {
+            responseId: 'resp_123',
+            serviceTier: 'default',
+            promptCacheDiagnostics: {
+              type: 'cache_miss',
+              reason: 'input_changed',
+              cache_missed_tokens: 1200,
+            },
+            inputTransformations: [
+              {
+                id: 'rs_1',
+                type: 'reasoning',
+                action: 'removed',
+                reason: 'prefix_mismatch',
+              },
+            ],
+          },
         },
       },
     });
@@ -769,6 +800,56 @@ describe('OpenAI batch service', () => {
             },
             { type: 'text', text: 'Paris' },
           ],
+        },
+      },
+    ]);
+  });
+
+  it('preserves refusal content parts and maps the finish reason to content-filter', async () => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: batchResponse({ output_file_id: 'file-output' }),
+    };
+    server.urls[urls.output].response = {
+      type: 'stream-chunks',
+      chunks: [
+        resultLine({
+          id: 'refusal',
+          body: {
+            ...responsesResultBody('unused'),
+            output: [
+              {
+                type: 'message',
+                role: 'assistant',
+                id: 'msg_123',
+                phase: null,
+                content: [
+                  {
+                    type: 'refusal',
+                    refusal: "I'm sorry, I can't assist with that.",
+                  },
+                ],
+              },
+            ],
+          },
+        }),
+      ],
+    };
+    const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
+
+    const stream = await batch.doGetBatchResults({
+      batchId: 'batch_123',
+    });
+
+    await expect(convertReadableStreamToArray(stream)).resolves.toMatchObject([
+      {
+        id: 'refusal',
+        status: 'succeeded',
+        result: {
+          content: [
+            { type: 'text', text: "I'm sorry, I can't assist with that." },
+          ],
+          finishReason: { unified: 'content-filter', raw: undefined },
         },
       },
     ]);

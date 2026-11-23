@@ -48,6 +48,9 @@ export type RunAgentTUIOptions = {
   /**
    * How tool calls should render.
    *
+   * A tool call that is waiting for an approval decision is always shown with
+   * its input until the decision is made.
+   *
    * @default "auto-collapsed"
    */
   tools?: TerminalPartDisplayMode;

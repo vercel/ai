@@ -4,10 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await experimental_decide({
-    model: google.decisionModel('gemini-3.5-flash-lite'),
-    providerOptions: {
-      google: { thinkingConfig: { thinkingLevel: 'minimal' } },
-    },
+    model: google.decisionModel('gemini-decision-1'),
     state: {
       message:
         'I was charged twice. A refund is pending, so I can keep working.',
@@ -35,11 +32,11 @@ run(async () => {
   });
 
   console.log('Answers:', result.answers);
-  // Boolean probabilities are prompted estimates; choose a threshold for your task.
   console.log(
     'Requests refund:',
     result.answers.requestsRefund.probability >= 0.5,
   );
+  console.log('Provider metadata:', result.providerMetadata);
   console.log('Usage:', result.usage);
   console.log('Model:', result.response.modelId);
 });

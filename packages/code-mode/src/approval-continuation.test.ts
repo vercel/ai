@@ -12,7 +12,7 @@ import {
   type CodeModeApprovalInterrupt,
   type CodeModeInterrupt,
   type CodeModeToolExecutionOptions,
-} from '../dist/index.js';
+} from './index.js';
 
 describe('code-mode approval continuations', () => {
   it('supports callback approval without interrupting', async () => {

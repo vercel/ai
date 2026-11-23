@@ -13,6 +13,13 @@ export const anthropicErrorDataSchema = lazySchema(() =>
       error: z.object({
         type: z.string(),
         message: z.string(),
+        details: z
+          .object({
+            error_code: z.string().nullish().catch(undefined),
+            unsupported: z.array(z.string()).nullish().catch(undefined),
+          })
+          .nullish()
+          .catch(undefined),
       }),
     }),
   ),

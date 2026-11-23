@@ -103,6 +103,7 @@ describe('doGenerate', () => {
     });
 
     expect(result.text).toBe('Hello world.');
+    expect(result.warnings).toEqual([]);
     expect(await server.calls[0].requestBodyJson).toEqual({
       contents: [
         {
@@ -209,6 +210,7 @@ describe('doGenerate', () => {
     const result = await model.doGenerate({
       audio: new Uint8Array([1, 2, 3, 4]),
       mediaType: 'audio/wav',
+      timestampGranularities: ['word'],
       providerOptions: {},
     });
 
@@ -220,6 +222,124 @@ describe('doGenerate', () => {
       { text: 'brown', startSecond: 0.4, endSecond: 0.7 },
       { text: 'fox.', startSecond: 0.7, endSecond: 1 },
     ]);
+    expect(result.words).toEqual(result.segments);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('maps shared word timings and warns that caption segments are unavailable', async () => {
+    server.urls[
+      `${BASE_URL}/models/gemini-3.5-transcribe:generateContent`
+    ].response = {
+      type: 'json-value',
+      body: { candidates: [{ content: { parts: [{ text: 'Hello' }] } }] },
+    };
+    const model = createModel('gemini-3.5-transcribe');
+    const result = await model.doGenerate({
+      audio: new Uint8Array([1, 2, 3, 4]),
+      mediaType: 'audio/wav',
+      timestampGranularities: ['word', 'segment'],
+    });
+
+    expect((await server.calls[0].requestBodyJson).generationConfig).toEqual({
+      audioTranscriptionConfig: { wordTimestamp: true },
+    });
+    expect(result.warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'timestampGranularities',
+        details:
+          'Vertex Gemini transcription returns word timings and does not provide separate caption segments.',
+      },
+      {
+        type: 'other',
+        message:
+          'The Vertex Gemini transcription response omitted the requested word timings.',
+      },
+    ]);
+  });
+
+  it.each(['googleVertex', 'vertex', 'google'])(
+    'warns when %s.wordTimestamp disables requested word timings',
+    async namespace => {
+      const model = createModel('gemini-3.5-transcribe');
+      const result = await model.doGenerate({
+        audio: new Uint8Array([1, 2, 3, 4]),
+        mediaType: 'audio/wav',
+        timestampGranularities: ['word'],
+        providerOptions: {
+          [namespace]: { wordTimestamp: false, languageCodes: ['en-US'] },
+        },
+      });
+
+      expect((await server.calls[0].requestBodyJson).generationConfig).toEqual({
+        audioTranscriptionConfig: {
+          wordTimestamp: false,
+          languageCodes: ['en-US'],
+        },
+      });
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'timestampGranularities',
+          details:
+            'The provider wordTimestamp option is false and overrides the requested word timings.',
+        },
+      ]);
+    },
+  );
+
+  it.each([undefined, null, [], [{ word: 'Hello' }]].map(words => ({ words })))(
+    'warns when a nonempty response omits requested word timings ($words)',
+    async ({ words }) => {
+      server.urls[
+        `${BASE_URL}/models/gemini-3.5-transcribe:generateContent`
+      ].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: {
+                parts: [{ audioTranscription: { text: 'Hello', words } }],
+              },
+            },
+          ],
+        },
+      };
+      const model = createModel('gemini-3.5-transcribe');
+      const result = await model.doGenerate({
+        audio: new Uint8Array([1, 2, 3, 4]),
+        mediaType: 'audio/wav',
+        timestampGranularities: ['word'],
+      });
+
+      expect(result.words).toBeUndefined();
+      expect(result.segments).toEqual([]);
+      expect(result.warnings).toEqual([
+        {
+          type: 'other',
+          message:
+            'The Vertex Gemini transcription response omitted the requested word timings.',
+        },
+      ]);
+    },
+  );
+
+  it('does not warn about omitted word timings for an empty transcript', async () => {
+    server.urls[
+      `${BASE_URL}/models/gemini-3.5-transcribe:generateContent`
+    ].response = {
+      type: 'json-value',
+      body: { candidates: [] },
+    };
+    const result = await createModel('gemini-3.5-transcribe').doGenerate({
+      audio: new Uint8Array([1, 2, 3, 4]),
+      mediaType: 'audio/wav',
+      timestampGranularities: ['word'],
+    });
+
+    expect(result.text).toBe('');
+    expect(result.words).toBeUndefined();
+    expect(result.warnings).toEqual([]);
   });
 
   it('rejects unary transcription on live model ids', async () => {
@@ -358,6 +478,336 @@ describe('doStream', () => {
       type: 'finish',
       text: 'hello world.',
     });
+  });
+
+  it('completes each segment on generationComplete and finishes once server VAD ended the speech at the end of the audio', async () => {
+    const model = createModel();
+
+    let audioController!: ReadableStreamDefaultController<Uint8Array>;
+    const audio = new ReadableStream<Uint8Array>({
+      start(controller) {
+        audioController = controller;
+      },
+    });
+
+    const result = await model.doStream({
+      audio,
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      providerOptions: {},
+    });
+
+    let settled = false;
+    const partsPromise = convertReadableStreamToArray(result.stream).finally(
+      () => {
+        settled = true;
+      },
+    );
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ setupComplete: {} });
+    await flush();
+
+    // 5 seconds of 16kHz 16-bit audio:
+    audioController.enqueue(new Uint8Array(5 * 32000));
+
+    // server-side VAD completes a segment while audio is still streaming:
+    ws.message({
+      voiceActivity: { type: 'ACTIVITY_START', audioOffset: '0.280s' },
+    });
+    ws.message({
+      serverContent: {
+        inputTranscription: { text: 'It was delivered into Earth orbit' },
+      },
+    });
+    ws.message({ serverContent: { generationComplete: true } });
+    ws.message({ voiceActivity: { type: 'ACTIVITY_END', audioOffset: '2s' } });
+    await flush();
+
+    // the audio ends during the next segment:
+    ws.message({
+      voiceActivity: { type: 'ACTIVITY_START', audioOffset: '3s' },
+    });
+    await flush();
+    audioController.close();
+    await flush();
+    expect(JSON.parse(ws.send.mock.calls.at(-1)?.[0])).toEqual({
+      realtimeInput: { audioStreamEnd: true },
+    });
+    expect(settled).toBe(false);
+
+    // the server transcribes the rest and ends the speech at the end of the audio:
+    ws.message({
+      serverContent: { inputTranscription: { text: 'on October 18th, 1989.' } },
+    });
+    ws.message({ serverContent: { generationComplete: true } });
+    ws.message({ voiceActivity: { type: 'ACTIVITY_END', audioOffset: '5s' } });
+    await flush();
+
+    expect(await partsPromise).toEqual([
+      { type: 'stream-start', warnings: [] },
+      {
+        type: 'transcript-delta',
+        id: 'google-segment-0',
+        delta: 'It was delivered into Earth orbit',
+      },
+      {
+        type: 'transcript-final',
+        id: 'google-segment-0',
+        text: 'It was delivered into Earth orbit',
+      },
+      {
+        type: 'transcript-delta',
+        id: 'google-segment-1',
+        delta: 'on October 18th, 1989.',
+      },
+      {
+        type: 'transcript-final',
+        id: 'google-segment-1',
+        text: 'on October 18th, 1989.',
+      },
+      {
+        type: 'finish',
+        text: 'It was delivered into Earth orbit on October 18th, 1989.',
+        segments: [],
+        language: undefined,
+        durationInSeconds: undefined,
+      },
+    ]);
+    expect(ws.close).toHaveBeenCalledWith(1000);
+  });
+
+  it('falls back to the grace period when the audio ends in silence after the last segment', async () => {
+    const model = createModel('gemini-3.5-transcribe-live', {
+      finishGraceMs: 50,
+    });
+
+    let audioController!: ReadableStreamDefaultController<Uint8Array>;
+    const audio = new ReadableStream<Uint8Array>({
+      start(controller) {
+        audioController = controller;
+      },
+    });
+
+    const result = await model.doStream({
+      audio,
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      providerOptions: {},
+    });
+
+    let settled = false;
+    const partsPromise = convertReadableStreamToArray(result.stream).finally(
+      () => {
+        settled = true;
+      },
+    );
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ setupComplete: {} });
+    await flush();
+
+    // 4 seconds of 16kHz 16-bit audio, with speech ending at 2 seconds:
+    audioController.enqueue(new Uint8Array(4 * 32000));
+    ws.message({
+      voiceActivity: { type: 'ACTIVITY_START', audioOffset: '0.280s' },
+    });
+    ws.message({ serverContent: { inputTranscription: { text: 'hello.' } } });
+    ws.message({ serverContent: { generationComplete: true } });
+    ws.message({ voiceActivity: { type: 'ACTIVITY_END', audioOffset: '2s' } });
+    await flush();
+
+    // the server sends nothing after audioStreamEnd:
+    audioController.close();
+    await flush();
+    expect(settled).toBe(false);
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+    expect(settled).toBe(true);
+    const parts = await partsPromise;
+    expect(parts.at(-1)).toMatchObject({ type: 'finish', text: 'hello.' });
+  });
+
+  it('waits for buffered audio segments when the audio was sent faster than real time', async () => {
+    const model = createModel();
+
+    let audioController!: ReadableStreamDefaultController<Uint8Array>;
+    const audio = new ReadableStream<Uint8Array>({
+      start(controller) {
+        audioController = controller;
+      },
+    });
+
+    const result = await model.doStream({
+      audio,
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      providerOptions: {},
+    });
+
+    let settled = false;
+    const partsPromise = convertReadableStreamToArray(result.stream).finally(
+      () => {
+        settled = true;
+      },
+    );
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ setupComplete: {} });
+    await flush();
+
+    // 2 seconds of 16kHz 16-bit audio, sent at once:
+    audioController.enqueue(new Uint8Array(2 * 32000));
+    ws.message({
+      voiceActivity: { type: 'ACTIVITY_START', audioOffset: '0.280s' },
+    });
+    ws.message({ serverContent: { inputTranscription: { text: 'hello.' } } });
+    ws.message({ serverContent: { generationComplete: true } });
+    ws.message({ voiceActivity: { type: 'ACTIVITY_END', audioOffset: '1s' } });
+    await flush();
+    audioController.close();
+    await flush();
+
+    // the server is still processing the rest of the buffered audio:
+    expect(settled).toBe(false);
+
+    ws.message({
+      voiceActivity: { type: 'ACTIVITY_START', audioOffset: '1.200s' },
+    });
+    ws.message({ serverContent: { inputTranscription: { text: 'world.' } } });
+    ws.message({ serverContent: { generationComplete: true } });
+    await flush();
+    expect(settled).toBe(false);
+
+    ws.message({ voiceActivity: { type: 'ACTIVITY_END', audioOffset: '2s' } });
+    await flush();
+
+    const parts = await partsPromise;
+    expect(parts.at(-1)).toMatchObject({
+      type: 'finish',
+      text: 'hello. world.',
+    });
+  });
+
+  it('transcribes the audio as a single turn when automatic activity detection is disabled', async () => {
+    const model = createModel();
+
+    let audioController!: ReadableStreamDefaultController<Uint8Array>;
+    const audio = new ReadableStream<Uint8Array>({
+      start(controller) {
+        audioController = controller;
+      },
+    });
+
+    const result = await model.doStream({
+      audio,
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      providerOptions: {
+        googleVertex: {
+          streaming: { automaticActivityDetection: { disabled: true } },
+        },
+      },
+    });
+
+    let settled = false;
+    const partsPromise = convertReadableStreamToArray(result.stream).finally(
+      () => {
+        settled = true;
+      },
+    );
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ setupComplete: {} });
+    await flush();
+
+    expect(JSON.parse(ws.send.mock.calls[0][0]).setup).toMatchObject({
+      realtimeInputConfig: { automaticActivityDetection: { disabled: true } },
+    });
+    expect(result.request?.body).toMatchObject({
+      realtimeInputConfig: { automaticActivityDetection: { disabled: true } },
+    });
+
+    // 3 seconds of 16kHz 16-bit audio, including a trailing pause:
+    audioController.enqueue(new Uint8Array(3 * 32000));
+    audioController.close();
+    await flush();
+
+    const sent = ws.send.mock.calls.map(call => JSON.parse(call[0]));
+    expect(sent[1]).toEqual({ realtimeInput: { activityStart: {} } });
+    expect(sent[2].realtimeInput.audio).toBeDefined();
+    expect(sent.at(-1)).toEqual({ realtimeInput: { activityEnd: {} } });
+    expect(sent).not.toContainEqual({
+      realtimeInput: { audioStreamEnd: true },
+    });
+
+    ws.message({
+      voiceActivity: { type: 'ACTIVITY_START', audioOffset: '0s' },
+    });
+    ws.message({
+      serverContent: {
+        inputTranscription: { text: 'Book a venue. Then ask Sam.' },
+      },
+    });
+    ws.message({ serverContent: { generationComplete: true } });
+    ws.message({ voiceActivity: { type: 'ACTIVITY_END', audioOffset: '3s' } });
+    await flush();
+
+    const parts = await partsPromise;
+    expect(parts.filter(part => part.type === 'transcript-final')).toEqual([
+      {
+        type: 'transcript-final',
+        id: 'google-segment-0',
+        text: 'Book a venue. Then ask Sam.',
+      },
+    ]);
+    expect(parts.at(-1)).toMatchObject({
+      type: 'finish',
+      text: 'Book a venue. Then ask Sam.',
+    });
+  });
+
+  it('finishes when a manual activity contains no speech', async () => {
+    const model = createModel();
+
+    let audioController!: ReadableStreamDefaultController<Uint8Array>;
+    const audio = new ReadableStream<Uint8Array>({
+      start(controller) {
+        audioController = controller;
+      },
+    });
+
+    const result = await model.doStream({
+      audio,
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      providerOptions: {
+        googleVertex: {
+          streaming: { automaticActivityDetection: { disabled: true } },
+        },
+      },
+    });
+
+    let settled = false;
+    const partsPromise = convertReadableStreamToArray(result.stream).finally(
+      () => {
+        settled = true;
+      },
+    );
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ setupComplete: {} });
+    await flush();
+
+    // 3 seconds of silence:
+    audioController.enqueue(new Uint8Array(3 * 32000));
+    audioController.close();
+    await flush();
+
+    // without speech, the server sends no transcript or generationComplete:
+    ws.message({
+      voiceActivity: { type: 'ACTIVITY_START', audioOffset: '0s' },
+    });
+    ws.message({ voiceActivity: { type: 'ACTIVITY_END', audioOffset: '3s' } });
+    await flush();
+
+    const parts = await partsPromise;
+    expect(parts.at(-1)).toMatchObject({ type: 'finish', text: '' });
   });
 
   it('errors when the socket closes before the audio ended', async () => {

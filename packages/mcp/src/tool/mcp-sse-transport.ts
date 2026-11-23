@@ -34,6 +34,7 @@ export class SseMCPTransport implements MCPTransport {
   private resourceMetadataUrl?: URL;
   private redirectMode: RequestRedirect;
   private fetchFn: FetchFunction;
+  private customFetch?: FetchFunction;
   private authPromise?: Promise<AuthResult>;
 
   onclose?: () => void;
@@ -58,7 +59,8 @@ export class SseMCPTransport implements MCPTransport {
     this.headers = headers;
     this.authProvider = authProvider;
     this.redirectMode = redirect;
-    this.fetchFn = fetchFn ?? globalThis.fetch;
+    this.fetchFn = fetchFn ?? globalThis.fetch.bind(globalThis);
+    this.customFetch = fetchFn;
   }
 
   setProtocolVersion(version: string): void {
@@ -105,7 +107,7 @@ export class SseMCPTransport implements MCPTransport {
         serverUrl: this.url,
         resourceMetadataUrl,
         scope,
-        fetchFn: this.fetchFn,
+        fetchFn: this.customFetch,
       }).finally(() => {
         this.authPromise = undefined;
       });

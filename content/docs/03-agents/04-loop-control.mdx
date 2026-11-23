@@ -12,9 +12,41 @@ You can control both the execution flow and the settings at each step of the age
 - A tool call needs approval, or
 - A stop condition is met
 
-A [steering message](#steering) that is waiting when the model finishes its answer keeps the loop going for another step.
+A [steering message](#steering) that is waiting when the model finishes its answer keeps the loop going for another step. So does a [queued message](#queueing-messages), unless the answer was cut off.
 
 The AI SDK provides built-in loop control through two parameters: `stopWhen` for defining stopping conditions and `prepareStep` for modifying settings (model, tools, messages, and more) between steps.
+
+## Why the Loop Stopped
+
+`stoppedBy` tells you which of these ended the loop. It is on the `generateText` and `streamText` results, the `onEnd` callback, and the final `finish` stream part:
+
+```ts
+import { ToolLoopAgent, isStepCount } from 'ai';
+__PROVIDER_IMPORT__;
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  tools: {
+    // your tools here
+  },
+  stopWhen: isStepCount(5),
+});
+
+const result = await agent.generate({
+  prompt: 'Analyze this dataset and create a summary report',
+});
+
+if (result.stoppedBy === 'stop-condition') {
+  // the step limit ended the loop before the model finished
+}
+```
+
+- `model`: the model finished without tool calls that continue the loop. `finishReason` tells how its last call finished, e.g. `stop` or `length`.
+- `stop-condition`: a stop condition was met, e.g. `isStepCount(5)`.
+- `tool-without-execute`: a tool call needs a result from a tool without an `execute` function.
+- `approval`: a tool call needs an [approval](/docs/agents/tool-approvals).
+
+`finishReason` only describes the last model call, so a loop that hits `isStepCount(5)` still reports `tool-calls`. `stoppedBy` tells these cases apart. `WorkflowAgent` and `HarnessAgent` do not report it yet.
 
 ## Stop Conditions
 
@@ -22,7 +54,7 @@ The `stopWhen` parameter controls when to stop execution when there are tool res
 
 If this default limit stops a tool loop that could otherwise continue, the SDK logs a warning with guidance on configuring `stopWhen`. Set `stopWhen` explicitly to choose a limit, even if you want to keep `isStepCount(20)`. Explicit stop conditions do not produce this warning.
 
-`WorkflowAgent` does not apply a default step limit. It continues until the model stops calling tools or another natural termination condition is met. Configure an explicit condition such as `isStepCount(20)` when you need to bound its model calls. See [WorkflowAgent Loop Control](/docs/agents/workflow-agent#loop-control) for details.
+`WorkflowAgent.stream()` does not apply a default step limit. It continues until the model stops calling tools or another natural termination condition is met. Configure an explicit condition such as `isStepCount(20)` when you need to bound its model calls. `WorkflowAgent.generate()` stops after 20 steps by default and logs the same warning. See [WorkflowAgent Loop Control](/docs/agents/workflow-agent#loop-control) for details.
 
 When you provide `stopWhen`, the agent continues executing after tool calls until a stopping condition is met. When the condition is an array, execution stops when any of the conditions are met.
 
@@ -477,6 +509,59 @@ prepareStep: ({ initialMessages, steps, experimental_steeringMessages }) => ({
 }),
 ```
 
+### Interrupting the Current Model Call
+
+A steering message waits for the current step by default. Pass `interrupt: true` to cut the current model call short when the model has not produced any output yet, e.g. for a correction like "stop, use the other file":
+
+```ts
+steering.steer('Stop, use the other file.', { interrupt: true });
+```
+
+- When the model call has not produced any text, reasoning, tool input, or tool call yet, it is cancelled and made again in the same step with the message. The step keeps its step number and does not count toward stop conditions.
+- `generateText` receives the output of a model call all at once, so the call can be cancelled until it returns. A response that is almost complete is discarded.
+- When output has already started, or tools are running, the message is added at the next step boundary like any other steering message. Running tools are never interrupted. Stop conditions apply to that next step: with the default of one step, the message is not delivered and `steer()` reports the reason `stop-condition`.
+- `prepareStep` runs again for the new model call and receives the message in `experimental_steeringMessages`. It gets the same `instructions`, `runtimeContext`, and `toolsContext` as its first call for the step.
+- `onStepStart` is called once per step, before the first model call, so its `messages` do not contain the interrupting message. `onLanguageModelCallStart` is called again for the new model call. `onLanguageModelCallEnd` is not called for the cancelled one.
+- `streamText` closes the text and reasoning parts of the cancelled call and streams the `steering-message` part before the new output. A part that was closed before it got any content stays in the UI message as an empty text or reasoning part.
+- A cancelled model call can still be billed by the provider. It is not included in `usage` and `totalUsage`.
+
+<Note type="warning">
+  Stop conditions and usage do not limit interrupts. Each interrupt makes
+  another model call in the same step, so a stop condition like `isStepCount`
+  does not count it, and `totalUsage` leaves out the cancelled calls. If your
+  users can send interrupting messages, limit how many you accept for one call
+  and set a `timeout`. The step and total timeouts keep running when a step is
+  redone.
+</Note>
+
+### Queueing Messages
+
+`steer()` changes what the agent is doing right now. Use `queue()` for a follow-up that should wait until the agent has finished its current task:
+
+```ts
+const steering = experimental_createSteering();
+
+const resultPromise = agent.generate({
+  prompt: 'Refactor the auth module.',
+  experimental_steering: steering,
+});
+
+// while the agent is working:
+steering.queue('Then add tests for it.');
+steering.queue('Then update the readme.');
+
+const result = await resultPromise;
+```
+
+A queued message is added once the model finishes its current task, i.e. when it gives a final answer without tool calls. The loop then continues with the message, so the agent works through the queue one task at a time:
+
+- Queued messages are added one per task, in the order they are queued.
+- Waiting steering messages are added first. A queued message waits for the next task that finishes.
+- Messages that are queued before the loop starts wait until the model has answered the prompt.
+- A response that is cut off (finish reason `length` or `content-filter`) does not finish the task, so the loop ends and the queued message is reported as not delivered.
+- Stop conditions still apply, and a queued message that the loop does not reach is reported as not delivered, so you can send it as a new message instead.
+- Queued messages are saved in `experimental_steeringMessages` like steering messages, and `queue()` resolves with the same outcome as `steer()`.
+
 ### Handling the Outcome
 
 `steer()` resolves with the outcome of the message and never rejects:
@@ -494,7 +579,7 @@ if (outcome.type === 'delivered') {
 }
 ```
 
-A message is delivered when it is part of the messages that are sent to the model, after `prepareStep`. It is not delivered when the loop ends before the next step boundary, or when `prepareStep` removes it. The `reason` is one of:
+A message is delivered when it is part of the messages that are sent to the model, after `prepareStep`. It is not delivered when the loop ends before the next step boundary, or when `prepareStep` removes it. `prepareStep` can copy the message, turn its text into a text part, or add provider options to its parts and it still counts as delivered. A message whose text `prepareStep` changes counts as removed, so add details like timestamps before you send the message. The `reason` is one of:
 
 - `finished`: the loop ended before the message could be added.
 - `removed-by-prepare-step`: `prepareStep` returned messages without it.
@@ -502,6 +587,8 @@ A message is delivered when it is part of the messages that are sent to the mode
 - `waiting-for-tool-results`: the loop ended to wait for tool results, e.g. a [tool approval](/docs/agents/tool-approvals).
 - `aborted`: the loop was aborted.
 - `error`: the loop failed.
+
+A message sent after the loop ended is not delivered and has the reason the loop ended with, e.g. `aborted` after an abort.
 
 Pass an `id` to make retries safe. Sending a message again with the same `id` returns the outcome of the first message.
 
@@ -518,6 +605,40 @@ const messages = [
   ]),
 ];
 ```
+
+### Showing Steering Messages in the UI
+
+`streamText` streams a `steering-message` part when a steering or queued message is added to the run. It comes before the `start-step` part of the step that received the message:
+
+```ts
+for await (const part of result.fullStream) {
+  if (part.type === 'steering-message') {
+    console.log(part.id, part.message, part.stepNumber);
+  }
+}
+```
+
+`toUIMessageStream()` sends it to the client, and `useChat` adds it to the assistant message as a `steering-message` part at that position. Render it like a user message:
+
+```tsx
+{
+  message.parts.map((part, index) => {
+    switch (part.type) {
+      case 'steering-message':
+        return (
+          <div key={index} className="user-message">
+            {part.parts.map(content =>
+              content.type === 'text' ? content.text : null,
+            )}
+          </div>
+        );
+      // ...
+    }
+  });
+}
+```
+
+`convertToModelMessages` turns the part back into a user message between the steps, so saved chats keep the steering messages in the order the model saw them. Pass the id of your UI message to `steer()` or `queue()` to match the part to the message that the user sent.
 
 ## Access Step Information
 

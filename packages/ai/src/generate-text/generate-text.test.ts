@@ -6098,6 +6098,7 @@ describe('generateText', () => {
               "warnings": [],
             },
           ],
+          "stoppedBy": "stop-condition",
           "text": "Hello, World!",
           "toolCalls": [
             {
@@ -9113,6 +9114,42 @@ describe('generateText', () => {
           }
         `);
       });
+
+      it('should pass custom schema keywords such as propertyOrdering to the model', async () => {
+        const model = new MockLanguageModelV4({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [
+              { type: 'text', text: `{ "apple": "red", "zebra": "striped" }` },
+            ],
+          },
+        });
+
+        await generateText({
+          model,
+          prompt: 'prompt',
+          output: Output.object({
+            schema: z
+              .object({ zebra: z.string(), apple: z.string() })
+              .meta({ propertyOrdering: ['apple', 'zebra'] }),
+          }),
+        });
+
+        expect(model.doGenerateCalls[0].responseFormat).toEqual({
+          type: 'json',
+          schema: {
+            $schema: 'http://json-schema.org/draft-07/schema#',
+            type: 'object',
+            properties: {
+              zebra: { type: 'string' },
+              apple: { type: 'string' },
+            },
+            required: ['zebra', 'apple'],
+            additionalProperties: false,
+            propertyOrdering: ['apple', 'zebra'],
+          },
+        });
+      });
     });
 
     describe('provider-selected structured output', () => {
@@ -12092,6 +12129,89 @@ describe('generateText', () => {
   });
 
   describe('tool execution approval', () => {
+    describe('messages array passed to the approval function', () => {
+      async function collectApprovalMessages({
+        prepareStep,
+      }: {
+        prepareStep?: () => { messages: ModelMessage[] };
+      } = {}) {
+        const approvalMessages: ModelMessage[][] = [];
+        let responseCount = 0;
+
+        await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => {
+              const step = responseCount++;
+              return step < 2
+                ? {
+                    ...dummyResponseValues,
+                    content: [1, 2].map(index => ({
+                      type: 'tool-call' as const,
+                      toolCallId: `call-${step}-${index}`,
+                      toolName: 'tool1',
+                      input: `{ "value": "value" }`,
+                    })),
+                    finishReason: {
+                      unified: 'tool-calls' as const,
+                      raw: undefined,
+                    },
+                  }
+                : {
+                    ...dummyResponseValues,
+                    content: [{ type: 'text' as const, text: 'done' }],
+                  };
+            },
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async () => 'result1',
+            }),
+          },
+          toolApproval: ({ messages }) => {
+            approvalMessages.push(messages);
+            return 'approved';
+          },
+          prepareStep,
+          stopWhen: isStepCount(3),
+          prompt: 'test-input',
+        });
+
+        return approvalMessages;
+      }
+
+      it('should be the same for all tool calls of a step and new for every step', async () => {
+        const approvalMessages = await collectApprovalMessages();
+
+        expect(approvalMessages).toHaveLength(4);
+        expect(approvalMessages[1]).toBe(approvalMessages[0]);
+        expect(approvalMessages[3]).toBe(approvalMessages[2]);
+        expect(approvalMessages[2]).not.toBe(approvalMessages[0]);
+      });
+
+      it('should be new for every step when prepareStep returns the same messages array', async () => {
+        const preparedMessages: ModelMessage[] = [
+          { role: 'user', content: 'prepared-input' },
+        ];
+
+        const approvalMessages = await collectApprovalMessages({
+          prepareStep: () => ({ messages: preparedMessages }),
+        });
+
+        expect(approvalMessages).toEqual([
+          preparedMessages,
+          preparedMessages,
+          preparedMessages,
+          preparedMessages,
+        ]);
+        expect(approvalMessages[0]).not.toBe(preparedMessages);
+        expect(approvalMessages[1]).toBe(approvalMessages[0]);
+        expect(approvalMessages[2]).not.toBe(preparedMessages);
+        expect(approvalMessages[2]).not.toBe(approvalMessages[0]);
+        expect(approvalMessages[3]).toBe(approvalMessages[2]);
+      });
+    });
+
     it('should surface the reason for user approval requests', async () => {
       const result = await generateText({
         model: new MockLanguageModelV4({
@@ -13191,6 +13311,175 @@ describe('generateText', () => {
         });
 
         expect(executeFunction).toHaveBeenCalledOnce();
+      });
+
+      describe('when the model calls a tool', () => {
+        type Status =
+          | 'user-approval'
+          | 'approved'
+          | 'denied'
+          | 'not-applicable';
+
+        const callTool = ({
+          getStatus,
+          executeFunction,
+          messages = [{ role: 'user', content: 'test' }],
+        }: {
+          getStatus: () => Status;
+          executeFunction: ToolExecuteFunction<any, any, any>;
+          messages?: ModelMessage[];
+        }) => {
+          let step = 0;
+
+          return generateText({
+            model: new MockLanguageModelV4({
+              doGenerate: async () => {
+                if (step++ === 0) {
+                  return {
+                    ...dummyResponseValues,
+                    content: [
+                      {
+                        type: 'tool-call',
+                        toolCallType: 'function',
+                        toolCallId: 'call-1',
+                        toolName: 'tool1',
+                        input: `{ "value": "test" }`,
+                      },
+                    ],
+                    finishReason: { unified: 'tool-calls', raw: undefined },
+                  };
+                }
+
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'done' }],
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                };
+              },
+            }),
+            tools: {
+              tool1: tool({
+                inputSchema: z.object({ value: z.string() }),
+                execute: executeFunction,
+              }),
+            },
+            toolApproval: { tool1: () => getStatus() },
+            experimental_toolApprovalSecret: testSecret,
+            stopWhen: isStepCount(3),
+            messages,
+          });
+        };
+
+        const getApprovalRequest = (messages: ModelMessage[]) =>
+          messages
+            .flatMap(message =>
+              message.role === 'assistant' &&
+              typeof message.content !== 'string'
+                ? message.content
+                : [],
+            )
+            .find(part => part.type === 'tool-approval-request');
+
+        it.each(['user-approval', 'approved'] as const)(
+          'should sign the approval request when the tool approval status is %s',
+          async status => {
+            const result = await callTool({
+              getStatus: () => status,
+              executeFunction: vi.fn().mockReturnValue('result1'),
+            });
+
+            const approvalRequest = getApprovalRequest(result.responseMessages);
+
+            expect(approvalRequest?.signature).toBe(
+              await signToolApproval({
+                secret: testSecret,
+                approvalId: approvalRequest!.approvalId,
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: { value: 'test' },
+              }),
+            );
+          },
+        );
+
+        it('should not sign the approval request when the tool call is denied automatically', async () => {
+          const result = await callTool({
+            getStatus: () => 'denied',
+            executeFunction: vi.fn().mockReturnValue('result1'),
+          });
+
+          const approvalRequest = getApprovalRequest(result.responseMessages);
+
+          expect(approvalRequest).toMatchObject({
+            toolCallId: 'call-1',
+            isAutomatic: true,
+          });
+          expect(approvalRequest).not.toHaveProperty('signature');
+        });
+
+        it('should reject an approved response to a tool call that was denied automatically', async () => {
+          const executeFunction = vi.fn().mockReturnValue('result1');
+          let status: Status = 'denied';
+
+          const result = await callTool({
+            getStatus: () => status,
+            executeFunction,
+          });
+
+          // The client omits the history that caused the denial, so the policy
+          // no longer denies the tool call when the approval is checked again.
+          status = 'not-applicable';
+
+          const [assistantMessage] = result.responseMessages;
+
+          await expect(
+            callTool({
+              getStatus: () => status,
+              executeFunction,
+              messages: [
+                { role: 'user', content: 'test' },
+                assistantMessage,
+                {
+                  role: 'tool',
+                  content: [
+                    {
+                      type: 'tool-approval-response',
+                      approvalId: getApprovalRequest(result.responseMessages)!
+                        .approvalId,
+                      approved: true,
+                    },
+                  ],
+                },
+              ],
+            }),
+          ).rejects.toThrowError(/missing signature/);
+
+          expect(executeFunction).not.toHaveBeenCalled();
+        });
+
+        it('should continue a conversation that ends with an automatic denial', async () => {
+          const executeFunction = vi.fn().mockReturnValue('result1');
+
+          const result = await callTool({
+            getStatus: () => 'denied',
+            executeFunction,
+          });
+
+          const [assistantMessage, toolMessage] = result.responseMessages;
+
+          const continued = await callTool({
+            getStatus: () => 'denied',
+            executeFunction,
+            messages: [
+              { role: 'user', content: 'test' },
+              assistantMessage,
+              toolMessage,
+            ],
+          });
+
+          expect(continued.text).toBe('done');
+          expect(executeFunction).not.toHaveBeenCalled();
+        });
       });
     });
 
@@ -14681,6 +14970,7 @@ describe('generateText', () => {
       expect(downloadCalls).toMatchInlineSnapshot(`
         [
           {
+            "abortSignal": undefined,
             "isUrlSupportedByModel": false,
             "url": "https://example.com/test.jpg",
           },
@@ -14977,4 +15267,39 @@ describe('generateText', () => {
       expect(events).toEqual(['first', 'second']);
     });
   });
+});
+
+it('sanitizes provider request URLs in results and step/end events', async () => {
+  const onStepEnd = vi.fn();
+  const onEnd = vi.fn();
+  const request = {
+    url: 'https://user:password@model.example.test:8443/private?key=secret#fragment',
+  };
+  const result = await generateText({
+    model: new MockLanguageModelV4({
+      doGenerate: async () => ({
+        ...dummyResponseValues,
+        content: [{ type: 'text', text: 'hello' }],
+        request,
+      }),
+    }),
+    prompt: 'hello',
+    onStepEnd,
+    onEnd,
+  });
+  expect(result.finalStep.request.url).toBe('https://model.example.test:8443');
+  expect(result.steps[0].request.url).toBe('https://model.example.test:8443');
+  for (const callback of [onStepEnd, onEnd]) {
+    expect(callback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        request: expect.objectContaining({
+          url: 'https://model.example.test:8443',
+        }),
+      }),
+    );
+    expect(JSON.stringify(callback.mock.calls)).not.toMatch(
+      /password|private|secret|fragment/,
+    );
+  }
+  expect(request.url).toContain('password');
 });

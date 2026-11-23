@@ -8,6 +8,8 @@ import type {
   MistralPrompt,
 } from './mistral-chat-prompt';
 import {
+  secureJsonParse,
+  stringifyWithBigIntAndCycles,
   convertToBase64,
   getTopLevelMediaType,
   resolveFullMediaType,
@@ -25,6 +27,18 @@ function formatFileUrl({ part }: { part: LanguageModelV4FilePart }): string {
   throw new UnsupportedFunctionalityError({
     functionality: `file part data type ${part.data.type}`,
   });
+}
+
+export function serializeMistralToolCallArguments(input: unknown): string {
+  if (typeof input === 'string') {
+    try {
+      secureJsonParse(input);
+      return input;
+    } catch {
+      return JSON.stringify(input);
+    }
+  }
+  return stringifyWithBigIntAndCycles(input);
 }
 
 export function convertToMistralChatMessages(
@@ -125,7 +139,7 @@ export function convertToMistralChatMessages(
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.input),
+                  arguments: serializeMistralToolCallArguments(part.input),
                 },
               });
               break;
@@ -175,7 +189,7 @@ export function convertToMistralChatMessages(
             case 'content':
             case 'json':
             case 'error-json':
-              contentValue = JSON.stringify(output.value);
+              contentValue = stringifyWithBigIntAndCycles(output.value);
               break;
           }
 

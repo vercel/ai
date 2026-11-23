@@ -27,7 +27,38 @@ type SandboxProcessOptions = {
   abortSignal?: AbortSignal;
 };
 
-export type SandboxRunOptions = SandboxProcessOptions;
+export type SandboxRunOptions = SandboxProcessOptions & {
+  /**
+   * Optional positive safe integer limiting each returned output stream to at
+   * most this many UTF-16 code units. The command still runs to completion and its
+   * remaining output is drained and discarded. Supporting implementations
+   * return `stdoutLength` and `stderrLength` with the original stream lengths.
+   * Older implementations may ignore this option and return the full output.
+   * Native sandbox runtimes may impose their own buffering and output limits.
+   */
+  maxOutputLength?: number;
+};
+
+type SandboxRunResult = {
+  /** Exit code returned by the command. */
+  exitCode: number;
+  /** Standard output produced by the command. */
+  stdout: string;
+  /** Standard error produced by the command. */
+  stderr: string;
+  /**
+   * Original stdout length in UTF-16 code units. Returned by implementations
+   * that support `maxOutputLength` when that option is set. If omitted,
+   * stdout contains the full output.
+   */
+  stdoutLength?: number;
+  /**
+   * Original stderr length in UTF-16 code units. Returned by implementations
+   * that support `maxOutputLength` when that option is set. If omitted,
+   * stderr contains the full output.
+   */
+  stderrLength?: number;
+};
 
 export type SandboxSpawnOptions = SandboxProcessOptions & {
   stdin?: boolean;
@@ -278,22 +309,7 @@ export type SandboxSession = {
   /**
    * Run a command in the sandbox.
    */
-  readonly run: (options: SandboxRunOptions) => PromiseLike<{
-    /**
-     * Exit code returned by the command.
-     */
-    exitCode: number;
-
-    /**
-     * Standard output produced by the command.
-     */
-    stdout: string;
-
-    /**
-     * Standard error produced by the command.
-     */
-    stderr: string;
-  }>;
+  readonly run: (options: SandboxRunOptions) => PromiseLike<SandboxRunResult>;
 };
 
 /**

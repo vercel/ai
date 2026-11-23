@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "build": "nuxt build",
+    "type-check": "tsc --noEmit",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
@@ -13,7 +14,7 @@
     "@ai-sdk/openai": "workspace:*",
     "@ai-sdk/vue": "workspace:*",
     "ai": "workspace:*",
-    "zod": "3.25.76"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@nuxt/devtools": "3.3.1",
