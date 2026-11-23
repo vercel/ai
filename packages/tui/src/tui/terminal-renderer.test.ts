@@ -697,6 +697,41 @@ describe('TerminalRenderer', () => {
     await approvalPromise;
   });
 
+  it('keeps the approval marker visible when the tool title is long', async () => {
+    const screen = new MockScreen({ columns: 40, rows: 14 });
+    const input = new MockUserInput();
+    const renderer = new TerminalRenderer({ input, output: screen });
+    const approvalPromise = renderer.readToolApproval({
+      approvalId: 'approval-1',
+      toolCallId: 'call-1',
+      toolName: 'shell',
+      title: 'Run a shell command in the workspace',
+      input: { command: 'date' },
+      messageId: 'message-1',
+      partIndex: 0,
+    });
+
+    expect(screen.snapshot()).toMatchInlineSnapshot(`
+      "┌──────────────────────────────────────┐
+      │ ╭ Tool · Run a shel…  approve? y/n ╮ │
+      │ │ Input:                           │ │
+      │ │ {                                │ │
+      │ │   "command": "date"              │ │
+      │ │ }                                │ │
+      │ ╰──────────────────────────────────╯ │
+      │                                      │
+      │                                      │
+      │                                      │
+      └──────────────────────────────────────┘
+      ┌ Status ──────────────────────────────┐
+      │ Approve tool Run a shell command in  │
+      └──────────────────────────────────────┘"
+    `);
+
+    input.type('n');
+    await approvalPromise;
+  });
+
   it('scrolls the tool call awaiting approval into view', async () => {
     const screen = new MockScreen({ columns: 48, rows: 14 });
     const input = new MockUserInput();

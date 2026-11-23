@@ -1290,10 +1290,16 @@ function sectionMatchesCache(
 function createSectionLines(section: ChatSection, width: number) {
   const style = sectionStyles[section.kind];
   const contentWidth = Math.max(1, width - 4);
-  const title = ` ${sanitizeTerminalText(section.title)} `;
   const rightTitle = section.rightTitle
     ? ` ${sanitizeTerminalText(section.rightTitle)} `
     : '';
+  const fullTitle = ` ${sanitizeTerminalText(section.title)} `;
+  // shorten a long title so that the marker of the tool call that awaits the
+  // approval decision is not cut off:
+  const title =
+    section.kind === 'approval'
+      ? truncateSectionTitle(fullTitle, width - 2 - rightTitle.length)
+      : fullTitle;
 
   if (section.collapsed) {
     const borderWidth = Math.max(
@@ -1325,6 +1331,14 @@ function createSectionLines(section: ChatSection, width: number) {
     ...lines.map(line => sectionLine(line, contentWidth, style.color)),
     bottom,
   ];
+}
+
+function truncateSectionTitle(title: string, maxLength: number) {
+  if (title.length <= maxLength) {
+    return title;
+  }
+
+  return maxLength < 3 ? '' : `${title.slice(0, maxLength - 2)}… `;
 }
 
 function sectionLine(line: string, contentWidth: number, color: string) {
