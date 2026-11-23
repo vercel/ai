@@ -4,6 +4,7 @@ import { topazDocs } from './providers/topaz.mjs';
 import { quiveraiDocs } from './providers/quiverai.mjs';
 import { tencentDocs } from './providers/tencent.mjs';
 import { revaiDocs } from './providers/revai.mjs';
+import { humeDocs } from './providers/hume.mjs';
 import { gladiaDocs } from './providers/gladia.mjs';
 import { fishAudioDocs } from './providers/fish-audio.mjs';
 import { elevenLabsDocs } from './providers/elevenlabs.mjs';
@@ -48,6 +49,7 @@ export const providers = [
   quiveraiDocs,
   tencentDocs,
   revaiDocs,
+  humeDocs,
   gladiaDocs,
   fishAudioDocs,
   elevenLabsDocs,

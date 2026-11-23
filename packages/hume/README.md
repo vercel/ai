@@ -1,7 +1,7 @@
 # AI SDK - Hume Provider
 
 The **[Hume provider](https://ai-sdk.dev/providers/ai-sdk-providers/hume)** for the [AI SDK](https://ai-sdk.dev/docs)
-does not currently include any models.
+supports the Hume Audio Decisions API, which answers Boolean, Choice, and Score questions about MP3 or WAV audio.
 
 > **Deploying to Vercel?** With Vercel's AI Gateway you can access Hume (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
 
@@ -22,9 +22,29 @@ npx skills add vercel/ai
 ## Usage
 
 ```ts
-import { createHume } from '@ai-sdk/hume';
+import { hume } from '@ai-sdk/hume';
+import { experimental_decide } from 'ai';
+import { readFileSync } from 'node:fs';
 
-const hume = createHume({ apiKey: process.env.HUME_API_KEY });
+// Set HUME_API_KEY in your environment.
+const result = await experimental_decide({
+  model: hume.decisionModel('audio-decisions'),
+  state: [
+    {
+      type: 'file',
+      mediaType: 'audio/mpeg',
+      data: readFileSync('voicemail.mp3'),
+    },
+  ],
+  questions: {
+    frustrated: {
+      type: 'boolean',
+      instructions: 'Does the caller sound frustrated?',
+    },
+  },
+});
+
+console.log(result.answers.frustrated.probability);
 ```
 
-Hume retired its text-to-speech (TTS) API on November 13, 2026, so this package no longer includes a speech model. See the [Hume Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/hume) for more information.
+See the [Hume provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/hume) for more information.
