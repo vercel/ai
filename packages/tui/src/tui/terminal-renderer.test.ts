@@ -757,6 +757,45 @@ describe('TerminalRenderer', () => {
     `);
   });
 
+  it('keeps the tool call awaiting approval in view when the terminal is resized', async () => {
+    const screen = new MockScreen({ columns: 48, rows: 14 });
+    const input = new MockUserInput();
+    const renderer = new TerminalRenderer({ input, output: screen });
+
+    await renderer.renderStream(createToolApprovalRequestThenTextStream(), {
+      title: 'Test',
+      continueSession: true,
+      waitForExit: false,
+    });
+
+    const approvalPromise = renderer.readToolApproval({
+      approvalId: 'approval-1',
+      toolCallId: 'call-1',
+      toolName: 'shell',
+      input: { command: 'date' },
+      messageId: 'message-1',
+      partIndex: 0,
+    });
+
+    screen.resize(48, 10);
+
+    expect(screen.snapshot()).toMatchInlineSnapshot(`
+      "┌ Test ────────────────────────────────────────┐
+      │ ╭ Tool · shell ────────────── approve? y/n ╮ │
+      │ │ Input:                                   │ │
+      │ │ {                                        │ │
+      │ │   "command": "date"                      │ │
+      │ │ }                                        │ │
+      └──────────────────────────────────────────────┘
+      ┌ Status ──────────────────────────────────────┐
+      │ Approve tool shell? y/n · ↑/↓ · PgUp/PgDn ·  │
+      └──────────────────────────────────────────────┘"
+    `);
+
+    input.type('n');
+    await approvalPromise;
+  });
+
   it('starts at the top of a tool input awaiting approval that is taller than the viewport', async () => {
     const screen = new MockScreen({ columns: 48, rows: 14 });
     const input = new MockUserInput();

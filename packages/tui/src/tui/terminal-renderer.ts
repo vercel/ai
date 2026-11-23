@@ -509,7 +509,14 @@ export class TerminalRenderer {
       this.#input.resume();
     }
 
-    this.#onResize = () => this.#repaint();
+    this.#onResize = () => {
+      if (this.#toolApprovalSectionId != null) {
+        // keep the tool call that awaits the approval decision in view:
+        this.#scrollSectionIntoView(this.#toolApprovalSectionId);
+      }
+
+      this.#repaint();
+    };
     this.#output.on('resize', this.#onResize);
   }
 
