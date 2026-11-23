@@ -83,3 +83,16 @@ for await (const chunk of result.textStream) {
 ## Model Catalog
 
 `GET https://crowllm.com/v1/models` is public and keyless, so you can list every served ID without a key. Rates are published at [crowllm.com/api/pricing](https://crowllm.com/api/pricing).
+
+### Common Models
+
+| Model ID | Context | Input (USD/1M) | Output (USD/1M) |
+| :--- | ---: | ---: | ---: |
+| `glm-5.3` | 200K | 0.5976 | 2.09155 |
+| `deepseek-v4-flash` | 128K | 0.14 | 0.55 |
+| `kimi-k3` | 256K | 2.49 | 12.99 |
+| `claude-opus-4-7` | 200K | 4.00 | 20.00 |
+| `gemini-3.7-flash` | 1M | 0.75 | 3.75 |
+| `grok-4.7:free` | 256K | 0 | 0 |
+
+Ids ending in `:free` are mostly zero-rated; a few are metered, so check `/api/pricing` before relying on one.
