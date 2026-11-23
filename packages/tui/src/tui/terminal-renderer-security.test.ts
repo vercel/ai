@@ -136,7 +136,7 @@ describe('terminal output sanitization', () => {
     expectSafeOutput(screen);
   });
 
-  it.each(['toolName', 'title'] as const)(
+  it.each(['toolName', 'title', 'input'] as const)(
     'escapes approval %s',
     async field => {
       const { screen, input, renderer } = createTerminal();
