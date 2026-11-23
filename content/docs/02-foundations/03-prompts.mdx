@@ -371,8 +371,7 @@ literals, including IPv4 addresses embedded in IPv6 literals. Redirects are
 followed manually and every hop is validated the same way before it is
 requested, so a URL that redirects to an internal address is blocked instead of
 followed. Redirects from HTTPS to HTTP are rejected, redirect chains are limited
-to 10 hops, and a response larger than 2 GiB fails with a `DownloadError`
-instead of exhausting memory.
+to 10 hops, and a response larger than 2 GiB fails with a `DownloadError`.
 
 These checks inspect the URL and any IP literal it contains. They do not resolve
 DNS.
