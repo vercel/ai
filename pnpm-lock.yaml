@@ -87,10 +87,10 @@ importers:
         specifier: 2.0.104
         version: link:../../packages/fireworks
       '@ai-sdk/google':
-        specifier: 3.0.149
+        specifier: 3.0.150
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 4.0.236
+        specifier: 4.0.237
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
         specifier: 3.0.84
@@ -851,7 +851,7 @@ importers:
   examples/next-google-vertex:
     dependencies:
       '@ai-sdk/google-vertex':
-        specifier: 4.0.236
+        specifier: 4.0.237
         version: link:../../packages/google-vertex
       ai:
         specifier: 6.0.336
