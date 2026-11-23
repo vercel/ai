@@ -1,0 +1,44 @@
+{
+  "model": "decision-models/baseten-bison-31b-latest",
+  "answers": {
+    "team": {
+      "type": "choice",
+      "choice": "billing",
+      "confidence": 0.9759613286453664,
+      "probabilities": {
+        "billing": 0.983974219096911,
+        "engineering": 0.00751273587173407,
+        "account": 0.008513045031355117
+      }
+    },
+    "refund": {
+      "type": "noul",
+      "noul": 0.9995121428772178
+    },
+    "refund_criteria": {
+      "type": "noul",
+      "noul": 0.999620015485248
+    },
+    "urgency": {
+      "type": "score",
+      "score": 1.5532987126156357,
+      "confidence": 0.3513616478988326,
+      "legend": {
+        "0": "Can wait",
+        "1": "Handle today",
+        "2": "Time-sensitive",
+        "3": "Blocking revenue"
+      },
+      "probabilities": {
+        "0": 0.047669819742765907,
+        "1": 0.45227865708619125,
+        "2": 0.3991345139836842,
+        "3": 0.10091700918735863
+      }
+    }
+  },
+  "usage": {
+    "input_tokens": 295,
+    "output_tokens": 4
+  }
+}

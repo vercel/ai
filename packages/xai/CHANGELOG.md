@@ -1,5 +1,12 @@
 # @ai-sdk/xai
 
+## 5.0.49
+
+### Patch Changes
+
+- 6f56c29: keep the mcp call arguments in the `input` of mcpServer tool calls instead of returning an empty object
+- 61ce23e: fix(xai): keep the search arguments in the `input` of xSearch tool calls instead of returning an empty object
+
 ## 5.0.48
 
 ### Patch Changes

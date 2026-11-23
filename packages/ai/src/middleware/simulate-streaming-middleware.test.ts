@@ -146,6 +146,7 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "stop",
             "rawFinishReason": "stop",
+            "stoppedBy": "model",
             "totalUsage": {
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
@@ -284,6 +285,7 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "stop",
             "rawFinishReason": "stop",
+            "stoppedBy": "model",
             "totalUsage": {
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
@@ -468,6 +470,7 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "stop",
             "rawFinishReason": "stop",
+            "stoppedBy": "model",
             "totalUsage": {
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
@@ -634,6 +637,7 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "stop",
             "rawFinishReason": "stop",
+            "stoppedBy": "model",
             "totalUsage": {
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
@@ -803,6 +807,7 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "tool-calls",
             "rawFinishReason": undefined,
+            "stoppedBy": "tool-without-execute",
             "totalUsage": {
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
@@ -917,6 +922,7 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "stop",
             "rawFinishReason": "stop",
+            "stoppedBy": "model",
             "totalUsage": {
               "inputTokenDetails": {
                 "cacheReadTokens": 0,

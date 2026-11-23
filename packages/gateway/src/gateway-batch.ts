@@ -31,6 +31,7 @@ import type { GatewayChatConfig } from './gateway-language-model';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
+import { withGatewayRequestTelemetryRedaction } from './redact-gateway-request-credentials';
 
 export class GatewayBatch implements BatchV4<{ text: GatewayModelId }> {
   readonly specificationVersion = 'v4' as const;
@@ -81,7 +82,7 @@ export class GatewayBatch implements BatchV4<{ text: GatewayModelId }> {
             ? { 'idempotency-key': idempotencyKey }
             : undefined,
         ),
-        body: {
+        body: withGatewayRequestTelemetryRedaction({
           ...(webhookUrl != null && { callbackUrl: webhookUrl }),
           requests: requests.map(request => ({
             id: request.id,
@@ -92,7 +93,7 @@ export class GatewayBatch implements BatchV4<{ text: GatewayModelId }> {
           ...(forwardedProviderOptions != null && {
             providerOptions: forwardedProviderOptions,
           }),
-        },
+        }),
         successfulResponseHandler: createJsonResponseHandler(
           gatewayBatchStartResponseSchema,
         ),

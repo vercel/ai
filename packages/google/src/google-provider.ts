@@ -41,6 +41,7 @@ import type {
 } from './google-image-settings';
 import { GoogleImageModel } from './google-image-model';
 import { GoogleFiles } from './google-files';
+import { googleFilesUrlPattern } from './google-supported-file-url';
 import { GoogleVideoModel } from './google-video-model';
 import type { GoogleVideoModelId } from './google-video-settings';
 import { GoogleSpeechModel } from './google-speech-model';
@@ -58,8 +59,6 @@ import { GoogleSpeechTranslationModel } from './speech-translation/google-speech
 import type { GoogleSpeechTranslationModelId } from './speech-translation/google-speech-translation-model-options';
 
 const DEFAULT_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
-const googleFilesUrlPattern =
-  /^https:\/\/generativelanguage\.googleapis\.com\/v1beta\/files\/.*$/;
 
 export interface GoogleProvider extends ProviderV4 {
   (modelId: GoogleModelId): LanguageModelV4;

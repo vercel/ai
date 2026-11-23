@@ -16,6 +16,38 @@ A [steering message](#steering) that is waiting when the model finishes its answ
 
 The AI SDK provides built-in loop control through two parameters: `stopWhen` for defining stopping conditions and `prepareStep` for modifying settings (model, tools, messages, and more) between steps.
 
+## Why the Loop Stopped
+
+`stoppedBy` tells you which of these ended the loop. It is on the `generateText` and `streamText` results, the `onEnd` callback, and the final `finish` stream part:
+
+```ts
+import { ToolLoopAgent, isStepCount } from 'ai';
+__PROVIDER_IMPORT__;
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  tools: {
+    // your tools here
+  },
+  stopWhen: isStepCount(5),
+});
+
+const result = await agent.generate({
+  prompt: 'Analyze this dataset and create a summary report',
+});
+
+if (result.stoppedBy === 'stop-condition') {
+  // the step limit ended the loop before the model finished
+}
+```
+
+- `model`: the model finished without tool calls that continue the loop. `finishReason` tells how its last call finished, e.g. `stop` or `length`.
+- `stop-condition`: a stop condition was met, e.g. `isStepCount(5)`.
+- `tool-without-execute`: a tool call needs a result from a tool without an `execute` function.
+- `approval`: a tool call needs an [approval](/docs/agents/tool-approvals).
+
+`finishReason` only describes the last model call, so a loop that hits `isStepCount(5)` still reports `tool-calls`. `stoppedBy` tells these cases apart. `WorkflowAgent` and `HarnessAgent` do not report it yet.
+
 ## Stop Conditions
 
 The `stopWhen` parameter controls when to stop execution when there are tool results in the last step. By default, `ToolLoopAgent` stops after 20 steps using `isStepCount(20)`. This default is a safety measure to prevent runaway loops that could result in excessive API calls and costs.
@@ -547,7 +579,7 @@ if (outcome.type === 'delivered') {
 }
 ```
 
-A message is delivered when it is part of the messages that are sent to the model, after `prepareStep`. It is not delivered when the loop ends before the next step boundary, or when `prepareStep` removes it. The `reason` is one of:
+A message is delivered when it is part of the messages that are sent to the model, after `prepareStep`. It is not delivered when the loop ends before the next step boundary, or when `prepareStep` removes it. `prepareStep` can copy the message, turn its text into a text part, or add provider options to its parts and it still counts as delivered. A message whose text `prepareStep` changes counts as removed, so add details like timestamps before you send the message. The `reason` is one of:
 
 - `finished`: the loop ended before the message could be added.
 - `removed-by-prepare-step`: `prepareStep` returned messages without it.
@@ -555,6 +587,8 @@ A message is delivered when it is part of the messages that are sent to the mode
 - `waiting-for-tool-results`: the loop ended to wait for tool results, e.g. a [tool approval](/docs/agents/tool-approvals).
 - `aborted`: the loop was aborted.
 - `error`: the loop failed.
+
+A message sent after the loop ended is not delivered and has the reason the loop ended with, e.g. `aborted` after an abort.
 
 Pass an `id` to make retries safe. Sending a message again with the same `id` returns the outcome of the first message.
 

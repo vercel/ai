@@ -288,6 +288,15 @@ describe('streamText experimental_steering', () => {
       type: 'not-delivered',
       reason: 'aborted',
     });
+
+    expect(await steering.steer('after the abort')).toMatchObject({
+      type: 'not-delivered',
+      reason: 'aborted',
+    });
+    expect(await steering.queue('queued after the abort')).toMatchObject({
+      type: 'not-delivered',
+      reason: 'aborted',
+    });
   });
 
   it('should not deliver messages when the stream fails', async () => {
@@ -533,6 +542,52 @@ describe('streamText experimental_steering', () => {
     ).toThrow(
       'Create a new one with experimental_createSteering() for each call.',
     );
+  });
+
+  it('should deliver messages that prepareStep turns into text parts with provider options', async () => {
+    const steering = createSteering();
+    let outcome: Promise<SteeringOutcome> | undefined;
+
+    const model = createModel([
+      () => toolCallStream,
+      () => textStream('It is sunny in Paris, Texas.'),
+    ]);
+
+    const result = streamText({
+      model,
+      prompt: 'What is the weather in Paris?',
+      tools: {
+        weather: weather(() => {
+          outcome = steering.steer('I meant Paris, Texas.');
+          return 'sunny';
+        }),
+      },
+      stopWhen: isStepCount(5),
+      experimental_steering: steering,
+      prepareStep: ({ messages }) => ({
+        messages: messages.map(message =>
+          message.role === 'user' && typeof message.content === 'string'
+            ? {
+                ...message,
+                content: [
+                  {
+                    type: 'text' as const,
+                    text: message.content,
+                    providerOptions: {
+                      anthropic: { cacheControl: { type: 'ephemeral' } },
+                    },
+                  },
+                ],
+              }
+            : message,
+        ),
+      }),
+    });
+
+    const steps = await result.steps;
+
+    expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 1 });
+    expect(steps[1].experimental_steeringMessages).toHaveLength(1);
   });
 
   it('should not deliver messages that prepareStep removes', async () => {
