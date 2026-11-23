@@ -661,6 +661,80 @@ describe('TerminalRenderer', () => {
     expect(stripAnsi(output.text())).toContain('Denied');
   });
 
+  it('shows tool input, output, and errors without markdown formatting', async () => {
+    const screen = new MockScreen({ columns: 72, rows: 30 });
+    const renderer = new TerminalRenderer({
+      input: new MockUserInput(),
+      output: screen,
+      tools: 'full',
+    });
+
+    await renderer.renderStream(
+      {
+        uiMessageStream: (async function* () {
+          yield { type: 'start', messageId: 'message-1' };
+          yield {
+            type: 'tool-input-available',
+            toolCallId: 'call-1',
+            toolName: 'shell',
+            input: { command: 'rm *.log *.tmp' },
+          } satisfies UIMessageChunk;
+          yield {
+            type: 'tool-output-available',
+            toolCallId: 'call-1',
+            output: { removed_files: ['__status__.log'] },
+          } satisfies UIMessageChunk;
+          yield {
+            type: 'tool-input-available',
+            toolCallId: 'call-2',
+            toolName: 'shell',
+            input: { command: 'echo `whoami`' },
+          } satisfies UIMessageChunk;
+          yield {
+            type: 'tool-output-error',
+            toolCallId: 'call-2',
+            errorText: 'invalid_request_error: `whoami` is not allowed',
+          } satisfies UIMessageChunk;
+          yield { type: 'finish' };
+        })(),
+      },
+      { continueSession: true, waitForExit: false },
+    );
+
+    expect(screen.snapshot()).toMatchInlineSnapshot(`
+      "┌──────────────────────────────────────────────────────────────────────┐
+      │ ╭ Tool · shell ────────────────────────────────────────────── done ╮ │
+      │ │ Input:                                                           │ │
+      │ │ {                                                                │ │
+      │ │   "command": "rm *.log *.tmp"                                    │ │
+      │ │ }                                                                │ │
+      │ │                                                                  │ │
+      │ │ Output:                                                          │ │
+      │ │ {                                                                │ │
+      │ │   "removed_files": [                                             │ │
+      │ │     "__status__.log"                                             │ │
+      │ │   ]                                                              │ │
+      │ │ }                                                                │ │
+      │ ╰──────────────────────────────────────────────────────────────────╯ │
+      │ ╭ Tool Error · shell ──────────────────────────────────────── done ╮ │
+      │ │ Input:                                                           │ │
+      │ │ {                                                                │ │
+      │ │   "command": "echo \`whoami\`"                                     │ │
+      │ │ }                                                                │ │
+      │ │                                                                  │ │
+      │ │ Error:                                                           │ │
+      │ │ invalid_request_error: \`whoami\` is not allowed                   │ │
+      │ ╰──────────────────────────────────────────────────────────────────╯ │
+      │                                                                      │
+      │                                                                      │
+      │                                                                      │
+      └──────────────────────────────────────────────────────────────────────┘
+      ┌ Status ──────────────────────────────────────────────────────────────┐
+      │ Done · Enter another prompt · ↑/↓ · PgUp/PgDn · Esc/Ctrl+C           │
+      └──────────────────────────────────────────────────────────────────────┘"
+    `);
+  });
+
   it('shows the tool input awaiting approval without markdown formatting', async () => {
     const screen = new MockScreen({ columns: 72, rows: 16 });
     const input = new MockUserInput();
@@ -851,7 +925,7 @@ describe('TerminalRenderer', () => {
     await approvalPromise;
   });
 
-  it('starts at the top of a tool input awaiting approval that is taller than the viewport', async () => {
+  it('approves a tool input that is taller than the viewport only after its end was shown', async () => {
     const screen = new MockScreen({ columns: 48, rows: 14 });
     const input = new MockUserInput();
     const renderer = new TerminalRenderer({ input, output: screen });
@@ -866,6 +940,8 @@ describe('TerminalRenderer', () => {
       partIndex: 0,
     });
 
+    input.type('y');
+
     expect(screen.snapshot()).toMatchInlineSnapshot(`
       "┌──────────────────────────────────────────────┐
       │ ╭ Tool · shell ────────────── approve? y/n ╮ │
@@ -879,25 +955,46 @@ describe('TerminalRenderer', () => {
       │ │     "step 5",                            │ │
       └──────────────────────────────────────────────┘
       ┌ Status ──────────────────────────────────────┐
-      │ More input below · Approve tool shell? y/n · │
+      │ Scroll to the end to approve · n to deny · ↑ │
       └──────────────────────────────────────────────┘"
     `);
 
     input.emit('data', Buffer.from('\x1B[B'));
+    input.type('y');
 
     expect(screen.snapshot()).toContain('"step 6"');
     expect(screen.snapshot()).not.toContain('"step 12"');
-    expect(screen.snapshot()).toContain('More input below · Approve tool');
+    expect(screen.snapshot()).toContain('Scroll to the end to approve');
 
     input.emit('data', Buffer.from('\x1B[6~'));
 
     expect(screen.snapshot()).toContain('"step 12"');
-    expect(screen.snapshot()).not.toContain('More input below');
     expect(screen.snapshot()).toContain('│ Approve tool shell? y/n');
 
+    input.type('y');
+    await expect(approvalPromise).resolves.toEqual({ approved: true });
+  });
+
+  it('denies a tool input that is taller than the viewport without scrolling', async () => {
+    const input = new MockUserInput();
+    const renderer = new TerminalRenderer({
+      input,
+      output: new MockScreen({ columns: 48, rows: 14 }),
+    });
+    const approvalPromise = renderer.readToolApproval({
+      approvalId: 'approval-1',
+      toolCallId: 'call-1',
+      toolName: 'shell',
+      input: {
+        commands: Array.from({ length: 12 }, (_, index) => `step ${index + 1}`),
+      },
+      messageId: 'message-1',
+      partIndex: 0,
+    });
+
     input.type('n');
-    await approvalPromise;
-    expect(screen.snapshot()).not.toContain('More input below');
+
+    await expect(approvalPromise).resolves.toMatchObject({ approved: false });
   });
 
   it('keeps the terminal session open between turns', async () => {
