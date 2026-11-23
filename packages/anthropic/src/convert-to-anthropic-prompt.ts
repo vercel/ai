@@ -1841,7 +1841,11 @@ function getAnthropicToolsetName({
   providerOptions: SharedV4ProviderMetadata | undefined;
   toolsetNames: Record<string, string>;
 }): string | undefined {
-  const fromTools = toolsetNames[toolName];
+  // Own-property check: a tool named like an Object.prototype member
+  // (e.g. `constructor`) must fall through to the metadata fallback.
+  const fromTools = Object.prototype.hasOwnProperty.call(toolsetNames, toolName)
+    ? toolsetNames[toolName]
+    : undefined;
   if (fromTools != null) {
     return fromTools;
   }

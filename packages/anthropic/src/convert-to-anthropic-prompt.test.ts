@@ -6462,6 +6462,53 @@ describe('toolsets', () => {
     ]);
   });
 
+  it.each(['constructor', 'toString'])(
+    'should resolve toolset_name from metadata when the tool is named like an Object.prototype member: %s',
+    async toolName => {
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'toolu_x',
+                toolName,
+                input: {},
+                providerOptions: { anthropic: { toolsetName: 'computer' } },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'toolu_x',
+                toolName,
+                output: { type: 'text', value: 'OK' },
+                providerOptions: { anthropic: { toolsetName: 'computer' } },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+        toolsetNames: {},
+      });
+
+      expect(
+        (result.prompt.messages[0].content as { toolset_name?: string }[])[0]
+          .toolset_name,
+      ).toBe('computer');
+      expect(
+        (result.prompt.messages[1].content as { toolset_name?: string }[])[0]
+          .toolset_name,
+      ).toBe('computer');
+    },
+  );
+
   it.each([
     { input: { coordinate: [1, 2] }, toolName: 'computer' },
     { input: { action: null, coordinate: [1, 2] }, toolName: 'computer' },
