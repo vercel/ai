@@ -1,5 +1,5 @@
 ---
-"@ai-sdk/siliconflow": patch
+"@ai-sdk/siliconflow": major
 ---
 
-Add SiliconFlow provider
+feat(siliconflow): add the SiliconFlow provider

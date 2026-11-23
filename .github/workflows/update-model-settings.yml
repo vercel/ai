@@ -1,8 +1,8 @@
 # Update Gateway Model Settings
 #
-# Regenerates the gateway model settings files
-# (packages/gateway/src/gateway-*-model-settings.ts) from the upstream
-# gateway model list and opens a PR for review on each release branch
+# Regenerates the gateway model catalog (or legacy model settings files
+# on release branches) from the upstream gateway model list and opens
+# a PR for review on each release branch
 # (main, release-v6.0, release-v5.0).
 #
 # The generated PRs are how new models become available in
@@ -73,13 +73,13 @@ jobs:
       - name: Check for changes
         id: check-changes
         run: |
-          if git diff --quiet packages/gateway/src/gateway-*-model-settings.ts; then
+          if git diff --quiet -- packages/gateway/src/gateway-model-catalog.ts packages/gateway/src/gateway-*-model-settings.ts; then
             echo "has-changes=false" >> "$GITHUB_OUTPUT"
             echo "No changes detected in model settings"
           else
             echo "has-changes=true" >> "$GITHUB_OUTPUT"
             echo "Changes detected in model settings"
-            git diff --stat packages/gateway/src/gateway-*-model-settings.ts
+            git diff --stat -- packages/gateway/src/gateway-model-catalog.ts packages/gateway/src/gateway-*-model-settings.ts
           fi
 
       - name: Create changeset

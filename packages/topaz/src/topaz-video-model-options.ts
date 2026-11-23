@@ -277,13 +277,4 @@ export type TopazVideoModelOptions = InferSchema<
   typeof topazVideoModelOptionsSchema
 >;
 
-/**
- * Option keys that are structural rather than filter settings, so they are not
- * forwarded into the `filters[]` entry.
- */
-export const TOPAZ_NON_FILTER_OPTION_KEYS = [
-  'source',
-  'output',
-  'additionalFilters',
-  'filter',
-] as const satisfies ReadonlyArray<keyof TopazVideoModelOptions>;
+export { TOPAZ_NON_FILTER_OPTION_KEYS } from './topaz-model-catalog';

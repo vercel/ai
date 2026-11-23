@@ -17,6 +17,7 @@ import { z } from './zod';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import type { GatewayConfig } from './gateway-config';
+import { withGatewayRequestTelemetryRedaction } from './redact-gateway-request-credentials';
 
 export class GatewayRerankingModel implements RerankingModelV4 {
   readonly specificationVersion = 'v4';
@@ -59,12 +60,12 @@ export class GatewayRerankingModel implements RerankingModelV4 {
           this.getModelConfigHeaders(),
           await resolve(this.config.o11yHeaders),
         ),
-        body: {
+        body: withGatewayRequestTelemetryRedaction({
           documents,
           query,
           ...(topN != null ? { topN } : {}),
           ...(providerOptions ? { providerOptions } : {}),
-        },
+        }),
         successfulResponseHandler: createJsonResponseHandler(
           gatewayRerankingResponseSchema,
         ),
@@ -108,12 +109,12 @@ const gatewayRerankingWarningSchema = () =>
     z.object({
       type: z.literal('unsupported'),
       feature: z.string(),
-      details: z.string().optional(),
+      details: z.optional(z.string()),
     }),
     z.object({
       type: z.literal('compatibility'),
       feature: z.string(),
-      details: z.string().optional(),
+      details: z.optional(z.string()),
     }),
     z.object({
       type: z.literal('deprecated'),
@@ -135,10 +136,10 @@ const gatewayRerankingResponseSchema = lazySchema(() =>
           relevanceScore: z.number(),
         }),
       ),
-      warnings: z.array(gatewayRerankingWarningSchema()).optional(),
-      providerMetadata: z
-        .record(z.string(), z.record(z.string(), z.unknown()))
-        .optional(),
+      warnings: z.optional(z.array(gatewayRerankingWarningSchema())),
+      providerMetadata: z.optional(
+        z.record(z.string(), z.record(z.string(), z.unknown())),
+      ),
     }),
   ),
 );

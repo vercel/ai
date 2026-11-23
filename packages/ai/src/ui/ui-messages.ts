@@ -89,6 +89,7 @@ export type UIMessagePart<
   | FileUIPart
   | ReasoningFileUIPart
   | DataUIPart<DATA_TYPES>
+  | SteeringMessageUIPart
   | StepStartUIPart;
 
 /**
@@ -250,6 +251,25 @@ export type ReasoningFileUIPart = {
    * The provider metadata.
    */
   providerMetadata?: ProviderMetadata;
+};
+
+/**
+ * Experimental. A user message that was added to the run with steering while
+ * the assistant message was generated. It is placed before the output of the
+ * step that received it.
+ */
+export type SteeringMessageUIPart = {
+  type: 'steering-message';
+
+  /**
+   * The id of the steering message.
+   */
+  id: string;
+
+  /**
+   * The content of the user message.
+   */
+  parts: Array<TextUIPart | FileUIPart>;
 };
 
 /**

@@ -17,6 +17,7 @@ import {
 import {
   getRestrictedSandboxSession,
   convertHarnessToolModelOutput,
+  isSandboxWriteProtectedPath,
   resolveSandboxHomeDir,
 } from '@ai-sdk/harness/utils';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
@@ -161,6 +162,28 @@ function clineBuiltinToolRequiresApproval(input: {
   return input.kind === 'edit' || input.kind === 'bash';
 }
 
+/*
+ * Workspace paths that hold Cline rules, configuration, or skills, which can
+ * change the agent's behavior in later sessions. Writes to them always require
+ * host approval unless the permission mode is `allow-all`.
+ */
+const CLINE_WRITE_PROTECTED_PATHS = ['.agents/skills', '.cline', '.clinerules'];
+
+/*
+ * Edits that the permission mode approves automatically still go through the
+ * runtime's approval callback, which approves them unless they write to a
+ * write-protected path.
+ */
+function clineBuiltinToolRequiresApprovalCallback(input: {
+  permissionMode: HarnessV1PermissionMode;
+  kind: 'readonly' | 'edit' | 'bash';
+}): boolean {
+  return (
+    clineBuiltinToolRequiresApproval(input) ||
+    (input.permissionMode === 'allow-edits' && input.kind === 'edit')
+  );
+}
+
 function buildSystemPrompt(input: {
   sessionWorkDir: string;
   sandboxDescription: string;
@@ -189,7 +212,7 @@ function createClineAgentModel({
   settings: ClineSessionSettings;
   clientApp: string;
   modelId: string | undefined;
-}): { model: AgentModel; providerId: string } {
+}): { model: AgentModel; providerId: string; modelId: string | undefined } {
   const gatewayBaseUrl = settings.authEnv.AI_GATEWAY_BASE_URL;
   const isAiGateway = gatewayBaseUrl != null;
   const providerId = isAiGateway ? 'cline' : (settings.providerId ?? 'cline');
@@ -250,6 +273,15 @@ function createClineAgentModel({
   return {
     model,
     providerId,
+    /*
+     * The Cline gateway resolves an omitted model to the provider manifest's
+     * `defaultModelId`, which `listProviders()` reports with the same
+     * precedence (provider config, then built-in manifest, then first model).
+     */
+    modelId:
+      modelId ??
+      gateway.listProviders().find(provider => provider.id === providerId)
+        ?.defaultModelId,
   };
 }
 
@@ -389,6 +421,30 @@ export async function createClineSession(
     });
   }
 
+  async function isClineWriteProtected({
+    toolInput,
+  }: {
+    toolInput: unknown;
+  }): Promise<boolean> {
+    const filePath =
+      toolInput != null && typeof toolInput === 'object'
+        ? (toolInput as { file_path?: unknown }).file_path
+        : undefined;
+    if (typeof filePath !== 'string') return true;
+    let sandboxPath: string;
+    try {
+      sandboxPath = ops.resolvePath(filePath);
+    } catch {
+      return true;
+    }
+    return isSandboxWriteProtectedPath({
+      sandbox: toolSafeSandboxSession,
+      workDir: input.sessionWorkDir,
+      paths: [sandboxPath],
+      writeProtectedPaths: CLINE_WRITE_PROTECTED_PATHS,
+    });
+  }
+
   function requestBuiltinToolApproval(toolCall: {
     toolCallId: string;
     toolName: string;
@@ -503,23 +559,33 @@ export async function createClineSession(
         },
       },
       // Built-in tools whose kind requires approval under the session's
-      // permission mode are marked `autoApprove: false`; the runtime then
-      // routes them through `requestToolApproval` below. User tools are
-      // approved by the harness framework, never by the adapter.
+      // permission mode, and edits that may touch write-protected paths, are
+      // marked `autoApprove: false`; the runtime then routes them through
+      // `requestToolApproval` below. User tools are approved by the harness
+      // framework, never by the adapter.
       toolPolicies: Object.fromEntries(
         activeBuiltinNames
           .filter(name =>
-            clineBuiltinToolRequiresApproval({
+            clineBuiltinToolRequiresApprovalCallback({
               permissionMode,
               kind: CLINE_NATIVE_TOOL_KINDS[name],
             }),
           )
           .map(name => [name, { autoApprove: false }]),
       ),
-      requestToolApproval: request => {
+      requestToolApproval: async request => {
         if (!isClineBuiltinToolName(request.toolName)) {
           // Custom host-executed tool approvals are handled by the framework
           // before results are submitted back; the adapter never gates them.
+          return { approved: true };
+        }
+        if (
+          !clineBuiltinToolRequiresApproval({
+            permissionMode,
+            kind: CLINE_NATIVE_TOOL_KINDS[request.toolName],
+          }) &&
+          !(await isClineWriteProtected({ toolInput: request.input }))
+        ) {
           return { approved: true };
         }
         return requestBuiltinToolApproval({
@@ -717,7 +783,7 @@ export async function createClineSession(
 
     turnOpts.emit({
       type: 'stream-start',
-      ...(activeModelId ? { modelId: activeModelId } : {}),
+      ...(agentModel.modelId ? { modelId: agentModel.modelId } : {}),
     });
 
     acceptingUserMessages = true;

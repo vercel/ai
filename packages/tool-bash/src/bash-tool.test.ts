@@ -1,4 +1,5 @@
 import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
+import { execFileSync } from 'node:child_process';
 import {
   createVercelSandboxSessionFromNativeSandbox,
   type VercelNativeSandboxSession,
@@ -55,6 +56,7 @@ describe('createBashTool', () => {
     expect(run).toHaveBeenCalledWith({
       command: 'pwd',
       abortSignal: undefined,
+      maxOutputLength: 30_000,
     });
   });
 
@@ -65,6 +67,9 @@ describe('createBashTool', () => {
         .fn()
         .mockResolvedValue({ stdout: 'custom', stderr: '', exitCode: 0 }),
       writeTextFile: vi.fn().mockResolvedValue(undefined),
+      stat: vi.fn().mockResolvedValue(null),
+      listDirectory: vi.fn().mockResolvedValue(null),
+      deleteFile: vi.fn().mockResolvedValue(false),
       readTextFile: vi.fn().mockResolvedValue('report'),
       readFile: vi.fn(),
       readBinaryFile: vi.fn(),
@@ -94,6 +99,7 @@ describe('createBashTool', () => {
       command: 'python script.py',
       workingDirectory: '/app',
       abortSignal,
+      maxOutputLength: 30_000,
     });
   });
 
@@ -102,8 +108,12 @@ describe('createBashTool', () => {
     async workingDirectory => {
       const runCommand = vi.fn().mockResolvedValue({
         exitCode: 0,
-        stdout: async () => 'vercel output',
+        stdout: async () => '',
         stderr: async () => '',
+        wait: async () => ({ exitCode: 0 }),
+        logs: async function* () {
+          yield { stream: 'stdout', data: 'vercel output' };
+        },
       });
       const writeFiles = vi.fn().mockResolvedValue(undefined);
       const nativeSandbox = {
@@ -125,6 +135,7 @@ describe('createBashTool', () => {
       expect(runCommand).toHaveBeenLastCalledWith({
         cmd: 'bash',
         args: ['-c', 'cat input.txt'],
+        detached: true,
         ...(workingDirectory === undefined ? {} : { cwd: workingDirectory }),
       });
     },
@@ -376,6 +387,68 @@ describe('createBashTool', () => {
       stderr: '',
       exitCode: 0,
     });
+  });
+
+  it('uses original lengths from a sandbox that bounds both output streams', async () => {
+    const sandbox = await createSandbox();
+    vi.spyOn(sandbox, 'run').mockImplementation(async () => ({
+      stdout: '1234',
+      stderr: 'abcd',
+      stdoutLength: 9,
+      stderrLength: 12,
+      exitCode: 7,
+    }));
+    const bash = await createBashTool({ sandbox, maxOutputLength: 4 });
+    expect(await execute(bash, 'command')).toEqual({
+      stdout: '1234\n[Output truncated: 5 characters omitted.]',
+      stderr: 'abcd\n[Output truncated: 8 characters omitted.]',
+      exitCode: 7,
+    });
+  });
+
+  it('still truncates output from older sandboxes that ignore the limit', async () => {
+    const sandbox = await createSandbox();
+    vi.spyOn(sandbox, 'run').mockResolvedValue({
+      stdout: 'a😀b',
+      stderr: '12345',
+      exitCode: 0,
+    });
+    const bash = await createBashTool({ sandbox, maxOutputLength: 2 });
+    expect(await execute(bash, 'command')).toEqual({
+      stdout: 'a\ud83d\n[Output truncated: 2 characters omitted.]',
+      stderr: '12\n[Output truncated: 3 characters omitted.]',
+      exitCode: 0,
+    });
+  });
+
+  it('does not retain a legacy sandbox result behind the truncated output', () => {
+    const source = new URL('./bash-tool.ts', import.meta.url);
+    const growth = execFileSync(
+      process.execPath,
+      ['--experimental-strip-types', '--expose-gc', '--input-type=module'],
+      {
+        encoding: 'utf8',
+        input: `
+          import { createBashTool } from ${JSON.stringify(source.href)};
+          const tool = await createBashTool({ sandbox: {
+            description: 'legacy sandbox',
+            async run() {
+              const stdout = 'x'.repeat(32 * 1024 * 1024);
+              Buffer.byteLength(stdout);
+              return { stdout, stderr: '', exitCode: 0 };
+            },
+          }});
+          globalThis.gc();
+          const baseline = process.memoryUsage().heapUsed;
+          const result = await tool.execute({ command: 'large output' }, {});
+          await new Promise(resolve => setImmediate(resolve));
+          globalThis.gc();
+          console.log(process.memoryUsage().heapUsed - baseline);
+          if (result.stdout.length !== 30_049) process.exit(1);
+        `,
+      },
+    );
+    expect(Number(growth.trim())).toBeLessThan(4 * 1024 * 1024);
   });
 
   it('leaves output at the limit unchanged', async () => {

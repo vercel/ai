@@ -286,7 +286,6 @@ export function createLiveSandboxFromSnapshot({
     runtime: _runtime,
     image: _image,
     source: _source,
-    persistent: _persistent,
     ...forkParams
   } = baseParams;
   return Sandbox.create({

@@ -4,15 +4,10 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { CohereModelIds } from './cohere-model-catalog';
 
 export type CohereEmbeddingModelId =
-  | 'embed-english-v3.0'
-  | 'embed-multilingual-v3.0'
-  | 'embed-english-light-v3.0'
-  | 'embed-multilingual-light-v3.0'
-  | 'embed-english-v2.0'
-  | 'embed-english-light-v2.0'
-  | 'embed-multilingual-v2.0'
+  | CohereModelIds['embedding']
   | (string & {});
 
 export const cohereEmbeddingModelOptions = lazySchema(() =>

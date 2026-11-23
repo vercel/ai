@@ -21,10 +21,13 @@ export type { GoogleVertexProvider };
 export function createGoogleVertex(
   options: GoogleVertexProviderSettings = {},
 ): GoogleVertexProvider {
-  const apiKey = loadOptionalSetting({
-    settingValue: options.apiKey,
-    environmentVariableName: 'GOOGLE_VERTEX_API_KEY',
-  });
+  const apiKey =
+    typeof options.apiKey === 'string' || options.apiKey == null
+      ? loadOptionalSetting({
+          settingValue: options.apiKey,
+          environmentVariableName: 'GOOGLE_VERTEX_API_KEY',
+        })
+      : options.apiKey;
 
   if (apiKey) {
     return createGoogleVertexOriginal(options);

@@ -12,7 +12,6 @@ import {
   withUserAgentSuffix,
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
-import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { NoSpeechGeneratedError } from '../error/no-speech-generated-error';
 import { StreamProviderError } from '../error/stream-provider-error';
 import { logWarnings } from '../logger/log-warnings';
@@ -533,23 +532,12 @@ function toSourceStream(
       iterable[Symbol.asyncIterator](),
     );
   }
-  if (
-    typeof (text as Partial<Iterable<unknown>>)?.[Symbol.iterator] ===
-    'function'
-  ) {
-    const iterable = text as Iterable<string | SpeechTextPart>;
-    return convertAsyncIteratorToReadableStream(
-      (async function* () {
-        yield* iterable;
-      })(),
-    );
-  }
-  throw new InvalidArgumentError({
-    parameter: 'text',
-    value: text,
-    message:
-      'Expected a string, an iterable or async iterable, or a ReadableStream of strings or text parts.',
-  });
+  const iterable = text as Iterable<string | SpeechTextPart>;
+  return convertAsyncIteratorToReadableStream(
+    (async function* () {
+      yield* iterable;
+    })(),
+  );
 }
 
 function toTextPart(

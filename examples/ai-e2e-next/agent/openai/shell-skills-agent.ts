@@ -9,6 +9,8 @@ const skillMd = readFileSync(
   join(process.cwd(), 'data', 'island-rescue', 'SKILL.md'),
 );
 
+// This sandbox is shared across local demo chats. The API route enforces local
+// development only; deployed use requires authentication and sandbox ownership.
 let globalSandboxName: string | null = null;
 async function getSandbox(): Promise<Sandbox> {
   if (globalSandboxName) {

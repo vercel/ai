@@ -1,15 +1,10 @@
+import type { QuiverAIModelIds } from './quiverai-model-catalog';
 /**
  * QuiverAI image model identifier.
  *
  * @see https://quiver.ai/
  */
-export type QuiverAIImageModelId =
-  | 'arrow-1'
-  | 'arrow-1.1'
-  | 'arrow-1.1-max'
-  | 'arrow-2'
-  | 'arrow-2-telos'
-  | (string & {});
+export type QuiverAIImageModelId = QuiverAIModelIds['image'] | (string & {});
 
 /**
  * QuiverAI image operation:

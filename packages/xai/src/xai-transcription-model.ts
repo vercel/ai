@@ -5,6 +5,8 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
   lazySchema,
   zodSchema,
   combineHeaders,
@@ -27,6 +29,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { xaiFailedResponseHandler } from './xai-error';
+import { getXaiTranscriptionModelEntry } from './xai-model-catalog';
 import {
   xaiTranscriptionModelOptionsSchema,
   type XaiTranscriptionModelId,
@@ -36,7 +39,7 @@ import {
 interface XaiTranscriptionModelConfig {
   provider: string;
   baseURL: string | undefined;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   webSocket?: WebSocketConstructor;
   _internal?: {
@@ -129,7 +132,10 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
       rawValue: rawResponse,
     } = await postFormDataToApi({
       url: `${this.config.baseURL ?? 'https://api.x.ai/v1'}/stt`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       formData,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -139,14 +145,35 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
       fetch: this.config.fetch,
     });
 
+    if (options.timestampGranularities?.includes('segment')) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'timestampGranularities',
+        details:
+          'xAI transcription returns word timings and does not provide separate caption segments.',
+      });
+    }
+    const words = response.words?.map(word => ({
+      text: word.text,
+      startSecond: word.start,
+      endSecond: word.end,
+    }));
+    if (
+      options.timestampGranularities?.includes('word') &&
+      (words == null || words.length === 0) &&
+      response.text.trim() !== ''
+    ) {
+      warnings.push({
+        type: 'other',
+        message:
+          'The xAI transcription response omitted the requested word timings.',
+      });
+    }
+
     return {
       text: response.text,
-      segments:
-        response.words?.map(word => ({
-          text: word.text,
-          startSecond: word.start,
-          endSecond: word.end,
-        })) ?? [],
+      segments: words ?? [],
+      ...(words != null && words.length > 0 ? { words } : {}),
       language: response.language || undefined,
       durationInSeconds: response.duration ?? undefined,
       warnings,
@@ -215,7 +242,10 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
       inputAudioFormat: options.inputAudioFormat,
       providerOptions: xaiOptions,
     });
-    const headers = combineHeaders(this.config.headers?.(), options.headers);
+    const headers = combineHeaders(
+      await resolve(this.config.headers),
+      options.headers,
+    );
 
     return {
       request: { body: url.toString() },
@@ -489,7 +519,8 @@ function getXaiSttParams(
   options: XaiTranscriptionModelOptions | undefined,
 ) {
   return {
-    model: modelId || undefined,
+    model:
+      getXaiTranscriptionModelEntry(modelId).requestConfig.transcription.model,
     sample_rate: options?.sampleRate,
     language: options?.language,
     multichannel: options?.multichannel,

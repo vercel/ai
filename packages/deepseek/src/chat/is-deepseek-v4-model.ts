@@ -1,3 +1,5 @@
+import { getDeepSeekLanguageModelEntry } from '../deepseek-model-catalog';
+
 /**
  * Whether a model id uses DeepSeek V4-or-newer behavior (thinking mode on by
  * default, `reasoning_content` required on every assistant turn).
@@ -8,7 +10,6 @@
  * their previous behavior; unrecognized IDs inherit the current protocol.
  */
 export function isDeepSeekV4Model(modelId: string): boolean {
-  return !/(^|[/.])deepseek-(?:chat|reasoner|v[1-3](?:\.\d+)?)(?=[-/:.]|$)/.test(
-    modelId,
-  );
+  return getDeepSeekLanguageModelEntry(modelId).capabilities.language.reasoning
+    .assistantHistory;
 }

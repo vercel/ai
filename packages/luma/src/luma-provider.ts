@@ -4,6 +4,8 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
@@ -18,7 +20,7 @@ export interface LumaProviderSettings {
    * Luma API key. Default value is taken from the `LUMA_API_KEY` environment
    * variable.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
   /**
    * Base URL for the API calls.
    */
@@ -56,16 +58,18 @@ const defaultBaseURL = 'https://api.lumalabs.ai';
 export function createLuma(options: LumaProviderSettings = {}): LumaProvider {
   const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'LUMA_API_KEY',
-          description: 'Luma',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk-luma/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'LUMA_API_KEY',
+            description: 'Luma',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-luma/${VERSION}`,
+      ),
     );
 
   const createImageModel = (modelId: LumaImageModelId) =>

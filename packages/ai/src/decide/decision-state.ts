@@ -3,8 +3,13 @@ import type {
   JSONObject,
   JSONValue,
 } from '@ai-sdk/provider';
-import type { FilePart, TextPart } from '@ai-sdk/provider-utils';
+import {
+  DownloadError,
+  type FilePart,
+  type TextPart,
+} from '@ai-sdk/provider-utils';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
+import type { DownloadFunction } from '../util/download/download-function';
 
 /** Shared text, JSON data, or ordered multimodal parts for a decision. */
 export type DecisionState =
@@ -23,10 +28,15 @@ function isDecisionStateParts(
   return Array.isArray(state);
 }
 
-export async function prepareDecisionState(
-  state: DecisionState,
-  abortSignal?: AbortSignal,
-): Promise<DecisionModelV4State> {
+export async function prepareDecisionState({
+  state,
+  abortSignal,
+  download,
+}: {
+  state: DecisionState;
+  abortSignal?: AbortSignal;
+  download?: DownloadFunction;
+}): Promise<DecisionModelV4State> {
   if (typeof state === 'string') {
     return [{ type: 'text', text: state }];
   }
@@ -49,7 +59,20 @@ export async function prepareDecisionState(
       messages: [{ role: 'user', content: files }],
     },
     supportedUrls: {},
-    download: undefined,
+    // Do not silently fetch URL state through the runtime's global fetch.
+    // URL/literal-IP validation alone cannot protect against private DNS answers.
+    download:
+      download ??
+      (async requests => {
+        if (requests.length > 0) {
+          throw new DownloadError({
+            url: requests[0].url.toString(),
+            message:
+              'URL file state requires experimental_download. For untrusted URLs, use createDownload({ fetch }) with a transport that validates DNS at connection time.',
+          });
+        }
+        return [];
+      }),
     abortSignal,
   });
   const message = prompt[0];

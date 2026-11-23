@@ -65,6 +65,7 @@ export const perplexityOutputItemSchema = () =>
     }),
     z.looseObject({
       type: z.literal('search_results'),
+      queries: z.array(z.string()).nullish(),
       results: z.array(perplexitySearchResultSchema()).nullish(),
     }),
     z.looseObject({

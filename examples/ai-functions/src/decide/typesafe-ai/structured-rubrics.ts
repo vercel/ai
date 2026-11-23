@@ -41,6 +41,7 @@ run(async () => {
 
   console.log('Answers:', result.answers);
   console.log('Rounding:', result.rounding);
+  console.log('Legend:', result.providerMetadata?.typesafe?.legend);
   console.log('Raw response:', result.response.body);
   console.log(
     'Route to refund review:',

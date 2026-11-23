@@ -36,6 +36,8 @@ export const openaiChatResponseSchema = lazySchema(() =>
           message: z.object({
             role: z.literal('assistant').nullish(),
             content: z.string().nullish(),
+            // set instead of `content` when the model refuses to answer:
+            refusal: z.string().nullish(),
             audio: z
               .object({
                 transcript: z.string().nullish(),
@@ -71,6 +73,22 @@ export const openaiChatResponseSchema = lazySchema(() =>
           logprobs: z
             .object({
               content: z
+                .array(
+                  z.object({
+                    token: z.string(),
+                    logprob: z.number(),
+                    top_logprobs: z.array(
+                      z.object({
+                        token: z.string(),
+                        logprob: z.number(),
+                      }),
+                    ),
+                  }),
+                )
+                .nullish(),
+              // logprobs of the refusal tokens (set instead of `content` when
+              // the model refuses to answer):
+              refusal: z
                 .array(
                   z.object({
                     token: z.string(),
@@ -128,6 +146,8 @@ export const openaiChatChunkSchema = lazySchema(() =>
               .object({
                 role: z.enum(['assistant']).nullish(),
                 content: z.string().nullish(),
+                // set instead of `content` when the model refuses to answer:
+                refusal: z.string().nullish(),
                 tool_calls: z
                   .array(
                     z.object({
@@ -159,6 +179,22 @@ export const openaiChatChunkSchema = lazySchema(() =>
             logprobs: z
               .object({
                 content: z
+                  .array(
+                    z.object({
+                      token: z.string(),
+                      logprob: z.number(),
+                      top_logprobs: z.array(
+                        z.object({
+                          token: z.string(),
+                          logprob: z.number(),
+                        }),
+                      ),
+                    }),
+                  )
+                  .nullish(),
+                // logprobs of the refusal tokens (set instead of `content` when
+                // the model refuses to answer):
+                refusal: z
                   .array(
                     z.object({
                       token: z.string(),

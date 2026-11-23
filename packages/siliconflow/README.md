@@ -6,32 +6,21 @@ The **[SiliconFlow provider](https://ai-sdk.dev/providers/ai-sdk-providers/silic
 
 ## Setup
 
-The SiliconFlow provider is available in the `@ai-sdk/siliconflow` module. You can install it with
-
 ```bash
-npm i @ai-sdk/siliconflow
+npm i ai @ai-sdk/siliconflow
 ```
 
-## Provider Instance
-
-You can import the default provider instance `siliconflow` from `@ai-sdk/siliconflow`:
-
-```ts
-import { siliconflow } from '@ai-sdk/siliconflow';
-```
-
-## Example
+## Usage
 
 ```ts
 import { siliconflow } from '@ai-sdk/siliconflow';
 import { generateText } from 'ai';
 
+// Set SILICONFLOW_API_KEY in your environment.
 const { text } = await generateText({
   model: siliconflow('Qwen/Qwen2.5-7B-Instruct'),
-  prompt: 'Write a JavaScript function that sorts a list:',
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
 
-## Documentation
-
-Please check out the **[SiliconFlow provider](https://ai-sdk.dev/providers/ai-sdk-providers/siliconflow)** for more information.
+See the [SiliconFlow provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/siliconflow) for more information.

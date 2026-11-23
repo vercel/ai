@@ -12,6 +12,7 @@ class VueChatState<
   private messagesRef: Ref<UI_MESSAGE[]>;
   private statusRef = ref<ChatStatus>('ready');
   private errorRef = ref<Error | undefined>(undefined);
+  private queuedMessagesRef = ref([]) as Ref<UI_MESSAGE[]>;
 
   constructor(messages?: UI_MESSAGE[]) {
     this.messagesRef = ref(messages ?? []) as Ref<UI_MESSAGE[]>;
@@ -39,6 +40,14 @@ class VueChatState<
 
   set error(error: Error | undefined) {
     this.errorRef.value = error;
+  }
+
+  get experimental_queuedMessages(): UI_MESSAGE[] {
+    return this.queuedMessagesRef.value;
+  }
+
+  set experimental_queuedMessages(experimental_queuedMessages: UI_MESSAGE[]) {
+    this.queuedMessagesRef.value = experimental_queuedMessages;
   }
 
   pushMessage = (message: UI_MESSAGE) => {

@@ -129,7 +129,7 @@ Update the following files to accept `V2 | V3 | V4` models at their public bound
 - Update `resolve-model.test.ts` to test both V3→V4 conversion (using V3 mocks) and V4 pass-through (using V4 mocks) as separate test blocks.
 - Update other test files to use V4 mocks where the code now returns V4 models (e.g. `custom-provider.test.ts`, `provider-registry.test.ts`, middleware tests). Use V4 mocks for any test that checks reference equality (`.toBe()`) on returned models.
 
-Run `pnpm test` in `packages/ai` and `pnpm type-check:full` from the workspace root to verify.
+Run `pnpm test` in `packages/ai` and `pnpm type-check` from the workspace root to verify.
 
 ### 8. Set up the documentation site (ai-sdk.dev)
 
@@ -160,10 +160,6 @@ Open a PR with all the changes from steps 3-7. Once merged, the first beta relea
 ### Adding a new package
 
 When introducing a new package while `main` is in pre-release mode, set its initial `version` in `package.json` to plain `0.0.0` — **never** `0.0.0-canary.0` (or any `-<tag>.N` suffix). A pre-release suffix makes the version a "premajor", and semver treats a `major`/`minor`/`patch` bump on a premajor as merely dropping the suffix, so the package gets stuck at `0.0.0-canary.N` instead of advancing (e.g. a `major` changeset should produce `1.0.0-canary.0`). See [add-new-provider.md → When in pre-release mode](./add-new-provider.md#when-in-pre-release-mode).
-
-### Backporting fixes to stable
-
-To backport a fix from `main` to the maintenance branch, add the `backport` label to the merged PR. This creates a new PR targeting the maintenance branch automatically.
 
 ### Publishing stable patches
 

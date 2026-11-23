@@ -19,6 +19,8 @@ We provide detailed documentation for the following OpenAI compatible providers:
 - [Clarifai](/providers/openai-compatible-providers/clarifai)
 - [NEAR AI Cloud](/providers/openai-compatible-providers/nearai)
 - [TopxAI](/providers/openai-compatible-providers/topxai)
+- [Synthorai](/providers/openai-compatible-providers/synthorai)
+- [Meta (Muse)](/providers/openai-compatible-providers/meta)
 
 The general setup and provider instance creation is the same for all of these providers.
 
@@ -49,11 +51,14 @@ You can use the following optional settings to customize the provider instance:
 
   Set the URL prefix for API calls.
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
 
   API key for authenticating requests. If specified, adds an `Authorization`
   header to request headers with the value `Bearer <apiKey>`. This will be added
   before any headers potentially specified in the `headers` option.
+
+  A function is called before each request and may return a promise. Use it to
+  supply refreshed credentials; a promise value resolves to the same key each time.
 
 - **headers** _Record&lt;string,string&gt;_
 
@@ -70,6 +75,16 @@ You can use the following optional settings to customize the provider instance:
   Defaults to the global `fetch` function.
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
+  The same fetch is used to download remote input images for image editing.
+
+  <Note>
+    When passing a `guarded-fetch` transport here for untrusted image URLs, a
+    `baseURL` on a private or local network (e.g. `http://localhost:11434/v1`
+    for a self-hosted server) is rejected as well, since the transport checks
+    every request it sends. Add that origin to its `trustedOrigins` option. See
+    [Secure URL
+    Fetching](/docs/advanced/secure-url-fetching#trusted-private-endpoints).
+  </Note>
 
 - **includeUsage** _boolean_
 
@@ -150,6 +165,28 @@ const provider = createOpenAICompatible({
 Only enable `supportsMultiPartToolContent` when the provider accepts content
 arrays for messages with the `tool` role. The default stringifies multi-part
 tool results for compatibility with the OpenAI Chat Completions API.
+
+### Refusals
+
+Some OpenAI-compatible providers, including OpenAI itself, can return a
+`refusal` instead of content when the model declines a request. The refusal
+explanation is surfaced as text in both `generateText` and `streamText`. When a
+non-empty refusal is received and the provider reports a `stop` finish reason,
+the finish reason is `content-filter`:
+
+```ts
+const { text, finishReason } = await generateText({
+  model: provider('model-id'),
+  prompt: '...',
+});
+
+if (finishReason === 'content-filter') {
+  // `text` contains the model's refusal explanation
+}
+```
+
+When a response contains both content and a refusal, the content text is emitted
+first, followed by the refusal text.
 
 ### Example
 
@@ -768,3 +805,28 @@ console.log(providerMetadata.myProvider.customMetrics);
 ```
 
 This allows you to access provider-specific information while maintaining a consistent interface across different providers.
+
+## Provider Option Reference
+
+The following option definitions are generated from the provider catalog.
+
+{/* model-capabilities:openai-compatible-provider-options:start */}
+
+| Operation | Option               | Description                                                                                                                                                                                                    |
+| --------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| language  | `user`               | A unique identifier representing your end-user, which can help providers to monitor and detect abuse.                                                                                                          |
+| language  | `reasoningEffort`    | Reasoning effort for reasoning models. Defaults to `medium`. Set to `null` to send `"reasoning_effort": null`, for providers that treat an explicit `null` differently from an omitted field.                  |
+| language  | `textVerbosity`      | Controls the verbosity of the generated text. Defaults to `medium`.                                                                                                                                            |
+| language  | `strictJsonSchema`   | Whether to use strict JSON schema validation. When true, the model uses constrained decoding to guarantee schema compliance. Only used when the provider supports structured outputs and a schema is provided. |
+| language  | `echo`               | Echo back the prompt in addition to the completion.                                                                                                                                                            |
+| language  | `logitBias`          | Modify the likelihood of specified tokens appearing in the completion. Accepts a JSON object that maps tokens (specified by their token ID in the GPT tokenizer) to an associated bias value from -100 to 100. |
+| language  | `suffix`             | The suffix that comes after a completion of inserted text.                                                                                                                                                     |
+| embedding | `dimensions`         | The number of dimensions the resulting output embeddings should have. Only supported in text-embedding-3 and later models.                                                                                     |
+| embedding | `user`               | A unique identifier representing your end-user, which can help providers to monitor and detect abuse.                                                                                                          |
+| image     | `size`               | Dimensions of the generated image. Supported values depend on the provider and model.                                                                                                                          |
+| image     | `quality`            | Quality of the generated image. Supported values depend on the provider and model.                                                                                                                             |
+| image     | `output_format`      | File format of the generated image. Supported values depend on the provider and model.                                                                                                                         |
+| image     | `output_compression` | Compression level for JPEG and WebP images.                                                                                                                                                                    |
+| image     | `background`         | Background behavior for the generated image. Supported values depend on the provider and model.                                                                                                                |
+
+{/* model-capabilities:openai-compatible-provider-options:end */}

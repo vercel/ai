@@ -1,5 +1,7 @@
+import { getFishAudioTranscriptionModelEntry } from './fish-audio-model-catalog';
 import type { SharedV4Warning, TranscriptionModelV4 } from '@ai-sdk/provider';
 import {
+  resolve,
   lazySchema,
   zodSchema,
   combineHeaders,
@@ -84,7 +86,11 @@ export class FishAudioTranscriptionModel implements TranscriptionModelV4 {
     // let callers opt back out.
     formData.append(
       'ignore_timestamps',
-      String(fishAudioOptions?.ignoreTimestamps ?? false),
+      String(
+        fishAudioOptions?.ignoreTimestamps ??
+          getFishAudioTranscriptionModelEntry(this.modelId).requestConfig
+            .transcription.ignoreTimestamps,
+      ),
     );
 
     return { formData, warnings };
@@ -102,7 +108,10 @@ export class FishAudioTranscriptionModel implements TranscriptionModelV4 {
       rawValue: rawResponse,
     } = await postFormDataToApi({
       url: this.config.url({ path: '/v1/asr', modelId: this.modelId }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       formData,
       failedResponseHandler: fishAudioFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

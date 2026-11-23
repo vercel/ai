@@ -4,12 +4,11 @@ import {
   type FlexibleSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { CohereModelIds } from '../cohere-model-catalog';
 
 // https://docs.cohere.com/docs/rerank
 export type CohereRerankingModelId =
-  | 'rerank-v3.5'
-  | 'rerank-english-v3.0'
-  | 'rerank-multilingual-v3.0'
+  | CohereModelIds['reranking']
   | (string & {});
 
 export type CohereRerankingModelOptions = {

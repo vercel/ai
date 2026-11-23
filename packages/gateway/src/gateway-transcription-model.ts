@@ -42,6 +42,7 @@ import {
   GATEWAY_TRANSCRIPTION_SUBPROTOCOL,
   getGatewayTranscriptionProtocols,
 } from './gateway-realtime-auth';
+import { withGatewayRequestTelemetryRedaction } from './redact-gateway-request-credentials';
 
 export class GatewayTranscriptionModel implements TranscriptionModelV4 {
   readonly specificationVersion = 'v4' as const;
@@ -65,6 +66,7 @@ export class GatewayTranscriptionModel implements TranscriptionModelV4 {
     audio,
     mediaType,
     providerOptions,
+    timestampGranularities,
     headers,
     abortSignal,
   }: Parameters<TranscriptionModelV4['doGenerate']>[0]): Promise<
@@ -86,14 +88,14 @@ export class GatewayTranscriptionModel implements TranscriptionModelV4 {
           this.getModelConfigHeaders(),
           await resolve(this.config.o11yHeaders),
         ),
-        body: {
+        body: withGatewayRequestTelemetryRedaction({
           audio:
             audio instanceof Uint8Array
               ? convertUint8ArrayToBase64(audio)
               : audio,
           mediaType,
           ...(providerOptions && { providerOptions }),
-        },
+        }),
         successfulResponseHandler: createJsonResponseHandler(
           gatewayTranscriptionResponseSchema,
         ),
@@ -108,6 +110,14 @@ export class GatewayTranscriptionModel implements TranscriptionModelV4 {
       const warnings = [
         ...(responseBody.warnings ?? []),
       ] as Array<SharedV4Warning>;
+      if (timestampGranularities?.length) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'timestampGranularities',
+          details:
+            'The AI Gateway adapter does not forward the shared timestampGranularities option.',
+        });
+      }
       if (
         isXaiTranscriptionModel(this.modelId) &&
         requestsXaiDiarization(providerOptions) &&
@@ -124,6 +134,7 @@ export class GatewayTranscriptionModel implements TranscriptionModelV4 {
       return {
         text: responseBody.text,
         segments: responseBody.segments ?? [],
+        ...(responseBody.words != null && { words: responseBody.words }),
         language: responseBody.language ?? undefined,
         durationInSeconds: responseBody.durationInSeconds ?? undefined,
         warnings,
@@ -160,16 +171,17 @@ export class GatewayTranscriptionModel implements TranscriptionModelV4 {
 
     // First frame after the WebSocket opens, per the transcription-stream
     // envelope. Optional keys are omitted so the frame stays minimal.
-    const startFrame: Experimental_TranscriptionStreamStartFrame = {
-      type: TRANSCRIPTION_STREAM_START_FRAME_TYPE,
-      inputAudioFormat: options.inputAudioFormat,
-      ...(options.providerOptions != null && {
-        providerOptions: options.providerOptions,
-      }),
-      ...(options.includeRawChunks != null && {
-        includeRawChunks: options.includeRawChunks,
-      }),
-    };
+    const startFrame: Experimental_TranscriptionStreamStartFrame =
+      withGatewayRequestTelemetryRedaction({
+        type: TRANSCRIPTION_STREAM_START_FRAME_TYPE,
+        inputAudioFormat: options.inputAudioFormat,
+        ...(options.providerOptions != null && {
+          providerOptions: options.providerOptions,
+        }),
+        ...(options.includeRawChunks != null && {
+          includeRawChunks: options.includeRawChunks,
+        }),
+      });
 
     return {
       stream: createGatewayTranscriptionStream({
@@ -459,19 +471,19 @@ function createGatewayTranscriptionStream({
   });
 }
 
-const providerMetadataEntrySchema = () => z.object({}).catchall(z.unknown());
+const providerMetadataEntrySchema = () => z.catchall(z.object({}), z.unknown());
 
 const gatewayTranscriptionWarningSchema = () =>
   z.discriminatedUnion('type', [
     z.object({
       type: z.literal('unsupported'),
       feature: z.string(),
-      details: z.string().optional(),
+      details: z.optional(z.string()),
     }),
     z.object({
       type: z.literal('compatibility'),
       feature: z.string(),
-      details: z.string().optional(),
+      details: z.optional(z.string()),
     }),
     z.object({
       type: z.literal('deprecated'),
@@ -488,22 +500,31 @@ const gatewayTranscriptionResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       text: z.string(),
-      segments: z
-        .array(
+      segments: z.optional(
+        z.array(
           z.object({
             text: z.string(),
             startSecond: z.number(),
             endSecond: z.number(),
           }),
-        )
-        .optional(),
-      language: z.string().nullish(),
-      durationInSeconds: z.number().nullish(),
-      warnings: z.array(gatewayTranscriptionWarningSchema()).optional(),
-      usage: z.record(z.string(), z.json()).optional(),
-      providerMetadata: z
-        .record(z.string(), providerMetadataEntrySchema())
-        .optional(),
+        ),
+      ),
+      words: z.nullish(
+        z.array(
+          z.object({
+            text: z.string(),
+            startSecond: z.number(),
+            endSecond: z.number(),
+          }),
+        ),
+      ),
+      language: z.nullish(z.string()),
+      durationInSeconds: z.nullish(z.number()),
+      warnings: z.optional(z.array(gatewayTranscriptionWarningSchema())),
+      usage: z.optional(z.record(z.string(), z.json())),
+      providerMetadata: z.optional(
+        z.record(z.string(), providerMetadataEntrySchema()),
+      ),
     }),
   ),
 );

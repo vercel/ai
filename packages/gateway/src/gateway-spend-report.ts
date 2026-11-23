@@ -132,25 +132,25 @@ const gatewaySpendReportResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       results: z.array(
-        z
-          .object({
-            day: z.string().optional(),
-            hour: z.string().optional(),
-            user: z.string().optional(),
-            model: z.string().optional(),
-            tag: z.string().optional(),
-            provider: z.string().optional(),
-            credential_type: z.enum(['byok', 'system']).optional(),
+        z.pipe(
+          z.object({
+            day: z.optional(z.string()),
+            hour: z.optional(z.string()),
+            user: z.optional(z.string()),
+            model: z.optional(z.string()),
+            tag: z.optional(z.string()),
+            provider: z.optional(z.string()),
+            credential_type: z.optional(z.enum(['byok', 'system'])),
             total_cost: z.number(),
-            market_cost: z.number().optional(),
-            input_tokens: z.number().optional(),
-            output_tokens: z.number().optional(),
-            cached_input_tokens: z.number().optional(),
-            cache_creation_input_tokens: z.number().optional(),
-            reasoning_tokens: z.number().optional(),
-            request_count: z.number().optional(),
-          })
-          .transform(
+            market_cost: z.optional(z.number()),
+            input_tokens: z.optional(z.number()),
+            output_tokens: z.optional(z.number()),
+            cached_input_tokens: z.optional(z.number()),
+            cache_creation_input_tokens: z.optional(z.number()),
+            reasoning_tokens: z.optional(z.number()),
+            request_count: z.optional(z.number()),
+          }),
+          z.transform(
             ({
               credential_type,
               total_cost,
@@ -189,6 +189,7 @@ const gatewaySpendReportResponseSchema = lazySchema(() =>
                 : {}),
             }),
           ),
+        ),
       ),
     }),
   ),

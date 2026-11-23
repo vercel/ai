@@ -3,7 +3,6 @@
   "display": "TypeScript Library",
   "extends": "./base.json",
   "compilerOptions": {
-    "lib": ["dom", "dom.iterable", "ES2018"],
     "module": "ESNext",
     "stripInternal": true
   }

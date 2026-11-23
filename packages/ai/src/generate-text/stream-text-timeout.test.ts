@@ -77,6 +77,7 @@ describe('streamText first chunk timeout', () => {
                   delta: '',
                 });
                 controller.enqueue({ type: 'raw', rawValue: ': ping' });
+                controller.enqueue({ type: 'ping' });
 
                 abortSignal?.addEventListener(
                   'abort',
@@ -378,59 +379,66 @@ describe('streamText chunk timeout', () => {
     vi.useRealTimers();
   });
 
-  it('should not reset chunkMs for non-output chunks', async () => {
-    let receivedAbortSignal: AbortSignal | undefined;
+  it.each(['raw', 'ping'] as const)(
+    'should not reset chunkMs for non-output %s chunks',
+    async heartbeatType => {
+      let receivedAbortSignal: AbortSignal | undefined;
 
-    const result = streamText({
-      model: new MockLanguageModelV4({
-        doStream: async ({ abortSignal }) => {
-          receivedAbortSignal = abortSignal;
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async ({ abortSignal }) => {
+            receivedAbortSignal = abortSignal;
 
-          return {
-            stream: new ReadableStream({
-              start(controller) {
-                controller.enqueue({ type: 'text-start', id: '1' });
-                controller.enqueue({
-                  type: 'text-delta',
-                  id: '1',
-                  delta: 'Hello',
-                });
-
-                setTimeout(() => {
+            return {
+              stream: new ReadableStream({
+                start(controller) {
+                  controller.enqueue({ type: 'text-start', id: '1' });
                   controller.enqueue({
-                    type: 'response-metadata',
-                    id: 'response-1',
+                    type: 'text-delta',
+                    id: '1',
+                    delta: 'Hello',
                   });
-                }, 20);
-                setTimeout(() => {
-                  controller.enqueue({ type: 'raw', rawValue: ': ping' });
-                }, 40);
 
-                abortSignal?.addEventListener(
-                  'abort',
-                  () => controller.error(abortSignal.reason),
-                  { once: true },
-                );
-              },
-            }),
-          };
-        },
-      }),
-      prompt: 'test-input',
-      timeout: { chunkMs: 50 },
-      onError: () => {},
-    });
+                  setTimeout(() => {
+                    controller.enqueue({
+                      type: 'response-metadata',
+                      id: 'response-1',
+                    });
+                  }, 20);
+                  setTimeout(() => {
+                    controller.enqueue(
+                      heartbeatType === 'ping'
+                        ? { type: 'ping' }
+                        : { type: 'raw', rawValue: ': ping' },
+                    );
+                  }, 40);
 
-    const consumePromise = result.consumeStream();
+                  abortSignal?.addEventListener(
+                    'abort',
+                    () => controller.error(abortSignal.reason),
+                    { once: true },
+                  );
+                },
+              }),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        timeout: { chunkMs: 50 },
+        onError: () => {},
+      });
 
-    await vi.advanceTimersByTimeAsync(0);
-    await vi.advanceTimersByTimeAsync(60);
+      const consumePromise = result.consumeStream();
 
-    expect(receivedAbortSignal?.aborted).toBe(true);
-    expect((receivedAbortSignal?.reason as Error)?.name).toBe('TimeoutError');
+      await vi.advanceTimersByTimeAsync(0);
+      await vi.advanceTimersByTimeAsync(60);
 
-    await consumePromise;
-  });
+      expect(receivedAbortSignal?.aborted).toBe(true);
+      expect((receivedAbortSignal?.reason as Error)?.name).toBe('TimeoutError');
+
+      await consumePromise;
+    },
+  );
 });
 
 describe('streamText model output timeout boundaries', () => {

@@ -5,6 +5,8 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
@@ -27,7 +29,7 @@ export interface VoyageProvider extends ProviderV4 {
 
 export interface VoyageProviderSettings {
   baseURL?: string;
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
   headers?: Record<string, string>;
   fetch?: FetchFunction;
 }
@@ -39,16 +41,18 @@ export function createVoyage(
     withoutTrailingSlash(options.baseURL) ?? 'https://api.voyageai.com/v1';
 
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'VOYAGE_API_KEY',
-          description: 'Voyage',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk-voyage/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'VOYAGE_API_KEY',
+            description: 'Voyage',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-voyage/${VERSION}`,
+      ),
     );
 
   const createEmbeddingModel = (modelId: VoyageEmbeddingModelId) =>

@@ -65,6 +65,7 @@ export const MCP_APP_DEFAULT_INNER_SANDBOX = 'allow-scripts allow-forms';
  * const csp = getMCPAppCSP({
  *   connectDomains: ['https://api.example.com'],
  *   resourceDomains: ['https://cdn.example.com'],
+ *   baseUriDomains: ['https://docs.example.com'],
  * });
  * ```
  */
@@ -73,24 +74,24 @@ export function getMCPAppCSP(csp?: MCPAppResourceCSP): string | undefined {
     return undefined;
   }
 
-  const connectSrc = ["'self'", ...sanitizeCSPSources(csp.connectDomains)];
-  const imgSrc = [
-    "'self'",
-    'data:',
-    ...sanitizeCSPSources(csp.resourceDomains),
-  ];
-  const frameSrc = ["'self'", ...sanitizeCSPSources(csp.frameDomains)];
+  const connectSrc = sanitizeCSPSources(csp.connectDomains);
+  const resourceSrc = sanitizeCSPSources(csp.resourceDomains);
+  const frameSrc = sanitizeCSPSources(csp.frameDomains);
+  const baseUriSrc = csp.baseUriDomains?.length
+    ? sanitizeCSPSources(csp.baseUriDomains).join(' ')
+    : "'self'";
 
   return [
     "default-src 'none'",
-    "base-uri 'none'",
+    `base-uri ${baseUriSrc}`,
     "form-action 'none'",
-    "script-src 'unsafe-inline'",
-    "style-src 'unsafe-inline'",
-    `connect-src ${connectSrc.join(' ')}`,
-    `img-src ${imgSrc.join(' ')}`,
-    `font-src ${imgSrc.join(' ')}`,
-    `frame-src ${frameSrc.join(' ')}`,
+    `script-src 'unsafe-inline' 'self' ${resourceSrc.join(' ')}`,
+    `style-src 'unsafe-inline' 'self' ${resourceSrc.join(' ')}`,
+    `connect-src 'self' ${connectSrc.join(' ')}`,
+    `img-src 'self' data: ${resourceSrc.join(' ')}`,
+    `font-src 'self' data: ${resourceSrc.join(' ')}`,
+    `media-src 'self' data: ${resourceSrc.join(' ')}`,
+    `frame-src 'self' ${frameSrc.join(' ')}`,
   ].join('; ');
 }
 

@@ -1,3 +1,4 @@
+import type { OpenTelemetryIdGenerator } from './durable-span-ids';
 import type { Attributes, Tracer } from '@opentelemetry/api';
 import type { TelemetryOptions } from 'ai';
 import {
@@ -12,6 +13,7 @@ type SupplementalAttributeOption =
   | 'embedding'
   | 'reranking'
   | 'experimental_decision'
+  | 'experimental_extraction'
   | 'runtimeContext'
   | 'headers'
   | 'toolChoice'
@@ -29,7 +31,8 @@ export type OpenTelemetrySpanType =
   | 'tool'
   | 'embedding'
   | 'reranking'
-  | 'experimental_decision';
+  | 'experimental_decision'
+  | 'experimental_extraction';
 
 export type EnrichSpan = (options: {
   spanType: OpenTelemetrySpanType;
@@ -43,6 +46,9 @@ export type OpenTelemetryOptions = {
    * The tracer to use for the telemetry data.
    */
   tracer?: Tracer;
+
+  /** The same bridge registered as the tracer provider's idGenerator and sampler. */
+  durable?: OpenTelemetryIdGenerator;
 
   /**
    * Controls root agent span names for text and object generation.
@@ -97,6 +103,11 @@ export type OpenTelemetryOptions = {
   experimental_evaluation?: boolean;
 
   /**
+   * Emit extraction state, fields, reference date, and answers.
+   */
+  experimental_extraction?: boolean;
+
+  /**
    * Emit runtime context values.
    */
   runtimeContext?: boolean;
@@ -123,6 +134,7 @@ const disabledSupplementalAttributes: SupplementalAttributeOptions = {
   embedding: false,
   reranking: false,
   experimental_decision: false,
+  experimental_extraction: false,
   runtimeContext: false,
   headers: false,
   toolChoice: false,
@@ -140,6 +152,7 @@ export function normalizeSupplementalAttributes(
     reranking: options.reranking ?? false,
     experimental_decision:
       options.experimental_decision ?? options.experimental_evaluation ?? false,
+    experimental_extraction: options.experimental_extraction ?? false,
     runtimeContext: options.runtimeContext ?? false,
     headers: options.headers ?? false,
     toolChoice: options.toolChoice ?? false,

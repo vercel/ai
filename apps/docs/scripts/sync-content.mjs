@@ -9,6 +9,9 @@
  *   - v5: content/docs from a reviewed `release-v5.0` commit (using the same
  *         git and GitHub fallback strategy)
  *
+ * In dev (`--dev`), only v7 is synced so the dev server compiles a third of
+ * the MDX. Set `DOCS_ALL_VERSIONS=1` to include v5 and v6.
+ *
  * Transforms (content authored with `NN-` ordering prefixes -> fumadocs):
  *   1. Strips `NN-` numeric prefixes from every path segment.
  *   2. Generates a meta.json per directory, ordered by the original numeric
@@ -21,7 +24,7 @@
  */
 
 import { execSync } from "node:child_process";
-import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { transformDir } from "./sync-content-utils.mjs";
@@ -30,16 +33,18 @@ const appDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = resolve(appDir, "../..");
 const cacheDir = join(appDir, "node_modules/.cache/ai-sdk-docs");
 const force = process.argv.includes("--force");
+const skipLegacyVersions =
+  process.argv.includes("--dev") && process.env.DOCS_ALL_VERSIONS !== "1";
 
 /** Version definitions. `ref: null` means the local working tree. */
 const versions = [
   { id: "v7", ref: null },
   // Update this SHA explicitly when stable v6 documentation changes should
   // ship. Pinning keeps builds reproducible and content changes reviewable.
-  { id: "v6", ref: "b5444fed66a11d50ed21d2d9d8dfc0e11c846926" },
+  { id: "v6", ref: "718ee0b7886f35a74f232c05f3f7637f32728b1f" },
   // Update this SHA explicitly when stable v5 documentation changes should
   // ship. Pinning keeps builds reproducible and content changes reviewable.
-  { id: "v5", ref: "239ea3a151f81aa55b78d8eeca5fd20555730de5" },
+  { id: "v5", ref: "5ecbd1f0a1ff41b8fadfebf2cbf56aa6208846e2" },
 ];
 
 /** Content families to sync. */
@@ -101,6 +106,27 @@ const fetchRef = (ref) => {
 };
 
 for (const version of versions) {
+  if (skipLegacyVersions && version.ref) {
+    // Replace each family with a single placeholder page. Stale content from
+    // a previous full sync must not be compiled, Cache Components requires
+    // `generateStaticParams` to return at least one page, and lib/recipes.ts
+    // reads each family's meta.json.
+    for (const family of families) {
+      const outDir = join(appDir, "content", version.id, family);
+      rmSync(outDir, { recursive: true, force: true });
+      mkdirSync(outDir, { recursive: true });
+      writeFileSync(
+        join(outDir, "index.mdx"),
+        `---\ntitle: ${version.id} content not synced\n---\n\n` +
+          `The dev server only syncs v7 content. Restart it with ` +
+          `\`DOCS_ALL_VERSIONS=1\` to include ${version.id}.\n`
+      );
+      writeFileSync(join(outDir, "meta.json"), `${JSON.stringify({ pages: ["index"] })}\n`);
+    }
+    log(`skipping ${version.id} in dev (set DOCS_ALL_VERSIONS=1 to include it)`);
+    continue;
+  }
+
   const sourceRoot = version.ref ? join(fetchRef(version.ref), "content") : join(repoRoot, "content");
 
   for (const family of families) {
