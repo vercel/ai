@@ -53,9 +53,13 @@ const toolCall = {
   finishReason: 'tool-calls',
 } satisfies Response;
 
-function createModel(responses: ReadonlyArray<Response>) {
+function createModel(
+  responses: ReadonlyArray<Response>,
+  supportedUrls: Record<string, RegExp[]> = {},
+) {
   let call = 0;
   return new MockLanguageModelV4({
+    supportedUrls,
     doGenerate: async () => {
       const response = responses[call++];
       return {
@@ -267,6 +271,69 @@ describe.each(['generate', 'stream'] as const)('onWarning (%s)', method => {
       type: 'DeprecationWarning',
       code: 'AISDK_DEP_IMAGE_CONTENT_PART',
     });
+  });
+
+  it('keeps the file URLs of prompt warnings out of telemetry without recorded inputs', async () => {
+    vi.stubGlobal('AI_SDK_LOG_WARNINGS', false);
+    const onStepEnd = vi.fn();
+    const signature = 'secret-signature';
+
+    const options = {
+      model: createModel([text('Done.')], { '*/*': [/.*/] }),
+      messages: [
+        { role: 'user', content: 'Read the report.' },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'report',
+              input: {},
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'report',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file-url',
+                    url: `https://files.example.com/report?signature=${signature}`,
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ] satisfies Array<ModelMessage>,
+      telemetry: {
+        recordInputs: false,
+        recordOutputs: false,
+        integrations: { onStepEnd },
+      },
+    };
+
+    if (method === 'generate') {
+      await generateText(options);
+    } else {
+      await streamText(options).consumeStream();
+    }
+
+    expect(onStepEnd).toHaveBeenCalledOnce();
+    const event = onStepEnd.mock.calls[0][0];
+    expect(event.warnings).toEqual([
+      expect.objectContaining({
+        setting: '"tool-result" content of type "file-url"',
+      }),
+    ]);
+    expect(JSON.stringify(event)).not.toContain(signature);
   });
 });
 

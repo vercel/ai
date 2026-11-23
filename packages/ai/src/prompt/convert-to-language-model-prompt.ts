@@ -716,7 +716,7 @@ export function mapToolResultOutput({
               mediaType === 'application/octet-stream'
                 ? `Unable to infer media type from URL. Defaulting to 'application/octet-stream'.`
                 : `Inferred media type '${mediaType}' from URL.`;
-            message = `The "file-url" tool result content part with URL "${item.url}" is missing a "mediaType". ${inferenceSuffix} ${message}`;
+            message = `A "file-url" tool result content part is missing a "mediaType". ${inferenceSuffix} ${message}`;
           }
           warnings.push({
             type: 'deprecated',
