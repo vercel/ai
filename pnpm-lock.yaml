@@ -1142,8 +1142,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/openai
       '@hono/node-server':
-        specifier: 1.19.15
-        version: 1.19.15(hono@4.13.16)
+        specifier: 2.1.6
+        version: 2.1.6(hono@4.13.16)
       ai:
         specifier: workspace:*
         version: link:../../packages/ai
@@ -2731,8 +2731,8 @@ importers:
         specifier: workspace:*
         version: link:../provider
       '@hono/node-server':
-        specifier: ^1.19.15
-        version: 1.19.15(hono@4.13.16)
+        specifier: ^2.1.6
+        version: 2.1.6(hono@4.13.16)
       ai:
         specifier: workspace:*
         version: link:../ai
@@ -7955,6 +7955,12 @@ packages:
     engines: {node: '>=18.14.1'}
     peerDependencies:
       hono: ^4
+
+  '@hono/node-server@2.1.6':
+    resolution: {integrity: sha512-p/KH9MnfNcsm3sR6x4lNgm5j+QN4Et8srKredl9DZfXiyZ1UQ3aQ2YVpFLbqktYN5JI+DB+VZFKM2PqE5hLKjQ==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      hono: ^4 || ^5.0.0-0
 
   '@hono/node-ws@1.3.1':
     resolution: {integrity: sha512-vo/MwCnpJAVHBkGzWjCJ28wF45fYHAfbPZcH2rodZODHtch2GHA94KtMfusmVycTUtsLAsaNsHhtY6P8X3RQsA==}
@@ -28537,6 +28543,10 @@ snapshots:
     optional: true
 
   '@hono/node-server@1.19.15(hono@4.13.16)':
+    dependencies:
+      hono: 4.13.16
+
+  '@hono/node-server@2.1.6(hono@4.13.16)':
     dependencies:
       hono: 4.13.16
 
