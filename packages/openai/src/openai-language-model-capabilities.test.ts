@@ -76,17 +76,12 @@ describe('getOpenAILanguageModelCapabilities', () => {
   describe('supportsNonReasoningParameters', () => {
     it.each([
       ['gpt-5.1', true],
-      ['gpt-5.1-chat-latest', true],
       ['gpt-5.1-codex-mini', true],
       ['gpt-5.1-codex', true],
       ['gpt-5.2', true],
-      ['gpt-5.2-pro', true],
-      ['gpt-5.2-chat-latest', true],
-      ['gpt-5.3-chat-latest', true],
       ['gpt-5.4', true],
       ['gpt-5.4-mini', true],
       ['gpt-5.4-nano', true],
-      ['gpt-5.4-pro', true],
       ['gpt-5.4-2026-03-05', true],
       ['gpt-5.4-mini-2026-03-17', true],
       ['gpt-5.4-nano-2026-03-17', true],
@@ -112,6 +107,12 @@ describe('getOpenAILanguageModelCapabilities', () => {
       ['gpt-5-nano', false],
       ['gpt-5-pro', false],
       ['gpt-5-chat-latest', false],
+      // These models do not accept reasoning effort none.
+      ['gpt-5.1-chat-latest', false],
+      ['gpt-5.2-chat-latest', false],
+      ['gpt-5.3-chat-latest', false],
+      ['gpt-5.2-pro', false],
+      ['gpt-5.4-pro', false],
       ['ft:gpt-99:org:custom:abc123', false],
       ['acme-gpt-99-proxy', false],
     ])(
@@ -232,10 +233,16 @@ describe('getOpenAILanguageModelCapabilities', () => {
       ['gpt-5.5', ['none', 'low', 'medium', 'high', 'xhigh']],
       ['gpt-5.6', ['none', 'low', 'medium', 'high', 'xhigh', 'max']],
       ['gpt-5.6-luna', ['none', 'low', 'medium', 'high', 'xhigh', 'max']],
-      ['gpt-5-pro', undefined],
-      ['gpt-5-codex', undefined],
+      ['gpt-5-pro', ['high']],
+      ['gpt-5-codex', ['low', 'medium', 'high']],
+      ['gpt-5.1-codex-max', ['none', 'low', 'medium', 'high', 'xhigh']],
+      ['gpt-5.2-pro', ['medium', 'high', 'xhigh']],
+      ['gpt-5.3-codex', ['none', 'low', 'medium', 'high', 'xhigh']],
+      ['gpt-5.2-chat-latest', ['medium']],
+      ['o3', ['low', 'medium', 'high']],
+      // Non-reasoning models declare no efforts.
       ['gpt-5-chat-latest', undefined],
-      ['gpt-5.2-pro', undefined],
+      ['gpt-4o', undefined],
     ])('%s supports the expected reasoning efforts', (modelId, expected) => {
       expect(
         getOpenAILanguageModelCapabilities(modelId).supportedReasoningEfforts,

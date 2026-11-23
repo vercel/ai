@@ -102,7 +102,7 @@ export type OpenAILanguageModelEntry = {
  * models is its own column, and every listed model fills in every column.
  * Nothing is derived from the model ID or from another column.
  */
-type OpenAILanguageModelRow = {
+export type OpenAILanguageModelRow = {
   /** APIs that suggest this model ID. */
   endpoints: readonly ('chat' | 'responses' | 'completion' | 'decision')[];
   /**
@@ -111,8 +111,10 @@ type OpenAILanguageModelRow = {
    * options are then reported as `'unknown'`.
    */
   documented: boolean;
-  reasoning: boolean;
-  /** `undefined` means no exhaustive effort list is declared. */
+  /**
+   * Reasoning efforts the model accepts. `undefined` means the model does not
+   * reason. Every reasoning model declares its list.
+   */
   reasoningEfforts: readonly string[] | undefined;
   /** Accepts temperature, topP, and logprobs when reasoning effort is none. */
   samplingAtReasoningEffortNone: boolean;
@@ -157,11 +159,10 @@ const logprobsNotWhileReasoningInChat = {
  * Language model matrix: model IDs by capability. To add a model, add a row and
  * fill in every column.
  */
-const openaiModelDefinitions = {
+export const openaiModelDefinitions = {
   'gpt-6.2-astra': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: true,
     reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
     samplingAtReasoningEffortNone: false,
     temperature: false,
@@ -181,7 +182,6 @@ const openaiModelDefinitions = {
   'gpt-6.2-sol': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: true,
     reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
     samplingAtReasoningEffortNone: false,
     temperature: false,
@@ -201,7 +201,6 @@ const openaiModelDefinitions = {
   'gpt-6-astra': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: true,
     reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
     samplingAtReasoningEffortNone: false,
     temperature: false,
@@ -221,7 +220,6 @@ const openaiModelDefinitions = {
   'gpt-6.1-sol': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: true,
     reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
     samplingAtReasoningEffortNone: false,
     temperature: false,
@@ -241,7 +239,6 @@ const openaiModelDefinitions = {
   'gpt-6.1-terra': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: true,
     reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh', 'max'],
     samplingAtReasoningEffortNone: true,
     temperature: atReasoningEffortNone,
@@ -261,7 +258,6 @@ const openaiModelDefinitions = {
   'gpt-6-luna': {
     endpoints: ['chat', 'responses', 'decision'],
     documented: true,
-    reasoning: true,
     reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh', 'max'],
     samplingAtReasoningEffortNone: true,
     temperature: atReasoningEffortNone,
@@ -281,7 +277,6 @@ const openaiModelDefinitions = {
   'gpt-6-sol': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: true,
     reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh', 'max'],
     samplingAtReasoningEffortNone: true,
     temperature: atReasoningEffortNone,
@@ -301,7 +296,6 @@ const openaiModelDefinitions = {
   'gpt-5.6': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: true,
     reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh', 'max'],
     samplingAtReasoningEffortNone: true,
     temperature: atReasoningEffortNone,
@@ -321,7 +315,6 @@ const openaiModelDefinitions = {
   'gpt-5.6-luna': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: true,
     reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh', 'max'],
     samplingAtReasoningEffortNone: true,
     temperature: atReasoningEffortNone,
@@ -341,7 +334,6 @@ const openaiModelDefinitions = {
   'gpt-5.6-sol': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: true,
     reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh', 'max'],
     samplingAtReasoningEffortNone: true,
     temperature: atReasoningEffortNone,
@@ -361,7 +353,6 @@ const openaiModelDefinitions = {
   'gpt-5.6-terra': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: true,
     reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh', 'max'],
     samplingAtReasoningEffortNone: true,
     temperature: atReasoningEffortNone,
@@ -381,7 +372,6 @@ const openaiModelDefinitions = {
   'gpt-5.5': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: true,
     reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
     samplingAtReasoningEffortNone: true,
     temperature: atReasoningEffortNone,
@@ -401,12 +391,11 @@ const openaiModelDefinitions = {
   'gpt-5.4-pro': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: true,
-    reasoningEfforts: undefined,
-    samplingAtReasoningEffortNone: true,
-    temperature: atReasoningEffortNone,
-    topP: atReasoningEffortNone,
-    logprobs: logprobsAtReasoningEffortNoneInChat,
+    reasoningEfforts: ['medium', 'high', 'xhigh'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
     asyncTools: false,
     flexProcessing: true,
     priorityProcessing: true,
@@ -421,7 +410,6 @@ const openaiModelDefinitions = {
   'gpt-5.4': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: true,
     reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
     samplingAtReasoningEffortNone: true,
     temperature: atReasoningEffortNone,
@@ -441,7 +429,6 @@ const openaiModelDefinitions = {
   'gpt-5.4-mini': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: true,
     reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
     samplingAtReasoningEffortNone: true,
     temperature: atReasoningEffortNone,
@@ -461,7 +448,6 @@ const openaiModelDefinitions = {
   'gpt-5.4-nano': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: true,
     reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
     samplingAtReasoningEffortNone: true,
     temperature: atReasoningEffortNone,
@@ -481,12 +467,11 @@ const openaiModelDefinitions = {
   'gpt-5.3-chat-latest': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: true,
-    reasoningEfforts: undefined,
-    samplingAtReasoningEffortNone: true,
-    temperature: atReasoningEffortNone,
-    topP: atReasoningEffortNone,
-    logprobs: logprobsAtReasoningEffortNoneInChat,
+    reasoningEfforts: ['medium'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
     asyncTools: false,
     flexProcessing: true,
     priorityProcessing: true,
@@ -501,12 +486,11 @@ const openaiModelDefinitions = {
   'gpt-5.2-pro': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: true,
-    reasoningEfforts: undefined,
-    samplingAtReasoningEffortNone: true,
-    temperature: atReasoningEffortNone,
-    topP: atReasoningEffortNone,
-    logprobs: logprobsAtReasoningEffortNoneInChat,
+    reasoningEfforts: ['medium', 'high', 'xhigh'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
     asyncTools: false,
     flexProcessing: true,
     priorityProcessing: true,
@@ -521,12 +505,11 @@ const openaiModelDefinitions = {
   'gpt-5.2-chat-latest': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: true,
-    reasoningEfforts: undefined,
-    samplingAtReasoningEffortNone: true,
-    temperature: atReasoningEffortNone,
-    topP: atReasoningEffortNone,
-    logprobs: logprobsAtReasoningEffortNoneInChat,
+    reasoningEfforts: ['medium'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
     asyncTools: false,
     flexProcessing: true,
     priorityProcessing: true,
@@ -541,7 +524,6 @@ const openaiModelDefinitions = {
   'gpt-5.2': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: true,
     reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
     samplingAtReasoningEffortNone: true,
     temperature: atReasoningEffortNone,
@@ -561,8 +543,7 @@ const openaiModelDefinitions = {
   'gpt-5.1-codex-mini': {
     endpoints: ['responses'],
     documented: true,
-    reasoning: true,
-    reasoningEfforts: undefined,
+    reasoningEfforts: ['none', 'low', 'medium', 'high'],
     samplingAtReasoningEffortNone: true,
     temperature: atReasoningEffortNone,
     topP: atReasoningEffortNone,
@@ -581,8 +562,7 @@ const openaiModelDefinitions = {
   'gpt-5.1-codex': {
     endpoints: ['responses'],
     documented: true,
-    reasoning: true,
-    reasoningEfforts: undefined,
+    reasoningEfforts: ['none', 'low', 'medium', 'high'],
     samplingAtReasoningEffortNone: true,
     temperature: atReasoningEffortNone,
     topP: atReasoningEffortNone,
@@ -601,12 +581,11 @@ const openaiModelDefinitions = {
   'gpt-5.1-chat-latest': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: true,
-    reasoningEfforts: undefined,
-    samplingAtReasoningEffortNone: true,
-    temperature: atReasoningEffortNone,
-    topP: atReasoningEffortNone,
-    logprobs: logprobsAtReasoningEffortNoneInChat,
+    reasoningEfforts: ['medium'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
     asyncTools: false,
     flexProcessing: true,
     priorityProcessing: true,
@@ -621,7 +600,6 @@ const openaiModelDefinitions = {
   'gpt-5.1': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: true,
     reasoningEfforts: ['none', 'low', 'medium', 'high'],
     samplingAtReasoningEffortNone: true,
     temperature: atReasoningEffortNone,
@@ -641,8 +619,7 @@ const openaiModelDefinitions = {
   'gpt-5-pro': {
     endpoints: ['responses'],
     documented: true,
-    reasoning: true,
-    reasoningEfforts: undefined,
+    reasoningEfforts: ['high'],
     samplingAtReasoningEffortNone: false,
     temperature: false,
     topP: false,
@@ -661,7 +638,6 @@ const openaiModelDefinitions = {
   'gpt-5': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: true,
     reasoningEfforts: ['minimal', 'low', 'medium', 'high'],
     samplingAtReasoningEffortNone: false,
     temperature: false,
@@ -681,7 +657,6 @@ const openaiModelDefinitions = {
   'gpt-5-mini': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: true,
     reasoningEfforts: ['minimal', 'low', 'medium', 'high'],
     samplingAtReasoningEffortNone: false,
     temperature: false,
@@ -701,7 +676,6 @@ const openaiModelDefinitions = {
   'gpt-5-nano': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: true,
     reasoningEfforts: ['minimal', 'low', 'medium', 'high'],
     samplingAtReasoningEffortNone: false,
     temperature: false,
@@ -721,8 +695,7 @@ const openaiModelDefinitions = {
   'gpt-5-codex': {
     endpoints: ['responses'],
     documented: true,
-    reasoning: true,
-    reasoningEfforts: undefined,
+    reasoningEfforts: ['low', 'medium', 'high'],
     samplingAtReasoningEffortNone: false,
     temperature: false,
     topP: false,
@@ -741,7 +714,6 @@ const openaiModelDefinitions = {
   'gpt-5-chat-latest': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: false,
     reasoningEfforts: undefined,
     samplingAtReasoningEffortNone: false,
     temperature: true,
@@ -763,7 +735,6 @@ const openaiModelDefinitions = {
   'gpt-4.1': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: false,
     reasoningEfforts: undefined,
     samplingAtReasoningEffortNone: false,
     temperature: true,
@@ -783,7 +754,6 @@ const openaiModelDefinitions = {
   'gpt-4.1-mini': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: false,
     reasoningEfforts: undefined,
     samplingAtReasoningEffortNone: false,
     temperature: true,
@@ -803,7 +773,6 @@ const openaiModelDefinitions = {
   'gpt-4.1-nano': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: false,
     reasoningEfforts: undefined,
     samplingAtReasoningEffortNone: false,
     temperature: true,
@@ -823,7 +792,6 @@ const openaiModelDefinitions = {
   'gpt-4o': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: false,
     reasoningEfforts: undefined,
     samplingAtReasoningEffortNone: false,
     temperature: true,
@@ -843,7 +811,6 @@ const openaiModelDefinitions = {
   'gpt-4o-mini': {
     endpoints: ['chat', 'responses'],
     documented: true,
-    reasoning: false,
     reasoningEfforts: undefined,
     samplingAtReasoningEffortNone: false,
     temperature: true,
@@ -863,7 +830,6 @@ const openaiModelDefinitions = {
   'gpt-3.5-turbo': {
     endpoints: ['chat', 'responses'],
     documented: false,
-    reasoning: false,
     reasoningEfforts: undefined,
     samplingAtReasoningEffortNone: false,
     temperature: true,
@@ -883,7 +849,6 @@ const openaiModelDefinitions = {
   'gpt-3.5-turbo-0125': {
     endpoints: ['chat', 'responses'],
     documented: false,
-    reasoning: false,
     reasoningEfforts: undefined,
     samplingAtReasoningEffortNone: false,
     temperature: true,
@@ -903,7 +868,6 @@ const openaiModelDefinitions = {
   'gpt-3.5-turbo-1106': {
     endpoints: ['chat', 'responses'],
     documented: false,
-    reasoning: false,
     reasoningEfforts: undefined,
     samplingAtReasoningEffortNone: false,
     temperature: true,
@@ -923,7 +887,6 @@ const openaiModelDefinitions = {
   'gpt-3.5-turbo-16k': {
     endpoints: ['chat'],
     documented: false,
-    reasoning: false,
     reasoningEfforts: undefined,
     samplingAtReasoningEffortNone: false,
     temperature: true,
@@ -943,7 +906,6 @@ const openaiModelDefinitions = {
   'gpt-4.1-2025-04-14': {
     endpoints: ['chat', 'responses'],
     documented: false,
-    reasoning: false,
     reasoningEfforts: undefined,
     samplingAtReasoningEffortNone: false,
     temperature: true,
@@ -963,7 +925,6 @@ const openaiModelDefinitions = {
   'gpt-4.1-mini-2025-04-14': {
     endpoints: ['chat', 'responses'],
     documented: false,
-    reasoning: false,
     reasoningEfforts: undefined,
     samplingAtReasoningEffortNone: false,
     temperature: true,
@@ -983,7 +944,6 @@ const openaiModelDefinitions = {
   'gpt-4.1-nano-2025-04-14': {
     endpoints: ['chat', 'responses'],
     documented: false,
-    reasoning: false,
     reasoningEfforts: undefined,
     samplingAtReasoningEffortNone: false,
     temperature: true,
@@ -1003,7 +963,6 @@ const openaiModelDefinitions = {
   'gpt-4o-2024-05-13': {
     endpoints: ['chat', 'responses'],
     documented: false,
-    reasoning: false,
     reasoningEfforts: undefined,
     samplingAtReasoningEffortNone: false,
     temperature: true,
@@ -1023,7 +982,6 @@ const openaiModelDefinitions = {
   'gpt-4o-2024-08-06': {
     endpoints: ['chat', 'responses'],
     documented: false,
-    reasoning: false,
     reasoningEfforts: undefined,
     samplingAtReasoningEffortNone: false,
     temperature: true,
@@ -1043,7 +1001,6 @@ const openaiModelDefinitions = {
   'gpt-4o-2024-11-20': {
     endpoints: ['chat', 'responses'],
     documented: false,
-    reasoning: false,
     reasoningEfforts: undefined,
     samplingAtReasoningEffortNone: false,
     temperature: true,
@@ -1063,7 +1020,6 @@ const openaiModelDefinitions = {
   'gpt-4o-audio-preview': {
     endpoints: ['chat'],
     documented: false,
-    reasoning: false,
     reasoningEfforts: undefined,
     samplingAtReasoningEffortNone: false,
     temperature: true,
@@ -1083,7 +1039,6 @@ const openaiModelDefinitions = {
   'gpt-4o-audio-preview-2024-12-17': {
     endpoints: ['chat'],
     documented: false,
-    reasoning: false,
     reasoningEfforts: undefined,
     samplingAtReasoningEffortNone: false,
     temperature: true,
@@ -1103,7 +1058,6 @@ const openaiModelDefinitions = {
   'gpt-4o-audio-preview-2025-06-03': {
     endpoints: ['chat'],
     documented: false,
-    reasoning: false,
     reasoningEfforts: undefined,
     samplingAtReasoningEffortNone: false,
     temperature: true,
@@ -1123,7 +1077,6 @@ const openaiModelDefinitions = {
   'gpt-4o-mini-2024-07-18': {
     endpoints: ['chat', 'responses'],
     documented: false,
-    reasoning: false,
     reasoningEfforts: undefined,
     samplingAtReasoningEffortNone: false,
     temperature: true,
@@ -1143,7 +1096,6 @@ const openaiModelDefinitions = {
   'gpt-4o-mini-audio-preview': {
     endpoints: ['chat'],
     documented: false,
-    reasoning: false,
     reasoningEfforts: undefined,
     samplingAtReasoningEffortNone: false,
     temperature: true,
@@ -1163,7 +1115,6 @@ const openaiModelDefinitions = {
   'gpt-4o-mini-audio-preview-2024-12-17': {
     endpoints: ['chat'],
     documented: false,
-    reasoning: false,
     reasoningEfforts: undefined,
     samplingAtReasoningEffortNone: false,
     temperature: true,
@@ -1183,7 +1134,6 @@ const openaiModelDefinitions = {
   'gpt-4o-mini-search-preview': {
     endpoints: ['chat'],
     documented: false,
-    reasoning: false,
     reasoningEfforts: undefined,
     samplingAtReasoningEffortNone: false,
     temperature: exceptSearchPreviewChat,
@@ -1203,7 +1153,6 @@ const openaiModelDefinitions = {
   'gpt-4o-mini-search-preview-2025-03-11': {
     endpoints: ['chat'],
     documented: false,
-    reasoning: false,
     reasoningEfforts: undefined,
     samplingAtReasoningEffortNone: false,
     temperature: exceptSearchPreviewChat,
@@ -1223,7 +1172,6 @@ const openaiModelDefinitions = {
   'gpt-4o-search-preview': {
     endpoints: ['chat'],
     documented: false,
-    reasoning: false,
     reasoningEfforts: undefined,
     samplingAtReasoningEffortNone: false,
     temperature: exceptSearchPreviewChat,
@@ -1243,7 +1191,6 @@ const openaiModelDefinitions = {
   'gpt-4o-search-preview-2025-03-11': {
     endpoints: ['chat'],
     documented: false,
-    reasoning: false,
     reasoningEfforts: undefined,
     samplingAtReasoningEffortNone: false,
     temperature: exceptSearchPreviewChat,
@@ -1263,7 +1210,6 @@ const openaiModelDefinitions = {
   'gpt-5-2025-08-07': {
     endpoints: ['chat', 'responses'],
     documented: false,
-    reasoning: true,
     reasoningEfforts: ['minimal', 'low', 'medium', 'high'],
     samplingAtReasoningEffortNone: false,
     temperature: false,
@@ -1283,7 +1229,6 @@ const openaiModelDefinitions = {
   'gpt-5-mini-2025-08-07': {
     endpoints: ['chat', 'responses'],
     documented: false,
-    reasoning: true,
     reasoningEfforts: ['minimal', 'low', 'medium', 'high'],
     samplingAtReasoningEffortNone: false,
     temperature: false,
@@ -1303,7 +1248,6 @@ const openaiModelDefinitions = {
   'gpt-5-nano-2025-08-07': {
     endpoints: ['chat', 'responses'],
     documented: false,
-    reasoning: true,
     reasoningEfforts: ['minimal', 'low', 'medium', 'high'],
     samplingAtReasoningEffortNone: false,
     temperature: false,
@@ -1323,7 +1267,6 @@ const openaiModelDefinitions = {
   'gpt-5.1-2025-11-13': {
     endpoints: ['chat', 'responses'],
     documented: false,
-    reasoning: true,
     reasoningEfforts: ['none', 'low', 'medium', 'high'],
     samplingAtReasoningEffortNone: true,
     temperature: atReasoningEffortNone,
@@ -1343,7 +1286,6 @@ const openaiModelDefinitions = {
   'gpt-5.2-2025-12-11': {
     endpoints: ['chat', 'responses'],
     documented: false,
-    reasoning: true,
     reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
     samplingAtReasoningEffortNone: true,
     temperature: atReasoningEffortNone,
@@ -1363,12 +1305,11 @@ const openaiModelDefinitions = {
   'gpt-5.2-pro-2025-12-11': {
     endpoints: ['chat', 'responses'],
     documented: false,
-    reasoning: true,
-    reasoningEfforts: undefined,
-    samplingAtReasoningEffortNone: true,
-    temperature: atReasoningEffortNone,
-    topP: atReasoningEffortNone,
-    logprobs: logprobsAtReasoningEffortNoneInChat,
+    reasoningEfforts: ['medium', 'high', 'xhigh'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
     asyncTools: false,
     flexProcessing: true,
     priorityProcessing: true,
@@ -1383,7 +1324,6 @@ const openaiModelDefinitions = {
   'gpt-5.4-2026-03-05': {
     endpoints: ['chat', 'responses'],
     documented: false,
-    reasoning: true,
     reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
     samplingAtReasoningEffortNone: true,
     temperature: atReasoningEffortNone,
@@ -1403,7 +1343,6 @@ const openaiModelDefinitions = {
   'gpt-5.4-mini-2026-03-17': {
     endpoints: ['chat', 'responses'],
     documented: false,
-    reasoning: true,
     reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
     samplingAtReasoningEffortNone: true,
     temperature: atReasoningEffortNone,
@@ -1423,7 +1362,6 @@ const openaiModelDefinitions = {
   'gpt-5.4-nano-2026-03-17': {
     endpoints: ['chat', 'responses'],
     documented: false,
-    reasoning: true,
     reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
     samplingAtReasoningEffortNone: true,
     temperature: atReasoningEffortNone,
@@ -1443,12 +1381,11 @@ const openaiModelDefinitions = {
   'gpt-5.4-pro-2026-03-05': {
     endpoints: ['chat', 'responses'],
     documented: false,
-    reasoning: true,
-    reasoningEfforts: undefined,
-    samplingAtReasoningEffortNone: true,
-    temperature: atReasoningEffortNone,
-    topP: atReasoningEffortNone,
-    logprobs: logprobsAtReasoningEffortNoneInChat,
+    reasoningEfforts: ['medium', 'high', 'xhigh'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
     asyncTools: false,
     flexProcessing: true,
     priorityProcessing: true,
@@ -1463,7 +1400,6 @@ const openaiModelDefinitions = {
   'gpt-5.5-2026-04-23': {
     endpoints: ['chat', 'responses'],
     documented: false,
-    reasoning: true,
     reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
     samplingAtReasoningEffortNone: true,
     temperature: atReasoningEffortNone,
@@ -1483,8 +1419,7 @@ const openaiModelDefinitions = {
   o1: {
     endpoints: ['chat', 'responses'],
     documented: false,
-    reasoning: true,
-    reasoningEfforts: undefined,
+    reasoningEfforts: ['low', 'medium', 'high'],
     samplingAtReasoningEffortNone: false,
     temperature: false,
     topP: false,
@@ -1503,8 +1438,7 @@ const openaiModelDefinitions = {
   'o1-2024-12-17': {
     endpoints: ['chat', 'responses'],
     documented: false,
-    reasoning: true,
-    reasoningEfforts: undefined,
+    reasoningEfforts: ['low', 'medium', 'high'],
     samplingAtReasoningEffortNone: false,
     temperature: false,
     topP: false,
@@ -1523,8 +1457,7 @@ const openaiModelDefinitions = {
   o3: {
     endpoints: ['chat', 'responses'],
     documented: false,
-    reasoning: true,
-    reasoningEfforts: undefined,
+    reasoningEfforts: ['low', 'medium', 'high'],
     samplingAtReasoningEffortNone: false,
     temperature: false,
     topP: false,
@@ -1543,8 +1476,7 @@ const openaiModelDefinitions = {
   'o3-2025-04-16': {
     endpoints: ['chat', 'responses'],
     documented: false,
-    reasoning: true,
-    reasoningEfforts: undefined,
+    reasoningEfforts: ['low', 'medium', 'high'],
     samplingAtReasoningEffortNone: false,
     temperature: false,
     topP: false,
@@ -1563,8 +1495,7 @@ const openaiModelDefinitions = {
   'o3-mini': {
     endpoints: ['chat', 'responses'],
     documented: false,
-    reasoning: true,
-    reasoningEfforts: undefined,
+    reasoningEfforts: ['low', 'medium', 'high'],
     samplingAtReasoningEffortNone: false,
     temperature: false,
     topP: false,
@@ -1583,8 +1514,7 @@ const openaiModelDefinitions = {
   'o3-mini-2025-01-31': {
     endpoints: ['chat', 'responses'],
     documented: false,
-    reasoning: true,
-    reasoningEfforts: undefined,
+    reasoningEfforts: ['low', 'medium', 'high'],
     samplingAtReasoningEffortNone: false,
     temperature: false,
     topP: false,
@@ -1603,8 +1533,7 @@ const openaiModelDefinitions = {
   'o4-mini': {
     endpoints: ['chat', 'responses'],
     documented: false,
-    reasoning: true,
-    reasoningEfforts: undefined,
+    reasoningEfforts: ['low', 'medium', 'high'],
     samplingAtReasoningEffortNone: false,
     temperature: false,
     topP: false,
@@ -1623,8 +1552,7 @@ const openaiModelDefinitions = {
   'o4-mini-2025-04-16': {
     endpoints: ['chat', 'responses'],
     documented: false,
-    reasoning: true,
-    reasoningEfforts: undefined,
+    reasoningEfforts: ['low', 'medium', 'high'],
     samplingAtReasoningEffortNone: false,
     temperature: false,
     topP: false,
@@ -1643,8 +1571,7 @@ const openaiModelDefinitions = {
   'gpt-5-pro-2025-10-06': {
     endpoints: ['responses'],
     documented: false,
-    reasoning: true,
-    reasoningEfforts: undefined,
+    reasoningEfforts: ['high'],
     samplingAtReasoningEffortNone: false,
     temperature: false,
     topP: false,
@@ -1663,8 +1590,7 @@ const openaiModelDefinitions = {
   'gpt-5.1-codex-max': {
     endpoints: ['responses'],
     documented: false,
-    reasoning: true,
-    reasoningEfforts: undefined,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
     samplingAtReasoningEffortNone: true,
     temperature: atReasoningEffortNone,
     topP: atReasoningEffortNone,
@@ -1683,12 +1609,11 @@ const openaiModelDefinitions = {
   'gpt-5.2-codex': {
     endpoints: ['responses'],
     documented: false,
-    reasoning: true,
-    reasoningEfforts: undefined,
-    samplingAtReasoningEffortNone: true,
-    temperature: atReasoningEffortNone,
-    topP: atReasoningEffortNone,
-    logprobs: logprobsAtReasoningEffortNoneInChat,
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
     asyncTools: false,
     flexProcessing: true,
     priorityProcessing: true,
@@ -1703,8 +1628,7 @@ const openaiModelDefinitions = {
   'gpt-5.3-codex': {
     endpoints: ['responses'],
     documented: false,
-    reasoning: true,
-    reasoningEfforts: undefined,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
     samplingAtReasoningEffortNone: true,
     temperature: atReasoningEffortNone,
     topP: atReasoningEffortNone,
@@ -1723,7 +1647,6 @@ const openaiModelDefinitions = {
   'gpt-3.5-turbo-instruct': {
     endpoints: ['completion'],
     documented: false,
-    reasoning: false,
     reasoningEfforts: undefined,
     samplingAtReasoningEffortNone: false,
     temperature: true,
@@ -1743,7 +1666,6 @@ const openaiModelDefinitions = {
   'gpt-3.5-turbo-instruct-0914': {
     endpoints: ['completion'],
     documented: false,
-    reasoning: false,
     reasoningEfforts: undefined,
     samplingAtReasoningEffortNone: false,
     temperature: true,
@@ -1804,7 +1726,7 @@ function createOpenAILanguageModelEntry(
             async: row.asyncTools,
           },
           reasoning: {
-            support: row.reasoning,
+            support: row.reasoningEfforts != null,
             efforts: row.reasoningEfforts,
             sampling: row.samplingAtReasoningEffortNone
               ? 'reasoning-effort-none'
