@@ -1,3 +1,4 @@
+import { notify } from '../util/notify';
 import { logWarnings, type LogWarningsFunction } from './log-warnings';
 
 export function createLogWarnings(
@@ -9,7 +10,8 @@ export function createLogWarnings(
 
   return options => {
     if (options.warnings.length > 0) {
-      onWarning(options);
+      // like the other callbacks, errors in onWarning do not break the call:
+      void notify({ event: options, callbacks: onWarning });
     }
   };
 }

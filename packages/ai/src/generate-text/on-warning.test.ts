@@ -265,6 +265,42 @@ describe.each(['generate', 'stream'] as const)('onWarning (%s)', method => {
     expect(onWarning).not.toHaveBeenCalled();
   });
 
+  it('does not fail the call when onWarning throws', async () => {
+    const warning = { type: 'other', message: 'Provider note' } as const;
+    const onWarning = vi.fn(() => {
+      throw new Error('onWarning failed');
+    });
+
+    const { stepWarnings } = await run({
+      responses: [text('A red square.', [warning])],
+      messages: messagesWithImagePart,
+      onWarning,
+    });
+
+    expect(stepWarnings).toEqual([[imagePartWarning, warning]]);
+    expect(onWarning).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not cause an unhandled rejection when an async onWarning rejects', async () => {
+    const onUnhandledRejection = vi.fn();
+    process.on('unhandledRejection', onUnhandledRejection);
+
+    try {
+      await run({
+        responses: [text('A red square.')],
+        messages: messagesWithImagePart,
+        onWarning: async () => {
+          throw new Error('onWarning failed');
+        },
+      });
+      await new Promise(resolve => setTimeout(resolve, 0));
+    } finally {
+      process.off('unhandledRejection', onUnhandledRejection);
+    }
+
+    expect(onUnhandledRejection).not.toHaveBeenCalled();
+  });
+
   it('logs a prompt conversion deprecation without the provider scope', async () => {
     const globalLogger = vi.fn();
     vi.stubGlobal('AI_SDK_LOG_WARNINGS', globalLogger);
@@ -466,6 +502,22 @@ describe('onWarning', () => {
       }),
     );
     expect(globalLogger).not.toHaveBeenCalled();
+  });
+
+  it('calls onStepStart of streamText when onWarning throws', async () => {
+    const onStepStart = vi.fn();
+
+    const result = streamText({
+      model: createModel([text('A red square.')]),
+      messages: messagesWithImagePart,
+      onWarning: () => {
+        throw new Error('onWarning failed');
+      },
+      onStepStart,
+    });
+    await result.consumeStream();
+
+    expect(onStepStart).toHaveBeenCalledOnce();
   });
 
   it.each(['generate', 'stream'] as const)(
