@@ -25,7 +25,8 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError, ToolChoiceViolationError } from '../error';
-import { logWarnings } from '../logger/log-warnings';
+import { createLogWarnings } from '../logger/create-log-warnings';
+import type { LogWarningsFunction } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { cloneModelMessages } from '../prompt/clone-model-message';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
@@ -380,6 +381,7 @@ type StreamTextOptions<
  * @param onStepEnd - Callback that is called when each step (LLM call) ends, including intermediate steps.
  * @param onStepError - Callback that is called when a step that started fails before it produces a step result, i.e. when the provider call throws or rejects, or when the model stream ends without output. A provider `error` chunk still ends the step with `onStepEnd`, and an abort or timeout ends it with `onAbort`.
  * @param onStepFinish - Deprecated alias for `onStepEnd`.
+ * @param onWarning - Callback that receives the warnings of the call instead of the global warning logger.
  * @param onEnd - Callback that is called when all steps are finished and the response is complete.
  * @param onFinish - Deprecated alias for `onEnd`.
  *
@@ -507,6 +509,7 @@ function streamTextInternal<
     onStepEnd,
     onStepError,
     onStepFinish,
+    onWarning,
     onStart,
     experimental_onStart,
     onStepStart,
@@ -789,6 +792,13 @@ function streamTextInternal<
       >;
 
       /**
+       * Callback that receives the warnings of the call, e.g. unsupported
+       * settings or deprecated prompt parts. When it is set, the warnings are
+       * not sent to the global warning logger (`AI_SDK_LOG_WARNINGS`).
+       */
+      onWarning?: LogWarningsFunction;
+
+      /**
        * Callback that is called when each step (LLM call) ends, including intermediate steps.
        *
        * @deprecated Use `onStepEnd` instead.
@@ -1008,6 +1018,7 @@ function streamTextInternal<
     onAbort,
     onStepFinish: resolvedOnStepEnd,
     onStepError,
+    onWarning,
     onStart: resolvedOnStart,
     onStepStart: resolvedOnStepStart,
     onLanguageModelCallStart: resolvedOnLanguageModelCallStart,
@@ -1433,6 +1444,7 @@ class DefaultStreamTextResult<
     onAbort,
     onStepFinish,
     onStepError,
+    onWarning,
     onStart,
     onStepStart,
     onLanguageModelCallStart,
@@ -1520,6 +1532,7 @@ class DefaultStreamTextResult<
           NoInfer<RUNTIME_CONTEXT>,
           NoInfer<OUTPUT>
         >;
+    onWarning: undefined | LogWarningsFunction;
     onStart:
       | undefined
       | GenerateTextOnStartCallback<
@@ -1568,6 +1581,8 @@ class DefaultStreamTextResult<
     // needs the updated steps to determine if another step is needed.
     let stepFinish!: DelayedPromise<void>;
 
+    const logCallWarnings = createLogWarnings(onWarning);
+
     let recordedContent: Array<ContentPart<TOOLS>> = [];
     let recordedFinishReason: FinishReason | undefined = undefined;
     let recordedRawFinishReason: string | undefined = undefined;
@@ -1575,6 +1590,7 @@ class DefaultStreamTextResult<
     let recordedRequest: Omit<LanguageModelRequestMetadata, 'messages'> = {};
     let recordedRequestMessages: Array<ModelMessage> = [];
     let recordedWarnings: Array<CallWarning> = [];
+    let recordedPromptWarnings: Array<CallWarning> = [];
     let recordedSteps: StepResult<TOOLS, RUNTIME_CONTEXT>[] = [];
     const initialResponseMessages: Array<ResponseMessage> = [];
     let stepMessagesForNextStep: Array<ModelMessage> | undefined;
@@ -1895,8 +1911,10 @@ class DefaultStreamTextResult<
             callbacks: [onStepFinish, telemetryDispatcher.onStepEnd],
           });
 
-          logWarnings({
-            warnings: recordedWarnings,
+          logCallWarnings({
+            warnings: recordedWarnings.filter(
+              warning => !recordedPromptWarnings.includes(warning),
+            ),
             provider: currentStepModel.provider,
             model: currentStepModel.modelId,
           });
@@ -2849,7 +2867,12 @@ class DefaultStreamTextResult<
                       | undefined
                       | OnLanguageModelCallEndCallback<TOOLS>,
                   ),
-                  onStart: async ({ promptMessages }) => {
+                  onStart: async ({ promptMessages, promptWarnings }) => {
+                    recordedPromptWarnings = promptWarnings;
+                    if (promptWarnings.length > 0) {
+                      logCallWarnings({ warnings: promptWarnings });
+                    }
+
                     if (stepStart.notified) {
                       return;
                     }

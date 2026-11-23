@@ -1,0 +1,329 @@
+import type {
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4StreamPart,
+  LanguageModelV4Usage,
+  SharedV4Warning,
+} from '@ai-sdk/provider';
+import { tool, type ModelMessage, type ToolSet } from '@ai-sdk/provider-utils';
+import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod/v4';
+import { ToolLoopAgent } from '../agent/tool-loop-agent';
+import { resetLogWarningsState } from '../logger/log-warnings';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import { generateText } from './generate-text';
+import { isStepCount } from './stop-condition';
+import { streamText } from './stream-text';
+
+vi.mock('../version', () => ({ VERSION: '0.0.0-test' }));
+
+const usage: LanguageModelV4Usage = {
+  inputTokens: {
+    total: 3,
+    noCache: 3,
+    cacheRead: undefined,
+    cacheWrite: undefined,
+  },
+  outputTokens: { total: 10, text: 10, reasoning: undefined },
+};
+
+type Response = {
+  content: Array<LanguageModelV4Content>;
+  finishReason: LanguageModelV4FinishReason['unified'];
+  warnings?: Array<SharedV4Warning>;
+};
+
+const text = (value: string, warnings: Array<SharedV4Warning> = []) =>
+  ({
+    content: [{ type: 'text', text: value }],
+    finishReason: 'stop',
+    warnings,
+  }) satisfies Response;
+
+const toolCall = {
+  content: [
+    {
+      type: 'tool-call',
+      toolCallId: 'call-1',
+      toolName: 'weather',
+      input: '{ "city": "Paris" }',
+    },
+  ],
+  finishReason: 'tool-calls',
+} satisfies Response;
+
+function createModel(responses: ReadonlyArray<Response>) {
+  let call = 0;
+  return new MockLanguageModelV4({
+    doGenerate: async () => {
+      const response = responses[call++];
+      return {
+        content: response.content,
+        finishReason: { unified: response.finishReason, raw: undefined },
+        usage,
+        warnings: response.warnings ?? [],
+      };
+    },
+    doStream: async () => {
+      const response = responses[call++];
+      return {
+        stream: convertArrayToReadableStream<LanguageModelV4StreamPart>([
+          { type: 'stream-start', warnings: response.warnings ?? [] },
+          ...response.content.flatMap(
+            (part): Array<LanguageModelV4StreamPart> =>
+              part.type === 'text'
+                ? [
+                    { type: 'text-start', id: '1' },
+                    { type: 'text-delta', id: '1', delta: part.text },
+                    { type: 'text-end', id: '1' },
+                  ]
+                : part.type === 'tool-call'
+                  ? [part]
+                  : [],
+          ),
+          {
+            type: 'finish',
+            finishReason: { unified: response.finishReason, raw: undefined },
+            usage,
+          },
+        ]),
+      };
+    },
+  });
+}
+
+const weather = tool({
+  inputSchema: z.object({ city: z.string() }),
+  execute: async () => 'sunny',
+});
+
+const imagePartWarning = {
+  type: 'deprecated',
+  setting: '"image" content part',
+  message: `The "image" content part type is deprecated. Use a "file" part with mediaType: 'image' (or a more specific image/* subtype) instead.`,
+} as const;
+
+const messagesWithImagePart: Array<ModelMessage> = [
+  {
+    role: 'user',
+    content: [
+      { type: 'text', text: 'What is in this image?' },
+      {
+        type: 'image',
+        image: new Uint8Array([1, 2, 3]),
+        mediaType: 'image/png',
+      },
+    ],
+  },
+];
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
+
+describe.each(['generate', 'stream'] as const)('onWarning (%s)', method => {
+  async function run(settings: {
+    responses: ReadonlyArray<Response>;
+    tools?: ToolSet;
+    messages?: Array<ModelMessage>;
+    onWarning?: Parameters<typeof generateText>[0]['onWarning'];
+  }) {
+    const options = {
+      model: createModel(settings.responses),
+      tools: settings.tools,
+      stopWhen: isStepCount(5),
+      onWarning: settings.onWarning,
+      ...(settings.messages != null
+        ? { messages: settings.messages }
+        : { prompt: 'What is the weather in Paris?' }),
+    };
+
+    if (method === 'generate') {
+      const result = await generateText(options);
+      return {
+        stepWarnings: result.steps.map(step => step.warnings),
+        resultWarnings: result.warnings,
+        startStepWarnings: undefined,
+      };
+    }
+
+    const result = streamText(options);
+    const startStepWarnings: Array<unknown> = [];
+    for await (const part of result.fullStream) {
+      if (part.type === 'start-step') startStepWarnings.push(part.warnings);
+    }
+    return {
+      stepWarnings: (await result.steps).map(step => step.warnings),
+      resultWarnings: await result.warnings,
+      startStepWarnings,
+    };
+  }
+
+  it('sends provider warnings to onWarning instead of the global logger', async () => {
+    const globalLogger = vi.fn();
+    vi.stubGlobal('AI_SDK_LOG_WARNINGS', globalLogger);
+    const onWarning = vi.fn();
+    const warning = { type: 'other', message: 'Provider note' } as const;
+
+    await run({ responses: [text('It is sunny.', [warning])], onWarning });
+
+    expect(onWarning).toHaveBeenCalledWith({
+      warnings: [warning],
+      provider: 'mock-provider',
+      model: 'mock-model-id',
+    });
+    expect(globalLogger).not.toHaveBeenCalled();
+  });
+
+  it('keeps using the global logger without onWarning', async () => {
+    const globalLogger = vi.fn();
+    vi.stubGlobal('AI_SDK_LOG_WARNINGS', globalLogger);
+    const warning = { type: 'other', message: 'Provider note' } as const;
+
+    await run({ responses: [text('It is sunny.', [warning])] });
+
+    expect(globalLogger).toHaveBeenCalledWith({
+      warnings: [warning],
+      provider: 'mock-provider',
+      model: 'mock-model-id',
+    });
+  });
+
+  it('reports a prompt conversion deprecation in the warnings of each step', async () => {
+    const globalLogger = vi.fn();
+    vi.stubGlobal('AI_SDK_LOG_WARNINGS', globalLogger);
+    const onWarning = vi.fn();
+
+    const { stepWarnings, resultWarnings, startStepWarnings } = await run({
+      responses: [toolCall, text('A red square.')],
+      tools: { weather },
+      messages: messagesWithImagePart,
+      onWarning,
+    });
+
+    expect(stepWarnings).toEqual([[imagePartWarning], [imagePartWarning]]);
+    expect(resultWarnings).toEqual([imagePartWarning, imagePartWarning]);
+    if (method === 'stream') {
+      expect(startStepWarnings).toEqual([
+        [imagePartWarning],
+        [imagePartWarning],
+      ]);
+    }
+    expect(onWarning.mock.calls).toEqual([
+      [{ warnings: [imagePartWarning] }],
+      [{ warnings: [imagePartWarning] }],
+    ]);
+    expect(globalLogger).not.toHaveBeenCalled();
+  });
+
+  it('does not call onWarning for steps without warnings', async () => {
+    const onWarning = vi.fn();
+
+    await run({
+      responses: [toolCall, text('It is sunny.')],
+      tools: { weather },
+      onWarning,
+    });
+
+    expect(onWarning).not.toHaveBeenCalled();
+  });
+
+  it('logs a prompt conversion deprecation without the provider scope', async () => {
+    const globalLogger = vi.fn();
+    vi.stubGlobal('AI_SDK_LOG_WARNINGS', globalLogger);
+    const warning = { type: 'other', message: 'Provider note' } as const;
+
+    await run({
+      responses: [text('A red square.', [warning])],
+      messages: messagesWithImagePart,
+    });
+
+    expect(globalLogger.mock.calls).toEqual([
+      [{ warnings: [imagePartWarning] }],
+      [
+        {
+          warnings: [warning],
+          provider: 'mock-provider',
+          model: 'mock-model-id',
+        },
+      ],
+    ]);
+  });
+
+  it('keeps the stable deprecation code of the default logger', async () => {
+    resetLogWarningsState();
+    const emitWarning = vi
+      .spyOn(process, 'emitWarning')
+      .mockImplementation(() => {});
+
+    await run({
+      responses: [text('A red square.')],
+      messages: messagesWithImagePart,
+    });
+
+    expect(emitWarning).toHaveBeenCalledWith(expect.any(String), {
+      type: 'DeprecationWarning',
+      code: 'AISDK_DEP_IMAGE_CONTENT_PART',
+    });
+  });
+});
+
+describe('onWarning', () => {
+  it('receives the unsupported timeout warning of generateText', async () => {
+    const globalLogger = vi.fn();
+    vi.stubGlobal('AI_SDK_LOG_WARNINGS', globalLogger);
+    const onWarning = vi.fn();
+
+    await generateText({
+      model: createModel([text('It is sunny.')]),
+      prompt: 'What is the weather in Paris?',
+      timeout: { chunkMs: 1000 },
+      onWarning,
+    });
+
+    expect(onWarning).toHaveBeenCalledWith(
+      expect.objectContaining({
+        warnings: [expect.objectContaining({ feature: 'timeout.chunkMs' })],
+      }),
+    );
+    expect(globalLogger).not.toHaveBeenCalled();
+  });
+
+  it.each(['generate', 'stream'] as const)(
+    'receives the default step limit warning of a ToolLoopAgent (%s)',
+    async method => {
+      const globalLogger = vi.fn();
+      vi.stubGlobal('AI_SDK_LOG_WARNINGS', globalLogger);
+      const onWarning = vi.fn();
+
+      const agent = new ToolLoopAgent({
+        model: createModel(Array.from({ length: 21 }, () => toolCall)),
+        tools: { weather },
+        onWarning,
+      });
+
+      if (method === 'generate') {
+        await agent.generate({ prompt: 'What is the weather in Paris?' });
+      } else {
+        const result = await agent.stream({
+          prompt: 'What is the weather in Paris?',
+        });
+        await result.consumeStream();
+      }
+
+      expect(onWarning).toHaveBeenCalledOnce();
+      expect(onWarning).toHaveBeenCalledWith({
+        warnings: [
+          expect.objectContaining({
+            message: expect.stringContaining('isStepCount(20)'),
+          }),
+        ],
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
+      expect(globalLogger).not.toHaveBeenCalled();
+    },
+  );
+});
