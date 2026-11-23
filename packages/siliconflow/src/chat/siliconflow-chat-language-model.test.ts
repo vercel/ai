@@ -206,4 +206,36 @@ describe('SiliconFlowChatLanguageModel', () => {
       { type: 'reasoning-end', id: 'reasoning-0' },
     ]);
   });
+
+  it('reports interrupted when the stream ends without a finish reason', async () => {
+    const chunks = [
+      {
+        id: 'chunk-1',
+        model: 'deepseek-ai/DeepSeek-V3.2',
+        choices: [
+          {
+            delta: { role: 'assistant', content: 'Partial answer' },
+            finish_reason: null,
+          },
+        ],
+      },
+    ]
+      .map(chunk => `data: ${JSON.stringify(chunk)}\n\n`)
+      .join('');
+    const fetch = vi.fn().mockResolvedValue(
+      new Response(`${chunks}data: [DONE]\n\n`, {
+        headers: { 'content-type': 'text/event-stream' },
+      }),
+    );
+    const model = createSiliconFlow({ apiKey: 'test-key', fetch })(
+      'deepseek-ai/DeepSeek-V3.2',
+    );
+
+    const result = await model.doStream({ prompt: TEST_PROMPT });
+    const parts = await streamToArray(result.stream);
+
+    expect(parts.find(part => part.type === 'finish')).toMatchObject({
+      finishReason: { unified: 'interrupted', raw: undefined },
+    });
+  });
 });

@@ -386,6 +386,13 @@ export class SiliconFlowChatLanguageModel implements LanguageModelV4 {
 
             toolCallTracker.flush();
 
+            // SiliconFlow may close the SSE stream without sending a
+            // finish_reason. Report an interrupted step so partial output is
+            // not mistaken for a clean completion.
+            if (finishReason.unified === 'other' && finishReason.raw == null) {
+              finishReason = { unified: 'interrupted', raw: undefined };
+            }
+
             controller.enqueue({
               type: 'finish',
               finishReason,
