@@ -100,7 +100,7 @@
     "ai": "workspace:*",
     "arktype": "2.1.28",
     "dotenv": "16.4.5",
-    "effect": "3.21.3",
+    "effect": "3.22.1",
     "eventsource": "^4.1.0",
     "google-auth-library": "^9.15.1",
     "guarded-fetch": "^0.3.0",
