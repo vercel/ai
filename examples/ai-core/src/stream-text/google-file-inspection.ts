@@ -4,10 +4,9 @@ import fs from 'node:fs';
 import { run } from '../lib/run';
 import { printFullStream } from '../lib/print-full-stream';
 
-// Requires a project with Extended Multimodal File Inspection EAP access.
 run(async () => {
   const result = streamText({
-    model: google('gemini-4-argon-file-processing-eap'),
+    model: google('gemini-4-carbon'),
     messages: [
       {
         role: 'user',
