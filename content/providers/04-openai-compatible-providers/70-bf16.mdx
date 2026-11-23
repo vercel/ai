@@ -1,0 +1,112 @@
+---
+title: bf16.ai
+description: Use bf16.ai OpenAI-compatible 1M-context models with the AI SDK.
+---
+
+# bf16.ai Provider
+
+[bf16.ai](https://bf16.ai) is a serverless LLM inference gateway serving 1M-context open-weight models — including DeepSeek V4.1 Flash, GLM-5.3, GLM-5.3 Flash, and Kimi K3.1 Pro — with prompt caching, tool calling, structured outputs, and strict Zero Data Retention (ZDR). You can use its Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Create a bf16.ai API key in the [bf16.ai dashboard](https://bf16.ai/dashboard/keys) and set it as a server-side environment variable:
+
+```bash
+export BF16_API_KEY=your-api-key
+```
+
+## Provider Instance
+
+Create a bf16.ai provider instance with `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+
+const bf16 = createOpenAICompatible({
+  name: "bf16",
+  apiKey: process.env.BF16_API_KEY,
+  baseURL: "https://api.bf16.ai/v1",
+});
+```
+
+## Language Models
+
+Create a language model by passing a model ID from the [bf16.ai model catalog](https://bf16.ai/models) (or a smart router alias such as `bf16/auto:coding`) to the provider instance:
+
+```ts
+const model = bf16("deepseek/deepseek-v4.1-flash-uncensored-fast");
+```
+
+### Generate Text
+
+Use `generateText` to generate text with a bf16.ai model:
+
+```ts
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { generateText } from "ai";
+
+const bf16 = createOpenAICompatible({
+  name: "bf16",
+  apiKey: process.env.BF16_API_KEY,
+  baseURL: "https://api.bf16.ai/v1",
+});
+
+const { text } = await generateText({
+  model: bf16("deepseek/deepseek-v4.1-flash-uncensored-fast"),
+  prompt:
+    "Explain how prompt caching reduces coding-agent latency in two sentences.",
+});
+
+console.log(text);
+```
+
+### Stream Text
+
+Use `streamText` to stream responses as they are generated:
+
+```ts
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { streamText } from "ai";
+
+const bf16 = createOpenAICompatible({
+  name: "bf16",
+  apiKey: process.env.BF16_API_KEY,
+  baseURL: "https://api.bf16.ai/v1",
+});
+
+const result = streamText({
+  model: bf16("zai-org/glm-5.3-uncensored"),
+  prompt:
+    "Write a TypeScript helper that retries a fetch call with exponential backoff.",
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+## Supported Models and Capabilities
+
+This integration connects to bf16.ai's OpenAI-compatible Chat Completions endpoint (`https://api.bf16.ai/v1/chat/completions`) for text generation, streaming, parallel tool calling, vision inputs, reasoning effort, and structured JSON outputs.
+
+| Model ID                                       | Context Window | Capabilities                   |
+| ---------------------------------------------- | -------------- | ------------------------------ |
+| `deepseek/deepseek-v4.1-flash-uncensored-fast` | 1M tokens      | Vision, Tools, Reasoning, JSON |
+| `deepseek/deepseek-v4.1-flash-uncensored`      | 1M tokens      | Vision, Tools, Reasoning, JSON |
+| `bf16/deepseek-v4.1-flash-1017-exl3-2.5bpw`    | 524K tokens    | Vision, Tools, Reasoning, JSON |
+| `zai-org/glm-5.3-flash-uncensored`             | 1M tokens      | Vision, Tools, Reasoning, JSON |
+| `zai-org/glm-5.3-uncensored`                   | 1M tokens      | Tools, Reasoning, JSON         |
+| `moonshotai/kimi-k3.1-pro-uncensored`          | 1M tokens      | Vision, Tools, Reasoning, JSON |
+
+You can also query the live public [`GET /v1/models`](https://api.bf16.ai/v1/models) endpoint for up-to-date model IDs, capabilities, and per-token pricing.
+
+## Resources
+
+- [bf16.ai API documentation](https://bf16.ai/docs)
+- [bf16.ai model catalog](https://bf16.ai/models)
+- [bf16.ai pricing](https://bf16.ai/pricing)
+- [AI SDK OpenAI Compatible provider](/providers/openai-compatible-providers)
