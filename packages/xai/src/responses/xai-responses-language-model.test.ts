@@ -1,4 +1,5 @@
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import { safeParseJSON } from '@ai-sdk/provider-utils';
 import {
   convertReadableStreamToArray,
   mockId,
@@ -6,8 +7,21 @@ import {
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import fs from 'node:fs';
+import { mcpServer } from '../tool/mcp-server';
 import { XaiResponsesLanguageModel } from './xai-responses-language-model';
 import type { XaiLanguageModelResponsesOptions } from './xai-responses-language-model-options';
+
+const MCP_SERVER_ARGS = {
+  serverUrl: 'https://mcp.deepwiki.com/mcp',
+  serverLabel: 'deepwiki',
+};
+
+const MCP_TOOL = {
+  type: 'provider' as const,
+  id: 'xai.mcp' as const,
+  name: 'mcp',
+  args: MCP_SERVER_ARGS,
+};
 
 const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'hello' }] },
@@ -1805,6 +1819,31 @@ describe('XaiResponsesLanguageModel', () => {
       });
     });
 
+    describe('mcp tool', () => {
+      it('should keep the mcp arguments when the tool call input is parsed', async () => {
+        prepareJsonFixtureResponse('xai-mcp-tool.1');
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [MCP_TOOL],
+        });
+
+        const toolCall = result.content.find(part => part.type === 'tool-call');
+
+        expect(toolCall).toMatchObject({
+          toolName: 'mcp',
+          input: '{"repoName":"vercel/ai"}',
+          providerExecuted: true,
+        });
+        expect(
+          await safeParseJSON({
+            text: toolCall!.input,
+            schema: mcpServer(MCP_SERVER_ARGS).inputSchema,
+          }),
+        ).toMatchObject({ success: true, value: { repoName: 'vercel/ai' } });
+      });
+    });
+
     describe('file_search tool', () => {
       it('should include file_search tool call and result with providerExecuted true', async () => {
         prepareJsonFixtureResponse('xai-file-search-tool.1');
@@ -3257,6 +3296,50 @@ describe('XaiResponsesLanguageModel', () => {
     });
 
     describe('tool call streaming', () => {
+      it('should stream the mcp tool call with its arguments', async () => {
+        prepareChunksFixtureResponse('xai-mcp-tool.1');
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [MCP_TOOL],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const toolParts = parts.filter(
+          part =>
+            part.type === 'tool-input-start' ||
+            part.type === 'tool-input-delta' ||
+            part.type === 'tool-input-end' ||
+            part.type === 'tool-call' ||
+            part.type === 'tool-result',
+        );
+
+        expect(toolParts.map(part => part.type)).toEqual([
+          'tool-input-start',
+          'tool-input-delta',
+          'tool-input-end',
+          'tool-call',
+          'tool-result',
+        ]);
+        expect(toolParts[1]).toMatchObject({
+          delta: '{"repoName":"vercel/ai"}',
+        });
+
+        const toolCall = parts.find(part => part.type === 'tool-call');
+
+        expect(toolCall).toMatchObject({
+          toolName: 'mcp',
+          input: '{"repoName":"vercel/ai"}',
+          providerExecuted: true,
+        });
+        expect(
+          await safeParseJSON({
+            text: toolCall!.input,
+            schema: mcpServer(MCP_SERVER_ARGS).inputSchema,
+          }),
+        ).toMatchObject({ success: true, value: { repoName: 'vercel/ai' } });
+      });
+
       it('should stream web_search tool calls', async () => {
         prepareStreamChunks([
           JSON.stringify({
