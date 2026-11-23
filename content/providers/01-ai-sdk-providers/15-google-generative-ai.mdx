@@ -1158,38 +1158,48 @@ The following Zod features are known to not work with Google Generative AI:
   available provider model ID as a string if needed.
 </Note>
 
-### Extended multimodal file inspection
+### File slicing
 
-The Extended Multimodal File Inspection EAP supports PDF, Word (`.docx`,
-`.dotx`, `.doc`), PowerPoint (`.pptx`, `.ppt`), Excel (`.xlsx`, `.xls`), OpenDocument
-(`.odt`, `.odp`, `.ods`), audio, and video. You can select pages, spreadsheet
-cells, or time ranges and choose which content layers Gemini receives.
+Gemini can load only the part of a file that a prompt needs. File slicing
+supports PDF, Word (`.docx`, `.dotx`, `.doc`), PowerPoint (`.pptx`, `.ppt`),
+Excel (`.xlsx`, `.xls`), OpenDocument (`.odt`, `.odp`, `.ods`), audio, and
+video. You can select pages, spreadsheet cells, or time ranges and choose which
+content layers Gemini receives. Google slices the file on the server and
+counts and bills only the tokens of the selected slice.
 
-Use `gemini-4-argon-file-processing-eap` or
-`gemini-3.8-flash-file-processing-eap` with an API key from an allowlisted
-project. The EAP is available on `v1beta` for evaluation and testing. The direct
-Google provider uses `v1beta` by default; a custom `v1` base URL cannot serve
-these EAP aliases.
+File slicing works with Gemini 3 and Gemini 4 models, such as
+`gemini-4-carbon`. Older models, such as Gemini 2.5, ignore the options and
+process the whole file.
+
+Google's file limits apply to the whole file, even when you select a slice:
+50 MB per file, 1,000 pages per PDF, 2,000 pages or slides per Office or
+OpenDocument file, and 50,000 cells per sheet. See Google's
+[document processing guide](https://ai.google.dev/gemini-api/docs/document-processing#technical-details)
+for details.
 
 #### Default file selection
 
-Without inspection options, PDFs include all pages as images and text;
-DOCX, DOTX, ODT, and PPTX use extracted text; DOC, PPT, and ODP use rendered
-page images. Specifying document processing options without content layers
-defaults to page images. Start with text for large Office documents and render
-selected pages when visual details matter.
+Without slicing options, PDFs include all pages as images and text. Gemini 4
+models receive Word, PowerPoint, and OpenDocument documents as page images.
+Gemini 3 models receive DOCX, DOTX, ODT, and PPTX files as extracted text, and
+DOC, PPT, and ODP files as page images. Specifying document processing options
+without content layers defaults to page images. To keep token usage low, skim
+large documents as text first and render selected pages when visual details
+matter.
 
-Spreadsheets without inspection options include every sheet's data and
-formulas. Specifying spreadsheet options defaults to the first sheet, all
-cells, and data plus formulas. `visibleCells` accepts a single cell or an A1
-range and also crops the visual layer. Page and sheet indices are 1-based;
-page bounds are inclusive. An end page beyond the document is clamped, while
-a start page beyond it produces an empty selection. Video defaults to frames
-and audio at one frame per second.
+Spreadsheets without slicing options include every sheet. Gemini 4 models
+receive data, formulas, and sheet names, while Gemini 3 models receive only
+the values of XLSX and XLS files. Specifying spreadsheet options defaults to
+every sheet, all cells, and data plus formulas. `visibleCells` accepts a single
+cell or an A1 range and also crops the visual layer. Page and sheet indices are
+1-based; page bounds are inclusive. An end page beyond the document is clamped,
+while a start page beyond it produces an empty selection. A sheet index beyond
+the workbook is rejected. Video defaults to frames and audio at one frame per
+second.
 
-#### GenerateContent inspection options
+#### GenerateContent slicing options
 
-For `google('gemini-4-argon-file-processing-eap')`, pass
+For `google('gemini-4-carbon')`, pass
 `GoogleFilePartOptions` on each file part. GenerateContent uses
 metadata objects and uppercase content-layer names:
 
@@ -1201,9 +1211,9 @@ metadata objects and uppercase content-layer names:
 | Video clip        | `videoMetadata`        | `startOffset`, `endOffset` as duration strings, `fps`, `contentLayers: ['FRAMES', 'AUDIO', 'TRANSCRIPT']` |
 
 Set `mediaResolution: { level: 'MEDIA_RESOLUTION_HIGH' }` on the same file
-options object to control document, spreadsheet, or video rendering. The EAP
-accepts `MEDIA_RESOLUTION_LOW`, `MEDIA_RESOLUTION_MEDIUM`, and
-`MEDIA_RESOLUTION_HIGH`; it does not support ultra-high resolution.
+options object to control document, spreadsheet, or video rendering. File
+parts accept `MEDIA_RESOLUTION_LOW`, `MEDIA_RESOLUTION_MEDIUM`, and
+`MEDIA_RESOLUTION_HIGH`; documents do not support ultra-high resolution.
 
 ```ts
 import { type GoogleFilePartOptions } from '@ai-sdk/google';
@@ -1219,6 +1229,9 @@ const googleFileOptions = {
 
 Use `googleFileOptions` as the file part's `providerOptions.google`. These
 options also apply when using `streamText`.
+
+The GenerateContent slicing options require the `v1beta` API, which the
+Google provider uses by default. A custom `v1` base URL rejects them.
 
 AI SDK v5 supports these options on file inputs to `generateText` and `streamText`.
 AI SDK v5 does not expose `google.interactions()`, and its tool-output media parts
