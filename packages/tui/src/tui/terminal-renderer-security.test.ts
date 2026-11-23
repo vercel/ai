@@ -119,7 +119,13 @@ describe('terminal output sanitization', () => {
         message: {
           id: 'message-1',
           role: 'assistant',
-          parts: [{ ...toolPart, output: 'admin\u200b@example.com' }],
+          parts: [
+            {
+              ...toolPart,
+              title: 'ti\u2066tle',
+              output: 'admin\u200b@example.com',
+            },
+          ],
         },
         uiMessageStream: (async function* () {
           yield {
@@ -133,7 +139,7 @@ describe('terminal output sanitization', () => {
     const approval = renderer.readToolApproval({
       approvalId: 'approval-1',
       toolCallId: 'call-2',
-      toolName: 'test',
+      toolName: 'na\u2067me',
       input: 'report_\u202efdp.exe\u{e0041}',
       messageId: 'message-1',
       partIndex: 1,
@@ -142,6 +148,8 @@ describe('terminal output sanitization', () => {
     await approval;
 
     expect(screen.rawOutput()).not.toMatch(/\p{Cf}/u);
+    expect(screen.rawOutput()).toContain('Tool · ti\\u{2066}tle');
+    expect(screen.rawOutput()).toContain('Approve tool na\\u{2067}me? y/n');
     expect(screen.rawOutput()).toContain('admin\\u{200b}@example.com');
     expect(screen.rawOutput()).toContain('report_\\u{202e}fdp.exe\\u{e0041}');
   });

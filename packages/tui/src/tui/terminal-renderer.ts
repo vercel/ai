@@ -1202,7 +1202,7 @@ function formatValue(value: unknown) {
 }
 
 function formatToolApprovalTitle(request: AgentTUIToolApprovalRequest) {
-  return `tool ${request.title ?? request.toolName}`;
+  return `tool ${escapeFormatCharacters(request.title ?? request.toolName)}`;
 }
 
 function sectionId(messageId: string, partIndex: number) {
@@ -1296,7 +1296,7 @@ function createSectionLines(section: ChatSection, width: number) {
   const rightTitle = section.rightTitle
     ? ` ${sanitizeTerminalText(section.rightTitle)} `
     : '';
-  const fullTitle = ` ${sanitizeTerminalText(section.title)} `;
+  const fullTitle = ` ${escapeFormatCharacters(sanitizeTerminalText(section.title))} `;
   // shorten a long title so that the marker of the tool call that awaits the
   // approval decision is not cut off:
   const title =
