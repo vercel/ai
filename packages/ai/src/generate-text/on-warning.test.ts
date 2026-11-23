@@ -14,6 +14,7 @@ import { ToolLoopAgent } from '../agent/tool-loop-agent';
 import { resetLogWarningsState } from '../logger/log-warnings';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import { MockProviderV2 } from '../test/mock-provider-v2';
 import { generateText } from './generate-text';
 import { isStepCount } from './stop-condition';
 import { streamText } from './stream-text';
@@ -324,6 +325,30 @@ describe.each(['generate', 'stream'] as const)('onWarning (%s)', method => {
         },
       ],
     ]);
+    expect(globalLogger).not.toHaveBeenCalled();
+  });
+
+  it('sends the v2 compatibility warning of a model id from a v2 global provider to onWarning', async () => {
+    const globalLogger = vi.fn();
+    vi.stubGlobal('AI_SDK_LOG_WARNINGS', globalLogger);
+    vi.stubGlobal(
+      'AI_SDK_DEFAULT_PROVIDER',
+      new MockProviderV2({ languageModels: { 'v2-model': createV2Model() } }),
+    );
+    const onWarning = vi.fn();
+    const options = { model: 'v2-model', prompt: 'Hello', onWarning };
+
+    if (method === 'generate') {
+      await generateText(options);
+    } else {
+      await streamText(options).consumeStream();
+    }
+
+    expect(onWarning).toHaveBeenCalledWith({
+      warnings: [v2CompatibilityWarning],
+      provider: 'mock-provider',
+      model: 'mock-model-id',
+    });
     expect(globalLogger).not.toHaveBeenCalled();
   });
 

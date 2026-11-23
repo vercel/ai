@@ -41,7 +41,8 @@ export function resolveLanguageModel(
   onWarning?: LogWarningsFunction,
 ): LanguageModelV4 {
   if (typeof model === 'string') {
-    return getGlobalProvider().languageModel(model);
+    const provider = globalThis.AI_SDK_DEFAULT_PROVIDER ?? gateway;
+    return asLanguageModelV4(provider.languageModel(model), onWarning);
   }
 
   if (!['v4', 'v3', 'v2'].includes(model.specificationVersion)) {
