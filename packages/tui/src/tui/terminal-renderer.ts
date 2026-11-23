@@ -10,7 +10,7 @@ import type {
 import { renderScreenViewport, sliceVisible, visibleLength } from './layout';
 import { renderMarkdown } from './markdown';
 import {
-  escapeFormatCharacters,
+  escapeInvisibleCharacters,
   sanitizeTerminalText,
 } from './sanitize-terminal-text';
 import { TerminalFrameBuffer } from './terminal-frame-buffer';
@@ -1202,7 +1202,7 @@ function formatValue(value: unknown) {
 }
 
 function formatToolApprovalTitle(request: AgentTUIToolApprovalRequest) {
-  return `tool ${escapeFormatCharacters(request.title ?? request.toolName)}`;
+  return `tool ${escapeInvisibleCharacters(request.title ?? request.toolName)}`;
 }
 
 function sectionId(messageId: string, partIndex: number) {
@@ -1296,7 +1296,7 @@ function createSectionLines(section: ChatSection, width: number) {
   const rightTitle = section.rightTitle
     ? ` ${sanitizeTerminalText(section.rightTitle)} `
     : '';
-  const fullTitle = ` ${escapeFormatCharacters(sanitizeTerminalText(section.title))} `;
+  const fullTitle = ` ${escapeInvisibleCharacters(sanitizeTerminalText(section.title))} `;
   // shorten a long title so that the marker of the tool call that awaits the
   // approval decision is not cut off:
   const title =
@@ -1324,14 +1324,7 @@ function createSectionLines(section: ChatSection, width: number) {
   const content =
     section.content.length === 0
       ? colors.dim + '(streaming...)' + colors.reset
-      : section.kind === 'tool' ||
-          section.kind === 'approval' ||
-          section.kind === 'error'
-        ? // tool input, tool output, and errors are data: show them exactly
-          escapeFormatCharacters(
-            sanitizeTerminalText(section.content, { multiline: true }),
-          )
-        : renderMarkdown(section.content);
+      : renderSectionContent(section);
   const lines = content
     .split('\n')
     .flatMap(line => wrapVisibleLine(line, contentWidth));
@@ -1341,6 +1334,17 @@ function createSectionLines(section: ChatSection, width: number) {
     ...lines.map(line => sectionLine(line, contentWidth, style.color)),
     bottom,
   ];
+}
+
+function renderSectionContent({ kind, content }: ChatSection) {
+  if (kind === 'assistant' || kind === 'reasoning') {
+    return renderMarkdown(content);
+  }
+
+  const text = sanitizeTerminalText(content, { multiline: true });
+
+  // tool input, tool output, and errors are data: show them exactly
+  return kind === 'user' ? text : escapeInvisibleCharacters(text);
 }
 
 function truncateSectionTitle(title: string, maxWidth: number) {

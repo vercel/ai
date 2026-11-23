@@ -27,13 +27,14 @@ export function sanitizeTerminalText(
 }
 
 /**
- * Escape Unicode format characters. They are invisible, and some of them
- * change how the surrounding text reads, such as bidirectional controls,
- * zero-width characters, and tag characters.
+ * Escape characters that are invisible on their own: Unicode format characters
+ * such as bidirectional controls, default ignorable code points such as
+ * zero-width characters, variation selectors, and Hangul fillers, and the line
+ * and paragraph separators. Some of them change how the surrounding text reads.
  */
-export function escapeFormatCharacters(input: string): string {
+export function escapeInvisibleCharacters(input: string): string {
   return input.replace(
-    /\p{Cf}/gu,
+    /[\p{Cf}\p{Default_Ignorable_Code_Point}\p{Zl}\p{Zp}]/gu,
     character => `\\u{${character.codePointAt(0)?.toString(16)}}`,
   );
 }

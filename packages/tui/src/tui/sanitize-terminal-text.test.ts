@@ -1,19 +1,32 @@
 import { describe, expect, it } from 'vitest';
 import {
-  escapeFormatCharacters,
+  escapeInvisibleCharacters,
   sanitizeTerminalText,
 } from './sanitize-terminal-text';
 
-describe('escapeFormatCharacters', () => {
-  it('escapes bidirectional controls, zero-width characters, and tag characters', () => {
-    expect(
-      escapeFormatCharacters('a\u202eb\u2066c\u200bd\u200de\ufefff\u{e0041}g'),
-    ).toBe('a\\u{202e}b\\u{2066}c\\u{200b}d\\u{200d}e\\u{feff}f\\u{e0041}g');
+describe('escapeInvisibleCharacters', () => {
+  it.each([
+    ['bidirectional controls', 'a\u202eb\u2066c', 'a\\u{202e}b\\u{2066}c'],
+    [
+      'zero-width characters',
+      'a\u200bb\u200dc\ufeffd',
+      'a\\u{200b}b\\u{200d}c\\u{feff}d',
+    ],
+    ['tag characters', 'a\u{e0041}b', 'a\\u{e0041}b'],
+    ['variation selectors', '☀\ufe0f a\u{e0100}b', '☀\\u{fe0f} a\\u{e0100}b'],
+    ['Hangul fillers', 'a\u3164b\u115fc', 'a\\u{3164}b\\u{115f}c'],
+    [
+      'line and paragraph separators',
+      'a\u2028b\u2029c',
+      'a\\u{2028}b\\u{2029}c',
+    ],
+  ])('escapes %s', (_, input, expected) => {
+    expect(escapeInvisibleCharacters(input)).toBe(expected);
   });
 
-  it('preserves visible characters', () => {
-    expect(escapeFormatCharacters('Hello 日本語 😀 e\u0301 ☀\ufe0f')).toBe(
-      'Hello 日本語 😀 e\u0301 ☀\ufe0f',
+  it('preserves visible characters, including combining marks', () => {
+    expect(escapeInvisibleCharacters('Hello 日本語 한글 😀 e\u0301 नमस्ते')).toBe(
+      'Hello 日本語 한글 😀 e\u0301 नमस्ते',
     );
   });
 });

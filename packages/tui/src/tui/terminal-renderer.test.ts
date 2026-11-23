@@ -212,6 +212,24 @@ describe('TerminalRenderer', () => {
     expect(stripAnsi(output.text())).toContain('what now?');
   });
 
+  it('shows submitted prompts without markdown formatting', async () => {
+    const screen = new MockScreen({ columns: 72, rows: 12 });
+    const renderer = new TerminalRenderer({
+      input: new MockUserInput(),
+      output: screen,
+    });
+
+    await renderer.renderStream(createStream(['hello']) as never, {
+      submittedPrompt: 'delete *.log and *.tmp, keep notes_2026_11.md ❤\ufe0f',
+      continueSession: true,
+      waitForExit: false,
+    });
+
+    expect(screen.snapshot()).toContain(
+      '│ │ delete *.log and *.tmp, keep notes_2026_11.md ❤\ufe0f ',
+    );
+  });
+
   it('keeps processing status until the first visible assistant chunk arrives', async () => {
     const input = createInput();
     const output = createOutput();
