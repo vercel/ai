@@ -785,16 +785,25 @@ describe('TerminalRenderer', () => {
       │ │     "step 5",                            │ │
       └──────────────────────────────────────────────┘
       ┌ Status ──────────────────────────────────────┐
-      │ Approve tool shell? y/n · ↑/↓ · PgUp/PgDn ·  │
+      │ More input below · Approve tool shell? y/n · │
       └──────────────────────────────────────────────┘"
     `);
+
+    input.emit('data', Buffer.from('\x1B[B'));
+
+    expect(screen.snapshot()).toContain('"step 6"');
+    expect(screen.snapshot()).not.toContain('"step 12"');
+    expect(screen.snapshot()).toContain('More input below · Approve tool');
 
     input.emit('data', Buffer.from('\x1B[6~'));
 
     expect(screen.snapshot()).toContain('"step 12"');
+    expect(screen.snapshot()).not.toContain('More input below');
+    expect(screen.snapshot()).toContain('│ Approve tool shell? y/n');
 
     input.type('n');
     await approvalPromise;
+    expect(screen.snapshot()).not.toContain('More input below');
   });
 
   it('keeps the terminal session open between turns', async () => {

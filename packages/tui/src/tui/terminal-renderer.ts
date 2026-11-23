@@ -182,6 +182,7 @@ export class TerminalRenderer {
   #onData?: (chunk: Buffer) => void;
   #onResize?: () => void;
   #resolveStreamInterrupt?: () => void;
+  #toolApprovalSectionId?: string;
 
   constructor(options?: TerminalRendererOptions) {
     this.#input = options?.input ?? process.stdin;
@@ -409,6 +410,7 @@ export class TerminalRenderer {
     const existingSection = this.#sections.find(section => section.id === id);
     const previousSection = existingSection && { ...existingSection };
 
+    this.#toolApprovalSectionId = id;
     this.#upsertSection({
       id,
       kind: 'approval',
@@ -426,33 +428,68 @@ export class TerminalRenderer {
         this.#sections = this.#sections.filter(section => section.id !== id);
       }
 
+      this.#toolApprovalSectionId = undefined;
       this.#scrollOffset = 0;
     };
   }
 
   #scrollSectionIntoView(id: string) {
+    const sectionLines = this.#sectionLineRange(id);
+
+    if (sectionLines == null) {
+      return;
+    }
+
+    // end the section at the bottom of the viewport, or start it at the top
+    // when it is taller than the viewport:
     const bodyContentHeight = this.#bodyContentHeight();
-    let sectionStart = 0;
+    const firstVisibleLine = Math.min(
+      sectionLines.start,
+      sectionLines.end - bodyContentHeight,
+    );
+    this.#scrollOffset = this.#clampScrollOffset(
+      this.#bodyLineCount() - bodyContentHeight - firstVisibleLine,
+    );
+  }
+
+  /**
+   * Whether the input of the tool call that awaits the approval decision
+   * continues below the visible part of the transcript.
+   */
+  #toolApprovalContinuesBelowViewport() {
+    const sectionLines =
+      this.#toolApprovalSectionId == null
+        ? undefined
+        : this.#sectionLineRange(this.#toolApprovalSectionId);
+
+    if (sectionLines == null) {
+      return false;
+    }
+
+    const bodyContentHeight = this.#bodyContentHeight();
+    const firstVisibleLine = Math.max(
+      0,
+      this.#bodyLineCount() - bodyContentHeight - this.#scrollOffset,
+    );
+
+    // the last line of the section is its border:
+    return sectionLines.end - 1 > firstVisibleLine + bodyContentHeight;
+  }
+
+  #sectionLineRange(id: string) {
+    let start = 0;
 
     for (const section of this.#sections) {
-      const sectionEnd =
-        sectionStart + renderSectionLines(section, this.#width() - 4).length;
+      const end = start + renderSectionLines(section, this.#width() - 4).length;
 
       if (section.id === id) {
-        // end the section at the bottom of the viewport, or start it at the
-        // top when it is taller than the viewport:
-        const firstVisibleLine = Math.min(
-          sectionStart,
-          sectionEnd - bodyContentHeight,
-        );
-        this.#scrollOffset = this.#clampScrollOffset(
-          this.#bodyLineCount() - bodyContentHeight - firstVisibleLine,
-        );
-        return;
+        return { start, end };
       }
 
-      sectionStart = sectionEnd;
+      start = end;
     }
+
+    return undefined;
   }
 
   #start(options?: TerminalSessionOptions) {
@@ -479,6 +516,7 @@ export class TerminalRenderer {
   #stop() {
     this.#detachInput();
     this.#stopInputCursorBlink();
+    this.#toolApprovalSectionId = undefined;
 
     if (!this.#isInteractive) {
       return;
@@ -791,7 +829,9 @@ export class TerminalRenderer {
       input: this.#inputText,
       inputActive: this.#inputActive,
       inputCursorVisible: this.#inputCursorVisible,
-      status: this.#status,
+      status: this.#toolApprovalContinuesBelowViewport()
+        ? `More input below · ${this.#status}`
+        : this.#status,
     });
 
     this.#frameBuffer.present(frame);
