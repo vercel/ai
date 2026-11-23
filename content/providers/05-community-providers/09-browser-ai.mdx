@@ -6,7 +6,7 @@ description: Learn how to use browser AI model providers for the AI SDK.
 # Browser AI model providers
 
 [jakobhoeg/browser-ai](https://github.com/jakobhoeg/browser-ai) is a community provider that serves as the base AI SDK provider for client side in-browser AI models.
-It currently provides a model provider for Chrome & Edge's native browser AI models via the JavaScript [Prompt API](https://github.com/webmachinelearning/prompt-api), as well as a model provider for using open-source in-browser models with both [🤗 Transformers.js](https://github.com/huggingface/transformers.js) and [WebLLM](https://github.com/mlc-ai/web-llm).
+It currently provides a model provider for Chrome & Edge's native browser AI models via the JavaScript [Prompt API](https://github.com/webmachinelearning/prompt-api), as well as a model provider for using open-source in-browser models with both [🤗 Transformers.js](https://github.com/huggingface/transformers.js), [WebLLM](https://github.com/mlc-ai/web-llm) and [wllama](https://github.com/ngxson/wllama).
 
 ### Installation
 
@@ -21,6 +21,10 @@ The `@browser-ai/web-llm` package is the AI SDK provider for popular open-source
 The `@browser-ai/transformers-js` package is the AI SDK provider for popular open-source models using Transformers.js. You can install it with:
 
 <InstallPackages packages="@browser-ai/transformers-js" />
+
+The `@browser-ai/wllama` package is the AI SDK provider for popular open-source GGUF models using wllama (WASM binding for llama.cpp). You can install it with:
+
+<InstallPackages packages="@browser-ai/wllama" />
 
 ## Provider Instances
 
@@ -64,6 +68,16 @@ import { transformersJS } from '@browser-ai/transformers-js';
 const model = transformersJS();
 ```
 
+### `@browser-ai/wllama`
+
+You can import the default provider instance `wllama` from `@browser-ai/wllama`:
+
+```ts
+import { wllama } from '@browser-ai/wllama';
+
+const model = wllama();
+```
+
 ## Language Models
 
 ### `@browser-ai/core`
@@ -78,6 +92,10 @@ The provider allows using a ton of popular open-source models such as Llama3 and
 ### `@browser-ai/transformers-js`
 
 The provider allows using a ton of popular open-source models from Huggingface with the Transformers.js library.
+
+### `@browser-ai/wllama`
+
+The provider allows using a ton of popular open-source GGUF models with the wllama library.
 
 ### Example usage
 
@@ -121,6 +139,22 @@ import { transformersJS } from '@browser-ai/transformers-js';
 
 const result = streamText({
   model: transformersJS('HuggingFaceTB/SmolLM2-360M-Instruct'),
+  prompt: 'Hello, how are you',
+});
+
+for await (const chunk of result.textStream) {
+  console.log(chunk);
+}
+```
+
+#### `@browser-ai/wllama`
+
+```ts
+import { streamText } from 'ai';
+import { wllama } from '@browser-ai/wllama';
+
+const result = streamText({
+  model: wllama("hf:ggml-org/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf"),
   prompt: 'Hello, how are you',
 });
 
