@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.154
+
+### Patch Changes
+
+- b8cb0cd: keep the mcp call arguments in the `input` of mcpServer tool calls instead of returning an empty object
+
 ## 3.0.153
 
 ### Patch Changes
