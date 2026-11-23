@@ -116,6 +116,83 @@ describe('createSteering', () => {
     expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 0 });
   });
 
+  it('should deliver messages whose text content is sent as a text part', async () => {
+    const steering = createSteering();
+    const outcome = steering.steer('hello');
+
+    const run = startSteeringRun(steering)!;
+    run.takeMessages();
+    run.resolveTakenMessages({
+      stepNumber: 0,
+      sentMessages: [
+        { role: 'user', content: [{ type: 'text', text: 'hello' }] },
+      ],
+    });
+
+    expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 0 });
+  });
+
+  it('should deliver messages whose parts are sent as text content', async () => {
+    const steering = createSteering();
+    const outcome = steering.steer({
+      role: 'user',
+      content: [{ type: 'text', text: 'hello' }],
+    });
+
+    const run = startSteeringRun(steering)!;
+    run.takeMessages();
+    run.resolveTakenMessages({
+      stepNumber: 0,
+      sentMessages: [{ role: 'user', content: 'hello' }],
+    });
+
+    expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 0 });
+  });
+
+  it('should deliver messages whose parts are sent with provider options', async () => {
+    const steering = createSteering();
+    const outcome = steering.steer('hello');
+
+    const run = startSteeringRun(steering)!;
+    run.takeMessages();
+    run.resolveTakenMessages({
+      stepNumber: 0,
+      sentMessages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'hello',
+              providerOptions: {
+                anthropic: { cacheControl: { type: 'ephemeral' } },
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 0 });
+  });
+
+  it('should not deliver messages whose text prepareStep changed', async () => {
+    const steering = createSteering();
+    const outcome = steering.steer('hello');
+
+    const run = startSteeringRun(steering)!;
+    run.takeMessages();
+    run.resolveTakenMessages({
+      stepNumber: 0,
+      sentMessages: [{ role: 'user', content: '[12:00] hello' }],
+    });
+
+    expect(await outcome).toMatchObject({
+      type: 'not-delivered',
+      reason: 'removed-by-prepare-step',
+    });
+  });
+
   it('should not deliver pending messages when the run ends', async () => {
     const steering = createSteering();
     const run = startSteeringRun(steering)!;
@@ -167,6 +244,29 @@ describe('createSteering', () => {
       }
     `);
   });
+
+  it.each([
+    'finished',
+    'stop-condition',
+    'waiting-for-tool-results',
+    'aborted',
+    'error',
+  ] as const)(
+    'should report why the run ended for messages sent after a run that ended with %s',
+    async reason => {
+      const steering = createSteering();
+      startSteeringRun(steering)!.end(reason);
+
+      expect(await steering.steer('steered after the run')).toMatchObject({
+        type: 'not-delivered',
+        reason,
+      });
+      expect(await steering.queue('queued after the run')).toMatchObject({
+        type: 'not-delivered',
+        reason,
+      });
+    },
+  );
 
   it('should return the first outcome for a repeated id', async () => {
     const steering = createSteering();

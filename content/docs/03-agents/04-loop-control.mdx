@@ -547,7 +547,7 @@ if (outcome.type === 'delivered') {
 }
 ```
 
-A message is delivered when it is part of the messages that are sent to the model, after `prepareStep`. It is not delivered when the loop ends before the next step boundary, or when `prepareStep` removes it. The `reason` is one of:
+A message is delivered when it is part of the messages that are sent to the model, after `prepareStep`. It is not delivered when the loop ends before the next step boundary, or when `prepareStep` removes it. `prepareStep` can copy the message, turn its text into a text part, or add provider options to its parts and it still counts as delivered. A message whose text `prepareStep` changes counts as removed, so add details like timestamps before you send the message. The `reason` is one of:
 
 - `finished`: the loop ended before the message could be added.
 - `removed-by-prepare-step`: `prepareStep` returned messages without it.
@@ -555,6 +555,8 @@ A message is delivered when it is part of the messages that are sent to the mode
 - `waiting-for-tool-results`: the loop ended to wait for tool results, e.g. a [tool approval](/docs/agents/tool-approvals).
 - `aborted`: the loop was aborted.
 - `error`: the loop failed.
+
+A message sent after the loop ended is not delivered and has the reason the loop ended with, e.g. `aborted` after an abort.
 
 Pass an `id` to make retries safe. Sending a message again with the same `id` returns the outcome of the first message.
 
