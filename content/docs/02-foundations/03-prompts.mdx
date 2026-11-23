@@ -360,6 +360,31 @@ const result = await generateText({
 You can use custom download functions to implement throttling, retries, authentication, caching, and more.
 
 The default download implementation automatically downloads files in parallel when they are not supported by the model.
+It covers image and file URLs in user messages as well as `image-url` and
+`file-url` parts in multi-modal tool results, so URLs returned by tools or by a
+model are downloaded by your application as well.
+
+Before a URL is requested, the default download allows only `http(s)` and inline
+`data:` URLs and rejects `localhost`-style hostnames (`localhost`, `.local`,
+`.localhost`, `.internal`) as well as private, loopback, link-local, and
+otherwise reserved IP literals. Redirects are followed manually and every hop is
+validated the same way before it is requested, so a URL that redirects to an
+internal address is blocked instead of followed. Redirects from HTTPS to HTTP
+are rejected, redirect chains are limited to 10 hops, and a response larger
+than 2 GiB fails with a `DownloadError` instead of exhausting memory.
+
+These checks inspect the URL and any IP literal it contains. They do not resolve
+DNS.
+
+On Node.js, the default download transport also resolves every hostname through
+a validating lookup hook and pins the connection to the validated addresses,
+which blocks a public-looking hostname that resolves to a private address. On
+other server runtimes (for example Bun or Deno) the default transport is the
+runtime's global `fetch`, which does not pin DNS results. When URLs are
+untrusted, because users supply them or because models or tools return them,
+pass an `experimental_download` function whose transport performs equivalent
+connect-time address validation, or constrain outbound traffic at the network
+layer.
 
 Custom download function can be passed via the `experimental_download` property:
 
@@ -393,6 +418,11 @@ const result = await generateText({
   ],
 });
 ```
+
+A custom download function replaces the default implementation, including the
+URL checks and the DNS-pinned Node.js transport described above. Your function
+is responsible for validating the URLs it downloads and the addresses they
+resolve to.
 
 <Note>
   The `experimental_download` option is experimental and may change in future
