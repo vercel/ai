@@ -1767,165 +1767,77 @@ function createOpenAILanguageModelEntry(
 }
 
 /**
- * Entry for model IDs that are not in the matrix, such as new models, new
- * snapshots, fine-tunes, and custom deployments. This preserves the existing
- * forward-compatible defaults by recognizing the GPT and o-series families from
- * the model ID. It is the only place that reads capabilities from a model ID.
- * Listed models never reach it: add a row to the matrix instead of extending
- * these rules.
+ * Generic rows for model IDs that are not in the matrix. A row cannot vary by
+ * model ID, so each one holds the most broadly compatible values.
+ *
+ * `unknownModel` is used for fine-tunes, custom deployments, and any other ID.
+ * Nothing is assumed about the model: requests use the standard format and
+ * model-specific request features are omitted with a warning.
  */
-function createUnlistedOpenAILanguageModelEntry(
-  modelId: string,
-): OpenAILanguageModelEntry {
-  const oSeriesVersion = getOSeriesVersion(modelId);
-  const gptVersion = getGptVersion(modelId);
-  const isRecognizedModelFamily =
-    oSeriesVersion != null ||
-    gptVersion != null ||
-    /^gpt-4o(?:-|$)/.test(modelId);
-  const isGptChatModel =
-    gptVersion?.minor == null &&
-    (gptVersion?.variant?.startsWith('chat') ?? false);
-  const isGptNanoModel = gptVersion?.variant?.startsWith('nano') ?? false;
-  const isGpt6OrLaterModel = gptVersion != null && gptVersion.major >= 6;
-  const isGpt56OrLaterModel =
-    isGpt6OrLaterModel ||
-    (gptVersion?.major === 5 && (gptVersion.minor ?? 0) >= 6);
-  // Pro, codex, and chat variants are excluded because their supported
-  // efforts are not known.
-  const isStandardGpt5Model =
-    gptVersion?.major === 5 &&
-    (gptVersion.variant == null ||
-      /^(?:(?:mini|nano|sol|luna|terra)(?:-\d{4}-\d{2}-\d{2})?|\d{4}-\d{2}-\d{2})$/.test(
-        gptVersion.variant,
-      ));
-  const isReasoningModel =
-    oSeriesVersion != null ||
-    (gptVersion != null && gptVersion.major >= 5 && !isGptChatModel);
-  const samplingAtReasoningEffortNone =
-    !isGpt6OrLaterModel &&
-    gptVersion != null &&
-    (gptVersion.major > 5 ||
-      (gptVersion.major === 5 && (gptVersion.minor ?? 0) >= 1));
-  const sampling: ModelCapability = !isRecognizedModelFamily
-    ? 'unknown'
-    : !isReasoningModel
-      ? true
-      : samplingAtReasoningEffortNone
-        ? atReasoningEffortNone
-        : false;
-  const chatTemperature =
-    !modelId.startsWith('gpt-4o-search-preview') &&
-    !modelId.startsWith('gpt-4o-mini-search-preview');
+const unknownModel: OpenAILanguageModelRow = {
+  endpoints: [],
+  documented: false,
+  reasoningEfforts: undefined,
+  samplingAtReasoningEffortNone: false,
+  temperature: 'unknown',
+  topP: 'unknown',
+  logprobs: 'unknown',
+  asyncTools: false,
+  flexProcessing: false,
+  priorityProcessing: false,
+  configurationUpdates: false,
+  promptCacheRetention: true,
+  promptCacheOptions: false,
+  chatTemperature: true,
+  chatFunctionToolsWithReasoning: true,
+  responsesLogprobsRequireNonReasoning: false,
+  systemMessageMode: 'system',
+};
 
-  return withProviderOptions(
-    {
-      capabilities: {
-        language: {
-          inputs: { image: 'unknown', audio: 'unknown' },
-          objectGeneration: 'unknown',
-          tools: {
-            usage: 'unknown',
-            streaming: 'unknown',
-            async: isGpt6OrLaterModel,
-          },
-          reasoning: {
-            support: isRecognizedModelFamily ? isReasoningModel : 'unknown',
-            efforts: isGpt6OrLaterModel
-              ? ['low', 'medium', 'high', 'xhigh', 'max']
-              : isStandardGpt5Model
-                ? getGpt5ReasoningEfforts(gptVersion.minor ?? 0)
-                : undefined,
-            sampling: samplingAtReasoningEffortNone
-              ? 'reasoning-effort-none'
-              : 'unsupported',
-          },
-          sampling: {
-            temperature: chatTemperature ? sampling : exceptSearchPreviewChat,
-            topP: sampling,
-            logprobs:
-              isReasoningModel && !isGpt6OrLaterModel
-                ? samplingAtReasoningEffortNone
-                  ? logprobsAtReasoningEffortNoneInChat
-                  : logprobsNotWhileReasoningInChat
-                : sampling,
-          },
-          serviceTiers: {
-            flex:
-              (oSeriesVersion != null && oSeriesVersion >= 3) ||
-              (gptVersion != null && gptVersion.major >= 5 && !isGptChatModel),
-            priority:
-              modelId.startsWith('gpt-4') ||
-              (gptVersion != null &&
-                gptVersion.major >= 5 &&
-                !isGptNanoModel &&
-                !isGptChatModel) ||
-              (oSeriesVersion != null && oSeriesVersion >= 3),
-          },
-          configurationUpdates: isGpt6OrLaterModel,
-          promptCache: {
-            retention: !isGpt6OrLaterModel,
-            // Prompt cache options are documented for GPT-5.6 and later.
-            options: isRecognizedModelFamily ? isGpt56OrLaterModel : 'unknown',
-          },
-          endpoints: {
-            chat: {
-              temperatureWithoutReasoning: chatTemperature,
-              // GPT-5.6 rejects function tools with reasoning in Chat Completions.
-              functionToolsWithReasoning: !(
-                gptVersion?.major === 5 && (gptVersion.minor ?? 0) >= 6
-              ),
-            },
-            responses: { logprobsRequireNonReasoning: isGpt6OrLaterModel },
-          },
-        },
-      },
-      requestConfig: {
-        language: {
-          systemMessageMode: isReasoningModel ? 'developer' : 'system',
-        },
-      },
-    },
-    'unknown',
+/**
+ * `unknownReasoningModel` is used for new OpenAI reasoning models that are not
+ * listed yet. It has the capabilities of the newest listed reasoning models.
+ */
+const unknownReasoningModel: OpenAILanguageModelRow = {
+  endpoints: [],
+  documented: false,
+  reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+  samplingAtReasoningEffortNone: false,
+  temperature: false,
+  topP: false,
+  logprobs: false,
+  asyncTools: true,
+  flexProcessing: true,
+  priorityProcessing: true,
+  configurationUpdates: true,
+  promptCacheRetention: false,
+  promptCacheOptions: true,
+  chatTemperature: true,
+  chatFunctionToolsWithReasoning: true,
+  responsesLogprobsRequireNonReasoning: true,
+  systemMessageMode: 'developer',
+};
+
+const unknownReasoningModelEntry = createOpenAILanguageModelEntry(
+  unknownReasoningModel,
+);
+const unknownModelEntry = createOpenAILanguageModelEntry(unknownModel);
+
+/**
+ * The only capability decision made from a model ID: whether an unlisted ID is
+ * an OpenAI reasoning model (o-series, or GPT-5 and later except the GPT-5 chat
+ * models). Reasoning models need a different request format, so new OpenAI
+ * models keep working before they are added to the matrix.
+ */
+function isUnlistedReasoningModelId(modelId: string): boolean {
+  if (/^o\d+(?:-|$)/.test(modelId)) return true;
+
+  const gpt = /^gpt-(\d+)(\.\d+)?(?:-(.+))?$/.exec(modelId);
+  return (
+    gpt != null &&
+    Number(gpt[1]) >= 5 &&
+    !(gpt[2] == null && (gpt[3]?.startsWith('chat') ?? false))
   );
-}
-
-function getGpt5ReasoningEfforts(minor: number): readonly string[] {
-  if (minor === 0) {
-    return ['minimal', 'low', 'medium', 'high'];
-  }
-
-  if (minor === 1) {
-    return ['none', 'low', 'medium', 'high'];
-  }
-
-  if (minor < 6) {
-    return ['none', 'low', 'medium', 'high', 'xhigh'];
-  }
-
-  return ['none', 'low', 'medium', 'high', 'xhigh', 'max'];
-}
-
-function getOSeriesVersion(modelId: string): number | undefined {
-  const match = /^o(\d+)(?:-|$)/.exec(modelId);
-  return match == null ? undefined : Number(match[1]);
-}
-
-function getGptVersion(modelId: string):
-  | {
-      major: number;
-      minor: number | undefined;
-      variant: string | undefined;
-    }
-  | undefined {
-  const match = /^gpt-(\d+)(?:\.(\d+))?(?:-(.+))?$/.exec(modelId);
-  return match == null
-    ? undefined
-    : {
-        major: Number(match[1]),
-        minor: match[2] == null ? undefined : Number(match[2]),
-        variant: match[3],
-      };
 }
 
 /**
@@ -2509,12 +2421,20 @@ function findModelEntry(modelId: string): OpenAIModelEntry | undefined {
 export function getOpenAILanguageModelEntry(
   modelId: string,
 ): OpenAILanguageModelEntry {
-  return Object.prototype.hasOwnProperty.call(
-    openaiListedLanguageModelEntries,
-    modelId,
-  )
-    ? openaiListedLanguageModelEntries[modelId]
-    : createUnlistedOpenAILanguageModelEntry(modelId);
+  // A dated snapshot of a listed model uses that model's row.
+  const baseModelId = modelId.replace(/-\d{4}-\d{2}-\d{2}$/, '');
+
+  for (const id of [modelId, baseModelId]) {
+    if (
+      Object.prototype.hasOwnProperty.call(openaiListedLanguageModelEntries, id)
+    ) {
+      return openaiListedLanguageModelEntries[id];
+    }
+  }
+
+  return isUnlistedReasoningModelId(modelId)
+    ? unknownReasoningModelEntry
+    : unknownModelEntry;
 }
 
 export function getOpenAIImageModelEntry(
