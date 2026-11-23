@@ -7,7 +7,7 @@ description: Use the Bineric OpenAI compatible API, with EU-hosted models, with 
 
 [Bineric](https://bineric.com) trains its own European models, Zuse, a decision model trained on European languages, and Lynx, a European general model. Bineric also makes NorskGPT, a Norwegian AI assistant. The same EU-hosted API, with one key, also serves Borealis 2 from the National Library of Norway, Claude through Amazon Bedrock, GPT through Azure, and open models. You can use its Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
 
-Most Bineric models run in EU data centres, and some run in the US. The public model list at `https://api.bineric.com/v1/models` shows each model's `hosting` (`EU` or `US`), context length and price, and needs no key.
+Most Bineric models run in EU data centres. A few run in the US, such as GPT-OSS and Llama 3.3 70B, and a few are marked `Global`, such as Gemini 2.5 Flash and Gemini 3.1 Pro. The public model list at `https://api.bineric.com/v1/models` shows each model's `hosting` (`EU`, `US` or `Global`), context length and price, and needs no key. To keep data in the EU, pick models whose `euHosted` is `true`.
 
 ## Setup
 
