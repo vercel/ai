@@ -185,7 +185,7 @@ it.each([false, true])(
         );
       },
     });
-    const model = provider('gemini-4-argon-file-processing-eap');
+    const model = provider('gemini-4-carbon');
     const prompt = [
       {
         role: 'user' as const,
@@ -218,7 +218,7 @@ it.each([false, true])(
       expect(result.content.some(part => part.type === 'text')).toBe(true);
     }
     expect(requestUrl).toContain(
-      `/v1beta/models/gemini-4-argon-file-processing-eap:${streaming ? 'streamGenerateContent' : 'generateContent'}`,
+      `/v1beta/models/gemini-4-carbon:${streaming ? 'streamGenerateContent' : 'generateContent'}`,
     );
     expect(requestBody.contents[0].parts[0]).toEqual({
       fileData: { mimeType: 'application/pdf', fileUri },
