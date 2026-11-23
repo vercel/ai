@@ -160,4 +160,59 @@ describe('createToolNameMapping', () => {
     expect(mapping.toProviderToolName('provider-tool')).toBe('computer_use');
     expect(mapping.toCustomToolName('computer_use')).toBe('provider-tool');
   });
+
+  it('should safely map tool names matching Object.prototype properties', () => {
+    const mapping = createToolNameMapping({
+      tools: [],
+      providerToolNames: {},
+    });
+
+    for (const name of [
+      'constructor',
+      'toString',
+      'valueOf',
+      '__proto__',
+      'hasOwnProperty',
+      'isPrototypeOf',
+      'propertyIsEnumerable',
+      'toLocaleString',
+    ]) {
+      expect(mapping.toProviderToolName(name)).toBe(name);
+      expect(mapping.toCustomToolName(name)).toBe(name);
+    }
+  });
+
+  it('should allow provider tools to alias Object.prototype property names', () => {
+    const tools: Array<
+      LanguageModelV4FunctionTool | LanguageModelV4ProviderTool
+    > = [
+      {
+        type: 'provider',
+        id: 'test.constructor',
+        name: 'custom_constructor',
+        args: {},
+      },
+      {
+        type: 'provider',
+        id: 'test.proto',
+        name: 'custom_proto',
+        args: {},
+      },
+    ];
+
+    const providerToolNames: Record<`${string}.${string}`, string> = {
+      'test.constructor': 'constructor',
+      'test.proto': '__proto__',
+    };
+
+    const mapping = createToolNameMapping({ tools, providerToolNames });
+
+    expect(mapping.toProviderToolName('custom_constructor')).toBe(
+      'constructor',
+    );
+    expect(mapping.toCustomToolName('constructor')).toBe('custom_constructor');
+
+    expect(mapping.toProviderToolName('custom_proto')).toBe('__proto__');
+    expect(mapping.toCustomToolName('__proto__')).toBe('custom_proto');
+  });
 });

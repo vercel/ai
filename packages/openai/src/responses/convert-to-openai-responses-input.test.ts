@@ -5,7 +5,10 @@ import {
   type LanguageModelV4ToolResultPart,
   type JSONValue,
 } from '@ai-sdk/provider';
-import type { ToolNameMapping } from '@ai-sdk/provider-utils';
+import {
+  createToolNameMapping,
+  type ToolNameMapping,
+} from '@ai-sdk/provider-utils';
 import { describe, it, expect } from 'vitest';
 import { convertToOpenAIResponsesInput as convertToOpenAIResponsesInputBase } from './convert-to-openai-responses-input';
 import { findAdditionalToolDefinition } from './openai-responses-prepare-tools';
@@ -6525,6 +6528,69 @@ describe('convertToOpenAIResponsesInput', () => {
           "warnings": [],
         }
       `);
+    });
+
+    it('should preserve tool names matching Object.prototype properties when using createToolNameMapping', async () => {
+      const toolNameMapping = createToolNameMapping({
+        tools: [],
+        providerToolNames: {},
+      });
+
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-constructor',
+                toolName: 'constructor',
+                input: '{}',
+                providerExecuted: false,
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-toString',
+                toolName: 'toString',
+                input: '{}',
+                providerExecuted: false,
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-proto',
+                toolName: '__proto__',
+                input: '{}',
+                providerExecuted: false,
+              },
+            ],
+          },
+        ],
+        toolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call',
+          call_id: 'call-constructor',
+          name: 'constructor',
+          arguments: '{}',
+        },
+        {
+          type: 'function_call',
+          call_id: 'call-toString',
+          name: 'toString',
+          arguments: '{}',
+        },
+        {
+          type: 'function_call',
+          call_id: 'call-proto',
+          name: '__proto__',
+          arguments: '{}',
+        },
+      ]);
     });
   });
 

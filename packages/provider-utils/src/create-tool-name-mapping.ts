@@ -46,21 +46,25 @@ export function createToolNameMapping({
    */
   providerToolNames: Record<`${string}.${string}`, string>;
 }): ToolNameMapping {
-  const customToolNameToProviderToolName: Record<string, string> = {};
-  const providerToolNameToCustomToolName: Record<string, string> = {};
+  const customToolNameToProviderToolName = new Map<string, string>();
+  const providerToolNameToCustomToolName = new Map<string, string>();
 
   for (const tool of tools) {
-    if (tool.type === 'provider' && tool.id in providerToolNames) {
+    if (
+      tool.type === 'provider' &&
+      Object.prototype.hasOwnProperty.call(providerToolNames, tool.id)
+    ) {
       const providerToolName = providerToolNames[tool.id];
-      customToolNameToProviderToolName[tool.name] = providerToolName;
-      providerToolNameToCustomToolName[providerToolName] = tool.name;
+      customToolNameToProviderToolName.set(tool.name, providerToolName);
+      providerToolNameToCustomToolName.set(providerToolName, tool.name);
     }
   }
 
   return {
     toProviderToolName: (customToolName: string) =>
-      customToolNameToProviderToolName[customToolName] ?? customToolName,
+      customToolNameToProviderToolName.get(customToolName) ?? customToolName,
     toCustomToolName: (providerToolName: string) =>
-      providerToolNameToCustomToolName[providerToolName] ?? providerToolName,
+      providerToolNameToCustomToolName.get(providerToolName) ??
+      providerToolName,
   };
 }
