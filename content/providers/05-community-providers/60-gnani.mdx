@@ -1,0 +1,53 @@
+---
+title: Gnani AI
+description: Use Gnani Prisma for transcription and Gnani Timbre for speech generation with AI SDK 7.
+---
+
+# Gnani AI
+
+The community-maintained `gnani` package connects the AI SDK to Gnani AI’s speech APIs. It supports Prisma v2.5 and v3.0 for transcription and Timbre v2.5 and v3.0 for speech generation. [Provider repository](https://github.com/ANAMASGARD/gnani-ai-sdk)
+
+## Setup
+
+Install the provider in an AI SDK 7 project.
+
+<InstallPackages packages="gnani" />
+
+Set `GNANI_API_KEY` in your server environment. The `gnani` export reads this variable at request time. To pass a key explicitly, use `new Gnani({ apiKey })`. [Gnani dashboard](https://app.gnani.ai)
+
+In a new application, installing `gnani` also provides the AI SDK's `transcribe` and `generateSpeech` functions as named exports from `gnani`.
+
+## Transcription
+
+Prisma accepts recordings up to 30 seconds. Use `prisma-v3.0` for automatic language detection, or choose `prisma-v2.5` and pass a single locale in `providerOptions.gnani.language_code`. [Prisma REST API](https://docs.gnani.ai/api/STT/speech-to-text)
+
+```ts
+import { readFile } from 'node:fs/promises';
+import { transcribe } from 'ai';
+import { gnani } from 'gnani';
+
+const { text } = await transcribe({
+  model: gnani.transcription('prisma-v3.0'),
+  audio: await readFile('recording.wav'),
+});
+```
+
+## Speech generation
+
+Pass a voice from the catalog for the selected model. For example, use `Shivani` with `timbre-v3.0` or `Nalini` with `timbre-v2.5`. [Gnani voice catalog](https://docs.gnani.ai/api/TTS/available-voices)
+
+```ts
+import { writeFile } from 'node:fs/promises';
+import { generateSpeech } from 'ai';
+import { gnani } from 'gnani';
+
+const { audio } = await generateSpeech({
+  model: gnani.speech('timbre-v3.0'),
+  text: 'नमस्ते, आप कैसे हैं?',
+  voice: 'Shivani',
+  language: 'hi',
+  outputFormat: 'wav',
+});
+
+await writeFile('greeting.wav', audio.uint8Array);
+```
