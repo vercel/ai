@@ -840,7 +840,7 @@ export class TerminalRenderer {
       inputActive: this.#inputActive,
       inputCursorVisible: this.#inputCursorVisible,
       status: this.#toolApprovalContinuesBelowViewport()
-        ? `Scroll to the end of the input to approve · n to deny · ${activeControls}`
+        ? `Scroll to the end to approve · n to deny · ${activeControls}`
         : this.#status,
     });
 

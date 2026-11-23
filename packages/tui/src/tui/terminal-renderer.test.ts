@@ -955,7 +955,7 @@ describe('TerminalRenderer', () => {
       │ │     "step 5",                            │ │
       └──────────────────────────────────────────────┘
       ┌ Status ──────────────────────────────────────┐
-      │ Scroll to the end of the input to approve ·  │
+      │ Scroll to the end to approve · n to deny · ↑ │
       └──────────────────────────────────────────────┘"
     `);
 
@@ -964,7 +964,7 @@ describe('TerminalRenderer', () => {
 
     expect(screen.snapshot()).toContain('"step 6"');
     expect(screen.snapshot()).not.toContain('"step 12"');
-    expect(screen.snapshot()).toContain('Scroll to the end of the input');
+    expect(screen.snapshot()).toContain('Scroll to the end to approve');
 
     input.emit('data', Buffer.from('\x1B[6~'));
 
