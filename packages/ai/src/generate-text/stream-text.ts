@@ -2870,7 +2870,8 @@ class DefaultStreamTextResult<
                   ),
                   onStart: async ({ promptMessages, promptWarnings }) => {
                     recordedPromptWarnings = promptWarnings;
-                    if (promptWarnings.length > 0) {
+                    // retries convert the prompt again, log its warnings once per step:
+                    if (!stepStart.notified && promptWarnings.length > 0) {
                       logCallWarnings({ warnings: promptWarnings });
                     }
 

@@ -1,10 +1,11 @@
-import type {
-  LanguageModelV2StreamPart,
-  LanguageModelV4Content,
-  LanguageModelV4FinishReason,
-  LanguageModelV4StreamPart,
-  LanguageModelV4Usage,
-  SharedV4Warning,
+import {
+  APICallError,
+  type LanguageModelV2StreamPart,
+  type LanguageModelV4Content,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4Usage,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import { tool, type ModelMessage, type ToolSet } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
@@ -518,6 +519,30 @@ describe('onWarning', () => {
     await result.consumeStream();
 
     expect(onStepStart).toHaveBeenCalledOnce();
+  });
+
+  it('receives a prompt conversion deprecation once when streamText retries the model call', async () => {
+    const onWarning = vi.fn();
+    const model = createModel([text('A red square.')]);
+    vi.spyOn(model, 'doStream').mockRejectedValueOnce(
+      new APICallError({
+        message: 'Service Unavailable',
+        url: 'https://api.example.com',
+        requestBodyValues: {},
+        statusCode: 503,
+        responseHeaders: { 'retry-after-ms': '1' },
+      }),
+    );
+
+    const result = streamText({
+      model,
+      messages: messagesWithImagePart,
+      onWarning,
+    });
+    await result.consumeStream();
+
+    expect(model.doStream).toHaveBeenCalledTimes(2);
+    expect(onWarning.mock.calls).toEqual([[{ warnings: [imagePartWarning] }]]);
   });
 
   it.each(['generate', 'stream'] as const)(
