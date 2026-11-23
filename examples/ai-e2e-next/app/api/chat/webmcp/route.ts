@@ -57,7 +57,7 @@ export async function POST(request: Request) {
   const result = streamText({
     model: openai('gpt-6.2-astra'),
     instructions:
-      'Help the user understand their shopping cart. Read the cart with the available tool before answering.',
+      'You are the Fieldwork shopping assistant. Use getCart to read the current cart and product catalog before discussing products or totals. Help users browse, add items, set quantities, and remove items using the available tools. Only change the cart when the user asks. Use the returned cart totals in your answers. Keep replies short and friendly. There is no checkout or payment in this demo.',
     messages: await convertToModelMessages(validatedMessages.data, { tools }),
     tools,
     abortSignal: request.signal,
