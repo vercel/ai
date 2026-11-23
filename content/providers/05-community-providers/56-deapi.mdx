@@ -99,6 +99,9 @@ Set the reasoning effort with the `reasoning` call option or with `providerOptio
 Both are sent as `reasoning_effort` (`none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`); the reasoning comes back as `reasoningText`:
 
 ```ts
+import { deapi } from '@deapi/ai-sdk-provider';
+import { generateText } from 'ai';
+
 const { text, reasoningText } = await generateText({
   model: deapi('qwen3.8-flash'),
   prompt: 'How many minutes from 09:47 to 13:15?',
@@ -113,6 +116,8 @@ Models differ in the levels they accept (`glm-5.3` takes `low`, `high` and `max`
 `deapi.listModels()` returns the chat models available to your API key, with context window, output limit, input modalities and prices in USD per token:
 
 ```ts
+import { deapi } from '@deapi/ai-sdk-provider';
+
 const models = await deapi.listModels();
 ```
 
