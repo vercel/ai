@@ -253,6 +253,8 @@ You can also pass image URLs:
 
 ## Model Capabilities
 
+{/* model-capabilities:huggingface-language:start */}
+
 | Model                                           | Image Input | Object Generation | Tool Usage | Tool Streaming |
 | ----------------------------------------------- | ----------- | ----------------- | ---------- | -------------- |
 | `meta-llama/Llama-3.1-8B-Instruct`              | <Cross />   | <Check />         | <Check />  | <Check />      |
@@ -269,6 +271,8 @@ You can also pass image URLs:
 | `google/gemma-3-27b-it`                         | <Cross />   | <Check />         | <Check />  | <Check />      |
 | `moonshotai/Kimi-K2-Instruct`                   | <Cross />   | <Check />         | <Check />  | <Check />      |
 
+{/* model-capabilities:huggingface-language:end */}
+
 <Note>
   The table above lists popular models. You can explore all available models on
   the [Hugging Face Inference Models](https://huggingface.co/inference/models)
@@ -276,3 +280,18 @@ You can also pass image URLs:
   model documentation on Hugging Face Hub for detailed information about each
   model's features.
 </Note>
+
+## Provider Option Reference
+
+The following option definitions are generated from the provider catalog.
+
+{/* model-capabilities:huggingface-provider-options:start */}
+
+| Operation | Option             | Description      |
+| --------- | ------------------ | ---------------- |
+| language  | `metadata`         | metadata         |
+| language  | `instructions`     | instructions     |
+| language  | `strictJsonSchema` | strictJsonSchema |
+| language  | `reasoningEffort`  | reasoningEffort  |
+
+{/* model-capabilities:huggingface-provider-options:end */}

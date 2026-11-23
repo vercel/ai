@@ -1,5 +1,187 @@
 # @ai-sdk/harness-acp
 
+## 1.0.132
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.192
+
+## 1.0.131
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.191
+
+## 1.0.130
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.190
+
+## 1.0.129
+
+### Patch Changes
+
+- 04a8f38: fix(harness): keep silent sandbox bridge connections alive with WebSocket pings and reconnect when a peer stops responding, controllable via `keepAliveMs` option for bridge-backed harness adapters
+- b5e2f7d: fix(harness-acp): prompt restored sessions before refreshing host tools
+- Updated dependencies [1d2c2ff]
+- Updated dependencies [04a8f38]
+  - @ai-sdk/provider-utils@5.0.83
+  - @ai-sdk/harness@1.0.189
+
+## 1.0.128
+
+### Patch Changes
+
+- e845694: fix(harness-acp): validate alternate tool path interpretations
+- Updated dependencies [679b5b5]
+  - @ai-sdk/harness@1.0.188
+
+## 1.0.127
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.187
+
+## 1.0.126
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.186
+
+## 1.0.125
+
+### Patch Changes
+
+- f630e0d: fix(harness): update bridge zod dependency to 4.6.7 to address GHSA-mrhx-c7xc-m3w5
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/provider-utils@5.0.82
+  - @ai-sdk/harness@1.0.185
+
+## 1.0.124
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.184
+
+## 1.0.123
+
+### Patch Changes
+
+- 71bef69: feat(harness): require approval for sensitive workspace file changes in `allow-edits` permission mode
+- Updated dependencies [6d50947]
+- Updated dependencies [71bef69]
+  - @ai-sdk/provider-utils@5.0.81
+  - @ai-sdk/harness@1.0.183
+
+## 1.0.122
+
+### Patch Changes
+
+- 6f9d73f: fix(harness-acp): require approval for sensitive workspace file changes in `allow-edits` permission mode
+- Updated dependencies [2ebc78b]
+- Updated dependencies [1a94af3]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/harness@1.0.182
+
+## 1.0.121
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.181
+
+## 1.0.120
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+  - @ai-sdk/harness@1.0.180
+
+## 1.0.119
+
+### Patch Changes
+
+- 0fc1f13: chore(harness): update harness adapter underlying SDKs to their latest releases
+- c849d37: feat(harness): use public-key cryptography instead of token for sandbox bridge communication
+- Updated dependencies [c849d37]
+- Updated dependencies [7f1c01e]
+- Updated dependencies [88b9575]
+  - @ai-sdk/harness@1.0.179
+  - @ai-sdk/provider-utils@5.0.78
+
+## 1.0.118
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+  - @ai-sdk/harness@1.0.178
+
+## 1.0.117
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.177
+
+## 1.0.116
+
+### Patch Changes
+
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/harness@1.0.176
+
+## 1.0.115
+
+### Patch Changes
+
+- a54f0fd: fix(harness): abort a running turn when its host disconnects for good
+- Updated dependencies [8e8033a]
+- Updated dependencies [a54f0fd]
+  - @ai-sdk/harness@1.0.175
+
+## 1.0.114
+
+### Patch Changes
+
+- deeb2bf: feat(harness-acp): add optional `prepareSandbox` callback support on `createACP()`
+- Updated dependencies [3bf70f8]
+- Updated dependencies [89aff56]
+  - @ai-sdk/harness@1.0.174
+  - @ai-sdk/provider-utils@5.0.75
+
+## 1.0.113
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+  - @ai-sdk/harness@1.0.173
+
+## 1.0.112
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [8a20b57]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+  - @ai-sdk/harness@1.0.172
+
+## 1.0.111
+
+### Patch Changes
+
+- 5d20d90: fix(harness-acp): recover missing tool approval input from observed updates
+- 5622bf1: Require host approval for native file operations outside the session workspace under restrictive permission modes. Automatic approvals now check every declared location, including symlinks and new-file destinations, and require approval when file locations are missing or cannot be resolved.
+  - @ai-sdk/harness@1.0.171
+
 ## 1.0.110
 
 ### Patch Changes

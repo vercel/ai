@@ -1,25 +1,30 @@
+import { basetenRequestDefaults } from './baseten-model-catalog';
 import {
   OpenAICompatibleChatLanguageModel,
   OpenAICompatibleEmbeddingModel,
-  type ProviderErrorStructure,
 } from '@ai-sdk/openai-compatible';
 import {
   NoSuchModelError,
   type EmbeddingModelV4,
+  type Experimental_DecisionModelV4 as DecisionModelV4,
   type LanguageModelV4,
   type ProviderV4,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   type Resolvable,
   resolveWith,
   loadApiKey,
+  injectJsonInstructionIntoMessages,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
 import type { BasetenChatModelId } from './baseten-chat-options';
+import { DecisionBasetenModel } from './baseten-decision-model';
+import type { BasetenDecisionModelId } from './baseten-decision-model-options';
 import type { BasetenEmbeddingModelId } from './baseten-embedding-options';
+import { basetenErrorStructure } from './baseten-error';
 import { VERSION } from './version';
 
 /**
@@ -28,7 +33,8 @@ import { VERSION } from './version';
  * performance client's own default `batchSize`. `embedMany` splits larger
  * inputs into chunks of this size and runs them in parallel.
  */
-const MAX_EMBEDDINGS_PER_CALL = 128;
+const MAX_EMBEDDINGS_PER_CALL =
+  basetenRequestDefaults.embedding.maxEmbeddingsPerCall;
 
 /**
  * The part of `@basetenlabs/performance-client` we use, declared structurally to
@@ -49,31 +55,41 @@ export type BasetenPerformanceClientConstructor = new (
   apiKey?: string,
 ) => BasetenPerformanceClient;
 
-export type BasetenErrorData = z.infer<typeof basetenErrorSchema>;
+function transformBasetenRequestBody(
+  args: Record<string, any>,
+  warnings?: SharedV4Warning[],
+): Record<string, any> {
+  const { response_format: responseFormat, ...restArgs } = args;
 
-// Baseten returns two different envelopes. The Model APIs send a bare string
-// (`{"error":"please check the model you provided"}`), while dedicated
-// deployments pass through their server's OpenAI-shaped object. Parsing only
-// the string form left dedicated-deployment errors falling back to the HTTP
-// reason phrase — "Not Found", or nothing at all over HTTP/2.
-const basetenErrorSchema = z.object({
-  error: z.union([
-    z.string(),
-    z.object({
-      message: z.string(),
-      object: z.string().nullish(),
-      type: z.string().nullish(),
-      param: z.any().nullish(),
-      code: z.union([z.string(), z.number()]).nullish(),
-    }),
-  ]),
-});
+  if (
+    args.model !== 'deepseek-ai/DeepSeek-V4-Pro-0813' ||
+    args.reasoning_effort === 'none' ||
+    (responseFormat?.type !== 'json_schema' &&
+      responseFormat?.type !== 'json_object')
+  ) {
+    return args;
+  }
 
-const basetenErrorStructure: ProviderErrorStructure<BasetenErrorData> = {
-  errorSchema: basetenErrorSchema,
-  errorToMessage: data =>
-    typeof data.error === 'string' ? data.error : data.error.message,
-};
+  // With JSON mode enabled, Baseten returns this model's answer as reasoning
+  // and leaves content empty. Keep reasoning and prompt for JSON instead.
+  warnings?.push({
+    type: 'compatibility',
+    feature: 'responseFormat',
+    details:
+      'JSON instructions are injected into the system message and response_format is omitted because Baseten DeepSeek V4 Pro 0813 returns JSON as reasoning when JSON mode and reasoning are combined. The response is not constrained by the server.',
+  });
+
+  return {
+    ...restArgs,
+    messages: [
+      ...injectJsonInstructionIntoMessages({
+        messages: [],
+        schema: responseFormat.json_schema?.schema,
+      }),
+      ...args.messages,
+    ],
+  };
+}
 
 export interface BasetenProviderSettings {
   /**
@@ -148,6 +164,12 @@ export interface BasetenProvider extends ProviderV4 {
    * @deprecated Use `embeddingModel` instead.
    */
   textEmbeddingModel(modelId?: BasetenEmbeddingModelId): EmbeddingModelV4;
+
+  /**
+   * Creates an experimental decision model using the Model APIs System One
+   * endpoint. Decision models ignore `modelURL`.
+   */
+  decisionModel(modelId: BasetenDecisionModelId): DecisionModelV4;
 }
 
 // by default, we use the Model APIs
@@ -208,7 +230,8 @@ export function createBaseten(
           errorStructure: basetenErrorStructure,
           // Or stream_options.include_usage is omitted and streams report no usage.
           includeUsage: true,
-          supportsStructuredOutputs: true,
+          supportsStructuredOutputs:
+            basetenRequestDefaults.language.supportsStructuredOutputs,
         });
       } else if (customURL.includes('/predict')) {
         throw new Error(
@@ -221,7 +244,9 @@ export function createBaseten(
       ...getCommonModelConfig('chat'),
       errorStructure: basetenErrorStructure,
       includeUsage: true,
-      supportsStructuredOutputs: true,
+      supportsStructuredOutputs:
+        basetenRequestDefaults.language.supportsStructuredOutputs,
+      transformRequestBody: transformBasetenRequestBody,
     });
   };
 
@@ -324,6 +349,13 @@ export function createBaseten(
   };
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
+  provider.decisionModel = (modelId: BasetenDecisionModelId) =>
+    new DecisionBasetenModel(modelId, {
+      provider: 'baseten.decision',
+      baseURL: baseURL ?? defaultBaseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
   return provider;
 }
 

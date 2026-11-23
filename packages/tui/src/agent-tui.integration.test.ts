@@ -330,7 +330,313 @@ describe('AgentTUIRunner integration', () => {
       await run;
     }
   });
+
+  describe('tool approval', () => {
+    it('shows the input of the tool call that each approval decision applies to', async () => {
+      const screen = new MockScreen({ columns: 64, rows: 24 });
+      const userInput = new MockUserInput();
+      const executedInputs: RecordInput[] = [];
+      const run = new AgentTUIRunner({
+        title: 'Record Agent',
+        agent: createRecordAgent({
+          toolCalls: [
+            {
+              toolName: 'record',
+              input: { action: 'delete', id: 'customers' },
+            },
+            { toolName: 'record', input: { action: 'read', id: 'status' } },
+          ],
+          executedInputs,
+        }),
+        screen,
+        userInput,
+      }).run();
+
+      try {
+        await screen.waitForText('> █');
+        userInput.type('check the status');
+        userInput.enter();
+
+        await screen.waitForText('approve? y/n');
+        expect(screen.snapshot()).toMatchInlineSnapshot(`
+          "┌ Record Agent ───────────────────────────────────── 13 tokens ┐
+          │ ╭ User ────────────────────────────────────────────────────╮ │
+          │ │ check the status                                         │ │
+          │ ╰──────────────────────────────────────────────────────────╯ │
+          │ ╭ Tool · record ───────────────────────────── approve? y/n ╮ │
+          │ │ Input:                                                   │ │
+          │ │ {                                                        │ │
+          │ │   "action": "delete",                                    │ │
+          │ │   "id": "customers"                                      │ │
+          │ │ }                                                        │ │
+          │ ╰──────────────────────────────────────────────────────────╯ │
+          │ ╭ Tool · record ─────────────────────── approval requested ╮ │
+          │ │ Input:                                                   │ │
+          │ │ {                                                        │ │
+          │ │   "action": "read",                                      │ │
+          │ │   "id": "status"                                         │ │
+          │ │ }                                                        │ │
+          │ ╰──────────────────────────────────────────────────────────╯ │
+          │                                                              │
+          │                                                              │
+          └──────────────────────────────────────────────────────────────┘
+          ┌ Status ──────────────────────────────────────────────────────┐
+          │ Approve tool record? y/n · ↑/↓ · PgUp/PgDn · Esc/Ctrl+C      │
+          └──────────────────────────────────────────────────────────────┘"
+        `);
+
+        userInput.type('n');
+        await screen.waitForText('approve? y/n');
+        expect(screen.snapshot()).toMatchInlineSnapshot(`
+          "┌ Record Agent ───────────────────────────────────── 13 tokens ┐
+          │ ╭ User ────────────────────────────────────────────────────╮ │
+          │ │ check the status                                         │ │
+          │ ╰──────────────────────────────────────────────────────────╯ │
+          │ ╭ Tool · record ─────────────────────────────────── denied ╮ │
+          │ ╰──────────────────────────────────────────────────────────╯ │
+          │ ╭ Tool · record ───────────────────────────── approve? y/n ╮ │
+          │ │ Input:                                                   │ │
+          │ │ {                                                        │ │
+          │ │   "action": "read",                                      │ │
+          │ │   "id": "status"                                         │ │
+          │ │ }                                                        │ │
+          │ ╰──────────────────────────────────────────────────────────╯ │
+          │                                                              │
+          │                                                              │
+          │                                                              │
+          │                                                              │
+          │                                                              │
+          │                                                              │
+          │                                                              │
+          └──────────────────────────────────────────────────────────────┘
+          ┌ Status ──────────────────────────────────────────────────────┐
+          │ Approve tool record? y/n · ↑/↓ · PgUp/PgDn · Esc/Ctrl+C      │
+          └──────────────────────────────────────────────────────────────┘"
+        `);
+
+        userInput.type('y');
+        await screen.waitForText('The status is fine.');
+        await screen.waitForText('┌ Input');
+
+        expect(executedInputs).toEqual([{ action: 'read', id: 'status' }]);
+      } finally {
+        userInput.ctrlC();
+        await run;
+      }
+    });
+
+    it.each([
+      {
+        name: 'two calls of the same tool, approving only the first call',
+        toolCalls: [
+          { toolName: 'record', input: { action: 'delete', id: 'customers' } },
+          { toolName: 'record', input: { action: 'read', id: 'status' } },
+        ],
+        prompt: 'Approve tool record? y/n',
+        decisions: ['y', 'n'],
+        executedInputs: [{ action: 'delete', id: 'customers' }],
+      },
+      {
+        name: 'two tools with the same title, approving only the second call',
+        toolCalls: [
+          {
+            toolName: 'deleteRecord',
+            input: { action: 'delete', id: 'customers' },
+          },
+          { toolName: 'readRecord', input: { action: 'read', id: 'status' } },
+        ],
+        prompt: 'Approve tool Record? y/n',
+        decisions: ['n', 'y'],
+        executedInputs: [{ action: 'read', id: 'status' }],
+      },
+    ] as const)(
+      'marks the tool call awaiting the decision for $name',
+      async ({ toolCalls, prompt, decisions, executedInputs }) => {
+        const screen = new MockScreen({ columns: 64, rows: 24 });
+        const userInput = new MockUserInput();
+        const actualExecutedInputs: RecordInput[] = [];
+        const run = new AgentTUIRunner({
+          title: 'Record Agent',
+          agent: createRecordAgent({
+            toolCalls,
+            executedInputs: actualExecutedInputs,
+          }),
+          screen,
+          userInput,
+        }).run();
+
+        try {
+          await screen.waitForText('> █');
+          userInput.type('check the status');
+          userInput.enter();
+
+          for (const [index, decision] of decisions.entries()) {
+            const otherIndex = index === 0 ? 1 : 0;
+
+            await screen.waitForText('approve? y/n');
+
+            const section = sectionAwaitingApproval(screen.snapshot());
+            expect(screen.snapshot()).toContain(prompt);
+            expect(section).toContain(
+              `"action": "${toolCalls[index].input.action}"`,
+            );
+            expect(section).not.toContain(
+              `"action": "${toolCalls[otherIndex].input.action}"`,
+            );
+
+            userInput.type(decision);
+          }
+
+          await screen.waitForText('The status is fine.');
+          await screen.waitForText('┌ Input');
+
+          expect(actualExecutedInputs).toEqual(executedInputs);
+        } finally {
+          userInput.ctrlC();
+          await run;
+        }
+      },
+    );
+
+    it.each(['collapsed', 'hidden'] as const)(
+      'shows the input of the tool call awaiting the decision when tools are %s',
+      async tools => {
+        const screen = new MockScreen({ columns: 64, rows: 24 });
+        const userInput = new MockUserInput();
+        const executedInputs: RecordInput[] = [];
+        const run = new AgentTUIRunner({
+          title: 'Record Agent',
+          agent: createRecordAgent({
+            toolCalls: [
+              {
+                toolName: 'record',
+                input: { action: 'delete', id: 'customers' },
+              },
+            ],
+            executedInputs,
+          }),
+          tools,
+          screen,
+          userInput,
+        }).run();
+
+        try {
+          await screen.waitForText('> █');
+          userInput.type('check the status');
+          userInput.enter();
+
+          await screen.waitForText('approve? y/n');
+          expect(sectionAwaitingApproval(screen.snapshot())).toContain(
+            '"action": "delete"',
+          );
+
+          userInput.type('y');
+          await screen.waitForText('The status is fine.');
+          await screen.waitForText('┌ Input');
+
+          expect(executedInputs).toEqual([
+            { action: 'delete', id: 'customers' },
+          ]);
+          expect(screen.snapshot()).not.toContain('"action": "delete"');
+          expect(screen.snapshot().includes('Tool · record')).toBe(
+            tools === 'collapsed',
+          );
+        } finally {
+          userInput.ctrlC();
+          await run;
+        }
+      },
+    );
+  });
 });
+
+type RecordInput = { action: string; id: string };
+
+function sectionAwaitingApproval(snapshot: string) {
+  const lines = snapshot.split('\n');
+  const start = lines.findIndex(line => line.includes('approve? y/n'));
+  const end = lines.findIndex(
+    (line, index) => index > start && line.includes('╰'),
+  );
+
+  return lines.slice(start, end + 1).join('\n');
+}
+
+function createRecordAgent({
+  toolCalls,
+  executedInputs,
+}: {
+  toolCalls: ReadonlyArray<{
+    toolName: 'record' | 'deleteRecord' | 'readRecord';
+    input: RecordInput;
+  }>;
+  executedInputs: RecordInput[];
+}) {
+  const createRecordTool = (title?: string) =>
+    tool({
+      title,
+      description: 'Read or change a record',
+      inputSchema: z.object({ action: z.string(), id: z.string() }),
+      execute(input) {
+        executedInputs.push(input);
+        return { ok: true };
+      },
+    });
+  let callCount = 0;
+
+  return new ToolLoopAgent({
+    model: new MockLanguageModelV4({
+      doStream: async () => {
+        callCount += 1;
+
+        const chunks: LanguageModelV4StreamPart[] =
+          callCount === 1
+            ? [
+                { type: 'stream-start', warnings: [] },
+                ...toolCalls.map(({ toolName, input }, index) => ({
+                  type: 'tool-call' as const,
+                  toolCallId: `call-${index + 1}`,
+                  toolName,
+                  input: JSON.stringify(input),
+                })),
+                {
+                  ...finishChunk(),
+                  finishReason: { unified: 'tool-calls', raw: undefined },
+                },
+              ]
+            : [
+                { type: 'stream-start', warnings: [] },
+                { type: 'text-start', id: 'text-1' },
+                {
+                  type: 'text-delta',
+                  id: 'text-1',
+                  delta: 'The status is fine.',
+                },
+                { type: 'text-end', id: 'text-1' },
+                finishChunk(),
+              ];
+
+        return {
+          stream: simulateReadableStream({
+            chunks,
+            chunkDelayInMs: null,
+            initialDelayInMs: null,
+          }),
+        };
+      },
+    }),
+    tools: {
+      record: createRecordTool(),
+      deleteRecord: createRecordTool('Record'),
+      readRecord: createRecordTool('Record'),
+    },
+    toolApproval: {
+      record: 'user-approval',
+      deleteRecord: 'user-approval',
+      readRecord: 'user-approval',
+    },
+  });
+}
 
 function normalizeTokensPerSecond(snapshot: string) {
   return snapshot.replace(

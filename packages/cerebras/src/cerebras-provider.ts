@@ -16,6 +16,8 @@ import { CerebrasChatLanguageModel } from './cerebras-chat-language-model';
 import type { CerebrasChatModelId } from './cerebras-chat-options';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
+import { cerebrasMetadataExtractor } from './cerebras-metadata-extractor';
+import { getCerebrasLanguageModelEntry } from './cerebras-model-catalog';
 
 // Add error schema and structure
 const cerebrasErrorSchema = z.object({
@@ -45,6 +47,7 @@ function transformCerebrasRequestBody(
     topLogprobs,
     logitBias,
     serviceTier,
+    queueThreshold: _queueThreshold,
     reasoningFormat,
     promptCacheKey,
     ...restArgs
@@ -162,8 +165,11 @@ export function createCerebras(
       headers: getHeaders,
       fetch: options.fetch,
       errorStructure: cerebrasErrorStructure,
-      supportsStructuredOutputs: true,
+      supportsStructuredOutputs:
+        getCerebrasLanguageModelEntry(modelId).capabilities.language
+          .structuredOutput.jsonSchema,
       transformRequestBody: transformCerebrasRequestBody,
+      metadataExtractor: cerebrasMetadataExtractor,
     });
   };
 

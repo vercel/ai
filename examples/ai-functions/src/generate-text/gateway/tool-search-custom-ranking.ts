@@ -12,7 +12,7 @@ const deferred = (description: string) =>
 
 run(async () => {
   const result = await generateText({
-    model: 'google/gemini-3.7-flash',
+    model: 'google/gemini-4-hydrogen',
     tools: {
       search_tools: toolSearch({
         search: ({ query, tools }) => {

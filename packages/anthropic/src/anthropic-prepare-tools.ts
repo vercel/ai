@@ -27,6 +27,7 @@ export interface AnthropicToolOptions {
 export async function prepareTools({
   tools,
   toolChoice,
+  hasInlineTools = false,
   disableParallelToolUse,
   cacheControlValidator,
   supportsStructuredOutput,
@@ -36,6 +37,13 @@ export async function prepareTools({
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice: LanguageModelV4CallOptions['toolChoice'] | undefined;
+
+  /**
+   * Whether tools are added by value in the prompt (mid-conversation tool
+   * changes). The model has tools even when `tools` is empty, so the tool
+   * choice and parallel tool use settings still need to be sent.
+   */
+  hasInlineTools?: boolean;
   disableParallelToolUse?: boolean;
   cacheControlValidator?: CacheControlValidator;
 
@@ -74,13 +82,13 @@ export async function prepareTools({
   const betas = new Set<string>();
   const validator = cacheControlValidator || new CacheControlValidator();
 
-  if (tools == null) {
+  if (tools == null && !hasInlineTools) {
     return { tools: undefined, toolChoice: undefined, toolWarnings, betas };
   }
 
   const anthropicTools: AnthropicTool[] = [];
 
-  for (const tool of tools) {
+  for (const tool of tools ?? []) {
     switch (tool.type) {
       case 'function': {
         const cacheControl = validator.getCacheControl(tool.providerOptions, {
@@ -129,7 +137,9 @@ export async function prepareTools({
             : {}),
         });
 
-        if (supportsStructuredOutput === true) {
+        // Native final output does not require this beta. Only send it for
+        // providers that also support strict tools.
+        if (supportsStructuredOutput === true && supportsStrictTools === true) {
           betas.add('structured-outputs-2025-11-13');
         }
 
@@ -462,9 +472,13 @@ export async function prepareTools({
     }
   }
 
+  // when the user passed no tools (they exist only in tool changes inside the
+  // messages), omit `tools` instead of sending an empty array
+  const declaredTools = tools == null ? undefined : anthropicTools;
+
   if (toolChoice == null) {
     return {
-      tools: anthropicTools,
+      tools: declaredTools,
       toolChoice: disableParallelToolUse
         ? { type: 'auto', disable_parallel_tool_use: disableParallelToolUse }
         : undefined,
@@ -478,7 +492,7 @@ export async function prepareTools({
   switch (type) {
     case 'auto':
       return {
-        tools: anthropicTools,
+        tools: declaredTools,
         toolChoice: {
           type: 'auto',
           disable_parallel_tool_use: disableParallelToolUse,
@@ -496,7 +510,7 @@ export async function prepareTools({
             `Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.`,
         });
         return {
-          tools: anthropicTools,
+          tools: declaredTools,
           toolChoice: {
             type: 'auto',
             disable_parallel_tool_use: disableParallelToolUse,
@@ -506,7 +520,7 @@ export async function prepareTools({
         };
       }
       return {
-        tools: anthropicTools,
+        tools: declaredTools,
         toolChoice: {
           type: 'any',
           disable_parallel_tool_use: disableParallelToolUse,
@@ -516,7 +530,7 @@ export async function prepareTools({
       };
     case 'none':
       return {
-        tools: anthropicTools,
+        tools: declaredTools,
         toolChoice: { type: 'none' },
         toolWarnings,
         betas,
@@ -532,7 +546,7 @@ export async function prepareTools({
             `Instruct the model to use the tool in the prompt and verify that a tool call was made.`,
         });
         return {
-          tools: anthropicTools.filter(
+          tools: declaredTools?.filter(
             tool => 'name' in tool && tool.name === toolChoice.toolName,
           ),
           toolChoice: {
@@ -544,7 +558,7 @@ export async function prepareTools({
         };
       }
       return {
-        tools: anthropicTools,
+        tools: declaredTools,
         toolChoice: {
           type: 'tool',
           name: toolChoice.toolName,

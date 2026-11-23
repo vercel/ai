@@ -32,6 +32,7 @@ import {
   CodeModeToolApprovalDeniedError,
 } from './errors.js';
 import { invokeHostTool } from './tool-invocation.js';
+import { formatPropertyAccess } from './tool-prompt.js';
 import type {
   CodeModeContinuation,
   CodeModeExecutionPolicy,
@@ -156,7 +157,7 @@ export async function runCodeMode(input: RunCodeModeInput): Promise<unknown> {
     if (preserved !== undefined) {
       throw translateSourceStack(preserved);
     }
-    throw translateSourceStack(toCodeModeRuntimeError(error));
+    throw translateSourceStack(toCodeModeRuntimeError(error, toolNames));
   }
 }
 
@@ -576,14 +577,24 @@ function toolNameForInterruption(
   if (interruption.hostFunctionName === '__codeMode.missing') {
     return String(interruption.arguments[0]);
   }
-  const match = /^__codeMode\.tool(\d+)$/u.exec(interruption.hostFunctionName);
-  const toolName = match === null ? undefined : toolNames[Number(match[1])];
+  const toolName = toolNameForHostFunction(
+    interruption.hostFunctionName,
+    toolNames,
+  );
   if (toolName === undefined) {
     throw new CodeModeProtocolError(
       `Run returned an unknown code-mode host function "${interruption.hostFunctionName}".`,
     );
   }
   return toolName;
+}
+
+function toolNameForHostFunction(
+  hostFunctionName: string,
+  toolNames: string[],
+): string | undefined {
+  const match = /^__codeMode\.tool(\d+)$/u.exec(hostFunctionName);
+  return match === null ? undefined : toolNames[Number(match[1])];
 }
 
 function toCodeModeInterrupt(
@@ -625,7 +636,7 @@ function findPreservedCodeModeError(
   return errors.find(candidate => candidate.code === error.code);
 }
 
-function toCodeModeRuntimeError(error: unknown): unknown {
+function toCodeModeRuntimeError(error: unknown, toolNames: string[]): unknown {
   if (error instanceof TypeError) {
     error.message = translateLimitPath(error.message);
   }
@@ -671,11 +682,23 @@ function toCodeModeRuntimeError(error: unknown): unknown {
         new CodeModeBridgeLimitError(error.message, error.details),
         error,
       );
-    case 'RUN_DETACHED_BRIDGE_REQUEST':
+    case 'RUN_DETACHED_BRIDGE_REQUEST': {
+      let message = error.message;
+      const hostFunctionName = details?.name;
+      if (typeof hostFunctionName === 'string') {
+        const toolName = toolNameForHostFunction(hostFunctionName, toolNames);
+        if (toolName !== undefined) {
+          message = message.replace(
+            hostFunctionName,
+            () => `tools${formatPropertyAccess(toolName)}`,
+          );
+        }
+      }
       return copyStack(
-        new CodeModeDetachedBridgeRequestError(error.message, error.details),
+        new CodeModeDetachedBridgeRequestError(message, error.details),
         error,
       );
+    }
     case 'RUN_PROTOCOL_ERROR':
       return copyStack(
         new CodeModeProtocolError(error.message, error.details),

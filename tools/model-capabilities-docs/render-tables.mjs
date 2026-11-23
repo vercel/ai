@@ -1,10 +1,32 @@
 export function renderCapabilityTable(
   entries,
-  { capability, columns, formatModelId },
+  { capability, columns, formatModelId, filter },
 ) {
+  const rows = renderCapabilityRows(
+    filter == null
+      ? entries
+      : entries.filter(([id, entry]) => filter(entry, id)),
+    capability,
+    columns,
+    formatModelId,
+  );
+  return rows.length === 0
+    ? ''
+    : renderTable(['Model', ...columns.map(([heading]) => heading)], rows);
+}
+
+export function renderProviderOptionTable(options, section) {
   return renderTable(
-    ['Model', ...columns.map(([heading]) => heading)],
-    renderCapabilityRows(entries, capability, columns, formatModelId),
+    ['Operation', 'Option', 'Description'],
+    Object.entries(options)
+      .filter(([operation]) => section == null || section === operation)
+      .flatMap(([operation, definitions]) =>
+        Object.entries(definitions).map(([name, { description }]) => [
+          operation,
+          `\`${name}\``,
+          description.replace(/\s+/g, ' ').trim(),
+        ]),
+      ),
   );
 }
 
@@ -21,9 +43,10 @@ export function replaceGeneratedTable(source, id, table) {
   ) {
     throw new Error(`Missing or duplicate generated table markers: ${id}`);
   }
+  const replacement = table === '' ? '\n\n' : `\n\n${table}\n\n`;
   return (
     source.slice(0, startIndex + start.length) +
-    `\n\n${table}\n\n` +
+    replacement +
     source.slice(endIndex)
   );
 }
@@ -50,12 +73,20 @@ function renderCapabilityRows(
 ) {
   return entries
     .filter(([, { capabilities }]) => capabilities[capability] != null)
-    .map(([modelId, { capabilities }]) => [
-      `\`${formatModelId(modelId)}\``,
-      ...columns.map(([, path, format = formatSupport]) =>
-        format(readPath(capabilities[capability], path)),
-      ),
-    ]);
+    .flatMap(([modelId, { capabilities }]) => {
+      const values = columns.map(([, path]) =>
+        readPath(capabilities[capability], path),
+      );
+      if (values.includes('unknown')) return [];
+
+      const cells = columns.map(([, , format = formatSupport], index) =>
+        format(values[index]),
+      );
+      // Optional capabilities can also be formatted as unknown.
+      if (cells.includes('Unknown')) return [];
+
+      return [[`\`${formatModelId(modelId)}\``, ...cells]];
+    });
 }
 
 function readPath(value, path) {

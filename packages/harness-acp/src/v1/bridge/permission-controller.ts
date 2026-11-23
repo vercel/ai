@@ -6,26 +6,41 @@ import type {
   ToolCallUpdate,
 } from '@agentclientprotocol/sdk';
 import type { HostToolCall } from './host-tool-call-resolver';
+import {
+  areACPToolLocationsTrusted,
+  areACPToolWriteLocationsProtected,
+} from './permission-locations';
 
 type PendingPermission = {
   cancel(): void;
 };
+
+/*
+ * Skills in the standardized `.agents/skills` directory are loaded into later
+ * sessions, so agent writes there always require approval outside `allow-all`,
+ * regardless of the adapter's own write-protected paths.
+ */
+const ACP_BUILTIN_WRITE_PROTECTED_PATHS = ['.agents/skills'] as const;
 
 let permissionRequestCounter = 0;
 
 export function createACPPermissionController({
   turn,
   sessionId,
+  workDir,
   permissionMode,
   hasPermissionModeMapping,
+  writeProtectedPaths,
   emitToolCall,
   claimHostToolPermission,
   onHostToolPermissionAllowed,
 }: {
   turn: BridgeTurn;
   sessionId: string;
+  workDir: string;
   permissionMode: HarnessV1PermissionMode;
   hasPermissionModeMapping: boolean;
+  writeProtectedPaths?: ReadonlyArray<string>;
   emitToolCall: (options: { toolCall: ToolCallUpdate }) => void;
   claimHostToolPermission: (options: {
     toolCall: ToolCallUpdate;
@@ -42,6 +57,10 @@ export function createACPPermissionController({
 } {
   const pendingPermissions = new Map<string, PendingPermission>();
   let cancellationGeneration = 0;
+  const effectiveWriteProtectedPaths = [
+    ...ACP_BUILTIN_WRITE_PROTECTED_PATHS,
+    ...(writeProtectedPaths ?? []),
+  ];
 
   return {
     async requestPermission(request) {
@@ -88,13 +107,27 @@ export function createACPPermissionController({
           },
         };
       }
-      if (
+      const autoApprove =
         !hasPermissionModeMapping &&
         shouldAutoApprove({
           permissionMode,
           kind: request.toolCall.kind,
-        })
-      ) {
+        }) &&
+        (permissionMode === 'allow-all' ||
+          ((await areACPToolLocationsTrusted({
+            toolCall: request.toolCall,
+            workDir,
+          })) &&
+            !(
+              isWriteKind({ kind: request.toolCall.kind }) &&
+              (await areACPToolWriteLocationsProtected({
+                toolCall: request.toolCall,
+                workDir,
+                writeProtectedPaths: effectiveWriteProtectedPaths,
+              }))
+            )));
+      if (generation !== cancellationGeneration) return cancelled();
+      if (autoApprove) {
         return {
           outcome: {
             outcome: 'selected',
@@ -170,6 +203,10 @@ function shouldAutoApprove({
     permissionMode === 'allow-edits' &&
     (kind === 'edit' || kind === 'delete' || kind === 'move')
   );
+}
+
+function isWriteKind({ kind }: { kind: ToolCallUpdate['kind'] }): boolean {
+  return kind === 'edit' || kind === 'delete' || kind === 'move';
 }
 
 function cancelled(): RequestPermissionResponse {

@@ -195,7 +195,7 @@ describe('validateACPLifecycleCompatibility', () => {
     authenticationProfile,
     bridge: {
       port: 4319,
-      token: 'bridge-token',
+      privateKey: 'bridge-private-key',
       lastSeenEventId: 7,
       sandboxId: 'sandbox-1',
     },

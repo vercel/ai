@@ -181,6 +181,193 @@ function createStreamChunks(responseOverrides: Record<string, unknown> = {}) {
   ];
 }
 
+describe.each(['doGenerate', 'doStream'] as const)('%s tool choice', method => {
+  const tools = [
+    {
+      type: 'function' as const,
+      name: 'weather',
+      inputSchema: { type: 'object' as const, properties: {} },
+    },
+  ];
+  const nativeTools = [
+    { type: 'web_search' },
+    {
+      type: 'mcp',
+      server_label: 'test',
+      server_url: 'https://example.com/mcp',
+      authorization: 'test-mcp-token',
+      headers: { 'x-api-key': 'test-mcp-key' },
+    },
+    { type: 'connector', id: 'test-connector', server_label: 'test' },
+  ];
+
+  function prepareResponse() {
+    if (method === 'doGenerate') {
+      prepareJsonResponse();
+    } else {
+      prepareStream(createStreamChunks());
+    }
+  }
+
+  describe.each(['low', 'openai/gpt-5.1'])('model %s', modelId => {
+    const model = new PerplexityLanguageModel(modelId, {
+      baseURL: 'https://api.perplexity.ai',
+      generateId: mockId(),
+    });
+
+    it.each([undefined, 5])(
+      'disables all tools with none and max_tool_calls %s',
+      async maxToolCalls => {
+        prepareResponse();
+
+        const result = await model[method]({
+          prompt: TEST_PROMPT,
+          tools,
+          toolChoice: { type: 'none' },
+          providerOptions: {
+            perplexity: { tools: nativeTools, max_tool_calls: maxToolCalls },
+          },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body).not.toHaveProperty('tools');
+        expect(body.max_tool_calls).toBe(0);
+        expect(JSON.stringify(body)).not.toContain('test-mcp-token');
+        expect(JSON.stringify(body)).not.toContain('test-mcp-key');
+        if ('stream' in result) {
+          const parts = await convertReadableStreamToArray(result.stream);
+          expect(parts[0]).toEqual({ type: 'stream-start', warnings: [] });
+        } else {
+          expect(result.warnings).toEqual([]);
+        }
+      },
+    );
+
+    it('disables preset tools even without explicit tools', async () => {
+      prepareResponse();
+
+      await model[method]({
+        prompt: TEST_PROMPT,
+        toolChoice: { type: 'none' },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('tools');
+      expect(body.max_tool_calls).toBe(0);
+    });
+
+    it('omits disabled provider-defined tools without unsupported warnings', async () => {
+      prepareResponse();
+
+      const result = await model[method]({
+        prompt: TEST_PROMPT,
+        toolChoice: { type: 'none' },
+        tools: [
+          {
+            type: 'provider',
+            id: 'perplexity.web_search',
+            name: 'search',
+            args: {},
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('tools');
+      expect(body.max_tool_calls).toBe(0);
+      if ('stream' in result) {
+        const parts = await convertReadableStreamToArray(result.stream);
+        expect(parts[0]).toEqual({ type: 'stream-start', warnings: [] });
+      } else {
+        expect(result.warnings).toEqual([]);
+      }
+    });
+
+    it('keeps prior tool calls and results while disabling new tool use', async () => {
+      prepareResponse();
+
+      await model[method]({
+        prompt: [
+          ...TEST_PROMPT,
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'weather',
+                input: {},
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'weather',
+                output: { type: 'text', value: 'Sunny' },
+              },
+            ],
+          },
+        ],
+        tools,
+        toolChoice: { type: 'none' },
+        providerOptions: {
+          perplexity: { tools: nativeTools, max_tool_calls: 5 },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('tools');
+      expect(body.max_tool_calls).toBe(0);
+      expect(body.input).toEqual([
+        { type: 'message', role: 'user', content: 'Hello' },
+        {
+          type: 'function_call',
+          call_id: 'call-1',
+          name: 'weather',
+          arguments: '{}',
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call-1',
+          name: 'weather',
+          output: 'Sunny',
+        },
+      ]);
+    });
+
+    it.each([undefined, { type: 'auto' as const }])(
+      'preserves tools and limits with tool choice %s',
+      async toolChoice => {
+        prepareResponse();
+
+        await model[method]({
+          prompt: TEST_PROMPT,
+          tools,
+          toolChoice,
+          providerOptions: {
+            perplexity: { tools: nativeTools, max_tool_calls: 5 },
+          },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.tools).toEqual([
+          ...nativeTools,
+          {
+            type: 'function',
+            name: 'weather',
+            parameters: tools[0].inputSchema,
+          },
+        ]);
+        expect(body.max_tool_calls).toBe(5);
+      },
+    );
+  });
+});
+
 describe('doGenerate', () => {
   it('parses a captured Agent API web search response', async () => {
     const response = JSON.parse(

@@ -1,3 +1,4 @@
+import { getTogetherAILanguageModelEntry } from './togetherai-model-catalog';
 import {
   OpenAICompatibleChatLanguageModel,
   OpenAICompatibleCompletionLanguageModel,
@@ -120,7 +121,8 @@ function loadDeprecatedApiKey(): string | undefined {
 export function getModelStructuredOutputSupport(
   modelId: TogetherAIChatModelId,
 ): boolean {
-  return modelId === 'deepseek-ai/DeepSeek-V4-Flash-0731';
+  return getTogetherAILanguageModelEntry(modelId).capabilities.language
+    .structuredOutput.jsonSchema;
 }
 
 export function createTogetherAI(

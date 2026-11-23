@@ -152,13 +152,9 @@ exports[`zodSchema > zod/v4 > json schema conversion > should support nullable 1
   "additionalProperties": false,
   "properties": {
     "location": {
-      "anyOf": [
-        {
-          "type": "string",
-        },
-        {
-          "type": "null",
-        },
+      "type": [
+        "string",
+        "null",
       ],
     },
   },

@@ -1,12 +1,12 @@
 ---
 title: Lifecycle Callbacks
-description: Observe AI SDK lifecycle events in generateText, streamText, embed, embedMany, rerank, and experimental_decide calls
+description: Observe AI SDK lifecycle events in generateText, streamText, embed, embedMany, rerank, experimental_decide, and experimental_extract calls
 ---
 
 # Lifecycle Callbacks
 
 Event callbacks let you run your own code at important points in an AI SDK call.
-You can attach them directly to `generateText`, `streamText`, `embed`, `embedMany`, `rerank`, and `experimental_decide` calls to observe what happened, record usage, debug multi-step generations, and monitor tool execution.
+You can attach them directly to `generateText`, `streamText`, `embed`, `embedMany`, `rerank`, `experimental_decide`, and `experimental_extract` calls to observe what happened, record usage, debug multi-step generations, and monitor tool execution.
 
 They are especially useful when you want application-specific logic close to the call site:
 
@@ -480,6 +480,25 @@ const result = await generateText({
   ]}
 />
 
+### `experimental_extract`
+
+<PropertiesTable
+  content={[
+    {
+      name: 'onStart',
+      type: '(event: Experimental_ExtractStartEvent) => void | Promise<void>',
+      description:
+        'Called when the extraction operation begins, before the extraction model is called.',
+    },
+    {
+      name: 'onEnd',
+      type: '(event: Experimental_ExtractEndEvent) => void | Promise<void>',
+      description:
+        'Called when the extraction operation completes successfully.',
+    },
+  ]}
+/>
+
 ## Event Data Reference
 
 The exact event data depends on the callback. The tables below summarize the fields you will most commonly use.
@@ -943,6 +962,12 @@ Called once when the full generation completes.
       description: 'Unified reason why the final step finished.',
     },
     {
+      name: 'stoppedBy',
+      type: "'model' | 'stop-condition' | 'tool-without-execute' | 'approval' | undefined",
+      description:
+        'Why the loop stopped. Unlike `finishReason`, it describes the whole loop, not the last model call. See [Loop Control](/docs/agents/loop-control#why-the-loop-stopped).',
+    },
+    {
       name: 'usage',
       type: 'LanguageModelUsage',
       description: 'Aggregated token usage across all steps.',
@@ -1271,6 +1296,109 @@ Includes every `onStart` field plus:
       type: '{ probabilityDecimals?: number; scoreDecimals?: number } | undefined',
       description:
         'Provider-declared decimal precision for probabilities and scores.',
+    },
+    {
+      name: 'providerMetadata',
+      type: 'ProviderMetadata | undefined',
+      description: 'Optional provider-specific metadata.',
+    },
+    {
+      name: 'response',
+      type: '{ id?: string; timestamp: Date; modelId: string; headers?: Record<string, string>; body?: unknown }',
+      description:
+        'Response metadata including the resolved model and timestamp.',
+    },
+  ]}
+/>
+
+### Extraction Events
+
+Extraction callbacks are experimental. Their exported types are
+`Experimental_ExtractStartEvent` and `Experimental_ExtractEndEvent`.
+
+#### onStart
+
+<PropertiesTable
+  content={[
+    {
+      name: 'callId',
+      type: 'string',
+      description: 'Unique identifier for this extraction call.',
+    },
+    {
+      name: 'operationId',
+      type: "'ai.extract'",
+      description: 'Extraction operation identifier.',
+    },
+    {
+      name: 'runtimeContext',
+      type: 'RUNTIME_CONTEXT',
+      description: 'Full user-defined runtime context.',
+    },
+    {
+      name: 'provider',
+      type: 'string',
+      description: 'Provider identifier for the extraction model.',
+    },
+    {
+      name: 'modelId',
+      type: 'string',
+      description: 'Extraction model identifier.',
+    },
+    {
+      name: 'state',
+      type: 'string | object | array',
+      description: 'Shared state to extract field values from.',
+    },
+    {
+      name: 'fields',
+      type: 'Readonly<Record<string, Experimental_ExtractionField>>',
+      description: 'Fields to extract from the shared state.',
+    },
+    {
+      name: 'referenceDate',
+      type: 'string | undefined',
+      description:
+        'YYYY-MM-DD date that anchors relative dates and dates without a year.',
+    },
+    {
+      name: 'maxRetries',
+      type: 'number',
+      description: 'Maximum number of retries for the model call.',
+    },
+    {
+      name: 'headers',
+      type: 'Record<string, string> | undefined',
+      description: 'Additional HTTP headers sent with the request.',
+    },
+    {
+      name: 'providerOptions',
+      type: 'ProviderOptions',
+      description: 'Provider-specific options.',
+    },
+  ]}
+/>
+
+#### onEnd
+
+Includes every `onStart` field plus:
+
+<PropertiesTable
+  content={[
+    {
+      name: 'answers',
+      type: 'Record<string, Experimental_ExtractionAnswer>',
+      description: 'Exactly one typed answer per field ID.',
+    },
+    {
+      name: 'usage',
+      type: '{ inputTokens: number | undefined; outputTokens: number | undefined; totalTokens: number | undefined }',
+      description: 'Token usage for the extraction operation.',
+    },
+    {
+      name: 'warnings',
+      type: 'Array<Warning>',
+      description: 'Warnings from the extraction model.',
     },
     {
       name: 'providerMetadata',

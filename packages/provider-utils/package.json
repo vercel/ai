@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/provider-utils",
-  "version": "5.0.72",
+  "version": "5.0.83",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -19,10 +19,9 @@
     "test.d.ts"
   ],
   "scripts": {
-    "build": "pnpm clean && tsdown",
-    "build:watch": "pnpm clean && tsdown --watch",
-    "clean": "del-cli *.tsbuildinfo",
-    "type-check": "tsc --build",
+    "build": "tsdown",
+    "build:watch": "tsdown --watch",
+    "type-check": "tsc --noEmit",
     "test": "pnpm test:node && pnpm test:edge",
     "test:update": "pnpm test:node -u",
     "test:watch": "vitest --config vitest.node.config.js",
@@ -50,14 +49,18 @@
       "types": "./dist/experimental-evaluation/index.d.ts",
       "import": "./dist/experimental-evaluation/index.js",
       "default": "./dist/experimental-evaluation/index.js"
+    },
+    "./experimental-extraction": {
+      "types": "./dist/experimental-extraction/index.d.ts",
+      "import": "./dist/experimental-extraction/index.js",
+      "default": "./dist/experimental-extraction/index.js"
     }
   },
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
     "@standard-schema/spec": "^1.1.0",
     "@workflow/serde": "4.1.0",
-    "eventsource-parser": "^3.0.8",
-    "undici": "^7.29.0"
+    "eventsource-parser": "^3.0.8"
   },
   "devDependencies": {
     "@types/node": "22.19.19",
@@ -66,7 +69,7 @@
     "msw": "2.7.0",
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
-    "zod": "3.25.76"
+    "zod": "4.6.7"
   },
   "peerDependencies": {
     "zod": "^3.25.76 || ^4.1.8"

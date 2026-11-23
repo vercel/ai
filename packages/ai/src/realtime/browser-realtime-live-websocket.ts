@@ -8,7 +8,7 @@ import type {
 import { BrowserRealtimeAudio } from './browser-realtime-audio';
 import { BrowserRealtimeTransport } from './browser-realtime-transport';
 
-/** Continuous PCM16 audio-chunk media for an application-owned WebSocket relay. */
+/** Continuous PCM16 audio-chunk media over a WebSocket relay or client-secret connection. */
 export class BrowserRealtimeLiveWebSocket {
   private readonly transport: BrowserRealtimeTransport;
   private readonly audio: BrowserRealtimeAudio;
@@ -84,9 +84,20 @@ export class BrowserRealtimeLiveWebSocket {
     stream?: MediaStream;
     capture?: boolean;
   }): void {
+    const generation = this.prepare(options);
+    if (generation !== this.generation) return;
+    this.open({
+      mode: 'relay',
+      url: options.url,
+      protocols: options.protocols,
+    });
+  }
+
+  /** Resets media and primes playback; call while still in the user gesture. */
+  prepare(options: { stream?: MediaStream; capture?: boolean }): number {
     const generation = this.generation + 1;
     this.dispose();
-    if (generation !== this.generation) return;
+    if (generation !== this.generation) return generation;
     for (const format of [
       this.config.inputAudioFormat,
       this.config.outputAudioFormat,
@@ -111,10 +122,17 @@ export class BrowserRealtimeLiveWebSocket {
     void this.audio.resumePlayback().catch(error => {
       if (generation === this.generation) this.options.onError(error);
     });
+    return generation;
+  }
+
+  /** Opens the socket through an application relay or with a client secret. */
+  open(
+    connection:
+      | { mode: 'relay'; url: string; protocols?: string[] }
+      | { mode: 'client-secret'; url: string; token: string },
+  ): void {
     this.transport.connect({
-      mode: 'relay',
-      url: options.url,
-      protocols: options.protocols,
+      ...connection,
       onOpen: () => {
         return this.transport.sendEvent({
           type: this.options.model.capabilities?.startup ?? 'session-update',

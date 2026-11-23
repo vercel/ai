@@ -1,4 +1,5 @@
 import type { ACPHarnessSettings } from '@ai-sdk/harness-acp';
+import { asSchema } from '@ai-sdk/provider-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createCursor } from './cursor-harness';
 
@@ -18,8 +19,11 @@ describe('createCursor', () => {
   it('enforces the Cursor ACP agent', () => {
     createCursor();
 
-    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings<
+      ReturnType<typeof createCursor>['builtinTools']
+    >;
     expect(settings.nonTextContentTypes).toEqual(['image']);
+    expect(settings.writeProtectedPaths).toEqual(['.cursor']);
     expect({
       version: settings.version,
       harnessId: settings.harnessId,
@@ -35,6 +39,7 @@ describe('createCursor', () => {
       {
         "args": [
           "--disable-auto-update",
+          "--disable-project-configs",
           "acp",
         ],
         "authentication": undefined,
@@ -44,6 +49,7 @@ describe('createCursor', () => {
           "glob",
           "grep",
           "read",
+          "write",
           "updateTodos",
           "readTodos",
           "edit",
@@ -87,6 +93,20 @@ describe('createCursor', () => {
         "version": "v1",
       }
     `);
+
+    const writeTool = settings.builtinTools?.write;
+    expect(writeTool).toMatchObject({
+      title: 'Write',
+      nativeName: 'writeToolCall',
+      toolUseKind: 'edit',
+    });
+    expect(asSchema(writeTool!.inputSchema).jsonSchema).toMatchObject({
+      type: 'object',
+      properties: {
+        path: { type: 'string' },
+      },
+      required: ['path'],
+    });
 
     expect(
       settings.credentialBrokering?.({
@@ -139,7 +159,9 @@ describe('createCursor', () => {
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
+      hostDisconnectTimeoutMs: 60_000,
       reconnect,
+      keepAliveMs: 100,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
     });
@@ -150,7 +172,9 @@ describe('createCursor', () => {
       port: settings.port,
       portEndpoint: settings.portEndpoint,
       startupTimeoutMs: settings.startupTimeoutMs,
+      hostDisconnectTimeoutMs: settings.hostDisconnectTimeoutMs,
       reconnect: settings.reconnect,
+      keepAliveMs: settings.keepAliveMs,
       mcpServers: settings.mcpServers,
       mintBridgeToken: settings.mintBridgeToken,
     }).toEqual({
@@ -158,7 +182,9 @@ describe('createCursor', () => {
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
+      hostDisconnectTimeoutMs: 60_000,
       reconnect,
+      keepAliveMs: 100,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
     });

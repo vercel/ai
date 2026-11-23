@@ -7,8 +7,9 @@ import {
   type GitHubCopilotHarnessSettings,
 } from './github-copilot-harness';
 
-test('accepts sandbox bridge reconnect settings', () => {
+test('accepts sandbox bridge connection settings', () => {
   const settings: GitHubCopilotHarnessSettings = {
+    keepAliveMs: 100,
     reconnect: {
       maxElapsedMs: 120_000,
       initialDelayMs: 100,
@@ -16,6 +17,7 @@ test('accepts sandbox bridge reconnect settings', () => {
     },
   };
   createGitHubCopilot(settings);
+  expectTypeOf(settings.keepAliveMs).toEqualTypeOf<number | undefined>();
   expectTypeOf(settings.reconnect).toEqualTypeOf<
     SandboxChannelReconnectOptions | undefined
   >();

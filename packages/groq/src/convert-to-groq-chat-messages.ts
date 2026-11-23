@@ -4,10 +4,24 @@ import {
 } from '@ai-sdk/provider';
 import type { GroqChatPrompt } from './groq-api-types';
 import {
+  secureJsonParse,
+  stringifyWithBigIntAndCycles,
   convertToBase64,
   getTopLevelMediaType,
   resolveFullMediaType,
 } from '@ai-sdk/provider-utils';
+
+function serializeGroqToolCallArguments(input: unknown): string {
+  if (typeof input === 'string') {
+    try {
+      secureJsonParse(input);
+      return input;
+    } catch {
+      return JSON.stringify(input);
+    }
+  }
+  return stringifyWithBigIntAndCycles(input);
+}
 
 export function convertToGroqChatMessages(
   prompt: LanguageModelV4Prompt,
@@ -102,7 +116,7 @@ export function convertToGroqChatMessages(
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.input),
+                  arguments: serializeGroqToolCallArguments(part.input),
                 },
               });
               break;
@@ -139,7 +153,7 @@ export function convertToGroqChatMessages(
             case 'content':
             case 'json':
             case 'error-json':
-              contentValue = JSON.stringify(output.value);
+              contentValue = stringifyWithBigIntAndCycles(output.value);
               break;
           }
 

@@ -1,5 +1,4 @@
+import type { MiniMaxModelIds } from './minimax-model-catalog';
+
 // https://platform.minimax.io/docs
-export type MiniMaxVideoModelId =
-  | 'MiniMax-H3'
-  | 'MiniMax-H3-Max'
-  | (string & {});
+export type MiniMaxVideoModelId = MiniMaxModelIds['video'] | (string & {});

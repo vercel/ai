@@ -1,4 +1,4 @@
+import type { QuiverAIModelIds } from './quiverai-model-catalog';
 export type QuiverAILanguageModelId =
-  | 'arrow-2'
-  | 'arrow-2-telos'
+  | QuiverAIModelIds['language']
   | (string & {});

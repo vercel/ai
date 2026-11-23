@@ -15,7 +15,7 @@ import {
 } from './pi-session-storage';
 import {
   createFakePi,
-  createThrowingSandboxSession,
+  createEmptyRepositorySandboxSession,
   runPromptTurn,
   toolCallChunks,
   useScriptedPiModel,
@@ -74,7 +74,7 @@ describe('Pi with a session storage', () => {
   const scripted = useScriptedPiModel();
   const sessionStart = {
     sessionId: 'session-pelican',
-    sandboxSession: createThrowingSandboxSession(),
+    sandboxSession: createEmptyRepositorySandboxSession(),
     sessionWorkDir: '/sandbox/work',
   };
 

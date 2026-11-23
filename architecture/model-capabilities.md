@@ -24,15 +24,18 @@ remain unchanged.
 Each section is optional. An omitted section means the catalog has not declared
 that operation; it does not mean the operation is unsupported.
 
-| Section                          | Describes                                                                           |
-| -------------------------------- | ----------------------------------------------------------------------------------- |
-| `capabilities.language`          | Inputs, object generation, tools, reasoning, effort levels, and sampling parameters |
-| `capabilities.image`             | Input images, masks, output sizes, and image batch limits                           |
-| `capabilities.speech`            | Speech generation features                                                          |
-| `capabilities.realtime`          | Conversation mode, transports, and supported connection methods                     |
-| `capabilities.embedding`         | Default dimensions and custom dimension support                                     |
-| `capabilities.transcription`     | Transcription, streaming, delay control, and returned metadata                      |
-| `capabilities.speechTranslation` | Translated audio, translated text, and source transcripts                           |
+| Section                          | Describes                                                                             |
+| -------------------------------- | ------------------------------------------------------------------------------------- |
+| `capabilities.language`          | Inputs, object generation, tools, reasoning, effort levels, and sampling parameters   |
+| `capabilities.image`             | Input images, masks, output sizes, and image batch limits                             |
+| `capabilities.video`             | Prompts, conditioning inputs, audio generation, generation controls, and batch limits |
+| `capabilities.reranking`         | Text and object document inputs and top-N result limits                               |
+| `capabilities.decision`          | Question types, image input, reasoning, and output-token controls                     |
+| `capabilities.speech`            | Speech generation features                                                            |
+| `capabilities.realtime`          | Conversation mode, transports, and supported connection methods                       |
+| `capabilities.embedding`         | Default dimensions and custom dimension support                                       |
+| `capabilities.transcription`     | Transcription, streaming, delay control, and returned metadata                        |
+| `capabilities.speechTranslation` | Translated audio, translated text, and source transcripts                             |
 
 Language image input and image generation are separate facts. Likewise,
 transcription streaming does not imply realtime conversation support. Declare

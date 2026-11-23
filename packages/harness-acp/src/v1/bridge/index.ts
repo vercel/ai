@@ -89,6 +89,7 @@ let streamCapture: ACPStreamCapture | undefined;
 let initializationDiagnostic: Record<string, unknown> | undefined;
 let hostToolRelay: HostToolRelay | undefined;
 let catalogRefreshError: HarnessBridgeCapabilityUnsupportedError | undefined;
+let sessionPrompted = false;
 let sessionConfigurationFailure: { readonly error: unknown } | undefined;
 let historicalUpdatesSuppressed = false;
 let coldRestorationMethod: ACPSessionRestorationMethod | undefined;
@@ -107,6 +108,9 @@ let activeQuestionRequest:
 await runBridge<StartMessage>({
   bridgeType,
   bridgeStateDir,
+  ...(args.hostDisconnectTimeoutMs !== undefined
+    ? { hostDisconnectTimeoutMs: args.hostDisconnectTimeoutMs }
+    : {}),
   onStart: runTurn,
   onStop: () => (session == null ? {} : { sessionId: session.sessionId }),
   onExit: () => {
@@ -307,8 +311,10 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const permissionController = createACPPermissionController({
     turn,
     sessionId: activeSession.sessionId,
+    workDir,
     permissionMode: start.permissionMode ?? 'allow-all',
     hasPermissionModeMapping: start.permissionModeMapping != null,
+    writeProtectedPaths: bridgeConfiguration.writeProtectedPaths,
     emitToolCall: emitStreamEvent.permissionToolCall,
     claimHostToolPermission: emitStreamEvent.claimHostToolPermission,
     onHostToolPermissionAllowed: hostToolAuthorization.authorizePermission,
@@ -329,13 +335,15 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   activeHostToolRelay.bindTurn({ turn: relayTurn });
   try {
     const promptMeta = createOutputSchemaPromptMeta({ start });
-    const startPrompt = () =>
-      promptActiveSession({
+    const startPrompt = () => {
+      sessionPrompted = true;
+      return promptActiveSession({
         session: activeSession,
         agent: connection!.agent,
         prompt: start.prompt,
         meta: promptMeta,
       });
+    };
     if (initialHostToolCatalogRefreshRequired) {
       try {
         await promptAndRefreshInitialHostToolCatalog({
@@ -479,6 +487,9 @@ async function ensureSession({
     const relay = hostToolRelay;
     if (relay == null) {
       throw new Error('The host tool MCP relay is unavailable.');
+    }
+    if (!sessionPrompted) {
+      return { initialHostToolCatalogRefreshRequired: true };
     }
     try {
       await refreshHostToolCatalog({
@@ -894,7 +905,7 @@ function createChildEnvironment({
   home: string | undefined;
 }): NodeJS.ProcessEnv {
   const blocked = new Set([
-    'BRIDGE_CHANNEL_TOKEN',
+    'BRIDGE_AUTH_PUBLIC_KEY',
     'BRIDGE_WS_PORT',
     'AI_SDK_ACP_GATEWAY_API_KEY',
     'AI_SDK_ACP_GATEWAY_BASE_URL',
@@ -1008,11 +1019,13 @@ function parseArgs({ args }: { args: ReadonlyArray<string> }): {
   workDir?: string;
   bridgeStateDir?: string;
   bridgeType?: string;
+  hostDisconnectTimeoutMs?: number;
 } {
   const result: {
     workDir?: string;
     bridgeStateDir?: string;
     bridgeType?: string;
+    hostDisconnectTimeoutMs?: number;
   } = {};
   for (let index = 0; index < args.length; index++) {
     const value = args[index + 1];
@@ -1021,6 +1034,8 @@ function parseArgs({ args }: { args: ReadonlyArray<string> }): {
     else if (args[index] === '--bridge-state-dir')
       result.bridgeStateDir = value;
     else if (args[index] === '--bridge-type') result.bridgeType = value;
+    else if (args[index] === '--host-disconnect-timeout-ms')
+      result.hostDisconnectTimeoutMs = Number(value);
   }
   return result;
 }

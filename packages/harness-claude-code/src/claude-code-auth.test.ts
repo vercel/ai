@@ -1,7 +1,8 @@
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import * as childProcess from 'node:child_process';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createClaudeCodeRequestTransformations,
   resolveClaudeCodeAuthenticationMode,
@@ -14,6 +15,15 @@ import {
 } from './claude-code-subscription';
 
 const noHelper = () => undefined;
+
+vi.mock('node:child_process', async importOriginal => {
+  const actual = await importOriginal<typeof childProcess>();
+  return {
+    ...actual,
+    execFileSync: vi.fn(actual.execFileSync),
+    execSync: vi.fn(actual.execSync),
+  };
+});
 
 describe('resolveClaudeCodeEnv', () => {
   it('pins direct anthropic auth when selected', () => {
@@ -221,6 +231,98 @@ describe('resolveClaudeCodeEnv', () => {
       AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh',
       ANTHROPIC_BASE_URL: 'https://ai-gateway.vercel.sh',
     });
+  });
+});
+
+describe('default apiKeyHelper reader', () => {
+  let homeDirectory: string;
+  let emptyPathDirectory: string;
+
+  beforeEach(async () => {
+    homeDirectory = await mkdtemp(join(tmpdir(), 'claude-code-auth-'));
+    emptyPathDirectory = await mkdtemp(join(tmpdir(), 'claude-code-path-'));
+    await mkdir(join(homeDirectory, '.claude'));
+    vi.stubEnv('HOME', homeDirectory);
+    vi.stubEnv('USERPROFILE', homeDirectory);
+    // No `sh` on PATH, as in a PowerShell or cmd session on Windows.
+    vi.stubEnv('PATH', emptyPathDirectory);
+  });
+
+  afterEach(async () => {
+    vi.clearAllMocks();
+    vi.unstubAllEnvs();
+    await rm(homeDirectory, { recursive: true, force: true });
+    await rm(emptyPathDirectory, { recursive: true, force: true });
+  });
+
+  async function writeApiKeyHelper(command: string) {
+    await writeFile(
+      join(homeDirectory, '.claude', 'settings.json'),
+      JSON.stringify({ apiKeyHelper: command }),
+    );
+  }
+
+  it('falls back to the system shell when sh is not on PATH', async () => {
+    await writeApiKeyHelper('echo sk-from-helper');
+
+    expect(resolveClaudeCodeEnv(undefined, {})).toEqual({
+      ANTHROPIC_API_KEY: 'sk-from-helper',
+      ANTHROPIC_AUTH_TOKEN: 'sk-from-helper',
+    });
+  });
+
+  it('ignores an apiKeyHelper command that fails', async () => {
+    await writeApiKeyHelper('exit 1');
+
+    expect(resolveClaudeCodeEnv(undefined, {})).toEqual({});
+  });
+
+  it('preserves sh-based helpers when sh is available', async () => {
+    const command = 'printf "%s" "${HELPER_KEY:-sk-from-sh}"';
+    await writeApiKeyHelper(command);
+    const sh = vi
+      .mocked(childProcess.execFileSync)
+      .mockReturnValueOnce('sk-from-sh\n');
+    const systemShell = vi.mocked(childProcess.execSync);
+
+    expect(resolveClaudeCodeEnv(undefined, {})).toEqual({
+      ANTHROPIC_API_KEY: 'sk-from-sh',
+      ANTHROPIC_AUTH_TOKEN: 'sk-from-sh',
+    });
+    expect(sh).toHaveBeenCalledExactlyOnceWith('sh', ['-c', command], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      windowsHide: true,
+    });
+    expect(systemShell).not.toHaveBeenCalled();
+  });
+
+  it.each([1, 127])(
+    'does not retry a helper that exits with status %s',
+    async status => {
+      await writeApiKeyHelper('exit ' + status);
+      const sh = vi
+        .mocked(childProcess.execFileSync)
+        .mockImplementationOnce(() => {
+          throw Object.assign(new Error('Command failed'), { status });
+        });
+      const systemShell = vi.mocked(childProcess.execSync);
+
+      expect(resolveClaudeCodeEnv(undefined, {})).toEqual({});
+      expect(sh).toHaveBeenCalledOnce();
+      expect(systemShell).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does not fall back when sh cannot be launched due to permissions', async () => {
+    await writeApiKeyHelper('echo sk-from-helper');
+    vi.mocked(childProcess.execFileSync).mockImplementationOnce(() => {
+      throw Object.assign(new Error('spawnSync sh EACCES'), { code: 'EACCES' });
+    });
+    const systemShell = vi.mocked(childProcess.execSync);
+
+    expect(resolveClaudeCodeEnv(undefined, {})).toEqual({});
+    expect(systemShell).not.toHaveBeenCalled();
   });
 });
 

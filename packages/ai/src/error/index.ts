@@ -6,6 +6,8 @@ export {
   EmptyResponseBodyError,
   Experimental_DecisionRefusalError,
   Experimental_DecisionUnsupportedQuestionTypeError,
+  Experimental_ExtractionRefusalError,
+  Experimental_ExtractionUnsupportedFieldTypeError,
   InvalidPromptError,
   InvalidResponseDataError,
   JSONParseError,

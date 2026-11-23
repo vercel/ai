@@ -16,7 +16,7 @@ run(async () => {
   console.log('Provider metadata:', providerMetadata);
 
   const result = streamText({
-    model: google('gemini-3.8-flash'),
+    model: google('gemini-4-hydrogen'),
     messages: [
       {
         role: 'user',

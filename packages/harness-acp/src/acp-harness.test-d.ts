@@ -1,5 +1,6 @@
 import { commonTool } from '@ai-sdk/harness';
 import type { SandboxChannelReconnectOptions } from '@ai-sdk/harness/utils';
+import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import type { ToolCall } from '@agentclientprotocol/sdk';
 import { describe, expectTypeOf, test } from 'vitest';
 import { z } from 'zod/v4';
@@ -23,6 +24,17 @@ const toolCallSettings = {
 } satisfies Pick<ACPHarnessSettings, 'isMcpToolCall' | 'resolveHostToolCall'>;
 
 describe('createACP built-in tool inference', () => {
+  test('accepts an optional synchronous or asynchronous sandbox preparation callback', () => {
+    expectTypeOf<ACPHarnessSettings['prepareSandbox']>().toEqualTypeOf<
+      | ((options: {
+          readonly sandbox: Experimental_SandboxSession;
+          readonly workDir: string;
+          readonly abortSignal?: AbortSignal;
+        }) => void | PromiseLike<void>)
+      | undefined
+    >();
+  });
+
   test('accepts only image as a non-text content type', () => {
     expectTypeOf<ACPV1Settings['nonTextContentTypes']>().toEqualTypeOf<
       ReadonlyArray<'image'> | undefined
@@ -45,7 +57,9 @@ describe('createACP built-in tool inference', () => {
         | 'port'
         | 'portEndpoint'
         | 'startupTimeoutMs'
+        | 'hostDisconnectTimeoutMs'
         | 'reconnect'
+        | 'keepAliveMs'
         | 'clientApp'
       >
     >().toEqualTypeOf<never>();
@@ -56,7 +70,9 @@ describe('createACP built-in tool inference', () => {
         | 'port'
         | 'portEndpoint'
         | 'startupTimeoutMs'
+        | 'hostDisconnectTimeoutMs'
         | 'reconnect'
+        | 'keepAliveMs'
         | 'clientApp'
       >
     >().toEqualTypeOf<ACPV1Settings>();
@@ -106,8 +122,9 @@ describe('createACP built-in tool inference', () => {
     >();
   });
 
-  test('accepts sandbox bridge reconnect settings', () => {
-    const settings: Pick<ACPHarnessSettings, 'reconnect'> = {
+  test('accepts sandbox bridge connection settings', () => {
+    const settings: Pick<ACPHarnessSettings, 'reconnect' | 'keepAliveMs'> = {
+      keepAliveMs: 100,
       reconnect: {
         maxElapsedMs: 120_000,
         initialDelayMs: 100,
@@ -115,6 +132,7 @@ describe('createACP built-in tool inference', () => {
       },
     };
 
+    expectTypeOf(settings.keepAliveMs).toEqualTypeOf<number | undefined>();
     expectTypeOf(settings.reconnect).toEqualTypeOf<
       SandboxChannelReconnectOptions | undefined
     >();
@@ -199,6 +217,7 @@ describe('createACP built-in tool inference', () => {
       modelMapping,
       ...toolCallSettings,
       skillsDirectory: '.claude/skills',
+      writeProtectedPaths: ['.claude'],
       instructionMapping: {
         type: 'session-meta',
         path: ['systemPrompt', 'append'],

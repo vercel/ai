@@ -9,6 +9,49 @@ import {
 } from './create-emit-stream-event';
 
 describe('createEmitStreamEvent', () => {
+  it('reports init session ids and effective permission modes without other session metadata', () => {
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state: createClaudeStreamEventState(),
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+    emitStreamEvent({
+      type: 'system',
+      subtype: 'init',
+      session_id: 'claude-session-1',
+      model: 'claude-sonnet-4-6',
+      permissionMode: 'auto',
+    });
+    emitStreamEvent({
+      type: 'system',
+      subtype: 'status',
+      permissionMode: 'default',
+    });
+    expect(emitted).toEqual([
+      { type: 'stream-start', modelId: 'claude-sonnet-4-6' },
+      {
+        type: 'raw',
+        rawValue: {
+          type: 'system',
+          subtype: 'init',
+          sessionId: 'claude-session-1',
+          permissionMode: 'auto',
+        },
+      },
+      {
+        type: 'raw',
+        rawValue: {
+          type: 'system',
+          subtype: 'status',
+          permissionMode: 'default',
+        },
+      },
+    ]);
+  });
   const mcpImageBlock = {
     type: 'image',
     source: { type: 'base64', media_type: 'image/png', data: 'iVBORw0KGgo' },
@@ -214,6 +257,7 @@ describe('createEmitStreamEvent', () => {
 
     expect(emitted).toEqual([
       { type: 'stream-start', modelId: 'claude-sonnet-4-6' },
+      { type: 'raw', rawValue: { type: 'system', subtype: 'init' } },
     ]);
   });
 
@@ -612,6 +656,13 @@ describe('createEmitStreamEvent', () => {
         {
           "modelId": "claude-opus",
           "type": "stream-start",
+        },
+        {
+          "rawValue": {
+            "subtype": "init",
+            "type": "system",
+          },
+          "type": "raw",
         },
         {
           "input": "{"command":"pwd"}",

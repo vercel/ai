@@ -1,5 +1,204 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.195
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.192
+
+## 1.0.194
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.191
+
+## 1.0.193
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.190
+
+## 1.0.192
+
+### Patch Changes
+
+- 04a8f38: fix(harness): keep silent sandbox bridge connections alive with WebSocket pings and reconnect when a peer stops responding, controllable via `keepAliveMs` option for bridge-backed harness adapters
+- Updated dependencies [1d2c2ff]
+- Updated dependencies [04a8f38]
+  - @ai-sdk/provider-utils@5.0.83
+  - @ai-sdk/harness@1.0.189
+
+## 1.0.191
+
+### Patch Changes
+
+- 486e08f: fix(harness-opencode): prevent nested `AGENTS.md` symlink from bypassing outside-workdir read approval
+- Updated dependencies [679b5b5]
+  - @ai-sdk/harness@1.0.188
+
+## 1.0.190
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.187
+
+## 1.0.189
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.186
+
+## 1.0.188
+
+### Patch Changes
+
+- f630e0d: fix(harness): update bridge zod dependency to 4.6.7 to address GHSA-mrhx-c7xc-m3w5
+- Updated dependencies [10ff0b1]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/provider@4.0.39
+  - @ai-sdk/provider-utils@5.0.82
+  - @ai-sdk/harness@1.0.185
+
+## 1.0.187
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.184
+
+## 1.0.186
+
+### Patch Changes
+
+- 71bef69: feat(harness): require approval for sensitive workspace file changes in `allow-edits` permission mode
+- Updated dependencies [6d50947]
+- Updated dependencies [71bef69]
+  - @ai-sdk/provider-utils@5.0.81
+  - @ai-sdk/harness@1.0.183
+
+## 1.0.185
+
+### Patch Changes
+
+- Updated dependencies [2ebc78b]
+- Updated dependencies [1a94af3]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/harness@1.0.182
+  - @ai-sdk/provider@4.0.38
+
+## 1.0.184
+
+### Patch Changes
+
+- aa4e711: fix(harness-opencode): ignore compacted tool parts in the bridge
+  - @ai-sdk/harness@1.0.181
+
+## 1.0.183
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+  - @ai-sdk/harness@1.0.180
+
+## 1.0.182
+
+### Patch Changes
+
+- 0fc1f13: chore(harness): update harness adapter underlying SDKs to their latest releases
+- c849d37: feat(harness): use public-key cryptography instead of token for sandbox bridge communication
+- Updated dependencies [c849d37]
+- Updated dependencies [7f1c01e]
+- Updated dependencies [88b9575]
+  - @ai-sdk/harness@1.0.179
+  - @ai-sdk/provider-utils@5.0.78
+
+## 1.0.181
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+  - @ai-sdk/harness@1.0.178
+
+## 1.0.180
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.177
+
+## 1.0.179
+
+### Patch Changes
+
+- a97f490: fix(harness-opencode): add `auth: 'direct'` to use the selected provider's credentials or native subscription when `VERCEL_OIDC_TOKEN` or `AI_GATEWAY_API_KEY` is set
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+  - @ai-sdk/harness@1.0.176
+
+## 1.0.178
+
+### Patch Changes
+
+- 89e6bc9: Read OpenCode subscriptions from `~/.local/share/opencode/auth.json` on Windows, where OpenCode stores them, and keep `~/.opencode/auth.json` as a fallback for the GitLab auth plugin.
+- a54f0fd: fix(harness): abort a running turn when its host disconnects for good
+- f779a62: fix(harness-opencode): ensure Google and Mistral models use OpenAI compatible endpoint when used with AI Gateway
+- Updated dependencies [8e8033a]
+- Updated dependencies [a54f0fd]
+  - @ai-sdk/harness@1.0.175
+
+## 1.0.177
+
+### Patch Changes
+
+- 138d66e: fix(harness-opencode): make GitLab credential brokering specific to chat route requests
+- 3af9d06: fix(harness-opencode): require approval when accessing files outside of workDir with permission modes `allow-reads` and `allow-edits`
+- 30548ee: fix(harness-opencode): ensure OpenCode ignores repo-specific settings
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [3bf70f8]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/harness@1.0.174
+  - @ai-sdk/provider-utils@5.0.75
+
+## 1.0.176
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+  - @ai-sdk/harness@1.0.173
+
+## 1.0.175
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [8a20b57]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+  - @ai-sdk/harness@1.0.172
+
+## 1.0.174
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.171
+
 ## 1.0.173
 
 ### Patch Changes

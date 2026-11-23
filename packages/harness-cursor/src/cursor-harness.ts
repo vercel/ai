@@ -48,6 +48,12 @@ export type CursorHarnessSettings = {
    */
   readonly startupTimeoutMs?: number;
   /**
+   * Abort a running turn when its host disconnects and does not reconnect
+   * within this many milliseconds, so the turn stops spending. A suspended
+   * turn is exempt. Unset keeps the turn running until it finishes.
+   */
+  readonly hostDisconnectTimeoutMs?: number;
+  /**
    * Configures reconnection attempts after an established bridge connection
    * drops. The reconnect window includes connection establishment and
    * backoff delays. Defaults to 30 seconds with exponential backoff from 50
@@ -55,20 +61,28 @@ export type CursorHarnessSettings = {
    */
   readonly reconnect?: SandboxChannelReconnectOptions;
   /**
+   * WebSocket ping interval in milliseconds. Defaults to 20_000. Set to 0 to
+   * disable. Two unanswered pings terminate the socket and trigger reconnect.
+   */
+  readonly keepAliveMs?: number;
+  /**
    * MCP server definitions keyed by server name. Each definition uses the
    * underlying runtime's native MCP server configuration format.
    */
   readonly mcpServers?: Record<string, unknown>;
+  // TODO: Remove in the next major version.
   /**
-   * Creates the authentication token used by the sandbox bridge. Defaults to
-   * a random 32-byte hexadecimal token.
+   * @deprecated Sandbox bridge authentication now uses adapter-generated
+   * Ed25519 keys. This setting is ignored and emits a warning.
    */
   readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
 
 /*
- * Tool variants, display titles, ACP kinds, and raw input projections were
- * captured from the official Cursor CLI 2026.08.11-e8db854 ACP agent.
+ * The original variants were captured from Cursor CLI 2026.08.11-e8db854.
+ * Cursor CLI 2026.10.22 reports file writes with a `Write <path>` title, an
+ * `edit` kind, and a path-only raw input. Its CLI output reference identifies
+ * the native tool as `writeToolCall`.
  * `mcpToolCall` is dynamic and `truncatedToolCall` is a transport sentinel, so
  * neither is exposed as a built-in.
  */
@@ -115,6 +129,14 @@ const CURSOR_BUILTIN_TOOLS = {
     }),
     nativeName: 'readToolCall',
     toolUseKind: 'readonly',
+  },
+  write: {
+    ...tool({
+      title: 'Write',
+      inputSchema: z.looseObject({ path: z.string() }),
+    }),
+    nativeName: 'writeToolCall',
+    toolUseKind: 'edit',
   },
   updateTodos: {
     ...tool({
@@ -367,7 +389,9 @@ export function createCursor(
     port: settings.port,
     portEndpoint: settings.portEndpoint,
     startupTimeoutMs: settings.startupTimeoutMs,
+    hostDisconnectTimeoutMs: settings.hostDisconnectTimeoutMs,
     reconnect: settings.reconnect,
+    keepAliveMs: settings.keepAliveMs,
     mcpServers: settings.mcpServers,
     resolveHostToolCall: resolveCursorHostToolCall,
     isMcpToolCall: toolCall => {
@@ -392,7 +416,8 @@ export function createCursor(
       command: 'curl https://cursor.com/install -fsS | bash',
     },
     executable: 'agent',
-    args: ['--disable-auto-update', 'acp'],
+    args: ['--disable-auto-update', '--disable-project-configs', 'acp'],
+    writeProtectedPaths: ['.cursor'],
     modelMapping: {
       type: 'session-config-option',
       path: 'model',

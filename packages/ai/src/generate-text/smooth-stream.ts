@@ -79,7 +79,7 @@ export function smoothStream<TOOLS extends ToolSet>({
 
       if (!buffer.startsWith(match)) {
         throw new Error(
-          `Chunking function must return a match that is a prefix of the buffer. Received: "${match}" expected to start with "${buffer}"`,
+          `Chunking function must return a match that is a prefix of the buffer. Received: "${match}" which is not a prefix of buffer "${buffer}"`,
         );
       }
 
@@ -140,6 +140,11 @@ export function smoothStream<TOOLS extends ToolSet>({
 
     return new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
       async transform(chunk, controller) {
+        if (chunk.type === 'ping') {
+          controller.enqueue(chunk);
+          return;
+        }
+
         // Handle non-smoothable chunks: flush buffer and pass through
         if (chunk.type !== 'text-delta' && chunk.type !== 'reasoning-delta') {
           flushBuffer(controller);

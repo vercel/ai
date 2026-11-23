@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createSteering, startSteeringRun } from './steering';
 
 describe('createSteering', () => {
@@ -36,7 +36,10 @@ describe('createSteering', () => {
 
     expect(
       run.resolveTakenMessages({ stepNumber: 0, sentMessages: taken }),
-    ).toEqual(taken);
+    ).toEqual([
+      { id: 'steer-1', message: taken[0] },
+      { id: 'steer-2', message: taken[1] },
+    ]);
     expect(await Promise.all([first, second])).toMatchInlineSnapshot(`
       [
         {
@@ -76,7 +79,7 @@ describe('createSteering', () => {
 
     expect(
       run.resolveTakenMessages({ stepNumber: 1, sentMessages: [keptMessage] }),
-    ).toEqual([keptMessage]);
+    ).toEqual([{ id: 'steer-1', message: keptMessage }]);
     expect(await kept).toMatchObject({ type: 'delivered', stepNumber: 1 });
     expect(await removed).toMatchInlineSnapshot(`
       {
@@ -111,6 +114,83 @@ describe('createSteering', () => {
     });
 
     expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 0 });
+  });
+
+  it('should deliver messages whose text content is sent as a text part', async () => {
+    const steering = createSteering();
+    const outcome = steering.steer('hello');
+
+    const run = startSteeringRun(steering)!;
+    run.takeMessages();
+    run.resolveTakenMessages({
+      stepNumber: 0,
+      sentMessages: [
+        { role: 'user', content: [{ type: 'text', text: 'hello' }] },
+      ],
+    });
+
+    expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 0 });
+  });
+
+  it('should deliver messages whose parts are sent as text content', async () => {
+    const steering = createSteering();
+    const outcome = steering.steer({
+      role: 'user',
+      content: [{ type: 'text', text: 'hello' }],
+    });
+
+    const run = startSteeringRun(steering)!;
+    run.takeMessages();
+    run.resolveTakenMessages({
+      stepNumber: 0,
+      sentMessages: [{ role: 'user', content: 'hello' }],
+    });
+
+    expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 0 });
+  });
+
+  it('should deliver messages whose parts are sent with provider options', async () => {
+    const steering = createSteering();
+    const outcome = steering.steer('hello');
+
+    const run = startSteeringRun(steering)!;
+    run.takeMessages();
+    run.resolveTakenMessages({
+      stepNumber: 0,
+      sentMessages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'hello',
+              providerOptions: {
+                anthropic: { cacheControl: { type: 'ephemeral' } },
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 0 });
+  });
+
+  it('should not deliver messages whose text prepareStep changed', async () => {
+    const steering = createSteering();
+    const outcome = steering.steer('hello');
+
+    const run = startSteeringRun(steering)!;
+    run.takeMessages();
+    run.resolveTakenMessages({
+      stepNumber: 0,
+      sentMessages: [{ role: 'user', content: '[12:00] hello' }],
+    });
+
+    expect(await outcome).toMatchObject({
+      type: 'not-delivered',
+      reason: 'removed-by-prepare-step',
+    });
   });
 
   it('should not deliver pending messages when the run ends', async () => {
@@ -165,6 +245,29 @@ describe('createSteering', () => {
     `);
   });
 
+  it.each([
+    'finished',
+    'stop-condition',
+    'waiting-for-tool-results',
+    'aborted',
+    'error',
+  ] as const)(
+    'should report why the run ended for messages sent after a run that ended with %s',
+    async reason => {
+      const steering = createSteering();
+      startSteeringRun(steering)!.end(reason);
+
+      expect(await steering.steer('steered after the run')).toMatchObject({
+        type: 'not-delivered',
+        reason,
+      });
+      expect(await steering.queue('queued after the run')).toMatchObject({
+        type: 'not-delivered',
+        reason,
+      });
+    },
+  );
+
   it('should return the first outcome for a repeated id', async () => {
     const steering = createSteering();
 
@@ -198,6 +301,48 @@ describe('createSteering', () => {
     expect((await outcome).id).toMatch(/^steer-/);
   });
 
+  it('should hold queued messages until they are promoted', async () => {
+    const steering = createSteering();
+    const run = startSteeringRun(steering)!;
+
+    void steering.queue('first', { id: 'queued-1' });
+    void steering.queue('second', { id: 'queued-2' });
+
+    expect(run.hasPendingMessages()).toBe(false);
+    expect(run.takeMessages()).toEqual([]);
+
+    expect(run.promoteQueuedMessage()).toBe(true);
+    expect(run.takeMessages()).toEqual([{ role: 'user', content: 'first' }]);
+  });
+
+  it('should return false when no message is queued', () => {
+    const run = startSteeringRun(createSteering())!;
+
+    expect(run.promoteQueuedMessage()).toBe(false);
+  });
+
+  it('should not deliver queued messages when the run ends', async () => {
+    const steering = createSteering();
+    const run = startSteeringRun(steering)!;
+
+    const outcome = steering.queue('too late', { id: 'queued-1' });
+    run.end('stop-condition');
+
+    expect(await outcome).toMatchObject({
+      type: 'not-delivered',
+      id: 'queued-1',
+      reason: 'stop-condition',
+    });
+  });
+
+  it('should share ids between steered and queued messages', () => {
+    const steering = createSteering();
+
+    const steered = steering.steer('first', { id: 'message-1' });
+
+    expect(steering.queue('retry', { id: 'message-1' })).toBe(steered);
+  });
+
   it('should throw when the steering object is used by two runs at once', () => {
     const steering = createSteering();
     startSteeringRun(steering);
@@ -218,7 +363,10 @@ describe('createSteering', () => {
 
   it('should throw for steering objects that were not created with createSteering', () => {
     expect(() =>
-      startSteeringRun({ steer: async () => undefined as never }),
+      startSteeringRun({
+        steer: async () => undefined as never,
+        queue: async () => undefined as never,
+      }),
     ).toThrowErrorMatchingInlineSnapshot(
       `[AI_InvalidArgumentError: Invalid argument for parameter experimental_steering: The steering object must be created with experimental_createSteering().]`,
     );
@@ -226,5 +374,106 @@ describe('createSteering', () => {
 
   it('should return undefined without a steering object', () => {
     expect(startSteeringRun(undefined)).toBeUndefined();
+  });
+
+  describe('watchInterrupt', () => {
+    it('should call the watcher when an interrupting message arrives', () => {
+      const steering = createSteering();
+      const run = startSteeringRun(steering)!;
+      const onInterrupt = vi.fn();
+
+      run.watchInterrupt(onInterrupt);
+      void steering.steer('stop', { interrupt: true });
+
+      expect(onInterrupt).toHaveBeenCalledTimes(1);
+      expect(run.hasPendingMessages()).toBe(true);
+    });
+
+    it('should not call the watcher for a steer without interrupt or a queued message', () => {
+      const steering = createSteering();
+      const run = startSteeringRun(steering)!;
+      const onInterrupt = vi.fn();
+
+      run.watchInterrupt(onInterrupt);
+      void steering.steer('later');
+      void steering.queue('after the task', { id: 'queued' });
+
+      expect(onInterrupt).not.toHaveBeenCalled();
+    });
+
+    it('should call a new watcher right away for an interrupt that arrived while nothing watched', () => {
+      const steering = createSteering();
+      const run = startSteeringRun(steering)!;
+      const onInterrupt = vi.fn();
+
+      void steering.steer('stop', { interrupt: true });
+      run.watchInterrupt(onInterrupt);
+
+      expect(onInterrupt).toHaveBeenCalledTimes(1);
+    });
+
+    it('should forget a waiting interrupt once its message is taken at a step boundary', () => {
+      const steering = createSteering();
+      const run = startSteeringRun(steering)!;
+      const onInterrupt = vi.fn();
+
+      void steering.steer('stop', { interrupt: true });
+      run.takeMessages();
+      run.watchInterrupt(onInterrupt);
+
+      expect(onInterrupt).not.toHaveBeenCalled();
+    });
+
+    it('should not call a watcher that stopped watching', () => {
+      const steering = createSteering();
+      const run = startSteeringRun(steering)!;
+      const onInterrupt = vi.fn();
+
+      const stopWatching = run.watchInterrupt(onInterrupt);
+      stopWatching();
+      void steering.steer('stop', { interrupt: true });
+
+      expect(onInterrupt).not.toHaveBeenCalled();
+    });
+
+    it('should call each watcher at most once', () => {
+      const steering = createSteering();
+      const run = startSteeringRun(steering)!;
+      const onInterrupt = vi.fn();
+
+      run.watchInterrupt(onInterrupt);
+      void steering.steer('stop', { interrupt: true });
+      void steering.steer('stop again', { interrupt: true });
+
+      expect(onInterrupt).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not interrupt for a message sent again with the same id', () => {
+      const steering = createSteering();
+      const run = startSteeringRun(steering)!;
+      void steering.steer('stop', { id: 'steer-1' });
+      const onInterrupt = vi.fn();
+
+      run.watchInterrupt(onInterrupt);
+      void steering.steer('stop', { id: 'steer-1', interrupt: true });
+
+      expect(onInterrupt).not.toHaveBeenCalled();
+    });
+
+    it('should not interrupt after the run ended', async () => {
+      const steering = createSteering();
+      const run = startSteeringRun(steering)!;
+      const onInterrupt = vi.fn();
+
+      run.watchInterrupt(onInterrupt);
+      run.end('finished');
+      const outcome = await steering.steer('stop', { interrupt: true });
+
+      expect(onInterrupt).not.toHaveBeenCalled();
+      expect(outcome).toMatchObject({
+        type: 'not-delivered',
+        reason: 'finished',
+      });
+    });
   });
 });

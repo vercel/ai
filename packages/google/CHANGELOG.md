@@ -1,5 +1,183 @@
 # @ai-sdk/google
 
+## 4.0.125
+
+### Patch Changes
+
+- afb4e69: Add Extended Multimodal File Inspection options for Gemini documents, spreadsheets, audio, and video, including per-file rendering resolution. Add the `gemini-4-argon-file-processing-eap` and `gemini-3.8-flash-file-processing-eap` model IDs for early-access evaluation.
+
+  Send Interactions tool results as top-level `function_result` inputs so file selections remain inside their tool result and are accepted by the EAP API.
+
+## 4.0.124
+
+### Patch Changes
+
+- 378af05: fix(google, google-vertex): finish live transcription streams without the 3-second grace period
+
+  `gemini-3.5-transcribe-live` ends each segment with `generationComplete` and never sends `turnComplete`, so live transcription streams always waited out the 3-second finish grace period and merged all segments into one `transcript-final` without separating whitespace. Segments now complete on `generationComplete`, and streams finish as soon as server voice activity detection shows that all sent audio has been transcribed.
+
+  Adds `providerOptions.google.streaming.automaticActivityDetection.disabled` (`googleVertex` on Vertex) for push-to-talk input: the audio stream is transcribed as a single turn without splitting at pauses, and the transcript is finalized as soon as the audio input closes.
+
+## 4.0.123
+
+### Patch Changes
+
+- 875de7b: feat(google): add the `gemini-4-neon` model ID with `xhigh` thinking support
+- 1f53cc2: Derive model ID types from the model catalog while preserving the IDs accepted by each model type and endpoint.
+- Updated dependencies [1d2c2ff]
+  - @ai-sdk/provider-utils@5.0.83
+
+## 4.0.122
+
+### Patch Changes
+
+- 3bea041: fix(google): reject structured output schemas in batch requests because inline Google batch requests ignore `responseJsonSchema`
+- b0fccbd: fix(provider/google): redact MCP server credentials in telemetry
+
+  Google Interactions MCP server headers can contain connector credentials, which
+  were recorded in tool telemetry. `google.tools.mcpServer` now provides a
+  redacted telemetry view of its header values, and Interactions request bodies do
+  the same for provider error reporting, while the actual request keeps the
+  credentials.
+
+- a4de3a2: fix(google): include `promptFeedback.blockReasonMessage` in provider metadata
+- Updated dependencies [10ff0b1]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/provider@4.0.39
+  - @ai-sdk/provider-utils@5.0.82
+
+## 4.0.121
+
+### Patch Changes
+
+- f5fc6ba: Derive known model ID suggestions from each provider's model catalog declarations so catalog updates automatically update autocomplete, while preserving existing suggestions, endpoint-specific model lists, and support for custom model IDs.
+- 8e60cb4: Fix Google Interactions ignoring top-level `reasoning` in generation and streaming calls. Map reasoning to model-supported thinking levels, including Hydrogen's `xhigh`, preserve explicit `thinkingLevel` overrides and API defaults, and warn when reasoning is unsupported.
+
+## 4.0.120
+
+### Patch Changes
+
+- 6d50947: add experimental extraction models backed by structured language model output
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+
+## 4.0.119
+
+### Patch Changes
+
+- 2ebc78b: Forward the provider's configured fetch transport when downloading file inputs. Add a `fetch` option to `createDownload` so core downloads can also use `guarded-fetch` for opt-in DNS validation on Node.js. The function returned by `createDownload` can now also be passed as `experimental_download` to `generateText` and `streamText`, and `experimental_download` now also handles generated file URLs returned by the model, so one hook covers all core downloads. Document that the default URL checks do not resolve DNS and recommend the guarded transport or network egress controls for untrusted URLs.
+
+  Keep Azure image and Vertex tool-result downloads separate from provider authentication wrappers so file hosts never receive Azure bearer tokens or Vertex Express Mode API keys.
+
+  Pass the call's abort signal to custom download requests, including prompt assets and generated files, so `experimental_download: createDownload({ fetch })` preserves cancellation and timeouts.
+
+- 4e43721: Add the `gemini-4-hydrogen` model ID and support Hydrogen's `xhigh` thinking level in Google Generate Content and Interactions provider options. Map portable `reasoning: 'xhigh'` to `xhigh` only for Hydrogen models.
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+
+## 4.0.118
+
+### Patch Changes
+
+- f703361: use the native gemini decisions api for google decision models
+- 540509c: Emit File Search and RAG document sources when streaming. Deduplicate by document URI or File Search store and title so distinct documents with matching titles and filenames are preserved.
+
+## 4.0.117
+
+### Patch Changes
+
+- c160b74: Add support for the `gemini-4-carbon` model with the same capabilities as `gemini-4-argon`.
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+
+## 4.0.116
+
+### Patch Changes
+
+- 45337f0: Preserve the served service tier from the `x-gemini-service-tier` response header when usage metadata omits it, for generated and streamed responses.
+- 304dec5: Apply contiguous array-index validation to dotted numeric paths in streamed tool arguments, while preserving numeric object keys and valid contiguous array updates.
+- Updated dependencies [88b9575]
+  - @ai-sdk/provider-utils@5.0.78
+
+## 4.0.115
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+
+## 4.0.114
+
+### Patch Changes
+
+- 6400cf8: Add `resolveProviderOptions` to parse provider options that a model accepts under several `providerOptions` keys, either as aliases (`first`) or merged in order (`merge`), and use it for the existing multi-key lookups in the OpenAI, OpenAI-compatible, Anthropic, Google, and Amazon Bedrock models. Resolution behavior for these models is unchanged.
+- a210a29: Pass `providerOptions.google.labels` through to Google and Vertex AI Interactions requests, including streaming, so callers can attach request metadata such as `safety_identifier`.
+- 32dc1d2: Omit Google provider-defined tools, including File Search and Vertex RAG Store, when `toolChoice` is `none` so disabled tools cannot retrieve data or execute server-side. Preserve function declarations needed by conversation history while disabling function calling. This also applies when structured output uses a synthetic JSON response tool.
+- 26fc2a9: skip streamed tool-call array indexes that leave a gap so a small response can't build a huge sparse array
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+
+## 4.0.113
+
+### Patch Changes
+
+- 27a8a77: Refactor Google Vertex model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Export Google catalog metadata internally for Vertex to reuse. Request behavior is unchanged.
+
+## 4.0.112
+
+### Patch Changes
+
+- fd7e8a7: Preserve the order of text and complete function calls in streamed Google responses, including standalone thought signatures on empty text or reasoning parts.
+
+  Keep provider metadata on empty text parts when converting results to response messages so it can be passed back in subsequent requests.
+
+  Omit foreign-provider empty signature text when replaying history through Anthropic or Bedrock, preserving Bedrock’s existing native reasoning-history handling.
+
+- ef2dfb5: fix: pass through `seed: 0` instead of dropping it in image and video models. KlingAI now reports `seed: 0` as an unsupported setting like any other seed.
+- 892af4d: feat (provider/google): implement server-side realtime extensions
+
+  `GoogleRealtimeModel` supports the existing `getServerWebSocketConfig()` contract, returning the unconstrained Gemini Live endpoint with resolved credential headers. Each server connection can create its own event parser. Reported gross token totals include thinking and tool-use counts, with cached input portions and available modality counts normalized without guessing missing values. Usage in a completion frame is attached to `response-done`; other snapshots use `custom` events with `rawType: 'usageMetadata'` and typed `usage`, preserving lifecycle ordering without inferring response associations.
+
+- 3c6fb43: Forward explicit speech language codes to Gemini TTS for single- and multi-speaker requests, including the shared Vertex Gemini adapter. Omitted languages and `language: 'auto'` retain automatic detection without an unsupported-language warning.
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
+## 4.0.111
+
+### Patch Changes
+
+- a32df11: Omit all Google Interactions tools when `toolChoice` is `none`, including provider-defined tools.
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+
+## 4.0.110
+
+### Patch Changes
+
+- 4ae6986: fix(google): handle cycles and BigInt in functionResponse and parse string functionCall arguments
+- 8ad7873: Map Google RPC status names to HTTP status codes when streamed errors omit a numeric code, so transient failures such as `UNAVAILABLE` and `RESOURCE_EXHAUSTED` are marked retryable.
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+
 ## 4.0.109
 
 ### Patch Changes

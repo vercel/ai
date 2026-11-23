@@ -4,16 +4,16 @@
   "private": true,
   "dependencies": {
     "@ai-sdk/openai": "workspace:*",
-    "@hono/node-server": "1.19.15",
+    "@hono/node-server": "2.1.6",
     "ai": "workspace:*",
     "dotenv": "16.4.5",
-    "hono": "4.13.11"
+    "hono": "4.13.16"
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "dev:streaming": "tsx watch src/hono-streaming.ts",
     "curl": "curl -i -X POST http://localhost:8080/text",
-    "type-check": "tsc --build"
+    "type-check": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/node": "22.19.19",

@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const { text } = await generateText({
-    model: google('gemini-2.5-flash'),
+    model: google('gemini-4-hydrogen'),
     prompt: 'Call get_schema exactly once, then summarize the returned schema.',
     stopWhen: isStepCount(2),
     tools: {

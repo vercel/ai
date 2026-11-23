@@ -1,3 +1,4 @@
+import { getAssemblyAITranscriptionModelEntry } from './assemblyai-model-catalog';
 import type {
   TranscriptionModelV4,
   SharedV4Warning,
@@ -75,39 +76,27 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
 
     const body: Omit<AssemblyAITranscriptionAPITypes, 'audio_url'> = {};
 
-    // The legacy `best` model is selected via the deprecated singular
-    // `speech_model` parameter. All other models (e.g. `universal-2`,
-    // `universal-3-pro`, `universal-3-5-pro`) are only accessible via the
-    // `speech_models` array and are rejected by `speech_model`.
+    // AssemblyAI selects models only through the `speech_models` array; the
+    // singular `speech_model` parameter is rejected.
     // See https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model
-    if (this.modelId === 'best') {
-      body.speech_model = this.modelId as 'best';
+    body.speech_models = [this.modelId];
+
+    const { requestConfig } = getAssemblyAITranscriptionModelEntry(
+      this.modelId,
+    );
+    if (requestConfig.transcription.deprecated) {
       warnings.push({
         type: 'deprecated',
         setting: `model '${this.modelId}'`,
-        message:
-          "The 'best' model is a legacy AssemblyAI model. Use 'universal-3-5-pro' instead. See documentation: https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model",
+        message: `AssemblyAI has deprecated '${this.modelId}'. Use 'assemblyai-stt-3-7' instead. See documentation: https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model`,
       });
-    } else {
-      body.speech_models = [this.modelId];
+    }
 
-      // Forward-looking nudge: universal-3-5-pro is AssemblyAI's latest
-      // flagship and is set to replace universal-3-pro. Not a deprecation —
-      // both models still work — so this is an informational warning only.
-      if (
-        this.modelId === 'universal-3-pro' ||
-        this.modelId === 'universal-2'
-      ) {
-        const docsUrl =
-          'https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model';
-        warnings.push({
-          type: 'other',
-          message:
-            this.modelId === 'universal-3-pro'
-              ? `'universal-3-5-pro' is AssemblyAI's latest flagship model and is set to replace 'universal-3-pro'. See ${docsUrl}`
-              : `'universal-3-5-pro' is AssemblyAI's latest flagship model. See ${docsUrl}`,
-        });
-      }
+    if (requestConfig.transcription.replacementWarning != null) {
+      warnings.push({
+        type: 'other',
+        message: `${requestConfig.transcription.replacementWarning} See https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model`,
+      });
     }
 
     // Add provider-specific options
@@ -217,7 +206,7 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
           type: 'deprecated',
           setting: deprecatedBoostOptions.join(', '),
           message:
-            "'wordBoost' and 'boostParam' are deprecated and are rejected by 'universal-3-pro' / 'universal-3-5-pro' and 'slam-1'. Use 'keytermsPrompt' instead.",
+            "'wordBoost' and 'boostParam' are deprecated and are rejected by 'assemblyai-stt-3-7' and 'universal-3-5-pro'. Use 'keytermsPrompt' instead.",
         });
       }
 

@@ -344,6 +344,36 @@ async function parseCredentialDocument(
   return parsed.success && isRecord(parsed.value) ? parsed.value : undefined;
 }
 
+/*
+ * libfx has no default model for Codex or Grok subscriptions, because fx's
+ * built-in model is an AI Gateway ID. This mirrors the fx CLI: an explicit
+ * model wins, otherwise the model saved for the provider in the user's fx
+ * settings (`models.<provider>`, or the legacy `<provider>_model` key) is used.
+ * Without either, libfx rejects the missing model itself.
+ */
+export async function resolveFxModel({
+  provider,
+  model,
+  homeDirectory = homedir(),
+}: {
+  provider: FxProvider;
+  model: string | undefined;
+  homeDirectory?: string;
+}): Promise<string | undefined> {
+  if (model || provider === 'gateway') return model;
+
+  const text = await readFile(
+    join(homeDirectory, '.fx', 'settings.json'),
+    'utf8',
+  ).catch(() => undefined);
+  const settings = text ? await parseCredentialDocument(text) : undefined;
+  const models = isRecord(settings?.models) ? settings.models : undefined;
+  const savedModel = models?.[provider] ?? settings?.[`${provider}_model`];
+  return typeof savedModel === 'string' && savedModel.trim().length > 0
+    ? savedModel
+    : undefined;
+}
+
 function fileStore({ filePath }: { filePath: string }): CredentialStore {
   return {
     async read() {

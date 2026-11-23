@@ -78,6 +78,98 @@ describe('experimental_generateVideo', () => {
     global.fetch = originalFetch;
   });
 
+  it('returns upload confirmations without downloading or synthesizing files', async () => {
+    const download = vi.fn();
+    const result = await experimental_generateVideo({
+      model: new MockVideoModelV4({
+        doGenerate: async () =>
+          createMockResponse({
+            videos: [{ type: 'uploaded', mediaType: 'video/mp4' }],
+            warnings: [{ type: 'other', message: 'upload warning' }],
+            providerMetadata: { testProvider: { requestId: 'uploaded-1' } },
+          }),
+      }),
+      prompt,
+      download,
+    });
+    expect(result.videos).toEqual([]);
+    expect(result.uploadedVideos).toBe(1);
+    expect(download).not.toHaveBeenCalled();
+    expect(result.providerMetadata).toEqual({
+      testProvider: { requestId: 'uploaded-1' },
+    });
+    expect(result.warnings).toContainEqual({
+      type: 'other',
+      message: 'upload warning',
+    });
+    expect(result.responses).toHaveLength(1);
+    expect(() => result.video).toThrow('Use uploadedVideos instead of video.');
+    expect(JSON.parse(JSON.stringify(result))).toMatchObject({
+      uploadedVideos: 1,
+      videos: [],
+    });
+    expect({ ...result }).toMatchObject({ uploadedVideos: 1, videos: [] });
+    expect(Object.assign({}, result)).not.toHaveProperty('video');
+    expect(structuredClone(result)).toMatchObject({
+      uploadedVideos: 1,
+      videos: [],
+    });
+  });
+
+  it('counts uploads alongside downloadable videos across calls', async () => {
+    let call = 0;
+    const result = await experimental_generateVideo({
+      model: new MockVideoModelV4({
+        maxVideosPerCall: 1,
+        doGenerate: async () =>
+          createMockResponse({
+            videos:
+              ++call === 1
+                ? [{ type: 'uploaded', mediaType: 'video/mp4' }]
+                : [{ type: 'base64', data: mp4Base64, mediaType: 'video/mp4' }],
+          }),
+      }),
+      prompt,
+      n: 2,
+    });
+    expect(result.uploadedVideos).toBe(1);
+    expect(result.videos).toHaveLength(1);
+    expect(result.video.base64).toBe(mp4Base64);
+    expect(Object.getOwnPropertyDescriptor(result, 'video')).toMatchObject({
+      enumerable: true,
+      value: result.video,
+    });
+    expect(JSON.parse(JSON.stringify(result))).toHaveProperty('video');
+
+    expect(result.responses).toHaveLength(2);
+  });
+
+  it('accepts uploaded outcomes through the asynchronous start/status flow', async () => {
+    const download = vi.fn();
+    const result = await experimental_generateVideo({
+      model: new MockVideoModelV4({
+        doGenerate: undefined,
+        doStart: async () => ({
+          operation: { requestId: 'uploaded-1' },
+          warnings: [],
+          response: { timestamp: testDate, modelId: 'test-model', headers: {} },
+        }),
+        doStatus: async () => ({
+          status: 'completed',
+          ...createMockResponse({
+            videos: [{ type: 'uploaded', mediaType: 'video/mp4' }],
+          }),
+        }),
+      }),
+      prompt,
+      download,
+      poll: { intervalMs: 0 },
+    });
+    expect(result.uploadedVideos).toBe(1);
+    expect(result.videos).toEqual([]);
+    expect(download).not.toHaveBeenCalled();
+  });
+
   it('should send args to doGenerate', async () => {
     const abortController = new AbortController();
     const abortSignal = abortController.signal;

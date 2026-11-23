@@ -17,6 +17,7 @@ import type { DeepgramConfig } from './deepgram-config';
 import { deepgramFailedResponseHandler } from './deepgram-error';
 import { deepgramTranscriptionModelOptionsSchema } from './deepgram-transcription-model-options';
 import type { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
+import { streamDeepgramTranscription } from './deepgram-streaming-transcription';
 
 interface DeepgramTranscriptionModelConfig extends DeepgramConfig {
   _internal?: {
@@ -62,6 +63,15 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
       schema: deepgramTranscriptionModelOptionsSchema,
     });
 
+    if (deepgramOptions?.streaming != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.deepgram.streaming',
+        details:
+          'Deepgram batch transcription does not support streaming options.',
+      });
+    }
+
     const body: DeepgramTranscriptionAPITypes = {
       model: this.modelId,
     };
@@ -100,6 +110,14 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
       queryParams,
       warnings,
     };
+  }
+
+  async doStream(
+    options: Parameters<NonNullable<TranscriptionModelV4['doStream']>>[0],
+  ): Promise<
+    Awaited<ReturnType<NonNullable<TranscriptionModelV4['doStream']>>>
+  > {
+    return streamDeepgramTranscription(this.modelId, this.config, options);
   }
 
   async doGenerate(
