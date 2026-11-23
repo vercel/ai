@@ -67,6 +67,7 @@ import {
   type Configuration as ClientConfiguration,
   type ElicitationRequest,
   type ElicitResult,
+  type InputRequiredResult,
   type ListResourceTemplatesResult,
   type ListResourcesResult,
   type ListPromptsResult,
@@ -84,6 +85,7 @@ import {
   type InitializeResult,
   type DiscoverResult,
 } from './types';
+
 const CLIENT_VERSION = '1.0.0';
 const DEFAULT_MAX_TOOL_CALL_RETRIES = 0;
 const DEFAULT_PROTOCOL_DISCOVERY_TIMEOUT = 1000;
@@ -264,6 +266,16 @@ export interface MCPClientConfig {
    * NOTE: It is up to the client application to handle the requests properly. This parameter just helps surface the request from the server
    */
   capabilities?: ClientCapabilities;
+  /**
+   * Configuration for handling `input_required` responses from modern MCP servers.
+   * Set `autoFulfill: false` to return `input_required` results directly to the caller
+   * instead of automatically resolving them via `onElicitationRequest`.
+   *
+   * @default { autoFulfill: true }
+   */
+  inputRequired?: {
+    autoFulfill?: boolean;
+  };
 }
 
 export type ManagedMCPClient = Omit<MCPClient, 'experimental_events'> & {
@@ -338,6 +350,15 @@ export interface MCPClient {
   callTool(args: {
     name: string;
     arguments?: Record<string, unknown>;
+    inputResponses?: Record<string, ElicitResult>;
+    requestState?: string;
+    options: RequestOptions & { allowInputRequired: true };
+  }): Promise<CallToolResult | InputRequiredResult>;
+  callTool(args: {
+    name: string;
+    arguments?: Record<string, unknown>;
+    inputResponses?: Record<string, ElicitResult>;
+    requestState?: string;
     options?: RequestOptions;
   }): Promise<CallToolResult>;
 
@@ -356,6 +377,14 @@ export interface MCPClient {
 
   readResource(args: {
     uri: string;
+    inputResponses?: Record<string, ElicitResult>;
+    requestState?: string;
+    options: RequestOptions & { allowInputRequired: true };
+  }): Promise<ReadResourceResult | InputRequiredResult>;
+  readResource(args: {
+    uri: string;
+    inputResponses?: Record<string, ElicitResult>;
+    requestState?: string;
     options?: RequestOptions;
   }): Promise<ReadResourceResult>;
 
@@ -371,6 +400,15 @@ export interface MCPClient {
   getPrompt(args: {
     name: string;
     arguments?: Record<string, unknown>;
+    inputResponses?: Record<string, ElicitResult>;
+    requestState?: string;
+    options: RequestOptions & { allowInputRequired: true };
+  }): Promise<GetPromptResult | InputRequiredResult>;
+  getPrompt(args: {
+    name: string;
+    arguments?: Record<string, unknown>;
+    inputResponses?: Record<string, ElicitResult>;
+    requestState?: string;
     options?: RequestOptions;
   }): Promise<GetPromptResult>;
 
@@ -384,6 +422,15 @@ export interface MCPClient {
   experimental_getPrompt(args: {
     name: string;
     arguments?: Record<string, unknown>;
+    inputResponses?: Record<string, ElicitResult>;
+    requestState?: string;
+    options: RequestOptions & { allowInputRequired: true };
+  }): Promise<GetPromptResult | InputRequiredResult>;
+  experimental_getPrompt(args: {
+    name: string;
+    arguments?: Record<string, unknown>;
+    inputResponses?: Record<string, ElicitResult>;
+    requestState?: string;
     options?: RequestOptions;
   }): Promise<GetPromptResult>;
 
@@ -427,6 +474,7 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
   private maxRetries: number;
   private clientInfo: ClientConfiguration;
   private clientCapabilities: ClientCapabilities;
+  private autoFulfillInputRequired: boolean;
   private initialInitializeResult?: InitializeResult;
   private initializationOptions?: RequestOptions;
   private requestMessageId = 0;
@@ -460,6 +508,7 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
     onUncaughtError,
     maxRetries,
     capabilities,
+    inputRequired,
     initialInitializeResult,
     initializationOptions,
     protocolVersionDiscovery = true,
@@ -494,6 +543,7 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
     this.onUncaughtError = onUncaughtError;
     this.maxRetries = prepareMaxRetries(maxRetries);
     this.clientCapabilities = capabilities ?? {};
+    this.autoFulfillInputRequired = inputRequired?.autoFulfill ?? true;
     this.initialInitializeResult = initialInitializeResult;
     this.initializationOptions = initializationOptions;
     this.protocolVersionDiscovery = protocolVersionDiscovery;
@@ -868,6 +918,9 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
       return this.requestOnce({ request, resultSchema, options });
     }
 
+    const shouldReturnInputRequired =
+      options?.allowInputRequired ?? !this.autoFulfillInputRequired;
+
     options?.signal?.throwIfAborted();
     const startedAt = Date.now();
     let nextRequest = request;
@@ -909,8 +962,12 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
           return resultSchema.parse(result);
         }
 
-        const { inputRequests, requestState } =
-          InputRequiredResultSchema.parse(result);
+        const parsedInputRequired = InputRequiredResultSchema.parse(result);
+        if (shouldReturnInputRequired) {
+          return parsedInputRequired as z.infer<T>;
+        }
+
+        const { inputRequests, requestState } = parsedInputRequired;
         if (round === MAX_INPUT_REQUIRED_ROUNDS) {
           throw new MCPClientError({
             message: `Request still requires input after ${MAX_INPUT_REQUIRED_ROUNDS} rounds`,
@@ -920,15 +977,29 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
         const responses: Record<string, ElicitResult> = Object.create(null);
         for (const [key, inputRequest] of Object.entries(inputRequests ?? {})) {
           signal.throwIfAborted();
-          if (
-            inputRequest.method !== 'elicitation/create' ||
-            (inputRequest.params?.mode != null &&
-              inputRequest.params.mode !== 'form')
-          ) {
+          if (inputRequest.method !== 'elicitation/create') {
             throw new MCPClientError({
-              message: `Unsupported input request: ${inputRequest.method}. Only form elicitation is supported.`,
+              message: `Unsupported input request: ${inputRequest.method}. Only elicitation/create is supported.`,
             });
           }
+
+          const mode = inputRequest.params?.mode ?? 'form';
+          if (mode !== 'form' && mode !== 'url') {
+            throw new MCPClientError({
+              message: `Unsupported elicitation mode: ${String(mode)}.`,
+            });
+          }
+
+          if (
+            mode === 'url' &&
+            this.clientCapabilities.elicitation?.url == null
+          ) {
+            throw new MCPClientError({
+              message:
+                'Unsupported input request: URL elicitation requires elicitation.url client capability.',
+            });
+          }
+
           if (!this.elicitationRequestHandler) {
             throw new MCPClientError({
               message:
@@ -1222,13 +1293,13 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
     }
   }
 
-  private async callToolWithRetry({
+  private async callToolWithRetry<TResult>({
     options,
     execute,
   }: {
     options?: RequestOptions;
-    execute: () => Promise<CallToolResult>;
-  }): Promise<CallToolResult> {
+    execute: () => Promise<TResult>;
+  }): Promise<TResult> {
     if (this.maxRetries === 0) {
       return execute();
     }
@@ -1245,22 +1316,45 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
     })(execute);
   }
 
+  callTool(args: {
+    name: string;
+    arguments?: Record<string, unknown>;
+    inputResponses?: Record<string, ElicitResult>;
+    requestState?: string;
+    options: RequestOptions & { allowInputRequired: true };
+  }): Promise<CallToolResult | InputRequiredResult>;
+  callTool(args: {
+    name: string;
+    arguments?: Record<string, unknown>;
+    inputResponses?: Record<string, ElicitResult>;
+    requestState?: string;
+    options?: RequestOptions;
+  }): Promise<CallToolResult>;
   async callTool({
     name,
     arguments: args = {},
+    inputResponses,
+    requestState,
     options,
   }: {
     name: string;
     arguments?: Record<string, unknown>;
+    inputResponses?: Record<string, ElicitResult>;
+    requestState?: string;
     options?: RequestOptions;
-  }): Promise<CallToolResult> {
+  }): Promise<CallToolResult | InputRequiredResult> {
     return this.callToolWithRetry({
       options,
       execute: () =>
         this.request({
           request: {
             method: 'tools/call',
-            params: { name, arguments: args },
+            params: {
+              name,
+              arguments: args,
+              ...(inputResponses !== undefined ? { inputResponses } : {}),
+              ...(requestState !== undefined ? { requestState } : {}),
+            },
           },
           resultSchema: CallToolResultSchema,
           options,
@@ -1284,13 +1378,24 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
 
   private async readResourceInternal({
     uri,
+    inputResponses,
+    requestState,
     options,
   }: {
     uri: string;
+    inputResponses?: Record<string, ElicitResult>;
+    requestState?: string;
     options?: RequestOptions;
-  }): Promise<ReadResourceResult> {
+  }): Promise<ReadResourceResult | InputRequiredResult> {
     return this.request({
-      request: { method: 'resources/read', params: { uri } },
+      request: {
+        method: 'resources/read',
+        params: {
+          uri,
+          ...(inputResponses !== undefined ? { inputResponses } : {}),
+          ...(requestState !== undefined ? { requestState } : {}),
+        },
+      },
       resultSchema: ReadResourceResultSchema,
       options,
     });
@@ -1325,14 +1430,26 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
   private async getPromptInternal({
     name,
     args,
+    inputResponses,
+    requestState,
     options,
   }: {
     name: string;
     args?: Record<string, unknown>;
+    inputResponses?: Record<string, ElicitResult>;
+    requestState?: string;
     options?: RequestOptions;
-  }): Promise<GetPromptResult> {
+  }): Promise<GetPromptResult | InputRequiredResult> {
     return this.request({
-      request: { method: 'prompts/get', params: { name, arguments: args } },
+      request: {
+        method: 'prompts/get',
+        params: {
+          name,
+          arguments: args,
+          ...(inputResponses !== undefined ? { inputResponses } : {}),
+          ...(requestState !== undefined ? { requestState } : {}),
+        },
+      },
       resultSchema: GetPromptResultSchema,
       options,
     });
@@ -1526,14 +1643,35 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
     return this.listResourcesInternal({ params, options });
   }
 
+  readResource(args: {
+    uri: string;
+    inputResponses?: Record<string, ElicitResult>;
+    requestState?: string;
+    options: RequestOptions & { allowInputRequired: true };
+  }): Promise<ReadResourceResult | InputRequiredResult>;
+  readResource(args: {
+    uri: string;
+    inputResponses?: Record<string, ElicitResult>;
+    requestState?: string;
+    options?: RequestOptions;
+  }): Promise<ReadResourceResult>;
   readResource({
     uri,
+    inputResponses,
+    requestState,
     options,
   }: {
     uri: string;
+    inputResponses?: Record<string, ElicitResult>;
+    requestState?: string;
     options?: RequestOptions;
-  }): Promise<ReadResourceResult> {
-    return this.readResourceInternal({ uri, options });
+  }): Promise<ReadResourceResult | InputRequiredResult> {
+    return this.readResourceInternal({
+      uri,
+      inputResponses,
+      requestState,
+      options,
+    });
   }
 
   listResourceTemplates({
@@ -1554,16 +1692,40 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
     return this.listPromptsInternal({ params, options });
   }
 
+  getPrompt(args: {
+    name: string;
+    arguments?: Record<string, unknown>;
+    inputResponses?: Record<string, ElicitResult>;
+    requestState?: string;
+    options: RequestOptions & { allowInputRequired: true };
+  }): Promise<GetPromptResult | InputRequiredResult>;
+  getPrompt(args: {
+    name: string;
+    arguments?: Record<string, unknown>;
+    inputResponses?: Record<string, ElicitResult>;
+    requestState?: string;
+    options?: RequestOptions;
+  }): Promise<GetPromptResult>;
   getPrompt({
     name,
     arguments: args,
+    inputResponses,
+    requestState,
     options,
   }: {
     name: string;
     arguments?: Record<string, unknown>;
+    inputResponses?: Record<string, ElicitResult>;
+    requestState?: string;
     options?: RequestOptions;
-  }): Promise<GetPromptResult> {
-    return this.getPromptInternal({ name, args, options });
+  }): Promise<GetPromptResult | InputRequiredResult> {
+    return this.getPromptInternal({
+      name,
+      args,
+      inputResponses,
+      requestState,
+      options,
+    });
   }
 
   /** @deprecated Use `listPrompts` instead. */
@@ -1574,9 +1736,23 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
   }
 
   /** @deprecated Use `getPrompt` instead. */
+  experimental_getPrompt(args: {
+    name: string;
+    arguments?: Record<string, unknown>;
+    inputResponses?: Record<string, ElicitResult>;
+    requestState?: string;
+    options: RequestOptions & { allowInputRequired: true };
+  }): Promise<GetPromptResult | InputRequiredResult>;
+  experimental_getPrompt(args: {
+    name: string;
+    arguments?: Record<string, unknown>;
+    inputResponses?: Record<string, ElicitResult>;
+    requestState?: string;
+    options?: RequestOptions;
+  }): Promise<GetPromptResult>;
   experimental_getPrompt(
     args: Parameters<MCPClient['getPrompt']>[0],
-  ): Promise<GetPromptResult> {
+  ): Promise<GetPromptResult | InputRequiredResult> {
     return this.getPrompt(args);
   }
 
