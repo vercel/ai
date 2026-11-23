@@ -732,6 +732,26 @@ describe('TerminalRenderer', () => {
     await approvalPromise;
   });
 
+  it('keeps the approval marker visible when the tool title has wide characters', async () => {
+    const screen = new MockScreen({ columns: 40, rows: 14 });
+    const input = new MockUserInput();
+    const renderer = new TerminalRenderer({ input, output: screen });
+    const approvalPromise = renderer.readToolApproval({
+      approvalId: 'approval-1',
+      toolCallId: 'call-1',
+      toolName: 'shell',
+      title: 'シェルコマンドを実行する',
+      input: { command: 'date' },
+      messageId: 'message-1',
+      partIndex: 0,
+    });
+
+    expect(screen.snapshot()).toContain('╭ Tool · シェルコマ…  approve? y/n ╮');
+
+    input.type('n');
+    await approvalPromise;
+  });
+
   it('scrolls the tool call awaiting approval into view', async () => {
     const screen = new MockScreen({ columns: 48, rows: 14 });
     const input = new MockUserInput();

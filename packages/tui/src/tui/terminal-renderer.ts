@@ -1298,13 +1298,13 @@ function createSectionLines(section: ChatSection, width: number) {
   // approval decision is not cut off:
   const title =
     section.kind === 'approval'
-      ? truncateSectionTitle(fullTitle, width - 2 - rightTitle.length)
+      ? truncateSectionTitle(fullTitle, width - 2 - visibleLength(rightTitle))
       : fullTitle;
 
   if (section.collapsed) {
     const borderWidth = Math.max(
       0,
-      width - 2 - title.length - rightTitle.length,
+      width - 2 - visibleLength(title) - visibleLength(rightTitle),
     );
     const top = `${style.color}╭${title}${style.border.repeat(borderWidth)}${rightTitle}╮${colors.reset}`;
     const bottom = `${style.color}╰${style.border.repeat(Math.max(0, width - 2))}╯${colors.reset}`;
@@ -1312,7 +1312,10 @@ function createSectionLines(section: ChatSection, width: number) {
     return [top, bottom];
   }
 
-  const borderWidth = Math.max(0, width - 2 - title.length - rightTitle.length);
+  const borderWidth = Math.max(
+    0,
+    width - 2 - visibleLength(title) - visibleLength(rightTitle),
+  );
   const top = `${style.color}╭${title}${style.border.repeat(borderWidth)}${rightTitle}╮${colors.reset}`;
   const bottom = `${style.color}╰${style.border.repeat(Math.max(0, width - 2))}╯${colors.reset}`;
   const content =
@@ -1333,12 +1336,12 @@ function createSectionLines(section: ChatSection, width: number) {
   ];
 }
 
-function truncateSectionTitle(title: string, maxLength: number) {
-  if (title.length <= maxLength) {
+function truncateSectionTitle(title: string, maxWidth: number) {
+  if (visibleLength(title) <= maxWidth) {
     return title;
   }
 
-  return maxLength < 3 ? '' : `${title.slice(0, maxLength - 2)}… `;
+  return maxWidth < 3 ? '' : `${sliceVisible(title, maxWidth - 2)}… `;
 }
 
 function sectionLine(line: string, contentWidth: number, color: string) {
