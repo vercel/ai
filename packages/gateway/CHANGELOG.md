@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 4.0.153
+
+### Patch Changes
+
+- 83026e8: fix(gateway): redact BYOK credentials in telemetry copies of Gateway request bodies
+
 ## 4.0.152
 
 ### Patch Changes

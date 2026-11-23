@@ -1,5 +1,11 @@
 # @ai-sdk/baseten
 
+## 2.1.74
+
+### Patch Changes
+
+- 3b7c1c3: feat(baseten): add experimental decision models with image input
+
 ## 2.1.73
 
 ### Patch Changes
