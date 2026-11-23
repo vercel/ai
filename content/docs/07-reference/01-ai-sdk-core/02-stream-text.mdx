@@ -1767,6 +1767,13 @@ retain the content their contracts require.
       ],
     },
     {
+      name: 'onWarning',
+      type: '(options: { warnings: Warning[]; provider?: string; model?: string }) => void',
+      isOptional: true,
+      description:
+        'Callback that receives the warnings of the call, e.g. unsupported settings or deprecated prompt parts. When it is set, the warnings are not sent to the global warning logger (`AI_SDK_LOG_WARNINGS`).',
+    },
+    {
       name: 'onStepFinish',
       type: 'GenerateTextOnStepFinishCallback<TOOLS>',
       isOptional: true,
