@@ -1,3 +1,5 @@
+export type { GoogleInteractionsFileOptions } from './interactions/google-interactions-file-options';
+export type { GoogleFilePartOptions } from './google-file-part-options';
 export type { GoogleErrorData } from './google-error';
 export type {
   GoogleLanguageModelOptions,

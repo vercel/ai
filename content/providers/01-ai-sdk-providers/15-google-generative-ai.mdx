@@ -1908,6 +1908,214 @@ const googleMetadata = (await result.providerMetadata)?.google;
 console.log('Interaction id:', googleMetadata?.interactionId);
 ```
 
+### Extended multimodal file inspection
+
+The Extended Multimodal File Inspection EAP supports PDF, Word (`.docx`,
+`.dotx`, `.doc`), PowerPoint (`.pptx`, `.ppt`), Excel (`.xlsx`, `.xls`), OpenDocument
+(`.odt`, `.odp`, `.ods`), audio, and video. You can select pages, spreadsheet
+cells, or time ranges and choose which content layers Gemini receives.
+
+Use `gemini-4-argon-file-processing-eap` or
+`gemini-3.8-flash-file-processing-eap` with an API key from an allowlisted
+project. The EAP is available on `v1beta` for evaluation and testing. The direct
+Google provider uses `v1beta` by default; a custom `v1` base URL cannot serve
+these EAP aliases.
+
+Pass `GoogleInteractionsFileOptions` under `providerOptions.google` on each
+file part. For example, to inspect pages 3 through 7:
+
+```ts
+import { google, type GoogleInteractionsFileOptions } from '@ai-sdk/google';
+import { generateText } from 'ai';
+import { readFileSync } from 'node:fs';
+
+const result = await generateText({
+  model: google.interactions('gemini-4-argon-file-processing-eap'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'file',
+          data: readFileSync('quarterly-report.pdf'),
+          mediaType: 'application/pdf',
+          providerOptions: {
+            google: {
+              resolution: 'high',
+              processing: {
+                type: 'static',
+                pageOptions: {
+                  startPage: 3,
+                  endPage: 7,
+                  contentLayers: ['page_image', 'page_text'],
+                },
+              },
+            } satisfies GoogleInteractionsFileOptions,
+          },
+        },
+        {
+          type: 'text',
+          text: 'Summarize the revenue chart and footnotes on these pages.',
+        },
+      ],
+    },
+  ],
+});
+```
+
+File parts accept inline bytes, base64 data, uploaded Files API URLs, and
+provider references returned by `uploadFile`. Use the full media type for
+Office files, such as
+`application/vnd.openxmlformats-officedocument.wordprocessingml.document`
+for Word or
+`application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` for Excel.
+
+The Interactions options are:
+
+- **resolution**: `'low' | 'medium' | 'high'`. Overrides the
+  call-level `mediaResolution` for this file.
+- **processing**: `'agentic'`, `'static'`, or a static configuration object.
+  Static selection objects require `type: 'static'`.
+- **processing.pageOptions**: `startPage`, `endPage`, and `contentLayers`
+  (`'page_text'`, `'page_image'`, or both). Page numbers are 1-based and
+  inclusive. Office page numbers follow the document's rendered layout;
+  PowerPoint pages correspond to slides. Rendering Office pages as images
+  takes longer than extracting text. Start with text, then render selected
+  pages when needed.
+- **processing.spreadsheetOptions**: `sheetIndex` (1-based workbook order),
+  `visibleCells` (an A1 cell or range such as `'B5'` or `'A1:C5'`), and `contentLayers`
+  (`'data'`, `'formulas'`, `'visual'`). Supply one options object per file
+  part. To read multiple sheets, repeat the file part with a different
+  `sheetIndex`. The visual layer renders the selected `visibleCells` region,
+  including charts and formatting. Row-only ranges such as `'1:10'` are invalid.
+- **processing.startOffset / endOffset**: audio/video offsets in seconds.
+  The provider converts numbers to API duration strings; for example,
+  `startOffset: 60` becomes `start_offset: '60s'`.
+- **processing.fps**: video sampling rate, greater than 0 and at most 24.
+- **processing.contentLayers**: video layers (`'frames'`, `'audio'`,
+  `'transcript'`).
+
+For example, an Excel selection can use:
+
+```ts
+const spreadsheetOptions = {
+  processing: {
+    type: 'static',
+    spreadsheetOptions: {
+      sheetIndex: 3,
+      visibleCells: 'A1:C5',
+      contentLayers: ['data', 'formulas'],
+    },
+  },
+} satisfies GoogleInteractionsFileOptions;
+```
+
+#### Default file selection
+
+Without inspection options, PDFs include all pages as images and text;
+DOCX, DOTX, ODT, and PPTX use extracted text; DOC, PPT, and ODP use rendered
+page images. Specifying document processing options without content layers
+defaults to page images. Start with text for large Office documents and render
+selected pages when visual details matter.
+
+Spreadsheets without inspection options include every sheet's data and
+formulas. Specifying spreadsheet options defaults to the first sheet, all
+cells, and data plus formulas. `visibleCells` accepts a single cell or an A1
+range and also crops the visual layer. Page and sheet indices are 1-based;
+page bounds are inclusive. An end page beyond the document is clamped, while
+a start page beyond it produces an empty selection. Video defaults to frames
+and audio at one frame per second.
+
+#### GenerateContent inspection options
+
+For `google('gemini-4-argon-file-processing-eap')`, pass
+`GoogleFilePartOptions` on the file part instead. GenerateContent uses
+metadata objects and uppercase content-layer names:
+
+| File selection    | GenerateContent option | Fields                                                                                                    |
+| ----------------- | ---------------------- | --------------------------------------------------------------------------------------------------------- |
+| Document pages    | `documentMetadata`     | `startPage`, `endPage`, `contentLayers: ['PAGE_TEXT', 'PAGE_IMAGE']`                                      |
+| Spreadsheet cells | `spreadsheetMetadata`  | `sheetIndex`, `visibleCells`, `contentLayers: ['DATA', 'FORMULAS', 'VISUAL']`                             |
+| Audio clip        | `audioMetadata`        | `startOffset`, `endOffset` as duration strings                                                            |
+| Video clip        | `videoMetadata`        | `startOffset`, `endOffset` as duration strings, `fps`, `contentLayers: ['FRAMES', 'AUDIO', 'TRANSCRIPT']` |
+
+Set `mediaResolution: { level: 'MEDIA_RESOLUTION_HIGH' }` on the same file
+options object to control document, spreadsheet, or video rendering. The EAP
+accepts `MEDIA_RESOLUTION_LOW`, `MEDIA_RESOLUTION_MEDIUM`, and
+`MEDIA_RESOLUTION_HIGH`; it does not support ultra-high resolution.
+
+```ts
+import { type GoogleFilePartOptions } from '@ai-sdk/google';
+
+const googleFileOptions = {
+  documentMetadata: {
+    startPage: 3,
+    endPage: 7,
+    contentLayers: ['PAGE_TEXT'],
+  },
+} satisfies GoogleFilePartOptions;
+```
+
+Use `googleFileOptions` as the file part's `providerOptions.google`. These
+options also apply when using `streamText`.
+
+#### Return file selections from tools
+
+Use inspection options on individual file parts in a tool's `toModelOutput`
+content. The provider sends GenerateContent selections inside
+`functionResponse.parts`.
+
+For Interactions, the provider sends each tool result as a top-level
+`function_result` input block, with files inside `function_result.result`.
+This preserves each file's association with its tool call and its inspection
+options. Wrapping a document result inside `user_input.content` causes the
+EAP API to reject it.
+
+For Interactions, a tool can return:
+
+```ts
+import { google, type GoogleInteractionsFileOptions } from '@ai-sdk/google';
+import { generateText, stepCountIs, tool } from 'ai';
+import { readFileSync } from 'node:fs';
+import { z } from 'zod/v4';
+
+const result = await generateText({
+  model: google.interactions('gemini-4-argon-file-processing-eap'),
+  prompt: 'Use viewFile to inspect pages 3 through 7 and summarize them.',
+  stopWhen: stepCountIs(5),
+  tools: {
+    viewFile: tool({
+      description: 'Read an inclusive page range of the quarterly report.',
+      inputSchema: z.object({
+        startPage: z.number().int().positive(),
+        endPage: z.number().int().positive(),
+      }),
+      execute: async input => input,
+      toModelOutput: ({ output }) => ({
+        type: 'content',
+        value: [
+          {
+            type: 'file-data',
+            data: readFileSync('quarterly-report.pdf').toString('base64'),
+            mediaType: 'application/pdf',
+            providerOptions: {
+              google: {
+                processing: { type: 'static', pageOptions: output },
+              } satisfies GoogleInteractionsFileOptions,
+            },
+          },
+        ],
+      }),
+    }),
+  },
+});
+```
+
+With GenerateContent, use `documentMetadata: output` in the returned file's
+Google options and select the model with `google(...)`. Uploaded file
+URLs can be reused across tool calls to avoid sending the file bytes
+each time.
+
 ## Gemma Models
 
 You can use [Gemma models](https://deepmind.google/models/gemma/) with the Google Generative AI API.

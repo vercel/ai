@@ -1,3 +1,5 @@
+import { googleFilesUrlPattern } from './google-supported-file-url';
+import { getGoogleFilePartOptions } from './google-file-part-options';
 import {
   type JSONValue,
   UnsupportedFunctionalityError,
@@ -11,7 +13,6 @@ import {
   secureJsonParse,
 } from '@ai-sdk/provider-utils';
 import {
-  googleVideoMetadataSchema,
   type GoogleGenerativeAIContent,
   type GoogleGenerativeAIContentPart,
   type GoogleGenerativeAIFunctionResponsePart,
@@ -38,6 +39,9 @@ type GoogleProviderOptions = {
   serverToolCallId?: unknown;
   serverToolType?: unknown;
   videoMetadata?: unknown;
+  documentMetadata?: unknown;
+  spreadsheetMetadata?: unknown;
+  audioMetadata?: unknown;
 };
 
 function getGoogleProviderOptions(
@@ -180,6 +184,7 @@ function appendToolResultParts(
   toolCallId?: string,
   includeFunctionCallIds = true,
   supportedFunctionResponseUrls: Record<string, RegExp[]> = {},
+  providerOptionsName = 'google',
 ): void {
   const functionResponseParts: GoogleGenerativeAIFunctionResponsePart[] = [];
   const responseTextParts: string[] = [];
@@ -197,6 +202,14 @@ function appendToolResultParts(
             mimeType: contentPart.mediaType as string,
             data: contentPart.data as string,
           },
+          ...getGoogleFilePartOptions(
+            getGoogleProviderOptions(
+              contentPart.providerOptions as
+                | Record<string, GoogleProviderOptions>
+                | undefined,
+              providerOptionsName,
+            ),
+          ),
         });
         break;
       }
@@ -209,7 +222,17 @@ function appendToolResultParts(
         );
 
         if (functionResponsePart != null) {
-          functionResponseParts.push(functionResponsePart);
+          functionResponseParts.push({
+            ...functionResponsePart,
+            ...getGoogleFilePartOptions(
+              getGoogleProviderOptions(
+                contentPart.providerOptions as
+                  | Record<string, GoogleProviderOptions>
+                  | undefined,
+                providerOptionsName,
+              ),
+            ),
+          });
         } else {
           responseTextParts.push(stringifyWithBigIntAndCycles(contentPart));
         }
@@ -335,7 +358,7 @@ export function convertToGoogleGenerativeAIMessages(
   const onWarning = options?.onWarning;
   const includeFunctionCallIds = options?.includeFunctionCallIds ?? true;
   const supportedFunctionResponseUrls =
-    options?.supportedFunctionResponseUrls ?? {};
+    options?.supportedFunctionResponseUrls ?? { '*': [googleFilesUrlPattern] };
 
   let sentinelInjected = false;
   const missingSignatureToolNames: string[] = [];
@@ -375,14 +398,12 @@ export function convertToGoogleGenerativeAIMessages(
               // default to image/jpeg for unknown image/* types
               const mediaType =
                 part.mediaType === 'image/*' ? 'image/jpeg' : part.mediaType;
-              const rawVideoMetadata = getGoogleProviderOptions(
-                part.providerOptions,
-                providerOptionsName,
-              )?.videoMetadata;
-              const videoMetadata =
-                rawVideoMetadata == null
-                  ? undefined
-                  : googleVideoMetadataSchema.parse(rawVideoMetadata);
+              const fileOptions = getGoogleFilePartOptions(
+                getGoogleProviderOptions(
+                  part.providerOptions,
+                  providerOptionsName,
+                ),
+              );
 
               parts.push(
                 part.data instanceof URL
@@ -395,14 +416,14 @@ export function convertToGoogleGenerativeAIMessages(
                             ? part.originalUrl
                             : part.data.toString(),
                       },
-                      ...(videoMetadata != null ? { videoMetadata } : {}),
+                      ...fileOptions,
                     }
                   : {
                       inlineData: {
                         mimeType: mediaType,
                         data: convertToBase64(part.data),
                       },
-                      ...(videoMetadata != null ? { videoMetadata } : {}),
+                      ...fileOptions,
                     },
               );
 
@@ -617,6 +638,7 @@ export function convertToGoogleGenerativeAIMessages(
                 part.toolCallId,
                 includeFunctionCallIds,
                 supportedFunctionResponseUrls,
+                providerOptionsName,
               );
             } else {
               appendLegacyToolResultParts(

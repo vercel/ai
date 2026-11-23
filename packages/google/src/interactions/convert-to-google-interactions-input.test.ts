@@ -778,7 +778,7 @@ describe('convertToGoogleInteractionsInput', () => {
   });
 
   describe('tool-result messages', () => {
-    it('maps a text tool result to a function_result block on a user turn', () => {
+    it('maps a text tool result to a top-level function_result input', () => {
       const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
@@ -830,15 +830,10 @@ describe('convertToGoogleInteractionsInput', () => {
             "type": "function_call",
           },
           {
-            "content": [
-              {
-                "call_id": "call_abc",
-                "name": "getWeather",
-                "result": "It is sunny.",
-                "type": "function_result",
-              },
-            ],
-            "type": "user_input",
+            "call_id": "call_abc",
+            "name": "getWeather",
+            "result": "It is sunny.",
+            "type": "function_result",
           },
         ]
       `);
@@ -874,8 +869,8 @@ describe('convertToGoogleInteractionsInput', () => {
         },
       ];
       const result = convertToGoogleInteractionsInput({ prompt });
-      const turns = result.input as Array<{ content: Array<unknown> }>;
-      const fr = turns[2].content[0] as { result: unknown };
+      const turns = result.input;
+      const fr = turns[2] as { result: unknown };
       expect(fr.result).toBe('{"temperature":72,"condition":"sunny"}');
     });
 
@@ -906,8 +901,8 @@ describe('convertToGoogleInteractionsInput', () => {
         },
       ];
       const result = convertToGoogleInteractionsInput({ prompt });
-      const turns = result.input as Array<{ content: Array<unknown> }>;
-      expect(turns[2].content[0]).toEqual({
+      const turns = result.input;
+      expect(turns[2]).toEqual({
         type: 'function_result',
         call_id: 'call_x',
         name: 'getWeather',
@@ -953,8 +948,8 @@ describe('convertToGoogleInteractionsInput', () => {
         },
       ];
       const result = convertToGoogleInteractionsInput({ prompt });
-      const turns = result.input as Array<{ content: Array<unknown> }>;
-      expect(turns[2].content[0]).toMatchInlineSnapshot(`
+      const turns = result.input;
+      expect(turns[2]).toMatchInlineSnapshot(`
         {
           "call_id": "call_x",
           "name": "lookup",
@@ -974,7 +969,7 @@ describe('convertToGoogleInteractionsInput', () => {
       `);
     });
 
-    it('emits a warning when a content tool-result contains a non-image file part', () => {
+    it('nests a document inside its top-level function result', () => {
       const prompt: LanguageModelV3Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'q' }] },
         {
@@ -1010,16 +1005,189 @@ describe('convertToGoogleInteractionsInput', () => {
         },
       ];
       const result = convertToGoogleInteractionsInput({ prompt });
-      expect(result.warnings).toMatchInlineSnapshot(`
-        [
-          {
-            "message": "google.interactions: tool-result file with mediaType "application/pdf" is not supported (Interactions \`function_result.result\` accepts only text and image content); part dropped.",
-            "type": "other",
-          },
-        ]
-      `);
+      expect(result.warnings).toEqual([]);
+      expect(result.input[2]).toEqual({
+        type: 'function_result',
+        call_id: 'call_x',
+        name: 'lookup',
+        result: [
+          { type: 'document', data: 'AQID', mime_type: 'application/pdf' },
+        ],
+      });
     });
   });
+
+  it.each([false, true])(
+    'keeps mixed file content inside its tool result (compact: %s)',
+    compact => {
+      const fileUri =
+        'https://generativelanguage.googleapis.com/v1beta/files/report';
+      const result = convertToGoogleInteractionsInput({
+        previousInteractionId: compact ? 'stored-interaction' : undefined,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'first-call',
+                toolName: 'viewFile',
+                input: {},
+                providerOptions: {
+                  google: { interactionId: 'stored-interaction' },
+                },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'second-call',
+                toolName: 'viewFile',
+                input: {},
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'first-call',
+                toolName: 'viewFile',
+                providerOptions: { google: { signature: 'first-signature' } },
+                output: {
+                  type: 'content',
+                  value: [
+                    { type: 'text', text: 'First selection' },
+                    {
+                      type: 'file-data',
+                      mediaType: 'application/pdf',
+                      data: 'AQID',
+                      providerOptions: {
+                        google: {
+                          resolution: 'high',
+                          processing: {
+                            type: 'static',
+                            pageOptions: { startPage: 1, endPage: 1 },
+                          },
+                        },
+                      },
+                    },
+                    {
+                      type: 'file-data',
+                      mediaType: 'image/png',
+                      data: 'BAUG',
+                    },
+                    {
+                      type: 'file-url',
+                      mediaType: 'audio/mpeg',
+                      url: fileUri,
+                      providerOptions: {
+                        google: {
+                          processing: {
+                            type: 'static',
+                            startOffset: 0,
+                            endOffset: 10,
+                          },
+                        },
+                      },
+                    },
+                    {
+                      type: 'file-url',
+                      mediaType: 'video/mp4',
+                      url: fileUri,
+                    },
+                  ],
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'second-call',
+                toolName: 'viewFile',
+                providerOptions: { google: { signature: 'second-signature' } },
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file-url',
+                      mediaType: 'application/pdf',
+                      url: fileUri,
+                      providerOptions: {
+                        google: {
+                          processing: {
+                            type: 'static',
+                            pageOptions: { startPage: 2, endPage: 2 },
+                          },
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      const firstResult = {
+        type: 'function_result',
+        call_id: 'first-call',
+        name: 'viewFile',
+        signature: 'first-signature',
+        result: [
+          { type: 'text', text: 'First selection' },
+          {
+            type: 'document',
+            data: 'AQID',
+            mime_type: 'application/pdf',
+            resolution: 'high',
+            processing: {
+              type: 'static',
+              page_options: { start_page: 1, end_page: 1 },
+            },
+          },
+          { type: 'image', data: 'BAUG', mime_type: 'image/png' },
+          {
+            type: 'audio',
+            uri: fileUri,
+            mime_type: 'audio/mpeg',
+            processing: {
+              type: 'static',
+              start_offset: '0s',
+              end_offset: '10s',
+            },
+          },
+          { type: 'video', uri: fileUri, mime_type: 'video/mp4' },
+        ],
+      };
+      expect(
+        result.input.filter(step => step.type === 'function_result'),
+      ).toEqual([
+        ...(compact ? [] : [firstResult]),
+        {
+          type: 'function_result',
+          call_id: 'second-call',
+          name: 'viewFile',
+          signature: 'second-signature',
+          result: [
+            {
+              type: 'document',
+              uri: fileUri,
+              mime_type: 'application/pdf',
+              processing: {
+                type: 'static',
+                page_options: { start_page: 2, end_page: 2 },
+              },
+            },
+          ],
+        },
+      ]);
+      expect(result.warnings).toEqual([]);
+    },
+  );
 
   describe('compaction (previousInteractionId)', () => {
     const PREV_ID = 'v1_prev-interaction-abc';

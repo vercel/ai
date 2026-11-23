@@ -1,0 +1,45 @@
+import { google, type GoogleInteractionsFileOptions } from '@ai-sdk/google';
+import { stepCountIs, streamText, tool } from 'ai';
+import fs from 'node:fs';
+import { z } from 'zod/v4';
+import { printFullStream } from '../../lib/print-full-stream';
+import { run } from '../../lib/run';
+
+// Requires a project with Extended Multimodal File Inspection EAP access.
+run(async () => {
+  const result = streamText({
+    model: google.interactions('gemini-4-argon-file-processing-eap'),
+    prompt: 'Use viewFile to read the first two pages, then summarize them.',
+    stopWhen: stepCountIs(5),
+    tools: {
+      viewFile: tool({
+        description:
+          'Read an inclusive range of pages from the PDF. Pages start at 1.',
+        inputSchema: z.object({
+          startPage: z.number().int().positive(),
+          endPage: z.number().int().positive(),
+        }),
+        execute: async input => input,
+        toModelOutput: ({ output }) => ({
+          type: 'content',
+          value: [
+            {
+              type: 'file-data',
+              data: fs.readFileSync('./data/ai.pdf').toString('base64'),
+              mediaType: 'application/pdf',
+              providerOptions: {
+                google: {
+                  processing: {
+                    type: 'static',
+                    pageOptions: { ...output, contentLayers: ['page_text'] },
+                  },
+                } satisfies GoogleInteractionsFileOptions,
+              },
+            },
+          ],
+        }),
+      }),
+    },
+  });
+  await printFullStream({ result });
+});

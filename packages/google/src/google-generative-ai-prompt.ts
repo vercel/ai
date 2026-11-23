@@ -1,4 +1,4 @@
-import { z } from 'zod/v4';
+import type { GoogleFilePartOptions } from './google-file-part-options';
 import {
   type GroundingMetadataSchema,
   type PromptFeedbackSchema,
@@ -21,24 +21,12 @@ export type GoogleGenerativeAIContent = {
   parts: Array<GoogleGenerativeAIContentPart>;
 };
 
-export const googleVideoMetadataSchema = z.object({
-  /** Start offset as a duration in seconds, e.g. `'3.5s'`. */
-  startOffset: z.string().optional(),
-  /** End offset as a duration in seconds, e.g. `'10s'`. */
-  endOffset: z.string().optional(),
-  /** Frames per second in the range (0, 24]. Defaults to 1. */
-  fps: z.number().gt(0).max(24).optional(),
-});
-
-/** Metadata for preprocessing video file parts. */
-export type GoogleVideoMetadata = z.infer<typeof googleVideoMetadataSchema>;
+export { googleVideoMetadataSchema } from './google-file-part-options';
+export type { GoogleVideoMetadata } from './google-file-part-options';
 
 export type GoogleGenerativeAIContentPart =
   | { text: string; thought?: boolean; thoughtSignature?: string }
-  | {
-      inlineData: { mimeType: string; data: string };
-      videoMetadata?: GoogleVideoMetadata;
-    }
+  | ({ inlineData: { mimeType: string; data: string } } & GoogleFilePartOptions)
   | {
       functionCall: { id?: string; name: string; args: unknown };
       thoughtSignature?: string;
@@ -51,10 +39,9 @@ export type GoogleGenerativeAIContentPart =
         parts?: Array<GoogleGenerativeAIFunctionResponsePart>;
       };
     }
-  | {
+  | ({
       fileData: { mimeType: string; fileUri: string };
-      videoMetadata?: GoogleVideoMetadata;
-    }
+    } & GoogleFilePartOptions)
   | {
       toolCall: {
         toolType: string;
@@ -72,13 +59,15 @@ export type GoogleGenerativeAIContentPart =
       thoughtSignature?: string;
     };
 
-export type GoogleGenerativeAIFunctionResponsePart =
+export type GoogleGenerativeAIFunctionResponsePart = (
   | {
       inlineData: { mimeType: string; data: string };
     }
   | {
       fileData: { mimeType: string; fileUri: string };
-    };
+    }
+) &
+  GoogleFilePartOptions;
 
 export type GoogleGenerativeAIGroundingMetadata = GroundingMetadataSchema;
 

@@ -1332,15 +1332,10 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
               "type": "function_call",
             },
             {
-              "content": [
-                {
-                  "call_id": "r7b1dyif",
-                  "name": "getWeather",
-                  "result": "{"location":"San Francisco","condition":"sunny","temperature":16}",
-                  "type": "function_result",
-                },
-              ],
-              "type": "user_input",
+              "call_id": "r7b1dyif",
+              "name": "getWeather",
+              "result": "{"location":"San Francisco","condition":"sunny","temperature":16}",
+              "type": "function_result",
             },
           ],
           "model": "gemini-2.5-flash",
