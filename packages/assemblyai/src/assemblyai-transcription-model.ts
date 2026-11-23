@@ -8,6 +8,7 @@ import {
   zodSchema,
   type InferSchema,
   combineHeaders,
+  convertBase64ToUint8Array,
   createJsonResponseHandler,
   extractResponseHeaders,
   parseProviderOptions,
@@ -547,6 +548,11 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV3 {
     options: Parameters<TranscriptionModelV3['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV3['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    // The upload endpoint takes the raw file, so a base64 string is decoded.
+    const audio =
+      typeof options.audio === 'string'
+        ? convertBase64ToUint8Array(options.audio)
+        : options.audio;
 
     const { value: uploadResponse } = await postToApi({
       url: this.config.url({
@@ -558,8 +564,8 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV3 {
         ...combineHeaders(this.config.headers(), options.headers),
       },
       body: {
-        content: options.audio,
-        values: options.audio,
+        content: audio,
+        values: audio,
       },
       failedResponseHandler: assemblyaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
