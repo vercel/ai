@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetLogWarningsState } from '../logger/log-warnings';
+import type { Warning } from '../types/warning';
 import { createDefaultDownloadFunction } from '../util/download/download-function';
 import {
   convertToLanguageModelMessage,
@@ -1688,6 +1689,89 @@ describe('convertToLanguageModelPrompt', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('warnings', () => {
+    let mockProcessEmitWarning: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      resetLogWarningsState();
+      mockProcessEmitWarning = vi
+        .spyOn(process, 'emitWarning')
+        .mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      mockProcessEmitWarning.mockRestore();
+    });
+
+    it('should collect the conversion warnings instead of logging them when warnings are passed', async () => {
+      const warnings: Warning[] = [];
+
+      await convertToLanguageModelPrompt({
+        prompt: {
+          instructions: undefined,
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'image',
+                  image: new Uint8Array([0, 1, 2, 3]),
+                  mediaType: 'image/png',
+                },
+              ],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'toolCallId',
+                  toolName: 'toolName',
+                  input: {},
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'toolCallId',
+                  toolName: 'toolName',
+                  output: {
+                    type: 'content',
+                    value: [
+                      {
+                        type: 'image-data',
+                        data: 'dGVzdA==',
+                        mediaType: 'image/png',
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: undefined,
+        warnings,
+      });
+
+      expect(
+        warnings.map(
+          warning => warning.type === 'deprecated' && warning.setting,
+        ),
+      ).toMatchInlineSnapshot(`
+          [
+            ""image" content part",
+            ""tool-result" content of type "image-data"",
+          ]
+        `);
+      expect(mockProcessEmitWarning).not.toHaveBeenCalled();
     });
   });
 });
