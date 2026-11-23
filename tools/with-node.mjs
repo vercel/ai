@@ -8,6 +8,8 @@
 // versions. pnpm downloads the requested Node.js runtime on first use.
 
 import { execFileSync, spawn } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { availableParallelism } from 'node:os';
 import { delimiter } from 'node:path';
 
 const [major, command, ...args] = process.argv.slice(2);
@@ -48,7 +50,14 @@ if (!version.startsWith(`v${major}.`)) {
   process.exit(1);
 }
 
-console.log(`Running with Node.js ${version}: ${[command, ...args].join(' ')}`);
+let cpuQuota = '';
+try {
+  cpuQuota = `, cgroup cpu.max ${readFileSync('/sys/fs/cgroup/cpu.max', 'utf8').trim()}`;
+} catch {}
+
+console.log(
+  `Running with Node.js ${version} (${availableParallelism()} CPUs${cpuQuota}): ${[command, ...args].join(' ')}`,
+);
 
 const child = spawn(command, args, {
   env,
