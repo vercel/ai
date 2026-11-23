@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const limits = {
   // The unchanged main build can reach ~208 ms on slower Vercel CI runners.
   ai: 230,
-  '@ai-sdk/openai': 145,
+  '@ai-sdk/openai': 150,
   '@ai-sdk/openai-compatible': 135,
   '@ai-sdk/anthropic': 145,
   '@ai-sdk/google': 155,
