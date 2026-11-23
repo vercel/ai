@@ -36,13 +36,13 @@ The `apiKey` setting sends your key as a Bearer token in the `Authorization` hea
 
 ## Language Models
 
-Create a language model by passing a NagaAI model ID to the provider instance. Model IDs carry the vendor prefix:
+Create a language model with `naga.responses()`, which selects the Responses API explicitly. NagaAI model IDs carry the vendor prefix:
 
 ```ts
-const model = naga('anthropic/claude-sonnet-5.5');
+const model = naga.responses('anthropic/claude-sonnet-5.5');
 ```
 
-NagaAI does not store responses. Set `store: false` in the OpenAI provider options, so each request carries the full conversation instead of references to earlier responses.
+NagaAI does not store responses. Set `store: false` in the OpenAI provider options on every call. Without it, the provider sends earlier turns as references to stored responses, and the second turn of a conversation fails with a `400` error.
 
 ### Generate Text
 
@@ -58,7 +58,7 @@ const naga = createOpenAI({
 });
 
 const { text } = await generateText({
-  model: naga('anthropic/claude-sonnet-5.5'),
+  model: naga.responses('openai/gpt-6.1-sol'),
   prompt: 'Explain what an API gateway does in one sentence.',
   providerOptions: { openai: { store: false } },
 });
@@ -80,7 +80,7 @@ const naga = createOpenAI({
 });
 
 const result = streamText({
-  model: naga('deepseek/deepseek-v4.1-flash'),
+  model: naga.responses('openai/gpt-6.1-sol'),
   prompt: 'Count from 1 to 5, separated by spaces.',
   providerOptions: { openai: { store: false } },
 });
@@ -90,33 +90,59 @@ for await (const textPart of result.textStream) {
 }
 ```
 
-### Reasoning Effort
+### Reasoning
 
-Pass `reasoningEffort` in the OpenAI provider options. NagaAI accepts `none` to `max` and runs the nearest level the model supports. The provider recognizes reasoning models by OpenAI model IDs, so set `forceReasoning: true` for NagaAI model IDs, otherwise `reasoningEffort` is dropped with a warning:
+Pass `reasoningEffort` in the OpenAI provider options. NagaAI accepts `none` to `max` and runs the nearest level the model supports. The provider recognizes reasoning models by OpenAI model IDs only, so set `forceReasoning: true` for NagaAI model IDs, otherwise `reasoningEffort` is dropped with a warning:
 
 ```ts
 const { text } = await generateText({
-  model: naga('openai/gpt-6.1-sol'),
-  prompt: 'How many prime numbers are there below 100?',
+  model: naga.responses('openai/gpt-6.1-sol'),
+  prompt: 'Is 221 a prime number?',
   providerOptions: {
-    openai: { store: false, forceReasoning: true, reasoningEffort: 'high' },
+    openai: {
+      store: false,
+      forceReasoning: true,
+      reasoningEffort: 'medium',
+      reasoningSummary: 'detailed',
+    },
   },
 });
 ```
 
+With `store: false`, the provider also requests `reasoning.encrypted_content`. To continue the conversation, pass the complete `response.messages` of the result into the next call, so the encrypted reasoning goes back with it.
+
 ### Chat Completions
 
-To call Chat Completions instead, create the provider with `@ai-sdk/openai-compatible`:
+To call Chat Completions instead, install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Then create a second provider instance with `createOpenAICompatible`:
 
 ```ts
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
 
-const naga = createOpenAICompatible({
+const nagaChat = createOpenAICompatible({
   name: 'nagaai',
   apiKey: process.env.NAGA_API_KEY,
   baseURL: 'https://api.naga.ac/v1',
+  includeUsage: true,
 });
+
+const result = streamText({
+  model: nagaChat('openai/gpt-6.1-sol'),
+  prompt: 'Count from 1 to 5, separated by spaces.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+
+console.log(await result.usage);
 ```
+
+This provider sends requests to `/chat/completions`. `includeUsage: true` requests token usage in streaming responses. Its provider options use the `nagaai` key, matching the configured `name`, for example `providerOptions: { nagaai: { reasoningEffort: 'high' } }`.
 
 ## Supported Models and Capabilities
 
