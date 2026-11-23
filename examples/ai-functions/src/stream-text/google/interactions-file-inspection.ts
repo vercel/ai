@@ -5,7 +5,6 @@ import { z } from 'zod/v4';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
-// Requires a project with Extended Multimodal File Inspection EAP access.
 run(async () => {
   const { providerReference } = await uploadFile({
     api: google,
@@ -14,7 +13,7 @@ run(async () => {
   });
 
   const result = streamText({
-    model: google.interactions('gemini-4-argon-file-processing-eap'),
+    model: google.interactions('gemini-4-hydrogen'),
     prompt: 'Use viewFile to read the first two pages, then summarize them.',
     stopWhen: isStepCount(5),
     tools: {
