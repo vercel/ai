@@ -157,6 +157,11 @@ const agent = new ToolLoopAgent({
 await runAgentTUI({ title: 'Weather Agent', agent });
 ```
 
+Tool calls are decided one at a time, in the order the agent requested them.
+While the terminal UI waits for a decision, the tool call that the decision
+applies to is marked with `approve? y/n` and shown with its input, regardless of
+the `tools` display mode.
+
 ## Compatibility
 
 When using the `agent` option, the agent must be runnable directly from terminal

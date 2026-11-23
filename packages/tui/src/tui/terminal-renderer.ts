@@ -81,7 +81,13 @@ export type TerminalKey =
   | { type: 'escape' }
   | { type: 'ignore' };
 
-type ChatSectionKind = 'user' | 'assistant' | 'reasoning' | 'tool' | 'error';
+type ChatSectionKind =
+  | 'user'
+  | 'assistant'
+  | 'reasoning'
+  | 'tool'
+  | 'approval'
+  | 'error';
 
 type ChatSection = {
   kind: ChatSectionKind;
@@ -123,6 +129,7 @@ const colors = {
   assistant: '\x1b[92m',
   reasoning: '\x1b[94m',
   tool: '\x1b[95m',
+  approval: '\x1b[93m',
   error: '\x1b[91m',
 };
 
@@ -134,6 +141,7 @@ const sectionStyles: Record<
   assistant: { color: colors.assistant, border: '─' },
   reasoning: { color: colors.reasoning, border: '·' },
   tool: { color: colors.tool, border: '─' },
+  approval: { color: colors.approval, border: '─' },
   error: { color: colors.error, border: '─' },
 };
 
@@ -336,6 +344,7 @@ export class TerminalRenderer {
     this.#inputActive = false;
     this.#status = `Approve ${formatToolApprovalTitle(request)}? y/n · ${activeControls}`;
     this.#interrupted = false;
+    const finishToolApprovalRequest = this.#showToolApprovalRequest(request);
     this.#paint();
 
     return await new Promise((resolve, reject) => {
@@ -349,11 +358,13 @@ export class TerminalRenderer {
             if (value === 'y') {
               this.#status = `Approved · ${processingStatus}`;
               this.#detachInput();
+              finishToolApprovalRequest('approved');
               this.#paint();
               resolve({ approved: true });
             } else if (value === 'n') {
               this.#status = `Denied · ${processingStatus}`;
               this.#detachInput();
+              finishToolApprovalRequest('denied');
               this.#paint();
               resolve({ approved: false, reason: 'Denied by user.' });
             }
@@ -383,6 +394,65 @@ export class TerminalRenderer {
 
       this.#attachInput();
     });
+  }
+
+  /**
+   * Shows the tool call that the next approval decision applies to: its section
+   * is expanded with the exact input, marked as the one awaiting the decision,
+   * and scrolled into view, regardless of the tool display mode.
+   *
+   * @returns A function that records the decision in the section header and
+   * restores how the section was displayed before.
+   */
+  #showToolApprovalRequest(request: AgentTUIToolApprovalRequest) {
+    const id = sectionId(request.messageId, request.partIndex);
+    const existingSection = this.#sections.find(section => section.id === id);
+    const previousSection = existingSection && { ...existingSection };
+
+    this.#upsertSection({
+      id,
+      kind: 'approval',
+      title: `Tool · ${request.title ?? request.toolName}`,
+      rightTitle: 'approve? y/n',
+      content: `Input:\n${formatValue(request.input)}`,
+    });
+    this.#scrollSectionIntoView(id);
+
+    return (decision: 'approved' | 'denied') => {
+      if (previousSection) {
+        this.#upsertSection({ ...previousSection, rightTitle: decision });
+      } else {
+        // the section only existed for the decision, e.g. with hidden tools:
+        this.#sections = this.#sections.filter(section => section.id !== id);
+      }
+
+      this.#scrollOffset = 0;
+    };
+  }
+
+  #scrollSectionIntoView(id: string) {
+    const bodyContentHeight = this.#bodyContentHeight();
+    let sectionStart = 0;
+
+    for (const section of this.#sections) {
+      const sectionEnd =
+        sectionStart + renderSectionLines(section, this.#width() - 4).length;
+
+      if (section.id === id) {
+        // end the section at the bottom of the viewport, or start it at the
+        // top when it is taller than the viewport:
+        const firstVisibleLine = Math.min(
+          sectionStart,
+          sectionEnd - bodyContentHeight,
+        );
+        this.#scrollOffset = this.#clampScrollOffset(
+          this.#bodyLineCount() - bodyContentHeight - firstVisibleLine,
+        );
+        return;
+      }
+
+      sectionStart = sectionEnd;
+    }
   }
 
   #start(options?: TerminalSessionOptions) {
@@ -1193,9 +1263,12 @@ function createSectionLines(section: ChatSection, width: number) {
   const top = `${style.color}╭${title}${style.border.repeat(borderWidth)}${rightTitle}╮${colors.reset}`;
   const bottom = `${style.color}╰${style.border.repeat(Math.max(0, width - 2))}╯${colors.reset}`;
   const content =
-    section.content.length > 0
-      ? renderMarkdown(section.content)
-      : colors.dim + '(streaming...)' + colors.reset;
+    section.content.length === 0
+      ? colors.dim + '(streaming...)' + colors.reset
+      : section.kind === 'approval'
+        ? // show the input that is being approved as is, without markdown formatting:
+          sanitizeTerminalText(section.content, { multiline: true })
+        : renderMarkdown(section.content);
   const lines = content
     .split('\n')
     .flatMap(line => wrapVisibleLine(line, contentWidth));
