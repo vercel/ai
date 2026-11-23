@@ -1796,6 +1796,12 @@ retain the content their contracts require.
                 'The raw reason why the generation finished (from the provider).',
             },
             {
+              name: 'stoppedBy',
+              type: "'model' | 'stop-condition' | 'tool-without-execute' | 'approval' | undefined",
+              description:
+                'Why the generation stopped its tool loop. Unlike `finishReason`, which describes the last model call, it tells whether the model, a stop condition, a tool without an `execute` function, or a tool approval ended the loop. See [Loop Control](/docs/agents/loop-control#why-the-loop-stopped).',
+            },
+            {
               name: 'output',
               type: 'COMPLETE_OUTPUT | undefined',
               isOptional: true,
@@ -2722,6 +2728,12 @@ retain the content their contracts require.
       type: 'PromiseLike<string | undefined>',
       description:
         'The raw reason why the generation finished (from the provider).',
+    },
+    {
+      name: 'stoppedBy',
+      type: "PromiseLike<'model' | 'stop-condition' | 'tool-without-execute' | 'approval' | undefined>",
+      description:
+        'Why the generation stopped its tool loop. Unlike `finishReason`, which describes the last model call, it tells whether the model, a stop condition, a tool without an `execute` function, or a tool approval ended the loop. See [Loop Control](/docs/agents/loop-control#why-the-loop-stopped). Like `finishReason`, it rejects when the stream is aborted. Automatically consumes the stream.',
     },
     {
       name: 'usage',
@@ -4022,6 +4034,12 @@ retain the content their contracts require.
               type: 'string | undefined',
               description:
                 'The raw reason why the generation finished (from the provider).',
+            },
+            {
+              name: 'stoppedBy',
+              type: "'model' | 'stop-condition' | 'tool-without-execute' | 'approval' | undefined",
+              description:
+                'Why the generation stopped its tool loop. See [Loop Control](/docs/agents/loop-control#why-the-loop-stopped).',
             },
             {
               name: 'totalUsage',
