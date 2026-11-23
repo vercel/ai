@@ -1,0 +1,175 @@
+---
+title: Oathbreaker
+description: Use the Oathbreaker OpenAI compatible API with the AI SDK.
+---
+
+# Oathbreaker Provider
+
+[Oathbreaker](https://oathbreaker.ai) serves abliterated versions of open-weight models, including GLM-5.3, DeepSeek V4.1 Flash and Kimi K3.1 Pro, through an OpenAI-compatible Chat Completions API. You can use it with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+<Note type="warning">
+  Abliterated models have had their refusal behavior weakened. Review outputs
+  before using them in an application, and follow the model licenses and
+  Oathbreaker's [terms of service](https://oathbreaker.ai/terms).
+</Note>
+
+## Setup
+
+The Oathbreaker provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API. You can install it with:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Create an API key and add prepaid credit in the [Oathbreaker console](https://oathbreaker.ai/sign-up), then set it as a server-side environment variable:
+
+```bash
+export OATHBREAKER_API_KEY=your-api-key
+```
+
+## Provider Instance
+
+To use Oathbreaker, create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const oathbreaker = createOpenAICompatible({
+  name: 'oathbreaker',
+  apiKey: process.env.OATHBREAKER_API_KEY,
+  baseURL: 'https://oathbreaker.ai/v1',
+  includeUsage: true,
+  supportsStructuredOutputs: true,
+});
+```
+
+`includeUsage` returns token usage for streamed responses. `supportsStructuredOutputs` sends your schema as a `json_schema` response format. Oathbreaker passes the schema to the model without enforcing it, so validate the returned object.
+
+## Language Models
+
+You can create Oathbreaker models using the provider instance. The first argument is a model ID:
+
+```ts
+const model = oathbreaker('oathbreaker-glm-5.3-flash');
+```
+
+| Model ID                               | Model                                         | Max output tokens |
+| -------------------------------------- | --------------------------------------------- | ----------------- |
+| `oathbreaker-glm-5.3`                  | GLM-5.3 Abliterated                           | 32,768            |
+| `oathbreaker-glm-5.3-flash`            | GLM-5.3 Flash Abliterated                     | 32,768            |
+| `oathbreaker-deepseek-v4.1-flash`      | DeepSeek V4.1 Flash Abliterated               | 32,768            |
+| `oathbreaker-deepseek-v4.1-flash-fast` | DeepSeek V4.1 Flash Abliterated, faster route | 32,768            |
+| `oathbreaker-kimi-k3.1-pro`            | Kimi K3.1 Pro Abliterated                     | 24,576            |
+
+All models take text input and support tool calling. Reasoning tokens count toward `maxOutputTokens`, which defaults to 8,192 when you don't set it. See the [API reference](https://oathbreaker.ai/docs) or `GET https://oathbreaker.ai/v1/models` for current model IDs and context limits, and [pricing](https://oathbreaker.ai/pricing) for current rates.
+
+### Example
+
+You can use Oathbreaker language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const oathbreaker = createOpenAICompatible({
+  name: 'oathbreaker',
+  apiKey: process.env.OATHBREAKER_API_KEY,
+  baseURL: 'https://oathbreaker.ai/v1',
+  includeUsage: true,
+  supportsStructuredOutputs: true,
+});
+
+const { text, reasoningText } = await generateText({
+  model: oathbreaker('oathbreaker-glm-5.3-flash'),
+  prompt: 'Which git command undoes the last commit but keeps the changes?',
+});
+
+console.log(text);
+```
+
+When the model reasons, its reasoning is returned separately from the answer, in `reasoningText` and as reasoning parts in `content`.
+
+Oathbreaker language models can also generate text in a streaming fashion with the `streamText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const oathbreaker = createOpenAICompatible({
+  name: 'oathbreaker',
+  apiKey: process.env.OATHBREAKER_API_KEY,
+  baseURL: 'https://oathbreaker.ai/v1',
+  includeUsage: true,
+  supportsStructuredOutputs: true,
+});
+
+const result = streamText({
+  model: oathbreaker('oathbreaker-deepseek-v4.1-flash'),
+  prompt:
+    'Write a bash one-liner that lists the five largest files in a directory.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+
+console.log(await result.usage);
+```
+
+### Reasoning Effort
+
+The models use `low` reasoning effort by default. Use the `reasoning` option to request more:
+
+```ts
+const { text } = await generateText({
+  model: oathbreaker('oathbreaker-kimi-k3.1-pro'),
+  reasoning: 'high',
+  maxOutputTokens: 16384,
+  prompt: 'Review this function for injection risks: ...',
+});
+```
+
+Oathbreaker accepts `low`, `high` and `max`. Other values are rounded down: `none`, `minimal` and `medium` run as `low`, and `xhigh` runs as `high`. Raise `maxOutputTokens` with the effort, since reasoning and the answer share the same budget.
+
+### Tool Calling
+
+Tool calling and multi-step tool use work with the standard AI SDK APIs. The provider sends each assistant turn's reasoning back with its tool calls, which Oathbreaker expects in tool conversations.
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText, stepCountIs, tool } from 'ai';
+import { z } from 'zod';
+
+const oathbreaker = createOpenAICompatible({
+  name: 'oathbreaker',
+  apiKey: process.env.OATHBREAKER_API_KEY,
+  baseURL: 'https://oathbreaker.ai/v1',
+  includeUsage: true,
+  supportsStructuredOutputs: true,
+});
+
+const { text } = await generateText({
+  model: oathbreaker('oathbreaker-glm-5.3'),
+  tools: {
+    readFile: tool({
+      description: 'Read a file from the project',
+      inputSchema: z.object({ path: z.string() }),
+      execute: async ({ path }) => `contents of ${path}`,
+    }),
+  },
+  stopWhen: stepCountIs(5),
+  prompt: 'Read package.json and tell me which test runner the project uses.',
+});
+```
+
+## Supported Settings
+
+Oathbreaker rejects a request that contains an unsupported top-level field with HTTP 400 before any credit is reserved. These AI SDK settings are supported: `maxOutputTokens`, `temperature`, `topP`, `reasoning`, `tools`, `toolChoice` and structured outputs.
+
+Don't set `stopSequences`, `seed`, `frequencyPenalty` or `presencePenalty`, or the `user` and `textVerbosity` provider options, because each adds a field Oathbreaker rejects. `topK` is not sent to OpenAI-compatible providers. Image, audio and file inputs are not supported.
+
+If you receive HTTP 429, reduce the number of concurrent requests.
+
+## Resources
+
+- [Oathbreaker API reference](https://oathbreaker.ai/docs)
+- [Oathbreaker models and pricing](https://oathbreaker.ai/pricing)
+- [AI SDK OpenAI Compatible provider](/providers/openai-compatible-providers)
