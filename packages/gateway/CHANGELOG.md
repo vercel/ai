@@ -1,5 +1,17 @@
 # @ai-sdk/gateway
 
+## 4.0.154
+
+### Patch Changes
+
+- f2732a6: chore(provider/gateway): update gateway model settings files
+
+## 4.0.153
+
+### Patch Changes
+
+- 83026e8: fix(gateway): redact BYOK credentials in telemetry copies of Gateway request bodies
+
 ## 4.0.152
 
 ### Patch Changes

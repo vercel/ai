@@ -1088,6 +1088,80 @@ describe('telemetry', () => {
     expect(onStart.mock.calls[0][0].state).toBe(fileState);
   });
 
+  it('strips part provider options from extraction telemetry only', async () => {
+    const onTelemetry = vi.fn();
+    const url = new URL(
+      'https://files.example.com/invoice.pdf?X-Amz-Signature=secret',
+    );
+    const providerOptions = {
+      anthropic: { title: 'private-title', context: 'private-context' },
+    };
+    const jsonPart = {
+      type: 'json' as const,
+      value: { providerOptions: { user: { value: 'keep' } } },
+    };
+    const fileState: Experimental_ExtractionStatePart[] = [
+      { type: 'text', text: 'Invoice', providerOptions },
+      {
+        type: 'file',
+        mediaType: 'application/pdf',
+        data: url,
+        providerOptions,
+      },
+      jsonPart,
+    ];
+    const bytes = new Uint8Array([1, 2, 3]);
+    const { model, doExtract } = setup({
+      answers: { invoiceNumber: { type: 'text', value: 'INV-2041' } },
+      warnings: [],
+    });
+
+    await extract({
+      model,
+      state: fileState,
+      fields: { invoiceNumber: fields.invoiceNumber },
+      experimental_download: async requests =>
+        requests.map(() => ({ data: bytes, mediaType: 'application/pdf' })),
+      telemetry: {
+        recordInputs: true,
+        integrations: {
+          experimental_onExtractStart: onTelemetry,
+          experimental_onExtractionModelCallStart: onTelemetry,
+          experimental_onExtractionModelCallEnd: onTelemetry,
+          experimental_onExtractEnd: onTelemetry,
+        },
+      },
+    });
+
+    expect(onTelemetry).toHaveBeenCalledTimes(4);
+    for (const [event] of onTelemetry.mock.calls) {
+      expect(event.state).toEqual([
+        { type: 'text', text: 'Invoice' },
+        {
+          type: 'file',
+          mediaType: 'application/pdf',
+          data:
+            event.operationId === 'ai.extract.doExtract'
+              ? { type: 'data', data: bytes }
+              : '[redacted]',
+        },
+        jsonPart,
+      ]);
+    }
+    expect(fileState[0]).toHaveProperty('providerOptions', providerOptions);
+    expect(fileState[1]).toMatchObject({ data: url, providerOptions });
+    expect(doExtract.mock.calls[0][0].state).toEqual([
+      { type: 'text', text: 'Invoice', providerOptions },
+      {
+        type: 'file',
+        mediaType: 'application/pdf',
+        data: { type: 'data', data: bytes },
+        providerOptions,
+      },
+      jsonPart,
+    ]);
+  });
+
   it('redacts the url of a failed download from telemetry errors', async () => {
     const onError = vi.fn();
     const url = 'https://files.example.com/invoice.pdf?X-Amz-Signature=secret';

@@ -154,6 +154,7 @@ type PendingSteer = {
 
 class DefaultSteering implements Steering {
   private state: 'idle' | 'running' | 'ended' = 'idle';
+  private endReason: SteeringNotDeliveredReason = 'finished';
   private pending: Array<PendingSteer> = [];
   private queued: Array<PendingSteer> = [];
   private taken: Array<PendingSteer> = [];
@@ -227,7 +228,7 @@ class DefaultSteering implements Steering {
             type: 'not-delivered',
             id,
             message: userMessage,
-            reason: 'finished',
+            reason: this.endReason,
           })
         : new Promise<SteeringOutcome>(resolve => {
             target.push({ id, message: userMessage, resolve });
@@ -329,6 +330,7 @@ class DefaultSteering implements Steering {
         this.pending = [];
         this.queued = [];
         this.state = 'ended';
+        this.endReason = reason;
         this.interruptRequested = false;
         this.onInterrupt = undefined;
 
@@ -340,8 +342,9 @@ class DefaultSteering implements Steering {
   }
 }
 
-// prepareStep can map messages to new objects, e.g. to add provider options,
-// so a message also counts as sent when a user message has the same content:
+// prepareStep can map messages to new objects, e.g. to add provider options or
+// to turn text into a text part, so a message also counts as sent when a user
+// message has the same content parts, ignoring the provider options of parts:
 function isSent({
   message,
   sentMessages,
@@ -349,13 +352,24 @@ function isSent({
   message: UserModelMessage;
   sentMessages: ReadonlyArray<ModelMessage>;
 }): boolean {
-  const content = JSON.stringify(message.content);
+  const content = normalizeContent(message.content);
 
   return sentMessages.some(
     sentMessage =>
       sentMessage === message ||
       (sentMessage.role === 'user' &&
-        JSON.stringify(sentMessage.content) === content),
+        normalizeContent(sentMessage.content) === content),
+  );
+}
+
+function normalizeContent(content: UserModelMessage['content']): string {
+  const parts =
+    typeof content === 'string'
+      ? [{ type: 'text' as const, text: content }]
+      : content;
+
+  return JSON.stringify(
+    parts.map(({ providerOptions: _providerOptions, ...part }) => part),
   );
 }
 

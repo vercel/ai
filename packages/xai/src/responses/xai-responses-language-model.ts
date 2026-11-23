@@ -1265,7 +1265,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                       : (part.arguments ?? '');
 
                 const shouldEmit =
-                  part.type === 'custom_tool_call'
+                  part.type === 'custom_tool_call' || part.type === 'mcp_call'
                     ? event.type === 'response.output_item.done'
                     : !seenToolCalls.has(part.id);
 

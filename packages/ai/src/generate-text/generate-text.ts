@@ -21,7 +21,8 @@ import {
   type UserModelMessage,
 } from '@ai-sdk/provider-utils';
 import { ToolChoiceViolationError } from '../error';
-import { logWarnings } from '../logger/log-warnings';
+import { createLogWarnings } from '../logger/create-log-warnings';
+import type { LogWarningsFunction } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import type { ModelMessage } from '../prompt';
 import { cloneModelMessages } from '../prompt/clone-model-message';
@@ -108,6 +109,11 @@ import {
   type SteeringNotDeliveredReason,
   type SteeringRun,
 } from './steering';
+import {
+  getModelStoppedBy,
+  getPendingToolCallStoppedBy,
+  type StoppedBy,
+} from './stopped-by';
 import {
   isStepCount,
   isStopConditionMet,
@@ -241,6 +247,7 @@ export type GenerateTextInclude = {
  * @param experimental_onToolCallFinish - Deprecated alias for `onToolExecutionEnd`.
  * @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
  * @param onStepError - Callback that is called when a step that started fails before it produces a step result, i.e. when the provider call throws or rejects, or when the call is aborted or times out.
+ * @param onWarning - Callback that receives the warnings of the call instead of the global warning logger.
  * @param onEnd - Callback that is called when all steps are finished and the response is complete.
  * @param onFinish - Deprecated alias for `onEnd`.
  *
@@ -333,6 +340,7 @@ async function generateTextInternal<
     onStepEnd,
     onStepError,
     onStepFinish,
+    onWarning,
     onFinish,
     onEnd = onFinish,
     ...settings
@@ -600,6 +608,13 @@ async function generateTextInternal<
       >;
 
       /**
+       * Callback that receives the warnings of the call, e.g. unsupported
+       * settings or deprecated prompt parts. When it is set, the warnings are
+       * not sent to the global warning logger (`AI_SDK_LOG_WARNINGS`).
+       */
+      onWarning?: LogWarningsFunction;
+
+      /**
        * Callback that is called when each step (LLM call) ends, including intermediate steps.
        *
        * @deprecated Use `onStepEnd` instead.
@@ -664,7 +679,7 @@ async function generateTextInternal<
 
   const resolvedToolCallConcurrency =
     prepareToolCallConcurrency(toolCallConcurrency);
-  const model = resolveLanguageModel(modelArg);
+  const model = resolveLanguageModel(modelArg, onWarning);
   const resolvedToolCallers = resolveToolCallerConfiguration({
     tools,
     toolCallers: experimental_toolCallers,
@@ -686,6 +701,7 @@ async function generateTextInternal<
     onToolExecutionEnd ?? experimental_onToolCallFinish;
   const resolvedOnStepEnd = onStepEnd ?? onStepFinish;
 
+  const logCallWarnings = createLogWarnings(onWarning);
   const unsupportedTimeoutWarnings: Warning[] = [];
 
   if (getFirstChunkTimeoutMs(timeout) != null) {
@@ -706,7 +722,7 @@ async function generateTextInternal<
   }
 
   if (unsupportedTimeoutWarnings.length > 0) {
-    logWarnings({
+    logCallWarnings({
       warnings: unsupportedTimeoutWarnings,
       provider: model.provider,
       model: model.modelId,
@@ -969,6 +985,7 @@ async function generateTextInternal<
 
       // why waiting steering messages are not delivered when the loop ends:
       let steeringEndReason: SteeringNotDeliveredReason = 'finished';
+      let stoppedBy: StoppedBy = 'model';
 
       const shouldStartNextStep = async () => {
         if (steps[steps.length - 1].finishReason === 'interrupted') {
@@ -981,6 +998,7 @@ async function generateTextInternal<
           clientToolCalls.length
         ) {
           steeringEndReason = 'waiting-for-tool-results';
+          stoppedBy = getPendingToolCallStoppedBy(steps[steps.length - 1]);
           return false;
         }
 
@@ -999,6 +1017,7 @@ async function generateTextInternal<
             !steeringRun?.hasPendingMessages() &&
             (isTruncated || !steeringRun?.promoteQueuedMessage())
           ) {
+            stoppedBy = getModelStoppedBy(steps[steps.length - 1]);
             return false;
           }
 
@@ -1012,6 +1031,7 @@ async function generateTextInternal<
         // continue until a stop condition is met:
         if (await isStopConditionMet({ stopConditions, steps })) {
           steeringEndReason = 'stop-condition';
+          stoppedBy = 'stop-condition';
           return false;
         }
 
@@ -1096,6 +1116,7 @@ async function generateTextInternal<
 
                   const stepModel = resolveLanguageModel(
                     prepareStepResult?.model ?? model,
+                    onWarning,
                   );
 
                   const stepInstructions =
@@ -1174,6 +1195,7 @@ async function generateTextInternal<
                     ).map(({ message }) => message),
                   ];
 
+                  const promptWarnings: Warning[] = [];
                   const promptMessages = await convertToLanguageModelPrompt({
                     prompt: {
                       instructions: stepInstructions,
@@ -1183,7 +1205,12 @@ async function generateTextInternal<
                     download,
                     abortSignal: mergedAbortSignal,
                     provider: stepModel.provider.split('.')[0],
+                    warnings: promptWarnings,
                   });
+
+                  if (promptWarnings.length > 0) {
+                    logCallWarnings({ warnings: promptWarnings });
+                  }
 
                   const stepProviderOptions = mergeObjects(
                     providerOptions,
@@ -1781,7 +1808,10 @@ async function generateTextInternal<
                       rawFinishReason: currentModelResponse.finishReason.raw,
                       usage: stepUsage,
                       performance: stepPerformance,
-                      warnings: currentModelResponse.warnings,
+                      warnings: [
+                        ...promptWarnings,
+                        ...(currentModelResponse.warnings ?? []),
+                      ],
                       providerMetadata: currentModelResponse.providerMetadata,
                       request: stepRequest,
                       response: stepResponse,
@@ -1789,7 +1819,7 @@ async function generateTextInternal<
                       steeringMessages: stepSteeringMessages,
                     });
 
-                  logWarnings({
+                  logCallWarnings({
                     warnings: currentModelResponse.warnings ?? [],
                     provider: stepModel.provider,
                     model: stepModel.modelId,
@@ -1864,6 +1894,7 @@ async function generateTextInternal<
         runtimeContext: lastStep.runtimeContext,
         finishReason: lastStep.finishReason,
         rawFinishReason: lastStep.rawFinishReason,
+        stoppedBy,
         usage: totalUsage,
         totalUsage,
         content: steps.flatMap(step => step.content),
@@ -1925,6 +1956,7 @@ async function generateTextInternal<
         steps,
         totalUsage,
         output: resolvedOutput,
+        stoppedBy,
       });
     } catch (error) {
       const wrappedError = wrapGatewayError(error);
