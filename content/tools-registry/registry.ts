@@ -1032,4 +1032,34 @@ console.log(text);`,
     websiteUrl: 'https://upstash.com',
     npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
   },
+  {
+    slug: 'clawifi',
+    name: 'Clawifi',
+    description:
+      'Clawifi is a web search and fetch API for AI agents. Search returns ranked results, the fetch tool reads any page or PDF as clean markdown, and extract returns structured fields from a page. Search and fetch work without an API key.',
+    packageName: '@clawifi/ai-sdk',
+    tags: ['search', 'web', 'scraping', 'extraction'],
+    apiKeyEnvName: 'CLAWIFI_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @clawifi/ai-sdk',
+      npm: 'npm install @clawifi/ai-sdk',
+      yarn: 'yarn add @clawifi/ai-sdk',
+      bun: 'bun add @clawifi/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { clawifiTools } from '@clawifi/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'What changed in the latest Node.js release? Cite the pages you used.',
+  tools: clawifiTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://clawifi.dev/docs/ai-sdk',
+    apiKeyUrl: 'https://clawifi.dev/signup',
+    websiteUrl: 'https://clawifi.dev',
+    npmUrl: 'https://www.npmjs.com/package/@clawifi/ai-sdk',
+  },
 ];
