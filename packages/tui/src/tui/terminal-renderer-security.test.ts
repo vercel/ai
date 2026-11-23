@@ -154,6 +154,24 @@ describe('terminal output sanitization', () => {
     expect(screen.rawOutput()).toContain('report_\\u{202e}fdp.exe\\u{e0041}');
   });
 
+  it('keeps format characters in assistant text', async () => {
+    const { screen, renderer } = createTerminal();
+    await renderer.renderStream(
+      {
+        uiMessageStream: (async function* (): AsyncIterable<UIMessageChunk> {
+          yield { type: 'start', messageId: 'message-1' };
+          yield { type: 'text-start', id: 'part-1' };
+          yield { type: 'text-delta', id: 'part-1', delta: '👩\u200d💻' };
+          yield { type: 'text-end', id: 'part-1' };
+          yield { type: 'finish' };
+        })(),
+      },
+      { waitForExit: false },
+    );
+
+    expect(screen.rawOutput()).toContain('👩\u200d💻');
+  });
+
   it('escapes stream errors', async () => {
     const { screen, renderer } = createTerminal();
     await renderer.renderStream(
