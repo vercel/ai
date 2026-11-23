@@ -508,6 +508,8 @@ const { text } = await generateText({
 });
 ```
 
+The `input` of an MCP server tool call contains the arguments that the model passed to the MCP tool, for example `{ city: 'San Francisco' }`. The fields depend on the MCP tool that was called.
+
 #### MCP Server Parameters
 
 - **serverUrl** _string_ (required)
