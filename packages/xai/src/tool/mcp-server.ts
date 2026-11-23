@@ -42,7 +42,7 @@ const mcpServerOutputSchema = lazySchema(() =>
 );
 
 const mcpServerToolFactory = createProviderToolFactoryWithOutputSchema<
-  {},
+  Record<string, unknown>,
   {
     name: string;
     arguments: string;
@@ -58,7 +58,7 @@ const mcpServerToolFactory = createProviderToolFactoryWithOutputSchema<
   }
 >({
   id: 'xai.mcp',
-  inputSchema: lazySchema(() => zodSchema(z.object({}))),
+  inputSchema: lazySchema(() => zodSchema(z.looseObject({}))),
   outputSchema: mcpServerOutputSchema,
 });
 
