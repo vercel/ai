@@ -3,10 +3,9 @@ import { generateText } from 'ai';
 import fs from 'node:fs';
 import { run } from '../../lib/run';
 
-// Requires a project with Extended Multimodal File Inspection EAP access.
 run(async () => {
   const result = await generateText({
-    model: google.interactions('gemini-4-argon-file-processing-eap'),
+    model: google.interactions('gemini-4-hydrogen'),
     messages: [
       {
         role: 'user',
