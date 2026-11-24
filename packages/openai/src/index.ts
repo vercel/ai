@@ -1,5 +1,6 @@
 export { createOpenAI, openai } from './openai-provider';
 export type { OpenAIProvider, OpenAIProviderSettings } from './openai-provider';
+export { openaiModelCapabilities } from './openai-model-catalog';
 export type {
   OpenAIRealtimeFactory as Experimental_OpenAIRealtimeFactory,
   OpenAIRealtimeOptions as Experimental_OpenAIRealtimeOptions,

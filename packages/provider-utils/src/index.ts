@@ -63,6 +63,12 @@ export { isRecord } from './is-record';
 export { isUrlSupported } from './is-url-supported';
 export { isValidHostnamePart } from './is-valid-hostname-part';
 export * from './load-api-key';
+export {
+  createModelCapabilities,
+  createModelCapabilitiesEndpoint,
+  declareModelProviderOptions,
+  type ModelCapabilityEndpoint,
+} from './model-capabilities';
 export { loadOptionalSetting } from './load-optional-setting';
 export { loadSetting } from './load-setting';
 export {

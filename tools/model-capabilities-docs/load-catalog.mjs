@@ -3,16 +3,17 @@ import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 
 // Shared metadata is loaded from source, without evaluating provider clients or
-// requiring built packages. Only these pure catalog modules may cross packages.
-const sharedCatalogs = new Map(
-  ['openai', 'anthropic', 'google'].map(provider => [
+// requiring built packages. Only these pure metadata modules may cross packages.
+const sharedCatalogs = new Map([
+  ...['openai', 'anthropic', 'google'].map(provider => [
     `@ai-sdk/${provider}/internal`,
     new URL(
       `../../packages/${provider}/src/${provider}-model-catalog.ts`,
       import.meta.url,
     ),
   ]),
-);
+  ['@ai-sdk/provider-utils', new URL('../../packages/provider-utils/src/model-capabilities.ts', import.meta.url)],
+]);
 
 export async function loadCatalog(entryUrl) {
   const compiled = new Map();

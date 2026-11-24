@@ -31,6 +31,7 @@ import {
 import { MDXImage } from '@/components/docs/mdx-image';
 import { ButtonLink, GithubLink } from '@/components/docs/misc';
 import { Note } from '@/components/docs/note';
+import { ModelCapabilitiesPreview } from '@/components/docs/model-capabilities-preview';
 import { PropertiesTable } from '@/components/docs/properties-table';
 import { PreviewSwitchProviders } from '@/components/docs/provider-preview';
 import { resolveDocsHref } from '@/components/docs/resolve-href';
@@ -63,6 +64,7 @@ export const getMdxComponents = ({
       <CodeTemplate {...props} versionPrefix={versionPrefix} />
     ),
     Note,
+    ModelCapabilitiesPreview,
     Check,
     Cross,
     InstallPackages,
