@@ -1,5 +1,14 @@
 # @ai-sdk/google
 
+## 4.0.126
+
+### Patch Changes
+
+- 1145cd5: refactor(google): declare language model capabilities per model ID in the model catalog
+- 6e2e4ff: fix(google): remove the file processing early access model IDs from the model ID suggestions
+
+  File slicing works with the regular Gemini 3 and Gemini 4 model IDs, such as `gemini-4-hydrogen`. Other model IDs can still be passed as strings.
+
 ## 4.0.125
 
 ### Patch Changes

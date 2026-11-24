@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 4.0.108
+
+### Patch Changes
+
+- ad5f2ad: refactor(anthropic): declare language model capabilities per model ID in the model catalog
+
 ## 4.0.107
 
 ### Patch Changes

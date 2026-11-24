@@ -1,5 +1,14 @@
 # @ai-sdk/harness
 
+## 1.0.193
+
+### Patch Changes
+
+- 7fffff9: fix(harness): stream a host tool call that throws as a `tool-error` instead of a successful `tool-result` whose output is the error
+- 3334b4d: fix(harness): stop the sandbox channel heartbeat from terminating a connection that is still receiving data, which trapped large bridge events on slow links in a reconnect-and-replay loop
+- d84bf24: fix(harness-claude-code): stop the recorded bridge before respawning on a failed attach
+  - ai@7.0.181
+
 ## 1.0.192
 
 ### Patch Changes

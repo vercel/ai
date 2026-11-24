@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.123
+
+### Patch Changes
+
+- c3ee424: refactor(openai): declare language model capabilities per model ID in the model catalog
+
 ## 4.0.122
 
 ### Patch Changes
