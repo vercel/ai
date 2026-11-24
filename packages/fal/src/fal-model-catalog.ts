@@ -60,6 +60,10 @@ export const falProviderOptions = {
       description:
         'Number of speakers in the audio file. Defaults to null. If not provided, the number of speakers will be automatically detected.',
     },
+    pollTimeoutMs: {
+      description:
+        'Maximum polling time in milliseconds; overrides the provider setting.',
+    },
   } satisfies Record<
     keyof FalTranscriptionModelOptions,
     ProviderOptionDefinition

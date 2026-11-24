@@ -28,6 +28,7 @@ import type { FalTranscriptionModelId } from './fal-transcription-options';
 import type { FalTranscriptionAPITypes } from './fal-api-types';
 
 interface FalTranscriptionModelConfig extends FalConfig {
+  pollTimeoutMs?: number;
   _internal?: {
     currentDate?: () => Date;
   };
@@ -97,6 +98,7 @@ export class FalTranscriptionModel implements TranscriptionModelV4 {
     return {
       body,
       warnings,
+      pollTimeoutMs: falOptions?.pollTimeoutMs ?? undefined,
     };
   }
 
@@ -104,7 +106,7 @@ export class FalTranscriptionModel implements TranscriptionModelV4 {
     options: Parameters<TranscriptionModelV4['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { body, warnings } = await this.getArgs(options);
+    const { body, warnings, pollTimeoutMs } = await this.getArgs(options);
 
     const base64Audio =
       typeof options.audio === 'string'
@@ -133,10 +135,10 @@ export class FalTranscriptionModel implements TranscriptionModelV4 {
       fetch: this.config.fetch,
     });
 
-    // Poll for completion with timeout
     const startTime = Date.now();
-    const timeoutMs = 60000; // 60 seconds timeout
-    const pollIntervalMs = 1000; // 1 second interval
+    const timeoutMs =
+      pollTimeoutMs ?? this.config.pollTimeoutMs ?? DEFAULT_POLL_TIMEOUT_MS;
+    const pollIntervalMs = 1000;
 
     let response;
     let responseHeaders;
@@ -208,7 +210,7 @@ export class FalTranscriptionModel implements TranscriptionModelV4 {
       // Check if we've exceeded the timeout
       if (Date.now() - startTime > timeoutMs) {
         throw new AISDKError({
-          message: 'Transcription request timed out after 60 seconds',
+          message: `Transcription request timed out after ${timeoutMs} ms`,
           name: 'TranscriptionRequestTimedOut',
           cause: response,
         });
@@ -238,6 +240,8 @@ export class FalTranscriptionModel implements TranscriptionModelV4 {
     };
   }
 }
+
+const DEFAULT_POLL_TIMEOUT_MS = 60000;
 
 const falJobResponseSchema = lazySchema(() =>
   zodSchema(
