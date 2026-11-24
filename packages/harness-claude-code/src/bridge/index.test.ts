@@ -1,6 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { z } from 'zod/v4';
-import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -2315,6 +2322,140 @@ describe('Claude Code bridge configuration', () => {
       },
     });
   });
+
+  test.each(['assistant-first', 'handler-first'] as const)(
+    'issue 25309: completes identical parent calls after a subagent (%s)',
+    async order => {
+      const fixture = JSON.parse(
+        await readFile(
+          new URL('./__fixtures__/issue-25309-live.json', import.meta.url),
+          'utf8',
+        ),
+      ) as {
+        messages: Array<{
+          type: string;
+          parent_tool_use_id?: string;
+          message: {
+            content: Array<{
+              type: string;
+              id?: string;
+              name?: string;
+              input?: Record<string, unknown>;
+            }>;
+          };
+        }>;
+        hostResult: Record<string, unknown>;
+      };
+      const [agent, subagent, subagentResult, agentResult, parent] =
+        fixture.messages;
+      const subagentId = subagent.message.content[0].id!;
+      const parentId = parent.message.content[0].id!;
+      state.start = {
+        ...state.start,
+        tools: [
+          {
+            name: 'list_people',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+      };
+
+      // A host can only answer tool calls that the real bridge forwards.
+      // Release unanswered requests solely to clean up after measuring the hang.
+      const pending = new Map<string, () => void>();
+      state.requestToolResult = async id => {
+        const toolCallId = id as unknown as string;
+        const forwarded = state.emitted.some(
+          event =>
+            event.type === 'tool-call' && event.toolCallId === toolCallId,
+        );
+        if (!forwarded) {
+          await new Promise<void>(resolve => pending.set(toolCallId, resolve));
+        }
+        return { output: fixture.hostResult };
+      };
+      const outcomes: Array<{
+        id: string;
+        forwarded: boolean;
+        returned: boolean;
+      }> = [];
+      async function call(id: string) {
+        const handler = state.toolHandlers.get('list_people')!;
+        let returned = false;
+        const result = handler(
+          {},
+          { requestId: id, _meta: { 'claudecode/toolUseId': id } },
+        ).then(() => {
+          returned = true;
+        });
+        return {
+          result,
+          async measure() {
+            let timer: ReturnType<typeof setTimeout> | undefined;
+            await Promise.race([
+              result,
+              new Promise<void>(resolve => {
+                timer = setTimeout(resolve, 50);
+              }),
+            ]);
+            clearTimeout(timer);
+            outcomes.push({
+              id,
+              forwarded: state.emitted.some(
+                event => event.type === 'tool-call' && event.toolCallId === id,
+              ),
+              returned,
+            });
+            pending.get(id)?.();
+            await result;
+          },
+        };
+      }
+      state.createQuery = () =>
+        (async function* () {
+          yield agent;
+          yield subagent;
+          await (await call(subagentId)).measure();
+          yield subagentResult;
+          yield agentResult;
+          // The second repeat checks the report's "only the first" qualification.
+          for (const id of [parentId, `${parentId}-next`]) {
+            const message = {
+              ...parent,
+              message: {
+                ...parent.message,
+                content: [{ ...parent.message.content[0], id }],
+              },
+            };
+            if (order === 'assistant-first') yield message;
+            const invocation = await call(id);
+            if (order === 'handler-first') {
+              await invocation.result;
+              yield message;
+            }
+            await invocation.measure();
+          }
+          yield { type: 'result', subtype: 'success', result: 'done' };
+        })();
+
+      await import('./index');
+
+      expect(outcomes[0]).toEqual({
+        id: subagentId,
+        forwarded: true,
+        returned: true,
+      });
+      expect(outcomes[2]).toEqual({
+        id: `${parentId}-next`,
+        forwarded: true,
+        returned: true,
+      });
+      expect(
+        outcomes[1],
+        'ISSUE_25309: parent directory call must reach the host and return',
+      ).toEqual({ id: parentId, forwarded: true, returned: true });
+    },
+  );
 
   test('preserves root and nested open-object fields in host tool calls', async () => {
     state.start = {
