@@ -612,6 +612,28 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should upload base64 audio as binary data', async () => {
+    prepareJsonResponse();
+
+    let uploadBody: unknown;
+    const provider = createAssemblyAI({
+      apiKey: 'test-api-key',
+      fetch: async (input, init) => {
+        if (String(input).endsWith('/v2/upload')) {
+          uploadBody = init?.body;
+        }
+        return fetch(input, init);
+      },
+    });
+
+    await provider.transcription('assemblyai-stt-3-7').doGenerate({
+      audio: audioData.toString('base64'),
+      mediaType: 'audio/mpeg',
+    });
+
+    expect(uploadBody).toStrictEqual(new Uint8Array(audioData));
+  });
+
   it('should pass headers', async () => {
     prepareJsonResponse();
 

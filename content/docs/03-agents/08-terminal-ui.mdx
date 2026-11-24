@@ -157,6 +157,16 @@ const agent = new ToolLoopAgent({
 await runAgentTUI({ title: 'Weather Agent', agent });
 ```
 
+Tool calls are decided one at a time, in the order the agent requested them.
+While the terminal UI waits for a decision, the tool call that the decision
+applies to is marked with `approve? y/n` and shown with its input, regardless of
+the `tools` display mode. When the input does not fit on the screen, you can
+only approve after you have scrolled to the end of the input.
+
+Tool sections show tool input and output as they are, without markdown
+formatting. Invisible Unicode format characters, such as bidirectional controls
+and zero-width characters, are shown as escapes like `\u{202e}`.
+
 ## Compatibility
 
 When using the `agent` option, the agent must be runnable directly from terminal

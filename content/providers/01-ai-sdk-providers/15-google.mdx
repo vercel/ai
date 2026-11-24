@@ -354,7 +354,7 @@ console.log(text);
 console.log(reasoning); // Reasoning summary
 ```
 
-For `gemini-4-hydrogen` (including `gemini-4-hydrogen-eap`), use
+For `gemini-4-hydrogen`, use
 `reasoning: 'xhigh'` or `thinkingConfig: { thinkingLevel: 'xhigh' }` for maximum
 reasoning depth. Hydrogen defaults to `high` when the thinking level is unset.
 Following the November 11, 2026 update, `xhigh` matches the previous `high`,
@@ -1869,6 +1869,231 @@ const turn2 = await generateText({
   },
 });
 ```
+
+### File slicing
+
+Gemini can load only the part of a file that a prompt needs. File slicing
+supports PDF, Word (`.docx`, `.dotx`, `.doc`), PowerPoint (`.pptx`, `.ppt`),
+Excel (`.xlsx`, `.xls`), OpenDocument (`.odt`, `.odp`, `.ods`), audio, and
+video. You can select pages, spreadsheet cells, or time ranges and choose which
+content layers Gemini receives. Google slices the file on the server and
+counts and bills only the tokens of the selected slice.
+
+File slicing works with Gemini 3 and Gemini 4 models, such as
+`gemini-4-hydrogen`. Older models, such as Gemini 2.5, ignore the options and
+process the whole file.
+
+Pass `GoogleInteractionsFileOptions` under `providerOptions.google` on each
+file part. For example, to inspect pages 3 through 7:
+
+```ts
+import { google, type GoogleInteractionsFileOptions } from '@ai-sdk/google';
+import { generateText } from 'ai';
+import { readFileSync } from 'node:fs';
+
+const result = await generateText({
+  model: google.interactions('gemini-4-hydrogen'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'file',
+          data: readFileSync('quarterly-report.pdf'),
+          mediaType: 'application/pdf',
+          providerOptions: {
+            google: {
+              resolution: 'high',
+              processing: {
+                type: 'static',
+                pageOptions: {
+                  startPage: 3,
+                  endPage: 7,
+                  contentLayers: ['page_image', 'page_text'],
+                },
+              },
+            } satisfies GoogleInteractionsFileOptions,
+          },
+        },
+        {
+          type: 'text',
+          text: 'Summarize the revenue chart and footnotes on these pages.',
+        },
+      ],
+    },
+  ],
+});
+```
+
+File parts accept inline bytes, base64 data, uploaded Files API URLs, and
+provider references returned by `uploadFile`. Use the full media type for
+Office files, such as
+`application/vnd.openxmlformats-officedocument.wordprocessingml.document`
+for Word or
+`application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` for Excel.
+
+Google's file limits apply to the whole file, even when you select a slice:
+50 MB per file, 1,000 pages per PDF, 2,000 pages or slides per Office or
+OpenDocument file, and 50,000 cells per sheet. See Google's
+[document processing guide](https://ai.google.dev/gemini-api/docs/document-processing#technical-details)
+for details.
+
+The Interactions options are:
+
+- **resolution**: `'low' | 'medium' | 'high'`. Overrides the
+  call-level `mediaResolution` for this file. Page images use approximately
+  280, 560, or 1,120 tokens per page and default to `'medium'`.
+- **processing**: `'agentic'`, `'static'`, or a static configuration object.
+  Static selection objects require `type: 'static'`.
+- **processing.pageOptions**: `startPage`, `endPage`, and `contentLayers`
+  (`'page_text'`, `'page_image'`, or both). Page numbers are 1-based and
+  inclusive. `startPage` defaults to the first page and `endPage` to the last
+  page. Office page numbers follow the document's rendered layout;
+  PowerPoint pages correspond to slides. Rendering Office pages as images
+  takes longer than extracting text. Start with text, then render selected
+  pages when needed.
+- **processing.spreadsheetOptions**: `sheetIndex` (1-based workbook order),
+  `visibleCells` (an A1 cell or range such as `'B5'` or `'A1:C5'`), and `contentLayers`
+  (`'data'`, `'formulas'`, `'visual'`). Omit `sheetIndex` to include every
+  sheet. Supply one options object per file part. To read some but not all
+  sheets, repeat the file part with a different `sheetIndex`. The visual layer
+  renders the selected `visibleCells` region, including charts and formatting.
+  Row-only ranges such as `'1:10'` are not supported.
+- **processing.startOffset / endOffset**: audio/video offsets in seconds.
+  The provider converts numbers to API duration strings; for example,
+  `startOffset: 60` becomes `start_offset: '60s'`.
+- **processing.fps**: video sampling rate, greater than 0 and at most 24.
+- **processing.contentLayers**: video layers (`'frames'`, `'audio'`,
+  `'transcript'`).
+
+For example, an Excel selection can use:
+
+```ts
+const spreadsheetOptions = {
+  processing: {
+    type: 'static',
+    spreadsheetOptions: {
+      sheetIndex: 3,
+      visibleCells: 'A1:C5',
+      contentLayers: ['data', 'formulas'],
+    },
+  },
+} satisfies GoogleInteractionsFileOptions;
+```
+
+#### Default file selection
+
+Without slicing options, PDFs include all pages as images and text. Gemini 4
+models receive Word, PowerPoint, and OpenDocument documents as page images.
+Gemini 3 models receive DOCX, DOTX, ODT, and PPTX files as extracted text, and
+DOC, PPT, and ODP files as page images. Specifying document processing options
+without content layers defaults to page images. To keep token usage low, skim
+large documents as text first and render selected pages when visual details
+matter.
+
+Spreadsheets without slicing options include every sheet. Gemini 4 models
+receive data, formulas, and sheet names, while Gemini 3 models receive only
+the values of XLSX and XLS files. Specifying spreadsheet options defaults to
+every sheet, all cells, and data plus formulas. `visibleCells` accepts a single
+cell or an A1 range and also crops the visual layer. Page and sheet indices are
+1-based; page bounds are inclusive. An end page beyond the document is clamped,
+while a start page beyond it produces an empty selection. A sheet index beyond
+the workbook is rejected. Video defaults to frames and audio at one frame per
+second.
+
+#### GenerateContent slicing options
+
+For `google('gemini-4-hydrogen')`, pass
+`GoogleFilePartOptions` on the file part instead. GenerateContent uses
+metadata objects and uppercase content-layer names:
+
+| File selection    | GenerateContent option | Fields                                                                                                    |
+| ----------------- | ---------------------- | --------------------------------------------------------------------------------------------------------- |
+| Document pages    | `documentMetadata`     | `startPage`, `endPage`, `contentLayers: ['PAGE_TEXT', 'PAGE_IMAGE']`                                      |
+| Spreadsheet cells | `spreadsheetMetadata`  | `sheetIndex`, `visibleCells`, `contentLayers: ['DATA', 'FORMULAS', 'VISUAL']`                             |
+| Audio clip        | `audioMetadata`        | `startOffset`, `endOffset` as duration strings                                                            |
+| Video clip        | `videoMetadata`        | `startOffset`, `endOffset` as duration strings, `fps`, `contentLayers: ['FRAMES', 'AUDIO', 'TRANSCRIPT']` |
+
+Set `mediaResolution: { level: 'MEDIA_RESOLUTION_HIGH' }` on the same file
+options object to control document, spreadsheet, or video rendering. File
+parts accept `MEDIA_RESOLUTION_LOW`, `MEDIA_RESOLUTION_MEDIUM`, and
+`MEDIA_RESOLUTION_HIGH`; documents do not support ultra-high resolution.
+
+```ts
+import { type GoogleFilePartOptions } from '@ai-sdk/google';
+
+const googleFileOptions = {
+  documentMetadata: {
+    startPage: 3,
+    endPage: 7,
+    contentLayers: ['PAGE_TEXT'],
+  },
+} satisfies GoogleFilePartOptions;
+```
+
+Use `googleFileOptions` as the file part's `providerOptions.google`. These
+options also apply when using `streamText`.
+
+The GenerateContent slicing options require the `v1beta` API, which the
+Google provider uses by default. A custom `v1` base URL rejects them.
+
+#### Return file selections from tools
+
+Use slicing options on individual file parts in a tool's `toModelOutput`
+content, so the model can decide which pages, cells, or clips to load. Gemini
+also receives the file's page count and worksheet names, so it can request
+other ranges in later steps. The provider sends GenerateContent selections
+inside `functionResponse.parts`.
+
+For Interactions, the provider sends each tool result as a top-level
+`function_result` input block, with files inside `function_result.result`.
+This preserves each file's association with its tool call and its slicing
+options.
+
+For Interactions, a tool can return:
+
+```ts
+import { google, type GoogleInteractionsFileOptions } from '@ai-sdk/google';
+import { generateText, isStepCount, tool } from 'ai';
+import { readFileSync } from 'node:fs';
+import { z } from 'zod/v4';
+
+const result = await generateText({
+  model: google.interactions('gemini-4-hydrogen'),
+  prompt: 'Use viewFile to inspect pages 3 through 7 and summarize them.',
+  stopWhen: isStepCount(5),
+  tools: {
+    viewFile: tool({
+      description: 'Read an inclusive page range of the quarterly report.',
+      inputSchema: z.object({
+        startPage: z.number().int().positive(),
+        endPage: z.number().int().positive(),
+      }),
+      execute: async input => input,
+      toModelOutput: ({ output }) => ({
+        type: 'content',
+        value: [
+          {
+            type: 'file',
+            data: { type: 'data', data: readFileSync('quarterly-report.pdf') },
+            mediaType: 'application/pdf',
+            providerOptions: {
+              google: {
+                processing: { type: 'static', pageOptions: output },
+              } satisfies GoogleInteractionsFileOptions,
+            },
+          },
+        ],
+      }),
+    }),
+  },
+});
+```
+
+With GenerateContent, use `documentMetadata: output` in the returned file's
+Google options and select the model with `google(...)`. Uploaded file
+references can be reused across tool calls to avoid sending the file bytes
+each time.
 
 ### Agentic video understanding
 

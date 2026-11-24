@@ -15,10 +15,12 @@ import {
   type SharedV4FileData,
 } from '@ai-sdk/provider';
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
+import type { LogWarningsFunction } from '../logger/log-warnings';
 import { asLanguageModelV3 } from './as-language-model-v3';
 
 export function asLanguageModelV4(
   model: LanguageModelV2 | LanguageModelV3 | LanguageModelV4,
+  onWarning?: LogWarningsFunction,
 ): LanguageModelV4 {
   if (model.specificationVersion === 'v4') {
     return model;
@@ -26,7 +28,9 @@ export function asLanguageModelV4(
 
   // first convert v2 to v3, then proxy v3 as v4:
   const v3Model =
-    model.specificationVersion === 'v2' ? asLanguageModelV3(model) : model;
+    model.specificationVersion === 'v2'
+      ? asLanguageModelV3(model, onWarning)
+      : model;
 
   return new Proxy(v3Model, {
     get(target, prop: keyof LanguageModelV3) {

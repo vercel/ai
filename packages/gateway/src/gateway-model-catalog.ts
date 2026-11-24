@@ -361,7 +361,6 @@ export const gatewayModelIds = {
     'google/gemini-decision-1',
     'heygen/heygen-decision-1',
     'heygen/heygen-decision-1-turbo',
-    'liquid/d1',
     'liquid/d1-ultra',
     'liquid/d1.2',
     'liquid/d1.2-ultra',

@@ -540,8 +540,19 @@ export class SandboxChannel<
       unansweredPings = 0;
     };
     ws.on('pong', onPong);
+    // Pongs queue behind a large frame that is still transferring on a slow
+    // link, so inbound bytes also count as a sign of life. Terminating a
+    // progressing transfer would only make the bridge replay the same frame.
+    const bytesRead = () =>
+      (ws as { _socket?: { bytesRead?: number } })._socket?.bytesRead ?? 0;
+    let lastBytesRead = bytesRead();
     const timer = setInterval(() => {
       if (ws.readyState !== ws.OPEN) return;
+      const currentBytesRead = bytesRead();
+      if (currentBytesRead !== lastBytesRead) {
+        lastBytesRead = currentBytesRead;
+        unansweredPings = 0;
+      }
       if (unansweredPings >= 2) {
         onTimeout();
         return;

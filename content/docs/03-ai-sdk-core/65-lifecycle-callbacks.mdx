@@ -962,6 +962,12 @@ Called once when the full generation completes.
       description: 'Unified reason why the final step finished.',
     },
     {
+      name: 'stoppedBy',
+      type: "'model' | 'stop-condition' | 'tool-without-execute' | 'approval' | undefined",
+      description:
+        'Why the loop stopped. Unlike `finishReason`, it describes the whole loop, not the last model call. See [Loop Control](/docs/agents/loop-control#why-the-loop-stopped).',
+    },
+    {
       name: 'usage',
       type: 'LanguageModelUsage',
       description: 'Aggregated token usage across all steps.',

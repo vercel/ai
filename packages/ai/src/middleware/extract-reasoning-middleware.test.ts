@@ -666,6 +666,7 @@ describe('extractReasoningMiddleware', () => {
           {
             "finishReason": "stop",
             "rawFinishReason": "stop",
+            "stoppedBy": "model",
             "totalUsage": {
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
@@ -830,6 +831,7 @@ describe('extractReasoningMiddleware', () => {
           {
             "finishReason": "stop",
             "rawFinishReason": "stop",
+            "stoppedBy": "model",
             "totalUsage": {
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
@@ -971,6 +973,7 @@ describe('extractReasoningMiddleware', () => {
           {
             "finishReason": "stop",
             "rawFinishReason": "stop",
+            "stoppedBy": "model",
             "totalUsage": {
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
@@ -1129,6 +1132,7 @@ describe('extractReasoningMiddleware', () => {
           {
             "finishReason": "stop",
             "rawFinishReason": "stop",
+            "stoppedBy": "model",
             "totalUsage": {
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
@@ -1238,6 +1242,7 @@ describe('extractReasoningMiddleware', () => {
           {
             "finishReason": "stop",
             "rawFinishReason": "stop",
+            "stoppedBy": "model",
             "totalUsage": {
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
@@ -1361,6 +1366,7 @@ describe('extractReasoningMiddleware', () => {
           {
             "finishReason": "stop",
             "rawFinishReason": "stop",
+            "stoppedBy": "model",
             "totalUsage": {
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
