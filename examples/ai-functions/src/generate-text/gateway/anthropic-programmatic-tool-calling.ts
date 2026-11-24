@@ -52,6 +52,8 @@ run(async () => {
   const result = await generateText({
     model,
     maxOutputTokens: 2048,
+    // needed to log the container sent on each step
+    include: { requestBody: true },
     stopWhen: isStepCount(5),
     prompt:
       'Write code that calls get_price for A, B and C and adds them up. Reply with only the total.',
