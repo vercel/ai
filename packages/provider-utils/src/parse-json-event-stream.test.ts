@@ -104,6 +104,39 @@ describe('parseJsonEventStream', () => {
   });
 
   it.each([
+    { maxEventSize: 15, expected: 'parse the event' },
+    { maxEventSize: 14, expected: 'fail' },
+  ])(
+    'should $expected when the maximum event size is $maxEventSize and 15 characters are buffered',
+    async ({ maxEventSize }) => {
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          // the first chunk is an incomplete event with 15 characters:
+          controller.enqueue(encoder.encode('data: {"value":'));
+          controller.enqueue(encoder.encode('"a"}\n\n'));
+          controller.close();
+        },
+      });
+
+      const reader = parseJsonEventStream({
+        stream,
+        schema: z.object({ value: z.string() }),
+        maxEventSize,
+      }).getReader();
+
+      if (maxEventSize === 15) {
+        await expect(reader.read()).resolves.toMatchObject({
+          value: { success: true, value: { value: 'a' } },
+        });
+      } else {
+        await expect(reader.read()).rejects.toMatchObject({
+          type: 'max-buffer-size-exceeded',
+        });
+      }
+    },
+  );
+
+  it.each([
     {
       name: 'a line that never ends',
       first: 'data: ',

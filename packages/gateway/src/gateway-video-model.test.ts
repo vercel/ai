@@ -246,6 +246,42 @@ describe('GatewayVideoModel', () => {
       expect(result.videos).toEqual(mockVideos);
     });
 
+    it('should return base64 videos that are larger than the default maximum event size', async () => {
+      // a result event of about 65 MiB that arrives in several chunks:
+      const dataChunk = 'A'.repeat(1024 * 1024);
+      const dataChunkCount = 65;
+      server.urls['https://api.test.com/video-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          'data: {"type":"result","videos":[{"type":"base64","mediaType":"video/mp4","data":"',
+          ...Array.from({ length: dataChunkCount }, () => dataChunk),
+          '"}]}\n\n',
+        ],
+      };
+
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
+        n: 1,
+        aspectRatio: undefined,
+        resolution: undefined,
+        duration: undefined,
+        fps: undefined,
+        seed: undefined,
+        generateAudio: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.videos).toHaveLength(1);
+      const [video] = result.videos;
+      expect(video.type).toBe('base64');
+      expect(video.type === 'base64' && video.data.length).toBe(
+        dataChunkCount * dataChunk.length,
+      );
+    });
+
     it('should return URL-type videos correctly', async () => {
       const mockVideos: VideoData[] = [
         {

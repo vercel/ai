@@ -6,32 +6,36 @@ import { safeParseJSON, type ParseResult } from './parse-json';
 import type { FlexibleSchema } from './schema';
 
 /**
- * Maximum number of characters that are buffered for a single event: 64 MiB.
+ * Default maximum size of a single event in characters: 64 MiB.
  *
  * An event is buffered until it is complete, so a stream that never completes
  * an event would grow the buffer until the process runs out of memory. With
  * this limit, such a stream fails with an error that can be handled instead.
  */
-const MAX_EVENT_SIZE = 64 * 1024 * 1024;
+const DEFAULT_MAX_EVENT_SIZE = 64 * 1024 * 1024;
 
 /**
  * Parses a JSON event stream into a stream of parsed JSON objects.
- *
- * The returned stream fails with an error when a single event is larger than
- * 64 MiB.
  */
 export function parseJsonEventStream<T>({
   stream,
   schema,
+  maxEventSize = DEFAULT_MAX_EVENT_SIZE,
 }: {
   stream: ReadableStream<Uint8Array>;
   schema: FlexibleSchema<T>;
+
+  /**
+   * Maximum size of a single event in characters. The returned stream fails
+   * with an error when an event is larger. Defaults to 64 MiB.
+   */
+  maxEventSize?: number;
 }): ReadableStream<ParseResult<T>> {
   return stream
     .pipeThrough(
       new TextDecoderStream() as ReadableWritablePair<string, Uint8Array>,
     )
-    .pipeThrough(new EventSourceParserStream({ maxBufferSize: MAX_EVENT_SIZE }))
+    .pipeThrough(new EventSourceParserStream({ maxBufferSize: maxEventSize }))
     .pipeThrough(
       new TransformStream<EventSourceMessage, ParseResult<T>>({
         async transform({ data }, controller) {
