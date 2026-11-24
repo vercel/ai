@@ -1032,4 +1032,34 @@ console.log(text);`,
     websiteUrl: 'https://upstash.com',
     npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
   },
+    {
+    slug: 'ktemia',
+    name: 'Ktemia',
+    description:
+      "Search and compare live flights, hotels, and rental cars across 100+ travel providers. Looks up airport codes and location ids, reads hotel reviews, and returns each provider's booking link, so an agent can answer real trip questions with current prices.",
+    packageName: '@ktemia/ai-sdk',
+    tags: ['travel', 'flights', 'hotels', 'car-rental', 'search'],
+    apiKeyEnvName: 'KTEMIA_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @ktemia/ai-sdk',
+      npm: 'npm install @ktemia/ai-sdk',
+      yarn: 'yarn add @ktemia/ai-sdk',
+      bun: 'bun add @ktemia/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { ktemiaTools } from '@ktemia/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Find the cheapest flight from Los Angeles to London on March 14.',
+  tools: ktemiaTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://www.ktemia.com/docs/vercel-ai-sdk/',
+    apiKeyUrl: 'https://app.ktemia.com/api-keys',
+    websiteUrl: 'https://www.ktemia.com',
+    npmUrl: 'https://www.npmjs.com/package/@ktemia/ai-sdk',
+  },
 ];
