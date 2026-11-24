@@ -5,7 +5,7 @@ description: Learn how to use Membase long-term memory with the AI SDK.
 
 # Membase
 
-[Membase](https://membase.com) is a long-term memory layer for AI agents: one memory that belongs to the user and that every AI they use can read and write. The [`@unibaseio/membase-ai-sdk`](https://www.npmjs.com/package/@unibaseio/membase-ai-sdk) package provides three AI SDK tools over the user's Membase account.
+[Membase](https://membase.com) is a long-term memory layer for AI agents: one memory that belongs to the user and that every AI they use can read and write. The [`@membaseai/vercel-ai-sdk`](https://www.npmjs.com/package/@membaseai/vercel-ai-sdk) package provides three AI SDK tools over the user's Membase account.
 
 Features include:
 
@@ -22,14 +22,14 @@ Create a developer key in the [Membase app](https://app.membase.com) under **Con
 
 ## Installation
 
-<InstallPackages packages="@unibaseio/membase-ai-sdk" />
+<InstallPackages packages="@membaseai/vercel-ai-sdk" />
 
 ## Creating Tools
 
 `membaseTools` returns the three tools, sharing one Membase client:
 
 ```ts
-import { membaseTools } from '@unibaseio/membase-ai-sdk';
+import { membaseTools } from '@membaseai/vercel-ai-sdk';
 
 const tools = membaseTools({ apiKey: process.env.MEMBASE_API_KEY });
 ```
@@ -39,7 +39,7 @@ const tools = membaseTools({ apiKey: process.env.MEMBASE_API_KEY });
 ### generateText
 
 ```ts
-import { membaseTools } from '@unibaseio/membase-ai-sdk';
+import { membaseTools } from '@membaseai/vercel-ai-sdk';
 import { generateText, isStepCount } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
@@ -57,7 +57,7 @@ const { text } = await generateText({
 ```ts
 import { ToolLoopAgent } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { membaseTools } from '@unibaseio/membase-ai-sdk';
+import { membaseTools } from '@membaseai/vercel-ai-sdk';
 
 const agent = new ToolLoopAgent({
   model: openai('gpt-6-astra'),
@@ -84,7 +84,7 @@ import {
   toUIMessageStream,
 } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { membaseTools } from '@unibaseio/membase-ai-sdk';
+import { membaseTools } from '@membaseai/vercel-ai-sdk';
 
 export async function POST(req: Request) {
   // The signed-in user, from your auth session (not from the request body).
@@ -118,7 +118,7 @@ export async function POST(req: Request) {
 | `baseUrl`    | `string`  | `https://api.app.membase.com` | The Membase API, or a local engine                                                |
 | `timeoutMs`  | `number`  | `90000`                       | Per-request timeout; the first search after a quiet spell can take up to a minute |
 | `maxRetries` | `number`  | `2`                           | Retries on 408, 409, 429, 5xx and connection errors                               |
-| `client`     | `Membase` | —                             | A ready client from `@unibaseio/membase`, instead of the above                    |
+| `client`     | `Membase` | —                             | A ready client from `@membaseai/membase`, instead of the above                    |
 
 To leave a tool out, destructure it away:
 
@@ -143,7 +143,7 @@ A failed call throws the Membase SDK's error (for example `PermissionDeniedError
 Membase also runs on your machine with the open-source Python engine:
 
 ```bash
-pip install 'unibaseio-membase[local]'
+pip install 'membase-ai[local]'
 membase --local serve
 ```
 
@@ -156,4 +156,4 @@ const tools = membaseTools({
 
 ## More Information
 
-For the full API and the other integrations, see the [Membase documentation](https://docs.membase.com) and the [source on GitHub](https://github.com/unibaseio/membase/tree/main/integrations/ai-sdk).
+For the full API and the other integrations, see the [Membase documentation](https://docs.membase.com) and the [source on GitHub](https://github.com/membaseai/membase/tree/main/integrations/ai-sdk).

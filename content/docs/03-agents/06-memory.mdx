@@ -261,12 +261,12 @@ MongoDB memory works with any AI SDK model and embedding provider, with no vendo
 [Membase](/providers/community-providers/membase) gives agents the user's own long-term memory through three tools: `membase_search`, `membase_save`, and `membase_profile`. Every search result names the Memory it came from, and the model saves only when the user asks. It is hosted, or runs locally with the open-source engine.
 
 ```bash
-pnpm add @unibaseio/membase-ai-sdk
+pnpm add @membaseai/vercel-ai-sdk
 ```
 
 ```ts
 __PROVIDER_IMPORT__;
-import { membaseTools } from '@unibaseio/membase-ai-sdk';
+import { membaseTools } from '@membaseai/vercel-ai-sdk';
 import { ToolLoopAgent } from 'ai';
 
 const agent = new ToolLoopAgent({
