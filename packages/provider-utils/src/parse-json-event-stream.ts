@@ -6,7 +6,7 @@ import { safeParseJSON, type ParseResult } from './parse-json';
 import type { FlexibleSchema } from './schema';
 
 /**
- * Default maximum size of a single event in characters: 64 MiB.
+ * Default maximum size of a single event: 64 * 1024 * 1024 characters.
  *
  * An event is buffered until it is complete, so a stream that never completes
  * an event would grow the buffer until the process runs out of memory. With
@@ -27,7 +27,8 @@ export function parseJsonEventStream<T>({
 
   /**
    * Maximum size of a single event in characters. The returned stream fails
-   * with an error when an event is larger. Defaults to 64 MiB.
+   * with an error when an event is larger. Defaults to 64 * 1024 * 1024
+   * characters.
    */
   maxEventSize?: number;
 }): ReadableStream<ParseResult<T>> {

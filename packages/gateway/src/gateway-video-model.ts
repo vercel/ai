@@ -31,10 +31,10 @@ import { parseAuthMethod } from './errors/parse-auth-method';
 import { withGatewayRequestTelemetryRedaction } from './redact-gateway-request-credentials';
 
 /**
- * Maximum size of the result event in characters: 512 MiB.
+ * Maximum size of the result event: 512 * 1024 * 1024 characters.
  *
  * The result event contains all generated videos, which can be base64 encoded,
- * so it can be much larger than the default maximum event size. 512 MiB is
+ * so it can be much larger than the default maximum event size. The limit is
  * about the maximum length of a string in V8.
  */
 const MAX_RESULT_EVENT_SIZE = 512 * 1024 * 1024;
