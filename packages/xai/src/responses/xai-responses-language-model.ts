@@ -279,11 +279,11 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       }
     }
 
-    const { portable: reasoningCapabilities } =
+    const { portableEfforts } =
       getXaiLanguageModelEntry(modelId).capabilities.language.reasoning;
     let resolvedReasoningEffort = options.reasoningEffort;
     if (resolvedReasoningEffort == null && isCustomReasoning(reasoning)) {
-      if (!reasoningCapabilities.configurable) {
+      if (portableEfforts.length === 0) {
         warnings.push({
           type: 'unsupported',
           feature: 'reasoning',
@@ -292,15 +292,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       } else {
         resolvedReasoningEffort = mapReasoningToProviderEffort({
           reasoning,
-          effortMap: {
-            ...(reasoningCapabilities.none && {
-              none: 'none' as const,
-            }),
-            low: 'low',
-            medium: 'medium',
-            high: 'high',
-            ...(reasoningCapabilities.xhigh && { xhigh: 'xhigh' as const }),
-          },
+          effortMap: Object.fromEntries(
+            portableEfforts.map(effort => [effort, effort]),
+          ),
           warnings,
         });
       }

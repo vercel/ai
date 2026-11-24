@@ -89,12 +89,11 @@ type LanguageCapabilities = NonNullable<ModelCapabilities['language']> & {
   reasoning: {
     support: ModelCapability;
     efforts?: readonly XaiReasoningEffort[];
-    /** Preserve the existing SDK portable-reasoning policy independently of native support. */
-    portable: {
-      configurable: boolean;
-      none: boolean;
-      xhigh: boolean;
-    };
+    /**
+     * Reasoning efforts the SDK sends for portable reasoning. Empty: portable
+     * reasoning is not sent.
+     */
+    portableEfforts: readonly XaiReasoningEffort[];
   };
 };
 type ImageCapabilities = NonNullable<ModelCapabilities['image']> & {
@@ -135,8 +134,12 @@ type XaiModelEntry = ModelEntry<XaiRequestConfig> & {
 
 /**
  * One row of the language model matrix. Every capability that differs between
- * models is its own column, and every listed model fills in every column.
- * Nothing is derived from the model ID or from another column.
+ * models is one flat cell, and every listed model fills in every cell. Nothing
+ * is derived from the model ID.
+ *
+ * Facts that depend on each other share one cell, so a row cannot contradict
+ * itself: a cell is a single value, one of a fixed set of values, or the list
+ * of what the model supports.
  */
 export type XaiLanguageModelRow = {
   /**
@@ -146,16 +149,12 @@ export type XaiLanguageModelRow = {
    */
   documented: boolean;
   image: ModelCapability;
-  /** Native reasoning support. */
-  reasoning: ModelCapability;
-  /** Native reasoning efforts. `undefined` means no exhaustive list. */
-  reasoningEfforts: readonly XaiReasoningEffort[] | undefined;
-  /** The SDK sends portable reasoning as a reasoning effort. */
-  portableReasoningEffort: boolean;
-  /** Portable reasoning `none` is sent as is. */
-  portableReasoningNone: boolean;
-  /** Portable reasoning `xhigh` is sent as is instead of mapping to `high`. */
-  portableReasoningXhigh: boolean;
+  /**
+   * `false`: the model does not reason and rejects a reasoning effort.
+   * Otherwise the model reasons, and the list holds the reasoning efforts it
+   * accepts. An empty list means it reasons, but its effort cannot be set.
+   */
+  reasoningEfforts: false | readonly XaiReasoningEffort[];
 };
 
 /**
@@ -166,151 +165,89 @@ const languageModelDefinitions = {
   'grok-4.7': {
     documented: true,
     image: true,
-    reasoning: true,
     reasoningEfforts: ['low', 'medium', 'high', 'xhigh'],
-    portableReasoningEffort: true,
-    portableReasoningNone: false,
-    portableReasoningXhigh: false,
   },
   'grok-4.6': {
     documented: true,
     image: true,
-    reasoning: true,
     reasoningEfforts: ['low', 'medium', 'high', 'xhigh'],
-    portableReasoningEffort: true,
-    portableReasoningNone: false,
-    portableReasoningXhigh: true,
   },
   'grok-4.5': {
     documented: true,
     image: true,
-    reasoning: true,
-    reasoningEfforts: ['low', 'medium', 'high'],
-    portableReasoningEffort: true,
-    portableReasoningNone: false,
-    portableReasoningXhigh: false,
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh'],
   },
   'grok-4.20-reasoning': {
     documented: true,
     image: true,
-    reasoning: true,
-    reasoningEfforts: undefined,
-    portableReasoningEffort: false,
-    portableReasoningNone: true,
-    portableReasoningXhigh: false,
+    reasoningEfforts: [],
   },
   'grok-4.20-non-reasoning': {
     documented: true,
     image: true,
-    reasoning: false,
-    reasoningEfforts: undefined,
-    portableReasoningEffort: false,
-    portableReasoningNone: true,
-    portableReasoningXhigh: false,
+    reasoningEfforts: false,
   },
   'grok-4-1-fast-reasoning': {
     documented: true,
     image: true,
-    reasoning: true,
-    reasoningEfforts: undefined,
-    portableReasoningEffort: true,
-    portableReasoningNone: true,
-    portableReasoningXhigh: false,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
   },
   'grok-4-1-fast-non-reasoning': {
     documented: true,
     image: true,
-    reasoning: false,
-    reasoningEfforts: undefined,
-    portableReasoningEffort: true,
-    portableReasoningNone: true,
-    portableReasoningXhigh: false,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
   },
   'grok-4-1': {
     documented: true,
     image: false,
-    reasoning: false,
-    reasoningEfforts: undefined,
-    portableReasoningEffort: true,
-    portableReasoningNone: true,
-    portableReasoningXhigh: false,
+    reasoningEfforts: ['none', 'low', 'medium', 'high'],
   },
   'grok-4-fast-reasoning': {
     documented: true,
     image: true,
-    reasoning: true,
-    reasoningEfforts: undefined,
-    portableReasoningEffort: true,
-    portableReasoningNone: true,
-    portableReasoningXhigh: false,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
   },
   'grok-4-fast-non-reasoning': {
     documented: true,
     image: true,
-    reasoning: false,
-    reasoningEfforts: undefined,
-    portableReasoningEffort: true,
-    portableReasoningNone: true,
-    portableReasoningXhigh: false,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
   },
   'grok-code-fast-1': {
     documented: true,
     image: false,
-    reasoning: true,
-    reasoningEfforts: undefined,
-    portableReasoningEffort: true,
-    portableReasoningNone: true,
-    portableReasoningXhigh: false,
+    reasoningEfforts: ['none', 'low', 'medium', 'high'],
   },
   'grok-4': {
     documented: true,
-    image: false,
-    reasoning: true,
-    reasoningEfforts: undefined,
-    portableReasoningEffort: true,
-    portableReasoningNone: true,
-    portableReasoningXhigh: false,
+    image: true,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
   },
   'grok-3': {
     documented: true,
-    image: false,
-    reasoning: false,
-    reasoningEfforts: undefined,
-    portableReasoningEffort: true,
-    portableReasoningNone: true,
-    portableReasoningXhigh: false,
+    image: true,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
   },
   'grok-3-mini': {
     documented: true,
-    image: false,
-    reasoning: true,
-    reasoningEfforts: undefined,
-    portableReasoningEffort: true,
-    portableReasoningNone: true,
-    portableReasoningXhigh: false,
+    image: true,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
   },
   'grok-4.3': {
     documented: false,
     image: 'unknown',
-    reasoning: 'unknown',
-    reasoningEfforts: undefined,
-    portableReasoningEffort: true,
-    portableReasoningNone: true,
-    portableReasoningXhigh: false,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
   },
   'grok-latest': {
     documented: false,
     image: 'unknown',
-    reasoning: 'unknown',
-    reasoningEfforts: undefined,
-    portableReasoningEffort: true,
-    portableReasoningNone: true,
-    portableReasoningXhigh: false,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
   },
 } satisfies Record<string, XaiLanguageModelRow>;
 
 function createLanguageModelEntry(row: XaiLanguageModelRow) {
   const documentedSupport: ModelCapability = row.documented ? true : 'unknown';
+  const reasoningEfforts =
+    row.reasoningEfforts === false ? [] : row.reasoningEfforts;
   const language: LanguageCapabilities = {
     inputs: { image: row.image, audio: 'unknown' },
     objectGeneration: documentedSupport,
@@ -319,13 +256,9 @@ function createLanguageModelEntry(row: XaiLanguageModelRow) {
       streaming: documentedSupport,
     },
     reasoning: {
-      support: row.reasoning,
-      efforts: row.reasoningEfforts,
-      portable: {
-        configurable: row.portableReasoningEffort,
-        none: row.portableReasoningNone,
-        xhigh: row.portableReasoningXhigh,
-      },
+      support: row.reasoningEfforts === false ? false : documentedSupport,
+      efforts: reasoningEfforts.length > 0 ? reasoningEfforts : undefined,
+      portableEfforts: reasoningEfforts,
     },
     sampling: { temperature: 'unknown', topP: 'unknown', logprobs: 'unknown' },
   };
@@ -336,9 +269,8 @@ function createLanguageModelEntry(row: XaiLanguageModelRow) {
         xaiProviderOptions.language,
         documentedSupport,
         {
-          reasoningEffort: row.portableReasoningEffort
-            ? documentedSupport
-            : false,
+          reasoningEffort:
+            reasoningEfforts.length > 0 ? documentedSupport : false,
           reasoningSummary: false,
         },
       ),
@@ -372,13 +304,11 @@ function getUnlistedModelRow(modelId: string): XaiLanguageModelRow {
   return {
     documented: false,
     image: 'unknown',
-    reasoning: 'unknown',
-    reasoningEfforts: undefined,
-    portableReasoningEffort:
-      !unlistedModelsWithoutReasoningEffort.test(modelId),
-    portableReasoningNone:
-      !unlistedModelsWithoutNoneReasoningEffort.test(modelId),
-    portableReasoningXhigh: false,
+    reasoningEfforts: unlistedModelsWithoutReasoningEffort.test(modelId)
+      ? []
+      : unlistedModelsWithoutNoneReasoningEffort.test(modelId)
+        ? ['low', 'medium', 'high']
+        : ['none', 'low', 'medium', 'high'],
   };
 }
 
