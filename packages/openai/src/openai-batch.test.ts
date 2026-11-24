@@ -315,6 +315,30 @@ describe('OpenAI batch service', () => {
     });
   });
 
+  it.each([3600, 2_592_000])(
+    'accepts outputFileExpiresAfter %s',
+    async outputFileExpiresAfter => {
+      prepareCreateResponse();
+      const batch = createOpenAI({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
+
+      await batch.doStartBatch({
+        requests: [
+          { id: 'france', ...request('What is the capital of France?') },
+        ],
+        providerOptions: { openai: { outputFileExpiresAfter } },
+      });
+
+      expect(await server.calls[1].requestBodyJson).toMatchObject({
+        output_expires_after: {
+          anchor: 'created_at',
+          seconds: outputFileExpiresAfter,
+        },
+      });
+    },
+  );
+
   it.each([3599, 2_592_001, 3600.5])(
     'rejects outputFileExpiresAfter %s before uploading the batch input file',
     async outputFileExpiresAfter => {
