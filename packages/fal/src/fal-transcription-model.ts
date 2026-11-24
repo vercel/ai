@@ -14,6 +14,7 @@ import {
   delay,
   encodePathSegment,
   getFromApi,
+  isAbortError,
   parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
@@ -135,89 +136,100 @@ export class FalTranscriptionModel implements TranscriptionModelV4 {
       fetch: this.config.fetch,
     });
 
-    const startTime = Date.now();
     const timeoutMs =
       pollTimeoutMs ?? this.config.pollTimeoutMs ?? DEFAULT_POLL_TIMEOUT_MS;
     const pollIntervalMs = 1000;
+    const timeoutController = new AbortController();
+    const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs);
+    const pollingAbortSignal =
+      options.abortSignal == null
+        ? timeoutController.signal
+        : AbortSignal.any([options.abortSignal, timeoutController.signal]);
 
     let response;
     let responseHeaders;
     let rawResponse;
 
-    while (true) {
-      try {
-        const {
-          value: statusResponse,
-          responseHeaders: statusHeaders,
-          rawValue: statusRawResponse,
-        } = await getFromApi({
-          url: this.config.url({
-            path: `https://queue.fal.run/fal-ai/${this.modelId}/requests/${encodePathSegment(queueResponse.request_id ?? '')}`,
-            modelId: this.modelId,
-          }),
-          validateUrl: false,
-          headers: combineHeaders(
-            await resolve(this.config.headers),
-            options.headers,
-          ),
-          failedResponseHandler: async ({
-            requestBodyValues,
-            response,
-            url,
-          }) => {
-            const clone = response.clone();
-            const body = (await clone.json()) as { detail: string };
+    try {
+      while (true) {
+        try {
+          const {
+            value: statusResponse,
+            responseHeaders: statusHeaders,
+            rawValue: statusRawResponse,
+          } = await getFromApi({
+            url: this.config.url({
+              path: `https://queue.fal.run/fal-ai/${this.modelId}/requests/${encodePathSegment(queueResponse.request_id ?? '')}`,
+              modelId: this.modelId,
+            }),
+            validateUrl: false,
+            headers: combineHeaders(
+              await resolve(this.config.headers),
+              options.headers,
+            ),
+            failedResponseHandler: async ({
+              requestBodyValues,
+              response,
+              url,
+            }) => {
+              const clone = response.clone();
+              const body = (await clone.json()) as { detail: string };
 
-            if (body.detail === 'Request is still in progress') {
-              // This is not an error, just a status update that the request is still processing
-              // Continue polling by returning a special error that signals to continue
-              return {
-                value: new Error('Request is still in progress'),
-                rawValue: body,
-                responseHeaders: {},
-              };
-            }
+              if (body.detail === 'Request is still in progress') {
+                // This is not an error, just a status update that the request is still processing
+                // Continue polling by returning a special error that signals to continue
+                return {
+                  value: new Error('Request is still in progress'),
+                  rawValue: body,
+                  responseHeaders: {},
+                };
+              }
 
-            return createJsonErrorResponseHandler({
-              errorSchema: falErrorDataSchema,
-              errorToMessage: data => data.error.message,
-            })({ requestBodyValues, response, url });
-          },
-          successfulResponseHandler: createJsonResponseHandler(
-            falTranscriptionResponseSchema,
-          ),
-          abortSignal: options.abortSignal,
-          fetch: this.config.fetch,
-        });
+              return createJsonErrorResponseHandler({
+                errorSchema: falErrorDataSchema,
+                errorToMessage: data => data.error.message,
+              })({ requestBodyValues, response, url });
+            },
+            successfulResponseHandler: createJsonResponseHandler(
+              falTranscriptionResponseSchema,
+            ),
+            abortSignal: pollingAbortSignal,
+            fetch: this.config.fetch,
+          });
 
-        response = statusResponse;
-        responseHeaders = statusHeaders;
-        rawResponse = statusRawResponse;
-        break;
-      } catch (error) {
-        // If the error message indicates the request is still in progress, ignore it and continue polling
-        if (
-          error instanceof Error &&
-          error.message === 'Request is still in progress'
-        ) {
-          // Continue with the polling loop
-        } else {
-          // Re-throw any other errors
-          throw error;
+          response = statusResponse;
+          responseHeaders = statusHeaders;
+          rawResponse = statusRawResponse;
+          break;
+        } catch (error) {
+          // If the error message indicates the request is still in progress, ignore it and continue polling
+          if (
+            error instanceof Error &&
+            error.message === 'Request is still in progress'
+          ) {
+            // Continue with the polling loop
+          } else {
+            // Re-throw any other errors
+            throw error;
+          }
         }
-      }
 
-      // Check if we've exceeded the timeout
-      if (Date.now() - startTime > timeoutMs) {
+        await delay(pollIntervalMs, { abortSignal: pollingAbortSignal });
+      }
+    } catch (error) {
+      options.abortSignal?.throwIfAborted();
+
+      if (timeoutController.signal.aborted && isAbortError(error)) {
         throw new AISDKError({
           message: `Transcription request timed out after ${timeoutMs} ms`,
           name: 'TranscriptionRequestTimedOut',
-          cause: response,
+          cause: error,
         });
       }
 
-      // Wait before polling again
-      await delay(pollIntervalMs);
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
     }
 
     return {

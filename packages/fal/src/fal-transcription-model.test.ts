@@ -1,4 +1,5 @@
 import { InvalidArgumentError } from '@ai-sdk/provider';
+import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createFal } from './fal-provider';
 import { FalTranscriptionModel } from './fal-transcription-model';
@@ -197,88 +198,68 @@ describe('doGenerate', () => {
     it('throws TranscriptionRequestTimedOut after the configured pollTimeoutMs', async () => {
       prepareJsonFixtureResponse();
 
-      let now = 0;
-      const dateNow = vi.spyOn(Date, 'now').mockImplementation(() => now);
       let pollCount = 0;
-
       prepareInProgressResponse(() => {
         pollCount++;
-        now += 100000;
       });
 
-      try {
-        const shortTimeoutProvider = createFal({
-          apiKey: 'test-api-key',
-          pollTimeoutMs: 20,
-        });
+      const shortTimeoutProvider = createFal({
+        apiKey: 'test-api-key',
+        pollTimeoutMs: 20,
+      });
 
-        await expect(
-          shortTimeoutProvider.transcription('wizper').doGenerate({
-            audio: audioData,
-            mediaType: 'audio/wav',
-          }),
-        ).rejects.toMatchObject({
-          name: 'TranscriptionRequestTimedOut',
-          message: 'Transcription request timed out after 20 ms',
-        });
+      await expect(
+        shortTimeoutProvider.transcription('wizper').doGenerate({
+          audio: audioData,
+          mediaType: 'audio/wav',
+        }),
+      ).rejects.toMatchObject({
+        name: 'TranscriptionRequestTimedOut',
+        message: 'Transcription request timed out after 20 ms',
+      });
 
-        expect(pollCount).toBe(1);
-      } finally {
-        dateNow.mockRestore();
-      }
+      expect(pollCount).toBe(1);
     });
 
     it('resolves pollTimeoutMs from providerOptions.fal before provider settings', async () => {
       prepareJsonFixtureResponse();
 
-      let now = 0;
-      const dateNow = vi.spyOn(Date, 'now').mockImplementation(() => now);
       let pollCount = 0;
-
       prepareInProgressResponse(() => {
         pollCount++;
-        now += 100000;
       });
 
-      try {
-        const longTimeoutProvider = createFal({
-          apiKey: 'test-api-key',
-          pollTimeoutMs: 600000,
-        });
+      const longTimeoutProvider = createFal({
+        apiKey: 'test-api-key',
+        pollTimeoutMs: 600000,
+      });
 
-        await expect(
-          longTimeoutProvider.transcription('wizper').doGenerate({
-            audio: audioData,
-            mediaType: 'audio/wav',
-            providerOptions: {
-              fal: {
-                pollTimeoutMs: 20,
-              },
+      await expect(
+        longTimeoutProvider.transcription('wizper').doGenerate({
+          audio: audioData,
+          mediaType: 'audio/wav',
+          providerOptions: {
+            fal: {
+              pollTimeoutMs: 20,
             },
-          }),
-        ).rejects.toMatchObject({
-          name: 'TranscriptionRequestTimedOut',
-          message: 'Transcription request timed out after 20 ms',
-        });
+          },
+        }),
+      ).rejects.toMatchObject({
+        name: 'TranscriptionRequestTimedOut',
+        message: 'Transcription request timed out after 20 ms',
+      });
 
-        expect(pollCount).toBe(1);
-      } finally {
-        dateNow.mockRestore();
-      }
+      expect(pollCount).toBe(1);
     });
 
     it('keeps polling within a raised pollTimeoutMs', async () => {
       prepareJsonFixtureResponse();
 
-      let now = 0;
-      const dateNow = vi.spyOn(Date, 'now').mockImplementation(() => now);
       let pollCount = 0;
-
       server.urls[
         'https://queue.fal.run/fal-ai/wizper/requests/test-id'
       ].response = () => {
         pollCount++;
-        now += 100000;
         return pollCount < 2
           ? {
               type: 'error',
@@ -298,43 +279,110 @@ describe('doGenerate', () => {
             };
       };
 
-      try {
-        const longTimeoutProvider = createFal({
-          apiKey: 'test-api-key',
-          pollTimeoutMs: 600000,
-        });
+      const longTimeoutProvider = createFal({
+        apiKey: 'test-api-key',
+        pollTimeoutMs: 600000,
+      });
 
-        const result = await longTimeoutProvider
-          .transcription('wizper')
-          .doGenerate({ audio: audioData, mediaType: 'audio/wav' });
+      const result = await longTimeoutProvider
+        .transcription('wizper')
+        .doGenerate({ audio: audioData, mediaType: 'audio/wav' });
 
-        expect(pollCount).toBe(2);
-        expect(result.text).toBeTruthy();
-      } finally {
-        dateNow.mockRestore();
-      }
+      expect(pollCount).toBe(2);
+      expect(result.text).toBeTruthy();
     });
 
     it('uses the 60000 ms default when no override is configured', async () => {
       prepareJsonFixtureResponse();
-
-      let now = 0;
-      const dateNow = vi.spyOn(Date, 'now').mockImplementation(() => now);
-
-      prepareInProgressResponse(() => {
-        now += 100000;
-      });
+      prepareInProgressResponse(() => {});
+      vi.useFakeTimers({ shouldAdvanceTime: true });
 
       try {
-        await expect(
-          model.doGenerate({ audio: audioData, mediaType: 'audio/wav' }),
-        ).rejects.toMatchObject({
+        const result = model.doGenerate({
+          audio: audioData,
+          mediaType: 'audio/wav',
+        });
+        const assertion = expect(result).rejects.toMatchObject({
           name: 'TranscriptionRequestTimedOut',
           message: 'Transcription request timed out after 60000 ms',
         });
+
+        await vi.advanceTimersByTimeAsync(59000);
+        expect(vi.getTimerCount()).toBeGreaterThan(0);
+        await vi.advanceTimersByTimeAsync(1000);
+        await assertion;
       } finally {
-        dateNow.mockRestore();
+        vi.useRealTimers();
       }
+    });
+
+    describe('when a poll request stalls', () => {
+      function createStallingFal(
+        settings: Parameters<typeof createFal>[0] = {},
+      ) {
+        const pollSignals: (AbortSignal | null | undefined)[] = [];
+        const fetch: FetchFunction = async (input, init) => {
+          const url = input instanceof Request ? input.url : input.toString();
+
+          if (url === 'https://queue.fal.run/fal-ai/wizper') {
+            return new Response(JSON.stringify({ request_id: 'test-id' }), {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            });
+          }
+
+          const signal = init?.signal;
+          pollSignals.push(signal);
+          return new Promise<Response>((_resolve, reject) => {
+            signal?.addEventListener('abort', () => reject(signal.reason), {
+              once: true,
+            });
+          });
+        };
+
+        return {
+          pollSignals,
+          provider: createFal({ apiKey: 'test-api-key', fetch, ...settings }),
+        };
+      }
+
+      it('aborts the pending poll once pollTimeoutMs elapses', async () => {
+        const { provider, pollSignals } = createStallingFal({
+          pollTimeoutMs: 25,
+        });
+
+        await expect(
+          provider.transcription('wizper').doGenerate({
+            audio: audioData,
+            mediaType: 'audio/wav',
+          }),
+        ).rejects.toMatchObject({
+          name: 'TranscriptionRequestTimedOut',
+          message: 'Transcription request timed out after 25 ms',
+        });
+
+        expect(pollSignals).toHaveLength(1);
+        expect(pollSignals[0]?.aborted).toBe(true);
+      });
+
+      it('rethrows the caller abort reason instead of a timeout', async () => {
+        const { provider, pollSignals } = createStallingFal({
+          pollTimeoutMs: 600000,
+        });
+        const controller = new AbortController();
+        const reason = new Error('caller cancelled');
+
+        const result = provider.transcription('wizper').doGenerate({
+          audio: audioData,
+          mediaType: 'audio/wav',
+          abortSignal: controller.signal,
+        });
+        await vi.waitFor(() => expect(pollSignals).toHaveLength(1));
+        controller.abort(reason);
+
+        await expect(result).rejects.toBe(reason);
+        expect(pollSignals[0]?.aborted).toBe(true);
+      });
     });
 
     it('does not send pollTimeoutMs to the fal.ai API', async () => {
