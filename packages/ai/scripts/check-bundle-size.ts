@@ -12,7 +12,11 @@ import { join } from 'path';
 // Bounded validation of malformed UI messages adds ~1.5 KiB.
 // The experimental extract API adds ~5 KiB.
 // The bundled Gateway extraction client adds ~4 KiB.
-const LIMIT = 659 * 1024;
+// Steering interrupts add ~3 KiB.
+// Extraction telemetry adds ~2.5 KiB.
+// The bundled Gateway Live model and continuous client-secret sessions add ~6 KiB.
+// Per-call warning callbacks and prompt warnings in step warnings add ~1 KiB.
+const LIMIT = 675 * 1024;
 
 interface BundleResult {
   size: number;
@@ -63,7 +67,7 @@ async function bundleForNode(
       entry === 'tool'
         ? 8 * 1024
         : entry === 'generateText'
-          ? 300 * 1024
+          ? 310 * 1024
           : LIMIT,
   };
 }
@@ -111,7 +115,7 @@ async function bundleForBrowser(
       entry === 'tool'
         ? 8 * 1024
         : entry === 'generateText'
-          ? 292 * 1024
+          ? 298 * 1024
           : LIMIT,
   };
 }

@@ -1085,6 +1085,7 @@ The following Zod features are known to not work with Google Vertex:
 | `gemini-4-argon`                 | <Check />   | <Check />         | <Check />  | <Check />      |
 | `gemini-4-carbon`                | <Check />   | <Check />         | <Check />  | <Check />      |
 | `gemini-4-hydrogen`              | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-4-neon`                  | <Check />   | <Check />         | <Check />  | <Check />      |
 | `gemini-3.8-flash`               | <Check />   | <Check />         | <Check />  | <Check />      |
 | `gemini-3.7-flash`               | <Check />   | <Check />         | <Check />  | <Check />      |
 | `gemini-3.6-flash`               | <Check />   | <Check />         | <Check />  | <Check />      |
@@ -1492,6 +1493,40 @@ compatibility, `result.segments` continues to contain the same word timings.
 Gemini does not provide separate caption segments and warns if `'segment'` is
 requested. These shared timing controls currently apply to Gemini transcription;
 Chirp and telephony use their provider settings below.
+
+`gemini-3.5-transcribe-live` transcribes live audio with
+[`experimental_streamTranscribe`](/docs/ai-sdk-core/transcription#streaming-transcription)
+over the Vertex Live API. It authenticates with an `Authorization` header, which
+native WebSockets cannot send, so pass a header-capable implementation such as
+the `ws` package:
+
+```ts
+import {
+  createVertex,
+  type GoogleVertexProviderSettings,
+} from '@ai-sdk/google-vertex';
+import { experimental_streamTranscribe as streamTranscribe } from 'ai';
+import { WebSocket } from 'ws';
+
+const vertex = createVertex({
+  // `ws`'s WebSocket type differs from the DOM-style WebSocketConstructor.
+  webSocket: WebSocket as unknown as GoogleVertexProviderSettings['webSocket'],
+});
+
+const result = streamTranscribe({
+  model: vertex.transcription('gemini-3.5-transcribe-live'),
+  audio, // ReadableStream of 16kHz 16-bit mono PCM chunks
+  inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+});
+```
+
+By default, server-side voice activity detection splits the audio into segments
+at pauses, and each segment is emitted as a `transcript-final` part. For
+push-to-talk input, set
+`providerOptions.googleVertex.streaming.automaticActivityDetection.disabled` to
+`true`: the whole audio stream is then transcribed as a single turn without
+splitting at pauses, and the transcript is finalized as soon as the audio input
+closes.
 
 #### Speech-to-Text transcription
 
@@ -2589,6 +2624,7 @@ The following option definitions are generated from the provider catalog.
 | transcription | `wordTimestamp`               | Include Gemini word timestamps.                       |
 | transcription | `diarization`                 | Enable Gemini speaker diarization.                    |
 | transcription | `mode`                        | Verbatim or smart Gemini transcription formatting.    |
+| transcription | `streaming`                   | Live Gemini voice activity detection.                 |
 | video         | `pollIntervalMs`              | Polling interval.                                     |
 | video         | `pollTimeoutMs`               | Polling timeout.                                      |
 | video         | `personGeneration`            | Policy for generating people.                         |

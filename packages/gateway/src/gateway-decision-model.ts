@@ -20,6 +20,7 @@ import { parseAuthMethod } from './errors/parse-auth-method';
 import type { GatewayConfig } from './gateway-config';
 import { gatewayDecisionProviderOptionsSchema } from './gateway-provider-options';
 import { gatewayWarningSchema } from './gateway-warning-schema';
+import { withGatewayRequestTelemetryRedaction } from './redact-gateway-request-credentials';
 import { toGatewayStateParts } from './to-gateway-state-parts';
 
 export class GatewayDecisionModel implements DecisionModelV4 {
@@ -81,7 +82,7 @@ export class GatewayDecisionModel implements DecisionModelV4 {
           this.getModelConfigHeaders(),
           await resolve(this.config.o11yHeaders),
         ),
-        body: {
+        body: withGatewayRequestTelemetryRedaction({
           stateParts,
           questions,
           maxOutputTokens,
@@ -89,7 +90,7 @@ export class GatewayDecisionModel implements DecisionModelV4 {
           ...(validatedProviderOptions
             ? { providerOptions: validatedProviderOptions }
             : {}),
-        },
+        }),
         successfulResponseHandler: createJsonResponseHandler(
           gatewayDecisionResponseSchema,
         ),

@@ -17,6 +17,7 @@ import { z } from './zod';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import type { GatewayConfig } from './gateway-config';
+import { withGatewayRequestTelemetryRedaction } from './redact-gateway-request-credentials';
 
 export class GatewayRerankingModel implements RerankingModelV4 {
   readonly specificationVersion = 'v4';
@@ -59,12 +60,12 @@ export class GatewayRerankingModel implements RerankingModelV4 {
           this.getModelConfigHeaders(),
           await resolve(this.config.o11yHeaders),
         ),
-        body: {
+        body: withGatewayRequestTelemetryRedaction({
           documents,
           query,
           ...(topN != null ? { topN } : {}),
           ...(providerOptions ? { providerOptions } : {}),
-        },
+        }),
         successfulResponseHandler: createJsonResponseHandler(
           gatewayRerankingResponseSchema,
         ),

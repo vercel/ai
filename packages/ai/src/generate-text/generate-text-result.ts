@@ -24,6 +24,7 @@ import type {
   StaticToolResult,
   TypedToolResult,
 } from './tool-result';
+import type { StoppedBy } from './stopped-by';
 
 /**
  * The result of a `generateText` call.
@@ -111,6 +112,14 @@ export interface GenerateTextResult<
    * The raw reason why the generation finished (from the provider).
    */
   readonly rawFinishReason: string | undefined;
+
+  /**
+   * Why the generation stopped its tool loop. Unlike `finishReason`, which
+   * describes the last model call, it tells whether the model, a stop
+   * condition, a tool without an `execute` function, or a tool approval ended
+   * the loop. `generateText` and `ToolLoopAgent` always set it.
+   */
+  readonly stoppedBy?: StoppedBy;
 
   /**
    * The total token usage of all steps.

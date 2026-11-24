@@ -25,7 +25,8 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError, ToolChoiceViolationError } from '../error';
-import { logWarnings } from '../logger/log-warnings';
+import { createLogWarnings } from '../logger/create-log-warnings';
+import type { LogWarningsFunction } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { cloneModelMessages } from '../prompt/clone-model-message';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
@@ -33,7 +34,7 @@ import type { LanguageModelCallOptions } from '../prompt/language-model-call-opt
 import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
 import { prepareToolChoice } from '../prompt/prepare-tool-choice';
 import { prepareTools } from '../prompt/prepare-tools';
-import type { Prompt } from '../prompt/prompt';
+import type { Instructions, Prompt } from '../prompt/prompt';
 import {
   getChunkTimeoutMs,
   getFirstChunkTimeoutMs,
@@ -47,6 +48,7 @@ import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import type { TelemetryDispatcher } from '../telemetry/telemetry';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import { getGlobalTelemetryIntegrations } from '../telemetry/telemetry-registry';
+import type { TracingChannelContext } from '../telemetry/tracing-channel-publisher';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
 import { toTextStream } from '../text-stream/to-text-stream';
@@ -143,6 +145,11 @@ import {
   type SteeringNotDeliveredReason,
   type SteeringRun,
 } from './steering';
+import {
+  getModelStoppedBy,
+  getPendingToolCallStoppedBy,
+  type StoppedBy,
+} from './stopped-by';
 import {
   isStepCount,
   isStopConditionMet,
@@ -379,6 +386,7 @@ type StreamTextOptions<
  * @param onStepEnd - Callback that is called when each step (LLM call) ends, including intermediate steps.
  * @param onStepError - Callback that is called when a step that started fails before it produces a step result, i.e. when the provider call throws or rejects, or when the model stream ends without output. A provider `error` chunk still ends the step with `onStepEnd`, and an abort or timeout ends it with `onAbort`.
  * @param onStepFinish - Deprecated alias for `onStepEnd`.
+ * @param onWarning - Callback that receives the warnings of the call instead of the global warning logger.
  * @param onEnd - Callback that is called when all steps are finished and the response is complete.
  * @param onFinish - Deprecated alias for `onEnd`.
  *
@@ -506,6 +514,7 @@ function streamTextInternal<
     onStepEnd,
     onStepError,
     onStepFinish,
+    onWarning,
     onStart,
     experimental_onStart,
     onStepStart,
@@ -633,8 +642,9 @@ function streamTextInternal<
 
       /**
        * Secret for HMAC-signing tool approval requests. When set, the server
-       * signs each approval request at issuance and verifies the signature when
+       * signs approval requests at issuance and verifies the signature when
        * the approval is replayed, preventing client-forged approvals.
+       * Approval requests for automatically denied tool calls are not signed.
        */
       experimental_toolApprovalSecret?: string | Uint8Array;
 
@@ -785,6 +795,13 @@ function streamTextInternal<
         NoInfer<RUNTIME_CONTEXT>,
         NoInfer<OUTPUT>
       >;
+
+      /**
+       * Callback that receives the warnings of the call, e.g. unsupported
+       * settings or deprecated prompt parts. When it is set, the warnings are
+       * not sent to the global warning logger (`AI_SDK_LOG_WARNINGS`).
+       */
+      onWarning?: LogWarningsFunction;
 
       /**
        * Callback that is called when each step (LLM call) ends, including intermediate steps.
@@ -955,7 +972,7 @@ function streamTextInternal<
   const resolvedOnStepEnd = onStepEnd ?? onStepFinish;
   return new DefaultStreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
     retention,
-    model: resolveLanguageModel(model),
+    model: resolveLanguageModel(model, onWarning),
     telemetry,
     headers,
     settings,
@@ -1006,6 +1023,7 @@ function streamTextInternal<
     onAbort,
     onStepFinish: resolvedOnStepEnd,
     onStepError,
+    onWarning,
     onStart: resolvedOnStart,
     onStepStart: resolvedOnStepStart,
     onLanguageModelCallStart: resolvedOnLanguageModelCallStart,
@@ -1353,6 +1371,7 @@ class DefaultStreamTextResult<
   private readonly _rawFinishReason = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['rawFinishReason']>
   >();
+  private readonly _stoppedBy = new DelayedPromise<StoppedBy | undefined>();
   private readonly _steps = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps']>
   >();
@@ -1431,6 +1450,7 @@ class DefaultStreamTextResult<
     onAbort,
     onStepFinish,
     onStepError,
+    onWarning,
     onStart,
     onStepStart,
     onLanguageModelCallStart,
@@ -1518,6 +1538,7 @@ class DefaultStreamTextResult<
           NoInfer<RUNTIME_CONTEXT>,
           NoInfer<OUTPUT>
         >;
+    onWarning: undefined | LogWarningsFunction;
     onStart:
       | undefined
       | GenerateTextOnStartCallback<
@@ -1566,13 +1587,17 @@ class DefaultStreamTextResult<
     // needs the updated steps to determine if another step is needed.
     let stepFinish!: DelayedPromise<void>;
 
+    const logCallWarnings = createLogWarnings(onWarning);
+
     let recordedContent: Array<ContentPart<TOOLS>> = [];
     let recordedFinishReason: FinishReason | undefined = undefined;
     let recordedRawFinishReason: string | undefined = undefined;
+    let recordedStoppedBy: StoppedBy | undefined = undefined;
     let recordedTotalUsage: LanguageModelUsage | undefined = undefined;
     let recordedRequest: Omit<LanguageModelRequestMetadata, 'messages'> = {};
     let recordedRequestMessages: Array<ModelMessage> = [];
     let recordedWarnings: Array<CallWarning> = [];
+    let recordedPromptWarnings: Array<CallWarning> = [];
     let recordedSteps: StepResult<TOOLS, RUNTIME_CONTEXT>[] = [];
     const initialResponseMessages: Array<ResponseMessage> = [];
     let stepMessagesForNextStep: Array<ModelMessage> | undefined;
@@ -1893,8 +1918,10 @@ class DefaultStreamTextResult<
             callbacks: [onStepFinish, telemetryDispatcher.onStepEnd],
           });
 
-          logWarnings({
-            warnings: recordedWarnings,
+          logCallWarnings({
+            warnings: recordedWarnings.filter(
+              warning => !recordedPromptWarnings.includes(warning),
+            ),
             provider: currentStepModel.provider,
             model: currentStepModel.modelId,
           });
@@ -1914,6 +1941,7 @@ class DefaultStreamTextResult<
           recordedTotalUsage = part.totalUsage;
           recordedFinishReason = part.finishReason;
           recordedRawFinishReason = part.rawFinishReason;
+          recordedStoppedBy = part.stoppedBy;
         }
       },
 
@@ -1962,6 +1990,7 @@ class DefaultStreamTextResult<
           // from finish:
           self._finishReason.resolve(finishReason);
           self._rawFinishReason.resolve(recordedRawFinishReason);
+          self._stoppedBy.resolve(recordedStoppedBy);
           self._totalUsage.resolve(totalUsage);
 
           // aggregate results:
@@ -2018,6 +2047,7 @@ class DefaultStreamTextResult<
             runtimeContext: finalStep.runtimeContext,
             finishReason: finalStep.finishReason,
             rawFinishReason: finalStep.rawFinishReason,
+            stoppedBy: recordedStoppedBy,
             usage: totalUsage,
             totalUsage,
             content,
@@ -2474,16 +2504,36 @@ class DefaultStreamTextResult<
       async function streamStep({
         currentStep,
         usage,
+        redo,
       }: {
         currentStep: number;
         usage: LanguageModelUsage;
+
+        // A step that a steering interrupt cancelled is made again as the same
+        // step. Its timeout keeps running and its tracing span stays open, so
+        // that the step is not timed or traced twice.
+        redo?: {
+          steeringMessages: Array<UserModelMessage>;
+          deliveredSteeringMessages: Array<UserModelMessage>;
+          stepStart: { notified: boolean; enqueued: boolean };
+          stepTimeoutId: ReturnType<typeof setTimeout> | undefined;
+          stepTracingChannelContext: TracingChannelContext | undefined;
+          stepStartState: {
+            instructions: Instructions | undefined;
+            runtimeContext: RUNTIME_CONTEXT;
+            toolsContext: InferToolSetContext<TOOLS>;
+          };
+        };
       }) {
         // Set up step timeout if configured
-        const stepTimeoutId = setAbortTimeout({
-          abortController: stepAbortController,
-          label: 'Step',
-          timeoutMs: stepTimeoutMs,
-        });
+        const stepTimeoutId =
+          redo != null
+            ? redo.stepTimeoutId
+            : setAbortTimeout({
+                abortController: stepAbortController,
+                label: 'Step',
+                timeoutMs: stepTimeoutMs,
+              });
 
         // The first-content timeout is armed when the provider response stream
         // starts and is cleared by the first semantic output chunk.
@@ -2565,14 +2615,17 @@ class DefaultStreamTextResult<
         });
 
         try {
-          stepFinish = new DelayedPromise<void>();
-
+          if (redo == null) {
+            stepFinish = new DelayedPromise<void>();
+          }
           const stepTracingChannelContext =
-            telemetryDispatcher.startTracingChannelContext?.({
-              type: 'step',
-              event: { callId, stepNumber: currentStep },
-              completion: stepFinish.promise,
-            });
+            redo != null
+              ? redo.stepTracingChannelContext
+              : telemetryDispatcher.startTracingChannelContext?.({
+                  type: 'step',
+                  event: { callId, stepNumber: currentStep },
+                  completion: stepFinish.promise,
+                });
           // Re-enter the current step before creating child spans.
           const runInStepTracingChannelContext = <T>(execute: () => T): T =>
             stepTracingChannelContext?.run(execute) ?? execute();
@@ -2584,7 +2637,22 @@ class DefaultStreamTextResult<
             ...initialResponseMessages,
             ...responseMessagesFromPreviousSteps,
           ];
-          const steeringMessages = steeringRun?.takeMessages() ?? [];
+          const steeringMessages = [
+            ...(redo?.steeringMessages ?? []),
+            ...(steeringRun?.takeMessages() ?? []),
+          ];
+
+          // prepareStep runs again when the step is redone. It must get the
+          // instructions and contexts that the step started with, not the ones
+          // that it returned for the cancelled model call:
+          const stepStartState = redo?.stepStartState ?? {
+            instructions: instructionsForNextStep,
+            runtimeContext,
+            toolsContext,
+          };
+          instructionsForNextStep = stepStartState.instructions;
+          runtimeContext = stepStartState.runtimeContext;
+          toolsContext = stepStartState.toolsContext;
 
           const stepInputMessages = [
             ...(stepMessagesForNextStep ?? [
@@ -2619,6 +2687,7 @@ class DefaultStreamTextResult<
 
           const stepModel = resolveLanguageModel(
             prepareStepResult?.model ?? model,
+            onWarning,
           );
           currentStepModel = stepModel;
 
@@ -2660,8 +2729,16 @@ class DefaultStreamTextResult<
           const stepExecutionTools =
             stepToolChoice.type === 'none' ? undefined : executionTools;
 
+          // The messages array of a step is created for that step.
+          // `prepareStep` can return the same array for several steps or
+          // calls, so its messages are copied. Tool approval functions can
+          // then tell the tool calls of one response from the tool calls of
+          // another response by the array they receive.
           const stepMessages = appendToolCallerMessages({
-            messages: prepareStepResult?.messages ?? stepInputMessages,
+            messages:
+              prepareStepResult?.messages != null
+                ? [...prepareStepResult.messages]
+                : stepInputMessages,
             toolCallerMessages,
           });
           currentStepMessages = stepMessages;
@@ -2673,9 +2750,10 @@ class DefaultStreamTextResult<
               stepNumber: currentStep,
               sentMessages: stepMessages,
             }) ?? [];
-          currentStepSteeringMessages = deliveredSteeringMessages.map(
-            ({ message }) => message,
-          );
+          currentStepSteeringMessages = [
+            ...(redo?.deliveredSteeringMessages ?? []),
+            ...deliveredSteeringMessages.map(({ message }) => message),
+          ];
 
           // delivered steering messages are streamed before the step output:
           if (deliveredSteeringMessages.length > 0) {
@@ -2714,13 +2792,61 @@ class DefaultStreamTextResult<
           const stepStartTimestampMs = now();
 
           const { retry } = prepareRetries({ maxRetries, abortSignal });
-          let hasNotifiedStepStart = false;
+          const stepStart = redo?.stepStart ?? {
+            notified: false,
+            enqueued: false,
+          };
+          const interruptController =
+            steeringRun == null ? undefined : new AbortController();
+          const interruptRequested =
+            interruptController == null
+              ? undefined
+              : new Promise<'interrupted'>(resolve => {
+                  interruptController.signal.addEventListener(
+                    'abort',
+                    () => resolve('interrupted'),
+                    { once: true },
+                  );
+                });
+          const stopWatchingInterrupt =
+            steeringRun?.watchInterrupt(() => interruptController?.abort()) ??
+            (() => {});
+          // A caller abort or a timeout wins over an interrupt: the run ends
+          // instead of making the model call again.
+          const isInterrupted = () =>
+            interruptController?.signal.aborted === true &&
+            abortSignal?.aborted !== true;
+          const modelCallAbortSignal = mergeAbortSignals(
+            abortSignal,
+            interruptController?.signal,
+          );
+          const redoStep = () => {
+            // the redo adds its own listener for the step timeout that it
+            // takes over:
+            abortSignal?.removeEventListener('abort', cleanupStepTimeouts);
+            clearModelOutputTimeouts();
+
+            return streamStep({
+              currentStep,
+              usage,
+              redo: {
+                steeringMessages,
+                deliveredSteeringMessages: currentStepSteeringMessages,
+                stepStart,
+                stepTimeoutId,
+                stepTracingChannelContext,
+                stepStartState,
+              },
+            });
+          };
+          let interruptWindowClosed = false;
+          let attemptInterrupted = false;
 
           const callLanguageModel = () =>
             runInStepTracingChannelContext(() =>
               retry(async () =>
                 streamLanguageModelCall({
-                  model: prepareStepResult?.model ?? model,
+                  model: stepModel,
                   tools: stepModelTools as TOOLS,
                   toolOrder: stepToolOrder,
                   toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
@@ -2729,7 +2855,7 @@ class DefaultStreamTextResult<
                   allowSystemInMessages,
                   repairToolCall,
                   refineToolInput,
-                  abortSignal,
+                  abortSignal: modelCallAbortSignal,
                   headers,
                   includeRawChunks: include.rawChunks,
                   providerOptions: stepProviderOptions,
@@ -2752,11 +2878,17 @@ class DefaultStreamTextResult<
                       | undefined
                       | OnLanguageModelCallEndCallback<TOOLS>,
                   ),
-                  onStart: async ({ promptMessages }) => {
-                    if (hasNotifiedStepStart) {
+                  onStart: async ({ promptMessages, promptWarnings }) => {
+                    recordedPromptWarnings = promptWarnings;
+                    // retries convert the prompt again, log its warnings once per step:
+                    if (!stepStart.notified && promptWarnings.length > 0) {
+                      logCallWarnings({ warnings: promptWarnings });
+                    }
+
+                    if (stepStart.notified) {
                       return;
                     }
-                    hasNotifiedStepStart = true;
+                    stepStart.notified = true;
 
                     const stepStartEvent = {
                       callId,
@@ -2795,7 +2927,19 @@ class DefaultStreamTextResult<
               ),
             );
 
-          const initialLanguageModelCall = await callLanguageModel();
+          let initialLanguageModelCall: Awaited<
+            ReturnType<typeof callLanguageModel>
+          >;
+          try {
+            initialLanguageModelCall = await callLanguageModel();
+          } catch (error) {
+            if (!isInterrupted()) {
+              stopWatchingInterrupt();
+              throw error;
+            }
+            await redoStep();
+            return;
+          }
           let request = initialLanguageModelCall.request;
           let response = initialLanguageModelCall.response;
           let languageModelStreamReader =
@@ -2853,17 +2997,62 @@ class DefaultStreamTextResult<
                 openReasoningParts.clear();
               };
 
+              const interruptAttempt = async () => {
+                await languageModelStreamReader.cancel().catch(() => {});
+                bufferedAttemptParts = [];
+                closeOpenAttemptParts();
+                clearModelOutputTimeouts();
+                attemptInterrupted = true;
+                controller.close();
+              };
+
               while (true) {
-                let result: ReadableStreamReadResult<
-                  LanguageModelStreamPart<TOOLS>
-                >;
+                let result:
+                  | ReadableStreamReadResult<LanguageModelStreamPart<TOOLS>>
+                  | 'interrupted';
                 try {
-                  result = await languageModelStreamReader.read();
+                  if (interruptRequested == null || interruptWindowClosed) {
+                    result = await languageModelStreamReader.read();
+                  } else {
+                    result = await Promise.race([
+                      languageModelStreamReader.read(),
+                      interruptRequested,
+                    ]);
+                  }
                 } catch (error) {
+                  if (!interruptWindowClosed && isInterrupted()) {
+                    await interruptAttempt();
+                    return;
+                  }
+                  stopWatchingInterrupt();
                   clearModelOutputTimeouts();
                   throw error;
                 }
+
+                if (
+                  result === 'interrupted' ||
+                  (!interruptWindowClosed && isInterrupted())
+                ) {
+                  await interruptAttempt();
+                  return;
+                }
+
                 const { done, value } = result;
+
+                // The model call can only be interrupted until it produces
+                // output. A tool input start is not an output chunk, but it
+                // ends the window as well because the UI already shows a
+                // pending tool call for it.
+                if (
+                  !interruptWindowClosed &&
+                  (done ||
+                    value.type === 'model-call-end' ||
+                    value.type === 'tool-input-start' ||
+                    isOutputChunk(value))
+                ) {
+                  interruptWindowClosed = true;
+                  stopWatchingInterrupt();
+                }
 
                 if (enqueueStreamRetryAttemptBoundary) {
                   controller.enqueue(
@@ -2973,6 +3162,10 @@ class DefaultStreamTextResult<
                 try {
                   retryLanguageModelCall = await callLanguageModel();
                 } catch (retryError) {
+                  if (!interruptWindowClosed && isInterrupted()) {
+                    await interruptAttempt();
+                    return;
+                  }
                   controller.enqueue({
                     type: 'error',
                     error: retryError,
@@ -3157,11 +3350,24 @@ class DefaultStreamTextResult<
                     stepFirstChunk = false;
 
                     // Step start:
-                    enqueueStepPart(controller, {
-                      type: 'start-step',
+                    const stepStartMetadata = {
                       request: getStepRequest(),
                       warnings: warnings ?? [],
-                    });
+                    } satisfies StreamRetryBoundaryMetadata;
+                    if (!stepStart.enqueued) {
+                      stepStart.enqueued = true;
+                      enqueueStepPart(controller, {
+                        type: 'start-step',
+                        ...stepStartMetadata,
+                      });
+                    } else {
+                      // The cancelled model call already sent the start-step
+                      // part of this step. The boundary replaces what the step
+                      // recorded for it, e.g. its request and warnings.
+                      controller.enqueue({
+                        [streamRetryBoundarySymbol]: stepStartMetadata,
+                      });
+                    }
                   }
 
                   const chunkType = chunk.type;
@@ -3318,6 +3524,28 @@ class DefaultStreamTextResult<
 
                 // invoke onEnd callback and resolve toolResults promise when the stream is about to close:
                 async flush(controller) {
+                  stopWatchingInterrupt();
+
+                  // starts the stream that follows this one: the redo of the
+                  // step or the next step
+                  const startFollowingStream = async (
+                    start: () => Promise<void>,
+                  ) => {
+                    try {
+                      await runInStreamTextTracingChannelContext(start);
+                    } catch (error) {
+                      steeringRun?.end('error');
+                      enqueueStepPart(controller, { type: 'error', error });
+                      self.closeStream();
+                    }
+                  };
+
+                  // the step is not finished, its model call is made again:
+                  if (attemptInterrupted) {
+                    await startFollowingStream(redoStep);
+                    return;
+                  }
+
                   // emit an error when an incomplete model stream produced no
                   // output instead of recording an empty step. incomplete
                   // streams with partial output retain the partial result:
@@ -3417,6 +3645,7 @@ class DefaultStreamTextResult<
                   // the stream ends:
                   let steeringEndReason: SteeringNotDeliveredReason =
                     'finished';
+                  let stoppedBy: StoppedBy = 'model';
 
                   const shouldStartNextStep = async () => {
                     if (stepFinishReason === 'interrupted') {
@@ -3430,6 +3659,9 @@ class DefaultStreamTextResult<
                         deniedToolApprovalResponses.length
                     ) {
                       steeringEndReason = 'waiting-for-tool-results';
+                      stoppedBy = getPendingToolCallStoppedBy(
+                        recordedSteps[recordedSteps.length - 1],
+                      );
                       return false;
                     }
 
@@ -3448,6 +3680,9 @@ class DefaultStreamTextResult<
                         !steeringRun?.hasPendingMessages() &&
                         (isTruncated || !steeringRun?.promoteQueuedMessage())
                       ) {
+                        stoppedBy = getModelStoppedBy(
+                          recordedSteps[recordedSteps.length - 1],
+                        );
                         return false;
                       }
 
@@ -3466,6 +3701,7 @@ class DefaultStreamTextResult<
                       })
                     ) {
                       steeringEndReason = 'stop-condition';
+                      stoppedBy = 'stop-condition';
                       return false;
                     }
 
@@ -3473,23 +3709,12 @@ class DefaultStreamTextResult<
                   };
 
                   if (await shouldStartNextStep()) {
-                    try {
-                      await runInStreamTextTracingChannelContext(() =>
-                        streamStep({
-                          currentStep: currentStep + 1,
-                          usage: combinedUsage,
-                        }),
-                      );
-                    } catch (error) {
-                      steeringRun?.end('error');
-
-                      enqueueStepPart(controller, {
-                        type: 'error',
-                        error,
-                      });
-
-                      self.closeStream();
-                    }
+                    await startFollowingStream(() =>
+                      streamStep({
+                        currentStep: currentStep + 1,
+                        usage: combinedUsage,
+                      }),
+                    );
                   } else {
                     steeringRun?.end(steeringEndReason);
 
@@ -3497,6 +3722,7 @@ class DefaultStreamTextResult<
                       type: 'finish',
                       finishReason: stepFinishReason,
                       rawFinishReason: stepRawFinishReason,
+                      stoppedBy,
                       totalUsage: combinedUsage,
                     });
 
@@ -3670,6 +3896,14 @@ class DefaultStreamTextResult<
     return this._rawFinishReason.promise;
   }
 
+  get stoppedBy() {
+    // when any of the promises are accessed, the stream is consumed
+    // so it resolves without needing to consume the stream separately
+    if (this.retention.replay) this.consumeStream();
+
+    return this._stoppedBy.promise;
+  }
+
   /**
    * Split out a new stream from the original stream.
    * The original stream is replaced to allow for further splitting,
@@ -3762,6 +3996,7 @@ class DefaultStreamTextResult<
   private rejectResultPromises(error: unknown) {
     this.rejectResultPromise({ delayedPromise: this._finishReason, error });
     this.rejectResultPromise({ delayedPromise: this._rawFinishReason, error });
+    this.rejectResultPromise({ delayedPromise: this._stoppedBy, error });
     this.rejectResultPromise({ delayedPromise: this._totalUsage, error });
     this.rejectResultPromise({ delayedPromise: this._steps, error });
     this.rejectResultPromise({

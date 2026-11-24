@@ -1,5 +1,40 @@
 # @ai-sdk/harness-deepagents
 
+## 1.0.192
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.192
+
+## 1.0.191
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.191
+
+## 1.0.190
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.190
+
+## 1.0.189
+
+### Patch Changes
+
+- 04a8f38: fix(harness): keep silent sandbox bridge connections alive with WebSocket pings and reconnect when a peer stops responding, controllable via `keepAliveMs` option for bridge-backed harness adapters
+- Updated dependencies [1d2c2ff]
+- Updated dependencies [04a8f38]
+  - @ai-sdk/provider-utils@5.0.83
+  - @ai-sdk/harness@1.0.189
+
+## 1.0.188
+
+### Patch Changes
+
+- Updated dependencies [679b5b5]
+  - @ai-sdk/harness@1.0.188
+
 ## 1.0.187
 
 ### Patch Changes

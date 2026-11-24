@@ -1,10 +1,6 @@
-export type GoogleImageModelId =
-  // Gemini image models (technically multimodal output language models, use :generateContent API)
-  | 'gemini-2.5-flash-image'
-  | 'gemini-3-pro-image-preview'
-  | 'gemini-3.1-flash-image-preview'
-  | 'gemini-nano-banana-2.1'
-  | (string & {});
+import type { GoogleModelIds } from './google-model-catalog';
+
+export type GoogleImageModelId = GoogleModelIds['image'] | (string & {});
 
 export interface GoogleImageSettings {
   /**

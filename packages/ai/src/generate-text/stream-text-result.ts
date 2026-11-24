@@ -49,6 +49,7 @@ import type {
   StaticToolResult,
   TypedToolResult,
 } from './tool-result';
+import type { StoppedBy } from './stopped-by';
 
 export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   /**
@@ -265,6 +266,17 @@ export interface StreamTextResult<
    * Automatically consumes the stream.
    */
   readonly rawFinishReason: PromiseLike<string | undefined>;
+
+  /**
+   * Why the generation stopped its tool loop. Unlike `finishReason`, which
+   * describes the last model call, it tells whether the model, a stop
+   * condition, a tool without an `execute` function, or a tool approval ended
+   * the loop. `streamText` and `ToolLoopAgent` always set it. Like
+   * `finishReason`, it rejects when the stream is aborted.
+   *
+   * Automatically consumes the stream.
+   */
+  readonly stoppedBy?: PromiseLike<StoppedBy | undefined>;
 
   /**
    * The total token usage of the generated response.
@@ -618,6 +630,12 @@ export type TextStreamFinishPart = {
   type: 'finish';
   finishReason: FinishReason;
   rawFinishReason: string | undefined;
+
+  /**
+   * Why the generation stopped its tool loop. `streamText` and
+   * `ToolLoopAgent` always set it.
+   */
+  stoppedBy?: StoppedBy;
   totalUsage: LanguageModelUsage;
 };
 

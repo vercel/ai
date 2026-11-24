@@ -665,3 +665,46 @@ describe('useRealtime WebSocket relay configuration', () => {
     expect(FakeWebSocket.instances[0].close).toHaveBeenCalledOnce();
   });
 });
+
+describe('useRealtime continuous client-secret WebSocket', () => {
+  let browser: ReturnType<typeof installLiveWebSocket>;
+  beforeEach(() => {
+    browser = installLiveWebSocket();
+  });
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('connects a continuous model straight to the provider with a minted token', async () => {
+    const base = liveModel();
+    const model = {
+      ...base,
+      capabilities: {
+        ...base.capabilities!,
+        connections: ['client-secret-websocket'] as const,
+      },
+      getWebSocketConfig: ({ token, url }: { token: string; url: string }) => ({
+        url,
+        protocols: ['live.v1', `auth.${token}`],
+      }),
+    };
+    browser.fetch.mockResolvedValueOnce(
+      Response.json({ token: 'vcst_x', url: 'wss://gateway.example/live' }),
+    );
+    const { result } = renderHook(() =>
+      experimental_useRealtime({ model, api: { token: '/api/live-token' } }),
+    );
+    await act(async () => {
+      await result.current.connect({ capture: false });
+      await flushEvents();
+    });
+    const socket = FakeWebSocket.instances.at(-1)!;
+    expect(socket.url).toBe('wss://gateway.example/live');
+    expect(socket.protocols).toEqual(['live.v1', 'auth.vcst_x']);
+    await act(async () => openSession(socket));
+    expect(socket.sent[0]?.type).toBe('session-start');
+    expect(result.current.status).toBe('connected');
+  });
+});

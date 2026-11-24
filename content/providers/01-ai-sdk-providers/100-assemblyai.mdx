@@ -5,7 +5,7 @@ description: Learn how to set up the AssemblyAI provider and check AI Gateway av
 
 # AssemblyAI Provider
 
-The [AssemblyAI](https://assemblyai.com/) provider contains transcription model support for the AssemblyAI transcription API.
+The [AssemblyAI](https://assemblyai.com/) provider contains transcription model support for the AssemblyAI transcription API and speech model support for the AssemblyAI text-to-speech API.
 AssemblyAI models are not currently available through [AI Gateway](https://vercel.com/ai-gateway/models), so the opening example uses `@ai-sdk/assemblyai` directly. See [Using AI Gateway](#using-ai-gateway) below for supported alternatives.
 
 ```ts
@@ -14,7 +14,7 @@ import { assemblyai } from '@ai-sdk/assemblyai';
 import { readFile } from 'node:fs/promises';
 
 const { text } = await transcribe({
-  model: assemblyai.transcription('universal-3-5-pro'),
+  model: assemblyai.transcription('assemblyai-stt-3-7'),
   audio: await readFile('audio.mp3'),
 });
 
@@ -101,22 +101,27 @@ You can use the following optional settings to customize the AssemblyAI provider
 You can create models that call the [AssemblyAI transcription API](https://www.assemblyai.com/docs/getting-started/transcribe-an-audio-file/typescript)
 using the `.transcription()` factory method.
 
-The first argument is the model id, e.g. `universal-3-5-pro`.
+The first argument is the model id, e.g. `assemblyai-stt-3-7`.
 
 ```ts
-const model = assemblyai.transcription('universal-3-5-pro');
+const model = assemblyai.transcription('assemblyai-stt-3-7');
 ```
 
-The `best` model is a **deprecated** legacy model, sent using AssemblyAI's
-deprecated `speech_model` request parameter. It still works, but using it emits a
-deprecation warning — prefer `universal-3-5-pro`. The older `nano` model has been
-removed by AssemblyAI and is no longer available. All newer models are sent using
-the [`speech_models`](https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model)
-request parameter, which the provider selects automatically based on the model id.
+`assemblyai-stt-3-7` is AssemblyAI's latest flagship model for pre-recorded
+audio. `universal-2` is fully supported and remains available for languages
+`assemblyai-stt-3-7` does not support; using it emits an informational warning
+(not a deprecation) suggesting `assemblyai-stt-3-7`.
 
-`universal-3-pro` and `universal-2` are fully supported and continue to work, but
-using them emits an informational warning (not a deprecation) suggesting
-`universal-3-5-pro`, AssemblyAI's latest flagship model.
+AssemblyAI has deprecated `universal-3-5-pro`. It still works, but using it emits
+a deprecation warning — prefer `assemblyai-stt-3-7`. The provider no longer lists
+`universal-3-pro`, which AssemblyAI has deprecated and no longer includes in its
+accepted models.
+
+AssemblyAI no longer accepts the `best`, `slam-1`, and `nano` models: requests
+for them fail with an AssemblyAI error that lists the accepted models. Models are
+sent using the
+[`speech_models`](https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model)
+request parameter.
 
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the `contentSafety` option will enable content safety filtering.
 
@@ -127,7 +132,7 @@ import { type AssemblyAITranscriptionModelOptions } from '@ai-sdk/assemblyai';
 import { readFile } from 'fs/promises';
 
 const result = await transcribe({
-  model: assemblyai.transcription('universal-3-5-pro'),
+  model: assemblyai.transcription('assemblyai-stt-3-7'),
   audio: await readFile('audio.mp3'),
   providerOptions: {
     assemblyai: {
@@ -216,8 +221,8 @@ The following provider options are available:
 - **keytermsPrompt** _array of strings_
 
   Domain-specific keyterms to boost recognition for (max 6 words per phrase).
-  Replaces `wordBoost` for newer models — supported by `universal-3-pro`,
-  `universal-3-5-pro`, and `slam-1` (and `universal-2` when enabled).
+  Replaces `wordBoost` for newer models — supported by `assemblyai-stt-3-7` and
+  `universal-3-5-pro` (and `universal-2` when enabled).
   Optional.
 
 - **languageCode** _string_
@@ -251,7 +256,7 @@ The following provider options are available:
 - **prompt** _string_
 
   Natural-language context (up to 1,500 words) to steer the model.
-  Only supported by `universal-3-pro`, `universal-3-5-pro`, and `slam-1`.
+  Only supported by `assemblyai-stt-3-7` and `universal-3-5-pro`.
   Optional.
 
 - **punctuate** _boolean_
@@ -310,7 +315,7 @@ The following provider options are available:
 
   Remove inline annotations from rich transcripts.
   Allowed values: `'all'` (all annotations), `'speaker'` (speaker cues only).
-  Universal-3 Pro models.
+  AssemblyAI-STT-3.7 and Universal-3 Pro models.
   Optional.
 
 - **sentimentAnalysis** _boolean_
@@ -359,7 +364,7 @@ The following provider options are available:
 - **temperature** _number_
 
   Sampling temperature (0-1) controlling randomness.
-  Universal-3 Pro models.
+  AssemblyAI-STT-3.7 and Universal-3 Pro models.
   Optional.
 
 - **webhookAuthHeaderName** _string_
@@ -380,8 +385,8 @@ The following provider options are available:
 - **wordBoost** _array of strings_
 
   List of words to boost in the transcription.
-  **Deprecated** — rejected by `universal-3-pro`, `universal-3-5-pro`, and `slam-1`
-  (works only on `universal-2`/`best`); use `keytermsPrompt` instead.
+  **Deprecated** — rejected by `assemblyai-stt-3-7` and `universal-3-5-pro`
+  (works only on `universal-2`); use `keytermsPrompt` instead.
   Optional.
 
 ### Speaker diarization and audio-intelligence results
@@ -409,7 +414,7 @@ import { assemblyai } from '@ai-sdk/assemblyai';
 import { readFile } from 'fs/promises';
 
 const result = await transcribe({
-  model: assemblyai.transcription('universal-3-5-pro'),
+  model: assemblyai.transcription('assemblyai-stt-3-7'),
   audio: await readFile('audio.mp3'),
   providerOptions: {
     assemblyai: {
@@ -433,64 +438,166 @@ AssemblyAI's documentation for per-language availability.
 
 {/* model-capabilities:assemblyai-transcription:start */}
 
-| Model               | Transcription | Streaming | Duration  | Segments  | Language  |
-| ------------------- | ------------- | --------- | --------- | --------- | --------- |
-| `universal-2`       | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
-| `universal-3-pro`   | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
-| `universal-3-5-pro` | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
-| `best`              | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
+| Model                | Transcription | Streaming | Duration  | Segments  | Language  |
+| -------------------- | ------------- | --------- | --------- | --------- | --------- |
+| `assemblyai-stt-3-7` | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
+| `universal-2`        | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
+| `universal-3-5-pro`  | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
 
 {/* model-capabilities:assemblyai-transcription:end */}
+
+## Speech Models
+
+You can create models that call the [AssemblyAI text-to-speech API](https://www.assemblyai.com/docs/tts/api-reference/http-api/create-speech)
+using the `.speech()` factory method.
+
+The first argument is the model id, e.g. `assemblyai-tts-1`.
+
+```ts
+import { generateSpeech } from 'ai';
+import { assemblyai } from '@ai-sdk/assemblyai';
+
+const result = await generateSpeech({
+  model: assemblyai.speech('assemblyai-tts-1'),
+  text: 'Hello, world!',
+  voice: 'aai-kyla',
+  language: 'en',
+});
+```
+
+The `voice` option takes an [AssemblyAI voice](https://www.assemblyai.com/docs/tts/voices)
+slug (e.g. `aai-kyla`), a voice ID, or the ID or slug of one of your cloned
+voices. Without a voice, AssemblyAI uses the default voice of the language.
+
+The `language` option takes an ISO 639-1 code for one of the supported
+languages: `en`, `es`, `de`, `it`, `pt`, or `fr`. Without a language,
+the voice speaks its own language.
+
+The `outputFormat` option supports `'mp3'` (default), `'wav'`, `'pcm'`
+(raw 16-bit PCM), `'mulaw'`, and `'alaw'` (raw 8 kHz G.711).
+Text-to-speech requests are buffered, so `generateSpeech` returns the complete
+audio once it is synthesized.
+
+`speed` (other than `1`) and `instructions` are not supported and are ignored
+with a warning.
+
+You can also pass additional provider-specific options using the `providerOptions` argument:
+
+```ts highlight="7-12"
+import { generateSpeech } from 'ai';
+import {
+  assemblyai,
+  type AssemblyAISpeechModelOptions,
+} from '@ai-sdk/assemblyai';
+
+const result = await generateSpeech({
+  model: assemblyai.speech('assemblyai-tts-1'),
+  text: 'Your appointment is confirmed.',
+  providerOptions: {
+    assemblyai: {
+      encoding: 'pcm_s16le',
+      container: 'wav',
+      sampleRate: 16000,
+    } satisfies AssemblyAISpeechModelOptions,
+  },
+});
+```
+
+The following provider options are available:
+
+- **encoding** _enum_
+
+  Audio encoding of the output. Overrides the encoding derived from `outputFormat`.
+  Allowed values: `'pcm_s16le'`, `'pcm_mulaw'`, `'pcm_alaw'`, `'mp3'`.
+  Optional.
+
+- **container** _enum_
+
+  `'raw'` returns the encoded samples alone; `'wav'` wraps them in a WAV file.
+  Requires a `pcm_*` encoding.
+  Optional.
+
+- **sampleRate** _number_
+
+  Sample rate of the output audio in Hz.
+  Allowed values: `8000`, `16000`, `22050`, `24000`, `44100`, `48000`.
+  Optional.
+
+- **bitRate** _number_
+
+  MP3 bit rate in bits per second. MP3 output only.
+  Allowed values: `32000`, `48000`, `64000`, `96000`, `128000`.
+  Optional.
+
+`providerMetadata.assemblyai.billedCharacters` reports the characters AssemblyAI
+billed for the request (the model also reports them as `characters` usage to
+telemetry integrations). `providerMetadata.assemblyai` also includes the
+`requestId`, `model`, `voiceId`, `language`, `encoding`, `sampleRate`, and
+`audioDurationMs` reported by the API.
+
+### Speech Model Capabilities
+
+{/* model-capabilities:assemblyai-speech:start */}
+
+| Model              | Instructions |
+| ------------------ | ------------ |
+| `assemblyai-tts-1` | <Cross />    |
+
+{/* model-capabilities:assemblyai-speech:end */}
 
 ### Provider Option Catalog
 
 {/* model-capabilities:assemblyai-provider-options:start */}
 
-| Operation     | Option                        | Description                                                                                                                                                                                                                                         |
-| ------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| transcription | `audioEndAt`                  | End time of the audio in milliseconds.                                                                                                                                                                                                              |
-| transcription | `audioStartFrom`              | Start time of the audio in milliseconds.                                                                                                                                                                                                            |
-| transcription | `autoChapters`                | Whether to automatically generate chapters for the transcription.                                                                                                                                                                                   |
-| transcription | `autoHighlights`              | Whether to automatically generate highlights for the transcription.                                                                                                                                                                                 |
-| transcription | `boostParam`                  | Boost parameter for word boost (used with `wordBoost`). Allowed values: 'low', 'default', 'high'.                                                                                                                                                   |
-| transcription | `contentSafety`               | Whether to enable content safety filtering.                                                                                                                                                                                                         |
-| transcription | `contentSafetyConfidence`     | Confidence threshold for content safety filtering (25-100).                                                                                                                                                                                         |
-| transcription | `customSpelling`              | Custom spelling rules for the transcription.                                                                                                                                                                                                        |
-| transcription | `disfluencies`                | Whether to include filler words (um, uh, etc.) in the transcription.                                                                                                                                                                                |
-| transcription | `domain`                      | Enable a domain-specific model to improve accuracy for specialized terminology. Currently supports `'medical-v1'` (Medical Mode).                                                                                                                   |
-| transcription | `entityDetection`             | Whether to enable entity detection.                                                                                                                                                                                                                 |
-| transcription | `filterProfanity`             | Whether to filter profanity from the transcription.                                                                                                                                                                                                 |
-| transcription | `formatText`                  | Whether to format text with punctuation and capitalization.                                                                                                                                                                                         |
-| transcription | `iabCategories`               | Whether to enable IAB categories detection.                                                                                                                                                                                                         |
-| transcription | `keytermsPrompt`              | Domain-specific keyterms to boost recognition for (max 6 words per phrase). Replaces `wordBoost` for newer models: supported by `universal-3-pro` / `universal-3-5-pro` and `slam-1` (and `universal-2` when metaphone is enabled for the account). |
-| transcription | `languageCode`                | Language code for the transcription.                                                                                                                                                                                                                |
-| transcription | `languageConfidenceThreshold` | Confidence threshold for language detection.                                                                                                                                                                                                        |
-| transcription | `languageDetection`           | Whether to enable language detection.                                                                                                                                                                                                               |
-| transcription | `languageDetectionOptions`    | Options for automatic language detection.                                                                                                                                                                                                           |
-| transcription | `multichannel`                | Whether to process audio as multichannel.                                                                                                                                                                                                           |
-| transcription | `prompt`                      | Provide natural-language context (up to 1,500 words) to steer the model. Only supported by `universal-3-pro` / `universal-3-5-pro` and `slam-1`.                                                                                                    |
-| transcription | `punctuate`                   | Whether to add punctuation to the transcription.                                                                                                                                                                                                    |
-| transcription | `redactPii`                   | Whether to redact personally identifiable information (PII).                                                                                                                                                                                        |
-| transcription | `redactPiiAudio`              | Whether to redact PII in the audio file.                                                                                                                                                                                                            |
-| transcription | `redactPiiAudioOptions`       | Options for PII-redacted audio files. Requires `redactPiiAudio`.                                                                                                                                                                                    |
-| transcription | `redactPiiAudioQuality`       | Audio format for PII redaction.                                                                                                                                                                                                                     |
-| transcription | `redactPiiPolicies`           | List of PII types to redact.                                                                                                                                                                                                                        |
-| transcription | `redactPiiReturnUnredacted`   | Return the original unredacted transcript alongside the redacted one. Requires `redactPii`.                                                                                                                                                         |
-| transcription | `redactPiiSub`                | Substitution method for redacted PII.                                                                                                                                                                                                               |
-| transcription | `redactStaticEntities`        | Map of user-defined labels to exact terms to redact, e.g. `{ INTERNAL_TOOL: ['Bearclaw'] }`. Applied on top of standard PII redaction using `redactPiiSub`. Requires `redactPii`.                                                                   |
-| transcription | `removeAudioTags`             | Remove inline annotations from rich transcripts. `'all'` removes all inline annotations; `'speaker'` removes only speaker cues. Universal-3 Pro models.                                                                                             |
-| transcription | `sentimentAnalysis`           | Whether to enable sentiment analysis.                                                                                                                                                                                                               |
-| transcription | `speakerLabels`               | Whether to identify different speakers in the audio.                                                                                                                                                                                                |
-| transcription | `speakerOptions`              | Options for speaker diarization, e.g. a range of possible speakers.                                                                                                                                                                                 |
-| transcription | `speakersExpected`            | Number of speakers expected in the audio.                                                                                                                                                                                                           |
-| transcription | `speechThreshold`             | Threshold for speech detection (0-1).                                                                                                                                                                                                               |
-| transcription | `summarization`               | Whether to generate a summary of the transcription.                                                                                                                                                                                                 |
-| transcription | `summaryModel`                | Model to use for summarization.                                                                                                                                                                                                                     |
-| transcription | `summaryType`                 | Type of summary to generate.                                                                                                                                                                                                                        |
-| transcription | `temperature`                 | Sampling temperature (0-1) controlling randomness. Universal-3 Pro models.                                                                                                                                                                          |
-| transcription | `webhookAuthHeaderName`       | Name of the authentication header for webhook requests.                                                                                                                                                                                             |
-| transcription | `webhookAuthHeaderValue`      | Value of the authentication header for webhook requests.                                                                                                                                                                                            |
-| transcription | `webhookUrl`                  | URL to send webhook notifications to.                                                                                                                                                                                                               |
-| transcription | `wordBoost`                   | List of words to boost recognition for.                                                                                                                                                                                                             |
+| Operation     | Option                        | Description                                                                                                                                                                                                                                 |
+| ------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| speech        | `bitRate`                     | MP3 bit rate in bits per second. MP3 output only.                                                                                                                                                                                           |
+| speech        | `container`                   | Output container: `'raw'` for the encoded samples alone or `'wav'` for a WAV file. Requires a `pcm_*` encoding.                                                                                                                             |
+| speech        | `encoding`                    | Audio encoding of the output (`'pcm_s16le'`, `'pcm_mulaw'`, `'pcm_alaw'`, or `'mp3'`). Overrides the encoding derived from `outputFormat`.                                                                                                  |
+| speech        | `sampleRate`                  | Sample rate of the output audio in Hz (8000, 16000, 22050, 24000, 44100, 48000).                                                                                                                                                            |
+| transcription | `audioEndAt`                  | End time of the audio in milliseconds.                                                                                                                                                                                                      |
+| transcription | `audioStartFrom`              | Start time of the audio in milliseconds.                                                                                                                                                                                                    |
+| transcription | `autoChapters`                | Whether to automatically generate chapters for the transcription.                                                                                                                                                                           |
+| transcription | `autoHighlights`              | Whether to automatically generate highlights for the transcription.                                                                                                                                                                         |
+| transcription | `boostParam`                  | Boost parameter for word boost (used with `wordBoost`). Allowed values: 'low', 'default', 'high'.                                                                                                                                           |
+| transcription | `contentSafety`               | Whether to enable content safety filtering.                                                                                                                                                                                                 |
+| transcription | `contentSafetyConfidence`     | Confidence threshold for content safety filtering (25-100).                                                                                                                                                                                 |
+| transcription | `customSpelling`              | Custom spelling rules for the transcription.                                                                                                                                                                                                |
+| transcription | `disfluencies`                | Whether to include filler words (um, uh, etc.) in the transcription.                                                                                                                                                                        |
+| transcription | `domain`                      | Enable a domain-specific model to improve accuracy for specialized terminology. Currently supports `'medical-v1'` (Medical Mode).                                                                                                           |
+| transcription | `entityDetection`             | Whether to enable entity detection.                                                                                                                                                                                                         |
+| transcription | `filterProfanity`             | Whether to filter profanity from the transcription.                                                                                                                                                                                         |
+| transcription | `formatText`                  | Whether to format text with punctuation and capitalization.                                                                                                                                                                                 |
+| transcription | `iabCategories`               | Whether to enable IAB categories detection.                                                                                                                                                                                                 |
+| transcription | `keytermsPrompt`              | Domain-specific keyterms to boost recognition for (max 6 words per phrase). Replaces `wordBoost` for newer models: supported by `assemblyai-stt-3-7` and `universal-3-5-pro` (and `universal-2` when metaphone is enabled for the account). |
+| transcription | `languageCode`                | Language code for the transcription.                                                                                                                                                                                                        |
+| transcription | `languageConfidenceThreshold` | Confidence threshold for language detection.                                                                                                                                                                                                |
+| transcription | `languageDetection`           | Whether to enable language detection.                                                                                                                                                                                                       |
+| transcription | `languageDetectionOptions`    | Options for automatic language detection.                                                                                                                                                                                                   |
+| transcription | `multichannel`                | Whether to process audio as multichannel.                                                                                                                                                                                                   |
+| transcription | `prompt`                      | Provide natural-language context (up to 1,500 words) to steer the model. Only supported by `assemblyai-stt-3-7` and `universal-3-5-pro`.                                                                                                    |
+| transcription | `punctuate`                   | Whether to add punctuation to the transcription.                                                                                                                                                                                            |
+| transcription | `redactPii`                   | Whether to redact personally identifiable information (PII).                                                                                                                                                                                |
+| transcription | `redactPiiAudio`              | Whether to redact PII in the audio file.                                                                                                                                                                                                    |
+| transcription | `redactPiiAudioOptions`       | Options for PII-redacted audio files. Requires `redactPiiAudio`.                                                                                                                                                                            |
+| transcription | `redactPiiAudioQuality`       | Audio format for PII redaction.                                                                                                                                                                                                             |
+| transcription | `redactPiiPolicies`           | List of PII types to redact.                                                                                                                                                                                                                |
+| transcription | `redactPiiReturnUnredacted`   | Return the original unredacted transcript alongside the redacted one. Requires `redactPii`.                                                                                                                                                 |
+| transcription | `redactPiiSub`                | Substitution method for redacted PII.                                                                                                                                                                                                       |
+| transcription | `redactStaticEntities`        | Map of user-defined labels to exact terms to redact, e.g. `{ INTERNAL_TOOL: ['Bearclaw'] }`. Applied on top of standard PII redaction using `redactPiiSub`. Requires `redactPii`.                                                           |
+| transcription | `removeAudioTags`             | Remove inline annotations from rich transcripts. `'all'` removes all inline annotations; `'speaker'` removes only speaker cues. AssemblyAI-STT-3.7 and Universal-3 Pro models.                                                              |
+| transcription | `sentimentAnalysis`           | Whether to enable sentiment analysis.                                                                                                                                                                                                       |
+| transcription | `speakerLabels`               | Whether to identify different speakers in the audio.                                                                                                                                                                                        |
+| transcription | `speakerOptions`              | Options for speaker diarization, e.g. a range of possible speakers.                                                                                                                                                                         |
+| transcription | `speakersExpected`            | Number of speakers expected in the audio.                                                                                                                                                                                                   |
+| transcription | `speechThreshold`             | Threshold for speech detection (0-1).                                                                                                                                                                                                       |
+| transcription | `summarization`               | Whether to generate a summary of the transcription.                                                                                                                                                                                         |
+| transcription | `summaryModel`                | Model to use for summarization.                                                                                                                                                                                                             |
+| transcription | `summaryType`                 | Type of summary to generate.                                                                                                                                                                                                                |
+| transcription | `temperature`                 | Sampling temperature (0-1) controlling randomness. AssemblyAI-STT-3.7 and Universal-3 Pro models.                                                                                                                                           |
+| transcription | `webhookAuthHeaderName`       | Name of the authentication header for webhook requests.                                                                                                                                                                                     |
+| transcription | `webhookAuthHeaderValue`      | Value of the authentication header for webhook requests.                                                                                                                                                                                    |
+| transcription | `webhookUrl`                  | URL to send webhook notifications to.                                                                                                                                                                                                       |
+| transcription | `wordBoost`                   | List of words to boost recognition for.                                                                                                                                                                                                     |
 
 {/* model-capabilities:assemblyai-provider-options:end */}

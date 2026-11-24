@@ -1,5 +1,55 @@
 # @ai-sdk/policy
 
+## 1.0.181
+
+### Patch Changes
+
+- Updated dependencies [d834c5b]
+- Updated dependencies [7760e33]
+- Updated dependencies [28d17e6]
+- Updated dependencies [797dc02]
+  - ai@7.0.181
+
+## 1.0.180
+
+### Patch Changes
+
+- fac1d6a: fix(policy-opa): apply the `wrapMcpTools` fallback to every OPA evaluation
+
+  With `wrapMcpTools(tools, opaPolicy(...), { default: 'denied' })`, a tool call that the policy did not match could still become approvable when the evaluation with the earlier tool calls of the same response asked for user approval. The fallback now applies to each evaluation before the decisions are compared, so hard allowlist mode denies such a call.
+
+  - ai@7.0.180
+
+## 1.0.179
+
+### Patch Changes
+
+- Updated dependencies [7e55599]
+  - ai@7.0.179
+
+## 1.0.178
+
+### Patch Changes
+
+- 0b8cbfa: `opaPolicy` evaluated every tool call of a model response against the conversation before that response. A history-based rule, such as a conversation budget or "only one delete", therefore approved each tool call of the response on its own, and several tool calls in one response could exceed the limit. `opaPolicy` now evaluates each later tool call of a response a second time with the earlier tool calls of that response appended to `messages`, and applies the more restrictive decision.
+- Updated dependencies [0b8cbfa]
+- Updated dependencies [1d2c2ff]
+- Updated dependencies [6815153]
+- Updated dependencies [15bfd6b]
+- Updated dependencies [15bfd6b]
+- Updated dependencies [2613bb4]
+- Updated dependencies [63593a7]
+  - ai@7.0.178
+  - @ai-sdk/provider-utils@5.0.83
+
+## 1.0.177
+
+### Patch Changes
+
+- Updated dependencies [e403988]
+- Updated dependencies [b792b56]
+  - ai@7.0.177
+
 ## 1.0.176
 
 ### Patch Changes

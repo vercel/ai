@@ -894,7 +894,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       ]);
     });
 
-    it.each(['gemini-4-hydrogen', 'gemini-4-hydrogen-eap'])(
+    it.each(['gemini-4-hydrogen', 'gemini-4-hydrogen-001', 'gemini-4-neon'])(
       'passes the xhigh thinking level for %s',
       async modelId => {
         const result = await provider.interactions(modelId).doGenerate({
@@ -1428,15 +1428,10 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
               "type": "function_call",
             },
             {
-              "content": [
-                {
-                  "call_id": "r7b1dyif",
-                  "name": "getWeather",
-                  "result": "{"location":"San Francisco","condition":"sunny","temperature":16}",
-                  "type": "function_result",
-                },
-              ],
-              "type": "user_input",
+              "call_id": "r7b1dyif",
+              "name": "getWeather",
+              "result": "{"location":"San Francisco","condition":"sunny","temperature":16}",
+              "type": "function_result",
             },
           ],
           "model": "gemini-2.5-flash",

@@ -15,4 +15,4 @@ Place reusable examples under `examples/ai-functions/src/<function>/<provider>/`
 
 Determine for which kind of model and top-level function the example should be added. For a language model, the example should be added in two variants, one for `generateText` and one for `streamText`. For any other models kinds, add the example for the relevant top-level function (e.g. `generateImage`, `generateSpeech`).
 
-After creating the example, run `pnpm type-check:full`; fix any errors encountered.
+After creating the example, run `pnpm type-check`; fix any errors encountered.

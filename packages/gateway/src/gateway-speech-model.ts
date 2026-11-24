@@ -43,6 +43,7 @@ import {
   errorControllerWithGatewayError,
 } from './gateway-stream-errors';
 import { getProtocolsFromHeaders } from './gateway-transcription-model';
+import { withGatewayRequestTelemetryRedaction } from './redact-gateway-request-credentials';
 
 export class GatewaySpeechModel
   implements SpeechModelV4, StreamingSpeechModelV4
@@ -93,7 +94,7 @@ export class GatewaySpeechModel
           this.getModelConfigHeaders(),
           await resolve(this.config.o11yHeaders),
         ),
-        body: {
+        body: withGatewayRequestTelemetryRedaction({
           text,
           ...(voice && { voice }),
           ...(outputFormat && { outputFormat }),
@@ -101,7 +102,7 @@ export class GatewaySpeechModel
           ...(speed != null && { speed }),
           ...(language && { language }),
           ...(providerOptions && { providerOptions }),
-        },
+        }),
         successfulResponseHandler: createJsonResponseHandler(
           gatewaySpeechResponseSchema,
         ),
@@ -149,24 +150,25 @@ export class GatewaySpeechModel
 
     // First frame after the WebSocket opens, per the speech-stream envelope.
     // Optional keys are omitted so the frame stays minimal.
-    const startFrame: Experimental_SpeechStreamStartFrame = {
-      type: SPEECH_STREAM_START_FRAME_TYPE,
-      ...(options.voice != null && { voice: options.voice }),
-      ...(options.outputFormat != null && {
-        outputFormat: options.outputFormat,
-      }),
-      ...(options.instructions != null && {
-        instructions: options.instructions,
-      }),
-      ...(options.speed != null && { speed: options.speed }),
-      ...(options.language != null && { language: options.language }),
-      ...(options.providerOptions != null && {
-        providerOptions: options.providerOptions,
-      }),
-      ...(options.includeRawChunks != null && {
-        includeRawChunks: options.includeRawChunks,
-      }),
-    };
+    const startFrame: Experimental_SpeechStreamStartFrame =
+      withGatewayRequestTelemetryRedaction({
+        type: SPEECH_STREAM_START_FRAME_TYPE,
+        ...(options.voice != null && { voice: options.voice }),
+        ...(options.outputFormat != null && {
+          outputFormat: options.outputFormat,
+        }),
+        ...(options.instructions != null && {
+          instructions: options.instructions,
+        }),
+        ...(options.speed != null && { speed: options.speed }),
+        ...(options.language != null && { language: options.language }),
+        ...(options.providerOptions != null && {
+          providerOptions: options.providerOptions,
+        }),
+        ...(options.includeRawChunks != null && {
+          includeRawChunks: options.includeRawChunks,
+        }),
+      });
 
     return {
       stream: createGatewaySpeechStream({

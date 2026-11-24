@@ -161,6 +161,7 @@ describe('createCursor', () => {
       startupTimeoutMs: 45_000,
       hostDisconnectTimeoutMs: 60_000,
       reconnect,
+      keepAliveMs: 100,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
     });
@@ -173,6 +174,7 @@ describe('createCursor', () => {
       startupTimeoutMs: settings.startupTimeoutMs,
       hostDisconnectTimeoutMs: settings.hostDisconnectTimeoutMs,
       reconnect: settings.reconnect,
+      keepAliveMs: settings.keepAliveMs,
       mcpServers: settings.mcpServers,
       mintBridgeToken: settings.mintBridgeToken,
     }).toEqual({
@@ -182,6 +184,7 @@ describe('createCursor', () => {
       startupTimeoutMs: 45_000,
       hostDisconnectTimeoutMs: 60_000,
       reconnect,
+      keepAliveMs: 100,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
     });

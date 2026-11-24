@@ -1,5 +1,47 @@
 # @ai-sdk/harness-cursor
 
+## 1.0.107
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.192
+- @ai-sdk/harness-acp@1.0.132
+
+## 1.0.106
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.191
+- @ai-sdk/harness-acp@1.0.131
+
+## 1.0.105
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.190
+- @ai-sdk/harness-acp@1.0.130
+
+## 1.0.104
+
+### Patch Changes
+
+- 04a8f38: fix(harness): keep silent sandbox bridge connections alive with WebSocket pings and reconnect when a peer stops responding, controllable via `keepAliveMs` option for bridge-backed harness adapters
+- Updated dependencies [1d2c2ff]
+- Updated dependencies [04a8f38]
+- Updated dependencies [b5e2f7d]
+  - @ai-sdk/provider-utils@5.0.83
+  - @ai-sdk/harness@1.0.189
+  - @ai-sdk/harness-acp@1.0.129
+
+## 1.0.103
+
+### Patch Changes
+
+- Updated dependencies [679b5b5]
+- Updated dependencies [e845694]
+  - @ai-sdk/harness@1.0.188
+  - @ai-sdk/harness-acp@1.0.128
+
 ## 1.0.102
 
 ### Patch Changes
