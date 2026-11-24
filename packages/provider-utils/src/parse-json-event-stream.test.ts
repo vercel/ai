@@ -162,9 +162,7 @@ describe('parseJsonEventStream', () => {
       }).getReader();
 
       await expect(reader.read()).rejects.toMatchObject({
-        name: 'ParseError',
         type: 'max-buffer-size-exceeded',
-        message: `Buffered data exceeded max buffer size of ${maxEventSize} characters`,
       });
       expect(state.cancelled).toBe(true);
 

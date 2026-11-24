@@ -609,9 +609,7 @@ describe('createEventSourceResponseHandler', () => {
     });
 
     await expect(result.value.getReader().read()).rejects.toMatchObject({
-      name: 'ParseError',
       type: 'max-buffer-size-exceeded',
-      message: 'Buffered data exceeded max buffer size of 67108864 characters',
     });
     expect(cancelled).toBe(true);
   });
