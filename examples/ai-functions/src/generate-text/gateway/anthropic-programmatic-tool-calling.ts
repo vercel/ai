@@ -112,17 +112,24 @@ run(async () => {
     },
   });
 
-  const priceCallsPerStep = result.steps.map(
-    step => step.toolCalls.filter(call => call.toolName === 'get_price').length,
-  );
+  // The program may request prices across several steps (A, then B, ...);
+  // a re-run is a later step requesting an item an earlier step answered.
+  const answered = new Set<string>();
+  const repeated: string[] = [];
+  for (const step of result.steps) {
+    const items = step.toolCalls
+      .filter(call => call.toolName === 'get_price')
+      .map(call => (call.input as { item: string }).item);
+    repeated.push(...items.filter(item => answered.has(item)));
+    for (const item of items) answered.add(item);
+  }
 
   console.log('text:', JSON.stringify(result.text));
   console.log('steps:', result.steps.length);
-  console.log('get_price calls per step:', priceCallsPerStep);
 
-  if (priceCallsPerStep.filter(count => count > 0).length > 1) {
+  if (repeated.length > 0) {
     console.log(
-      '\nREPRODUCED: get_price calls repeated across steps; the container was not continued.',
+      `\nREPRODUCED: get_price re-requested ${repeated.join(', ')}; the container was not continued.`,
     );
   } else if (result.text.includes('15')) {
     console.log(
