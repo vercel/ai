@@ -72,6 +72,18 @@ const openaiBatchProviderOptionsSchema = lazySchema(() =>
         .min(3600)
         .max(2_592_000)
         .optional(),
+
+      /**
+       * TTL in seconds for the batch output and error files, measured from
+       * batch creation. OpenAI accepts integers between 3600 (1 hour) and
+       * 2592000 (30 days) inclusive. Defaults to OpenAI's file retention.
+       */
+      outputFileExpiresAfter: z
+        .number()
+        .int()
+        .min(3600)
+        .max(2_592_000)
+        .optional(),
     }),
   ),
 );
@@ -303,6 +315,14 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
         input_file_id: uploadedFile.id,
         endpoint: openaiBatchEndpoint,
         completion_window: '24h',
+        ...(batchOptions?.outputFileExpiresAfter != null
+          ? {
+              output_expires_after: {
+                anchor: 'created_at',
+                seconds: batchOptions.outputFileExpiresAfter,
+              },
+            }
+          : {}),
       },
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -354,7 +374,13 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
     options: BatchV4OperationOptions,
   ): Promise<BatchV4Status> {
     const batch = await this.retrieveBatch(options);
-    return convertOpenAIBatchStatus(batch);
+    const fileMetadata = convertOpenAIBatchFileMetadata(batch);
+    return {
+      ...convertOpenAIBatchStatus(batch),
+      ...(fileMetadata != null
+        ? { providerMetadata: { openai: fileMetadata } }
+        : {}),
+    };
   }
 
   async doCancelBatch(
@@ -621,6 +647,23 @@ function convertOpenAIBatchStatus(batch: OpenAIBatchResponse): BatchV4Status {
       : {}),
     ...(createdAt != null ? { createdAt } : {}),
     ...(expiresAt != null ? { expiresAt } : {}),
+  };
+}
+
+function convertOpenAIBatchFileMetadata(
+  batch: OpenAIBatchResponse,
+): { outputFileId?: string; errorFileId?: string } | undefined {
+  if (batch.output_file_id == null && batch.error_file_id == null) {
+    return undefined;
+  }
+
+  return {
+    ...(batch.output_file_id != null
+      ? { outputFileId: batch.output_file_id }
+      : {}),
+    ...(batch.error_file_id != null
+      ? { errorFileId: batch.error_file_id }
+      : {}),
   };
 }
 
