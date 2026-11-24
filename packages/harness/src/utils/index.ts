@@ -58,6 +58,7 @@ export {
   type WaitForBridgeReadyOptions,
   type WaitForBridgeReadyResult,
 } from './bridge-ready';
+export { stopPreviousBridge } from './stop-previous-bridge';
 export { BRIDGE_AUTH_PUBLIC_KEY_ENV } from './bridge-auth-protocol';
 export { createBridgeAuthKeyPair, type BridgeAuthKeyPair } from './bridge-auth';
 export {

@@ -270,6 +270,8 @@ function fakeNetworkSandboxSessionForStartupSuccess({
   spawnEnvs,
   writes,
   runs,
+  files,
+  runStdout,
 }: {
   bridgePortUrl: string;
   bridgePortHeaders?: Readonly<Record<string, string>>;
@@ -277,6 +279,8 @@ function fakeNetworkSandboxSessionForStartupSuccess({
   spawnEnvs?: Array<Record<string, string | undefined>>;
   writes: Array<{ path: string; content: string }>;
   runs: string[];
+  files?: Map<string, string>;
+  runStdout?: (command: string) => string | undefined;
 }): HarnessV1NetworkSandboxSession {
   const session = {
     run: async ({ command }: { command: string }) => {
@@ -284,9 +288,10 @@ function fakeNetworkSandboxSessionForStartupSuccess({
       if (command === 'printf "%s" "$HOME"') {
         return { exitCode: 0, stdout: '/home/vercel-sandbox', stderr: '' };
       }
-      return { exitCode: 0, stdout: '', stderr: '' };
+      return { exitCode: 0, stdout: runStdout?.(command) ?? '', stderr: '' };
     },
-    readTextFile: async () => null,
+    readTextFile: async ({ path }: { path: string }) =>
+      files?.get(path) ?? null,
     writeTextFile: async ({
       path,
       content,
@@ -295,6 +300,7 @@ function fakeNetworkSandboxSessionForStartupSuccess({
       content: string;
     }) => {
       writes.push({ path, content });
+      files?.set(path, content);
     },
     spawn: async ({
       command,
@@ -327,6 +333,59 @@ function fakeNetworkSandboxSessionForStartupSuccess({
     async stop() {},
     ...session,
   } as unknown as HarnessV1NetworkSandboxSession;
+}
+
+/**
+ * A sandbox session where `recordBridge` writes the `bridge-meta.json` a
+ * running bridge leaves behind, pid 4242. That process runs session `s1`'s
+ * bridge until it gets `kill -TERM`.
+ */
+function fakeNetworkSandboxSessionWithRecordedBridge() {
+  const bridgeStateDir =
+    '/home/vercel-sandbox/.ai-sdk-harness/.agent-runs/s1/bridge';
+  const files = new Map<string, string>();
+  const spawns: string[] = [];
+  const runs: string[] = [];
+  let bridgeRunning = true;
+  let spawnsWhenStopped: number | undefined;
+  const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+    bridgePortUrl: 'ws://127.0.0.1:1',
+    spawns,
+    writes: [],
+    runs,
+    files,
+    runStdout: command => {
+      if (command === 'kill -TERM 4242') {
+        bridgeRunning = false;
+        spawnsWhenStopped = spawns.length;
+      }
+      if (!bridgeRunning) return undefined;
+      if (command.includes('/proc/4242/cmdline')) {
+        return `node bridge.mjs --bridge-state-dir ${bridgeStateDir}`;
+      }
+      // The process listing: pid, parent pid, state and start time.
+      return command.startsWith('if [ -r /proc/self/stat ]')
+        ? '4242 1 S 100\n'
+        : undefined;
+    },
+  });
+  return {
+    sandboxSession,
+    runs,
+    spawns,
+    recordBridge: () => {
+      files.set(
+        `${bridgeStateDir}/bridge-meta.json`,
+        JSON.stringify({
+          type: 'claude-code',
+          port: 4319,
+          state: 'running',
+          pid: 4242,
+        }),
+      );
+    },
+    spawnsWhenStopped: () => spawnsWhenStopped,
+  };
 }
 
 function lastStart(): Record<string, unknown> {
@@ -1359,6 +1418,89 @@ describe('createClaudeCode adapter', () => {
     expect(wsMock.sockets[1].terminated).toBe(true);
     expect(wsMock.sockets[2].terminated).toBe(false);
     await resumedSession.doDetach();
+  });
+
+  it.each(['continueFrom', 'resumeFrom'] as const)(
+    'stops the recorded bridge before respawning when attaching from %s fails',
+    async lifecycle => {
+      connectOnOpen = true;
+      const openWithHello = (socket: {
+        emit: (event: string, ...args: unknown[]) => void;
+      }) => {
+        queueMicrotask(() => {
+          socket.emit('open');
+          socket.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+        });
+      };
+      wsMock.scripts.push(
+        openWithHello,
+        socket => {
+          queueMicrotask(() => {
+            socket.emit('error', new Error('mock attach timeout'));
+          });
+        },
+        openWithHello,
+      );
+      const { sandboxSession, runs, spawns, recordBridge, spawnsWhenStopped } =
+        fakeNetworkSandboxSessionWithRecordedBridge();
+      const harness = createClaudeCode();
+      const session = await harness.doStart({
+        sessionId: 's1',
+        sandboxSession,
+        sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      });
+      recordBridge();
+
+      const lifecycleState =
+        lifecycle === 'continueFrom'
+          ? { continueFrom: await session.doSuspendTurn() }
+          : { resumeFrom: await session.doDetach() };
+      const resumedSession = await harness.doStart({
+        sessionId: 's1',
+        sandboxSession,
+        sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+        ...lifecycleState,
+      });
+
+      expect(runs).toContain('kill -TERM 4242');
+      expect(runs).not.toContain('kill -KILL 4242');
+      expect(spawnsWhenStopped()).toBe(1);
+      expect(spawns).toHaveLength(2);
+      await resumedSession.doDestroy();
+    },
+  );
+
+  it('leaves the recorded bridge running when attaching succeeds', async () => {
+    connectOnOpen = true;
+    const openWithHello = (socket: {
+      emit: (event: string, ...args: unknown[]) => void;
+    }) => {
+      queueMicrotask(() => {
+        socket.emit('open');
+        socket.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+      });
+    };
+    wsMock.scripts.push(openWithHello, openWithHello);
+    const { sandboxSession, runs, spawns, recordBridge } =
+      fakeNetworkSandboxSessionWithRecordedBridge();
+    const harness = createClaudeCode();
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    recordBridge();
+
+    const continuedSession = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      continueFrom: await session.doSuspendTurn(),
+    });
+
+    expect(runs.filter(command => command.startsWith('kill '))).toEqual([]);
+    expect(spawns).toHaveLength(1);
+    await continuedSession.doDetach();
   });
 
   it('does not set the client app for direct Anthropic auth', async () => {
