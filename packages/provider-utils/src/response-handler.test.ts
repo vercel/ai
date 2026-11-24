@@ -580,6 +580,41 @@ describe('createEventSourceResponseHandler', () => {
       cause: terminatedError,
     });
   });
+
+  it('should fail and cancel the response body when an event exceeds the maximum event size', async () => {
+    const dataPrefix = new TextEncoder().encode('data: ');
+    const chunk = new Uint8Array(1024 * 1024).fill(32);
+    let pullCount = 0;
+    let cancelled = false;
+    const response = new Response(
+      new ReadableStream<Uint8Array>({
+        pull(controller) {
+          // a line that does not end within 80 MiB:
+          if (pullCount === 81) {
+            controller.close();
+            return;
+          }
+          controller.enqueue(pullCount++ === 0 ? dataPrefix : chunk);
+        },
+        cancel() {
+          cancelled = true;
+        },
+      }),
+    );
+    const handler = createEventSourceResponseHandler(z.unknown());
+    const result = await handler({
+      url: 'test-url',
+      requestBodyValues: { prompt: 'test' },
+      response,
+    });
+
+    await expect(result.value.getReader().read()).rejects.toMatchObject({
+      name: 'ParseError',
+      type: 'max-buffer-size-exceeded',
+      message: 'Buffered data exceeded max buffer size of 67108864 characters',
+    });
+    expect(cancelled).toBe(true);
+  });
 });
 
 describe('createJsonLinesResponseHandler', () => {
