@@ -735,7 +735,7 @@ console.log(text);`,
       bun: 'bun add @acedatacloud/ai-sdk-suno ai zod',
     },
     codeExample:
-      "import { createSunoTools } from '@acedatacloud/ai-sdk-suno';\n\n// Reads tool definitions only. Set the server-side application API key first.\nconst connection = await createSunoTools();\ntry {\n  console.log(Object.keys(connection.tools));\n} finally {\n  await connection.close();\n}",
+      "import { generateText, gateway, isStepCount } from 'ai';\nimport { createSunoTools } from '@acedatacloud/ai-sdk-suno';\n\n// Set ACEDATACLOUD_API_KEY, AI_GATEWAY_API_KEY, and the ID of an existing task.\nconst taskId = process.env.ACE_TASK_ID;\nif (!taskId) throw new Error('Set ACE_TASK_ID to an existing task ID.');\n\nconst connection = await createSunoTools({ tools: ['suno_get_task'] });\ntry {\n  const { text } = await generateText({\n    model: gateway('openai/gpt-5-mini'),\n    prompt: `Check the status of the existing task ${taskId}.`,\n    tools: { suno_get_task: connection.tools.suno_get_task },\n    stopWhen: isStepCount(2),\n  });\n  console.log(text);\n} finally {\n  await connection.close();\n}",
     docsUrl: 'https://acedatacloud.github.io/AISDK/suno.html',
     apiKeyUrl:
       'https://platform.acedata.cloud/console/applications?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=suno_registry_api_key',
@@ -758,7 +758,7 @@ console.log(text);`,
       bun: 'bun add @acedatacloud/ai-sdk-happyhorse ai zod',
     },
     codeExample:
-      "import { createHappyHorseTools } from '@acedatacloud/ai-sdk-happyhorse';\n\n// Reads tool definitions only. Set the server-side application API key first.\nconst connection = await createHappyHorseTools();\ntry {\n  console.log(Object.keys(connection.tools));\n} finally {\n  await connection.close();\n}",
+      "import { generateText, gateway, isStepCount } from 'ai';\nimport { createHappyHorseTools } from '@acedatacloud/ai-sdk-happyhorse';\n\n// Set ACEDATACLOUD_API_KEY, AI_GATEWAY_API_KEY, and the ID of an existing task.\nconst taskId = process.env.ACE_TASK_ID;\nif (!taskId) throw new Error('Set ACE_TASK_ID to an existing task ID.');\n\nconst connection = await createHappyHorseTools({ tools: ['happyhorse_get_task'] });\ntry {\n  const { text } = await generateText({\n    model: gateway('openai/gpt-5-mini'),\n    prompt: `Check the status of the existing task ${taskId}.`,\n    tools: { happyhorse_get_task: connection.tools.happyhorse_get_task },\n    stopWhen: isStepCount(2),\n  });\n  console.log(text);\n} finally {\n  await connection.close();\n}",
     docsUrl: 'https://acedatacloud.github.io/AISDK/happyhorse.html',
     apiKeyUrl:
       'https://platform.acedata.cloud/console/applications?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=happyhorse_registry_api_key',
@@ -781,7 +781,7 @@ console.log(text);`,
       bun: 'bun add @acedatacloud/ai-sdk-gpt-image ai zod',
     },
     codeExample:
-      "import { createGPTImageTools } from '@acedatacloud/ai-sdk-gpt-image';\n\n// Reads tool definitions only. Set the server-side application API key first.\nconst connection = await createGPTImageTools();\ntry {\n  console.log(Object.keys(connection.tools));\n} finally {\n  await connection.close();\n}",
+      "import { generateText, gateway, isStepCount } from 'ai';\nimport { createGPTImageTools } from '@acedatacloud/ai-sdk-gpt-image';\n\n// Set ACEDATACLOUD_API_KEY, AI_GATEWAY_API_KEY, and the ID of an existing task.\nconst taskId = process.env.ACE_TASK_ID;\nif (!taskId) throw new Error('Set ACE_TASK_ID to an existing task ID.');\n\nconst connection = await createGPTImageTools({ tools: ['openai_get_task'] });\ntry {\n  const { text } = await generateText({\n    model: gateway('openai/gpt-5-mini'),\n    prompt: `Check the status of the existing task ${taskId}.`,\n    tools: { openai_get_task: connection.tools.openai_get_task },\n    stopWhen: isStepCount(2),\n  });\n  console.log(text);\n} finally {\n  await connection.close();\n}",
     docsUrl: 'https://acedatacloud.github.io/AISDK/gpt-image.html',
     apiKeyUrl:
       'https://platform.acedata.cloud/console/applications?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=gpt-image_registry_api_key',
@@ -804,7 +804,7 @@ console.log(text);`,
       bun: 'bun add @acedatacloud/ai-sdk-nano-banana ai zod',
     },
     codeExample:
-      "import { createNanoBananaTools } from '@acedatacloud/ai-sdk-nano-banana';\n\n// Reads tool definitions only. Set the server-side application API key first.\nconst connection = await createNanoBananaTools();\ntry {\n  console.log(Object.keys(connection.tools));\n} finally {\n  await connection.close();\n}",
+      "import { generateText, gateway, isStepCount } from 'ai';\nimport { createNanoBananaTools } from '@acedatacloud/ai-sdk-nano-banana';\n\n// Set ACEDATACLOUD_API_KEY, AI_GATEWAY_API_KEY, and the ID of an existing task.\nconst taskId = process.env.ACE_TASK_ID;\nif (!taskId) throw new Error('Set ACE_TASK_ID to an existing task ID.');\n\nconst connection = await createNanoBananaTools({ tools: ['nanobanana_get_task'] });\ntry {\n  const { text } = await generateText({\n    model: gateway('openai/gpt-5-mini'),\n    prompt: `Check the status of the existing task ${taskId}.`,\n    tools: { nanobanana_get_task: connection.tools.nanobanana_get_task },\n    stopWhen: isStepCount(2),\n  });\n  console.log(text);\n} finally {\n  await connection.close();\n}",
     docsUrl: 'https://acedatacloud.github.io/AISDK/nano-banana.html',
     apiKeyUrl:
       'https://platform.acedata.cloud/console/applications?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=nano-banana_registry_api_key',
@@ -827,7 +827,7 @@ console.log(text);`,
       bun: 'bun add @acedatacloud/ai-sdk-seedance ai zod',
     },
     codeExample:
-      "import { createSeedanceTools } from '@acedatacloud/ai-sdk-seedance';\n\n// Reads tool definitions only. Set the server-side application API key first.\nconst connection = await createSeedanceTools();\ntry {\n  console.log(Object.keys(connection.tools));\n} finally {\n  await connection.close();\n}",
+      "import { generateText, gateway, isStepCount } from 'ai';\nimport { createSeedanceTools } from '@acedatacloud/ai-sdk-seedance';\n\n// Set ACEDATACLOUD_API_KEY, AI_GATEWAY_API_KEY, and the ID of an existing task.\nconst taskId = process.env.ACE_TASK_ID;\nif (!taskId) throw new Error('Set ACE_TASK_ID to an existing task ID.');\n\nconst connection = await createSeedanceTools({ tools: ['seedance_get_task'] });\ntry {\n  const { text } = await generateText({\n    model: gateway('openai/gpt-5-mini'),\n    prompt: `Check the status of the existing task ${taskId}.`,\n    tools: { seedance_get_task: connection.tools.seedance_get_task },\n    stopWhen: isStepCount(2),\n  });\n  console.log(text);\n} finally {\n  await connection.close();\n}",
     docsUrl: 'https://acedatacloud.github.io/AISDK/seedance.html',
     apiKeyUrl:
       'https://platform.acedata.cloud/console/applications?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=seedance_registry_api_key',
