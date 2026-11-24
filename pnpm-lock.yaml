@@ -249,8 +249,8 @@ importers:
         specifier: ^2.0.1
         version: 2.0.1(@sveltejs/kit@2.70.2(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.55.7)(vite@7.3.7(@types/node@22.19.19)(jiti@2.7.0)(less@4.9.0(supports-color@10.2.2))(lightningcss@1.32.0)(sass@1.97.3)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1)))(svelte@5.55.7)(typescript@6.0.3)(vite@7.3.7(@types/node@22.19.19)(jiti@2.7.0)(less@4.9.0(supports-color@10.2.2))(lightningcss@1.32.0)(sass@1.97.3)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1)))(next@16.4.6(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.97.3))(nuxt@4.6.4(51d53d6ee0ab6885250e20843979d3f9))(react@19.2.6)(svelte@5.55.7)(vue-router@4.6.4(vue@3.5.46(typescript@6.0.3)))(vue@3.5.46(typescript@6.0.3))
       '@vercel/geistdocs':
-        specifier: 3.0.3
-        version: 3.0.3(24c43d26030eaea4d1725bc4e73d5e2a)
+        specifier: 3.0.3-canary.416ba3a
+        version: 3.0.3-canary.416ba3a(24c43d26030eaea4d1725bc4e73d5e2a)
       fumadocs-core:
         specifier: 16.2.2
         version: 16.2.2(@types/react@18.3.28)(algoliasearch@5.48.1)(lucide-react@0.555.0(react@19.2.6))(next@16.4.6(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.97.3))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(supports-color@10.2.2)
@@ -14609,8 +14609,8 @@ packages:
       ws:
         optional: true
 
-  '@vercel/geistdocs@3.0.3':
-    resolution: {integrity: sha512-ZnAUTULt8Q/9Sk/AbneEcKKaj31gLVN8Sw49UKoDNCePqAcc45TRywUsIhkQuz9reSlO9wUsjS/Sv/FYGidFxw==}
+  '@vercel/geistdocs@3.0.3-canary.416ba3a':
+    resolution: {integrity: sha512-UxDxoMGn8LGDElT8DzFdofEbikfbuhS9+Qm+UaccjvpfjklZytKsdHET0QMftaVT8gD00e/yEbpWgXR8sZdp+Q==}
     hasBin: true
     peerDependencies:
       mermaid: ^11.12.2
@@ -37827,7 +37827,7 @@ snapshots:
       '@aws-sdk/credential-provider-web-identity': 3.972.78
       ws: 8.21.3
 
-  '@vercel/geistdocs@3.0.3(24c43d26030eaea4d1725bc4e73d5e2a)':
+  '@vercel/geistdocs@3.0.3-canary.416ba3a(24c43d26030eaea4d1725bc4e73d5e2a)':
     dependencies:
       '@ai-sdk/react': 3.0.223(react@19.2.6)(zod@4.6.7)
       '@clack/prompts': 0.11.0
