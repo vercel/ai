@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetLogWarningsState } from '../logger/log-warnings';
+import type { Warning } from '../types/warning';
 import { createDefaultDownloadFunction } from '../util/download/download-function';
 import {
   convertToLanguageModelMessage,
@@ -1304,6 +1305,7 @@ describe('convertToLanguageModelPrompt', () => {
 
   describe('custom download function', () => {
     it('should use custom download function to fetch URL content', async () => {
+      const abortSignal = new AbortController().signal;
       const mockDownload = vi.fn().mockResolvedValue([
         {
           url: new URL('https://example.com/test-file.txt'),
@@ -1330,6 +1332,7 @@ describe('convertToLanguageModelPrompt', () => {
         },
         supportedUrls: {}, // No URL support, so download should be triggered
         download: mockDownload,
+        abortSignal,
       });
 
       expect(mockDownload).toHaveBeenCalledOnce();
@@ -1337,6 +1340,7 @@ describe('convertToLanguageModelPrompt', () => {
         {
           url: new URL('https://example.com/test-file.txt'),
           isUrlSupportedByModel: false,
+          abortSignal,
         },
       ]);
 
@@ -1685,6 +1689,89 @@ describe('convertToLanguageModelPrompt', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('warnings', () => {
+    let mockProcessEmitWarning: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      resetLogWarningsState();
+      mockProcessEmitWarning = vi
+        .spyOn(process, 'emitWarning')
+        .mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      mockProcessEmitWarning.mockRestore();
+    });
+
+    it('should collect the conversion warnings instead of logging them when warnings are passed', async () => {
+      const warnings: Warning[] = [];
+
+      await convertToLanguageModelPrompt({
+        prompt: {
+          instructions: undefined,
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'image',
+                  image: new Uint8Array([0, 1, 2, 3]),
+                  mediaType: 'image/png',
+                },
+              ],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'toolCallId',
+                  toolName: 'toolName',
+                  input: {},
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'toolCallId',
+                  toolName: 'toolName',
+                  output: {
+                    type: 'content',
+                    value: [
+                      {
+                        type: 'image-data',
+                        data: 'dGVzdA==',
+                        mediaType: 'image/png',
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: undefined,
+        warnings,
+      });
+
+      expect(
+        warnings.map(
+          warning => warning.type === 'deprecated' && warning.setting,
+        ),
+      ).toMatchInlineSnapshot(`
+          [
+            ""image" content part",
+            ""tool-result" content of type "image-data"",
+          ]
+        `);
+      expect(mockProcessEmitWarning).not.toHaveBeenCalled();
     });
   });
 });
@@ -3096,7 +3183,7 @@ describe('convertToLanguageModelMessage', () => {
 
         expect(mockProcessEmitWarning).toHaveBeenCalledTimes(2);
         expect(mockProcessEmitWarning).toHaveBeenCalledWith(
-          `AI SDK Warning: Deprecated: ""tool-result" content of type "file-url"". The "file-url" tool result content part with URL "https://example.com/image.png" is missing a "mediaType". Inferred media type 'image/png' from URL. The "file-url" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'url', url } instead.`,
+          `AI SDK Warning: Deprecated: ""tool-result" content of type "file-url"". A "file-url" tool result content part is missing a "mediaType". Inferred media type 'image/png' from URL. The "file-url" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'url', url } instead.`,
           {
             type: 'DeprecationWarning',
             code: 'AISDK_DEP_TOOL_RESULT_FILE_URL',
@@ -3130,7 +3217,7 @@ describe('convertToLanguageModelMessage', () => {
 
         expect(mockProcessEmitWarning).toHaveBeenCalledTimes(2);
         expect(mockProcessEmitWarning).toHaveBeenCalledWith(
-          `AI SDK Warning: Deprecated: ""tool-result" content of type "file-url"". The "file-url" tool result content part with URL "https://example.com/file" is missing a "mediaType". Unable to infer media type from URL. Defaulting to 'application/octet-stream'. The "file-url" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'url', url } instead.`,
+          `AI SDK Warning: Deprecated: ""tool-result" content of type "file-url"". A "file-url" tool result content part is missing a "mediaType". Unable to infer media type from URL. Defaulting to 'application/octet-stream'. The "file-url" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'url', url } instead.`,
           {
             type: 'DeprecationWarning',
             code: 'AISDK_DEP_TOOL_RESULT_FILE_URL',
@@ -3168,7 +3255,7 @@ describe('convertToLanguageModelMessage', () => {
 
         expect(mockProcessEmitWarning).toHaveBeenCalledTimes(2);
         expect(mockProcessEmitWarning).toHaveBeenCalledWith(
-          `AI SDK Warning: Deprecated: ""tool-result" content of type "file-url"". The "file-url" tool result content part with URL "https://example.com/foo.constructor" is missing a "mediaType". Unable to infer media type from URL. Defaulting to 'application/octet-stream'. The "file-url" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'url', url } instead.`,
+          `AI SDK Warning: Deprecated: ""tool-result" content of type "file-url"". A "file-url" tool result content part is missing a "mediaType". Unable to infer media type from URL. Defaulting to 'application/octet-stream'. The "file-url" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'url', url } instead.`,
           {
             type: 'DeprecationWarning',
             code: 'AISDK_DEP_TOOL_RESULT_FILE_URL',

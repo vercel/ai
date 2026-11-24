@@ -1,10 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { WebSocket } from 'ws';
+import { WebSocket, type RawData } from 'ws';
 import { z } from 'zod/v4';
 import { SandboxChannel } from '../utils/sandbox-channel';
+import {
+  createBridgeAuthKeyPair,
+  createBridgeAuthProof,
+  parseBridgeAuthPrivateKey,
+} from '../utils/bridge-auth';
 import { runBridge, type BridgeHandle, type BridgeTurn } from './index';
 
-const TOKEN = 'test-token';
+const BRIDGE_AUTH = createBridgeAuthKeyPair();
 const cleanups: Array<() => Promise<void> | void> = [];
 
 afterEach(async () => {
@@ -27,7 +32,7 @@ async function startBridge({
     bridgeType: 'test',
     bridgeStateDir: `${process.env.TMPDIR ?? '/tmp'}/harness-bridge-test-${Math.floor(performance.now())}`,
     port: 0,
-    token: TOKEN,
+    publicKey: BRIDGE_AUTH.publicKey,
     onStart,
     ...(onStop ? { onStop } : {}),
     ...(turnTeardownGraceMs != null ? { turnTeardownGraceMs } : {}),
@@ -54,10 +59,11 @@ type Client = {
   close(): void;
 };
 
-function connect(port: number): Promise<Client> {
-  const ws = new WebSocket(
-    `ws://127.0.0.1:${port}/?agent_bridge_token=${TOKEN}`,
-  );
+async function connect(port: number): Promise<Client> {
+  const ws = await openAuthenticatedBridgeWebSocket({
+    url: `ws://127.0.0.1:${port}/`,
+    privateKey: BRIDGE_AUTH.privateKey,
+  });
   const frames: Array<Record<string, unknown>> = [];
   const waiters: Array<{
     pred: (f: Record<string, unknown>) => boolean;
@@ -97,7 +103,7 @@ function connect(port: number): Promise<Client> {
     },
   };
   cleanups.push(() => ws.close());
-  return new Promise(resolve => ws.on('open', () => resolve(client)));
+  return client;
 }
 
 describe('runBridge', () => {
@@ -180,7 +186,7 @@ describe('runBridge', () => {
         bridgeType: 'test',
         bridgeStateDir: `${process.env.TMPDIR ?? '/tmp'}/harness-bridge-port-conflict`,
         port: handle.port,
-        token: TOKEN,
+        publicKey: BRIDGE_AUTH.publicKey,
         onStart: async () => {},
         onExit: () => {},
       }),
@@ -415,16 +421,11 @@ describe('runBridge', () => {
         });
         const channel = new SandboxChannel<{ type: string }, { type: 'start' }>(
           {
-            connect: async () => {
-              const ws = new WebSocket(
-                `ws://127.0.0.1:${handle.port}/?agent_bridge_token=${TOKEN}`,
-              );
-              await new Promise((resolve, reject) => {
-                ws.once('open', resolve);
-                ws.once('error', reject);
-              });
-              return ws;
-            },
+            connect: () =>
+              openAuthenticatedBridgeWebSocket({
+                url: `ws://127.0.0.1:${handle.port}/`,
+                privateKey: BRIDGE_AUTH.privateKey,
+              }),
             outboundSchema: z.looseObject({ type: z.string() }),
           },
         );
@@ -842,7 +843,7 @@ describe('runBridge', () => {
       bridgeType: 'test',
       bridgeStateDir: `${process.env.TMPDIR ?? '/tmp'}/harness-bridge-stop`,
       port: 0,
-      token: TOKEN,
+      publicKey: BRIDGE_AUTH.publicKey,
       onStart: async () => {},
       onStop: () => ({ threadId: 'th_42' }),
       onExit: () => {
@@ -942,7 +943,7 @@ describe('runBridge', () => {
       bridgeType: 'test',
       bridgeStateDir: `${process.env.TMPDIR ?? '/tmp'}/harness-bridge-destroy`,
       port: 0,
-      token: TOKEN,
+      publicKey: BRIDGE_AUTH.publicKey,
       onStart: async () => {},
       onDestroy,
       onExit: () => {
@@ -958,4 +959,99 @@ describe('runBridge', () => {
       expect(exited).toBe(true);
     });
   });
+
+  it('fails to start without a valid authentication public key', async () => {
+    await expect(
+      runBridge<{ type: 'start' }>({
+        bridgeType: 'test',
+        bridgeStateDir: `${process.env.TMPDIR ?? '/tmp'}/harness-bridge-missing-key`,
+        port: 0,
+        publicKey: 'not-a-key',
+        onStart: async () => {},
+        onExit: () => {},
+      }),
+    ).rejects.toThrow(
+      'The bridge requires a valid Ed25519 public key for authentication.',
+    );
+  });
+
+  it.each([
+    {
+      name: 'a proof signed by another key',
+      createProof: (message: string) =>
+        createBridgeAuthProof({
+          privateKey: parseBridgeAuthPrivateKey({
+            privateKey: createBridgeAuthKeyPair().privateKey,
+          }),
+          message,
+        }),
+    },
+    {
+      name: 'a command instead of a proof',
+      createProof: () => JSON.stringify({ type: 'start' }),
+    },
+  ])('rejects $name without exposing the bridge', async ({ createProof }) => {
+    const onStart = vi.fn(async () => {});
+    const handle = await startBridge({ onStart });
+    const ws = new WebSocket(
+      `ws://127.0.0.1:${handle.port}/?agent_bridge_token=legacy-token`,
+    );
+    cleanups.push(() => ws.terminate());
+    const frames: string[] = [];
+    const closed = new Promise<number>(resolve => {
+      ws.on('close', code => resolve(code));
+    });
+    ws.on('message', raw => {
+      const text = rawDataToString(raw);
+      frames.push(text);
+      if (frames.length === 1) ws.send(createProof(text));
+    });
+
+    expect(await closed).toBe(1008);
+    expect(frames).toHaveLength(1);
+    expect(JSON.parse(frames[0])).toMatchObject({
+      type: 'bridge-auth-challenge',
+    });
+    expect(onStart).not.toHaveBeenCalled();
+  });
 });
+
+/**
+ * Opens a raw bridge WebSocket and answers its authentication challenge.
+ * Resolves right after the proof is sent, so the caller still receives the
+ * `bridge-hello` frame that the bridge sends once the proof is verified.
+ */
+function openAuthenticatedBridgeWebSocket({
+  url,
+  privateKey,
+}: {
+  url: string;
+  privateKey: string;
+}): Promise<WebSocket> {
+  const key = parseBridgeAuthPrivateKey({ privateKey });
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(url);
+    ws.once('error', reject);
+    ws.once('message', (raw: RawData) => {
+      try {
+        ws.send(
+          createBridgeAuthProof({
+            privateKey: key,
+            message: rawDataToString(raw),
+          }),
+        );
+        ws.off('error', reject);
+        resolve(ws);
+      } catch (error) {
+        ws.terminate();
+        reject(error);
+      }
+    });
+  });
+}
+
+function rawDataToString(raw: RawData): string {
+  if (Array.isArray(raw)) return Buffer.concat(raw).toString('utf8');
+  if (Buffer.isBuffer(raw)) return raw.toString('utf8');
+  return Buffer.from(raw).toString('utf8');
+}

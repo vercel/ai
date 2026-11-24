@@ -1,4 +1,10 @@
 export type { GoogleErrorData } from './google-error';
+export type { GoogleFilePartOptions } from './google-file-part-options';
+export type { GoogleInteractionsFileOptions } from './interactions/google-interactions-file-options';
+export type {
+  GoogleDecisionModelId,
+  GoogleDecisionModelOptions,
+} from './google-decision-model-options';
 export type {
   GoogleLanguageModelOptions,
   /** @deprecated Use `GoogleLanguageModelOptions` instead. */

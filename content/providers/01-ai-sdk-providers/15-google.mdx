@@ -1,6 +1,10 @@
 ---
 title: Google
 description: Learn how to use Google models through AI Gateway or the direct Google provider.
+keywords:
+  - gemini
+  - gemini flash
+  - gemini pro
 ---
 
 # Google Provider
@@ -229,12 +233,13 @@ The following optional provider options are available for Google models:
 - **responseModalities** _string[]_
   The modalities to use for the response. Valid values are `TEXT`, `IMAGE`, and `AUDIO`, but support is model-dependent. When not defined or empty, the model defaults to returning only text.
 
-- **thinkingConfig** _\{ thinkingLevel?: 'minimal' | 'low' | 'medium' | 'high'; thinkingBudget?: number; includeThoughts?: boolean \}_
+- **thinkingConfig** _\{ thinkingLevel?: 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'; thinkingBudget?: number; includeThoughts?: boolean \}_
 
   Optional. Configuration for the model's thinking process. Only supported by specific [Google models](https://ai.google.dev/gemini-api/docs/thinking).
-  - **thinkingLevel** _'minimal' | 'low' | 'medium' | 'high'_
+  - **thinkingLevel** _'minimal' | 'low' | 'medium' | 'high' | 'xhigh'_
 
     Optional. Controls the thinking depth for Gemini 3 and later models. Gemini 3.1 Pro supports 'low', 'medium', and 'high', Gemini 3 Pro supports 'low' and 'high', while Gemini 3 Flash supports all four levels: 'minimal', 'low', 'medium', and 'high'.
+    Gemini 4 Hydrogen and Gemini 4 Neon support 'low', 'medium', 'high', and 'xhigh'. The 'xhigh' level is only supported by Hydrogen and Neon.
 
   - **thinkingBudget** _number_
 
@@ -348,6 +353,17 @@ console.log(text);
 
 console.log(reasoning); // Reasoning summary
 ```
+
+For `gemini-4-hydrogen`, use
+`reasoning: 'xhigh'` or `thinkingConfig: { thinkingLevel: 'xhigh' }` for maximum
+reasoning depth. Hydrogen defaults to `high` when the thinking level is unset.
+Following the November 11, 2026 update, `xhigh` matches the previous `high`,
+`high` matches the previous `medium`, and `medium` sits between `low` and the
+new `high`. The `low` level is unchanged. Re-run prompts tuned before that
+update to check their reasoning quality.
+
+`gemini-4-neon` also supports `reasoning: 'xhigh'` and
+`thinkingConfig: { thinkingLevel: 'xhigh' }`.
 
 #### Gemini 2.5 Models
 
@@ -671,7 +687,7 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
 });
 
-const model = 'gemini-3.8-flash';
+const model = 'gemini-4-hydrogen';
 
 // Create a cache with the content you want to reuse
 const cache = await ai.caches.create({
@@ -1279,6 +1295,9 @@ will still validate the response against the schema in `Output.object`.
 | ------------------------------------- | ----------- | ----------------- | ---------- | -------------- | ------------- | ----------- |
 | `gemini-nano-banana-2.1`              | <Check />   | <Cross />         | <Cross />  | <Cross />      | <Check />     | <Cross />   |
 | `gemini-4-argon`                      | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
+| `gemini-4-carbon`                     | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
+| `gemini-4-hydrogen`                   | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
+| `gemini-4-neon`                       | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
 | `gemini-3.8-flash`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
 | `gemini-3.7-flash`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
 | `gemini-3.6-flash`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
@@ -1568,6 +1587,30 @@ any other AI SDK language model.
   request bodies and SSE event vocabularies.
 </Note>
 
+### Reasoning
+
+Use the top-level `reasoning` option with `generateText` or `streamText` to
+control thinking depth on Interactions models that support thinking levels:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: google.interactions('gemini-4-hydrogen'),
+  reasoning: 'xhigh',
+  prompt: 'What is AGI?',
+});
+```
+
+The provider maps `reasoning` to `generation_config.thinking_level` using the
+model's supported levels. `xhigh` is supported only by Gemini 4 Hydrogen and Gemini 4 Neon.
+Unsupported levels fall back to a supported level with a compatibility warning;
+`none` maps to the lowest supported level. Models without thinking-level
+support and agent calls emit a warning and omit the setting. Omitting `reasoning`
+or setting it to `'provider-default'` preserves the API default.
+An explicit `providerOptions.google.thinkingLevel` takes precedence.
+
 ### Provider Options
 
 The Interactions model reads its options from the shared
@@ -1593,6 +1636,14 @@ await generateText({
 ```
 
 The following optional provider options are available:
+
+- **labels** _Record&lt;string, string&gt;_
+
+  User-defined metadata sent in the top-level `labels` field of the Interactions
+  request. For example, set `{ safety_identifier: 'opaque_user_123' }` to attach
+  an opaque end-user identifier. Other labels are preserved unchanged.
+  Vertex AI Interactions models also read labels from `providerOptions.google`,
+  not `providerOptions.googleVertex` or `providerOptions.vertex`.
 
 - **previousInteractionId** _string_
 
@@ -1624,10 +1675,13 @@ The following optional provider options are available:
   Per-agent configuration. Currently supports `{ type: 'dynamic' }` and
   `{ type: 'deep-research', thinkingSummaries?, visualization?, collaborativePlanning? }`.
 
-- **thinkingLevel** _'minimal' | 'low' | 'medium' | 'high'_
+- **thinkingLevel** _'minimal' | 'low' | 'medium' | 'high' | 'xhigh'_
 
   Controls reasoning depth for thinking-enabled models. Mapped onto the
   Interactions request's `thinking_level`.
+  Overrides the top-level `reasoning` option when set.
+  The `xhigh` level is only supported by Gemini 4 Hydrogen and Gemini 4 Neon,
+  where it requests the model's maximum reasoning depth.
 
 - **thinkingSummaries** _'auto' | 'none'_
 
@@ -1816,6 +1870,231 @@ const turn2 = await generateText({
 });
 ```
 
+### File slicing
+
+Gemini can load only the part of a file that a prompt needs. File slicing
+supports PDF, Word (`.docx`, `.dotx`, `.doc`), PowerPoint (`.pptx`, `.ppt`),
+Excel (`.xlsx`, `.xls`), OpenDocument (`.odt`, `.odp`, `.ods`), audio, and
+video. You can select pages, spreadsheet cells, or time ranges and choose which
+content layers Gemini receives. Google slices the file on the server and
+counts and bills only the tokens of the selected slice.
+
+File slicing works with Gemini 3 and Gemini 4 models, such as
+`gemini-4-hydrogen`. Older models, such as Gemini 2.5, ignore the options and
+process the whole file.
+
+Pass `GoogleInteractionsFileOptions` under `providerOptions.google` on each
+file part. For example, to inspect pages 3 through 7:
+
+```ts
+import { google, type GoogleInteractionsFileOptions } from '@ai-sdk/google';
+import { generateText } from 'ai';
+import { readFileSync } from 'node:fs';
+
+const result = await generateText({
+  model: google.interactions('gemini-4-hydrogen'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'file',
+          data: readFileSync('quarterly-report.pdf'),
+          mediaType: 'application/pdf',
+          providerOptions: {
+            google: {
+              resolution: 'high',
+              processing: {
+                type: 'static',
+                pageOptions: {
+                  startPage: 3,
+                  endPage: 7,
+                  contentLayers: ['page_image', 'page_text'],
+                },
+              },
+            } satisfies GoogleInteractionsFileOptions,
+          },
+        },
+        {
+          type: 'text',
+          text: 'Summarize the revenue chart and footnotes on these pages.',
+        },
+      ],
+    },
+  ],
+});
+```
+
+File parts accept inline bytes, base64 data, uploaded Files API URLs, and
+provider references returned by `uploadFile`. Use the full media type for
+Office files, such as
+`application/vnd.openxmlformats-officedocument.wordprocessingml.document`
+for Word or
+`application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` for Excel.
+
+Google's file limits apply to the whole file, even when you select a slice:
+50 MB per file, 1,000 pages per PDF, 2,000 pages or slides per Office or
+OpenDocument file, and 50,000 cells per sheet. See Google's
+[document processing guide](https://ai.google.dev/gemini-api/docs/document-processing#technical-details)
+for details.
+
+The Interactions options are:
+
+- **resolution**: `'low' | 'medium' | 'high'`. Overrides the
+  call-level `mediaResolution` for this file. Page images use approximately
+  280, 560, or 1,120 tokens per page and default to `'medium'`.
+- **processing**: `'agentic'`, `'static'`, or a static configuration object.
+  Static selection objects require `type: 'static'`.
+- **processing.pageOptions**: `startPage`, `endPage`, and `contentLayers`
+  (`'page_text'`, `'page_image'`, or both). Page numbers are 1-based and
+  inclusive. `startPage` defaults to the first page and `endPage` to the last
+  page. Office page numbers follow the document's rendered layout;
+  PowerPoint pages correspond to slides. Rendering Office pages as images
+  takes longer than extracting text. Start with text, then render selected
+  pages when needed.
+- **processing.spreadsheetOptions**: `sheetIndex` (1-based workbook order),
+  `visibleCells` (an A1 cell or range such as `'B5'` or `'A1:C5'`), and `contentLayers`
+  (`'data'`, `'formulas'`, `'visual'`). Omit `sheetIndex` to include every
+  sheet. Supply one options object per file part. To read some but not all
+  sheets, repeat the file part with a different `sheetIndex`. The visual layer
+  renders the selected `visibleCells` region, including charts and formatting.
+  Row-only ranges such as `'1:10'` are not supported.
+- **processing.startOffset / endOffset**: audio/video offsets in seconds.
+  The provider converts numbers to API duration strings; for example,
+  `startOffset: 60` becomes `start_offset: '60s'`.
+- **processing.fps**: video sampling rate, greater than 0 and at most 24.
+- **processing.contentLayers**: video layers (`'frames'`, `'audio'`,
+  `'transcript'`).
+
+For example, an Excel selection can use:
+
+```ts
+const spreadsheetOptions = {
+  processing: {
+    type: 'static',
+    spreadsheetOptions: {
+      sheetIndex: 3,
+      visibleCells: 'A1:C5',
+      contentLayers: ['data', 'formulas'],
+    },
+  },
+} satisfies GoogleInteractionsFileOptions;
+```
+
+#### Default file selection
+
+Without slicing options, PDFs include all pages as images and text. Gemini 4
+models receive Word, PowerPoint, and OpenDocument documents as page images.
+Gemini 3 models receive DOCX, DOTX, ODT, and PPTX files as extracted text, and
+DOC, PPT, and ODP files as page images. Specifying document processing options
+without content layers defaults to page images. To keep token usage low, skim
+large documents as text first and render selected pages when visual details
+matter.
+
+Spreadsheets without slicing options include every sheet. Gemini 4 models
+receive data, formulas, and sheet names, while Gemini 3 models receive only
+the values of XLSX and XLS files. Specifying spreadsheet options defaults to
+every sheet, all cells, and data plus formulas. `visibleCells` accepts a single
+cell or an A1 range and also crops the visual layer. Page and sheet indices are
+1-based; page bounds are inclusive. An end page beyond the document is clamped,
+while a start page beyond it produces an empty selection. A sheet index beyond
+the workbook is rejected. Video defaults to frames and audio at one frame per
+second.
+
+#### GenerateContent slicing options
+
+For `google('gemini-4-hydrogen')`, pass
+`GoogleFilePartOptions` on the file part instead. GenerateContent uses
+metadata objects and uppercase content-layer names:
+
+| File selection    | GenerateContent option | Fields                                                                                                    |
+| ----------------- | ---------------------- | --------------------------------------------------------------------------------------------------------- |
+| Document pages    | `documentMetadata`     | `startPage`, `endPage`, `contentLayers: ['PAGE_TEXT', 'PAGE_IMAGE']`                                      |
+| Spreadsheet cells | `spreadsheetMetadata`  | `sheetIndex`, `visibleCells`, `contentLayers: ['DATA', 'FORMULAS', 'VISUAL']`                             |
+| Audio clip        | `audioMetadata`        | `startOffset`, `endOffset` as duration strings                                                            |
+| Video clip        | `videoMetadata`        | `startOffset`, `endOffset` as duration strings, `fps`, `contentLayers: ['FRAMES', 'AUDIO', 'TRANSCRIPT']` |
+
+Set `mediaResolution: { level: 'MEDIA_RESOLUTION_HIGH' }` on the same file
+options object to control document, spreadsheet, or video rendering. File
+parts accept `MEDIA_RESOLUTION_LOW`, `MEDIA_RESOLUTION_MEDIUM`, and
+`MEDIA_RESOLUTION_HIGH`; documents do not support ultra-high resolution.
+
+```ts
+import { type GoogleFilePartOptions } from '@ai-sdk/google';
+
+const googleFileOptions = {
+  documentMetadata: {
+    startPage: 3,
+    endPage: 7,
+    contentLayers: ['PAGE_TEXT'],
+  },
+} satisfies GoogleFilePartOptions;
+```
+
+Use `googleFileOptions` as the file part's `providerOptions.google`. These
+options also apply when using `streamText`.
+
+The GenerateContent slicing options require the `v1beta` API, which the
+Google provider uses by default. A custom `v1` base URL rejects them.
+
+#### Return file selections from tools
+
+Use slicing options on individual file parts in a tool's `toModelOutput`
+content, so the model can decide which pages, cells, or clips to load. Gemini
+also receives the file's page count and worksheet names, so it can request
+other ranges in later steps. The provider sends GenerateContent selections
+inside `functionResponse.parts`.
+
+For Interactions, the provider sends each tool result as a top-level
+`function_result` input block, with files inside `function_result.result`.
+This preserves each file's association with its tool call and its slicing
+options.
+
+For Interactions, a tool can return:
+
+```ts
+import { google, type GoogleInteractionsFileOptions } from '@ai-sdk/google';
+import { generateText, isStepCount, tool } from 'ai';
+import { readFileSync } from 'node:fs';
+import { z } from 'zod/v4';
+
+const result = await generateText({
+  model: google.interactions('gemini-4-hydrogen'),
+  prompt: 'Use viewFile to inspect pages 3 through 7 and summarize them.',
+  stopWhen: isStepCount(5),
+  tools: {
+    viewFile: tool({
+      description: 'Read an inclusive page range of the quarterly report.',
+      inputSchema: z.object({
+        startPage: z.number().int().positive(),
+        endPage: z.number().int().positive(),
+      }),
+      execute: async input => input,
+      toModelOutput: ({ output }) => ({
+        type: 'content',
+        value: [
+          {
+            type: 'file',
+            data: { type: 'data', data: readFileSync('quarterly-report.pdf') },
+            mediaType: 'application/pdf',
+            providerOptions: {
+              google: {
+                processing: { type: 'static', pageOptions: output },
+              } satisfies GoogleInteractionsFileOptions,
+            },
+          },
+        ],
+      }),
+    }),
+  },
+});
+```
+
+With GenerateContent, use `documentMetadata: output` in the returned file's
+Google options and select the model with `google(...)`. Uploaded file
+references can be reused across tool calls to avoid sending the file bytes
+each time.
+
 ### Agentic video understanding
 
 Gemini 4 Argon, 3.7 Flash, 3.6 Flash, and 3.5 Flash Lite support agentic video
@@ -1919,8 +2198,8 @@ tools under `google.tools.*` map onto Interactions tool descriptors:
 | `google.tools.urlContext`             | `url_context`          | Fetch URLs referenced in the prompt.      |
 | `google.tools.fileSearch`             | `file_search`          | Retrieval from File Search stores.        |
 | `google.tools.googleMaps`             | `google_maps`          | Maps grounding for nearby-places queries. |
+| `google.tools.mcpServer`              | `mcp_server`           | Remote MCP server passthrough.            |
 | _provider tool_ `google.computer_use` | `computer_use`         | Computer use (browser environment).       |
-| _provider tool_ `google.mcp_server`   | `mcp_server`           | Remote MCP server passthrough.            |
 | _provider tool_ `google.retrieval`    | `retrieval`            | Vertex AI Search retrieval.               |
 
 Function tools (`type: 'function'`) defined with the AI SDK `tool(...)`
@@ -1959,6 +2238,33 @@ const { text, toolCalls } = await generateText({
   model: google.interactions('gemini-4-argon'),
   tools: { getWeather: weatherTool },
   stopWhen: isStepCount(5),
+  prompt: 'What is the weather in San Francisco right now?',
+});
+```
+
+### Remote MCP servers
+
+`google.tools.mcpServer` connects a remote MCP server so the model can call its
+tools. Header values are sent to the Gemini API and redacted from telemetry at
+the same time. Tool definitions that are built by hand instead of with this
+factory do not carry the provider's telemetry redaction. Google Vertex
+Interactions models use the same tool as `googleVertex.tools.mcpServer`, see
+[Remote MCP Server](/providers/ai-sdk-providers/google-vertex#remote-mcp-server).
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: google.interactions('gemini-4-argon'),
+  tools: {
+    mcp_server: google.tools.mcpServer({
+      name: 'local-mcp',
+      url: 'https://example.com/mcp',
+      headers: { Authorization: `Bearer ${process.env.MCP_TOKEN}` },
+      allowedTools: ['getWeather'],
+    }),
+  },
   prompt: 'What is the weather in San Francisco right now?',
 });
 ```
@@ -2635,23 +2941,136 @@ Older models continue to use labelled transcripts, such as
 | `gemini-3.8-flash-tts`         | <Check />     | <Check />              |
 | `gemini-3.8-flash-lite-tts`    | <Check />     | <Check />              |
 
+## Transcription Models
+
+You can create models that call the [Gemini transcription API](https://ai.google.dev/gemini-api/docs/transcribe)
+using the `.transcription()` factory method. `gemini-3.5-transcribe` transcribes
+recorded audio with [`transcribe()`](/docs/reference/ai-sdk-core/transcribe), and
+`gemini-3.5-transcribe-live` transcribes live audio with
+[`experimental_streamTranscribe`](/docs/ai-sdk-core/transcription#streaming-transcription)
+over the [Live API](https://ai.google.dev/gemini-api/docs/live-api/live-transcribe).
+
+```ts
+import { google } from '@ai-sdk/google';
+import { transcribe } from 'ai';
+import { readFile } from 'node:fs/promises';
+
+const result = await transcribe({
+  model: google.transcription('gemini-3.5-transcribe'),
+  audio: await readFile('audio.mp3'),
+});
+```
+
+The following provider options are available under `providerOptions.google`:
+
+- **languageCodes** _string[]_
+
+  BCP-47 language codes that hint at the languages in the audio. Defaults to
+  automatic language detection.
+
+- **customVocabulary** _string[]_
+
+  Phrases that bias recognition toward specific terms.
+
+- **wordTimestamp** _boolean_
+
+  Enables word-level timestamps.
+
+- **diarization** _boolean_
+
+  Enables speaker diarization.
+
+- **mode** _'VERBATIM' | 'SMART'_
+
+  `VERBATIM` (default) returns the literal transcript, including filler words
+  and false starts. `SMART` removes disfluencies, applies inline
+  self-corrections, and formats lists, numbers, and dates.
+
+- **streaming** _object_
+
+  Options for live transcription with `gemini-3.5-transcribe-live`.
+  - **automaticActivityDetection** _object_
+    - **disabled** _boolean_
+
+      Disables server-side voice activity detection, so the whole audio stream
+      is transcribed as a single turn. See [Push-to-talk](#push-to-talk).
+
+### Live Transcription
+
+```ts
+import { google } from '@ai-sdk/google';
+import { experimental_streamTranscribe as streamTranscribe } from 'ai';
+
+const result = streamTranscribe({
+  model: google.transcription('gemini-3.5-transcribe-live'),
+  audio: audioStream, // ReadableStream<Uint8Array | string>
+  inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'transcript-final') {
+    console.log(part.text);
+  }
+}
+
+console.log(await result.text);
+```
+
+Input chunks contain raw 16kHz 16-bit little-endian mono PCM. Strings contain
+base64-encoded audio. The Live API authenticates with the API key in the
+WebSocket URL, so native WebSockets work; keep the API key on the server.
+
+By default, server-side voice activity detection splits the audio into segments
+at pauses, and each segment is emitted as a `transcript-final` part while audio
+is still streaming. Closing the audio input transcribes any remaining speech
+before the result finishes. If the audio ends in silence after the last
+segment, the Live API sends no further messages, and the result finishes after
+a 3-second grace period.
+
+### Push-to-talk
+
+When the start and end of speech are known, for example while a push-to-talk
+button is held, disable automatic activity detection. The whole audio stream is
+then transcribed as a single turn: pauses do not split it, and the transcript is
+finalized as soon as the audio input closes, regardless of trailing silence.
+
+```ts highlight="5-9"
+const result = streamTranscribe({
+  model: google.transcription('gemini-3.5-transcribe-live'),
+  audio: audioStream,
+  inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+  providerOptions: {
+    google: {
+      streaming: { automaticActivityDetection: { disabled: true } },
+    },
+  },
+});
+```
+
+`transcript-partial` parts still arrive while audio streams, but there is a
+single `transcript-final` part for the whole stream.
+
 ## Decision Models
 
 Create an experimental decision model with `google.decisionModel(modelId)`.
-It uses Gemini structured output for Choice, Score, and Boolean questions. Choose a model
-that supports structured output, such as `gemini-4-argon`.
+It calls the Gemini Decisions API directly for Choice, Score, and Boolean questions.
+The endpoint requires `v1beta` and is not available on Vertex AI.
 
 ```ts
 import { google } from '@ai-sdk/google';
 import { experimental_decide } from 'ai';
 
 const { answers } = await experimental_decide({
-  model: google.decisionModel('gemini-4-argon'),
+  model: google.decisionModel('gemini-decision-1'),
   state: 'I was charged twice.',
   questions: {
     requestsRefund: {
       type: 'boolean',
       instructions: 'Is the customer requesting money back?',
+      criteria: {
+        true: 'The customer wants a charge refunded.',
+        false: 'The customer only wants information.',
+      },
     },
     department: {
       type: 'choice',
@@ -2659,29 +3078,69 @@ const { answers } = await experimental_decide({
       criteria: { billing: 'Charges and refunds', support: 'Other requests' },
     },
   },
-  providerOptions: {
-    google: { thinkingConfig: { thinkingLevel: 'low' } },
+});
+```
+
+Choice and Score answers include native probability distributions. Scores are
+probability-weighted positions on the zero-based ordered rubric. Boolean questions
+map to Google's `noul` type, and answers expose its calibrated P(true) as
+`probability`. During EAP, that probability is between `0.01` and `0.99`.
+Apply thresholds in application code, for example
+`answers.requestsRefund.probability >= 0.5`.
+
+Confidence values are available at `result.providerMetadata.google.confidence`,
+keyed by question ID. Score legends are at `result.providerMetadata.google.legend`.
+Token usage includes input tokens and zero output tokens; modality details are
+preserved in `result.providerMetadata.google.usage`. A safety-blocked request
+produces refusals, which `experimental_decide` surfaces as
+`Experimental_DecisionRefusalError`.
+
+State can contain text, JSON, images, audio, video, and PDFs. Structured state,
+instructions, and criteria descriptions are serialized as text. Every question
+requires instructions. Choice questions require 2–255 options; Score questions
+require 2–255 non-empty level descriptions. Question IDs must contain 1–64 ASCII
+letters, digits, underscores, or hyphens. Choice option IDs must contain 1–128
+characters without leading or trailing whitespace. Google sorts Choice IDs
+alphabetically and breaks exact probability ties in that order.
+
+The factory respects `createGoogle` settings, including API keys, base URLs,
+headers, and custom fetch implementations. Generation options such as
+`maxOutputTokens`, `reasoning`, and `providerOptions.google.thinkingConfig` are
+unsupported and produce warnings. Decisions do not use structured output or
+fall back to `generateContent`. The deprecated `evaluationModel` factory and
+`doEvaluate` method remain aliases for the native implementation.
+
+Decision models can also be accessed through `customProvider` aliases or
+`createProviderRegistry().decisionModel('provider:model')`. Direct string IDs
+use Gateway by default, or an explicitly configured default provider with a
+`decisionModel` method. See
+[model aliases and registries](/docs/ai-sdk-core/decisions#model-aliases-and-registries).
+
+## Extraction Models
+
+Create an experimental extraction model with `google.extractionModel(modelId)`.
+It wraps a Google language model and uses the Gemini API's structured output to
+extract typed fields in one call.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { experimental_extract } from 'ai';
+
+const { answers } = await experimental_extract({
+  model: google.extractionModel('gemini-4-hydrogen'),
+  referenceDate: '2026-11-11',
+  state: 'Invoice INV-2041. Total due $1,250.00 by March 3.',
+  fields: {
+    invoiceNumber: { type: 'text', instructions: 'The invoice number' },
+    total: { type: 'number', instructions: 'Total due', decimals: 2 },
+    dueDate: { type: 'date', instructions: 'Payment due date' },
   },
 });
 ```
 
-The factory respects `createGoogle` settings and forwards `providerOptions.google`,
-including thinking configuration. Thinking controls depend on the selected model;
-use options supported by that model. The existing Gemini implementation sends the
-answer schema as `generationConfig.responseJsonSchema`.
-
-Choice labels are returned exactly, and Scores are finite fractional positions
-within the ordered rubric. The adapter validates complete answers after parsing
-and rejects safety-blocked, truncated, or invalid output. It preserves usage
-(including reasoning tokens), warnings, response data, and provider metadata.
-
-Choice and Score answers do not include probability distributions. Boolean
-answers contain prompted estimates of P(true), validated to be finite and in
-`[0, 1]`. These estimates are not guaranteed to be calibrated. Apply thresholds
-in application code, for example `answers.requestsRefund.probability >= 0.5`. See [Decisions](/docs/ai-sdk-core/decisions).
-
-Decision models can also be accessed through `customProvider` aliases or
-`createProviderRegistry().decisionModel('provider:model')`. Direct string IDs
-use Gateway by default, or an explicitly configured default provider with an
-`decisionModel` method. See
-[model aliases and registries](/docs/ai-sdk-core/decisions#model-aliases-and-registries).
+The adapter supports every field type and returns `null` when the state has no
+value for a field. It does not return `pNull`, `confidence`, `guess`, or
+`source`, since a prompted model cannot give calibrated estimates or exact
+offsets. Image and PDF files are passed to the language model, which must
+support them. The adapter requests `reasoning: 'none'` by default and forwards
+`providerOptions.google`. See [Extractions](/docs/ai-sdk-core/extractions).

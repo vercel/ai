@@ -1,5 +1,165 @@
 # @ai-sdk/harness-fx
 
+## 1.0.109
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.192
+
+## 1.0.108
+
+### Patch Changes
+
+- Updated dependencies [38646e7]
+  - @ai-sdk/mcp@2.0.104
+  - @ai-sdk/harness@1.0.191
+
+## 1.0.107
+
+### Patch Changes
+
+- Updated dependencies [d55f3cf]
+  - @ai-sdk/mcp@2.0.103
+
+## 1.0.106
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.190
+
+## 1.0.105
+
+### Patch Changes
+
+- Updated dependencies [1d2c2ff]
+- Updated dependencies [04a8f38]
+  - @ai-sdk/provider-utils@5.0.83
+  - @ai-sdk/harness@1.0.189
+  - @ai-sdk/mcp@2.0.102
+
+## 1.0.104
+
+### Patch Changes
+
+- Updated dependencies [679b5b5]
+  - @ai-sdk/harness@1.0.188
+
+## 1.0.103
+
+### Patch Changes
+
+- Updated dependencies [95b78c9]
+  - @ai-sdk/mcp@2.0.101
+  - @ai-sdk/harness@1.0.187
+
+## 1.0.102
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.186
+
+## 1.0.101
+
+### Patch Changes
+
+- Updated dependencies [10ff0b1]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/provider@4.0.39
+  - @ai-sdk/provider-utils@5.0.82
+  - @ai-sdk/harness@1.0.185
+  - @ai-sdk/mcp@2.0.100
+
+## 1.0.100
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.184
+
+## 1.0.99
+
+### Patch Changes
+
+- 71bef69: feat(harness): require approval for sensitive workspace file changes in `allow-edits` permission mode
+- Updated dependencies [6d50947]
+- Updated dependencies [71bef69]
+  - @ai-sdk/provider-utils@5.0.81
+  - @ai-sdk/harness@1.0.183
+  - @ai-sdk/mcp@2.0.99
+
+## 1.0.98
+
+### Patch Changes
+
+- Updated dependencies [2ebc78b]
+- Updated dependencies [1a94af3]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/mcp@2.0.98
+  - @ai-sdk/harness@1.0.182
+  - @ai-sdk/provider@4.0.38
+
+## 1.0.97
+
+### Patch Changes
+
+- Updated dependencies [6309382]
+  - @ai-sdk/mcp@2.0.97
+  - @ai-sdk/harness@1.0.181
+
+## 1.0.96
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [6141e6f]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+  - @ai-sdk/mcp@2.0.96
+  - @ai-sdk/harness@1.0.180
+
+## 1.0.95
+
+### Patch Changes
+
+- 0fc1f13: chore(harness): update harness adapter underlying SDKs to their latest releases
+- 3647c6a: feat(harness-fx): add configurable `sessionStorage?: FxSessionStorage` and as fallback keep session data exclusively in memory and resume state
+- Updated dependencies [c849d37]
+- Updated dependencies [7f1c01e]
+- Updated dependencies [88b9575]
+  - @ai-sdk/harness@1.0.179
+  - @ai-sdk/mcp@2.0.95
+  - @ai-sdk/provider-utils@5.0.78
+
+## 1.0.94
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+  - @ai-sdk/harness@1.0.178
+  - @ai-sdk/mcp@2.0.94
+
+## 1.0.93
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.177
+
+## 1.0.92
+
+### Patch Changes
+
+- Updated dependencies [dc0f7f2]
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/mcp@2.0.93
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+  - @ai-sdk/harness@1.0.176
+
 ## 1.0.91
 
 ### Patch Changes

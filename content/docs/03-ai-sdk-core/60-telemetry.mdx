@@ -79,7 +79,18 @@ and Node.js `ai:telemetry` subscribers. Raw provider bodies and provider metadat
 are omitted when either recording option is disabled. Raw tracing span results
 are also omitted in that case because they can contain both inputs and outputs.
 Tracing span errors use a generic failure message.
+File download errors are always sent with the file URL redacted, because the URL
+can be a signed link to a private file.
 Application lifecycle callbacks and returned results retain their full content.
+
+OpenAI Code Interpreter and shell domain secrets, and MCP authorization and
+header values, are redacted from tool definitions and object request/response
+bodies before they reach telemetry integrations or tracing-channel subscribers,
+including when recording is enabled. Redaction uses telemetry-only copies;
+provider requests and application results retain their original values.
+The OpenAI provider supplies these rules, so update `@ai-sdk/openai` together
+with `ai` to use this protection. Older provider versions do not supply these
+telemetry views.
 
 For `generateSpeech`, input telemetry contains the source text and output
 telemetry contains the generated audio byte length, media type, and format.
@@ -549,6 +560,29 @@ integration.
       description: 'Called when an experimental decision operation completes.',
     },
     {
+      name: 'experimental_onExtractStart',
+      type: '(event: Experimental_ExtractStartEvent) => void | PromiseLike<void>',
+      description: 'Called when an experimental extraction operation begins.',
+    },
+    {
+      name: 'experimental_onExtractionModelCallStart',
+      type: '(event: Experimental_ExtractionModelCallStartEvent) => void | PromiseLike<void>',
+      description:
+        'Called when the logical extraction model call begins. The call includes any provider retries.',
+    },
+    {
+      name: 'experimental_onExtractionModelCallEnd',
+      type: '(event: Experimental_ExtractionModelCallEndEvent) => void | PromiseLike<void>',
+      description:
+        'Called when the logical extraction model call, including any retries, completes.',
+    },
+    {
+      name: 'experimental_onExtractEnd',
+      type: '(event: Experimental_ExtractEndEvent) => void | PromiseLike<void>',
+      description:
+        'Called when an experimental extraction operation completes.',
+    },
+    {
       name: 'onEnd',
       type: '(event: GenerateTextEndEvent) => void | PromiseLike<void>',
       description:
@@ -569,8 +603,8 @@ integration.
   ]}
 />
 
-Experimental decision events use the four `experimental_*` callbacks above.
-They are not included in the stable `onStart` and `onEnd` event unions.
+Experimental decision and extraction events use the `experimental_*` callbacks
+above. They are not included in the stable `onStart` and `onEnd` event unions.
 
 The event types for each method are the same as the corresponding [lifecycle callbacks](/docs/ai-sdk-core/lifecycle-callbacks). See the lifecycle callbacks documentation for the full property reference of each event.
 
@@ -780,6 +814,27 @@ semantic-convention attributes. Enable the `experimental_decision`
 supplemental option to record them under AI SDK-specific
 `ai.decision.*` attributes.
 
+#### experimental_extract
+
+For `experimental_extract`, the integration records two spans with `CLIENT`
+kind: an **`extract {modelId}`** root span for the whole operation and one
+**`extract {modelId}`** child span for extraction model work, including
+retries. Both include the provider and requested model with
+`gen_ai.operation.name: "extract"`. Token usage is recorded on the child span.
+When extraction attributes are enabled, answers are recorded on both spans so
+the operation span contains its output.
+
+`extract` is an AI SDK-defined custom operation name, like `decide`.
+Extraction state, fields, reference date, and answers do not have applicable
+GenAI semantic-convention attributes. Enable the `experimental_extraction`
+supplemental option to record them under AI SDK-specific `ai.extraction.*`
+attributes. Request headers and provider options can contain credentials, so
+they are not sent to telemetry integrations or `ai:telemetry` subscribers for
+extraction, and extraction spans do not record request headers. File URLs and
+provider file references in extraction state are replaced with `[redacted]`,
+and extraction spans do not record provider metadata, which can contain document
+content such as OCR text.
+
 #### GenAI span details
 
 ##### GenAI message format
@@ -835,10 +890,10 @@ registerTelemetry(
 
 The callback runs when each span is created and receives:
 
-- `spanType`: the type of span being created (`operation`, `step`, `languageModel`, `tool`, `embedding`, `reranking`, or `experimental_decision`).
+- `spanType`: the type of span being created (`operation`, `step`, `languageModel`, `tool`, `embedding`, `reranking`, `experimental_decision`, or `experimental_extraction`).
 - `operationId`: the AI SDK operation ID for the current call, such as `ai.generateText` or `ai.streamText`.
 - `callId`: the unique ID for the current AI SDK call.
-- `runtimeContext`: the telemetry-filtered runtime context for text generation, embedding, reranking, and decision spans. Text generation spans also reflect updates from `prepareStep`.
+- `runtimeContext`: the telemetry-filtered runtime context for text generation, embedding, reranking, decision, and extraction spans. Text generation spans also reflect updates from `prepareStep`.
 
 Custom attributes are merged with AI SDK attributes on the span. AI SDK-owned
 attributes take precedence when a custom attribute uses the same key.
@@ -899,6 +954,7 @@ registerTelemetry(
     embedding: true,
     reranking: true,
     experimental_decision: true,
+    experimental_extraction: true,
     runtimeContext: true,
     headers: true,
     toolChoice: true,
@@ -914,6 +970,7 @@ The available options are:
 - `embedding`: embedding inputs and outputs.
 - `reranking`: rerank input documents and ranking output.
 - `experimental_decision`: experimental decision state, questions, and answers.
+- `experimental_extraction`: experimental extraction state, fields, reference date, and answers.
 - `runtimeContext`: `ai.settings.context.*`.
 - `headers`: `ai.request.headers.*`.
 - `toolChoice`: `ai.prompt.toolChoice`.

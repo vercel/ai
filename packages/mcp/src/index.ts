@@ -8,6 +8,7 @@ export type {
 } from './tool/json-rpc-message';
 
 // Stable exports
+export { createMCPTools } from './tool/create-mcp-tools';
 export {
   createMCPClient,
   type MCPClientConfig,
@@ -46,6 +47,11 @@ export {
   AuthorizationServerMismatchError,
 } from './error/oauth-error';
 export { MCPClientError } from './error/mcp-client-error';
+export {
+  WebMCPTransport as Experimental_WebMCPTransport,
+  type WebMCPModelContext as Experimental_WebMCPModelContext,
+  type WebMCPTool as Experimental_WebMCPTool,
+} from './tool/webmcp-transport';
 export type { ManagedMCPClient as Experimental_ManagedMCPClient } from './tool/mcp-client';
 export type {
   MCPEventOperations as Experimental_MCPEventOperations,

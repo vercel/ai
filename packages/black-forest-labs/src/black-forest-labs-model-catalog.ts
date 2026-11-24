@@ -262,3 +262,9 @@ Object.assign(
     ]),
   ),
 );
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type BlackForestLabsModelIds = {
+  image: (typeof imageModelIds)[number];
+  video: (typeof videoModelIds)[number];
+};

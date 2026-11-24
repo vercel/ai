@@ -12,6 +12,12 @@ import type {
   DecisionModelCallStartEvent,
 } from '../decide/decide-events';
 import type {
+  ExtractEndEvent,
+  ExtractStartEvent,
+  ExtractionModelCallEndEvent,
+  ExtractionModelCallStartEvent,
+} from '../extract/extract-events';
+import type {
   GenerateObjectEndEvent,
   GenerateObjectStartEvent,
   GenerateObjectStepEndEvent,
@@ -175,6 +181,10 @@ export interface TelemetryDispatcher {
   experimental_onDecisionModelCallStart?: Callback<DecisionModelCallStartEvent>;
   experimental_onDecisionModelCallEnd?: Callback<DecisionModelCallEndEvent>;
   experimental_onDecideEnd?: Callback<DecideEndEvent>;
+  experimental_onExtractStart?: Callback<ExtractStartEvent>;
+  experimental_onExtractionModelCallStart?: Callback<ExtractionModelCallStartEvent>;
+  experimental_onExtractionModelCallEnd?: Callback<ExtractionModelCallEndEvent>;
+  experimental_onExtractEnd?: Callback<ExtractEndEvent>;
   experimental_onStreamTranscriptionStart?: Callback<StreamTranscriptionStartEvent>;
   experimental_onStreamTranscriptionEnd?: Callback<StreamTranscriptionEndEvent>;
   onEnd?: Callback<OperationEndEvent>;
@@ -360,6 +370,30 @@ export interface Telemetry {
 
   /** Called when an experimental decision operation completes. */
   experimental_onDecideEnd?: Callback<InferTelemetryEvent<DecideEndEvent>>;
+
+  /** Called when an experimental extraction operation begins. */
+  experimental_onExtractStart?: Callback<
+    InferTelemetryEvent<ExtractStartEvent>
+  >;
+
+  /**
+   * Called immediately before an experimental extraction model call begins.
+   * The logical model call includes any provider retries.
+   */
+  experimental_onExtractionModelCallStart?: Callback<
+    InferTelemetryEvent<ExtractionModelCallStartEvent>
+  >;
+
+  /**
+   * Called after an experimental extraction model response has been validated.
+   * The logical model call includes any provider retries.
+   */
+  experimental_onExtractionModelCallEnd?: Callback<
+    InferTelemetryEvent<ExtractionModelCallEndEvent>
+  >;
+
+  /** Called when an experimental extraction operation completes. */
+  experimental_onExtractEnd?: Callback<InferTelemetryEvent<ExtractEndEvent>>;
 
   /** Called when an experimental streaming transcription operation begins. */
   experimental_onStreamTranscriptionStart?: Callback<

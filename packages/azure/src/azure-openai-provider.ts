@@ -463,6 +463,11 @@ export function createAzure(
     withoutTrailingSlash(options.maiBaseURL) ??
     `https://${getResourceName()}.services.ai.azure.com/mai/v1`;
 
+  // Always provide a raw delegate, including when no custom fetch is set, so
+  // file downloads cannot fall back to the token-injecting API fetch wrapper.
+  const downloadFetch: FetchFunction = (input, init) =>
+    (options.fetch ?? globalThis.fetch)(input, init);
+
   const createImageModel = (modelId: string) =>
     new AzureImageModel(
       modelId,
@@ -472,6 +477,7 @@ export function createAzure(
         url,
         headers: getHeaders,
         fetch,
+        downloadFetch,
         // Azure model IDs are user-defined deployment names, so OpenAI model
         // family capabilities cannot be inferred from them.
         imageInputCapabilities: {
@@ -483,6 +489,7 @@ export function createAzure(
         url: path => `${maiBaseURL()}${path}`,
         headers: () => getHeaders('mai'),
         fetch,
+        downloadFetch,
       }),
     );
 
@@ -793,14 +800,30 @@ class AzureImageModel implements ImageModelV4 {
   }
 
   async doGenerate(options: Parameters<ImageModelV4['doGenerate']>[0]) {
-    const { api, ...maiOptions } =
+    // `background` is shared with the OpenAI API, so it is not MAI-only.
+    const { api, background, ...maiOnlyOptions } =
       (await parseProviderOptions({
         provider: 'azure',
         providerOptions: options.providerOptions,
         schema: azureImageModelOptions,
       })) ?? {};
     if ((api ?? (isMAIImageModel(this.modelId) ? 'mai' : 'openai')) === 'mai') {
-      return this.mai.doGenerate(options, maiOptions);
+      if (background !== 'auto') {
+        return this.mai.doGenerate(options, { ...maiOnlyOptions, background });
+      }
+      const result = await this.mai.doGenerate(options, maiOnlyOptions);
+      return {
+        ...result,
+        warnings: [
+          ...result.warnings,
+          {
+            type: 'unsupported',
+            feature: 'providerOptions.azure.background',
+            details:
+              "The MAI image API supports 'transparent' and 'opaque' backgrounds.",
+          } satisfies SharedV4Warning,
+        ],
+      };
     }
 
     const result = await this.openai.doGenerate(
@@ -819,7 +842,7 @@ class AzureImageModel implements ImageModelV4 {
       warnings: [
         ...result.warnings,
         ...unsupportedOptionWarnings(
-          maiOptions,
+          maiOnlyOptions,
           'This option requires the MAI image API.',
         ),
       ],

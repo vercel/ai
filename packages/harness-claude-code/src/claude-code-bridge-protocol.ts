@@ -50,6 +50,7 @@ export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   maxBudgetUsd: z.number().optional(),
   additionalDirectories: z.array(z.string()).optional(),
   strictMcpConfig: z.boolean().optional(),
+  autoMode: z.boolean().optional(),
   questionTimeoutMs: z.number().optional(),
   excludeDynamicSections: z.boolean().optional(),
   agentProgressSummaries: z.boolean().optional(),

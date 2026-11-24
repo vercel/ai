@@ -912,6 +912,12 @@ async function convertOpenAIBatchResult(
       ...(response.reasoning?.context != null
         ? { reasoningContext: response.reasoning.context }
         : {}),
+      ...(response.prompt_cache_diagnostics != null
+        ? { promptCacheDiagnostics: response.prompt_cache_diagnostics }
+        : {}),
+      ...(response.input_transformations != null
+        ? { inputTransformations: response.input_transformations }
+        : {}),
     },
   };
 

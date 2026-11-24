@@ -155,3 +155,9 @@ export const voyageModelCatalog = Object.fromEntries([
     id => [id, getVoyageRerankingModelEntry(id)] as const,
   ),
 ]);
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type VoyageModelIds = {
+  embedding: (typeof embeddingModelIds)[number];
+  reranking: (typeof rerankingModelIds)[number];
+};

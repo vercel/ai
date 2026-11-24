@@ -1,4 +1,8 @@
 import {
+  getQuiverAIImageModelEntry,
+  quiveraiRequestDefaults,
+} from './quiverai-model-catalog';
+import {
   InvalidArgumentError,
   type ImageModelV4,
   type ImageModelV4CallOptions,
@@ -48,14 +52,11 @@ interface QuiverAIImageModelConfig {
 
 export class QuiverAIImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
-  readonly maxImagesPerCall = 16;
+  readonly maxImagesPerCall = quiveraiRequestDefaults.image.maxImagesPerCall;
 
   get supportsFileInputs(): boolean | undefined {
-    return this.modelId === 'arrow-1' ||
-      this.modelId === 'arrow-1.1' ||
-      this.modelId === 'arrow-1.1-max' ||
-      this.modelId === 'arrow-2' ||
-      this.modelId === 'arrow-2-telos'
+    return getQuiverAIImageModelEntry(this.modelId).capabilities.image
+      .fileInput === true
       ? true
       : undefined;
   }
@@ -195,7 +196,8 @@ function getOperationPath(operation: QuiverAIOperation) {
 function getGenerateReferenceLimit(modelId: string) {
   // Only apply the lower limit to documented Arrow 1.x models. The API
   // enforces model-specific limits within its 16-reference request limit.
-  return ['arrow-1', 'arrow-1.0', 'arrow-1.1'].includes(modelId) ? 4 : 16;
+  return getQuiverAIImageModelEntry(modelId).requestConfig.image
+    .generateReferenceLimit;
 }
 
 function toQuiverAIImageReference(image: ImageModelV4File) {
@@ -302,9 +304,10 @@ function buildRequestBody({
   options: QuiverAIImageModelOptions;
 }) {
   if (
-    (modelId === 'arrow-2' || modelId === 'arrow-2-telos') &&
     options.maxOutputTokens != null &&
-    options.maxOutputTokens > 65536
+    options.maxOutputTokens >
+      (getQuiverAIImageModelEntry(modelId).requestConfig.image
+        .maxOutputTokens ?? Infinity)
   ) {
     throw new InvalidArgumentError({
       argument: 'maxOutputTokens',
@@ -424,7 +427,7 @@ function buildAnimationRequestBody({
   mask: ImageModelV4File | undefined;
   options: QuiverAIImageModelOptions;
 }) {
-  if (modelId !== 'arrow-2' && modelId !== 'arrow-2-telos') {
+  if (!getQuiverAIImageModelEntry(modelId).capabilities.image.animation) {
     throw new InvalidArgumentError({
       argument: 'modelId',
       message:
@@ -500,7 +503,6 @@ function buildAnimationRequestBody({
   };
 }
 
-const editModelIds = new Set(['arrow-2', 'arrow-2-telos']);
 const MAX_EDIT_SVG_BYTES = 200_000;
 
 function buildEditRequestBody({
@@ -518,7 +520,7 @@ function buildEditRequestBody({
   mask: ImageModelV4File | undefined;
   options: QuiverAIImageModelOptions;
 }) {
-  if (!editModelIds.has(modelId)) {
+  if (!getQuiverAIImageModelEntry(modelId).requestConfig.image.editModel) {
     throw new InvalidArgumentError({
       argument: 'modelId',
       message:

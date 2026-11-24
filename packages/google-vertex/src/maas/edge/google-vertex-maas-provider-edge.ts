@@ -1,4 +1,6 @@
 import {
+  fetchWithValidatedEndpoint,
+  isBrowserRuntime,
   isSameOrigin,
   resolve,
   type FetchFunction,
@@ -41,7 +43,19 @@ export function createGoogleVertexMaas(
     const href =
       typeof url === 'string' ? url : url instanceof URL ? url.href : url.url;
     if (!isSameOrigin(href, loadGoogleVertexMaasBaseURL(options))) {
-      return (options.fetch ?? fetch)(url, init);
+      // Preserve the browser-only retry after an opaque manual redirect.
+      if (isBrowserRuntime() && init?.redirect === 'follow') {
+        return (options.fetch ?? fetch)(url, init);
+      }
+
+      // Validate the URL and keep redirects manual behind this auth wrapper.
+      // Uses the configured fetch (e.g. guarded-fetch) or the runtime's fetch.
+      return fetchWithValidatedEndpoint({
+        url: href,
+        init,
+        fetch: options.fetch,
+        redirect: 'manual',
+      });
     }
 
     const token = await generateAuthToken(options.googleCredentials);

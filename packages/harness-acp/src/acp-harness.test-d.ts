@@ -59,6 +59,7 @@ describe('createACP built-in tool inference', () => {
         | 'startupTimeoutMs'
         | 'hostDisconnectTimeoutMs'
         | 'reconnect'
+        | 'keepAliveMs'
         | 'clientApp'
       >
     >().toEqualTypeOf<never>();
@@ -71,6 +72,7 @@ describe('createACP built-in tool inference', () => {
         | 'startupTimeoutMs'
         | 'hostDisconnectTimeoutMs'
         | 'reconnect'
+        | 'keepAliveMs'
         | 'clientApp'
       >
     >().toEqualTypeOf<ACPV1Settings>();
@@ -120,8 +122,9 @@ describe('createACP built-in tool inference', () => {
     >();
   });
 
-  test('accepts sandbox bridge reconnect settings', () => {
-    const settings: Pick<ACPHarnessSettings, 'reconnect'> = {
+  test('accepts sandbox bridge connection settings', () => {
+    const settings: Pick<ACPHarnessSettings, 'reconnect' | 'keepAliveMs'> = {
+      keepAliveMs: 100,
       reconnect: {
         maxElapsedMs: 120_000,
         initialDelayMs: 100,
@@ -129,6 +132,7 @@ describe('createACP built-in tool inference', () => {
       },
     };
 
+    expectTypeOf(settings.keepAliveMs).toEqualTypeOf<number | undefined>();
     expectTypeOf(settings.reconnect).toEqualTypeOf<
       SandboxChannelReconnectOptions | undefined
     >();
@@ -213,6 +217,7 @@ describe('createACP built-in tool inference', () => {
       modelMapping,
       ...toolCallSettings,
       skillsDirectory: '.claude/skills',
+      writeProtectedPaths: ['.claude'],
       instructionMapping: {
         type: 'session-meta',
         path: ['systemPrompt', 'append'],

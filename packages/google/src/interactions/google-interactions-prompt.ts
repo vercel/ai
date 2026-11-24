@@ -26,6 +26,7 @@ export type GoogleInteractionsAudioContent = {
   uri?: string;
   channels?: number;
   sample_rate?: number;
+  processing?: GoogleInteractionsFileProcessing;
 };
 
 export type GoogleInteractionsDocumentContent = {
@@ -33,9 +34,11 @@ export type GoogleInteractionsDocumentContent = {
   data?: string;
   mime_type?: string;
   uri?: string;
+  resolution?: 'low' | 'medium' | 'high' | 'ultra_high';
+  processing?: GoogleInteractionsFileProcessing;
 };
 
-export type GoogleInteractionsVideoProcessing =
+export type GoogleInteractionsFileProcessing =
   | 'agentic'
   | 'static'
   | {
@@ -43,6 +46,17 @@ export type GoogleInteractionsVideoProcessing =
       start_offset?: string;
       end_offset?: string;
       fps?: number;
+      content_layers?: Array<'frames' | 'audio' | 'transcript'>;
+      page_options?: {
+        start_page?: number;
+        end_page?: number;
+        content_layers?: Array<'page_image' | 'page_text'>;
+      };
+      spreadsheet_options?: {
+        sheet_index?: number;
+        visible_cells?: string;
+        content_layers?: Array<'data' | 'formulas' | 'visual'>;
+      };
     };
 
 export type GoogleInteractionsVideoContent = {
@@ -51,7 +65,7 @@ export type GoogleInteractionsVideoContent = {
   mime_type?: string;
   uri?: string;
   resolution?: 'low' | 'medium' | 'high' | 'ultra_high';
-  processing?: GoogleInteractionsVideoProcessing;
+  processing?: GoogleInteractionsFileProcessing;
 };
 
 export type GoogleInteractionsThoughtSummaryItem =
@@ -61,14 +75,14 @@ export type GoogleInteractionsThoughtSummaryItem =
 export type GoogleInteractionsFunctionResultContent = {
   type: 'function_result';
   call_id: string;
-  result:
-    | string
-    | Array<GoogleInteractionsTextContent | GoogleInteractionsImageContent>
-    | unknown;
+  result: string | Array<GoogleInteractionsFunctionResultPart>;
   name?: string;
   is_error?: boolean;
   signature?: string;
 };
+
+// Files remain nested in top-level function_result inputs.
+export type GoogleInteractionsFunctionResultPart = GoogleInteractionsContent;
 
 /**
  * Annotation types attached to a `text` content block:
@@ -319,6 +333,7 @@ export type GoogleInteractionsBuiltinToolResultStep =
     } & GoogleInteractionsMCPServerToolResultStepPayload);
 
 export type GoogleInteractionsStep =
+  | GoogleInteractionsFunctionResultContent
   | GoogleInteractionsUserInputStep
   | GoogleInteractionsModelOutputStep
   | GoogleInteractionsFunctionCallStep
@@ -340,14 +355,17 @@ export type GoogleInteractionsContentBlock =
   | GoogleInteractionsAudioContent
   | GoogleInteractionsDocumentContent
   | GoogleInteractionsVideoContent
-  | GoogleInteractionsFunctionResultContent
   | { type: string; [k: string]: unknown };
 
 /**
- * Alias kept for the file-part converter surface; identical to
- * `GoogleInteractionsContentBlock`.
+ * Content emitted by the file-part converter.
  */
-export type GoogleInteractionsContent = GoogleInteractionsContentBlock;
+export type GoogleInteractionsContent =
+  | GoogleInteractionsTextContent
+  | GoogleInteractionsImageContent
+  | GoogleInteractionsAudioContent
+  | GoogleInteractionsDocumentContent
+  | GoogleInteractionsVideoContent;
 
 /*
  * `input` is an array of steps. A single-turn user prompt is sent as
@@ -424,7 +442,8 @@ export type GoogleInteractionsThinkingLevel =
   | 'minimal'
   | 'low'
   | 'medium'
-  | 'high';
+  | 'high'
+  | 'xhigh';
 
 export type GoogleInteractionsThinkingSummaries = 'auto' | 'none';
 
@@ -577,6 +596,7 @@ export type GoogleInteractionsRequestBody = {
   model?: string;
   agent?: string;
   input: GoogleInteractionsInput;
+  labels?: Record<string, string>;
   system_instruction?: string;
   tools?: Array<GoogleInteractionsTool>;
   response_format?: Array<GoogleInteractionsResponseFormatEntry>;

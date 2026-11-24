@@ -41,17 +41,20 @@ export async function convertToLanguageModelPrompt({
   // `provider` is only needed here to convert legacy tool output types via `mapToolResultOutput`.
   // TODO: remove in v8 when "file-id" and "image-file-id" types are removed
   provider,
+  warnings,
 }: {
   prompt: StandardizedPrompt;
   supportedUrls: Record<string, RegExp[]>;
   download: DownloadFunction | undefined;
   abortSignal?: AbortSignal;
   provider?: string;
+  warnings?: Warning[];
 }): Promise<LanguageModelV4Prompt> {
   const downloadedAssets = await downloadAssets(
     prompt.messages,
     download ?? createDefaultDownloadFunction(undefined, abortSignal),
     supportedUrls,
+    abortSignal,
   );
 
   const messages = [
@@ -65,7 +68,12 @@ export async function convertToLanguageModelPrompt({
           }))
       : []),
     ...prompt.messages.map(message =>
-      convertToLanguageModelMessage({ message, downloadedAssets, provider }),
+      convertToLanguageModelMessage({
+        message,
+        downloadedAssets,
+        provider,
+        warnings,
+      }),
     ),
   ];
 
@@ -160,6 +168,7 @@ export function convertToLanguageModelMessage({
   // `provider` is only needed here to convert legacy tool output types via `mapToolResultOutput`.
   // TODO: remove in v8 when "file-id" and "image-file-id" types are removed
   provider,
+  warnings: collectedWarnings,
 }: {
   message: ModelMessage;
   downloadedAssets: Record<
@@ -167,8 +176,9 @@ export function convertToLanguageModelMessage({
     { mediaType: string | undefined; data: Uint8Array }
   >;
   provider?: string;
+  warnings?: Warning[];
 }): LanguageModelV4Message {
-  const warnings: Warning[] = [];
+  const warnings: Warning[] = collectedWarnings ?? [];
 
   const role = message.role;
   switch (role) {
@@ -207,7 +217,7 @@ export function convertToLanguageModelMessage({
           .filter(part => part.type !== 'text' || part.text !== ''),
         providerOptions: message.providerOptions,
       };
-      if (warnings.length > 0) {
+      if (collectedWarnings == null && warnings.length > 0) {
         logWarnings({ warnings });
       }
       return converted;
@@ -325,7 +335,7 @@ export function convertToLanguageModelMessage({
           }),
         providerOptions: message.providerOptions,
       };
-      if (warnings.length > 0) {
+      if (collectedWarnings == null && warnings.length > 0) {
         logWarnings({ warnings });
       }
       return converted;
@@ -368,7 +378,7 @@ export function convertToLanguageModelMessage({
           }),
         providerOptions: message.providerOptions,
       };
-      if (warnings.length > 0) {
+      if (collectedWarnings == null && warnings.length > 0) {
         logWarnings({ warnings });
       }
       return converted;
@@ -409,6 +419,7 @@ export async function downloadAssets(
   messages: ModelMessage[],
   download: DownloadFunction,
   supportedUrls: Record<string, RegExp[]>,
+  abortSignal?: AbortSignal,
 ): Promise<
   Record<string, { mediaType: string | undefined; data: Uint8Array }>
 > {
@@ -482,6 +493,7 @@ export async function downloadAssets(
     .filter((part): part is UrlTaggedFile => part.data.type === 'url')
     .map(part => ({
       url: part.data.url,
+      abortSignal,
       isUrlSupportedByModel:
         part.mediaType != null &&
         isUrlSupported({
@@ -704,7 +716,7 @@ export function mapToolResultOutput({
               mediaType === 'application/octet-stream'
                 ? `Unable to infer media type from URL. Defaulting to 'application/octet-stream'.`
                 : `Inferred media type '${mediaType}' from URL.`;
-            message = `The "file-url" tool result content part with URL "${item.url}" is missing a "mediaType". ${inferenceSuffix} ${message}`;
+            message = `A "file-url" tool result content part is missing a "mediaType". ${inferenceSuffix} ${message}`;
           }
           warnings.push({
             type: 'deprecated',

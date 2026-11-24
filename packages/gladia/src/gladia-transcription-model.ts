@@ -1,3 +1,4 @@
+import { getGladiaTranscriptionModelEntry } from './gladia-model-catalog';
 import {
   AISDKError,
   type JSONObject,
@@ -95,7 +96,10 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
     // Select the transcription model. `default` is the placeholder used when no
     // model id is passed to `gladia.transcription()`; in that case we omit the
     // field and let the Gladia API fall back to its own default (`solaria-1`).
-    if (this.modelId !== 'default') {
+    if (
+      !getGladiaTranscriptionModelEntry(this.modelId).requestConfig
+        .transcription.omitModel
+    ) {
       body.model = this.modelId;
     }
 
@@ -270,7 +274,10 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
       }
     }
 
-    if (this.modelId === 'solaria-3') {
+    if (
+      getGladiaTranscriptionModelEntry(this.modelId).requestConfig.transcription
+        .singleLanguage
+    ) {
       if (body.language_config?.languages?.length !== 1)
         warnings.push({
           type: 'other',

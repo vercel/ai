@@ -380,3 +380,11 @@ Object.assign(
 
 falModelCatalog['fal-ai/flux-2/edit'] =
   getFalImageModelEntry('fal-ai/flux-2/edit');
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type FalModelIds = {
+  image: (typeof imageModelIds)[number];
+  speech: (typeof speechModelIds)[number];
+  transcription: (typeof transcriptionModelIds)[number];
+  video: (typeof videoModelIds)[number];
+};

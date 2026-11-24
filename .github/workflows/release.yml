@@ -42,13 +42,14 @@ jobs:
           persist-credentials: false
 
       - name: Setup pnpm and Node.js
-        uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3
+        uses: pnpm/setup@731dfb6463bbd11c11fd0ee11fe00ed0e36d48a1 # v3
         with:
           runtime: node@24
           require-lockfile: true
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets
+        continue-on-error: true
         uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
         with:
           version: pnpm ci:version
@@ -59,6 +60,72 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # Only retry release PR preparation. Publishing may have partially succeeded.
+      # Versioning consumes changesets, so restore the original checkout and lockfile
+      # before each retry to avoid accidentally entering the publishing path.
+      - name: Prepare release PR retry 1
+        id: prepare-retry-1
+        if: >-
+          steps.changesets.outcome == 'failure' &&
+          steps.changesets.outputs.hasChangesets == 'true'
+        run: |
+          sleep 30
+          git reset --hard "$RELEASE_SHA"
+          git clean -fd
+          pnpm install --frozen-lockfile
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+
+      - name: Retry release PR preparation 1
+        id: changesets-retry-1
+        if: steps.prepare-retry-1.outcome == 'success'
+        continue-on-error: true
+        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
+        with:
+          version: pnpm ci:version
+          publish: pnpm ci:release
+          setupGitUser: false
+          commitMode: 'github-api'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare release PR retry 2
+        id: prepare-retry-2
+        if: >-
+          steps.changesets-retry-1.outcome == 'failure' &&
+          steps.changesets-retry-1.outputs.hasChangesets == 'true'
+        run: |
+          sleep 60
+          git reset --hard "$RELEASE_SHA"
+          git clean -fd
+          pnpm install --frozen-lockfile
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+
+      - name: Retry release PR preparation 2
+        id: changesets-retry-2
+        if: steps.prepare-retry-2.outcome == 'success'
+        continue-on-error: true
+        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
+        with:
+          version: pnpm ci:version
+          publish: pnpm ci:release
+          setupGitUser: false
+          commitMode: 'github-api'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check Changesets result
+        if: >-
+          !cancelled() &&
+          steps.changesets.outcome == 'failure' &&
+          steps.changesets-retry-1.outcome != 'success' &&
+          steps.changesets-retry-2.outcome != 'success'
+        run: |
+          echo "::error::Changesets did not complete successfully."
+          exit 1
+
+      # Publishing only runs on the first attempt, which owns notification outputs.
       - name: Find release PR number
         if: steps.changesets.outputs.published == 'true'
         id: release-pr
@@ -82,7 +149,7 @@ jobs:
           PULL_REQUEST_NUMBER: ${{ steps.release-pr.outputs.number }}
 
       - name: Upload release notification manifest
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-notification
           path: .release-notification

@@ -1,0 +1,84 @@
+{
+  "id": "2eb56558-d132-4164-9b25-855b14ab2dab",
+  "object": "response",
+  "created_at": 1794263125,
+  "status": "completed",
+  "background": false,
+  "completed_at": 1794263126,
+  "content_filters": null,
+  "error": null,
+  "frequency_penalty": 0,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": null,
+  "max_tool_calls": null,
+  "model": "deepseek-flash",
+  "moderation": null,
+  "output": [
+    {
+      "type": "reasoning",
+      "id": "ce3fcfc1-5896-44c8-aea0-4b70bcb7b61e",
+      "status": "completed",
+      "content": [
+        {
+          "type": "reasoning_text",
+          "text": "We need answer one sentence. Need explain Rayleigh scattering. Concise."
+        }
+      ],
+      "summary": [],
+      "encrypted_content": "2eb56558-d132-4164-9b25-855b14ab2dab-0"
+    },
+    {
+      "type": "message",
+      "id": "c597782f-3383-48de-8637-161d61d584f7",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": "The sky appears blue because air molecules scatter shorter-wavelength blue light from the Sun more strongly than longer-wavelength red light."
+        }
+      ],
+      "phase": "final_answer",
+      "role": "assistant"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": null,
+  "reasoning": {
+    "effort": null,
+    "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": false,
+  "temperature": 1,
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": null
+  },
+  "tool_choice": "auto",
+  "tools": [],
+  "top_logprobs": 0,
+  "top_p": 1,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 41,
+    "input_tokens_details": {
+      "cached_tokens": 0
+    },
+    "output_tokens": 40,
+    "output_tokens_details": {
+      "reasoning_tokens": 14
+    },
+    "total_tokens": 81
+  },
+  "user": null,
+  "metadata": {}
+}

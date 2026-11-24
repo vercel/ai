@@ -1,5 +1,149 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.196
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.192
+
+## 1.0.195
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.191
+
+## 1.0.194
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.190
+
+## 1.0.193
+
+### Patch Changes
+
+- 31120c5: fix(harness-claude-code): preserve session ID from `init` events
+- 04a8f38: fix(harness): keep silent sandbox bridge connections alive with WebSocket pings and reconnect when a peer stops responding, controllable via `keepAliveMs` option for bridge-backed harness adapters
+- Updated dependencies [1d2c2ff]
+- Updated dependencies [04a8f38]
+  - @ai-sdk/provider-utils@5.0.83
+  - @ai-sdk/harness@1.0.189
+
+## 1.0.192
+
+### Patch Changes
+
+- Updated dependencies [679b5b5]
+  - @ai-sdk/harness@1.0.188
+
+## 1.0.191
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.187
+
+## 1.0.190
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.186
+
+## 1.0.189
+
+### Patch Changes
+
+- f630e0d: fix(harness): update bridge zod dependency to 4.6.7 to address GHSA-mrhx-c7xc-m3w5
+- Updated dependencies [10ff0b1]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/provider@4.0.39
+  - @ai-sdk/provider-utils@5.0.82
+  - @ai-sdk/harness@1.0.185
+
+## 1.0.188
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.184
+
+## 1.0.187
+
+### Patch Changes
+
+- 71bef69: feat(harness): require approval for sensitive workspace file changes in `allow-edits` permission mode
+- Updated dependencies [6d50947]
+- Updated dependencies [71bef69]
+  - @ai-sdk/provider-utils@5.0.81
+  - @ai-sdk/harness@1.0.183
+
+## 1.0.186
+
+### Patch Changes
+
+- Updated dependencies [2ebc78b]
+- Updated dependencies [1a94af3]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/harness@1.0.182
+  - @ai-sdk/provider@4.0.38
+
+## 1.0.185
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.181
+
+## 1.0.184
+
+### Patch Changes
+
+- 5c3842f: feat(harness-claude-code): add opt-in auto permission mode with host approval for classifier escalations and raw effective permission-mode reporting.
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+  - @ai-sdk/harness@1.0.180
+
+## 1.0.183
+
+### Patch Changes
+
+- 0fc1f13: chore(harness): update harness adapter underlying SDKs to their latest releases
+- c849d37: feat(harness): use public-key cryptography instead of token for sandbox bridge communication
+- fcd763a: fix(harness-claude-code): fix incorrect low-level property being passed to Claude Agent SDK
+- Updated dependencies [c849d37]
+- Updated dependencies [7f1c01e]
+- Updated dependencies [88b9575]
+  - @ai-sdk/harness@1.0.179
+  - @ai-sdk/provider-utils@5.0.78
+
+## 1.0.182
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+  - @ai-sdk/harness@1.0.178
+
+## 1.0.181
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.177
+
+## 1.0.180
+
+### Patch Changes
+
+- e4a6112: fix(harness): enforce workDir / project-level config isolation where possible and clearly document the gap otherwise
+- 7a5a9c6: fix(harness-claude-code): run apiKeyHelper through the platform shell on Windows
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+  - @ai-sdk/harness@1.0.176
+
 ## 1.0.179
 
 ### Patch Changes

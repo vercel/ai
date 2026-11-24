@@ -51,8 +51,8 @@ createFeatureTestSuite({
   models: {
     invalidModel: provider.chat('no-such-model'),
     languageModels: [
-      createSearchGroundedModel('gemini-2.5-flash'),
-      createChatModel('gemini-2.5-flash'),
+      createSearchGroundedModel('gemini-4-hydrogen'),
+      createChatModel('gemini-4-hydrogen'),
       // Gemini 2.0 and Pro models have low quota limits and may require billing enabled.
       // createChatModel('gemini-2.5-flash-image'),
       // createSearchGroundedModel('gemini-2.5-flash-image'),

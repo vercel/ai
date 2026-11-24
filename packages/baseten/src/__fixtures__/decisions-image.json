@@ -1,0 +1,13 @@
+{
+  "model": "decision-models/baseten-bison-31b-latest",
+  "answers": {
+    "red": {
+      "type": "noul",
+      "noul": 0.9999646437492582
+    }
+  },
+  "usage": {
+    "input_tokens": 729,
+    "output_tokens": 1
+  }
+}

@@ -1,16 +1,15 @@
 {
   "name": "@ai-sdk/react",
-  "version": "4.0.168",
+  "version": "4.0.186",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "pnpm clean && tsdown",
-    "build:watch": "pnpm clean && tsdown --watch",
-    "clean": "del-cli *.tsbuildinfo",
-    "type-check": "tsc --build",
+    "build": "tsdown",
+    "build:watch": "tsdown --watch",
+    "type-check": "tsc --noEmit --rootDir ..",
     "test": "vitest --config vitest.config.js --run",
     "test:update": "vitest --config vitest.config.js --run -u",
     "test:watch": "vitest --config vitest.config.js"
@@ -59,7 +58,7 @@
     "react-dom": "^18.3.1",
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
-    "zod": "3.25.76"
+    "zod": "4.6.7"
   },
   "peerDependencies": {
     "react": "^18 || ~19.0.1 || ~19.1.2 || ^19.2.1"
