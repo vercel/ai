@@ -327,8 +327,8 @@ function appendLegacyToolResultParts(
 export function convertToGoogleMessages(
   prompt: LanguageModelV4Prompt,
   options?: {
-    isGemmaModel?: boolean;
-    isGemini3Model?: boolean;
+    systemInstructionAsUserMessage?: boolean;
+    requiresThoughtSignatures?: boolean;
     onWarning?: (warning: SharedV4Warning) => void;
     /**
      * Names to look up under `providerOptions` when reading per-part metadata
@@ -345,8 +345,9 @@ export function convertToGoogleMessages(
   const systemInstructionParts: Array<{ text: string }> = [];
   const contents: Array<GoogleContent> = [];
   let systemMessagesAllowed = true;
-  const isGemmaModel = options?.isGemmaModel ?? false;
-  const isGemini3Model = options?.isGemini3Model ?? false;
+  const systemInstructionAsUserMessage =
+    options?.systemInstructionAsUserMessage ?? false;
+  const requiresThoughtSignatures = options?.requiresThoughtSignatures ?? false;
   const onWarning = options?.onWarning;
   const providerOptionsNames = options?.providerOptionsNames ?? ['google'];
   const isVertexLike = !providerOptionsNames.includes('google');
@@ -619,7 +620,8 @@ export function convertToGoogleMessages(
                     modelResponseHasSignedFunctionCall;
                   const effectiveThoughtSignature =
                     thoughtSignature ??
-                    (isGemini3Model && !shouldSkipMissingSignatureMitigation
+                    (requiresThoughtSignatures &&
+                    !shouldSkipMissingSignatureMitigation
                       ? injectSkipSignature(part.toolName)
                       : undefined);
 
@@ -800,7 +802,7 @@ export function convertToGoogleMessages(
   }
 
   if (
-    isGemmaModel &&
+    systemInstructionAsUserMessage &&
     systemInstructionParts.length > 0 &&
     contents.length > 0 &&
     contents[0].role === 'user'
@@ -831,7 +833,7 @@ export function convertToGoogleMessages(
 
   return {
     systemInstruction:
-      systemInstructionParts.length > 0 && !isGemmaModel
+      systemInstructionParts.length > 0 && !systemInstructionAsUserMessage
         ? { parts: systemInstructionParts }
         : undefined,
     contents,
