@@ -6098,6 +6098,7 @@ describe('generateText', () => {
               "warnings": [],
             },
           ],
+          "stoppedBy": "stop-condition",
           "text": "Hello, World!",
           "toolCalls": [
             {
@@ -13310,6 +13311,175 @@ describe('generateText', () => {
         });
 
         expect(executeFunction).toHaveBeenCalledOnce();
+      });
+
+      describe('when the model calls a tool', () => {
+        type Status =
+          | 'user-approval'
+          | 'approved'
+          | 'denied'
+          | 'not-applicable';
+
+        const callTool = ({
+          getStatus,
+          executeFunction,
+          messages = [{ role: 'user', content: 'test' }],
+        }: {
+          getStatus: () => Status;
+          executeFunction: ToolExecuteFunction<any, any, any>;
+          messages?: ModelMessage[];
+        }) => {
+          let step = 0;
+
+          return generateText({
+            model: new MockLanguageModelV4({
+              doGenerate: async () => {
+                if (step++ === 0) {
+                  return {
+                    ...dummyResponseValues,
+                    content: [
+                      {
+                        type: 'tool-call',
+                        toolCallType: 'function',
+                        toolCallId: 'call-1',
+                        toolName: 'tool1',
+                        input: `{ "value": "test" }`,
+                      },
+                    ],
+                    finishReason: { unified: 'tool-calls', raw: undefined },
+                  };
+                }
+
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'done' }],
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                };
+              },
+            }),
+            tools: {
+              tool1: tool({
+                inputSchema: z.object({ value: z.string() }),
+                execute: executeFunction,
+              }),
+            },
+            toolApproval: { tool1: () => getStatus() },
+            experimental_toolApprovalSecret: testSecret,
+            stopWhen: isStepCount(3),
+            messages,
+          });
+        };
+
+        const getApprovalRequest = (messages: ModelMessage[]) =>
+          messages
+            .flatMap(message =>
+              message.role === 'assistant' &&
+              typeof message.content !== 'string'
+                ? message.content
+                : [],
+            )
+            .find(part => part.type === 'tool-approval-request');
+
+        it.each(['user-approval', 'approved'] as const)(
+          'should sign the approval request when the tool approval status is %s',
+          async status => {
+            const result = await callTool({
+              getStatus: () => status,
+              executeFunction: vi.fn().mockReturnValue('result1'),
+            });
+
+            const approvalRequest = getApprovalRequest(result.responseMessages);
+
+            expect(approvalRequest?.signature).toBe(
+              await signToolApproval({
+                secret: testSecret,
+                approvalId: approvalRequest!.approvalId,
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: { value: 'test' },
+              }),
+            );
+          },
+        );
+
+        it('should not sign the approval request when the tool call is denied automatically', async () => {
+          const result = await callTool({
+            getStatus: () => 'denied',
+            executeFunction: vi.fn().mockReturnValue('result1'),
+          });
+
+          const approvalRequest = getApprovalRequest(result.responseMessages);
+
+          expect(approvalRequest).toMatchObject({
+            toolCallId: 'call-1',
+            isAutomatic: true,
+          });
+          expect(approvalRequest).not.toHaveProperty('signature');
+        });
+
+        it('should reject an approved response to a tool call that was denied automatically', async () => {
+          const executeFunction = vi.fn().mockReturnValue('result1');
+          let status: Status = 'denied';
+
+          const result = await callTool({
+            getStatus: () => status,
+            executeFunction,
+          });
+
+          // The client omits the history that caused the denial, so the policy
+          // no longer denies the tool call when the approval is checked again.
+          status = 'not-applicable';
+
+          const [assistantMessage] = result.responseMessages;
+
+          await expect(
+            callTool({
+              getStatus: () => status,
+              executeFunction,
+              messages: [
+                { role: 'user', content: 'test' },
+                assistantMessage,
+                {
+                  role: 'tool',
+                  content: [
+                    {
+                      type: 'tool-approval-response',
+                      approvalId: getApprovalRequest(result.responseMessages)!
+                        .approvalId,
+                      approved: true,
+                    },
+                  ],
+                },
+              ],
+            }),
+          ).rejects.toThrowError(/missing signature/);
+
+          expect(executeFunction).not.toHaveBeenCalled();
+        });
+
+        it('should continue a conversation that ends with an automatic denial', async () => {
+          const executeFunction = vi.fn().mockReturnValue('result1');
+
+          const result = await callTool({
+            getStatus: () => 'denied',
+            executeFunction,
+          });
+
+          const [assistantMessage, toolMessage] = result.responseMessages;
+
+          const continued = await callTool({
+            getStatus: () => 'denied',
+            executeFunction,
+            messages: [
+              { role: 'user', content: 'test' },
+              assistantMessage,
+              toolMessage,
+            ],
+          });
+
+          expect(continued.text).toBe('done');
+          expect(executeFunction).not.toHaveBeenCalled();
+        });
       });
     });
 

@@ -69,6 +69,12 @@ expectTypeOf<{
   template: HarnessV1SandboxTemplate;
   abortSignal: AbortSignal;
 }>().toExtend<Options>();
+expectTypeOf<{
+  runtime: 'node24';
+  template: HarnessV1SandboxTemplate | undefined;
+  templateName: string;
+}>().toExtend<Options>();
+expectTypeOf<{ templateName: number }>().not.toExtend<Options>();
 expectTypeOf<{ image: string; signal: AbortSignal }>().toExtend<Options>();
 expectTypeOf<{ sandboxId: string; runtime: 'node24' }>().toExtend<Options>();
 expectTypeOf<{
@@ -104,3 +110,4 @@ expectTypeOf<{
 }>().not.toExtend<ResumeOptions>();
 expectTypeOf<ResumeOptions>().not.toHaveProperty('runtime');
 expectTypeOf<ResumeOptions>().not.toHaveProperty('template');
+expectTypeOf<ResumeOptions>().not.toHaveProperty('templateName');

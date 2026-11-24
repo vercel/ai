@@ -15,6 +15,19 @@ export const basetenDocs = {
         ['JSON Schema', 'structuredOutput.jsonSchema'],
       ],
     },
+    {
+      id: 'baseten-decision',
+      capability: 'decision',
+      columns: [
+        ['Boolean', 'questionTypes.boolean'],
+        ['Choice', 'questionTypes.choice'],
+        ['Score', 'questionTypes.score'],
+        ['Box', 'questionTypes.box'],
+        ['Image Input', 'inputs.image'],
+        ['Reasoning', 'reasoning'],
+        ['Max Output Tokens', 'maxOutputTokens'],
+      ],
+    },
   ],
   providerOptionTables: [{ id: 'baseten-provider-options' }],
 };

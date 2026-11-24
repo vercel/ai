@@ -2023,6 +2023,13 @@ To see `generateText` in action, check out [these examples](#examples).
       ],
     },
     {
+      name: 'onWarning',
+      type: '(options: { warnings: Warning[]; provider?: string; model?: string }) => void',
+      isOptional: true,
+      description:
+        'Callback that receives the warnings of the call, e.g. unsupported settings or deprecated prompt parts. When it is set, the warnings are not sent to the global warning logger (`AI_SDK_LOG_WARNINGS`).',
+    },
+    {
       name: 'onStepFinish',
       type: 'GenerateTextOnStepFinishCallback<TOOLS>',
       isOptional: true,
@@ -2060,6 +2067,12 @@ To see `generateText` in action, check out [these examples](#examples).
               type: 'string | undefined',
               description:
                 'The raw reason why the generation finished (from the provider).',
+            },
+            {
+              name: 'stoppedBy',
+              type: "'model' | 'stop-condition' | 'tool-without-execute' | 'approval' | undefined",
+              description:
+                'Why the generation stopped its tool loop. Unlike `finishReason`, which describes the last model call, it tells whether the model, a stop condition, a tool without an `execute` function, or a tool approval ended the loop. See [Loop Control](/docs/agents/loop-control#why-the-loop-stopped).',
             },
             {
               name: 'usage',
@@ -2672,6 +2685,12 @@ To see `generateText` in action, check out [these examples](#examples).
       type: 'string | undefined',
       description:
         'The raw reason why the generation finished (from the provider).',
+    },
+    {
+      name: 'stoppedBy',
+      type: "'model' | 'stop-condition' | 'tool-without-execute' | 'approval' | undefined",
+      description:
+        'Why the generation stopped its tool loop. Unlike `finishReason`, which describes the last model call, it tells whether the model, a stop condition, a tool without an `execute` function, or a tool approval ended the loop. See [Loop Control](/docs/agents/loop-control#why-the-loop-stopped). Always set by `generateText` and `ToolLoopAgent`.',
     },
     {
       name: 'usage',

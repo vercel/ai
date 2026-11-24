@@ -86,6 +86,27 @@ fields. If AI SDK 5 is also installed, include its
 handle its warning array before accessing the options object used by AI SDK 6
 and 7.
 
+#### Per-Call Warning Handler
+
+You can pass `onWarning` to `generateText`, `streamText`, or `ToolLoopAgent` to
+handle the warnings of a single call, e.g. to show them in a terminal UI instead
+of writing them to stderr. When `onWarning` is set, the warnings of that call are
+not sent to the global warning logger.
+
+```ts
+const result = streamText({
+  model: __MODEL__,
+  prompt: 'Hello, world!',
+  onWarning: ({ warnings, provider, model }) => {
+    // Show the warnings in your UI
+  },
+});
+```
+
+`onWarning` receives the warnings of each step, including prompt deprecations
+such as the legacy `image` content part. These are the same warnings as in
+`step.warnings`, `result.warnings`, and the `start-step` stream part.
+
 ### Deprecation Warnings
 
 The default logger emits each deprecation code once per loaded SDK instance.

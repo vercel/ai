@@ -992,6 +992,12 @@ export function runPrompt<
           result.enqueueRaw(value.rawValue);
           continue;
         }
+        // Whether a host tool failed is what the host submitted for it: the
+        // runtime's echo can also flag a success whose model output is an error.
+        const submittedHostToolResult =
+          value.type === 'tool-result'
+            ? submittedHostToolResults.get(value.toolCallId)
+            : undefined;
         if (value.type === 'tool-result') {
           hostToolCallIdsAwaitingEcho.delete(value.toolCallId);
           submittedHostToolResults.delete(value.toolCallId);
@@ -1206,7 +1212,12 @@ export function runPrompt<
         }
 
         const translatedParts = translateStreamPart<TOOLS>(
-          displayValue,
+          displayValue.type === 'tool-result' && submittedHostToolResult != null
+            ? {
+                ...displayValue,
+                isError: submittedHostToolResult.isError === true,
+              }
+            : displayValue,
           translateOptions,
         );
         if (value.type !== 'tool-result') {

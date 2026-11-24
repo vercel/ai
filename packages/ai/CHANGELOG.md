@@ -1,5 +1,56 @@
 # ai
 
+## 7.0.181
+
+### Patch Changes
+
+- d834c5b: add per-call `onWarning` callback and include prompt conversion warnings in the step warnings
+- 7760e33: add stoppedBy to generateText and streamText results, onEnd, and the finish part to tell why the tool loop stopped
+- 28d17e6: report why the run ended for steering messages sent after it, and count steering messages as delivered when prepareStep turns their text into parts or adds provider options
+- 797dc02: Strip provider options from text and file parts in extraction telemetry while preserving arbitrary JSON state and the options sent to the provider.
+- Updated dependencies [f2732a6]
+  - @ai-sdk/gateway@4.0.154
+
+## 7.0.180
+
+### Patch Changes
+
+- Updated dependencies [83026e8]
+  - @ai-sdk/gateway@4.0.153
+
+## 7.0.179
+
+### Patch Changes
+
+- 7e55599: feat(gateway): support Live models over WebSocket
+
+  - `gateway.experimental_realtime()` returns a continuous Live model for `openai/gpt-live-1` and `openai/gpt-live-1.1`. It connects to the Gateway Live route and speaks the normalized Live protocol (`session-start`, PCM16 audio, `context-append`, `session-close` with final usage). Pass `{ api: 'live' }` for other Live model IDs or `{ api: 'realtime' }` to force the realtime route. Before, these model IDs opened the realtime route, which rejected them with `invalid_model`.
+  - `gateway.experimental_realtime.getToken()` mints Live-bound client secrets for Live models.
+  - `experimental_useRealtime` and the realtime session can connect a continuous model straight to the provider with a short-lived token (`api.token`) when the model explicitly declares the `client-secret-websocket` connection. Before, continuous WebSocket sessions required an application relay.
+
+- Updated dependencies [7e55599]
+- Updated dependencies [beccad3]
+  - @ai-sdk/gateway@4.0.152
+
+## 7.0.178
+
+### Patch Changes
+
+- 0b8cbfa: `generateText` and `streamText` passed the messages array that `prepareStep` returned to tools and tool approval functions as it was. When `prepareStep` returned the same array for several steps or calls, tool approval functions could not tell the tool calls of one model response from the tool calls of another. The messages array of every step is now created for that step, so the messages that `prepareStep` returns are copied.
+- 6815153: fix(ai): forward the `preliminary` flag on provider-executed tool results in `streamText`, so preliminary results (e.g. OpenAI image generation previews) are no longer recorded as final tool results in step content and response messages
+- 15bfd6b: add telemetry, runtime context and lifecycle callbacks to `experimental_extract`
+- 15bfd6b: redact file urls from download errors sent to telemetry
+- 2613bb4: fix(ai): build the `ai`, `ai/internal`, and `ai/test` entrypoints together so their types stay compatible with each other
+- 63593a7: With `experimental_toolApprovalSecret` configured, `generateText` and `streamText` signed the approval request of a tool call that the tool approval policy had denied automatically. A client that controls the message history could send that request back with an approved response and have the denied tool call executed. Approval requests of automatically denied tool calls are no longer signed, so such a response is rejected with `AI_InvalidToolApprovalSignatureError`.
+
+  Signatures that earlier versions issued for automatic denials stay valid. To invalidate them, rotate the secret passed to `experimental_toolApprovalSecret`. Approval requests that are still waiting for a user decision then have to be requested again.
+
+- Updated dependencies [1d2c2ff]
+- Updated dependencies [a51981c]
+- Updated dependencies [875de7b]
+  - @ai-sdk/provider-utils@5.0.83
+  - @ai-sdk/gateway@4.0.151
+
 ## 7.0.177
 
 ### Patch Changes

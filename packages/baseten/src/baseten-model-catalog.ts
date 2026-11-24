@@ -135,11 +135,47 @@ export function getBasetenEmbeddingModelEntry(_modelId: string) {
     embedding: typeof basetenRequestDefaults.embedding;
   }>;
 }
-export const basetenModelCatalog = Object.fromEntries(
-  languageModelIds.map(id => [id, getBasetenLanguageModelEntry(id)]),
-);
+// These adapter limits apply to custom IDs as well as catalog models.
+export const basetenDecisionModelLimits = {
+  supportedQuestionTypes: ['choice', 'score', 'boolean'],
+  minChoiceOptions: 1,
+  maxChoiceOptions: 255,
+  minScoreLevels: 1,
+  maxScoreLevels: 10,
+  // Each boolean question counts as two options.
+  maxOptions: 512,
+  maxImages: 16,
+} as const;
+
+const decisionModelIds = [
+  'decision-models/baseten-bison-latest',
+  'decision-models/baseten-groundhog-latest',
+  'decision-models/baseten-mammoth-27b-latest',
+  'decision-models/baseten-elephant-9b-latest',
+  'decision-models/baseten-joey-2b-latest',
+] as const;
+
+export function getBasetenDecisionModelEntry(_modelId: string) {
+  return {
+    capabilities: {
+      decision: {
+        questionTypes: { boolean: true, choice: true, score: true, box: false },
+        inputs: { image: true },
+        reasoning: false,
+        maxOutputTokens: false,
+        ...basetenDecisionModelLimits,
+      },
+    },
+  } satisfies ModelEntry;
+}
+
+export const basetenModelCatalog = Object.fromEntries([
+  ...languageModelIds.map(id => [id, getBasetenLanguageModelEntry(id)]),
+  ...decisionModelIds.map(id => [id, getBasetenDecisionModelEntry(id)]),
+]);
 
 /** Known model IDs, derived from the declarations used to build the catalog. */
 export type BasetenModelIds = {
   language: (typeof languageModelIds)[number];
+  decision: (typeof decisionModelIds)[number];
 };

@@ -111,7 +111,7 @@ describe('translateStreamPart', () => {
     ]);
   });
 
-  it('leaves a failed host tool result as a tool-result', () => {
+  it('translates a failed host tool result into a tool-error that is not provider-executed', () => {
     const out = translateStreamPart<ToolSet>(
       {
         type: 'tool-result',
@@ -124,11 +124,14 @@ describe('translateStreamPart', () => {
     );
 
     expect(out).toEqual([
-      expect.objectContaining({
-        type: 'tool-result',
+      {
+        type: 'tool-error',
         toolCallId: 'c1',
-        output: { error: 'Error: boom' },
-      }),
+        toolName: 'weather',
+        input: undefined,
+        error: { error: 'Error: boom' },
+        providerExecuted: false,
+      },
     ]);
   });
 

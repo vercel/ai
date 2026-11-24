@@ -9,6 +9,7 @@ import {
   lazySchema,
   zodSchema,
   combineHeaders,
+  convertBase64ToUint8Array,
   createJsonResponseHandler,
   extractResponseHeaders,
   parseProviderOptions,
@@ -76,31 +77,27 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
 
     const body: Omit<AssemblyAITranscriptionAPITypes, 'audio_url'> = {};
 
-    // The legacy `best` model is selected via the deprecated singular
-    // `speech_model` parameter. All other models (e.g. `universal-2`,
-    // `universal-3-pro`, `universal-3-5-pro`) are only accessible via the
-    // `speech_models` array and are rejected by `speech_model`.
+    // AssemblyAI selects models only through the `speech_models` array; the
+    // singular `speech_model` parameter is rejected.
     // See https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model
+    body.speech_models = [this.modelId];
+
     const { requestConfig } = getAssemblyAITranscriptionModelEntry(
       this.modelId,
     );
-    if (requestConfig.transcription.legacy) {
-      body.speech_model = this.modelId as 'best';
+    if (requestConfig.transcription.deprecated) {
       warnings.push({
         type: 'deprecated',
         setting: `model '${this.modelId}'`,
-        message:
-          "The 'best' model is a legacy AssemblyAI model. Use 'universal-3-5-pro' instead. See documentation: https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model",
+        message: `AssemblyAI has deprecated '${this.modelId}'. Use 'assemblyai-stt-3-7' instead. See documentation: https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model`,
       });
-    } else {
-      body.speech_models = [this.modelId];
+    }
 
-      if (requestConfig.transcription.replacementWarning != null) {
-        warnings.push({
-          type: 'other',
-          message: `${requestConfig.transcription.replacementWarning} See https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model`,
-        });
-      }
+    if (requestConfig.transcription.replacementWarning != null) {
+      warnings.push({
+        type: 'other',
+        message: `${requestConfig.transcription.replacementWarning} See https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model`,
+      });
     }
 
     // Add provider-specific options
@@ -210,7 +207,7 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
           type: 'deprecated',
           setting: deprecatedBoostOptions.join(', '),
           message:
-            "'wordBoost' and 'boostParam' are deprecated and are rejected by 'universal-3-pro' / 'universal-3-5-pro' and 'slam-1'. Use 'keytermsPrompt' instead.",
+            "'wordBoost' and 'boostParam' are deprecated and are rejected by 'assemblyai-stt-3-7' and 'universal-3-5-pro'. Use 'keytermsPrompt' instead.",
         });
       }
 
@@ -334,6 +331,11 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
     options: Parameters<TranscriptionModelV4['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    // The upload endpoint takes the raw file, so a base64 string is decoded.
+    const audio =
+      typeof options.audio === 'string'
+        ? convertBase64ToUint8Array(options.audio)
+        : options.audio;
 
     const { value: uploadResponse } = await postToApi({
       url: this.config.url({
@@ -345,8 +347,8 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
         ...combineHeaders(await resolve(this.config.headers), options.headers),
       },
       body: {
-        content: options.audio,
-        values: options.audio,
+        content: audio,
+        values: audio,
       },
       failedResponseHandler: assemblyaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

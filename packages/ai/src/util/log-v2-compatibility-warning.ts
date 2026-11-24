@@ -1,13 +1,16 @@
-import { logWarnings } from '../logger/log-warnings';
+import { createLogWarnings } from '../logger/create-log-warnings';
+import type { LogWarningsFunction } from '../logger/log-warnings';
 
 export function logV2CompatibilityWarning({
   provider,
   modelId,
+  onWarning,
 }: {
   provider: string;
   modelId: string;
+  onWarning?: LogWarningsFunction;
 }): void {
-  logWarnings({
+  createLogWarnings(onWarning)({
     warnings: [
       {
         type: 'compatibility',
