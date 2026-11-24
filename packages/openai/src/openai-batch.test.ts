@@ -500,6 +500,7 @@ describe('OpenAI batch service', () => {
           batchResponse({
             id: 'batch_122',
             status: 'completed',
+            output_file_id: 'file-output',
             request_counts: { total: 2, completed: 2, failed: 0 },
           }),
         ],
@@ -612,7 +613,11 @@ describe('OpenAI batch service', () => {
   it.each([
     [
       'both file ids',
-      { output_file_id: 'file-output', error_file_id: 'file-errors' },
+      {
+        output_file_id: 'file-output',
+        error_file_id: 'file-errors',
+        request_counts: { total: 2, completed: 1, failed: 1 },
+      },
       { openai: { outputFileId: 'file-output', errorFileId: 'file-errors' } },
     ],
     [
@@ -622,7 +627,11 @@ describe('OpenAI batch service', () => {
     ],
     [
       'only the error file id',
-      { output_file_id: null },
+      {
+        output_file_id: null,
+        error_file_id: 'file-errors',
+        request_counts: { total: 2, completed: 0, failed: 2 },
+      },
       { openai: { errorFileId: 'file-errors' } },
     ],
   ])(
@@ -630,7 +639,7 @@ describe('OpenAI batch service', () => {
     async (_, fileIds, providerMetadata) => {
       server.urls[urls.batch].response = {
         type: 'json-value',
-        body: batchResponse({ error_file_id: 'file-errors', ...fileIds }),
+        body: batchResponse(fileIds),
       };
       const batch = createOpenAI({
         apiKey: 'test-api-key',
@@ -643,10 +652,10 @@ describe('OpenAI batch service', () => {
   );
 
   it('omits status provider metadata when OpenAI returns no file ids', async () => {
-    server.urls[urls.batch].response = {
-      type: 'json-value',
-      body: batchResponse({ status: 'in_progress' }),
-    };
+    const { output_file_id, error_file_id, ...body } = batchResponse({
+      status: 'in_progress',
+    });
+    server.urls[urls.batch].response = { type: 'json-value', body };
     const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
 
     const status = await batch.doGetBatchStatus({ batchId: 'batch_123' });
