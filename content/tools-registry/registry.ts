@@ -1032,7 +1032,7 @@ console.log(text);`,
     websiteUrl: 'https://upstash.com',
     npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
   },
-    {
+  {
     slug: 'ktemia',
     name: 'Ktemia',
     description:
