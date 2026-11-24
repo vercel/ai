@@ -78,6 +78,6 @@
 /* Keep navbar dropdowns (Resources) as tall as the product menu, whose
    tallest column has five links, so the panel doesn't change height when the
    pointer moves between them. Remove once Geistdocs reserves the rows itself. */
-nav[aria-label='Primary navigation'] ul ul {
+nav[aria-label="Primary navigation"] ul ul {
   @apply text-label-20 min-h-[5lh];
 }
