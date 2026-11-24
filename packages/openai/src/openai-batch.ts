@@ -75,8 +75,9 @@ const openaiBatchProviderOptionsSchema = lazySchema(() =>
 
       /**
        * TTL in seconds for the batch output and error files, measured from
-       * batch creation. OpenAI accepts integers between 3600 (1 hour) and
-       * 2592000 (30 days) inclusive. Defaults to OpenAI's file retention.
+       * when each file is created. OpenAI accepts integers between 3600
+       * (1 hour) and 2592000 (30 days) inclusive. Defaults to OpenAI's file
+       * retention.
        */
       outputFileExpiresAfter: z
         .number()
