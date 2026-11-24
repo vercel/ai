@@ -2219,8 +2219,8 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should omit reasoning effort updates for models before GPT-6', async () => {
-        const { warnings } = await createModel('gpt-5.6').doGenerate({
+      it('should omit reasoning effort updates for models without configuration updates', async () => {
+        const { warnings } = await createModel('gpt-5.5').doGenerate({
           prompt: TEST_PROMPT,
           providerOptions: {
             openai: {
@@ -2274,24 +2274,27 @@ describe('OpenAIResponsesLanguageModel', () => {
         ]);
       });
 
-      it('should send prompt cache retention for GPT-5 models', async () => {
-        const { warnings } = await createModel('gpt-5.5').doGenerate({
-          prompt: TEST_PROMPT,
-          providerOptions: {
-            openai: {
-              promptCacheRetention: '24h',
-            } satisfies OpenAILanguageModelResponsesOptions,
-          },
-        });
+      it.each(['gpt-5.5', 'gpt-6-astra'])(
+        'should send prompt cache retention for %s',
+        async modelId => {
+          const { warnings } = await createModel(modelId).doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              openai: {
+                promptCacheRetention: '24h',
+              } satisfies OpenAILanguageModelResponsesOptions,
+            },
+          });
 
-        expect(
-          (await server.calls[0].requestBodyJson).prompt_cache_retention,
-        ).toBe('24h');
-        expect(warnings).toStrictEqual([]);
-      });
+          expect(
+            (await server.calls[0].requestBodyJson).prompt_cache_retention,
+          ).toBe('24h');
+          expect(warnings).toStrictEqual([]);
+        },
+      );
 
-      it('should omit legacy prompt cache retention for GPT-6 models', async () => {
-        const { warnings } = await createModel('gpt-6-astra').doGenerate({
+      it('should omit legacy prompt cache retention for unlisted reasoning models', async () => {
+        const { warnings } = await createModel('gpt-99').doGenerate({
           prompt: TEST_PROMPT,
           providerOptions: {
             openai: {
@@ -2301,7 +2304,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-6-astra',
+          model: 'gpt-99',
           input: [
             {
               role: 'user',
@@ -2362,7 +2365,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should warn and drop serviceTier fast for a model without priority processing', async () => {
-        const { warnings } = await createModel('gpt-5-nano').doGenerate({
+        const { warnings } = await createModel('gpt-3.5-turbo').doGenerate({
           prompt: TEST_PROMPT,
           providerOptions: {
             openai: {

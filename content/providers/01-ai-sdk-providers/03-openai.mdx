@@ -4133,9 +4133,9 @@ The following provider options are available:
 
 | Model                       | Transcription | Streaming | Duration  | Segments  | Language  |
 | --------------------------- | ------------- | --------- | --------- | --------- | --------- |
-| `whisper-1`                 | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
-| `gpt-4o-mini-transcribe`    | <Check />     | <Cross /> | <Cross /> | <Cross /> | <Cross /> |
-| `gpt-4o-transcribe`         | <Check />     | <Cross /> | <Cross /> | <Cross /> | <Cross /> |
+| `whisper-1`                 | <Check />     | <Check /> | <Check /> | <Check /> | <Check /> |
+| `gpt-4o-mini-transcribe`    | <Check />     | <Check /> | <Cross /> | <Cross /> | <Cross /> |
+| `gpt-4o-transcribe`         | <Check />     | <Check /> | <Cross /> | <Cross /> | <Cross /> |
 | `gpt-4o-transcribe-diarize` | <Check />     | <Cross /> | <Check /> | <Check /> | <Cross /> |
 | `gpt-transcribe`            | <Check />     | <Check /> | <Cross /> | <Cross /> | <Check /> |
 | `gpt-live-transcribe`       | <Cross />     | <Check /> | <Cross /> | <Cross /> | <Cross /> |
@@ -4250,8 +4250,8 @@ const result = await generateSpeech({
 
 | Model             | Instructions |
 | ----------------- | ------------ |
-| `tts-1`           | <Cross />    |
-| `tts-1-hd`        | <Cross />    |
+| `tts-1`           | <Check />    |
+| `tts-1-hd`        | <Check />    |
 | `gpt-4o-mini-tts` | <Check />    |
 
 {/* model-capabilities:openai-speech:end */}

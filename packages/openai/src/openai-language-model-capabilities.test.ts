@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { getOpenAILanguageModelCapabilities } from './openai-model-catalog';
+import {
+  getOpenAILanguageModelCapabilities,
+  openaiDiscontinuedModelIds,
+  openaiModelCatalog,
+} from './openai-model-catalog';
 
 describe('getOpenAILanguageModelCapabilities', () => {
   describe('isReasoningModel', () => {
@@ -138,7 +142,7 @@ describe('getOpenAILanguageModelCapabilities', () => {
         supportsAsyncToolCalling: true,
         supportedReasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
         supportsNonReasoningParameters: false,
-        supportsChatFunctionToolsWithReasoning: true,
+        supportsChatFunctionToolsWithReasoning: false,
       });
     });
 
@@ -148,13 +152,13 @@ describe('getOpenAILanguageModelCapabilities', () => {
         expect(getOpenAILanguageModelCapabilities(modelId)).toEqual({
           isReasoningModel: true,
           systemMessageMode: 'developer',
-          supportsFlexProcessing: true,
+          supportsFlexProcessing: false,
           supportsPriorityProcessing: true,
           supportsConfigurationUpdate: true,
           supportsAsyncToolCalling: true,
           supportedReasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
           supportsNonReasoningParameters: false,
-          supportsChatFunctionToolsWithReasoning: true,
+          supportsChatFunctionToolsWithReasoning: false,
         });
       },
     );
@@ -176,7 +180,7 @@ describe('getOpenAILanguageModelCapabilities', () => {
           'max',
         ],
         supportsNonReasoningParameters: true,
-        supportsChatFunctionToolsWithReasoning: true,
+        supportsChatFunctionToolsWithReasoning: false,
       });
     });
 
@@ -197,7 +201,11 @@ describe('getOpenAILanguageModelCapabilities', () => {
     );
 
     it.each([
-      ['gpt-5.6', false],
+      ['gpt-5.5', false],
+      ['gpt-5.6', true],
+      ['gpt-5.6-luna', true],
+      ['gpt-5.6-sol', true],
+      ['gpt-5.6-terra', true],
       ['gpt-6-astra', true],
       ['gpt-6.1', true],
       ['gpt-99', true],
@@ -253,10 +261,20 @@ describe('getOpenAILanguageModelCapabilities', () => {
 
   describe('supportsChatFunctionToolsWithReasoning', () => {
     it.each([
-      ['gpt-5.5', true],
+      ['gpt-5.2', true],
+      ['gpt-5.4', false],
+      ['gpt-5.4-mini', false],
+      ['gpt-5.4-nano', false],
+      ['gpt-5.5', false],
       ['gpt-5.6', false],
       ['gpt-5.6-luna', false],
-      ['gpt-6-sol', true],
+      ['gpt-6-sol', false],
+      ['gpt-6-luna', false],
+      ['gpt-6-astra', false],
+      ['gpt-6.1-sol', false],
+      ['gpt-6.1-terra', false],
+      ['gpt-6.2-astra', false],
+      ['gpt-6.2-sol', false],
     ])('%s: %s', (modelId, expected) => {
       expect(
         getOpenAILanguageModelCapabilities(modelId)
@@ -275,6 +293,9 @@ describe('getOpenAILanguageModelCapabilities', () => {
       ['gpt-5', true],
       ['gpt-5.99', true],
       ['gpt-6-astra', true],
+      ['gpt-6.1-sol', true],
+      ['gpt-6.2-astra', false],
+      ['gpt-6.2-sol', false],
       ['gpt-99', true],
       ['gpt-99-chat-latest', false],
       ['ft:gpt-99:org:custom:abc123', false],
@@ -294,7 +315,8 @@ describe('getOpenAILanguageModelCapabilities', () => {
       ['o99', true],
       ['gpt-4.1', true],
       ['gpt-5', true],
-      ['gpt-5.4-nano', false],
+      ['gpt-5-nano', true],
+      ['gpt-5.4-nano', true],
       ['gpt-5.99', true],
       ['gpt-6-astra', true],
       ['gpt-99', true],
@@ -309,6 +331,15 @@ describe('getOpenAILanguageModelCapabilities', () => {
           getOpenAILanguageModelCapabilities(modelId)
             .supportsPriorityProcessing,
         ).toEqual(expectedCapabilities);
+      },
+    );
+  });
+
+  describe('openaiDiscontinuedModelIds', () => {
+    it.each(openaiDiscontinuedModelIds)(
+      '%s stays listed in the catalog',
+      modelId => {
+        expect(openaiModelCatalog).toHaveProperty([modelId]);
       },
     );
   });

@@ -1911,9 +1911,9 @@ The following provider options are available:
 
 | Model                        | Transcription | Streaming | Duration                                                      | Segments  | Language                                           |
 | ---------------------------- | ------------- | --------- | ------------------------------------------------------------- | --------- | -------------------------------------------------- |
-| `whisper-1`                  | <Check />     | <Cross /> | <Check />                                                     | <Check /> | <Check />                                          |
-| `gpt-4o-mini-transcribe`     | <Check />     | <Cross /> | <Cross />                                                     | <Cross /> | <Cross />                                          |
-| `gpt-4o-transcribe`          | <Check />     | <Cross /> | <Cross />                                                     | <Cross /> | <Cross />                                          |
+| `whisper-1`                  | <Check />     | <Check /> | <Check />                                                     | <Check /> | <Check />                                          |
+| `gpt-4o-mini-transcribe`     | <Check />     | <Check /> | <Cross />                                                     | <Cross /> | <Cross />                                          |
+| `gpt-4o-transcribe`          | <Check />     | <Check /> | <Cross />                                                     | <Cross /> | <Cross />                                          |
 | `mai-transcribe-2`           | <Check />     | <Cross /> | <Check />                                                     | <Check /> | <Check />                                          |
 | `mai-transcribe-1.5`         | <Check />     | <Cross /> | <Check />                                                     | <Cross /> | <Check />                                          |
 | `mai-transcribe-2-streaming` | <Cross />     | <Check /> | Conditional: Requires an audio format with a known byte rate. | <Cross /> | Conditional: Reports the configured language hint. |
@@ -1983,8 +1983,8 @@ The table lists OpenAI TTS backing models and Azure MAI voice IDs. For OpenAI-ba
 
 | Model                 | Instructions |
 | --------------------- | ------------ |
-| `tts-1`               | <Cross />    |
-| `tts-1-hd`            | <Cross />    |
+| `tts-1`               | <Check />    |
+| `tts-1-hd`            | <Check />    |
 | `gpt-4o-mini-tts`     | <Check />    |
 | `mai-voice-2.1-flash` | <Cross />    |
 | `mai-voice-2.1`       | <Cross />    |
