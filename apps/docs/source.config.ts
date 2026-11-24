@@ -37,6 +37,9 @@ export const cookbookV6 = createDocsCollection('content/v6/cookbook');
 export const cookbookV7 = createDocsCollection('content/v7/cookbook');
 
 const config = defineGeistdocsSourceConfig({
+  // Geistdocs 2.16 switched the public package to Highlights. Keep Shiki so
+  // the Shiki transformers below (fence-meta line highlighting) still apply.
+  highlighter: 'shiki',
   mdxOptions: {
     remarkPlugins: [remarkCodeTemplates],
     rehypePlugins: defaults => [rehypeCodeTemplates, ...defaults],

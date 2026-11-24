@@ -45,15 +45,15 @@ export const config = defineConfig({
       'How do I build a chatbot with useChat?',
     ],
   },
+  // Package defaults for copyPage/askAI/openInChat apply. Geistdocs 3 made the
+  // desktop actions dropdown opt-in; `menu: true` keeps it (View as Markdown,
+  // Open in v0 and other chats, Ask AI).
   // No edit-source action yet. Upstream content still uses `NN-` filename
-  // prefixes, so page paths here don't match source paths. Enable once the
-  // content codemod lands on `main`.
-  // Package defaults for copyPage/askAI/openInChat/scrollTop apply; only
-  // edit-source stays off. Upstream content still uses `NN-` filename
   // prefixes, so page paths here don't match source paths. Enable once the
   // content codemod lands on `main`.
   pageActions: {
     editSource: false,
+    menu: true,
   },
   // Feedback uses the package default (enabled): the widget posts to the
   // Geistdocs platform, which files GitHub issues labeled with `siteId`.
