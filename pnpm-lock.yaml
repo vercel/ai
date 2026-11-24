@@ -2825,8 +2825,8 @@ importers:
         specifier: ^1.1.0
         version: 1.1.0
       eventsource-parser:
-        specifier: ^3.0.8
-        version: 3.0.8
+        specifier: ^3.1.1
+        version: 3.1.1
       undici:
         specifier: ^6.28.0
         version: 6.28.0
@@ -13559,6 +13559,10 @@ packages:
 
   eventsource-parser@3.0.8:
     resolution: {integrity: sha512-70QWGkr4snxr0OXLRWsFLeRBIRPuQOvt4s8QYjmUlmlkyTZkRqS7EDVRZtzU3TiyDbXSzaOeF0XUKy8PchzukQ==}
+    engines: {node: '>=18.0.0'}
+
+  eventsource-parser@3.1.1:
+    resolution: {integrity: sha512-EKN1vKAMcZ8MlYMpaNuxN6R9yakzH6uajHcHVTqWJzvu5pWw9DyhbP35HH8MVBQ+dZjAfDxk+A8NiR9KWaXiyQ==}
     engines: {node: '>=18.0.0'}
 
   eventsource@3.0.5:
@@ -32653,6 +32657,8 @@ snapshots:
   eventsource-parser@3.0.6: {}
 
   eventsource-parser@3.0.8: {}
+
+  eventsource-parser@3.1.1: {}
 
   eventsource@3.0.5:
     dependencies:
