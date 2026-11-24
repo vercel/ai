@@ -1,0 +1,119 @@
+{
+  "created_at": 1795457356,
+  "completed_at": 1795457360,
+  "id": "08327603-b2bc-4714-8977-3108b0b5e760",
+  "max_output_tokens": null,
+  "model": "grok-4.7",
+  "object": "response",
+  "output": [
+    {
+      "id": "rs_08327603-b2bc-4714-8977-3108b0b5e760",
+      "summary": [],
+      "type": "reasoning",
+      "status": "completed",
+      "encrypted_content": "f0tPR3J8ozk7tH4UiSkQJvKPZgrjiysfDZvIsEnHGO7SYepB29uqhsPIG/bDjpqnYayZjSp+dbS14L9VsMhZIDsjDt0Ca+sSd3JDX7m7TKaJQXbg5nuIkGXKEi7e1Tkd/LKgeU03WfAV9vIMNq7bl7JUvtijrTDjY/0sQHxoZMIXYruvlByc/ub6jaFEhM7cCyQWJD9oy09vqJFiOZQaKBuJc6LlQA8nfQ"
+    },
+    {
+      "id": "mcp_08327603-b2bc-4714-8977-3108b0b5e760_call-15f6fd01-5efa-41b1-9e10-ce9b1f951cb2-0",
+      "type": "mcp_call",
+      "status": "completed",
+      "name": "read_wiki_structure",
+      "server_label": "deepwiki",
+      "error": "",
+      "arguments": "{\"repoName\":\"vercel/ai\"}",
+      "output": "{\"content\":[{\"type\":\"text\",\"text\":\"Available pages for vercel/ai:\\n\\n- 1 Overview\\n  - 1.1 Architecture and Design Principles\\n  - 1.2 Package Structure and Organization\\n- 2 Core SDK Functionality\\n  - 2.1 Text Generation (generateText and streamText)\\n  - 2.2 Structured Output (Output API)\\n  - 2.3 Tool Calling and Multi-Step Agents\\n  - 2.4 Message Processing and Content Types\\n  - 2.5 Observability and Telemetry\\n  - 2.6 Middleware System\\n  - 2.7 Image, Video, Speech, and Transcription\\n  - 2.8 Code Mode Tool\\n- 3 Provider Ecosystem\\n  - 3.1 Provider Architecture and V4 Specification\\n  - 3.2 OpenAI Provider - Responses API\\n  - 3.3 OpenAI Provider - Chat Completions, Images, and Audio\\n  - 3.4 Anthropic Provider\\n  - 3.5 Google AI Providers (Generative AI and Vertex AI)\\n  - 3.6 Azure OpenAI Provider\\n  - 3.7 OpenAI-Compatible Providers (xAI, Fireworks, Cerebras, TogetherAI, DeepInfra, DeepSeek)\\n  - 3.8 Mistral, Cohere, Amazon Bedrock, and Additional Providers\\n  - 3.9 Provider-Utils and Common Infrastructure\\n  - 3.10 LangChain and LlamaIndex Adapters\\n  - 3.11 Vercel AI Gateway\\n  - 3.12 Observability Integrations\\n- 4 UI Framework Integrations\\n  - 4.1 Framework-Agnostic Chat Architecture\\n  - 4.2 React Integration (@ai-sdk/react)\\n  - 4.3 Vue and Svelte Integrations\\n  - 4.4 Angular and Solid Integrations\\n  - 4.5 React Server Components (@ai-sdk/rsc)\\n- 5 AI SDK Harnesses\\n  - 5.1 Harness Architecture and HarnessAgent\\n  - 5.2 Harness Adapters (Claude Code, Codex, Pi, DeepAgents, OpenCode, Grok Build, ACP, Cline, Cursor, fx)\\n  - 5.3 Sandbox Providers and Terminal UI\\n  - 5.4 Policy-Based Tool Approvals (@ai-sdk/policy-opa)\\n  - 5.5 Workflow Harness and Durable Execution\\n- 6 Examples and Getting Started\\n  - 6.1 Next.js Examples\\n  - 6.2 SvelteKit, Nuxt, and Other Frontend Examples\\n  - 6.3 Server Framework Examples (Express, Fastify, Hono, NestJS)\\n  - 6.4 Production Feature Examples\\n- 7 Development and Contribution\\n  - 7.1 Monorepo Structure and Workspace Management\\n  - 7.2 Build, Test, and Quality Infrastructure\\n  - 7.3 Release Process and Version Management\\n  - 7.4 Migration Guides\\n  - 7.5 Documentation Site and Content Authoring\\n- 8 Glossary\"}],\"structuredContent\":{\"result\":\"Available pages for vercel/ai:\\n\\n- 1 Overview\\n  - 1.1 Architecture and Design Principles\\n  - 1.2 Package Structure and Organization\\n- 2 Core SDK Functionality\\n  - 2.1 Text Generation (generateText and streamText)\\n  - 2.2 Structured Output (Output API)\\n  - 2.3 Tool Calling and Multi-Step Agents\\n  - 2.4 Message Processing and Content Types\\n  - 2.5 Observability and Telemetry\\n  - 2.6 Middleware System\\n  - 2.7 Image, Video, Speech, and Transcription\\n  - 2.8 Code Mode Tool\\n- 3 Provider Ecosystem\\n  - 3.1 Provider Architecture and V4 Specification\\n  - 3.2 OpenAI Provider - Responses API\\n  - 3.3 OpenAI Provider - Chat Completions, Images, and Audio\\n  - 3.4 Anthropic Provider\\n  - 3.5 Google AI Providers (Generative AI and Vertex AI)\\n  - 3.6 Azure OpenAI Provider\\n  - 3.7 OpenAI-Compatible Providers (xAI, Fireworks, Cerebras, TogetherAI, DeepInfra, DeepSeek)\\n  - 3.8 Mistral, Cohere, Amazon Bedrock, and Additional Providers\\n  - 3.9 Provider-Utils and Common Infrastructure\\n  - 3.10 LangChain and LlamaIndex Adapters\\n  - 3.11 Vercel AI Gateway\\n  - 3.12 Observability Integrations\\n- 4 UI Framework Integrations\\n  - 4.1 Framework-Agnostic Chat Architecture\\n  - 4.2 React Integration (@ai-sdk/react)\\n  - 4.3 Vue and Svelte Integrations\\n  - 4.4 Angular and Solid Integrations\\n  - 4.5 React Server Components (@ai-sdk/rsc)\\n- 5 AI SDK Harnesses\\n  - 5.1 Harness Architecture and HarnessAgent\\n  - 5.2 Harness Adapters (Claude Code, Codex, Pi, DeepAgents, OpenCode, Grok Build, ACP, Cline, Cursor, fx)\\n  - 5.3 Sandbox Providers and Terminal UI\\n  - 5.4 Policy-Based Tool Approvals (@ai-sdk/policy-opa)\\n  - 5.5 Workflow Harness and Durable Execution\\n- 6 Examples and Getting Started\\n  - 6.1 Next.js Examples\\n  - 6.2 SvelteKit, Nuxt, and Other Frontend Examples\\n  - 6.3 Server Framework Examples (Express, Fastify, Hono, NestJS)\\n  - 6.4 Production Feature Examples\\n- 7 Development and Contribution\\n  - 7.1 Monorepo Structure and Workspace Management\\n  - 7.2 Build, Test, and Quality Infrastructure\\n  - 7.3 Release Process and Version Management\\n  - 7.4 Migration Guides\\n  - 7.5 Documentation Site and Content Authoring\\n- 8 Glossary\"},\"isError\":false,\"_meta\":{\"fastmcp\":{\"wrap_result\":true}}}"
+    },
+    {
+      "id": "rs_08327603-b2bc-4714-8977-3108b0b5e760",
+      "summary": [],
+      "type": "reasoning",
+      "status": "completed",
+      "encrypted_content": "Fe8QJcHFayvnmUriF6RZqjBNRniI4y0guvVLT8G62lj5s2/cezJ+KlMrmNSIgSV94PhufLWzbBUghbaGiEjodNcuYWUc0E+CvImjObrbOSrxqqz+4TIP0WMXY9tI2dNeeniW8X5XvxXD1qxo5ztDX8/3WENoWdjgeKVMV+zau9ds+3PPQsJMC5M8nBJVdGuZLtIQ2C+LqQYvvy0YGali0duxsR6b7bLpoybSmi22yfQjHVX2ID2Tw7EduSlAC7e9tYZINa5fUzfKb80ie+hx2Q"
+    },
+    {
+      "content": [
+        {
+          "type": "output_text",
+          "text": "Three topics from the vercel/ai wiki structure:\n\n1. Overview  \n2. Core SDK Functionality  \n3. Provider Ecosystem",
+          "logprobs": [],
+          "annotations": []
+        }
+      ],
+      "id": "msg_08327603-b2bc-4714-8977-3108b0b5e760",
+      "role": "assistant",
+      "type": "message",
+      "status": "completed"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "previous_response_id": null,
+  "reasoning": {
+    "effort": "high",
+    "summary": "detailed"
+  },
+  "temperature": 0.7,
+  "text": {
+    "format": {
+      "type": "text"
+    }
+  },
+  "tool_choice": "auto",
+  "tools": [
+    {
+      "type": "mcp",
+      "server_label": "deepwiki",
+      "server_url": "https://mcp.deepwiki.com/mcp",
+      "allowed_tools": [],
+      "headers": {},
+      "server_description": ""
+    }
+  ],
+  "top_p": 0.95,
+  "usage": {
+    "input_tokens": 4905,
+    "input_tokens_details": {
+      "cached_tokens": 1152
+    },
+    "output_tokens": 118,
+    "output_tokens_details": {
+      "reasoning_tokens": 74
+    },
+    "total_tokens": 5023,
+    "num_sources_used": 0,
+    "num_server_side_tools_used": 1,
+    "cost_in_usd_ticks": 87900000,
+    "server_side_tool_usage_details": {
+      "web_search_calls": 0,
+      "x_search_calls": 0,
+      "x_posts_fetched": 0,
+      "x_users_fetched": 0,
+      "code_interpreter_calls": 0,
+      "file_search_calls": 0,
+      "mcp_calls": 1,
+      "document_search_calls": 0,
+      "image_generation_calls": 0
+    },
+    "context_details": {
+      "input_tokens": 2807,
+      "output_tokens": 74
+    }
+  },
+  "user": null,
+  "incomplete_details": null,
+  "status": "completed",
+  "store": true,
+  "metadata": {
+    "system_fingerprint": "fp_c60958d81f66f847"
+  },
+  "background": false,
+  "service_tier": "default",
+  "truncation": "disabled",
+  "top_logprobs": 0,
+  "presence_penalty": 0,
+  "frequency_penalty": 0,
+  "prompt_cache_key": null,
+  "max_tool_calls": null,
+  "safety_identifier": null,
+  "error": null,
+  "instructions": null
+}

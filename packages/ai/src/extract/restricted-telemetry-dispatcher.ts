@@ -22,11 +22,15 @@ export function toTelemetryEvent<
 
 function redactFileLocations<STATE>(state: STATE): STATE {
   if (!Array.isArray(state)) return state;
-  return state.map(part =>
-    part?.type === 'file' && isFileLocation(part.data)
-      ? { ...part, data: '[redacted]' }
-      : part,
-  ) as STATE;
+  return state.map(part => {
+    if (part?.type !== 'text' && part?.type !== 'file') return part;
+    const copy = { ...part };
+    delete copy.providerOptions;
+    if (copy.type === 'file' && isFileLocation(copy.data)) {
+      copy.data = '[redacted]';
+    }
+    return copy;
+  }) as STATE;
 }
 
 function isFileLocation(data: unknown): boolean {

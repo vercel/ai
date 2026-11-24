@@ -1,5 +1,41 @@
 # @ai-sdk/tool-bash
 
+## 1.0.35
+
+### Patch Changes
+
+- Updated dependencies [d834c5b]
+- Updated dependencies [7760e33]
+- Updated dependencies [28d17e6]
+- Updated dependencies [797dc02]
+  - ai@7.0.181
+
+## 1.0.34
+
+### Patch Changes
+
+- ai@7.0.180
+
+## 1.0.33
+
+### Patch Changes
+
+- Updated dependencies [7e55599]
+  - ai@7.0.179
+
+## 1.0.32
+
+### Patch Changes
+
+- 1d2c2ff: Bound bash tool output collection before returning it from supporting sandbox adapters, and copy retained prefixes so truncated results do not keep large source strings alive. Preserve output text, omission counts, command completion, exit codes, and timeout behavior. Custom sandbox implementations remain compatible; just-bash's interpreter buffering remains subject to its native execution limits.
+- Updated dependencies [0b8cbfa]
+- Updated dependencies [6815153]
+- Updated dependencies [15bfd6b]
+- Updated dependencies [15bfd6b]
+- Updated dependencies [2613bb4]
+- Updated dependencies [63593a7]
+  - ai@7.0.178
+
 ## 1.0.31
 
 ### Patch Changes

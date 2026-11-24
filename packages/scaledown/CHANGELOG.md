@@ -1,5 +1,13 @@
 # @ai-sdk/scaledown
 
+## 3.0.3
+
+### Patch Changes
+
+- 4b02148: Derive decision and extraction model IDs from a shared catalog while keeping their model sets separate.
+- Updated dependencies [1d2c2ff]
+  - @ai-sdk/provider-utils@5.0.83
+
 ## 3.0.2
 
 ### Patch Changes

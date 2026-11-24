@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
   env: {
     WS_NO_BUFFER_UTIL: '1',
   },
+  // type checking runs separately
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   transpilePackages: ['pi-mcp-adapter'],
   outputFileTracingIncludes: {
     '/**': [

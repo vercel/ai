@@ -25,3 +25,15 @@ export function sanitizeTerminalText(
 
   return output;
 }
+
+/**
+ * Escape Unicode format characters. They are invisible, and some of them
+ * change how the surrounding text reads, such as bidirectional controls,
+ * zero-width characters, and tag characters.
+ */
+export function escapeFormatCharacters(input: string): string {
+  return input.replace(
+    /\p{Cf}/gu,
+    character => `\\u{${character.codePointAt(0)?.toString(16)}}`,
+  );
+}

@@ -1,7 +1,9 @@
 import type { Context, Tool } from '@ai-sdk/provider-utils';
-import type { ToolApprovalConfiguration, ToolApprovalStatus } from 'ai';
-
-type ApprovalLiteralStatus = Extract<ToolApprovalStatus, string>;
+import type { ToolApprovalConfiguration } from 'ai';
+import {
+  type ApprovalFallbackStatus,
+  getApprovalFallbackHook,
+} from './approval-fallback';
 
 /**
  * Result returned by {@link wrapMcpTools}: the original tool set plus a
@@ -31,6 +33,12 @@ export interface WrappedMcpTools<
  * Works for any tool set, not just MCP-discovered tools. The name reflects
  * the primary use case rather than a hard constraint.
  *
+ * When `approval` is an `opaPolicy` approval, the fallback is applied to
+ * every policy evaluation for a tool call, not only to the final decision. With
+ * `{ default: 'denied' }` that keeps hard allowlist mode intact: a tool call
+ * that the policy does not match is denied even when the evaluation with the
+ * earlier tool calls of the same response asks for user approval.
+ *
  * @example
  * ```ts
  * import { wrapMcpTools } from '@ai-sdk/policy-opa';
@@ -54,17 +62,31 @@ export function wrapMcpTools<
 >(
   tools: TOOLS,
   approval: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>,
-  opts?: { default?: ApprovalLiteralStatus },
+  opts?: { default?: ApprovalFallbackStatus },
 ): WrappedMcpTools<TOOLS, RUNTIME_CONTEXT> {
-  const fallback: ApprovalLiteralStatus = opts?.default ?? 'user-approval';
+  const fallback: ApprovalFallbackStatus = opts?.default ?? 'user-approval';
 
   if (typeof approval === 'function') {
+    // An approval function created by `opaPolicy` applies the fallback to
+    // every policy evaluation itself. That matters: the policy can decide on
+    // one tool call twice, with and without the earlier tool calls of the
+    // response, and a fallback of `denied` has to deny the unmatched
+    // evaluation even when the other evaluation asks for user approval.
+    const applyFallbackToPolicy =
+      getApprovalFallbackHook<
+        ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>
+      >(approval);
+    const source =
+      applyFallbackToPolicy == null
+        ? approval
+        : applyFallbackToPolicy(fallback);
+
     const wrapped: ToolApprovalConfiguration<
       TOOLS,
       RUNTIME_CONTEXT
     > = async args => {
       const status = await (
-        approval as (a: typeof args) => Promise<unknown> | unknown
+        source as (a: typeof args) => Promise<unknown> | unknown
       )(args);
       return isNotApplicable(status) ? fallback : (status as never);
     };

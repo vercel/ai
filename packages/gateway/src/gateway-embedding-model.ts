@@ -20,6 +20,7 @@ import { z } from './zod';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import type { GatewayConfig } from './gateway-config';
+import { withGatewayRequestTelemetryRedaction } from './redact-gateway-request-credentials';
 
 type GatewayEmbeddingConfig = GatewayConfig & {
   provider: string;
@@ -79,11 +80,11 @@ export class GatewayEmbeddingModel implements EmbeddingModelV4 {
           this.getModelConfigHeaders(),
           await resolve(this.config.o11yHeaders),
         ),
-        body: {
+        body: withGatewayRequestTelemetryRedaction({
           values,
           dimensions,
           ...(providerOptions ? { providerOptions } : {}),
-        },
+        }),
         successfulResponseHandler: createJsonResponseHandler(
           gatewayEmbeddingResponseSchema,
         ),

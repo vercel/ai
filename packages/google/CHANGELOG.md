@@ -1,5 +1,32 @@
 # @ai-sdk/google
 
+## 4.0.125
+
+### Patch Changes
+
+- afb4e69: Add Extended Multimodal File Inspection options for Gemini documents, spreadsheets, audio, and video, including per-file rendering resolution. Add the `gemini-4-argon-file-processing-eap` and `gemini-3.8-flash-file-processing-eap` model IDs for early-access evaluation.
+
+  Send Interactions tool results as top-level `function_result` inputs so file selections remain inside their tool result and are accepted by the EAP API.
+
+## 4.0.124
+
+### Patch Changes
+
+- 378af05: fix(google, google-vertex): finish live transcription streams without the 3-second grace period
+
+  `gemini-3.5-transcribe-live` ends each segment with `generationComplete` and never sends `turnComplete`, so live transcription streams always waited out the 3-second finish grace period and merged all segments into one `transcript-final` without separating whitespace. Segments now complete on `generationComplete`, and streams finish as soon as server voice activity detection shows that all sent audio has been transcribed.
+
+  Adds `providerOptions.google.streaming.automaticActivityDetection.disabled` (`googleVertex` on Vertex) for push-to-talk input: the audio stream is transcribed as a single turn without splitting at pauses, and the transcript is finalized as soon as the audio input closes.
+
+## 4.0.123
+
+### Patch Changes
+
+- 875de7b: feat(google): add the `gemini-4-neon` model ID with `xhigh` thinking support
+- 1f53cc2: Derive model ID types from the model catalog while preserving the IDs accepted by each model type and endpoint.
+- Updated dependencies [1d2c2ff]
+  - @ai-sdk/provider-utils@5.0.83
+
 ## 4.0.122
 
 ### Patch Changes

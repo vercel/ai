@@ -1,5 +1,20 @@
 # @ai-sdk/xai
 
+## 5.0.49
+
+### Patch Changes
+
+- 6f56c29: keep the mcp call arguments in the `input` of mcpServer tool calls instead of returning an empty object
+- 61ce23e: fix(xai): keep the search arguments in the `input` of xSearch tool calls instead of returning an empty object
+
+## 5.0.48
+
+### Patch Changes
+
+- d30fae5: Derive video and default speech model IDs from the model catalog without changing supported models or audio defaults.
+- Updated dependencies [1d2c2ff]
+  - @ai-sdk/provider-utils@5.0.83
+
 ## 5.0.47
 
 ### Patch Changes

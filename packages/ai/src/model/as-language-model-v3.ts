@@ -8,10 +8,12 @@ import type {
   LanguageModelV3StreamPart,
   LanguageModelV3Usage,
 } from '@ai-sdk/provider';
+import type { LogWarningsFunction } from '../logger/log-warnings';
 import { logV2CompatibilityWarning } from '../util/log-v2-compatibility-warning';
 
 export function asLanguageModelV3(
   model: LanguageModelV2 | LanguageModelV3,
+  onWarning?: LogWarningsFunction,
 ): LanguageModelV3 {
   if (model.specificationVersion === 'v3') {
     return model;
@@ -20,6 +22,7 @@ export function asLanguageModelV3(
   logV2CompatibilityWarning({
     provider: model.provider,
     modelId: model.modelId,
+    onWarning,
   });
 
   // TODO this could break, we need to properly map v2 to v3

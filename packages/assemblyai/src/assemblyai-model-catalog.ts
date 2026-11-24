@@ -3,9 +3,30 @@ import type {
   ProviderOptionDefinition,
   ProviderOptionDefinitions,
 } from '@ai-sdk/provider';
+import type { AssemblyAISpeechModelOptions } from './assemblyai-speech-model-options';
 import type { AssemblyAITranscriptionModelOptions } from './assemblyai-transcription-model-options';
 
 export const assemblyaiProviderOptions = {
+  speech: {
+    bitRate: {
+      description: 'MP3 bit rate in bits per second. MP3 output only.',
+    },
+    container: {
+      description:
+        "Output container: `'raw'` for the encoded samples alone or `'wav'` for a WAV file. Requires a `pcm_*` encoding.",
+    },
+    encoding: {
+      description:
+        "Audio encoding of the output (`'pcm_s16le'`, `'pcm_mulaw'`, `'pcm_alaw'`, or `'mp3'`). Overrides the encoding derived from `outputFormat`.",
+    },
+    sampleRate: {
+      description:
+        'Sample rate of the output audio in Hz (8000, 16000, 22050, 24000, 44100, 48000).',
+    },
+  } satisfies Record<
+    keyof AssemblyAISpeechModelOptions,
+    ProviderOptionDefinition
+  >,
   transcription: {
     audioEndAt: { description: 'End time of the audio in milliseconds.' },
     audioStartFrom: { description: 'Start time of the audio in milliseconds.' },
@@ -52,7 +73,7 @@ export const assemblyaiProviderOptions = {
     },
     keytermsPrompt: {
       description:
-        'Domain-specific keyterms to boost recognition for (max 6 words per phrase). Replaces `wordBoost` for newer models: supported by `universal-3-pro` / `universal-3-5-pro` and `slam-1` (and `universal-2` when metaphone is enabled for the account).',
+        'Domain-specific keyterms to boost recognition for (max 6 words per phrase). Replaces `wordBoost` for newer models: supported by `assemblyai-stt-3-7` and `universal-3-5-pro` (and `universal-2` when metaphone is enabled for the account).',
     },
     languageCode: { description: 'Language code for the transcription.' },
     languageConfidenceThreshold: {
@@ -65,7 +86,7 @@ export const assemblyaiProviderOptions = {
     multichannel: { description: 'Whether to process audio as multichannel.' },
     prompt: {
       description:
-        'Provide natural-language context (up to 1,500 words) to steer the model. Only supported by `universal-3-pro` / `universal-3-5-pro` and `slam-1`.',
+        'Provide natural-language context (up to 1,500 words) to steer the model. Only supported by `assemblyai-stt-3-7` and `universal-3-5-pro`.',
     },
     punctuate: {
       description: 'Whether to add punctuation to the transcription.',
@@ -92,7 +113,7 @@ export const assemblyaiProviderOptions = {
     },
     removeAudioTags: {
       description:
-        "Remove inline annotations from rich transcripts. `'all'` removes all inline annotations; `'speaker'` removes only speaker cues. Universal-3 Pro models.",
+        "Remove inline annotations from rich transcripts. `'all'` removes all inline annotations; `'speaker'` removes only speaker cues. AssemblyAI-STT-3.7 and Universal-3 Pro models.",
     },
     sentimentAnalysis: { description: 'Whether to enable sentiment analysis.' },
     speakerLabels: {
@@ -113,7 +134,7 @@ export const assemblyaiProviderOptions = {
     summaryType: { description: 'Type of summary to generate.' },
     temperature: {
       description:
-        'Sampling temperature (0-1) controlling randomness. Universal-3 Pro models.',
+        'Sampling temperature (0-1) controlling randomness. AssemblyAI-STT-3.7 and Universal-3 Pro models.',
     },
     webhookAuthHeaderName: {
       description: 'Name of the authentication header for webhook requests.',
@@ -129,31 +150,26 @@ export const assemblyaiProviderOptions = {
   >,
 } as const satisfies ProviderOptionDefinitions;
 
-const deprecatedTranscriptionModelIds = ['best'] as const;
-
 export const assemblyaiTranscriptionModelIds = [
+  'assemblyai-stt-3-7',
   'universal-2',
-  'universal-3-pro',
   'universal-3-5-pro',
-  ...deprecatedTranscriptionModelIds,
 ] as const;
 
 const modelPolicies: Record<
   string,
-  { legacy?: boolean; replacementWarning?: string; prompted?: boolean }
+  {
+    deprecated?: boolean;
+    replacementWarning?: string;
+    prompted?: boolean;
+  }
 > = {
-  [deprecatedTranscriptionModelIds[0]]: { legacy: true },
+  'assemblyai-stt-3-7': { prompted: true },
   'universal-2': {
     replacementWarning:
-      "'universal-3-5-pro' is AssemblyAI's latest flagship model.",
+      "'assemblyai-stt-3-7' is AssemblyAI's latest flagship model; 'universal-2' remains available for languages it does not support.",
   },
-  'universal-3-pro': {
-    prompted: true,
-    replacementWarning:
-      "'universal-3-5-pro' is AssemblyAI's latest flagship model and is set to replace 'universal-3-pro'.",
-  },
-  'universal-3-5-pro': { prompted: true },
-  'slam-1': { prompted: true },
+  'universal-3-5-pro': { prompted: true, deprecated: true },
 };
 export function getAssemblyAITranscriptionModelEntry(modelId: string) {
   const policy = modelPolicies[modelId];
@@ -185,7 +201,7 @@ export function getAssemblyAITranscriptionModelEntry(modelId: string) {
           ? true
           : {
               condition:
-                'Supported by Universal-2 when enabled for the account; use a Universal-3 Pro or Slam model otherwise.',
+                'Supported by Universal-2 when enabled for the account; use AssemblyAI-STT-3.7 otherwise.',
             },
         domain: {
           condition: 'Requires a model and account with Medical Mode enabled.',
@@ -197,24 +213,54 @@ export function getAssemblyAITranscriptionModelEntry(modelId: string) {
     },
     requestConfig: {
       transcription: {
-        legacy: policy?.legacy ?? false,
+        deprecated: policy?.deprecated ?? false,
         replacementWarning: policy?.replacementWarning,
       },
     },
   } as const satisfies ModelEntry<{
-    transcription: { legacy: boolean; replacementWarning?: string };
+    transcription: {
+      deprecated: boolean;
+      replacementWarning?: string;
+    };
   }>;
 }
 
-export const assemblyaiModelCatalog = Object.fromEntries(
-  assemblyaiTranscriptionModelIds.map(id => [
+export const assemblyaiSpeechModelIds = ['assemblyai-tts-1'] as const;
+
+export function getAssemblyAISpeechModelEntry(modelId: string) {
+  const known = assemblyaiSpeechModelIds.some(id => id === modelId);
+  return {
+    capabilities: { speech: { instructions: false } },
+    providerOptions: {
+      speech: {
+        ...Object.fromEntries(
+          Object.keys(assemblyaiProviderOptions.speech).map(
+            key => [key, known ? true : 'unknown'] as const,
+          ),
+        ),
+        bitRate: { condition: 'MP3 output only.' },
+        container: { condition: 'Requires a pcm_* encoding.' },
+      },
+    },
+  } as const satisfies ModelEntry;
+}
+
+export const assemblyaiModelCatalog: Record<
+  string,
+  ModelEntry<Record<string, unknown>>
+> = Object.fromEntries([
+  ...assemblyaiSpeechModelIds.map(id => [
+    id,
+    getAssemblyAISpeechModelEntry(id),
+  ]),
+  ...assemblyaiTranscriptionModelIds.map(id => [
     id,
     getAssemblyAITranscriptionModelEntry(id),
   ]),
-);
+]);
 
 /** Known model IDs, derived from the declarations used to build the catalog. */
 export type AssemblyAIModelIds = {
-  deprecatedTranscription: (typeof deprecatedTranscriptionModelIds)[number];
+  speech: (typeof assemblyaiSpeechModelIds)[number];
   transcription: (typeof assemblyaiTranscriptionModelIds)[number];
 };
