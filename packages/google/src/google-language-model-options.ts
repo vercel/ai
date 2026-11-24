@@ -213,6 +213,16 @@ export const googleLanguageModelOptions = lazySchema(() =>
       serviceTier: z.enum(['standard', 'flex', 'priority']).optional(),
 
       /**
+       * Optional. Whether the Gemini API may log the request and response to
+       * the project's Logs and Datasets. Set to `false` to opt this request
+       * out of logging; this overrides the project-level setting. Sent as the
+       * `store` body field. Gemini API only.
+       *
+       * https://ai.google.dev/gemini-api/docs/logs-datasets
+       */
+      store: z.boolean().optional(),
+
+      /**
        * Optional. Resumes a response that stopped with `MAX_TOKENS` because it
        * used up its `maxOutputTokens` budget (Gemini 4 long decode). Pass the
        * `continuationToken` from the previous response's provider metadata

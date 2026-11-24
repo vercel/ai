@@ -1915,6 +1915,62 @@ describe('doGenerate', () => {
     expect(body).not.toHaveProperty('serviceTier');
   });
 
+  it('should send store in request body when specified', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          store: false,
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      store: false,
+    });
+  });
+
+  it('should not send store in request body when not specified', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).not.toHaveProperty('store');
+  });
+
+  it('should warn and drop store on Vertex provider', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    const vertexModel = new GoogleLanguageModel('gemini-pro', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+    });
+
+    const { warnings } = await vertexModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          store: false,
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).not.toHaveProperty('store');
+    expect(warnings).toContainEqual(
+      expect.objectContaining({
+        type: 'other',
+        message: expect.stringContaining("'store' is a Gemini API option"),
+      }),
+    );
+  });
+
   it('should send sharedRequestType as X-Vertex-AI-LLM-Shared-Request-Type header on Vertex', async () => {
     prepareJsonResponse({ content: 'test response' });
 
@@ -7945,6 +8001,24 @@ describe('doStream', () => {
       finishEvent?.type === 'finish' &&
         finishEvent.providerMetadata?.google.finishMessage,
     ).toBe("Malformed function call: print(default_api.create(name='test'))");
+  });
+
+  it('should send store in the streaming request body when specified', async () => {
+    prepareStreamResponse({ content: ['test'] });
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          store: false,
+        },
+      },
+    });
+    await convertReadableStreamToArray(stream);
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      store: false,
+    });
   });
 
   it('should expose null finishMessage in provider metadata on finish when not present', async () => {
