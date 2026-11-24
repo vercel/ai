@@ -125,12 +125,16 @@ export async function createPiModelRuntime({
 }: {
   auth: PiAuthenticationMode | undefined;
   credentials?: PiCredentialStore;
-  authPath: string;
-  modelsPath: string;
+  authPath: string | null;
+  modelsPath: string | null;
 }): Promise<ModelRuntime> {
   if (!isHarnessAuthenticationEnvironment(auth)) {
     return ModelRuntime.create({
-      ...(credentials ? { credentials } : { authPath }),
+      ...(credentials
+        ? { credentials }
+        : authPath != null
+          ? { authPath }
+          : { credentials: createEmptyPiCredentialStore() }),
       modelsPath,
       allowModelNetwork: false,
     });
@@ -174,6 +178,21 @@ export async function createPiModelRuntime({
   await modelRuntime.refresh({ allowNetwork: false });
 
   return modelRuntime;
+}
+
+function createEmptyPiCredentialStore(): PiCredentialStore {
+  return {
+    async read() {
+      return undefined;
+    },
+    async list() {
+      return [];
+    },
+    async modify(..._input: Parameters<PiCredentialStore['modify']>) {
+      return undefined;
+    },
+    async delete() {},
+  };
 }
 
 function createGatewayProviderConfig({

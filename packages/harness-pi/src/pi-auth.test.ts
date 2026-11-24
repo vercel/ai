@@ -360,6 +360,27 @@ describe('createPiModelRuntime', () => {
     );
   });
 
+  it('reads no auth or models file when both paths are null', async () => {
+    const create = vi.spyOn(ModelRuntime, 'create');
+    try {
+      await createPiModelRuntime({
+        auth: 'auto',
+        authPath: null,
+        modelsPath: null,
+      });
+
+      const options = create.mock.lastCall?.[0];
+      expect(options).toMatchObject({
+        modelsPath: null,
+        allowModelNetwork: false,
+      });
+      expect(options).not.toHaveProperty('authPath');
+      expect(options?.credentials).toBeDefined();
+    } finally {
+      create.mockRestore();
+    }
+  });
+
   it('preserves ambient credential lookup for auto authentication', async () => {
     clearAmbientProviderCredentials();
     vi.stubEnv('OPENAI_API_KEY', 'ambient-openai-key');
