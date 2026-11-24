@@ -40,7 +40,7 @@ The `apiKey` setting sends an `Authorization: Bearer …` header. `includeUsage:
 
 ## Language Models
 
-Use the `.chatModel()` factory with a public Ace Data Cloud model ID:
+Choose an Ace Data Cloud model that lists Chat Completions as a supported endpoint. Models served only through Anthropic Messages require a client for that protocol. Pass the selected ID to `.chatModel()`:
 
 ```ts
 const model = ace.chatModel('gpt-4o-mini');
