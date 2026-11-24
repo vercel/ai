@@ -233,7 +233,7 @@ async function executeCallback(options: {
  *
  * Turns start here: before appending a new attempt's `effect-start`, a
  * delivered `prompt` submission without a `turn-start` event gets one (ID
- * `turn-start:${submissionId}`), and the `start` stream part is emitted under
+ * `turn-start:${submissionId}`), and the `start-turn` stream part is emitted under
  * that key if the append was new. The turn therefore starts before the first
  * effect that hands its prompt to the model. Steer submissions and unknown
  * submission IDs never start a turn.
@@ -330,7 +330,7 @@ export function createEffectFunction(options: {
    * Starts the turn of the `prompt` submission among the given ones that has
    * no `turn-start` event yet, if there is one. Appends are first-wins, so a
    * turn whose start another drive already committed is not started again,
-   * and the `start` part is only emitted for a new append.
+   * and the `start-turn` part is only emitted for a new append.
    *
    * A session runs one turn at a time, and each turn starts with exactly one
    * prompt; prompts submitted meanwhile wait until the turn finished. So this
@@ -386,7 +386,7 @@ export function createEffectFunction(options: {
         id,
         data: { turnId: submissionId },
       });
-      if (appended) writer.emit({ part: { type: 'start' }, key: id });
+      if (appended) writer.emit({ part: { type: 'start-turn' }, key: id });
     } finally {
       startingTurn = undefined;
     }

@@ -7,7 +7,7 @@
 - **Agent**: A configured unit that takes prompts and works toward a result over one or more steps, using a model and tools.
 - **Harness**: A complete agent runtime with its own agent loop, built-in tools and conventions, often powered by an SDK or CLI.
 - **Session**: A long-lived conversation between an application and an agent, which keeps history and state across many turns. A session is tied to one sandbox.
-- **Turn**: The agent's full response to one prompt, from receiving it until it finishes, which can span many steps. Only one turn of a session runs at a time.
+- **Turn**: The agent's work on one prompt, from receiving it until it finishes, which can span many steps. Only one turn of a session runs at a time.
 - **Step**: One model call within a turn, together with the tool calls it requested and their results. A turn ends once a step requests no more tool calls or the agent stops.
 - **Prompt**: A user message that starts a new turn.
 - **Steering message**: A user message sent while a turn is running, which the agent picks up at its next safe point instead of starting a new turn.
@@ -25,6 +25,7 @@
   - **Default working directory**: The directory that commands in a sandbox run in when no other directory is given, as set up by the sandbox itself.
   - **Work directory**: The directory inside the sandbox where the agent works on a session's files. It may be the same directory as the sandbox's default working directory, but conceptually it's separate and may be another directory, e.g. a subdirectory of the sandbox's default working directory.
 - **Stream**: The append-only sequence of a session's output, which readers follow live or read back later.
+- **API response**: The output returned by one API invocation, rather than a unit of agent execution. It normally includes the steps performed until the turn finishes or external input, such as tool approval responses, is needed to continue. If queued prompts start further turns before the session settles, one API response can span multiple turns. It can also end early because of a runtime deadline, abort or failure. A streaming API response is bounded by `start` and `finish` parts on normal completion, independently of turn boundaries.
 - **Stream part**: One unit of the output an agent streams while it works, such as a piece of text, reasoning, a tool call or a tool result.
 - **Finish reason**: Why a step or turn ended, such as a normal stop, a tool call, hitting a length limit, an error, or a cancel.
 

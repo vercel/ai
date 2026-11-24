@@ -1739,4 +1739,64 @@ describe('createLog lookups', () => {
 
     expect(log.getSubmissions()).toHaveLength(1);
   });
+
+  test('tracks tool approvals with their first submission and response, filed under their turn', async () => {
+    const request = ({
+      toolCallId,
+      approvalId,
+    }: {
+      toolCallId: string;
+      approvalId: string;
+    }) =>
+      ({
+        type: 'tool-approval-request',
+        id: `tool-approval-request:${toolCallId}`,
+        data: { approvalId, toolCallId, toolName: 'weather', input: {} },
+      }) satisfies HarnessAgentLogEvent;
+    const response = ({
+      approvalId,
+      approved,
+    }: {
+      approvalId: string;
+      approved: boolean;
+    }) =>
+      ({
+        type: 'submission',
+        id: `response-${approvalId}-${approved}`,
+        data: { type: 'tool-approval-response', approvalId, approved },
+      }) satisfies HarnessAgentLogEvent;
+    const log = await logOf([
+      prompt('p1'),
+      turnStart('p1'),
+      request({ toolCallId: 'call-1', approvalId: 'a1' }),
+      request({ toolCallId: 'call-2', approvalId: 'a2' }),
+      response({ approvalId: 'a1', approved: true }),
+      response({ approvalId: 'a1', approved: false }),
+      {
+        type: 'tool-approval-response',
+        id: 'tool-approval-response:call-1',
+        data: {
+          approvalId: 'a1',
+          toolCallId: 'call-1',
+          approved: true,
+          submissionId: 'response-a1-true',
+        },
+      },
+    ]);
+
+    const first = log.getToolApproval({ toolCallId: 'call-1' });
+    expect(first?.turnId).toBe('p1');
+    expect(first?.submission?.id).toBe('response-a1-true');
+    expect(first?.response?.data.approved).toBe(true);
+    expect(log.getToolApproval({ approvalId: 'a2' })?.submission).toBe(
+      undefined,
+    );
+    expect(
+      log
+        .getToolApprovals({ turnId: 'p1' })
+        .map(approval => approval.request.data.approvalId),
+    ).toEqual(['a1', 'a2']);
+    expect(log.getToolApprovals({ turnId: 'other' })).toEqual([]);
+    expect(undeliveredIds(log)).toEqual(['p1']);
+  });
 });

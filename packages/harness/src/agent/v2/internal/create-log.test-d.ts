@@ -18,8 +18,10 @@ import type {
   HarnessAgentLogEffectAttempt,
   HarnessAgentLogEvent,
   HarnessAgentLogTurn,
+  HarnessAgentSubmission,
 } from './create-log';
 import type { HarnessAgentStorageEncryption } from './create-storage-encryption';
+import type { HarnessV2Submission } from '../../../v2/harness-v2-submission';
 
 test('requires explicit encryption at log storage boundaries', () => {
   expectTypeOf<Parameters<typeof createLog>[0]>().toMatchTypeOf<{
@@ -68,6 +70,19 @@ test('keeps engine-only events internal to the agent', () => {
       }
     >
   >().toBeNever();
+});
+
+test('extends adapter submissions with engine-only approval responses', () => {
+  expectTypeOf<HarnessV2Submission>().toMatchTypeOf<HarnessAgentSubmission>();
+  expectTypeOf<
+    Exclude<HarnessAgentSubmission, { type: 'tool-approval-response' }>
+  >().toEqualTypeOf<HarnessV2Submission>();
+  expectTypeOf<
+    Extract<HarnessV2Submission, { type: 'tool-approval-response' }>
+  >().toBeNever();
+  expectTypeOf<
+    Extract<HarnessAgentSubmission, { type: 'tool-approval-response' }>
+  >().not.toBeNever();
 });
 
 test('exposes turn finish events to the adapter', () => {

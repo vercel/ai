@@ -14,6 +14,11 @@ import type { HarnessAgentStreamPart } from './create-stream-writer';
  */
 export type TranslatedToolCall = {
   /**
+   * Name of the called tool.
+   */
+  toolName: string;
+
+  /**
    * Parsed tool input, or the raw input text if it was not valid JSON.
    */
   input: unknown;
@@ -52,7 +57,7 @@ export function translateFinishReason(options: {
 /**
  * Translates one engine stream part into zero or more AI SDK stream parts.
  *
- * - `start`, `text-*`, `reasoning-*`, `tool-input-*` and `raw` map one to one;
+ * - `text-*`, `reasoning-*`, `tool-input-*` and `raw` map one to one;
  *   `harnessMetadata` becomes `providerMetadata` and `delta` becomes `text`.
  *   `tool-input-start` is marked dynamic for dynamic tools so
  *   the UI uses the same tool part for streamed input and the final result.
@@ -62,13 +67,17 @@ export function translateFinishReason(options: {
  *   recorded in `toolCalls`.
  * - `tool-result` becomes `tool-error` when `isError` is set, otherwise
  *   `tool-result`, with input and origin taken from the recorded call.
+ * - `tool-approval-request` uses the tool call
+ *   recorded in `toolCalls`, including calls loaded from the log before a
+ *   continuation response. `tool-approval-response` and `tool-output-denied`
+ *   pass through unchanged.
  * - `file-change` and `compaction` have no AI SDK equivalent and become a
  *   synthetic dynamic, provider-executed `tool-call` and `tool-result` pair
  *   under the reserved names `fileChange` and `compaction`.
  * - `error` becomes an AI SDK `error` part carrying a `HarnessEffectError`.
- * - `stream-start`, `tool-approval-request`, `reset-step`, `finish-step`,
- *   `finish`, `retract` and `yield` return nothing: they are handled by the
- *   stream result or not supported yet.
+ * - `stream-start`, `reset-step`, `finish-step`,
+ *   `start-turn`, `finish-turn`, `retract`, `yield` and `settle` return
+ *   nothing: they are handled by the stream result or not supported yet.
  */
 export async function translateStreamPart<TOOLS extends ToolSet>(options: {
   /**
@@ -89,9 +98,6 @@ export async function translateStreamPart<TOOLS extends ToolSet>(options: {
 }): Promise<TextStreamPart<TOOLS>[]> {
   const { part, tools, toolCalls } = options;
   switch (part.type) {
-    case 'start':
-      return [{ type: 'start' }];
-
     case 'text-start':
     case 'text-end':
     case 'reasoning-start':
@@ -139,7 +145,11 @@ export async function translateStreamPart<TOOLS extends ToolSet>(options: {
         tools[part.toolName].type === 'dynamic' ||
         !parsed.success;
       const input = parsed.success ? parsed.value : part.input;
-      const call: TranslatedToolCall = { input, dynamic };
+      const call: TranslatedToolCall = {
+        toolName: part.toolName,
+        input,
+        dynamic,
+      };
       if (part.providerExecuted != null) {
         call.providerExecuted = part.providerExecuted;
       }
@@ -199,6 +209,45 @@ export async function translateStreamPart<TOOLS extends ToolSet>(options: {
       ];
     }
 
+    case 'tool-approval-request': {
+      const call = toolCalls.get(part.toolCallId);
+      if (call == null) {
+        throw new HarnessEffectError({
+          message: `HarnessAgent: tool call '${part.toolCallId}' was not found for approval '${part.approvalId}'.`,
+        });
+      }
+      const toolCall = withOptionalProperties({
+        part: {
+          type: 'tool-call',
+          toolCallId: part.toolCallId,
+          toolName: call.toolName,
+          input: call.input,
+        },
+        optional: {
+          dynamic: call.dynamic ? true : undefined,
+          providerExecuted: call.providerExecuted,
+          providerMetadata: part.providerMetadata,
+        },
+      });
+      return [
+        withOptionalProperties({
+          part: {
+            type: 'tool-approval-request',
+            approvalId: part.approvalId,
+            toolCall,
+          },
+          optional: {
+            reason: part.reason,
+            isAutomatic: part.isAutomatic,
+          },
+        }) as TextStreamPart<TOOLS>,
+      ];
+    }
+
+    case 'tool-approval-response':
+    case 'tool-output-denied':
+      return [part as TextStreamPart<TOOLS>];
+
     case 'file-change': {
       const payload = { event: part.event, path: part.path };
       return createSyntheticToolParts<TOOLS>({
@@ -239,12 +288,13 @@ export async function translateStreamPart<TOOLS extends ToolSet>(options: {
       return [{ type: 'raw', rawValue: part.rawValue }];
 
     case 'stream-start':
-    case 'tool-approval-request':
     case 'reset-step':
     case 'finish-step':
-    case 'finish':
+    case 'start-turn':
+    case 'finish-turn':
     case 'retract':
     case 'yield':
+    case 'settle':
       return [];
   }
 }

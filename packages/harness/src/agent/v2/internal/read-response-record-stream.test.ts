@@ -12,7 +12,7 @@ import {
   type HarnessAgentStreamPart,
   type HarnessAgentStreamPartRecord,
 } from './create-stream-writer';
-import { readTurnRecordStream } from './read-turn-record-stream';
+import { readResponseRecordStream } from './read-response-record-stream';
 
 const encryption = {
   encrypt: async ({ data }: { data: Uint8Array }) => data,
@@ -46,7 +46,7 @@ const usage = {
 };
 
 const finishPart: HarnessAgentStreamPart = {
-  type: 'finish',
+  type: 'finish-turn',
   finishReason,
   totalUsage: usage,
 };
@@ -86,7 +86,7 @@ async function readAll(
   return records;
 }
 
-describe('readTurnRecordStream', () => {
+describe('readResponseRecordStream', () => {
   test('decrypts fragmented and combined frames while resuming at a World chunk index', async () => {
     const world = new InMemoryWorld();
     const keyedWorld: World = world;
@@ -104,7 +104,7 @@ describe('readTurnRecordStream', () => {
     await writeRecords({
       world,
       encryption,
-      records: [{ part: { type: 'start' }, key: 'turn-start:turn' }],
+      records: [{ part: { type: 'start-turn' }, key: 'turn-start:turn' }],
     });
     await writeRecords({
       world,
@@ -139,17 +139,17 @@ describe('readTurnRecordStream', () => {
     );
     expect(
       await readAll(
-        readTurnRecordStream({
+        readResponseRecordStream({
           world,
           session,
           encryption,
-          turnId: 'turn',
+          startTurnId: 'turn',
           startIndex: 1,
           driveEnd: Promise.resolve(),
         }),
       ),
     ).toEqual([
-      { part: { type: 'start' }, key: 'turn-start:turn' },
+      { part: { type: 'start-turn' }, key: 'turn-start:turn' },
       {
         part: { type: 'text-delta', id: 'text', delta: 'secret' },
         startId: 'attempt',
@@ -165,11 +165,11 @@ describe('readTurnRecordStream', () => {
     await world.streams.close(runId, session.getStreamName());
     await expect(
       readAll(
-        readTurnRecordStream({
+        readResponseRecordStream({
           world,
           session,
           encryption,
-          turnId: 'turn',
+          startTurnId: 'turn',
           startIndex: 0,
         }),
       ),
@@ -183,25 +183,25 @@ describe('readTurnRecordStream', () => {
       records: [
         { part: finishPart, key: 'finish-turn:previous' },
         { part: { type: 'retract', startIds: ['old'] } },
-        { part: { type: 'start' }, key: 'turn-start:turn' },
+        { part: { type: 'start-turn' }, key: 'turn-start:turn' },
         { part: { type: 'text-delta', id: 't', delta: 'hi' }, startId: 'a' },
         { part: { type: 'yield' } },
       ],
     });
 
     const records = await readAll(
-      readTurnRecordStream({
+      readResponseRecordStream({
         encryption,
         world,
         session,
-        turnId: 'turn',
+        startTurnId: 'turn',
         startIndex: 0,
         driveEnd: Promise.resolve(),
       }),
     );
 
     expect(records).toEqual([
-      { part: { type: 'start' }, key: 'turn-start:turn' },
+      { part: { type: 'start-turn' }, key: 'turn-start:turn' },
       { part: { type: 'text-delta', id: 't', delta: 'hi' }, startId: 'a' },
       { part: { type: 'yield' } },
     ]);
@@ -213,11 +213,11 @@ describe('readTurnRecordStream', () => {
 
     await expect(
       readAll(
-        readTurnRecordStream({
+        readResponseRecordStream({
           encryption,
           world,
           session,
-          turnId: 'turn',
+          startTurnId: 'turn',
           startIndex: 0,
           driveEnd: Promise.reject(failure),
         }),
@@ -225,22 +225,22 @@ describe('readTurnRecordStream', () => {
     ).rejects.toBe(failure);
   });
 
-  test('follows the turn across drives, dropping yields, until its finish', async () => {
+  test('follows the session across drives, dropping yields, until it settled', async () => {
     const world = new InMemoryWorld();
     await writeRecords({
       world,
       records: [
-        { part: { type: 'start' }, key: 'turn-start:turn' },
+        { part: { type: 'start-turn' }, key: 'turn-start:turn' },
         { part: { type: 'text-delta', id: 't', delta: 'a' }, startId: 'a' },
         { part: { type: 'yield' } },
       ],
     });
     const reading = readAll(
-      readTurnRecordStream({
+      readResponseRecordStream({
         encryption,
         world,
         session,
-        turnId: 'turn',
+        startTurnId: 'turn',
         startIndex: 0,
       }),
     );
@@ -250,15 +250,90 @@ describe('readTurnRecordStream', () => {
       records: [
         { part: { type: 'retract', startIds: ['a'] } },
         { part: finishPart, key: 'finish-turn:turn' },
-        { part: { type: 'start' }, key: 'turn-start:next' },
+        { part: { type: 'settle' } },
+        { part: { type: 'start-turn' }, key: 'turn-start:next' },
       ],
     });
 
     expect(await reading).toEqual([
-      { part: { type: 'start' }, key: 'turn-start:turn' },
+      { part: { type: 'start-turn' }, key: 'turn-start:turn' },
       { part: { type: 'text-delta', id: 't', delta: 'a' }, startId: 'a' },
       { part: { type: 'retract', startIds: ['a'] } },
       { part: finishPart, key: 'finish-turn:turn' },
+      { part: { type: 'settle' } },
+    ]);
+  });
+
+  test('drops settle parts that later history supersedes and closes at the one ending the history', async () => {
+    const world = new InMemoryWorld();
+    const request: HarnessAgentStreamPart = {
+      type: 'tool-approval-request',
+      approvalId: 'approval-1',
+      toolCallId: 'call-1',
+    };
+    await writeRecords({
+      world,
+      records: [
+        { part: { type: 'start-turn' }, key: 'turn-start:turn' },
+        { part: request, key: 'tool-approval-request:call-1' },
+        { part: { type: 'settle' } },
+      ],
+    });
+    await writeRecords({
+      world,
+      records: [
+        { part: { type: 'text-delta', id: 't', delta: 'a' }, startId: 'a' },
+        { part: finishPart, key: 'finish-turn:turn' },
+        { part: { type: 'settle' } },
+      ],
+    });
+
+    expect(
+      await readAll(
+        readResponseRecordStream({
+          encryption,
+          world,
+          session,
+          startTurnId: 'turn',
+          startIndex: 0,
+        }),
+      ),
+    ).toEqual([
+      { part: { type: 'start-turn' }, key: 'turn-start:turn' },
+      { part: request, key: 'tool-approval-request:call-1' },
+      { part: { type: 'text-delta', id: 't', delta: 'a' }, startId: 'a' },
+      { part: finishPart, key: 'finish-turn:turn' },
+      { part: { type: 'settle' } },
+    ]);
+  });
+
+  test('reads every record from the start index without a start turn', async () => {
+    const world = new InMemoryWorld();
+    await writeRecords({
+      world,
+      records: [{ part: { type: 'settle' } }],
+    });
+    await writeRecords({
+      world,
+      records: [
+        { part: { type: 'text-delta', id: 't', delta: 'a' }, startId: 'a' },
+        { part: { type: 'settle' } },
+      ],
+    });
+
+    expect(
+      await readAll(
+        readResponseRecordStream({
+          encryption,
+          world,
+          session,
+          startIndex: 1,
+          driveEnd: Promise.resolve(),
+        }),
+      ),
+    ).toEqual([
+      { part: { type: 'text-delta', id: 't', delta: 'a' }, startId: 'a' },
+      { part: { type: 'settle' } },
     ]);
   });
 
@@ -266,15 +341,15 @@ describe('readTurnRecordStream', () => {
     const world = new InMemoryWorld();
     await writeRecords({
       world,
-      records: [{ part: { type: 'start' }, key: 'turn-start:turn' }],
+      records: [{ part: { type: 'start-turn' }, key: 'turn-start:turn' }],
     });
     const abortController = new AbortController();
     const firstRecord = new DelayedPromise<void>();
-    const stream = readTurnRecordStream({
+    const stream = readResponseRecordStream({
       encryption,
       world,
       session,
-      turnId: 'turn',
+      startTurnId: 'turn',
       startIndex: 0,
       abortSignal: abortController.signal,
     });
@@ -291,7 +366,7 @@ describe('readTurnRecordStream', () => {
     abortController.abort();
 
     expect(await reading).toEqual([
-      { part: { type: 'start' }, key: 'turn-start:turn' },
+      { part: { type: 'start-turn' }, key: 'turn-start:turn' },
     ]);
   });
 });

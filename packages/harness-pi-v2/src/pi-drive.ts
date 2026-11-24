@@ -240,6 +240,14 @@ function getErrorMessage(error: unknown): string {
  * starts from exactly what the log recorded. A cancel that is already
  * waiting when the drive starts finishes the resumed turn without running
  * it.
+ *
+ * A host tool call that waits for a user's approval suspends the turn: the
+ * call gets a placeholder result, the step's other tool calls still run (so
+ * each call that needs approval requests it in this drive), Pi's step end
+ * finishes the step, and the next model call is refused, which ends Pi's
+ * run without finishing the turn. A later drive re-enters the step's model
+ * call, which replays, and runs its tool calls again with their approval
+ * responses. The placeholder results never reach the log.
  */
 export class PiDrive {
   /**
@@ -345,6 +353,12 @@ export class PiDrive {
    * Whether the user cancelled the current turn.
    */
   private turnCancelled = false;
+
+  /**
+   * Whether a host tool call of the current turn waits for a user's
+   * approval, so the turn's run ends after the current step.
+   */
+  private turnSuspended = false;
 
   /**
    * Aborted when the user cancels the current turn, to stop its built-in
@@ -679,6 +693,7 @@ export class PiDrive {
     this.turnUsage = createUnknownHarnessUsage();
     this.lastResponse = undefined;
     this.turnCancelled = false;
+    this.turnSuspended = false;
     this.turnAbortController = new AbortController();
     this.checkCancel();
   }
@@ -686,12 +701,14 @@ export class PiDrive {
   /**
    * Finishes the current turn after Pi's run settled. Rethrows a drive
    * context rejection, and returns `false` without finishing the turn when
-   * the drive halted. A cancelled turn finishes with finish reason
-   * `cancelled`, after which Pi's agent is rebuilt from the log.
+   * the drive halted or a tool call waits for approval. A cancelled turn
+   * finishes with finish reason `cancelled`, after which Pi's agent is
+   * rebuilt from the log.
    */
   private async finishRun(): Promise<boolean> {
     if (this.driveError != null) throw this.driveError.error;
     if (this.halted) return false;
+    if (this.turnSuspended && !this.turnCancelled) return false;
     await this.mcpRuntime?.close();
     this.mcpRuntime = undefined;
     this.mcpTools = [];
@@ -989,7 +1006,10 @@ export class PiDrive {
    * transcript, or throws so Pi places an error result.
    *
    * An interrupted call halts the drive when the drive is stopping or
-   * yielding. A suspended call is answered with an error result.
+   * yielding. A call that waits for approval suspends the turn and is
+   * answered with a placeholder result, which never reaches the model since
+   * the next model call is refused. A client tool call is answered with an
+   * error result.
    */
   private toToolResult(options: {
     /**
@@ -1023,6 +1043,14 @@ export class PiDrive {
       case 'denied':
         throw new Error(describeToolFailure({ output, toolName }));
       case 'suspended':
+        if (output.reason === 'approval') {
+          this.turnSuspended = true;
+          return {
+            content: [{ type: 'text', text: 'This call waits for approval.' }],
+            details: undefined,
+            isError: true,
+          };
+        }
         /*
          * TODO: A suspended call waits for a tool approval or a client-side
          * tool result. Once the harness supports those, end the drive's turn
@@ -1102,9 +1130,9 @@ export class PiDrive {
    * recorded, so Pi never sees a response finish that the log does not have.
    * A replayed call is checked against the recorded request size; a
    * different size means the transcript diverged, which fails the drive.
-   * Once the drive halted or the turn was cancelled, a call is refused
-   * without running it, and a call that a cancel cut off ends Pi's run
-   * without halting the drive.
+   * Once the drive halted, the turn was cancelled, or a tool call waits for
+   * approval, a call is refused without running it, and a call that a
+   * cancel cut off ends Pi's run without halting the drive.
    */
   private readonly stream: StreamFn = (model, context, options) => {
     const out = createAssistantMessageEventStream();
@@ -1114,7 +1142,7 @@ export class PiDrive {
     const key = `model:${ordinal}`;
     const { messages } = context;
 
-    if (this.halted || this.turnCancelled) {
+    if (this.halted || this.turnCancelled || this.turnSuspended) {
       this.stepRefused = true;
       out.push({
         type: 'error',
@@ -1123,7 +1151,9 @@ export class PiDrive {
           model,
           message: this.halted
             ? 'The drive stopped.'
-            : 'The turn was cancelled.',
+            : this.turnCancelled
+              ? 'The turn was cancelled.'
+              : 'The turn waits for tool approval.',
           aborted: true,
         }),
       });

@@ -30,6 +30,7 @@ async function setup(
     tools?: ToolSet;
     responses?: TestModelResponse[];
     mcpServers?: HarnessV2TurnSettings['mcpServers'];
+    toolApproval?: Record<string, 'user-approval' | 'approved' | 'denied'>;
   } = {},
 ) {
   const runtime = createTestModelRuntime({ responses: options.responses });
@@ -54,6 +55,7 @@ async function setup(
     harness,
     tools: options.tools ?? {},
     mcpServers: options.mcpServers,
+    toolApproval: options.toolApproval,
     sandboxConfig: { workDir: 'project' },
     getSandboxSession: async () => sandboxSession,
   });
@@ -914,5 +916,121 @@ describe('FxDrive', () => {
     ).rejects.toThrow('finishStep failed');
     expect(runtime.requests).toHaveLength(1);
     expect(readState().turns.map(turn => turn.checkpoint)).toEqual([undefined]);
+  });
+
+  describe('tool approvals', () => {
+    const parisCall = 'call-fbf0a350-5238-497e-97d2-fd4330a9d913-0';
+    const tokyoCall = 'call-fbf0a350-5238-497e-97d2-fd4330a9d913-1';
+
+    /**
+     * Creates a session with the host tool `weather`, which requires a
+     * user's approval, and a model that calls it twice in its first
+     * response and answers with text in its second.
+     */
+    async function setupApprovals() {
+      const weather = vi.fn(
+        async ({ city }: { city: string }) => `${city}: sunny`,
+      );
+      const test = await setup({
+        tools: {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+            execute: weather,
+          }),
+        },
+        toolApproval: { weather: 'user-approval' },
+        responses: [
+          await readFixture({ name: 'gateway-reasoning-tool-calls.sse.txt' }),
+          await readFixture({ name: 'gateway-text.sse.txt' }),
+        ],
+      });
+      return { ...test, weather };
+    }
+
+    /**
+     * Returns the approval IDs of a result's approval requests, by tool
+     * call ID.
+     */
+    function getApprovalIds(
+      content: ReadonlyArray<{
+        type: string;
+        approvalId?: string;
+        toolCall?: { toolCallId: string };
+      }>,
+    ): Record<string, string> {
+      const ids = Object.create(null) as Record<string, string>;
+      for (const part of content) {
+        if (
+          part.type !== 'tool-approval-request' ||
+          part.approvalId == null ||
+          part.toolCall == null
+        ) {
+          continue;
+        }
+        ids[part.toolCall.toolCallId] = part.approvalId;
+      }
+      return ids;
+    }
+
+    test('requests approval for every call of a step and resumes the turn after the responses', async () => {
+      const { agent, session, runtime, readState, weather } =
+        await setupApprovals();
+
+      const first = await agent.generate({ prompt: 'Weather?', session });
+
+      expect(first.finishReason).toBe('tool-calls');
+      const ids = getApprovalIds(first.content);
+      expect(Object.keys(ids)).toEqual([parisCall, tokyoCall]);
+      expect(runtime.requests).toHaveLength(1);
+      expect(weather).not.toHaveBeenCalled();
+      expect(readState().turns.at(-1)?.ended).toBe(false);
+
+      const second = await agent.stream({
+        session,
+        messages: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: ids[parisCall],
+                approved: true,
+              },
+              {
+                type: 'tool-approval-response',
+                approvalId: ids[tokyoCall],
+                approved: false,
+                reason: 'Not now',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(await second.finishReason).toBe('stop');
+      expect(weather).toHaveBeenCalledTimes(1);
+      expect(weather.mock.calls[0][0]).toEqual({ city: 'Paris' });
+      expect(runtime.requests).toHaveLength(2);
+      expect(runtime.requests[1].body).toContain('Paris: sunny');
+      expect(runtime.requests[1].body).toContain(
+        'The tool call was denied: Not now',
+      );
+      expect(readState().turns.at(-1)?.ended).toBe(true);
+    });
+
+    test('finishes a turn that waits for approval as cancelled', async () => {
+      const { agent, session, runtime, log, weather } = await setupApprovals();
+      await agent.generate({ prompt: 'Weather?', session });
+
+      await agent.cancel({ session });
+      await agent.drive({ session });
+
+      expect(log().getCurrentTurn()?.finish?.data.finishReason).toEqual({
+        unified: 'cancelled',
+        raw: undefined,
+      });
+      expect(runtime.requests).toHaveLength(1);
+      expect(weather).not.toHaveBeenCalled();
+    });
   });
 });

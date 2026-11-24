@@ -346,7 +346,7 @@ describe('createFinishFunctions', () => {
   });
 
   describe('finishTurn', () => {
-    test('records the turn and emits finish under the turn key', async () => {
+    test('records the turn and emits finish-turn under the turn key', async () => {
       const { world, log, writer, finishTurn } = await setup();
       await deliverPrompt({ log, submissionId: 'p1' });
 
@@ -374,7 +374,7 @@ describe('createFinishFunctions', () => {
       expect(await readStream({ world, writer })).toEqual([
         {
           part: {
-            type: 'finish',
+            type: 'finish-turn',
             finishReason,
             totalUsage: usage,
             harnessMetadata: { test: { value: 1 } },

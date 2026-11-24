@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   executeTool,
+  generateId,
   getErrorMessage,
   isExecutableTool,
   safeValidateTypes,
@@ -30,10 +31,27 @@ import type { HarnessV2ToolResult } from '../../../v2/harness-v2-stream-part';
 import { isPlainJSONValue } from './utils';
 import {
   createToolApprovalUnsupportedError,
+  describeToolCallDenial,
   requiresApproval,
+  resolveToolApprovalStatus,
+  type ResolvedToolApprovalStatus,
+  type ToolApprovalPolicy,
 } from './tool-approval';
 import type { HarnessAgentEffectFunction } from './create-effect-function';
-import type { HarnessAgentLog } from './create-log';
+import type {
+  HarnessAgentLog,
+  HarnessAgentLogToolApprovalRequestEvent,
+  HarnessAgentLogToolApprovalResponseEvent,
+} from './create-log';
+import type {
+  HarnessAgentStreamPart,
+  HarnessAgentStreamWriter,
+} from './create-stream-writer';
+
+/**
+ * `T` with its properties made writable, for building log event data.
+ */
+type Mutable<T> = { -readonly [KEY in keyof T]: T[KEY] };
 
 /**
  * Executes one of the app's own tools as a recorded effect. Same as
@@ -45,6 +63,15 @@ import type { HarnessAgentLog } from './create-log';
  * running the tool again. Tool values are converted to JSON, and the
  * `tool-result` parts are emitted by the engine. A client tool (no `execute`)
  * resolves `suspended` without being recorded.
+ *
+ * A tool that the agent's `toolApproval` setting gives a status other than
+ * `not-applicable` asks for approval once its call is valid. The engine records
+ * the approval request and emits its parts itself. `approved` runs the tool,
+ * `denied` resolves `denied`, and `user-approval` resolves `suspended` (reason
+ * `approval`) until a user's approval response arrives, then runs the tool or
+ * resolves `denied`. A suspended call has no recorded execution outcome, so a
+ * later drive runs it through the host again. A call may be denied by the
+ * user or by the approval policy.
  */
 export type HarnessAgentExecuteHostToolFunction =
   HarnessV2ExecuteHostToolFunction;
@@ -368,6 +395,25 @@ function emitToolError(options: {
  * that the provider does not execute is a client tool: the call resolves
  * `suspended` without being recorded.
  *
+ * Before running a valid call (a known executable tool without
+ * `needsApproval`, with input that matches its input schema) whose tool the
+ * `toolApproval` setting gives a status other than `not-applicable`,
+ * `executeHostTool()` resolves its approval. Calls that are already recorded
+ * and invalid calls skip this, so invalid calls are recorded as `error`
+ * outcomes without asking. The approval request is recorded once per tool
+ * call (ID `tool-approval-request:${toolCallId}`, with a generated approval
+ * ID) and its `tool-approval-request` part is emitted when it is new.
+ * `approved` and `denied` statuses record an automatic response right away
+ * (`isAutomatic` on the request) and emit `tool-approval-response`.
+ * A `user-approval` call resolves `suspended` (reason `approval`) until the
+ * log has a `tool-approval-response` submission for it, which the recorded
+ * response (ID `tool-approval-response:${toolCallId}`) then delivers; no
+ * response part is emitted for it, since the app sent it. An approved call
+ * runs like any other call. A denied call resolves `denied` without being
+ * recorded as an effect, and emits `tool-output-denied` along with its
+ * newly recorded response. Once the drive stopped, a call whose approval
+ * would need a new record resolves a retryable `interrupted` instead.
+ *
  * `executeBuiltinTool()` runs one of the harness's built-in tools with the
  * implementation the adapter passes as `execute`, with the attempt's abort
  * signal, after committing a `tool-execution-start` event. Each value an
@@ -407,6 +453,23 @@ export function createExecuteToolFunctions(options: {
   effect: HarnessAgentEffectFunction;
 
   /**
+   * Writer for the session's stream, owned by the current drive, used for
+   * the approval parts of host tools.
+   */
+  writer: HarnessAgentStreamWriter;
+
+  /**
+   * The agent's normalized `toolApproval` setting. Defaults to no approvals.
+   */
+  toolApproval?: ToolApprovalPolicy;
+
+  /**
+   * Aborts once the drive ended. Approval records are not written anymore
+   * afterwards.
+   */
+  stopAbortSignal: AbortSignal;
+
+  /**
    * Resolves the session's sandbox session. Called only inside a fresh
    * attempt of an executable host tool.
    */
@@ -418,7 +481,16 @@ export function createExecuteToolFunctions(options: {
   executeBuiltinTool: HarnessAgentExecuteBuiltinToolFunction;
   executeMcpTool: HarnessV2ExecuteMcpToolFunction;
 } {
-  const { log, tools, builtinTools, effect, getSandboxSession } = options;
+  const {
+    log,
+    tools,
+    builtinTools,
+    effect,
+    writer,
+    toolApproval = {},
+    stopAbortSignal,
+    getSandboxSession,
+  } = options;
 
   /**
    * Commits the `tool-execution-start` event of an attempt, right before its
@@ -432,6 +504,192 @@ export function createExecuteToolFunctions(options: {
       id: `tool-execution-start:${context.startId}`,
       data: { startId: context.startId },
     });
+  }
+
+  /**
+   * Returns whether a host tool call is valid, i.e. whether running it would
+   * reach the tool's `execute`: a known executable tool that does not set
+   * `needsApproval`, with input that matches its input schema. Approval is
+   * only asked for valid calls; invalid ones are recorded as errors.
+   */
+  async function isValidHostToolCall(options: {
+    /**
+     * The called tool, if it is one of the agent's own tools.
+     */
+    tool?: Tool;
+
+    /**
+     * Tool input, already parsed from the model's JSON.
+     */
+    toolInput: JSONValue;
+  }): Promise<boolean> {
+    const { tool, toolInput } = options;
+    if (
+      tool == null ||
+      isProviderExecuted(tool) ||
+      !isExecutableTool(tool) ||
+      requiresApproval(tool)
+    ) {
+      return false;
+    }
+    const parsed = await safeValidateTypes({
+      value: toolInput,
+      schema: tool.inputSchema,
+    });
+    return parsed.success;
+  }
+
+  /**
+   * Resolves the approval of a valid host tool call whose tool requires one,
+   * recording its request and response as needed (see
+   * `createExecuteToolFunctions()`). Returns the applied response, or
+   * `suspended` while the call waits for a user's response, or `stopped`
+   * when a new record would be needed after the drive stopped.
+   */
+  async function resolveApproval(options: {
+    /**
+     * ID of the tool call.
+     */
+    toolCallId: string;
+
+    /**
+     * Name of the called tool.
+     */
+    toolName: string;
+
+    /**
+     * Tool input, already parsed from the model's JSON.
+     */
+    toolInput: JSONValue;
+
+    /**
+     * Approval status of the tool from the `toolApproval` setting.
+     */
+    status: Exclude<ResolvedToolApprovalStatus, { type: 'not-applicable' }>;
+  }): Promise<
+    HarnessAgentLogToolApprovalResponseEvent['data'] | 'suspended' | 'stopped'
+  > {
+    const { toolCallId, toolName, toolInput, status } = options;
+    let approval = log.getToolApproval({ toolCallId });
+    if (approval == null) {
+      if (stopAbortSignal.aborted) return 'stopped';
+      const automatic = status.type !== 'user-approval';
+      const data: Mutable<HarnessAgentLogToolApprovalRequestEvent['data']> = {
+        approvalId: generateId(),
+        toolCallId,
+        toolName,
+        input: toolInput,
+      };
+      if (!automatic && status.reason != null) data.reason = status.reason;
+      if (automatic) data.isAutomatic = true;
+      const id = `tool-approval-request:${toolCallId}`;
+      const appended = await log.append({
+        type: 'tool-approval-request',
+        id,
+        data,
+      });
+      approval = log.getToolApproval({ toolCallId });
+      if (approval == null) {
+        throw new HarnessInvalidDriveStateError({
+          message: `HarnessAgent.executeHostTool: the approval request of tool call '${toolCallId}' was not recorded.`,
+        });
+      }
+      if (appended) {
+        const part: Extract<
+          HarnessAgentStreamPart,
+          { type: 'tool-approval-request' }
+        > = {
+          type: 'tool-approval-request',
+          approvalId: approval.request.data.approvalId,
+          toolCallId,
+        };
+        if (approval.request.data.reason != null)
+          part.reason = approval.request.data.reason;
+        if (approval.request.data.isAutomatic != null)
+          part.isAutomatic = approval.request.data.isAutomatic;
+        writer.emit({
+          part,
+          key: id,
+        });
+      }
+    }
+
+    const { request } = approval;
+    if (approval.response == null) {
+      /*
+       * An automatic request is answered from the current setting. If the
+       * setting no longer approves the tool without asking (e.g. it changed
+       * between a crash and this drive), the call is denied rather than
+       * waiting for a user who was never asked.
+       */
+      const submission = request.data.isAutomatic
+        ? undefined
+        : approval.submission;
+      if (!request.data.isAutomatic && submission == null) return 'suspended';
+      if (stopAbortSignal.aborted) return 'stopped';
+
+      const data: Mutable<HarnessAgentLogToolApprovalResponseEvent['data']> = {
+        approvalId: request.data.approvalId,
+        toolCallId,
+        approved:
+          submission?.data.type === 'tool-approval-response'
+            ? submission.data.approved
+            : status.type === 'approved',
+      };
+      const reason =
+        submission?.data.type === 'tool-approval-response'
+          ? submission.data.reason
+          : status.reason;
+      if (reason != null) data.reason = reason;
+      if (submission != null) data.submissionId = submission.id;
+      const id = `tool-approval-response:${toolCallId}`;
+      const appended = await log.append({
+        type: 'tool-approval-response',
+        id,
+        data,
+      });
+      approval = log.getToolApproval({ toolCallId });
+      if (approval?.response == null) {
+        throw new HarnessInvalidDriveStateError({
+          message: `HarnessAgent.executeHostTool: the approval response of tool call '${toolCallId}' was not recorded.`,
+        });
+      }
+      if (appended) {
+        const { response } = approval;
+        if (request.data.isAutomatic) {
+          const part: Extract<
+            HarnessAgentStreamPart,
+            { type: 'tool-approval-response' }
+          > = {
+            type: 'tool-approval-response',
+            approvalId: response.data.approvalId,
+            toolCall: {
+              type: 'tool-call',
+              toolCallId,
+              toolName: request.data.toolName,
+              input: request.data.input,
+            },
+            approved: response.data.approved,
+          };
+          if (tools[request.data.toolName]?.type === 'dynamic') {
+            part.toolCall.dynamic = true;
+          }
+          if (response.data.reason != null) part.reason = response.data.reason;
+          writer.emit({ part, key: id });
+        }
+        if (!response.data.approved) {
+          writer.emit({
+            part: {
+              type: 'tool-output-denied',
+              toolCallId,
+              toolName: request.data.toolName,
+            },
+            key: `tool-output-denied:${toolCallId}`,
+          });
+        }
+      }
+    }
+    return approval.response!.data;
   }
 
   /**
@@ -754,8 +1012,38 @@ export function createExecuteToolFunctions(options: {
 
       assertJSONInput({ input: toolInput, functionName: 'executeHostTool' });
 
+      const key = `${TOOL_EFFECT_KEY_PREFIX}${toolCallId}`;
+      const status = resolveToolApprovalStatus({
+        policy: toolApproval,
+        toolName,
+      });
+      if (
+        status.type !== 'not-applicable' &&
+        log.getEffect({ key })?.end == null &&
+        (await isValidHostToolCall({ tool, toolInput }))
+      ) {
+        const response = await resolveApproval({
+          toolCallId,
+          toolName,
+          toolInput,
+          status,
+        });
+        if (response === 'suspended') {
+          return { type: 'suspended', reason: 'approval' };
+        }
+        if (response === 'stopped') {
+          return { type: 'interrupted', retryable: true };
+        }
+        if (!response.approved) {
+          return {
+            type: 'denied',
+            reason: describeToolCallDenial({ reason: response.reason }),
+          };
+        }
+      }
+
       const output = await effect({
-        key: `${TOOL_EFFECT_KEY_PREFIX}${toolCallId}`,
+        key,
         name: `${TOOL_EFFECT_NAME_PREFIX}${toolName}`,
         replay: tool?.replay ?? 'never',
         input: toolInput,

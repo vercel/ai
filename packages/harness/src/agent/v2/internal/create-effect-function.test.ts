@@ -1712,7 +1712,7 @@ describe('createEffectFunction', () => {
         data: { turnId: 'prompt-1' },
       });
       expect(await readStream({ world, runId })).toEqual([
-        { part: { type: 'start' }, key: 'turn-start:prompt-1' },
+        { part: { type: 'start-turn' }, key: 'turn-start:prompt-1' },
       ]);
     });
 
@@ -1750,7 +1750,7 @@ describe('createEffectFunction', () => {
       ).toHaveLength(1);
       expect(
         (await readStream({ world, runId })).filter(
-          record => 'part' in record && record.part.type === 'start',
+          record => 'part' in record && record.part.type === 'start-turn',
         ),
       ).toHaveLength(1);
     });

@@ -52,16 +52,27 @@ import type {
 const RESET_STEP_KIND = 'harness.reset-step';
 
 /**
- * How the turn read by a `HarnessStreamTextResult` ended.
+ * Kind of the `custom` part that marks the start of a turn.
  */
-export type HarnessStreamTextResultTurnEnd = {
+const START_TURN_KIND = 'harness.start-turn';
+
+/**
+ * Kind of the `custom` part that marks the end of a turn.
+ */
+const FINISH_TURN_KIND = 'harness.finish-turn';
+
+/**
+ * How the response read by a `HarnessStreamTextResult` ended.
+ */
+export type HarnessStreamTextResultEnd = {
   /**
-   * How the turn ended for this result (see `pump`).
+   * How the response ended for this result (see `pump`).
    */
   reason: 'finished' | 'yielded' | 'incomplete' | 'aborted' | 'failed';
 
   /**
-   * First error of the turn: an `error` part, or the failure that ended it.
+   * First error of the response: an `error` part, or the failure that ended
+   * it.
    */
   error?: unknown;
 };
@@ -156,17 +167,22 @@ type StepPart<TOOLS extends ToolSet> = {
 };
 
 /**
- * Minimal `StreamTextResult` over one turn of a HarnessV2 session, read from the
- * session's stream.
+ * Minimal `StreamTextResult` over one response of a HarnessV2 session, read
+ * from the session's stream: from a turn's start or from a submission of tool
+ * approval responses until the session settled.
  *
- * The turn's parts are read in the background as soon as the result is
+ * The response's parts are read in the background as soon as the result is
  * created, so promises such as `text` settle whether or not `fullStream` is
- * read. Parts are translated to AI SDK stream parts; `start-step` is inserted
- * before a step's first part, `finish-step` builds the step's `StepResult`,
- * and `reset-step` discards the step's collected content. When the turn did
- * not finish, an `error` part (failed or incomplete turn) or an `abort` part
- * (the call's own abort signal) is added before closing. A turn whose drive
- * yielded ends without either.
+ * read. The result starts with a `start` part. Parts are translated to AI SDK
+ * stream parts; `start-step` is inserted before a step's first part,
+ * `finish-step` builds the step's `StepResult`, and `reset-step` discards the
+ * step's collected content. A turn's start and finish become `custom` parts
+ * of the kinds `harness.start-turn` and `harness.finish-turn`, which are not
+ * part of any step. The engine's `settle` part ends the response with a
+ * `finish` part. When the response did not settle, an `error` part (failed
+ * or incomplete response) or an `abort` part (the call's own abort signal)
+ * is added before closing. A response whose drive yielded ends without
+ * either, and without `finish`.
  *
  * Records are tagged with the effect attempt that produced them (`startId`)
  * and, for boundary parts, their log key (`key`). A record whose key this
@@ -194,10 +210,10 @@ export class HarnessStreamTextResult<
   OUTPUT extends Output,
 > implements StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   /**
-   * Resolves with how the turn ended, once its stream ended. Engine-internal,
-   * used by `generate()`.
+   * Resolves with how the response ended, once its stream ended.
+   * Engine-internal, used by `generate()`.
    */
-  readonly turnEnd: Promise<HarnessStreamTextResultTurnEnd>;
+  readonly end: Promise<HarnessStreamTextResultEnd>;
 
   private readonly tools: TOOLS;
   private readonly providerName: string;
@@ -226,6 +242,9 @@ export class HarnessStreamTextResult<
   private stepStarted = false;
   private yielded = false;
   private firstError: unknown;
+  private turnFinish:
+    | { finishReason: FinishReason; rawFinishReason?: string }
+    | undefined;
   private finish:
     | {
         finishReason: FinishReason;
@@ -254,6 +273,17 @@ export class HarnessStreamTextResult<
     tools: TOOLS;
 
     /**
+     * Tool calls loaded from the log when their stream parts precede this
+     * response or need repair. Used for approval and result translation,
+     * without emitting those calls again.
+     */
+    toolCalls?: ReadonlyArray<{
+      toolCallId: string;
+      toolName: string;
+      input: unknown;
+    }>;
+
+    /**
      * Identifier of the harness adapter, part of the reported provider.
      */
     harnessId: string;
@@ -267,6 +297,15 @@ export class HarnessStreamTextResult<
     this.providerName = `harness:${options.harnessId}`;
     this.modelId = options.harnessId;
     this.callId = options.callId;
+    for (const call of options.toolCalls ?? []) {
+      this.translatedToolCalls.set(call.toolCallId, {
+        toolName: call.toolName,
+        input: call.input,
+        dynamic:
+          !Object.hasOwn(options.tools, call.toolName) ||
+          options.tools[call.toolName].type === 'dynamic',
+      });
+    }
 
     let controller!: ReadableStreamDefaultController<HarnessStreamEntry<TOOLS>>;
     this.baseStream = new ReadableStream<HarnessStreamEntry<TOOLS>>({
@@ -275,7 +314,8 @@ export class HarnessStreamTextResult<
       },
     });
     this.controller = controller;
-    this.turnEnd = this.pump({
+    this.enqueue({ part: { type: 'start' } });
+    this.end = this.pump({
       records: options.records,
       abortSignal: options.abortSignal,
     });
@@ -299,12 +339,12 @@ export class HarnessStreamTextResult<
   }
 
   /**
-   * Reads the turn's records, forwards their parts translated, and settles the
-   * result's promises once the parts ended.
+   * Reads the response's records, forwards their parts translated, and
+   * settles the result's promises once the parts ended.
    *
-   * How the turn ended:
+   * How the response ended:
    * - `aborted` if the call's abort signal fired; an `abort` part is added.
-   * - `finished` if a `finish` part was read.
+   * - `finished` if a `settle` part was read, which added the `finish` part.
    * - `yielded` if a `yield` part was read: the drive ran out of time and the
    *   turn continues in a later drive.
    * - `failed` if reading the records failed; an `error` part is added. If the
@@ -317,7 +357,7 @@ export class HarnessStreamTextResult<
    *   part is added.
    *
    * Records with an already received key and records of retracted attempts
-   * are dropped. Parts after a `finish` or `yield` part are dropped, but
+   * are dropped. Parts after a `settle` or `yield` part are dropped, but
    * still read until `records` ends, so the result closes only once the
    * drive ended.
    */
@@ -331,7 +371,7 @@ export class HarnessStreamTextResult<
      * The call's abort signal.
      */
     abortSignal?: AbortSignal;
-  }): Promise<HarnessStreamTextResultTurnEnd> {
+  }): Promise<HarnessStreamTextResultEnd> {
     const { records, abortSignal } = options;
     const reader = records.getReader();
     let readError: unknown;
@@ -360,7 +400,7 @@ export class HarnessStreamTextResult<
       reader.releaseLock();
     }
 
-    let reason: HarnessStreamTextResultTurnEnd['reason'];
+    let reason: HarnessStreamTextResultEnd['reason'];
     let failure: unknown;
     if (abortSignal?.aborted) {
       reason = 'aborted';
@@ -378,7 +418,7 @@ export class HarnessStreamTextResult<
     } else {
       reason = 'incomplete';
       failure = new HarnessEffectError({
-        message: 'HarnessAgent: the drive ended before the turn finished.',
+        message: 'HarnessAgent: the drive ended before the session settled.',
       });
     }
 
@@ -395,11 +435,11 @@ export class HarnessStreamTextResult<
   }
 
   /**
-   * Handles one part of the turn.
+   * Handles one part of the response.
    */
   private async handlePart(options: {
     /**
-     * Engine stream part of the turn.
+     * Engine stream part of the response.
      */
     part: HarnessAgentStreamPart;
 
@@ -431,13 +471,31 @@ export class HarnessStreamTextResult<
         this.finishStep({ part });
         return;
 
-      case 'finish': {
-        const totalUsage = asLanguageModelUsage(
-          part.totalUsage as LanguageModelV4Usage,
-        );
-        const { finishReason, rawFinishReason } = translateFinishReason({
+      case 'start-turn':
+        this.enqueue({ part: { type: 'custom', kind: START_TURN_KIND } });
+        return;
+
+      case 'finish-turn':
+        this.turnFinish = translateFinishReason({
           finishReason: part.finishReason,
         });
+        this.enqueue({ part: { type: 'custom', kind: FINISH_TURN_KIND } });
+        return;
+
+      case 'settle': {
+        const lastStep = this.steps_.at(-1);
+        const { finishReason, rawFinishReason } =
+          this.turnFinish ??
+          (lastStep == null
+            ? { finishReason: 'other' as const, rawFinishReason: undefined }
+            : {
+                finishReason: lastStep.finishReason,
+                rawFinishReason: lastStep.rawFinishReason,
+              });
+        const totalUsage = this.steps_.reduce(
+          (total, step) => addLanguageModelUsage(total, step.usage),
+          createNullLanguageModelUsage(),
+        );
         this.finish = { finishReason, rawFinishReason, totalUsage };
         this.enqueue({
           part: {
@@ -459,10 +517,7 @@ export class HarnessStreamTextResult<
     for (const translatedPart of translated) {
       if (translatedPart.type === 'error') {
         this.firstError ??= translatedPart.error;
-      } else if (
-        translatedPart.type !== 'start' &&
-        translatedPart.type !== 'raw'
-      ) {
+      } else if (translatedPart.type !== 'raw') {
         this.startStep();
         this.stepParts.push({ part: translatedPart, startId });
       }
@@ -633,6 +688,8 @@ export class HarnessStreamTextResult<
         break;
       case 'tool-call':
       case 'tool-error':
+      case 'tool-approval-request':
+      case 'tool-approval-response':
         this.stepContent.push({ ...part } as ContentPart<TOOLS>);
         break;
       default:
@@ -640,7 +697,7 @@ export class HarnessStreamTextResult<
   }
 
   /**
-   * Settles the result's promises from the recorded steps and the turn's
+   * Settles the result's promises from the recorded steps and the response's
    * `finish` part, if any.
    */
   private settle(): void {

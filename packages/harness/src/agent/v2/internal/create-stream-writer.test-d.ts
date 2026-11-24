@@ -1,5 +1,7 @@
 import { expectTypeOf, test } from 'vitest';
 import type { SerializableValue } from '@ai-sdk/provider';
+import type { ToolSet } from '@ai-sdk/provider-utils';
+import type { ToolApprovalResponseOutput, TypedToolOutputDenied } from 'ai';
 import type { HarnessV2DriveContext } from '../../../v2/harness-v2-drive-context';
 import type {
   HarnessV2EffectContext,
@@ -39,9 +41,40 @@ test('copies every adapter stream part into the agent stream parts', () => {
   expectTypeOf<
     Exclude<
       HarnessAgentStreamPart,
-      { type: 'start' | 'finish-step' | 'finish' | 'retract' | 'yield' }
+      {
+        type:
+          | 'start-turn'
+          | 'finish-step'
+          | 'finish-turn'
+          | 'retract'
+          | 'yield'
+          | 'settle'
+          | 'tool-approval-response'
+          | 'tool-output-denied';
+      }
     >
   >().toEqualTypeOf<HarnessV2StreamPart>();
+});
+
+test('approval requests reference tool calls by ID', () => {
+  expectTypeOf<
+    Extract<HarnessAgentStreamPart, { type: 'tool-approval-request' }>
+  >().not.toHaveProperty('input');
+  expectTypeOf<
+    Extract<HarnessAgentStreamPart, { type: 'tool-approval-request' }>
+  >().not.toHaveProperty('toolName');
+});
+
+test('uses the AI SDK approval response stream part', () => {
+  expectTypeOf<
+    Extract<HarnessAgentStreamPart, { type: 'tool-approval-response' }>
+  >().toEqualTypeOf<ToolApprovalResponseOutput<ToolSet>>();
+});
+
+test('uses the AI SDK denied tool output stream part', () => {
+  expectTypeOf<
+    Extract<HarnessAgentStreamPart, { type: 'tool-output-denied' }>
+  >().toEqualTypeOf<TypedToolOutputDenied<ToolSet>>();
 });
 
 test('derives agent finish parts from the finish function options', () => {
@@ -52,8 +85,8 @@ test('derives agent finish parts from the finish function options', () => {
     >
   >().toMatchTypeOf<Extract<HarnessAgentStreamPart, { type: 'finish-step' }>>();
   expectTypeOf<
-    { type: 'finish' } & Parameters<HarnessV2DriveContext['finishTurn']>[0]
-  >().toMatchTypeOf<Extract<HarnessAgentStreamPart, { type: 'finish' }>>();
+    { type: 'finish-turn' } & Parameters<HarnessV2DriveContext['finishTurn']>[0]
+  >().toMatchTypeOf<Extract<HarnessAgentStreamPart, { type: 'finish-turn' }>>();
 });
 
 test('carries only serializable error and raw payloads', () => {

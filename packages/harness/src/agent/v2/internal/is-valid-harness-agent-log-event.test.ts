@@ -15,6 +15,8 @@ describe('isValidHarnessAgentLogEvent', () => {
     'crash-request',
     'drive-crash',
     'tool-execution-start',
+    'tool-approval-request',
+    'tool-approval-response',
     'harness:journal',
     'harness:custom:event',
     'harness:',

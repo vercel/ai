@@ -13,6 +13,7 @@ import type {
   HarnessV2Log,
   HarnessV2LogEffectAttempt,
   HarnessV2LogEvent,
+  HarnessV2LogSubmissionEvent,
   HarnessV2LogTurn,
 } from '../../../v2/harness-v2-log';
 import type { HarnessV2NetworkSandboxSession } from '../../../v2/harness-v2-network-sandbox-session';
@@ -30,6 +31,7 @@ import type { HarnessAgentGateBuiltinToolFunction } from './create-gate-builtin-
 import type {
   HarnessAgentLog,
   HarnessAgentLogEffectAttempt,
+  HarnessAgentLogSubmissionEvent,
   HarnessAgentLogTurn,
 } from './create-log';
 import type { HarnessAgentStreamWriter } from './create-stream-writer';
@@ -71,6 +73,17 @@ function isHarnessEventType(type: string): type is `harness:${string}` {
  */
 function clone<T>(value: T): T {
   return cloneSerializableValue({ value: value as SerializableValue }) as T;
+}
+
+/**
+ * Narrows submissions to those the adapter handles. Approval responses are
+ * consumed by the engine and must not appear in adapter-facing lookups or
+ * trigger their append listeners.
+ */
+function isAdapterSubmission(
+  submission: HarnessAgentLogSubmissionEvent,
+): submission is HarnessV2LogSubmissionEvent {
+  return submission.data.type !== 'tool-approval-response';
 }
 
 /**
@@ -142,7 +155,12 @@ function adaptHarnessV2Log(options: {
     onAppend(listener) {
       if (abortSignal.aborted) return () => {};
       const unsubscribe = log.onAppend({
-        listener: () => listener(),
+        listener: event => {
+          if (event.type === 'submission' && !isAdapterSubmission(event)) {
+            return;
+          }
+          listener();
+        },
         config: { types: engineEventTypeList },
       });
       const release = () => {
@@ -154,11 +172,14 @@ function adaptHarnessV2Log(options: {
     },
 
     getSubmissions() {
-      return log.getSubmissions().map(clone);
+      return log.getSubmissions().filter(isAdapterSubmission).map(clone);
     },
 
     getUndeliveredSubmissions() {
-      return log.getUndeliveredSubmissions().map(clone);
+      return log
+        .getUndeliveredSubmissions()
+        .filter(isAdapterSubmission)
+        .map(clone);
     },
 
     getEffect({ key }) {

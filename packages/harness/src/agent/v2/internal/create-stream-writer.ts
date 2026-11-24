@@ -5,7 +5,9 @@ import {
   jsonDecodeSerializableValue,
   jsonEncodeSerializableValue,
   parseJSON,
+  type ToolSet,
 } from '@ai-sdk/provider-utils';
+import type { ToolApprovalResponseOutput, TypedToolOutputDenied } from 'ai';
 import type { World } from '@workflow/world';
 import type { HarnessAgentSession } from '../harness-agent-session';
 import { decodeJSONRecordValue, encodeJSONRecord } from './encode-json-record';
@@ -25,12 +27,28 @@ import type {
 } from '../../../v2/harness-v2-stream-part';
 
 /**
+ * Automatic approval response emitted by the engine for a host tool call.
+ */
+type HarnessAgentToolApprovalResponsePart<TOOLS extends ToolSet> =
+  ToolApprovalResponseOutput<TOOLS>;
+
+/**
+ * Reports that a host tool call was denied and its tool did not run.
+ * Emitted by the engine only, keyed `tool-output-denied:${toolCallId}`.
+ */
+type HarnessAgentToolOutputDeniedPart<TOOLS extends ToolSet> =
+  TypedToolOutputDenied<TOOLS>;
+
+/**
  * Stream events handled by the HarnessAgent engine: the engine-side superset of
- * `HarnessV2StreamPart`. The `start`, `finish-step`, `finish`, `retract` and
- * `yield` variants are produced only by the engine: `start` when a turn
- * starts, the finish parts from the drive context's `finishStep()` and
- * `finishTurn()`, `retract` from the stream writer's `retract()`, and
- * `yield` when a drive yields at its deadline. A harness never emits them.
+ * `HarnessV2StreamPart`. The `start-turn`, `finish-step`, `finish-turn`,
+ * `retract`, `yield`, `settle`, `tool-approval-response` and
+ * `tool-output-denied` variants are produced only
+ * by the engine: `start-turn` when a turn starts, the finish parts from the
+ * drive context's `finishStep()` and `finishTurn()`, `retract` from the
+ * stream writer's `retract()`, `yield` when a drive yields at its deadline,
+ * `settle` when a drive leaves nothing to drive, and the approval response
+ * and denial parts from `executeHostTool()`. A harness never emits them.
  *
  * This union is redeclared rather than derived from `HarnessV2StreamPart`, so
  * every change to that type must be mirrored here.
@@ -41,7 +59,7 @@ export type HarnessAgentStreamPart =
        * Marks the start of a turn. Emitted by the engine only, keyed
        * `turn-start:${turnId}`.
        */
-      type: 'start';
+      type: 'start-turn';
     }
   | {
       /**
@@ -199,22 +217,23 @@ export type HarnessAgentStreamPart =
     }
   | {
       /**
-       * Completes the overall model call.
+       * Marks the end of a turn. Emitted by the engine only, keyed
+       * `finish-turn:${turnId}`.
        */
-      type: 'finish';
+      type: 'finish-turn';
 
       /**
-       * Reason reported for the call's completion.
+       * Reason reported for the turn's completion.
        */
       finishReason: HarnessV2FinishReason;
 
       /**
-       * Aggregate usage across all steps in the call.
+       * Aggregate usage across all steps in the turn.
        */
       totalUsage: HarnessV2Usage;
 
       /**
-       * Optional provider metadata associated with the call.
+       * Optional provider metadata associated with the turn.
        */
       harnessMetadata?: HarnessV2Metadata;
     }
@@ -318,7 +337,18 @@ export type HarnessAgentStreamPart =
        * unfinished, continues in a later drive. Emitted by the engine only.
        */
       type: 'yield';
-    };
+    }
+  | {
+      /**
+       * Marks that the session has nothing left to drive for now: no prompt
+       * waits, and the current turn, if any, finished or waits for tool
+       * approval responses. Written at the end of a drive. Emitted by the
+       * engine only.
+       */
+      type: 'settle';
+    }
+  | HarnessAgentToolApprovalResponsePart<ToolSet>
+  | HarnessAgentToolOutputDeniedPart<ToolSet>;
 
 /**
  * One record of a session's stream: a part, plus the engine-only tags readers
@@ -336,7 +366,8 @@ export type HarnessAgentStreamPartRecord = {
   startId?: string;
 
   /**
-   * Log key deduplicating a step or turn finish part, if any.
+   * Log key of a boundary or approval part, if any, used to drop duplicates
+   * and to repair parts a crash lost.
    */
   key?: string;
 };

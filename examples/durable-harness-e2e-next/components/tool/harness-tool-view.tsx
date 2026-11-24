@@ -11,6 +11,9 @@ const PRE_CLASS =
  * Generic, tool-agnostic renderer for any harness tool invocation. Displays
  * the call as `ToolName(arg)` with a spinner while the tool is still working
  * and the (collapsible) output indented below once it resolves.
+ *
+ * A call that needs the user's approval shows whether it waits for the
+ * approval, waits to run after it, or was denied.
  */
 export default function HarnessToolView({
   toolName,
@@ -19,6 +22,7 @@ export default function HarnessToolView({
   state,
   output,
   errorText,
+  approval,
 }: {
   toolName: string;
   toolArg?: string;
@@ -26,6 +30,7 @@ export default function HarnessToolView({
   state: DynamicToolUIPart['state'];
   output?: unknown;
   errorText?: string;
+  approval?: { approved?: boolean; reason?: string };
 }) {
   const running = state === 'input-streaming' || state === 'input-available';
 
@@ -65,6 +70,23 @@ export default function HarnessToolView({
       {state === 'output-error' && errorText && (
         <div className="mt-1 ml-4">
           <div className="text-sm text-red-500">Error: {errorText}</div>
+        </div>
+      )}
+      {state === 'approval-requested' && (
+        <div className="mt-1 ml-4 text-sm text-amber-600">
+          Waiting for approval.
+        </div>
+      )}
+      {state === 'approval-responded' && (
+        <div className="mt-1 ml-4 text-sm">
+          {approval?.approved === false
+            ? 'Denied. Waiting for the turn to continue.'
+            : 'Approved. Waiting for the tool to run.'}
+        </div>
+      )}
+      {state === 'output-denied' && (
+        <div className="mt-1 ml-4 text-sm text-red-500">
+          Denied{approval?.reason ? `: ${approval.reason}` : '.'}
         </div>
       )}
     </div>

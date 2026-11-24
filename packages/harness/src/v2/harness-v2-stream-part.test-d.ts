@@ -7,6 +7,7 @@ import type {
   LanguageModelV4ToolResult,
   LanguageModelV4Usage,
 } from '@ai-sdk/provider';
+import type { ToolApprovalRequest } from '@ai-sdk/provider-utils';
 import { expectTypeOf, test } from 'vitest';
 import type {
   HarnessV2FinishReason,
@@ -31,9 +32,18 @@ test('redeclares language model types without changing their shape', () => {
     Extract<LanguageModelV4StreamPart, { type: 'tool-input-end' }>
   >();
   expectTypeOf<HarnessV2ToolCall>().toEqualTypeOf<LanguageModelV4ToolCall>();
-  expectTypeOf<HarnessV2ToolApprovalRequest>().toEqualTypeOf<LanguageModelV4ToolApprovalRequest>();
   expectTypeOf<Omit<HarnessV2ToolResult, 'result'>>().toEqualTypeOf<
     Omit<LanguageModelV4ToolResult, 'result'>
+  >();
+});
+
+test('derives approval requests from the AI SDK type with provider metadata', () => {
+  expectTypeOf<HarnessV2ToolApprovalRequest>().toEqualTypeOf<
+    Pick<
+      ToolApprovalRequest,
+      'type' | 'approvalId' | 'toolCallId' | 'reason' | 'isAutomatic'
+    > &
+      Pick<LanguageModelV4ToolApprovalRequest, 'providerMetadata'>
   >();
 });
 

@@ -484,7 +484,7 @@ describe('startDrive', () => {
         },
       ]);
       expect(await readRecords({ world })).toEqual([
-        { part: { type: 'start' }, key: 'turn-start:turn' },
+        { part: { type: 'start-turn' }, key: 'turn-start:turn' },
         { part: { type: 'retract', startIds: ['model', 'unstarted'] } },
         {
           part: {
@@ -549,7 +549,7 @@ describe('startDrive', () => {
     }
 
     expect(await readRecords({ world })).toEqual([
-      { part: { type: 'start' }, key: 'turn-start:turn' },
+      { part: { type: 'start-turn' }, key: 'turn-start:turn' },
       {
         part: { type: 'finish-step', finishReason, usage },
         key: 'finish-step:turn:0',
@@ -577,7 +577,7 @@ describe('startDrive', () => {
     const { world, log, writer } = await setup({
       events: [prompt, turnStart, finishStep],
     });
-    writer.emit({ part: { type: 'start' }, key: 'turn-start:turn' });
+    writer.emit({ part: { type: 'start-turn' }, key: 'turn-start:turn' });
     await writer.flush();
 
     expect(
@@ -593,7 +593,7 @@ describe('startDrive', () => {
     await writer.flush();
 
     expect(await readRecords({ world })).toEqual([
-      { part: { type: 'start' }, key: 'turn-start:turn' },
+      { part: { type: 'start-turn' }, key: 'turn-start:turn' },
       {
         part: { type: 'finish-step', finishReason, usage },
         key: 'finish-step:turn:0',
@@ -631,7 +631,116 @@ describe('startDrive', () => {
     await writer.flush();
 
     expect(await readRecords({ world })).toEqual([
-      { part: { type: 'start' }, key: 'turn-start:turn' },
+      { part: { type: 'start-turn' }, key: 'turn-start:turn' },
     ]);
+  });
+
+  describe('a turn that waits for tool approval responses', () => {
+    const request: HarnessAgentLogEvent = {
+      type: 'tool-approval-request',
+      id: 'tool-approval-request:call-1',
+      data: {
+        approvalId: 'approval-1',
+        toolCallId: 'call-1',
+        toolName: 'weather',
+        input: {},
+      },
+    };
+
+    test('writes lost approval request parts and a settle part without running the harness, once', async () => {
+      const { world, log, writer } = await setup({
+        events: [prompt, turnStart, request],
+      });
+
+      const options = {
+        encryption,
+        log,
+        writer,
+        world,
+        session,
+        driveIdentity: { driveId: 'drive' },
+      };
+      expect(await startDrive(options)).toBe(false);
+      await writer.flush();
+      expect(await readRecords({ world })).toEqual([
+        { part: { type: 'start-turn' }, key: 'turn-start:turn' },
+        {
+          part: {
+            type: 'tool-approval-request',
+            approvalId: 'approval-1',
+            toolCallId: 'call-1',
+          },
+          key: 'tool-approval-request:call-1',
+        },
+        { part: { type: 'settle' } },
+      ]);
+      expect(
+        await readLogEvents({ world, types: ['drive-start'] }),
+      ).toHaveLength(1);
+
+      expect(
+        await startDrive({
+          ...options,
+          driveIdentity: { driveId: 'drive-2' },
+        }),
+      ).toBe(false);
+      await writer.flush();
+      expect(await readRecords({ world })).toHaveLength(3);
+      expect(
+        await readLogEvents({ world, types: ['drive-start'] }),
+      ).toHaveLength(1);
+    });
+
+    test('drives the turn once every approval has a response submission', async () => {
+      const { world, log, writer } = await setup({
+        events: [
+          prompt,
+          turnStart,
+          request,
+          {
+            type: 'submission',
+            id: 'response',
+            data: {
+              type: 'tool-approval-response',
+              approvalId: 'approval-1',
+              approved: true,
+            },
+          },
+        ],
+      });
+
+      expect(
+        await startDrive({
+          encryption,
+          log,
+          writer,
+          world,
+          session,
+          driveIdentity: { driveId: 'drive' },
+        }),
+      ).toBe(true);
+    });
+
+    test('drives the turn when a cancel waits for it', async () => {
+      const { world, log, writer } = await setup({
+        events: [
+          prompt,
+          turnStart,
+          request,
+          { type: 'submission', id: 'cancel', data: { type: 'cancel' } },
+        ],
+      });
+
+      expect(
+        await startDrive({
+          encryption,
+          log,
+          writer,
+          world,
+          session,
+          driveIdentity: { driveId: 'drive' },
+        }),
+      ).toBe(true);
+    });
   });
 });

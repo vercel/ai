@@ -18,6 +18,7 @@ import { isValidHarnessAgentLogEvent } from './is-valid-harness-agent-log-event'
 import type { HarnessAgentStorageEncryption } from './create-storage-encryption';
 import { HarnessStorageEncryptionError } from './errors';
 import type { HarnessAgentDriveIdentity } from './start-drive';
+import type { HarnessV2Submission } from '../../../v2/harness-v2-submission';
 import type { HarnessV2EffectOutput } from '../../../v2/harness-v2-effect';
 import type {
   HarnessV2LogAdapterEvent,
@@ -34,9 +35,50 @@ import type {
 } from '../../../v2/harness-v2-stream-part';
 
 /**
- * Records a user prompt, steering message or cancel submitted to the session.
+ * User input accepted by the agent engine, including submissions it consumes
+ * itself and does not expose to harness adapters.
  */
-export type HarnessAgentLogSubmissionEvent = HarnessV2LogSubmissionEvent;
+export type HarnessAgentSubmission =
+  | HarnessV2Submission
+  | {
+      /**
+       * Answers the approval request of a host tool call, like the AI SDK's
+       * `ToolApprovalResponse`. The engine consumes it when the call runs
+       * again through `executeHostTool()`.
+       */
+      readonly type: 'tool-approval-response';
+
+      /**
+       * ID of the approval request that is answered.
+       */
+      readonly approvalId: string;
+
+      /**
+       * Whether the tool call is approved.
+       */
+      readonly approved: boolean;
+
+      /**
+       * Optional reason for the approval or denial. The reason of a denial is
+       * part of the denial text passed to the model.
+       */
+      readonly reason?: string;
+    };
+
+/**
+ * Records a user prompt, steering message, cancel or tool approval response
+ * submitted to the session.
+ */
+export type HarnessAgentLogSubmissionEvent = Omit<
+  HarnessV2LogSubmissionEvent,
+  'data'
+> & {
+  /**
+   * Submission payload, including engine-only submissions consumed by the
+   * agent rather than delivered to an adapter.
+   */
+  readonly data: HarnessAgentSubmission;
+};
 
 /**
  * Records the start of an effect attempt.
@@ -303,6 +345,118 @@ export type HarnessAgentLogToolExecutionStartEvent = {
 };
 
 /**
+ * Records the approval request of a host tool call, visible only to the agent
+ * engine.
+ */
+export type HarnessAgentLogToolApprovalRequestEvent = {
+  /**
+   * Records the approval request of a host tool call, visible only to the
+   * agent engine. Written by `executeHostTool()` under the ID
+   * `tool-approval-request:${toolCallId}` once the call is valid and the
+   * agent's `toolApproval` setting gives its tool a status other than
+   * `not-applicable`. Only the first request of a tool call counts.
+   */
+  readonly type: 'tool-approval-request';
+
+  /**
+   * The approval request, like the AI SDK's `ToolApprovalRequest`, plus the
+   * tool call it is for.
+   */
+  readonly data: {
+    /**
+     * ID of the approval, referenced by its response.
+     */
+    readonly approvalId: string;
+
+    /**
+     * ID of the tool call the approval is for.
+     */
+    readonly toolCallId: string;
+
+    /**
+     * Name of the called tool.
+     */
+    readonly toolName: string;
+
+    /**
+     * Input of the tool call, as passed to `executeHostTool()`.
+     */
+    readonly input: JSONValue;
+
+    /**
+     * Reason why the tool call requires approval, if any.
+     */
+    readonly reason?: string;
+
+    /**
+     * Whether the agent's `toolApproval` setting approved or denied the call
+     * without asking a user. Set only when true.
+     */
+    readonly isAutomatic?: boolean;
+  };
+
+  /**
+   * Stable event identity within the session, used for deduplication.
+   * Independent of the event's committed log position.
+   */
+  readonly id: string;
+};
+
+/**
+ * Records the approval response that the engine applied to a host tool call,
+ * visible only to the agent engine.
+ */
+export type HarnessAgentLogToolApprovalResponseEvent = {
+  /**
+   * Records the approval response that the engine applied to a host tool
+   * call, visible only to the agent engine. Written by `executeHostTool()`
+   * under the ID `tool-approval-response:${toolCallId}`: right after the
+   * request for an automatic response, or once the call runs again after a
+   * user's `tool-approval-response` submission, which it then delivers. Only
+   * the first response of a request counts.
+   */
+  readonly type: 'tool-approval-response';
+
+  /**
+   * The approval response, like the AI SDK's `ToolApprovalResponse`, plus
+   * the tool call and the submission it applies.
+   */
+  readonly data: {
+    /**
+     * ID of the approval that is answered.
+     */
+    readonly approvalId: string;
+
+    /**
+     * ID of the tool call the approval is for.
+     */
+    readonly toolCallId: string;
+
+    /**
+     * Whether the tool call is approved.
+     */
+    readonly approved: boolean;
+
+    /**
+     * Optional reason for the approval or denial.
+     */
+    readonly reason?: string;
+
+    /**
+     * ID of the `tool-approval-response` submission this response delivers.
+     * Absent for an automatic response.
+     */
+    readonly submissionId?: string;
+  };
+
+  /**
+   * Stable event identity within the session, used for deduplication.
+   * Independent of the event's committed log position.
+   */
+  readonly id: string;
+};
+
+/**
  * Event variants stored in the agent log, including events that are private to
  * the HarnessAgent engine. Public event shapes are reused with required IDs
  * for every stored event, including adapter-defined events.
@@ -334,7 +488,9 @@ export type HarnessAgentLogEvent =
   | HarnessAgentLogDriveStartEvent
   | HarnessAgentLogCrashRequestEvent
   | HarnessAgentLogDriveCrashEvent
-  | HarnessAgentLogToolExecutionStartEvent;
+  | HarnessAgentLogToolExecutionStartEvent
+  | HarnessAgentLogToolApprovalRequestEvent
+  | HarnessAgentLogToolApprovalResponseEvent;
 
 /**
  * Event type filters for an agent-log append listener.
@@ -409,6 +565,32 @@ export type HarnessAgentLogDrive = {
 };
 
 /**
+ * The approval of a host tool call: its request and what answers it.
+ */
+export type HarnessAgentLogToolApproval = {
+  /**
+   * The approval request.
+   */
+  readonly request: HarnessAgentLogToolApprovalRequestEvent;
+
+  /**
+   * The earliest `tool-approval-response` submission for the request's
+   * approval ID, if any. Later ones are ignored.
+   */
+  readonly submission?: HarnessAgentLogSubmissionEvent;
+
+  /**
+   * The response the engine applied, if any.
+   */
+  readonly response?: HarnessAgentLogToolApprovalResponseEvent;
+
+  /**
+   * ID of the turn that was current when the request was recorded.
+   */
+  readonly turnId?: string;
+};
+
+/**
  * Append-only log used by the HarnessAgent engine. The harness adapter
  * receives a narrower version of this (`HarnessV2Log`).
  *
@@ -463,7 +645,8 @@ export type HarnessAgentLog = {
   refresh(): Promise<void>;
 
   /**
-   * Returns the submissions, in log order.
+   * Returns all submissions, including engine-only approval responses, in log
+   * order. The adapter-facing log filters out engine-only submissions.
    */
   getSubmissions(): readonly HarnessAgentLogSubmissionEvent[];
 
@@ -479,6 +662,9 @@ export type HarnessAgentLog = {
    *
    * A steer or cancel recorded while no turn was running, or whose turn
    * finished otherwise, is withdrawn and never returned.
+   *
+   * A `tool-approval-response` is never returned: `executeHostTool()`
+   * consumes it.
    */
   getUndeliveredSubmissions(): readonly HarnessAgentLogSubmissionEvent[];
 
@@ -534,6 +720,37 @@ export type HarnessAgentLog = {
      */
     type?: `harness:${string}`;
   }): readonly HarnessAgentLogAdapterEvent[];
+
+  /**
+   * Returns the approval of a host tool call, looked up by the tool call ID
+   * or the approval ID, if the call requested one.
+   */
+  getToolApproval(
+    options:
+      | {
+          /**
+           * ID of the tool call.
+           */
+          toolCallId: string;
+        }
+      | {
+          /**
+           * ID of the approval.
+           */
+          approvalId: string;
+        },
+  ): HarnessAgentLogToolApproval | undefined;
+
+  /**
+   * Returns the approvals of host tool calls, in the log order of their
+   * requests.
+   */
+  getToolApprovals(options?: {
+    /**
+     * Only approvals requested during this turn.
+     */
+    turnId?: string;
+  }): readonly HarnessAgentLogToolApproval[];
 
   /**
    * Returns whether the tool call attempt with the given start ID committed
@@ -789,6 +1006,12 @@ function isRetryableInterruption(output?: HarnessV2EffectOutput): boolean {
  *   `drive-crash` is attached to the drive it names.
  * - `tool-execution-start` events mark the tool call attempt they name.
  *   `crash-request` events do not affect the lookups.
+ * - A `tool-approval-request` adds the approval of its tool call, filed
+ *   under the turn that is current at that moment, unless the call already
+ *   has one. The earliest `tool-approval-response` submission naming an
+ *   approval's ID becomes its submission, and the first
+ *   `tool-approval-response` event naming its tool call and approval ID
+ *   becomes its response; later ones have no effect.
  */
 export function createLog({
   world,
@@ -833,6 +1056,15 @@ export function createLog({
   >();
   const attemptTurns = new Map<string, string>();
   const toolExecutionStarts = new Set<string>();
+  const toolApprovals: Mutable<HarnessAgentLogToolApproval>[] = [];
+  const toolApprovalsByToolCallId = new Map<
+    string,
+    Mutable<HarnessAgentLogToolApproval>
+  >();
+  const toolApprovalsByApprovalId = new Map<
+    string,
+    Mutable<HarnessAgentLogToolApproval>
+  >();
   const turns: Mutable<HarnessAgentLogTurn>[] = [];
   const turnsById = new Map<string, Mutable<HarnessAgentLogTurn>>();
   const drives = new Map<string, Mutable<HarnessAgentLogDrive>>();
@@ -915,6 +1147,12 @@ export function createLog({
     switch (event.type) {
       case 'submission': {
         submissions.push(event);
+        if (event.data.type === 'tool-approval-response') {
+          const approval = toolApprovalsByApprovalId.get(event.data.approvalId);
+          if (approval != null && approval.submission == null) {
+            approval.submission = event;
+          }
+        }
         const currentTurn = turns.at(-1);
         if (
           event.data.type !== 'prompt' &&
@@ -946,13 +1184,49 @@ export function createLog({
         toolExecutionStarts.add(event.data.startId);
         return;
 
+      case 'tool-approval-request': {
+        const { toolCallId, approvalId } = event.data;
+        if (
+          toolApprovalsByToolCallId.has(toolCallId) ||
+          toolApprovalsByApprovalId.has(approvalId)
+        ) {
+          return;
+        }
+        const approval: Mutable<HarnessAgentLogToolApproval> = {
+          request: event,
+        };
+        const currentTurn = turns.at(-1);
+        if (currentTurn != null) {
+          approval.turnId = currentTurn.start.data.turnId;
+        }
+        toolApprovals.push(approval);
+        toolApprovalsByToolCallId.set(toolCallId, approval);
+        toolApprovalsByApprovalId.set(approvalId, approval);
+        return;
+      }
+
+      case 'tool-approval-response': {
+        const approval = toolApprovalsByToolCallId.get(event.data.toolCallId);
+        if (
+          approval != null &&
+          approval.response == null &&
+          approval.request.data.approvalId === event.data.approvalId
+        ) {
+          approval.response = event;
+        }
+        return;
+      }
+
       case 'turn-start': {
         const { turnId } = event.data;
         if (turnsById.has(turnId)) return;
         const submission = submissions.find(item => item.id === turnId);
         const turn: Mutable<HarnessAgentLogTurn> = {
           start: event,
-          submissions: submission?.data.type === 'prompt' ? [submission] : [],
+          submissions:
+            submission?.data.type === 'prompt'
+              ? [{ ...submission, data: submission.data }]
+              : [],
           steps: [],
         };
         turns.push(turn);
@@ -1446,6 +1720,8 @@ export function createLog({
             );
           case 'cancel':
             return turn != null && turn.finish == null;
+          case 'tool-approval-response':
+            return false;
         }
       });
     },
@@ -1487,6 +1763,20 @@ export function createLog({
     hasToolExecutionStart({ startId }) {
       checkLookups();
       return toolExecutionStarts.has(startId);
+    },
+
+    getToolApproval(options) {
+      checkLookups();
+      return 'toolCallId' in options
+        ? toolApprovalsByToolCallId.get(options.toolCallId)
+        : toolApprovalsByApprovalId.get(options.approvalId);
+    },
+
+    getToolApprovals({ turnId } = {}) {
+      checkLookups();
+      return toolApprovals.filter(
+        approval => turnId == null || approval.turnId === turnId,
+      );
     },
 
     onAppend({ listener, config }) {

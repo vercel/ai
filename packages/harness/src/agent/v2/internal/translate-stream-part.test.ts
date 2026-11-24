@@ -103,10 +103,145 @@ describe('translateStreamPart', () => {
     },
   );
 
-  test('translates start and text parts', async () => {
-    expect(await translate({ part: { type: 'start' } })).toEqual([
-      { type: 'start' },
+  test('translates host tool approval parts', async () => {
+    const toolCalls = new Map<string, TranslatedToolCall>();
+    await translate({
+      part: {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'weather',
+        input: '{"city":"Berlin"}',
+      },
+      toolCalls,
+    });
+    await translate({
+      part: {
+        type: 'tool-call',
+        toolCallId: 'call-2',
+        toolName: 'unknownTool',
+        input: '{}',
+      },
+      toolCalls,
+    });
+    expect(
+      await translate({
+        part: {
+          type: 'tool-approval-request',
+          approvalId: 'approval-1',
+          toolCallId: 'call-1',
+          reason: 'Check first',
+        },
+        toolCalls,
+      }),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "approvalId": "approval-1",
+          "reason": "Check first",
+          "toolCall": {
+            "input": {
+              "city": "Berlin",
+            },
+            "toolCallId": "call-1",
+            "toolName": "weather",
+            "type": "tool-call",
+          },
+          "type": "tool-approval-request",
+        },
+      ]
+    `);
+    expect(
+      await translate({
+        part: {
+          type: 'tool-approval-response',
+          approvalId: 'approval-2',
+          toolCall: {
+            type: 'tool-call',
+            toolCallId: 'call-2',
+            toolName: 'unknownTool',
+            input: {},
+            dynamic: true,
+          },
+          approved: false,
+          reason: 'No',
+        },
+        toolCalls,
+      }),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "approvalId": "approval-2",
+          "approved": false,
+          "reason": "No",
+          "toolCall": {
+            "dynamic": true,
+            "input": {},
+            "toolCallId": "call-2",
+            "toolName": "unknownTool",
+            "type": "tool-call",
+          },
+          "type": "tool-approval-response",
+        },
+      ]
+    `);
+    expect(
+      await translate({
+        part: {
+          type: 'tool-output-denied',
+          toolCallId: 'call-2',
+          toolName: 'unknownTool',
+        },
+      }),
+    ).toEqual([
+      {
+        type: 'tool-output-denied',
+        toolCallId: 'call-2',
+        toolName: 'unknownTool',
+      },
     ]);
+  });
+
+  test('rejects approval parts without their recorded tool call', async () => {
+    await expect(
+      translate({
+        part: {
+          type: 'tool-approval-request',
+          approvalId: 'approval-1',
+          toolCallId: 'missing',
+        },
+      }),
+    ).rejects.toThrow(
+      "tool call 'missing' was not found for approval 'approval-1'",
+    );
+  });
+
+  test('passes approval responses through without looking up the tool call', async () => {
+    const part: Extract<
+      HarnessAgentStreamPart,
+      { type: 'tool-approval-response' }
+    > = {
+      type: 'tool-approval-response',
+      approvalId: 'approval-1',
+      toolCall: {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'weather',
+        input: { city: 'Berlin' },
+        providerMetadata: { test: { key: 'value' } },
+      },
+      approved: true,
+      reason: 'Trusted',
+      providerExecuted: false,
+    };
+
+    const result = await translate({ part });
+    expect(result).toEqual([part]);
+    expect(result[0]).toBe(part);
+  });
+
+  test('translates text parts and leaves out turn boundaries', async () => {
+    expect(await translate({ part: { type: 'start-turn' } })).toEqual([]);
+    expect(await translate({ part: { type: 'settle' } })).toEqual([]);
     expect(
       await translate({
         part: {

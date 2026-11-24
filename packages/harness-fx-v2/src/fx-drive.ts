@@ -238,6 +238,12 @@ type FxTurnRun = {
   cancelled: boolean;
 
   /**
+   * Whether a host tool call of the turn waits for a user's approval, so the
+   * turn's run ends before its next model request.
+   */
+  suspended: boolean;
+
+  /**
    * Aborted when the user cancels the turn, to stop its model requests,
    * model catalog requests and built-in tools.
    */
@@ -297,6 +303,15 @@ type FxTurnRun = {
  * without a checkpoint, so the next turn rebuilds the conversation from the
  * log. A cancel that is already waiting when the drive starts finishes the
  * unfinished turn without running it.
+ *
+ * A host tool call that waits for a user's approval suspends the turn: the
+ * call gets a placeholder result, libfx still runs the step's other tool
+ * calls (so each call that needs approval requests it in this drive), and
+ * the next model request finishes the step and then cancels libfx's turn
+ * without running, which ends the drive without finishing the turn. A later
+ * drive reruns the turn against its recorded effects, and the step's tool
+ * calls run again with their approval responses. The placeholder results
+ * never reach the log.
  */
 export class FxDrive {
   /**
@@ -807,6 +822,7 @@ export class FxDrive {
       nextCatalogOrdinal: 0,
       steps: [],
       cancelled: false,
+      suspended: false,
       abortController: new AbortController(),
       inFlight: new Set(),
       mcpTools: new Map(),
@@ -957,7 +973,8 @@ export class FxDrive {
   }): Promise<string | undefined> {
     const { run, engine, prompt } = options;
     const live = run.mode === 'live';
-    const stopped = () => live && (this.halted || run.cancelled);
+    const stopped = () =>
+      live && (this.halted || run.cancelled || run.suspended);
     const turn = engine.prompt(toFxPromptInput({ message: prompt.message }));
     run.engineTurn = turn;
     if (stopped()) turn.cancel();
@@ -987,7 +1004,9 @@ export class FxDrive {
    * effect is answered with a rejection that ends libfx's turn, and an
    * interrupted one halts the drive, unless the turn was cancelled: then the
    * request becomes a step with finish reason `cancelled`, and libfx's
-   * request is aborted. A request whose body differs from the
+   * request is aborted. Once a tool call of the turn waits for approval, the
+   * request finishes the previous step and then cancels libfx's turn and is
+   * aborted without running. A request whose body differs from the
    * recorded one fails the drive. Model catalog requests are recorded the
    * same way by `fetchModelCatalog()`, since the catalog's model metadata
    * shapes later model requests. An offline run answers from the log
@@ -1051,6 +1070,10 @@ export class FxDrive {
             await this.finishStep({ run, stepNumber: ordinal - 1 });
           }
           if (this.halted || run.cancelled) throw createAbortError();
+          if (run.suspended) {
+            run.engineTurn?.cancel();
+            throw createAbortError();
+          }
           if (!matches) {
             const error = new Error(
               `fx harness: the model call ${key} replayed with a different request than it recorded.`,
@@ -1290,7 +1313,10 @@ export class FxDrive {
    * `executeHostTool()`, which replay recorded calls; an interrupted call
    * halts the drive when the drive is stopping or yielding. A call of a
    * cancelled turn does not run. An offline run returns the call's recorded
-   * outcome. Outcomes other than results become error results.
+   * outcome. A host tool call that waits for approval suspends the turn and
+   * gets a placeholder result, which never reaches the model since the next
+   * model request does not run. Other outcomes than results become error
+   * results.
    */
   private async executeTool(options: {
     /**
@@ -1397,6 +1423,10 @@ export class FxDrive {
         this.context.yieldAbortSignal.aborted)
     ) {
       this.halt();
+    }
+    if (output.type === 'suspended' && output.reason === 'approval') {
+      run.suspended = true;
+      return toFxErrorResult({ text: 'This call waits for approval.' });
     }
     return toFxToolResult({ output, toolName, builtin });
   }

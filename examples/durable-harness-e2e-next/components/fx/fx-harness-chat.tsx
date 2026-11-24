@@ -2,6 +2,7 @@
 
 import type { FxHarnessAgentMessage as FxBasicHarnessAgentMessage } from '@/agent/fx/basic';
 import type { FxHarnessAgentMessage as FxMcpContext7HarnessAgentMessage } from '@/agent/fx/mcp-context7';
+import type { FxHarnessAgentMessage as FxWeatherToolApprovalHarnessAgentMessage } from '@/agent/fx/weather-tool-approval';
 import HarnessChat, { CommonPartView } from '@/components/harness-chat';
 import HarnessBashToolView from '@/components/tool/harness-bash-tool-view';
 import HarnessFileToolView from '@/components/tool/harness-file-tool-view';
@@ -11,6 +12,7 @@ import type { AgentConfigurationName } from '@/lib/harness';
 type FxHarnessAgentMessage = {
   basic: FxBasicHarnessAgentMessage;
   'mcp-context7': FxMcpContext7HarnessAgentMessage;
+  'weather-tool-approval': FxWeatherToolApprovalHarnessAgentMessage;
 }[AgentConfigurationName];
 
 const FILE_TOOL_LABELS = {
@@ -105,7 +107,8 @@ function FxPartView({
       );
     }
     case 'tool-badMarker':
-    case 'tool-addNote': {
+    case 'tool-addNote':
+    case 'tool-weather': {
       return (
         <HarnessToolView
           toolName={part.type.replace(/^tool-/, '')}
@@ -113,6 +116,7 @@ function FxPartView({
           state={part.state}
           output={part.state === 'output-available' ? part.output : undefined}
           errorText={part.state === 'output-error' ? part.errorText : undefined}
+          approval={part.approval}
         />
       );
     }

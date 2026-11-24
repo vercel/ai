@@ -18,6 +18,8 @@ const eventTypes = {
   'crash-request': true,
   'drive-crash': true,
   'tool-execution-start': true,
+  'tool-approval-request': true,
+  'tool-approval-response': true,
 } satisfies Record<
   Exclude<HarnessAgentLogEvent['type'], `harness:${string}`>,
   true

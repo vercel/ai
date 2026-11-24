@@ -91,7 +91,8 @@ export type HarnessV2ToolExecutionOutput<T extends JSONValue = JSONValue> =
   | HarnessV2EffectOutput<HarnessV2ToolExecutionValue<T>>
   | {
       /**
-       * The host denied execution before the tool completed.
+       * The host denied execution before the tool completed. The adapter
+       * passes `reason` to its runtime as the call's error result.
        */
       readonly type: 'denied';
 
@@ -103,6 +104,13 @@ export type HarnessV2ToolExecutionOutput<T extends JSONValue = JSONValue> =
   | {
       /**
        * Execution is suspended pending an external action.
+       *
+       * For `approval`, the call waits for a user's approval response that
+       * won't arrive while this drive runs. The adapter processes the step's
+       * remaining tool calls, finishes the step, and returns without starting
+       * another model call or finishing the turn. A later drive retries the
+       * suspended calls through the host. No placeholder result may reach
+       * the model.
        */
       readonly type: 'suspended';
 
@@ -195,6 +203,9 @@ export type HarnessV2ToolGateOutput =
  * The agent emits the `tool-result` parts (preliminary, final and error) of
  * host tools itself, so the adapter must not emit them. A tool without
  * `execute` (a client tool) resolves `suspended` without being recorded.
+ *
+ * Calls may resolve `denied` or `suspended` for approval. The agent emits
+ * approval stream parts itself, so the adapter must not emit them.
  */
 export type HarnessV2ExecuteHostToolFunction = <
   T extends JSONValue = JSONValue,

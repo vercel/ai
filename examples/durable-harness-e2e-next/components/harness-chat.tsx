@@ -6,6 +6,7 @@ import ChatInput from '@/components/chat-input';
 import NewSessionDialog from '@/components/new-session-dialog';
 import DynamicToolView from '@/components/tool/dynamic-tool-view';
 import HarnessToolView from '@/components/tool/harness-tool-view';
+import ToolApprovalControls from '@/components/tool/tool-approval-controls';
 import { createAgentSession } from '@/lib/create-agent-session';
 import { getHarnessLabel } from '@/lib/harness';
 import {
@@ -21,6 +22,7 @@ import {
   DefaultChatTransport,
   getStaticToolName,
   isStaticToolUIPart,
+  lastAssistantMessageIsCompleteWithApprovalResponses,
   lastAssistantMessageIsCompleteWithToolCalls,
   type UIMessage,
 } from 'ai';
@@ -78,48 +80,62 @@ export default function HarnessChat<MESSAGE extends UIMessage>({
   const [resumePending, setResumePending] = useState(
     restored?.turnInProgress ?? false,
   );
-  const { error, status, sendMessage, messages, regenerate, resumeStream } =
-    useChat<MESSAGE>({
-      id: chatId,
-      messages: initialMessages,
-      transport: new DefaultChatTransport({
-        api: `${apiBase}/chat`,
-        /*
-         * The agent session is usually created when the session is started
-         * from the new session dialog. The first chat of a browser tab has
-         * none yet, so it creates its session when its first prompt is sent.
-         * Every later prompt reuses the session from session storage.
-         */
-        body: async () => {
-          let session = readStoredAgentSession({ chatId });
-          if (session == null) {
-            session = await createAgentSession({
-              harness,
-              chatId,
-              configuration,
-            });
-            writeStoredAgentSession({ chatId, session });
-          }
-          const { sessionId, sandboxId, runId } = session;
-          return { session: { sessionId, sandboxId, runId } };
-        },
-        /*
-         * Reconnecting reads the session's latest turn from its start, so
-         * the turn's output keeps appearing after the process that streamed
-         * it crashed.
-         */
-        prepareReconnectToStreamRequest: ({ api, id }) => {
-          const stored = readStoredAgentSession({ chatId });
-          const params = new URLSearchParams(
-            stored == null ? {} : { runId: stored.runId },
-          );
-          return {
-            api: `${api}/${encodeURIComponent(id)}/stream?${params}`,
-          };
-        },
-      }),
-      sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
-    });
+  const {
+    error,
+    status,
+    sendMessage,
+    messages,
+    regenerate,
+    resumeStream,
+    addToolApprovalResponse,
+  } = useChat<MESSAGE>({
+    id: chatId,
+    messages: initialMessages,
+    transport: new DefaultChatTransport({
+      api: `${apiBase}/chat`,
+      /*
+       * The agent session is usually created when the session is started
+       * from the new session dialog. The first chat of a browser tab has
+       * none yet, so it creates its session when its first prompt is sent.
+       * Every later prompt reuses the session from session storage.
+       */
+      body: async () => {
+        let session = readStoredAgentSession({ chatId });
+        if (session == null) {
+          session = await createAgentSession({
+            harness,
+            chatId,
+            configuration,
+          });
+          writeStoredAgentSession({ chatId, session });
+        }
+        const { sessionId, sandboxId, runId } = session;
+        return { session: { sessionId, sandboxId, runId } };
+      },
+      /*
+       * Reconnecting reads the session's latest turn from its start, so
+       * the turn's output keeps appearing after the process that streamed
+       * it crashed.
+       */
+      prepareReconnectToStreamRequest: ({ api, id }) => {
+        const stored = readStoredAgentSession({ chatId });
+        const params = new URLSearchParams(
+          stored == null ? {} : { runId: stored.runId },
+        );
+        return {
+          api: `${api}/${encodeURIComponent(id)}/stream?${params}`,
+        };
+      },
+    }),
+    /*
+     * Tool approval responses go back to the server with the chat's next
+     * request, as a trailing tool message, which continues the turn that
+     * waits for them.
+     */
+    sendAutomaticallyWhen: options =>
+      lastAssistantMessageIsCompleteWithToolCalls(options) ||
+      lastAssistantMessageIsCompleteWithApprovalResponses(options),
+  });
 
   /*
    * After a disconnect, e.g. because the server crashed, keep reconnecting
@@ -254,7 +270,13 @@ export default function HarnessChat<MESSAGE extends UIMessage>({
         <div key={message.id} className="mb-3">
           <strong>{message.role === 'user' ? 'You: ' : 'AI: '}</strong>
           {message.parts.map((part, index) => (
-            <PartView key={index} part={part} />
+            <div key={index}>
+              <PartView part={part} />
+              <ToolApprovalControls
+                part={part}
+                addToolApprovalResponse={addToolApprovalResponse}
+              />
+            </div>
           ))}
         </div>
       ))}
@@ -353,6 +375,7 @@ export function CommonPartView({ part }: { part: UIMessage['parts'][number] }) {
             errorText={
               part.state === 'output-error' ? part.errorText : undefined
             }
+            approval={part.approval}
           />
         );
       }

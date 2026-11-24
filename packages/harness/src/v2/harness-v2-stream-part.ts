@@ -3,6 +3,7 @@ import type {
   JSONValue,
   SerializableValue,
 } from '@ai-sdk/provider';
+import type { ToolApprovalRequest } from '@ai-sdk/provider-utils';
 import type { HarnessV2EffectError } from './harness-v2-effect';
 
 /**
@@ -241,22 +242,10 @@ export type HarnessV2ToolCall = {
 /**
  * Approval request for a tool call executed by the harness.
  */
-export type HarnessV2ToolApprovalRequest = {
-  /**
-   * Requests approval before a tool executed by the harness continues.
-   */
-  type: 'tool-approval-request';
-
-  /**
-   * Identifier referenced by the matching approval response.
-   */
-  approvalId: string;
-
-  /**
-   * Identifier of the tool call awaiting approval.
-   */
-  toolCallId: string;
-
+export type HarnessV2ToolApprovalRequest = Pick<
+  ToolApprovalRequest,
+  'type' | 'approvalId' | 'toolCallId' | 'reason' | 'isAutomatic'
+> & {
   /**
    * Optional provider metadata associated with the approval request.
    */

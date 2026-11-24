@@ -2,6 +2,7 @@
 
 import type { PiHarnessAgentMessage as PiBasicHarnessAgentMessage } from '@/agent/pi/basic';
 import type { PiHarnessAgentMessage as PiMcpContext7HarnessAgentMessage } from '@/agent/pi/mcp-context7';
+import type { PiHarnessAgentMessage as PiWeatherToolApprovalHarnessAgentMessage } from '@/agent/pi/weather-tool-approval';
 import HarnessChat, { CommonPartView } from '@/components/harness-chat';
 import HarnessBashToolView from '@/components/tool/harness-bash-tool-view';
 import HarnessFileToolView from '@/components/tool/harness-file-tool-view';
@@ -11,6 +12,7 @@ import type { AgentConfigurationName } from '@/lib/harness';
 type PiHarnessAgentMessage = {
   basic: PiBasicHarnessAgentMessage;
   'mcp-context7': PiMcpContext7HarnessAgentMessage;
+  'weather-tool-approval': PiWeatherToolApprovalHarnessAgentMessage;
 }[AgentConfigurationName];
 
 const FILE_TOOL_LABELS = {
@@ -91,7 +93,8 @@ function PiPartView({
       );
     }
     case 'tool-badMarker':
-    case 'tool-addNote': {
+    case 'tool-addNote':
+    case 'tool-weather': {
       return (
         <HarnessToolView
           toolName={part.type.replace(/^tool-/, '')}
@@ -99,6 +102,7 @@ function PiPartView({
           state={part.state}
           output={part.state === 'output-available' ? part.output : undefined}
           errorText={part.state === 'output-error' ? part.errorText : undefined}
+          approval={part.approval}
         />
       );
     }

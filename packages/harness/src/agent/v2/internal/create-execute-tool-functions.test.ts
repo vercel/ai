@@ -22,6 +22,7 @@ import {
   type HarnessAgentExecuteBuiltinToolFunction,
   type HarnessAgentExecuteHostToolFunction,
 } from './create-execute-tool-functions';
+import type { ToolApprovalPolicy } from './tool-approval';
 import {
   createLog,
   decodeLogEvent,
@@ -71,12 +72,14 @@ function createDrive(options: {
   tools?: ToolSet;
   builtinTools?: HarnessV2BuiltinToolSet;
   yieldAbortSignal?: AbortSignal;
+  toolApproval?: ToolApprovalPolicy;
 }): {
   executeHostTool: HarnessAgentExecuteHostToolFunction;
   executeBuiltinTool: HarnessAgentExecuteBuiltinToolFunction;
   executeMcpTool: HarnessV2ExecuteMcpToolFunction;
   abortController: AbortController;
   getSandboxSession: ReturnType<typeof vi.fn>;
+  writer: ReturnType<typeof createStreamWriter>;
 } {
   const abortController = new AbortController();
   abortControllers.add(abortController);
@@ -99,6 +102,9 @@ function createDrive(options: {
       tools: options.tools ?? {},
       builtinTools: options.builtinTools ?? builtinTools,
       effect,
+      writer,
+      toolApproval: options.toolApproval,
+      stopAbortSignal: abortController.signal,
       getSandboxSession,
     });
   return {
@@ -107,6 +113,7 @@ function createDrive(options: {
     executeMcpTool,
     abortController,
     getSandboxSession,
+    writer,
   };
 }
 
@@ -114,6 +121,7 @@ async function setup(options?: {
   tools?: ToolSet;
   builtinTools?: HarnessV2BuiltinToolSet;
   yieldAbortSignal?: AbortSignal;
+  toolApproval?: ToolApprovalPolicy;
 }) {
   const world = new InMemoryWorld();
   await world.events.create(runId, {
@@ -128,10 +136,22 @@ async function setup(options?: {
  * Creates the tool functions for a later drive of the session, on a new log
  * refreshed like a drive's log at its start.
  */
-async function createNextDrive(options: { world: InMemoryWorld }) {
+async function createNextDrive(options: {
+  world: InMemoryWorld;
+  tools?: ToolSet;
+  toolApproval?: ToolApprovalPolicy;
+}) {
   const log = createLog({ encryption, world: options.world, runId });
   await log.refresh();
-  return createDrive({ world: options.world, log });
+  return {
+    log,
+    ...createDrive({
+      world: options.world,
+      log,
+      tools: options.tools,
+      toolApproval: options.toolApproval,
+    }),
+  };
 }
 
 /**
@@ -805,7 +825,7 @@ describe('createExecuteToolFunctions', () => {
         type: 'error',
         error: {
           message: expect.stringContaining(
-            "AI_HarnessCapabilityUnsupportedError: HarnessAgent: tool approval is not supported with HarnessV2; remove `needsApproval` from tool 'weather'",
+            "AI_HarnessCapabilityUnsupportedError: HarnessAgent: `needsApproval` is not supported with HarnessV2; remove it from tool 'weather' and use the `toolApproval` setting instead.",
           ),
         },
       });
@@ -817,9 +837,7 @@ describe('createExecuteToolFunctions', () => {
           type: 'tool-result',
           toolCallId: 'call-1',
           toolName: 'weather',
-          result: expect.stringContaining(
-            "remove `needsApproval` from tool 'weather'",
-          ),
+          result: expect.stringContaining("remove it from tool 'weather'"),
           isError: true,
         },
       ]);
@@ -897,6 +915,257 @@ describe('createExecuteToolFunctions', () => {
       expect(execute).toHaveBeenCalledTimes(1);
       expect(next.getSandboxSession).not.toHaveBeenCalled();
       expect(await readStream({ world })).toEqual(records);
+    });
+  });
+
+  describe('executeHostTool approvals', () => {
+    function weatherTools(execute: () => Promise<string>) {
+      return {
+        weather: tool({
+          inputSchema: z.object({ city: z.string() }),
+          execute,
+        }),
+      };
+    }
+
+    async function respond(options: {
+      log: HarnessAgentLog;
+      approved: boolean;
+      reason?: string;
+    }): Promise<string> {
+      const approval = options.log.getToolApproval({
+        toolCallId: call.toolCallId,
+      })!;
+      const id = `response-${options.approved}`;
+      const data: {
+        type: 'tool-approval-response';
+        approvalId: string;
+        approved: boolean;
+        reason?: string;
+      } = {
+        type: 'tool-approval-response',
+        approvalId: approval.request.data.approvalId,
+        approved: options.approved,
+      };
+      if (options.reason != null) data.reason = options.reason;
+      await options.log.append({
+        type: 'submission',
+        id,
+        data,
+      });
+      return id;
+    }
+
+    test('suspends a call that requires user approval and requests approval once', async () => {
+      const execute = vi.fn(async () => 'sunny');
+      const { world, log, executeHostTool } = await setup({
+        tools: weatherTools(execute),
+        toolApproval: {
+          weather: { type: 'user-approval', reason: 'Check the city.' },
+        },
+      });
+
+      expect(await executeHostTool(call)).toEqual({
+        type: 'suspended',
+        reason: 'approval',
+      });
+      expect(await executeHostTool(call)).toEqual({
+        type: 'suspended',
+        reason: 'approval',
+      });
+      expect(execute).not.toHaveBeenCalled();
+      const approvalId = log.getToolApproval({ toolCallId: 'call-1' })!.request
+        .data.approvalId;
+      expect(
+        await readLogEvents({ world, types: ['tool-approval-request'] }),
+      ).toEqual([
+        {
+          type: 'tool-approval-request',
+          id: 'tool-approval-request:call-1',
+          data: {
+            approvalId,
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            input: { city: 'Paris' },
+            reason: 'Check the city.',
+          },
+        },
+      ]);
+      expect(await readStream({ world })).toEqual([
+        {
+          part: {
+            type: 'tool-approval-request',
+            approvalId,
+            toolCallId: 'call-1',
+            reason: 'Check the city.',
+          },
+          key: 'tool-approval-request:call-1',
+        },
+      ]);
+      expect(await readEffectEvents({ world, type: 'effect-start' })).toEqual(
+        [],
+      );
+    });
+
+    test('runs an approved call in a later drive and delivers the response submission', async () => {
+      const execute = vi.fn(async () => 'sunny');
+      const tools = weatherTools(execute);
+      const toolApproval: ToolApprovalPolicy = {
+        weather: { type: 'user-approval' },
+      };
+      const { world, log, executeHostTool } = await setup({
+        tools,
+        toolApproval,
+      });
+      await executeHostTool(call);
+      const submissionId = await respond({ log, approved: true });
+
+      const next = await createNextDrive({ world, tools, toolApproval });
+      expect(await next.executeHostTool(call)).toEqual({
+        type: 'result',
+        value: { raw: 'sunny' },
+      });
+      expect(execute).toHaveBeenCalledTimes(1);
+      expect(
+        (await readLogEvents({ world, types: ['tool-approval-response'] })).map(
+          event => event.data,
+        ),
+      ).toEqual([
+        {
+          approvalId: expect.any(String),
+          toolCallId: 'call-1',
+          approved: true,
+          submissionId,
+        },
+      ]);
+      expect((await readParts({ world })).map(part => part.type)).toEqual([
+        'tool-approval-request',
+        'tool-result',
+      ]);
+    });
+
+    test('denies a call whose user denied it, once, without running it', async () => {
+      const execute = vi.fn(async () => 'sunny');
+      const tools = weatherTools(execute);
+      const toolApproval: ToolApprovalPolicy = {
+        weather: { type: 'user-approval' },
+      };
+      const { world, log, executeHostTool } = await setup({
+        tools,
+        toolApproval,
+      });
+      await executeHostTool(call);
+      await respond({ log, approved: false, reason: 'Not now' });
+
+      const next = await createNextDrive({ world, tools, toolApproval });
+      const denied = {
+        type: 'denied',
+        reason: 'The tool call was denied: Not now',
+      };
+      expect(await next.executeHostTool(call)).toEqual(denied);
+      expect(await next.executeHostTool(call)).toEqual(denied);
+      expect(execute).not.toHaveBeenCalled();
+      expect(await readEffectEvents({ world, type: 'effect-start' })).toEqual(
+        [],
+      );
+      expect(
+        (await readStream({ world })).filter(
+          record => record.part.type === 'tool-output-denied',
+        ),
+      ).toEqual([
+        {
+          part: {
+            type: 'tool-output-denied',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+          },
+          key: 'tool-output-denied:call-1',
+        },
+      ]);
+    });
+
+    test('approves a call automatically and runs it', async () => {
+      const execute = vi.fn(async () => 'sunny');
+      const { world, executeHostTool } = await setup({
+        tools: weatherTools(execute),
+        toolApproval: { weather: { type: 'approved', reason: 'Trusted' } },
+      });
+
+      expect(await executeHostTool(call)).toEqual({
+        type: 'result',
+        value: { raw: 'sunny' },
+      });
+      const parts = await readParts({ world });
+      expect(parts.map(part => part.type)).toEqual([
+        'tool-approval-request',
+        'tool-approval-response',
+        'tool-result',
+      ]);
+      expect(parts[0]).toMatchObject({ isAutomatic: true });
+      expect(parts[1]).toEqual({
+        type: 'tool-approval-response',
+        approvalId: expect.any(String),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: call.toolCallId,
+          toolName: call.toolName,
+          input: call.input,
+        },
+        approved: true,
+        reason: 'Trusted',
+      });
+    });
+
+    test('denies a call automatically without running it', async () => {
+      const execute = vi.fn(async () => 'sunny');
+      const { world, executeHostTool, writer } = await setup({
+        tools: weatherTools(execute),
+        toolApproval: { weather: { type: 'denied' } },
+      });
+
+      expect(await executeHostTool(call)).toEqual({
+        type: 'denied',
+        reason: 'The tool call was denied.',
+      });
+      await writer.flush();
+      expect(execute).not.toHaveBeenCalled();
+      expect((await readParts({ world })).map(part => part.type)).toEqual([
+        'tool-approval-request',
+        'tool-approval-response',
+        'tool-output-denied',
+      ]);
+    });
+
+    test('records an invalid call as an error without asking for approval', async () => {
+      const execute = vi.fn(async () => 'sunny');
+      const { world, executeHostTool } = await setup({
+        tools: weatherTools(execute),
+        toolApproval: { weather: { type: 'user-approval' } },
+      });
+
+      expect(
+        await executeHostTool({ ...call, input: { city: 42 } }),
+      ).toMatchObject({ type: 'error' });
+      expect(
+        await readLogEvents({ world, types: ['tool-approval-request'] }),
+      ).toEqual([]);
+    });
+
+    test('resolves a retryable interruption without recording once the drive stopped', async () => {
+      const execute = vi.fn(async () => 'sunny');
+      const { world, executeHostTool, abortController } = await setup({
+        tools: weatherTools(execute),
+        toolApproval: { weather: { type: 'user-approval' } },
+      });
+      abortController.abort();
+
+      expect(await executeHostTool(call)).toEqual({
+        type: 'interrupted',
+        retryable: true,
+      });
+      expect(
+        await readLogEvents({ world, types: ['tool-approval-request'] }),
+      ).toEqual([]);
     });
   });
 

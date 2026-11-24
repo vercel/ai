@@ -250,6 +250,35 @@ describe('createDriveContext', () => {
   });
 
   describe('log', () => {
+    test('keeps approval response submissions and their notifications internal', async () => {
+      const { log, context } = await setup();
+      const listener = vi.fn();
+      context.log.onAppend(listener);
+      const response = {
+        type: 'submission',
+        id: 'approval-response-1',
+        data: {
+          type: 'tool-approval-response',
+          approvalId: 'approval-1',
+          approved: true,
+        },
+      } as const;
+
+      await log.append(response);
+
+      expect(log.getSubmissions()).toEqual([response]);
+      expect(context.log.getSubmissions()).toEqual([]);
+      expect(context.log.getUndeliveredSubmissions()).toEqual([]);
+      expect(listener).not.toHaveBeenCalled();
+
+      await log.append(allEvents[0]);
+
+      expect(log.getSubmissions()).toEqual([response, allEvents[0]]);
+      expect(context.log.getSubmissions()).toEqual([allEvents[0]]);
+      expect(context.log.getUndeliveredSubmissions()).toEqual([allEvents[0]]);
+      expect(listener).toHaveBeenCalledTimes(1);
+    });
+
     test('looks up the adapter-facing shapes without what only the engine sees', async () => {
       const { log, context } = await setup();
       await appendAll({ log });

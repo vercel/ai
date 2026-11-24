@@ -31,7 +31,7 @@ export type HarnessAgentFinishStepFunction = HarnessV2FinishStepFunction;
  *
  * The current turn is the one started by the latest `turn-start` event. If it
  * is already finished, the call is a replay and records and
- * emits nothing; otherwise it records the finish and emits `finish`.
+ * emits nothing; otherwise it records the finish and emits `finish-turn`.
  */
 export type HarnessAgentFinishTurnFunction = HarnessV2FinishTurnFunction;
 
@@ -150,8 +150,8 @@ export function createFinishFunctions(options: {
         totalUsage: HarnessV2Usage;
         harnessMetadata?: HarnessV2Metadata;
       } = { turnId, finishReason, totalUsage };
-      const part: Extract<HarnessAgentStreamPart, { type: 'finish' }> = {
-        type: 'finish',
+      const part: Extract<HarnessAgentStreamPart, { type: 'finish-turn' }> = {
+        type: 'finish-turn',
         finishReason,
         totalUsage,
       };

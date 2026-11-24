@@ -5,7 +5,11 @@ import type { HarnessAgentSession } from '../harness-agent-session';
 import type { HarnessAgentStorageEncryption } from './create-storage-encryption';
 import type { HarnessV2EffectOutput } from '../../../v2/harness-v2-effect';
 import { parseToolEffect } from './create-execute-tool-functions';
-import type { HarnessAgentLog, HarnessAgentLogDrive } from './create-log';
+import type {
+  HarnessAgentLog,
+  HarnessAgentLogDrive,
+  HarnessAgentLogTurn,
+} from './create-log';
 import {
   decodeStreamRecords,
   type HarnessAgentStreamPart,
@@ -15,6 +19,7 @@ import {
   isDriveProcessGone,
   type HarnessAgentDriveProcess,
 } from './drive-process';
+import { isPendingToolApproval } from './tool-approval';
 
 /**
  * Identity of a drive, recorded on its `drive-start`: what tells the drive
@@ -66,9 +71,15 @@ export type HarnessAgentDriveIdentity = {
  *    any proof (including when there is no `drive-start`), this returns
  *    `false`. Attributing the attempts to the latest drive assumes one
  *    drive at a time.
- * 2. Without abandoned attempts, an unfinished current turn, or an
- *    undelivered `prompt` submission that has not started a turn, there is
- *    nothing to drive and this returns `false`.
+ * 2. Without abandoned attempts, a settled session (see `isSessionSettled()`)
+ *    has nothing to drive and this returns `false`. If its current turn
+ *    waits for tool approval responses, its stream is checked first: when
+ *    the `tool-approval-request` part of a pending approval is missing
+ *    (a crash between the log append and the stream write loses it), or no
+ *    `settle` part follows the last of those parts, the drive appends its
+ *    `drive-start`, repairs the turn's stream like in step 5, writes the
+ *    missing approval request parts and a `settle` part, and still returns
+ *    `false`, since the harness has nothing to run.
  * 3. The drive's `drive-start` is appended (ID `drive-start:${driveId}`),
  *    with the drive's identity as its data.
  * 4. Each abandoned attempt gets an `effect-end` with an `interrupted` output
@@ -76,7 +87,7 @@ export type HarnessAgentDriveIdentity = {
  *    policy is `safe`, or if it is a tool call attempt (key `tool:...`)
  *    without a `tool-execution-start` event, which provably never ran its
  *    tool.
- * 5. If the current turn is unfinished, its stream is repaired: its `start`
+ * 5. If the current turn is unfinished, its stream is repaired: its `start-turn`
  *    part and its latest `finish-step` part are written under their log keys
  *    if no record with that key is in the stream (a crash between the log
  *    append and the stream write loses the part), and a `retract` part
@@ -132,8 +143,46 @@ export async function startDrive(options: {
 
   const turn = log.getCurrentTurn();
   const turnUnfinished = turn != null && turn.finish == null;
-  const promptWaiting = hasWaitingPrompt({ log });
-  if (abandoned.length === 0 && !turnUnfinished && !promptWaiting) {
+  if (abandoned.length === 0 && isSessionSettled({ log })) {
+    if (turn == null || !turnUnfinished) return false;
+    const records = await readStreamKeys({ encryption, world, session });
+    const pending = log
+      .getToolApprovals({ turnId: turn.start.data.turnId })
+      .filter(isPendingToolApproval);
+    const requestPositions = pending.map(approval =>
+      records.positions.get(approval.request.id),
+    );
+    const repair =
+      requestPositions.some(position => position == null) ||
+      requestPositions.some(position => position! > records.lastSettle);
+    if (!repair) return false;
+
+    await log.append({
+      type: 'drive-start',
+      id: `drive-start:${driveIdentity.driveId}`,
+      data: driveIdentity,
+    });
+    repairTurnStream({ log, writer, turn, keys: records.positions });
+    for (const approval of pending) {
+      if (records.positions.has(approval.request.id)) continue;
+      const part: Extract<
+        HarnessAgentStreamPart,
+        { type: 'tool-approval-request' }
+      > = {
+        type: 'tool-approval-request',
+        approvalId: approval.request.data.approvalId,
+        toolCallId: approval.request.data.toolCallId,
+      };
+      if (approval.request.data.reason != null)
+        part.reason = approval.request.data.reason;
+      if (approval.request.data.isAutomatic != null)
+        part.isAutomatic = approval.request.data.isAutomatic;
+      writer.emit({
+        part,
+        key: approval.request.id,
+      });
+    }
+    writer.unsafeEmit({ type: 'settle' });
     return false;
   }
 
@@ -159,9 +208,49 @@ export async function startDrive(options: {
   }
 
   if (turn == null || !turnUnfinished) return true;
-  const { turnId } = turn.start.data;
+  const records = await readStreamKeys({ encryption, world, session });
+  repairTurnStream({ log, writer, turn, keys: records.positions });
+  return true;
+}
 
-  const keys = new Set<string>();
+/**
+ * Keys of a session's stream records and where they are, read from the
+ * whole stream.
+ */
+type StreamKeys = {
+  /**
+   * Index of the first record with each key, counting every record of the
+   * stream.
+   */
+  positions: Map<string, number>;
+
+  /**
+   * Index of the last `settle` record, or `-1` if there is none.
+   */
+  lastSettle: number;
+};
+
+/**
+ * Reads every record of a session's stream and returns where its keyed
+ * records and its last `settle` record are.
+ */
+async function readStreamKeys(options: {
+  encryption: HarnessAgentStorageEncryption;
+
+  /**
+   * World that stores the session.
+   */
+  world: World;
+
+  /**
+   * Session whose stream is read.
+   */
+  session: HarnessAgentSession;
+}): Promise<StreamKeys> {
+  const { encryption, world, session } = options;
+  const positions = new Map<string, number>();
+  let lastSettle = -1;
+  let index = 0;
   const { runId } = session;
   const streamName = session.getStreamName();
   const decoder = new TextDecoder();
@@ -176,16 +265,52 @@ export async function startDrive(options: {
         encryption,
         text: decoder.decode(chunk.data),
       })) {
-        if (record.key != null) keys.add(record.key);
+        if (record.key != null && !positions.has(record.key)) {
+          positions.set(record.key, index);
+        }
+        if (record.part.type === 'settle') lastSettle = index;
+        index++;
       }
     }
     if (!page.hasMore || page.cursor == null) break;
     cursor = page.cursor;
   }
+  return { positions, lastSettle };
+}
+
+/**
+ * Repairs the stream of an unfinished turn (step 5 of `startDrive()`): writes
+ * its missing `start-turn` and latest `finish-step` parts, retracts the
+ * output of its retryable interruptions, and ends its tool calls that were
+ * interrupted without a retry.
+ */
+function repairTurnStream(options: {
+  /**
+   * Engine log of the session.
+   */
+  log: HarnessAgentLog;
+
+  /**
+   * Writer for the session's stream, owned by the drive.
+   */
+  writer: HarnessAgentStreamWriter;
+
+  /**
+   * The unfinished turn.
+   */
+  turn: HarnessAgentLogTurn;
+
+  /**
+   * Keys of the records already in the stream.
+   */
+  keys: ReadonlyMap<string, number>;
+}): void {
+  const { log, writer, turn, keys } = options;
+  const { turnId } = turn.start.data;
 
   const startKey = `turn-start:${turnId}`;
   if (!keys.has(startKey)) {
-    writer.emit({ part: { type: 'start' }, key: startKey });
+    writer.emit({ part: { type: 'start-turn' }, key: startKey });
   }
 
   const turnAttempts = log.getEffects({ turnId });
@@ -236,8 +361,51 @@ export async function startDrive(options: {
       key,
     });
   }
+}
 
-  return true;
+/**
+ * Returns whether the session's current turn waits for tool approval
+ * responses: it is unfinished, no cancel waits for it, and at least one
+ * approval requested during it has neither a response submission nor an
+ * applied response. Such a turn has nothing to run until the responses
+ * arrive.
+ */
+export function isAwaitingToolApproval(options: {
+  /**
+   * Engine log of the session.
+   */
+  log: HarnessAgentLog;
+}): boolean {
+  const { log } = options;
+  const turn = log.getCurrentTurn();
+  if (turn == null || turn.finish != null) return false;
+  if (
+    log
+      .getUndeliveredSubmissions()
+      .some(submission => submission.data.type === 'cancel')
+  ) {
+    return false;
+  }
+  return log
+    .getToolApprovals({ turnId: turn.start.data.turnId })
+    .some(isPendingToolApproval);
+}
+
+/**
+ * Returns whether the session has nothing left to drive for now: no prompt
+ * waits to start a turn, and the current turn is absent, finished, or waits
+ * for tool approval responses (see `isAwaitingToolApproval()`).
+ */
+export function isSessionSettled(options: {
+  /**
+   * Engine log of the session.
+   */
+  log: HarnessAgentLog;
+}): boolean {
+  const { log } = options;
+  if (hasWaitingPrompt({ log })) return false;
+  const turn = log.getCurrentTurn();
+  return turn == null || turn.finish != null || isAwaitingToolApproval({ log });
 }
 
 /**

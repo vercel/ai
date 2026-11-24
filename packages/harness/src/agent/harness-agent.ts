@@ -1034,6 +1034,27 @@ export class HarnessAgent<
   }
 
   /**
+   * Records responses to tool approval requests of a HarnessV2 session's
+   * running turn, without starting a drive, in any process. Only supported
+   * with HarnessV2.
+   */
+  async respondToToolApprovals(options: {
+    session: HarnessAgentV2Session;
+    responses: ReadonlyArray<{
+      approvalId: string;
+      approved: boolean;
+      reason?: string;
+    }>;
+  }): Promise<void> {
+    if (this.harnessAgentV2 == null) {
+      throw new Error(
+        'HarnessAgent: respondToToolApprovals() is only supported with HarnessV2.',
+      );
+    }
+    return this.harnessAgentV2.respondToToolApprovals(options);
+  }
+
+  /**
    * Crashes the process of the drive running a HarnessV2 session's current
    * turn, for testing crash recovery. Only supported with HarnessV2.
    */

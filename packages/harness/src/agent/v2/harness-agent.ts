@@ -34,7 +34,11 @@ import {
   type HarnessAgentFinishTurnFunction,
 } from './internal/create-finish-functions';
 import { createGateBuiltinToolFunction } from './internal/create-gate-builtin-tool-function';
-import { createLog, type HarnessAgentLog } from './internal/create-log';
+import {
+  createLog,
+  type HarnessAgentLog,
+  type HarnessAgentLogToolApprovalRequestEvent,
+} from './internal/create-log';
 import {
   createStorageEncryption,
   type HarnessAgentStorageEncryption,
@@ -43,7 +47,7 @@ import {
   createStreamWriter,
   type HarnessAgentStreamWriter,
 } from './internal/create-stream-writer';
-import { readTurnRecordStream } from './internal/read-turn-record-stream';
+import { readResponseRecordStream } from './internal/read-response-record-stream';
 import {
   claimSessionDrive,
   releaseSessionDrive,
@@ -61,7 +65,12 @@ import {
   DURABLE_HARNESS_AGENT_QUEUE_NAMESPACE,
   sendDurableHarnessAgentBackstop,
 } from './internal/durable-agent-queue';
-import { hasWaitingPrompt, startDrive } from './internal/start-drive';
+import {
+  hasWaitingPrompt,
+  isAwaitingToolApproval,
+  isSessionSettled,
+  startDrive,
+} from './internal/start-drive';
 import {
   getDurableHarnessAgentWorkflowName,
   getNonDurableHarnessAgentWorkflowName,
@@ -69,6 +78,11 @@ import {
 import {
   assertNoToolApprovalRequirements,
   assertNoUnsupportedApprovalSettings,
+  collectToolApprovalResponses,
+  normalizeToolApproval,
+  selectToolApprovalResponses,
+  type ToolApprovalPolicy,
+  type ToolApprovalResponseInput,
 } from './internal/tool-approval';
 import type {
   HarnessAgentSandboxConfig,
@@ -192,6 +206,11 @@ export class HarnessAgent<
   private readonly mcpServers: HarnessV2TurnSettings['mcpServers'];
 
   /**
+   * The `toolApproval` setting, validated and normalized to object statuses.
+   */
+  private readonly toolApproval: ToolApprovalPolicy;
+
+  /**
    * Turn settings for every `prompt` submission, built once on first use.
    */
   private turnSettings: Promise<HarnessV2TurnSettings> | undefined;
@@ -248,14 +267,14 @@ export class HarnessAgent<
     }
 
     /*
-     * Approval settings are rejected instead of ignored: the engine cannot
-     * request consent, so accepting them would run tools that the app expects
-     * a user to approve first.
+     * Permission modes other than 'allow-all' are rejected instead of
+     * ignored: the engine cannot request consent for built-in tools, so
+     * accepting them would run tools that the app expects a user to approve
+     * first.
      */
     assertNoUnsupportedApprovalSettings({
       harnessId: settings.harness.harnessId,
       permissionMode: settings.permissionMode,
-      toolApproval: settings.toolApproval,
     });
 
     const sandboxConfig = settings.sandboxConfig ?? {};
@@ -292,6 +311,11 @@ export class HarnessAgent<
       tools: settings.tools ?? {},
     });
     this.userTools = settings.tools ?? {};
+    this.toolApproval = normalizeToolApproval({
+      harnessId: this.harnessId,
+      toolApproval: settings.toolApproval,
+      tools: this.userTools,
+    });
     if (settings.mcpServers !== undefined) {
       for (const server of Object.values(settings.mcpServers)) {
         if (
@@ -465,11 +489,14 @@ export class HarnessAgent<
   }
 
   /**
-   * Runs a prompt as a turn of the session and resolves once the turn ended.
+   * Runs a prompt as a turn of the session, or continues the session's turn
+   * with tool approval responses, and resolves once the response ended.
    *
-   * Works like `stream()`, then reads the turn to its end. Rejects with the
-   * abort reason if `abortSignal` fired (the turn itself continues), with the
-   * turn's first error if the turn failed, did not finish, or finished with
+   * Works like `stream()`, then reads the response to its end. A turn that
+   * waits for tool approval responses resolves too, with the approval
+   * requests in its steps' content. Rejects with the abort reason if
+   * `abortSignal` fired (the turn itself continues), with the response's
+   * first error if it failed, did not settle, or its turn finished with
    * `finishReason: 'error'`, and with `NoOutputGeneratedError` if no step was
    * recorded.
    */
@@ -487,9 +514,12 @@ export class HarnessAgent<
       OUTPUT
     >
   > {
-    const result = await this.startTurn(options);
+    const result = await this.startResponse({
+      call: options,
+      functionName: 'generate',
+    });
     await result.consumeStream();
-    const end = await result.turnEnd;
+    const end = await result.end;
     if (end.reason === 'aborted') {
       throw options.abortSignal?.reason ?? new Error('HarnessAgent: aborted.');
     }
@@ -522,12 +552,26 @@ export class HarnessAgent<
   }
 
   /**
-   * Runs a prompt as a turn of the session and streams the turn's output.
+   * Runs a prompt as a turn of the session, or continues the session's turn
+   * with tool approval responses, and streams the response.
    *
    * The prompt is appended to the session's log as a `prompt` submission and
    * a drive of the session starts. The result reads the session's World
    * stream from the moment the prompt was submitted until the drive ended.
-   * Rejects if a turn of the session is still running.
+   * Rejects if a turn of the session is still running, including one that
+   * waits for tool approval responses.
+   *
+   * If the input's last message is a `tool` message, its
+   * `tool-approval-response` parts (as `convertToModelMessages()` creates
+   * them for `useChat()`'s `addToolApprovalResponse()`) answer the approval
+   * requests of the session's running turn instead: they are appended as
+   * `tool-approval-response` submissions, a drive continues the turn, and
+   * the result reads what the drive writes from then on. Every approval of
+   * the turn that waits for a response must be answered, responses to
+   * approvals that already have one are skipped, and the call rejects for
+   * unknown approvals, approvals of a turn that is not running anymore, an
+   * approval answered twice, a `tool` message without approval responses,
+   * or when no response is new.
    *
    * `abortSignal` is a local control: it only ends this result (with an
    * `abort` part), while the turn continues. It is never stored or passed to a
@@ -547,7 +591,55 @@ export class HarnessAgent<
       OUTPUT
     >
   > {
-    return this.startTurn(options);
+    return this.startResponse({ call: options, functionName: 'stream' });
+  }
+
+  /**
+   * Records responses to tool approval requests of the session's running
+   * turn, without starting a drive, in any process.
+   *
+   * Each new response is appended as a `tool-approval-response` submission,
+   * and the call resolves once they are committed. The turn continues in a
+   * later drive, e.g. from `drive()`, once every approval of the turn has a
+   * response. Unlike `stream()`, approvals may be answered in several calls.
+   * Responses to approvals that already have one are skipped, and the call
+   * resolves without writing if no response is new. Rejects without writing
+   * for unknown approvals, approvals of a turn that is not running anymore,
+   * and an approval answered twice.
+   */
+  async respondToToolApprovals(options: {
+    /**
+     * Session whose running turn the approvals belong to.
+     */
+    session: HarnessAgentSession;
+
+    /**
+     * Responses to the approval requests, like the AI SDK's
+     * `ToolApprovalResponse` without its `type`.
+     */
+    responses: ReadonlyArray<ToolApprovalResponseInput>;
+  }): Promise<void> {
+    const { session, responses } = options;
+    if (!Array.isArray(responses)) {
+      throw new Error(
+        'HarnessAgent.respondToToolApprovals: `responses` must be an array.',
+      );
+    }
+    this.connectQueue();
+    const encryption = await this.getStorageEncryption({ session });
+    const log = createLog({
+      world: this.world,
+      runId: session.runId,
+      encryption,
+    });
+    await log.refresh();
+    const selected = selectToolApprovalResponses({
+      log,
+      responses,
+      requireAll: false,
+      functionName: 'respondToToolApprovals',
+    });
+    await appendToolApprovalResponses({ log, responses: selected });
   }
 
   /**
@@ -563,7 +655,9 @@ export class HarnessAgent<
    * changing the session. The harness then
    * continues the latest unfinished turn, or starts the turn of a prompt
    * that has not started one. Without either, the call resolves without
-   * writing anything.
+   * writing anything. A turn that waits for tool approval responses has
+   * nothing to run either: the call only writes approval request parts and a
+   * `settle` part that a crash lost from the stream, if any.
    *
    * Resolves without doing anything if this process already runs a drive of
    * the session. Rejects like the drive of a `stream()` call. A durable agent
@@ -600,9 +694,11 @@ export class HarnessAgent<
    * Reads the session's latest turn from the session's stream and returns
    * it as a stream result, in any process, without driving the session.
    *
-   * Reading starts at the turn's `start` part and follows the turn across
-   * drives until its `finish` part, so a finished turn is read from its
-   * stored output, and an unfinished one until a later drive finishes it.
+   * Reading starts at the turn's `start-turn` part and follows the session
+   * across drives until it settled: a finished turn is read from its stored
+   * output, a turn that waits for tool approval responses up to its approval
+   * requests (including any output of earlier approvals), and an unfinished
+   * one until a later drive finishes it or it waits for approval responses.
    * Output that recovery withdrew after a crash is removed from the result's
    * steps and from its UI message stream. `abortSignal` only ends the
    * result (with an `abort` part). Rejects if the session has no turn.
@@ -639,16 +735,17 @@ export class HarnessAgent<
     }
 
     return new HarnessStreamTextResult({
-      records: readTurnRecordStream({
+      records: readResponseRecordStream({
         encryption,
         world: this.world,
         session,
-        turnId,
+        startTurnId: turnId,
         startIndex: 0,
         abortSignal,
       }),
       abortSignal,
       tools: this.tools,
+      toolCalls: log.getToolApprovals().map(approval => approval.request.data),
       harnessId: this.harnessId,
       callId: generateId(),
     });
@@ -836,7 +933,8 @@ export class HarnessAgent<
   }
 
   /**
-   * Validates the call, appends its prompt as a `prompt` submission, starts
+   * Validates the call, appends its prompt as a `prompt` submission (or its
+   * tool approval responses as `tool-approval-response` submissions), starts
    * a drive of the session, and returns the result reading the drive's
    * output.
    *
@@ -847,24 +945,37 @@ export class HarnessAgent<
    * session's stream after the submission belongs to this call's turn, and
    * the result reads it from the stream position taken before the
    * submission was appended.
+   *
+   * Tool approval responses are the exception: they continue the running
+   * turn, which waits for them, so the result reads everything written
+   * after the stream position taken before they were appended.
    */
-  private async startTurn(
-    options: AgentCallParameters<
+  private async startResponse(options: {
+    /**
+     * Options of the `generate()` or `stream()` call.
+     */
+    call: AgentCallParameters<
       CALL_OPTIONS,
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT
     > &
-      HarnessAgentCallExtensions,
-  ): Promise<
+      HarnessAgentCallExtensions;
+
+    /**
+     * Name of the called method, for error messages.
+     */
+    functionName: 'generate' | 'stream';
+  }): Promise<
     HarnessStreamTextResult<
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT,
       OUTPUT
     >
   > {
-    assertCallOptionsSerializable({ callOptions: options });
-    assertCallOptionsSupported({ callOptions: options });
-    const { session, abortSignal } = options;
+    const { call, functionName } = options;
+    assertCallOptionsSerializable({ callOptions: call });
+    assertCallOptionsSupported({ callOptions: call });
+    const { session, abortSignal } = call;
     const { runId } = session;
     const streamName = session.getStreamName();
     this.connectQueue();
@@ -887,31 +998,74 @@ export class HarnessAgent<
     }
 
     const submissionId = generateId();
+    const approvalResponses = collectToolApprovalResponses({
+      prompt: call.prompt,
+      messages: call.messages,
+    });
     let driveEnd: Promise<void>;
     let startIndex: number;
     let encryption: HarnessAgentStorageEncryption;
+    let startTurnId: string | undefined;
+    let toolCalls:
+      | HarnessAgentLogToolApprovalRequestEvent['data'][]
+      | undefined;
     try {
-      const message = resolvePromptMessage({
-        prompt: options.prompt,
-        messages: options.messages,
-      });
-      const settings = await this.getTurnSettings();
-      encryption = await this.getStorageEncryption({ session });
-      const log = createLog({ world: this.world, runId, encryption });
-      if (await hasRunningTurn({ log })) throw createTurnRunningError();
+      if (approvalResponses != null) {
+        if (approvalResponses.length === 0) {
+          throw new Error(
+            `HarnessAgent.${functionName}: a trailing \`tool\` message must contain tool approval responses.`,
+          );
+        }
+        encryption = await this.getStorageEncryption({ session });
+        const log = createLog({ world: this.world, runId, encryption });
+        await log.refresh();
+        toolCalls = log
+          .getToolApprovals()
+          .map(approval => approval.request.data);
+        const selected = selectToolApprovalResponses({
+          log,
+          responses: approvalResponses,
+          requireAll: true,
+          functionName,
+        });
+        if (selected.length === 0) {
+          throw new Error(
+            `HarnessAgent.${functionName}: every tool approval response was already recorded.`,
+          );
+        }
 
-      startIndex =
-        (await this.world.streams.getInfo(runId, streamName)).tailIndex + 1;
-      /*
-       * Sent before the submission is appended, so that a crash at any later
-       * point of the call leaves a queue job that continues the turn.
-       */
-      await this.sendBackstop({ runId });
-      await log.append({
-        type: 'submission',
-        id: submissionId,
-        data: { type: 'prompt', message, settings },
-      });
+        startIndex =
+          (await this.world.streams.getInfo(runId, streamName)).tailIndex + 1;
+        await this.sendBackstop({ runId });
+        await appendToolApprovalResponses({ log, responses: selected });
+      } else {
+        const message = resolvePromptMessage({
+          prompt: call.prompt,
+          messages: call.messages,
+        });
+        const settings = await this.getTurnSettings();
+        encryption = await this.getStorageEncryption({ session });
+        const log = createLog({ world: this.world, runId, encryption });
+        if (await hasRunningTurn({ log })) {
+          throw isAwaitingToolApproval({ log })
+            ? createAwaitingToolApprovalError()
+            : createTurnRunningError();
+        }
+
+        startIndex =
+          (await this.world.streams.getInfo(runId, streamName)).tailIndex + 1;
+        /*
+         * Sent before the submission is appended, so that a crash at any
+         * later point of the call leaves a queue job that continues the turn.
+         */
+        await this.sendBackstop({ runId });
+        await log.append({
+          type: 'submission',
+          id: submissionId,
+          data: { type: 'prompt', message, settings },
+        });
+        startTurnId = submissionId;
+      }
       driveEnd = this.runDrive({ session });
     } catch (error) {
       releaseSessionDrive({ world: this.world, session });
@@ -922,24 +1076,25 @@ export class HarnessAgent<
       .catch(() => {});
 
     /*
-     * The result reads the session's stream from `startIndex` on, starting
-     * at this turn's `start` record (the turn's ID is the submission's ID),
-     * until the drive ended and everything it wrote was read. Records the
-     * drive writes before the turn starts, such as recovery output for an
-     * earlier turn, are not part of this turn.
+     * The result reads the session's stream from `startIndex` on until the
+     * drive ended and everything it wrote was read. For a prompt, it starts
+     * at the turn's `start-turn` record (the turn's ID is the submission's
+     * ID): records the drive writes before the turn starts, such as recovery
+     * output for an earlier turn, are not part of this turn.
      */
     return new HarnessStreamTextResult({
-      records: readTurnRecordStream({
+      records: readResponseRecordStream({
         encryption,
         world: this.world,
         session,
-        turnId: submissionId,
+        startTurnId,
         startIndex,
         abortSignal,
         driveEnd,
       }),
       abortSignal,
       tools: this.tools,
+      toolCalls,
       harnessId: this.harnessId,
       callId: generateId(),
     });
@@ -980,6 +1135,7 @@ export class HarnessAgent<
       queueJobId: options.queueJobId,
       harness: this.harness,
       userTools: this.userTools,
+      toolApproval: this.toolApproval,
       workDir: this.sandboxConfig.workDir,
     });
   }
@@ -1099,11 +1255,15 @@ const unknownUsage: HarnessV2Usage = {
  *   `stopAbortSignal`. Once it fired, effects start no new attempt and the
  *   built-in tool gate denies new calls.
  *
- * If the yield signal fired during a drive that returned, a `yield` part is
- * written to the stream, so readers of the current turn know it continues in
- * a later drive. When the harness or the engine throws, the current turn, if
+ * Once the harness returned, the log is refreshed and the drive's end is
+ * written to the stream: a `settle` part if the session has nothing left to
+ * drive (see `isSessionSettled()`), so readers know that no more output
+ * follows for now, or else a `yield` part if the yield signal fired, so
+ * readers know the current turn continues in a later drive. When the
+ * harness or the engine throws, the current turn, if
  * unfinished, gets an `error` part and is finished with
- * `finishReason: 'error'`. Without an unfinished turn, it rejects with what
+ * `finishReason: 'error'`, followed by a `settle` part if the session is
+ * settled then. Without an unfinished turn, it rejects with what
  * was thrown, wrapped in a `HarnessBeforeStartError` (no turn started,
  * including when the drive failed before its log, writer and finish
  * functions existed) or a `HarnessAfterFinishError` (the latest turn already
@@ -1137,6 +1297,11 @@ async function runDrivePass(options: {
   userTools: ToolSet;
 
   /**
+   * The agent's normalized `toolApproval` setting.
+   */
+  toolApproval: ToolApprovalPolicy;
+
+  /**
    * Normalized `sandboxConfig.workDir`, if configured.
    */
   workDir?: string;
@@ -1147,6 +1312,7 @@ async function runDrivePass(options: {
     queueJobId,
     harness,
     userTools,
+    toolApproval,
     workDir,
     encryption,
   } = options;
@@ -1258,6 +1424,9 @@ async function runDrivePass(options: {
         tools: userTools,
         builtinTools: harness.builtinTools,
         effect,
+        writer,
+        toolApproval,
+        stopAbortSignal,
         getSandboxSession: () => session.getSandboxSession(),
       });
     const gateBuiltinTool = createGateBuiltinToolFunction({
@@ -1285,7 +1454,11 @@ async function runDrivePass(options: {
     });
 
     await harness.drive({ sessionId: session.sessionId, context });
-    if (yieldAbortSignal.aborted) writer.unsafeEmit({ type: 'yield' });
+    await writeDriveEnd({
+      log,
+      writer,
+      yielded: yieldAbortSignal.aborted,
+    });
   } catch (error) {
     if (HarnessStorageEncryptionError.isInstance(error)) throw error;
     /*
@@ -1300,6 +1473,7 @@ async function runDrivePass(options: {
       throw new HarnessBeforeStartError({ cause: error });
     }
     await failCurrentTurn({ log, writer, finishTurn, error });
+    await writeDriveEnd({ log, writer, yielded: false });
   } finally {
     try {
       stopCrashListener?.();
@@ -1312,6 +1486,36 @@ async function runDrivePass(options: {
     } finally {
       untrackDrive?.();
     }
+  }
+}
+
+/**
+ * Writes the end of a drive to the stream, after refreshing the log: a
+ * `settle` part if the session has nothing left to drive, otherwise a
+ * `yield` part if the drive yielded, otherwise nothing.
+ */
+async function writeDriveEnd(options: {
+  /**
+   * Engine log of the session.
+   */
+  log: HarnessAgentLog;
+
+  /**
+   * Writer for the session's stream, owned by the ending drive.
+   */
+  writer: HarnessAgentStreamWriter;
+
+  /**
+   * Whether the drive yielded at its deadline.
+   */
+  yielded: boolean;
+}): Promise<void> {
+  const { log, writer, yielded } = options;
+  await log.refresh();
+  if (isSessionSettled({ log })) {
+    writer.unsafeEmit({ type: 'settle' });
+  } else if (yielded) {
+    writer.unsafeEmit({ type: 'yield' });
   }
 }
 
@@ -1387,6 +1591,44 @@ function createTurnRunningError(): Error {
   return new Error(
     'HarnessAgent: a turn of this session is still running. Wait for it to finish before sending another prompt.',
   );
+}
+
+/**
+ * Returns the error for a prompt sent while the session's turn waits for tool
+ * approval responses.
+ */
+function createAwaitingToolApprovalError(): Error {
+  return new Error(
+    'HarnessAgent: the turn of this session waits for tool approval responses. Respond to its tool approval requests before sending another prompt.',
+  );
+}
+
+/**
+ * Appends tool approval responses to the session's log as
+ * `tool-approval-response` submissions, one at a time, in their given order.
+ */
+async function appendToolApprovalResponses(options: {
+  /**
+   * Engine log of the session.
+   */
+  log: HarnessAgentLog;
+
+  /**
+   * Validated responses to append.
+   */
+  responses: readonly ToolApprovalResponseInput[];
+}): Promise<void> {
+  const { log, responses } = options;
+  for (const { approvalId, approved, reason } of responses) {
+    await log.append({
+      type: 'submission',
+      id: generateId(),
+      data:
+        reason === undefined
+          ? { type: 'tool-approval-response', approvalId, approved }
+          : { type: 'tool-approval-response', approvalId, approved, reason },
+    });
+  }
 }
 
 /**

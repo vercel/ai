@@ -16,6 +16,10 @@ export const AGENT_CONFIGURATIONS = Object.assign(
   {
     basic: { name: 'basic', label: 'Basic' },
     'mcp-context7': { name: 'mcp-context7', label: 'MCP (context7)' },
+    'weather-tool-approval': {
+      name: 'weather-tool-approval',
+      label: 'Weather Tool Approval',
+    },
   } as const,
 );
 

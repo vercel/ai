@@ -105,7 +105,7 @@ The steps are below:
 
 19. [x] Add support for top-level MCP configuration to the new `HarnessAgent` and the two adapters.
 
-20. [ ] Add support for approval of host tools (the app's own tools run through `executeHostTool()`) to the new `HarnessAgent` and the two adapters.
+20. [x] Add support for approval of host tools (the app's own tools run through `executeHostTool()`) to the new `HarnessAgent` and the two adapters.
 
 - Approval of the harness's built-in tools stays out of scope.
 

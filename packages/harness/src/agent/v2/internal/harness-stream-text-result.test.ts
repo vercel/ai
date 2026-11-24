@@ -37,6 +37,7 @@ function createResult(options: {
   records?: HarnessAgentStreamPartRecord[];
   readError?: Error;
   aborted?: boolean;
+  toolCalls?: Array<{ toolCallId: string; toolName: string; input: unknown }>;
 }) {
   const abortController = new AbortController();
   if (options.aborted) abortController.abort();
@@ -54,6 +55,7 @@ function createResult(options: {
     }),
     abortSignal: abortController.signal,
     tools: {},
+    toolCalls: options.toolCalls,
     harnessId: 'fake',
     callId: 'call',
   });
@@ -68,32 +70,113 @@ async function readPartTypes(
 }
 
 describe('HarnessStreamTextResult', () => {
+  test('resolves approval parts from log context without re-emitting earlier tool calls', async () => {
+    const result = createResult({
+      toolCalls: [
+        { toolCallId: 'call-1', toolName: 'weather', input: { city: 'Paris' } },
+      ],
+      parts: [
+        {
+          type: 'tool-approval-request',
+          approvalId: 'approval-1',
+          toolCallId: 'call-1',
+          isAutomatic: true,
+        },
+        {
+          type: 'tool-approval-response',
+          approvalId: 'approval-1',
+          toolCall: {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            input: { city: 'Paris' },
+            dynamic: true,
+          },
+          approved: false,
+          reason: 'Not allowed',
+        },
+        {
+          type: 'tool-output-denied',
+          toolCallId: 'call-1',
+          toolName: 'weather',
+        },
+        finishStepPart,
+        { type: 'settle' },
+      ],
+    });
+    const parts = [];
+    for await (const part of result.fullStream) parts.push(part);
+    expect(parts.some(part => part.type === 'tool-call')).toBe(false);
+    expect(
+      parts.filter(
+        part =>
+          part.type === 'tool-approval-request' ||
+          part.type === 'tool-approval-response',
+      ),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "approvalId": "approval-1",
+          "isAutomatic": true,
+          "toolCall": {
+            "dynamic": true,
+            "input": {
+              "city": "Paris",
+            },
+            "toolCallId": "call-1",
+            "toolName": "weather",
+            "type": "tool-call",
+          },
+          "type": "tool-approval-request",
+        },
+        {
+          "approvalId": "approval-1",
+          "approved": false,
+          "reason": "Not allowed",
+          "toolCall": {
+            "dynamic": true,
+            "input": {
+              "city": "Paris",
+            },
+            "toolCallId": "call-1",
+            "toolName": "weather",
+            "type": "tool-call",
+          },
+          "type": "tool-approval-response",
+        },
+      ]
+    `);
+  });
+
   test('streams a finished turn and settles its promises', async () => {
     const result = createResult({
       parts: [
-        { type: 'start' },
+        { type: 'start-turn' },
         { type: 'stream-start', modelId: 'fake-model' },
         ...textParts,
         finishStepPart,
-        { type: 'finish', finishReason, totalUsage: usage },
+        { type: 'finish-turn', finishReason, totalUsage: usage },
+        { type: 'settle' },
       ],
     });
 
     expect(await readPartTypes(result.fullStream)).toEqual([
       'start',
+      'custom',
       'start-step',
       'text-start',
       'text-delta',
       'text-delta',
       'text-end',
       'finish-step',
+      'custom',
       'finish',
     ]);
     expect(await result.text).toBe('Hello world');
     expect(await result.finishReason).toBe('stop');
     expect((await result.totalUsage).inputTokens).toBe(10);
     expect((await result.response).modelId).toBe('fake-model');
-    expect(await result.turnEnd).toEqual({
+    expect(await result.end).toEqual({
       reason: 'finished',
       error: undefined,
     });
@@ -102,7 +185,7 @@ describe('HarnessStreamTextResult', () => {
   test('settles its promises without reading the stream', async () => {
     const result = createResult({
       parts: [
-        { type: 'start' },
+        { type: 'start-turn' },
         ...textParts,
         finishStepPart,
         { type: 'yield' },
@@ -114,14 +197,87 @@ describe('HarnessStreamTextResult', () => {
     expect(await result.steps).toHaveLength(1);
   });
 
+  test('finishes a response that waits for tool approval at its settle part', async () => {
+    const toolCallsReason = { unified: 'tool-calls' as const, raw: 'tool_use' };
+    const result = createResult({
+      parts: [
+        { type: 'start-turn' },
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'weather',
+          input: '{"city":"Berlin"}',
+        },
+        {
+          type: 'tool-approval-request',
+          approvalId: 'approval-1',
+          toolCallId: 'call-1',
+        },
+        { type: 'finish-step', finishReason: toolCallsReason, usage },
+        { type: 'settle' },
+        { type: 'text-start', id: 'late' },
+      ],
+    });
+
+    expect(await readPartTypes(result.fullStream)).toEqual([
+      'start',
+      'custom',
+      'start-step',
+      'tool-call',
+      'tool-approval-request',
+      'finish-step',
+      'finish',
+    ]);
+    expect(await result.finishReason).toBe('tool-calls');
+    expect((await result.totalUsage).inputTokens).toBe(10);
+    expect((await result.content).map(part => part.type)).toEqual([
+      'tool-call',
+      'tool-approval-request',
+    ]);
+    expect((await result.end).reason).toBe('finished');
+  });
+
+  test('continues a turn after tool approval responses and sums the usage of its own steps', async () => {
+    const result = createResult({
+      parts: [
+        {
+          type: 'tool-output-denied',
+          toolCallId: 'call-1',
+          toolName: 'weather',
+        },
+        ...textParts,
+        finishStepPart,
+        { type: 'finish-turn', finishReason, totalUsage: { ...usage } },
+        { type: 'settle' },
+      ],
+    });
+
+    expect(await readPartTypes(result.fullStream)).toEqual([
+      'start',
+      'start-step',
+      'tool-output-denied',
+      'text-start',
+      'text-delta',
+      'text-delta',
+      'text-end',
+      'finish-step',
+      'custom',
+      'finish',
+    ]);
+    expect(await result.finishReason).toBe('stop');
+    expect((await result.totalUsage).inputTokens).toBe(10);
+    expect(await result.text).toBe('Hello world');
+  });
+
   test('reports a cancelled turn as finish reason other with the raw reason cancelled', async () => {
     const cancelled = { unified: 'cancelled' as const, raw: undefined };
     const result = createResult({
       parts: [
-        { type: 'start' },
+        { type: 'start-turn' },
         ...textParts,
         { type: 'finish-step', finishReason: cancelled, usage },
-        { type: 'finish', finishReason: cancelled, totalUsage: usage },
+        { type: 'finish-turn', finishReason: cancelled, totalUsage: usage },
+        { type: 'settle' },
       ],
     });
 
@@ -130,7 +286,7 @@ describe('HarnessStreamTextResult', () => {
     const [step] = await result.steps;
     expect(step.finishReason).toBe('other');
     expect(step.rawFinishReason).toBe('cancelled');
-    expect(await result.turnEnd).toEqual({
+    expect(await result.end).toEqual({
       reason: 'finished',
       error: undefined,
     });
@@ -139,7 +295,7 @@ describe('HarnessStreamTextResult', () => {
   test('discards the content of a reset step', async () => {
     const result = createResult({
       parts: [
-        { type: 'start' },
+        { type: 'start-turn' },
         { type: 'text-start', id: 'discarded' },
         { type: 'text-delta', id: 'discarded', delta: 'discarded' },
         { type: 'reset-step' },
@@ -155,7 +311,7 @@ describe('HarnessStreamTextResult', () => {
   test('ends a yielded turn without an extra part and drops later parts', async () => {
     const result = createResult({
       parts: [
-        { type: 'start' },
+        { type: 'start-turn' },
         ...textParts,
         { type: 'yield' },
         { type: 'text-start', id: 'late' },
@@ -164,13 +320,14 @@ describe('HarnessStreamTextResult', () => {
 
     expect(await readPartTypes(result.fullStream)).toEqual([
       'start',
+      'custom',
       'start-step',
       'text-start',
       'text-delta',
       'text-delta',
       'text-end',
     ]);
-    expect((await result.turnEnd).reason).toBe('yielded');
+    expect((await result.end).reason).toBe('yielded');
     await expect(result.text).rejects.toSatisfy(
       NoOutputGeneratedError.isInstance,
     );
@@ -178,12 +335,16 @@ describe('HarnessStreamTextResult', () => {
 
   test('adds an error part and reports the failure when reading fails', async () => {
     const result = createResult({
-      parts: [{ type: 'start' }],
+      parts: [{ type: 'start-turn' }],
       readError: new Error('failed'),
     });
 
-    expect(await readPartTypes(result.fullStream)).toEqual(['start', 'error']);
-    const end = await result.turnEnd;
+    expect(await readPartTypes(result.fullStream)).toEqual([
+      'start',
+      'custom',
+      'error',
+    ]);
+    const end = await result.end;
     expect(end.reason).toBe('failed');
     expect(end.error).toMatchObject({ message: 'Error: failed' });
   });
@@ -206,7 +367,7 @@ describe('HarnessStreamTextResult', () => {
       }
       expect(errors).toHaveLength(1);
       expect(errors[0]).toBe(cause);
-      const end = await result.turnEnd;
+      const end = await result.end;
       expect(end.reason).toBe('failed');
       expect(end.error).toBe(cause);
     },
@@ -214,27 +375,34 @@ describe('HarnessStreamTextResult', () => {
 
   test('adds an abort part when the call was aborted', async () => {
     const result = createResult({
-      parts: [{ type: 'start' }],
+      parts: [{ type: 'start-turn' }],
       aborted: true,
     });
 
-    expect(await readPartTypes(result.fullStream)).toEqual(['start', 'abort']);
+    expect(await readPartTypes(result.fullStream)).toEqual([
+      'start',
+      'custom',
+      'abort',
+    ]);
   });
 
   test('adds an error part when the parts ended without finishing the turn', async () => {
-    const result = createResult({ parts: [{ type: 'start' }, ...textParts] });
+    const result = createResult({
+      parts: [{ type: 'start-turn' }, ...textParts],
+    });
 
     expect((await readPartTypes(result.fullStream)).at(-1)).toBe('error');
-    expect((await result.turnEnd).reason).toBe('incomplete');
+    expect((await result.end).reason).toBe('incomplete');
   });
 
   test('drops parts after the finish part', async () => {
     const result = createResult({
       parts: [
-        { type: 'start' },
+        { type: 'start-turn' },
         ...textParts,
         finishStepPart,
-        { type: 'finish', finishReason, totalUsage: usage },
+        { type: 'finish-turn', finishReason, totalUsage: usage },
+        { type: 'settle' },
         { type: 'text-start', id: 'late' },
       ],
     });
@@ -244,7 +412,7 @@ describe('HarnessStreamTextResult', () => {
 
   test('streams only text deltas through textStream', async () => {
     const result = createResult({
-      parts: [{ type: 'start' }, ...textParts, finishStepPart],
+      parts: [{ type: 'start-turn' }, ...textParts, finishStepPart],
     });
 
     const chunks: string[] = [];
@@ -258,7 +426,7 @@ describe('HarnessStreamTextResult', () => {
     async method => {
       const result = createResult({
         parts: [
-          { type: 'start' },
+          { type: 'start-turn' },
           {
             type: 'tool-call',
             toolCallId: 'call-1',
@@ -273,7 +441,8 @@ describe('HarnessStreamTextResult', () => {
             isError: true,
           },
           finishStepPart,
-          { type: 'finish', finishReason, totalUsage: usage },
+          { type: 'finish-turn', finishReason, totalUsage: usage },
+          { type: 'settle' },
         ],
       });
 
@@ -299,7 +468,7 @@ describe('HarnessStreamTextResult', () => {
 
   describe('retractions', () => {
     const keptRecords: HarnessAgentStreamPartRecord[] = [
-      { part: { type: 'start' }, key: 'turn-start:turn' },
+      { part: { type: 'start-turn' }, key: 'turn-start:turn' },
       { part: { type: 'text-start', id: 'kept' }, startId: 'kept-attempt' },
       {
         part: { type: 'text-delta', id: 'kept', delta: 'Kept' },
@@ -317,9 +486,10 @@ describe('HarnessStreamTextResult', () => {
     const finishRecords: HarnessAgentStreamPartRecord[] = [
       { part: finishStepPart, key: 'finish-step:turn:0' },
       {
-        part: { type: 'finish', finishReason, totalUsage: usage },
+        part: { type: 'finish-turn', finishReason, totalUsage: usage },
         key: 'finish-turn:turn',
       },
+      { part: { type: 'settle' } },
     ];
 
     function createRetractedResult() {
@@ -358,6 +528,7 @@ describe('HarnessStreamTextResult', () => {
 
       expect(await readPartTypes(result.fullStream)).toEqual([
         'start',
+        'custom',
         'start-step',
         'text-start',
         'text-delta',
@@ -368,6 +539,7 @@ describe('HarnessStreamTextResult', () => {
         'text-delta',
         'text-end',
         'finish-step',
+        'custom',
         'finish',
       ]);
     });
@@ -386,6 +558,7 @@ describe('HarnessStreamTextResult', () => {
         ),
       ).toEqual([
         'start',
+        'custom',
         'start-step',
         'text-start',
         'text-delta:Kept',
@@ -400,6 +573,7 @@ describe('HarnessStreamTextResult', () => {
         'text-delta: Retried',
         'text-end',
         'finish-step',
+        'custom',
         'finish',
       ]);
     });

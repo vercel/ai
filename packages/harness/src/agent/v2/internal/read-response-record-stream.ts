@@ -7,12 +7,13 @@ import {
 } from './create-stream-writer';
 
 /**
- * Reads the records of one turn from the session's World stream, which holds
- * every turn of the session, and returns them as a stream.
+ * Reads the records of one response from the session's World stream, which
+ * holds every turn of the session, and returns them as a stream.
  *
- * Reading starts at the chunk `startIndex`. Records before the turn's `start`
- * record (keyed `turn-start:${turnId}`) are dropped; that record and every
- * record after it are delivered. How reading ends depends on `driveEnd`:
+ * Reading starts at the chunk `startIndex`. With `startTurnId`, records
+ * before that turn's `start-turn` record (keyed `turn-start:${startTurnId}`)
+ * are dropped; that record and every record after it are delivered. How
+ * reading ends depends on `driveEnd`:
  *
  * - With `driveEnd`, the stream belongs to one drive: once `driveEnd`
  *   resolved, reading continues up to the World stream's end at that moment
@@ -20,14 +21,18 @@ import {
  *   reason. The drive flushes its writer before it settles, and every chunk
  *   of the World stream ends with a blank line; counting those lines is how
  *   the reader knows it reached that end.
- * - Without `driveEnd`, the stream follows the turn across drives: `yield`
- *   records are dropped, and the stream closes right after the turn's
- *   `finish` record (keyed `finish-turn:${turnId}`).
+ * - Without `driveEnd`, the stream follows the session across drives:
+ *   `yield` records are dropped, and the stream closes right after the
+ *   effective `settle` record. The chunks up to the World stream's end when
+ *   reading starts are its history: a `settle` record in the history that
+ *   other delivered records follow is superseded and dropped, and one that
+ *   ends the history is delivered once the history was read. After the
+ *   history, the first `settle` record is effective.
  *
  * Either way, the stream closes as soon as `abortSignal` fired, when the
  * World stream ends, or when it is cancelled. Reading never affects a drive.
  */
-export function readTurnRecordStream(options: {
+export function readResponseRecordStream(options: {
   encryption: HarnessAgentStorageEncryption;
   /**
    * World that stores the session's stream.
@@ -40,14 +45,15 @@ export function readTurnRecordStream(options: {
   session: HarnessAgentSession;
 
   /**
-   * ID of the turn whose records are delivered.
-   */
-  turnId: string;
-
-  /**
    * Index of the first World stream chunk to read.
    */
   startIndex: number;
+
+  /**
+   * ID of the turn whose `start-turn` record the response starts at, if
+   * records before it are not part of the response.
+   */
+  startTurnId?: string;
 
   /**
    * Ends reading early.
@@ -55,15 +61,15 @@ export function readTurnRecordStream(options: {
   abortSignal?: AbortSignal;
 
   /**
-   * Settles once the drive that writes the turn ended. Omit it to follow the
-   * turn until it finished.
+   * Settles once the drive that writes the response ended. Omit it to follow
+   * the session until it settled.
    */
   driveEnd?: Promise<void>;
 }): ReadableStream<HarnessAgentStreamPartRecord> {
   const {
     world,
     session,
-    turnId,
+    startTurnId,
     startIndex,
     abortSignal,
     driveEnd,
@@ -71,8 +77,8 @@ export function readTurnRecordStream(options: {
   } = options;
   const { runId } = session;
   const streamName = session.getStreamName();
-  const startKey = `turn-start:${turnId}`;
-  const finishKey = `finish-turn:${turnId}`;
+  const startKey =
+    startTurnId == null ? undefined : `turn-start:${startTurnId}`;
 
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
   let ended = false;
@@ -98,7 +104,9 @@ export function readTurnRecordStream(options: {
     start(controller) {
       let lastChunk = startIndex - 1;
       let tailIndex: number | undefined;
-      let started = false;
+      let historyTail: number | undefined;
+      let heldSettle: HarnessAgentStreamPartRecord | undefined;
+      let started = startKey == null;
 
       /**
        * Closes the stream, once.
@@ -127,18 +135,50 @@ export function readTurnRecordStream(options: {
       };
 
       /**
-       * Delivers a record of the turn, dropping records before its start
-       * and, when following the turn, `yield` records. Closes after the
-       * turn's finish when following the turn.
+       * Delivers a held `settle` record once the history was read, and
+       * closes the stream after it.
+       */
+      const releaseHistory = (): void => {
+        if (
+          heldSettle == null ||
+          historyTail == null ||
+          lastChunk < historyTail
+        ) {
+          return;
+        }
+        controller.enqueue(heldSettle);
+        heldSettle = undefined;
+        close();
+      };
+
+      /**
+       * Delivers a record of the response, dropping records before its start
+       * and, when following the session, `yield` records. When following the
+       * session, a `settle` record in the history is held until it is known
+       * whether later records supersede it, and the stream closes after the
+       * effective `settle` record.
        */
       const deliver = (record: HarnessAgentStreamPartRecord): void => {
         if (!started) {
           if (record.key !== startKey) return;
           started = true;
         }
-        if (driveEnd == null && record.part.type === 'yield') return;
+        if (driveEnd != null) {
+          controller.enqueue(record);
+          return;
+        }
+        if (record.part.type === 'yield') return;
+        if (record.part.type === 'settle') {
+          if (historyTail != null && lastChunk < historyTail) {
+            heldSettle = record;
+            return;
+          }
+          controller.enqueue(record);
+          close();
+          return;
+        }
+        heldSettle = undefined;
         controller.enqueue(record);
-        if (driveEnd == null && record.key === finishKey) close();
       };
 
       if (abortSignal != null) {
@@ -159,6 +199,10 @@ export function readTurnRecordStream(options: {
         .catch(fail);
 
       void (async () => {
+        if (driveEnd == null) {
+          historyTail = (await world.streams.getInfo(runId, streamName))
+            .tailIndex;
+        }
         const stream = await world.streams.get(runId, streamName, startIndex);
         reader = stream.getReader();
         if (isEnded()) {
@@ -181,6 +225,7 @@ export function readTurnRecordStream(options: {
             if (line === '') {
               lastChunk++;
               closeIfDrained();
+              releaseHistory();
               continue;
             }
             for (const record of await decodeStreamRecords({

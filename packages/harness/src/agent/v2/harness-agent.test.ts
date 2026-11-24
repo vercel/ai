@@ -396,7 +396,7 @@ describe('HarnessAgent', () => {
 
       expect(error.name).toBe(capabilityErrorName);
       expect(error.message).toContain(
-        'tool approval is not supported with HarnessV2',
+        '`needsApproval` is not supported with HarnessV2',
       );
     },
   );
@@ -420,7 +420,7 @@ describe('HarnessAgent', () => {
             }),
           },
         }),
-    ).toThrow("remove `needsApproval` from tools 'deleteFile', 'sendEmail'");
+    ).toThrow("remove it from tools 'deleteFile', 'sendEmail'");
   });
 
   test('accepts built-in tools without approval requirements', () => {
@@ -435,20 +435,58 @@ describe('HarnessAgent', () => {
     expect(Object.keys(agent.tools)).toContain('bash');
   });
 
-  test('rejects the toolApproval setting', () => {
+  test('accepts toolApproval statuses for its own tools', () => {
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          getSandboxSession,
+          tools: {
+            deleteFile: tool({ inputSchema: z.object({}) }),
+            readFile: tool({ inputSchema: z.object({}) }),
+          },
+          toolApproval: {
+            deleteFile: 'user-approval',
+            readFile: { type: 'approved', reason: 'Reads are safe.' },
+          },
+        }),
+    ).not.toThrow();
+  });
+
+  test('rejects a toolApproval function', () => {
     const error = captureError(
+      () =>
+        new HarnessAgent({
+          harness,
+          getSandboxSession,
+          toolApproval: (() => 'user-approval') as never,
+        }),
+    );
+
+    expect(error.name).toBe(capabilityErrorName);
+    expect(error.message).toContain(
+      'a `toolApproval` function is not supported with HarnessV2',
+    );
+  });
+
+  test('rejects toolApproval entries for unknown tools and invalid statuses', () => {
+    expect(
       () =>
         new HarnessAgent({
           harness,
           getSandboxSession,
           toolApproval: { deleteFile: 'user-approval' },
         }),
-    );
-
-    expect(error.name).toBe(capabilityErrorName);
-    expect(error.message).toContain(
-      '`toolApproval` is not supported with HarnessV2',
-    );
+    ).toThrow("`toolApproval` names 'deleteFile'");
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          getSandboxSession,
+          tools: { deleteFile: tool({ inputSchema: z.object({}) }) },
+          toolApproval: { deleteFile: 'ask' as never },
+        }),
+    ).toThrow("invalid `toolApproval` status for tool 'deleteFile'");
   });
 
   test.each(['allow-reads', 'allow-edits'] as const)(
@@ -646,7 +684,7 @@ describe('HarnessAgent', () => {
 
     await expect(
       firstAgent.generate({ prompt: 'hello', session }),
-    ).rejects.toThrow('the drive ended before the turn finished');
+    ).rejects.toThrow('the drive ended before the session settled');
     await expect(session.getSandboxSession()).rejects.toThrow(
       'first agent resolver',
     );
@@ -771,11 +809,13 @@ describe('HarnessAgent turns', () => {
 
     expect(await readPartTypes(result.fullStream)).toEqual([
       'start',
+      'custom',
       'start-step',
       'text-start',
       'text-delta',
       'text-end',
       'finish-step',
+      'custom',
       'finish',
     ]);
     expect(await result.text).toBe('echo: hello');
@@ -935,9 +975,7 @@ describe('HarnessAgent turns', () => {
           type: 'tool-error',
           toolCallId: 'call-1',
           toolName: 'weather',
-          error: expect.stringContaining(
-            "remove `needsApproval` from tool 'weather'",
-          ),
+          error: expect.stringContaining("remove it from tool 'weather'"),
         }),
       ]),
     );
@@ -1024,11 +1062,13 @@ describe('HarnessAgent turns', () => {
     const result = await agent.stream({ prompt: 'hello', session });
     expect(await readPartTypes(result.fullStream)).toEqual([
       'start',
+      'custom',
       'start-step',
       'text-start',
       'text-delta',
       'text-end',
       'error',
+      'custom',
       'finish',
     ]);
 
@@ -1095,6 +1135,7 @@ describe('HarnessAgent turns', () => {
 
     expect(await readPartTypes(result.fullStream)).toEqual([
       'start',
+      'custom',
       'start-step',
       'text-start',
       'text-delta',
@@ -1307,6 +1348,7 @@ describe('HarnessAgent crash recovery', () => {
       }
       expect(chunks).toEqual([
         'start',
+        'custom',
         'start-step',
         'text-start',
         'text-delta:Cut off',
@@ -1315,6 +1357,7 @@ describe('HarnessAgent crash recovery', () => {
         'text-delta:Recovered',
         'text-end',
         'finish-step',
+        'custom',
         'finish',
       ]);
     } finally {
@@ -2334,5 +2377,287 @@ describe('HarnessAgent storage encryption', () => {
     await log.refresh();
     expect(log.getCurrentTurn()?.finish).toBeUndefined();
     expect(log.getEffects().every(effect => effect.end == null)).toBe(true);
+  });
+});
+
+describe('HarnessAgent tool approvals', () => {
+  const toolCallsReason = { unified: 'tool-calls' as const, raw: 'tool_use' };
+
+  /**
+   * Creates a HarnessV2 adapter whose turns call the `weather` and `time`
+   * host tools in their first step and answer with text in their second
+   * step. A step whose tool calls wait for approval ends the drive without
+   * finishing the turn; a later drive resumes the turn by replaying its first
+   * model effect, and finishes a turn whose cancel waits as cancelled.
+   */
+  function createApprovalHarness(): HarnessV2 {
+    return {
+      specificationVersion: 'harness-v2',
+      harnessId: 'approval-v2',
+      builtinTools: {},
+      async drive({ context }) {
+        const prompt = context.log
+          .getUndeliveredSubmissions()
+          .find(submission => submission.data.type === 'prompt');
+        const turn = context.log.getCurrentTurn();
+        const promptId =
+          prompt?.id ??
+          (turn != null && turn.finish == null
+            ? turn.submissions[0]?.id
+            : undefined);
+        if (promptId == null) return;
+        if (
+          prompt == null &&
+          context.log
+            .getUndeliveredSubmissions()
+            .some(submission => submission.data.type === 'cancel')
+        ) {
+          await context.finishTurn({
+            finishReason: { unified: 'cancelled', raw: undefined },
+            totalUsage: usage,
+          });
+          return;
+        }
+
+        const calls = [
+          { toolCallId: 'call-weather', toolName: 'weather', input: {} },
+          { toolCallId: 'call-time', toolName: 'time', input: {} },
+        ];
+        await context.effect({
+          key: `model:${promptId}:0`,
+          name: 'model',
+          replay: 'safe',
+          input: null,
+          deliveredSubmissionIds: prompt == null ? [] : [promptId],
+          fn: async ({ emit }) => {
+            for (const call of calls) {
+              emit({ type: 'tool-call', ...call, input: '{}' });
+            }
+            return null;
+          },
+        });
+        let suspended = false;
+        for (const call of calls) {
+          const output = await context.executeHostTool(call);
+          if (output.type === 'suspended') suspended = true;
+        }
+        await context.finishStep({
+          stepNumber: 0,
+          finishReason: toolCallsReason,
+          usage,
+        });
+        if (suspended) return;
+
+        await context.effect({
+          key: `model:${promptId}:1`,
+          name: 'model',
+          replay: 'safe',
+          input: null,
+          fn: async ({ emit }) => {
+            emit({ type: 'text-start', id: 'text' });
+            emit({ type: 'text-delta', id: 'text', delta: 'done' });
+            emit({ type: 'text-end', id: 'text' });
+            return null;
+          },
+        });
+        await context.finishStep({ stepNumber: 1, finishReason, usage });
+        await context.finishTurn({ finishReason, totalUsage: usage });
+      },
+    };
+  }
+
+  async function setup() {
+    const weather = vi.fn(async () => 'sunny');
+    const time = vi.fn(async () => 'noon');
+    const world = new InMemoryWorld();
+    const agent = new HarnessAgent({
+      harness: createApprovalHarness(),
+      world,
+      getSandboxSession,
+      tools: {
+        weather: tool({ inputSchema: z.object({}), execute: weather }),
+        time: tool({ inputSchema: z.object({}), execute: time }),
+      },
+      toolApproval: { weather: 'user-approval', time: 'user-approval' },
+    });
+    const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+    return { world, agent, session, weather, time };
+  }
+
+  /**
+   * Content part of a result, with the fields of an approval request.
+   */
+  type ApprovalContentPart = {
+    type: string;
+    approvalId?: string;
+    toolCall?: { toolName: string };
+  };
+
+  /**
+   * Returns the approval IDs of a result's approval requests, by tool name.
+   */
+  async function getApprovalIds(result: {
+    content:
+      | ReadonlyArray<ApprovalContentPart>
+      | PromiseLike<ReadonlyArray<ApprovalContentPart>>;
+  }): Promise<Record<string, string>> {
+    const ids = Object.create(null) as Record<string, string>;
+    for (const part of await result.content) {
+      if (
+        part.type !== 'tool-approval-request' ||
+        part.approvalId == null ||
+        part.toolCall == null
+      ) {
+        continue;
+      }
+      ids[part.toolCall.toolName] = part.approvalId;
+    }
+    return ids;
+  }
+
+  test('requests every approval of a step and continues the turn with stream()', async () => {
+    const { agent, session, weather, time } = await setup();
+
+    const first = await agent.stream({ prompt: 'go', session });
+    const parts: Array<{ type: string }> = [];
+    for await (const part of first.fullStream) parts.push(part);
+    expect(parts.map(part => part.type)).toEqual([
+      'start',
+      'custom',
+      'start-step',
+      'tool-call',
+      'tool-call',
+      'tool-approval-request',
+      'tool-approval-request',
+      'finish-step',
+      'finish',
+    ]);
+    expect(await first.finishReason).toBe('tool-calls');
+    const ids = await getApprovalIds(first);
+    expect(Object.keys(ids)).toEqual(['weather', 'time']);
+
+    await expect(agent.stream({ prompt: 'again', session })).rejects.toThrow(
+      'waits for tool approval responses',
+    );
+    await expect(
+      agent.stream({
+        session,
+        messages: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: ids.weather,
+                approved: true,
+              },
+            ],
+          },
+        ],
+      }),
+    ).rejects.toThrow('every pending tool approval must be answered');
+
+    const second = await agent.stream({
+      session,
+      messages: [
+        { role: 'user', content: 'go' },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-approval-response',
+              approvalId: ids.weather,
+              approved: true,
+            },
+            {
+              type: 'tool-approval-response',
+              approvalId: ids.time,
+              approved: false,
+              reason: 'Not now',
+            },
+          ],
+        },
+      ],
+    });
+    const continued: Array<{ type: string }> = [];
+    for await (const part of second.fullStream) continued.push(part);
+    expect(continued.map(part => part.type)).toEqual([
+      'start',
+      'start-step',
+      'tool-result',
+      'tool-output-denied',
+      'text-start',
+      'text-delta',
+      'text-end',
+      'finish-step',
+      'custom',
+      'finish',
+    ]);
+    expect(await second.text).toBe('done');
+    expect(await second.finishReason).toBe('stop');
+    expect(weather).toHaveBeenCalledTimes(1);
+    expect(time).not.toHaveBeenCalled();
+
+    const stored = await agent.readStream({ session });
+    expect((await stored.steps).length).toBe(2);
+    expect(await stored.text).toBe('done');
+  });
+
+  test('records responses with respondToToolApprovals() and continues the turn with drive()', async () => {
+    const { world, agent, session, weather } = await setup();
+    const first = await agent.generate({ prompt: 'go', session });
+    const ids = await getApprovalIds(first);
+
+    await agent.respondToToolApprovals({
+      session,
+      responses: [{ approvalId: ids.weather, approved: true }],
+    });
+    await agent.drive({ session });
+    expect(weather).not.toHaveBeenCalled();
+    expect(
+      await readLogEvents({
+        world,
+        runId: session.runId,
+        types: ['drive-start'],
+      }),
+    ).toHaveLength(1);
+
+    await agent.respondToToolApprovals({
+      session,
+      responses: [
+        { approvalId: ids.weather, approved: false },
+        { approvalId: ids.time, approved: true },
+      ],
+    });
+    await agent.drive({ session });
+    expect(weather).toHaveBeenCalledTimes(1);
+
+    const stored = await agent.readStream({ session });
+    expect(await stored.text).toBe('done');
+    await expect(
+      agent.respondToToolApprovals({
+        session,
+        responses: [{ approvalId: 'unknown', approved: true }],
+      }),
+    ).rejects.toThrow("the tool approval 'unknown' does not exist");
+  });
+
+  test('finishes a turn that waits for approval when it is cancelled', async () => {
+    const { agent, session, weather } = await setup();
+    const first = await agent.generate({ prompt: 'go', session });
+    const ids = await getApprovalIds(first);
+
+    await agent.cancel({ session });
+    await agent.drive({ session });
+
+    const stored = await agent.readStream({ session });
+    expect(await stored.rawFinishReason).toBe('cancelled');
+    await expect(
+      agent.respondToToolApprovals({
+        session,
+        responses: [{ approvalId: ids.weather, approved: true }],
+      }),
+    ).rejects.toThrow('belongs to a turn that is not running anymore');
+    expect(weather).not.toHaveBeenCalled();
   });
 });

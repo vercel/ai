@@ -30,6 +30,7 @@ async function setup(
   options: {
     tools?: ToolSet;
     mcpServers?: HarnessV2TurnSettings['mcpServers'];
+    toolApproval?: Record<string, 'user-approval' | 'approved' | 'denied'>;
   } = {},
 ) {
   const runtime = createTestModelRuntime();
@@ -54,6 +55,7 @@ async function setup(
     harness,
     tools: options.tools ?? {},
     mcpServers: options.mcpServers,
+    toolApproval: options.toolApproval,
     sandboxConfig: { workDir: 'project' },
     getSandboxSession: async () => sandboxSession,
   });
@@ -826,6 +828,131 @@ describe('PiDrive', () => {
       expect(log().getCurrentTurn()?.finish?.data.finishReason).toEqual(
         cancelled,
       );
+    });
+  });
+
+  describe('tool approvals', () => {
+    /**
+     * Creates a session with the host tools `weather` and `time`, which both
+     * require a user's approval, and a faux model that calls both in its
+     * first response and answers with text in its second.
+     */
+    async function setupApprovals() {
+      const weather = vi.fn(async () => 'sunny');
+      const time = vi.fn(async () => 'noon');
+      const test = await setup({
+        tools: {
+          weather: tool({ inputSchema: z.object({}), execute: weather }),
+          time: tool({ inputSchema: z.object({}), execute: time }),
+        },
+        toolApproval: { weather: 'user-approval', time: 'user-approval' },
+      });
+      test.runtime.faux.setResponses([
+        fauxAssistantMessage(
+          [
+            fauxToolCall('weather', {}, { id: 'call-1' }),
+            fauxToolCall('time', {}, { id: 'call-2' }),
+          ],
+          { stopReason: 'toolUse' },
+        ),
+        fauxAssistantMessage('Done'),
+      ]);
+      return { ...test, weather, time };
+    }
+
+    /**
+     * Returns the approval IDs of a result's approval requests, by tool name.
+     */
+    function getApprovalIds(
+      content: ReadonlyArray<{
+        type: string;
+        approvalId?: string;
+        toolCall?: { toolName: string };
+      }>,
+    ): Record<string, string> {
+      const ids = Object.create(null) as Record<string, string>;
+      for (const part of content) {
+        if (
+          part.type !== 'tool-approval-request' ||
+          part.approvalId == null ||
+          part.toolCall == null
+        ) {
+          continue;
+        }
+        ids[part.toolCall.toolName] = part.approvalId;
+      }
+      return ids;
+    }
+
+    test('requests approval for every call of a step and resumes the turn after the responses', async () => {
+      const { agent, session, runtime, readState, weather, time } =
+        await setupApprovals();
+
+      const first = await agent.generate({ prompt: 'go', session });
+
+      expect(first.finishReason).toBe('tool-calls');
+      const ids = getApprovalIds(first.content);
+      expect(Object.keys(ids)).toEqual(['weather', 'time']);
+      expect(runtime.faux.state.callCount).toBe(1);
+      expect(weather).not.toHaveBeenCalled();
+      expect(time).not.toHaveBeenCalled();
+      expect(readState().currentTurn?.ended).toBe(false);
+
+      const second = await agent.stream({
+        session,
+        messages: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: ids.weather,
+                approved: true,
+              },
+              {
+                type: 'tool-approval-response',
+                approvalId: ids.time,
+                approved: false,
+                reason: 'Not now',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(await second.text).toBe('Done');
+      expect(await second.finishReason).toBe('stop');
+      expect(weather).toHaveBeenCalledTimes(1);
+      expect(time).not.toHaveBeenCalled();
+      expect(runtime.faux.state.callCount).toBe(2);
+      const state = readState();
+      expect(state.currentTurn?.ended).toBe(true);
+      expect(state.modelEffects[1].input.appended).toMatchObject([
+        { role: 'toolResult', toolCallId: 'call-1', isError: false },
+        {
+          role: 'toolResult',
+          toolCallId: 'call-2',
+          isError: true,
+          content: [
+            { type: 'text', text: 'The tool call was denied: Not now' },
+          ],
+        },
+      ]);
+    });
+
+    test('finishes a turn that waits for approval as cancelled', async () => {
+      const { agent, session, runtime, log, weather } = await setupApprovals();
+      await agent.generate({ prompt: 'go', session });
+
+      await agent.cancel({ session });
+      await agent.drive({ session });
+
+      expect(log().getCurrentTurn()?.finish?.data.finishReason).toEqual({
+        unified: 'cancelled',
+        raw: undefined,
+      });
+      expect(runtime.faux.state.callCount).toBe(1);
+      expect(weather).not.toHaveBeenCalled();
     });
   });
 });

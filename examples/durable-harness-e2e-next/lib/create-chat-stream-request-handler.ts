@@ -6,7 +6,8 @@ import { createUIMessageStreamResponse, type ToolSet } from 'ai';
 /**
  * Reconnects a chat to its session's latest turn, e.g. after the process
  * that streamed it crashed: reads the turn from its start, following it
- * across drives until it finishes. The chat replays it from the beginning
+ * across drives until the session settles, i.e. the turn finished or waits
+ * for tool approval responses. The chat replays it from the beginning
  * (`resumeStreamIsReplay`), replacing the response it has shown so far.
  *
  * The session's run ID comes as the `runId` query parameter. Responds with
