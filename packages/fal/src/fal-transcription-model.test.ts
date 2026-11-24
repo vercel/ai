@@ -292,6 +292,44 @@ describe('doGenerate', () => {
       expect(result.text).toBeTruthy();
     });
 
+    it('keeps polling when pollTimeoutMs exceeds the timer limit', async () => {
+      prepareJsonFixtureResponse();
+
+      let pollCount = 0;
+      server.urls[
+        'https://queue.fal.run/fal-ai/wizper/requests/test-id'
+      ].response = () => {
+        pollCount++;
+        return pollCount < 2
+          ? {
+              type: 'error',
+              status: 400,
+              body: JSON.stringify({
+                detail: 'Request is still in progress',
+              }),
+            }
+          : {
+              type: 'json-value',
+              body: JSON.parse(
+                fs.readFileSync(
+                  'src/__fixtures__/fal-transcription-result.json',
+                  'utf8',
+                ),
+              ),
+            };
+      };
+
+      const result = await createFal({
+        apiKey: 'test-api-key',
+        pollTimeoutMs: Number.MAX_SAFE_INTEGER,
+      })
+        .transcription('wizper')
+        .doGenerate({ audio: audioData, mediaType: 'audio/wav' });
+
+      expect(pollCount).toBe(2);
+      expect(result.text).toBeTruthy();
+    });
+
     it('uses the 60000 ms default when no override is configured', async () => {
       prepareJsonFixtureResponse();
       prepareInProgressResponse(() => {});

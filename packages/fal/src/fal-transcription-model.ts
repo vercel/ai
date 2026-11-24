@@ -140,7 +140,10 @@ export class FalTranscriptionModel implements TranscriptionModelV4 {
       pollTimeoutMs ?? this.config.pollTimeoutMs ?? DEFAULT_POLL_TIMEOUT_MS;
     const pollIntervalMs = 1000;
     const timeoutController = new AbortController();
-    const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs);
+    const timeoutId = setTimeout(
+      () => timeoutController.abort(),
+      Math.min(timeoutMs, MAX_TIMER_DELAY_MS),
+    );
     const pollingAbortSignal =
       options.abortSignal == null
         ? timeoutController.signal
@@ -254,6 +257,7 @@ export class FalTranscriptionModel implements TranscriptionModelV4 {
 }
 
 const DEFAULT_POLL_TIMEOUT_MS = 60000;
+const MAX_TIMER_DELAY_MS = 2 ** 31 - 1;
 
 const falJobResponseSchema = lazySchema(() =>
   zodSchema(
