@@ -134,6 +134,29 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
     ).toBe(true);
   });
 
+  it('should return true when the only tool call in the last step is denied', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithToolCalls({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-deleteFile',
+                toolCallId: 'call_1',
+                state: 'output-denied',
+                input: { path: '/tmp/report.txt' },
+                approval: { id: 'approval_1', approved: false },
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(true);
+  });
+
   it('should return true when text precedes the last completed tool call', () => {
     expect(
       lastAssistantMessageIsCompleteWithToolCalls({
@@ -311,6 +334,32 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
                   location: 'San Francisco',
                 },
                 errorText: 'Failed to fetch weather data',
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  it('should return true when dynamic tool call is denied', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithToolCalls({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'dynamic-tool',
+                toolName: 'getDynamicWeather',
+                toolCallId: 'call_dynamic_123',
+                state: 'output-denied',
+                input: {
+                  location: 'San Francisco',
+                },
+                approval: { id: 'approval_1', approved: false },
               },
             ],
           },
