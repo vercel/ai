@@ -332,6 +332,25 @@ export type GoogleInteractionsBuiltinToolResultStep =
       type: 'mcp_server_tool_result';
     } & GoogleInteractionsMCPServerToolResultStepPayload);
 
+/*
+ * Tool Retrieval steps. The call names the deferred tools the model wants and
+ * the result carries their loaded declarations; both are replayed on the next
+ * turn and the API only accepts them with the signature it issued.
+ */
+export type GoogleInteractionsToolSearchCallStep = {
+  type: 'tool_search_call';
+  id: string;
+  arguments?: Record<string, unknown>;
+  signature?: string;
+};
+
+export type GoogleInteractionsToolSearchResultStep = {
+  type: 'tool_search_result';
+  call_id: string;
+  result?: unknown;
+  signature?: string;
+};
+
 export type GoogleInteractionsStep =
   | GoogleInteractionsFunctionResultContent
   | GoogleInteractionsUserInputStep
@@ -342,6 +361,8 @@ export type GoogleInteractionsStep =
   | GoogleInteractionsProcessingResultStep
   | GoogleInteractionsBuiltinToolCallStep
   | GoogleInteractionsBuiltinToolResultStep
+  | GoogleInteractionsToolSearchCallStep
+  | GoogleInteractionsToolSearchResultStep
   | { type: string; [k: string]: unknown };
 
 /*
@@ -379,7 +400,10 @@ export type GoogleInteractionsTool =
       name?: string;
       description?: string;
       parameters?: unknown;
+      defer_loading?: boolean;
+      short_description?: string;
     }
+  | { type: 'tool_search' }
   | { type: 'code_execution' }
   | { type: 'url_context' }
   | {
@@ -393,6 +417,7 @@ export type GoogleInteractionsTool =
       url?: string;
       headers?: Record<string, string>;
       allowed_tools?: Array<unknown>;
+      defer_loading?: boolean;
     }
   | {
       type: 'google_search';

@@ -1473,6 +1473,98 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
     });
   });
 
+  describe('tool retrieval', () => {
+    const TOOL_SEARCH_TOOL: LanguageModelV4ProviderTool = {
+      type: 'provider',
+      id: 'google.tool_search',
+      name: 'tool_search',
+      args: {},
+    };
+
+    const DEFERRED_TOOL: LanguageModelV4FunctionTool = {
+      type: 'function',
+      name: 'convertCurrency',
+      description: 'Convert an amount between currencies.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          amount: { type: 'number' },
+          from: { type: 'string' },
+          to: { type: 'string' },
+        },
+        required: ['amount', 'from', 'to'],
+      } as JSONSchema7,
+      providerOptions: {
+        google: { deferLoading: true, shortDescription: 'Convert currencies.' },
+      },
+    };
+
+    beforeEach(() => {
+      prepareJsonFixtureResponse('tool-search');
+    });
+
+    it('emits tool_search and defer_loading on the request body', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [TOOL_SEARCH_TOOL, DEFERRED_TOOL],
+      });
+
+      const body = (await server.calls[0].requestBodyJson) as {
+        tools?: Array<Record<string, unknown>>;
+      };
+
+      expect(body.tools).toEqual([
+        { type: 'tool_search' },
+        {
+          type: 'function',
+          name: 'convertCurrency',
+          description: 'Convert an amount between currencies.',
+          parameters: DEFERRED_TOOL.inputSchema,
+          defer_loading: true,
+          short_description: 'Convert currencies.',
+        },
+      ]);
+    });
+
+    it('parses the retrieval round trip as provider-executed parts and keeps the retrieved call', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [TOOL_SEARCH_TOOL, DEFERRED_TOOL],
+      });
+
+      const searchCall = result.content.find(
+        part => part.type === 'tool-call' && part.toolName === 'tool_search',
+      );
+      const searchResult = result.content.find(
+        part => part.type === 'tool-result' && part.toolName === 'tool_search',
+      );
+      const retrievedCall = result.content.find(
+        part =>
+          part.type === 'tool-call' && part.toolName === 'convertCurrency',
+      );
+
+      expect(searchCall).toMatchObject({
+        providerExecuted: true,
+        input: '{"function_names":["convertCurrency"]}',
+        providerMetadata: {
+          google: { signature: 'tool-search-call-signature' },
+        },
+      });
+      expect(searchResult).toMatchObject({
+        providerMetadata: {
+          google: { signature: 'tool-search-result-signature' },
+        },
+      });
+      expect(retrievedCall).toMatchObject({
+        input: '{"amount":100,"from":"EUR","to":"SEK"}',
+      });
+      expect(result.finishReason).toEqual({
+        unified: 'tool-calls',
+        raw: 'completed',
+      });
+    });
+  });
+
   describe('built-in google_search tool', () => {
     const GOOGLE_SEARCH_TOOL: LanguageModelV4ProviderTool = {
       type: 'provider',

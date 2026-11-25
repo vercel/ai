@@ -54,6 +54,7 @@ const BUILTIN_TOOL_CALL_TYPES = new Set([
   'file_search_call',
   'google_maps_call',
   'mcp_server_tool_call',
+  'tool_search_call',
 ]);
 
 const BUILTIN_TOOL_RESULT_TYPES = new Set([
@@ -63,6 +64,7 @@ const BUILTIN_TOOL_RESULT_TYPES = new Set([
   'file_search_result',
   'google_maps_result',
   'mcp_server_tool_result',
+  'tool_search_result',
 ]);
 
 function builtinToolNameFromCallType(type: string): string {
@@ -269,6 +271,7 @@ export function parseGoogleInteractionsOutputs({
             arguments?: Record<string, unknown>;
             name?: string;
             server_name?: string;
+            signature?: string | null;
           };
           const toolName =
             type === 'mcp_server_tool_call'
@@ -281,6 +284,14 @@ export function parseGoogleInteractionsOutputs({
             toolName,
             input,
             providerExecuted: true,
+            // Tool search steps are replayed on the next turn, which the API
+            // only accepts with the signature it issued.
+            ...(type === 'tool_search_call'
+              ? googleProviderMetadata({
+                  signature: call.signature,
+                  interactionId,
+                })
+              : {}),
           });
         } else if (BUILTIN_TOOL_RESULT_TYPES.has(type)) {
           const result = step as {
@@ -288,6 +299,7 @@ export function parseGoogleInteractionsOutputs({
             result?: unknown;
             is_error?: boolean;
             name?: string;
+            signature?: string | null;
           };
           const toolName =
             type === 'mcp_server_tool_result'
@@ -298,6 +310,12 @@ export function parseGoogleInteractionsOutputs({
             toolCallId: result.call_id || generateId(),
             toolName,
             result: (result.result ?? null) as NonNullable<JSONValue>,
+            ...(type === 'tool_search_result'
+              ? googleProviderMetadata({
+                  signature: result.signature,
+                  interactionId,
+                })
+              : {}),
           });
           const sources = builtinToolResultToSources({
             block:

@@ -397,3 +397,98 @@ describe('interrupted interactions', () => {
     );
   });
 });
+
+describe('buildGoogleInteractionsStreamTransform — tool search steps', () => {
+  it('emits a provider-executed call/result pair with the signatures needed for replay', async () => {
+    const parts = await runTransform([
+      {
+        event_type: 'interaction.created',
+        interaction: { id: 'v1_tool-search', status: 'in_progress' },
+      },
+      {
+        event_type: 'step.start',
+        index: 0,
+        step: {
+          type: 'tool_search_call',
+          id: 'search-1',
+          arguments: { function_names: ['convertCurrency'] },
+          signature: 'search-call-sig',
+        },
+      },
+      { event_type: 'step.stop', index: 0 },
+      {
+        event_type: 'step.start',
+        index: 1,
+        step: { type: 'tool_search_result', call_id: 'search-1' },
+      },
+      {
+        event_type: 'step.delta',
+        index: 1,
+        delta: {
+          type: 'tool_search_result',
+          result: [{ type: 'function', name: 'convertCurrency' }],
+          signature: 'search-result-sig',
+        },
+      },
+      { event_type: 'step.stop', index: 1 },
+      {
+        event_type: 'interaction.completed',
+        interaction: { id: 'v1_tool-search', status: 'completed' },
+      },
+    ] as Array<GoogleInteractionsEvent>);
+
+    expect(parts).toContainEqual({
+      type: 'tool-call',
+      toolCallId: 'search-1',
+      toolName: 'tool_search',
+      input: '{"function_names":["convertCurrency"]}',
+      providerExecuted: true,
+      providerMetadata: {
+        google: {
+          signature: 'search-call-sig',
+          interactionId: 'v1_tool-search',
+        },
+      },
+    });
+
+    expect(parts).toContainEqual({
+      type: 'tool-result',
+      toolCallId: 'search-1',
+      toolName: 'tool_search',
+      result: [{ type: 'function', name: 'convertCurrency' }],
+      providerMetadata: {
+        google: {
+          signature: 'search-result-sig',
+          interactionId: 'v1_tool-search',
+        },
+      },
+    });
+  });
+
+  it('leaves other built-in tool steps without signature metadata', async () => {
+    const parts = await runTransform([
+      {
+        event_type: 'interaction.created',
+        interaction: { id: 'v1_google-search', status: 'in_progress' },
+      },
+      {
+        event_type: 'step.start',
+        index: 0,
+        step: {
+          type: 'google_search_call',
+          id: 'gs-1',
+          arguments: { query: 'weather' },
+          signature: 'google-search-sig',
+        },
+      },
+      { event_type: 'step.stop', index: 0 },
+      {
+        event_type: 'interaction.completed',
+        interaction: { id: 'v1_google-search', status: 'completed' },
+      },
+    ] as Array<GoogleInteractionsEvent>);
+
+    const toolCall = parts.find(part => part.type === 'tool-call');
+    expect(toolCall).not.toHaveProperty('providerMetadata');
+  });
+});

@@ -642,6 +642,10 @@ const { text } = await generateText({
 
 See [Remote MCP servers](/providers/ai-sdk-providers/google#remote-mcp-servers) for the Google provider equivalent.
 
+#### Tool Retrieval
+
+For Vertex Interactions models, `googleVertex.tools.toolSearch` lets the model load the parameter schemas of tools marked `providerOptions: { google: { deferLoading: true } }` on demand instead of sending them all up front. The tool must be registered under the name `tool_search`. See [Tool Retrieval](/providers/ai-sdk-providers/google#tool-retrieval) for the full description and examples.
+
 #### Streaming Function Call Arguments
 
 For Gemini 3 Pro and later models on Vertex AI, you can stream function call

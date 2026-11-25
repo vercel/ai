@@ -36,6 +36,7 @@ const BUILTIN_TOOL_CALL_TYPES = new Set([
   'file_search_call',
   'google_maps_call',
   'mcp_server_tool_call',
+  'tool_search_call',
 ]);
 
 const BUILTIN_TOOL_RESULT_TYPES = new Set([
@@ -45,7 +46,27 @@ const BUILTIN_TOOL_RESULT_TYPES = new Set([
   'file_search_result',
   'google_maps_result',
   'mcp_server_tool_result',
+  'tool_search_result',
 ]);
+
+/*
+ * Tool search steps are replayed on the next turn, which the API only accepts
+ * with the signature it issued. The other built-in steps are not replayed, so
+ * they stay metadata-free.
+ */
+function builtinSignatureMetadata(
+  blockType: string,
+  signature: string | undefined,
+  interactionId: string | undefined,
+): { providerMetadata: { google: Record<string, string> } } | object {
+  if (blockType !== 'tool_search_call' && blockType !== 'tool_search_result') {
+    return {};
+  }
+  const google: Record<string, string> = {};
+  if (signature != null) google.signature = signature;
+  if (interactionId != null) google.interactionId = interactionId;
+  return Object.keys(google).length > 0 ? { providerMetadata: { google } } : {};
+}
 
 function builtinToolNameFromCallType(type: string): string {
   return type.replace(/_call$/, '');
@@ -92,6 +113,7 @@ type OpenBlockState =
       toolName: string;
       arguments: Record<string, unknown>;
       callEmitted: boolean;
+      signature?: string;
     }
   | {
       kind: 'builtin_tool_result';
@@ -102,6 +124,7 @@ type OpenBlockState =
       result: unknown;
       isError?: boolean;
       resultEmitted: boolean;
+      signature?: string;
     }
   | {
       kind: 'custom';
@@ -400,6 +423,7 @@ export function buildGoogleInteractionsStreamTransform({
               toolName,
               arguments: step?.arguments ?? {},
               callEmitted: false,
+              ...(step?.signature != null ? { signature: step.signature } : {}),
             };
             openBlocks.set(index, state);
           } else if (
@@ -423,6 +447,7 @@ export function buildGoogleInteractionsStreamTransform({
               result: step?.result ?? null,
               ...(step?.is_error != null ? { isError: step.is_error } : {}),
               resultEmitted: false,
+              ...(step?.signature != null ? { signature: step.signature } : {}),
             };
             openBlocks.set(index, state);
           } else {
@@ -683,6 +708,9 @@ export function buildGoogleInteractionsStreamTransform({
             ) {
               open.toolName = delta.name;
             }
+            if (delta.signature != null) {
+              open.signature = delta.signature;
+            }
           } else if (
             open.kind === 'builtin_tool_result' &&
             delta?.type === open.blockType
@@ -697,6 +725,9 @@ export function buildGoogleInteractionsStreamTransform({
               open.blockType === 'mcp_server_tool_result'
             ) {
               open.toolName = delta.name;
+            }
+            if (delta.signature != null) {
+              open.signature = delta.signature;
             }
           }
           break;
@@ -783,6 +814,11 @@ export function buildGoogleInteractionsStreamTransform({
               toolName: open.toolName,
               input: JSON.stringify(open.arguments ?? {}),
               providerExecuted: true,
+              ...builtinSignatureMetadata(
+                open.blockType,
+                open.signature,
+                interactionId,
+              ),
             });
             open.callEmitted = true;
           } else if (
@@ -794,6 +830,11 @@ export function buildGoogleInteractionsStreamTransform({
               toolCallId: open.callId,
               toolName: open.toolName,
               result: (open.result ?? null) as NonNullable<JSONValue>,
+              ...builtinSignatureMetadata(
+                open.blockType,
+                open.signature,
+                interactionId,
+              ),
             });
             open.resultEmitted = true;
 

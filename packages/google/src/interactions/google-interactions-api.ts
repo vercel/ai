@@ -168,6 +168,8 @@ const BUILTIN_TOOL_CALL_STEP_TYPES = [
   'file_search_call',
   'google_maps_call',
   'mcp_server_tool_call',
+  // Tool Retrieval: `arguments` carries `function_names`.
+  'tool_search_call',
 ] as const;
 
 const BUILTIN_TOOL_RESULT_STEP_TYPES = [
@@ -177,6 +179,8 @@ const BUILTIN_TOOL_RESULT_STEP_TYPES = [
   'file_search_result',
   'google_maps_result',
   'mcp_server_tool_result',
+  // Tool Retrieval: `result` carries the loaded tool declarations.
+  'tool_search_result',
 ] as const;
 
 /*

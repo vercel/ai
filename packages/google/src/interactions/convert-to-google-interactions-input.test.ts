@@ -1988,3 +1988,121 @@ describe('convertToGoogleInteractionsInput', () => {
     });
   });
 });
+
+describe('convertToGoogleInteractionsInput — tool search replay', () => {
+  const promptWithToolSearch = (
+    options: {
+      callSignature?: string;
+      resultSignature?: string;
+    } = {},
+  ): LanguageModelV4Prompt => [
+    { role: 'user', content: [{ type: 'text', text: 'How much is 100 EUR?' }] },
+    {
+      role: 'assistant',
+      content: [
+        {
+          type: 'tool-call',
+          toolCallId: 'search-1',
+          toolName: 'tool_search',
+          input: { function_names: ['convertCurrency'] },
+          providerExecuted: true,
+          ...(options.callSignature != null
+            ? {
+                providerOptions: {
+                  google: { signature: options.callSignature },
+                },
+              }
+            : {}),
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'search-1',
+          toolName: 'tool_search',
+          output: {
+            type: 'json',
+            value: [{ type: 'function', name: 'convertCurrency' }],
+          },
+          ...(options.resultSignature != null
+            ? {
+                providerOptions: {
+                  google: { signature: options.resultSignature },
+                },
+              }
+            : {}),
+        },
+      ],
+    },
+  ];
+
+  it('replays the call and result as tool search steps with their signatures', () => {
+    const result = convertToGoogleInteractionsInput({
+      prompt: promptWithToolSearch({
+        callSignature: 'search-call-sig',
+        resultSignature: 'search-result-sig',
+      }),
+    });
+
+    expect(result.warnings).toEqual([]);
+    expect(result.input.slice(1)).toEqual([
+      {
+        type: 'tool_search_call',
+        id: 'search-1',
+        arguments: { function_names: ['convertCurrency'] },
+        signature: 'search-call-sig',
+      },
+      {
+        type: 'tool_search_result',
+        call_id: 'search-1',
+        result: [{ type: 'function', name: 'convertCurrency' }],
+        signature: 'search-result-sig',
+      },
+    ]);
+  });
+
+  it('drops unsigned tool search steps instead of sending them, and warns', () => {
+    const result = convertToGoogleInteractionsInput({
+      prompt: promptWithToolSearch(),
+    });
+
+    expect(result.input).toHaveLength(1);
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "message": "google.interactions: tool search call "search-1" has no signature; step dropped.",
+          "type": "other",
+        },
+        {
+          "message": "google.interactions: tool search result for "search-1" has no signature; step dropped.",
+          "type": "other",
+        },
+      ]
+    `);
+  });
+
+  it('still sends a client-executed tool call named tool_search as a function call', () => {
+    const result = convertToGoogleInteractionsInput({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'tool_search',
+              input: { query: 'currency' },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.input).toEqual([
+      {
+        type: 'function_call',
+        id: 'call-1',
+        name: 'tool_search',
+        arguments: { query: 'currency' },
+      },
+    ]);
+  });
+});

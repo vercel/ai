@@ -325,4 +325,147 @@ describe('prepareGoogleInteractionsTools', () => {
       expect(tool.args).toEqual(originalArgs);
     });
   });
+
+  describe('tool retrieval', () => {
+    const TOOL_SEARCH = {
+      type: 'provider',
+      id: 'google.tool_search',
+      name: 'tool_search',
+      args: {},
+    } as const;
+
+    const deferredTool = (
+      name: string,
+      shortDescription?: string,
+    ): LanguageModelV4FunctionTool => ({
+      ...FUNCTION_TOOL,
+      name,
+      providerOptions: {
+        google: {
+          deferLoading: true,
+          ...(shortDescription != null ? { shortDescription } : {}),
+        },
+      },
+    });
+
+    it('maps google.tool_search and defers the tools that opt in', () => {
+      const result = prepareGoogleInteractionsTools({
+        tools: [TOOL_SEARCH, deferredTool('getWeather', 'Weather by city.')],
+      });
+
+      expect(result.toolWarnings).toEqual([]);
+      expect(result.tools).toEqual([
+        { type: 'tool_search' },
+        {
+          type: 'function',
+          name: 'getWeather',
+          description: FUNCTION_TOOL.description,
+          parameters: FUNCTION_TOOL.inputSchema,
+          defer_loading: true,
+          short_description: 'Weather by city.',
+        },
+      ]);
+    });
+
+    it('omits short_description when the tool does not provide one', () => {
+      const result = prepareGoogleInteractionsTools({
+        tools: [deferredTool('getWeather')],
+      });
+
+      expect(result.tools?.[0]).not.toHaveProperty('short_description');
+      expect(result.tools?.[0]).toMatchObject({ defer_loading: true });
+    });
+
+    it('leaves tools without deferLoading untouched', () => {
+      const result = prepareGoogleInteractionsTools({
+        tools: [TOOL_SEARCH, FUNCTION_TOOL],
+      });
+
+      expect(result.tools?.[1]).not.toHaveProperty('defer_loading');
+    });
+
+    it('drops the tool search tool and declares deferred tools in full when toolChoice is required', () => {
+      const result = prepareGoogleInteractionsTools({
+        tools: [TOOL_SEARCH, deferredTool('getWeather', 'Weather by city.')],
+        toolChoice: { type: 'required' },
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'function',
+          name: 'getWeather',
+          description: FUNCTION_TOOL.description,
+          parameters: FUNCTION_TOOL.inputSchema,
+        },
+      ]);
+      expect(result.toolWarnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "a forced tool call cannot wait for tool retrieval; the tool search tool is dropped and deferred tools are declared in full.",
+            "feature": "google.tool_search with toolChoice required",
+            "type": "unsupported",
+          },
+          {
+            "details": "tool getWeather is forced by toolChoice, so it cannot wait for tool retrieval; the tool is declared in full.",
+            "feature": "deferLoading on tool getWeather",
+            "type": "unsupported",
+          },
+        ]
+      `);
+    });
+
+    it('keeps the tool search tool when a specific tool is forced, and declares only that tool in full', () => {
+      const result = prepareGoogleInteractionsTools({
+        tools: [
+          TOOL_SEARCH,
+          deferredTool('getWeather'),
+          deferredTool('getTime'),
+        ],
+        toolChoice: { type: 'tool', toolName: 'getWeather' },
+      });
+
+      expect(result.tools).toEqual([
+        { type: 'tool_search' },
+        {
+          type: 'function',
+          name: 'getWeather',
+          description: FUNCTION_TOOL.description,
+          parameters: FUNCTION_TOOL.inputSchema,
+        },
+        {
+          type: 'function',
+          name: 'getTime',
+          description: FUNCTION_TOOL.description,
+          parameters: FUNCTION_TOOL.inputSchema,
+          defer_loading: true,
+        },
+      ]);
+    });
+
+    it('defers every tool an MCP server exposes', () => {
+      const result = prepareGoogleInteractionsTools({
+        tools: [
+          TOOL_SEARCH,
+          {
+            type: 'provider',
+            id: 'google.mcp_server',
+            name: 'mcp_server',
+            args: {
+              name: 'docs',
+              url: 'https://example.com/mcp',
+              deferLoading: true,
+            },
+          },
+        ],
+      });
+
+      expect(result.toolWarnings).toEqual([]);
+      expect(result.tools?.[1]).toEqual({
+        type: 'mcp_server',
+        name: 'docs',
+        url: 'https://example.com/mcp',
+        defer_loading: true,
+      });
+    });
+  });
 });
