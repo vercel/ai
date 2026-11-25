@@ -98,12 +98,10 @@ stream 1 -- stream 2 -- stream 3
              (abort handling + start event)
                           │
                           ▼
-                      stop gate
-                 (stopStream() support)
-                          │
-                          ▼
                    user transforms
-               (experimental_transform[])
+               (experimental_transform[];
+                stopStream() drops later parts
+                and emits the closing parts)
                           │
                           ▼
                    output transform

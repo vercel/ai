@@ -240,12 +240,16 @@ export type StreamTextInclude = {
 /**
  * A transformation that is applied to the stream.
  *
- * @param stopStream - A function that stops the source stream.
+ * @param stopStream - A function that stops the stream. Parts that the transformation
+ * has not received yet are dropped, running tool executions are aborted, and no further
+ * steps are started. The stream is then ended with closing parts for open text,
+ * reasoning, and tool input parts, followed by `finish-step` and `finish` parts that
+ * use the given finish reason (default: `other`).
  * @param tools - The tools that are accessible to and can be called by the model. The model needs to support calling tools.
  */
 export type StreamTextTransform<TOOLS extends ToolSet> = (options: {
   tools: TOOLS; // for type inference
-  stopStream: () => void;
+  stopStream: (options?: { finishReason?: FinishReason }) => void;
 }) => TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>;
 
 /** A result that requests recovery from a streamed provider error. */
@@ -1254,12 +1258,17 @@ function applyStreamTextTransforms<TOOLS extends ToolSet>({
   stream,
   transforms,
   tools,
-  stopStream,
+  onStop,
+  createStopParts,
 }: {
   stream: ReadableStream<InternalTextStreamPart<TOOLS>>;
   transforms: Array<StreamTextTransform<TOOLS>>;
   tools: TOOLS;
-  stopStream: () => void;
+  onStop: () => void;
+  createStopParts: (options: {
+    finishReason: FinishReason;
+    isStepOpen: boolean;
+  }) => Array<TextStreamPart<TOOLS>>;
 }): ReadableStream<InternalTextStreamPart<TOOLS>> {
   const sourceReader = stream.getReader();
   let sourceDone = false;
@@ -1268,11 +1277,95 @@ function applyStreamTextTransforms<TOOLS extends ToolSet>({
     | ReadableStreamDefaultReader<TextStreamPart<TOOLS>>
     | undefined;
 
+  // Track the parts that entered the transforms, so that a stopped stream
+  // can be ended with well-formed parts:
+  const openTextIds = new Set<string>();
+  const openReasoningIds = new Set<string>();
+  const openToolInputIds = new Set<string>();
+  let isStepOpen = false;
+  let stopFinishReason: FinishReason | undefined;
+
+  const trackPart = (part: TextStreamPart<TOOLS>) => {
+    switch (part.type) {
+      case 'text-start':
+        openTextIds.add(part.id);
+        break;
+      case 'text-end':
+        openTextIds.delete(part.id);
+        break;
+      case 'reasoning-start':
+        openReasoningIds.add(part.id);
+        break;
+      case 'reasoning-end':
+        openReasoningIds.delete(part.id);
+        break;
+      case 'tool-input-start':
+        openToolInputIds.add(part.id);
+        break;
+      case 'tool-input-end':
+        openToolInputIds.delete(part.id);
+        break;
+      case 'start-step':
+        isStepOpen = true;
+        break;
+      case 'finish-step':
+        isStepOpen = false;
+        break;
+    }
+  };
+
+  const stopStream = ({
+    finishReason = 'other',
+  }: { finishReason?: FinishReason } = {}) => {
+    if (stopFinishReason != null) {
+      return;
+    }
+
+    stopFinishReason = finishReason;
+    onStop();
+  };
+
+  const isStopped = () => stopFinishReason != null;
+
+  const enqueueStopParts = (
+    controller: ReadableStreamDefaultController<TextStreamPart<TOOLS>>,
+  ) => {
+    for (const id of openTextIds) {
+      controller.enqueue({ type: 'text-end', id });
+    }
+    for (const id of openReasoningIds) {
+      controller.enqueue({ type: 'reasoning-end', id });
+    }
+    for (const id of openToolInputIds) {
+      controller.enqueue({ type: 'tool-input-end', id });
+    }
+    for (const part of createStopParts({
+      finishReason: stopFinishReason ?? 'other',
+      isStepOpen,
+    })) {
+      controller.enqueue(part);
+    }
+
+    sourceDone = true;
+    controller.close();
+  };
+
   const createTransformedSegmentReader = () => {
     let segment = new ReadableStream<TextStreamPart<TOOLS>>(
       {
         async pull(controller) {
+          if (isStopped()) {
+            enqueueStopParts(controller);
+            return;
+          }
+
           const { done, value } = await sourceReader.read();
+
+          // drop parts that were read before the stop took effect:
+          if (isStopped()) {
+            enqueueStopParts(controller);
+            return;
+          }
 
           if (done) {
             sourceDone = true;
@@ -1286,6 +1379,7 @@ function applyStreamTextTransforms<TOOLS extends ToolSet>({
             return;
           }
 
+          trackPart(value);
           controller.enqueue(value);
         },
         cancel(reason) {
@@ -1293,7 +1387,7 @@ function applyStreamTextTransforms<TOOLS extends ToolSet>({
         },
       },
       // Do not prefetch the next source chunk. `stopStream` is invoked from a
-      // user transform and must close the gate before another chunk enters it.
+      // user transform and must take effect before another chunk enters it.
       { highWaterMark: 0 },
     );
 
@@ -1565,6 +1659,22 @@ class DefaultStreamTextResult<
     // before a new step is started. This is required because the continuation condition
     // needs the updated steps to determine if another step is needed.
     let stepFinish!: DelayedPromise<void>;
+
+    // the state of the latest step, used to end the stream when a transform
+    // stops it:
+    let activeStep:
+      | {
+          createFinishStepPart: (options: {
+            finishReason: FinishReason;
+            rawFinishReason: string | undefined;
+          }) => TextStreamPart<TOOLS>;
+          getTotalUsage: () => LanguageModelUsage;
+        }
+      | undefined;
+
+    // set when a transform calls stopStream:
+    let isStopped = false;
+    const stopAbortController = new AbortController();
 
     let recordedContent: Array<ContentPart<TOOLS>> = [];
     let recordedFinishReason: FinishReason | undefined = undefined;
@@ -2163,19 +2273,6 @@ class DefaultStreamTextResult<
       },
     });
 
-    // introduce a gate that prevent further tokens from
-    // being emitted after a transform calls stopStream
-    let isRunning = true;
-    stream = stream.pipeThrough(
-      new TransformStream({
-        async transform(chunk, controller) {
-          if (isRunning) {
-            controller.enqueue(chunk);
-          }
-        },
-      }),
-    );
-
     // Transform each retry attempt independently. The retry boundary is
     // intercepted outside user transforms, so transforms may filter or
     // reconstruct any public stream part without losing logical isolation.
@@ -2183,10 +2280,31 @@ class DefaultStreamTextResult<
       stream,
       transforms,
       tools: tools as TOOLS,
-      stopStream() {
-        stitchableStream.terminate();
-        isRunning = false;
+      onStop() {
+        isStopped = true;
+        stopAbortController.abort();
+
+        // cancels the step streams and the provider stream. Steps that are
+        // added afterwards are cancelled immediately:
+        void reader.cancel().catch(() => {});
       },
+      createStopParts: ({ finishReason, isStepOpen }) => [
+        ...(isStepOpen && activeStep != null
+          ? [
+              activeStep.createFinishStepPart({
+                finishReason,
+                rawFinishReason: undefined,
+              }),
+            ]
+          : []),
+        {
+          type: 'finish',
+          finishReason,
+          rawFinishReason: undefined,
+          totalUsage:
+            activeStep?.getTotalUsage() ?? createNullLanguageModelUsage(),
+        },
+      ],
     });
 
     this.baseStream = stream
@@ -2478,6 +2596,11 @@ class DefaultStreamTextResult<
         currentStep: number;
         usage: LanguageModelUsage;
       }) {
+        // a transform stopped the stream before the step started:
+        if (isStopped) {
+          return;
+        }
+
         // Set up step timeout if configured
         const stepTimeoutId = setAbortTimeout({
           abortController: stepAbortController,
@@ -3025,7 +3148,11 @@ class DefaultStreamTextResult<
             tools: stepExecutionTools as TOOLS,
             callId,
             messages: stepMessages,
-            abortSignal,
+            // tool executions are aborted when a transform stops the stream:
+            abortSignal:
+              transforms.length > 0
+                ? mergeAbortSignals(abortSignal, stopAbortController.signal)
+                : abortSignal,
             timeout,
             experimental_sandbox: stepSandbox,
             toolsContext,
@@ -3104,6 +3231,34 @@ class DefaultStreamTextResult<
             timestamp: Date;
             modelId: string;
           } = createStepResponse();
+
+          const createFinishStepPart = ({
+            finishReason,
+            rawFinishReason,
+          }: {
+            finishReason: FinishReason;
+            rawFinishReason: string | undefined;
+          }): TextStreamPart<TOOLS> => ({
+            type: 'finish-step',
+            finishReason,
+            rawFinishReason,
+            usage: stepUsage,
+            performance: {
+              stepTimeMs: now() - stepStartTimestampMs,
+              toolExecutionMs,
+              ...modelCallPerformance,
+            },
+            providerMetadata: stepProviderMetadata,
+            response: {
+              ...stepResponse,
+              headers: response?.headers,
+            },
+          });
+
+          activeStep = {
+            createFinishStepPart,
+            getTotalUsage: () => addLanguageModelUsage(usage, stepUsage),
+          };
 
           // maps provider-assigned IDs to stream-unique IDs for the text and
           // reasoning parts that are active in this step
@@ -3335,32 +3490,25 @@ class DefaultStreamTextResult<
                     return;
                   }
 
-                  const stepTimeMs = now() - stepStartTimestampMs;
-
-                  const finishStepPart: TextStreamPart<TOOLS> = {
-                    type: 'finish-step',
-                    finishReason: stepFinishReason,
-                    rawFinishReason: stepRawFinishReason,
-                    usage: stepUsage,
-                    performance: {
-                      stepTimeMs,
-                      toolExecutionMs,
-                      ...modelCallPerformance,
-                    },
-                    providerMetadata: stepProviderMetadata,
-                    response: {
-                      ...stepResponse,
-                      headers: response?.headers,
-                    },
-                  };
-
-                  enqueueStepPart(controller, finishStepPart);
+                  enqueueStepPart(
+                    controller,
+                    createFinishStepPart({
+                      finishReason: stepFinishReason,
+                      rawFinishReason: stepRawFinishReason,
+                    }),
+                  );
 
                   const combinedUsage = addLanguageModelUsage(usage, stepUsage);
 
                   // wait for the step to be fully processed by the event processor
                   // to ensure that the recorded steps are complete:
                   await stepFinish.promise;
+
+                  // a transform stopped the stream, which ends it:
+                  if (isStopped) {
+                    cleanupStepTimeouts();
+                    return;
+                  }
 
                   const clientToolCalls = stepToolCalls.filter(
                     toolCall => toolCall.providerExecuted !== true,
