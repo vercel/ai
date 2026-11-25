@@ -330,6 +330,25 @@ export function getAlibabaEmbeddingModelEntry(modelId: string) {
     embedding: { maxEmbeddingsPerCall: number; supportsParallelCalls: boolean };
   }>;
 }
+// https://www.alibabacloud.com/help/en/model-studio/legacy-wan-text-to-video-api-reference
+const wan25ResolutionSizes: Record<string, Record<string, string>> = {
+  '480p': { '16:9': '832*480', '9:16': '480*832', '1:1': '624*624' },
+  '720p': {
+    '16:9': '1280*720',
+    '9:16': '720*1280',
+    '1:1': '960*960',
+    '4:3': '1088*832',
+    '3:4': '832*1088',
+  },
+  '1080p': {
+    '16:9': '1920*1080',
+    '9:16': '1080*1920',
+    '1:1': '1440*1440',
+    '4:3': '1632*1248',
+    '3:4': '1248*1632',
+  },
+};
+
 export function getAlibabaVideoModelEntry(modelId: string) {
   const mode = detectMode(modelId),
     protocol = detectProtocol(modelId);
@@ -374,10 +393,21 @@ export function getAlibabaVideoModelEntry(modelId: string) {
         },
       },
     },
-    requestConfig: { video: { mode, protocol } },
+    requestConfig: {
+      video: {
+        mode,
+        protocol,
+        resolutionSizes:
+          modelId === 'wan2.5-t2v-preview' ? wan25ResolutionSizes : undefined,
+      },
+    },
   } as const;
   return entry satisfies ModelEntry<{
-    video: { mode: 't2v' | 'i2v' | 'r2v'; protocol: AlibabaVideoProtocol };
+    video: {
+      mode: 't2v' | 'i2v' | 'r2v';
+      protocol: AlibabaVideoProtocol;
+      resolutionSizes?: Record<string, Record<string, string>>;
+    };
   }>;
 }
 export const alibabaModelCatalog = Object.fromEntries([
