@@ -84,6 +84,7 @@ type RuntimeState = {
   sessionId?: string;
   relay?: ToolRelay;
   openCodeConfig?: Record<string, unknown>;
+  permissionMode?: StartMessage['permissionMode'];
   inactiveBuiltinToolNames?: StartMessage['inactiveBuiltinToolNames'];
   toolNames: Set<string>;
   mcpToolPrefixes: Set<string>;
@@ -173,6 +174,7 @@ const args = parseArgs(argv.slice(2));
 const workdir = args.workdir ?? emitFatal('Missing --workdir argument.');
 const bridgeStateDir =
   args.bridgeStateDir ?? emitFatal('Missing --bridge-state-dir argument.');
+const instructionMirrorDir = path.resolve(bridgeStateDir, 'instructions');
 const bootstrapDir = args.bootstrapDir ?? workdir;
 const skillsDir = args.skillsDir;
 const runtime: RuntimeState = {
@@ -264,12 +266,20 @@ async function ensureRuntime({
 }): Promise<void> {
   if (
     runtime.client &&
+    runtime.permissionMode === start.permissionMode &&
     isDeepStrictEqual(runtime.openCodeConfig, start.openCodeConfig) &&
     isDeepStrictEqual(
       runtime.inactiveBuiltinToolNames,
       start.inactiveBuiltinToolNames,
     )
   ) {
+    if (isRestrictivePermissionMode(start.permissionMode)) {
+      resolveOpenCodeInstructions({
+        workdir,
+        hostInstructions: start.openCodeConfig?.instructions,
+        mirrorDir: instructionMirrorDir,
+      });
+    }
     return;
   }
 
@@ -296,6 +306,14 @@ async function ensureRuntime({
           `OpenCode session working directory "${workdir}" must not be or contain the sandbox home directory or OpenCode's global config directory, because OpenCode always loads configuration from those locations.`,
         );
       }
+    }
+    if (
+      isRestrictivePermissionMode(start.permissionMode) &&
+      isPathInsideOrEqual(bridgeStateDir, workdir)
+    ) {
+      throw new Error(
+        `OpenCode session working directory "${workdir}" must not contain the bridge state directory "${bridgeStateDir}", because restricted sessions keep repository instruction copies there.`,
+      );
     }
     if (start.tools && start.tools.length > 0) {
       runtime.toolNames = new Set(start.tools.map(tool => tool.name));
@@ -345,6 +363,7 @@ async function ensureRuntime({
         .map(([serverName]) => `${sanitizeMcpToolName(serverName)}_`),
     );
     runtime.openCodeConfig = structuredClone(start.openCodeConfig);
+    runtime.permissionMode = start.permissionMode;
     runtime.inactiveBuiltinToolNames = structuredClone(
       start.inactiveBuiltinToolNames,
     );
@@ -361,6 +380,7 @@ function closeRuntime(): void {
   runtime.client = undefined;
   runtime.relay = undefined;
   runtime.openCodeConfig = undefined;
+  runtime.permissionMode = undefined;
   runtime.inactiveBuiltinToolNames = undefined;
   runtime.toolNames = new Set();
   runtime.mcpToolPrefixes = new Set();
@@ -408,6 +428,9 @@ function buildOpenCodeConfig({
   const instructions = resolveOpenCodeInstructions({
     workdir,
     hostInstructions: start.openCodeConfig?.instructions,
+    ...(isRestrictivePermissionMode(start.permissionMode)
+      ? { mirrorDir: instructionMirrorDir }
+      : {}),
   });
   if (instructions) config.instructions = instructions;
   if (start.permissionMode && start.permissionMode !== 'allow-all') {
@@ -1830,6 +1853,12 @@ function isBuiltinToolInactive(input: {
       toolName => toolName === input.toolName,
     ) ?? false
   );
+}
+
+function isRestrictivePermissionMode(
+  permissionMode: StartMessage['permissionMode'],
+): boolean {
+  return Boolean(permissionMode && permissionMode !== 'allow-all');
 }
 
 function isPathInsideOrEqual(file: string, root: string): boolean {

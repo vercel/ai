@@ -131,8 +131,12 @@ operation. Consumers do not maintain a second model list or metadata file.
 
 Lookup first uses the requested operation's catalog entry. Otherwise, it preserves
 the provider's existing alias, family, or unknown-model behavior. A missing
-section does not cause a new rejection. Exact model exceptions stay in table
-entries; family rules stay in the resolver.
+section does not cause a new rejection.
+
+A listed model ID declares every capability in its own table row. Do not derive a
+listed model's capabilities from another capability or from a version or series
+number parsed from its ID. Family rules remain only in the fallback for model IDs that
+are not listed, which keeps new and custom model IDs working.
 
 Resolve explicit provider options, portable settings, and relevant conversation
 state before applying conditional support. Human-readable condition text is not

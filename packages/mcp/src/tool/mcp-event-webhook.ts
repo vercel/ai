@@ -205,11 +205,7 @@ export function createMCPEventWebhook({
         return new Response(null, { status: 410 });
       }
       const event = MCPEventSchema.safeParse(value);
-      if (
-        !event.success ||
-        event.data.name !== subscription.name ||
-        event.data.eventId !== request.headers.get('webhook-id')
-      ) {
+      if (!event.success || event.data.name !== subscription.name) {
         return new Response(null, { status: 400 });
       }
       try {

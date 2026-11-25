@@ -194,6 +194,16 @@ describe('MCP event webhook receiver', () => {
     expect((await webhook(request)).status).toBe(401);
   });
 
+  it('accepts a per-message webhook-id that differs from the eventId', async () => {
+    const response = await webhook(
+      signedRequest(subscription, event, {
+        id: 'msg_2KWPBgLlAfxdpx2AI54pPJ85f4W',
+      }),
+    );
+    expect(response.status).toBe(204);
+    expect(onEvent).toHaveBeenCalledOnce();
+  });
+
   it('accepts a valid rotation signature alongside an invalid signature', async () => {
     const request = signedRequest(subscription, event);
     request.headers.set(
@@ -223,7 +233,6 @@ describe('MCP event webhook receiver', () => {
 
   it.each([
     { ...event, name: 'other.event' },
-    { ...event, eventId: 'evt_other' },
     { ...event, timestamp: 'invalid' },
     { ...event, data: { text: 42 } },
     { ...event, data: { text: 'comment', unexpected: true } },

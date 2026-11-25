@@ -1675,9 +1675,18 @@ describe('OpenAIResponsesLanguageModel', () => {
           });
         });
 
-        it.each(['none', 'minimal', 'low', 'medium', 'high', 'xhigh'] as const)(
-          'should map top-level reasoning=%s to reasoning effort',
-          async reasoningValue => {
+        // o3-mini accepts low, medium, and high. Other values map to the
+        // nearest supported effort.
+        it.each([
+          ['none', 'low'],
+          ['minimal', 'low'],
+          ['low', 'low'],
+          ['medium', 'medium'],
+          ['high', 'high'],
+          ['xhigh', 'high'],
+        ] as const)(
+          'should map top-level reasoning=%s to reasoning effort %s',
+          async (reasoningValue, expectedEffort) => {
             const { warnings } = await createModel('o3-mini').doGenerate({
               prompt: TEST_PROMPT,
               reasoning: reasoningValue,
@@ -1692,16 +1701,22 @@ describe('OpenAIResponsesLanguageModel', () => {
                 },
               ],
               reasoning: {
-                effort: reasoningValue,
-                ...(reasoningValue !== 'none' && {
-                  summary: 'detailed',
-                }),
+                effort: expectedEffort,
+                summary: 'detailed',
               },
             });
 
-            if (reasoningValue === 'none') {
-              expect(warnings).toStrictEqual([]);
-            }
+            expect(warnings).toStrictEqual(
+              reasoningValue === expectedEffort
+                ? []
+                : [
+                    {
+                      type: 'compatibility',
+                      feature: 'reasoning',
+                      details: `reasoning "${reasoningValue}" is not directly supported by this model. mapped to effort "${expectedEffort}".`,
+                    },
+                  ],
+            );
           },
         );
 
@@ -2204,8 +2219,8 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should omit reasoning effort updates for models before GPT-6', async () => {
-        const { warnings } = await createModel('gpt-5.6').doGenerate({
+      it('should omit reasoning effort updates for models without configuration updates', async () => {
+        const { warnings } = await createModel('gpt-5.5').doGenerate({
           prompt: TEST_PROMPT,
           providerOptions: {
             openai: {
@@ -2347,7 +2362,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should warn and drop serviceTier fast for a model without priority processing', async () => {
-        const { warnings } = await createModel('gpt-5-nano').doGenerate({
+        const { warnings } = await createModel('gpt-3.5-turbo').doGenerate({
           prompt: TEST_PROMPT,
           providerOptions: {
             openai: {

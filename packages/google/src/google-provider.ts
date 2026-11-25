@@ -32,6 +32,7 @@ import { GoogleEmbeddingModel } from './google-embedding-model';
 import type { GoogleEmbeddingModelId } from './google-embedding-model-options';
 import { GoogleBatch } from './google-batch';
 import { GoogleLanguageModel } from './google-language-model';
+import { getGoogleLanguageModelEntry } from './google-model-catalog';
 import type { GoogleModelId } from './google-language-model-options';
 import { googleTools } from './google-tools';
 
@@ -259,10 +260,6 @@ const supportedExternalUrlMediaTypes = [
 
 const externalHttpsUrlPattern = /^https:\/\/.*$/;
 
-function supportsExternalFileUrls(modelId: string) {
-  return /(^|\/)gemini-/.test(modelId) && !/(^|\/)gemini-2\.0/.test(modelId);
-}
-
 /**
  * Create a Google provider instance.
  */
@@ -290,7 +287,9 @@ export function createGoogle(
 
   const getSupportedUrls = (
     modelId?: GoogleModelId,
-    includeExternalUrls = modelId == null || supportsExternalFileUrls(modelId),
+    includeExternalUrls = modelId == null ||
+      getGoogleLanguageModelEntry(modelId).capabilities.language.inputs
+        .externalFileUrls,
   ) => ({
     '*': [
       googleFilesUrlPattern,
