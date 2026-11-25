@@ -1,0 +1,130 @@
+---
+title: Harny
+description: Learn how to use Harny with the AI SDK.
+---
+
+# Harny
+
+[Harny](https://harny.ai) gives every customer of your app their own AI agent, one that knows that customer and acts for them. You build the agent with the AI SDK, on any model.
+
+The [`@harny/vercel-ai-provider`](https://www.npmjs.com/package/@harny/vercel-ai-provider) package, maintained by Harny, brings the part that knows each customer to the AI SDK: wrap any model with `harny(model, { user })`, pass your own id for the signed-in customer, and the model knows that customer in every conversation.
+
+The part that acts is not in this package. It is in [`@harny/sdk`](https://www.npmjs.com/package/@harny/sdk) and the [agent harness documentation](https://harny.ai/docs/agent-harness/overview): a customer connects their calendar or mail, the agent acts in them within the limits you set, and every action is recorded.
+
+## Setup
+
+<InstallPackages packages="@harny/vercel-ai-provider ai" />
+
+It needs `ai` 7 and Node 20 or newer.
+
+Get an app key and put it in `HARNY_API_KEY`. No account is needed, and the first 500 monthly-active end users are [free for good](https://harny.ai/pricing):
+
+```bash
+curl -sS -X POST https://api.harny.ai/v1/auth/provision \
+  -H "Content-Type: application/json" \
+  -d '{"app_name": "my-agent"}'
+```
+
+The answer's `app_api_key` is your key. It is shown once.
+
+## Provider Instance
+
+`createHarny({ apiKey?, baseURL?, user?, fetch? })` is the provider. `apiKey` defaults to `HARNY_API_KEY`.
+
+```ts
+import { createHarny } from '@harny/vercel-ai-provider';
+
+const harny = createHarny(); // reads HARNY_API_KEY
+```
+
+## Examples
+
+### `generateText`
+
+```ts
+import { generateText } from 'ai';
+import { createHarny } from '@harny/vercel-ai-provider';
+
+const harny = createHarny();
+
+const { text } = await generateText({
+  model: harny('openai/gpt-5', { user: 'nadia' }), // your id for the customer
+  prompt: 'What is the Acme pilot budget?',
+});
+```
+
+Before each call it recalls what Harny holds for `nadia` and adds it to the system prompt. `harny(model, settings?)` wraps a model object or a gateway id such as `'openai/gpt-5'`.
+
+### `streamText` in a chat route
+
+```ts
+import { streamText, convertToModelMessages, type UIMessage } from 'ai';
+import { createHarny } from '@harny/vercel-ai-provider';
+
+const harny = createHarny();
+
+export async function POST(req: Request) {
+  const { messages }: { messages: UIMessage[] } = await req.json();
+  const { userId } = await getSession(); // your own auth helper
+
+  const result = streamText({
+    model: harny('openai/gpt-5', { user: userId, saveUserMessages: true }),
+    messages: await convertToModelMessages(messages),
+  });
+
+  return result.toUIMessageStreamResponse();
+}
+```
+
+Take the id from your own session, never from the request body. With `saveUserMessages: true`, what the customer says is stored after each successful call. What the model says is never stored.
+
+### Tools
+
+```ts
+import { generateText, stepCountIs } from 'ai';
+import { createHarny } from '@harny/vercel-ai-provider';
+
+const harny = createHarny({ user: 'nadia' });
+
+const result = await generateText({
+  model: 'openai/gpt-5',
+  tools: harny.tools(), // { harny_remember, harny_recall }
+  stopWhen: stepCountIs(5),
+  prompt: 'Remember that Nadia prefers async standups.',
+});
+```
+
+The customer is fixed by you (`createHarny({ user })` or `harny.tools({ user })`). The model cannot choose whose memory it reads.
+
+### Saving a fact yourself
+
+```ts
+import { createHarny } from '@harny/vercel-ai-provider';
+
+const harny = createHarny({ user: 'nadia' });
+
+const receipt = await harny.ingest({
+  content: 'Nadia raised the Acme pilot budget from 32k to 40k.',
+  id: 'call-8821',
+  timestamp: '2026-03-01T09:00:00Z',
+});
+await harny.waitForIngestion(receipt.ingestionId); // until it can be recalled
+```
+
+## Advanced Usage
+
+- **Saving is off by default.** Nothing is stored until you switch on `saveUserMessages`, call `harny.ingest`, or give the model the `harny_remember` tool.
+- **A new customer needs no setup.** The first call with a new `user` adds that customer.
+- **When a fact changes.** The newer fact comes first, and every fact carries its date.
+- **The model call always runs.** A memory error goes to `onError(error, { stage })`, which you pass in the settings, and never stops the answer.
+- **Serverless.** Pass `waitUntil` in the settings (for example Vercel's) to store after the response is sent.
+- **Errors.** Every refusal is a `HarnyAPIError` with the API's `code`. On a 429, read `error.retryAfter`.
+- **Deleting.** `harny.deleteDataPoints(ids)` forgets facts by the `id` you saved them under, and `harny.deleteIngestion(ingestionId)` forgets everything from one save.
+
+All settings are listed in the [package README](https://www.npmjs.com/package/@harny/vercel-ai-provider).
+
+## Additional Resources
+
+- [Harny documentation](https://harny.ai/docs)
+- [Package on npm](https://www.npmjs.com/package/@harny/vercel-ai-provider)
+- [Privacy](https://harny.ai/privacy)
