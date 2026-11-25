@@ -4,8 +4,6 @@
     // Packages without a script for a task don't pull in that task's dependencies.
     "strictTaskEntrypointSelection": true
   },
-  // TEMP: busts the turbo cache to measure full CI runs. Remove before merging.
-  "globalDependencies": ["tools/ci-cache-bust.txt"],
   "globalEnv": ["CI", "PORT"],
   "globalPassThroughEnv": ["pnpm_config_verify_deps_before_run"],
   "tasks": {
