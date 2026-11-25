@@ -150,6 +150,7 @@ export const googleVertexProviderOptions = {
     wordTimestamp: { description: 'Include Gemini word timestamps.' },
     diarization: { description: 'Enable Gemini speaker diarization.' },
     mode: { description: 'Verbatim or smart Gemini transcription formatting.' },
+    streaming: { description: 'Live Gemini voice activity detection.' },
   } satisfies Record<
     | keyof GoogleVertexTranscriptionModelOptions
     | keyof GoogleVertexTranscriptionModelGeminiOptions,

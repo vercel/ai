@@ -42,6 +42,7 @@ import {
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
+  stopPreviousBridge,
   validateBridgeSandboxSettings,
   warnCredentialBrokeringUnavailable,
   warnMintBridgeTokenIgnored,
@@ -1094,8 +1095,9 @@ export function createClaudeCode(
        * try to reopen a socket to the still-running bridge. Parked sessions wait
        * for the next `start`; suspended turns request replay of everything past
        * the persisted cursor. No spawn, no fresh key (the existing bridge
-       * still authorises the persisted one). If the bridge is gone the open
-       * throws and we fall through to a spawn-based recovery.
+       * still authorises the persisted one). If the open throws, because the
+       * bridge is gone or too slow to answer, we fall through to a spawn-based
+       * recovery.
        */
       if (coords) {
         try {
@@ -1170,7 +1172,19 @@ export function createClaudeCode(
             turnStartTimeoutMs: settings.turnStartTimeoutMs ?? 120_000,
           });
         } catch {
-          // Bridge no longer reachable — recover by respawning below.
+          /*
+           * Bridge not reachable — recover by respawning below. A bridge that
+           * is only too slow to answer still holds its port and runs its
+           * turn, so stop it and the processes it started, by the pid
+           * `bridge-meta.json` records, before `markBridgeStarting`
+           * overwrites that record.
+           */
+          await stopPreviousBridge({
+            sandbox: toolSafeSandboxSession,
+            bridgeStateDir,
+            bridgeType: 'claude-code',
+            abortSignal: startOpts.abortSignal,
+          });
         }
       }
 
@@ -1909,8 +1923,8 @@ function createSession({
        * rerun: the bridge was respawned with no in-flight turn to attach to, so
        * re-drive the runtime's own thread from the workdir snapshot via
        * `continue: true`. Lossy — work in flight at the suspension is
-       * recomputed. This is the rare bridge-died fallback; the common slice path
-       * is `attach`.
+       * recomputed. This is the fallback for a bridge that died or did not
+       * answer the attach; the common slice path is `attach`.
        */
       // Same as `doPromptTurn`: an already-aborted signal settled the turn in
       // `wireTurn`, so don't re-drive the thread nobody is waiting on.

@@ -74,6 +74,7 @@ export {
   isStepCount as stepCountIs,
   type StopCondition,
 } from './stop-condition';
+export type { StoppedBy } from './stopped-by';
 export {
   streamLanguageModelCall as experimental_streamLanguageModelCall,
   type LanguageModelStreamPart,

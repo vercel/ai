@@ -21,7 +21,7 @@ import {
   type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 import { randomUUID } from 'node:crypto';
-import { mkdir, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { devNull, tmpdir } from 'node:os';
 import path from 'node:path';
 import { Type } from 'typebox';
@@ -45,7 +45,6 @@ import {
 import {
   getRestrictedSandboxSession,
   convertHarnessToolModelOutput,
-  encodeHarnessPathSegment,
   isSandboxWriteProtectedPath,
   resolveSandboxHomeDir,
   writeSkills,
@@ -491,12 +490,7 @@ export async function createPiSession(
   assertPiMcpSettingsSupported(input.settings.mcpSettings);
   const mcpServers = resolvePiMcpServers(input.settings.mcpServers);
 
-  const hostRoot = path.join(
-    tmpdir(),
-    'ai-sdk-harness',
-    'pi',
-    encodeHarnessPathSegment(input.sessionId),
-  );
+  const hostRoot = await mkdtemp(path.join(tmpdir(), 'ai-sdk-harness-pi-'));
   const hostAgentDir = path.join(hostRoot, 'agent');
   const toolSafeSandboxSession = getRestrictedSandboxSession(
     input.sandboxSession,
@@ -504,7 +498,7 @@ export async function createPiSession(
   const fileToolPathPolicy = input.settings.fileToolPathPolicy;
 
   const sessionWorkDir = input.sessionWorkDir;
-  await mkdir(hostAgentDir, { recursive: true });
+  await mkdir(hostAgentDir, { mode: 0o700 });
 
   const permissionMode = input.permissionMode ?? 'allow-all';
   const activeBuiltinNames = resolveActivePiBuiltinNames(
@@ -694,7 +688,6 @@ export async function createPiSession(
    * auth.json and models.json because both files can supply credentials from
    * outside that record. General Pi settings still use agentDir below.
    */
-  const agentDir = input.agentDir ?? hostAgentDir;
   const nativeAgentDir = resolvePiSubscriptionAgentDir({
     options: input.settings.auth,
     env: process.env,
@@ -703,15 +696,17 @@ export async function createPiSession(
   const modelRuntime = await createPiModelRuntime({
     auth: input.settings.auth,
     credentials: input.settings.credentials,
-    authPath: path.join(nativeAgentDir ?? hostAgentDir, 'auth.json'),
-    modelsPath: path.join(agentDir, 'models.json'),
+    authPath:
+      nativeAgentDir != null ? path.join(nativeAgentDir, 'auth.json') : null,
+    modelsPath:
+      input.agentDir != null ? path.join(input.agentDir, 'models.json') : null,
   });
   const modelRegistry = new ModelRegistry(modelRuntime);
   // An untrusted project keeps Pi from reading project `.pi/` settings and
   // resources under its working directory, which is `sessionWorkDir`.
   const settingsManager =
     input.agentDir != null
-      ? SettingsManager.create(path.join(hostRoot, 'project'), agentDir, {
+      ? SettingsManager.create(path.join(hostRoot, 'project'), input.agentDir, {
           projectTrusted: false,
         })
       : SettingsManager.inMemory({}, { projectTrusted: false });
@@ -797,6 +792,7 @@ export async function createPiSession(
     settingsManager,
     appendSystemPromptOverride: () =>
       sessionInstructions ? [sessionInstructions] : [],
+    systemPromptOverride: () => undefined,
     extensionFactories,
     ...(hasExtensionFactories
       ? {

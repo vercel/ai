@@ -89,12 +89,11 @@ type LanguageCapabilities = NonNullable<ModelCapabilities['language']> & {
   reasoning: {
     support: ModelCapability;
     efforts?: readonly XaiReasoningEffort[];
-    /** Preserve the existing SDK portable-reasoning policy independently of native support. */
-    portable: {
-      configurable: boolean;
-      none: boolean;
-      xhigh: boolean;
-    };
+    /**
+     * Reasoning efforts the SDK sends for portable reasoning. Empty: portable
+     * reasoning is not sent.
+     */
+    portableEfforts: readonly XaiReasoningEffort[];
   };
 };
 type ImageCapabilities = NonNullable<ModelCapabilities['image']> & {
@@ -133,75 +132,133 @@ type XaiModelEntry = ModelEntry<XaiRequestConfig> & {
   };
 };
 
-type LanguageDefinition = {
-  image: boolean;
-  reasoning: boolean;
-  efforts?: readonly XaiReasoningEffort[];
+/**
+ * One row of the language model matrix. Every capability that differs between
+ * models is one flat cell, and every listed model fills in every cell. Nothing
+ * is derived from the model ID.
+ *
+ * Facts that depend on each other share one cell, so a row cannot contradict
+ * itself: a cell is a single value, one of a fixed set of values, or the list
+ * of what the model supports.
+ */
+export type XaiLanguageModelRow = {
+  /**
+   * `false` keeps a known model ID out of the exported catalog and the
+   * generated documentation. Its object generation, tools, and provider
+   * options are then reported as `'unknown'`.
+   */
+  documented: boolean;
+  image: ModelCapability;
+  /**
+   * `false`: the model does not reason and rejects a reasoning effort.
+   * Otherwise the model reasons, and the list holds the reasoning efforts it
+   * accepts. An empty list means it reasons, but its effort cannot be set.
+   */
+  reasoningEfforts: false | readonly XaiReasoningEffort[];
 };
 
-// Preserve the model capabilities already declared in the provider page and
-// shared overview. This migration does not reinterpret retired model aliases.
-const languageDefinitions = {
+/**
+ * Language model matrix: model IDs by capability. To add a model, add a row and
+ * fill in every column.
+ */
+const languageModelDefinitions = {
   'grok-4.7': {
+    documented: true,
     image: true,
-    reasoning: true,
-    efforts: ['low', 'medium', 'high', 'xhigh'],
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh'],
   },
   'grok-4.6': {
+    documented: true,
     image: true,
-    reasoning: true,
-    efforts: ['low', 'medium', 'high', 'xhigh'],
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh'],
   },
   'grok-4.5': {
+    documented: true,
     image: true,
-    reasoning: true,
-    efforts: ['low', 'medium', 'high'],
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh'],
   },
-  'grok-4.20-reasoning': { image: true, reasoning: true },
-  'grok-4.20-non-reasoning': { image: true, reasoning: false },
-  'grok-4-1-fast-reasoning': { image: true, reasoning: true },
-  'grok-4-1-fast-non-reasoning': { image: true, reasoning: false },
-  'grok-4-1': { image: false, reasoning: false },
-  'grok-4-fast-reasoning': { image: true, reasoning: true },
-  'grok-4-fast-non-reasoning': { image: true, reasoning: false },
-  'grok-code-fast-1': { image: false, reasoning: true },
-  'grok-4': { image: false, reasoning: true },
-  'grok-3': { image: false, reasoning: false },
-  'grok-3-mini': { image: false, reasoning: true },
-  // Known IDs without declared capabilities retain the custom-model fallback.
-  'grok-4.3': undefined,
-  'grok-latest': undefined,
-} satisfies Record<string, LanguageDefinition | undefined>;
+  'grok-4.20-reasoning': {
+    documented: true,
+    image: true,
+    reasoningEfforts: [],
+  },
+  'grok-4.20-non-reasoning': {
+    documented: true,
+    image: true,
+    reasoningEfforts: false,
+  },
+  'grok-4-1-fast-reasoning': {
+    documented: true,
+    image: true,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
+  },
+  'grok-4-1-fast-non-reasoning': {
+    documented: true,
+    image: true,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
+  },
+  'grok-4-1': {
+    documented: true,
+    image: false,
+    reasoningEfforts: ['none', 'low', 'medium', 'high'],
+  },
+  'grok-4-fast-reasoning': {
+    documented: true,
+    image: true,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
+  },
+  'grok-4-fast-non-reasoning': {
+    documented: true,
+    image: true,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
+  },
+  'grok-code-fast-1': {
+    documented: true,
+    image: false,
+    reasoningEfforts: ['none', 'low', 'medium', 'high'],
+  },
+  'grok-4': {
+    documented: true,
+    image: true,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
+  },
+  'grok-3': {
+    documented: true,
+    image: true,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
+  },
+  'grok-3-mini': {
+    documented: true,
+    image: true,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
+  },
+  'grok-4.3': {
+    documented: false,
+    image: 'unknown',
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
+  },
+  'grok-latest': {
+    documented: false,
+    image: 'unknown',
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
+  },
+} satisfies Record<string, XaiLanguageModelRow>;
 
-// These variants reject reasoning effort, including `none`. Multi-agent
-// variants deliberately retain the existing configurable-effort fallback.
-const modelsWithoutReasoningEffort = /^grok-4\.20(-\d{4})?-(non-)?reasoning$/;
-// 4.20 predates 4.5 despite its version number. Preserve this distinction.
-const modelsWithoutNoneReasoningEffort =
-  /^grok-(?:4\.[5-9](?!\d)|(?:[5-9]|[1-9]\d+)(?:[.-]|$))/;
-
-function createLanguageModelEntry(
-  modelId: string,
-  definition?: LanguageDefinition,
-) {
-  const configurable = !modelsWithoutReasoningEffort.test(modelId);
+function createLanguageModelEntry(row: XaiLanguageModelRow) {
+  const documentedSupport: ModelCapability = row.documented ? true : 'unknown';
+  const reasoningEfforts =
+    row.reasoningEfforts === false ? [] : row.reasoningEfforts;
   const language: LanguageCapabilities = {
-    inputs: { image: definition?.image ?? 'unknown', audio: 'unknown' },
-    objectGeneration: definition != null ? true : 'unknown',
+    inputs: { image: row.image, audio: 'unknown' },
+    objectGeneration: documentedSupport,
     tools: {
-      usage: definition != null ? true : 'unknown',
-      streaming: definition != null ? true : 'unknown',
+      usage: documentedSupport,
+      streaming: documentedSupport,
     },
     reasoning: {
-      support: definition?.reasoning ?? 'unknown',
-      efforts: definition?.efforts,
-      portable: {
-        configurable,
-        none: !modelsWithoutNoneReasoningEffort.test(modelId),
-        // Keep the existing exact-ID exception. Native Grok 4.7 accepts xhigh,
-        // but portable reasoning currently maps it to high on that model.
-        xhigh: modelId === 'grok-4.6',
-      },
+      support: row.reasoningEfforts === false ? false : documentedSupport,
+      efforts: reasoningEfforts.length > 0 ? reasoningEfforts : undefined,
+      portableEfforts: reasoningEfforts,
     },
     sampling: { temperature: 'unknown', topP: 'unknown', logprobs: 'unknown' },
   };
@@ -210,17 +267,48 @@ function createLanguageModelEntry(
     providerOptions: {
       language: declareProviderOptions(
         xaiProviderOptions.language,
-        definition != null ? true : 'unknown',
+        documentedSupport,
         {
-          reasoningEffort: !configurable
-            ? false
-            : definition != null
-              ? true
-              : 'unknown',
+          reasoningEffort:
+            reasoningEfforts.length > 0 ? documentedSupport : false,
           reasoningSummary: false,
         },
       ),
     },
+  };
+}
+
+const languageModelRows = Object.entries<XaiLanguageModelRow>(
+  languageModelDefinitions,
+);
+
+/** Entries for every listed model ID, documented or not. */
+const listedLanguageModelEntries = Object.fromEntries(
+  languageModelRows.map(([modelId, row]) => [
+    modelId,
+    createLanguageModelEntry(row),
+  ]),
+);
+
+// Family rules, used only for model IDs that are not listed in the matrix.
+// These 4.20 variants reject reasoning effort, including `none`. Multi-agent
+// variants deliberately retain the configurable-effort fallback.
+const unlistedModelsWithoutReasoningEffort =
+  /^grok-4\.20(-\d{4})?-(non-)?reasoning$/;
+// 4.20 predates 4.5 despite its version number.
+const unlistedModelsWithoutNoneReasoningEffort =
+  /^grok-(?:4\.[5-9](?!\d)|(?:[5-9]|[1-9]\d+)(?:[.-]|$))/;
+
+/** Resolves a model ID that is not listed in the matrix to a row. */
+function getUnlistedModelRow(modelId: string): XaiLanguageModelRow {
+  return {
+    documented: false,
+    image: 'unknown',
+    reasoningEfforts: unlistedModelsWithoutReasoningEffort.test(modelId)
+      ? []
+      : unlistedModelsWithoutNoneReasoningEffort.test(modelId)
+        ? ['low', 'medium', 'high']
+        : ['none', 'low', 'medium', 'high'],
   };
 }
 
@@ -365,20 +453,21 @@ const xaiRealtimeModelEntries = {
   },
 } satisfies Record<string, XaiModelEntry>;
 
+const videoModelIds = ['grok-imagine-video', 'grok-imagine-video-1.5'] as const;
+
+export const xaiDefaultAudioModelId = '';
+
 export const xaiModelCatalog: Readonly<Record<string, XaiModelEntry>> = {
   ...Object.fromEntries(
-    Object.entries(languageDefinitions)
-      .filter(([, definition]) => definition != null)
-      .map(([modelId, definition]) => [
-        modelId,
-        createLanguageModelEntry(modelId, definition),
-      ]),
+    languageModelRows
+      .filter(([, row]) => row.documented)
+      .map(([modelId]) => [modelId, listedLanguageModelEntries[modelId]]),
   ),
   ...xaiImageModelEntries,
 
   // The factories use the empty model ID for both default speech and default
   // transcription. Keep one record containing both independent operations.
-  '': {
+  [xaiDefaultAudioModelId]: {
     capabilities: {
       ...defaultSpeechModelEntry.capabilities,
       ...defaultTranscriptionModelEntry.capabilities,
@@ -403,14 +492,12 @@ function findModelEntry(modelId: string) {
 }
 
 export function getXaiLanguageModelEntry(modelId: string) {
-  const entry = findModelEntry(modelId);
-  return entry?.capabilities.language != null &&
-    entry.providerOptions?.language != null
-    ? {
-        capabilities: { language: entry.capabilities.language },
-        providerOptions: { language: entry.providerOptions.language },
-      }
-    : createLanguageModelEntry(modelId);
+  return Object.prototype.hasOwnProperty.call(
+    listedLanguageModelEntries,
+    modelId,
+  )
+    ? listedLanguageModelEntries[modelId]
+    : createLanguageModelEntry(getUnlistedModelRow(modelId));
 }
 
 export function getXaiImageModelEntry(modelId: string) {
@@ -456,7 +543,9 @@ function declareProviderOptions<Option extends string>(
 
 /** Known model IDs, derived from the declarations used to build the catalog. */
 export type XaiModelIds = {
-  language: keyof typeof languageDefinitions;
+  video: (typeof videoModelIds)[number];
+  speech: typeof xaiDefaultAudioModelId;
+  language: keyof typeof languageModelDefinitions;
   image: keyof typeof xaiImageModelEntries;
   transcription: keyof typeof xaiTranscriptionModelEntries;
   realtime: keyof typeof xaiRealtimeModelEntries;

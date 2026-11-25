@@ -40,6 +40,7 @@ import type {
 import type { ToolInputRefinement } from '../generate-text/tool-input-refinement';
 import type { ToolOrder } from '../generate-text/tool-order';
 import type { ToolsContextParameter } from '../generate-text/tools-context-parameter';
+import type { LogWarningsFunction } from '../logger/log-warnings';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import type { Instructions, Prompt } from '../prompt/prompt';
 import type { RequestOptions } from '../prompt/request-options';
@@ -159,8 +160,9 @@ export type ToolLoopAgentSettings<
 
     /**
      * Secret for HMAC-signing tool approval requests. When set, the server
-     * signs each approval request at issuance and verifies the signature when
+     * signs approval requests at issuance and verifies the signature when
      * the approval is replayed, preventing client-forged approvals.
+     * Approval requests for automatically denied tool calls are not signed.
      */
     experimental_toolApprovalSecret?: string | Uint8Array;
 
@@ -271,6 +273,16 @@ export type ToolLoopAgentSettings<
       NoInfer<RUNTIME_CONTEXT>,
       NoInfer<OUTPUT>
     >;
+
+    /**
+     * Callback that receives the warnings of the agent calls, e.g. unsupported
+     * settings, deprecated prompt parts, or reaching the default step limit.
+     * When it is set, the warnings are not sent to the global warning logger
+     * (`AI_SDK_LOG_WARNINGS`).
+     *
+     * Like `onStepError`, it can only be set here and not per call.
+     */
+    onWarning?: LogWarningsFunction;
 
     /**
      * Callback that is called when an error occurs. For `stream()` it receives

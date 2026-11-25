@@ -1,5 +1,38 @@
 # @ai-sdk/gateway
 
+## 4.0.154
+
+### Patch Changes
+
+- f2732a6: chore(provider/gateway): update gateway model settings files
+
+## 4.0.153
+
+### Patch Changes
+
+- 83026e8: fix(gateway): redact BYOK credentials in telemetry copies of Gateway request bodies
+
+## 4.0.152
+
+### Patch Changes
+
+- 7e55599: feat(gateway): support Live models over WebSocket
+
+  - `gateway.experimental_realtime()` returns a continuous Live model for `openai/gpt-live-1` and `openai/gpt-live-1.1`. It connects to the Gateway Live route and speaks the normalized Live protocol (`session-start`, PCM16 audio, `context-append`, `session-close` with final usage). Pass `{ api: 'live' }` for other Live model IDs or `{ api: 'realtime' }` to force the realtime route. Before, these model IDs opened the realtime route, which rejected them with `invalid_model`.
+  - `gateway.experimental_realtime.getToken()` mints Live-bound client secrets for Live models.
+  - `experimental_useRealtime` and the realtime session can connect a continuous model straight to the provider with a short-lived token (`api.token`) when the model explicitly declares the `client-secret-websocket` connection. Before, continuous WebSocket sessions required an application relay.
+
+- beccad3: chore(provider/gateway): update gateway model settings files
+
+## 4.0.151
+
+### Patch Changes
+
+- a51981c: Derive model ID types from a single modality-specific catalog and update model generation to maintain the catalog.
+- 875de7b: feat(google): add the `gemini-4-neon` model ID with `xhigh` thinking support
+- Updated dependencies [1d2c2ff]
+  - @ai-sdk/provider-utils@5.0.83
+
 ## 4.0.150
 
 ### Patch Changes

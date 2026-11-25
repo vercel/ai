@@ -23,6 +23,7 @@ import { extractApiCallResponse } from './errors/extract-api-call-response';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import type { GatewayConfig } from './gateway-config';
 import { gatewayWarningSchema } from './gateway-warning-schema';
+import { withGatewayRequestTelemetryRedaction } from './redact-gateway-request-credentials';
 import { toGatewayStateParts } from './to-gateway-state-parts';
 
 export class GatewayExtractionModel implements ExtractionModelV4 {
@@ -84,14 +85,14 @@ export class GatewayExtractionModel implements ExtractionModelV4 {
           this.getModelConfigHeaders(),
           await resolve(this.config.o11yHeaders),
         ),
-        body: {
+        body: withGatewayRequestTelemetryRedaction({
           stateParts,
           fields,
           referenceDate,
           maxOutputTokens,
           reasoning,
           ...(providerOptions ? { providerOptions } : {}),
-        },
+        }),
         successfulResponseHandler: createJsonResponseHandler(
           gatewayExtractionResponseSchema,
         ),

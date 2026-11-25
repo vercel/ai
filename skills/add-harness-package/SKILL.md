@@ -47,7 +47,6 @@ packages/harness-<name>/
 │   └── <name>-auth.ts              # if the runtime needs auth resolution
 ├── package.json
 ├── tsconfig.json
-├── tsconfig.build.json
 ├── tsdown.config.ts
 ├── turbo.json
 ├── vitest.node.config.js
@@ -102,7 +101,6 @@ Bridge dependency rules (bridge-backed harnesses):
 Copy the nearest existing harness package config files and adjust paths/package names:
 
 - `tsconfig.json`
-- `tsconfig.build.json`
 - `tsdown.config.ts`
 - `turbo.json`
 - `vitest.node.config.js`
@@ -192,16 +190,15 @@ Include:
 
 Update `content/docs/03-ai-sdk-harnesses/05-harness-adapters.mdx` to list the new harness when it is ready to be public.
 
-### 10. Update References and Validate
+### 10. Validate
 
 Run from the workspace root:
 
 ```bash
 pnpm konsistent
-pnpm update-references
 pnpm --filter @ai-sdk/harness-<name> build
 pnpm --filter @ai-sdk/harness-<name> test
-pnpm type-check:full
+pnpm type-check
 ```
 
 Add a changeset with `pnpm changeset`. For a brand-new harness package's first release, use `major` (not the usual `patch`), matching the other harness packages.
@@ -212,7 +209,7 @@ Run relevant harness examples against a live sandbox **early** — don't rely on
 
 - [ ] Package structure created in `packages/harness-<name>`
 - [ ] `package.json` configured with correct dependencies
-- [ ] TypeScript configs set up (`tsconfig.json`, `tsconfig.build.json`)
+- [ ] TypeScript config set up (`tsconfig.json`)
 - [ ] Build configuration (`tsdown.config.ts`)
 - [ ] Test configuration (`vitest.node.config.js`)
 - [ ] Harness adapter implementation complete
@@ -230,10 +227,9 @@ Run relevant harness examples against a live sandbox **early** — don't rely on
 - [ ] Documentation added in `content/providers/02-ai-sdk-harnesses/`
 - [ ] Harness adapter list updated, if public
 - [ ] Validated against a live sandbox (not just unit tests / type-check)
-- [ ] `pnpm update-references` run
 - [ ] Package build passing
 - [ ] Package tests passing
-- [ ] Type checking passing (`pnpm type-check:full` from root)
+- [ ] Type checking passing (`pnpm type-check` from root)
 - [ ] Relevant examples run successfully
 
 ## Related Documentation

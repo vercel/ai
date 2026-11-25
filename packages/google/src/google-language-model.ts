@@ -288,29 +288,26 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     }
 
     const entry = getGoogleLanguageModelEntry(modelId);
-    const isGemmaModel =
+    const { tools: toolCapabilities, sampling } = entry.capabilities.language;
+    const systemInstructionAsUserMessage =
       entry.requestConfig.language.systemInstruction === 'user';
-    const isGemini25DeveloperApiModel =
-      !isVertexProvider &&
-      entry.capabilities.language.sampling.penalties !== true;
+    const supportsPenalties = isVertexProvider || sampling.penalties === true;
 
-    if (isGemini25DeveloperApiModel && frequencyPenalty != null) {
+    if (!supportsPenalties && frequencyPenalty != null) {
       warnings.push({
         type: 'unsupported',
         feature: 'frequencyPenalty',
       });
     }
-    if (isGemini25DeveloperApiModel && presencePenalty != null) {
+    if (!supportsPenalties && presencePenalty != null) {
       warnings.push({
         type: 'unsupported',
         feature: 'presencePenalty',
       });
     }
 
-    const usesGemini3Features =
-      entry.capabilities.language.tools.functionResponseParts;
     const supportedFunctionResponseUrls =
-      usesGemini3Features &&
+      toolCapabilities.functionResponseParts &&
       config.downloadToolResultFiles?.supportsGoogleCloudStorageUrls
         ? googleCloudStorageFunctionResponseUrls
         : undefined;
@@ -327,11 +324,11 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     const { contents, systemInstruction } = convertToGoogleMessages(
       promptWithDownloadedToolResultFiles,
       {
-        isGemmaModel,
-        isGemini3Model: usesGemini3Features,
+        systemInstructionAsUserMessage,
+        requiresThoughtSignatures: toolCapabilities.thoughtSignatures,
         onWarning: warning => warnings.push(warning),
         providerOptionsNames,
-        supportsFunctionResponseParts: usesGemini3Features,
+        supportsFunctionResponseParts: toolCapabilities.functionResponseParts,
         includeFunctionCallIds: !isVertexProvider,
         supportedFunctionResponseUrls,
       },
@@ -405,12 +402,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           temperature,
           topK,
           topP,
-          frequencyPenalty: isGemini25DeveloperApiModel
-            ? undefined
-            : frequencyPenalty,
-          presencePenalty: isGemini25DeveloperApiModel
-            ? undefined
-            : presencePenalty,
+          frequencyPenalty: supportsPenalties ? frequencyPenalty : undefined,
+          presencePenalty: supportsPenalties ? presencePenalty : undefined,
           stopSequences,
           seed,
 
@@ -439,7 +432,9 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           ...(imageConfig && { imageConfig }),
         },
         contents,
-        systemInstruction: isGemmaModel ? undefined : systemInstruction,
+        systemInstruction: systemInstructionAsUserMessage
+          ? undefined
+          : systemInstruction,
         safetySettings,
         tools: googleTools,
         toolConfig,
@@ -1651,13 +1646,13 @@ function resolveThinkingConfig({
     getGoogleLanguageModelEntry(modelId).requestConfig.language
       .thinkingFormat === 'level'
   ) {
-    return resolveGemini3ThinkingConfig({ reasoning, modelId, warnings });
+    return resolveThinkingLevelConfig({ reasoning, modelId, warnings });
   }
 
-  return resolveGemini25ThinkingConfig({ reasoning, modelId, warnings });
+  return resolveThinkingBudgetConfig({ reasoning, modelId, warnings });
 }
 
-function resolveGemini3ThinkingConfig({
+function resolveThinkingLevelConfig({
   reasoning,
   modelId,
   warnings,
@@ -1692,7 +1687,7 @@ function resolveGemini3ThinkingConfig({
   return { thinkingLevel };
 }
 
-function resolveGemini25ThinkingConfig({
+function resolveThinkingBudgetConfig({
   reasoning,
   modelId,
   warnings,

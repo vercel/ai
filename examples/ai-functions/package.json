@@ -102,7 +102,7 @@
     "ai": "workspace:*",
     "arktype": "2.1.28",
     "dotenv": "16.4.5",
-    "effect": "3.21.3",
+    "effect": "3.22.1",
     "eventsource": "^4.1.0",
     "google-auth-library": "^9.15.1",
     "guarded-fetch": "^0.3.0",
@@ -111,7 +111,7 @@
     "mathjs": "^15.2.0",
     "sharp": "^0.35.4",
     "terminal-image": "^2.0.0",
-    "undici": "^8.9.0",
+    "undici": "^8.12.3",
     "valibot": "1.1.0",
     "workflow": "5.1.0",
     "ws": "^8.21.0",
@@ -120,7 +120,7 @@
   "scripts": {
     "test:e2e:all": "vitest run src/e2e/*.test.ts",
     "test:file": "vitest run",
-    "type-check": "tsc --build"
+    "type-check": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/node": "22.19.19",

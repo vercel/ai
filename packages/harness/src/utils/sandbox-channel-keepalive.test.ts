@@ -107,6 +107,24 @@ describe('SandboxChannel keepalive', () => {
     expect(vi.getTimerCount()).toBe(1);
   });
 
+  it('does not terminate a socket that is still receiving bytes', async () => {
+    const { channel, sockets, debug } = makeChannel({ keepAliveMs: 100 });
+    const transport = { bytesRead: 0 };
+    await channel.open();
+    Object.assign(sockets[0], { _socket: transport });
+    // a large frame is still transferring: no pongs, but bytes keep arriving
+    for (let interval = 0; interval < 5; interval++) {
+      transport.bytesRead += 1024;
+      await vi.advanceTimersByTimeAsync(100);
+    }
+    expect(sockets[0].terminate).not.toHaveBeenCalled();
+    expect(debug).toEqual([]);
+    // the transfer stalls: the usual two-unanswered-pings deadline applies
+    await vi.advanceTimersByTimeAsync(300);
+    expect(sockets[0].terminate).toHaveBeenCalledTimes(1);
+    expect(sockets).toHaveLength(2);
+  });
+
   it('closes after the reconnect budget expires for a dead peer', async () => {
     const socket = new HeartbeatSocket();
     let attempts = 0;

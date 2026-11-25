@@ -97,377 +97,1764 @@ export type OpenAILanguageModelEntry = {
   };
 };
 
-type OpenAILanguageModelDefinition = {
-  capabilities?: {
-    language?: Partial<
-      Pick<
-        OpenAILanguageModelEntry['capabilities']['language'],
-        'inputs' | 'objectGeneration' | 'tools' | 'reasoning'
-      >
-    >;
-  };
-  requestConfig?: {
-    language?: Partial<OpenAILanguageModelEntry['requestConfig']['language']>;
-  };
+/**
+ * One row of the language model matrix. Every capability that differs between
+ * models is its own column, and every listed model fills in every column.
+ * Nothing is derived from the model ID or from another column.
+ */
+export type OpenAILanguageModelRow = {
+  /** APIs that suggest this model ID. */
+  endpoints: readonly ('chat' | 'responses' | 'completion' | 'decision')[];
+  /**
+   * `false` keeps a known model ID out of the exported catalog and the
+   * generated documentation. Its inputs, object generation, tools, and provider
+   * options are then reported as `'unknown'`.
+   */
+  documented: boolean;
+  /**
+   * Reasoning efforts the model accepts. `undefined` means the model does not
+   * reason. Every reasoning model declares its list.
+   */
+  reasoningEfforts: readonly string[] | undefined;
+  /** Accepts temperature, topP, and logprobs when reasoning effort is none. */
+  samplingAtReasoningEffortNone: boolean;
+  temperature: ModelCapability;
+  topP: ModelCapability;
+  logprobs: ModelCapability;
+  asyncTools: boolean;
+  flexProcessing: boolean;
+  priorityProcessing: boolean;
+  configurationUpdates: boolean;
+  promptCacheRetention: boolean;
+  promptCacheOptions: boolean;
+  /** Chat Completions accepts temperature when the model is not reasoning. */
+  chatTemperature: boolean;
+  /** Chat Completions accepts function tools together with reasoning. */
+  chatFunctionToolsWithReasoning: boolean;
+  /** Responses only accepts logprobs when the model is not reasoning. */
+  responsesLogprobsRequireNonReasoning: boolean;
+  systemMessageMode: OpenAILanguageModelEntry['requestConfig']['language']['systemMessageMode'];
+  // Documented models support object generation and tools unless stated here.
+  objectGeneration?: boolean;
+  tools?: { usage: boolean; streaming: boolean };
 };
 
-const configurableNonReasoning: OpenAILanguageModelDefinition = {
-  capabilities: {
-    language: {
-      reasoning: {
-        support: true,
-        efforts: ['none', 'low', 'medium', 'high', 'xhigh', 'max'],
-        sampling: 'reasoning-effort-none',
-      },
-    },
+// Conditional support, used as cell values in the matrix below.
+const atReasoningEffortNone = {
+  condition: 'Only when reasoning effort is none.',
+} as const;
+const exceptSearchPreviewChat = {
+  condition: 'Not supported by Chat Completions search preview models.',
+} as const;
+const logprobsAtReasoningEffortNoneInChat = {
+  condition:
+    'Chat Completions requires reasoning effort none; Responses support is model-dependent.',
+} as const;
+const logprobsNotWhileReasoningInChat = {
+  condition:
+    'Not supported by Chat Completions while reasoning; Responses support is model-dependent.',
+} as const;
+
+/**
+ * Language model matrix: model IDs by capability. To add a model, add a row and
+ * fill in every column.
+ */
+export const openaiModelDefinitions = {
+  'gpt-6.2-astra': {
+    endpoints: ['chat', 'responses'],
+    documented: true,
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: false,
+    asyncTools: true,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: true,
+    promptCacheRetention: false,
+    promptCacheOptions: true,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: true,
+    systemMessageMode: 'developer',
   },
-};
-
-// Endpoint lists define suggestions independently of optional capability metadata.
-// An undefined definition retains family rules and the custom-model fallback.
-const openaiLanguageModelDefinitions = {
-  'gpt-6.2-astra': { endpoints: ['chat', 'responses'], definition: {} },
-  'gpt-6.2-sol': { endpoints: ['chat', 'responses'], definition: {} },
-  'gpt-6-astra': { endpoints: ['chat', 'responses'], definition: {} },
-  'gpt-6.1-sol': { endpoints: ['chat', 'responses'], definition: {} },
+  'gpt-6.2-sol': {
+    endpoints: ['chat', 'responses'],
+    documented: true,
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: false,
+    asyncTools: true,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: true,
+    promptCacheRetention: false,
+    promptCacheOptions: true,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: true,
+    systemMessageMode: 'developer',
+  },
+  'gpt-6-astra': {
+    endpoints: ['chat', 'responses'],
+    documented: true,
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: false,
+    asyncTools: true,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: true,
+    promptCacheRetention: false,
+    promptCacheOptions: true,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: true,
+    systemMessageMode: 'developer',
+  },
+  'gpt-6.1-sol': {
+    endpoints: ['chat', 'responses'],
+    documented: true,
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: false,
+    asyncTools: true,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: true,
+    promptCacheRetention: false,
+    promptCacheOptions: true,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: true,
+    systemMessageMode: 'developer',
+  },
   'gpt-6.1-terra': {
     endpoints: ['chat', 'responses'],
-    definition: configurableNonReasoning,
+    documented: true,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh', 'max'],
+    samplingAtReasoningEffortNone: true,
+    temperature: atReasoningEffortNone,
+    topP: atReasoningEffortNone,
+    logprobs: atReasoningEffortNone,
+    asyncTools: true,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: true,
+    promptCacheRetention: false,
+    promptCacheOptions: true,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: true,
+    systemMessageMode: 'developer',
   },
   'gpt-6-luna': {
-    endpoints: ['chat', 'responses'],
-    definition: configurableNonReasoning,
+    endpoints: ['chat', 'responses', 'decision'],
+    documented: true,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh', 'max'],
+    samplingAtReasoningEffortNone: true,
+    temperature: atReasoningEffortNone,
+    topP: atReasoningEffortNone,
+    logprobs: atReasoningEffortNone,
+    asyncTools: true,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: true,
+    promptCacheRetention: false,
+    promptCacheOptions: true,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: true,
+    systemMessageMode: 'developer',
   },
   'gpt-6-sol': {
     endpoints: ['chat', 'responses'],
-    definition: configurableNonReasoning,
+    documented: true,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh', 'max'],
+    samplingAtReasoningEffortNone: true,
+    temperature: atReasoningEffortNone,
+    topP: atReasoningEffortNone,
+    logprobs: atReasoningEffortNone,
+    asyncTools: true,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: true,
+    promptCacheRetention: false,
+    promptCacheOptions: true,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: true,
+    systemMessageMode: 'developer',
   },
-  'gpt-5.6': { endpoints: ['chat', 'responses'], definition: {} },
-  'gpt-5.6-luna': { endpoints: ['chat', 'responses'], definition: {} },
-  'gpt-5.6-sol': { endpoints: ['chat', 'responses'], definition: {} },
-  'gpt-5.6-terra': { endpoints: ['chat', 'responses'], definition: {} },
-  'gpt-5.5': { endpoints: ['chat', 'responses'], definition: {} },
-  'gpt-5.4-pro': { endpoints: ['chat', 'responses'], definition: {} },
-  'gpt-5.4': { endpoints: ['chat', 'responses'], definition: {} },
-  'gpt-5.4-mini': { endpoints: ['chat', 'responses'], definition: {} },
-  'gpt-5.4-nano': { endpoints: ['chat', 'responses'], definition: {} },
-  'gpt-5.3-chat-latest': { endpoints: ['chat', 'responses'], definition: {} },
-  'gpt-5.2-pro': { endpoints: ['chat', 'responses'], definition: {} },
-  'gpt-5.2-chat-latest': { endpoints: ['chat', 'responses'], definition: {} },
-  'gpt-5.2': { endpoints: ['chat', 'responses'], definition: {} },
-  'gpt-5.1-codex-mini': { endpoints: ['responses'], definition: {} },
-  'gpt-5.1-codex': { endpoints: ['responses'], definition: {} },
-  'gpt-5.1-chat-latest': { endpoints: ['chat', 'responses'], definition: {} },
-  'gpt-5.1': { endpoints: ['chat', 'responses'], definition: {} },
-  'gpt-5-pro': { endpoints: ['responses'], definition: {} },
-  'gpt-5': { endpoints: ['chat', 'responses'], definition: {} },
-  'gpt-5-mini': { endpoints: ['chat', 'responses'], definition: {} },
-  'gpt-5-nano': { endpoints: ['chat', 'responses'], definition: {} },
-  'gpt-5-codex': { endpoints: ['responses'], definition: {} },
+  'gpt-5.6': {
+    endpoints: ['chat', 'responses'],
+    documented: true,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh', 'max'],
+    samplingAtReasoningEffortNone: true,
+    temperature: atReasoningEffortNone,
+    topP: atReasoningEffortNone,
+    logprobs: logprobsAtReasoningEffortNoneInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: true,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: false,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
+  'gpt-5.6-luna': {
+    endpoints: ['chat', 'responses'],
+    documented: true,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh', 'max'],
+    samplingAtReasoningEffortNone: true,
+    temperature: atReasoningEffortNone,
+    topP: atReasoningEffortNone,
+    logprobs: logprobsAtReasoningEffortNoneInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: true,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: false,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
+  'gpt-5.6-sol': {
+    endpoints: ['chat', 'responses'],
+    documented: true,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh', 'max'],
+    samplingAtReasoningEffortNone: true,
+    temperature: atReasoningEffortNone,
+    topP: atReasoningEffortNone,
+    logprobs: logprobsAtReasoningEffortNoneInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: true,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: false,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
+  'gpt-5.6-terra': {
+    endpoints: ['chat', 'responses'],
+    documented: true,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh', 'max'],
+    samplingAtReasoningEffortNone: true,
+    temperature: atReasoningEffortNone,
+    topP: atReasoningEffortNone,
+    logprobs: logprobsAtReasoningEffortNoneInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: true,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: false,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
+  'gpt-5.5': {
+    endpoints: ['chat', 'responses'],
+    documented: true,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
+    samplingAtReasoningEffortNone: true,
+    temperature: atReasoningEffortNone,
+    topP: atReasoningEffortNone,
+    logprobs: logprobsAtReasoningEffortNoneInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
+  'gpt-5.4-pro': {
+    endpoints: ['chat', 'responses'],
+    documented: true,
+    reasoningEfforts: ['medium', 'high', 'xhigh'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
+  'gpt-5.4': {
+    endpoints: ['chat', 'responses'],
+    documented: true,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
+    samplingAtReasoningEffortNone: true,
+    temperature: atReasoningEffortNone,
+    topP: atReasoningEffortNone,
+    logprobs: logprobsAtReasoningEffortNoneInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
+  'gpt-5.4-mini': {
+    endpoints: ['chat', 'responses'],
+    documented: true,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
+    samplingAtReasoningEffortNone: true,
+    temperature: atReasoningEffortNone,
+    topP: atReasoningEffortNone,
+    logprobs: logprobsAtReasoningEffortNoneInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
+  'gpt-5.4-nano': {
+    endpoints: ['chat', 'responses'],
+    documented: true,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
+    samplingAtReasoningEffortNone: true,
+    temperature: atReasoningEffortNone,
+    topP: atReasoningEffortNone,
+    logprobs: logprobsAtReasoningEffortNoneInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: false,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
+  'gpt-5.3-chat-latest': {
+    endpoints: ['chat', 'responses'],
+    documented: true,
+    reasoningEfforts: ['medium'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
+  'gpt-5.2-pro': {
+    endpoints: ['chat', 'responses'],
+    documented: true,
+    reasoningEfforts: ['medium', 'high', 'xhigh'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
+  'gpt-5.2-chat-latest': {
+    endpoints: ['chat', 'responses'],
+    documented: true,
+    reasoningEfforts: ['medium'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
+  'gpt-5.2': {
+    endpoints: ['chat', 'responses'],
+    documented: true,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
+    samplingAtReasoningEffortNone: true,
+    temperature: atReasoningEffortNone,
+    topP: atReasoningEffortNone,
+    logprobs: logprobsAtReasoningEffortNoneInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
+  'gpt-5.1-codex-mini': {
+    endpoints: ['responses'],
+    documented: true,
+    reasoningEfforts: ['none', 'low', 'medium', 'high'],
+    samplingAtReasoningEffortNone: true,
+    temperature: atReasoningEffortNone,
+    topP: atReasoningEffortNone,
+    logprobs: logprobsAtReasoningEffortNoneInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
+  'gpt-5.1-codex': {
+    endpoints: ['responses'],
+    documented: true,
+    reasoningEfforts: ['none', 'low', 'medium', 'high'],
+    samplingAtReasoningEffortNone: true,
+    temperature: atReasoningEffortNone,
+    topP: atReasoningEffortNone,
+    logprobs: logprobsAtReasoningEffortNoneInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
+  'gpt-5.1-chat-latest': {
+    endpoints: ['chat', 'responses'],
+    documented: true,
+    reasoningEfforts: ['medium'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
+  'gpt-5.1': {
+    endpoints: ['chat', 'responses'],
+    documented: true,
+    reasoningEfforts: ['none', 'low', 'medium', 'high'],
+    samplingAtReasoningEffortNone: true,
+    temperature: atReasoningEffortNone,
+    topP: atReasoningEffortNone,
+    logprobs: logprobsAtReasoningEffortNoneInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
+  'gpt-5-pro': {
+    endpoints: ['responses'],
+    documented: true,
+    reasoningEfforts: ['high'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
+  'gpt-5': {
+    endpoints: ['chat', 'responses'],
+    documented: true,
+    reasoningEfforts: ['minimal', 'low', 'medium', 'high'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
+  'gpt-5-mini': {
+    endpoints: ['chat', 'responses'],
+    documented: true,
+    reasoningEfforts: ['minimal', 'low', 'medium', 'high'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
+  'gpt-5-nano': {
+    endpoints: ['chat', 'responses'],
+    documented: true,
+    reasoningEfforts: ['minimal', 'low', 'medium', 'high'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: false,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
+  'gpt-5-codex': {
+    endpoints: ['responses'],
+    documented: true,
+    reasoningEfforts: ['low', 'medium', 'high'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
   'gpt-5-chat-latest': {
     endpoints: ['chat', 'responses'],
-    definition: {
-      capabilities: {
-        language: {
-          objectGeneration: false,
-          tools: { usage: false, streaming: false, async: false },
-        },
-      },
-    },
+    documented: true,
+    reasoningEfforts: undefined,
+    samplingAtReasoningEffortNone: false,
+    temperature: true,
+    topP: true,
+    logprobs: true,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: false,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'system',
+    objectGeneration: false,
+    tools: { usage: false, streaming: false },
   },
-  'gpt-4.1': { endpoints: ['chat', 'responses'], definition: {} },
-  'gpt-4.1-mini': { endpoints: ['chat', 'responses'], definition: {} },
-  'gpt-4.1-nano': { endpoints: ['chat', 'responses'], definition: {} },
-  'gpt-4o': { endpoints: ['chat', 'responses'], definition: {} },
-  'gpt-4o-mini': { endpoints: ['chat', 'responses'], definition: {} },
-  'gpt-3.5-turbo': { endpoints: ['chat', 'responses'], definition: undefined },
+  'gpt-4.1': {
+    endpoints: ['chat', 'responses'],
+    documented: true,
+    reasoningEfforts: undefined,
+    samplingAtReasoningEffortNone: false,
+    temperature: true,
+    topP: true,
+    logprobs: true,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'system',
+  },
+  'gpt-4.1-mini': {
+    endpoints: ['chat', 'responses'],
+    documented: true,
+    reasoningEfforts: undefined,
+    samplingAtReasoningEffortNone: false,
+    temperature: true,
+    topP: true,
+    logprobs: true,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'system',
+  },
+  'gpt-4.1-nano': {
+    endpoints: ['chat', 'responses'],
+    documented: true,
+    reasoningEfforts: undefined,
+    samplingAtReasoningEffortNone: false,
+    temperature: true,
+    topP: true,
+    logprobs: true,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'system',
+  },
+  'gpt-4o': {
+    endpoints: ['chat', 'responses'],
+    documented: true,
+    reasoningEfforts: undefined,
+    samplingAtReasoningEffortNone: false,
+    temperature: true,
+    topP: true,
+    logprobs: true,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'system',
+  },
+  'gpt-4o-mini': {
+    endpoints: ['chat', 'responses'],
+    documented: true,
+    reasoningEfforts: undefined,
+    samplingAtReasoningEffortNone: false,
+    temperature: true,
+    topP: true,
+    logprobs: true,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'system',
+  },
+  'gpt-3.5-turbo': {
+    endpoints: ['chat', 'responses'],
+    documented: false,
+    reasoningEfforts: undefined,
+    samplingAtReasoningEffortNone: false,
+    temperature: true,
+    topP: true,
+    logprobs: true,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: false,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'system',
+  },
   'gpt-3.5-turbo-0125': {
     endpoints: ['chat', 'responses'],
-    definition: undefined,
+    documented: false,
+    reasoningEfforts: undefined,
+    samplingAtReasoningEffortNone: false,
+    temperature: true,
+    topP: true,
+    logprobs: true,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: false,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'system',
   },
   'gpt-3.5-turbo-1106': {
     endpoints: ['chat', 'responses'],
-    definition: undefined,
+    documented: false,
+    reasoningEfforts: undefined,
+    samplingAtReasoningEffortNone: false,
+    temperature: true,
+    topP: true,
+    logprobs: true,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: false,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'system',
   },
-  'gpt-3.5-turbo-16k': { endpoints: ['chat'], definition: undefined },
+  'gpt-3.5-turbo-16k': {
+    endpoints: ['chat'],
+    documented: false,
+    reasoningEfforts: undefined,
+    samplingAtReasoningEffortNone: false,
+    temperature: true,
+    topP: true,
+    logprobs: true,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: false,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'system',
+  },
   'gpt-4.1-2025-04-14': {
     endpoints: ['chat', 'responses'],
-    definition: undefined,
+    documented: false,
+    reasoningEfforts: undefined,
+    samplingAtReasoningEffortNone: false,
+    temperature: true,
+    topP: true,
+    logprobs: true,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'system',
   },
   'gpt-4.1-mini-2025-04-14': {
     endpoints: ['chat', 'responses'],
-    definition: undefined,
+    documented: false,
+    reasoningEfforts: undefined,
+    samplingAtReasoningEffortNone: false,
+    temperature: true,
+    topP: true,
+    logprobs: true,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'system',
   },
   'gpt-4.1-nano-2025-04-14': {
     endpoints: ['chat', 'responses'],
-    definition: undefined,
+    documented: false,
+    reasoningEfforts: undefined,
+    samplingAtReasoningEffortNone: false,
+    temperature: true,
+    topP: true,
+    logprobs: true,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'system',
   },
   'gpt-4o-2024-05-13': {
     endpoints: ['chat', 'responses'],
-    definition: undefined,
+    documented: false,
+    reasoningEfforts: undefined,
+    samplingAtReasoningEffortNone: false,
+    temperature: true,
+    topP: true,
+    logprobs: true,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'system',
   },
   'gpt-4o-2024-08-06': {
     endpoints: ['chat', 'responses'],
-    definition: undefined,
+    documented: false,
+    reasoningEfforts: undefined,
+    samplingAtReasoningEffortNone: false,
+    temperature: true,
+    topP: true,
+    logprobs: true,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'system',
   },
   'gpt-4o-2024-11-20': {
     endpoints: ['chat', 'responses'],
-    definition: undefined,
+    documented: false,
+    reasoningEfforts: undefined,
+    samplingAtReasoningEffortNone: false,
+    temperature: true,
+    topP: true,
+    logprobs: true,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'system',
   },
-  'gpt-4o-audio-preview': { endpoints: ['chat'], definition: undefined },
+  'gpt-4o-audio-preview': {
+    endpoints: ['chat'],
+    documented: false,
+    reasoningEfforts: undefined,
+    samplingAtReasoningEffortNone: false,
+    temperature: true,
+    topP: true,
+    logprobs: true,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'system',
+  },
   'gpt-4o-audio-preview-2024-12-17': {
     endpoints: ['chat'],
-    definition: undefined,
+    documented: false,
+    reasoningEfforts: undefined,
+    samplingAtReasoningEffortNone: false,
+    temperature: true,
+    topP: true,
+    logprobs: true,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'system',
   },
   'gpt-4o-audio-preview-2025-06-03': {
     endpoints: ['chat'],
-    definition: undefined,
+    documented: false,
+    reasoningEfforts: undefined,
+    samplingAtReasoningEffortNone: false,
+    temperature: true,
+    topP: true,
+    logprobs: true,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'system',
   },
   'gpt-4o-mini-2024-07-18': {
     endpoints: ['chat', 'responses'],
-    definition: undefined,
+    documented: false,
+    reasoningEfforts: undefined,
+    samplingAtReasoningEffortNone: false,
+    temperature: true,
+    topP: true,
+    logprobs: true,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'system',
   },
-  'gpt-4o-mini-audio-preview': { endpoints: ['chat'], definition: undefined },
+  'gpt-4o-mini-audio-preview': {
+    endpoints: ['chat'],
+    documented: false,
+    reasoningEfforts: undefined,
+    samplingAtReasoningEffortNone: false,
+    temperature: true,
+    topP: true,
+    logprobs: true,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'system',
+  },
   'gpt-4o-mini-audio-preview-2024-12-17': {
     endpoints: ['chat'],
-    definition: undefined,
+    documented: false,
+    reasoningEfforts: undefined,
+    samplingAtReasoningEffortNone: false,
+    temperature: true,
+    topP: true,
+    logprobs: true,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'system',
   },
-  'gpt-4o-mini-search-preview': { endpoints: ['chat'], definition: undefined },
+  'gpt-4o-mini-search-preview': {
+    endpoints: ['chat'],
+    documented: false,
+    reasoningEfforts: undefined,
+    samplingAtReasoningEffortNone: false,
+    temperature: exceptSearchPreviewChat,
+    topP: true,
+    logprobs: true,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: false,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'system',
+  },
   'gpt-4o-mini-search-preview-2025-03-11': {
     endpoints: ['chat'],
-    definition: undefined,
+    documented: false,
+    reasoningEfforts: undefined,
+    samplingAtReasoningEffortNone: false,
+    temperature: exceptSearchPreviewChat,
+    topP: true,
+    logprobs: true,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: false,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'system',
   },
-  'gpt-4o-search-preview': { endpoints: ['chat'], definition: undefined },
+  'gpt-4o-search-preview': {
+    endpoints: ['chat'],
+    documented: false,
+    reasoningEfforts: undefined,
+    samplingAtReasoningEffortNone: false,
+    temperature: exceptSearchPreviewChat,
+    topP: true,
+    logprobs: true,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: false,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'system',
+  },
   'gpt-4o-search-preview-2025-03-11': {
     endpoints: ['chat'],
-    definition: undefined,
+    documented: false,
+    reasoningEfforts: undefined,
+    samplingAtReasoningEffortNone: false,
+    temperature: exceptSearchPreviewChat,
+    topP: true,
+    logprobs: true,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: false,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'system',
   },
   'gpt-5-2025-08-07': {
     endpoints: ['chat', 'responses'],
-    definition: undefined,
+    documented: false,
+    reasoningEfforts: ['minimal', 'low', 'medium', 'high'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
   },
   'gpt-5-mini-2025-08-07': {
     endpoints: ['chat', 'responses'],
-    definition: undefined,
+    documented: false,
+    reasoningEfforts: ['minimal', 'low', 'medium', 'high'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
   },
   'gpt-5-nano-2025-08-07': {
     endpoints: ['chat', 'responses'],
-    definition: undefined,
+    documented: false,
+    reasoningEfforts: ['minimal', 'low', 'medium', 'high'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: false,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
   },
   'gpt-5.1-2025-11-13': {
     endpoints: ['chat', 'responses'],
-    definition: undefined,
+    documented: false,
+    reasoningEfforts: ['none', 'low', 'medium', 'high'],
+    samplingAtReasoningEffortNone: true,
+    temperature: atReasoningEffortNone,
+    topP: atReasoningEffortNone,
+    logprobs: logprobsAtReasoningEffortNoneInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
   },
   'gpt-5.2-2025-12-11': {
     endpoints: ['chat', 'responses'],
-    definition: undefined,
+    documented: false,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
+    samplingAtReasoningEffortNone: true,
+    temperature: atReasoningEffortNone,
+    topP: atReasoningEffortNone,
+    logprobs: logprobsAtReasoningEffortNoneInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
   },
   'gpt-5.2-pro-2025-12-11': {
     endpoints: ['chat', 'responses'],
-    definition: undefined,
+    documented: false,
+    reasoningEfforts: ['medium', 'high', 'xhigh'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
   },
   'gpt-5.4-2026-03-05': {
     endpoints: ['chat', 'responses'],
-    definition: undefined,
+    documented: false,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
+    samplingAtReasoningEffortNone: true,
+    temperature: atReasoningEffortNone,
+    topP: atReasoningEffortNone,
+    logprobs: logprobsAtReasoningEffortNoneInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
   },
   'gpt-5.4-mini-2026-03-17': {
     endpoints: ['chat', 'responses'],
-    definition: undefined,
+    documented: false,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
+    samplingAtReasoningEffortNone: true,
+    temperature: atReasoningEffortNone,
+    topP: atReasoningEffortNone,
+    logprobs: logprobsAtReasoningEffortNoneInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
   },
   'gpt-5.4-nano-2026-03-17': {
     endpoints: ['chat', 'responses'],
-    definition: undefined,
+    documented: false,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
+    samplingAtReasoningEffortNone: true,
+    temperature: atReasoningEffortNone,
+    topP: atReasoningEffortNone,
+    logprobs: logprobsAtReasoningEffortNoneInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: false,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
   },
   'gpt-5.4-pro-2026-03-05': {
     endpoints: ['chat', 'responses'],
-    definition: undefined,
+    documented: false,
+    reasoningEfforts: ['medium', 'high', 'xhigh'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
   },
   'gpt-5.5-2026-04-23': {
     endpoints: ['chat', 'responses'],
-    definition: undefined,
+    documented: false,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
+    samplingAtReasoningEffortNone: true,
+    temperature: atReasoningEffortNone,
+    topP: atReasoningEffortNone,
+    logprobs: logprobsAtReasoningEffortNoneInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
   },
-  o1: { endpoints: ['chat', 'responses'], definition: undefined },
-  'o1-2024-12-17': { endpoints: ['chat', 'responses'], definition: undefined },
-  o3: { endpoints: ['chat', 'responses'], definition: undefined },
-  'o3-2025-04-16': { endpoints: ['chat', 'responses'], definition: undefined },
-  'o3-mini': { endpoints: ['chat', 'responses'], definition: undefined },
+  o1: {
+    endpoints: ['chat', 'responses'],
+    documented: false,
+    reasoningEfforts: ['low', 'medium', 'high'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: false,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
+  'o1-2024-12-17': {
+    endpoints: ['chat', 'responses'],
+    documented: false,
+    reasoningEfforts: ['low', 'medium', 'high'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: false,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
+  o3: {
+    endpoints: ['chat', 'responses'],
+    documented: false,
+    reasoningEfforts: ['low', 'medium', 'high'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
+  'o3-2025-04-16': {
+    endpoints: ['chat', 'responses'],
+    documented: false,
+    reasoningEfforts: ['low', 'medium', 'high'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
+  'o3-mini': {
+    endpoints: ['chat', 'responses'],
+    documented: false,
+    reasoningEfforts: ['low', 'medium', 'high'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
   'o3-mini-2025-01-31': {
     endpoints: ['chat', 'responses'],
-    definition: undefined,
+    documented: false,
+    reasoningEfforts: ['low', 'medium', 'high'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
   },
-  'o4-mini': { endpoints: ['chat', 'responses'], definition: undefined },
+  'o4-mini': {
+    endpoints: ['chat', 'responses'],
+    documented: false,
+    reasoningEfforts: ['low', 'medium', 'high'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
   'o4-mini-2025-04-16': {
     endpoints: ['chat', 'responses'],
-    definition: undefined,
+    documented: false,
+    reasoningEfforts: ['low', 'medium', 'high'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
   },
-  'gpt-5-pro-2025-10-06': { endpoints: ['responses'], definition: undefined },
-  'gpt-5.1-codex-max': { endpoints: ['responses'], definition: undefined },
-  'gpt-5.2-codex': { endpoints: ['responses'], definition: undefined },
-  'gpt-5.3-codex': { endpoints: ['responses'], definition: undefined },
-} as const satisfies Record<
-  string,
-  {
-    endpoints: readonly ('chat' | 'responses')[];
-    definition: OpenAILanguageModelDefinition | undefined;
-  }
->;
+  'gpt-5-pro-2025-10-06': {
+    endpoints: ['responses'],
+    documented: false,
+    reasoningEfforts: ['high'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
+  'gpt-5.1-codex-max': {
+    endpoints: ['responses'],
+    documented: false,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
+    samplingAtReasoningEffortNone: true,
+    temperature: atReasoningEffortNone,
+    topP: atReasoningEffortNone,
+    logprobs: logprobsAtReasoningEffortNoneInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
+  'gpt-5.2-codex': {
+    endpoints: ['responses'],
+    documented: false,
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh'],
+    samplingAtReasoningEffortNone: false,
+    temperature: false,
+    topP: false,
+    logprobs: logprobsNotWhileReasoningInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
+  'gpt-5.3-codex': {
+    endpoints: ['responses'],
+    documented: false,
+    reasoningEfforts: ['none', 'low', 'medium', 'high', 'xhigh'],
+    samplingAtReasoningEffortNone: true,
+    temperature: atReasoningEffortNone,
+    topP: atReasoningEffortNone,
+    logprobs: logprobsAtReasoningEffortNoneInChat,
+    asyncTools: false,
+    flexProcessing: true,
+    priorityProcessing: true,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'developer',
+  },
+  'gpt-3.5-turbo-instruct': {
+    endpoints: ['completion'],
+    documented: false,
+    reasoningEfforts: undefined,
+    samplingAtReasoningEffortNone: false,
+    temperature: true,
+    topP: true,
+    logprobs: true,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: false,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'system',
+  },
+  'gpt-3.5-turbo-instruct-0914': {
+    endpoints: ['completion'],
+    documented: false,
+    reasoningEfforts: undefined,
+    samplingAtReasoningEffortNone: false,
+    temperature: true,
+    topP: true,
+    logprobs: true,
+    asyncTools: false,
+    flexProcessing: false,
+    priorityProcessing: false,
+    configurationUpdates: false,
+    promptCacheRetention: true,
+    promptCacheOptions: false,
+    chatTemperature: true,
+    chatFunctionToolsWithReasoning: true,
+    responsesLogprobsRequireNonReasoning: false,
+    systemMessageMode: 'system',
+  },
+} as const satisfies Record<string, OpenAILanguageModelRow>;
+
+const openaiLanguageModelRows = Object.entries<OpenAILanguageModelRow>(
+  openaiModelDefinitions,
+);
+
+/** Entries for every listed model ID, documented or not. */
+const openaiListedLanguageModelEntries: Readonly<
+  Record<string, OpenAILanguageModelEntry>
+> = Object.fromEntries(
+  openaiLanguageModelRows.map(([modelId, row]) => [
+    modelId,
+    createOpenAILanguageModelEntry(row),
+  ]),
+);
 
 const openaiLanguageModelEntries: Readonly<
   Record<string, OpenAILanguageModelEntry>
 > = Object.fromEntries(
-  Object.entries(openaiLanguageModelDefinitions)
-    .filter(([, { definition }]) => definition != null)
-    .map(([modelId, { definition }]) => [
-      modelId,
-      createOpenAILanguageModelEntry(modelId, definition),
-    ]),
+  openaiLanguageModelRows
+    .filter(([, row]) => row.documented)
+    .map(([modelId]) => [modelId, openaiListedLanguageModelEntries[modelId]]),
 );
 
 function createOpenAILanguageModelEntry(
-  modelId: string,
-  definition?: OpenAILanguageModelDefinition,
+  row: OpenAILanguageModelRow,
 ): OpenAILanguageModelEntry {
-  const oSeriesVersion = getOSeriesVersion(modelId);
-  const gptVersion = getGptVersion(modelId);
-  const isRecognizedModelFamily =
-    oSeriesVersion != null ||
-    gptVersion != null ||
-    /^gpt-4o(?:-|$)/.test(modelId);
-  const isGptChatModel =
-    gptVersion?.minor == null &&
-    (gptVersion?.variant?.startsWith('chat') ?? false);
-  const isGptNanoModel = gptVersion?.variant?.startsWith('nano') ?? false;
-  const isGpt6OrLaterModel = gptVersion != null && gptVersion.major >= 6;
-  const isGpt56OrLaterModel =
-    isGpt6OrLaterModel ||
-    (gptVersion?.major === 5 && (gptVersion.minor ?? 0) >= 6);
-  // Pro, codex, and chat variants are excluded because their supported
-  // efforts are not known.
-  const isStandardGpt5Model =
-    gptVersion?.major === 5 &&
-    (gptVersion.variant == null ||
-      /^(?:(?:mini|nano|sol|luna|terra)(?:-\d{4}-\d{2}-\d{2})?|\d{4}-\d{2}-\d{2})$/.test(
-        gptVersion.variant,
-      ));
-  const supportsFlexProcessing =
-    (oSeriesVersion != null && oSeriesVersion >= 3) ||
-    (gptVersion != null && gptVersion.major >= 5 && !isGptChatModel);
-  const supportsPriorityProcessing =
-    modelId.startsWith('gpt-4') ||
-    (gptVersion != null &&
-      gptVersion.major >= 5 &&
-      !isGptNanoModel &&
-      !isGptChatModel) ||
-    (oSeriesVersion != null && oSeriesVersion >= 3);
-  const isReasoningModel =
-    oSeriesVersion != null ||
-    (gptVersion != null && gptVersion.major >= 5 && !isGptChatModel);
-  const reasoningSampling: OpenAILanguageModelEntry['capabilities']['language']['reasoning']['sampling'] =
-    definition?.capabilities?.language?.reasoning?.sampling ??
-    (!isGpt6OrLaterModel &&
-    gptVersion != null &&
-    (gptVersion.major > 5 ||
-      (gptVersion.major === 5 && (gptVersion.minor ?? 0) >= 1))
-      ? 'reasoning-effort-none'
-      : 'unsupported');
-  const sampling: OpenAILanguageModelEntry['capabilities']['language']['sampling']['temperature'] =
-    !isRecognizedModelFamily
-      ? 'unknown'
-      : !isReasoningModel
-        ? true
-        : reasoningSampling === 'reasoning-effort-none'
-          ? { condition: 'Only when reasoning effort is none.' }
-          : false;
-  const chatTemperatureSupportedWithoutReasoning =
-    !modelId.startsWith('gpt-4o-search-preview') &&
-    !modelId.startsWith('gpt-4o-mini-search-preview');
+  const documentedSupport: ModelCapability = row.documented ? true : 'unknown';
 
-  const entry: Omit<OpenAILanguageModelEntry, 'providerOptions'> = {
-    capabilities: {
-      language: {
-        inputs: definition?.capabilities?.language?.inputs ?? {
-          image: definition != null ? true : 'unknown',
-          audio: definition != null ? false : 'unknown',
-        },
-        objectGeneration:
-          definition?.capabilities?.language?.objectGeneration ??
-          (definition != null ? true : 'unknown'),
-        tools: definition?.capabilities?.language?.tools ?? {
-          usage: definition != null ? true : 'unknown',
-          streaming: definition != null ? true : 'unknown',
-          async: isGpt6OrLaterModel,
-        },
-        reasoning: {
-          support: isRecognizedModelFamily ? isReasoningModel : 'unknown',
-          efforts:
-            definition?.capabilities?.language?.reasoning?.efforts ??
-            (isGpt6OrLaterModel
-              ? ['low', 'medium', 'high', 'xhigh', 'max']
-              : isStandardGpt5Model
-                ? getGpt5ReasoningEfforts(gptVersion.minor ?? 0)
-                : undefined),
-          sampling: reasoningSampling,
-        },
-        sampling: {
-          temperature: chatTemperatureSupportedWithoutReasoning
-            ? sampling
-            : {
-                condition:
-                  'Not supported by Chat Completions search preview models.',
-              },
-          topP: sampling,
-          logprobs:
-            isReasoningModel && !isGpt6OrLaterModel
-              ? {
-                  condition:
-                    reasoningSampling === 'reasoning-effort-none'
-                      ? 'Chat Completions requires reasoning effort none; Responses support is model-dependent.'
-                      : 'Not supported by Chat Completions while reasoning; Responses support is model-dependent.',
-                }
-              : sampling,
-        },
-        serviceTiers: {
-          flex: supportsFlexProcessing,
-          priority: supportsPriorityProcessing,
-        },
-        configurationUpdates: isGpt6OrLaterModel,
-        promptCache: {
-          retention: !isGpt6OrLaterModel,
-          // Prompt cache options are documented for GPT-5.6 and later.
-          options: isRecognizedModelFamily ? isGpt56OrLaterModel : 'unknown',
-        },
-        endpoints: {
-          chat: {
-            temperatureWithoutReasoning:
-              chatTemperatureSupportedWithoutReasoning,
-            // GPT-5.6 rejects function tools with reasoning in Chat Completions.
-            functionToolsWithReasoning: !(
-              gptVersion?.major === 5 && (gptVersion.minor ?? 0) >= 6
-            ),
+  return withProviderOptions(
+    {
+      capabilities: {
+        language: {
+          inputs: {
+            image: documentedSupport,
+            audio: row.documented ? false : 'unknown',
           },
-          responses: {
-            logprobsRequireNonReasoning: isGpt6OrLaterModel,
+          objectGeneration: row.objectGeneration ?? documentedSupport,
+          tools: {
+            usage: row.tools?.usage ?? documentedSupport,
+            streaming: row.tools?.streaming ?? documentedSupport,
+            async: row.asyncTools,
+          },
+          reasoning: {
+            support: row.reasoningEfforts != null,
+            efforts: row.reasoningEfforts,
+            sampling: row.samplingAtReasoningEffortNone
+              ? 'reasoning-effort-none'
+              : 'unsupported',
+          },
+          sampling: {
+            temperature: row.temperature,
+            topP: row.topP,
+            logprobs: row.logprobs,
+          },
+          serviceTiers: {
+            flex: row.flexProcessing,
+            priority: row.priorityProcessing,
+          },
+          configurationUpdates: row.configurationUpdates,
+          promptCache: {
+            retention: row.promptCacheRetention,
+            options: row.promptCacheOptions,
+          },
+          endpoints: {
+            chat: {
+              temperatureWithoutReasoning: row.chatTemperature,
+              functionToolsWithReasoning: row.chatFunctionToolsWithReasoning,
+            },
+            responses: {
+              logprobsRequireNonReasoning:
+                row.responsesLogprobsRequireNonReasoning,
+            },
           },
         },
       },
-    },
-    requestConfig: {
-      language: {
-        systemMessageMode:
-          definition?.requestConfig?.language?.systemMessageMode ??
-          (isReasoningModel ? 'developer' : 'system'),
+      requestConfig: {
+        language: { systemMessageMode: row.systemMessageMode },
       },
     },
-  };
+    documentedSupport,
+  );
+}
 
-  // Options default to supported; exceptions reuse capabilities declared above.
+/**
+ * Generic rows for model IDs that are not in the matrix. A row cannot vary by
+ * model ID, so each one holds the most broadly compatible values.
+ *
+ * `unknownModel` is used for fine-tunes, custom deployments, and any other ID.
+ * Nothing is assumed about the model: requests use the standard format and
+ * model-specific request features are omitted with a warning.
+ */
+const unknownModel: OpenAILanguageModelRow = {
+  endpoints: [],
+  documented: false,
+  reasoningEfforts: undefined,
+  samplingAtReasoningEffortNone: false,
+  temperature: 'unknown',
+  topP: 'unknown',
+  logprobs: 'unknown',
+  asyncTools: false,
+  flexProcessing: false,
+  priorityProcessing: false,
+  configurationUpdates: false,
+  promptCacheRetention: true,
+  promptCacheOptions: false,
+  chatTemperature: true,
+  chatFunctionToolsWithReasoning: true,
+  responsesLogprobsRequireNonReasoning: false,
+  systemMessageMode: 'system',
+};
+
+/**
+ * `unknownReasoningModel` is used for new OpenAI reasoning models that are not
+ * listed yet. It has the capabilities of the newest listed reasoning models.
+ */
+const unknownReasoningModel: OpenAILanguageModelRow = {
+  endpoints: [],
+  documented: false,
+  reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+  samplingAtReasoningEffortNone: false,
+  temperature: false,
+  topP: false,
+  logprobs: false,
+  asyncTools: true,
+  flexProcessing: true,
+  priorityProcessing: true,
+  configurationUpdates: true,
+  promptCacheRetention: false,
+  promptCacheOptions: true,
+  chatTemperature: true,
+  chatFunctionToolsWithReasoning: true,
+  responsesLogprobsRequireNonReasoning: true,
+  systemMessageMode: 'developer',
+};
+
+const unknownReasoningModelEntry = createOpenAILanguageModelEntry(
+  unknownReasoningModel,
+);
+const unknownModelEntry = createOpenAILanguageModelEntry(unknownModel);
+
+/**
+ * The only capability decision made from a model ID: whether an unlisted ID is
+ * an OpenAI reasoning model (o-series, or GPT-5 and later except the GPT-5 chat
+ * models). Reasoning models need a different request format, so new OpenAI
+ * models keep working before they are added to the matrix.
+ */
+function isUnlistedReasoningModelId(modelId: string): boolean {
+  if (/^o\d+(?:-|$)/.test(modelId)) return true;
+
+  const gpt = /^gpt-(\d+)(\.\d+)?(?:-(.+))?$/.exec(modelId);
+  return (
+    gpt != null &&
+    Number(gpt[1]) >= 5 &&
+    !(gpt[2] == null && (gpt[3]?.startsWith('chat') ?? false))
+  );
+}
+
+/**
+ * Declares per-option support. Options default to `support`; exceptions reuse
+ * the entry's capabilities.
+ */
+function withProviderOptions(
+  entry: Omit<OpenAILanguageModelEntry, 'providerOptions'>,
+  support: ModelCapability,
+): OpenAILanguageModelEntry {
   const { language } = entry.capabilities;
   return {
     ...entry,
     providerOptions: {
       language: declareProviderOptions(
         openaiProviderOptions.language,
-        definition != null ? true : 'unknown',
+        support,
         {
           logprobs: language.sampling.logprobs,
           maxToolCalls: language.tools.usage,
@@ -498,44 +1885,6 @@ function declareProviderOptions<Option extends string>(
       exceptions[option] ?? support,
     ]),
   ) as Record<Option, ModelCapability>;
-}
-
-function getGpt5ReasoningEfforts(minor: number): readonly string[] {
-  if (minor === 0) {
-    return ['minimal', 'low', 'medium', 'high'];
-  }
-
-  if (minor === 1) {
-    return ['none', 'low', 'medium', 'high'];
-  }
-
-  if (minor < 6) {
-    return ['none', 'low', 'medium', 'high', 'xhigh'];
-  }
-
-  return ['none', 'low', 'medium', 'high', 'xhigh', 'max'];
-}
-
-function getOSeriesVersion(modelId: string): number | undefined {
-  const match = /^o(\d+)(?:-|$)/.exec(modelId);
-  return match == null ? undefined : Number(match[1]);
-}
-
-function getGptVersion(modelId: string):
-  | {
-      major: number;
-      minor: number | undefined;
-      variant: string | undefined;
-    }
-  | undefined {
-  const match = /^gpt-(\d+)(?:\.(\d+))?(?:-(.+))?$/.exec(modelId);
-  return match == null
-    ? undefined
-    : {
-        major: Number(match[1]),
-        minor: match[2] == null ? undefined : Number(match[2]),
-        variant: match[3],
-      };
 }
 
 type OperationModelEntry<Section extends keyof ModelCapabilities> = {
@@ -586,31 +1935,95 @@ const customImageSizes = {
   description: 'Standard presets and custom dimensions',
 };
 
-function createGptImageEntry(
-  sizes: NonNullable<ModelCapabilities['image']>['sizes'],
-): OpenAIImageModelEntry {
-  return {
+const openaiImageModelEntries = {
+  'gpt-image-2.6-flare': {
     capabilities: {
       image: {
-        sizes,
+        sizes: customImageSizes,
         fileInput: true,
         maskInput: true,
         maxImagesPerCall: 10,
       },
     },
     requestConfig: { image: { responseFormat: 'provider-default' } },
-  };
-}
-
-const openaiImageModelEntries = {
-  'gpt-image-2.6-flare': createGptImageEntry(customImageSizes),
-  'gpt-image-2.6-sunburst': createGptImageEntry(customImageSizes),
-  'gpt-image-2.5-flare': createGptImageEntry(customImageSizes),
-  'gpt-image-2.5-sunburst': createGptImageEntry(customImageSizes),
-  'gpt-image-2': createGptImageEntry(gptImageSizes),
-  'gpt-image-1.5': createGptImageEntry(gptImageSizes),
-  'gpt-image-1-mini': createGptImageEntry(gptImageSizes),
-  'gpt-image-1': createGptImageEntry(gptImageSizes),
+  },
+  'gpt-image-2.6-sunburst': {
+    capabilities: {
+      image: {
+        sizes: customImageSizes,
+        fileInput: true,
+        maskInput: true,
+        maxImagesPerCall: 10,
+      },
+    },
+    requestConfig: { image: { responseFormat: 'provider-default' } },
+  },
+  'gpt-image-2.5-flare': {
+    capabilities: {
+      image: {
+        sizes: customImageSizes,
+        fileInput: true,
+        maskInput: true,
+        maxImagesPerCall: 10,
+      },
+    },
+    requestConfig: { image: { responseFormat: 'provider-default' } },
+  },
+  'gpt-image-2.5-sunburst': {
+    capabilities: {
+      image: {
+        sizes: customImageSizes,
+        fileInput: true,
+        maskInput: true,
+        maxImagesPerCall: 10,
+      },
+    },
+    requestConfig: { image: { responseFormat: 'provider-default' } },
+  },
+  'gpt-image-2': {
+    capabilities: {
+      image: {
+        sizes: gptImageSizes,
+        fileInput: true,
+        maskInput: true,
+        maxImagesPerCall: 10,
+      },
+    },
+    requestConfig: { image: { responseFormat: 'provider-default' } },
+  },
+  'gpt-image-1.5': {
+    capabilities: {
+      image: {
+        sizes: gptImageSizes,
+        fileInput: true,
+        maskInput: true,
+        maxImagesPerCall: 10,
+      },
+    },
+    requestConfig: { image: { responseFormat: 'provider-default' } },
+  },
+  'gpt-image-1-mini': {
+    capabilities: {
+      image: {
+        sizes: gptImageSizes,
+        fileInput: true,
+        maskInput: true,
+        maxImagesPerCall: 10,
+      },
+    },
+    requestConfig: { image: { responseFormat: 'provider-default' } },
+  },
+  'gpt-image-1': {
+    capabilities: {
+      image: {
+        sizes: gptImageSizes,
+        fileInput: true,
+        maskInput: true,
+        maxImagesPerCall: 10,
+      },
+    },
+    requestConfig: { image: { responseFormat: 'provider-default' } },
+  },
   'dall-e-3': {
     capabilities: {
       image: {
@@ -640,7 +2053,17 @@ const imageModelAliases = {
     openaiImageModelEntries['gpt-image-2.5-flare'],
   'gpt-image-2.5-sunburst-2026-09-08':
     openaiImageModelEntries['gpt-image-2.5-sunburst'],
-  'chatgpt-image-latest': createGptImageEntry({ description: 'Unknown' }),
+  'chatgpt-image-latest': {
+    capabilities: {
+      image: {
+        sizes: { description: 'Unknown' },
+        fileInput: true,
+        maskInput: true,
+        maxImagesPerCall: 10,
+      },
+    },
+    requestConfig: { image: { responseFormat: 'provider-default' } },
+  },
 } satisfies Readonly<Record<string, OpenAIImageModelEntry>>;
 
 function resolveOpenAIImageModelEntry(modelId: string): OpenAIImageModelEntry {
@@ -998,16 +2421,20 @@ function findModelEntry(modelId: string): OpenAIModelEntry | undefined {
 export function getOpenAILanguageModelEntry(
   modelId: string,
 ): OpenAILanguageModelEntry {
-  const entry = findModelEntry(modelId);
-  return entry?.capabilities.language != null &&
-    entry.providerOptions?.language != null &&
-    entry.requestConfig?.language != null
-    ? {
-        capabilities: { language: entry.capabilities.language },
-        providerOptions: { language: entry.providerOptions.language },
-        requestConfig: { language: entry.requestConfig.language },
-      }
-    : createOpenAILanguageModelEntry(modelId);
+  // A dated snapshot of a listed model uses that model's row.
+  const baseModelId = modelId.replace(/-\d{4}-\d{2}-\d{2}$/, '');
+
+  for (const id of [modelId, baseModelId]) {
+    if (
+      Object.prototype.hasOwnProperty.call(openaiListedLanguageModelEntries, id)
+    ) {
+      return openaiListedLanguageModelEntries[id];
+    }
+  }
+
+  return isUnlistedReasoningModelId(modelId)
+    ? unknownReasoningModelEntry
+    : unknownModelEntry;
 }
 
 export function getOpenAIImageModelEntry(
@@ -1089,16 +2516,20 @@ export function getOpenAILanguageModelCapabilities(
   };
 }
 
-type OpenAIEndpointModelId<Endpoint extends 'chat' | 'responses'> = {
-  [ModelId in keyof typeof openaiLanguageModelDefinitions]: Endpoint extends (typeof openaiLanguageModelDefinitions)[ModelId]['endpoints'][number]
+type OpenAIEndpointModelId<
+  Endpoint extends 'chat' | 'responses' | 'completion' | 'decision',
+> = {
+  [ModelId in keyof typeof openaiModelDefinitions]: Endpoint extends (typeof openaiModelDefinitions)[ModelId]['endpoints'][number]
     ? ModelId
     : never;
-}[keyof typeof openaiLanguageModelDefinitions];
+}[keyof typeof openaiModelDefinitions];
 
 /** Known model IDs, derived from the declarations used to build the catalog. */
 export type OpenAIModelIds = {
   chat: OpenAIEndpointModelId<'chat'>;
   responses: OpenAIEndpointModelId<'responses'>;
+  completion: OpenAIEndpointModelId<'completion'>;
+  decision: OpenAIEndpointModelId<'decision'>;
   embedding: keyof typeof openaiEmbeddingModelEntries;
   image: keyof typeof openaiImageModelEntries | keyof typeof imageModelAliases;
   transcription: keyof typeof openaiTranscriptionModelEntries;

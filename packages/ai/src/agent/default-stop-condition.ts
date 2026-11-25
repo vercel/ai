@@ -1,4 +1,5 @@
-import { logWarnings } from '../logger/log-warnings';
+import { createLogWarnings } from '../logger/create-log-warnings';
+import type { LogWarningsFunction } from '../logger/log-warnings';
 import type { StopCondition } from '../generate-text/stop-condition';
 
 /**
@@ -8,12 +9,14 @@ export function logDefaultStopConditionWarning({
   stepCount,
   provider,
   modelId,
+  onWarning,
 }: {
   stepCount: number;
   provider: string;
   modelId: string;
+  onWarning?: LogWarningsFunction;
 }): void {
-  logWarnings({
+  createLogWarnings(onWarning)({
     provider,
     model: modelId,
     warnings: [
@@ -34,6 +37,7 @@ export function logDefaultStopConditionWarning({
  */
 export function createDefaultStopCondition(
   stepCount: number,
+  onWarning?: LogWarningsFunction,
 ): StopCondition<any, any> {
   return ({ steps }) => {
     if (steps.length !== stepCount) {
@@ -41,7 +45,12 @@ export function createDefaultStopCondition(
     }
 
     const { provider, modelId } = steps[steps.length - 1].model;
-    logDefaultStopConditionWarning({ stepCount, provider, modelId });
+    logDefaultStopConditionWarning({
+      stepCount,
+      provider,
+      modelId,
+      onWarning,
+    });
 
     return true;
   };
