@@ -1032,4 +1032,36 @@ console.log(text);`,
     websiteUrl: 'https://upstash.com',
     npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
   },
+  {
+    slug: 'dchub',
+    name: 'DC Hub',
+    description:
+      'DC Hub is the orchestration layer for data center and energy intelligence. Start with execute_plan for one dated, cited answer on power, grid conditions, interconnection queues, fiber, facilities and site selection, including the Data Center Power Index (DCPI).',
+    packageName: 'dchub',
+    tags: ['mcp', 'energy', 'data-center', 'grid'],
+    apiKeyEnvName: 'DCHUB_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add dchub ai',
+      npm: 'npm install dchub ai',
+      yarn: 'yarn add dchub ai',
+      bun: 'bun add dchub ai',
+    },
+    codeExample: `import { generateText, stepCountIs } from 'ai';
+import { dchubTools } from 'dchub/ai-sdk';
+
+const tools = await dchubTools(); // DCHUB_API_KEY is optional
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Use DC Hub execute_plan: how long is time-to-power for 100 MW in PJM?',
+  tools,
+  stopWhen: stepCountIs(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://dchub.cloud/docs/ai-sdk',
+    apiKeyUrl: 'https://dchub.cloud/developers',
+    websiteUrl: 'https://dchub.cloud',
+    npmUrl: 'https://www.npmjs.com/package/dchub',
+  },
 ];
