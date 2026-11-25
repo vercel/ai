@@ -1,7 +1,7 @@
 import { withDurableHarnessAgent } from '@ai-sdk/harness/next';
 import type { NextConfig } from 'next';
 
-const nextConfig: NextConfig = {
+const nextConfig = {
   agentRules: false,
   /*
    * Kept as runtime node_modules: the Worlds must be one module instance per
@@ -18,6 +18,6 @@ const nextConfig: NextConfig = {
     '@earendil-works/pi-coding-agent',
     'libfx',
   ],
-};
+} satisfies NextConfig;
 
 export default withDurableHarnessAgent(nextConfig);
