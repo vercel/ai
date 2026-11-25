@@ -369,11 +369,11 @@ describe('prepareGoogleInteractionsTools', () => {
 
     it('omits short_description when the tool does not provide one', () => {
       const result = prepareGoogleInteractionsTools({
-        tools: [deferredTool('getWeather')],
+        tools: [TOOL_SEARCH, deferredTool('getWeather')],
       });
 
-      expect(result.tools?.[0]).not.toHaveProperty('short_description');
-      expect(result.tools?.[0]).toMatchObject({ defer_loading: true });
+      expect(result.tools?.[1]).not.toHaveProperty('short_description');
+      expect(result.tools?.[1]).toMatchObject({ defer_loading: true });
     });
 
     it('leaves tools without deferLoading untouched', () => {
@@ -440,6 +440,45 @@ describe('prepareGoogleInteractionsTools', () => {
           defer_loading: true,
         },
       ]);
+    });
+
+    it('declares deferred tools in full when the tool search tool is not registered', () => {
+      const result = prepareGoogleInteractionsTools({
+        tools: [deferredTool('getWeather', 'Weather by city.')],
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'function',
+          name: 'getWeather',
+          description: FUNCTION_TOOL.description,
+          parameters: FUNCTION_TOOL.inputSchema,
+        },
+      ]);
+      expect(result.toolWarnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "deferLoading on tool getWeather requires googleTools.toolSearch() to be registered; the tool is declared in full.",
+            "feature": "deferLoading on tool getWeather",
+            "type": "unsupported",
+          },
+        ]
+      `);
+    });
+
+    it('does not defer an MCP server without the tool search tool', () => {
+      const result = prepareGoogleInteractionsTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'google.mcp_server',
+            name: 'mcp_server',
+            args: { name: 'docs', deferLoading: true },
+          },
+        ],
+      });
+
+      expect(result.tools?.[0]).not.toHaveProperty('defer_loading');
     });
 
     it('defers every tool an MCP server exposes', () => {

@@ -82,19 +82,34 @@ export function prepareGoogleInteractionsTools({
     isForcedToolChoice ||
     (toolChoice?.type === 'tool' && toolChoice.toolName === toolName);
 
+  /*
+   * The API rejects `defer_loading` without a `tool_search` tool to resolve it
+   * -- nothing would ever load the held-back schema. Declare those tools in
+   * full instead of sending a request that cannot succeed.
+   */
+  const hasToolSearch =
+    !isForcedToolChoice &&
+    normalized.some(
+      tool => tool.type === 'provider' && tool.id === 'google.tool_search',
+    );
+
   for (const tool of normalized) {
     if (tool.type === 'function') {
       const googleOptions = tool.providerOptions?.google as
         | { deferLoading?: boolean; shortDescription?: string }
         | undefined;
       const deferLoading =
-        googleOptions?.deferLoading === true && !isForced(tool.name);
+        googleOptions?.deferLoading === true &&
+        !isForced(tool.name) &&
+        hasToolSearch;
 
       if (googleOptions?.deferLoading === true && !deferLoading) {
         toolWarnings.push({
           type: 'unsupported',
           feature: `deferLoading on tool ${tool.name}`,
-          details: `tool ${tool.name} is forced by toolChoice, so it cannot wait for tool retrieval; the tool is declared in full.`,
+          details: isForced(tool.name)
+            ? `tool ${tool.name} is forced by toolChoice, so it cannot wait for tool retrieval; the tool is declared in full.`
+            : `deferLoading on tool ${tool.name} requires googleTools.toolSearch() to be registered; the tool is declared in full.`,
         });
       }
 
@@ -201,7 +216,7 @@ export function prepareGoogleInteractionsTools({
             ...(args.allowedTools != null
               ? { allowed_tools: args.allowedTools as Array<unknown> }
               : {}),
-            ...(args.deferLoading === true && !isForcedToolChoice
+            ...(args.deferLoading === true && hasToolSearch
               ? { defer_loading: true }
               : {}),
           });
