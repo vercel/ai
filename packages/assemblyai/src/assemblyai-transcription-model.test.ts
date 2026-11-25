@@ -749,4 +749,58 @@ describe('doGenerate', () => {
     expect(result.response.timestamp.getTime()).toEqual(testDate.getTime());
     expect(result.response.modelId).toBe('assemblyai-stt-3-7');
   });
+
+  it.each([
+    { transcriptId: '.', encodedTranscriptId: '%252E' },
+    { transcriptId: '..', encodedTranscriptId: '%252E%252E' },
+    {
+      transcriptId: 'tr/123?foo=bar#baz',
+      encodedTranscriptId: 'tr%2F123%3Ffoo%3Dbar%23baz',
+    },
+  ])(
+    'encodes transcriptId $transcriptId in polling URL',
+    async ({ transcriptId, encodedTranscriptId }) => {
+      const requestedUrls: string[] = [];
+      const customModel = new AssemblyAITranscriptionModel(
+        'assemblyai-stt-3-7',
+        {
+          provider: 'test-provider',
+          url: ({ path }) => `https://api.assemblyai.com${path}`,
+          headers: () => ({}),
+          pollingInterval: 1,
+          fetch: async url => {
+            const urlStr = String(url);
+            requestedUrls.push(urlStr);
+
+            if (urlStr.endsWith('/v2/upload')) {
+              return Response.json({
+                upload_url: 'https://storage.assemblyai.com/mock-upload-url',
+              });
+            }
+            if (urlStr.endsWith('/v2/transcript')) {
+              return Response.json({
+                id: transcriptId,
+                status: 'queued',
+              });
+            }
+            return Response.json({
+              id: transcriptId,
+              status: 'completed',
+              text: 'Hello, world!',
+              words: [],
+            });
+          },
+        },
+      );
+
+      await customModel.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      expect(requestedUrls).toContain(
+        `https://api.assemblyai.com/v2/transcript/${encodedTranscriptId}`,
+      );
+    },
+  );
 });

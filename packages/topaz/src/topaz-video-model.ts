@@ -15,6 +15,7 @@ import {
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
+  encodePathSegment,
   fetchWithValidatedEndpoint,
   getFromApi,
   parseProviderOptions,
@@ -237,7 +238,7 @@ export class TopazVideoModel implements VideoModelV4 {
     };
 
     const { value: status, responseHeaders } = await getFromApi({
-      url: `${this.config.baseURL}/video/${requestId}/status`,
+      url: `${this.config.baseURL}/video/${encodePathSegment(requestId)}/status`,
       // Built from the configured baseURL, not from response data.
       validateUrl: false,
       headers: combineHeaders(
@@ -500,10 +501,13 @@ export class TopazVideoModel implements VideoModelV4 {
     try {
       // Deliberately not tied to the caller's abort signal, which may be the
       // reason the start failed.
-      await fetchImpl(`${this.config.baseURL}/video/${requestId}`, {
-        method: 'DELETE',
-        headers: removeUndefinedEntries(headers),
-      });
+      await fetchImpl(
+        `${this.config.baseURL}/video/${encodePathSegment(requestId)}`,
+        {
+          method: 'DELETE',
+          headers: removeUndefinedEntries(headers),
+        },
+      );
     } catch {
       // Best effort: the original error is more useful to the caller.
     }

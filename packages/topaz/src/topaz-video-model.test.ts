@@ -1009,5 +1009,39 @@ describe('TopazVideoModel', () => {
 
       expect(result.status).toBe('pending');
     });
+
+    it.each([
+      { requestId: '.', encodedRequestId: '%252E' },
+      { requestId: '..', encodedRequestId: '%252E%252E' },
+      {
+        requestId: 'req/123?foo=bar#baz',
+        encodedRequestId: 'req%2F123%3Ffoo%3Dbar%23baz',
+      },
+    ])(
+      'encodes requestId $requestId in doStatus URL',
+      async ({ requestId, encodedRequestId }) => {
+        const requestedUrls: string[] = [];
+        const customModel = new TopazVideoModel('prob-4', {
+          provider: 'topaz.video',
+          baseURL: TEST_BASE_URL,
+          headers: () => ({ 'X-API-Key': 'test-key' }),
+          fetch: async url => {
+            requestedUrls.push(String(url));
+            return Response.json({
+              status: 'complete',
+              download: { url: DOWNLOAD_URL },
+            });
+          },
+        });
+
+        await customModel.doStatus({
+          operation: { requestId, outputContainer: 'mp4' },
+        });
+
+        expect(requestedUrls).toEqual([
+          `${TEST_BASE_URL}/video/${encodedRequestId}/status`,
+        ]);
+      },
+    );
   });
 });
