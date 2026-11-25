@@ -28,7 +28,7 @@ async function main() {
       const { output } = toolResult;
       if ('error' in output) continue;
 
-      for (const item of output.contents) {
+      for (const item of output.contents ?? []) {
         console.log(
           `${item.source_url}: ${item.delivery}, ${item.total_rows ?? 0} rows`,
         );

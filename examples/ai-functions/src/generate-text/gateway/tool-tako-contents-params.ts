@@ -1,5 +1,6 @@
 import { writeFile } from 'node:fs/promises';
 import { gateway, generateText, isStepCount } from 'ai';
+import { guardedFetch } from 'guarded-fetch';
 import 'dotenv/config';
 
 async function main() {
@@ -22,7 +23,7 @@ async function main() {
 
   for (const step of result.steps) {
     for (const part of step.content) {
-      // A call whose price is above maxCostUsd fails here with the quoted price.
+      // A call quoted above maxCostUsd fails here; the error may include the quote.
       if (part.type === 'tool-error') console.error('Tool error:', part.error);
     }
     for (const toolResult of step.toolResults) {
@@ -33,10 +34,19 @@ async function main() {
       const { output } = toolResult;
       if ('error' in output) continue;
 
-      for (const item of output.contents) {
+      for (const item of output.contents ?? []) {
         if (item.delivery !== 'url' || !item.url) continue;
 
-        const response = await fetch(item.url);
+        // The link comes from a tool result, so fetch it as untrusted input.
+        const response = await guardedFetch(item.url, {
+          httpsOnly: true,
+          timeoutMs: 30_000,
+        });
+        if (!response.ok) {
+          await response.body?.cancel();
+          console.error(`Download failed with HTTP ${response.status}`);
+          continue;
+        }
         const path = `tako-${output.request_id}.csv`;
         await writeFile(path, await response.text());
         console.log(
