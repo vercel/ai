@@ -95,20 +95,37 @@
       "dependsOn": ["^build"],
       "tags": ["ci"]
     },
+    // Runs on whatever Node.js you have. CI runs the `test:node*` tasks instead.
     "test": {
-      "dependsOn": ["^build", "build"],
-      "tags": ["ci"]
+      "dependsOn": ["^build", "build"]
     },
-    // `test` on other Node.js versions. Vercel CI runs every task on Node.js 24,
-    // so these tasks run `test` through tools/with-node.mjs.
+    // `test` on each supported Node.js version, pinned in tools/node-<major>.
+    // Package overrides of `test` must be mirrored on these tasks.
     "test:node22": {
       "dependsOn": ["^build", "build"],
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tools/with-node.mjs"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/tools/with-node.mjs",
+        "$TURBO_ROOT$/tools/node-22/package.json"
+      ],
+      "tags": ["ci"]
+    },
+    "test:node24": {
+      "dependsOn": ["^build", "build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/tools/with-node.mjs",
+        "$TURBO_ROOT$/tools/node-24/package.json"
+      ],
       "tags": ["ci"]
     },
     "test:node26": {
       "dependsOn": ["^build", "build"],
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tools/with-node.mjs"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/tools/with-node.mjs",
+        "$TURBO_ROOT$/tools/node-26/package.json"
+      ],
       "tags": ["ci"]
     },
     "test:browser": {

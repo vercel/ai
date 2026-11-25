@@ -1,5 +1,5 @@
 # Vercel CI runs every task tagged `ci` in turbo.json on Linux, including
-# `test:node22` and `test:node26` for other Node.js versions.
+# `test:node22`, `test:node24` and `test:node26`.
 # This workflow covers what Vercel CI can't: Windows.
 name: CI
 

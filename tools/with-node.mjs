@@ -3,14 +3,16 @@
 //
 // Usage: node tools/with-node.mjs <major> <command> [...args]
 //
-// Vercel CI runs every task on one Node.js version. The `test:node22` and
-// `test:node26` tasks use this script to run a package's tests on other
-// versions. pnpm downloads the requested Node.js runtime on first use.
+// Vercel CI runs every task on its image's Node.js. The `test:node22`,
+// `test:node24` and `test:node26` tasks use this script to run a package's
+// tests on a pinned version instead. Each version is installed by
+// `pnpm install` through the `devEngines.runtime` field of tools/node-<major>.
 
 import { execFileSync, spawn } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { availableParallelism } from 'node:os';
-import { delimiter } from 'node:path';
+import { delimiter, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const [major, command, ...args] = process.argv.slice(2);
 
@@ -19,21 +21,16 @@ if (!/^\d+$/.test(major ?? '') || command == null) {
   process.exit(1);
 }
 
-const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
+const nodeBinDir = fileURLToPath(
+  new URL(`./node-${major}/node_modules/.bin`, import.meta.url),
+);
 
-const nodeBinDir = execFileSync(
-  pnpm,
-  [
-    'dlx',
-    `node@runtime:${major}`,
-    '-p',
-    'require("node:path").dirname(process.execPath)',
-  ],
-  { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] },
-)
-  .trim()
-  .split('\n')
-  .at(-1);
+if (!existsSync(join(nodeBinDir, 'node'))) {
+  console.error(
+    `Node.js ${major} isn't installed in ${nodeBinDir}. Add a tools/node-${major} package and run \`pnpm install\`.`,
+  );
+  process.exit(1);
+}
 
 const env = {
   ...process.env,
@@ -50,13 +47,8 @@ if (!version.startsWith(`v${major}.`)) {
   process.exit(1);
 }
 
-let cpuQuota = '';
-try {
-  cpuQuota = `, cgroup cpu.max ${readFileSync('/sys/fs/cgroup/cpu.max', 'utf8').trim()}`;
-} catch {}
-
 console.log(
-  `Running with Node.js ${version} (${availableParallelism()} CPUs${cpuQuota}): ${[command, ...args].join(' ')}`,
+  `Running with Node.js ${version} (${availableParallelism()} CPUs): ${[command, ...args].join(' ')}`,
 );
 
 const child = spawn(command, args, {

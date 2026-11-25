@@ -30,6 +30,7 @@
     "type-check": "tsc --noEmit",
     "test": "pnpm test:node && pnpm test:edge",
     "test:node22": "node ../../tools/with-node.mjs 22 pnpm test",
+    "test:node24": "node ../../tools/with-node.mjs 24 pnpm test",
     "test:node26": "node ../../tools/with-node.mjs 26 pnpm test",
     "test:update": "pnpm test:node -u",
     "test:watch": "vitest --config vitest.node.config.js",

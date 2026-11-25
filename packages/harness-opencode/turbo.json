@@ -11,6 +11,9 @@
     "test:node22": {
       "dependsOn": ["build"]
     },
+    "test:node24": {
+      "dependsOn": ["build"]
+    },
     "test:node26": {
       "dependsOn": ["build"]
     }
