@@ -1,5 +1,16 @@
 # @ai-sdk/google
 
+## 2.0.114
+
+### Patch Changes
+
+- e1b69ce: fix(google): remove the file processing early access model IDs from the model ID suggestions
+
+  File slicing works with the regular Gemini 3 and Gemini 4 model IDs, such as `gemini-4-carbon`. Other model IDs can still be passed as strings.
+
+- Updated dependencies [d4deb3b]
+  - @ai-sdk/provider-utils@3.0.47
+
 ## 2.0.113
 
 ### Patch Changes
