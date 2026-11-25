@@ -3,7 +3,7 @@ import {
   type JSONValue,
   type SerializableValue,
 } from '@ai-sdk/provider';
-import { getErrorMessage } from '@ai-sdk/provider-utils';
+import { getErrorMessage, type ToolSet } from '@ai-sdk/provider-utils';
 import { NoSuchToolError } from 'ai';
 import { HarnessEffectError } from '../../../errors/harness-effect-error';
 import type { HarnessV2BuiltinToolSet } from '../../../v2/harness-v2-builtin-tool';
@@ -17,6 +17,7 @@ import type {
   HarnessV2EffectOutput,
 } from '../../../v2/harness-v2-effect';
 import { isPlainJSONValue } from './utils';
+import { isDynamicToolCall } from './create-execute-tool-functions';
 import type {
   HarnessAgentEffectContext,
   HarnessAgentEffectFunction,
@@ -221,6 +222,11 @@ export function createGateBuiltinToolFunction(options: {
   log: HarnessAgentLog;
 
   /**
+   * The agent's tools.
+   */
+  tools: ToolSet;
+
+  /**
    * The harness's built-in tools.
    */
   builtinTools: HarnessV2BuiltinToolSet;
@@ -235,7 +241,7 @@ export function createGateBuiltinToolFunction(options: {
    */
   abortSignal: AbortSignal;
 }): HarnessAgentGateBuiltinToolFunction {
-  const { log, builtinTools, effect, abortSignal } = options;
+  const { log, tools, builtinTools, effect, abortSignal } = options;
 
   /**
    * Records a call to a tool that is not a built-in tool as an `error` effect
@@ -272,15 +278,23 @@ export function createGateBuiltinToolFunction(options: {
           availableTools: Object.keys(builtinTools),
         });
         if (!context.abortSignal.aborted) {
-          context.emit({
-            type: 'tool-error',
+          const toolCallFields = {
             toolCallId,
             toolName,
             input,
-            error: getErrorMessage(error),
-            dynamic: true,
             providerExecuted: true,
-          });
+          };
+          const message = getErrorMessage(error);
+          context.emit(
+            isDynamicToolCall({ toolName, tools, builtinTools })
+              ? {
+                  type: 'tool-error',
+                  ...toolCallFields,
+                  error: message,
+                  dynamic: true,
+                }
+              : { type: 'tool-error', ...toolCallFields, error: message },
+          );
         }
         throw error;
       },
@@ -324,14 +338,13 @@ export function createGateBuiltinToolFunction(options: {
   }): Promise<HarnessV2ToolGateOutput> {
     const { toolCallId, toolName, input, tool } = options;
     /*
-     * Built-in tools are executed by the harness runtime and are not part of
-     * the agent's tool set, so their calls are dynamic and provider-executed.
+     * Built-in tools are executed by the harness runtime, so their calls are
+     * provider-executed.
      */
     const toolCallFields = {
       toolCallId,
       toolName,
       input,
-      dynamic: true as const,
       providerExecuted: true,
     };
     const reports: GateReport[] = [];

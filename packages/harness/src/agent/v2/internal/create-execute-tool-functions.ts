@@ -257,6 +257,36 @@ function validateBuiltinToolValue(options: {
 }
 
 /**
+ * Returns whether a tool call is dynamic, matching its translated `tool-call`
+ * part: its tool is neither one of the agent's tools nor one of the harness's
+ * built-in tools (e.g. an MCP tool), or it is a dynamic tool.
+ */
+export function isDynamicToolCall(options: {
+  /**
+   * Name of the called tool.
+   */
+  toolName: string;
+
+  /**
+   * The agent's tools.
+   */
+  tools: ToolSet;
+
+  /**
+   * The harness's built-in tools.
+   */
+  builtinTools: HarnessV2BuiltinToolSet;
+}): boolean {
+  const { toolName, tools, builtinTools } = options;
+  const tool = Object.hasOwn(tools, toolName)
+    ? tools[toolName]
+    : Object.hasOwn(builtinTools, toolName)
+      ? builtinTools[toolName]
+      : undefined;
+  return tool == null || tool.type === 'dynamic';
+}
+
+/**
  * Returns the error message of a failed attempt for its `tool-error` part, or
  * `undefined` if the attempt was aborted or the drive state is invalid, which
  * are not tool failures and emit no part. A `HarnessCancellationError` keeps
@@ -638,10 +668,9 @@ export function createExecuteToolFunctions(options: {
     context: HarnessAgentEffectContext;
   }): AsyncGenerator<SerializableValue> {
     const { toolCallId, toolName, toolInput, tool, context } = options;
-    const toolCallFields =
-      tool == null || isProviderExecuted(tool) || tool.type === 'dynamic'
-        ? { toolCallId, toolName, input: toolInput, dynamic: true as const }
-        : { toolCallId, toolName, input: toolInput };
+    const toolCallFields = isDynamicToolCall({ toolName, tools, builtinTools })
+      ? { toolCallId, toolName, input: toolInput, dynamic: true as const }
+      : { toolCallId, toolName, input: toolInput };
 
     try {
       /*
@@ -824,17 +853,21 @@ export function createExecuteToolFunctions(options: {
     const { toolCallId, toolName, tool, execute, input, context, mcp } =
       options;
     /*
-     * Built-in tools are executed by the harness runtime and are not part of
-     * the agent's tool set, so their calls are dynamic and provider-executed.
-     * MCP tools are defined at runtime, so their calls are dynamic.
+     * MCP tools are defined at runtime, so their calls are dynamic. Built-in
+     * tools are executed by the harness runtime, so their calls are
+     * provider-executed.
      */
-    const toolCallFields = {
-      toolCallId,
-      toolName,
-      input,
-      dynamic: true as const,
-      ...(!mcp && { providerExecuted: true }),
-    };
+    const toolCallFields = mcp
+      ? { toolCallId, toolName, input, dynamic: true as const }
+      : isDynamicToolCall({ toolName, tools, builtinTools })
+        ? {
+            toolCallId,
+            toolName,
+            input,
+            dynamic: true as const,
+            providerExecuted: true,
+          }
+        : { toolCallId, toolName, input, providerExecuted: true };
 
     /**
      * Emits the `tool-result` part of a value the tool produced, or its

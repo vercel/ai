@@ -112,7 +112,6 @@ describe('translateStreamPart', () => {
       toolName: 'Bash',
       input: { command: 'ls' },
       error: 'failed',
-      dynamic: true,
       providerExecuted: true,
     },
   ])('passes $type parts through unchanged', async part => {

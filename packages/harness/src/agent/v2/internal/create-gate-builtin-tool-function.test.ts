@@ -251,7 +251,6 @@ describe('createGateBuiltinToolFunction', () => {
         toolName: 'Bash',
         input: { command: 'ls' },
         output: { stdout: 'file.txt' },
-        dynamic: true,
         providerExecuted: true,
       },
     ]);
@@ -285,7 +284,6 @@ describe('createGateBuiltinToolFunction', () => {
         input: { command: 'ls' },
         output,
         preliminary: true,
-        dynamic: true,
         providerExecuted: true,
       })),
       {
@@ -294,7 +292,6 @@ describe('createGateBuiltinToolFunction', () => {
         toolName: 'Bash',
         input: { command: 'ls' },
         output: 'abcd',
-        dynamic: true,
         providerExecuted: true,
       },
     ]);
@@ -319,7 +316,6 @@ describe('createGateBuiltinToolFunction', () => {
         toolName: 'Bash',
         input: { command: 'ls' },
         error: 'command failed',
-        dynamic: true,
         providerExecuted: true,
       },
     ]);
@@ -349,7 +345,6 @@ describe('createGateBuiltinToolFunction', () => {
         toolName: 'Bash',
         input: { command: 'ls' },
         output: 'first',
-        dynamic: true,
         providerExecuted: true,
       },
     ]);
@@ -526,8 +521,8 @@ describe('createGateBuiltinToolFunction', () => {
         toolName: 'weather',
         input: { city: 'Paris' },
         error: message,
-        dynamic: true,
         providerExecuted: true,
+        dynamic: true,
       },
     ]);
 

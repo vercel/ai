@@ -5,7 +5,10 @@ import type { HarnessAgentSession } from '../harness-agent-session';
 import type { HarnessAgentStorageEncryption } from './create-storage-encryption';
 import type { HarnessV2EffectOutput } from '../../../v2/harness-v2-effect';
 import type { HarnessV2BuiltinToolSet } from '../../../v2/harness-v2-builtin-tool';
-import { parseToolEffect } from './create-execute-tool-functions';
+import {
+  isDynamicToolCall,
+  parseToolEffect,
+} from './create-execute-tool-functions';
 import type {
   HarnessAgentLog,
   HarnessAgentLogDrive,
@@ -392,26 +395,19 @@ function repairTurnStream(options: {
       partial: output.partial,
     });
     /*
-     * Built-in tool calls are executed by the harness runtime, and calls of
-     * tools outside the agent's tool set (e.g. MCP tools) are defined at
-     * runtime. Both are dynamic, like the parts the tool execution functions
-     * emit for them.
+     * Built-in tools are executed by the harness runtime, so their calls are
+     * provider-executed. A user tool cannot have the name of a built-in tool.
      */
-    const isBuiltinTool = Object.hasOwn(builtinTools, toolName);
-    const toolCallFields = { toolCallId, toolName, input: start.data.input };
+    const toolCallFields = {
+      toolCallId,
+      toolName,
+      input: start.data.input,
+      ...(Object.hasOwn(builtinTools, toolName) && { providerExecuted: true }),
+    };
     writer.emit({
-      part:
-        isBuiltinTool ||
-        !Object.hasOwn(tools, toolName) ||
-        tools[toolName].type === 'dynamic'
-          ? {
-              type: 'tool-error',
-              ...toolCallFields,
-              error,
-              dynamic: true,
-              ...(isBuiltinTool && { providerExecuted: true }),
-            }
-          : { type: 'tool-error', ...toolCallFields, error },
+      part: isDynamicToolCall({ toolName, tools, builtinTools })
+        ? { type: 'tool-error', ...toolCallFields, error, dynamic: true }
+        : { type: 'tool-error', ...toolCallFields, error },
       key,
     });
   }

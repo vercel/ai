@@ -580,7 +580,6 @@ describe('startDrive', () => {
           input: null,
           error:
             'The bash call was interrupted before it finished.\nPartial output before the interruption:\n{"status":"in-progress"}',
-          dynamic: true,
           providerExecuted: true,
         },
         key: 'tool-interrupted:executed',

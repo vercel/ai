@@ -1216,7 +1216,6 @@ describe('createExecuteToolFunctions', () => {
           toolName: 'bash',
           input: { command: 'ls' },
           output: { stdout: 'file.txt' },
-          dynamic: true,
           providerExecuted: true,
         },
       ]);
@@ -1308,7 +1307,6 @@ describe('createExecuteToolFunctions', () => {
           input: { command: 'ls' },
           output: 'a',
           preliminary: true,
-          dynamic: true,
           providerExecuted: true,
         },
         {
@@ -1318,7 +1316,6 @@ describe('createExecuteToolFunctions', () => {
           input: { command: 'ls' },
           output: 'ab',
           preliminary: true,
-          dynamic: true,
           providerExecuted: true,
         },
         {
@@ -1327,7 +1324,6 @@ describe('createExecuteToolFunctions', () => {
           toolName: 'bash',
           input: { command: 'ls' },
           output: 'ab',
-          dynamic: true,
           providerExecuted: true,
         },
       ]);
@@ -1381,7 +1377,6 @@ describe('createExecuteToolFunctions', () => {
           toolName: 'bash',
           input: { command: 'ls' },
           error: 'Error: command failed',
-          dynamic: true,
           providerExecuted: true,
         },
       ]);
@@ -1434,7 +1429,6 @@ describe('createExecuteToolFunctions', () => {
         toolName: 'bash',
         input: { command: 'ls' },
         error: 'The turn was cancelled.',
-        dynamic: true,
         providerExecuted: true,
       });
     });
@@ -1536,8 +1530,8 @@ describe('createExecuteToolFunctions', () => {
           toolName: 'weather',
           input: { city: 'Paris' },
           error: message,
-          dynamic: true,
           providerExecuted: true,
+          dynamic: true,
         },
       ]);
     });

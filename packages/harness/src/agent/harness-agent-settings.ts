@@ -196,8 +196,9 @@ export type HarnessAgentSettings<
    * `HarnessAgentToolSpec`; when the runtime calls one, the agent executes
    * `tool.execute()` on the host and submits the result back to the harness.
    *
-   * User tools take precedence over harness builtins on key collision —
-   * declare a tool with the same name as a builtin to override.
+   * With HarnessV1, user tools take precedence over harness builtins on key
+   * collision; declare a tool with the same name as a builtin to override.
+   * HarnessV2 rejects a tool with the same name as a builtin.
    */
   readonly tools?: TUserTools;
 

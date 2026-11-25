@@ -435,6 +435,33 @@ describe('HarnessAgent', () => {
     expect(Object.keys(agent.tools)).toContain('bash');
   });
 
+  test('rejects user tools with the names of built-in tools', () => {
+    expect(
+      () =>
+        new HarnessAgent({
+          /*
+           * Typed as the generic `HarnessV2`, which does not declare its
+           * built-in tool names, so only the runtime check rejects the tools.
+           */
+          harness: {
+            ...harness,
+            builtinTools: {
+              writeFile: { inputSchema: z.object({}) },
+              readFile: { inputSchema: z.object({}) },
+            },
+          } as HarnessV2,
+          getSandboxSession,
+          tools: {
+            writeFile: tool({ inputSchema: z.object({}) }),
+            readFile: tool({ inputSchema: z.object({}) }),
+            weather: tool({ inputSchema: z.object({}) }),
+          },
+        }),
+    ).toThrow(
+      "HarnessAgent: tools 'writeFile', 'readFile' have the name of a built-in tool of harness 'mock-v2'; rename them.",
+    );
+  });
+
   test('accepts toolApproval statuses for its own tools', () => {
     expect(
       () =>

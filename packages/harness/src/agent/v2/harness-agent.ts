@@ -123,12 +123,28 @@ interface HarnessAgentCallExtensions {
 }
 
 /**
- * Combines adapter built-ins with user tools, letting user tools take precedence.
+ * Combines adapter built-ins with user tools. A user tool cannot have the
+ * name of a built-in tool, see `HarnessUserTools`.
  */
 type HarnessAllTools<
   THarness extends HarnessV2,
   TUserTools extends ToolSet,
-> = Omit<THarness['builtinTools'], keyof TUserTools> & TUserTools;
+> = THarness['builtinTools'] & TUserTools;
+
+/**
+ * User tools of an agent, rejecting every tool that has the name of one of
+ * the harness's built-in tools. Only applies to a harness type that declares
+ * its built-in tool names, not to the generic `HarnessV2`.
+ */
+type HarnessUserTools<
+  THarness extends HarnessV2,
+  TUserTools extends ToolSet,
+> = string extends keyof THarness['builtinTools']
+  ? TUserTools
+  : TUserTools & {
+      readonly [NAME in keyof TUserTools &
+        keyof THarness['builtinTools']]: never;
+    };
 
 /**
  * Consumer-facing agent configured with a HarnessV2 adapter.
@@ -228,7 +244,13 @@ export class HarnessAgent<
       RUNTIME_CONTEXT,
       OUTPUT,
       CALL_OPTIONS
-    >,
+    > & {
+      /**
+       * Tools available to the harness in addition to its built-in tools.
+       * A tool cannot have the name of a built-in tool.
+       */
+      readonly tools?: HarnessUserTools<THarness, TUserTools>;
+    },
   ) {
     if (settings.harness.specificationVersion !== 'harness-v2') {
       throw new Error(
@@ -259,6 +281,21 @@ export class HarnessAgent<
     if (unsupportedSetting !== undefined) {
       throw new Error(
         `HarnessAgent: setting \`${String(unsupportedSetting)}\` is not supported.`,
+      );
+    }
+
+    const conflictingToolNames = Object.keys(settings.tools ?? {}).filter(
+      name => Object.hasOwn(settings.harness.builtinTools, name),
+    );
+    if (conflictingToolNames.length > 0) {
+      throw new Error(
+        `HarnessAgent: ${
+          conflictingToolNames.length === 1
+            ? `tool '${conflictingToolNames[0]}' has`
+            : `tools ${conflictingToolNames.map(name => `'${name}'`).join(', ')} have`
+        } the name of a built-in tool of harness '${settings.harness.harnessId}'; rename ${
+          conflictingToolNames.length === 1 ? 'it' : 'them'
+        }.`,
       );
     }
 
@@ -1421,6 +1458,7 @@ async function runDrivePass(options: {
       });
     const gateBuiltinTool = createGateBuiltinToolFunction({
       log,
+      tools: userTools,
       builtinTools: harness.builtinTools,
       effect,
       abortSignal: AbortSignal.any([stopAbortSignal, yieldAbortSignal]),
