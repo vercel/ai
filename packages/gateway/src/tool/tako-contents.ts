@@ -56,12 +56,13 @@ export interface TakoContentsConfig {
    */
   premium?: boolean;
   /**
-   * Limit on each call's quoted price, in USD (0-1,000,000). Defaults to 1.
-   * Tako quotes the call before running it, the way `quote_only` does. When
+   * Limit on each export's quoted price, in USD (0-1,000,000). Defaults to 1.
+   * Tako quotes the export before running it, the way `quote_only` does. When
    * the quote is above this limit, the call fails with `invalid_input` and
    * nothing is charged; the error may include the quoted price. The quote is
-   * an upper bound, so a call whose charge would have fit can be refused.
-   * Premium and large `url` exports usually need a higher limit.
+   * an upper bound, so an export whose charge would have fit can be refused.
+   * A `quote_only` call ignores it. Premium and large `url` exports usually
+   * need a higher limit.
    */
   maxCostUsd?: number;
   /**
