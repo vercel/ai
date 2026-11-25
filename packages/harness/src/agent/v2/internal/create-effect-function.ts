@@ -6,6 +6,7 @@ import {
   jsonDecodeSerializableValue,
   jsonEncodeSerializableValue,
 } from '@ai-sdk/provider-utils';
+import { HarnessAdapterContractError } from '../../../errors/harness-adapter-contract-error';
 import { HarnessCancellationError } from '../../../errors/harness-cancellation-error';
 import { HarnessEffectError } from '../../../errors/harness-effect-error';
 import { HarnessInvalidDriveStateError } from '../../../errors/harness-invalid-drive-state-error';
@@ -75,9 +76,9 @@ type CallbackOutput = {
    */
   output: HarnessV2EffectOutput;
   /**
-   * Original control-flow error that must not become an effect error output.
+   * Original drive-level error that must not become an effect error output.
    */
-  invalidDriveStateError?: HarnessInvalidDriveStateError;
+  propagateError?: HarnessInvalidDriveStateError | HarnessAdapterContractError;
 };
 
 /**
@@ -152,10 +153,13 @@ async function executeCallback(options: {
    * interruption.
    */
   function callbackFailure(error: unknown): CallbackOutput {
-    if (HarnessInvalidDriveStateError.isInstance(error)) {
+    if (
+      HarnessInvalidDriveStateError.isInstance(error) ||
+      HarnessAdapterContractError.isInstance(error)
+    ) {
       return {
         output: interruption(attempt),
-        invalidDriveStateError: error,
+        propagateError: error,
       };
     }
     if (HarnessCancellationError.isInstance(error)) {
@@ -358,7 +362,7 @@ export function createEffectFunction(options: {
    *
    * A session runs one turn at a time, and each turn starts with exactly one
    * prompt; prompts submitted meanwhile wait until the turn finished. So this
-   * rejects with `HarnessInvalidDriveStateError`, before writing anything, if
+   * rejects with `HarnessAdapterContractError`, before writing anything, if
    * the given submissions include more than one prompt without a turn, or if
    * the latest turn has not finished yet.
    */
@@ -385,7 +389,7 @@ export function createEffectFunction(options: {
     );
     if (waiting.length === 0) return;
     if (waiting.length > 1) {
-      throw new HarnessInvalidDriveStateError({
+      throw new HarnessAdapterContractError({
         message:
           'HarnessAgent.effect: an effect can start at most one turn, but it delivers more than one prompt that has not started a turn.',
       });
@@ -395,7 +399,7 @@ export function createEffectFunction(options: {
       startingTurn != null ||
       (currentTurn != null && currentTurn.finish == null)
     ) {
-      throw new HarnessInvalidDriveStateError({
+      throw new HarnessAdapterContractError({
         message:
           'HarnessAgent.effect: a prompt cannot start a turn while the previous turn has not finished.',
       });
@@ -425,7 +429,7 @@ export function createEffectFunction(options: {
   ): Promise<HarnessV2EffectOutput<T>> {
     const { key, fn } = options;
     if (running.has(key)) {
-      throw new HarnessInvalidDriveStateError({
+      throw new HarnessAdapterContractError({
         message: 'HarnessAgent.effect: the effect is already running.',
       });
     }
@@ -513,8 +517,8 @@ export function createEffectFunction(options: {
         startId: start.id,
         output: result.output,
       });
-      if (result.invalidDriveStateError != null) {
-        throw result.invalidDriveStateError;
+      if (result.propagateError != null) {
+        throw result.propagateError;
       }
       return cloneSerializableValue({
         value: output,

@@ -1,6 +1,7 @@
 export * from './v1';
 export * from './v2';
 export * from './errors/harness-error';
+export * from './errors/harness-adapter-contract-error';
 export * from './errors/harness-invalid-drive-state-error';
 export * from './errors/harness-effect-error';
 export * from './errors/harness-cancellation-error';

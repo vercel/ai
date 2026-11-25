@@ -109,7 +109,7 @@ The steps are below:
 
 - Approval of the harness's built-in tools stays out of scope.
 
-21. [ ] Treat errors caught from a drive like crashes: the engine no longer finishes the current turn for every error thrown out of a drive (`failCurrentTurn()`), but leaves the turn unfinished, so that a later drive continues it from the log.
+21. [x] Treat errors caught from a drive like crashes: the engine no longer finishes the current turn for every error thrown out of a drive (`failCurrentTurn()`), but leaves the turn unfinished, so that a later drive continues it from the log.
 
 - Only end the turn (`finishReason: 'error'`, recorded as `finish-turn`) for errors known to be permanent, where another drive cannot succeed, and for a turn whose drives keep failing a bounded number of times in a row, as far as either case is relevant to us. `durable-harness` does the same with its `Unavailable` errors and its `failing` code after 8 failed deliveries in a row.
 

@@ -15,6 +15,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { InvalidToolInputError, NoSuchToolError } from 'ai';
 import { createToolModelOutput, validateToolContext } from 'ai/internal';
+import { HarnessAdapterContractError } from '../../../errors/harness-adapter-contract-error';
 import { HarnessCancellationError } from '../../../errors/harness-cancellation-error';
 import { HarnessInvalidDriveStateError } from '../../../errors/harness-invalid-drive-state-error';
 import type { HarnessV2BuiltinToolSet } from '../../../v2/harness-v2-builtin-tool';
@@ -306,7 +307,8 @@ function getToolErrorMessage(options: {
   const { context, error } = options;
   if (
     context.abortSignal.aborted ||
-    HarnessInvalidDriveStateError.isInstance(error)
+    HarnessInvalidDriveStateError.isInstance(error) ||
+    HarnessAdapterContractError.isInstance(error)
   ) {
     return undefined;
   }

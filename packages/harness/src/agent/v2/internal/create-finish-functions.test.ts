@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { HarnessInvalidDriveStateError } from '../../../errors/harness-invalid-drive-state-error';
+import { HarnessAdapterContractError } from '../../../errors/harness-adapter-contract-error';
 import { DefaultHarnessAgentSession } from '../harness-agent-session';
 import { InMemoryWorld } from '../in-memory-world';
 import { createFinishFunctions } from './create-finish-functions';
@@ -299,7 +299,7 @@ describe('createFinishFunctions', () => {
 
       await expect(
         finishStep({ stepNumber: 0, finishReason, usage }),
-      ).rejects.toSatisfy(HarnessInvalidDriveStateError.isInstance);
+      ).rejects.toSatisfy(HarnessAdapterContractError.isInstance);
       expect(await readEventIds({ log, type: 'finish-step' })).toEqual([]);
     });
 
@@ -309,7 +309,7 @@ describe('createFinishFunctions', () => {
 
       await expect(
         finishStep({ stepNumber: 1, finishReason, usage }),
-      ).rejects.toSatisfy(HarnessInvalidDriveStateError.isInstance);
+      ).rejects.toSatisfy(HarnessAdapterContractError.isInstance);
       expect(await readEventIds({ log, type: 'finish-step' })).toEqual([]);
     });
 
@@ -321,7 +321,7 @@ describe('createFinishFunctions', () => {
 
         await expect(
           finishStep({ stepNumber, finishReason, usage }),
-        ).rejects.toSatisfy(HarnessInvalidDriveStateError.isInstance);
+        ).rejects.toSatisfy(HarnessAdapterContractError.isInstance);
       },
     );
 
@@ -331,7 +331,7 @@ describe('createFinishFunctions', () => {
 
       await expect(
         finishStep({ stepNumber: 0, finishReason, usage }),
-      ).rejects.toSatisfy(HarnessInvalidDriveStateError.isInstance);
+      ).rejects.toSatisfy(HarnessAdapterContractError.isInstance);
     });
 
     test('emits nothing when the append was not new', async () => {
@@ -421,7 +421,7 @@ describe('createFinishFunctions', () => {
 
       await expect(
         finishTurn({ finishReason, totalUsage: usage }),
-      ).rejects.toSatisfy(HarnessInvalidDriveStateError.isInstance);
+      ).rejects.toSatisfy(HarnessAdapterContractError.isInstance);
       expect(await readEventIds({ log, type: 'finish-turn' })).toEqual([]);
     });
 

@@ -9,7 +9,9 @@ import {
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { World } from '@workflow/world';
+import { HarnessAdapterContractError } from '../../errors/harness-adapter-contract-error';
 import { HarnessCancellationError } from '../../errors/harness-cancellation-error';
+import { HarnessCapabilityUnsupportedError } from '../../errors/harness-capability-unsupported-error';
 import type { HarnessV2 } from '../../v2/harness-v2';
 import type { HarnessV2BuiltinToolSet } from '../../v2/harness-v2-builtin-tool';
 import type { HarnessV2DriveContext } from '../../v2/harness-v2-drive-context';
@@ -1078,13 +1080,58 @@ describe('HarnessAgent turns', () => {
     expect(replay.text).toBe('echo: again');
   });
 
-  test('finishes a started turn with an error when the adapter throws', async () => {
-    const harness = createFakeHarness({
+  /**
+   * Creates a resumable HarnessV2 adapter that starts an undelivered prompt or
+   * continues an unfinished turn, invoking `afterModel` before finishing it.
+   */
+  function createResumableFakeHarness(options: {
+    afterModel: (options: { context: HarnessV2DriveContext }) => Promise<void>;
+  }): HarnessV2 {
+    return {
+      specificationVersion: 'harness-v2',
+      harnessId: 'resumable-fake-v2',
+      builtinTools: {},
+      async drive({ context }) {
+        const current = context.log.getCurrentTurn();
+        const prompt =
+          current != null && current.finish == null
+            ? current.submissions[0]
+            : context.log
+                .getUndeliveredSubmissions()
+                .find(event => event.data.type === 'prompt');
+        if (prompt == null || prompt.data.type !== 'prompt') return;
+        const { content } = prompt.data.message;
+        const output = await context.effect({
+          key: `model:${prompt.id}`,
+          name: 'model',
+          replay: 'safe',
+          input: null,
+          deliveredSubmissionIds: [prompt.id],
+          fn: async ({ emit }) => {
+            const text = `echo: ${typeof content === 'string' ? content : ''}`;
+            emit({ type: 'text-start', id: 'text' });
+            emit({ type: 'text-delta', id: 'text', delta: text });
+            emit({ type: 'text-end', id: 'text' });
+            return text;
+          },
+        });
+        if (output.type !== 'result') return;
+        await options.afterModel({ context });
+        await context.finishStep({ stepNumber: 0, finishReason, usage });
+        await context.finishTurn({ finishReason, totalUsage: usage });
+      },
+    };
+  }
+
+  test('leaves a started turn unfinished on a transient error so a later drive continues it', async () => {
+    let attempts = 0;
+    const harness = createResumableFakeHarness({
       afterModel: async () => {
-        throw new Error('adapter failed');
+        attempts++;
+        if (attempts === 1) throw new Error('transient adapter failure');
       },
     });
-    const { agent, session } = await setup({ harness });
+    const { agent, session, world } = await setup({ harness });
 
     const result = await agent.stream({ prompt: 'hello', session });
     expect(await readPartTypes(result.fullStream)).toEqual([
@@ -1095,13 +1142,213 @@ describe('HarnessAgent turns', () => {
       'text-delta',
       'text-end',
       'error',
-      'custom',
-      'finish',
     ]);
 
-    await expect(agent.generate({ prompt: 'again', session })).rejects.toThrow(
-      'adapter failed',
+    expect(
+      (
+        await readLogEvents({
+          world,
+          runId: session.runId,
+          types: ['finish-turn', 'drive-error'],
+        })
+      ).map(event => event.type),
+    ).toEqual(['drive-error']);
+
+    await agent.drive({ session });
+    const replayed = await agent.readStream({ session });
+    expect(await replayed.text).toBe('echo: hello');
+    expect(await replayed.finishReason).toBe('stop');
+  });
+
+  test.each([
+    {
+      label: 'caller error (HarnessCapabilityUnsupportedError)',
+      createError: () =>
+        new HarnessCapabilityUnsupportedError({ message: 'unsupported input' }),
+    },
+    {
+      label: 'adapter contract error (HarnessAdapterContractError)',
+      createError: () =>
+        new HarnessAdapterContractError({ message: 'bad step order' }),
+    },
+    {
+      label: 'environment error (ERR_MODULE_NOT_FOUND)',
+      createError: () =>
+        Object.assign(new Error('missing module'), {
+          code: 'ERR_MODULE_NOT_FOUND',
+        }),
+    },
+  ])(
+    'immediately finishes a started turn with an error on a permanent $label',
+    async ({ createError }) => {
+      const harness = createResumableFakeHarness({
+        afterModel: async () => {
+          throw createError();
+        },
+      });
+      const { agent, session } = await setup({ harness });
+
+      const result = await agent.stream({ prompt: 'hello', session });
+      expect(await readPartTypes(result.fullStream)).toEqual([
+        'start',
+        'custom',
+        'start-step',
+        'text-start',
+        'text-delta',
+        'text-end',
+        'error',
+        'custom',
+        'finish',
+      ]);
+
+      await expect(
+        agent.generate({ prompt: 'again', session }),
+      ).rejects.toThrow(createError().message);
+    },
+  );
+
+  test('finishes a started turn with an error after 8 consecutive transient drive errors', async () => {
+    const harness = createResumableFakeHarness({
+      afterModel: async () => {
+        throw new Error('keeps failing');
+      },
+    });
+    const { agent, session, world } = await setup({ harness });
+
+    await expect(agent.generate({ prompt: 'hello', session })).rejects.toThrow(
+      'keeps failing',
     );
+    for (let i = 0; i < 6; i++) {
+      await expect(agent.drive({ session })).rejects.toThrow('keeps failing');
+    }
+    expect(
+      await readLogEvents({
+        world,
+        runId: session.runId,
+        types: ['finish-turn'],
+      }),
+    ).toEqual([]);
+
+    await expect(agent.drive({ session })).resolves.toBeUndefined();
+    const finishes = await readLogEvents({
+      world,
+      runId: session.runId,
+      types: ['finish-turn'],
+    });
+    expect(finishes).toHaveLength(1);
+    expect(
+      finishes[0]?.type === 'finish-turn' && finishes[0].data.finishReason,
+    ).toEqual({
+      unified: 'error',
+      raw: undefined,
+    });
+  });
+
+  test('resets the consecutive drive error cap when the turn makes progress', async () => {
+    let shouldFail = true;
+    let runExtraEffect = false;
+    const harness = createResumableFakeHarness({
+      afterModel: async ({ context }) => {
+        if (runExtraEffect) {
+          await context.effect({
+            key: 'progress-step',
+            name: 'progress',
+            replay: 'safe',
+            input: null,
+            fn: async () => 'ok',
+          });
+        }
+        if (shouldFail) throw new Error('keeps failing');
+      },
+    });
+    const { agent, session, world } = await setup({ harness });
+
+    await expect(agent.generate({ prompt: 'hello', session })).rejects.toThrow(
+      'keeps failing',
+    );
+    for (let i = 0; i < 6; i++) {
+      await expect(agent.drive({ session })).rejects.toThrow('keeps failing');
+    }
+
+    runExtraEffect = true;
+    await expect(agent.drive({ session })).rejects.toThrow('keeps failing');
+    expect(
+      await readLogEvents({
+        world,
+        runId: session.runId,
+        types: ['finish-turn'],
+      }),
+    ).toEqual([]);
+
+    shouldFail = false;
+    await agent.drive({ session });
+    const replayed = await agent.readStream({ session });
+    expect(await replayed.finishReason).toBe('stop');
+  });
+
+  test('durable direct drive schedules a retry queue job on a transient error, while a queue drive rejects', async () => {
+    const inner = new InMemoryWorld();
+    const queueSpy = vi.fn(async () => ({ messageId: 'msg_retry' }));
+    const world = new Proxy(inner, {
+      // oxlint-disable-next-line ai-sdk/require-object-parameter -- Proxy handler signature.
+      get(target, key, receiver) {
+        if (key === Symbol.for('@ai-sdk/harness//in-memory-world')) {
+          return undefined;
+        }
+        if (key === 'queue') return queueSpy;
+        if (key === 'registerHandler') return vi.fn();
+        if (key === 'registerRoute') return vi.fn();
+        if (key === 'start') return vi.fn(async () => {});
+        return Reflect.get(target, key, receiver);
+      },
+    }) as never as World;
+    let failMode: 'transient' | 'permanent' = 'transient';
+    const harness = createResumableFakeHarness({
+      afterModel: async () => {
+        if (failMode === 'permanent') {
+          throw new HarnessCapabilityUnsupportedError({
+            message: 'permanent failure',
+          });
+        }
+        throw new Error('transient failure');
+      },
+    });
+    const agent = new HarnessAgent({
+      id: `retry-agent-${Math.random().toString(36).slice(2)}`,
+      harness,
+      world,
+      getSandboxSession,
+    });
+    const session = await agent.createSession({
+      sandboxId: 'sandbox-retry',
+    });
+
+    await expect(agent.generate({ prompt: 'hello', session })).rejects.toThrow(
+      'transient failure',
+    );
+    expect(queueSpy).toHaveBeenCalledWith(
+      expect.stringContaining('retry-agent-'),
+      { runId: session.runId },
+      { delaySeconds: 5 },
+    );
+
+    queueSpy.mockClear();
+    await expect(agent.drive({ session, queueJobId: 'msg_1' })).rejects.toThrow(
+      'transient failure',
+    );
+    expect(queueSpy).not.toHaveBeenCalled();
+
+    failMode = 'permanent';
+    await expect(
+      agent.drive({ session, queueJobId: 'msg_1' }),
+    ).resolves.toBeUndefined();
+    expect(
+      await readLogEvents({
+        world,
+        runId: session.runId,
+        types: ['finish-turn'],
+      }),
+    ).toHaveLength(1);
   });
 
   test('reports the exact adapter error when the adapter throws before the turn started', async () => {

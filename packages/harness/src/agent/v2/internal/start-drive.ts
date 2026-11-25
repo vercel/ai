@@ -527,7 +527,7 @@ function isDriveGone(options: {
 }): boolean {
   const { queueJobId } = options;
   if (options.drive == null) return false;
-  if (options.drive.crash != null) return true;
+  if (options.drive.crash != null || options.drive.error != null) return true;
   const drive = options.drive.start.data;
   return (
     (drive.deadline != null && drive.deadline <= Date.now()) ||

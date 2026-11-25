@@ -409,6 +409,18 @@ describe('startDrive', () => {
       queueJobId: undefined,
     },
     {
+      proof: 'a drive-error',
+      events: [
+        driveStart({ driveId: 'old' }),
+        {
+          type: 'drive-error' as const,
+          id: 'drive-error:old',
+          data: { driveId: 'old', turnId: prompt.id, message: 'boom' },
+        },
+      ],
+      queueJobId: undefined,
+    },
+    {
       proof: 'a redelivered queue job',
       events: [driveStart({ driveId: 'old', queueJobId: 'message' })],
       queueJobId: 'message',

@@ -17,6 +17,7 @@ const eventTypes = {
   'drive-start': true,
   'crash-request': true,
   'drive-crash': true,
+  'drive-error': true,
   'tool-execution-start': true,
   'tool-approval-request': true,
   'tool-approval-response': true,

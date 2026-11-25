@@ -92,6 +92,17 @@ export function getDurableHarnessAgentQueueHandlerRoute(): string {
 const BACKSTOP_MARGIN_SECONDS = 5;
 
 /**
+ * Default seconds to delay the initial queue job scheduled when a direct drive
+ * fails with a transient error and leaves a turn unfinished.
+ *
+ * This delay only applies once, for the handoff from a failed direct drive onto
+ * the queue. If the resulting background drive also fails, it rejects its queue
+ * job instead of scheduling another one, so subsequent retries use the World's
+ * own queue backoff rather than a fixed 5-second interval.
+ */
+const DRIVE_RETRY_DELAY_SECONDS = 5;
+
+/**
  * Seconds after which a queue job is delivered again when no agent is
  * registered under its agent id.
  */
@@ -161,6 +172,36 @@ export async function sendDurableHarnessAgentBackstop(options: {
     { delaySeconds },
   );
   return true;
+}
+
+/**
+ * Enqueues a short-delay queue job to continue a session after a direct drive
+ * failed with a non-permanent error, so the turn does not wait for the
+ * deadline backstop (or stall on a World without a runtime deadline).
+ */
+export async function sendDurableHarnessAgentDriveRetry(options: {
+  /**
+   * World whose queue schedules the retry job.
+   */
+  world: World;
+
+  /**
+   * Queue job identifying the session and durable agent.
+   */
+  queueJob: DurableHarnessAgentQueueJob;
+
+  /**
+   * Optional delay in seconds before the queue job runs. Defaults to
+   * `DRIVE_RETRY_DELAY_SECONDS`.
+   */
+  delaySeconds?: number;
+}): Promise<void> {
+  const { world, queueJob, delaySeconds = DRIVE_RETRY_DELAY_SECONDS } = options;
+  await world.queue(
+    getDurableHarnessAgentQueueName({ agentId: queueJob.agentId }),
+    { runId: queueJob.runId },
+    { delaySeconds },
+  );
 }
 
 /**

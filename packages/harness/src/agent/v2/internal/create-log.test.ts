@@ -1711,6 +1711,66 @@ describe('createLog lookups', () => {
     expect(log.getLatestDrive()?.crash?.id).toBe('drive-crash:d2');
   });
 
+  test('attaches drive-error events to their drives and tracks consecutive errors per turn', async () => {
+    const log = await logOf([
+      {
+        type: 'submission',
+        id: 'p1',
+        data: {
+          type: 'prompt',
+          message: { role: 'user', content: 'hi' },
+          settings: { tools: [], skills: [] },
+        },
+      },
+      { type: 'turn-start', id: 'turn-start:p1', data: { turnId: 'p1' } },
+      { type: 'drive-start', id: 'drive-start:d1', data: { driveId: 'd1' } },
+      {
+        type: 'drive-error',
+        id: 'drive-error:d1',
+        data: { driveId: 'd1', turnId: 'p1', message: 'boom 1' },
+      },
+      { type: 'drive-start', id: 'drive-start:d2', data: { driveId: 'd2' } },
+      start({ id: 'm1', key: 'model:0' }),
+      {
+        type: 'effect-end',
+        id: 'end-1',
+        data: {
+          startId: 'm1',
+          output: { type: 'interrupted', retryable: true },
+        },
+      },
+      {
+        type: 'drive-error',
+        id: 'drive-error:d2',
+        data: { driveId: 'd2', turnId: 'p1', message: 'boom 2' },
+      },
+    ]);
+
+    expect(log.getLatestDrive()?.error?.id).toBe('drive-error:d2');
+    expect(log.getConsecutiveDriveErrorCount({ turnId: 'p1' })).toBe(2);
+
+    await log.append(start({ id: 'm2', key: 'model:0', attempt: 2 }));
+    await log.append({
+      type: 'effect-end',
+      id: 'end-2',
+      data: { startId: 'm2', output: { type: 'result', value: 'ok' } },
+    });
+    expect(log.getConsecutiveDriveErrorCount({ turnId: 'p1' })).toBe(0);
+
+    await log.append({
+      type: 'drive-start',
+      id: 'drive-start:d3',
+      data: { driveId: 'd3' },
+    });
+    await log.append({
+      type: 'drive-error',
+      id: 'drive-error:d3',
+      data: { driveId: 'd3', turnId: 'p1', message: 'boom 3' },
+    });
+    expect(log.getConsecutiveDriveErrorCount({ turnId: 'p1' })).toBe(1);
+    expect(log.getConsecutiveDriveErrorCount({ turnId: 'unknown' })).toBe(0);
+  });
+
   test('tracks tool execution starts and adapter events, ignoring crash requests', async () => {
     const log = await logOf([
       start({ id: 't1', key: 'tool:call-1' }),

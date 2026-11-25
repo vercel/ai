@@ -56,10 +56,12 @@ import {
 import { HarnessGenerateTextResult } from './internal/harness-generate-text-result';
 import { HarnessStreamTextResult } from './internal/harness-stream-text-result';
 import { getDriveProcess, trackRunningDrive } from './internal/drive-process';
+import { classifyDriveError } from './internal/classify-drive-error';
 import {
   connectDurableHarnessAgentQueue,
   DURABLE_HARNESS_AGENT_QUEUE_NAMESPACE,
   sendDurableHarnessAgentBackstop,
+  sendDurableHarnessAgentDriveRetry,
 } from './internal/durable-agent-queue';
 import {
   hasWaitingPrompt,
@@ -1153,11 +1155,21 @@ export class HarnessAgent<
      */
     queueJobId?: string;
   }): Promise<void> {
+    const agentId = this.durable ? this.id : undefined;
+    const scheduleRetry =
+      agentId != null && options.queueJobId == null
+        ? () =>
+            sendDurableHarnessAgentDriveRetry({
+              world: this.world,
+              queueJob: { runId: options.session.runId, agentId },
+            })
+        : undefined;
     return runDrivePass({
       encryption: await this.getStorageEncryption({ session: options.session }),
       world: this.world,
       session: options.session,
       queueJobId: options.queueJobId,
+      scheduleRetry,
       harness: this.harness,
       userTools: this.userTools,
       toolApproval: this.toolApproval,
@@ -1194,6 +1206,13 @@ export class HarnessAgent<
  * platform terminates the process.
  */
 const DEADLINE_MARGIN_MS = 15_000;
+
+/**
+ * Maximum number of consecutive transient drive errors allowed for an
+ * unfinished turn before the engine finishes the turn with
+ * `finishReason: 'error'`.
+ */
+const MAX_CONSECUTIVE_DRIVE_ERRORS = 8;
 
 /**
  * Decodes the JSON input recorded on a session's run. Returns `undefined`
@@ -1285,14 +1304,20 @@ const unknownUsage: HarnessV2Usage = {
  * drive (see `isSessionSettled()`), so readers know that no more output
  * follows for now, or else a `yield` part if the yield signal fired, so
  * readers know the current turn continues in a later drive. When the
- * harness or the engine throws, the current turn, if
- * unfinished, gets an `error` part and is finished with
- * `finishReason: 'error'`, followed by a `settle` part if the session is
- * settled then. Without an unfinished turn, it rejects with what
- * was thrown, wrapped in a `HarnessBeforeStartError` (no turn started,
- * including when the drive failed before its log, writer and finish
- * functions existed) or a `HarnessAfterFinishError` (the latest turn already
- * finished).
+ * harness or the engine throws:
+ * - Without an unfinished turn, it rejects with what was thrown, wrapped in a
+ *   `HarnessBeforeStartError` (no turn started, including when the drive
+ *   failed before its log, writer and finish functions existed) or a
+ *   `HarnessAfterFinishError` (the latest turn already finished).
+ * - For a permanent error (classified by `classifyDriveError()`), the
+ *   unfinished turn gets an `error` part and is finished with
+ *   `finishReason: 'error'`, followed by `writeDriveEnd()`.
+ * - For a transient error, the turn is left unfinished so a later drive
+ *   continues it from the log. The drive records a `drive-error` event; once
+ *   `MAX_CONSECUTIVE_DRIVE_ERRORS` occur in a row without turn progress, the
+ *   turn is finished with `finishReason: 'error'`. Otherwise a durable direct
+ *   drive schedules a short-delay retry queue job and the drive rejects with
+ *   the error.
  */
 async function runDrivePass(options: {
   encryption: HarnessAgentStorageEncryption;
@@ -1310,6 +1335,12 @@ async function runDrivePass(options: {
    * ID of the queue job whose delivery runs the drive.
    */
   queueJobId?: string;
+
+  /**
+   * Schedules a retry queue job when a durable direct drive fails with a
+   * non-permanent error and leaves the turn unfinished.
+   */
+  scheduleRetry?: () => Promise<void>;
 
   /**
    * Harness adapter that drives the session.
@@ -1335,6 +1366,7 @@ async function runDrivePass(options: {
     world,
     session,
     queueJobId,
+    scheduleRetry,
     harness,
     userTools,
     toolApproval,
@@ -1352,6 +1384,7 @@ async function runDrivePass(options: {
   let log: HarnessAgentLog | undefined;
   let writer: HarnessAgentStreamWriter | undefined;
   let finishTurn: HarnessAgentFinishTurnFunction | undefined;
+  let driveId: string | undefined;
   let stopCrashListener: (() => void) | undefined;
   let untrackDrive: (() => void) | undefined;
 
@@ -1377,8 +1410,9 @@ async function runDrivePass(options: {
       abortSignal: stopAbortSignal,
     });
 
-    const driveId = generateId();
-    untrackDrive = trackRunningDrive({ driveId });
+    const currentDriveId = generateId();
+    driveId = currentDriveId;
+    untrackDrive = trackRunningDrive({ driveId: currentDriveId });
     const driveLog = log;
     const driveWriter = writer;
     let targeted = false;
@@ -1387,7 +1421,7 @@ async function runDrivePass(options: {
       config: { types: ['drive-start', 'crash-request'] },
       listener: event => {
         if (event.type === 'drive-start') {
-          targeted = event.data.driveId === driveId;
+          targeted = event.data.driveId === currentDriveId;
           return;
         }
         if (event.type !== 'crash-request' || !targeted || crashing) return;
@@ -1399,8 +1433,8 @@ async function runDrivePass(options: {
         void (async () => {
           await driveLog.append({
             type: 'drive-crash',
-            id: `drive-crash:${driveId}`,
-            data: { driveId, requestId: event.id },
+            id: `drive-crash:${currentDriveId}`,
+            data: { driveId: currentDriveId, requestId: event.id },
           });
           await driveWriter.flush();
           process.kill(process.pid, 'SIGKILL');
@@ -1497,11 +1531,64 @@ async function runDrivePass(options: {
      * the stream, so the drive rejects with the original error, wrapped to
      * mark that it was thrown before the turn started.
      */
-    if (log == null || writer == null || finishTurn == null) {
+    if (
+      log == null ||
+      writer == null ||
+      finishTurn == null ||
+      driveId == null
+    ) {
       throw new HarnessBeforeStartError({ cause: error });
     }
-    await failCurrentTurn({ log, writer, finishTurn, error });
-    await writeDriveEnd({ log, writer, yielded: false });
+    const turn = log.getCurrentTurn();
+    if (turn == null) {
+      throw new HarnessBeforeStartError({ cause: error });
+    }
+    if (turn.finish != null) {
+      throw new HarnessAfterFinishError({ cause: error });
+    }
+
+    if (classifyDriveError({ error }) === 'permanent') {
+      await failCurrentTurn({ log, writer, finishTurn, error });
+      await writeDriveEnd({ log, writer, yielded: false });
+      return;
+    }
+
+    const turnId = turn.start.data.turnId;
+    let recorded = false;
+    try {
+      await log.append({
+        type: 'drive-error',
+        id: `drive-error:${driveId}`,
+        data: { driveId, turnId, message: getErrorMessage(error) },
+      });
+      recorded = true;
+    } catch {
+      /*
+       * Storage or World write failed; propagate the original error without
+       * incrementing the consecutive error count.
+       */
+    }
+    if (recorded) {
+      const consecutive = log.getConsecutiveDriveErrorCount({ turnId });
+      if (consecutive >= MAX_CONSECUTIVE_DRIVE_ERRORS) {
+        await failCurrentTurn({
+          log,
+          writer,
+          finishTurn,
+          error: new Error(
+            `HarnessAgent: the turn failed after ${consecutive} consecutive drive errors: ${getErrorMessage(error)}`,
+            { cause: error },
+          ),
+        });
+        await writeDriveEnd({ log, writer, yielded: false });
+        return;
+      }
+    }
+
+    if (scheduleRetry != null) {
+      await scheduleRetry().catch(() => {});
+    }
+    throw error;
   } finally {
     try {
       stopCrashListener?.();

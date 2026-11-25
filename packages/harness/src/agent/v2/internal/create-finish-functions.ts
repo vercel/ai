@@ -1,4 +1,4 @@
-import { HarnessInvalidDriveStateError } from '../../../errors/harness-invalid-drive-state-error';
+import { HarnessAdapterContractError } from '../../../errors/harness-adapter-contract-error';
 import type {
   HarnessV2FinishStepFunction,
   HarnessV2FinishTurnFunction,
@@ -82,7 +82,7 @@ export function createFinishFunctions(options: {
   return {
     async finishStep({ stepNumber, finishReason, usage, harnessMetadata }) {
       if (!Number.isInteger(stepNumber) || stepNumber < 0) {
-        throw new HarnessInvalidDriveStateError({
+        throw new HarnessAdapterContractError({
           message:
             'HarnessAgent.finishStep: stepNumber must be a non-negative integer.',
         });
@@ -90,7 +90,7 @@ export function createFinishFunctions(options: {
       if (abortSignal.aborted) return;
       const turn = log.getCurrentTurn();
       if (turn == null) {
-        throw new HarnessInvalidDriveStateError({
+        throw new HarnessAdapterContractError({
           message: 'HarnessAgent.finishStep: no turn has started.',
         });
       }
@@ -98,13 +98,13 @@ export function createFinishFunctions(options: {
       const recorded = turn.steps.length;
       if (stepNumber < recorded) return;
       if (turn.finish != null) {
-        throw new HarnessInvalidDriveStateError({
+        throw new HarnessAdapterContractError({
           message:
             'HarnessAgent.finishStep: the current turn already finished.',
         });
       }
       if (stepNumber > recorded) {
-        throw new HarnessInvalidDriveStateError({
+        throw new HarnessAdapterContractError({
           message: `HarnessAgent.finishStep: expected stepNumber ${recorded}, received ${stepNumber}.`,
         });
       }
@@ -136,7 +136,7 @@ export function createFinishFunctions(options: {
       if (abortSignal.aborted) return;
       const turn = log.getCurrentTurn();
       if (turn == null) {
-        throw new HarnessInvalidDriveStateError({
+        throw new HarnessAdapterContractError({
           message: 'HarnessAgent.finishTurn: no turn has started.',
         });
       }

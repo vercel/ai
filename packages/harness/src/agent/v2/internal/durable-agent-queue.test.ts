@@ -5,6 +5,7 @@ import {
   connectDurableHarnessAgentQueue,
   createDurableHarnessAgentQueueHandler,
   sendDurableHarnessAgentBackstop,
+  sendDurableHarnessAgentDriveRetry,
 } from './durable-agent-queue';
 
 type QueueCallback = Parameters<World['createQueueHandler']>[1];
@@ -248,5 +249,23 @@ describe('queue jobs', () => {
       warn.mockRestore();
     }
     expect(createSession).not.toHaveBeenCalled();
+  });
+});
+
+describe('sendDurableHarnessAgentDriveRetry', () => {
+  test('enqueues a short-delay retry job on the agent queue', async () => {
+    const queue = vi.fn(async () => ({ messageId: MessageId.parse('msg_2') }));
+    const world = { queue } as never as World;
+
+    await sendDurableHarnessAgentDriveRetry({
+      world,
+      queueJob: { runId: 'wrun_1', agentId: 'my-agent' },
+    });
+
+    expect(queue).toHaveBeenCalledWith(
+      '__harnessagent_wkf_workflow_workflow//@ai-sdk/harness//my-agent',
+      { runId: 'wrun_1' },
+      { delaySeconds: 5 },
+    );
   });
 });

@@ -1,6 +1,7 @@
 import type { SerializableValue } from '@ai-sdk/provider';
 import { DelayedPromise } from '@ai-sdk/provider-utils';
 import { afterEach, describe, expect, test, vi } from 'vitest';
+import { HarnessAdapterContractError } from '../../../errors/harness-adapter-contract-error';
 import { HarnessCancellationError } from '../../../errors/harness-cancellation-error';
 import { HarnessEffectError } from '../../../errors/harness-effect-error';
 import { HarnessInvalidDriveStateError } from '../../../errors/harness-invalid-drive-state-error';
@@ -980,7 +981,7 @@ describe('createEffectFunction', () => {
     const duplicate = vi.fn(async () => 'unexpected');
     await expect(
       effect({ key: 'key', ...effectOptions, fn: duplicate }),
-    ).rejects.toBeInstanceOf(HarnessInvalidDriveStateError);
+    ).rejects.toBeInstanceOf(HarnessAdapterContractError);
     expect(
       await effect({ key: 'other', ...effectOptions, fn: async () => 'other' }),
     ).toEqual({
@@ -1783,7 +1784,7 @@ describe('createEffectFunction', () => {
           deliveredSubmissionIds: ['prompt-1', 'prompt-2'],
           fn,
         }),
-      ).rejects.toSatisfy(HarnessInvalidDriveStateError.isInstance);
+      ).rejects.toSatisfy(HarnessAdapterContractError.isInstance);
       expect(fn).not.toHaveBeenCalled();
       expect(
         await readLogEvents({
@@ -1813,7 +1814,7 @@ describe('createEffectFunction', () => {
           deliveredSubmissionIds: ['prompt-2'],
           fn,
         }),
-      ).rejects.toSatisfy(HarnessInvalidDriveStateError.isInstance);
+      ).rejects.toSatisfy(HarnessAdapterContractError.isInstance);
       expect(fn).not.toHaveBeenCalled();
       expect(
         (

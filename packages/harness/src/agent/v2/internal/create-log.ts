@@ -314,6 +314,46 @@ export type HarnessAgentLogDriveCrashEvent = {
 };
 
 /**
+ * Records that a drive ended with a non-permanent error during an unfinished
+ * turn, visible only to the agent engine.
+ */
+export type HarnessAgentLogDriveErrorEvent = {
+  /**
+   * Records that a drive ended with a non-permanent error during an unfinished
+   * turn, visible only to the agent engine. Written under the ID
+   * `drive-error:${driveId}` before the drive rethrows. Proves to recovery
+   * that the drive is gone, and counts consecutive failed drives for the turn.
+   */
+  readonly type: 'drive-error';
+
+  /**
+   * Failing drive, unfinished turn, and error message.
+   */
+  readonly data: {
+    /**
+     * Identifier of the drive that failed.
+     */
+    readonly driveId: string;
+
+    /**
+     * Identifier of the unfinished turn the drive was running.
+     */
+    readonly turnId: string;
+
+    /**
+     * Human-readable message of the error caught from the drive.
+     */
+    readonly message: string;
+  };
+
+  /**
+   * Stable event identity within the session, used for deduplication.
+   * Independent of the event's committed log position.
+   */
+  readonly id: string;
+};
+
+/**
  * Records that a tool call attempt is about to run its tool, visible only to
  * the agent engine.
  */
@@ -488,6 +528,7 @@ export type HarnessAgentLogEvent =
   | HarnessAgentLogDriveStartEvent
   | HarnessAgentLogCrashRequestEvent
   | HarnessAgentLogDriveCrashEvent
+  | HarnessAgentLogDriveErrorEvent
   | HarnessAgentLogToolExecutionStartEvent
   | HarnessAgentLogToolApprovalRequestEvent
   | HarnessAgentLogToolApprovalResponseEvent;
@@ -562,6 +603,11 @@ export type HarnessAgentLogDrive = {
    * Recorded crash of the drive, if any.
    */
   readonly crash?: HarnessAgentLogDriveCrashEvent;
+
+  /**
+   * Recorded non-permanent error that ended the drive, if any.
+   */
+  readonly error?: HarnessAgentLogDriveErrorEvent;
 };
 
 /**
@@ -709,6 +755,19 @@ export type HarnessAgentLog = {
    * Returns the drive of the latest `drive-start`.
    */
   getLatestDrive(): HarnessAgentLogDrive | undefined;
+
+  /**
+   * Returns how many consecutive drives recorded a `drive-error` for `turnId`
+   * since the turn started or last made progress (`finish-step`, a
+   * non-interrupted `effect-end`, a tool approval event, or a new submission
+   * during the turn).
+   */
+  getConsecutiveDriveErrorCount(options: {
+    /**
+     * ID of the turn to inspect.
+     */
+    turnId: string;
+  }): number;
 
   /**
    * Returns the adapter's own events, in log order. Backs the adapter-facing
@@ -1069,6 +1128,8 @@ export function createLog({
   const turnsById = new Map<string, Mutable<HarnessAgentLogTurn>>();
   const drives = new Map<string, Mutable<HarnessAgentLogDrive>>();
   const crashes = new Map<string, HarnessAgentLogDriveCrashEvent>();
+  const driveErrors = new Map<string, HarnessAgentLogDriveErrorEvent>();
+  const consecutiveDriveErrors = new Map<string, number>();
   let latestDrive: HarnessAgentLogDrive | undefined;
   const adapterEvents: HarnessAgentLogAdapterEvent[] = [];
 
@@ -1160,6 +1221,7 @@ export function createLog({
           currentTurn.finish == null
         ) {
           submissionTurns.set(event.id, currentTurn);
+          consecutiveDriveErrors.set(currentTurn.start.data.turnId, 0);
         }
         return;
       }
@@ -1176,7 +1238,13 @@ export function createLog({
 
       case 'effect-end': {
         const attempt = getOpenAttempt({ startId: event.data.startId });
-        if (attempt != null) attempt.end = event;
+        if (attempt != null) {
+          attempt.end = event;
+          if (event.data.output.type !== 'interrupted') {
+            const turnId = attemptTurns.get(attempt.start.id);
+            if (turnId != null) consecutiveDriveErrors.set(turnId, 0);
+          }
+        }
         return;
       }
 
@@ -1198,6 +1266,7 @@ export function createLog({
         const currentTurn = turns.at(-1);
         if (currentTurn != null) {
           approval.turnId = currentTurn.start.data.turnId;
+          consecutiveDriveErrors.set(currentTurn.start.data.turnId, 0);
         }
         toolApprovals.push(approval);
         toolApprovalsByToolCallId.set(toolCallId, approval);
@@ -1213,6 +1282,9 @@ export function createLog({
           approval.request.data.approvalId === event.data.approvalId
         ) {
           approval.response = event;
+          if (approval.turnId != null) {
+            consecutiveDriveErrors.set(approval.turnId, 0);
+          }
         }
         return;
       }
@@ -1231,12 +1303,16 @@ export function createLog({
         };
         turns.push(turn);
         turnsById.set(turnId, turn);
+        consecutiveDriveErrors.set(turnId, 0);
         return;
       }
 
       case 'finish-step': {
         const turn = turnsById.get(event.data.turnId);
-        if (turn != null) turn.steps = [...turn.steps, event];
+        if (turn != null) {
+          turn.steps = [...turn.steps, event];
+          consecutiveDriveErrors.set(event.data.turnId, 0);
+        }
         return;
       }
 
@@ -1252,6 +1328,8 @@ export function createLog({
         const drive: Mutable<HarnessAgentLogDrive> = { start: event };
         const crash = crashes.get(driveId);
         if (crash != null) drive.crash = crash;
+        const driveError = driveErrors.get(driveId);
+        if (driveError != null) drive.error = driveError;
         drives.set(driveId, drive);
         latestDrive = drive;
         return;
@@ -1263,6 +1341,19 @@ export function createLog({
         crashes.set(driveId, event);
         const drive = drives.get(driveId);
         if (drive != null) drive.crash = event;
+        return;
+      }
+
+      case 'drive-error': {
+        const { driveId, turnId } = event.data;
+        if (driveErrors.has(driveId)) return;
+        driveErrors.set(driveId, event);
+        const drive = drives.get(driveId);
+        if (drive != null) drive.error = event;
+        consecutiveDriveErrors.set(
+          turnId,
+          (consecutiveDriveErrors.get(turnId) ?? 0) + 1,
+        );
         return;
       }
 
@@ -1753,6 +1844,11 @@ export function createLog({
     getLatestDrive() {
       checkLookups();
       return latestDrive;
+    },
+
+    getConsecutiveDriveErrorCount({ turnId }) {
+      checkLookups();
+      return consecutiveDriveErrors.get(turnId) ?? 0;
     },
 
     getAdapterEvents({ type } = {}) {

@@ -14,6 +14,7 @@ describe('isValidHarnessAgentLogEvent', () => {
     'drive-start',
     'crash-request',
     'drive-crash',
+    'drive-error',
     'tool-execution-start',
     'tool-approval-request',
     'tool-approval-response',

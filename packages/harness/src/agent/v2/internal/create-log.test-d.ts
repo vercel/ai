@@ -66,6 +66,7 @@ test('keeps engine-only events internal to the agent', () => {
           | 'drive-start'
           | 'crash-request'
           | 'drive-crash'
+          | 'drive-error'
           | 'tool-execution-start';
       }
     >
