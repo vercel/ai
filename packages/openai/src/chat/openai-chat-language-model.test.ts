@@ -2640,27 +2640,24 @@ describe('doGenerate', () => {
     });
   });
 
-  it.each(['gpt-5.5', 'gpt-6-astra'])(
-    'should send prompt cache retention for %s',
-    async modelId => {
-      prepareJsonFixtureResponse('openai-text');
-
-      const result = await provider.chat(modelId).doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: { openai: { promptCacheRetention: '24h' } },
-      });
-
-      expect(
-        (await server.calls[0].requestBodyJson).prompt_cache_retention,
-      ).toBe('24h');
-      expect(result.warnings).toStrictEqual([]);
-    },
-  );
-
-  it('should omit legacy prompt cache retention for unlisted reasoning models', async () => {
+  it('should send prompt cache retention for GPT-5 models', async () => {
     prepareJsonFixtureResponse('openai-text');
 
-    const result = await provider.chat('gpt-99').doGenerate({
+    const result = await provider.chat('gpt-5.5').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: { openai: { promptCacheRetention: '24h' } },
+    });
+
+    expect((await server.calls[0].requestBodyJson).prompt_cache_retention).toBe(
+      '24h',
+    );
+    expect(result.warnings).toStrictEqual([]);
+  });
+
+  it('should omit legacy prompt cache retention for GPT-6 models', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const result = await provider.chat('gpt-6-astra').doGenerate({
       prompt: TEST_PROMPT,
       providerOptions: {
         openai: {
@@ -2670,7 +2667,7 @@ describe('doGenerate', () => {
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'gpt-99',
+      model: 'gpt-6-astra',
       messages: [{ role: 'user', content: 'Hello' }],
     });
     expect(result.warnings).toStrictEqual([
