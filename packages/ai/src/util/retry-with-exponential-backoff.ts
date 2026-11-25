@@ -7,18 +7,23 @@ import {
 } from '@ai-sdk/provider-utils';
 import { RetryError } from './retry-error';
 
-function getRetryDelayInMs({
+export const DEFAULT_INITIAL_RETRY_DELAY_IN_MS = 2000;
+export const DEFAULT_RETRY_BACKOFF_FACTOR = 2;
+
+export function getRetryDelayInMs({
   error,
+  responseHeaders,
   exponentialBackoffDelay,
 }: {
-  error: APICallError | GatewayError;
+  error: unknown;
+  responseHeaders?: Record<string, string>;
   exponentialBackoffDelay: number;
 }): number {
   const headers = APICallError.isInstance(error)
     ? error.responseHeaders
-    : APICallError.isInstance(error.cause)
+    : GatewayError.isInstance(error) && APICallError.isInstance(error.cause)
       ? (error.cause as APICallError).responseHeaders
-      : undefined;
+      : responseHeaders;
 
   if (!headers) return exponentialBackoffDelay;
 
@@ -64,8 +69,8 @@ function getRetryDelayInMs({
  */
 export const retryWithExponentialBackoffRespectingRetryHeaders = ({
   maxRetries = 2,
-  initialDelayInMs = 2000,
-  backoffFactor = 2,
+  initialDelayInMs = DEFAULT_INITIAL_RETRY_DELAY_IN_MS,
+  backoffFactor = DEFAULT_RETRY_BACKOFF_FACTOR,
   abortSignal,
   additionalRetryableError,
 }: {
@@ -88,7 +93,7 @@ export const retryWithExponentialBackoffRespectingRetryHeaders = ({
         (await additionalRetryableError(error))),
     getDelayInMs: ({ error, exponentialBackoffDelay }) =>
       getRetryDelayInMs({
-        error: error as APICallError | GatewayError,
+        error,
         exponentialBackoffDelay,
       }),
     createRetryError: ({ message, reason, errors }) =>

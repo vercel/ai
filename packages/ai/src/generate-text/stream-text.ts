@@ -1,5 +1,6 @@
 import {
   AISDKError,
+  APICallError,
   getErrorMessage,
   UnsupportedFunctionalityError,
   type LanguageModelV4,
@@ -8,6 +9,7 @@ import {
 import {
   asArray,
   createIdGenerator,
+  delay,
   DelayedPromise,
   filterNullable,
   isAbortError,
@@ -23,8 +25,13 @@ import {
   type ToolSet,
   type UserModelMessage,
 } from '@ai-sdk/provider-utils';
+import { GatewayError } from '@ai-sdk/gateway';
 import type { ServerResponse } from 'node:http';
-import { NoOutputGeneratedError, ToolChoiceViolationError } from '../error';
+import {
+  NoOutputGeneratedError,
+  StreamProviderError,
+  ToolChoiceViolationError,
+} from '../error';
 import { createLogWarnings } from '../logger/create-log-warnings';
 import type { LogWarningsFunction } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
@@ -88,6 +95,11 @@ import { mergeObjects } from '../util/merge-objects';
 import { notify } from '../util/notify';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
+import {
+  DEFAULT_INITIAL_RETRY_DELAY_IN_MS,
+  DEFAULT_RETRY_BACKOFF_FACTOR,
+  getRetryDelayInMs,
+} from '../util/retry-with-exponential-backoff';
 import { setAbortTimeout } from '../util/set-abort-timeout';
 import type { ActiveTools } from './active-tools';
 import { collectToolApprovals } from './collect-tool-approvals';
@@ -212,6 +224,41 @@ const originalGenerateCallId = createIdGenerator({
   prefix: 'call',
   size: 24,
 });
+
+const isPreOutputAttemptContentChunkType = {
+  file: true,
+  custom: true,
+  source: true,
+  'text-start': true,
+  'text-end': true,
+  'text-delta': true,
+  'reasoning-start': true,
+  'reasoning-end': true,
+  'reasoning-delta': true,
+  'reasoning-file': true,
+  'tool-input-start': true,
+  'tool-input-end': true,
+  'tool-input-delta': true,
+  'tool-approval-request': true,
+  'tool-approval-response': true,
+  'tool-call': true,
+  'tool-result': true,
+  'tool-error': true,
+  'model-call-start': false,
+  'model-call-response-metadata': false,
+  'model-call-end': false,
+  error: false,
+  ping: false,
+  raw: false,
+} as const satisfies Record<LanguageModelStreamPart<any>['type'], boolean>;
+
+function isRetryablePreOutputStreamError(error: unknown): boolean {
+  return (
+    (StreamProviderError.isInstance(error) && error.isRetryable === true) ||
+    (APICallError.isInstance(error) && error.isRetryable === true) ||
+    (GatewayError.isInstance(error) && error.isRetryable === true)
+  );
+}
 
 export type StreamTextInclude = {
   /**
@@ -2791,7 +2838,7 @@ class DefaultStreamTextResult<
 
           const stepStartTimestampMs = now();
 
-          const { retry } = prepareRetries({ maxRetries, abortSignal });
+          let maxRetryAttemptsUsed = 0;
           const stepStart = redo?.stepStart ?? {
             notified: false,
             enqueued: false,
@@ -2842,10 +2889,24 @@ class DefaultStreamTextResult<
           let interruptWindowClosed = false;
           let attemptInterrupted = false;
 
-          const callLanguageModel = () =>
-            runInStepTracingChannelContext(() =>
-              retry(async () =>
-                streamLanguageModelCall({
+          const callLanguageModel = () => {
+            const remainingRetries = Math.max(
+              0,
+              maxRetries - maxRetryAttemptsUsed,
+            );
+            const { retry } = prepareRetries({
+              maxRetries: remainingRetries,
+              abortSignal,
+            });
+            let attemptInCall = 0;
+
+            return runInStepTracingChannelContext(() =>
+              retry(async () => {
+                if (attemptInCall++ > 0) {
+                  maxRetryAttemptsUsed++;
+                }
+
+                return streamLanguageModelCall({
                   model: stepModel,
                   tools: stepModelTools as TOOLS,
                   toolOrder: stepToolOrder,
@@ -2923,9 +2984,10 @@ class DefaultStreamTextResult<
                     collectContent: retention.collectContent,
                   },
                   ...stepCallSettings,
-                }),
-              ),
+                });
+              }),
             );
+          };
 
           let initialLanguageModelCall: Awaited<
             ReturnType<typeof callLanguageModel>
@@ -2952,6 +3014,7 @@ class DefaultStreamTextResult<
           let enqueueStreamRetryAttemptBoundary = false;
           const shouldBufferToolParts =
             streamRetries > 0 || canRetryStreamViaOnError;
+          let hasReceivedAttemptContent = false;
 
           const languageModelStream = new ReadableStream<
             LanguageModelStreamPart<TOOLS> | StreamRetryAttemptBoundaryPart
@@ -3097,6 +3160,10 @@ class DefaultStreamTextResult<
                   resetChunkTimeout();
                 }
 
+                if (isPreOutputAttemptContentChunkType[value.type]) {
+                  hasReceivedAttemptContent = true;
+                }
+
                 if (
                   shouldBufferToolParts &&
                   value.type !== 'error' &&
@@ -3113,13 +3180,75 @@ class DefaultStreamTextResult<
                 }
 
                 clearModelOutputTimeouts();
+                const error = wrapGatewayError(value.error);
+                const isToolChoiceViolation =
+                  ToolChoiceViolationError.isInstance(error);
+
+                const switchToRetryAttempt = async (
+                  delayMs?: number,
+                ): Promise<boolean> => {
+                  await languageModelStreamReader.cancel(error);
+                  bufferedAttemptParts = [];
+                  closeOpenAttemptParts();
+
+                  try {
+                    if (delayMs != null) {
+                      await delay(delayMs, {
+                        abortSignal: modelCallAbortSignal,
+                      });
+                    }
+                    const retryLanguageModelCall = await callLanguageModel();
+                    request = retryLanguageModelCall.request;
+                    response = retryLanguageModelCall.response;
+                    languageModelStreamReader =
+                      retryLanguageModelCall.stream.getReader();
+                    hasReceivedAttemptContent = false;
+                    startFirstChunkTimeout();
+                    enqueueStreamRetryAttemptBoundary = true;
+                    return true;
+                  } catch (retryError) {
+                    if (!interruptWindowClosed && isInterrupted()) {
+                      await interruptAttempt();
+                      return false;
+                    }
+                    controller.enqueue({
+                      type: 'error',
+                      error: retryError,
+                    });
+                    controller.close();
+                    return false;
+                  }
+                };
+
+                // Errors that arrive after stream headers but before any model
+                // output (e.g. after an accepted grace window) share maxRetries.
+                const canPreOutputRetry =
+                  !hasReceivedAttemptContent &&
+                  !isToolChoiceViolation &&
+                  maxRetryAttemptsUsed < maxRetries &&
+                  isRetryablePreOutputStreamError(error);
+
+                if (canPreOutputRetry) {
+                  maxRetryAttemptsUsed++;
+                  const retryDelayInMs = getRetryDelayInMs({
+                    error,
+                    responseHeaders: response?.headers,
+                    exponentialBackoffDelay:
+                      DEFAULT_INITIAL_RETRY_DELAY_IN_MS *
+                      DEFAULT_RETRY_BACKOFF_FACTOR **
+                        (maxRetryAttemptsUsed - 1),
+                  });
+
+                  if (!(await switchToRetryAttempt(retryDelayInMs))) {
+                    return;
+                  }
+                  continue;
+                }
+
                 await notify({
                   event: { chunk: value },
                   callbacks: onChunk,
                 });
-                const error = wrapGatewayError(value.error);
-                const isToolChoiceViolation =
-                  ToolChoiceViolationError.isInstance(error);
                 let onErrorResult: unknown;
                 try {
                   onErrorResult = await onError({ error });
@@ -3152,33 +3281,9 @@ class DefaultStreamTextResult<
                   callbackStreamRetryCount++;
                 }
 
-                await languageModelStreamReader.cancel(error);
-                bufferedAttemptParts = [];
-                closeOpenAttemptParts();
-
-                let retryLanguageModelCall: Awaited<
-                  ReturnType<typeof callLanguageModel>
-                >;
-                try {
-                  retryLanguageModelCall = await callLanguageModel();
-                } catch (retryError) {
-                  if (!interruptWindowClosed && isInterrupted()) {
-                    await interruptAttempt();
-                    return;
-                  }
-                  controller.enqueue({
-                    type: 'error',
-                    error: retryError,
-                  });
-                  controller.close();
+                if (!(await switchToRetryAttempt())) {
                   return;
                 }
-                request = retryLanguageModelCall.request;
-                response = retryLanguageModelCall.response;
-                languageModelStreamReader =
-                  retryLanguageModelCall.stream.getReader();
-                startFirstChunkTimeout();
-                enqueueStreamRetryAttemptBoundary = true;
               }
             },
             cancel(reason) {

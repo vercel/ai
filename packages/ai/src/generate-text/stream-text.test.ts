@@ -4365,6 +4365,223 @@ describe('streamText', () => {
       expect(onErrorValue).toBe(errorPart.error);
     });
 
+    it('should retry a retryable pre-output stream error using maxRetries without streamRetries', async () => {
+      let callCount = 0;
+      const onError = vi.fn();
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            if (callCount++ === 0) {
+              return {
+                response: { headers: { 'retry-after-ms': '0' } },
+                stream: convertArrayToReadableStream([
+                  { type: 'stream-start', warnings: [] },
+                  {
+                    type: 'response-metadata',
+                    id: 'failed-id',
+                    modelId: 'm',
+                    timestamp: new Date(1),
+                  },
+                  {
+                    type: 'error',
+                    error: createProviderStreamError({
+                      message: 'Overloaded',
+                      code: 'server_is_overloaded',
+                      statusCode: 503,
+                      isRetryable: true,
+                      data: {
+                        code: 'server_is_overloaded',
+                        message: 'Overloaded',
+                      },
+                    }),
+                  },
+                ]),
+              };
+            }
+
+            return {
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'response-metadata',
+                  id: 'recovered-id',
+                  modelId: 'm',
+                  timestamp: new Date(2),
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'recovered' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        maxRetries: 2,
+        onError,
+      });
+
+      const parts = await convertAsyncIterableToArray(result.fullStream);
+
+      expect(callCount).toBe(2);
+      expect(await result.text).toBe('recovered');
+      expect(onError).not.toHaveBeenCalled();
+      expect((await result.finalStep).response.id).toBe('recovered-id');
+      expect(parts.some(part => part.type === 'error')).toBe(false);
+    });
+
+    it('should not retry a retryable stream error under maxRetries once content has started', async () => {
+      let callCount = 0;
+      const onError = vi.fn();
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            callCount++;
+            return {
+              response: { headers: { 'retry-after-ms': '0' } },
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'partial' },
+                {
+                  type: 'error',
+                  error: createProviderStreamError({
+                    message: 'Overloaded',
+                    statusCode: 503,
+                    isRetryable: true,
+                    data: { message: 'Overloaded' },
+                  }),
+                },
+              ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        maxRetries: 2,
+        onError,
+      });
+
+      await result.consumeStream();
+
+      expect(callCount).toBe(1);
+      expect(onError).toHaveBeenCalledTimes(1);
+    });
+
+    it('should share the maxRetries budget across request throws and pre-output stream errors', async () => {
+      let callCount = 0;
+      const onError = vi.fn();
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            const call = ++callCount;
+            if (call === 1) {
+              throw new APICallError({
+                message: 'initial overload',
+                url: 'https://api.test.com',
+                requestBodyValues: {},
+                statusCode: 503,
+                responseHeaders: { 'retry-after-ms': '0' },
+                isRetryable: true,
+              });
+            }
+
+            if (call === 2) {
+              return {
+                response: { headers: { 'retry-after-ms': '0' } },
+                stream: convertArrayToReadableStream([
+                  { type: 'stream-start', warnings: [] },
+                  {
+                    type: 'error',
+                    error: createProviderStreamError({
+                      message: 'second overload',
+                      statusCode: 503,
+                      isRetryable: true,
+                      data: { message: 'second overload' },
+                    }),
+                  },
+                ]),
+              };
+            }
+
+            return {
+              response: { headers: { 'retry-after-ms': '0' } },
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'error',
+                  error: createProviderStreamError({
+                    message: 'final overload',
+                    statusCode: 503,
+                    isRetryable: true,
+                    data: { message: 'final overload' },
+                  }),
+                },
+              ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        maxRetries: 2,
+        onError,
+      });
+
+      const parts = await convertAsyncIterableToArray(result.fullStream);
+
+      expect(callCount).toBe(3);
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(
+        StreamProviderError.isInstance(onError.mock.calls[0][0].error),
+      ).toBe(true);
+      expect(onError.mock.calls[0][0].error).toMatchObject({
+        message: 'final overload',
+      });
+      expect(parts).toContainEqual({
+        type: 'error',
+        error: expect.objectContaining({ message: 'final overload' }),
+      });
+    });
+
+    it('should not retry a pre-output retryable stream error when maxRetries is 0', async () => {
+      let callCount = 0;
+      const onError = vi.fn();
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            callCount++;
+            return {
+              response: { headers: { 'retry-after-ms': '0' } },
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'error',
+                  error: createProviderStreamError({
+                    message: 'Overloaded',
+                    statusCode: 503,
+                    isRetryable: true,
+                    data: { message: 'Overloaded' },
+                  }),
+                },
+              ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        maxRetries: 0,
+        onError,
+      });
+
+      await result.consumeStream();
+
+      expect(callCount).toBe(1);
+      expect(onError).toHaveBeenCalledTimes(1);
+    });
+
     it('should invoke onError callback when error is thrown in 2nd step', async () => {
       const onError = vi.fn();
       let responseCount = 0;
