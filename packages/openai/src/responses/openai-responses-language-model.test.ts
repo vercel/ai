@@ -8026,11 +8026,14 @@ describe('OpenAIResponsesLanguageModel', () => {
       const { stream } = await model.doStream({ prompt: TEST_PROMPT });
       const parts = await convertReadableStreamToArray(stream);
 
+      // Usage and the finish reason are read only from `response.completed`,
+      // so they show that the 65 MiB event parsed.
       expect(parts.some(part => part.type === 'error')).toBe(false);
       const finish = parts.find(part => part.type === 'finish');
       expect(finish).toMatchObject({
         type: 'finish',
         usage: { inputTokens: { total: 10 }, outputTokens: { total: 20 } },
+        finishReason: { unified: 'stop' },
       });
     });
 

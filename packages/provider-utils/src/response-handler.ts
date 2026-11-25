@@ -211,7 +211,7 @@ export const createEventSourceResponseHandler =
           responseHeaders,
         }),
         schema: chunkSchema,
-        ...(maxEventSize != null && { maxEventSize }),
+        maxEventSize,
       }),
     };
   };
