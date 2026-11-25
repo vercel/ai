@@ -315,6 +315,43 @@ describe('OpenAI batch service', () => {
     });
   });
 
+  it.each([
+    ['the azure namespace', { azure: { outputFileExpiresAfter: 3600 } }, 3600],
+    [
+      'the openai namespace as a fallback',
+      { openai: { outputFileExpiresAfter: 7200 } },
+      7200,
+    ],
+    [
+      'the azure namespace over the openai namespace',
+      {
+        azure: { outputFileExpiresAfter: 3600 },
+        openai: { outputFileExpiresAfter: 7200 },
+      },
+      3600,
+    ],
+  ])(
+    'reads outputFileExpiresAfter from %s for azure-named providers',
+    async (_, providerOptions, seconds) => {
+      prepareCreateResponse();
+      const batch = createOpenAI({
+        apiKey: 'test-api-key',
+        name: 'azure',
+      }).experimental_batch();
+
+      await batch.doStartBatch({
+        requests: [
+          { id: 'france', ...request('What is the capital of France?') },
+        ],
+        providerOptions,
+      });
+
+      expect(await server.calls[1].requestBodyJson).toMatchObject({
+        output_expires_after: { anchor: 'created_at', seconds },
+      });
+    },
+  );
+
   it.each([3600, 2_592_000])(
     'accepts outputFileExpiresAfter %s',
     async outputFileExpiresAfter => {
@@ -525,6 +562,7 @@ describe('OpenAI batch service', () => {
             id: 'batch_122',
             status: 'completed',
             output_file_id: 'file-output',
+            error_file_id: 'file-errors',
             request_counts: { total: 2, completed: 2, failed: 0 },
           }),
         ],
@@ -575,6 +613,9 @@ describe('OpenAI batch service', () => {
           },
           createdAt: '2023-11-14T22:13:20.000Z',
           expiresAt: '2023-11-15T22:13:20.000Z',
+          providerMetadata: {
+            openai: { outputFileId: 'file-output', errorFileId: 'file-errors' },
+          },
         },
       ],
       nextCursor: 'batch_122',
@@ -674,6 +715,26 @@ describe('OpenAI batch service', () => {
       expect(status.providerMetadata).toEqual(providerMetadata);
     },
   );
+
+  it('treats empty-string file ids as missing in status provider metadata', async () => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: batchResponse({ output_file_id: '', error_file_id: 'file-errors' }),
+    };
+    const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
+
+    const status = await batch.doGetBatchStatus({ batchId: 'batch_123' });
+    expect(status.providerMetadata).toEqual({
+      openai: { errorFileId: 'file-errors' },
+    });
+
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: batchResponse({ output_file_id: '', error_file_id: '' }),
+    };
+    const emptyStatus = await batch.doGetBatchStatus({ batchId: 'batch_123' });
+    expect(emptyStatus).not.toHaveProperty('providerMetadata');
+  });
 
   it('omits status provider metadata when OpenAI returns no file ids', async () => {
     const { output_file_id, error_file_id, ...body } = batchResponse({

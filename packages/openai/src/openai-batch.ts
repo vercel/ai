@@ -375,13 +375,7 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
     options: BatchV4OperationOptions,
   ): Promise<BatchV4Status> {
     const batch = await this.retrieveBatch(options);
-    const fileMetadata = convertOpenAIBatchFileMetadata(batch);
-    return {
-      ...convertOpenAIBatchStatus(batch),
-      ...(fileMetadata != null
-        ? { providerMetadata: { openai: fileMetadata } }
-        : {}),
-    };
+    return convertOpenAIBatchStatusWithFileMetadata(batch);
   }
 
   async doCancelBatch(
@@ -434,7 +428,7 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
     return {
       batches: page.data.map(batch => ({
         batchId: batch.id,
-        ...convertOpenAIBatchStatus(batch),
+        ...convertOpenAIBatchStatusWithFileMetadata(batch),
       })),
       ...(page.has_more && page.last_id != null
         ? { nextCursor: page.last_id }
@@ -651,20 +645,33 @@ function convertOpenAIBatchStatus(batch: OpenAIBatchResponse): BatchV4Status {
   };
 }
 
+// Status and list results carry the output/error file ids; start results don't.
+function convertOpenAIBatchStatusWithFileMetadata(
+  batch: OpenAIBatchResponse,
+): BatchV4Status {
+  const fileMetadata = convertOpenAIBatchFileMetadata(batch);
+  return {
+    ...convertOpenAIBatchStatus(batch),
+    ...(fileMetadata != null
+      ? { providerMetadata: { openai: fileMetadata } }
+      : {}),
+  };
+}
+
 function convertOpenAIBatchFileMetadata(
   batch: OpenAIBatchResponse,
 ): { outputFileId?: string; errorFileId?: string } | undefined {
-  if (batch.output_file_id == null && batch.error_file_id == null) {
+  // Treat empty strings like missing ids.
+  const outputFileId = batch.output_file_id || undefined;
+  const errorFileId = batch.error_file_id || undefined;
+
+  if (outputFileId == null && errorFileId == null) {
     return undefined;
   }
 
   return {
-    ...(batch.output_file_id != null
-      ? { outputFileId: batch.output_file_id }
-      : {}),
-    ...(batch.error_file_id != null
-      ? { errorFileId: batch.error_file_id }
-      : {}),
+    ...(outputFileId != null ? { outputFileId } : {}),
+    ...(errorFileId != null ? { errorFileId } : {}),
   };
 }
 
