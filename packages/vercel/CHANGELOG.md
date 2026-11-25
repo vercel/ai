@@ -1,5 +1,13 @@
 # @ai-sdk/vercel
 
+## 2.0.97
+
+### Patch Changes
+
+- Updated dependencies [ca77a27]
+  - @ai-sdk/provider-utils@4.0.68
+  - @ai-sdk/openai-compatible@2.0.95
+
 ## 2.0.96
 
 ### Patch Changes
