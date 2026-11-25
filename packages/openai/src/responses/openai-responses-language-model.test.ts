@@ -7988,6 +7988,52 @@ describe('OpenAIResponsesLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it('should parse a response.completed event that is larger than the default maximum event size', async () => {
+      // `response.completed` repeats every output item, so several base64
+      // images make it larger than 64 MiB. It arrives in several chunks.
+      const encoder = new TextEncoder();
+      const dataChunk = new Uint8Array(1024 * 1024).fill(65); // 'A'
+      const dataChunkCount = 65;
+      const chunks = [
+        encoder.encode(
+          'data: {"type":"response.completed","response":{"id":"resp_1","created_at":1741269019,"model":"gpt-5.4","service_tier":"default","usage":{"input_tokens":10,"input_tokens_details":{"cached_tokens":0},"output_tokens":20,"output_tokens_details":{"reasoning_tokens":0}},"output":[{"type":"image_generation_call","id":"ig_1","status":"completed","result":"',
+        ),
+        ...Array.from({ length: dataChunkCount }, () => dataChunk),
+        encoder.encode('"}]}}\n\n'),
+      ];
+
+      const model = new OpenAIResponsesLanguageModel('gpt-5.4', {
+        provider: 'openai',
+        url: ({ path }) => `https://api.openai.com/v1${path}`,
+        headers: () => ({ Authorization: `Bearer APIKEY` }),
+        generateId: mockId(),
+        fetch: async () =>
+          new Response(
+            new ReadableStream<Uint8Array>({
+              pull(controller) {
+                const chunk = chunks.shift();
+                if (chunk == null) {
+                  controller.close();
+                } else {
+                  controller.enqueue(chunk);
+                }
+              },
+            }),
+            { headers: { 'content-type': 'text/event-stream' } },
+          ),
+      });
+
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts.some(part => part.type === 'error')).toBe(false);
+      const finish = parts.find(part => part.type === 'finish');
+      expect(finish).toMatchObject({
+        type: 'finish',
+        usage: { inputTokens: { total: 10 }, outputTokens: { total: 20 } },
+      });
+    });
+
     it('should stream refusal content parts as text and map the finish reason to content-filter', async () => {
       prepareChunksFixtureResponse('openai-refusal.1');
 

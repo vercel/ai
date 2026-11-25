@@ -111,6 +111,13 @@ import type {
 } from './openai-responses-provider-metadata';
 
 /**
+ * `response.completed` repeats every output item, including base64 image
+ * generation results, so it can be much larger than the default maximum event
+ * size. The limit is about the maximum length of a string in V8.
+ */
+const MAX_RESPONSES_EVENT_SIZE = 512 * 1024 * 1024;
+
+/**
  * Extracts a mapping from MCP approval request IDs to their corresponding tool call IDs
  * from the prompt. When an MCP tool requires approval, we generate a tool call ID to track
  * the pending approval in our system. When the user responds to the approval (and we
@@ -1666,6 +1673,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         openaiResponsesChunkSchema,
+        { maxEventSize: MAX_RESPONSES_EVENT_SIZE },
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
