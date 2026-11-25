@@ -14,6 +14,18 @@ export type BrowserRealtimeAudioOptions = {
   onError?: (error: Error) => void;
 };
 
+type PlaybackQueueItem = {
+  samples: Float32Array;
+  itemId?: string;
+};
+
+type ActivePlayback = {
+  itemId?: string;
+  startTime: number;
+  endTime: number;
+  itemOffsetMs: number;
+};
+
 export class BrowserRealtimeAudio {
   private readonly captureSampleRate: number;
   private readonly playbackSampleRate: number;
@@ -30,10 +42,10 @@ export class BrowserRealtimeAudio {
   private captureGeneration = 0;
 
   private playbackContext: AudioContext | null = null;
-  private playbackQueue: Float32Array[] = [];
+  private playbackQueue: PlaybackQueueItem[] = [];
   private playbackTime = 0;
-  private playbackStartTime = 0;
-  private activeSources = new Set<AudioBufferSourceNode>();
+  private activeSources = new Map<AudioBufferSourceNode, ActivePlayback>();
+  private itemPlaybackDurationsMs = new Map<string, number>();
   private isPlaying = false;
   private playbackPaused = false;
   private readonly maxPlaybackSeconds: number;
@@ -157,7 +169,7 @@ export class BrowserRealtimeAudio {
     this.onCapturingChange(false);
   }
 
-  playAudio(base64Audio: string): void {
+  playAudio(base64Audio: string, itemId?: string): void {
     if (this.playbackPaused) return;
     this.ensurePlaybackContext();
     const samples = decodeRealtimeAudio(base64Audio);
@@ -178,14 +190,14 @@ export class BrowserRealtimeAudio {
       );
       return;
     }
-    this.playbackQueue.push(samples);
+    this.playbackQueue.push({ samples, itemId });
     this.schedulePlayback();
   }
 
   stopPlayback(): void {
     this.playbackQueue = [];
 
-    for (const source of this.activeSources) {
+    for (const source of this.activeSources.keys()) {
       try {
         source.onended = null;
         source.stop();
@@ -202,10 +214,25 @@ export class BrowserRealtimeAudio {
     this.setPlaying(false);
   }
 
-  getPlaybackOffsetMs(): number {
-    const ctx = this.playbackContext;
-    if (ctx == null) return 0;
-    return (ctx.currentTime - this.playbackStartTime) * 1000;
+  getPlaybackPosition(): { itemId: string; offsetMs: number } | null {
+    const currentTime = this.playbackContext?.currentTime;
+    if (currentTime == null) return null;
+
+    for (const playback of this.activeSources.values()) {
+      if (
+        playback.itemId != null &&
+        currentTime >= playback.startTime &&
+        currentTime < playback.endTime
+      ) {
+        return {
+          itemId: playback.itemId,
+          offsetMs:
+            playback.itemOffsetMs + (currentTime - playback.startTime) * 1000,
+        };
+      }
+    }
+
+    return null;
   }
 
   dispose(): void {
@@ -215,13 +242,11 @@ export class BrowserRealtimeAudio {
     void this.playbackContext?.close().catch(() => {});
     this.playbackContext = null;
     this.playbackTime = 0;
+    this.itemPlaybackDurationsMs.clear();
     this.playbackPaused = false;
   }
 
   private setPlaying(isPlaying: boolean): void {
-    if (isPlaying && !this.isPlaying) {
-      this.playbackStartTime = this.playbackContext?.currentTime ?? 0;
-    }
     if (this.isPlaying !== isPlaying) {
       this.isPlaying = isPlaying;
       this.onPlayingChange(isPlaying);
@@ -233,7 +258,7 @@ export class BrowserRealtimeAudio {
     if (ctx == null || this.playbackQueue.length === 0) return;
 
     while (this.playbackQueue.length > 0) {
-      const samples = this.playbackQueue.shift()!;
+      const { samples, itemId } = this.playbackQueue.shift()!;
       const buffer = ctx.createBuffer(
         1,
         samples.length,
@@ -249,7 +274,19 @@ export class BrowserRealtimeAudio {
       source.start(startTime);
       this.playbackTime = startTime + buffer.duration;
 
-      this.activeSources.add(source);
+      const itemOffsetMs =
+        itemId == null ? 0 : (this.itemPlaybackDurationsMs.get(itemId) ?? 0);
+      if (itemId != null)
+        this.itemPlaybackDurationsMs.set(
+          itemId,
+          itemOffsetMs + buffer.duration * 1000,
+        );
+      this.activeSources.set(source, {
+        itemId,
+        startTime,
+        endTime: this.playbackTime,
+        itemOffsetMs,
+      });
       this.setPlaying(ctx.state === 'running');
       if (this.playbackContext !== ctx) return;
 
