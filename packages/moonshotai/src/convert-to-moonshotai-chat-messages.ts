@@ -15,8 +15,8 @@ import {
 } from '@ai-sdk/provider-utils';
 
 import type { MoonshotAIMessages } from './moonshotai-chat-api-types';
+import { getMoonshotAILanguageModelEntry } from './moonshotai-model-catalog';
 import {
-  getMoonshotAIModelFamily,
   moonshotaiAllMessageProviderOptions,
   type MoonshotAIChatModelId,
 } from './moonshotai-chat-options';
@@ -99,8 +99,11 @@ export async function convertToMoonshotAIChatMessages({
 }> {
   const messages: MoonshotAIMessages = [];
   const warnings: Array<SharedV4Warning> = [];
-  const modelFamily =
-    modelId == null ? 'unknown' : getMoonshotAIModelFamily(modelId);
+  const dynamicTools =
+    modelId == null
+      ? 'unknown'
+      : getMoonshotAILanguageModelEntry(modelId).requestConfig.language
+          .dynamicTools;
 
   for (const [index, { role, content, providerOptions }] of prompt.entries()) {
     const moonshotMessageOptions = await parseProviderOptions({
@@ -136,7 +139,7 @@ export async function convertToMoonshotAIChatMessages({
             });
           }
 
-          if (modelFamily !== 'kimi-k3' && modelFamily !== 'unknown') {
+          if (dynamicTools === false) {
             warnings.push({
               type: 'unsupported',
               feature: `dynamic tool loading for model "${modelId}"`,

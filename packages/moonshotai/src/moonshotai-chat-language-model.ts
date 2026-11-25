@@ -42,9 +42,8 @@ import {
   type MoonshotAIChatLogprob,
   type MoonshotAIChatTokenUsage,
 } from './moonshotai-chat-api-types';
+import { getMoonshotAILanguageModelEntry } from './moonshotai-model-catalog';
 import {
-  getMoonshotAIModelFamily,
-  isMoonshotAIKimiModel,
   moonshotaiLanguageModelOptions,
   type MoonshotAIChatModelId,
 } from './moonshotai-chat-options';
@@ -197,7 +196,9 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
       allWarnings.push({ type: 'unsupported', feature: 'seed' });
     }
 
-    const supportsSamplingOptions = !isMoonshotAIKimiModel(this.modelId);
+    const modelEntry = getMoonshotAILanguageModelEntry(this.modelId);
+    const supportsSamplingOptions =
+      modelEntry.capabilities.language.sampling.temperature;
 
     if (!supportsSamplingOptions && temperature != null) {
       allWarnings.push({
@@ -234,7 +235,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
       toolWarnings,
     } = prepareTools({ tools, toolChoice, modelId: this.modelId });
 
-    const modelFamily = getMoonshotAIModelFamily(this.modelId);
+    const reasoningControl = modelEntry.requestConfig.language.reasoning;
     const requestedThinking = moonshotOptions.thinking;
     const requestedReasoningEffort = moonshotOptions.reasoningEffort;
     const preserveReasoning = moonshotOptions.reasoningHistory === 'preserved';
@@ -261,8 +262,8 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
       }
     };
 
-    switch (modelFamily) {
-      case 'kimi-k3': {
+    switch (reasoningControl) {
+      case 'effort': {
         if (requestedThinking != null) {
           allWarnings.push({
             type: 'unsupported',
@@ -281,7 +282,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         });
         break;
       }
-      case 'kimi-k2.7': {
+      case 'thinking-always-on': {
         warnUnsupportedReasoningEffort();
         if (requestedThinking?.type === 'disabled') {
           allWarnings.push({
@@ -301,7 +302,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         }
         break;
       }
-      case 'kimi-k2.6': {
+      case 'thinking-with-history': {
         warnUnsupportedReasoningEffort();
         const thinkingType =
           requestedThinking?.type ??
@@ -318,7 +319,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         }
         break;
       }
-      case 'kimi-k2.5': {
+      case 'thinking': {
         warnUnsupportedReasoningEffort();
         const thinkingType =
           requestedThinking?.type ??
@@ -338,7 +339,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         }
         break;
       }
-      case 'moonshot-v1': {
+      case 'none': {
         warnUnsupportedReasoningEffort();
         if (requestedThinking != null) {
           allWarnings.push({
