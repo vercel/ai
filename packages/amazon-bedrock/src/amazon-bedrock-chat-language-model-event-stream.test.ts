@@ -1,10 +1,14 @@
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type {
+  LanguageModelV4Prompt,
+  SharedV4ProviderMetadata,
+} from '@ai-sdk/provider';
 import { isProviderStreamError } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { EventStreamCodec } from '@smithy/eventstream-codec';
 import { fromUtf8, toUtf8 } from '@smithy/util-utf8';
 import { describe, expect, it } from 'vitest';
 import { AmazonBedrockChatLanguageModel } from './amazon-bedrock-chat-language-model';
+import { convertToAmazonBedrockChatMessages } from './convert-to-amazon-bedrock-chat-messages';
 
 const codec = new EventStreamCodec(toUtf8, fromUtf8);
 
@@ -434,6 +438,289 @@ describe('AmazonBedrockChatLanguageModel doStream', () => {
         providerMetadata: {
           amazonBedrock: { redactedContent: 'second-payload' },
           bedrock: { redactedContent: 'second-payload' },
+        },
+      },
+    ]);
+  });
+
+  function createBedrockStreamModel(modelId: string, chunks: Uint8Array[]) {
+    return new AmazonBedrockChatLanguageModel(modelId, {
+      baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+      headers: {},
+      fetch: async () =>
+        new Response(createStream(chunks), {
+          status: 200,
+          headers: {
+            'content-type': 'application/vnd.amazon.eventstream',
+          },
+        }),
+      generateId: () => 'test-id',
+    });
+  }
+
+  it('splits consecutive signed thinking blocks streamed under the same contentBlockIndex and replays both signatures', async () => {
+    const model = createBedrockStreamModel('anthropic.claude-opus-4-6-v1', [
+      createEvent(
+        'contentBlockDelta',
+        JSON.stringify({
+          contentBlockIndex: 0,
+          delta: { reasoningContent: { text: 'first thought' } },
+        }),
+      ),
+      createEvent(
+        'contentBlockDelta',
+        JSON.stringify({
+          contentBlockIndex: 0,
+          delta: { reasoningContent: { signature: 'SIGNATURE_ONE' } },
+        }),
+      ),
+      createEvent(
+        'contentBlockDelta',
+        JSON.stringify({
+          contentBlockIndex: 0,
+          delta: { reasoningContent: { text: 'second thought' } },
+        }),
+      ),
+      createEvent(
+        'contentBlockDelta',
+        JSON.stringify({
+          contentBlockIndex: 0,
+          delta: { reasoningContent: { signature: 'SIGNATURE_TWO' } },
+        }),
+      ),
+      createEvent('contentBlockStop', JSON.stringify({ contentBlockIndex: 0 })),
+      createEvent('messageStop', JSON.stringify({ stopReason: 'tool_use' })),
+    ]);
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    const reasoningParts = parts.filter(part =>
+      part.type.startsWith('reasoning-'),
+    );
+
+    expect(reasoningParts).toStrictEqual([
+      { type: 'reasoning-start', id: '0' },
+      { type: 'reasoning-delta', id: '0', delta: 'first thought' },
+      {
+        type: 'reasoning-delta',
+        id: '0',
+        delta: '',
+        providerMetadata: {
+          amazonBedrock: { signature: 'SIGNATURE_ONE' },
+          bedrock: { signature: 'SIGNATURE_ONE' },
+        },
+      },
+      { type: 'reasoning-end', id: '0' },
+      { type: 'reasoning-start', id: '0-1' },
+      { type: 'reasoning-delta', id: '0-1', delta: 'second thought' },
+      {
+        type: 'reasoning-delta',
+        id: '0-1',
+        delta: '',
+        providerMetadata: {
+          amazonBedrock: { signature: 'SIGNATURE_TWO' },
+          bedrock: { signature: 'SIGNATURE_TWO' },
+        },
+      },
+      { type: 'reasoning-end', id: '0-1' },
+    ]);
+
+    // Assemble reasoning parts as streamText does and verify both survive replay conversion.
+    const assembled = new Map<
+      string,
+      { text: string; providerMetadata?: SharedV4ProviderMetadata }
+    >();
+    const orderedIds: string[] = [];
+    for (const part of reasoningParts) {
+      if (part.type === 'reasoning-start') {
+        orderedIds.push(part.id);
+        assembled.set(part.id, { text: '' });
+      } else if (part.type === 'reasoning-delta') {
+        const entry = assembled.get(part.id)!;
+        entry.text += part.delta;
+        if (part.providerMetadata != null) {
+          entry.providerMetadata = part.providerMetadata;
+        }
+      }
+    }
+
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'assistant',
+        content: orderedIds.map(id => {
+          const entry = assembled.get(id)!;
+          return {
+            type: 'reasoning' as const,
+            text: entry.text,
+            providerOptions: entry.providerMetadata,
+          };
+        }),
+      },
+    ]);
+
+    expect(messages).toStrictEqual([
+      {
+        role: 'assistant',
+        content: [
+          {
+            reasoningContent: {
+              reasoningText: {
+                text: 'first thought',
+                signature: 'SIGNATURE_ONE',
+              },
+            },
+          },
+          {
+            reasoningContent: {
+              reasoningText: {
+                text: 'second thought',
+                signature: 'SIGNATURE_TWO',
+              },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('splits consecutive signature-only thinking deltas under the same contentBlockIndex', async () => {
+    const model = createBedrockStreamModel('anthropic.claude-opus-4-6-v1', [
+      createEvent(
+        'contentBlockDelta',
+        JSON.stringify({
+          contentBlockIndex: 0,
+          delta: { reasoningContent: { signature: 'SIG_1' } },
+        }),
+      ),
+      createEvent(
+        'contentBlockDelta',
+        JSON.stringify({
+          contentBlockIndex: 0,
+          delta: { reasoningContent: { signature: 'SIG_2' } },
+        }),
+      ),
+      createEvent('contentBlockStop', JSON.stringify({ contentBlockIndex: 0 })),
+      createEvent('messageStop', JSON.stringify({ stopReason: 'end_turn' })),
+    ]);
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    expect(
+      parts.filter(part => part.type.startsWith('reasoning-')),
+    ).toStrictEqual([
+      { type: 'reasoning-start', id: '0' },
+      {
+        type: 'reasoning-delta',
+        id: '0',
+        delta: '',
+        providerMetadata: {
+          amazonBedrock: { signature: 'SIG_1' },
+          bedrock: { signature: 'SIG_1' },
+        },
+      },
+      { type: 'reasoning-end', id: '0' },
+      { type: 'reasoning-start', id: '0-1' },
+      {
+        type: 'reasoning-delta',
+        id: '0-1',
+        delta: '',
+        providerMetadata: {
+          amazonBedrock: { signature: 'SIG_2' },
+          bedrock: { signature: 'SIG_2' },
+        },
+      },
+      { type: 'reasoning-end', id: '0-1' },
+    ]);
+  });
+
+  it('splits a signed thinking block followed by redacted reasoning under the same contentBlockIndex while keeping chunked redactedContent combined', async () => {
+    const model = createBedrockStreamModel('anthropic.claude-opus-4-6-v1', [
+      createEvent(
+        'contentBlockDelta',
+        JSON.stringify({
+          contentBlockIndex: 0,
+          delta: { reasoningContent: { text: 'visible thought' } },
+        }),
+      ),
+      createEvent(
+        'contentBlockDelta',
+        JSON.stringify({
+          contentBlockIndex: 0,
+          delta: { reasoningContent: { signature: 'SIG_VISIBLE' } },
+        }),
+      ),
+      createEvent(
+        'contentBlockDelta',
+        JSON.stringify({
+          contentBlockIndex: 0,
+          delta: { reasoningContent: { data: 'REDACTED_OPAQUE' } },
+        }),
+      ),
+      createEvent(
+        'contentBlockDelta',
+        JSON.stringify({
+          contentBlockIndex: 0,
+          delta: { reasoningContent: { redactedContent: 'enc-part-1-' } },
+        }),
+      ),
+      createEvent(
+        'contentBlockDelta',
+        JSON.stringify({
+          contentBlockIndex: 0,
+          delta: { reasoningContent: { redactedContent: 'enc-part-2' } },
+        }),
+      ),
+      createEvent('contentBlockStop', JSON.stringify({ contentBlockIndex: 0 })),
+      createEvent('messageStop', JSON.stringify({ stopReason: 'end_turn' })),
+    ]);
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    expect(
+      parts.filter(part => part.type.startsWith('reasoning-')),
+    ).toStrictEqual([
+      { type: 'reasoning-start', id: '0' },
+      { type: 'reasoning-delta', id: '0', delta: 'visible thought' },
+      {
+        type: 'reasoning-delta',
+        id: '0',
+        delta: '',
+        providerMetadata: {
+          amazonBedrock: { signature: 'SIG_VISIBLE' },
+          bedrock: { signature: 'SIG_VISIBLE' },
+        },
+      },
+      { type: 'reasoning-end', id: '0' },
+      { type: 'reasoning-start', id: '0-1' },
+      {
+        type: 'reasoning-delta',
+        id: '0-1',
+        delta: '',
+        providerMetadata: {
+          amazonBedrock: { redactedData: 'REDACTED_OPAQUE' },
+          bedrock: { redactedData: 'REDACTED_OPAQUE' },
+        },
+      },
+      { type: 'reasoning-end', id: '0-1' },
+      { type: 'reasoning-start', id: '0-2' },
+      {
+        type: 'reasoning-end',
+        id: '0-2',
+        providerMetadata: {
+          amazonBedrock: { redactedContent: 'enc-part-1-enc-part-2' },
+          bedrock: { redactedContent: 'enc-part-1-enc-part-2' },
         },
       },
     ]);
