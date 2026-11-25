@@ -75,6 +75,44 @@ describe('TopazImageModel', () => {
     [`${TEST_BASE_URL}/image/v1/cancel/${PROCESS_ID}`]: {
       response: { type: 'empty', status: 204 },
     },
+    [`${TEST_BASE_URL}/image/v1/status/%252E`]: {
+      response: {
+        type: 'json-value',
+        body: {
+          status: 'Completed',
+          progress: 100,
+          credits: 2,
+          output_width: 4000,
+          output_height: 3000,
+          output_format: 'png',
+        },
+      },
+    },
+    [`${TEST_BASE_URL}/image/v1/status/%252E%252E`]: {
+      response: {
+        type: 'json-value',
+        body: {
+          status: 'Completed',
+          progress: 100,
+          credits: 2,
+          output_width: 4000,
+          output_height: 3000,
+          output_format: 'png',
+        },
+      },
+    },
+    [`${TEST_BASE_URL}/image/v1/download/%252E`]: {
+      response: {
+        type: 'json-value',
+        body: { download_url: DOWNLOAD_URL, expiry: 3600 },
+      },
+    },
+    [`${TEST_BASE_URL}/image/v1/download/%252E%252E`]: {
+      response: {
+        type: 'json-value',
+        body: { download_url: DOWNLOAD_URL, expiry: 3600 },
+      },
+    },
   });
 
   describe('constructor', () => {
@@ -389,5 +427,47 @@ describe('TopazImageModel', () => {
         createModel().doGenerate({ ...defaultOptions }),
       ).rejects.toThrow('Insufficient credits');
     });
+
+    it.each([
+      { processId: '.', encodedProcessId: '%252E' },
+      { processId: '..', encodedProcessId: '%252E%252E' },
+    ] as const)(
+      'should preserve the $processId process ID as a URL path segment',
+      async ({ processId, encodedProcessId }) => {
+        server.urls[`${TEST_BASE_URL}/image/v1/enhance-gen/async`].response = {
+          type: 'json-value',
+          body: { process_id: processId, source_id: 'src-1', eta: 5 },
+        };
+        server.urls[
+          `${TEST_BASE_URL}/image/v1/status/${encodedProcessId}`
+        ].response = {
+          type: 'json-value',
+          body: {
+            status: 'Completed',
+            progress: 100,
+            credits: 2,
+            output_width: 4000,
+            output_height: 3000,
+            output_format: 'png',
+          },
+        };
+        server.urls[
+          `${TEST_BASE_URL}/image/v1/download/${encodedProcessId}`
+        ].response = {
+          type: 'json-value',
+          body: { download_url: DOWNLOAD_URL, expiry: 3600 },
+        };
+
+        const result = await createModel().doGenerate({ ...defaultOptions });
+
+        expect(result.images).toHaveLength(1);
+        expect(server.calls[1].requestUrl).toBe(
+          `${TEST_BASE_URL}/image/v1/status/${encodedProcessId}`,
+        );
+        expect(server.calls[2].requestUrl).toBe(
+          `${TEST_BASE_URL}/image/v1/download/${encodedProcessId}`,
+        );
+      },
+    );
   });
 });
