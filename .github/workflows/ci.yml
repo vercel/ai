@@ -77,5 +77,8 @@ jobs:
         with:
           team: ${{ vars.TURBO_TEAM }}
 
+      # A Windows checkout has CRLF line endings, which end up in the build
+      # output. This job reads the remote cache without writing to it, so that
+      # the Linux jobs never restore a build from Windows.
       - name: Run Windows tests
-        run: pnpm exec turbo run test:windows
+        run: pnpm exec turbo run test:windows --remote-cache-read-only
