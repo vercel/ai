@@ -1,0 +1,87 @@
+---
+title: Phase Router
+description: Use the Phase Router OpenAI compatible API with the AI SDK.
+---
+
+# Phase Router Provider
+
+[Phase Router](https://router.phase.xyz) is an OpenAI-compatible router for about 370 models from many labs. Its `auto` model sends each request to the cheapest model that can handle it, and every response carries the cost of the call. You can use its Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+The Phase Router provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API. You can install it with:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+## Provider Instance
+
+To use Phase Router, create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const phase = createOpenAICompatible({
+  name: 'phase',
+  baseURL: 'https://router.phase.xyz/v1',
+  apiKey: process.env.PHASE_API_KEY,
+});
+```
+
+<Note>
+  Create an API key in the [Phase Router dashboard](https://router.phase.xyz/dashboard)
+  and set the `PHASE_API_KEY` environment variable with it.
+</Note>
+
+## Language Models
+
+You can create Phase Router models using the provider instance. The first argument is a model ID from the [model catalog](https://router.phase.xyz/models), for example `auto` or `qwen3-coder-480b`.
+
+```ts
+const model = phase('auto');
+```
+
+### Example
+
+You can use Phase Router language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const phase = createOpenAICompatible({
+  name: 'phase',
+  baseURL: 'https://router.phase.xyz/v1',
+  apiKey: process.env.PHASE_API_KEY,
+});
+
+const { text } = await generateText({
+  model: phase('auto'),
+  prompt: 'Tell me about yourself in one sentence.',
+});
+
+console.log(text);
+```
+
+Phase Router language models can also generate text in a streaming fashion with the `streamText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const phase = createOpenAICompatible({
+  name: 'phase',
+  baseURL: 'https://router.phase.xyz/v1',
+  apiKey: process.env.PHASE_API_KEY,
+});
+
+const result = streamText({
+  model: phase('glm-5.3'),
+  prompt: 'Write a short haiku about routing.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+See the [Phase Router docs](https://router.phase.xyz/docs) for the model list, prices and receipts.
