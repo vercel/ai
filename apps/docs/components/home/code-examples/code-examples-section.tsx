@@ -153,7 +153,7 @@ export function CodeExamplesSection() {
                   className={cn(
                     'text-heading-16 font-medium! transition-colors duration-250 sm:text-heading-24',
                     active
-                      ? 'text-gray-1000'
+                      ? 'text-gray-1000 underline'
                       : 'text-gray-700 group-hover:text-gray-1000',
                   )}
                 >

@@ -232,10 +232,10 @@ export function LandingPage() {
           </ul>
         </section>
         <section aria-label="AI SDK features" className="py-12 md:py-20">
-          <ul className="grid gap-10 md:grid-cols-2 md:gap-x-8 lg:grid-cols-4">
+          <ul className="grid gap-10 md:grid-cols-2 md:gap-x-8 lg:grid-cols-4 md:place-items-center">
             {features.map(({ title, description, Icon }) => (
               <li className="flex flex-col gap-3" key={title}>
-                <h3 className="flex items-center gap-2 text-copy-16 font-medium text-gray-900">
+                <h3 className="flex items-center gap-2 text-copy-16 font-medium text-foreground">
                   <Icon aria-hidden="true" size={16} />
                   {title}
                 </h3>
@@ -273,11 +273,10 @@ export function LandingPage() {
           <h2 className="sr-only" id="home-testimonials">
             What builders say about the AI SDK
           </h2>
+
           {testimonials.map(item => (
-            // Left-aligned like the compact pull-out quote on vercel.com, with
-            // the opening mark hung in the margin so the text edge stays flush.
             <figure
-              className="m-0 flex flex-col justify-between gap-6 md:gap-9"
+              className="m-0 flex flex-col justify-between gap-6 rounded-xl bg-gray-100 p-6 md:gap-9"
               key={item.name}
             >
               <blockquote className="m-0 max-w-[44ch] text-left text-heading-24 font-normal! text-pretty text-gray-1000 lg:text-heading-32">
@@ -287,6 +286,7 @@ export function LandingPage() {
                 {item.quote}
                 <span className="tracking-[-0.02em]">&rdquo;</span>
               </blockquote>
+
               <figcaption className="flex items-end justify-between gap-6">
                 <span className="flex flex-col gap-1 font-sans text-label-14 font-medium">
                   <span className="text-gray-1000">{item.name}</span>
@@ -294,6 +294,7 @@ export function LandingPage() {
                     {item.role}, {item.company}
                   </span>
                 </span>
+
                 <item.Logo className="shrink-0 text-gray-1000" height={18} />
               </figcaption>
             </figure>
