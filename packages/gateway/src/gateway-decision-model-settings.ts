@@ -1,7 +1,5 @@
+import type { GatewayModelIds } from './gateway-model-catalog';
+
 export type GatewayDecisionModelId =
-  | 'convaiinnovations/laya'
-  | 'convaiinnovations/laya-free'
-  | 'liquid/d1'
-  | 'openai/gpt-6-luna-decisions'
-  | 'typesafe-ai/jev'
+  | GatewayModelIds['decision']
   | (string & {});

@@ -12,6 +12,7 @@ export type HuggingFaceResponsesTool = {
 
 export type HuggingFaceResponsesToolChoice =
   | 'auto'
+  | 'none'
   | 'required'
   | { type: 'function'; function: { name: string } };
 
@@ -71,7 +72,7 @@ export function prepareResponsesTools({
         mappedToolChoice = 'required';
         break;
       case 'none':
-        // not supported, ignore
+        mappedToolChoice = 'none';
         break;
       case 'tool':
         mappedToolChoice = {

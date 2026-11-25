@@ -447,6 +447,37 @@ describe('user messages', () => {
     ]);
   });
 
+  it('should convert inline text file parts', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: { type: 'text', text: 'Résumé: café, 日本語' },
+            mediaType: 'text/plain',
+            providerOptions: {
+              openaiCompatible: { cache_control: { type: 'ephemeral' } },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Résumé: café, 日本語',
+            cache_control: { type: 'ephemeral' },
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should convert messages with text/plain parts from Uint8Array', async () => {
     const encoder = new TextEncoder();
     const result = convertToOpenAICompatibleChatMessages([
@@ -1783,6 +1814,152 @@ describe('top-level-only media type resolution', () => {
     expect((result[0].content as unknown[])[0]).toEqual({
       type: 'image_url',
       image_url: { url: `data:image/png;base64,${pngBase64}` },
+    });
+  });
+
+  describe('tool argument and output serialization resilience', () => {
+    it('preserves string tool call arguments without double-stringifying', () => {
+      const result = convertToOpenAICompatibleChatMessages([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'search',
+              input: '{"query":"san francisco","limit":5}',
+            },
+          ],
+        },
+      ]);
+
+      expect(result[0]).toEqual({
+        role: 'assistant',
+        content: null,
+        tool_calls: [
+          {
+            id: 'call-1',
+            type: 'function',
+            function: {
+              name: 'search',
+              arguments: '{"query":"san francisco","limit":5}',
+            },
+          },
+        ],
+      });
+    });
+
+    it.each(['{"query":', 'unparseable'])(
+      'preserves malformed argument replay: %s',
+      input => {
+        const result = convertToOpenAICompatibleChatMessages([
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'search',
+                input,
+              },
+            ],
+          },
+        ]);
+
+        expect(result[0]).toEqual({
+          role: 'assistant',
+          content: null,
+          tool_calls: [
+            {
+              id: 'call-1',
+              type: 'function',
+              function: {
+                name: 'search',
+                arguments: JSON.stringify(input),
+              },
+            },
+          ],
+        });
+      },
+    );
+
+    it('safely serializes BigInt and circular structures in tool call arguments', () => {
+      const cyclicInput: any = { id: 12345678901234567890n };
+      cyclicInput.self = cyclicInput;
+
+      const result = convertToOpenAICompatibleChatMessages([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-2',
+              toolName: 'process',
+              input: cyclicInput,
+            },
+          ],
+        },
+      ]);
+
+      const message = result[0];
+      if (message.role !== 'assistant') {
+        throw new Error('expected an assistant message');
+      }
+      const args = message.tool_calls?.[0].function.arguments;
+      expect(args).toContain('"id":"12345678901234567890"');
+      expect(args).toContain('"self":"[Circular]"');
+    });
+
+    it('safely serializes BigInt and circular structures in tool responses', () => {
+      const cyclicOutput: any = { count: 999999999999999999n };
+      cyclicOutput.self = cyclicOutput;
+
+      const result = convertToOpenAICompatibleChatMessages([
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-3',
+              toolName: 'getData',
+              output: {
+                type: 'json',
+                value: cyclicOutput,
+              },
+            },
+          ],
+        },
+      ]);
+
+      const content = result[0].content as string;
+      expect(content).toContain('"count":"999999999999999999"');
+      expect(content).toContain('"self":"[Circular]"');
+    });
+
+    it('preserves reused non-circular objects in tool outputs', () => {
+      const shared = { city: 'Paris' };
+
+      const result = convertToOpenAICompatibleChatMessages([
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-4',
+              toolName: 'getData',
+              output: {
+                type: 'json',
+                value: { first: shared, second: shared },
+              },
+            },
+          ],
+        },
+      ]);
+
+      const content = result[0].content as string;
+      expect(content).toContain('"first":{"city":"Paris"}');
+      expect(content).toContain('"second":{"city":"Paris"}');
+      expect(content).not.toContain('[Circular]');
     });
   });
 });

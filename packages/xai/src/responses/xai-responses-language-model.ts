@@ -10,6 +10,8 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
@@ -25,9 +27,8 @@ import {
   type InferSchema,
   type ParseResult,
 } from '@ai-sdk/provider-utils';
-import type { z } from 'zod/v4';
 import { getResponseMetadata } from '../get-response-metadata';
-import { supportsReasoningEffort } from '../supports-reasoning-effort';
+import { getXaiLanguageModelEntry } from '../xai-model-catalog';
 import type { webSearchOutputSchema } from '../tool/web-search';
 import { xaiFailedResponseHandler } from '../xai-error';
 import { convertToXaiResponsesInput } from './convert-to-xai-responses-input';
@@ -37,7 +38,7 @@ import {
   webSearchWireActionSchema,
   webSearchWireSourceSchema,
   xaiResponsesChunkSchema,
-  xaiResponsesResponseSchema,
+  xaiResponsesResponseSchemaValidator,
   type XaiResponsesIncludeOptions,
 } from './xai-responses-api';
 import {
@@ -49,7 +50,7 @@ import { prepareResponsesTools } from './xai-responses-prepare-tools';
 export type XaiResponsesConfig = {
   provider: string;
   baseURL: string | undefined;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   generateId: () => string;
   fetch?: FetchFunction;
 };
@@ -278,27 +279,22 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       }
     }
 
+    const { portableEfforts } =
+      getXaiLanguageModelEntry(modelId).capabilities.language.reasoning;
     let resolvedReasoningEffort = options.reasoningEffort;
     if (resolvedReasoningEffort == null && isCustomReasoning(reasoning)) {
-      if (!supportsReasoningEffort(modelId)) {
+      if (portableEfforts.length === 0) {
         warnings.push({
           type: 'unsupported',
           feature: 'reasoning',
           details: `reasoning "${reasoning}" is not supported by this model.`,
         });
-      } else if (reasoning === 'none') {
-        resolvedReasoningEffort = 'none';
       } else {
         resolvedReasoningEffort = mapReasoningToProviderEffort({
           reasoning,
-          effortMap: {
-            minimal: 'low',
-            low: 'low',
-            medium: 'medium',
-            high: 'high',
-            xhigh: modelId === 'grok-4.6' ? 'xhigh' : 'high',
-            max: modelId === 'grok-4.6' ? 'xhigh' : 'high',
-          },
+          effortMap: Object.fromEntries(
+            portableEfforts.map(effort => [effort, effort]),
+          ),
           warnings,
         });
       }
@@ -413,11 +409,14 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: `${this.config.baseURL ?? 'https://api.x.ai/v1'}/responses`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
-        xaiResponsesResponseSchema,
+        xaiResponsesResponseSchemaValidator,
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -637,13 +636,15 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       }
     }
 
+    const finishRaw = response.incomplete_details?.reason ?? response.status;
+
     return {
       content,
       finishReason: {
         unified: hasFunctionCall
           ? 'tool-calls'
-          : mapXaiResponsesFinishReason(response.status),
-        raw: response.status ?? undefined,
+          : mapXaiResponsesFinishReason(finishRaw),
+        raw: finishRaw ?? undefined,
       },
       usage: response.usage
         ? convertXaiResponsesUsage(response.usage)
@@ -702,7 +703,10 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL ?? 'https://api.x.ai/v1'}/responses`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -712,8 +716,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       fetch: this.config.fetch,
     });
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let hasFunctionCall = false;
@@ -743,7 +748,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof xaiResponsesChunkSchema>>,
+          ParseResult<InferSchema<typeof xaiResponsesChunkSchema>>,
           LanguageModelV4StreamPart
         >({
           start(controller) {
@@ -756,6 +761,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             }
 
             if (!chunk.success) {
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -938,6 +944,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                     : mapXaiResponsesFinishReason(response.status),
                   raw: response.status,
                 };
+              } else if (finishReason.unified === 'interrupted') {
+                // The terminal event arrived, but supplied no recognized reason.
+                finishReason = { unified: 'other', raw: undefined };
               }
 
               return;
@@ -970,6 +979,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             }
 
             if (event.type === 'error') {
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({
                 type: 'error',
                 error: createXaiResponsesStreamError({
@@ -1249,7 +1259,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                       : (part.arguments ?? '');
 
                 const shouldEmit =
-                  part.type === 'custom_tool_call'
+                  part.type === 'custom_tool_call' || part.type === 'mcp_call'
                     ? event.type === 'response.output_item.done'
                     : !seenToolCalls.has(part.id);
 
@@ -1298,10 +1308,11 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
               }
 
               if (part.type === 'message') {
+                const blockId = `text-${part.id}`;
+                const streamed = contentBlocks[blockId] != null;
+
                 for (const contentPart of part.content) {
                   if (contentPart.text && contentPart.text.length > 0) {
-                    const blockId = `text-${part.id}`;
-
                     // Only emit text if we haven't already streamed it via output_text.delta events
                     if (contentBlocks[blockId] == null) {
                       contentBlocks[blockId] = { type: 'text' };
@@ -1318,7 +1329,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                     }
                   }
 
-                  if (contentPart.annotations) {
+                  if (!streamed && contentPart.annotations) {
                     for (const annotation of contentPart.annotations) {
                       if (
                         annotation.type === 'url_citation' &&

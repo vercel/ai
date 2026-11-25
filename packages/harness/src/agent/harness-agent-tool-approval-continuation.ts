@@ -14,6 +14,9 @@ import type {
  * locally to find the original tool call before it can resume the paused turn.
  * Responses that already have a tool result are ignored, because those
  * approvals were already consumed by a prior continuation.
+ * An `execution-denied` result is synthesized by `convertToModelMessages`
+ * for a newly denied approval; it does not mean the harness has received
+ * the decision, so that approval response must still continue the turn.
  */
 export function collectHarnessAgentToolApprovalContinuations(input: {
   messages: readonly ModelMessage[];
@@ -38,7 +41,10 @@ export function collectHarnessAgentToolApprovalContinuations(input: {
 
   const toolResultIds = new Set<string>();
   for (const part of lastMessage.content) {
-    if (part.type === 'tool-result') {
+    if (
+      part.type === 'tool-result' &&
+      part.output.type !== 'execution-denied'
+    ) {
       toolResultIds.add(part.toolCallId);
     }
   }

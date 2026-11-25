@@ -451,7 +451,7 @@ describe.each(['generate', 'stream'] as const)(
             ),
           ).rejects.toMatchObject({
             name: 'AI_UnsupportedFunctionalityError',
-            functionality: 'Adjacent reasoning effort configuration updates',
+            functionality: 'Adjacent configuration updates',
           });
           expect(server.calls).toHaveLength(0);
         });
@@ -459,7 +459,7 @@ describe.each(['generate', 'stream'] as const)(
     );
 
     describe.each([
-      { model: 'gpt-5.6', options: {} },
+      { model: 'gpt-5.5', options: {} },
       { model: 'custom-model', options: { forceReasoning: true } },
       { model: 'gpt-6-astra', options: { reasoningMode: 'pro' } },
       { model: 'gpt-6-astra', options: { truncation: 'auto' } },
@@ -589,7 +589,7 @@ describe.each(['generate', 'stream'] as const)(
       async ({ prompt, options }) => {
         await expect(request(prompt, options)).rejects.toMatchObject({
           name: 'AI_UnsupportedFunctionalityError',
-          functionality: 'Adjacent reasoning effort configuration updates',
+          functionality: 'Adjacent configuration updates',
         });
         expect(server.calls).toHaveLength(0);
       },

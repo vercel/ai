@@ -17,6 +17,7 @@ class EventTransport implements MCPTransport {
   onclose?: () => void;
   onerror?: (error: Error) => void;
   eventsSupported = true;
+  eventsCapability: Record<string, unknown> = { events: {} };
   listResult: Record<string, unknown> = { events: [eventDefinition] };
   beforeSubscribe?: (request: JSONRPCRequest) => Promise<void>;
   subscribeError?: { code: number; message: string };
@@ -37,7 +38,7 @@ class EventTransport implements MCPTransport {
           supportedVersions: ['2026-07-28'],
           capabilities: {
             tools: {},
-            ...(this.eventsSupported ? { events: {} } : {}),
+            ...(this.eventsSupported ? this.eventsCapability : {}),
           },
         };
         break;
@@ -448,6 +449,15 @@ describe('MCP client events', () => {
     });
     expect(onEvent).not.toHaveBeenCalled();
     expect(await store.get(stored.key)).toBeUndefined();
+  });
+
+  it('accepts servers that declare events under capabilities.extensions', async () => {
+    const transport = new EventTransport();
+    transport.eventsCapability = {
+      extensions: { 'io.modelcontextprotocol/events': {} },
+    };
+    const { client } = await setup(transport);
+    expect((await client.experimental_events.list()).events).toHaveLength(1);
   });
 
   it('rejects unsupported servers without sending event requests', async () => {

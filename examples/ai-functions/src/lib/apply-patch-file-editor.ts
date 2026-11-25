@@ -101,10 +101,34 @@ export class WorkspaceEditor {
   }
 
   private async resolve(relativePath: string): Promise<string> {
-    const resolved = path.resolve(this.root, relativePath);
-    if (!resolved.startsWith(this.root)) {
+    const relative = path.relative(
+      path.resolve(this.root),
+      path.resolve(this.root, relativePath),
+    );
+    if (
+      relative === '' ||
+      relative === '..' ||
+      relative.startsWith(`..${path.sep}`) ||
+      path.isAbsolute(relative)
+    ) {
       throw new Error(`Operation outside workspace: ${relativePath}`);
     }
-    return resolved;
+
+    // Use the real workspace path and reject existing symlinks along the path.
+    const root = await fs.realpath(this.root);
+    let current = root;
+    for (const segment of relative.split(path.sep)) {
+      current = path.join(current, segment);
+      try {
+        if ((await fs.lstat(current)).isSymbolicLink()) {
+          throw new Error(`Operation through symlink: ${relativePath}`);
+        }
+      } catch (error: any) {
+        if (error?.code === 'ENOENT') break;
+        throw error;
+      }
+    }
+
+    return path.join(root, relative);
   }
 }

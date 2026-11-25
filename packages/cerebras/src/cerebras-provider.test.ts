@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { createCerebras } from './cerebras-provider';
-import { loadApiKey } from '@ai-sdk/provider-utils';
+import { loadApiKey, resolve } from '@ai-sdk/provider-utils';
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 
 // Add type assertion for the mocked class
@@ -78,7 +78,7 @@ describe('CerebrasProvider', () => {
       const constructorCall = vi.mocked(OpenAICompatibleChatLanguageModel).mock
         .calls[0];
       const config = constructorCall[1];
-      const headers = config.headers!();
+      const headers = await resolve(config.headers);
 
       await fetchMock('https://api.cerebras.ai/v1/test', {
         method: 'POST',
@@ -161,6 +161,84 @@ describe('CerebrasProvider', () => {
           "model": "model-id",
         }
       `);
+    });
+  });
+
+  describe('service tier options', () => {
+    function getConfig() {
+      const provider = createCerebras();
+      provider('model-id');
+      return OpenAICompatibleChatLanguageModelMock.mock.calls[0][1];
+    }
+
+    it('maps serviceTier to service_tier in the request body', () => {
+      const config = getConfig();
+
+      const body = config.transformRequestBody({
+        model: 'model-id',
+        messages: [{ role: 'user', content: 'hi' }],
+        serviceTier: 'flex',
+      });
+
+      expect(body.service_tier).toBe('flex');
+      expect(body).not.toHaveProperty('serviceTier');
+    });
+
+    it('strips queueThreshold from the request body', () => {
+      const config = getConfig();
+
+      const body = config.transformRequestBody({
+        model: 'model-id',
+        messages: [{ role: 'user', content: 'hi' }],
+        serviceTier: 'auto',
+        queueThreshold: 200,
+      });
+
+      expect(body.service_tier).toBe('auto');
+      expect(body).not.toHaveProperty('queueThreshold');
+      expect(body).not.toHaveProperty('queue_threshold');
+    });
+
+    it('does not add service_tier when serviceTier is absent', () => {
+      const config = getConfig();
+
+      const body = config.transformRequestBody({
+        model: 'model-id',
+        messages: [{ role: 'user', content: 'hi' }],
+      });
+
+      expect(body).not.toHaveProperty('service_tier');
+    });
+
+    it('wires a metadata extractor that surfaces the effective tier', async () => {
+      const config = getConfig();
+
+      expect(config.metadataExtractor).toBeDefined();
+
+      await expect(
+        config.metadataExtractor!.extractMetadata({
+          parsedBody: { service_tier: 'flex' },
+        }),
+      ).resolves.toEqual({ cerebras: { serviceTier: 'flex' } });
+
+      await expect(
+        config.metadataExtractor!.extractMetadata({ parsedBody: {} }),
+      ).resolves.toBeUndefined();
+    });
+
+    it('builds streamed metadata only when the tier is returned', () => {
+      const config = getConfig();
+
+      const withTier = config.metadataExtractor!.createStreamExtractor();
+      withTier.processChunk({ choices: [{ delta: { content: 'blue' } }] });
+      withTier.processChunk({ service_tier: 'flex' });
+      expect(withTier.buildMetadata()).toEqual({
+        cerebras: { serviceTier: 'flex' },
+      });
+
+      const withoutTier = config.metadataExtractor!.createStreamExtractor();
+      withoutTier.processChunk({ choices: [{ delta: { content: 'blue' } }] });
+      expect(withoutTier.buildMetadata()).toBeUndefined();
     });
   });
 

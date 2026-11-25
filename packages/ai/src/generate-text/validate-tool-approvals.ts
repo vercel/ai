@@ -57,13 +57,31 @@ export async function validateApprovedToolApprovals<
     CollectedToolApprovals<TOOLS> & { error: InvalidToolInputError }
   > = [];
 
-  for (const approval of approvedToolApprovals) {
-    const { approvalRequest, toolCall } = approval;
+  for (const collectedApproval of approvedToolApprovals) {
     // Look up the tool by own property only: `toolName` comes from
     // client-supplied history, so a name matching an inherited object property
     // (e.g. `constructor`, `toString`) must resolve to "no such tool" rather
     // than a prototype value that would silently skip input validation below.
-    const tool = getOwn(tools, toolCall.toolName);
+    const tool = getOwn(tools, collectedApproval.toolCall.toolName);
+
+    // History can omit or alter these fields. Rebuild them from the current
+    // server-side definition before input refinement and approval policy checks,
+    // just as parsing a new model tool call does.
+    const {
+      toolMetadata: _toolMetadata,
+      dynamic: _dynamic,
+      ...toolCallFromHistory
+    } = collectedApproval.toolCall;
+    const approval: CollectedToolApprovals<TOOLS> = {
+      ...collectedApproval,
+      toolCall: {
+        ...toolCallFromHistory,
+        ...(tool?.metadata != null ? { toolMetadata: tool.metadata } : {}),
+        ...(tool?.type === 'dynamic' ? { dynamic: true } : {}),
+        title: tool?.title,
+      } as typeof collectedApproval.toolCall,
+    };
+    const { approvalRequest, toolCall } = approval;
 
     if (toolApprovalSecret != null) {
       if (approvalRequest.signature == null) {
@@ -93,22 +111,27 @@ export async function validateApprovedToolApprovals<
     }
 
     if (isExecutableTool(tool) && tool.inputSchema != null) {
-      const hasInputSchemaInput = Object.prototype.hasOwnProperty.call(
-        approvalRequest,
-        'inputSchemaInput',
-      );
-      const validation = await safeValidateTypes({
-        value: hasInputSchemaInput
-          ? approvalRequest.inputSchemaInput
-          : toolCall.input,
-        schema: asSchema(tool.inputSchema),
-      });
-
       let validationError: unknown;
-      if (!validation.success) {
-        validationError = validation.error;
-      } else {
-        try {
+      try {
+        // Preserve the approved input before validators or refiners can mutate
+        // it, and give them an independent copy of the schema input.
+        const approvedInput = structuredClone(toolCall.input);
+        const hasInputSchemaInput = Object.prototype.hasOwnProperty.call(
+          approvalRequest,
+          'inputSchemaInput',
+        );
+        const validation = await safeValidateTypes({
+          value: structuredClone(
+            hasInputSchemaInput
+              ? approvalRequest.inputSchemaInput
+              : toolCall.input,
+          ),
+          schema: asSchema(tool.inputSchema),
+        });
+
+        if (!validation.success) {
+          validationError = validation.error;
+        } else {
           const revalidatedToolCall = await refineParsedToolCallInput({
             toolCall: {
               ...toolCall,
@@ -117,9 +140,8 @@ export async function validateApprovedToolApprovals<
             refineToolInput,
           });
 
-          // Clone both inputs into the current realm before comparing them.
+          // Normalize the revalidated input to the snapshot's realm.
           const revalidatedInput = structuredClone(revalidatedToolCall.input);
-          const approvedInput = structuredClone(toolCall.input);
 
           // Revalidation must never change the operation that was approved,
           // including when older or projected history omits the schema input.
@@ -128,9 +150,9 @@ export async function validateApprovedToolApprovals<
               'Approved tool input does not match the validated schema output.',
             );
           }
-        } catch (error) {
-          validationError = error;
         }
+      } catch (error) {
+        validationError = error;
       }
 
       if (validationError != null) {

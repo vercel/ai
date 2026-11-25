@@ -26,6 +26,7 @@ import type {
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
 import type { StaticToolOutputDenied } from './tool-output-denied';
+import { mapWithConcurrency } from './tool-call-concurrency';
 
 export type ToolExecutionEndStreamPart = {
   type: 'tool-execution-end';
@@ -63,6 +64,7 @@ export function executeToolsFromStream<
   onToolExecutionEnd,
   executeToolInTelemetryContext,
   runInTracingChannelSpan,
+  toolCallConcurrency,
 }: {
   stream: ReadableStream<ExecuteToolsInputStreamPart<TOOLS>>;
   tools: TOOLS | undefined;
@@ -82,6 +84,7 @@ export function executeToolsFromStream<
   runInTracingChannelSpan?: NonNullable<
     TelemetryDispatcher['runInTracingChannelSpan']
   >;
+  toolCallConcurrency?: number;
 }): ReadableStream<ExecuteToolsStreamPart<TOOLS>> {
   const toolCallsToExecute: Array<TypedToolCall<TOOLS>> = [];
 
@@ -143,13 +146,20 @@ export function executeToolsFromStream<
             }
 
             const approvalId = generateId();
-            const signature = await maybeSignApproval({
-              secret: toolApprovalSecret,
-              approvalId,
-              toolCallId: chunk.toolCallId,
-              toolName: chunk.toolName,
-              input: chunk.input,
-            });
+
+            // A signature lets a later request execute this tool call by
+            // replaying the approval from client-supplied history, so a denied
+            // tool call must not get one.
+            const signature =
+              toolApprovalStatus.type === 'denied'
+                ? undefined
+                : await maybeSignApproval({
+                    secret: toolApprovalSecret,
+                    approvalId,
+                    toolCallId: chunk.toolCallId,
+                    toolName: chunk.toolName,
+                    input: chunk.input,
+                  });
 
             switch (toolApprovalStatus.type) {
               case 'user-approval': {
@@ -172,7 +182,6 @@ export function executeToolsFromStream<
                   approvalId,
                   toolCall: chunk,
                   isAutomatic: true,
-                  ...(signature != null ? { signature } : {}),
                 });
                 controller.enqueue({
                   type: 'tool-approval-response',
@@ -226,8 +235,11 @@ export function executeToolsFromStream<
               return;
             }
 
-            await Promise.all(
-              toolCallsToExecute.map(async toolCall => {
+            await mapWithConcurrency({
+              items: toolCallsToExecute,
+              concurrency: toolCallConcurrency,
+              abortSignal,
+              execute: async toolCall => {
                 try {
                   // Note: we don't await the tool execution here (by leaving out 'await' on recordSpan),
                   // because we want to process the next chunk as soon as possible.
@@ -263,8 +275,8 @@ export function executeToolsFromStream<
                     error,
                   });
                 }
-              }),
-            );
+              },
+            });
           }
         }
       },

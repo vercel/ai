@@ -11,17 +11,12 @@ import { run } from '../../lib/run';
 run(async () => {
   const sandbox = await Sandbox.create({
     runtime: 'node24',
-    ports: [4000],
     timeout: 10 * 60 * 1000,
   });
 
   const sandboxSession =
     createVercelNetworkSandboxSessionFromNativeSandbox(sandbox);
-  const portEndpoint = await sandboxSession.getPortEndpoint({
-    port: 4000,
-    protocol: 'ws',
-  });
-  const fx = createFx({ port: 4000, portEndpoint });
+  const fx = createFx();
   const agent = new HarnessAgent({
     harness: fx,
   });

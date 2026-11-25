@@ -19,6 +19,8 @@ import {
   type VercelSandboxCreateParams,
 } from './utils';
 
+const TEMPLATE_VERSION = 3;
+
 export type VercelNativeSandboxSession = Sandbox;
 
 type VercelSandboxCreationSettings = VercelSandboxCreateParams & {
@@ -29,7 +31,15 @@ type VercelSandboxCreationSettings = VercelSandboxCreateParams & {
 type VercelCreationSettings = DistributiveOmit<
   VercelSandboxCreationSettings,
   'sandbox'
->;
+> & {
+  /**
+   * Name of the reusable template. Defaults to a name derived from the
+   * template's identity and the sandbox source. A template that already
+   * exists under this name is reused as is, so change the name when the
+   * template's identity or source changes. Has no effect without `template`.
+   */
+  templateName?: string;
+};
 export type VercelNetworkSandboxSessionCreateOptions = Prettify<
   HarnessV1SandboxSessionCreateOptions<VercelCreationSettings> & {
     sandbox?: never;
@@ -69,6 +79,7 @@ export async function createVercelNetworkSandboxSession(
   }
   const {
     template,
+    templateName,
     abortSignal,
     sandboxId,
     sandbox: _sandbox,
@@ -106,17 +117,21 @@ export async function createVercelNetworkSandboxSession(
       : 'image' in baseParams && baseParams.image != null
         ? { image: baseParams.image }
         : { runtime: baseParams.runtime };
-  const material = JSON.stringify([2, template.identity, selection]);
+  const material = JSON.stringify([
+    TEMPLATE_VERSION,
+    template.identity,
+    selection,
+  ]);
   const digest = new Uint8Array(
     await crypto.subtle.digest('SHA-256', new TextEncoder().encode(material)),
   );
-  const templateName = `ai-sdk-harness-v2-${Array.from(digest.slice(0, 12), byte => byte.toString(16).padStart(2, '0')).join('')}`;
+  const derivedTemplateName = `ai-sdk-harness-v${TEMPLATE_VERSION}-${Array.from(digest.slice(0, 12), byte => byte.toString(16).padStart(2, '0')).join('')}`;
   const snapshotId = await withVercelSandboxAuthenticationError({
     settings,
     operation: () =>
       ensureTemplateSnapshot({
         baseParams,
-        templateName,
+        templateName: templateName ?? derivedTemplateName,
         lookupParams: getSandboxLookupParams(baseParams),
         abortSignal: effectiveSignal,
         onCreate: async sandbox => {

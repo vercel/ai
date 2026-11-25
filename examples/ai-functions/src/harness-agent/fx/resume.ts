@@ -26,7 +26,6 @@ run(async () => {
   const sandboxSession = await createVercelNetworkSandboxSession({
     sandboxId: sandboxName,
     runtime: 'node24',
-    ports: [4000],
     timeout: 10 * 60 * 1000,
   });
   let activeSandboxSession = sandboxSession;

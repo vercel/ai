@@ -14,6 +14,10 @@ import {
   GatewayForbiddenError,
   forbiddenParamSchema,
 } from './gateway-forbidden-error';
+import {
+  GatewayAccessPolicyDeniedError,
+  accessPolicyDeniedParamSchema,
+} from './gateway-access-policy-denied-error';
 import { GatewayResponseError } from './gateway-response-error';
 import {
   lazySchema,
@@ -138,6 +142,23 @@ export async function createGatewayErrorFromResponse({
         ruleId: ruleResult.success ? ruleResult.value.ruleId : undefined,
       });
     }
+    case 'access_policy_denied': {
+      const paramResult = await safeValidateTypes({
+        value: validatedResponse.error.param,
+        schema: accessPolicyDeniedParamSchema,
+      });
+      const param = paramResult.success ? paramResult.value : undefined;
+
+      return new GatewayAccessPolicyDeniedError({
+        message,
+        statusCode,
+        cause,
+        generationId,
+        policyIds: param?.policyIds,
+        removedModels: param?.removedModels,
+        removedProviders: param?.removedProviders,
+      });
+    }
     default:
       return new GatewayInternalServerError({
         message,
@@ -153,11 +174,11 @@ const gatewayErrorResponseSchema = lazySchema(() =>
     z.object({
       error: z.object({
         message: z.string(),
-        type: z.string().nullish(),
-        param: z.unknown().nullish(),
-        code: z.union([z.string(), z.number()]).nullish(),
+        type: z.nullish(z.string()),
+        param: z.nullish(z.unknown()),
+        code: z.nullish(z.union([z.string(), z.number()])),
       }),
-      generationId: z.string().nullish(),
+      generationId: z.nullish(z.string()),
     }),
   ),
 );

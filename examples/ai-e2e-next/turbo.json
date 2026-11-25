@@ -1,0 +1,10 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "test": {
+      // The route tests import source files; they don't need a Next.js build.
+      "dependsOn": ["^build"]
+    }
+  }
+}

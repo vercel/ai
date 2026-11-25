@@ -66,6 +66,42 @@ describe('startAuthorizedToolRelay', () => {
       relay.close();
     }
   });
+
+  test('returns the model-facing result and error flag alongside the raw output', async () => {
+    const toolResult = {
+      type: 'tool-result' as const,
+      toolCallId: 'authorized-call',
+      toolName: 'lookup',
+      output: { type: 'text' as const, value: 'model text' },
+    };
+    const relay = await startAuthorizedToolRelay({
+      tools: [{ name: 'lookup' }],
+      emit: vi.fn(),
+      requestToolResult: async () => ({
+        output: { value: 42 },
+        isError: false,
+        toolResult,
+      }),
+    });
+    const call = { toolName: 'lookup', input: {} };
+
+    try {
+      relay.authorizeToolCall(call);
+      const response = await fetch(`http://127.0.0.1:${relay.port}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId: 'authorized-call', ...call }),
+      });
+
+      await expect(response.json()).resolves.toEqual({
+        result: { value: 42 },
+        isError: false,
+        toolResult,
+      });
+    } finally {
+      relay.close();
+    }
+  });
 });
 
 async function requestFromProcessWithHelperPath({

@@ -17,6 +17,91 @@ afterEach(async () => {
 });
 
 describe('host tool MCP HTTP transport', () => {
+  it('returns empty MCP content for undeclared image-only output without a placeholder', async () => {
+    const relay = await startHostToolRelay({
+      tools: [{ name: 'inspect', inputSchema: { type: 'object' } }],
+      serverName: 'ai-sdk-harness-tools',
+      mcpTransport: 'http',
+    });
+    cleanups.push(() => relay.close());
+    const turn = createTurn({
+      requestToolResult: async () => ({
+        output: { status: 'ready' },
+        toolResult: {
+          type: 'tool-result',
+          toolCallId: 'call',
+          toolName: 'inspect',
+          output: {
+            type: 'content',
+            value: [
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: { type: 'data', data: 'AQID' },
+              },
+            ],
+          },
+        },
+      }),
+    });
+    relay.bindTurn({ turn });
+    const client = await connect({ relay });
+    expect(
+      await client.callTool({ name: 'inspect', arguments: {} }),
+    ).toMatchObject({ content: [] });
+    expect(turn.emitWarning).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([false, true])(
+    'converts mixed model output over HTTP with image support %s',
+    async supportsImages => {
+      const relay = await startHostToolRelay({
+        tools: [{ name: 'inspect', inputSchema: { type: 'object' } }],
+        serverName: 'ai-sdk-harness-tools',
+        mcpTransport: 'http',
+        nonTextContentTypes: supportsImages ? ['image'] : [],
+      });
+      cleanups.push(() => relay.close());
+      const turn = createTurn({
+        requestToolResult: async () => ({
+          output: { status: 'ready' },
+          toolResult: {
+            type: 'tool-result',
+            toolCallId: 'call',
+            toolName: 'inspect',
+            output: {
+              type: 'content',
+              value: [
+                { type: 'text', text: 'marker' },
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  data: { type: 'data', data: 'aW1hZ2U=' },
+                },
+              ],
+            },
+          },
+        }),
+      });
+      relay.bindTurn({ turn });
+      const client = await connect({ relay });
+      expect(
+        await client.callTool({ name: 'inspect', arguments: {} }),
+      ).toMatchObject({
+        content: [
+          { type: 'text', text: 'marker' },
+          ...(supportsImages
+            ? [{ type: 'image', mimeType: 'image/png', data: 'aW1hZ2U=' }]
+            : []),
+        ],
+      });
+      expect(turn.emitWarning).toHaveBeenCalledTimes(supportsImages ? 0 : 1);
+      expect(turn.emitToolResult).toHaveBeenCalledWith(
+        expect.objectContaining({ output: { status: 'ready' } }),
+      );
+    },
+  );
+
   it('exposes an MCP endpoint alongside the relay endpoint', async () => {
     const relay = await createRelay({
       tools: [{ name: 'weather', inputSchema: { type: 'object' } }],
@@ -109,11 +194,7 @@ describe('host tool MCP HTTP transport', () => {
     const relay = await createRelay({
       tools: [{ name: 'weather', inputSchema: { type: 'object' } }],
     });
-    const authorization = createHostToolRelayAuthorization({
-      serverName: 'ai-sdk-harness-tools',
-      toolNames: ['weather'],
-      ttlMs: 20,
-    });
+    const authorization = createHostToolRelayAuthorization({ ttlMs: 20 });
     cleanups.push(async () => authorization.close());
     let notifyAuthorizationRequest: (() => void) | undefined;
     const turn = createTurn({
@@ -150,6 +231,7 @@ describe('host tool MCP HTTP transport', () => {
         rawInput: { city: 'Paris' },
         status: 'in_progress',
       },
+      hostToolCall: { toolName: 'weather', input: { city: 'Paris' } },
     });
     await expect(authorizedCall).resolves.toMatchObject({
       content: [{ type: 'text', text: '{"celsius":12}' }],
@@ -162,13 +244,28 @@ describe('host tool MCP HTTP transport', () => {
     const relay = await createRelay({
       tools: [{ name: 'weather', inputSchema: { type: 'object' } }],
     });
-    const client = await connect({ relay });
+    // The client opens the SSE stream that carries notifications in the
+    // background after connecting, and the server drops notifications sent
+    // before it is open, so wait for it before changing the catalog.
+    let notificationStreamOpened: () => void = () => {};
+    const notificationStreamOpen = new Promise<void>(resolve => {
+      notificationStreamOpened = resolve;
+    });
+    const client = await connect({
+      relay,
+      fetch: async (input, init) => {
+        const response = await fetch(input, init);
+        if (init?.method === 'GET' && response.ok) notificationStreamOpened();
+        return response;
+      },
+    });
     const listChanged = vi.fn();
     client.setNotificationHandler(
       ToolListChangedNotificationSchema,
       listChanged,
     );
     await client.listTools();
+    await notificationStreamOpen;
 
     const updated = relay.updateCatalog({
       tools: [
@@ -295,12 +392,19 @@ async function createRelay({
   return relay;
 }
 
-async function connect({ relay }: { relay: HostToolRelay }): Promise<Client> {
+async function connect({
+  relay,
+  fetch,
+}: {
+  relay: HostToolRelay;
+  fetch?: typeof globalThis.fetch;
+}): Promise<Client> {
   const client = new Client({ name: 'host-tool-test', version: '1.0.0' });
   const transport = new StreamableHTTPClientTransport(new URL(relay.mcpUrl!), {
     requestInit: {
       headers: { authorization: `Bearer ${relay.credential}` },
     },
+    ...(fetch == null ? {} : { fetch }),
   });
   await client.connect(transport);
   cleanups.push(() => client.close());
@@ -324,6 +428,7 @@ function createTurn({
 }): HostToolRelayTurn {
   return {
     waitForToolCallAuthorization,
+    emitWarning: vi.fn(),
     emitToolCall,
     emitToolResult,
     registerCorrelationInvocation,

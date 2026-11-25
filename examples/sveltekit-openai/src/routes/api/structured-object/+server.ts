@@ -1,10 +1,10 @@
 import { Output, createTextStreamResponse, streamText, toTextStream } from 'ai';
 import { notificationSchema } from '../../structured-object/schema.js';
 import { createOpenAI } from '@ai-sdk/openai';
-import { env } from '$env/dynamic/private';
+import { OPENAI_API_KEY } from '$app/env/private';
 
 const openai = createOpenAI({
-  apiKey: env?.OPENAI_API_KEY,
+  apiKey: OPENAI_API_KEY,
 });
 
 export async function POST({ request }: { request: Request }) {

@@ -20,6 +20,7 @@ import { z } from './zod';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import type { GatewayConfig } from './gateway-config';
+import { withGatewayRequestTelemetryRedaction } from './redact-gateway-request-credentials';
 
 type GatewayEmbeddingConfig = GatewayConfig & {
   provider: string;
@@ -79,11 +80,11 @@ export class GatewayEmbeddingModel implements EmbeddingModelV4 {
           this.getModelConfigHeaders(),
           await resolve(this.config.o11yHeaders),
         ),
-        body: {
+        body: withGatewayRequestTelemetryRedaction({
           values,
           dimensions,
           ...(providerOptions ? { providerOptions } : {}),
-        },
+        }),
         successfulResponseHandler: createJsonResponseHandler(
           gatewayEmbeddingResponseSchema,
         ),
@@ -123,37 +124,38 @@ export class GatewayEmbeddingModel implements EmbeddingModelV4 {
   }
 }
 
-const gatewayEmbeddingWarningSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('unsupported'),
-    feature: z.string(),
-    details: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal('compatibility'),
-    feature: z.string(),
-    details: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal('deprecated'),
-    setting: z.string(),
-    message: z.string(),
-  }),
-  z.object({
-    type: z.literal('other'),
-    message: z.string(),
-  }),
-]);
+const gatewayEmbeddingWarningSchema = () =>
+  z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('unsupported'),
+      feature: z.string(),
+      details: z.optional(z.string()),
+    }),
+    z.object({
+      type: z.literal('compatibility'),
+      feature: z.string(),
+      details: z.optional(z.string()),
+    }),
+    z.object({
+      type: z.literal('deprecated'),
+      setting: z.string(),
+      message: z.string(),
+    }),
+    z.object({
+      type: z.literal('other'),
+      message: z.string(),
+    }),
+  ]);
 
 const gatewayEmbeddingResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       embeddings: z.array(z.array(z.number())),
-      usage: z.object({ tokens: z.number() }).nullish(),
-      warnings: z.array(gatewayEmbeddingWarningSchema).optional(),
-      providerMetadata: z
-        .record(z.string(), z.record(z.string(), z.unknown()))
-        .optional(),
+      usage: z.nullish(z.object({ tokens: z.number() })),
+      warnings: z.optional(z.array(gatewayEmbeddingWarningSchema())),
+      providerMetadata: z.optional(
+        z.record(z.string(), z.record(z.string(), z.unknown())),
+      ),
     }),
   ),
 );

@@ -1,0 +1,11 @@
+# Pin the official image so default-branch checks use a reviewed runtime.
+FROM node:22-bookworm-slim@sha256:4b150b48b4116e2a22f2c39cc27025fbf4f153e2078fd3b14d159fdb5c7279da
+
+RUN npm install --global --ignore-scripts --no-audit --no-fund pnpm@12.14.0
+
+WORKDIR /checks
+COPY smoke.mjs shared.mjs ./
+
+ENV HOME=/tmp/home XDG_CACHE_HOME=/tmp/cache
+USER node
+CMD ["sh", "-c", "mkdir -p \"$HOME\" && exec node /checks/smoke.mjs"]

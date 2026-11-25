@@ -1,4 +1,5 @@
 import {
+  DelayedPromise,
   delay,
   tool,
   type Experimental_SandboxSession as SandboxSession,
@@ -16,6 +17,7 @@ import { asLanguageModelUsage } from '../types/usage';
 import { now } from '../util/now';
 import { executeToolsFromStream } from './execute-tools-from-stream';
 import type { LanguageModelStreamPart } from './stream-language-model-call';
+import { signToolApproval } from './tool-approval-signature';
 import type {
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
@@ -155,6 +157,76 @@ describe('executeToolsFromStream', () => {
       `);
   });
 
+  it('should execute tool calls sequentially in stream order with concurrency 1', async () => {
+    const firstStarted = new DelayedPromise<void>();
+    const secondStarted = new DelayedPromise<void>();
+    const releaseFirst = new DelayedPromise<void>();
+    const events: string[] = [];
+    const tools = {
+      first: tool({
+        inputSchema: z.object({}),
+        execute: async () => {
+          events.push('first:start');
+          firstStarted.resolve();
+          await releaseFirst.promise;
+          events.push('first:end');
+        },
+      }),
+      second: tool({
+        inputSchema: z.object({}),
+        execute: async () => {
+          events.push('second:start');
+          secondStarted.resolve();
+          events.push('second:end');
+        },
+      }),
+    };
+
+    const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
+      convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'first',
+          input: {},
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call-2',
+          toolName: 'second',
+          input: {},
+        },
+        finishChunk,
+      ]);
+
+    const transformedStream = executeToolsFromStream({
+      stream: inputStream,
+      generateId: mockId({ prefix: 'id' }),
+      tools,
+      callId: 'test-telemetry-call-id',
+      messages: [],
+      timeout: undefined,
+      abortSignal: undefined,
+      toolsContext: {},
+      runtimeContext: {},
+      toolCallConcurrency: 1,
+    });
+
+    const chunksPromise = convertReadableStreamToArray(transformedStream);
+
+    await firstStarted.promise;
+    expect(events).toEqual(['first:start']);
+    releaseFirst.resolve();
+    await secondStarted.promise;
+    expect(events).toEqual([
+      'first:start',
+      'first:end',
+      'second:start',
+      'second:end',
+    ]);
+    await chunksPromise;
+  });
+
   it('should handle sync tool execution', async () => {
     const tools = {
       syncTool: tool({
@@ -244,7 +316,13 @@ describe('executeToolsFromStream', () => {
       `);
   });
 
-  it.each(['length', 'error', 'content-filter', 'other'] as const)(
+  it.each([
+    'length',
+    'error',
+    'content-filter',
+    'interrupted',
+    'other',
+  ] as const)(
     'should not execute tools when the finish reason is %s',
     async finishReason => {
       const execute = vi.fn(async () => 'tool-result');
@@ -636,6 +714,79 @@ describe('executeToolsFromStream', () => {
       `);
 
     expect(toolExecuted).toBe(false);
+  });
+
+  describe('when a tool approval secret is configured', () => {
+    const toolApprovalSecret = 'test-hmac-secret-do-not-use-in-production';
+
+    const getApprovalRequest = async (
+      status: 'user-approval' | 'approved' | 'denied',
+    ) => {
+      const tools = {
+        tool1: tool({
+          inputSchema: z.object({ value: z.string() }),
+          execute: async ({ value }) => `${value}-result`,
+        }),
+      };
+
+      const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'tool1',
+            input: { value: 'test' },
+          },
+          finishChunk,
+        ]);
+
+      const parts = await convertReadableStreamToArray(
+        executeToolsFromStream({
+          stream: inputStream,
+          generateId: mockId({ prefix: 'id' }),
+          tools,
+          callId: 'test-telemetry-call-id',
+          messages: [],
+          abortSignal: undefined,
+          timeout: undefined,
+          toolsContext: {},
+          runtimeContext: {},
+          toolApproval: { tool1: status },
+          toolApprovalSecret,
+        }),
+      );
+
+      return parts.flatMap(part =>
+        'type' in part && part.type === 'tool-approval-request' ? [part] : [],
+      )[0];
+    };
+
+    it.each(['user-approval', 'approved'] as const)(
+      'should sign the approval request when the tool approval status is %s',
+      async status => {
+        const approvalRequest = await getApprovalRequest(status);
+
+        expect(approvalRequest?.signature).toBe(
+          await signToolApproval({
+            secret: toolApprovalSecret,
+            approvalId: 'id-0',
+            toolCallId: 'call-1',
+            toolName: 'tool1',
+            input: { value: 'test' },
+          }),
+        );
+      },
+    );
+
+    it('should not sign the approval request of auto-denied tools', async () => {
+      const approvalRequest = await getApprovalRequest('denied');
+
+      expect(approvalRequest).toMatchObject({
+        approvalId: 'id-0',
+        isAutomatic: true,
+      });
+      expect(approvalRequest).not.toHaveProperty('signature');
+    });
   });
 
   describe('onToolExecutionStart and onToolExecutionEnd callbacks', () => {

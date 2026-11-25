@@ -1,3 +1,4 @@
+import { getProdiaImageModelEntry } from './prodia-model-catalog';
 import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -23,9 +24,16 @@ import type { ProdiaImageModelId } from './prodia-image-settings';
 
 export class ProdiaImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
-  readonly maxImagesPerCall = 1;
-  readonly supportsFileInputs = false;
-  readonly supportsMaskInputs = false;
+  get maxImagesPerCall(): number {
+    return getProdiaImageModelEntry(this.modelId).capabilities.image
+      .maxImagesPerCall;
+  }
+  get supportsFileInputs(): boolean {
+    return getProdiaImageModelEntry(this.modelId).capabilities.image.fileInput;
+  }
+  get supportsMaskInputs(): boolean {
+    return getProdiaImageModelEntry(this.modelId).capabilities.image.maskInput;
+  }
 
   get provider(): string {
     return this.config.provider;
@@ -217,7 +225,7 @@ function createMultipartResponseHandler() {
         const jsonStr = new TextDecoder().decode(part.body);
         jobResult = await parseJSON({
           text: jsonStr,
-          schema: zodSchema(prodiaJobResultSchema),
+          schema: zodSchema(prodiaJobResultSchema()),
         });
       } else if (contentDisposition.includes('name="output"')) {
         imageBytes = part.body;

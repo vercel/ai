@@ -164,11 +164,13 @@ export function buildBuiltinAgentTools({
   activeNames,
   pendingQuestions = new Map(),
   pendingQuestionResults = new Map(),
+  onHostInputPending,
 }: {
   ops: ClineRemoteOps;
   activeNames: ReadonlyArray<ClineNativeBuiltinName>;
   pendingQuestions?: Map<string, PendingClineQuestion>;
   pendingQuestionResults?: Map<string, PendingClineQuestionResult>;
+  onHostInputPending?: () => void;
 }): AgentTool<any, any>[] {
   // biome/eslint: `any` matches the runtime's own `tools?: readonly AgentTool<any, any>[]`.
   const tools: Partial<Record<ClineNativeBuiltinName, AgentTool<any, any>>> = {
@@ -194,6 +196,7 @@ export function buildBuiltinAgentTools({
               input: { question, options },
               resolve,
             });
+            onHostInputPending?.();
           });
         },
       },
@@ -421,9 +424,11 @@ export function toClineQuestionResult(input: {
 export function buildUserAgentTools({
   specs,
   pendingToolResults,
+  onHostInputPending,
 }: {
   specs: ReadonlyArray<HarnessV1ToolSpec>;
   pendingToolResults: Map<string, PendingToolResult>;
+  onHostInputPending?: () => void;
 }): AgentTool<any, any>[] {
   return specs.map(spec =>
     createTool({
@@ -463,6 +468,7 @@ export function buildUserAgentTools({
             },
             { once: true },
           );
+          onHostInputPending?.();
         });
       },
     }),

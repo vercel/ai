@@ -34,6 +34,12 @@ export type DecideStartEvent<RUNTIME_CONTEXT extends Context = Context> = {
   /** The questions to decide against the shared state. */
   readonly questions: Readonly<Record<string, DecisionQuestion>>;
 
+  /** Maximum output tokens requested for the decision. */
+  readonly maxOutputTokens?: number;
+
+  /** Reasoning effort requested for the decision. */
+  readonly reasoning?: DecisionModelV4CallOptions['reasoning'];
+
   /** Maximum number of retries for the decision model call. */
   readonly maxRetries: number;
 

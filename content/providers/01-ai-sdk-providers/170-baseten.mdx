@@ -1,17 +1,64 @@
 ---
 title: Baseten
-description: Learn how to use Baseten models with the AI SDK.
+description: Learn how to use Baseten with AI Gateway and the direct provider.
 ---
 
 # Baseten Provider
 
 [Baseten](https://baseten.co/) is an inference platform for serving frontier, enterprise-grade opensource AI models via their [API](https://docs.baseten.co/overview).
+Start with [AI Gateway](/providers/ai-sdk-providers/ai-gateway) for models in its catalog (recommended), or use `@ai-sdk/baseten` to connect directly to Baseten.
 
-## Setup
+```ts provider="baseten" model="openai/gpt-oss-120b"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
 
-The Baseten provider is available via the `@ai-sdk/baseten` module. You can install it with
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  __GATEWAY_OPTIONS__,
+});
 
-<InstallPackages packages="@ai-sdk/baseten" />
+console.log(text);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+The example sets `providerOptions.gateway.order` to `['baseten']`. This sends the request to Baseten first, then falls back to other available providers of the same model if Baseten is unavailable or the request fails. `order` sets a preference; it does not restrict fallback to Baseten. See [provider ordering](https://vercel.com/docs/ai-gateway/models-and-providers/provider-filtering-and-ordering).
+
+The dropdown lists models served by Baseten through Gateway with a corresponding direct-provider example. Provider availability depends on the model and your team's [Provider Allowlist](https://vercel.com/docs/ai-gateway/models-and-providers/provider-filtering-and-ordering).
+
+## Using `@ai-sdk/baseten`
+
+For direct access to Baseten, install `ai` and `@ai-sdk/baseten`:
+
+<InstallPackages packages="ai @ai-sdk/baseten" />
+
+Set your Baseten API credential in the `BASETEN_API_KEY` environment variable:
+
+```bash
+export BASETEN_API_KEY=your_api_key_here
+```
+
+AI Gateway does not expose every API in `@ai-sdk/baseten`. Use the direct provider for provider-specific APIs or custom connection settings.
+
+<Note>
+  The following sections document the direct `@ai-sdk/baseten` provider,
+  including its model factories and settings. Gateway model and feature
+  availability can differ.
+</Note>
 
 ## Provider Instance
 
@@ -39,11 +86,14 @@ You can use the following optional settings to customize the Baseten provider in
   Use a different URL prefix for API calls, e.g. to use proxy servers.
   The default prefix is `https://inference.baseten.co/v1`.
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
 
   API key that is being sent using the `Authorization` header. It defaults to
   the `BASETEN_API_KEY` environment variable. It is recommended you set the environment variable using `export` so you do not need to include the field every time.
   You can grab your Baseten API Key [here](https://app.baseten.co/settings/api_keys)
+
+  A function is called before each request and may return a promise. Use it to
+  supply refreshed credentials; a promise value resolves to the same key each time.
 
 - **modelURL** _string_
 
@@ -91,6 +141,15 @@ const { text } = await generateText({
 
 Baseten language models can also be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
+
+<Note>
+  On Baseten Model APIs, `deepseek-ai/DeepSeek-V4-Pro-0813` can return an empty
+  answer when JSON mode and reasoning are combined. When reasoning is enabled
+  (the default), the provider puts JSON instructions and your schema in a system
+  message and omits `response_format`. It emits a compatibility warning because
+  the server does not constrain the output; `Output.object` still validates the
+  result. Set `reasoning: 'none'` to use native JSON Schema enforcement instead.
+</Note>
 
 ## Dedicated Models
 
@@ -198,6 +257,137 @@ const baseten = createBaseten({
 When you opt in, the client handles batching itself, so values are sent in a
 single call rather than being split at 128.
 
+## Decision Models
+
+Use `baseten.decisionModel()` with
+[`experimental_decide`](/docs/reference/ai-sdk-core/decide) to call Baseten's
+[decision models](https://docs.baseten.co/inference/model-apis/decision-models)
+through the Model APIs
+[System One endpoint](https://docs.baseten.co/reference/inference-api/system-one).
+This API is experimental and may change in patch releases.
+
+```ts
+import { baseten } from '@ai-sdk/baseten';
+import { experimental_decide as decide } from 'ai';
+
+const result = await decide({
+  model: baseten.decisionModel('decision-models/baseten-bison-latest'),
+  state:
+    'I was charged twice for my subscription. Please refund the duplicate.',
+  questions: {
+    team: {
+      type: 'choice',
+      instructions: 'Which team should handle this ticket?',
+      criteria: {
+        billing: 'Charges, refunds, and payment methods',
+        engineering: 'Bugs and outages',
+      },
+    },
+    refund: {
+      type: 'boolean',
+      instructions: 'Is the customer asking for a refund?',
+    },
+    urgency: {
+      type: 'score',
+      instructions: 'How urgent is this ticket?',
+      criteria: ['Can wait', 'Handle today', 'Blocking revenue'],
+    },
+  },
+});
+
+result.answers.refund.probability; // P(true), from 0 to 1
+result.answers.team.choice; // 'billing' | 'engineering'
+result.answers.urgency.score; // Expected zero-based level, from 0 to 2
+```
+
+The provider maps SDK `boolean` questions to Baseten's native `noul` type and
+returns Choice and Score probability distributions without rounding. Decision
+models always use the Model APIs endpoint and ignore `modelURL`.
+
+### Images
+
+Add image file parts to `state`. When the state contains an image, the provider
+sends it as a conversation (`{ messages: [...] }`) with a single user message
+whose content holds the text, JSON, and image parts in request order. JSON parts
+are sent as text.
+
+```ts
+import { readFileSync } from 'node:fs';
+
+const result = await decide({
+  model: baseten.decisionModel('decision-models/baseten-groundhog-latest'),
+  state: [
+    { type: 'text', text: 'A screenshot from a customer report.' },
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: readFileSync('screenshot.png'),
+    },
+  ],
+  questions: {
+    error: {
+      type: 'boolean',
+      instructions: 'Is an error message visible?',
+    },
+  },
+});
+```
+
+Images must be JPEG, PNG, or WebP and are sent as base64 data URLs. For URL file
+state, `experimental_decide` requires `experimental_download` and downloads the
+image before calling the provider, so it is also sent inline. URL file data
+passed to the model directly is forwarded as is; Baseten accepts only HTTPS URLs
+on Amazon S3, Google Cloud Storage, and Azure Blob Storage and rejects others.
+
+A single text part is sent as a string and a single JSON part as structured
+JSON, including a conversation object you build yourself. Other combinations of
+text and JSON parts are joined with newlines.
+
+### Confidence, legends, and usage
+
+Baseten's confidence values and Score legends are available in
+`providerMetadata.baseten`, keyed by question ID. Confidence is distinct from the
+selected option's probability.
+
+```ts
+const metadata = result.providerMetadata?.baseten;
+console.log(metadata?.confidence); // Choice and Score confidence by question ID
+console.log(metadata?.legend); // Score index-to-description maps by question ID
+console.log(result.usage.inputTokens); // Includes image tokens
+console.log(result.usage.outputTokens); // One token per question
+```
+
+### Decision limits
+
+The provider validates these limits before sending the decision request:
+
+| Input          | Limit                                                                                                           |
+| -------------- | --------------------------------------------------------------------------------------------------------------- |
+| Choice options | 1–255                                                                                                           |
+| Score levels   | 1–10                                                                                                            |
+| Options        | At most 512 across all questions: each Choice option and Score level counts as one, each yes/no question as two |
+| Images         | At most 16                                                                                                      |
+
+Box questions, audio, and video are not supported. Each model's context limit is
+enforced by the API, which rejects prompts that exceed it instead of truncating
+them. Baseten decision models do not accept provider-specific options,
+`maxOutputTokens`, or `reasoning`; these produce unsupported warnings and are not
+sent to the API.
+
+### Decision Model Capabilities
+
+{/* model-capabilities:baseten-decision:start */}
+
+| Model                                        | Boolean   | Choice    | Score     | Box       | Image Input | Reasoning | Max Output Tokens |
+| -------------------------------------------- | --------- | --------- | --------- | --------- | ----------- | --------- | ----------------- |
+| `decision-models/baseten-bison-latest`       | <Check /> | <Check /> | <Check /> | <Cross /> | <Check />   | <Cross /> | <Cross />         |
+| `decision-models/baseten-groundhog-latest`   | <Check /> | <Check /> | <Check /> | <Cross /> | <Check />   | <Cross /> | <Cross />         |
+| `decision-models/baseten-mammoth-27b-latest` | <Check /> | <Check /> | <Check /> | <Cross /> | <Check />   | <Cross /> | <Cross />         |
+| `decision-models/baseten-elephant-9b-latest` | <Check /> | <Check /> | <Check /> | <Cross /> | <Check />   | <Cross /> | <Cross />         |
+| `decision-models/baseten-joey-2b-latest`     | <Check /> | <Check /> | <Check /> | <Cross /> | <Check />   | <Cross /> | <Cross />         |
+
+{/* model-capabilities:baseten-decision:end */}
+
 ## Error Handling
 
 The Baseten provider includes built-in error handling for common API errors:
@@ -267,3 +457,29 @@ try {
   For more information about Baseten models and deployment options, see the
   [Baseten documentation](https://docs.baseten.co/).
 </Note>
+
+## Model Capabilities
+
+{/* model-capabilities:baseten-language:start */}
+
+{/* model-capabilities:baseten-language:end */}
+
+## Provider Option Reference
+
+The following option definitions are generated from the provider catalog.
+
+{/* model-capabilities:baseten-provider-options:start */}
+
+| Operation | Option             | Description                                                                                                                                                                                                    |
+| --------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| language  | `user`             | A unique identifier representing your end-user, which can help providers to monitor and detect abuse.                                                                                                          |
+| language  | `reasoningEffort`  | Reasoning effort for reasoning models. Defaults to `medium`. Set to `null` to send `"reasoning_effort": null`, for providers that treat an explicit `null` differently from an omitted field.                  |
+| language  | `textVerbosity`    | Controls the verbosity of the generated text. Defaults to `medium`.                                                                                                                                            |
+| language  | `strictJsonSchema` | Whether to use strict JSON schema validation. When true, the model uses constrained decoding to guarantee schema compliance. Only used when the provider supports structured outputs and a schema is provided. |
+| language  | `echo`             | Echo back the prompt in addition to the completion.                                                                                                                                                            |
+| language  | `logitBias`        | Modify the likelihood of specified tokens appearing in the completion. Accepts a JSON object that maps tokens (specified by their token ID in the GPT tokenizer) to an associated bias value from -100 to 100. |
+| language  | `suffix`           | The suffix that comes after a completion of inserted text.                                                                                                                                                     |
+| embedding | `dimensions`       | The number of dimensions the resulting output embeddings should have. Only supported in text-embedding-3 and later models.                                                                                     |
+| embedding | `user`             | A unique identifier representing your end-user, which can help providers to monitor and detect abuse.                                                                                                          |
+
+{/* model-capabilities:baseten-provider-options:end */}

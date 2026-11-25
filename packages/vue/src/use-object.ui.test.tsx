@@ -2,12 +2,15 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
-import { cleanup, screen, waitFor } from '@testing-library/vue';
+import { cleanup, render, screen, waitFor } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
+import { effectScope, watch } from 'vue';
+import { z } from 'zod/v4';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { setupTestComponent } from './setup-test-component';
 import TestUseObjectComponent from './TestUseObjectComponent.vue';
 import TestUseObjectCustomTransportComponent from './TestUseObjectCustomTransportComponent.vue';
+import { useObject } from './use-object';
 
 const server = createTestServer({
   '/api/use-object': {},
@@ -219,13 +222,29 @@ describe('text stream', () => {
   });
 
   describe('custom transport', () => {
-    setupTestComponent(TestUseObjectCustomTransportComponent);
-
-    it('should send custom headers', async () => {
+    it.each([
+      {
+        name: 'a plain record',
+        headers: {
+          Authorization: 'Bearer TEST_TOKEN',
+          'X-Custom-Header': 'CustomValue',
+        },
+      },
+      {
+        name: 'a Headers instance',
+        headers: new Headers({
+          Authorization: 'Bearer TEST_TOKEN',
+          'X-Custom-Header': 'CustomValue',
+        }),
+      },
+    ])('should send custom headers from $name', async ({ headers }) => {
       server.urls['/api/use-object'].response = {
         type: 'stream-chunks',
         chunks: ['{ ', '"content": "Hello, ', 'world', '!"', '}'],
       };
+      render(TestUseObjectCustomTransportComponent, {
+        props: { headers },
+      });
 
       await userEvent.click(screen.getByTestId('submit-button'));
 
@@ -236,14 +255,157 @@ describe('text stream', () => {
       });
     });
 
+    it.each([
+      {
+        name: 'a plain record',
+        headers: { 'Content-Type': 'text/plain' },
+      },
+      {
+        name: 'a Headers instance',
+        headers: new Headers({ 'Content-Type': 'text/plain' }),
+      },
+    ])(
+      'should let custom headers from $name override the default content type',
+      async ({ headers }) => {
+        server.urls['/api/use-object'].response = {
+          type: 'stream-chunks',
+          chunks: ['{ ', '"content": "Hello, ', 'world', '!"', '}'],
+        };
+        render(TestUseObjectCustomTransportComponent, {
+          props: { headers },
+        });
+
+        await userEvent.click(screen.getByTestId('submit-button'));
+
+        expect(server.calls[0].requestHeaders).toStrictEqual({
+          'content-type': 'text/plain',
+        });
+      },
+    );
+
     it('should send custom credentials', async () => {
       server.urls['/api/use-object'].response = {
         type: 'stream-chunks',
         chunks: ['{ ', '"content": "Authenticated ', 'content', '!"', '}'],
       };
+      render(TestUseObjectCustomTransportComponent, {
+        props: { credentials: 'include' },
+      });
 
       await userEvent.click(screen.getByTestId('submit-button'));
       expect(server.calls[0].requestCredentials).toBe('include');
     });
+  });
+});
+
+describe('cancellation', () => {
+  it('stops a submission before its request starts', async () => {
+    const fetch = vi.fn(async () => new Response('{"content":"unexpected"}'));
+    const scope = effectScope();
+    const result = scope.run(() =>
+      useObject({
+        api: '/api/use-object',
+        schema: z.object({ content: z.string() }),
+        fetch,
+      }),
+    )!;
+
+    const request = result.submit('test-input') as unknown as Promise<void>;
+    await result.stop();
+    await request;
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(result.object.value).toBeUndefined();
+    expect(result.isLoading.value).toBe(false);
+    scope.stop();
+  });
+
+  it('stops a submission synchronously when loading starts', async () => {
+    const fetch = vi.fn(async () => new Response('{"content":"unexpected"}'));
+    let stopRequest: Promise<void> | undefined;
+    const scope = effectScope();
+    const result = scope.run(() => {
+      const result = useObject({
+        api: '/api/use-object',
+        schema: z.object({ content: z.string() }),
+        fetch,
+      });
+
+      watch(
+        result.isLoading,
+        isLoading => {
+          if (isLoading) {
+            stopRequest = result.stop() as unknown as Promise<void>;
+          }
+        },
+        { flush: 'sync' },
+      );
+
+      return result;
+    })!;
+
+    const request = result.submit('test-input') as unknown as Promise<void>;
+    await waitFor(() => expect(stopRequest).toBeDefined());
+    await stopRequest;
+
+    expect(result.isLoading.value).toBe(false);
+    await request;
+    expect(fetch).not.toHaveBeenCalled();
+    expect(result.object.value).toBeUndefined();
+    expect(result.isLoading.value).toBe(false);
+    scope.stop();
+  });
+
+  it('keeps a newer submission stoppable when an older stream closes', async () => {
+    const requests: Array<{
+      controller: ReadableStreamDefaultController<Uint8Array>;
+      signal: AbortSignal;
+    }> = [];
+    const fetch = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+      const signal = init?.signal as AbortSignal;
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          requests.push({ controller, signal });
+          signal.addEventListener('abort', () => {
+            controller.error(new DOMException('Aborted', 'AbortError'));
+          });
+        },
+      });
+      return new Response(body);
+    });
+    const scope = effectScope();
+    const result = scope.run(() =>
+      useObject({
+        api: '/api/use-object',
+        schema: z.object({ content: z.string() }),
+        fetch,
+      }),
+    )!;
+
+    const firstSubmission = result.submit(
+      'first-input',
+    ) as unknown as Promise<void>;
+    await waitFor(() => expect(requests).toHaveLength(1));
+
+    const secondSubmission = result.submit(
+      'second-input',
+    ) as unknown as Promise<void>;
+    requests[0].controller.close();
+    await waitFor(() => expect(requests).toHaveLength(2));
+
+    await result.stop();
+
+    if (!requests[1].signal.aborted) {
+      requests[1].controller.enqueue(
+        new TextEncoder().encode('{"content":"unexpected"}'),
+      );
+      requests[1].controller.close();
+    }
+
+    await Promise.all([firstSubmission, secondSubmission]);
+    expect(requests[1].signal.aborted).toBe(true);
+    expect(result.object.value).toBeUndefined();
+    expect(result.isLoading.value).toBe(false);
+    scope.stop();
   });
 });

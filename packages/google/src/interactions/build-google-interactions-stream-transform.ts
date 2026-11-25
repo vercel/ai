@@ -152,6 +152,7 @@ export function buildGoogleInteractionsStreamTransform({
   let serviceTier: string | undefined = headerServiceTier;
   let finishStatus: GoogleInteractionsStatus | string | undefined;
   let hasFunctionCall = false;
+  let hasCompletionEvent = false;
 
   /*
    * Per-index open step slots. The Interactions API frames concurrent steps
@@ -838,6 +839,7 @@ export function buildGoogleInteractionsStreamTransform({
         }
 
         case 'interaction.completed': {
+          hasCompletionEvent = true;
           const event = value as Extract<
             GoogleInteractionsEvent,
             { event_type: 'interaction.completed' }
@@ -893,12 +895,17 @@ export function buildGoogleInteractionsStreamTransform({
     },
 
     flush(controller) {
+      const isInterrupted =
+        !hasCompletionEvent &&
+        (finishStatus == null || finishStatus === 'in_progress');
       const finishReason: LanguageModelV4FinishReason = {
-        unified: mapGoogleInteractionsFinishReason({
-          status: finishStatus,
-          hasFunctionCall,
-        }),
-        raw: finishStatus,
+        unified: isInterrupted
+          ? 'interrupted'
+          : mapGoogleInteractionsFinishReason({
+              status: finishStatus,
+              hasFunctionCall,
+            }),
+        raw: isInterrupted ? undefined : finishStatus,
       };
 
       const outputTokensByModality =

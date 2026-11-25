@@ -104,6 +104,34 @@ describe('GatewayDecisionModel', () => {
     },
   );
 
+  it.each([{}, { instructions: undefined }, { instructions: null }])(
+    'forwards criteria-only questions with %j',
+    async instructionFields => {
+      prepareJsonResponse({});
+      const questions = {
+        correct: {
+          type: 'boolean',
+          criteria: { true: 'Factually correct' },
+          ...instructionFields,
+        },
+        tone: {
+          type: 'choice',
+          criteria: testQuestions.tone.criteria,
+          ...instructionFields,
+        },
+        quality: {
+          type: 'score',
+          criteria: testQuestions.quality.criteria,
+          ...instructionFields,
+        },
+      } as const;
+      await createTestModel().doDecide({ state: testState, questions });
+      expect((await server.calls[0].requestBodyJson).questions).toStrictEqual(
+        JSON.parse(JSON.stringify(questions)),
+      );
+    },
+  );
+
   it('sends file bytes as base64 in ordered state parts', async () => {
     prepareJsonResponse({});
     await createTestModel().doDecide({
@@ -236,6 +264,49 @@ describe('GatewayDecisionModel', () => {
   });
 
   describe('doDecide', () => {
+    it.each([
+      undefined,
+      'provider-default',
+      'none',
+      'minimal',
+      'low',
+      'medium',
+      'high',
+      'xhigh',
+      'max',
+    ] as const)('forwards reasoning when supplied: %s', async reasoning => {
+      prepareJsonResponse();
+      await createTestModel().doDecide({
+        state: testState,
+        questions: testQuestions,
+        reasoning,
+      });
+      const body = await server.calls[0].requestBodyJson;
+      if (reasoning == null) {
+        expect(body).not.toHaveProperty('reasoning');
+      } else {
+        expect(body.reasoning).toBe(reasoning);
+      }
+    });
+
+    it.each([undefined, 512])(
+      'forwards maxOutputTokens when supplied: %s',
+      async maxOutputTokens => {
+        prepareJsonResponse();
+        await createTestModel().doDecide({
+          state: testState,
+          questions: testQuestions,
+          maxOutputTokens,
+        });
+        const body = await server.calls[0].requestBodyJson;
+        if (maxOutputTokens == null) {
+          expect(body).not.toHaveProperty('maxOutputTokens');
+        } else {
+          expect(body.maxOutputTokens).toBe(maxOutputTokens);
+        }
+      },
+    );
+
     it('should pass headers correctly', async () => {
       prepareJsonResponse();
 

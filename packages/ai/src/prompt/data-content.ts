@@ -1,4 +1,6 @@
 import {
+  isUint8Array,
+  isArrayBuffer,
   convertBase64ToUint8Array,
   convertUint8ArrayToBase64,
   type DataContent,
@@ -16,11 +18,7 @@ export function convertDataContentToBase64String(content: DataContent): string {
     return content;
   }
 
-  if (content instanceof ArrayBuffer) {
-    return convertUint8ArrayToBase64(new Uint8Array(content));
-  }
-
-  return convertUint8ArrayToBase64(content);
+  return convertUint8ArrayToBase64(convertDataContentToUint8Array(content));
 }
 
 /**
@@ -32,8 +30,12 @@ export function convertDataContentToBase64String(content: DataContent): string {
 export function convertDataContentToUint8Array(
   content: DataContent,
 ): Uint8Array {
-  if (content instanceof Uint8Array) {
-    return content;
+  if (isUint8Array(content)) {
+    if (content instanceof Uint8Array) {
+      return content;
+    }
+    const { buffer, byteOffset, byteLength } = content;
+    return new Uint8Array(buffer, byteOffset, byteLength);
   }
 
   if (typeof content === 'string') {
@@ -49,7 +51,7 @@ export function convertDataContentToUint8Array(
     }
   }
 
-  if (content instanceof ArrayBuffer) {
+  if (isArrayBuffer(content)) {
     return new Uint8Array(content);
   }
 

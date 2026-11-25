@@ -30,7 +30,9 @@ pnpm --filter harness-cline update @cline/agents @cline/core --latest --lockfile
 # Codex
 pnpm --filter harness-codex update @openai/codex --latest --lockfile-only
 # Deep Agents
-pnpm --filter harness-deepagents update @langchain/core @langchain/langgraph deepagents langchain langsmith --latest --lockfile-only
+pnpm --filter harness-deepagents update @langchain/anthropic @langchain/core @langchain/langgraph deepagents langchain langsmith --latest --lockfile-only
+# fx
+pnpm --filter harness-fx update libfx --latest --lockfile-only
 # GitHub Copilot
 pnpm --filter harness-github-copilot update @github/copilot --latest --lockfile-only
 # Grok Build
@@ -55,17 +57,16 @@ pnpm --dir packages/harness-codex/src/bridge update @openai/codex --latest --ign
 # Deep Agents
 pnpm --dir packages/harness-deepagents/src/bridge update @langchain/anthropic @langchain/core @langchain/langgraph deepagents langchain langsmith --latest --ignore-workspace --config.minimumReleaseAge=4320
 # GitHub Copilot
-pnpm --dir packages/harness-github-copilot/src/bridge update @github/copilot --latest --ignore-workspace --config.minimumReleaseAge=4320
+pnpm --dir packages/harness-github-copilot/src/bridge update @agentclientprotocol/sdk @github/copilot @modelcontextprotocol/sdk --latest --ignore-workspace --config.minimumReleaseAge=4320
 # Grok Build
 pnpm --dir packages/harness-grok-build/src/bridge update @agentclientprotocol/sdk @modelcontextprotocol/sdk @xai-official/grok --latest --ignore-workspace --config.minimumReleaseAge=4320
 # OpenCode
 pnpm --dir packages/harness-opencode/src/bridge update @opencode-ai/sdk opencode-ai --latest --ignore-workspace --config.minimumReleaseAge=4320
 ```
 
-The following harness adapters use an unversioned installer script instead of an NPM package for their SDK / CLI and therefore can be ignored:
+The following harness adapter uses an unversioned installer script instead of an NPM package for its CLI and therefore can be ignored:
 
 - `packages/harness-cursor`
-- `packages/harness-fx`
 
 #### Example dependencies
 
@@ -98,6 +99,24 @@ pnpm --dir <bridge-directory> update <sdk-package>... --latest --ignore-workspac
 
 # Example
 pnpm --dir packages/harness-acp/src/v1/bridge update @agentclientprotocol/sdk @modelcontextprotocol/sdk --latest --ignore-workspace --config.minimumReleaseAge=4320
+```
+
+### Align ACP npm-locked bridge manifests
+
+ACP adapters that use an `npm-locked` source install their own bridge manifest instead of the `harness-acp` bridge manifest. `packages/harness-acp/src/v1/bridge/package.json` is the authoritative source for the bridge dependencies, and every `npm-locked` bridge manifest must declare each of its `dependencies` at the exact same version:
+
+- `packages/harness-github-copilot/src/bridge/package.json`
+- `packages/harness-grok-build/src/bridge/package.json`
+- `examples/ai-functions/src/lib/codex-acp-bridge/package.json`
+- `examples/harness-e2e-next/agent/harness/acp-codex/bridge/package.json`
+
+After updating the `harness-acp` bridge manifest, copy its dependency versions into each of these manifests and regenerate their lockfiles:
+
+```bash
+pnpm --dir packages/harness-github-copilot/src/bridge install --lockfile-only --ignore-workspace --config.minimumReleaseAge=4320
+pnpm --dir packages/harness-grok-build/src/bridge install --lockfile-only --ignore-workspace --config.minimumReleaseAge=4320
+pnpm --dir examples/ai-functions/src/lib/codex-acp-bridge install --lockfile-only --ignore-workspace --config.minimumReleaseAge=4320
+pnpm --dir examples/harness-e2e-next/agent/harness/acp-codex/bridge install --lockfile-only --ignore-workspace --config.minimumReleaseAge=4320
 ```
 
 ### Verification

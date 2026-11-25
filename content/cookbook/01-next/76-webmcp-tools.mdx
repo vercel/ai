@@ -1,0 +1,316 @@
+---
+title: Connect a WebMCP Shopping Cart
+description: Let an AI SDK agent read and update a live browser shopping cart with WebMCP.
+tags: ['next', 'tool use', 'agent', 'mcp', 'webmcp']
+---
+
+# Connect a WebMCP Shopping Cart
+
+[WebMCP](https://webmachinelearning.github.io/webmcp/) lets a website expose JavaScript functions as tools. This recipe connects those tools to an AI SDK chat: the model runs on the server, while tool calls read and update the cart in the open browser tab.
+
+**`createMCPTools` connects the two sides.** It converts tool definitions sent by the browser into AI SDK tools, without attaching server-side execution functions.
+
+The [runnable shopping cart](https://github.com/vercel/ai/tree/main/examples/ai-e2e-next/app/chat/webmcp) includes product cards, quantity controls, and free-form chat. Try “Add two mugs,” “Make that three,” or “Remove the T-shirt.” Both the buttons and the agent update the same cart.
+
+## Setup
+
+In a Next.js App Router application, install:
+
+<Snippet text="pnpm add ai @ai-sdk/react @ai-sdk/mcp @ai-sdk/openai zod" />
+
+Set `OPENAI_API_KEY` in `.env.local` and run `pnpm exec next dev --hostname 127.0.0.1`.
+
+<Note>
+  WebMCP is experimental. For local development, open
+  `chrome://flags/#enable-webmcp-testing`, enable WebMCP testing, and relaunch
+  Chrome. The browser must expose `document.modelContext.getTools` and
+  `executeTool`.
+</Note>
+
+## Expose the site's cart tools
+
+Register tools in the browser with `document.modelContext.registerTool`. The example exposes:
+
+| Tool             | Input                     | Action                                        |
+| ---------------- | ------------------------- | --------------------------------------------- |
+| `getCart`        | `{}`                      | Read the cart, total, and product catalog.    |
+| `addToCart`      | `{ productId, quantity }` | Add units of a product.                       |
+| `updateCartItem` | `{ productId, quantity }` | Set an exact quantity; zero removes the item. |
+| `removeFromCart` | `{ productId }`           | Remove a product.                             |
+
+For example, the read and add tools use the site's existing cart state and update function:
+
+```ts
+import { z } from 'zod/v4';
+
+const addInput = z.object({
+  productId: z.enum(['t-shirt', 'tote', 'mug']),
+  quantity: z.number().int().min(1).max(20),
+});
+
+await modelContext.registerTool(
+  {
+    name: 'getCart',
+    description: 'Read the current cart, total in USD, and product catalog.',
+    inputSchema: z.toJSONSchema(z.object({})),
+    annotations: { readOnlyHint: true },
+    execute: async () => getCartSnapshot(read()),
+  },
+  { signal },
+);
+
+await modelContext.registerTool(
+  {
+    name: 'addToCart',
+    description: 'Add a quantity of a catalog product to the cart.',
+    inputSchema: z.toJSONSchema(addInput),
+    execute: async input => {
+      const { productId, quantity } = addInput.parse(input);
+      const next = setCartQuantity(
+        read(),
+        productId,
+        read()[productId] + quantity,
+      );
+      write(next);
+      return getCartSnapshot(next);
+    },
+  },
+  { signal },
+);
+```
+
+Here, `read()` returns the current cart and `write(next)` updates the storefront. `getCartSnapshot` includes the catalog, so the agent can discover products that are not in the cart yet. `setCartQuantity` validates the resulting quantity before writing it. The [complete tool registration](https://github.com/vercel/ai/blob/main/examples/ai-e2e-next/app/chat/webmcp/cart-tools.ts) includes all four tools.
+
+Inside a `'use client'` component or hook, keep the current cart in a ref as well as state. Update the ref synchronously so consecutive tool calls see changes before React renders:
+
+```tsx
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { initialCart, type Cart } from './cart-tools';
+
+const [cart, setCart] = useState(initialCart);
+const cartRef = useRef(cart);
+const [ready, setReady] = useState(false);
+const [setupError, setSetupError] = useState<string>();
+const [input, setInput] = useState('');
+
+const writeCart = useCallback((next: Cart) => {
+  cartRef.current = next;
+  setCart(next);
+}, []);
+```
+
+## Connect the browser MCP client
+
+Create the client in an effect, after checking browser support. Import the experimental transport under its plain name. `registerCartTools` below is the registration function from the [cart tools module](https://github.com/vercel/ai/blob/main/examples/ai-e2e-next/app/chat/webmcp/cart-tools.ts).
+
+```tsx
+import {
+  createMCPClient,
+  Experimental_WebMCPTransport as WebMCPTransport,
+  type MCPClient,
+} from '@ai-sdk/mcp';
+import { registerCartTools } from './cart-tools';
+
+const client = useRef<MCPClient>();
+
+useEffect(() => {
+  const modelContext = document.modelContext;
+  if (!modelContext?.getTools || !modelContext.executeTool) return;
+
+  const registration = new AbortController();
+  let mcpClient: MCPClient | undefined;
+
+  async function connect() {
+    await registerCartTools(
+      modelContext,
+      () => cartRef.current,
+      writeCart,
+      registration.signal,
+    );
+    if (registration.signal.aborted) return;
+
+    mcpClient = await createMCPClient({
+      transport: new WebMCPTransport({ modelContext }),
+    });
+    if (registration.signal.aborted) {
+      await mcpClient.close();
+      return;
+    }
+    client.current = mcpClient;
+    setReady(true);
+  }
+
+  connect().catch(error => {
+    if (!registration.signal.aborted) setSetupError(error.message);
+  });
+
+  return () => {
+    registration.abort();
+    void mcpClient?.close();
+  };
+}, [writeCart]);
+```
+
+The [complete browser hook](https://github.com/vercel/ai/blob/main/examples/ai-e2e-next/app/chat/webmcp/use-cart-agent.ts) includes readiness and error state, cleanup, and local typing for the experimental browser API. Alternatively, `webmcp-types` provides typings for `document.modelContext`.
+
+## Convert definitions on the server
+
+Use **[`createMCPTools`](/docs/reference/ai-sdk-core/create-mcp-tools)** to validate the browser's definitions and build the model's tools. Pass the resulting tools to both `streamText` and `convertToModelMessages`, which converts returned MCP results in the conversation history.
+
+This local demo rejects attachments and nonlocal requests. Copy the example's [local request guard](https://github.com/vercel/ai/blob/main/examples/ai-e2e-next/app/api/code-execution-files/is-local-development-request.ts) to the path imported below.
+
+```ts filename="app/api/chat/webmcp/route.ts"
+import { createMCPTools, MCPClientError } from '@ai-sdk/mcp';
+import { openai } from '@ai-sdk/openai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  safeValidateUIMessages,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
+import { isLocalDevelopmentRequest } from '../../code-execution-files/is-local-development-request';
+
+export async function POST(request: Request) {
+  if (!isLocalDevelopmentRequest(request)) {
+    return new Response('WebMCP is only available in local development.', {
+      status: 403,
+      headers: { 'Cache-Control': 'no-store' },
+    });
+  }
+
+  const {
+    messages,
+    tools: definitions,
+  }: {
+    messages: unknown;
+    tools: unknown;
+  } = await request.json();
+
+  if (!Array.isArray(definitions) || definitions.length > 32) {
+    return new Response('Invalid browser tool definitions', { status: 400 });
+  }
+
+  let tools: ReturnType<typeof createMCPTools>;
+  try {
+    tools = createMCPTools(definitions);
+  } catch (error) {
+    if (!MCPClientError.isInstance(error)) throw error;
+    return new Response('Invalid browser tool definitions', { status: 400 });
+  }
+
+  const validatedMessages = await safeValidateUIMessages({ messages, tools });
+  // Reject attachments before conversion can reach the file downloader.
+  if (
+    !validatedMessages.success ||
+    validatedMessages.data.some(
+      message =>
+        (message.role !== 'user' && message.role !== 'assistant') ||
+        message.parts.some(
+          part =>
+            part.type !== 'text' &&
+            (message.role !== 'assistant' ||
+              (part.type !== 'step-start' && part.type !== 'dynamic-tool')),
+        ),
+    )
+  ) {
+    return new Response('Only text and browser tool results are supported.', {
+      status: 400,
+    });
+  }
+
+  const result = streamText({
+    model: openai('gpt-6.2-astra'),
+    instructions:
+      'Help the user shop. Read the cart and catalog before discussing products or totals. Only change the cart when asked. Use the tools to add, update, and remove items. Keep replies short.',
+    messages: await convertToModelMessages(validatedMessages.data, { tools }),
+    tools,
+    abortSignal: request.signal,
+  });
+
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
+}
+```
+
+The API key stays on the server. The tools have no `execute` function here: execution belongs to the browser.
+
+## Send messages and run tools in the browser
+
+In the same client component, discover the current tools before each request. Handle model tool calls with the browser client and return results through `addToolOutput`:
+
+```tsx
+import { useChat } from '@ai-sdk/react';
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from 'ai';
+
+const { messages, sendMessage, addToolOutput, status } = useChat({
+  transport: new DefaultChatTransport({
+    api: '/api/chat/webmcp',
+    async prepareSendMessagesRequest({ messages }) {
+      const { tools } = await client.current!.listTools();
+      return { body: { messages, tools } };
+    },
+  }),
+  sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+  async onToolCall({ toolCall }) {
+    if (!toolCall.dynamic) return;
+    try {
+      const output = await client.current!.callTool({
+        name: toolCall.toolName,
+        arguments: toolCall.input as Record<string, unknown>,
+      });
+      // Do not await this inside onToolCall.
+      addToolOutput({
+        tool: toolCall.toolName,
+        toolCallId: toolCall.toolCallId,
+        output,
+      });
+    } catch (error) {
+      addToolOutput({
+        tool: toolCall.toolName,
+        toolCallId: toolCall.toolCallId,
+        state: 'output-error',
+        errorText: error instanceof Error ? error.message : String(error),
+      });
+    }
+  },
+});
+```
+
+`sendAutomaticallyWhen` continues the conversation after tools finish, including when the model needs another tool call. Keep a normal text input so users can ask follow-up questions:
+
+```tsx
+<form
+  onSubmit={event => {
+    event.preventDefault();
+    if (
+      !ready ||
+      status === 'submitted' ||
+      status === 'streaming' ||
+      !input.trim()
+    )
+      return;
+    void sendMessage({ text: input.trim() });
+    setInput('');
+  }}
+>
+  <input
+    aria-label="Message"
+    value={input}
+    onChange={event => setInput(event.target.value)}
+  />
+  <button disabled={!ready || status === 'submitted' || status === 'streaming'}>
+    Send
+  </button>
+</form>
+```
+
+Render `messages` alongside your cart, as in the [complete storefront page](https://github.com/vercel/ai/blob/main/examples/ai-e2e-next/app/chat/webmcp/page.tsx). The demo keeps cart state in the tab; it resets on reload. For deployment, replace the local-only guard with authentication and apply your own policies to browser-supplied definitions and results.
+
+---
+
+<GithubLink link="https://github.com/vercel/ai/tree/main/examples/ai-e2e-next/app/chat/webmcp" />

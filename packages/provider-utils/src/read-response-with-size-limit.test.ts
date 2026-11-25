@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { readResponseWithSizeLimit } from './read-response-with-size-limit';
 import { DownloadError } from './download-error';
 
@@ -42,7 +42,62 @@ function createMockResponse({
   };
 }
 
+function createResponseWithChunk(chunk: Uint8Array): Response {
+  return new Response(
+    new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(chunk);
+        controller.close();
+      },
+    }),
+  );
+}
+
 describe('readResponseWithSizeLimit', () => {
+  it.each([
+    {
+      name: 'Uint8Array with a nonzero byte offset',
+      createChunk: (buffer: ArrayBuffer) => new Uint8Array(buffer, 17, 3),
+    },
+    {
+      name: 'Node Buffer with a larger backing buffer',
+      createChunk: (buffer: ArrayBuffer) => Buffer.from(buffer, 17, 3),
+    },
+  ])('should read a $name correctly', async ({ createChunk }) => {
+    const chunk = createChunk(new ArrayBuffer(64 * 1024));
+    chunk.set([1, 2, 3]);
+
+    const result = await readResponseWithSizeLimit({
+      response: createResponseWithChunk(chunk),
+      url: 'http://example.com/file',
+    });
+
+    expect(result).toEqual(new Uint8Array([1, 2, 3]));
+  });
+
+  it('should concatenate compact chunks instead of oversized backing buffers', async () => {
+    const chunk = Buffer.from(new ArrayBuffer(64 * 1024), 17, 3);
+    chunk.set([1, 2, 3]);
+    const response = createResponseWithChunk(chunk);
+
+    // Implementation-level check of the chunk passed to concatenation.
+    // This does not measure peak memory or garbage collection timing.
+    const set = vi.spyOn(Uint8Array.prototype, 'set');
+    try {
+      const result = await readResponseWithSizeLimit({
+        response,
+        url: 'http://example.com/file',
+      });
+      const resultSetCall = set.mock.calls[set.mock.contexts.indexOf(result)];
+      const retainedChunk = resultSetCall[0] as Uint8Array;
+
+      expect(retainedChunk.buffer.byteLength).toBe(chunk.byteLength);
+      expect(retainedChunk.buffer).not.toBe(chunk.buffer);
+    } finally {
+      set.mockRestore();
+    }
+  });
+
   it('should read response within limit successfully', async () => {
     const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
     const { response } = createMockResponse({
@@ -244,6 +299,86 @@ describe('readResponseWithSizeLimit', () => {
     ).rejects.toSatisfy((error: unknown) => {
       expect(DownloadError.isInstance(error)).toBe(true);
       return true;
+    });
+  });
+
+  describe('onChunk', () => {
+    it('should pass the chunks to the callback instead of collecting them', async () => {
+      const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+      const { response } = createMockResponse({ body: data });
+      const received: number[] = [];
+
+      const result = await readResponseWithSizeLimit({
+        response,
+        url: 'http://example.com/file',
+        onChunk: chunk => received.push(...chunk),
+      });
+
+      expect(received).toEqual([...data]);
+      expect(result).toEqual(new Uint8Array(0));
+    });
+
+    it('should enforce the limit before passing a chunk on', async () => {
+      const { response, cancelled } = createMockResponse({
+        body: new Uint8Array(15),
+      });
+      const onChunk = vi.fn();
+
+      await expect(
+        readResponseWithSizeLimit({
+          response,
+          url: 'http://example.com/file',
+          maxBytes: 10,
+          onChunk,
+        }),
+      ).rejects.toSatisfy((error: unknown) => {
+        expect(DownloadError.isInstance(error)).toBe(true);
+        return true;
+      });
+
+      // Chunks of 4 bytes: the third one would bring the total to 12, and a
+      // fourth one is still waiting to be read.
+      expect(onChunk).toHaveBeenCalledTimes(2);
+      expect(cancelled()).toBe(true);
+    });
+
+    it('should reject on Content-Length above the limit before reading', async () => {
+      const { response, cancelled } = createMockResponse({
+        body: new Uint8Array(10),
+        contentLength: '1000',
+      });
+      const onChunk = vi.fn();
+
+      await expect(
+        readResponseWithSizeLimit({
+          response,
+          url: 'http://example.com/file',
+          maxBytes: 100,
+          onChunk,
+        }),
+      ).rejects.toThrow('Content-Length: 1000');
+
+      expect(onChunk).not.toHaveBeenCalled();
+      expect(cancelled()).toBe(true);
+    });
+
+    it('should cancel the body and reject with the error of the callback', async () => {
+      const { response, cancelled } = createMockResponse({
+        body: new Uint8Array(10),
+      });
+      const failure = new Error('callback failed');
+
+      await expect(
+        readResponseWithSizeLimit({
+          response,
+          url: 'http://example.com/file',
+          onChunk: () => {
+            throw failure;
+          },
+        }),
+      ).rejects.toBe(failure);
+
+      expect(cancelled()).toBe(true);
     });
   });
 });

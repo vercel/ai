@@ -1,5 +1,8 @@
 import type { LanguageModelV4FunctionTool } from '@ai-sdk/provider';
+import { redactTelemetryValue } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
+import { withGoogleInteractionsRequestRedaction } from '../redact-google-tool-credentials';
+import { mcpServer } from '../tool/mcp-server';
 import { prepareGoogleInteractionsTools } from './prepare-google-interactions-tools';
 
 const FUNCTION_TOOL: LanguageModelV4FunctionTool = {
@@ -194,6 +197,18 @@ describe('prepareGoogleInteractionsTools', () => {
         expect(result.toolWarnings).toEqual([]);
         expect(result.tools).toEqual([expected]);
       });
+
+      it(`omits ${title} when toolChoice is none`, () => {
+        const result = prepareGoogleInteractionsTools({
+          tools: [{ type: 'provider', id, name: id.split('.')[1], args }],
+          toolChoice: { type: 'none' },
+        });
+        expect(result).toEqual({
+          tools: undefined,
+          toolChoice: undefined,
+          toolWarnings: [],
+        });
+      });
     }
 
     it('warns and drops unknown google.* provider-defined tools', () => {
@@ -237,12 +252,16 @@ describe('prepareGoogleInteractionsTools', () => {
       expect(result.toolChoice).toBe('any');
     });
 
-    it('maps "none" to "none"', () => {
+    it('omits function tools when toolChoice is none', () => {
       const result = prepareGoogleInteractionsTools({
         tools: [FUNCTION_TOOL],
         toolChoice: { type: 'none' },
       });
-      expect(result.toolChoice).toBe('none');
+      expect(result).toEqual({
+        tools: undefined,
+        toolChoice: undefined,
+        toolWarnings: [],
+      });
     });
 
     it('maps { type: "tool", toolName } to { allowed_tools: { mode: "validated", tools: [name] } }', () => {
@@ -260,6 +279,50 @@ describe('prepareGoogleInteractionsTools', () => {
           },
         }
       `);
+    });
+  });
+
+  describe('MCP server credentials', () => {
+    it('supplies telemetry redaction for configuration and wire bodies', () => {
+      const tool = mcpServer({
+        name: 'local-mcp',
+        url: 'https://example.com/mcp',
+        headers: {
+          Authorization: 'test-secret',
+          'X-Custom-Key': 'test-secret',
+        },
+        allowedTools: ['getWeather'],
+      });
+      const originalArgs = structuredClone(tool.args);
+      const result = prepareGoogleInteractionsTools({
+        tools: [
+          { type: 'provider', id: tool.id, name: 'connector', args: tool.args },
+        ],
+      });
+      const body = withGoogleInteractionsRequestRedaction({
+        tools: result.tools,
+      });
+
+      for (const value of [tool.args, body]) {
+        expect(JSON.stringify(value)).toContain('test-secret');
+        expect(JSON.stringify(redactTelemetryValue(value))).toBe(
+          JSON.stringify(value).replaceAll('test-secret', '[redacted]'),
+        );
+      }
+
+      expect(body.tools).toEqual([
+        {
+          type: 'mcp_server',
+          name: 'local-mcp',
+          url: 'https://example.com/mcp',
+          headers: {
+            Authorization: 'test-secret',
+            'X-Custom-Key': 'test-secret',
+          },
+          allowed_tools: ['getWeather'],
+        },
+      ]);
+      expect(tool.args).toEqual(originalArgs);
     });
   });
 });

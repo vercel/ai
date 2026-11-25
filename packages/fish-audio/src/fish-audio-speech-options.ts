@@ -1,3 +1,4 @@
+import type { FishAudioModelIds } from './fish-audio-model-catalog';
 /**
  * Fish Audio TTS model IDs, sent via the `model` HTTP header.
  *
@@ -8,10 +9,7 @@
  * https://docs.fish.audio/api-reference/endpoint/openapi-v1/text-to-speech
  */
 export type FishAudioSpeechModelId =
-  | 's1'
-  | 's2-pro'
-  | 's2.1-pro'
-  | 's2.1-pro-free'
+  | FishAudioModelIds['speech']
   | (string & {});
 
 /**

@@ -124,6 +124,7 @@ const ElicitationCapabilitySchema = z
 
 const ServerCapabilitiesSchema = z.looseObject({
   events: z.looseObject({ listChanged: z.boolean().nullish() }).nullish(),
+  extensions: z.optional(z.record(z.string(), z.unknown())),
   experimental: z.optional(z.object({}).loose()),
   logging: z.optional(z.object({}).loose()),
   completions: z.optional(z.object({}).loose()),
@@ -478,3 +479,21 @@ export const ElicitResultSchema = ResultSchema.extend({
 });
 
 export type ElicitResult = z.infer<typeof ElicitResultSchema>;
+
+export const InputRequiredResultSchema = ResultSchema.extend({
+  resultType: z.literal('input_required'),
+  inputRequests: z.record(z.string(), RequestSchema).optional(),
+  requestState: z.string().optional(),
+}).refine(
+  result =>
+    result.inputRequests !== undefined || result.requestState !== undefined,
+  { message: 'input_required must include inputRequests or requestState' },
+);
+
+// Only form elicitation is supported by the client's existing handler API.
+export const InputRequiredElicitationSchema = ElicitationRequestSchema.extend({
+  params: ElicitationRequestParamsSchema.extend({
+    mode: z.literal('form').optional(),
+    requestedSchema: z.looseObject({ type: z.literal('object') }),
+  }),
+});

@@ -7,13 +7,19 @@
 // Node-only (binds real sockets); excluded from the edge run via the
 // `**/src/bridge/**` pattern in vitest.edge.config.js.
 
+import { createConnection, createServer, type Socket } from 'node:net';
 import { afterEach, describe, expect, it } from 'vitest';
-import { WebSocket } from 'ws';
+import { WebSocket, type RawData } from 'ws';
 import { z } from 'zod/v4';
 import { runBridge, type BridgeHandle, type BridgeTurn } from './index';
 import { SandboxChannel } from '../utils/sandbox-channel';
+import {
+  createBridgeAuthKeyPair,
+  createBridgeAuthProof,
+  parseBridgeAuthPrivateKey,
+} from '../utils/bridge-auth';
 
-const TOKEN = 'integ-token';
+const BRIDGE_AUTH = createBridgeAuthKeyPair();
 const outboundSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('bridge-hello'),
@@ -43,7 +49,7 @@ async function startBridge(
     bridgeType: 'test',
     bridgeStateDir: `${process.env.TMPDIR ?? '/tmp'}/harness-reconnect-${Math.floor(performance.now())}`,
     port: 0,
-    token: TOKEN,
+    publicKey: BRIDGE_AUTH.publicKey,
     onStart,
     onExit: () => {},
   });
@@ -52,6 +58,117 @@ async function startBridge(
 }
 
 describe('SandboxChannel ↔ runBridge reconnect', () => {
+  it.each(['idle', 'blackhole'] as const)(
+    'handles a silent bridge behind an %s TCP proxy',
+    async mode => {
+      let release!: () => void;
+      const gate = new Promise<void>(resolve => (release = resolve));
+      const handle = await startBridge(async (_start, turn) => {
+        turn.emit({ type: 'text-delta', id: 'm', delta: 'started' });
+        await gate;
+        turn.emit({ type: 'finish' });
+      });
+      cleanups.push(() => release());
+
+      const sockets = new Set<Socket>();
+      const timers = new Set<ReturnType<typeof setTimeout>>();
+      let connections = 0;
+      let idleDrops = 0;
+      let blackhole = false;
+      let denyReconnect = false;
+      const proxy = createServer(host => {
+        connections++;
+        sockets.add(host);
+        host.on('error', () => {});
+        if (denyReconnect) {
+          host.destroy();
+          return;
+        }
+        const remote = createConnection(handle.port, '127.0.0.1');
+        sockets.add(remote);
+        remote.on('error', () => host.destroy());
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const activity = () => {
+          clearTimeout(timer);
+          if (timer) timers.delete(timer);
+          if (mode !== 'idle') return;
+          timer = setTimeout(() => {
+            idleDrops++;
+            denyReconnect = true;
+            host.destroy();
+            remote.destroy();
+          }, 300);
+          timers.add(timer);
+        };
+        host.on('data', data => {
+          if (blackhole) return;
+          activity();
+          remote.write(data);
+        });
+        remote.on('data', data => {
+          if (blackhole) return;
+          activity();
+          host.write(data);
+        });
+        host.on('close', () => {
+          clearTimeout(timer);
+          if (timer) timers.delete(timer);
+          remote.destroy();
+        });
+        remote.on('close', () => host.destroy());
+      });
+      cleanups.push(async () => {
+        for (const timer of timers) clearTimeout(timer);
+        for (const socket of sockets) socket.destroy();
+        await new Promise<void>(resolve => proxy.close(() => resolve()));
+      });
+      await new Promise<void>(resolve => proxy.listen(0, '127.0.0.1', resolve));
+      const address = proxy.address();
+      if (!address || typeof address === 'string')
+        throw new Error('No TCP port');
+      const debug: string[] = [];
+      const channel = new SandboxChannel<Outbound, Inbound>({
+        connect: () =>
+          openAuthenticatedBridgeWebSocket({
+            url: `ws://127.0.0.1:${address.port}/`,
+            privateKey: BRIDGE_AUTH.privateKey,
+          }),
+        outboundSchema,
+        keepAliveMs: 50,
+        reconnect: { maxElapsedMs: 200, initialDelayMs: 10, maxDelayMs: 20 },
+        onDebug: event => debug.push(event.event),
+      });
+      cleanups.push(() => channel.close());
+      let started = false;
+      let finished = false;
+      let closeReason: string | undefined;
+      channel.on('text-delta', () => (started = true));
+      channel.on('finish', () => (finished = true));
+      channel.onClose((_code, reason) => (closeReason = reason));
+      await channel.open();
+      channel.send({ type: 'start' });
+      await waitUntil(() => started);
+
+      if (mode === 'blackhole') {
+        blackhole = true;
+        denyReconnect = true;
+        await waitUntil(() => channel.isClosed());
+        expect(closeReason).toBe('reconnect failed');
+        expect(debug).toContain('reconnect-attempt');
+        expect(debug.at(-1)).toBe('reconnect-failed');
+        expect(connections).toBeGreaterThan(1);
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 750));
+        release();
+        await waitUntil(() => finished);
+        expect(connections).toBe(1);
+        expect(idleDrops).toBe(0);
+        expect(debug).toEqual([]);
+        expect(closeReason).toBeUndefined();
+      }
+    },
+  );
+
   it('transparently reconnects mid-turn and delivers every event in order, once', async () => {
     let release!: () => void;
     const gate = new Promise<void>(r => (release = r));
@@ -66,15 +183,16 @@ describe('SandboxChannel ↔ runBridge reconnect', () => {
       turn.emit({ type: 'finish' }); // seq 4
     });
 
-    const url = `ws://127.0.0.1:${handle.port}/?agent_bridge_token=${TOKEN}`;
+    const url = `ws://127.0.0.1:${handle.port}/`;
     const sockets: WebSocket[] = [];
-    const connect = () =>
-      new Promise<WebSocket>((resolve, reject) => {
-        const ws = new WebSocket(url);
-        sockets.push(ws);
-        ws.on('open', () => resolve(ws));
-        ws.on('error', reject);
+    const connect = async () => {
+      const ws = await openAuthenticatedBridgeWebSocket({
+        url,
+        privateKey: BRIDGE_AUTH.privateKey,
       });
+      sockets.push(ws);
+      return ws;
+    };
 
     const debug: string[] = [];
     const channel = new SandboxChannel<Outbound, Inbound>({
@@ -121,6 +239,168 @@ describe('SandboxChannel ↔ runBridge reconnect', () => {
     expect(closedCode).toBeUndefined(); // transient drop never surfaced as close
   });
 
+  it.each([
+    'before-close-event',
+    'remote-fin',
+    'after-detected-close',
+    'after-reconnect',
+  ] as const)('delivers a host tool result completed %s', async timing => {
+    let release!: () => void;
+    const toolFinished = new Promise<void>(resolve => (release = resolve));
+    let starts = 0;
+    let waiterResolved = false;
+    const handle = await startBridge(async (_start, turn) => {
+      starts++;
+      turn.emit({ type: 'tool-call', toolCallId: 'host-1' });
+      const result = await turn.requestToolResult('host-1');
+      waiterResolved = true;
+      turn.emit({ type: 'tool-result', output: result.output });
+      turn.emit({ type: 'finish' });
+    });
+
+    let port = handle.port;
+    const peers: Socket[] = [];
+    if (timing === 'remote-fin') {
+      const relaySockets: Socket[] = [];
+      const relay = createServer(peer => {
+        const upstream = createConnection({
+          host: '127.0.0.1',
+          port: handle.port,
+        });
+        peers.push(peer);
+        relaySockets.push(peer, upstream);
+        peer.on('error', () => upstream.destroy());
+        upstream.on('error', () => peer.destroy());
+        peer.pipe(upstream);
+        upstream.pipe(peer);
+      });
+      cleanups.push(async () => {
+        for (const socket of relaySockets) socket.destroy();
+        await new Promise<void>((resolve, reject) => {
+          relay.close(error => {
+            if (error) {
+              reject(error);
+              return;
+            }
+            resolve();
+          });
+        });
+      });
+      await new Promise<void>(resolve => relay.listen(0, '127.0.0.1', resolve));
+      const address = relay.address();
+      if (!address || typeof address === 'string') {
+        throw new Error('Expected relay TCP address');
+      }
+      port = address.port;
+    }
+
+    const sockets: WebSocket[] = [];
+    const debug: string[] = [];
+    const channel = new SandboxChannel<
+      | { type: 'bridge-hello' }
+      | { type: 'tool-call'; toolCallId: string }
+      | { type: 'tool-result'; output: unknown }
+      | { type: 'finish' },
+      Inbound | { type: 'tool-result'; toolCallId: string; output: number }
+    >({
+      connect: async () => {
+        const socket = await openAuthenticatedBridgeWebSocket({
+          url: `ws://127.0.0.1:${port}/`,
+          privateKey: BRIDGE_AUTH.privateKey,
+        });
+        sockets.push(socket);
+        return socket;
+      },
+      outboundSchema: z.discriminatedUnion('type', [
+        z.object({ type: z.literal('bridge-hello') }),
+        z.object({ type: z.literal('tool-call'), toolCallId: z.string() }),
+        z.object({ type: z.literal('tool-result'), output: z.unknown() }),
+        z.object({ type: z.literal('finish') }),
+      ]),
+      reconnect: { initialDelayMs: 5, maxDelayMs: 20, maxElapsedMs: 2000 },
+      onDebug: event => debug.push(event.event),
+    });
+    cleanups.push(() => {
+      channel.close();
+      for (const socket of sockets) socket.terminate();
+    });
+
+    const received: unknown[] = [];
+    const sendErrors: unknown[] = [];
+    let executions = 0;
+    let stateAtSend: number | undefined;
+    let closedCode: number | undefined;
+    let closeDetected = false;
+    let closeDetectedAtSend = false;
+    let callSeen = false;
+    let finishes = 0;
+    channel.onClose(code => (closedCode = code));
+    channel.on('tool-result', event => received.push(event.output));
+    channel.on('finish', () => finishes++);
+    channel.on('tool-call', () => {
+      callSeen = true;
+      void toolFinished.then(() => {
+        executions++;
+        stateAtSend = sockets.at(-1)!.readyState;
+        closeDetectedAtSend = closeDetected;
+        try {
+          channel.send({
+            type: 'tool-result',
+            toolCallId: 'host-1',
+            output: 42,
+          });
+        } catch (error) {
+          sendErrors.push(error);
+        }
+      });
+    });
+    await channel.open();
+    channel.send({ type: 'start' });
+    await waitUntil(() => callSeen);
+    const closed = new Promise<void>(resolve =>
+      sockets[0].once('close', () => {
+        closeDetected = true;
+        resolve();
+      }),
+    );
+    if (timing === 'remote-fin') {
+      const tcp = (sockets[0] as WebSocket & { _socket: Socket })._socket;
+      tcp.once('end', release);
+      peers[0].end();
+    } else {
+      sockets[0].terminate();
+      if (timing === 'after-detected-close') await closed;
+      if (timing === 'after-reconnect') {
+        await waitUntil(() => debug.includes('reconnected'));
+      }
+      release();
+    }
+    await waitUntil(() => debug.includes('reconnected'));
+    await expect.poll(() => received).toEqual([42]);
+    await waitUntil(() => finishes === 1);
+
+    if (timing === 'before-close-event' || timing === 'remote-fin') {
+      expect(stateAtSend).toBe(WebSocket.CLOSING);
+      expect(closeDetectedAtSend).toBe(false);
+    } else if (timing === 'after-reconnect') {
+      expect(stateAtSend).toBe(WebSocket.OPEN);
+    }
+    expect(sendErrors).toEqual([]);
+    expect(executions).toBe(1);
+    expect(starts).toBe(1);
+    expect(waiterResolved).toBe(true);
+    expect(sockets).toHaveLength(2);
+    expect(closedCode).toBeUndefined();
+    expect(received).toEqual([42]);
+    expect(finishes).toBe(1);
+
+    channel.close();
+    await waitUntil(() => channel.isClosed());
+    expect(() =>
+      channel.send({ type: 'tool-result', toolCallId: 'host-1', output: 42 }),
+    ).toThrow(/closed/);
+  });
+
   it('suspends mid-turn, then a fresh-process channel attaches and continues exactly once', async () => {
     // Models a workflow slice boundary: slice 1 consumes part of a turn then
     // `suspend()`s at a precise cursor (the host process goes away); the bridge
@@ -139,12 +419,11 @@ describe('SandboxChannel ↔ runBridge reconnect', () => {
       turn.emit({ type: 'finish' }); // seq 5
     });
 
-    const url = `ws://127.0.0.1:${handle.port}/?agent_bridge_token=${TOKEN}`;
+    const url = `ws://127.0.0.1:${handle.port}/`;
     const connect = () =>
-      new Promise<WebSocket>((resolve, reject) => {
-        const ws = new WebSocket(url);
-        ws.on('open', () => resolve(ws));
-        ws.on('error', reject);
+      openAuthenticatedBridgeWebSocket({
+        url,
+        privateKey: BRIDGE_AUTH.privateKey,
       });
 
     // ── Slice 1: open, start, receive the first two deltas, then suspend. ──
@@ -200,4 +479,44 @@ async function waitUntil(pred: () => boolean, timeoutMs = 2000): Promise<void> {
       throw new Error('waitUntil timed out');
     await new Promise(r => setTimeout(r, 5));
   }
+}
+
+/**
+ * Opens a raw bridge WebSocket and answers its authentication challenge.
+ * Resolves right after the proof is sent, so the caller still receives the
+ * `bridge-hello` frame that the bridge sends once the proof is verified.
+ */
+function openAuthenticatedBridgeWebSocket({
+  url,
+  privateKey,
+}: {
+  url: string;
+  privateKey: string;
+}): Promise<WebSocket> {
+  const key = parseBridgeAuthPrivateKey({ privateKey });
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(url);
+    ws.once('error', reject);
+    ws.once('message', (raw: RawData) => {
+      try {
+        ws.send(
+          createBridgeAuthProof({
+            privateKey: key,
+            message: rawDataToString(raw),
+          }),
+        );
+        ws.off('error', reject);
+        resolve(ws);
+      } catch (error) {
+        ws.terminate();
+        reject(error);
+      }
+    });
+  });
+}
+
+function rawDataToString(raw: RawData): string {
+  if (Array.isArray(raw)) return Buffer.concat(raw).toString('utf8');
+  if (Buffer.isBuffer(raw)) return raw.toString('utf8');
+  return Buffer.from(raw).toString('utf8');
 }

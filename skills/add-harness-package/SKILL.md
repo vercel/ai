@@ -47,7 +47,6 @@ packages/harness-<name>/
 │   └── <name>-auth.ts              # if the runtime needs auth resolution
 ├── package.json
 ├── tsconfig.json
-├── tsconfig.build.json
 ├── tsdown.config.ts
 ├── turbo.json
 ├── vitest.node.config.js
@@ -83,9 +82,10 @@ Required package basics:
 - dependency on `@ai-sdk/provider-utils` via `workspace:*` when using sandbox/auth/schema utilities
 - runtime SDK/CLI dependencies required by the harness
 - dev dependencies matching existing harness packages
+- `zod` in `devDependencies` (and in `src/bridge/package.json` when the bridge uses it) at exactly the version used in `packages/ai/package.json`, never a Zod 3 version. See `.agents/guidelines/zod-dependency-version.md`
 - `"engines": { "node": ">=22" }`
 
-For bridge packages, add any bridge asset copy step required for files under `src/bridge/`.
+For bridge packages, ensure all bridge assets under `src/bridge/` are copied into `dist/bridge/` and can be read from there. Read `.agents/guidelines/harness-bridge-assets.md` for detailed requirements.
 
 Bridge dependency rules (bridge-backed harnesses):
 
@@ -93,13 +93,14 @@ Bridge dependency rules (bridge-backed harnesses):
 - For every third-party import in `src/bridge/`, add the dependency to `src/bridge/package.json` so it is installed in the sandbox. tsdown automatically externalizes dependencies, peer dependencies, and optional dependencies declared by the main package; add bridge-only dependencies that are not declared there to `deps.neverBundle` in `tsdown.config.ts`. A missing dependency or required exclusion may show up only at sandbox runtime as a module-resolution error.
 - Include packages the runtime _lazily_ imports — e.g. provider SDKs (`@anthropic-ai/sdk`, `openai`) resolved from the model id at runtime — in `src/bridge/package.json` even though nothing imports them directly. They do not need a `neverBundle` entry unless the bridge source imports them. These fail only when a model of that provider is actually used.
 - Match shared dependency versions (transport, schema, tooling, runtime SDKs) to what the other harness packages currently use — copy from a sibling package rather than choosing your own pins. Stale pins drift from security patches and can desync from the shared bridge runtime; check the current versions at creation time.
+- ACP adapters built on `@ai-sdk/harness-acp` with an `npm-locked` source install their `src/bridge/package.json` in place of the `harness-acp` bridge manifest. That manifest must declare every dependency of `packages/harness-acp/src/v1/bridge/package.json` at the same version, and the adapter's manifest path must be added to `acpNpmLockedBridgeManifestPaths` in `tools/verify-harness-adapter-deps.mjs`.
+- Add the adapter to `adapterConfigs` in `tools/verify-harness-adapter-deps.mjs` with its primary SDK packages, and add matching update commands to `skills/update-harness-dependencies/SKILL.md`. The verification script fails when a configured SDK package has no update command there.
 
 ### 3. Create TypeScript, Build, and Test Configs
 
 Copy the nearest existing harness package config files and adjust paths/package names:
 
 - `tsconfig.json`
-- `tsconfig.build.json`
 - `tsdown.config.ts`
 - `turbo.json`
 - `vitest.node.config.js`
@@ -189,16 +190,15 @@ Include:
 
 Update `content/docs/03-ai-sdk-harnesses/05-harness-adapters.mdx` to list the new harness when it is ready to be public.
 
-### 10. Update References and Validate
+### 10. Validate
 
 Run from the workspace root:
 
 ```bash
 pnpm konsistent
-pnpm update-references
 pnpm --filter @ai-sdk/harness-<name> build
 pnpm --filter @ai-sdk/harness-<name> test
-pnpm type-check:full
+pnpm type-check
 ```
 
 Add a changeset with `pnpm changeset`. For a brand-new harness package's first release, use `major` (not the usual `patch`), matching the other harness packages.
@@ -209,7 +209,7 @@ Run relevant harness examples against a live sandbox **early** — don't rely on
 
 - [ ] Package structure created in `packages/harness-<name>`
 - [ ] `package.json` configured with correct dependencies
-- [ ] TypeScript configs set up (`tsconfig.json`, `tsconfig.build.json`)
+- [ ] TypeScript config set up (`tsconfig.json`)
 - [ ] Build configuration (`tsdown.config.ts`)
 - [ ] Test configuration (`vitest.node.config.js`)
 - [ ] Harness adapter implementation complete
@@ -227,10 +227,9 @@ Run relevant harness examples against a live sandbox **early** — don't rely on
 - [ ] Documentation added in `content/providers/02-ai-sdk-harnesses/`
 - [ ] Harness adapter list updated, if public
 - [ ] Validated against a live sandbox (not just unit tests / type-check)
-- [ ] `pnpm update-references` run
 - [ ] Package build passing
 - [ ] Package tests passing
-- [ ] Type checking passing (`pnpm type-check:full` from root)
+- [ ] Type checking passing (`pnpm type-check` from root)
 - [ ] Relevant examples run successfully
 
 ## Related Documentation

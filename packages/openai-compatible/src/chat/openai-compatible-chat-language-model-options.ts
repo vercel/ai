@@ -11,8 +11,11 @@ export const openaiCompatibleLanguageModelChatOptions = z.object({
 
   /**
    * Reasoning effort for reasoning models. Defaults to `medium`.
+   *
+   * Set to `null` to send `"reasoning_effort": null`, for providers that treat
+   * an explicit `null` differently from an omitted field.
    */
-  reasoningEffort: z.string().optional(),
+  reasoningEffort: z.string().nullish(),
 
   /**
    * Controls the verbosity of the generated text. Defaults to `medium`.

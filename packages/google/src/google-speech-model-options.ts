@@ -4,34 +4,32 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { GoogleModelIds } from './google-model-catalog';
 
-export type GoogleSpeechModelId =
-  | 'gemini-2.5-flash-preview-tts'
-  | 'gemini-2.5-pro-preview-tts'
-  | 'gemini-3.1-flash-tts-preview'
-  | 'gemini-3.8-flash-tts'
-  | 'gemini-3.8-flash-lite-tts'
-  | (string & {});
+export type GoogleSpeechModelId = GoogleModelIds['speech'] | (string & {});
 
-const prebuiltVoiceConfigSchema = z.object({
-  voiceName: z.string(),
-});
+const prebuiltVoiceConfigSchema = () =>
+  z.object({
+    voiceName: z.string(),
+  });
 
-const voiceConfigSchema = z.object({
-  prebuiltVoiceConfig: prebuiltVoiceConfigSchema,
-  voice: z.never().optional(),
-});
+const voiceConfigSchema = () =>
+  z.object({
+    prebuiltVoiceConfig: prebuiltVoiceConfigSchema(),
+    voice: z.never().optional(),
+  });
 
-const speechMetadataSchema = z.object({
-  speaker: z.string().min(1).optional(),
-  style: z.string().optional(),
-});
+const speechMetadataSchema = () =>
+  z.object({
+    speaker: z.string().min(1).optional(),
+    style: z.string().optional(),
+  });
 
 export const googleSpeechProviderOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
       /** Turn-level directions for the top-level text, for Gemini 3.8 TTS. */
-      speechMetadata: speechMetadataSchema.optional(),
+      speechMetadata: speechMetadataSchema().optional(),
 
       /**
        * Structured transcript for Gemini 3.8 TTS. Replaces the top-level text;
@@ -42,7 +40,7 @@ export const googleSpeechProviderOptionsSchema = lazySchema(() =>
         .array(
           z.object({
             text: z.string(),
-            speechMetadata: speechMetadataSchema.optional(),
+            speechMetadata: speechMetadataSchema().optional(),
           }),
         )
         .min(1)
@@ -61,7 +59,7 @@ export const googleSpeechProviderOptionsSchema = lazySchema(() =>
           speakerVoiceConfigs: z.array(
             z.object({
               speaker: z.string(),
-              voiceConfig: voiceConfigSchema,
+              voiceConfig: voiceConfigSchema(),
             }),
           ),
         })

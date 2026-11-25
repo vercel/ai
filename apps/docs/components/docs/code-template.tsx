@@ -8,6 +8,7 @@ import { resolveDocsHref } from './resolve-href';
 import {
   gatewayHighlightedLines,
   parseHighlightedLines,
+  parseCodeTemplateOptions,
 } from '@/lib/code-template.mjs';
 
 export const CodeTemplate = ({
@@ -22,12 +23,15 @@ export const CodeTemplate = ({
   versionPrefix: string;
 }) => {
   const highlightedLines = parseHighlightedLines(meta);
+  const options = parseCodeTemplateOptions(meta);
   const title = meta.match(/\btitle=(?:"([^"]*)"|'([^']*)')/);
 
   return (
     <InteractiveCodePreview
       allowedProviders={FIRST_PARTY_PROVIDERS}
       code={code}
+      defaultModelId={options.defaultModelId}
+      provider={options.provider}
       highlightedLines={gatewayHighlightedLines(code, highlightedLines)}
       highlightedLinesWithImport={highlightedLines}
       language={language}

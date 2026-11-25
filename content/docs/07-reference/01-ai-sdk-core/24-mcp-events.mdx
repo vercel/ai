@@ -122,7 +122,7 @@ try {
     name: 'comment.created',
     arguments: { document_id: 'doc_123' },
     context: { bindingId: 'saved_intent_123' },
-    expiresAt: null,
+    ttlMs: null,
     idempotencyKey: 'saved_intent_123',
   });
 
@@ -286,21 +286,22 @@ type ManagedSubscribeInput = {
   arguments: JSONObject;
   context?: JSONObject;
   idempotencyKey: string;
+  ttlMs: number | null;
   options?: {
     signal?: AbortSignal;
     timeout?: number;
     maxTotalTimeout?: number;
   };
-} & (
-  | { ttlMs: number; expiresAt?: never }
-  | { expiresAt: string | null; ttlMs?: never }
-);
+};
 ```
 
 These types are exported as `Experimental_ManagedSubscription` and
-`Experimental_ManagedSubscribeInput`. Supply exactly one monitoring lifetime:
-a positive `ttlMs`, an ISO deadline in `expiresAt`, or `expiresAt: null` to
-monitor until stopped. The backend validates these values and enforces its limits.
+`Experimental_ManagedSubscribeInput`. Creation requires `ttlMs`: a positive
+integer duration in milliseconds, or `null` to monitor until stopped. The backend
+validates these values and enforces its limits. `expiresAt` is response-only.
+
+Reuse the same duration and idempotency key when retrying an uncertain create
+result. The backend calculates the deadline once; a retry must not extend it.
 
 `Experimental_MCPEventOperations` has four operations:
 
@@ -655,7 +656,8 @@ The listing method takes `{ params, options }`; the other methods include
 
 ## Errors
 
-The client rejects requests to servers without the `events` capability.
+The client rejects requests to servers that declare neither the
+`io.modelcontextprotocol/events` extension nor the legacy `events` capability.
 Subscription lifecycle methods require `experimental_events.store`; refresh and unsubscribe
 also require a known subscription ID or storage key. Subscribe rejects unknown
 event names, unsupported delivery modes, invalid callback URLs, signing secrets,
@@ -822,7 +824,7 @@ the body before passing it to this handler.
 The server must include `webhook-id`, `webhook-timestamp`, `webhook-signature`,
 and `X-MCP-Subscription-Id`. The helper verifies Standard Webhooks v1 HMAC-SHA256
 signatures and accepts signing timestamps within five minutes of the current time.
-An event's `eventId` must match `webhook-id`, and its name must match the subscription.
+An event's name must match the subscription.
 
 ## Event Types
 

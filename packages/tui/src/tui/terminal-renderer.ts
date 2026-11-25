@@ -9,7 +9,10 @@ import type {
 } from '../run-agent-tui';
 import { renderScreenViewport, sliceVisible, visibleLength } from './layout';
 import { renderMarkdown } from './markdown';
-import { sanitizeTerminalText } from './sanitize-terminal-text';
+import {
+  escapeFormatCharacters,
+  sanitizeTerminalText,
+} from './sanitize-terminal-text';
 import { TerminalFrameBuffer } from './terminal-frame-buffer';
 import {
   getToolName,
@@ -81,7 +84,13 @@ export type TerminalKey =
   | { type: 'escape' }
   | { type: 'ignore' };
 
-type ChatSectionKind = 'user' | 'assistant' | 'reasoning' | 'tool' | 'error';
+type ChatSectionKind =
+  | 'user'
+  | 'assistant'
+  | 'reasoning'
+  | 'tool'
+  | 'approval'
+  | 'error';
 
 type ChatSection = {
   kind: ChatSectionKind;
@@ -123,6 +132,7 @@ const colors = {
   assistant: '\x1b[92m',
   reasoning: '\x1b[94m',
   tool: '\x1b[95m',
+  approval: '\x1b[93m',
   error: '\x1b[91m',
 };
 
@@ -134,6 +144,7 @@ const sectionStyles: Record<
   assistant: { color: colors.assistant, border: '─' },
   reasoning: { color: colors.reasoning, border: '·' },
   tool: { color: colors.tool, border: '─' },
+  approval: { color: colors.approval, border: '─' },
   error: { color: colors.error, border: '─' },
 };
 
@@ -174,6 +185,7 @@ export class TerminalRenderer {
   #onData?: (chunk: Buffer) => void;
   #onResize?: () => void;
   #resolveStreamInterrupt?: () => void;
+  #toolApprovalSectionId?: string;
 
   constructor(options?: TerminalRendererOptions) {
     this.#input = options?.input ?? process.stdin;
@@ -336,6 +348,7 @@ export class TerminalRenderer {
     this.#inputActive = false;
     this.#status = `Approve ${formatToolApprovalTitle(request)}? y/n · ${activeControls}`;
     this.#interrupted = false;
+    const finishToolApprovalRequest = this.#showToolApprovalRequest(request);
     this.#paint();
 
     return await new Promise((resolve, reject) => {
@@ -346,14 +359,16 @@ export class TerminalRenderer {
           case 'character': {
             const value = key.value.toLowerCase();
 
-            if (value === 'y') {
+            if (value === 'y' && !this.#toolApprovalContinuesBelowViewport()) {
               this.#status = `Approved · ${processingStatus}`;
               this.#detachInput();
+              finishToolApprovalRequest('approved');
               this.#paint();
               resolve({ approved: true });
             } else if (value === 'n') {
               this.#status = `Denied · ${processingStatus}`;
               this.#detachInput();
+              finishToolApprovalRequest('denied');
               this.#paint();
               resolve({ approved: false, reason: 'Denied by user.' });
             }
@@ -385,6 +400,101 @@ export class TerminalRenderer {
     });
   }
 
+  /**
+   * Shows the tool call that the next approval decision applies to: its section
+   * is expanded with the exact input, marked as the one awaiting the decision,
+   * and scrolled into view, regardless of the tool display mode.
+   *
+   * @returns A function that records the decision in the section header and
+   * restores how the section was displayed before.
+   */
+  #showToolApprovalRequest(request: AgentTUIToolApprovalRequest) {
+    const id = sectionId(request.messageId, request.partIndex);
+    const existingSection = this.#sections.find(section => section.id === id);
+    const previousSection = existingSection && { ...existingSection };
+
+    this.#toolApprovalSectionId = id;
+    this.#upsertSection({
+      id,
+      kind: 'approval',
+      title: `Tool · ${request.title ?? request.toolName}`,
+      rightTitle: 'approve? y/n',
+      content: `Input:\n${formatValue(request.input)}`,
+    });
+    this.#scrollSectionIntoView(id);
+
+    return (decision: 'approved' | 'denied') => {
+      if (previousSection) {
+        this.#upsertSection({ ...previousSection, rightTitle: decision });
+      } else {
+        // the section only existed for the decision, e.g. with hidden tools:
+        this.#sections = this.#sections.filter(section => section.id !== id);
+      }
+
+      this.#toolApprovalSectionId = undefined;
+      this.#scrollOffset = 0;
+    };
+  }
+
+  #scrollSectionIntoView(id: string) {
+    const sectionLines = this.#sectionLineRange(id);
+
+    if (sectionLines == null) {
+      return;
+    }
+
+    // end the section at the bottom of the viewport, or start it at the top
+    // when it is taller than the viewport:
+    const bodyContentHeight = this.#bodyContentHeight();
+    const firstVisibleLine = Math.min(
+      sectionLines.start,
+      sectionLines.end - bodyContentHeight,
+    );
+    this.#scrollOffset = this.#clampScrollOffset(
+      this.#bodyLineCount() - bodyContentHeight - firstVisibleLine,
+    );
+  }
+
+  /**
+   * Whether the input of the tool call that awaits the approval decision
+   * continues below the visible part of the transcript.
+   */
+  #toolApprovalContinuesBelowViewport() {
+    const sectionLines =
+      this.#toolApprovalSectionId == null
+        ? undefined
+        : this.#sectionLineRange(this.#toolApprovalSectionId);
+
+    if (sectionLines == null) {
+      return false;
+    }
+
+    const bodyContentHeight = this.#bodyContentHeight();
+    const firstVisibleLine = Math.max(
+      0,
+      this.#bodyLineCount() - bodyContentHeight - this.#scrollOffset,
+    );
+
+    // the last line of the section is its border:
+    return sectionLines.end - 1 > firstVisibleLine + bodyContentHeight;
+  }
+
+  #sectionLineRange(id: string) {
+    let start = 0;
+
+    for (const section of this.#sections) {
+      const end = start + renderSectionLines(section, this.#width() - 4).length;
+
+      if (section.id === id) {
+        return { start, end };
+      }
+
+      start = end;
+    }
+
+    return undefined;
+  }
+
   #start(options?: TerminalSessionOptions) {
     this.#title = options?.title ?? this.#title;
     this.#contextSize = options?.contextSize ?? this.#defaultContextSize;
@@ -402,13 +512,21 @@ export class TerminalRenderer {
       this.#input.resume();
     }
 
-    this.#onResize = () => this.#repaint();
+    this.#onResize = () => {
+      if (this.#toolApprovalSectionId != null) {
+        // keep the tool call that awaits the approval decision in view:
+        this.#scrollSectionIntoView(this.#toolApprovalSectionId);
+      }
+
+      this.#repaint();
+    };
     this.#output.on('resize', this.#onResize);
   }
 
   #stop() {
     this.#detachInput();
     this.#stopInputCursorBlink();
+    this.#toolApprovalSectionId = undefined;
 
     if (!this.#isInteractive) {
       return;
@@ -721,7 +839,9 @@ export class TerminalRenderer {
       input: this.#inputText,
       inputActive: this.#inputActive,
       inputCursorVisible: this.#inputCursorVisible,
-      status: this.#status,
+      status: this.#toolApprovalContinuesBelowViewport()
+        ? `Scroll to the end to approve · n to deny · ${activeControls}`
+        : this.#status,
     });
 
     this.#frameBuffer.present(frame);
@@ -1082,7 +1202,7 @@ function formatValue(value: unknown) {
 }
 
 function formatToolApprovalTitle(request: AgentTUIToolApprovalRequest) {
-  return `tool ${request.title ?? request.toolName}`;
+  return `tool ${escapeFormatCharacters(request.title ?? request.toolName)}`;
 }
 
 function sectionId(messageId: string, partIndex: number) {
@@ -1173,15 +1293,21 @@ function sectionMatchesCache(
 function createSectionLines(section: ChatSection, width: number) {
   const style = sectionStyles[section.kind];
   const contentWidth = Math.max(1, width - 4);
-  const title = ` ${sanitizeTerminalText(section.title)} `;
   const rightTitle = section.rightTitle
     ? ` ${sanitizeTerminalText(section.rightTitle)} `
     : '';
+  const fullTitle = ` ${escapeFormatCharacters(sanitizeTerminalText(section.title))} `;
+  // shorten a long title so that the marker of the tool call that awaits the
+  // approval decision is not cut off:
+  const title =
+    section.kind === 'approval'
+      ? truncateSectionTitle(fullTitle, width - 2 - visibleLength(rightTitle))
+      : fullTitle;
 
   if (section.collapsed) {
     const borderWidth = Math.max(
       0,
-      width - 2 - title.length - rightTitle.length,
+      width - 2 - visibleLength(title) - visibleLength(rightTitle),
     );
     const top = `${style.color}╭${title}${style.border.repeat(borderWidth)}${rightTitle}╮${colors.reset}`;
     const bottom = `${style.color}╰${style.border.repeat(Math.max(0, width - 2))}╯${colors.reset}`;
@@ -1189,13 +1315,23 @@ function createSectionLines(section: ChatSection, width: number) {
     return [top, bottom];
   }
 
-  const borderWidth = Math.max(0, width - 2 - title.length - rightTitle.length);
+  const borderWidth = Math.max(
+    0,
+    width - 2 - visibleLength(title) - visibleLength(rightTitle),
+  );
   const top = `${style.color}╭${title}${style.border.repeat(borderWidth)}${rightTitle}╮${colors.reset}`;
   const bottom = `${style.color}╰${style.border.repeat(Math.max(0, width - 2))}╯${colors.reset}`;
   const content =
-    section.content.length > 0
-      ? renderMarkdown(section.content)
-      : colors.dim + '(streaming...)' + colors.reset;
+    section.content.length === 0
+      ? colors.dim + '(streaming...)' + colors.reset
+      : section.kind === 'tool' ||
+          section.kind === 'approval' ||
+          section.kind === 'error'
+        ? // tool input, tool output, and errors are data: show them exactly
+          escapeFormatCharacters(
+            sanitizeTerminalText(section.content, { multiline: true }),
+          )
+        : renderMarkdown(section.content);
   const lines = content
     .split('\n')
     .flatMap(line => wrapVisibleLine(line, contentWidth));
@@ -1205,6 +1341,14 @@ function createSectionLines(section: ChatSection, width: number) {
     ...lines.map(line => sectionLine(line, contentWidth, style.color)),
     bottom,
   ];
+}
+
+function truncateSectionTitle(title: string, maxWidth: number) {
+  if (visibleLength(title) <= maxWidth) {
+    return title;
+  }
+
+  return maxWidth < 3 ? '' : `${sliceVisible(title, maxWidth - 2)}… `;
 }
 
 function sectionLine(line: string, contentWidth: number, color: string) {

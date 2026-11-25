@@ -6,6 +6,7 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  stringifyWithBigIntAndCycles,
   convertToBase64,
   getTopLevelMediaType,
   isFullMediaType,
@@ -20,10 +21,28 @@ import type {
   GoogleFunctionResponsePart,
   GooglePrompt,
 } from './google-prompt';
+import { getGoogleFilePartOptions } from './google-file-part-options';
+import { googleFilesUrlPattern } from './google-supported-file-url';
 import {
   codeExecutionInputSchema,
   codeExecutionOutputSchema,
 } from './tool/code-execution';
+
+function readGoogleProviderOptions(
+  part: { providerOptions?: Record<string, unknown> },
+  names: readonly string[],
+): Record<string, unknown> | undefined {
+  for (const name of names) {
+    if (part.providerOptions?.[name] != null) {
+      return part.providerOptions[name] as Record<string, unknown>;
+    }
+  }
+  return (
+    names.includes('google')
+      ? (part.providerOptions?.googleVertex ?? part.providerOptions?.vertex)
+      : part.providerOptions?.google
+  ) as Record<string, unknown> | undefined;
+}
 
 /**
  * Sentinel value Google documents for replaying functionCall parts whose
@@ -66,18 +85,26 @@ function convertUrlToolResultPart(
   };
 }
 
-function containsJSONSchemaReference(value: JSONValue | undefined): boolean {
-  if (Array.isArray(value)) {
-    return value.some(containsJSONSchemaReference);
+function containsJSONSchemaReference(
+  value: JSONValue | undefined,
+  seen: WeakSet<object> = new WeakSet(),
+): boolean {
+  if (value === null || typeof value !== 'object') {
+    return false;
   }
 
-  if (typeof value !== 'object' || value === null) {
+  if (seen.has(value)) {
     return false;
+  }
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value.some(item => containsJSONSchemaReference(item, seen));
   }
 
   return Object.entries(value).some(
     ([key, nestedValue]) =>
-      key === '$ref' || containsJSONSchemaReference(nestedValue),
+      key === '$ref' || containsJSONSchemaReference(nestedValue, seen),
   );
 }
 
@@ -87,7 +114,41 @@ function serializeFunctionResponseContent(
   // Google reserves { $ref: displayName } in structured function responses for
   // multimodal parts. This conflicts with JSON Schema $ref, so serialize the
   // result to preserve it without triggering Google's reference handling.
-  return containsJSONSchemaReference(value) ? JSON.stringify(value) : value;
+  if (containsJSONSchemaReference(value)) {
+    return stringifyWithBigIntAndCycles(value);
+  }
+
+  // Keep Google's structured response for ordinary JSON, but normalize values
+  // that would otherwise fail when the final request body is serialized.
+  return containsNonJsonValue(value)
+    ? secureJsonParse(stringifyWithBigIntAndCycles(value))
+    : value;
+}
+
+function containsNonJsonValue(
+  value: unknown,
+  ancestors = new Set<object>(),
+): boolean {
+  if (typeof value === 'bigint') {
+    return true;
+  }
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  if (typeof (value as { toJSON?: unknown }).toJSON === 'function') {
+    return true;
+  }
+  if (ancestors.has(value)) {
+    return true;
+  }
+  ancestors.add(value);
+  try {
+    return Object.values(value).some(item =>
+      containsNonJsonValue(item, ancestors),
+    );
+  } finally {
+    ancestors.delete(value);
+  }
 }
 
 /*
@@ -105,6 +166,7 @@ function appendToolResultParts(
   toolCallId?: string,
   includeFunctionCallIds = true,
   supportedUrls: Record<string, RegExp[]> = {},
+  providerOptionsNames: readonly string[] = ['google'],
 ): void {
   const functionResponseParts: GoogleFunctionResponsePart[] = [];
   const responseTextParts: string[] = [];
@@ -116,12 +178,17 @@ function appendToolResultParts(
         break;
       }
       case 'file': {
+        const metadata = getGoogleFilePartOptions(
+          readGoogleProviderOptions(contentPart, providerOptionsNames),
+        );
+        const isVertexLike = !providerOptionsNames.includes('google');
         if (contentPart.data.type === 'data') {
           functionResponseParts.push({
             inlineData: {
               mimeType: resolveFullMediaType({ part: contentPart }),
               data: convertToBase64(contentPart.data.data),
             },
+            ...metadata,
           });
         } else if (contentPart.data.type === 'url') {
           const url = contentPart.data.url.toString();
@@ -133,24 +200,37 @@ function appendToolResultParts(
               : url;
 
           if (convertedUrlPart != null) {
-            functionResponseParts.push(convertedUrlPart);
+            functionResponseParts.push({ ...convertedUrlPart, ...metadata });
           } else if (
             isFullMediaType(contentPart.mediaType) &&
-            isUrlSupported({
-              url: supportedUrl,
-              mediaType: contentPart.mediaType,
-              supportedUrls,
-            })
+            ((!isVertexLike && googleFilesUrlPattern.test(supportedUrl)) ||
+              isUrlSupported({
+                url: supportedUrl,
+                mediaType: contentPart.mediaType,
+                supportedUrls,
+              }))
           ) {
             functionResponseParts.push({
               fileData: {
                 mimeType: contentPart.mediaType,
                 fileUri: supportedUrl,
               },
+              ...metadata,
             });
           } else {
             responseTextParts.push(JSON.stringify(contentPart));
           }
+        } else if (contentPart.data.type === 'reference' && !isVertexLike) {
+          functionResponseParts.push({
+            fileData: {
+              mimeType: resolveFullMediaType({ part: contentPart }),
+              fileUri: resolveProviderReference({
+                reference: contentPart.data.reference,
+                provider: 'google',
+              }),
+            },
+            ...metadata,
+          });
         } else {
           responseTextParts.push(JSON.stringify(contentPart));
         }
@@ -247,8 +327,8 @@ function appendLegacyToolResultParts(
 export function convertToGoogleMessages(
   prompt: LanguageModelV4Prompt,
   options?: {
-    isGemmaModel?: boolean;
-    isGemini3Model?: boolean;
+    systemInstructionAsUserMessage?: boolean;
+    requiresThoughtSignatures?: boolean;
     onWarning?: (warning: SharedV4Warning) => void;
     /**
      * Names to look up under `providerOptions` when reading per-part metadata
@@ -265,8 +345,9 @@ export function convertToGoogleMessages(
   const systemInstructionParts: Array<{ text: string }> = [];
   const contents: Array<GoogleContent> = [];
   let systemMessagesAllowed = true;
-  const isGemmaModel = options?.isGemmaModel ?? false;
-  const isGemini3Model = options?.isGemini3Model ?? false;
+  const systemInstructionAsUserMessage =
+    options?.systemInstructionAsUserMessage ?? false;
+  const requiresThoughtSignatures = options?.requiresThoughtSignatures ?? false;
   const onWarning = options?.onWarning;
   const providerOptionsNames = options?.providerOptionsNames ?? ['google'];
   const isVertexLike = !providerOptionsNames.includes('google');
@@ -286,22 +367,8 @@ export function convertToGoogleMessages(
 
   const readProviderOpts = (part: {
     providerOptions?: Record<string, unknown> | undefined;
-  }): Record<string, unknown> | undefined => {
-    for (const name of providerOptionsNames) {
-      const v = part.providerOptions?.[name];
-      if (v != null) return v as Record<string, unknown>;
-    }
-    // Cross-namespace fallback (gateway interop): Vertex providers may receive
-    // metadata under `google`, and the Google provider may receive metadata
-    // under `googleVertex`/`vertex`.
-    if (isVertexLike) {
-      return part.providerOptions?.google as
-        | Record<string, unknown>
-        | undefined;
-    }
-    return (part.providerOptions?.googleVertex ??
-      part.providerOptions?.vertex) as Record<string, unknown> | undefined;
-  };
+  }): Record<string, unknown> | undefined =>
+    readGoogleProviderOptions(part, providerOptionsNames);
 
   for (const { role, content } of prompt) {
     switch (role) {
@@ -330,6 +397,8 @@ export function convertToGoogleMessages(
             }
 
             case 'file': {
+              const metadata = getGoogleFilePartOptions(readProviderOpts(part));
+
               switch (part.data.type) {
                 case 'url': {
                   parts.push({
@@ -341,6 +410,7 @@ export function convertToGoogleMessages(
                           ? part.data.originalUrl
                           : part.data.url.toString(),
                     },
+                    ...metadata,
                   });
                   break;
                 }
@@ -359,6 +429,7 @@ export function convertToGoogleMessages(
                         provider: 'google',
                       }),
                     },
+                    ...metadata,
                   });
                   break;
                 }
@@ -372,6 +443,7 @@ export function convertToGoogleMessages(
                         new TextEncoder().encode(part.data.text),
                       ),
                     },
+                    ...metadata,
                   });
                   break;
                 }
@@ -381,6 +453,7 @@ export function convertToGoogleMessages(
                       mimeType: resolveFullMediaType({ part }),
                       data: convertToBase64(part.data.data),
                     },
+                    ...metadata,
                   });
                   break;
                 }
@@ -412,7 +485,7 @@ export function convertToGoogleMessages(
 
               switch (part.type) {
                 case 'text': {
-                  return part.text.length === 0
+                  return part.text.length === 0 && thoughtSignature == null
                     ? undefined
                     : {
                         text: part.text,
@@ -421,7 +494,7 @@ export function convertToGoogleMessages(
                 }
 
                 case 'reasoning': {
-                  return part.text.length === 0
+                  return part.text.length === 0 && thoughtSignature == null
                     ? undefined
                     : {
                         text: part.text,
@@ -547,7 +620,8 @@ export function convertToGoogleMessages(
                     modelResponseHasSignedFunctionCall;
                   const effectiveThoughtSignature =
                     thoughtSignature ??
-                    (isGemini3Model && !shouldSkipMissingSignatureMitigation
+                    (requiresThoughtSignatures &&
+                    !shouldSkipMissingSignatureMitigation
                       ? injectSkipSignature(part.toolName)
                       : undefined);
 
@@ -575,7 +649,7 @@ export function convertToGoogleMessages(
                         ? { id: part.toolCallId }
                         : {}),
                       name: part.toolName,
-                      args: part.input,
+                      args: parseToolCallInput(part.input),
                     },
                     thoughtSignature: effectiveThoughtSignature,
                   };
@@ -678,6 +752,7 @@ export function convertToGoogleMessages(
                 part.toolCallId,
                 includeFunctionCallIds,
                 supportedFunctionResponseUrls,
+                providerOptionsNames,
               );
             } else {
               appendLegacyToolResultParts(
@@ -727,7 +802,7 @@ export function convertToGoogleMessages(
   }
 
   if (
-    isGemmaModel &&
+    systemInstructionAsUserMessage &&
     systemInstructionParts.length > 0 &&
     contents.length > 0 &&
     contents[0].role === 'user'
@@ -758,9 +833,20 @@ export function convertToGoogleMessages(
 
   return {
     systemInstruction:
-      systemInstructionParts.length > 0 && !isGemmaModel
+      systemInstructionParts.length > 0 && !systemInstructionAsUserMessage
         ? { parts: systemInstructionParts }
         : undefined,
     contents,
   };
+}
+
+function parseToolCallInput(input: unknown): unknown {
+  if (typeof input !== 'string') {
+    return input;
+  }
+  try {
+    return secureJsonParse(input);
+  } catch {
+    return input;
+  }
 }

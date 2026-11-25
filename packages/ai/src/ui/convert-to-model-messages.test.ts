@@ -1492,6 +1492,149 @@ describe('convertToModelMessages', () => {
     });
   });
 
+  describe('steering messages', () => {
+    it('should add steering messages as user messages between the steps of an assistant message', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'user',
+          parts: [{ type: 'text', text: 'What is the weather in Paris?' }],
+        },
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'tool-weather',
+              state: 'output-available',
+              toolCallId: 'call-1',
+              input: { city: 'Paris' },
+              output: 'sunny',
+            },
+            {
+              type: 'steering-message',
+              id: 'steer-1',
+              parts: [
+                { type: 'text', text: 'I meant Paris, Texas.' },
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  url: 'https://example.com/map.png',
+                },
+                {
+                  type: 'file',
+                  mediaType: 'application/pdf',
+                  url: '',
+                  providerReference: { openai: 'file-1' },
+                },
+              ],
+            },
+            { type: 'step-start' },
+            { type: 'text', text: 'It is hot in Texas.', state: 'done' },
+          ],
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather in Paris?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Paris",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "text",
+                  "value": "sunny",
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+          {
+            "content": [
+              {
+                "text": "I meant Paris, Texas.",
+                "type": "text",
+              },
+              {
+                "data": {
+                  "type": "url",
+                  "url": "https://example.com/map.png",
+                },
+                "filename": undefined,
+                "mediaType": "image/png",
+                "type": "file",
+              },
+              {
+                "data": {
+                  "reference": {
+                    "openai": "file-1",
+                  },
+                  "type": "reference",
+                },
+                "filename": undefined,
+                "mediaType": "application/pdf",
+                "type": "file",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "text": "It is hot in Texas.",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should add a steering message that was received before the first step', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            {
+              type: 'steering-message',
+              id: 'steer-1',
+              parts: [{ type: 'text', text: 'Use Celsius.' }],
+            },
+            { type: 'step-start' },
+            { type: 'text', text: 'It is 20 degrees.', state: 'done' },
+          ],
+        },
+      ]);
+
+      expect(result.map(({ role }) => role)).toEqual(['user', 'assistant']);
+    });
+  });
+
   describe('multiple messages', () => {
     it('should handle a conversation with multiple messages', async () => {
       const result = await convertToModelMessages([

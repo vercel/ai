@@ -1,6 +1,7 @@
 import type {
   HarnessV1BuiltinToolFiltering,
   HarnessV1NetworkSandboxSession,
+  HarnessV1PermissionMode,
 } from '@ai-sdk/harness';
 import type {
   AgentMessage,
@@ -29,12 +30,21 @@ const clineMock = vi.hoisted(() => ({
   runStatus: 'completed' as AgentRunResult['status'],
   runError: undefined as Error | undefined,
   outputText: '',
+  writeProtectedPaths: [] as string[][],
 }));
 
 vi.mock('@ai-sdk/harness/utils', async importOriginal => ({
   ...(await importOriginal()),
   resolveSandboxHomeDir: vi.fn(async () => '/sandbox/home'),
   shellQuote: vi.fn((value: string) => value),
+  isSandboxWriteProtectedPath: vi.fn(
+    async ({ paths }: { paths: ReadonlyArray<string> }) => {
+      clineMock.writeProtectedPaths.push([...paths]);
+      return paths.some(filePath =>
+        filePath.startsWith('/sandbox/work/.agents/skills/'),
+      );
+    },
+  ),
 }));
 
 vi.mock('@cline/agents', () => ({
@@ -169,6 +179,13 @@ vi.mock('@cline/core', async importOriginal => {
               clineMock.modelOptions.push(options);
               return { stream: vi.fn() };
             },
+            listProviders: () =>
+              config.providerConfigs.map(providerConfig => ({
+                id: providerConfig.providerId,
+                name: providerConfig.providerId,
+                defaultModelId: `${providerConfig.providerId}-default-model`,
+                models: [],
+              })),
           };
         },
       ),
@@ -211,6 +228,91 @@ describe('createClineSession instructions', () => {
         /## Sandbox\n\nTest sandbox\n\nUse turbo build\.$/,
       );
       expect(clineMock.runInputs).toEqual(['do the thing']);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('reports the Cline provider default model on stream-start when no model is set', async () => {
+    const session = await createSession();
+
+    try {
+      const emit = vi.fn();
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'do the thing',
+        emit,
+      });
+      await control.done;
+
+      expect(emit).toHaveBeenCalledWith({
+        type: 'stream-start',
+        modelId: 'cline-default-model',
+      });
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('reports the requested model on stream-start', async () => {
+    const session = await createSession();
+
+    try {
+      const emit = vi.fn();
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        model: 'anthropic/claude-sonnet-4.6',
+        prompt: 'do the thing',
+        emit,
+      });
+      await control.done;
+
+      expect(emit).toHaveBeenCalledWith({
+        type: 'stream-start',
+        modelId: 'anthropic/claude-sonnet-4.6',
+      });
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('passes inline image prompts to the Cline runtime as ordered message content', async () => {
+    const session = await createSession();
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'before' },
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: 'iVBORw0KGgo=',
+            },
+            { type: 'text', text: 'after' },
+          ],
+        },
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      expect(clineMock.runInputs).toEqual([
+        {
+          id: expect.any(String),
+          role: 'user',
+          content: [
+            { type: 'text', text: 'before' },
+            { type: 'image', image: 'iVBORw0KGgo=', mediaType: 'image/png' },
+            { type: 'text', text: 'after' },
+          ],
+          createdAt: expect.any(Number),
+        },
+      ]);
     } finally {
       await session.doDestroy();
     }
@@ -871,6 +973,62 @@ describe('createClineSession tool results', () => {
     },
   );
 
+  it('submits model-facing text and inline images while keeping the raw output', async () => {
+    const session = await createSession();
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [],
+        prompt: 'use the lookup tool',
+        tools: [
+          { name: 'lookup', inputSchema: { type: 'object', properties: {} } },
+        ],
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      const config = clineMock.configs.at(-1);
+      if (config == null) throw new Error('expected agent config');
+      const tool = findTool({ config, name: 'lookup' });
+      const resultPromise = Promise.resolve(
+        tool.execute({}, createToolContext({ toolCallId: 'call-1' })),
+      );
+
+      await control.submitToolResult({
+        toolCallId: 'call-1',
+        output: { status: 'ready' },
+        toolResult: {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'lookup',
+          output: {
+            type: 'content',
+            value: [
+              { type: 'text', text: 'marker' },
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: { type: 'data', data: 'iVBORw==' },
+              },
+            ],
+          },
+        },
+      });
+      const result = await runAfterToolHook({
+        config,
+        tool,
+        output: await resultPromise,
+      });
+
+      expect(result?.result?.output).toEqual([
+        { type: 'text', text: 'marker' },
+        { type: 'image', data: 'iVBORw==', mediaType: 'image/png' },
+      ]);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('marks a pending host tool result as an error when the session is destroyed', async () => {
     const session = await createSession();
     const control = await session.doPromptTurn({
@@ -1112,6 +1270,73 @@ describe('createClineSession tool execution', () => {
     }
   });
 
+  it('routes allow-edits writes through approval only for write-protected paths', async () => {
+    let releaseRun!: () => void;
+    clineMock.runGate = new Promise<void>(resolve => {
+      releaseRun = resolve;
+    });
+    clineMock.writeProtectedPaths = [];
+    const session = await createSession({ permissionMode: 'allow-edits' });
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'Edit files.',
+        emit: vi.fn(),
+      });
+      const config = clineMock.configs.at(-1);
+      if (config == null) throw new Error('expected agent config');
+      expect(config.toolPolicies).toEqual({
+        write: { autoApprove: false },
+        edit: { autoApprove: false },
+        bash: { autoApprove: false },
+      });
+      const requestToolApproval = config.requestToolApproval!;
+      const approvalRequest = (toolCallId: string, input: unknown) =>
+        requestToolApproval({
+          sessionId: 'session-1',
+          agentId: 'agent-1',
+          conversationId: 'conversation-1',
+          iteration: 1,
+          toolCallId,
+          toolName: 'write',
+          input,
+          policy: { autoApprove: false },
+        });
+
+      await expect(
+        approvalRequest('plain', { file_path: 'TEST.md', content: '' }),
+      ).resolves.toEqual({ approved: true });
+      expect(clineMock.writeProtectedPaths).toEqual([
+        ['/sandbox/work/TEST.md'],
+      ]);
+
+      let settled = false;
+      const protectedDecision = Promise.resolve(
+        approvalRequest('protected', {
+          file_path: '.agents/skills/test/SKILL.md',
+          content: '',
+        }),
+      ).then(decision => {
+        settled = true;
+        return decision;
+      });
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(settled).toBe(false);
+      await control.submitToolApproval!({
+        approvalId: 'protected',
+        approved: true,
+      });
+      await expect(protectedDecision).resolves.toEqual({ approved: true });
+
+      releaseRun();
+      await control.done;
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('rejects structured output for the tool-less Codex CLI provider', async () => {
     const session = await createSession({
       settings: { providerId: 'openai-codex-cli' },
@@ -1143,6 +1368,7 @@ async function createSession(
   input: {
     builtinToolFiltering?: HarnessV1BuiltinToolFiltering;
     isResume?: boolean;
+    permissionMode?: HarnessV1PermissionMode;
     settings?: Partial<ClineSessionSettings>;
   } = {},
 ) {
@@ -1160,6 +1386,7 @@ async function createSession(
     ...(input.builtinToolFiltering
       ? { builtinToolFiltering: input.builtinToolFiltering }
       : {}),
+    ...(input.permissionMode ? { permissionMode: input.permissionMode } : {}),
   });
 }
 
