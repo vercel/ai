@@ -1,4 +1,4 @@
-import { withTelemetryRedaction } from '@ai-sdk/provider-utils';
+import { DownloadError, withTelemetryRedaction } from '@ai-sdk/provider-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { VERSION } from '../version';
 import { createTelemetryDispatcher } from './create-telemetry-dispatcher';
@@ -40,6 +40,10 @@ describe('createTelemetryDispatcher', () => {
     expect(telemetry.experimental_onDecisionModelCallStart).toBeUndefined();
     expect(telemetry.experimental_onDecisionModelCallEnd).toBeUndefined();
     expect(telemetry.experimental_onDecideEnd).toBeUndefined();
+    expect(telemetry.experimental_onExtractStart).toBeUndefined();
+    expect(telemetry.experimental_onExtractionModelCallStart).toBeUndefined();
+    expect(telemetry.experimental_onExtractionModelCallEnd).toBeUndefined();
+    expect(telemetry.experimental_onExtractEnd).toBeUndefined();
     expect(telemetry.experimental_onStreamTranscriptionStart).toBeUndefined();
     expect(telemetry.experimental_onStreamTranscriptionEnd).toBeUndefined();
     expect(telemetry.onEnd).toBeUndefined();
@@ -208,6 +212,10 @@ describe('createTelemetryDispatcher', () => {
       experimental_onDecisionModelCallStart: vi.fn(),
       experimental_onDecisionModelCallEnd: vi.fn(),
       experimental_onDecideEnd: vi.fn(),
+      experimental_onExtractStart: vi.fn(),
+      experimental_onExtractionModelCallStart: vi.fn(),
+      experimental_onExtractionModelCallEnd: vi.fn(),
+      experimental_onExtractEnd: vi.fn(),
       experimental_onStreamTranscriptionStart: vi.fn(),
       experimental_onStreamTranscriptionEnd: vi.fn(),
       onEnd: vi.fn(),
@@ -236,6 +244,10 @@ describe('createTelemetryDispatcher', () => {
     await telemetry.experimental_onDecisionModelCallStart!(dummyEvent);
     await telemetry.experimental_onDecisionModelCallEnd!(dummyEvent);
     await telemetry.experimental_onDecideEnd!(dummyEvent);
+    await telemetry.experimental_onExtractStart!(dummyEvent);
+    await telemetry.experimental_onExtractionModelCallStart!(dummyEvent);
+    await telemetry.experimental_onExtractionModelCallEnd!(dummyEvent);
+    await telemetry.experimental_onExtractEnd!(dummyEvent);
     await telemetry.experimental_onStreamTranscriptionStart!(dummyEvent);
     await telemetry.experimental_onStreamTranscriptionEnd!(dummyEvent);
     await telemetry.onEnd!(dummyEvent);
@@ -263,6 +275,14 @@ describe('createTelemetryDispatcher', () => {
       integration.experimental_onDecisionModelCallEnd,
     ).toHaveBeenCalledOnce();
     expect(integration.experimental_onDecideEnd).toHaveBeenCalledOnce();
+    expect(integration.experimental_onExtractStart).toHaveBeenCalledOnce();
+    expect(
+      integration.experimental_onExtractionModelCallStart,
+    ).toHaveBeenCalledOnce();
+    expect(
+      integration.experimental_onExtractionModelCallEnd,
+    ).toHaveBeenCalledOnce();
+    expect(integration.experimental_onExtractEnd).toHaveBeenCalledOnce();
     expect(
       integration.experimental_onStreamTranscriptionStart,
     ).toHaveBeenCalledOnce();
@@ -301,6 +321,10 @@ describe('createTelemetryDispatcher', () => {
         experimental_onDecisionModelCallStart: vi.fn(),
         experimental_onDecisionModelCallEnd: vi.fn(),
         experimental_onDecideEnd: vi.fn(),
+        experimental_onExtractStart: vi.fn(),
+        experimental_onExtractionModelCallStart: vi.fn(),
+        experimental_onExtractionModelCallEnd: vi.fn(),
+        experimental_onExtractEnd: vi.fn(),
         experimental_onStreamTranscriptionStart: vi.fn(),
         experimental_onStreamTranscriptionEnd: vi.fn(),
         onEnd: vi.fn(),
@@ -329,6 +353,10 @@ describe('createTelemetryDispatcher', () => {
       expect(telemetry.experimental_onDecisionModelCallStart).toBeUndefined();
       expect(telemetry.experimental_onDecisionModelCallEnd).toBeUndefined();
       expect(telemetry.experimental_onDecideEnd).toBeUndefined();
+      expect(telemetry.experimental_onExtractStart).toBeUndefined();
+      expect(telemetry.experimental_onExtractionModelCallStart).toBeUndefined();
+      expect(telemetry.experimental_onExtractionModelCallEnd).toBeUndefined();
+      expect(telemetry.experimental_onExtractEnd).toBeUndefined();
       expect(telemetry.experimental_onStreamTranscriptionStart).toBeUndefined();
       expect(telemetry.experimental_onStreamTranscriptionEnd).toBeUndefined();
       expect(telemetry.onEnd).toBeUndefined();
@@ -520,6 +548,76 @@ describe('createTelemetryDispatcher', () => {
   });
 
   describe('executeLanguageModelCall', () => {
+    it.each([1, 2])(
+      'preserves stream replacements through %s redacted integrations',
+      async integrationCount => {
+        const original = {
+          stream: new ReadableStream<string>({
+            start(controller) {
+              controller.enqueue('hello');
+              controller.close();
+            },
+          }),
+          request: {
+            body: withTelemetryRedaction(
+              { credential: 'test-token' },
+              body => ({ ...body, credential: '[redacted]' }),
+            ),
+          },
+        };
+        const observed: unknown[] = [];
+        const integration: Telemetry = {
+          executeLanguageModelCall: async ({ execute }) => {
+            const result = await execute();
+            observed.push(result);
+            if (
+              result != null &&
+              typeof result === 'object' &&
+              'stream' in result &&
+              result.stream instanceof ReadableStream
+            ) {
+              result.stream = result.stream.pipeThrough(
+                new TransformStream<string, string>({
+                  transform(chunk, controller) {
+                    controller.enqueue(`${chunk}!`);
+                  },
+                }),
+              );
+            }
+            return result;
+          },
+        };
+        const dispatcher = createTelemetryDispatcher({
+          telemetry: {
+            integrations: Array.from(
+              { length: integrationCount },
+              () => integration,
+            ),
+          },
+        });
+
+        const result = await dispatcher.executeLanguageModelCall!({
+          callId: 'call-1',
+          execute: async () => original,
+        });
+
+        expect(result).toBe(original);
+        expect(result.request.body.credential).toBe('test-token');
+        expect(observed).toHaveLength(integrationCount);
+        for (const value of observed) {
+          expect(value).toMatchObject({
+            request: { body: { credential: '[redacted]' } },
+          });
+        }
+        const reader = result.stream.getReader();
+        expect(await reader.read()).toEqual({
+          value: `hello${'!'.repeat(integrationCount)}`,
+          done: false,
+        });
+        expect(await reader.read()).toEqual({ value: undefined, done: true });
+      },
+    );
+
     it('redacts provider error metadata for nested integrations and preserves the application error', async () => {
       const error = Object.assign(new Error('provider failed'), {
         requestBodyValues: withTelemetryRedaction(
@@ -789,6 +887,50 @@ describe('recordInputs / recordOutputs filtering', () => {
     expect(delivered.messages).toEqual([]);
     expect(delivered.modelId).toBe('model-1');
     expect(delivered.recordInputs).toBe(false);
+  });
+
+  it('strips extraction fields and the reference date when recordInputs is false', async () => {
+    const integration: Telemetry = { experimental_onExtractStart: vi.fn() };
+    const telemetry = createTelemetryDispatcher({
+      telemetry: { integrations: integration, recordInputs: false },
+    });
+
+    await telemetry.experimental_onExtractStart!({
+      callId: 'call-1',
+      operationId: 'ai.extract',
+      state: 'secret invoice',
+      fields: { total: { type: 'number', instructions: 'secret field' } },
+      referenceDate: '2026-11-18',
+    } as any);
+
+    const delivered = vi.mocked(integration.experimental_onExtractStart!).mock
+      .calls[0][0] as any;
+    expect(delivered.state).toBe('');
+    expect(delivered.fields).toEqual({});
+    expect(delivered.referenceDate).toBeUndefined();
+  });
+
+  it('redacts download urls from errors sent to integrations', async () => {
+    const integration: Telemetry = { onError: vi.fn() };
+    const telemetry = createTelemetryDispatcher({
+      telemetry: { integrations: integration },
+    });
+    const error = new DownloadError({
+      url: 'https://files.example.com/invoice.pdf?X-Amz-Signature=secret',
+      statusCode: 413,
+      statusText: 'Payload Too Large',
+    });
+
+    await telemetry.onError!({ callId: 'call-1', error } as any);
+
+    const delivered = vi.mocked(integration.onError!).mock.calls[0][0] as any;
+    expect(DownloadError.isInstance(delivered.error)).toBe(true);
+    expect(delivered.error.url).toBe('[redacted]');
+    expect(delivered.error.statusCode).toBe(413);
+    expect(JSON.stringify(delivered.error)).not.toContain('secret');
+    expect(delivered.error.message).not.toContain('secret');
+    expect(delivered.error.stack).not.toContain('secret');
+    expect(error.url).toContain('secret');
   });
 
   it('strips output content when recordOutputs is false', async () => {

@@ -1488,6 +1488,14 @@ MAI-Image models use the [MAI image API](#mai-image) instead.
 const model = azure.image('your-dalle-deployment-name');
 ```
 
+<Note type="warning">
+  Azure image models (including MAI-Image) download remote reference images and
+  masks using the `fetch` option of `createAzure`; provider credentials are not
+  sent to those hosts. For untrusted URLs on Node.js, pass a `guarded-fetch`
+  transport there. See [Secure URL
+  Fetching](/docs/advanced/secure-url-fetching#opt-in-dns-protection-on-nodejs).
+</Note>
+
 Azure OpenAI image models support several additional settings. You can pass them as `providerOptions.openai` or `providerOptions.azure` when generating the image (`azure` wins when both set the same option):
 
 ```ts
@@ -1540,6 +1548,8 @@ The table lists supported DALL-E backing models and Azure MAI image IDs. For Ope
 | `mai-image-2.5-pro`   | Sides must be multiples of 16 and at least 768 pixels. |
 | `mai-image-2.6`       | Sides must be multiples of 16 and at least 768 pixels. |
 | `mai-image-2.6-flash` | Sides must be multiples of 16 and at least 768 pixels. |
+| `mai-image-2.7`       | Sides must be multiples of 16 and at least 768 pixels. |
+| `mai-image-2.7-flash` | Sides must be multiples of 16 and at least 768 pixels. |
 
 {/* model-capabilities:azure-image:end */}
 
@@ -1562,8 +1572,9 @@ capabilities of a deployment, you can advertise them with the
 
 ### MAI-Image
 
-MAI-Image models (`MAI-Image-2.6`, `MAI-Image-2.6-Flash`, `MAI-Image-2.5`,
-`MAI-Image-2.5-Flash`, `MAI-Image-2.5-Pro`) use the MAI image API at
+MAI-Image models (`MAI-Image-2.7`, `MAI-Image-2.7-Flash`, `MAI-Image-2.6`,
+`MAI-Image-2.6-Flash`, `MAI-Image-2.5`, `MAI-Image-2.5-Flash`,
+`MAI-Image-2.5-Pro`) use the MAI image API at
 `https://{resourceName}.services.ai.azure.com/mai/v1` (override with
 `maiBaseURL`). Deployments named after the model are detected automatically,
 case-insensitively. For other deployment names, set
@@ -1585,6 +1596,18 @@ const { image, usage } = await generateImage({
 });
 ```
 
+MAI-Image-2.7 models can return an image with a transparent background:
+
+```ts
+const { image } = await generateImage({
+  model: azure.image('MAI-Image-2.7'),
+  prompt: 'A red apple sticker',
+  providerOptions: {
+    azure: { background: 'transparent' } satisfies AzureImageModelOptions,
+  },
+});
+```
+
 Pass reference images to edit or combine them (up to five JPEG or PNG
 images). Masks are not supported.
 
@@ -1600,8 +1623,8 @@ const { image } = await generateImage({
 
 Each request returns one PNG image; `generateImage` sends one request per image.
 `size` is sent as `width` and `height`. Each side must be at least 768 pixels,
-and the total pixel count at most 2,359,296 for MAI-Image-2.6 models and
-1,048,576 for MAI-Image-2.5 models. Without `size`, `aspectRatio` is mapped to
+and each output is at most 2048x2048 for MAI-Image-2.7 models, 2,359,296 pixels
+for MAI-Image-2.6 models, and 1,048,576 pixels for MAI-Image-2.5 models. Without `size`, `aspectRatio` is mapped to
 dimensions of about one megapixel; without either, the model returns 1024x1024.
 `seed` is not supported. Token usage is returned in `usage`, with the input
 text and image token split in `providerMetadata.azure.images`.
@@ -1615,11 +1638,20 @@ The following provider options are available:
 - **autoAspectRatio** _boolean_
 
   Let the model choose the output aspect ratio from the prompt and reference
-  images. MAI-Image-2.6 models only.
+  images. MAI-Image-2.6 and MAI-Image-2.7 models only.
 
 - **webGrounding** _boolean_
 
-  Ground generation in Bing web search results. MAI-Image-2.6 models only.
+  Ground generation in Bing web search results. MAI-Image-2.6 and
+  MAI-Image-2.7 models only.
+
+- **background** _'transparent' | 'opaque'_
+
+  Image background for generations and edits. `transparent` returns a PNG with
+  an alpha channel; the API defaults to `opaque`. MAI-Image-2.7 models only.
+  The same option is passed through to OpenAI image deployments, which also
+  accept `'auto'`; on the MAI image API, `'auto'` is not sent and produces a
+  warning.
 
 ## Transcription Models
 
@@ -1879,9 +1911,9 @@ The following provider options are available:
 
 | Model                        | Transcription | Streaming | Duration                                                      | Segments  | Language                                           |
 | ---------------------------- | ------------- | --------- | ------------------------------------------------------------- | --------- | -------------------------------------------------- |
-| `whisper-1`                  | <Check />     | <Cross /> | <Check />                                                     | <Check /> | <Check />                                          |
-| `gpt-4o-mini-transcribe`     | <Check />     | <Cross /> | <Cross />                                                     | <Cross /> | <Cross />                                          |
-| `gpt-4o-transcribe`          | <Check />     | <Cross /> | <Cross />                                                     | <Cross /> | <Cross />                                          |
+| `whisper-1`                  | <Check />     | <Check /> | <Check />                                                     | <Check /> | <Check />                                          |
+| `gpt-4o-mini-transcribe`     | <Check />     | <Check /> | <Cross />                                                     | <Cross /> | <Cross />                                          |
+| `gpt-4o-transcribe`          | <Check />     | <Check /> | <Cross />                                                     | <Cross /> | <Cross />                                          |
 | `mai-transcribe-2`           | <Check />     | <Cross /> | <Check />                                                     | <Check /> | <Check />                                          |
 | `mai-transcribe-1.5`         | <Check />     | <Cross /> | <Check />                                                     | <Cross /> | <Check />                                          |
 | `mai-transcribe-2-streaming` | <Cross />     | <Check /> | Conditional: Requires an audio format with a known byte rate. | <Cross /> | Conditional: Reports the configured language hint. |
@@ -2050,6 +2082,7 @@ The following option definitions are generated from the provider catalog.
 | image         | `api`             | Select the OpenAI or MAI image API.             |
 | image         | `autoAspectRatio` | Choose the aspect ratio automatically.          |
 | image         | `webGrounding`    | Ground image generation in web search.          |
+| image         | `background`      | Transparent or opaque image background.         |
 | speech        | `api`             | Select the OpenAI or Azure Speech API.          |
 | speech        | `style`           | Speaking style supported by the selected voice. |
 | speech        | `styleDegree`     | Intensity of the speaking style.                |

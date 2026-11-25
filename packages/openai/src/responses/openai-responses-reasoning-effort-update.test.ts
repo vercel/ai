@@ -459,7 +459,7 @@ describe.each(['generate', 'stream'] as const)(
     );
 
     describe.each([
-      { model: 'gpt-5.6', options: {} },
+      { model: 'gpt-5.5', options: {} },
       { model: 'custom-model', options: { forceReasoning: true } },
       { model: 'gpt-6-astra', options: { reasoningMode: 'pro' } },
       { model: 'gpt-6-astra', options: { truncation: 'auto' } },

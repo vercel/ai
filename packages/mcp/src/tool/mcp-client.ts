@@ -1,9 +1,7 @@
-import type { JSONObject, JSONSchema7, JSONValue } from '@ai-sdk/provider';
 import {
   asSchema,
   delay,
   dynamicTool,
-  jsonSchema,
   retryWithExponentialBackoff,
   safeParseJSON,
   safeValidateTypes,
@@ -11,7 +9,6 @@ import {
   type FlexibleSchema,
   type Tool,
   type ToolExecutionOptions,
-  type ToolResultOutput,
 } from '@ai-sdk/provider-utils';
 import type { z } from 'zod/v4';
 import { createMCPEvents } from './mcp-events';
@@ -21,7 +18,11 @@ import {
   type ManagedMCPEvents,
   type MCPEventAdapter,
 } from './mcp-events-adapter';
-import type { MCPEvents, MCPEventsConfig } from './mcp-event-types';
+import {
+  MCP_EVENTS_EXTENSION_NAME,
+  type MCPEvents,
+  type MCPEventsConfig,
+} from './mcp-event-types';
 import { MCPClientError } from '../error/mcp-client-error';
 import type {
   JSONRPCError,
@@ -37,7 +38,7 @@ import {
   type MCPTransportConfig,
   type MCPTransportSendOptions,
 } from './mcp-transport';
-import { getMCPAppToolMeta, MCP_APP_MIME_TYPE } from './mcp-apps';
+import { createMCPToolDefinition } from './create-mcp-tools';
 import {
   createMCPToolHeaders,
   getMCPToolHeaderBindings,
@@ -84,7 +85,6 @@ import {
   type ServerCapabilities,
   type ToolSchemas,
   type ToolMeta,
-  type McpProviderMetadata,
   type InitializeResult,
   type DiscoverResult,
 } from './types';
@@ -214,45 +214,6 @@ function waitForAbort<T>(
         reject(error);
       });
   });
-}
-
-function mcpToModelOutput({
-  output,
-}: {
-  toolCallId: string;
-  input: unknown;
-  output: unknown;
-}): ToolResultOutput {
-  if (typeof output === 'string') {
-    return { type: 'text', value: output };
-  }
-
-  if (
-    output == null ||
-    typeof output !== 'object' ||
-    !('content' in output) ||
-    !Array.isArray(output.content)
-  ) {
-    return { type: 'json', value: (output ?? null) as JSONValue };
-  }
-
-  const convertedContent = output.content.map(
-    (part: { type: string; [key: string]: unknown }) => {
-      if (part.type === 'text' && 'text' in part) {
-        return { type: 'text' as const, text: part.text as string };
-      }
-      if (part.type === 'image' && 'data' in part && 'mimeType' in part) {
-        return {
-          type: 'file' as const,
-          mediaType: part.mimeType as string,
-          data: { type: 'data' as const, data: part.data as string },
-        };
-      }
-      return { type: 'text' as const, text: JSON.stringify(part) };
-    },
-  );
-
-  return { type: 'content', value: convertedContent };
 }
 
 export interface MCPClientConfig {
@@ -856,7 +817,11 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
       case 'events/list':
       case 'events/subscribe':
       case 'events/unsubscribe':
-        if (!this.serverCapabilities.events) {
+        if (
+          !this.serverCapabilities.events &&
+          this.serverCapabilities.extensions?.[MCP_EVENTS_EXTENSION_NAME] ==
+            null
+        ) {
           throw new MCPClientError({
             message: 'Server does not support events',
           });
@@ -1449,15 +1414,8 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
     const tools: Record<string, Tool & { _meta?: ToolMeta }> =
       Object.create(null);
 
-    for (const {
-      name,
-      title,
-      description,
-      inputSchema,
-      annotations,
-      _meta,
-    } of definitions.tools) {
-      const resolvedTitle = title ?? annotations?.title;
+    for (const definition of definitions.tools) {
+      const { name } = definition;
       if (
         schemas !== 'automatic' &&
         !Object.prototype.hasOwnProperty.call(schemas, name)
@@ -1468,41 +1426,10 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
       const self = this;
       const outputSchema =
         schemas !== 'automatic' ? schemas[name]?.outputSchema : undefined;
-      const appMeta = getMCPAppToolMeta({ _meta });
-      const metadata = {
-        clientName: this.clientInfo.name,
-        toolName: name,
-        ...(resolvedTitle != null ? { title: resolvedTitle } : {}),
-        ...(annotations != null
-          ? {
-              annotations: {
-                ...(annotations.title != null
-                  ? { title: annotations.title }
-                  : {}),
-                ...(annotations.readOnlyHint != null
-                  ? { readOnlyHint: annotations.readOnlyHint }
-                  : {}),
-                ...(annotations.destructiveHint != null
-                  ? { destructiveHint: annotations.destructiveHint }
-                  : {}),
-                ...(annotations.idempotentHint != null
-                  ? { idempotentHint: annotations.idempotentHint }
-                  : {}),
-                ...(annotations.openWorldHint != null
-                  ? { openWorldHint: annotations.openWorldHint }
-                  : {}),
-              },
-            }
-          : {}),
-        ...(appMeta?.resourceUri != null
-          ? {
-              app: {
-                ...appMeta,
-                mimeType: MCP_APP_MIME_TYPE,
-              } as JSONObject,
-            }
-          : {}),
-      } satisfies McpProviderMetadata;
+      const toolDefinition = createMCPToolDefinition(
+        definition,
+        this.clientInfo.name,
+      );
 
       const execute = async (
         args: any,
@@ -1529,28 +1456,17 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
       const toolWithExecute =
         schemas === 'automatic'
           ? dynamicTool({
-              description,
-              title: resolvedTitle,
-              metadata,
-              inputSchema: jsonSchema({
-                ...inputSchema,
-                properties: inputSchema.properties ?? {},
-                additionalProperties: false,
-              } as JSONSchema7),
+              ...toolDefinition,
               execute,
-              toModelOutput: mcpToModelOutput,
             })
           : tool({
-              description,
-              title: resolvedTitle,
-              metadata,
+              ...toolDefinition,
               inputSchema: schemas[name].inputSchema,
               ...(outputSchema != null ? { outputSchema } : {}),
               execute,
-              toModelOutput: mcpToModelOutput,
             });
 
-      tools[name] = { ...toolWithExecute, _meta };
+      tools[name] = toolWithExecute;
     }
 
     return tools as McpToolSet<TOOL_SCHEMAS>;

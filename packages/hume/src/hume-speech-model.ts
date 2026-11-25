@@ -1,3 +1,7 @@
+import {
+  getHumeSpeechModelEntry,
+  type HumeModelIds,
+} from './hume-model-catalog';
 import type { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   resolve,
@@ -38,11 +42,14 @@ export class HumeSpeechModel implements SpeechModelV4 {
     modelId: '';
     config: HumeSpeechModelConfig;
   }) {
-    return new HumeSpeechModel(options.modelId as '', options.config);
+    return new HumeSpeechModel(
+      options.modelId as HumeModelIds['speech'],
+      options.config,
+    );
   }
 
   constructor(
-    readonly modelId: '',
+    readonly modelId: HumeModelIds['speech'],
     private readonly config: HumeSpeechModelConfig,
   ) {}
 
@@ -81,7 +88,13 @@ export class HumeSpeechModel implements SpeechModelV4 {
     };
 
     if (outputFormat) {
-      if (['mp3', 'pcm', 'wav'].includes(outputFormat)) {
+      if (
+        getHumeSpeechModelEntry(
+          this.modelId,
+        ).capabilities.speech.outputFormats.some(
+          format => format === outputFormat,
+        )
+      ) {
         requestBody.format = { type: outputFormat as 'mp3' | 'pcm' | 'wav' };
       } else {
         warnings.push({

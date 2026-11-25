@@ -4,10 +4,10 @@ import {
   streamText,
   toUIMessageStream,
 } from 'ai';
-import { env } from '$env/dynamic/private';
+import { OPENAI_API_KEY } from '$app/env/private';
 
 const openai = createOpenAI({
-  apiKey: env?.OPENAI_API_KEY,
+  apiKey: OPENAI_API_KEY,
 });
 
 const system = `

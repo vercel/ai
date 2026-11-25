@@ -19,6 +19,7 @@ export const azureProviderOptions = {
     api: { description: 'Select the OpenAI or MAI image API.' },
     autoAspectRatio: { description: 'Choose the aspect ratio automatically.' },
     webGrounding: { description: 'Ground image generation in web search.' },
+    background: { description: 'Transparent or opaque image background.' },
   } satisfies Record<keyof AzureImageModelOptions, ProviderOptionDefinition>,
   speech: {
     api: { description: 'Select the OpenAI or Azure Speech API.' },
@@ -55,7 +56,10 @@ type AzureRequestConfig = {
 
 type AzureModelEntry = ModelEntry<AzureRequestConfig>;
 
-function imageEntry(webGrounding: boolean): AzureModelEntry {
+function imageEntry({
+  webGrounding = false,
+  background = false,
+}: { webGrounding?: boolean; background?: boolean } = {}): AzureModelEntry {
   return {
     capabilities: {
       image: {
@@ -68,7 +72,12 @@ function imageEntry(webGrounding: boolean): AzureModelEntry {
       },
     },
     providerOptions: {
-      image: { api: true, autoAspectRatio: webGrounding, webGrounding },
+      image: {
+        api: true,
+        autoAspectRatio: webGrounding,
+        webGrounding,
+        background,
+      },
     },
     requestConfig: { image: { api: 'mai' } },
   };
@@ -130,11 +139,13 @@ function transcriptionEntry(
  * catalogs; arbitrary deployment names do not declare model-family support.
  */
 export const azureModelCatalog: Readonly<Record<string, AzureModelEntry>> = {
-  'mai-image-2.5': imageEntry(false),
-  'mai-image-2.5-flash': imageEntry(false),
-  'mai-image-2.5-pro': imageEntry(false),
-  'mai-image-2.6': imageEntry(true),
-  'mai-image-2.6-flash': imageEntry(true),
+  'mai-image-2.5': imageEntry(),
+  'mai-image-2.5-flash': imageEntry(),
+  'mai-image-2.5-pro': imageEntry(),
+  'mai-image-2.6': imageEntry({ webGrounding: true }),
+  'mai-image-2.6-flash': imageEntry({ webGrounding: true }),
+  'mai-image-2.7': imageEntry({ webGrounding: true, background: true }),
+  'mai-image-2.7-flash': imageEntry({ webGrounding: true, background: true }),
   'mai-voice-2.1-flash': speechEntry('MAI-Voice-2.1-Flash'),
   'mai-voice-2.1': speechEntry('MAI-Voice-2.1'),
   'mai-voice-2-flash': speechEntry('MAI-Voice-2-Flash'),

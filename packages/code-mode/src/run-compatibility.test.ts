@@ -9,7 +9,7 @@ import {
   experimental_runCodeMode as runCodeMode,
   type CodeModeInterrupt,
   type CodeModeToolExecutionOptions,
-} from '../dist/index.js';
+} from './index.js';
 
 describe('run compatibility adapter', () => {
   it('supports tool names that are not host-function identifiers', async () => {

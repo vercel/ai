@@ -6,67 +6,7 @@ import type {
 import type { AlibabaLanguageModelChatOptions } from './alibaba-chat-language-model-options';
 import type { AlibabaEmbeddingModelOptions } from './alibaba-embedding-model-options';
 import type { AlibabaVideoModelOptions } from './alibaba-video-model-options';
-const documentedVideoDetails: Partial<
-  Record<
-    string,
-    {
-      audioMode: string;
-      resolutionTiers: readonly string[];
-      durationRange: string;
-    }
-  >
-> = {
-  'wan2.6-t2v': {
-    audioMode: 'Yes',
-    resolutionTiers: ['720P', '1080P'],
-    durationRange: '2-15s',
-  },
-  'wan2.5-t2v-preview': {
-    audioMode: 'Yes',
-    resolutionTiers: ['480P', '720P', '1080P'],
-    durationRange: '5s, 10s',
-  },
-  'wan2.7-t2v': {
-    audioMode: 'Yes',
-    resolutionTiers: ['720P', '1080P'],
-    durationRange: '2-15s',
-  },
-  'wan2.7-t2v-2026-06-12': {
-    audioMode: 'Yes',
-    resolutionTiers: ['720P', '1080P'],
-    durationRange: '2-15s',
-  },
-  'wan2.6-i2v-flash': {
-    audioMode: 'Optional',
-    resolutionTiers: ['720P', '1080P'],
-    durationRange: '2-15s',
-  },
-  'wan2.6-i2v': {
-    audioMode: 'Yes',
-    resolutionTiers: ['720P', '1080P'],
-    durationRange: '2-15s',
-  },
-  'wan2.6-r2v-flash': {
-    audioMode: 'Optional',
-    resolutionTiers: ['720P', '1080P'],
-    durationRange: '2-10s',
-  },
-  'wan2.6-r2v': {
-    audioMode: 'Yes',
-    resolutionTiers: ['720P', '1080P'],
-    durationRange: '2-10s',
-  },
-  'wan2.7-r2v': {
-    audioMode: 'Yes',
-    resolutionTiers: ['720P', '1080P'],
-    durationRange: '2-10s (with video ref), 2-15s',
-  },
-  'wan2.7-r2v-2026-06-12': {
-    audioMode: 'Yes',
-    resolutionTiers: ['720P', '1080P'],
-    durationRange: '2-10s (with video ref), 2-15s',
-  },
-};
+
 const alibabaEmbeddingLimits = {
   maxEmbeddingsPerCall: 10,
   supportsParallelCalls: false,
@@ -158,45 +98,278 @@ export const alibabaProviderOptions = {
   } satisfies Record<keyof AlibabaVideoModelOptions, ProviderOptionDefinition>,
 } as const satisfies ProviderOptionDefinitions;
 
-const languageModelIds = [
-  'qwen3.7-max',
-  'qwen3-max',
-  'qwen3-max-preview',
-  'qwen-plus',
-  'qwen-plus-latest',
-  'qwen-flash',
-  'qwen-turbo',
-  'qwen-turbo-latest',
-  'qwen3-235b-a22b',
-  'qwen3-32b',
-  'qwen3-30b-a3b',
-  'qwen3-14b',
-  'qwen3-next-80b-a3b-thinking',
-  'qwen3-235b-a22b-thinking-2507',
-  'qwen3-30b-a3b-thinking-2507',
-  'qwq-plus',
-  'qwq-plus-latest',
-  'qwq-32b',
-  'qwen-coder',
-  'qwen3-coder-plus',
-  'qwen3-coder-flash',
-] as const;
-const embeddingModelIds = ['text-embedding-v4', 'text-embedding-v3'] as const;
-const videoModelIds = [
-  'wan2.6-t2v',
-  'wan2.5-t2v-preview',
-  'wan2.7-t2v',
-  'wan2.7-t2v-2026-06-12',
-  'wan2.6-i2v',
-  'wan2.6-i2v-flash',
-  'wan2.6-r2v',
-  'wan2.6-r2v-flash',
-  'wan2.7-r2v',
-  'wan2.7-r2v-2026-06-12',
-  'wan3.0-video',
-] as const;
-// https://www.alibabacloud.com/help/en/model-studio/qwen-structured-output#supported-models
-const JSON_SCHEMA_MODEL_PREFIXES = [
+/*
+ * Every model type below has the same layout: the row type, the matrix (model
+ * IDs by capability), the builder that turns a row into a catalog entry, and
+ * the fallback for model IDs that are not listed.
+ *
+ * A row is flat and every listed model fills in every cell. Nothing in a row
+ * is derived from the model ID. The fallbacks for unlisted model IDs are the
+ * only places that look at the model ID.
+ */
+
+// Language models
+
+/** One row of the language model matrix. */
+export type AlibabaLanguageModelRow = {
+  /**
+   * `false` keeps a known model ID out of the exported catalog and the
+   * generated documentation.
+   */
+  documented: boolean;
+  /**
+   * Supports preserved thinking (`preserve_thinking`), which replays the
+   * `reasoning_content` of previous assistant turns.
+   * https://docs.qwencloud.com/developer-guides/text-generation/thinking#preserve-thinking-in-multi-turn
+   */
+  preservedThinking: boolean;
+  /**
+   * Supports JSON schema structured output.
+   * https://www.alibabacloud.com/help/en/model-studio/qwen-structured-output#supported-models
+   */
+  jsonSchema: boolean;
+};
+
+/**
+ * Language model matrix: model IDs by capability. To add a model, add a row
+ * and fill in every column.
+ */
+const languageModelDefinitions = {
+  'qwen3.7-max': {
+    documented: true,
+    preservedThinking: true,
+    jsonSchema: true,
+  },
+  'qwen3-max': {
+    documented: true,
+    preservedThinking: false,
+    jsonSchema: false,
+  },
+  'qwen3-max-preview': {
+    documented: true,
+    preservedThinking: false,
+    jsonSchema: false,
+  },
+  'qwen-plus': {
+    documented: true,
+    preservedThinking: false,
+    jsonSchema: false,
+  },
+  'qwen-plus-latest': {
+    documented: true,
+    preservedThinking: false,
+    jsonSchema: false,
+  },
+  'qwen-flash': {
+    documented: true,
+    preservedThinking: false,
+    jsonSchema: false,
+  },
+  'qwen-turbo': {
+    documented: true,
+    preservedThinking: false,
+    jsonSchema: false,
+  },
+  'qwen-turbo-latest': {
+    documented: true,
+    preservedThinking: false,
+    jsonSchema: false,
+  },
+  'qwen3-235b-a22b': {
+    documented: true,
+    preservedThinking: false,
+    jsonSchema: false,
+  },
+  'qwen3-32b': {
+    documented: true,
+    preservedThinking: false,
+    jsonSchema: false,
+  },
+  'qwen3-30b-a3b': {
+    documented: true,
+    preservedThinking: false,
+    jsonSchema: false,
+  },
+  'qwen3-14b': {
+    documented: true,
+    preservedThinking: false,
+    jsonSchema: false,
+  },
+  'qwen3-next-80b-a3b-thinking': {
+    documented: true,
+    preservedThinking: false,
+    jsonSchema: false,
+  },
+  'qwen3-235b-a22b-thinking-2507': {
+    documented: true,
+    preservedThinking: false,
+    jsonSchema: false,
+  },
+  'qwen3-30b-a3b-thinking-2507': {
+    documented: true,
+    preservedThinking: false,
+    jsonSchema: false,
+  },
+  'qwq-plus': {
+    documented: true,
+    preservedThinking: false,
+    jsonSchema: false,
+  },
+  'qwq-plus-latest': {
+    documented: true,
+    preservedThinking: false,
+    jsonSchema: false,
+  },
+  'qwq-32b': {
+    documented: true,
+    preservedThinking: false,
+    jsonSchema: false,
+  },
+  'qwen-coder': {
+    documented: true,
+    preservedThinking: false,
+    jsonSchema: false,
+  },
+  'qwen3-coder-plus': {
+    documented: true,
+    preservedThinking: false,
+    jsonSchema: false,
+  },
+  'qwen3-coder-flash': {
+    documented: true,
+    preservedThinking: false,
+    jsonSchema: false,
+  },
+  'kimi-k2.7-code': {
+    documented: false,
+    preservedThinking: true,
+    jsonSchema: false,
+  },
+  'qwen3.6-max-preview': {
+    documented: false,
+    preservedThinking: true,
+    jsonSchema: false,
+  },
+  'qwen3.6-plus': {
+    documented: false,
+    preservedThinking: true,
+    jsonSchema: false,
+  },
+  'qwen3.6-plus-2026-04-02': {
+    documented: false,
+    preservedThinking: true,
+    jsonSchema: false,
+  },
+  'qwen3.7-flash': {
+    documented: false,
+    preservedThinking: true,
+    jsonSchema: true,
+  },
+  'qwen3.7-flash-2026-07-15': {
+    documented: false,
+    preservedThinking: true,
+    jsonSchema: true,
+  },
+  'qwen3.7-max-2026-05-17': {
+    documented: false,
+    preservedThinking: true,
+    jsonSchema: true,
+  },
+  'qwen3.7-max-2026-05-20': {
+    documented: false,
+    preservedThinking: true,
+    jsonSchema: true,
+  },
+  'qwen3.7-max-2026-06-08': {
+    documented: false,
+    preservedThinking: true,
+    jsonSchema: true,
+  },
+  'qwen3.7-max-preview': {
+    documented: false,
+    preservedThinking: true,
+    jsonSchema: true,
+  },
+  'qwen3.7-plus': {
+    documented: false,
+    preservedThinking: true,
+    jsonSchema: true,
+  },
+  'qwen3.7-plus-2026-05-26': {
+    documented: false,
+    preservedThinking: true,
+    jsonSchema: true,
+  },
+  'qwen3.8-flash': {
+    documented: false,
+    preservedThinking: true,
+    jsonSchema: true,
+  },
+  'qwen3.8-max': {
+    documented: false,
+    preservedThinking: true,
+    jsonSchema: true,
+  },
+  'qwen3.8-max-0902': {
+    documented: false,
+    preservedThinking: true,
+    jsonSchema: true,
+  },
+} satisfies Record<string, AlibabaLanguageModelRow>;
+
+/** Maps a matrix row to its entry. Nothing here inspects the model ID. */
+function createLanguageModelEntry(row: AlibabaLanguageModelRow) {
+  const entry = {
+    capabilities: {
+      language: {
+        inputs: { image: 'unknown', audio: false },
+        objectGeneration: true,
+        tools: { usage: true, streaming: true },
+        reasoning: { support: 'unknown', preserved: row.preservedThinking },
+        sampling: { temperature: true, topP: true, logprobs: false },
+        structuredOutput: { jsonSchema: row.jsonSchema },
+      },
+    },
+    providerOptions: {
+      language: {
+        enableThinking: 'unknown',
+        thinkingBudget: 'unknown',
+        preserveThinking: row.preservedThinking,
+        parallelToolCalls: true,
+      },
+    },
+  } as const;
+  return entry satisfies ModelEntry;
+}
+
+const languageModelRows = Object.entries<AlibabaLanguageModelRow>(
+  languageModelDefinitions,
+);
+
+/** Entries for every listed model ID, documented or not. */
+const listedLanguageModelEntries = Object.fromEntries(
+  languageModelRows.map(([modelId, row]) => [
+    modelId,
+    createLanguageModelEntry(row),
+  ]),
+);
+
+/**
+ * Returns the entry of a listed language model ID from its row. Every other
+ * model ID uses the fallback for unlisted IDs.
+ */
+export function getAlibabaLanguageModelEntry(modelId: string) {
+  return Object.prototype.hasOwnProperty.call(
+    listedLanguageModelEntries,
+    modelId,
+  )
+    ? listedLanguageModelEntries[modelId]
+    : createLanguageModelEntry(getUnlistedLanguageModelRow(modelId));
+}
+
+// Model families with JSON schema structured output. Used only for model IDs
+// that are not listed in the matrix, such as dated snapshots.
+const unlistedJsonSchemaModelPrefixes = [
   'qwen3.7-plus',
   'qwen3.7-flash',
   'qwen3.7-max',
@@ -204,115 +377,45 @@ const JSON_SCHEMA_MODEL_PREFIXES = [
   'qwen3.8-flash',
 ];
 
-function supportsJsonSchemaOutput(modelId: string): boolean {
-  return JSON_SCHEMA_MODEL_PREFIXES.some(
-    prefix => modelId === prefix || modelId.startsWith(`${prefix}-`),
-  );
+/** Resolves a language model ID that is not listed in the matrix to a row. */
+function getUnlistedLanguageModelRow(modelId: string): AlibabaLanguageModelRow {
+  return {
+    documented: false,
+    preservedThinking: false,
+    jsonSchema: unlistedJsonSchemaModelPrefixes.some(
+      prefix => modelId === prefix || modelId.startsWith(`${prefix}-`),
+    ),
+  };
 }
+
+// Embedding models
+
+/** One row of the embedding model matrix. */
+export type AlibabaEmbeddingModelRow = {
+  dimensions: readonly number[];
+};
+
+const embeddingModelDefinitions = {
+  'text-embedding-v4': {
+    dimensions: [64, 128, 256, 512, 768, 1024, 1536, 2048],
+  },
+  'text-embedding-v3': { dimensions: [512, 768, 1024] },
+} satisfies Record<string, AlibabaEmbeddingModelRow>;
 
 /**
- * Whether a model id supports Alibaba's preserved-thinking mode
- * (`preserve_thinking`), which replays assistant `reasoning_content` from
- * previous turns.
- *
- * Supported models per Alibaba's documentation:
- * https://docs.qwencloud.com/developer-guides/text-generation/thinking#preserve-thinking-in-multi-turn
+ * Maps a matrix row to its entry. Without a row (the model ID is not listed)
+ * no embedding capabilities are declared.
  */
-const preservedThinkingModelIds = new Set([
-  'kimi-k2.7-code',
-  'qwen3.6-max-preview',
-  'qwen3.6-plus',
-  'qwen3.6-plus-2026-04-02',
-  'qwen3.7-flash',
-  'qwen3.7-flash-2026-07-15',
-  'qwen3.7-max',
-  'qwen3.7-max-2026-05-17',
-  'qwen3.7-max-2026-05-20',
-  'qwen3.7-max-2026-06-08',
-  'qwen3.7-max-preview',
-  'qwen3.7-plus',
-  'qwen3.7-plus-2026-05-26',
-  'qwen3.8-flash',
-  'qwen3.8-max',
-  'qwen3.8-max-0902',
-]);
-
-function supportsPreservedThinking(modelId: string): boolean {
-  return preservedThinkingModelIds.has(modelId);
-}
-
-// Only meaningful for ids that name their mode (wan2.6/wan2.7). wan3 ships a
-// single all-in-one id, so its mode comes from the media the request carries.
-function detectMode(modelId: string): 't2v' | 'i2v' | 'r2v' {
-  if (modelId.includes('-i2v')) return 'i2v';
-  if (modelId.includes('-r2v')) return 'r2v';
-  return 't2v';
-}
-
-/**
- * Request protocol, selected by model id:
- * - `legacy` (wan2.6 and earlier): `parameters.size`, `input.img_url`, and
- *   `input.reference_urls`.
- * - `wan27`: resolution tiers and `ratio` instead of `size`, `input.media`
- *   instead of `input.reference_urls`, no `shot_type`, audio always on.
- * - `wan3`: like `wan27`, plus a real `last_frame` slot, an `audio` toggle,
- *   a 480P tier, and one id covering every mode.
- */
-type AlibabaVideoProtocol = 'legacy' | 'wan27' | 'wan3';
-
-function detectProtocol(modelId: string): AlibabaVideoProtocol {
-  // `wanx` is the older id prefix (e.g. `wanx2.1-t2v-turbo`).
-  const version = /^wanx?(\d+)(?:\.(\d+))?(?=[.-]|$)/.exec(modelId);
-  if (version != null) {
-    const major = Number(version[1]);
-    const minor = Number(version[2] ?? 0);
-    if (major < 2 || (major === 2 && minor < 7)) return 'legacy';
-    if (major === 2) return 'wan27';
-  }
-
-  // Unrecognized IDs inherit the latest all-in-one media protocol.
-  return 'wan3';
-}
-
-export function getAlibabaLanguageModelEntry(modelId: string) {
-  const preserved = supportsPreservedThinking(modelId);
-  const jsonSchema = supportsJsonSchemaOutput(modelId);
+function createEmbeddingModelEntry(row: AlibabaEmbeddingModelRow | undefined) {
   const entry = {
     capabilities: {
-      language: {
-        inputs: { image: 'unknown', audio: false },
-        objectGeneration: true,
-        tools: { usage: true, streaming: true },
-        reasoning: { support: 'unknown', preserved },
-        sampling: { temperature: true, topP: true, logprobs: false },
-        structuredOutput: { jsonSchema },
-      },
-    },
-    providerOptions: {
-      language: {
-        enableThinking: 'unknown',
-        thinkingBudget: 'unknown',
-        preserveThinking: preserved,
-        parallelToolCalls: true,
-      },
-    },
-  } as const;
-  return entry satisfies ModelEntry;
-}
-export function getAlibabaEmbeddingModelEntry(modelId: string) {
-  const known = embeddingModelIds.some(id => id === modelId);
-  const entry = {
-    capabilities: {
-      ...(known
+      ...(row != null
         ? {
             embedding: {
               defaultDimensions: 1024,
               ...alibabaEmbeddingLimits,
               customDimensions: true,
-              dimensions:
-                modelId === 'text-embedding-v4'
-                  ? [64, 128, 256, 512, 768, 1024, 1536, 2048]
-                  : [512, 768, 1024],
+              dimensions: row.dimensions,
             },
           }
         : {}),
@@ -330,9 +433,135 @@ export function getAlibabaEmbeddingModelEntry(modelId: string) {
     embedding: { maxEmbeddingsPerCall: number; supportsParallelCalls: boolean };
   }>;
 }
-export function getAlibabaVideoModelEntry(modelId: string) {
-  const mode = detectMode(modelId),
-    protocol = detectProtocol(modelId);
+
+export function getAlibabaEmbeddingModelEntry(modelId: string) {
+  return createEmbeddingModelEntry(
+    Object.prototype.hasOwnProperty.call(embeddingModelDefinitions, modelId)
+      ? embeddingModelDefinitions[
+          modelId as keyof typeof embeddingModelDefinitions
+        ]
+      : undefined,
+  );
+}
+
+// Video models
+
+/**
+ * Request protocol of a video model:
+ * - `legacy` (wan2.6 and earlier): `parameters.size`, `input.img_url`, and
+ *   `input.reference_urls`.
+ * - `wan27`: resolution tiers and `ratio` instead of `size`, `input.media`
+ *   instead of `input.reference_urls`, no `shot_type`, audio always on.
+ * - `wan3`: like `wan27`, plus a real `last_frame` slot, an `audio` toggle,
+ *   a 480P tier, and one model ID covering every mode.
+ */
+type AlibabaVideoProtocol = 'legacy' | 'wan27' | 'wan3';
+
+/** Text-to-video, image-to-video, or reference-to-video. */
+type AlibabaVideoMode = 't2v' | 'i2v' | 'r2v';
+
+/**
+ * One row of the video model matrix. The protocol and the mode together
+ * decide which inputs and provider options a model accepts.
+ */
+export type AlibabaVideoModelRow = {
+  protocol: AlibabaVideoProtocol;
+  /**
+   * The mode a model ID is fixed to. A `wan3` model takes its mode from the
+   * media of the request instead, and its row uses `t2v`.
+   */
+  mode: AlibabaVideoMode;
+  /** Documented audio generation. `undefined`: not documented. */
+  audioMode: string | undefined;
+  /** Documented resolution tiers. `undefined`: not documented. */
+  resolutionTiers: readonly string[] | undefined;
+  /** Documented duration range. `undefined`: not documented. */
+  durationRange: string | undefined;
+};
+
+const videoModelDefinitions = {
+  'wan2.6-t2v': {
+    protocol: 'legacy',
+    mode: 't2v',
+    audioMode: 'Yes',
+    resolutionTiers: ['720P', '1080P'],
+    durationRange: '2-15s',
+  },
+  'wan2.5-t2v-preview': {
+    protocol: 'legacy',
+    mode: 't2v',
+    audioMode: 'Yes',
+    resolutionTiers: ['480P', '720P', '1080P'],
+    durationRange: '5s, 10s',
+  },
+  'wan2.7-t2v': {
+    protocol: 'wan27',
+    mode: 't2v',
+    audioMode: 'Yes',
+    resolutionTiers: ['720P', '1080P'],
+    durationRange: '2-15s',
+  },
+  'wan2.7-t2v-2026-06-12': {
+    protocol: 'wan27',
+    mode: 't2v',
+    audioMode: 'Yes',
+    resolutionTiers: ['720P', '1080P'],
+    durationRange: '2-15s',
+  },
+  'wan2.6-i2v': {
+    protocol: 'legacy',
+    mode: 'i2v',
+    audioMode: 'Yes',
+    resolutionTiers: ['720P', '1080P'],
+    durationRange: '2-15s',
+  },
+  'wan2.6-i2v-flash': {
+    protocol: 'legacy',
+    mode: 'i2v',
+    audioMode: 'Optional',
+    resolutionTiers: ['720P', '1080P'],
+    durationRange: '2-15s',
+  },
+  'wan2.6-r2v': {
+    protocol: 'legacy',
+    mode: 'r2v',
+    audioMode: 'Yes',
+    resolutionTiers: ['720P', '1080P'],
+    durationRange: '2-10s',
+  },
+  'wan2.6-r2v-flash': {
+    protocol: 'legacy',
+    mode: 'r2v',
+    audioMode: 'Optional',
+    resolutionTiers: ['720P', '1080P'],
+    durationRange: '2-10s',
+  },
+  'wan2.7-r2v': {
+    protocol: 'wan27',
+    mode: 'r2v',
+    audioMode: 'Yes',
+    resolutionTiers: ['720P', '1080P'],
+    durationRange: '2-10s (with video ref), 2-15s',
+  },
+  'wan2.7-r2v-2026-06-12': {
+    protocol: 'wan27',
+    mode: 'r2v',
+    audioMode: 'Yes',
+    resolutionTiers: ['720P', '1080P'],
+    durationRange: '2-10s (with video ref), 2-15s',
+  },
+  'wan3.0-video': {
+    protocol: 'wan3',
+    mode: 't2v',
+    audioMode: undefined,
+    resolutionTiers: undefined,
+    durationRange: undefined,
+  },
+} satisfies Record<string, AlibabaVideoModelRow>;
+
+/** Maps a matrix row to its entry. Nothing here inspects the model ID. */
+function createVideoModelEntry(row: AlibabaVideoModelRow) {
+  const { mode, protocol } = row;
   const latest = protocol === 'wan3',
     tiered = protocol !== 'legacy';
   const entry = {
@@ -356,7 +585,13 @@ export function getAlibabaVideoModelEntry(modelId: string) {
         fps: false,
         seed: true,
         maxVideosPerCall: 1,
-        ...documentedVideoDetails[modelId],
+        ...(row.audioMode != null ? { audioMode: row.audioMode } : {}),
+        ...(row.resolutionTiers != null
+          ? { resolutionTiers: row.resolutionTiers }
+          : {}),
+        ...(row.durationRange != null
+          ? { durationRange: row.durationRange }
+          : {}),
       },
     },
     providerOptions: {
@@ -377,15 +612,71 @@ export function getAlibabaVideoModelEntry(modelId: string) {
     requestConfig: { video: { mode, protocol } },
   } as const;
   return entry satisfies ModelEntry<{
-    video: { mode: 't2v' | 'i2v' | 'r2v'; protocol: AlibabaVideoProtocol };
+    video: { mode: AlibabaVideoMode; protocol: AlibabaVideoProtocol };
   }>;
 }
+
+export function getAlibabaVideoModelEntry(modelId: string) {
+  return createVideoModelEntry(
+    Object.prototype.hasOwnProperty.call(videoModelDefinitions, modelId)
+      ? videoModelDefinitions[modelId as keyof typeof videoModelDefinitions]
+      : getUnlistedVideoModelRow(modelId),
+  );
+}
+
+/**
+ * Resolves a video model ID that is not listed in the matrix to a row, from
+ * the mode and the version that the model ID names.
+ */
+function getUnlistedVideoModelRow(modelId: string): AlibabaVideoModelRow {
+  return {
+    protocol: getUnlistedVideoProtocol(modelId),
+    mode: modelId.includes('-i2v')
+      ? 'i2v'
+      : modelId.includes('-r2v')
+        ? 'r2v'
+        : 't2v',
+    audioMode: undefined,
+    resolutionTiers: undefined,
+    durationRange: undefined,
+  };
+}
+
+function getUnlistedVideoProtocol(modelId: string): AlibabaVideoProtocol {
+  // `wanx` is the older id prefix (e.g. `wanx2.1-t2v-turbo`).
+  const version = /^wanx?(\d+)(?:\.(\d+))?(?=[.-]|$)/.exec(modelId);
+  if (version != null) {
+    const major = Number(version[1]);
+    const minor = Number(version[2] ?? 0);
+    if (major < 2 || (major === 2 && minor < 7)) return 'legacy';
+    if (major === 2) return 'wan27';
+  }
+
+  // Unrecognized IDs inherit the latest all-in-one media protocol.
+  return 'wan3';
+}
+
 export const alibabaModelCatalog = Object.fromEntries([
-  ...languageModelIds.map(
-    id => [id, getAlibabaLanguageModelEntry(id)] as const,
-  ),
-  ...embeddingModelIds.map(
+  ...languageModelRows
+    .filter(([, row]) => row.documented)
+    .map(([id]) => [id, listedLanguageModelEntries[id]] as const),
+  ...Object.keys(embeddingModelDefinitions).map(
     id => [id, getAlibabaEmbeddingModelEntry(id)] as const,
   ),
-  ...videoModelIds.map(id => [id, getAlibabaVideoModelEntry(id)] as const),
+  ...Object.keys(videoModelDefinitions).map(
+    id => [id, getAlibabaVideoModelEntry(id)] as const,
+  ),
 ]);
+
+type DocumentedLanguageModelId = {
+  [ModelId in keyof typeof languageModelDefinitions]: (typeof languageModelDefinitions)[ModelId]['documented'] extends true
+    ? ModelId
+    : never;
+}[keyof typeof languageModelDefinitions];
+
+/** Known model IDs, derived from the matrices used to build the catalog. */
+export type AlibabaModelIds = {
+  language: DocumentedLanguageModelId;
+  embedding: keyof typeof embeddingModelDefinitions;
+  video: keyof typeof videoModelDefinitions;
+};

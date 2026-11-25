@@ -1,5 +1,58 @@
 # @ai-sdk/minimax
 
+## 3.0.85
+
+### Patch Changes
+
+- Updated dependencies [ad5f2ad]
+  - @ai-sdk/anthropic@4.0.108
+
+## 3.0.84
+
+### Patch Changes
+
+- 0bd2190: Derive image model IDs from the model catalog without changing supported models.
+- Updated dependencies [1d2c2ff]
+  - @ai-sdk/provider-utils@5.0.83
+  - @ai-sdk/anthropic@4.0.107
+
+## 3.0.83
+
+### Patch Changes
+
+- Updated dependencies [10ff0b1]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/provider@4.0.39
+  - @ai-sdk/provider-utils@5.0.82
+  - @ai-sdk/anthropic@4.0.106
+
+## 3.0.82
+
+### Patch Changes
+
+- f5fc6ba: Derive known model ID suggestions from each provider's model catalog declarations so catalog updates automatically update autocomplete, while preserving existing suggestions, endpoint-specific model lists, and support for custom model IDs.
+- Updated dependencies [f5fc6ba]
+  - @ai-sdk/anthropic@4.0.105
+
+## 3.0.81
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+  - @ai-sdk/anthropic@4.0.104
+
+## 3.0.80
+
+### Patch Changes
+
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+  - @ai-sdk/anthropic@4.0.103
+
 ## 3.0.79
 
 ### Patch Changes

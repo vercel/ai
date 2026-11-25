@@ -1,5 +1,94 @@
 # @ai-sdk/azure
 
+## 4.0.131
+
+### Patch Changes
+
+- Updated dependencies [c3ee424]
+  - @ai-sdk/openai@4.0.123
+
+## 4.0.130
+
+### Patch Changes
+
+- Updated dependencies [1d2c2ff]
+- Updated dependencies [2af50d0]
+  - @ai-sdk/provider-utils@5.0.83
+  - @ai-sdk/openai@4.0.122
+  - @ai-sdk/deepseek@3.0.89
+
+## 4.0.129
+
+### Patch Changes
+
+- Updated dependencies [1a7440b]
+  - @ai-sdk/openai@4.0.121
+
+## 4.0.128
+
+### Patch Changes
+
+- Updated dependencies [ed981f8]
+  - @ai-sdk/openai@4.0.120
+
+## 4.0.127
+
+### Patch Changes
+
+- 3a48c5d: Add the MAI-Image-2.7 and MAI-Image-2.7-Flash image models and the `background` provider option (`'transparent'` or `'opaque'`) for MAI image generations and edits. On the MAI image API, `background: 'auto'` is not sent and produces a warning; OpenAI image deployments keep accepting it.
+- Updated dependencies [5aa836f]
+- Updated dependencies [10ff0b1]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/openai@4.0.119
+  - @ai-sdk/provider@4.0.39
+  - @ai-sdk/provider-utils@5.0.82
+  - @ai-sdk/deepseek@3.0.88
+
+## 4.0.126
+
+### Patch Changes
+
+- Updated dependencies [f5fc6ba]
+  - @ai-sdk/deepseek@3.0.87
+  - @ai-sdk/openai@4.0.118
+
+## 4.0.125
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+  - @ai-sdk/openai@4.0.117
+  - @ai-sdk/deepseek@3.0.86
+
+## 4.0.124
+
+### Patch Changes
+
+- 2ebc78b: Forward the provider's configured fetch transport when downloading file inputs. Add a `fetch` option to `createDownload` so core downloads can also use `guarded-fetch` for opt-in DNS validation on Node.js. The function returned by `createDownload` can now also be passed as `experimental_download` to `generateText` and `streamText`, and `experimental_download` now also handles generated file URLs returned by the model, so one hook covers all core downloads. Document that the default URL checks do not resolve DNS and recommend the guarded transport or network egress controls for untrusted URLs.
+
+  Keep Azure image and Vertex tool-result downloads separate from provider authentication wrappers so file hosts never receive Azure bearer tokens or Vertex Express Mode API keys.
+
+  Pass the call's abort signal to custom download requests, including prompt assets and generated files, so `experimental_download: createDownload({ fetch })` preserves cancellation and timeouts.
+
+- Updated dependencies [2ebc78b]
+- Updated dependencies [2ebc78b]
+- Updated dependencies [6eff958]
+- Updated dependencies [a279e86]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/openai@4.0.116
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+  - @ai-sdk/deepseek@3.0.85
+
+## 4.0.123
+
+### Patch Changes
+
+- Updated dependencies [5a645e9]
+  - @ai-sdk/openai@4.0.115
+
 ## 4.0.122
 
 ### Patch Changes

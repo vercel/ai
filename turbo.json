@@ -1,5 +1,9 @@
 {
-  "$schema": "https://turbo.build/schema.json",
+  "$schema": "https://turborepo.dev/schema.json",
+  "futureFlags": {
+    // Packages without a script for a task don't pull in that task's dependencies.
+    "strictTaskEntrypointSelection": true
+  },
   "globalEnv": ["CI", "PORT"],
   "globalPassThroughEnv": ["pnpm_config_verify_deps_before_run"],
   "tasks": {
@@ -43,6 +47,7 @@
         "KLINGAI_ACCESS_KEY",
         "KLINGAI_API_KEY",
         "KLINGAI_SECRET_KEY",
+        "LIQUID_API_KEY",
         "LUMA_API_KEY",
         "MISTRAL_API_KEY",
         "NEXT_RUNTIME",
@@ -53,6 +58,7 @@
         "OPENAI_BASE_URL",
         "PERPLEXITY_API_KEY",
         "REPLICATE_API_TOKEN",
+        "SCALEDOWN_API_KEY",
         "SENTRY_AUTH_TOKEN",
         "SENTRY_ORG",
         "SENTRY_PROJECT",
@@ -82,42 +88,88 @@
         ".nuxt/**",
         ".svelte-kit/**",
         ".vinxi/**"
-      ]
+      ],
+      "tags": ["ci", "ci:cpus:4"]
     },
     "type-check": {
-      "dependsOn": ["^build", "build"]
+      "dependsOn": ["^build"],
+      "tags": ["ci"]
     },
     "test": {
       "dependsOn": ["^build", "build"],
-      "env": ["SKIP_RSC_E2E", "VITEST_MAX_WORKERS", "TEST_NODE_VERSION"],
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tools/setup-download-fetch.node.js"]
+      "env": ["TEST_NODE_VERSION"],
+      "passThroughEnv": ["VITEST_MAX_WORKERS"],
+      "tags": ["ci"]
     },
-    "test:e2e:ci": {
-      "env": ["SKIP_RSC_E2E"]
+    "test:browser": {
+      "dependsOn": ["^build", "build"],
+      "outputs": [
+        "test-results/**",
+        "test-results.json",
+        "playwright-report/**"
+      ],
+      "tags": ["ci", "ci:os:ubuntu", "ci:cpus:4"]
+    },
+    "test:windows": {
+      "dependsOn": ["^build", "build"]
+    },
+    "test:bundlers": {
+      "dependsOn": ["^build"],
+      "tags": ["ci", "ci:cpus:4"]
+    },
+    "test:load-time": {
+      "dependsOn": ["^build"],
+      "tags": ["ci"]
+    },
+    "check-bundle-size": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist-bundle-check/**"],
+      "tags": ["ci"]
     },
     "test:update": {
-      "dependsOn": ["^build", "build"]
+      "dependsOn": ["^build", "build"],
+      "cache": false
     },
     "publint": {
       "dependsOn": ["^build", "build"]
     },
     "clean": {
-      "dependsOn": ["^clean"]
+      "dependsOn": ["^clean"],
+      "cache": false
     },
     "dev": {
       "cache": false,
       "persistent": true
     },
-    "integration-test": {
-      "dependsOn": ["^build", "build"]
+    "//#check": {
+      "cache": false,
+      "tags": ["ci", "ci:cpus:4"]
+    },
+    "//#run-verifiers": {
+      "cache": false,
+      "tags": ["ci"]
+    },
+    "//#validate:docs": {
+      "cache": false,
+      "tags": ["ci"]
+    },
+    "//#verify:model-capabilities-docs": {
+      "cache": false,
+      "tags": ["ci"]
+    },
+    "//#test:tarballs": {
+      "cache": false,
+      "tags": ["ci"]
     },
     "//#konsistent:check": {
       "dependsOn": ["konsistent-provider#build"],
-      "cache": false
+      "cache": false,
+      "tags": ["ci"]
     },
     "//#konsistent:validate": {
       "dependsOn": ["konsistent-provider#build"],
-      "cache": false
+      "cache": false,
+      "tags": ["ci"]
     }
   }
 }

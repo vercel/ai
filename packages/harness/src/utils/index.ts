@@ -58,6 +58,7 @@ export {
   type WaitForBridgeReadyOptions,
   type WaitForBridgeReadyResult,
 } from './bridge-ready';
+export { stopPreviousBridge } from './stop-previous-bridge';
 export { BRIDGE_AUTH_PUBLIC_KEY_ENV } from './bridge-auth-protocol';
 export { createBridgeAuthKeyPair, type BridgeAuthKeyPair } from './bridge-auth';
 export {
@@ -82,6 +83,7 @@ export {
 } from './bridge-diagnostics';
 export { resolveSandboxDefaultWorkingDirectory } from './resolve-sandbox-default-working-directory';
 export { getRestrictedSandboxSession } from './get-restricted-sandbox-session';
+export { isSandboxWriteProtectedPath } from './is-sandbox-write-protected-path';
 export { sleep } from './sleep';
 export { normalizeHarnessToolModelOutput } from './normalize-harness-tool-model-output';
 export {

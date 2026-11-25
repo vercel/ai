@@ -251,6 +251,13 @@ type them with `DeepInfraImageModelOptions`.
 
 DeepInfra supports image editing through models like `Qwen/Qwen-Image-Edit`. Pass input images via `prompt.images` to transform or edit existing images.
 
+<Note type="warning">
+  The provider downloads remote input images and masks before uploading them to
+  DeepInfra, using the `fetch` option of `createDeepInfra`. For untrusted URLs
+  on Node.js, pass a `guarded-fetch` transport there. See [Secure URL
+  Fetching](/docs/advanced/secure-url-fetching#opt-in-dns-protection-on-nodejs).
+</Note>
+
 #### Basic Image Editing
 
 Transform an existing image using text prompts:

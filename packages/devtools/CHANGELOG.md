@@ -1,5 +1,123 @@
 # @ai-sdk/devtools
 
+## 1.0.85
+
+### Patch Changes
+
+- d644053: fix(devtools): update @hono/node-server dependency from 1.19.15 to 2.1.6 to address GHSA-rmxm-3fg6-px4f
+  - ai@7.0.181
+
+## 1.0.84
+
+### Patch Changes
+
+- Updated dependencies [d834c5b]
+- Updated dependencies [7760e33]
+- Updated dependencies [28d17e6]
+- Updated dependencies [797dc02]
+  - ai@7.0.181
+
+## 1.0.83
+
+### Patch Changes
+
+- ai@7.0.180
+
+## 1.0.82
+
+### Patch Changes
+
+- Updated dependencies [7e55599]
+  - ai@7.0.179
+
+## 1.0.81
+
+### Patch Changes
+
+- 239b95b: Restrict the DevTools storage directory and database to owner-only permissions, including existing storage, before writing potentially sensitive prompts and responses.
+
+  Reject symlinked, hard-linked, unowned, or unsafe shared storage before changing permissions or writing, and verify the opened database before updating it through the same file handle.
+
+- Updated dependencies [0b8cbfa]
+- Updated dependencies [6815153]
+- Updated dependencies [15bfd6b]
+- Updated dependencies [15bfd6b]
+- Updated dependencies [2613bb4]
+- Updated dependencies [63593a7]
+  - ai@7.0.178
+
+## 1.0.80
+
+### Patch Changes
+
+- Updated dependencies [e403988]
+- Updated dependencies [b792b56]
+  - ai@7.0.177
+
+## 1.0.79
+
+### Patch Changes
+
+- ai@7.0.176
+
+## 1.0.78
+
+### Patch Changes
+
+- ai@7.0.175
+
+## 1.0.77
+
+### Patch Changes
+
+- Updated dependencies [3bea041]
+- Updated dependencies [30d35eb]
+- Updated dependencies [fab7478]
+- Updated dependencies [10ff0b1]
+- Updated dependencies [718824c]
+- Updated dependencies [d99098a]
+  - ai@7.0.174
+  - @ai-sdk/provider@4.0.39
+
+## 1.0.76
+
+### Patch Changes
+
+- Updated dependencies [3c09e00]
+- Updated dependencies [f43ee39]
+- Updated dependencies [7ce7ffc]
+- Updated dependencies [f6809e3]
+- Updated dependencies [2559173]
+- Updated dependencies [f1de9cb]
+  - ai@7.0.173
+
+## 1.0.75
+
+### Patch Changes
+
+- Updated dependencies [79d2004]
+  - ai@7.0.172
+
+## 1.0.74
+
+### Patch Changes
+
+- Updated dependencies [11323f9]
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+- Updated dependencies [ceeee29]
+- Updated dependencies [1a94af3]
+  - ai@7.0.171
+  - @ai-sdk/provider@4.0.38
+
+## 1.0.73
+
+### Patch Changes
+
+- Updated dependencies [91a67c2]
+- Updated dependencies [84b1cb0]
+  - ai@7.0.170
+
 ## 1.0.72
 
 ### Patch Changes

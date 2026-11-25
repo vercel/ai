@@ -1,43 +1,11 @@
-import { getMoonshotAILanguageModelEntry } from './moonshotai-model-catalog';
+import type { MoonshotAIModelIds } from './moonshotai-model-catalog';
 import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import type { LanguageModelV4FunctionTool } from '@ai-sdk/provider';
 import { z } from 'zod/v4';
 
 export type MoonshotAIChatModelId =
-  | 'moonshot-v1-auto'
-  | 'moonshot-v1-8k'
-  | 'moonshot-v1-32k'
-  | 'moonshot-v1-128k'
-  | 'moonshot-v1-8k-vision-preview'
-  | 'moonshot-v1-32k-vision-preview'
-  | 'moonshot-v1-128k-vision-preview'
-  | 'kimi-k2.5'
-  | 'kimi-k2.6'
-  | 'kimi-k2.7-code'
-  | 'kimi-k2.7-code-highspeed'
-  | 'kimi-k3'
-  | 'kimi-k3.1-pro'
-  | 'kimi-k3.1-pro-highspeed'
+  | MoonshotAIModelIds['language']
   | (string & {});
-
-export function isMoonshotAIKimiModel(modelId: MoonshotAIChatModelId): boolean {
-  return !getMoonshotAILanguageModelEntry(modelId).capabilities.language
-    .sampling.temperature;
-}
-
-export type MoonshotAIModelFamily =
-  | 'kimi-k2.5'
-  | 'kimi-k2.6'
-  | 'kimi-k2.7'
-  | 'kimi-k3'
-  | 'moonshot-v1'
-  | 'unknown';
-
-export function getMoonshotAIModelFamily(
-  modelId: MoonshotAIChatModelId,
-): MoonshotAIModelFamily {
-  return getMoonshotAILanguageModelEntry(modelId).requestConfig.language.family;
-}
 
 export const moonshotaiLanguageModelOptions = lazySchema(() =>
   zodSchema(

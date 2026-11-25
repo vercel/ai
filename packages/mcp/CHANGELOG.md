@@ -1,5 +1,72 @@
 # @ai-sdk/mcp
 
+## 2.0.104
+
+### Patch Changes
+
+- 38646e7: Add `Experimental_WebMCPTransport` to discover and call browser WebMCP tools through `createMCPClient`, with cancellation, frame-aware tool aliases, and structured results. Export the browser API types as `Experimental_WebMCPModelContext` and `Experimental_WebMCPTool`.
+
+  Add `createMCPTools` to validate forwarded MCP definitions and create model-facing tools without execute functions, sharing schema, metadata, and result conversion with connected MCP clients. Invalid MCP App resource URI metadata is reported as `MCPClientError`, preserving the original validation error as its cause.
+
+## 2.0.103
+
+### Patch Changes
+
+- d55f3cf: fix(mcp): keep the HTTP status, URL, and response body on `MCPClientError` when a failed HTTP response contains a JSON-RPC error body
+
+## 2.0.102
+
+### Patch Changes
+
+- Updated dependencies [1d2c2ff]
+  - @ai-sdk/provider-utils@5.0.83
+
+## 2.0.101
+
+### Patch Changes
+
+- 95b78c9: Reject pending HTTP MCP requests when their SSE response stream closes or disconnects before delivering the matching JSON-RPC response, preventing tool calls from hanging indefinitely.
+
+## 2.0.100
+
+### Patch Changes
+
+- Updated dependencies [10ff0b1]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/provider@4.0.39
+  - @ai-sdk/provider-utils@5.0.82
+
+## 2.0.99
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+
+## 2.0.98
+
+### Patch Changes
+
+- 2ebc78b: Move Node.js connection-time DNS validation to the optional `guarded-fetch` package. It uses an Undici agent to validate every resolved address and pin the connection to those results, independently of global fetch wrappers. It supports explicitly trusted private origins and connection-pool cleanup.
+
+  **Security behavior change:** provider-utils now uses the configured fetch or the runtime's global fetch and no longer depends on Undici. Default URL checks still reject private IP literals, local hostnames, unsafe schemes, and unsafe redirect URLs, but do not block public-looking hostnames that resolve to private addresses or DNS rebinding. Applications fetching untrusted URLs should inject `createGuardedFetch()` on Node.js or enforce equivalent network egress restrictions.
+
+  Allow `downloadBlob` to accept a fetch transport so applications can apply the same protection to file downloads.
+
+  MCP OAuth discovery keeps its strict DNS requirement: because Node.js no longer has a DNS-pinned default transport, untrusted authorization-server, redirect, token, and registration URLs now require an explicit custom fetch with connection-time DNS validation on Node.js too. Pass `createGuardedFetch()` through `transport.fetch`. The configured MCP server origin and browser window discovery remain supported.
+
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+
+## 2.0.97
+
+### Patch Changes
+
+- 6309382: Add support for `baseUriDomains` in MCP App CSP metadata.
+
 ## 2.0.96
 
 ### Patch Changes

@@ -74,6 +74,11 @@ export type GitHubCopilotHarnessSettings = {
    * milliseconds up to 2 seconds.
    */
   readonly reconnect?: SandboxChannelReconnectOptions;
+  /**
+   * WebSocket ping interval in milliseconds. Defaults to 20_000. Set to 0 to
+   * disable. Two unanswered pings terminate the socket and trigger reconnect.
+   */
+  readonly keepAliveMs?: number;
   // TODO: Remove in the next major version.
   /**
    * @deprecated Sandbox bridge authentication now uses adapter-generated
@@ -502,6 +507,24 @@ export function createGitHubCopilot(
       type: 'filesystem',
       path: '.copilot/copilot-instructions.md',
     },
+    /*
+     * GitHub Copilot CLI loads hooks, MCP servers, skills, custom agents, and
+     * extensions from these repository locations when a session starts, some of
+     * which run shell commands outside of tool approval. The rest of `.github`
+     * is left writable because it also holds non-agent files such as CI
+     * workflows.
+     */
+    writeProtectedPaths: [
+      '.github/hooks',
+      '.github/mcp.json',
+      '.github/copilot',
+      '.github/skills',
+      '.github/agents',
+      '.github/extensions',
+      '.claude',
+      '.mcp.json',
+      '.vscode/mcp.json',
+    ],
     builtinTools: GITHUB_COPILOT_BUILTIN_TOOLS,
     mcpServers: settings.mcpServers,
     resolveHostToolCall: resolveGitHubCopilotHostToolCall,
@@ -512,6 +535,7 @@ export function createGitHubCopilot(
     startupTimeoutMs: settings.startupTimeoutMs,
     hostDisconnectTimeoutMs: settings.hostDisconnectTimeoutMs,
     reconnect: settings.reconnect,
+    keepAliveMs: settings.keepAliveMs,
     mintBridgeToken: settings.mintBridgeToken,
   });
 

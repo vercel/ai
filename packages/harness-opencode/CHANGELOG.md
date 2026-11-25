@@ -1,5 +1,109 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.196
+
+### Patch Changes
+
+- 12b1539: fix(harness-opencode): contain repository `AGENTS.md` symlinks in restrictive permission modes
+- Updated dependencies [7fffff9]
+- Updated dependencies [3334b4d]
+- Updated dependencies [d84bf24]
+  - @ai-sdk/harness@1.0.193
+
+## 1.0.195
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.192
+
+## 1.0.194
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.191
+
+## 1.0.193
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.190
+
+## 1.0.192
+
+### Patch Changes
+
+- 04a8f38: fix(harness): keep silent sandbox bridge connections alive with WebSocket pings and reconnect when a peer stops responding, controllable via `keepAliveMs` option for bridge-backed harness adapters
+- Updated dependencies [1d2c2ff]
+- Updated dependencies [04a8f38]
+  - @ai-sdk/provider-utils@5.0.83
+  - @ai-sdk/harness@1.0.189
+
+## 1.0.191
+
+### Patch Changes
+
+- 486e08f: fix(harness-opencode): prevent nested `AGENTS.md` symlink from bypassing outside-workdir read approval
+- Updated dependencies [679b5b5]
+  - @ai-sdk/harness@1.0.188
+
+## 1.0.190
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.187
+
+## 1.0.189
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.186
+
+## 1.0.188
+
+### Patch Changes
+
+- f630e0d: fix(harness): update bridge zod dependency to 4.6.7 to address GHSA-mrhx-c7xc-m3w5
+- Updated dependencies [10ff0b1]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/provider@4.0.39
+  - @ai-sdk/provider-utils@5.0.82
+  - @ai-sdk/harness@1.0.185
+
+## 1.0.187
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.184
+
+## 1.0.186
+
+### Patch Changes
+
+- 71bef69: feat(harness): require approval for sensitive workspace file changes in `allow-edits` permission mode
+- Updated dependencies [6d50947]
+- Updated dependencies [71bef69]
+  - @ai-sdk/provider-utils@5.0.81
+  - @ai-sdk/harness@1.0.183
+
+## 1.0.185
+
+### Patch Changes
+
+- Updated dependencies [2ebc78b]
+- Updated dependencies [1a94af3]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/harness@1.0.182
+  - @ai-sdk/provider@4.0.38
+
+## 1.0.184
+
+### Patch Changes
+
+- aa4e711: fix(harness-opencode): ignore compacted tool parts in the bridge
+  - @ai-sdk/harness@1.0.181
+
 ## 1.0.183
 
 ### Patch Changes

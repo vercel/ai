@@ -99,7 +99,6 @@ export abstract class AbstractRealtimeSession {
   private suppliedStream?: MediaStream;
   private captureGeneration = 0;
   private captureRequested = false;
-  private currentResponseItemId: string | null = null;
   private readonly toolCallsInResponse = new Set<string>();
   private readonly submittedToolOutputs = new Set<string>();
   private responseToolCallsClosed = false;
@@ -175,9 +174,14 @@ export abstract class AbstractRealtimeSession {
         throw new Error('Realtime model does not support WebRTC configuration');
       return;
     }
-    if (this.continuous && api.websocket == null)
+    // Continuous token sessions need an explicit declaration, not the legacy default.
+    if (
+      this.continuous &&
+      api.token != null &&
+      !model.capabilities?.connections?.includes('client-secret-websocket')
+    )
       throw new Error(
-        'Continuous PCM sessions require an application WebSocket relay',
+        'Realtime model does not support client-secret-websocket',
       );
     if (api.token != null && model.getWebSocketConfig == null)
       throw new Error(
@@ -219,7 +223,6 @@ export abstract class AbstractRealtimeSession {
       }
       if (!current()) return;
       this.reducer = new RealtimeEventReducer(this.maxEvents);
-      this.currentResponseItemId = null;
       this.toolCallsInResponse.clear();
       this.submittedToolOutputs.clear();
       this.responseToolCallsClosed = false;
@@ -340,44 +343,55 @@ export abstract class AbstractRealtimeSession {
           capture: connectOptions?.capture,
           timeoutMs: this.options.startupTimeoutMs ?? 30_000,
         });
-      } else if (
-        api.websocket != null &&
-        model.capabilities?.conversation === 'continuous'
-      ) {
-        this.pcm = new BrowserRealtimeLiveWebSocket({
+      } else if (this.continuous) {
+        const pcm = new BrowserRealtimeLiveWebSocket({
           ...callbacks,
           sessionConfig,
           sampleRate: this.options.sampleRate,
           maxPlaybackBufferSeconds: this.options.maxPlaybackBufferSeconds,
         });
-        this.pcm.connect({
-          url: api.websocket,
-          protocols: api.protocols,
-          stream: connectOptions?.stream,
-          capture: connectOptions?.capture,
-        });
+        this.pcm = pcm;
+        if (api.websocket != null) {
+          pcm.connect({
+            url: api.websocket,
+            protocols: api.protocols,
+            stream: connectOptions?.stream,
+            capture: connectOptions?.capture,
+          });
+        } else if (api.token != null) {
+          pcm.prepare({
+            stream: connectOptions?.stream,
+            capture: connectOptions?.capture,
+          });
+          const setup = await this.fetchRealtimeSetup(
+            api.token,
+            sessionConfig,
+            attempt,
+          );
+          if (setup == null || !current() || this.pcm !== pcm) return;
+          if (setup.tools != null && setup.tools.length > 0)
+            throw new UnsupportedFunctionalityError({
+              functionality:
+                'Realtime setup tools for continuous sessions; client delegation is application-owned',
+            });
+          pcm.open({
+            mode: 'client-secret',
+            token: setup.token,
+            url: setup.url,
+          });
+        }
       } else {
         this.ensureAudio();
         let config: RealtimeSessionConfig = sessionConfig ?? {};
         let token: string | undefined;
         let url = api.websocket;
         if (api.token != null) {
-          const response = await fetch(api.token, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionConfig }),
-            signal: attempt.abort.signal,
-          });
-          if (!current()) return;
-          if (!response.ok)
-            throw new Error(
-              `Failed to fetch realtime setup: ${response.status}`,
-            );
-          const payload: unknown = await response.json().catch(() => {
-            throw new Error('Invalid realtime setup response');
-          });
-          if (!current() || attempt.closing) return;
-          const setup = validateRealtimeSetup(payload);
+          const setup = await this.fetchRealtimeSetup(
+            api.token,
+            sessionConfig,
+            attempt,
+          );
+          if (setup == null) return;
           token = setup.token;
           url = setup.url;
           config = {
@@ -416,6 +430,29 @@ export abstract class AbstractRealtimeSession {
     } catch (error) {
       if (current()) this.fail(error);
     }
+  }
+
+  /** Fetches the application's token setup; undefined when the attempt ended. */
+  private async fetchRealtimeSetup(
+    endpoint: string,
+    sessionConfig: Partial<RealtimeSessionConfig> | undefined,
+    attempt: RealtimeAttempt,
+  ) {
+    const current = () => this.attempt === attempt && attempt.active;
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionConfig }),
+      signal: attempt.abort.signal,
+    });
+    if (!current()) return undefined;
+    if (!response.ok)
+      throw new Error(`Failed to fetch realtime setup: ${response.status}`);
+    const payload: unknown = await response.json().catch(() => {
+      throw new Error('Invalid realtime setup response');
+    });
+    if (!current() || attempt.closing) return undefined;
+    return validateRealtimeSetup(payload);
   }
 
   private fail(error: unknown, drain?: Promise<void>, report = true): void {
@@ -997,21 +1034,19 @@ export abstract class AbstractRealtimeSession {
   ): void {
     switch (effect.type) {
       case 'play-audio':
-        this.currentResponseItemId = effect.itemId;
-        this.audio?.playAudio(effect.delta);
+        this.audio?.playAudio(effect.delta, effect.itemId);
         break;
       case 'speech-started':
         if (!this.continuous && this.state.isPlaying) {
-          const playedMs = this.audio?.getPlaybackOffsetMs() ?? 0;
-          const itemId = this.currentResponseItemId;
+          const position = this.audio?.getPlaybackPosition();
           this.audio?.stopPlayback();
           if (this.attempt !== attempt || !attempt.active) return;
-          if (itemId != null && !attempt.closing && attempt.cause == null)
+          if (position != null && !attempt.closing && attempt.cause == null)
             this.sendEvent({
               type: 'conversation-item-truncate',
-              itemId,
+              itemId: position.itemId,
               contentIndex: 0,
-              audioEndMs: Math.round(playedMs),
+              audioEndMs: position.audioEndMs,
             });
         }
         break;

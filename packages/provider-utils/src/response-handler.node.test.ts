@@ -185,7 +185,11 @@ async function runChild(script: (distUrl: string) => string) {
     'experimental_binaryFields',
   );
   // CI can restore artifacts built in another job, so compare their embedded
-  // source contents instead of timestamps from separate checkouts.
+  // source contents instead of timestamps from separate checkouts. Line
+  // endings are ignored, because they differ between a Windows checkout and
+  // other checkouts.
+  const normalizeLineEndings = (text: string | undefined) =>
+    text?.replace(/\r\n/g, '\n');
   const sourceMap = JSON.parse(
     await readFile(new URL('../dist/index.js.map', import.meta.url), 'utf8'),
   ) as { sources: string[]; sourcesContent: string[] };
@@ -195,9 +199,15 @@ async function runChild(script: (distUrl: string) => string) {
     'read-response-with-size-limit.ts',
   ]) {
     expect(
-      sourceMap.sourcesContent[sourceMap.sources.indexOf(`../src/${source}`)],
+      normalizeLineEndings(
+        sourceMap.sourcesContent[sourceMap.sources.indexOf(`../src/${source}`)],
+      ),
       `dist does not match ${source}: run \`pnpm build\``,
-    ).toBe(await readFile(new URL(source, import.meta.url), 'utf8'));
+    ).toBe(
+      normalizeLineEndings(
+        await readFile(new URL(source, import.meta.url), 'utf8'),
+      ),
+    );
   }
 
   return execFileSync(

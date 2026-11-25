@@ -1,8 +1,8 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import ArrowUp from '$lib/components/icons/arrow-up.svelte';
-  import Button from '$lib/components/ui/button/button.svelte';
-  import { Textarea } from '$lib/components/ui/textarea/index.js';
+  import ArrowUp from '#lib/components/icons/arrow-up.svelte';
+  import Button from '#lib/components/ui/button/button.svelte';
+  import { Textarea } from '#lib/components/ui/textarea/index.js';
   import { Chat } from '@ai-sdk/svelte';
 
   const chat = new Chat({

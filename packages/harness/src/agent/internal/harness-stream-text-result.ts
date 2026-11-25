@@ -815,6 +815,7 @@ export class HarnessStreamTextResult<
     sendStart,
     sendFinish,
     onError,
+    redactToolErrors,
   }: UIMessageStreamOptions<UI_MESSAGE> = {}): AsyncIterableStream<
     InferUIMessageChunk<UI_MESSAGE>
   > {
@@ -834,6 +835,7 @@ export class HarnessStreamTextResult<
         sendStart,
         sendFinish,
         onError,
+        redactToolErrors,
       }),
     ) as AsyncIterableStream<InferUIMessageChunk<UI_MESSAGE>>;
   }
@@ -859,6 +861,7 @@ export class HarnessStreamTextResult<
     sendStart,
     sendFinish,
     onError,
+    redactToolErrors,
     ...init
   }: ResponseInit & {
     consumeSseStream?: (options: {
@@ -879,6 +882,7 @@ export class HarnessStreamTextResult<
         sendStart,
         sendFinish,
         onError,
+        redactToolErrors,
       }),
       ...init,
     });

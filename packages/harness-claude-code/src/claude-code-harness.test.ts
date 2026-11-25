@@ -16,6 +16,7 @@ import type { z } from 'zod/v4';
 const sentMessages: Array<Record<string, unknown>> = [];
 const openCalls: Array<{ resume?: boolean } | undefined> = [];
 const reconnects: Array<unknown> = [];
+const keepalives: Array<number | undefined> = [];
 const debugHooks: Array<unknown> = [];
 const subscribedEventTypes: string[] = [];
 const channelListeners = new Map<
@@ -116,6 +117,7 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
     constructor({
       connect,
       reconnect,
+      keepAliveMs,
       onDebug,
     }: {
       connect: (options: {
@@ -123,10 +125,12 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
         reason: 'open' | 'reconnect';
       }) => Promise<unknown>;
       reconnect?: unknown;
+      keepAliveMs?: number;
       onDebug?: unknown;
     }) {
       this.connect = connect;
       reconnects.push(reconnect);
+      keepalives.push(keepAliveMs);
       debugHooks.push(onDebug);
     }
 
@@ -266,6 +270,8 @@ function fakeNetworkSandboxSessionForStartupSuccess({
   spawnEnvs,
   writes,
   runs,
+  files,
+  runStdout,
 }: {
   bridgePortUrl: string;
   bridgePortHeaders?: Readonly<Record<string, string>>;
@@ -273,6 +279,8 @@ function fakeNetworkSandboxSessionForStartupSuccess({
   spawnEnvs?: Array<Record<string, string | undefined>>;
   writes: Array<{ path: string; content: string }>;
   runs: string[];
+  files?: Map<string, string>;
+  runStdout?: (command: string) => string | undefined;
 }): HarnessV1NetworkSandboxSession {
   const session = {
     run: async ({ command }: { command: string }) => {
@@ -280,9 +288,10 @@ function fakeNetworkSandboxSessionForStartupSuccess({
       if (command === 'printf "%s" "$HOME"') {
         return { exitCode: 0, stdout: '/home/vercel-sandbox', stderr: '' };
       }
-      return { exitCode: 0, stdout: '', stderr: '' };
+      return { exitCode: 0, stdout: runStdout?.(command) ?? '', stderr: '' };
     },
-    readTextFile: async () => null,
+    readTextFile: async ({ path }: { path: string }) =>
+      files?.get(path) ?? null,
     writeTextFile: async ({
       path,
       content,
@@ -291,6 +300,7 @@ function fakeNetworkSandboxSessionForStartupSuccess({
       content: string;
     }) => {
       writes.push({ path, content });
+      files?.set(path, content);
     },
     spawn: async ({
       command,
@@ -323,6 +333,59 @@ function fakeNetworkSandboxSessionForStartupSuccess({
     async stop() {},
     ...session,
   } as unknown as HarnessV1NetworkSandboxSession;
+}
+
+/**
+ * A sandbox session where `recordBridge` writes the `bridge-meta.json` a
+ * running bridge leaves behind, pid 4242. That process runs session `s1`'s
+ * bridge until it gets `kill -TERM`.
+ */
+function fakeNetworkSandboxSessionWithRecordedBridge() {
+  const bridgeStateDir =
+    '/home/vercel-sandbox/.ai-sdk-harness/.agent-runs/s1/bridge';
+  const files = new Map<string, string>();
+  const spawns: string[] = [];
+  const runs: string[] = [];
+  let bridgeRunning = true;
+  let spawnsWhenStopped: number | undefined;
+  const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+    bridgePortUrl: 'ws://127.0.0.1:1',
+    spawns,
+    writes: [],
+    runs,
+    files,
+    runStdout: command => {
+      if (command === 'kill -TERM 4242') {
+        bridgeRunning = false;
+        spawnsWhenStopped = spawns.length;
+      }
+      if (!bridgeRunning) return undefined;
+      if (command.includes('/proc/4242/cmdline')) {
+        return `node bridge.mjs --bridge-state-dir ${bridgeStateDir}`;
+      }
+      // The process listing: pid, parent pid, state and start time.
+      return command.startsWith('if [ -r /proc/self/stat ]')
+        ? '4242 1 S 100\n'
+        : undefined;
+    },
+  });
+  return {
+    sandboxSession,
+    runs,
+    spawns,
+    recordBridge: () => {
+      files.set(
+        `${bridgeStateDir}/bridge-meta.json`,
+        JSON.stringify({
+          type: 'claude-code',
+          port: 4319,
+          state: 'running',
+          pid: 4242,
+        }),
+      );
+    },
+    spawnsWhenStopped: () => spawnsWhenStopped,
+  };
 }
 
 function lastStart(): Record<string, unknown> {
@@ -376,6 +439,7 @@ describe('createClaudeCode adapter', () => {
     sentMessages.length = 0;
     openCalls.length = 0;
     reconnects.length = 0;
+    keepalives.length = 0;
     debugHooks.length = 0;
     subscribedEventTypes.length = 0;
     channelListeners.clear();
@@ -1017,7 +1081,7 @@ describe('createClaudeCode adapter', () => {
       initialDelayMs: 100,
       maxDelayMs: 5_000,
     };
-    const harness = createClaudeCode({ reconnect });
+    const harness = createClaudeCode({ reconnect, keepAliveMs: 100 });
     const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
       bridgePortUrl: 'ws://127.0.0.1:1',
       spawnEnvs,
@@ -1047,6 +1111,7 @@ describe('createClaudeCode adapter', () => {
       resumeFrom,
     });
     expect(reconnects).toEqual([reconnect, reconnect]);
+    expect(keepalives).toEqual([100, 100]);
     const attachedResumeFrom = await attachedSession.doDetach();
     expect(attachedResumeFrom.data).toMatchObject({ bridge: { privateKey } });
   });
@@ -1149,6 +1214,102 @@ describe('createClaudeCode adapter', () => {
     expect(lastStart()).not.toHaveProperty('continue');
 
     await attachedSession.doDestroy();
+  });
+
+  it('persists the init session id when detaching after a terminal error without finish', async () => {
+    const harness = createClaudeCode();
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      writes: [],
+      runs: [],
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Trigger a terminal error.',
+      emit: () => {},
+    });
+    const startId = lastStart().startId;
+    const done = expect(control.done).rejects.toThrow('boom');
+
+    dispatchChannelEvent({
+      type: 'raw',
+      startId,
+      rawValue: {
+        type: 'system',
+        subtype: 'init',
+        sessionId: 'claude-session-error',
+      },
+    });
+    dispatchChannelEvent({ type: 'error', startId, error: 'boom' });
+    await done;
+
+    const resumeFrom = await session.doDetach();
+    expect(resumeFrom.data).toMatchObject({
+      claudeSessionId: 'claude-session-error',
+    });
+
+    const resumedSession = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      resumeFrom,
+    });
+    const resumedControl = await resumedSession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Resume the exact conversation.',
+      emit: () => {},
+    });
+    const resumedStartId = lastStart().startId;
+
+    expect(lastStart()).toMatchObject({
+      resumeSessionId: 'claude-session-error',
+    });
+
+    dispatchChannelEvent({ type: 'finish', startId: resumedStartId });
+    await resumedControl.done;
+    await resumedSession.doDestroy();
+  });
+
+  it('persists the init session id when suspending an unfinished turn', async () => {
+    const session = await createClaudeCode().doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Keep this turn running.',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+    const startId = lastStart().startId;
+
+    dispatchChannelEvent({
+      type: 'raw',
+      startId,
+      rawValue: {
+        type: 'system',
+        subtype: 'init',
+        sessionId: 'claude-session-suspended',
+      },
+    });
+
+    const continueFrom = await session.doSuspendTurn();
+    expect(continueFrom.data).toMatchObject({
+      claudeSessionId: 'claude-session-suspended',
+    });
   });
 
   it('passes port endpoint headers to fresh, retried, and attached WebSocket connections', async () => {
@@ -1257,6 +1418,89 @@ describe('createClaudeCode adapter', () => {
     expect(wsMock.sockets[1].terminated).toBe(true);
     expect(wsMock.sockets[2].terminated).toBe(false);
     await resumedSession.doDetach();
+  });
+
+  it.each(['continueFrom', 'resumeFrom'] as const)(
+    'stops the recorded bridge before respawning when attaching from %s fails',
+    async lifecycle => {
+      connectOnOpen = true;
+      const openWithHello = (socket: {
+        emit: (event: string, ...args: unknown[]) => void;
+      }) => {
+        queueMicrotask(() => {
+          socket.emit('open');
+          socket.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+        });
+      };
+      wsMock.scripts.push(
+        openWithHello,
+        socket => {
+          queueMicrotask(() => {
+            socket.emit('error', new Error('mock attach timeout'));
+          });
+        },
+        openWithHello,
+      );
+      const { sandboxSession, runs, spawns, recordBridge, spawnsWhenStopped } =
+        fakeNetworkSandboxSessionWithRecordedBridge();
+      const harness = createClaudeCode();
+      const session = await harness.doStart({
+        sessionId: 's1',
+        sandboxSession,
+        sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      });
+      recordBridge();
+
+      const lifecycleState =
+        lifecycle === 'continueFrom'
+          ? { continueFrom: await session.doSuspendTurn() }
+          : { resumeFrom: await session.doDetach() };
+      const resumedSession = await harness.doStart({
+        sessionId: 's1',
+        sandboxSession,
+        sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+        ...lifecycleState,
+      });
+
+      expect(runs).toContain('kill -TERM 4242');
+      expect(runs).not.toContain('kill -KILL 4242');
+      expect(spawnsWhenStopped()).toBe(1);
+      expect(spawns).toHaveLength(2);
+      await resumedSession.doDestroy();
+    },
+  );
+
+  it('leaves the recorded bridge running when attaching succeeds', async () => {
+    connectOnOpen = true;
+    const openWithHello = (socket: {
+      emit: (event: string, ...args: unknown[]) => void;
+    }) => {
+      queueMicrotask(() => {
+        socket.emit('open');
+        socket.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+      });
+    };
+    wsMock.scripts.push(openWithHello, openWithHello);
+    const { sandboxSession, runs, spawns, recordBridge } =
+      fakeNetworkSandboxSessionWithRecordedBridge();
+    const harness = createClaudeCode();
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    recordBridge();
+
+    const continuedSession = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      continueFrom: await session.doSuspendTurn(),
+    });
+
+    expect(runs.filter(command => command.startsWith('kill '))).toEqual([]);
+    expect(spawns).toHaveLength(1);
+    await continuedSession.doDetach();
   });
 
   it('does not set the client app for direct Anthropic auth', async () => {
@@ -1561,7 +1805,14 @@ describe('createClaudeCode adapter', () => {
         approvalId: 'old-approval',
       },
       { type: 'compaction', phase: 'start' },
-      { type: 'raw', rawValue: 'old' },
+      {
+        type: 'raw',
+        rawValue: {
+          type: 'system',
+          subtype: 'init',
+          sessionId: 'wrong-conversation',
+        },
+      },
       { type: 'finish-step', finishReason: { unified: 'stop' }, usage: {} },
       {
         type: 'finish',

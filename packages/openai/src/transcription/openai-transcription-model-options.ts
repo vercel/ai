@@ -4,17 +4,10 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { OpenAIModelIds } from '../openai-model-catalog';
 
 export type OpenAITranscriptionModelId =
-  | 'whisper-1'
-  | 'gpt-4o-mini-transcribe'
-  | 'gpt-4o-mini-transcribe-2025-03-20'
-  | 'gpt-4o-mini-transcribe-2025-12-15'
-  | 'gpt-4o-transcribe'
-  | 'gpt-4o-transcribe-diarize'
-  | 'gpt-live-transcribe'
-  | 'gpt-realtime-whisper'
-  | 'gpt-transcribe'
+  | OpenAIModelIds['transcription']
   | (string & {});
 
 // https://platform.openai.com/docs/api-reference/audio/createTranscription

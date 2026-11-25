@@ -1,5 +1,6 @@
 import { isAbsolute, posix } from 'node:path';
 import {
+  createTextOutputCapture,
   extractLines,
   type Experimental_SandboxDirectoryEntry as SandboxDirectoryEntry,
   type Experimental_SandboxFileStat as SandboxFileStat,
@@ -54,12 +55,23 @@ export class JustBashSandboxSession implements SandboxSession {
     workingDirectory,
     env,
     abortSignal,
+    maxOutputLength,
   }: RunOptions): Promise<{
     exitCode: number;
     stdout: string;
     stderr: string;
+    stdoutLength?: number;
+    stderrLength?: number;
   }> {
     abortSignal?.throwIfAborted();
+    const stdoutCapture =
+      maxOutputLength === undefined
+        ? undefined
+        : createTextOutputCapture({ maxLength: maxOutputLength });
+    const stderrCapture =
+      maxOutputLength === undefined
+        ? undefined
+        : createTextOutputCapture({ maxLength: maxOutputLength });
     await ensureRealpath(this.sandbox);
     abortSignal?.throwIfAborted();
 
@@ -76,6 +88,20 @@ export class JustBashSandboxSession implements SandboxSession {
       finished.stdout(),
       finished.stderr(),
     ]);
+
+    if (stdoutCapture !== undefined && stderrCapture !== undefined) {
+      // just-bash evaluates in-process and buffers output in its interpreter,
+      // subject to its execution limits. Do not retain that buffer in results.
+      stdoutCapture.append(stdout);
+      stderrCapture.append(stderr);
+      return {
+        exitCode: finished.exitCode,
+        stdout: stdoutCapture.text,
+        stderr: stderrCapture.text,
+        stdoutLength: stdoutCapture.length,
+        stderrLength: stderrCapture.length,
+      };
+    }
 
     return {
       exitCode: finished.exitCode,

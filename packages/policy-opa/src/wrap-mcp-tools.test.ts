@@ -1,5 +1,12 @@
-import { jsonSchema, tool } from '@ai-sdk/provider-utils';
+import { jsonSchema, tool, type ModelMessage } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
+import {
+  opaPolicy,
+  optionalOpaPolicy,
+  type DefaultOpaInput,
+} from './opa/opa-policy';
+import type { PolicyClient } from './policy-client';
+import { shadow } from './shadow';
 import { wrapMcpTools } from './wrap-mcp-tools';
 
 const dummyTool = (description: string) =>
@@ -302,5 +309,309 @@ describe('wrapMcpTools', () => {
         expect(calls).toEqual([[input, options]]);
       });
     });
+  });
+});
+function containsToolCall(
+  messages: readonly ModelMessage[],
+  toolName: string,
+): boolean {
+  return messages.some(
+    message =>
+      message.role === 'assistant' &&
+      Array.isArray(message.content) &&
+      message.content.some(
+        part => part.type === 'tool-call' && part.toolName === toolName,
+      ),
+  );
+}
+
+describe('wrapMcpTools with an opaPolicy approval', () => {
+  // The policy allows `read_config`, never matches `delete_backup` on its own
+  // (not-applicable), and asks for approval of `delete_backup` only when the
+  // earlier `read_config` call of the same response is part of the messages it
+  // sees. This is the shape of a rule that depends on earlier tool calls.
+  const client: PolicyClient = {
+    async evaluate(_path, input) {
+      const { tool: toolIdentifier, messages } = input as DefaultOpaInput;
+
+      if (toolIdentifier.name === 'read_config') {
+        return { decision: 'allow' } as never;
+      }
+      if (toolIdentifier.name !== 'delete_backup') return null as never;
+
+      return (
+        containsToolCall(messages, 'read_config')
+          ? { decision: 'requires-approval', reason: 'delete after read' }
+          : null
+      ) as never;
+    },
+  };
+
+  // The reverse of the rule above: the policy asks for approval of
+  // `delete_backup` on its own and stops matching once the sibling call is part
+  // of the messages.
+  const reverseClient: PolicyClient = {
+    async evaluate(_path, input) {
+      const { tool: toolIdentifier, messages } = input as DefaultOpaInput;
+
+      if (toolIdentifier.name !== 'delete_backup') {
+        return { decision: 'allow' } as never;
+      }
+
+      return (
+        containsToolCall(messages, 'read_config')
+          ? null
+          : { decision: 'requires-approval', reason: 'delete' }
+      ) as never;
+    },
+  };
+
+  const opaTools = {
+    read_config: dummyTool('read the config'),
+    delete_backup: dummyTool('delete a backup'),
+  };
+  type OpaTools = typeof opaTools;
+
+  const readConfigCall = {
+    toolCallId: 'call-read',
+    toolName: 'read_config',
+    input: {},
+  };
+  const deleteBackupCall = {
+    toolCallId: 'call-delete',
+    toolName: 'delete_backup',
+    input: { arg: 'b1' },
+  };
+
+  async function decide(
+    approval: unknown,
+    toolCall: { toolCallId: string; toolName: string; input: unknown },
+    messages: ModelMessage[],
+  ): Promise<unknown> {
+    if (typeof approval !== 'function') {
+      throw new Error('expected a generic approval function');
+    }
+    return await (approval as (args: unknown) => unknown)({
+      toolCall: { type: 'tool-call', ...toolCall, dynamic: false },
+      tools: opaTools,
+      toolsContext: undefined,
+      runtimeContext: undefined,
+      messages,
+    });
+  }
+
+  // The SDK decides on all tool calls of a response before it runs any of
+  // them, with the same `messages` array for each call.
+  async function decideResponse(approval: unknown) {
+    const messages: ModelMessage[] = [];
+    const statuses: unknown[] = [];
+    for (const toolCall of [readConfigCall, deleteBackupCall]) {
+      statuses.push(await decide(approval, toolCall, messages));
+    }
+    return statuses;
+  }
+
+  it('denies a not-applicable call in hard allowlist mode when the evaluation with the sibling asks for approval', async () => {
+    const { toolApproval } = wrapMcpTools<OpaTools>(
+      opaTools,
+      opaPolicy({ client, path: 'agent/call/decision' }),
+      { default: 'denied' },
+    );
+
+    expect(await decideResponse(toolApproval)).toEqual([
+      { type: 'approved' },
+      // Without the fallback, the evaluation with the earlier `read_config`
+      // call would turn this into `user-approval` and make it approvable.
+      'denied',
+    ]);
+  });
+
+  it('keeps the user-approval default fallback', async () => {
+    const { toolApproval } = wrapMcpTools<OpaTools>(
+      opaTools,
+      opaPolicy({ client, path: 'agent/call/decision' }),
+    );
+
+    expect(await decideResponse(toolApproval)).toEqual([
+      { type: 'approved' },
+      { type: 'user-approval', reason: 'delete after read' },
+    ]);
+  });
+
+  it('keeps the approved fallback', async () => {
+    const { toolApproval } = wrapMcpTools<OpaTools>(
+      opaTools,
+      opaPolicy({ client, path: 'agent/call/decision' }),
+      { default: 'approved' },
+    );
+
+    expect(await decideResponse(toolApproval)).toEqual([
+      { type: 'approved' },
+      { type: 'user-approval', reason: 'delete after read' },
+    ]);
+  });
+
+  it('applies the fallback to a call without sibling calls', async () => {
+    const { toolApproval } = wrapMcpTools<OpaTools>(
+      opaTools,
+      opaPolicy({ client, path: 'agent/call/decision' }),
+      { default: 'denied' },
+    );
+
+    expect(await decide(toolApproval, deleteBackupCall, [])).toBe('denied');
+  });
+
+  // The SDK checks a tool call that a user approved once more before it runs,
+  // with the messages that contain the response and its approval, so there is
+  // a single evaluation. The fallback applies to it as well.
+  describe('re-evaluation from messages', () => {
+    function messagesWithCalls(
+      calls: Array<{ toolCallId: string; toolName: string; input: unknown }>,
+    ): ModelMessage[] {
+      return [
+        { role: 'user', content: 'go' },
+        {
+          role: 'assistant',
+          content: calls.map(call => ({
+            type: 'tool-call' as const,
+            toolCallId: call.toolCallId,
+            toolName: call.toolName,
+            input: call.input,
+          })),
+        },
+      ];
+    }
+
+    it('denies a re-evaluation the policy does not match in hard allowlist mode', async () => {
+      const { toolApproval } = wrapMcpTools<OpaTools>(
+        opaTools,
+        opaPolicy({ client, path: 'agent/call/decision' }),
+        { default: 'denied' },
+      );
+
+      // `isToolCallFromMessages` compares the input by identity.
+      const input = deleteBackupCall.input;
+      const messages = messagesWithCalls([{ ...deleteBackupCall, input }]);
+
+      expect(
+        await decide(toolApproval, { ...deleteBackupCall, input }, messages),
+      ).toBe('denied');
+    });
+
+    it('keeps a user-approval request of a re-evaluation that matches', async () => {
+      const { toolApproval } = wrapMcpTools<OpaTools>(
+        opaTools,
+        opaPolicy({ client, path: 'agent/call/decision' }),
+        { default: 'denied' },
+      );
+
+      const input = deleteBackupCall.input;
+      const messages = messagesWithCalls([
+        readConfigCall,
+        { ...deleteBackupCall, input },
+      ]);
+
+      expect(
+        await decide(toolApproval, { ...deleteBackupCall, input }, messages),
+      ).toEqual({ type: 'user-approval', reason: 'delete after read' });
+    });
+  });
+
+  // The wrapper returns the bare fallback for a `not-applicable` result. An
+  // equally restrictive `approved` decision of the engine must not replace that
+  // with a reasoned object.
+  it('does not add a reason to the bare approved fallback', async () => {
+    const ownApprovalClient: PolicyClient = {
+      async evaluate(_path, input) {
+        const { tool: toolIdentifier, messages } = input as DefaultOpaInput;
+
+        if (toolIdentifier.name !== 'delete_backup') {
+          return { decision: 'allow' } as never;
+        }
+
+        return (
+          containsToolCall(messages, 'read_config')
+            ? null
+            : { decision: 'allow', reason: 'backup owner approved' }
+        ) as never;
+      },
+    };
+
+    const { toolApproval } = wrapMcpTools<OpaTools>(
+      opaTools,
+      opaPolicy({ client: ownApprovalClient, path: 'agent/call/decision' }),
+      { default: 'approved' },
+    );
+
+    expect(await decideResponse(toolApproval)).toEqual([
+      { type: 'approved' },
+      'approved',
+    ]);
+  });
+
+  it('denies when the evaluation with the sibling is the not-applicable one', async () => {
+    const { toolApproval } = wrapMcpTools<OpaTools>(
+      opaTools,
+      opaPolicy({ client: reverseClient, path: 'agent/call/decision' }),
+      { default: 'denied' },
+    );
+
+    expect(await decideResponse(toolApproval)).toEqual([
+      { type: 'approved' },
+      'denied',
+    ]);
+  });
+
+  it('applies the fallback per evaluation through optionalOpaPolicy', async () => {
+    const approval = optionalOpaPolicy<OpaTools>({
+      client,
+      path: 'agent/call/decision',
+    });
+    if (approval == null) throw new Error('expected an approval');
+
+    const { toolApproval } = wrapMcpTools<OpaTools>(opaTools, approval, {
+      default: 'denied',
+    });
+
+    expect(await decideResponse(toolApproval)).toEqual([
+      { type: 'approved' },
+      'denied',
+    ]);
+  });
+
+  it('reports the policy decision to shadow telemetry when a fallback applies', async () => {
+    const decisions: Array<{ type: string }> = [];
+    const { toolApproval } = wrapMcpTools<OpaTools>(
+      opaTools,
+      shadow(opaPolicy({ client, path: 'agent/call/decision' }), {
+        enforce: true,
+        onDecision: event => void decisions.push(event.decision),
+      }),
+      { default: 'denied' },
+    );
+
+    expect(await decideResponse(toolApproval)).toEqual([
+      { type: 'approved' },
+      'denied',
+    ]);
+    expect(decisions.map(decision => decision.type)).toEqual([
+      'approved',
+      'not-applicable',
+    ]);
+  });
+
+  it('applies the fallback per evaluation when the policy is in shadow mode', async () => {
+    const { toolApproval } = wrapMcpTools<OpaTools>(
+      opaTools,
+      shadow(opaPolicy({ client, path: 'agent/call/decision' }), {
+        enforce: true,
+      }),
+      { default: 'denied' },
+    );
+
+    expect(await decideResponse(toolApproval)).toEqual([
+      { type: 'approved' },
+      'denied',
+    ]);
   });
 });

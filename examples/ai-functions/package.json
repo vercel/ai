@@ -49,6 +49,7 @@
     "@ai-sdk/hume": "workspace:*",
     "@ai-sdk/klingai": "workspace:*",
     "@ai-sdk/langchain": "workspace:*",
+    "@ai-sdk/liquid": "workspace:*",
     "@ai-sdk/luma": "workspace:*",
     "@ai-sdk/mcp": "workspace:*",
     "@ai-sdk/minimax": "workspace:*",
@@ -68,6 +69,7 @@
     "@ai-sdk/revai": "workspace:*",
     "@ai-sdk/sandbox-just-bash": "workspace:*",
     "@ai-sdk/sandbox-vercel": "workspace:*",
+    "@ai-sdk/scaledown": "workspace:*",
     "@ai-sdk/tencent": "workspace:*",
     "@ai-sdk/togetherai": "workspace:*",
     "@ai-sdk/tool-bash": "workspace:*",
@@ -98,24 +100,25 @@
     "ai": "workspace:*",
     "arktype": "2.1.28",
     "dotenv": "16.4.5",
-    "effect": "3.21.3",
+    "effect": "3.22.1",
     "eventsource": "^4.1.0",
     "google-auth-library": "^9.15.1",
+    "guarded-fetch": "^0.3.0",
     "image-type": "^5.2.0",
     "just-bash": "^2.14.5",
     "mathjs": "^15.2.0",
     "sharp": "^0.35.4",
     "terminal-image": "^2.0.0",
-    "undici": "^8.9.0",
+    "undici": "^8.12.3",
     "valibot": "1.1.0",
     "workflow": "5.1.0",
     "ws": "^8.21.0",
-    "zod": "3.25.76"
+    "zod": "4.6.7"
   },
   "scripts": {
     "test:e2e:all": "vitest run src/e2e/*.test.ts",
     "test:file": "vitest run",
-    "type-check": "tsc --build"
+    "type-check": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/node": "22.19.19",

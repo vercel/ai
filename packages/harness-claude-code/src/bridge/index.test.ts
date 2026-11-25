@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { z } from 'zod/v4';
-import { mkdir, mkdtemp, rm, symlink } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -702,6 +702,35 @@ describe('Claude Code bridge configuration', () => {
     expect(state.onStop?.()).toEqual({ claudeSessionId: 'claude-session-2' });
   });
 
+  test('surfaces the observed session id when a turn ends without finish', async () => {
+    state.messages = [
+      {
+        type: 'system',
+        subtype: 'init',
+        session_id: 'claude-session-3',
+      },
+      {
+        type: 'result',
+        subtype: 'error_during_execution',
+        errors: ['boom'],
+        session_id: 'claude-session-3',
+      },
+    ];
+
+    await import('./index');
+
+    expect(state.emitted.some(msg => msg.type === 'finish')).toBe(false);
+    expect(state.emitted).toContainEqual({
+      type: 'raw',
+      rawValue: {
+        type: 'system',
+        subtype: 'init',
+        sessionId: 'claude-session-3',
+      },
+    });
+    expect(state.onStop?.()).toEqual({ claudeSessionId: 'claude-session-3' });
+  });
+
   test('reports the latest cumulative cost when one bridge turn receives multiple results', async () => {
     state.steering = true;
     state.createQuery = args =>
@@ -1192,6 +1221,103 @@ describe('Claude Code bridge configuration', () => {
             ).behavior,
           ).toBe('deny');
         }
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
+    },
+  );
+
+  test.each([
+    { toolName: 'Write', toolInput: { file_path: 'TEST.md' }, approved: true },
+    {
+      toolName: 'Write',
+      toolInput: { file_path: '.agents/skills/test/SKILL.md' },
+      approved: false,
+    },
+    {
+      toolName: 'Edit',
+      toolInput: { file_path: '.claude/settings.json' },
+      approved: false,
+    },
+    {
+      toolName: 'Write',
+      toolInput: { file_path: '.mcp.json' },
+      approved: false,
+    },
+    {
+      toolName: 'NotebookEdit',
+      toolInput: { notebook_path: '.claude/notebook.ipynb' },
+      approved: false,
+    },
+    {
+      toolName: 'Edit',
+      toolInput: { file_path: 'skills/test/SKILL.md' },
+      approved: false,
+    },
+    {
+      toolName: 'Read',
+      toolInput: { file_path: '.agents/skills/test/SKILL.md' },
+      approved: true,
+    },
+  ])(
+    'requires approval for $toolName writes to write-protected paths',
+    async ({ toolName, toolInput, approved }) => {
+      const directory = await mkdtemp(
+        path.join(tmpdir(), 'claude-protected-paths-'),
+      );
+      try {
+        await mkdir(path.join(directory, '.agents/skills/test'), {
+          recursive: true,
+        });
+        await writeFile(
+          path.join(directory, '.agents/skills/test/SKILL.md'),
+          'skill\n',
+        );
+        await symlink('.agents/skills', path.join(directory, 'skills'));
+        process.argv[process.argv.indexOf('--workdir') + 1] = directory;
+        state.start = { ...state.start, permissionMode: 'allow-edits' };
+        state.requestToolApproval = vi.fn(async () => ({ approved: false }));
+        await import('./index');
+        const options = state.queryArgs[0]!.options;
+        const hook = (
+          options.hooks as {
+            PreToolUse: Array<{
+              matcher?: string;
+              hooks: Array<
+                (input: Record<string, unknown>, id: string) => Promise<unknown>
+              >;
+            }>;
+          }
+        ).PreToolUse.find(entry => entry.matcher == null)!.hooks[0];
+        await expect(
+          hook(
+            {
+              hook_event_name: 'PreToolUse',
+              cwd: directory,
+              tool_name: toolName,
+              tool_input: toolInput,
+            },
+            'protected-call',
+          ),
+        ).resolves.toEqual(
+          approved
+            ? {}
+            : {
+                hookSpecificOutput: {
+                  hookEventName: 'PreToolUse',
+                  permissionDecision: 'defer',
+                },
+              },
+        );
+        const callback = options.canUseTool as (
+          name: string,
+          input: Record<string, unknown>,
+          options: { toolUseID: string },
+        ) => Promise<{ behavior: string }>;
+        expect(
+          (await callback(toolName, toolInput, { toolUseID: 'protected-call' }))
+            .behavior,
+        ).toBe(approved ? 'allow' : 'deny');
       } finally {
         await rm(directory, { recursive: true, force: true });
       }
@@ -1879,7 +2005,7 @@ describe('Claude Code bridge configuration', () => {
     };
 
     test.each(['allow-reads', 'allow-edits'])(
-      'uses auto instead of ask rules and approval deferral for %s',
+      'uses auto instead of ask rules for %s',
       async permissionMode => {
         state.start = { ...state.start, permissionMode, autoMode: true };
         await import('./index');
@@ -1893,7 +2019,73 @@ describe('Claude Code bridge configuration', () => {
         expect(options.settings).toBeUndefined();
         expect(
           (options.hooks as Hooks).PreToolUse.map(hook => hook.matcher),
-        ).toEqual(['AskUserQuestion']);
+        ).toEqual([undefined, 'AskUserQuestion']);
+      },
+    );
+
+    test.each([
+      {
+        toolName: 'Write',
+        file: '.agents/skills/test/SKILL.md',
+        deferred: true,
+      },
+      { toolName: 'Edit', file: '.claude/settings.json', deferred: true },
+      { toolName: 'Write', file: 'TEST.md', deferred: false },
+      { toolName: 'Bash', file: undefined, deferred: false },
+      { toolName: 'Read', file: '.claude/settings.json', deferred: false },
+    ])(
+      'defers only protected writes before classification: $toolName $file',
+      async ({ toolName, file, deferred }) => {
+        const directory = await mkdtemp(
+          path.join(tmpdir(), 'claude-auto-protected-'),
+        );
+        try {
+          process.argv[process.argv.indexOf('--workdir') + 1] = directory;
+          state.start = {
+            ...state.start,
+            permissionMode: 'allow-edits',
+            autoMode: true,
+          };
+          await import('./index');
+          const hook = (
+            state.queryArgs[0]!.options.hooks as {
+              PreToolUse: Array<{
+                matcher?: string;
+                hooks: Array<
+                  (
+                    input: Record<string, unknown>,
+                    id: string,
+                  ) => Promise<unknown>
+                >;
+              }>;
+            }
+          ).PreToolUse.find(entry => entry.matcher == null)!.hooks[0];
+          await expect(
+            hook(
+              {
+                hook_event_name: 'PreToolUse',
+                cwd: directory,
+                tool_name: toolName,
+                tool_input:
+                  file == null
+                    ? { command: 'echo hi' }
+                    : { file_path: path.join(directory, file) },
+              },
+              'auto-call',
+            ),
+          ).resolves.toEqual(
+            deferred
+              ? {
+                  hookSpecificOutput: {
+                    hookEventName: 'PreToolUse',
+                    permissionDecision: 'defer',
+                  },
+                }
+              : {},
+          );
+        } finally {
+          await rm(directory, { recursive: true, force: true });
+        }
       },
     );
 
@@ -2394,6 +2586,142 @@ describe('Claude Code bridge configuration', () => {
         providerExecuted: false,
       },
     ]);
+  });
+
+  test('sends a host tool call the main agent repeats after a subagent made the same call', async () => {
+    state.start.tools = [
+      { name: 'list_people', inputSchema: { type: 'object', properties: {} } },
+    ];
+    // The host answers only the calls it was sent.
+    const sentToHost = (toolCallId: unknown) =>
+      state.emitted.some(
+        event =>
+          event.type === 'tool-call' &&
+          event.providerExecuted === false &&
+          event.toolCallId === toolCallId,
+      );
+    state.requestToolResult = toolCallId =>
+      sentToHost(toolCallId)
+        ? Promise.resolve({ output: [] })
+        : new Promise(() => {});
+    const callListPeople = (toolUseId: string) =>
+      Promise.race([
+        state.toolHandlers.get('list_people')!(
+          {},
+          {
+            requestId: toolUseId,
+            _meta: { 'claudecode/toolUseId': toolUseId },
+          },
+        ),
+        new Promise(resolve => setTimeout(() => resolve('unanswered'), 200)),
+      ]);
+    const toolUse = (id: string, name: string, parent: string | null) => ({
+      type: 'assistant',
+      parent_tool_use_id: parent,
+      message: {
+        role: 'assistant',
+        content: [{ type: 'tool_use', id, name, input: {} }],
+      },
+    });
+    const toolResult = (id: string, parent: string | null) => ({
+      type: 'user',
+      parent_tool_use_id: parent,
+      message: {
+        role: 'user',
+        content: [{ type: 'tool_result', tool_use_id: id, content: '[]' }],
+      },
+    });
+    const results: Record<string, unknown> = {};
+    state.createQuery = () =>
+      (async function* () {
+        yield toolUse('agent-1', 'Agent', null);
+        // A subagent's messages carry its parent tool use and are forwarded raw.
+        yield toolUse(
+          'subagent-call',
+          'mcp__harness-tools__list_people',
+          'agent-1',
+        );
+        results.subagent = await callListPeople('subagent-call');
+        yield toolResult('subagent-call', 'agent-1');
+        yield toolResult('agent-1', null);
+        // The main agent then makes the same call with the same input.
+        yield toolUse('agent-call', 'mcp__harness-tools__list_people', null);
+        results.agent = await callListPeople('agent-call');
+        yield toolResult('agent-call', null);
+        yield { type: 'result', subtype: 'success', result: 'done' };
+      })();
+
+    await import('./index');
+
+    expect(
+      state.emitted
+        .filter(
+          event =>
+            event.type === 'tool-call' && event.toolName === 'list_people',
+        )
+        .map(event => event.toolCallId),
+    ).toEqual(['subagent-call', 'agent-call']);
+    expect(results.agent).not.toBe('unanswered');
+    expect(results.agent).toEqual(results.subagent);
+  });
+
+  test('runs a host tool call once when its handler runs first under another id', async () => {
+    state.start.tools = [
+      { name: 'list_people', inputSchema: { type: 'object', properties: {} } },
+    ];
+    let handlerResult: unknown;
+    state.createQuery = () =>
+      (async function* () {
+        handlerResult = await state.toolHandlers.get('list_people')!(
+          {},
+          {
+            requestId: 'request-1',
+            _meta: { 'claudecode/toolUseId': 'handler-id' },
+          },
+        );
+        yield {
+          type: 'assistant',
+          parent_tool_use_id: null,
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool_use',
+                id: 'reported-id',
+                name: 'mcp__harness-tools__list_people',
+                input: {},
+              },
+            ],
+          },
+        };
+        yield {
+          type: 'user',
+          parent_tool_use_id: null,
+          message: {
+            role: 'user',
+            content: [
+              {
+                type: 'tool_result',
+                tool_use_id: 'reported-id',
+                content: '{}',
+              },
+            ],
+          },
+        };
+        yield { type: 'result', subtype: 'success', result: 'done' };
+      })();
+
+    await import('./index');
+
+    expect(
+      state.emitted
+        .filter(event => event.type === 'tool-call')
+        .map(event => event.toolCallId),
+    ).toEqual(['handler-id']);
+    expect(handlerResult).toEqual({
+      content: [{ type: 'text', text: '{}' }],
+      isError: undefined,
+    });
   });
 
   test.each([

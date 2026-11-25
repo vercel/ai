@@ -1,5 +1,43 @@
 # @ai-sdk/quiverai
 
+## 2.0.85
+
+### Patch Changes
+
+- Updated dependencies [1d2c2ff]
+  - @ai-sdk/provider-utils@5.0.83
+  - @ai-sdk/open-responses@2.0.89
+
+## 2.0.84
+
+### Patch Changes
+
+- Updated dependencies [10ff0b1]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/provider@4.0.39
+  - @ai-sdk/provider-utils@5.0.82
+  - @ai-sdk/open-responses@2.0.88
+
+## 2.0.83
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+  - @ai-sdk/open-responses@2.0.87
+
+## 2.0.82
+
+### Patch Changes
+
+- 8ee1a11: Centralize QuiverAI language and image model IDs, editing and animation restrictions, capabilities, and provider option metadata in a model catalog.
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+  - @ai-sdk/open-responses@2.0.86
+
 ## 2.0.81
 
 ### Patch Changes
