@@ -48,10 +48,6 @@ export const config = defineConfig({
   // No edit-source action yet. Upstream content still uses `NN-` filename
   // prefixes, so page paths here don't match source paths. Enable once the
   // content codemod lands on `main`.
-  // Package defaults for copyPage/askAI/openInChat/scrollTop apply; only
-  // edit-source stays off. Upstream content still uses `NN-` filename
-  // prefixes, so page paths here don't match source paths. Enable once the
-  // content codemod lands on `main`.
   pageActions: {
     editSource: false,
   },
