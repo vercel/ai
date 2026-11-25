@@ -14,6 +14,17 @@ export type BrowserRealtimeAudioOptions = {
   onError?: (error: Error) => void;
 };
 
+/**
+ * One scheduled chunk of output audio. `itemOffset` is how much audio of the
+ * same item (in seconds) was scheduled before this chunk.
+ */
+type ScheduledPlayback = {
+  itemId: string | undefined;
+  startTime: number;
+  endTime: number;
+  itemOffset: number;
+};
+
 export class BrowserRealtimeAudio {
   private readonly captureSampleRate: number;
   private readonly playbackSampleRate: number;
@@ -30,10 +41,14 @@ export class BrowserRealtimeAudio {
   private captureGeneration = 0;
 
   private playbackContext: AudioContext | null = null;
-  private playbackQueue: Float32Array[] = [];
+  private playbackQueue: Array<{
+    samples: Float32Array;
+    itemId: string | undefined;
+  }> = [];
   private playbackTime = 0;
-  private playbackStartTime = 0;
-  private activeSources = new Set<AudioBufferSourceNode>();
+  private activeSources = new Map<AudioBufferSourceNode, ScheduledPlayback>();
+  private lastEndedPlayback: ScheduledPlayback | undefined;
+  private scheduledItem: { id: string; seconds: number } | undefined;
   private isPlaying = false;
   private playbackPaused = false;
   private readonly maxPlaybackSeconds: number;
@@ -157,7 +172,7 @@ export class BrowserRealtimeAudio {
     this.onCapturingChange(false);
   }
 
-  playAudio(base64Audio: string): void {
+  playAudio(base64Audio: string, itemId?: string): void {
     if (this.playbackPaused) return;
     this.ensurePlaybackContext();
     const samples = decodeRealtimeAudio(base64Audio);
@@ -178,14 +193,14 @@ export class BrowserRealtimeAudio {
       );
       return;
     }
-    this.playbackQueue.push(samples);
+    this.playbackQueue.push({ samples, itemId });
     this.schedulePlayback();
   }
 
   stopPlayback(): void {
     this.playbackQueue = [];
 
-    for (const source of this.activeSources) {
+    for (const source of this.activeSources.keys()) {
       try {
         source.onended = null;
         source.stop();
@@ -195,6 +210,7 @@ export class BrowserRealtimeAudio {
       }
     }
     this.activeSources.clear();
+    this.lastEndedPlayback = undefined;
 
     if (this.playbackContext != null) {
       this.playbackTime = this.playbackContext.currentTime;
@@ -202,10 +218,38 @@ export class BrowserRealtimeAudio {
     this.setPlaying(false);
   }
 
-  getPlaybackOffsetMs(): number {
+  /**
+   * The item the user is currently hearing and how far into that item
+   * playback is.
+   */
+  getPlaybackPosition(): { itemId: string; offsetMs: number } | undefined {
     const ctx = this.playbackContext;
-    if (ctx == null) return 0;
-    return (ctx.currentTime - this.playbackStartTime) * 1000;
+    if (ctx == null) return undefined;
+    const now = ctx.currentTime;
+
+    // latest chunk that has started.
+    let current = this.lastEndedPlayback;
+    let earliest: ScheduledPlayback | undefined;
+    for (const playback of this.activeSources.values()) {
+      if (earliest == null || playback.startTime < earliest.startTime)
+        earliest = playback;
+      if (
+        playback.startTime <= now &&
+        (current == null || playback.startTime >= current.startTime)
+      )
+        current = playback;
+    }
+    current ??= earliest;
+    if (current?.itemId == null) return undefined;
+
+    const played = Math.min(
+      Math.max(now - current.startTime, 0),
+      current.endTime - current.startTime,
+    );
+    return {
+      itemId: current.itemId,
+      offsetMs: (current.itemOffset + played) * 1000,
+    };
   }
 
   dispose(): void {
@@ -215,13 +259,11 @@ export class BrowserRealtimeAudio {
     void this.playbackContext?.close().catch(() => {});
     this.playbackContext = null;
     this.playbackTime = 0;
+    this.scheduledItem = undefined;
     this.playbackPaused = false;
   }
 
   private setPlaying(isPlaying: boolean): void {
-    if (isPlaying && !this.isPlaying) {
-      this.playbackStartTime = this.playbackContext?.currentTime ?? 0;
-    }
     if (this.isPlaying !== isPlaying) {
       this.isPlaying = isPlaying;
       this.onPlayingChange(isPlaying);
@@ -233,7 +275,7 @@ export class BrowserRealtimeAudio {
     if (ctx == null || this.playbackQueue.length === 0) return;
 
     while (this.playbackQueue.length > 0) {
-      const samples = this.playbackQueue.shift()!;
+      const { samples, itemId } = this.playbackQueue.shift()!;
       const buffer = ctx.createBuffer(
         1,
         samples.length,
@@ -249,13 +291,33 @@ export class BrowserRealtimeAudio {
       source.start(startTime);
       this.playbackTime = startTime + buffer.duration;
 
-      this.activeSources.add(source);
+      const itemOffset =
+        itemId != null && this.scheduledItem?.id === itemId
+          ? this.scheduledItem.seconds
+          : 0;
+      if (itemId != null)
+        this.scheduledItem = {
+          id: itemId,
+          seconds: itemOffset + buffer.duration,
+        };
+      const playback: ScheduledPlayback = {
+        itemId,
+        startTime,
+        endTime: this.playbackTime,
+        itemOffset,
+      };
+      this.activeSources.set(source, playback);
       this.setPlaying(ctx.state === 'running');
       if (this.playbackContext !== ctx) return;
 
       source.onended = () => {
         source.disconnect();
         this.activeSources.delete(source);
+        if (
+          this.lastEndedPlayback == null ||
+          playback.startTime > this.lastEndedPlayback.startTime
+        )
+          this.lastEndedPlayback = playback;
         if (this.playbackQueue.length === 0 && this.activeSources.size === 0) {
           this.setPlaying(false);
         }

@@ -478,6 +478,92 @@ describe('client-delegation runtime correctness', () => {
     expect(onError).not.toHaveBeenCalled();
   });
 
+  describe('barge-in truncation with queued items', () => {
+    const audioDelta = (itemId: string, seconds: number) =>
+      emit({
+        type: 'audio-delta',
+        responseId: 'response',
+        itemId,
+        delta: encodeRealtimeAudio(
+          new Float32Array(Math.round(seconds * 24000)),
+        ),
+        raw: {},
+      });
+
+    const setup = async () => {
+      const onError = vi.fn();
+      const session = create({
+        model: legacyModel(),
+        api: { token: '/token' },
+        onError,
+      });
+      await ready(session, true);
+      const playback = FakeAudioContext.instances[0];
+      playback.state = 'running';
+      return { playback, onError };
+    };
+
+    it('truncates the answer at its own offset when interrupted near its end', async () => {
+      const { playback, onError } = await setup();
+      await audioDelta('preamble', 1.5);
+      await audioDelta('answer', 12.95);
+      playback.currentTime = 1.5 + 12.457;
+      await emit({ type: 'speech-started', raw: {} });
+      expect(socket().sent.at(-1)).toEqual({
+        type: 'conversation-item-truncate',
+        itemId: 'answer',
+        contentIndex: 0,
+        audioEndMs: 12457,
+      });
+      expect(onError).not.toHaveBeenCalled();
+    });
+
+    it('truncates the item that is playing, not the most recently received one', async () => {
+      const { playback } = await setup();
+      await audioDelta('preamble', 1.5);
+      await audioDelta('answer', 12.95);
+      playback.currentTime = 1;
+      await emit({ type: 'speech-started', raw: {} });
+      expect(socket().sent.at(-1)).toEqual({
+        type: 'conversation-item-truncate',
+        itemId: 'preamble',
+        contentIndex: 0,
+        audioEndMs: 1000,
+      });
+    });
+
+    it('accumulates the offset across chunks of the playing item only', async () => {
+      const { playback } = await setup();
+      await audioDelta('preamble', 1.5);
+      for (let index = 0; index < 4; index++) await audioDelta('answer', 1);
+      playback.currentTime = 1.5 + 2.5;
+      await emit({ type: 'speech-started', raw: {} });
+      expect(socket().sent.at(-1)).toEqual({
+        type: 'conversation-item-truncate',
+        itemId: 'answer',
+        contentIndex: 0,
+        audioEndMs: 2500,
+      });
+    });
+
+    it('keeps the item offset when playback underruns mid-item', async () => {
+      const { playback } = await setup();
+      await audioDelta('answer', 1);
+      playback.currentTime = 1.2;
+      playback.sources[0].onended?.();
+      await audioDelta('answer', 1);
+      expect(playback.sources[1].start).toHaveBeenCalledWith(1.2);
+      playback.currentTime = 1.7;
+      await emit({ type: 'speech-started', raw: {} });
+      expect(socket().sent.at(-1)).toEqual({
+        type: 'conversation-item-truncate',
+        itemId: 'answer',
+        contentIndex: 0,
+        audioEndMs: 1500,
+      });
+    });
+  });
+
   it('rejects a legacy playback budget before token or browser effects', async () => {
     const onError = vi.fn();
     await create({
