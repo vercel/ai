@@ -154,20 +154,63 @@ export function toUIMessageChunk(
       };
     }
 
-    case 'tool-result':
+    case 'tool-result': {
+      const toolResultPart = part as typeof part & {
+        toolMetadata?: Record<string, unknown>;
+      };
       return {
         type: 'tool-output-available',
         toolCallId: part.toolCallId,
-        output: part.output,
+        // UI stream chunks are serialized as JSON, which drops undefined
+        // properties. Use null so tool outputs always keep the output field.
+        output: part.output === undefined ? null : part.output,
+        ...(part.providerExecuted != null
+          ? { providerExecuted: part.providerExecuted }
+          : {}),
+        ...(part.providerMetadata != null
+          ? { providerMetadata: part.providerMetadata }
+          : {}),
+        ...(toolResultPart.toolMetadata != null
+          ? { toolMetadata: toolResultPart.toolMetadata }
+          : {}),
+        ...(part.preliminary != null ? { preliminary: part.preliminary } : {}),
+        ...(part.dynamic != null ? { dynamic: part.dynamic } : {}),
       };
+    }
 
-    case 'tool-error':
+    case 'tool-error': {
+      const toolErrorPart = part as typeof part & {
+        providerExecuted?: boolean;
+        providerMetadata?: UIMessageChunk extends { providerMetadata?: infer M }
+          ? M
+          : never;
+        toolMetadata?: Record<string, unknown>;
+        dynamic?: boolean;
+      };
       return {
         type: 'tool-output-error',
         toolCallId: part.toolCallId,
-        errorText:
-          part.error instanceof Error ? part.error.message : String(part.error),
+        errorText: toolErrorPart.providerExecuted
+          ? typeof part.error === 'string'
+            ? part.error
+            : JSON.stringify(part.error)
+          : part.error instanceof Error
+            ? part.error.message
+            : String(part.error),
+        ...(toolErrorPart.providerExecuted != null
+          ? { providerExecuted: toolErrorPart.providerExecuted }
+          : {}),
+        ...(toolErrorPart.providerMetadata != null
+          ? { providerMetadata: toolErrorPart.providerMetadata }
+          : {}),
+        ...(toolErrorPart.toolMetadata != null
+          ? { toolMetadata: toolErrorPart.toolMetadata }
+          : {}),
+        ...(toolErrorPart.dynamic != null
+          ? { dynamic: toolErrorPart.dynamic }
+          : {}),
       };
+    }
 
     case 'error': {
       const error = part.error;

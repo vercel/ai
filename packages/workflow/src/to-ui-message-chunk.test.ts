@@ -264,3 +264,79 @@ describe('workflow signed tool approvals', () => {
     });
   });
 });
+
+describe('workflow tool-result and tool-error UI chunk metadata', () => {
+  it('preserves providerExecuted, providerMetadata, preliminary, dynamic, and normalizes undefined output to null on tool-result', () => {
+    expect(
+      toUIMessageChunk({
+        type: 'tool-result',
+        toolCallId: 'call-1',
+        toolName: 'image_generation',
+        input: { prompt: 'cat' },
+        output: { result: 'partial-b64' },
+        providerExecuted: true,
+        providerMetadata: { openai: { itemId: 'ig_123' } },
+        preliminary: true,
+        dynamic: true,
+      }),
+    ).toEqual({
+      type: 'tool-output-available',
+      toolCallId: 'call-1',
+      output: { result: 'partial-b64' },
+      providerExecuted: true,
+      providerMetadata: { openai: { itemId: 'ig_123' } },
+      preliminary: true,
+      dynamic: true,
+    });
+
+    expect(
+      toUIMessageChunk({
+        type: 'tool-result',
+        toolCallId: 'call-2',
+        toolName: 'noop',
+        input: {},
+        output: undefined,
+      }),
+    ).toEqual({
+      type: 'tool-output-available',
+      toolCallId: 'call-2',
+      output: null,
+    });
+  });
+
+  it('preserves providerExecuted, providerMetadata, dynamic, and JSON-serializes object errors for provider-executed tool-error', () => {
+    expect(
+      toUIMessageChunk({
+        type: 'tool-error',
+        toolCallId: 'call-3',
+        toolName: 'web_search',
+        input: { query: 'test' },
+        error: { code: 'rate_limit', message: 'Too many requests' },
+        providerExecuted: true,
+        providerMetadata: { anthropic: { requestId: 'req_1' } },
+        dynamic: true,
+      } as ModelCallStreamPart),
+    ).toEqual({
+      type: 'tool-output-error',
+      toolCallId: 'call-3',
+      errorText: '{"code":"rate_limit","message":"Too many requests"}',
+      providerExecuted: true,
+      providerMetadata: { anthropic: { requestId: 'req_1' } },
+      dynamic: true,
+    });
+
+    expect(
+      toUIMessageChunk({
+        type: 'tool-error',
+        toolCallId: 'call-4',
+        toolName: 'local_tool',
+        input: {},
+        error: new Error('boom'),
+      }),
+    ).toEqual({
+      type: 'tool-output-error',
+      toolCallId: 'call-4',
+      errorText: 'boom',
+    });
+  });
+});
