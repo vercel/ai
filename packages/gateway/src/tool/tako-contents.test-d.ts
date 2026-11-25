@@ -5,6 +5,7 @@ import type { GatewayToolError } from './gateway-tool-error';
 import type {
   TakoContentItem,
   TakoContentsCell,
+  TakoContentsColumnType,
   TakoContentsConfig,
   TakoContentsInput,
   TakoContentsOutput,
@@ -67,18 +68,44 @@ expectTypeOf<Array<{ a: number }>>().toMatchTypeOf<TakoContentsCell>();
 expectTypeOf<
   NonNullable<TakoContentItem['records']>[number]['any']
 >().toEqualTypeOf<TakoContentsCell>();
-expectTypeOf<
-  NonNullable<TakoContentItem['dataset']>['columns'][number]['type']
->().toEqualTypeOf<
-  'array' | 'boolean' | 'date' | 'datetime' | 'number' | 'string'
+type Dataset = NonNullable<TakoContentItem['dataset']>;
+expectTypeOf<Dataset['columns'][number]['type']>().toEqualTypeOf<
+  | 'array'
+  | 'boolean'
+  | 'date'
+  | 'datetime'
+  | 'number'
+  | 'string'
+  | (string & {})
 >();
+expectTypeOf<
+  Extract<Dataset['columns'][number]['type'], 'array'>
+>().toEqualTypeOf<'array'>();
+expectTypeOf<
+  NonNullable<TakoContentItem['manifest']>[number]['dtype']
+>().toEqualTypeOf<TakoContentsColumnType | null | undefined>();
+expectTypeOf<Dataset['sources'][number]['index']>().toEqualTypeOf<
+  'data' | 'web' | (string & {}) | undefined
+>();
+expectTypeOf<
+  Extract<Dataset['sources'][number]['index'], 'web'>
+>().toEqualTypeOf<'web'>();
+expectTypeOf<Dataset['provenance']>().toEqualTypeOf<
+  'query' | 'web_extraction' | (string & {}) | undefined
+>();
+expectTypeOf<
+  Extract<Dataset['provenance'], 'web_extraction'>
+>().toEqualTypeOf<'web_extraction'>();
 expectTypeOf<
   NonNullable<TakoContentItem['manifest']>[number]['premium_class']
 >().toEqualTypeOf<string | null | undefined>();
 expectTypeOf<TakoContentItem['source_url']>().toEqualTypeOf<string>();
 expectTypeOf<TakoContentItem['delivery']>().toEqualTypeOf<
-  'inline' | 'quote' | 'url' | undefined
+  'inline' | 'quote' | 'url' | (string & {}) | undefined
 >();
+expectTypeOf<
+  Extract<TakoContentItem['delivery'], 'quote'>
+>().toEqualTypeOf<'quote'>();
 expectTypeOf<TakoContentItem['offset']>().toEqualTypeOf<
   number | null | undefined
 >();

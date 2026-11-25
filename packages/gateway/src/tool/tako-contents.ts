@@ -82,13 +82,15 @@ export type TakoContentsCell =
   | null
   | Array<Record<string, unknown>>;
 
+/** A card column type. Tako may add types, so any string is accepted. */
 export type TakoContentsColumnType =
   | 'array'
   | 'boolean'
   | 'date'
   | 'datetime'
   | 'number'
-  | 'string';
+  | 'string'
+  | (string & {});
 
 export interface TakoContentsInput {
   url: string;
@@ -125,9 +127,9 @@ export interface TakoContentItem extends Omit<
     ref: string;
     sources: Array<{
       name: string;
-      index?: 'data' | 'web';
+      index?: 'data' | 'web' | (string & {});
     }>;
-    provenance?: 'query' | 'web_extraction';
+    provenance?: 'query' | 'web_extraction' | (string & {});
   } | null;
   manifest?: Array<{
     dtype?: TakoContentsColumnType | null;
@@ -140,8 +142,11 @@ export interface TakoContentItem extends Omit<
   }> | null;
   /** The URL the call fetched. */
   source_url: string;
-  /** How Tako answered: a `quote` (its cost is a price, not a charge), or the content. */
-  delivery?: 'inline' | 'quote' | 'url';
+  /**
+   * How Tako answered: a `quote` (its cost is a price, not a charge), or the
+   * content. New values may be added.
+   */
+  delivery?: 'inline' | 'quote' | 'url' | (string & {});
   /** Describes the whole card, not only the delivered rows. Null for a web page; may be null on a quote. */
   description?: string | null;
   /** The request's offset, echoed on a card export. */
@@ -226,8 +231,9 @@ const takoContentsInputSchema = lazySchema(() =>
   ),
 );
 
-const columnTypeSchema = () =>
-  z.enum(['array', 'boolean', 'date', 'datetime', 'number', 'string']);
+// Output values Tako or the gateway may extend are plain strings at runtime,
+// so stored tool results keep validating when a new value appears.
+const columnTypeSchema = () => z.string();
 
 const cellSchema = () =>
   z.nullable(
@@ -260,10 +266,10 @@ const takoContentItemSchema = () =>
           sources: z.array(
             z.object({
               name: z.string(),
-              index: z.optional(z.enum(['data', 'web'])),
+              index: z.optional(z.string()),
             }),
           ),
-          provenance: z.optional(z.enum(['query', 'web_extraction'])),
+          provenance: z.optional(z.string()),
         }),
         z.unknown(),
       ),
@@ -284,7 +290,7 @@ const takoContentItemSchema = () =>
       ),
     ),
     source_url: z.string(),
-    delivery: z.optional(z.enum(['inline', 'quote', 'url'])),
+    delivery: z.optional(z.string()),
     description: z.nullish(z.string()),
     offset: z.nullish(z.number()),
     premium: z.optional(z.boolean()),

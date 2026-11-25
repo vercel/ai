@@ -313,12 +313,43 @@ describe('takoContents', () => {
     expect(result.success).toBe(false);
   });
 
-  it('rejects an unknown delivery', async () => {
+  it('accepts an unknown delivery', async () => {
     const value = cardExport();
     Object.assign(value.contents[0], { delivery: 'email' });
 
     const result = await validateOutput(value);
 
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.value).toEqual(value);
+  });
+
+  it('accepts unknown column types, dtypes, source indexes and provenance', async () => {
+    const value = {
+      request_id: 'contents-9',
+      contents: [
+        {
+          source_url: 'https://tako.com/card/abc/',
+          delivery: 'inline',
+          content_format: 'json_compact',
+          total_rows: 1,
+          truncated: false,
+          manifest: [{ name: 'Location', dtype: 'geo_point' }],
+          dataset: {
+            columns: [{ name: 'Location', type: 'geo_point' }],
+            rows: [['37.77,-122.42']],
+            total_rows: 1,
+            truncated: false,
+            ref: 'https://tako.com/card/abc/',
+            sources: [{ name: 'Example Source', index: 'archive' }],
+            provenance: 'partner_feed',
+          },
+        },
+      ],
+    };
+
+    const result = await validateOutput(value);
+
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.value).toEqual(value);
   });
 });

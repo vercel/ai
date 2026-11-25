@@ -1556,7 +1556,7 @@ The model can also set these per call:
 - **highlights** _object_ - Return only the passages of a web page that answer `highlights.query`, instead of its full text. `highlights.max_characters` caps the passages, defaulting to 4,000 characters; `maxChars` doesn't apply to them.
 - **quote_only** _boolean_ - Return only the price of the export, without fetching content or charging for it. The item's `delivery` is `'quote'`, its `cost` is a price rather than a charge, and its payload and `url` fields are `null`.
 
-Each tool result contains a `request_id`, an optional `contents` array that normally holds one item, and, when Tako reports it, a `usage` object whose `total_cost_usd` is the call's charge. Each item carries the requested `source_url`, a `delivery` of `'inline'`, `'url'`, or `'quote'`, and the content fields Tako Search uses for a card's `content`. Card data can also include `array` columns, whose cells are arrays of objects, and `manifest` entries mark premium columns with `premium_class`.
+Each tool result contains a `request_id`, an optional `contents` array that normally holds one item, and, when Tako reports it, a `usage` object whose `total_cost_usd` is the call's charge. Each item carries the requested `source_url`, a `delivery` (currently `'inline'`, `'url'`, or `'quote'`; new values may be added), and the content fields Tako Search uses for a card's `content`. Card data can also include `array` columns, whose cells are arrays of objects, and `manifest` entries mark premium columns with `premium_class`.
 
 Tool failures, including a call refused by `maxCostUsd`, appear as `tool-error` parts in `result.content` (for `generateText`) or `result.stream` (for `streamText`).
 
