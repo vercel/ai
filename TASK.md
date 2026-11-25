@@ -126,7 +126,11 @@ The steps are below:
 - A stream is not a per-turn construct: the session's World stream already spans all turns. The result keeps reading past its turn's `finish` part into the turns of follow-up prompts, instead of ending at its own turn's `finish`.
 - This does not merge turns: each follow-up prompt still starts its own turn. No `HarnessV2` change.
 
-24. [ ] Allow undelivered steering messages after a turn to become the next turn's prompt.
+24. [ ] Add support for steering (`steer` submissions) to the new `HarnessAgent` and the two adapters (`packages/harness-pi-v2` and `packages/harness-fx-v2`).
+
+- Expose steering on the new `HarnessAgent` (and wire it through the v1/v2 proxy in `harness-agent.ts`), appending a `steer` submission to the session's log.
+- Have both adapters observe waiting `steer` submissions during a running turn, inject them at the next safe point, and record their delivery in `deliveredSubmissionIds`.
+- Allow undelivered steering messages after a turn to become the next turn's prompt.
 
 25. [ ] Implement `packages/harness-ai-sdk`, a new custom AI SDK harness where developers build their own durable `HarnessAgent` compatible harness on top of `ToolLoopAgent`.
 
