@@ -251,7 +251,8 @@ export type StreamTextInclude = {
  * has not received yet are dropped, running tool executions are aborted, and no further
  * steps are started. The stream is then ended with closing parts for open text,
  * reasoning, and tool input parts, followed by `finish-step` and `finish` parts that
- * use the given finish reason (default: `other`).
+ * use the given finish reason (default: `other`). After calling `stopStream`, the
+ * transformation only receives these parts and should pass them on.
  * @param tools - The tools that are accessible to and can be called by the model. The model needs to support calling tools.
  */
 export type StreamTextTransform<TOOLS extends ToolSet> = (options: {
@@ -1272,6 +1273,82 @@ function createOutputTransformStream<
   });
 }
 
+/**
+ * Tracks the open text, reasoning, and tool input parts and whether a step is
+ * open, so that a stopped stream can be ended with well-formed parts.
+ */
+function createOpenPartTracker<TOOLS extends ToolSet>() {
+  const openTextIds = new Set<string>();
+  const openReasoningIds = new Set<string>();
+  const openToolInputIds = new Set<string>();
+  let isStepOpen = false;
+
+  return {
+    track(part: TextStreamPart<TOOLS>) {
+      switch (part.type) {
+        case 'text-start':
+          openTextIds.add(part.id);
+          break;
+        case 'text-end':
+          openTextIds.delete(part.id);
+          break;
+        case 'reasoning-start':
+          openReasoningIds.add(part.id);
+          break;
+        case 'reasoning-end':
+          openReasoningIds.delete(part.id);
+          break;
+        case 'tool-input-start':
+          openToolInputIds.add(part.id);
+          break;
+        case 'tool-input-end':
+          openToolInputIds.delete(part.id);
+          break;
+        case 'start-step':
+          isStepOpen = true;
+          break;
+        case 'finish-step':
+          isStepOpen = false;
+          break;
+      }
+    },
+
+    isStepOpen: () => isStepOpen,
+
+    /** Whether the part ends an open part, the open step, or the stream. */
+    isClosingPart(part: TextStreamPart<TOOLS>): boolean {
+      switch (part.type) {
+        case 'text-end':
+          return openTextIds.has(part.id);
+        case 'reasoning-end':
+          return openReasoningIds.has(part.id);
+        case 'tool-input-end':
+          return openToolInputIds.has(part.id);
+        case 'finish-step':
+          return isStepOpen;
+        case 'finish':
+          return true;
+        default:
+          return false;
+      }
+    },
+
+    createClosingParts(): Array<TextStreamPart<TOOLS>> {
+      return [
+        ...Array.from(openTextIds, id => ({ type: 'text-end' as const, id })),
+        ...Array.from(openReasoningIds, id => ({
+          type: 'reasoning-end' as const,
+          id,
+        })),
+        ...Array.from(openToolInputIds, id => ({
+          type: 'tool-input-end' as const,
+          id,
+        })),
+      ];
+    },
+  };
+}
+
 function applyStreamTextTransforms<TOOLS extends ToolSet>({
   stream,
   transforms,
@@ -1297,40 +1374,8 @@ function applyStreamTextTransforms<TOOLS extends ToolSet>({
 
   // Track the parts that entered the transforms, so that a stopped stream
   // can be ended with well-formed parts:
-  const openTextIds = new Set<string>();
-  const openReasoningIds = new Set<string>();
-  const openToolInputIds = new Set<string>();
-  let isStepOpen = false;
+  const sourceParts = createOpenPartTracker<TOOLS>();
   let stopFinishReason: FinishReason | undefined;
-
-  const trackPart = (part: TextStreamPart<TOOLS>) => {
-    switch (part.type) {
-      case 'text-start':
-        openTextIds.add(part.id);
-        break;
-      case 'text-end':
-        openTextIds.delete(part.id);
-        break;
-      case 'reasoning-start':
-        openReasoningIds.add(part.id);
-        break;
-      case 'reasoning-end':
-        openReasoningIds.delete(part.id);
-        break;
-      case 'tool-input-start':
-        openToolInputIds.add(part.id);
-        break;
-      case 'tool-input-end':
-        openToolInputIds.delete(part.id);
-        break;
-      case 'start-step':
-        isStepOpen = true;
-        break;
-      case 'finish-step':
-        isStepOpen = false;
-        break;
-    }
-  };
 
   const stopStream = ({
     finishReason = 'other',
@@ -1348,18 +1393,12 @@ function applyStreamTextTransforms<TOOLS extends ToolSet>({
   const enqueueStopParts = (
     controller: ReadableStreamDefaultController<TextStreamPart<TOOLS>>,
   ) => {
-    for (const id of openTextIds) {
-      controller.enqueue({ type: 'text-end', id });
-    }
-    for (const id of openReasoningIds) {
-      controller.enqueue({ type: 'reasoning-end', id });
-    }
-    for (const id of openToolInputIds) {
-      controller.enqueue({ type: 'tool-input-end', id });
+    for (const part of sourceParts.createClosingParts()) {
+      controller.enqueue(part);
     }
     for (const part of createStopParts({
       finishReason: stopFinishReason ?? 'other',
-      isStepOpen,
+      isStepOpen: sourceParts.isStepOpen(),
     })) {
       controller.enqueue(part);
     }
@@ -1397,7 +1436,7 @@ function applyStreamTextTransforms<TOOLS extends ToolSet>({
             return;
           }
 
-          trackPart(value);
+          sourceParts.track(value);
           controller.enqueue(value);
         },
         cancel(reason) {
@@ -1410,12 +1449,34 @@ function applyStreamTextTransforms<TOOLS extends ToolSet>({
     );
 
     for (const transform of transforms) {
-      segment = segment.pipeThrough(
-        transform({
-          tools,
-          stopStream,
-        }),
-      );
+      // Once a transform stops the stream, it only receives the parts that
+      // end it. Earlier transforms can still emit parts that they buffered
+      // (e.g. smoothStream), and these parts are dropped here:
+      const receivedParts = createOpenPartTracker<TOOLS>();
+      let hasStopped = false;
+
+      segment = segment
+        .pipeThrough(
+          new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
+            transform(part, controller) {
+              if (hasStopped && !receivedParts.isClosingPart(part)) {
+                return;
+              }
+
+              receivedParts.track(part);
+              controller.enqueue(part);
+            },
+          }),
+        )
+        .pipeThrough(
+          transform({
+            tools,
+            stopStream(options) {
+              hasStopped = true;
+              stopStream(options);
+            },
+          }),
+        );
     }
 
     return segment.getReader();

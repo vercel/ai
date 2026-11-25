@@ -70,6 +70,7 @@ import { readUIMessageStream } from '../ui-message-stream/read-ui-message-stream
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
 import type { UIMessage } from '../ui/ui-messages';
 import { validateUIMessages } from '../ui/validate-ui-messages';
+import { smoothStream } from './smooth-stream';
 import type { StepResult } from './step-result';
 import { isLoopFinished, isStepCount } from './stop-condition';
 import { streamText, type StreamTextTransform } from './stream-text';
@@ -22861,6 +22862,80 @@ describe('streamText', () => {
         ]);
       });
 
+      it('should drop parts that earlier transforms emit after the stop', async () => {
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello STOP secret' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          prompt: 'test-input',
+          // smoothStream still buffers 'secret' when the next transform stops:
+          experimental_transform: [
+            smoothStream({ delayInMs: null }),
+            stopOnText('STOP'),
+          ],
+        });
+
+        const parts = await convertAsyncIterableToArray(result.stream);
+
+        expect(parts.map(part => part.type)).toStrictEqual([
+          'start',
+          'start-step',
+          'text-start',
+          'text-delta',
+          'text-end',
+          'finish-step',
+          'finish',
+        ]);
+        expect(await result.text).toBe('Hello ');
+      });
+
+      it('should pass on parts that the stopping transform emits to later transforms', async () => {
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello ' },
+              { type: 'text-delta', id: '1', delta: 'STOP' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          prompt: 'test-input',
+          experimental_transform: [
+            ({ stopStream }) =>
+              new TransformStream({
+                transform(chunk, controller) {
+                  if (chunk.type === 'text-delta' && chunk.text === 'STOP') {
+                    controller.enqueue({ ...chunk, text: '[blocked]' });
+                    stopStream({ finishReason: 'content-filter' });
+                    return;
+                  }
+                  controller.enqueue(chunk);
+                },
+              }),
+            smoothStream({ delayInMs: null }),
+          ],
+        });
+
+        await result.consumeStream();
+
+        expect(await result.text).toBe('Hello [blocked]');
+        expect(await result.finishReason).toBe('content-filter');
+      });
+
       it('should include the usage of previous steps and not start another step', async () => {
         let doStreamCalls = 0;
 
@@ -22870,7 +22945,7 @@ describe('streamText', () => {
               doStreamCalls++;
 
               return {
-                stream: convertArrayToReadableStream(
+                stream: convertArrayToReadableStream<LanguageModelV4StreamPart>(
                   doStreamCalls === 1
                     ? [
                         {

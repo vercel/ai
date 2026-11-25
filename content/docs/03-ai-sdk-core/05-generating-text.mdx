@@ -604,12 +604,14 @@ This is e.g. useful if you want to stop the stream when model guardrails are vio
 
 When you invoke `stopStream`:
 
-- Parts that your transformation has not received yet are dropped, running tool executions are aborted, and no further steps are started.
+- Parts that your transformation has not received yet are dropped, including text that earlier transformations such as `smoothStream` still buffer.
+  Running tool executions are aborted, and no further steps are started.
 - The stream is ended with closing parts for open text, reasoning, and tool input parts, followed by `finish-step` and `finish` parts.
   The step contains the content that your transformations passed on, and the `onStepEnd` and `onEnd` callbacks are invoked.
 - The finish reason is `other`, unless you pass a different one, e.g. `stopStream({ finishReason: 'content-filter' })`.
 
-Your transformation should keep passing on the parts that it receives after calling `stopStream`, so that the stream ends with well-formed parts.
+After calling `stopStream`, your transformation only receives the parts that end the stream.
+Pass them on, so that the stream ends with well-formed parts.
 
 ```ts
 import { streamText, type StreamTextTransform, type ToolSet } from 'ai';
