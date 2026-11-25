@@ -2709,7 +2709,8 @@ Batch-level options go in `providerOptions.openai`:
 #### Provider Metadata
 
 The batch start result includes `providerMetadata.openai.inputFileId` and,
-when OpenAI reports it, `inputFileExpiresAt`. `experimental_getBatchStatus` and `experimental_listBatches` results include
+when OpenAI reports it, `inputFileExpiresAt`. `experimental_getBatchStatus` results, and each item in the `batches` array of
+`experimental_listBatches` results (not the page itself), include
 `providerMetadata.openai.outputFileId` and `errorFileId` once OpenAI has
 created those files; `experimental_startBatch` results do not. A reported file ID does not mean the file can still be
 downloaded: it may have expired or been deleted.
