@@ -25,6 +25,15 @@ import type { GatewayConfig } from './gateway-config';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 
+/**
+ * Maximum size of the result event: 512 * 1024 * 1024 characters.
+ *
+ * The result event contains all generated videos, which can be base64 encoded,
+ * so it can be much larger than the default maximum event size. The limit is
+ * about the maximum length of a string in V8.
+ */
+const MAX_RESULT_EVENT_SIZE = 512 * 1024 * 1024;
+
 export class GatewayVideoModel implements Experimental_VideoModelV3 {
   readonly specificationVersion = 'v3' as const;
   // Set a very large number to prevent client-side splitting of requests
@@ -122,6 +131,7 @@ export class GatewayVideoModel implements Experimental_VideoModelV3 {
           const eventStream = parseJsonEventStream({
             stream: response.body,
             schema: gatewayVideoEventSchema,
+            maxEventSize: MAX_RESULT_EVENT_SIZE,
           });
 
           const reader = eventStream.getReader();
