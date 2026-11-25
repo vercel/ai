@@ -66,6 +66,7 @@ const SERVER_EXIT_TIMEOUT_MS = 30_000;
 const APPROVAL_REQUEST_TIMEOUT_MS = 120_000;
 const TURN_END_TIMEOUT_MS = 180_000;
 const NO_CONTINUATION_CHECK_MS = 3_000;
+const KEEP_OPEN_AFTER_TURN_MS = 5_000;
 const POLL_INTERVAL_MS = 500;
 const BROWSER_COMMAND_TIMEOUT_MS = 60_000;
 const CHAT_INPUT = '[placeholder="Say something..."]';
@@ -337,10 +338,16 @@ function respondToApproval({
 }): void {
   const approvalId =
     part.approval?.id ?? fail(`Tool call ${part.toolCallId} has no approval.`);
-  browser([
-    'click',
-    `[data-approval-id="${approvalId}"][data-approval-response="${response}"]`,
-  ]);
+  const selector = `[data-approval-id="${approvalId}"][data-approval-response="${response}"]`;
+  /*
+   * The chat's input form is fixed to the bottom of the viewport. After a
+   * reload, the newest approval buttons can be scrolled behind it, so the
+   * button is centered before the browser checks its click point.
+   */
+  browser(['eval', '--stdin'], {
+    input: `document.querySelector(${JSON.stringify(selector)})?.scrollIntoView({ block: 'center' })`,
+  });
+  browser(['click', selector]);
 }
 
 function findCityPart({
@@ -660,7 +667,10 @@ async function verify(): Promise<void> {
       `Expected the approved Reykjavik call to have its output: ${JSON.stringify(secondFinished.weatherParts)}.`,
     );
   }
-  log('The second turn finished with the approved Reykjavik output.');
+  log(
+    `The second turn finished with the approved Reykjavik output. Keeping the page open for ${KEEP_OPEN_AFTER_TURN_MS / 1000}s.`,
+  );
+  await sleep(KEEP_OPEN_AFTER_TURN_MS);
 }
 
 async function cleanUp(): Promise<void> {
