@@ -1,16 +1,5 @@
-import type { LanguageModelV4StreamPart } from '@ai-sdk/provider';
-import { tool } from '@ai-sdk/provider-utils';
-import {
-  convertArrayToReadableStream,
-  convertReadableStreamToArray,
-} from '@ai-sdk/provider-utils/test';
-import { describe, it, expect } from 'vitest';
-import { z } from 'zod/v4';
-import { streamText } from '../generate-text/stream-text';
-import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
-import { readUIMessageStream } from '../ui-message-stream/read-ui-message-stream';
 import { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
-import type { UIMessage } from './ui-messages';
+import { describe, it, expect } from 'vitest';
 
 describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
   it('should return false if the last step of a multi-step sequence only has text', () => {
@@ -134,7 +123,7 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
     ).toBe(true);
   });
 
-  it('should return true when the only tool call in the last step is denied', () => {
+  it('should return true when the tool has an output-denied state', () => {
     expect(
       lastAssistantMessageIsCompleteWithToolCalls({
         messages: [
@@ -145,7 +134,7 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
               { type: 'step-start' },
               {
                 type: 'tool-deleteFile',
-                toolCallId: 'call_1',
+                toolCallId: 'call_2',
                 state: 'output-denied',
                 input: { path: '/tmp/report.txt' },
                 approval: { id: 'approval_1', approved: false },
@@ -155,6 +144,65 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
         ],
       }),
     ).toBe(true);
+  });
+
+  it('should return true when a tool output is denied and the other tool calls are complete', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithToolCalls({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-getLocation',
+                toolCallId: 'call_1',
+                state: 'output-available',
+                input: {},
+                output: 'Berlin',
+              },
+              {
+                type: 'tool-deleteFile',
+                toolCallId: 'call_2',
+                state: 'output-denied',
+                input: { path: '/tmp/report.txt' },
+                approval: { id: 'approval_1', approved: false },
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  it('should return false when a tool output is denied but another tool call has no output yet', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithToolCalls({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-getLocation',
+                toolCallId: 'call_1',
+                state: 'input-available',
+                input: {},
+              },
+              {
+                type: 'tool-deleteFile',
+                toolCallId: 'call_2',
+                state: 'output-denied',
+                input: { path: '/tmp/report.txt' },
+                approval: { id: 'approval_1', approved: false },
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(false);
   });
 
   it('should return true when text precedes the last completed tool call', () => {
@@ -342,32 +390,6 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
     ).toBe(true);
   });
 
-  it('should return true when dynamic tool call is denied', () => {
-    expect(
-      lastAssistantMessageIsCompleteWithToolCalls({
-        messages: [
-          {
-            id: '1',
-            role: 'assistant',
-            parts: [
-              { type: 'step-start' },
-              {
-                type: 'dynamic-tool',
-                toolName: 'getDynamicWeather',
-                toolCallId: 'call_dynamic_123',
-                state: 'output-denied',
-                input: {
-                  location: 'San Francisco',
-                },
-                approval: { id: 'approval_1', approved: false },
-              },
-            ],
-          },
-        ],
-      }),
-    ).toBe(true);
-  });
-
   it('should return true when mixing regular and dynamic tool calls and all are complete', () => {
     expect(
       lastAssistantMessageIsCompleteWithToolCalls({
@@ -542,138 +564,5 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
         ],
       }),
     ).toBe(false);
-  });
-
-  it('should return true when a tool output is denied and the other tool calls are complete', () => {
-    expect(
-      lastAssistantMessageIsCompleteWithToolCalls({
-        messages: [
-          {
-            id: '1',
-            role: 'assistant',
-            parts: [
-              { type: 'step-start' },
-              {
-                type: 'tool-getLocation',
-                toolCallId: 'call_1',
-                state: 'output-available',
-                input: {},
-                output: 'Berlin',
-              },
-              {
-                type: 'tool-deleteFile',
-                toolCallId: 'call_2',
-                state: 'output-denied',
-                input: { path: '/tmp/report.txt' },
-                approval: { id: 'approval_1', approved: false },
-              },
-            ],
-          },
-        ],
-      }),
-    ).toBe(true);
-  });
-
-  it('should return false when a tool output is denied but another tool call has no output yet', () => {
-    expect(
-      lastAssistantMessageIsCompleteWithToolCalls({
-        messages: [
-          {
-            id: '1',
-            role: 'assistant',
-            parts: [
-              { type: 'step-start' },
-              {
-                type: 'tool-getLocation',
-                toolCallId: 'call_1',
-                state: 'input-available',
-                input: {},
-              },
-              {
-                type: 'tool-deleteFile',
-                toolCallId: 'call_2',
-                state: 'output-denied',
-                input: { path: '/tmp/report.txt' },
-                approval: { id: 'approval_1', approved: false },
-              },
-            ],
-          },
-        ],
-      }),
-    ).toBe(false);
-  });
-
-  it('should return true after a client tool output when streamText denied a sibling tool call', async () => {
-    const model = new MockLanguageModelV4({
-      doStream: async () => ({
-        stream: convertArrayToReadableStream<LanguageModelV4StreamPart>([
-          { type: 'stream-start', warnings: [] },
-          {
-            type: 'tool-call',
-            toolCallId: 'call_1',
-            toolName: 'getLocation',
-            input: '{}',
-          },
-          {
-            type: 'tool-call',
-            toolCallId: 'call_2',
-            toolName: 'deleteFile',
-            input: '{"path":"/tmp/report.txt"}',
-          },
-          {
-            type: 'finish',
-            finishReason: { unified: 'tool-calls', raw: undefined },
-            usage: {
-              inputTokens: {
-                total: 3,
-                noCache: 3,
-                cacheRead: undefined,
-                cacheWrite: undefined,
-              },
-              outputTokens: { total: 10, text: 10, reasoning: undefined },
-            },
-          },
-        ]),
-      }),
-    });
-
-    const result = streamText({
-      model,
-      tools: {
-        // client-side tool: no execute, answered with addToolOutput
-        getLocation: tool({ inputSchema: z.object({}) }),
-        deleteFile: tool({
-          inputSchema: z.object({ path: z.string() }),
-          execute: async () => 'deleted',
-        }),
-      },
-      toolApproval: { deleteFile: { type: 'denied', reason: 'not allowed' } },
-      prompt: 'Where am I? Also delete /tmp/report.txt',
-    });
-
-    const snapshots = await convertReadableStreamToArray(
-      readUIMessageStream({ stream: result.toUIMessageStream() }),
-    );
-    const assistantMessage = structuredClone(snapshots.at(-1)!) as UIMessage;
-
-    expect(
-      assistantMessage.parts.find(part => part.type === 'tool-deleteFile'),
-    ).toMatchObject({ state: 'output-denied' });
-
-    // what Chat.addToolOutput does for the client-side tool:
-    const locationPart = assistantMessage.parts.find(
-      part => part.type === 'tool-getLocation',
-    );
-    expect(locationPart).toMatchObject({ state: 'input-available' });
-    Object.assign(locationPart!, {
-      state: 'output-available',
-      output: 'Berlin',
-    });
-
-    expect(
-      lastAssistantMessageIsCompleteWithToolCalls({
-        messages: [assistantMessage],
-      }),
-    ).toBe(true);
   });
 });

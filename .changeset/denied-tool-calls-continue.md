@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-Treat denied tool calls (`output-denied`) as complete in `lastAssistantMessageIsCompleteWithToolCalls`, so chats continue automatically once the other tool calls in the step have results.
+Treat denied tool calls (`output-denied`) as complete in `lastAssistantMessageIsCompleteWithToolCalls`, like `output-error`, so `sendAutomaticallyWhen` continues the chat after a step with a denied tool call.
