@@ -2295,8 +2295,8 @@ const openaiSpeechTranslationModelEntries = {
 } satisfies Readonly<Record<string, OperationModelEntry<'speechTranslation'>>>;
 
 const openaiSpeechModelEntries = {
-  'tts-1': { capabilities: { speech: { instructions: true } } },
-  'tts-1-hd': { capabilities: { speech: { instructions: true } } },
+  'tts-1': { capabilities: { speech: { instructions: false } } },
+  'tts-1-hd': { capabilities: { speech: { instructions: false } } },
   'gpt-4o-mini-tts': { capabilities: { speech: { instructions: true } } },
   // Known IDs without declared capabilities retain the custom-model fallback.
   'gpt-4o-mini-tts-2025-03-20': undefined,
