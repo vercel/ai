@@ -4,6 +4,7 @@ import {
   lazySchema,
   zodSchema,
   combineHeaders,
+  convertBase64ToUint8Array,
   createJsonResponseHandler,
   parseProviderOptions,
   postToApi,
@@ -125,6 +126,10 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
   ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { queryParams, warnings } = await this.getArgs(options);
+    const audio =
+      typeof options.audio === 'string'
+        ? convertBase64ToUint8Array(options.audio)
+        : options.audio;
 
     const {
       value: response,
@@ -143,8 +148,8 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
         'Content-Type': options.mediaType,
       },
       body: {
-        content: options.audio,
-        values: options.audio,
+        content: audio,
+        values: audio,
       },
       failedResponseHandler: deepgramFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
