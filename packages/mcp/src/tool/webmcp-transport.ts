@@ -22,7 +22,9 @@ export interface WebMCPTool {
   outputSchema?: object;
   origin: string;
   /** Opaque owner handle. Passed back to ModelContext without inspecting it. */
-  window: unknown;
+  source?: unknown;
+  /** Legacy owner handle used by older browser implementations. */
+  window?: unknown;
   annotations?: {
     readOnlyHint?: boolean;
     untrustedContentHint?: boolean;
@@ -265,8 +267,9 @@ export class WebMCPTransport implements MCPTransport {
     const availableTools = new Map<string, WebMCPTool>();
     const tools = registered.flatMap(tool => {
       const key = JSON.stringify([tool.origin, tool.name]);
+      const owner = tool.source ?? tool.window;
       let owners = this.aliases.get(key);
-      let name = owners?.get(tool.window);
+      let name = owners?.get(owner);
       if (name == null) {
         const count = this.registrationCounts.get(tool.origin) ?? 0;
         if (count >= MAX_TOOL_REGISTRATIONS_PER_ORIGIN) {
@@ -283,7 +286,7 @@ export class WebMCPTransport implements MCPTransport {
           owners = new Map();
           this.aliases.set(key, owners);
         }
-        owners.set(tool.window, name);
+        owners.set(owner, name);
         this.reservedNames.add(name);
         this.registrationCounts.set(tool.origin, count + 1);
       }
