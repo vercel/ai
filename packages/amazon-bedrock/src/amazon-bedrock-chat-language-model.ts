@@ -1054,6 +1054,16 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       return count === 0 ? String(blockIndex) : `${blockIndex}-${count}`;
     };
 
+    const closeTextBlock = (
+      controller: TransformStreamDefaultController<LanguageModelV4StreamPart>,
+      blockIndex: number,
+    ) => {
+      controller.enqueue({
+        type: 'text-end',
+        id: String(blockIndex),
+      });
+    };
+
     const closeReasoningBlock = (
       controller: TransformStreamDefaultController<LanguageModelV4StreamPart>,
       block: ReasoningContentBlock,
@@ -1082,11 +1092,17 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       incomingKind: 'text' | 'signature' | 'data' | 'redactedContent',
     ): { id: string; block?: ReasoningContentBlock } => {
       const existing = contentBlocks[blockIndex];
-      // A signature or redacted payload ends the active thinking block. When Bedrock
-      // streams consecutive thinking blocks under one contentBlockIndex, close the
-      // finished block lazily on the next reasoning delta so trailing single-block
-      // streams without contentBlockStop keep their exact event sequence.
-      if (
+      // Close an active text block before switching the same index to reasoning
+      // so text-end and reasoning-start stay paired (for example after an empty
+      // non-toolUse contentBlockStart).
+      if (existing?.type === 'text') {
+        closeTextBlock(controller, blockIndex);
+        delete contentBlocks[blockIndex];
+      } else if (
+        // A signature or redacted payload ends the active thinking block. When Bedrock
+        // streams consecutive thinking blocks under one contentBlockIndex, close the
+        // finished block lazily on the next reasoning delta so trailing single-block
+        // streams without contentBlockStop keep their exact event sequence.
         existing?.type === 'reasoning' &&
         (existing.hasSignature ||
           existing.hasRedactedData ||
@@ -1307,10 +1323,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
                 if (contentBlock.type === 'reasoning') {
                   closeReasoningBlock(controller, contentBlock);
                 } else if (contentBlock.type === 'text') {
-                  controller.enqueue({
-                    type: 'text-end',
-                    id: String(blockIndex),
-                  });
+                  closeTextBlock(controller, blockIndex);
                 } else if (contentBlock.type === 'tool-call') {
                   if (contentBlock.isJsonResponseTool) {
                     isJsonResponseFromTool = true;

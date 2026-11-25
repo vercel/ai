@@ -725,4 +725,64 @@ describe('AmazonBedrockChatLanguageModel doStream', () => {
       },
     ]);
   });
+
+  it('closes an active text block before starting reasoning when a reasoning delta reuses the same contentBlockIndex', async () => {
+    const model = createBedrockStreamModel('anthropic.claude-opus-4-6-v1', [
+      createEvent(
+        'contentBlockStart',
+        JSON.stringify({
+          contentBlockIndex: 0,
+          start: {},
+        }),
+      ),
+      createEvent(
+        'contentBlockDelta',
+        JSON.stringify({
+          contentBlockIndex: 0,
+          delta: { reasoningContent: { text: 'thought after empty start' } },
+        }),
+      ),
+      createEvent(
+        'contentBlockDelta',
+        JSON.stringify({
+          contentBlockIndex: 0,
+          delta: { reasoningContent: { signature: 'SIG_AFTER_TEXT' } },
+        }),
+      ),
+      createEvent('contentBlockStop', JSON.stringify({ contentBlockIndex: 0 })),
+      createEvent('messageStop', JSON.stringify({ stopReason: 'end_turn' })),
+    ]);
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    const blockParts = parts.filter(
+      part =>
+        part.type.startsWith('text-') || part.type.startsWith('reasoning-'),
+    );
+
+    expect(blockParts).toStrictEqual([
+      { type: 'text-start', id: '0' },
+      { type: 'text-end', id: '0' },
+      { type: 'reasoning-start', id: '0' },
+      {
+        type: 'reasoning-delta',
+        id: '0',
+        delta: 'thought after empty start',
+      },
+      {
+        type: 'reasoning-delta',
+        id: '0',
+        delta: '',
+        providerMetadata: {
+          amazonBedrock: { signature: 'SIG_AFTER_TEXT' },
+          bedrock: { signature: 'SIG_AFTER_TEXT' },
+        },
+      },
+      { type: 'reasoning-end', id: '0' },
+    ]);
+  });
 });
