@@ -1,4 +1,4 @@
-import { getAiGatewayAuthFromEnv } from '@ai-sdk/harness/utils';
+import { getAiGatewayAuthFromEnvV2 } from '@ai-sdk/harness/utils';
 import { VERSION } from './version';
 
 /**
@@ -43,19 +43,19 @@ export type FxModelRuntime = {
 /**
  * Creates the network access of one drive.
  *
- * The AI Gateway credential (`AI_GATEWAY_API_KEY`, else `VERCEL_OIDC_TOKEN`)
- * is read from the environment once per drive, so a refreshed OIDC token is
- * picked up by the next drive. Throws when no credential is available, before
- * the drive does any work. Requests to AI Gateway's origin are sent to
+ * The AI Gateway credential (`AI_GATEWAY_API_KEY`, else a refreshed
+ * `VERCEL_OIDC_TOKEN`) is resolved once per drive. Throws when no credential
+ * is available, before the drive does any work. Requests to AI Gateway's
+ * origin are sent to
  * `AI_GATEWAY_BASE_URL` instead when it is set, and every request carries
  * the adapter's client headers.
  */
-export function createFxModelRuntime(): FxModelRuntime {
+export async function createFxModelRuntime(): Promise<FxModelRuntime> {
   /*
    * TODO: Only AI Gateway authentication is supported so far. Support other
    * providers once the harness offers a way to configure them.
    */
-  const { apiKey, baseUrl } = getAiGatewayAuthFromEnv({ env: process.env });
+  const { apiKey, baseUrl } = await getAiGatewayAuthFromEnvV2();
   if (apiKey == null) {
     throw new Error(
       'fx harness: no AI Gateway credential found. Set AI_GATEWAY_API_KEY or VERCEL_OIDC_TOKEN.',

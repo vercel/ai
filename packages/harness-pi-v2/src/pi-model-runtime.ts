@@ -6,7 +6,7 @@ import {
   type MutableModels,
 } from '@earendil-works/pi-ai';
 import { vercelAIGatewayProvider } from '@earendil-works/pi-ai/providers/vercel-ai-gateway';
-import { getAiGatewayAuthFromEnv } from '@ai-sdk/harness/utils';
+import { getAiGatewayAuthFromEnvV2 } from '@ai-sdk/harness/utils';
 import { VERSION } from './version';
 
 /**
@@ -59,19 +59,18 @@ function getGatewayModels(): MutableModels {
 /**
  * Creates the model runtime for one drive.
  *
- * The AI Gateway credential (`AI_GATEWAY_API_KEY`, else `VERCEL_OIDC_TOKEN`)
- * is read from the environment once per drive, so a refreshed OIDC token is
- * picked up by the next drive. Throws when no credential is available, before
- * the drive does any work. Every model resolves under Pi's
+ * The AI Gateway credential (`AI_GATEWAY_API_KEY`, else a refreshed
+ * `VERCEL_OIDC_TOKEN`) is resolved once per drive. Throws when no credential
+ * is available, before the drive does any work. Every model resolves under Pi's
  * `vercel-ai-gateway` provider, with the base URL from the environment.
  */
-export function createPiModelRuntime(): PiModelRuntime {
+export async function createPiModelRuntime(): Promise<PiModelRuntime> {
   /*
    * TODO: Only AI Gateway authentication is supported so far. Support the
    * authentication of other providers (e.g. OpenAI or Anthropic API keys)
    * once the harness offers a way to configure it.
    */
-  const { apiKey, baseUrl } = getAiGatewayAuthFromEnv({ env: process.env });
+  const { apiKey, baseUrl } = await getAiGatewayAuthFromEnvV2();
   if (apiKey == null) {
     throw new Error(
       'Pi harness: no AI Gateway credential found. Set AI_GATEWAY_API_KEY or VERCEL_OIDC_TOKEN.',

@@ -22,7 +22,7 @@ export function createPi(): HarnessV2<typeof PI_BUILTIN_TOOLS> {
     harnessId: 'pi',
     builtinTools: PI_BUILTIN_TOOLS,
     async drive({ sessionId, context }) {
-      const runtime = createPiModelRuntime();
+      const runtime = await createPiModelRuntime();
       await new PiDrive({ sessionId, context, runtime }).run();
     },
   };

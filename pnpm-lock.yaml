@@ -3261,6 +3261,9 @@ importers:
       '@babel/parser':
         specifier: ^7.29.0
         version: 7.29.15
+      '@vercel/oidc':
+        specifier: 3.2.0
+        version: 3.2.0
       '@workflow/core':
         specifier: 5.1.0
         version: 5.1.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)(ws@8.21.3)

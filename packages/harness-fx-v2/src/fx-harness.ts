@@ -22,7 +22,7 @@ export function createFx(): HarnessV2<typeof FX_BUILTIN_TOOLS> {
     harnessId: 'fx',
     builtinTools: FX_BUILTIN_TOOLS,
     async drive({ sessionId, context }) {
-      const runtime = createFxModelRuntime();
+      const runtime = await createFxModelRuntime();
       await new FxDrive({ sessionId, context, runtime }).run();
     },
   };

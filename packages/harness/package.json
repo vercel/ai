@@ -68,6 +68,7 @@
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
     "@babel/parser": "^7.29.0",
+    "@vercel/oidc": "3.2.0",
     "@workflow/core": "5.1.0",
     "@workflow/world": "^5.0.4",
     "ai": "workspace:*"

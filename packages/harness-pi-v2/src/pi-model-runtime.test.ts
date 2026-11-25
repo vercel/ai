@@ -10,20 +10,20 @@ describe('createPiModelRuntime', () => {
     vi.unstubAllEnvs();
   });
 
-  test('throws without an AI Gateway credential', () => {
+  test('throws without an AI Gateway credential', async () => {
     vi.stubEnv('AI_GATEWAY_API_KEY', '');
     vi.stubEnv('VERCEL_OIDC_TOKEN', '');
 
-    expect(() => createPiModelRuntime()).toThrow(
+    await expect(createPiModelRuntime()).rejects.toThrow(
       'Pi harness: no AI Gateway credential found. Set AI_GATEWAY_API_KEY or VERCEL_OIDC_TOKEN.',
     );
   });
 
-  test('resolves AI Gateway models with the configured base URL', () => {
+  test('resolves AI Gateway models with the configured base URL', async () => {
     vi.stubEnv('AI_GATEWAY_API_KEY', 'test-key');
     vi.stubEnv('AI_GATEWAY_BASE_URL', 'https://gateway.example.com');
 
-    const model = createPiModelRuntime().resolveModel({
+    const model = (await createPiModelRuntime()).resolveModel({
       modelId: DEFAULT_PI_MODEL_ID,
     });
 
@@ -34,12 +34,11 @@ describe('createPiModelRuntime', () => {
     });
   });
 
-  test('throws for a model AI Gateway does not offer', () => {
+  test('throws for a model AI Gateway does not offer', async () => {
     vi.stubEnv('AI_GATEWAY_API_KEY', 'test-key');
+    const runtime = await createPiModelRuntime();
 
-    expect(() =>
-      createPiModelRuntime().resolveModel({ modelId: 'unknown/model' }),
-    ).toThrow(
+    expect(() => runtime.resolveModel({ modelId: 'unknown/model' })).toThrow(
       "Pi harness: the model 'unknown/model' is not available through AI Gateway.",
     );
   });

@@ -7,11 +7,11 @@ afterEach(() => {
 });
 
 describe('createFxModelRuntime', () => {
-  test('throws without an AI Gateway credential', () => {
+  test('throws without an AI Gateway credential', async () => {
     vi.stubEnv('AI_GATEWAY_API_KEY', '');
     vi.stubEnv('VERCEL_OIDC_TOKEN', '');
 
-    expect(() => createFxModelRuntime()).toThrow(
+    await expect(createFxModelRuntime()).rejects.toThrow(
       'no AI Gateway credential found',
     );
   });
@@ -23,7 +23,7 @@ describe('createFxModelRuntime', () => {
       async () => new Response('ok'),
     );
     vi.stubGlobal('fetch', fetch);
-    const runtime = createFxModelRuntime();
+    const runtime = await createFxModelRuntime();
 
     await runtime.fetch('https://ai-gateway.vercel.sh/v4/ai/language-model', {
       method: 'POST',
