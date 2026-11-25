@@ -4484,6 +4484,377 @@ describe('createPiSession', () => {
       }
     });
   });
+
+  describe('early host tool result buffering', () => {
+    it('consumes a host tool result submitted during preflight before execute runs', async () => {
+      const preflightReady = createDeferred<void>();
+      const preflightDone = createDeferred<void>();
+      let resolvedToolResult: unknown;
+
+      piMock.session = createFakePiSession({
+        promptImplementation: async (_text, emitEvent) => {
+          emitEvent({ type: 'message_start', message: { role: 'assistant' } });
+          emitEvent({
+            type: 'tool_execution_start',
+            toolCallId: 'tool-early',
+            toolName: 'fastTool',
+            args: {},
+          });
+          preflightReady.resolve();
+          await preflightDone.promise;
+
+          const fastTool = piMock.customTools.find(
+            tool => tool.name === 'fastTool',
+          );
+          if (!fastTool) throw new Error('Expected fastTool.');
+
+          resolvedToolResult = await Promise.race([
+            fastTool.execute(
+              'tool-early',
+              {},
+              undefined,
+              undefined,
+              undefined as never,
+            ),
+            new Promise<never>((_, reject) => {
+              setTimeout(
+                () =>
+                  reject(new Error('execute deadlocked waiting for result')),
+                150,
+              );
+            }),
+          ]);
+
+          emitEvent({
+            type: 'tool_execution_end',
+            toolCallId: 'tool-early',
+            toolName: 'fastTool',
+            result: resolvedToolResult,
+            isError: false,
+          });
+        },
+      }).session;
+
+      const session = await createPiSession({
+        sessionId: 'session-early-tool-result',
+        sandboxSession: createEmptyRepositorySandboxSession(),
+        sessionWorkDir: '/sandbox/work',
+        settings: {},
+        clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+        isResume: false,
+      });
+
+      const emittedParts: HarnessV1StreamPart[] = [];
+      const control = await session.doPromptTurn({
+        skills: [],
+        prompt: 'run fast tool',
+        tools: [{ name: 'fastTool' }],
+        emit: part => emittedParts.push(part),
+      });
+
+      await preflightReady.promise;
+      await control.submitToolResult({
+        toolCallId: 'tool-early',
+        output: { ok: 'fastTool', count: 3 },
+      });
+      preflightDone.resolve();
+      await control.done;
+      await session.doDestroy();
+
+      expect(resolvedToolResult).toEqual({
+        content: [{ type: 'text', text: '{"ok":"fastTool","count":3}' }],
+        details: null,
+      });
+      expect(emittedParts).toContainEqual({
+        type: 'tool-result',
+        toolCallId: 'tool-early',
+        toolName: 'fastTool',
+        result: { ok: 'fastTool', count: 3 },
+      });
+    });
+
+    it('rejects execute when an early buffered toolResult marks an error', async () => {
+      const preflightReady = createDeferred<void>();
+      const preflightDone = createDeferred<void>();
+      let caughtError: unknown;
+
+      piMock.session = createFakePiSession({
+        promptImplementation: async (_text, emitEvent) => {
+          emitEvent({
+            type: 'tool_execution_start',
+            toolCallId: 'tool-early-err',
+            toolName: 'fastTool',
+            args: {},
+          });
+          preflightReady.resolve();
+          await preflightDone.promise;
+
+          const fastTool = piMock.customTools.find(
+            tool => tool.name === 'fastTool',
+          );
+          if (!fastTool) throw new Error('Expected fastTool.');
+          try {
+            await Promise.race([
+              fastTool.execute(
+                'tool-early-err',
+                {},
+                undefined,
+                undefined,
+                undefined as never,
+              ),
+              new Promise<never>((_, reject) => {
+                setTimeout(
+                  () => reject(new Error('execute deadlocked on error result')),
+                  150,
+                );
+              }),
+            ]);
+          } catch (error) {
+            caughtError = error;
+          }
+        },
+      }).session;
+
+      const session = await createPiSession({
+        sessionId: 'session-early-tool-error',
+        sandboxSession: createEmptyRepositorySandboxSession(),
+        sessionWorkDir: '/sandbox/work',
+        settings: {},
+        clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+        isResume: false,
+      });
+
+      const control = await session.doPromptTurn({
+        skills: [],
+        prompt: 'run failing tool',
+        tools: [{ name: 'fastTool' }],
+        emit: vi.fn(),
+      });
+
+      await preflightReady.promise;
+      await control.submitToolResult({
+        toolCallId: 'tool-early-err',
+        output: 'boom',
+        isError: true,
+        toolResult: {
+          type: 'tool-result',
+          toolCallId: 'tool-early-err',
+          toolName: 'fastTool',
+          output: { type: 'error-text', value: 'tool failed early' },
+        },
+      });
+      preflightDone.resolve();
+      await control.done;
+      await session.doDestroy();
+
+      expect(caughtError).toBeInstanceOf(Error);
+      expect((caughtError as Error).message).toBe('tool failed early');
+    });
+
+    it('clears unused early tool results when a turn finishes or stops', async () => {
+      let turnIndex = 0;
+      const turn1Prompt = createDeferred<void>();
+      const turn2Started = createDeferred<void>();
+      const turn3Started = createDeferred<void>();
+      const turn3Prompt = createDeferred<void>();
+      const turn4Started = createDeferred<void>();
+      let turn2ResolvedEarly = false;
+      let turn4ResolvedEarly = false;
+
+      piMock.session = createFakePiSession({
+        promptImplementation: async () => {
+          turnIndex += 1;
+          const fastTool = piMock.customTools.find(
+            tool => tool.name === 'fastTool',
+          );
+          if (!fastTool) throw new Error('Expected fastTool.');
+
+          if (turnIndex === 1) {
+            await turn1Prompt.promise;
+            return;
+          }
+          if (turnIndex === 2) {
+            const executePromise = fastTool
+              .execute(
+                'reused-id',
+                {},
+                undefined,
+                undefined,
+                undefined as never,
+              )
+              .then(result => {
+                turn2ResolvedEarly = true;
+                return result;
+              });
+            turn2Started.resolve();
+            await executePromise;
+            return;
+          }
+          if (turnIndex === 3) {
+            turn3Started.resolve();
+            await turn3Prompt.promise;
+            return;
+          }
+          const executePromise = fastTool
+            .execute('aborted-id', {}, undefined, undefined, undefined as never)
+            .then(result => {
+              turn4ResolvedEarly = true;
+              return result;
+            });
+          turn4Started.resolve();
+          await executePromise;
+        },
+      }).session;
+
+      const session = await createPiSession({
+        sessionId: 'session-early-cleanup',
+        sandboxSession: createEmptyRepositorySandboxSession(),
+        sessionWorkDir: '/sandbox/work',
+        settings: {},
+        clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+        isResume: false,
+      });
+
+      const turn1 = await session.doPromptTurn({
+        skills: [],
+        prompt: 'turn 1',
+        tools: [{ name: 'fastTool' }],
+        emit: vi.fn(),
+      });
+      await turn1.submitToolResult({
+        toolCallId: 'reused-id',
+        output: { stale: true },
+      });
+      turn1Prompt.resolve();
+      await turn1.done;
+
+      const turn2 = await session.doPromptTurn({
+        skills: [],
+        prompt: 'turn 2',
+        tools: [{ name: 'fastTool' }],
+        emit: vi.fn(),
+      });
+      await turn2Started.promise;
+      await Promise.resolve();
+      expect(turn2ResolvedEarly).toBe(false);
+
+      await turn2.submitToolResult({
+        toolCallId: 'reused-id',
+        output: { fresh: true },
+      });
+      await turn2.done;
+      expect(turn2ResolvedEarly).toBe(true);
+
+      const abortController = new AbortController();
+      const turn3 = await session.doPromptTurn({
+        skills: [],
+        prompt: 'turn 3',
+        tools: [{ name: 'fastTool' }],
+        emit: vi.fn(),
+        abortSignal: abortController.signal,
+      });
+      await turn3Started.promise;
+      await turn3.submitToolResult({
+        toolCallId: 'aborted-id',
+        output: { stale: true },
+      });
+      abortController.abort();
+      turn3Prompt.resolve();
+      await turn3.done;
+
+      const turn4 = await session.doPromptTurn({
+        skills: [],
+        prompt: 'turn 4',
+        tools: [{ name: 'fastTool' }],
+        emit: vi.fn(),
+      });
+      await turn4Started.promise;
+      await Promise.resolve();
+      expect(turn4ResolvedEarly).toBe(false);
+
+      await turn4.submitToolResult({
+        toolCallId: 'aborted-id',
+        output: { fresh: true },
+      });
+      await turn4.done;
+      expect(turn4ResolvedEarly).toBe(true);
+      await session.doStop();
+    });
+
+    it('ignores unknown tool results while a replay barrier is active', async () => {
+      let strayResolved = false;
+      const strayExecuteStarted = createDeferred<void>();
+      const { session: fakePiSession, agent } = createFakePiSession({
+        continueImplementation: async () => {
+          const askUser = piMock.customTools.find(
+            tool => tool.name === 'askUser',
+          );
+          if (!askUser) throw new Error('Expected askUser.');
+          const promise = askUser
+            .execute('stray-id', {}, undefined, undefined, undefined as never)
+            .then(result => {
+              strayResolved = true;
+              return result;
+            });
+          strayExecuteStarted.resolve();
+          await promise;
+        },
+      });
+      piMock.session = fakePiSession;
+      const { sessionManager: journal, entries } = createFakeSessionManager([
+        userMessage('resume me'),
+        assistantMessageWithToolCalls([{ id: 'tool-1', name: 'askUser' }]),
+      ]);
+      piMock.sessionManagerInMemory.mockImplementation(() => journal);
+
+      const session = await createPiSession({
+        sessionId: 'session-replay-barrier-early',
+        sandboxSession: createEmptyRepositorySandboxSession(),
+        sessionWorkDir: '/sandbox/work',
+        settings: {},
+        clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+        isResume: true,
+        resumeEntries: entries,
+        resumePendingToolBatch: {
+          assistantMessage: assistantMessageWithToolCalls([
+            { id: 'tool-1', name: 'askUser' },
+          ]),
+          awaitingToolCallIds: ['tool-1'],
+          completedToolResults: [],
+          nativeApprovalDecisions: [],
+        },
+      });
+
+      const resumeControl = await session.doContinueTurn({
+        skills: [],
+        tools: [{ name: 'askUser' }],
+        emit: vi.fn(),
+      });
+
+      await resumeControl.submitToolResult({
+        toolCallId: 'stray-id',
+        output: { stray: true },
+      });
+      expect(agent.continue).not.toHaveBeenCalled();
+
+      await resumeControl.submitToolResult({
+        toolCallId: 'tool-1',
+        output: { answer: 'ok' },
+      });
+      await strayExecuteStarted.promise;
+      await Promise.resolve();
+      expect(strayResolved).toBe(false);
+
+      await resumeControl.submitToolResult({
+        toolCallId: 'stray-id',
+        output: { fresh: true },
+      });
+      await resumeControl.done;
+      await session.doDestroy();
+      expect(strayResolved).toBe(true);
+      expect(agent.continue).toHaveBeenCalledOnce();
+    });
+  });
 });
 
 function createDeferred<T>() {
