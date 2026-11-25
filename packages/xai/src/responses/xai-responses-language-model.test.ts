@@ -2643,6 +2643,54 @@ describe('XaiResponsesLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it('should parse a response.completed event that is larger than the default maximum event size', async () => {
+      // `response.completed` repeats every output item, so several base64
+      // images make it larger than 64 MiB. It arrives in several chunks.
+      const encoder = new TextEncoder();
+      const dataChunk = new Uint8Array(1024 * 1024).fill(65); // 'A'
+      const dataChunkCount = 65;
+      const chunks = [
+        encoder.encode(
+          'data: {"type":"response.completed","response":{"id":"resp_1","created_at":1700000000,"model":"grok-4.5","object":"response","status":"completed","usage":{"input_tokens":10,"output_tokens":20,"total_tokens":30},"output":[{"type":"image_generation_call","id":"ig_1","status":"completed","result":"',
+        ),
+        ...Array.from({ length: dataChunkCount }, () => dataChunk),
+        encoder.encode('"}]}}\n\n'),
+      ];
+
+      const model = new XaiResponsesLanguageModel('grok-4.5', {
+        provider: 'xai.responses',
+        baseURL: 'https://api.x.ai/v1',
+        headers: () => ({ Authorization: 'Bearer test-key' }),
+        generateId: mockId(),
+        fetch: async () =>
+          new Response(
+            new ReadableStream<Uint8Array>({
+              pull(controller) {
+                const chunk = chunks.shift();
+                if (chunk == null) {
+                  controller.close();
+                } else {
+                  controller.enqueue(chunk);
+                }
+              },
+            }),
+            { headers: { 'content-type': 'text/event-stream' } },
+          ),
+      });
+
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+
+      // Usage and the finish reason are read only from `response.completed`,
+      // so they show that the 65 MiB event parsed.
+      expect(parts.some(part => part.type === 'error')).toBe(false);
+      expect(parts.find(part => part.type === 'finish')).toMatchObject({
+        type: 'finish',
+        usage: { inputTokens: { total: 10 }, outputTokens: { total: 20 } },
+        finishReason: { unified: 'stop' },
+      });
+    });
+
     it.each(['missing', 'invalid-json', 'provider-error', 'empty-status'])(
       'handles a stream ending with %s',
       async ending => {
