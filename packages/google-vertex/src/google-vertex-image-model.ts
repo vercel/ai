@@ -1,4 +1,4 @@
-import { getGoogleVertexRequestConfig } from './google-vertex-model-catalog-config';
+import { getGoogleVertexRequestConfig } from './google-vertex-model-matrix';
 import { getGoogleVertexImageModelEntry } from './google-vertex-model-catalog';
 import type { GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { GoogleLanguageModel } from '@ai-sdk/google/internal';
