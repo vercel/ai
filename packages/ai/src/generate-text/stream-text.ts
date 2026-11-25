@@ -2896,6 +2896,9 @@ class DefaultStreamTextResult<
             );
             const { retry } = prepareRetries({
               maxRetries: remainingRetries,
+              initialDelayInMs:
+                DEFAULT_INITIAL_RETRY_DELAY_IN_MS *
+                DEFAULT_RETRY_BACKOFF_FACTOR ** maxRetryAttemptsUsed,
               abortSignal,
             });
             let attemptInCall = 0;
@@ -3280,6 +3283,9 @@ class DefaultStreamTextResult<
                 } else {
                   callbackStreamRetryCount++;
                 }
+
+                // Explicit stream retries start a fresh attempt with a full maxRetries budget.
+                maxRetryAttemptsUsed = 0;
 
                 if (!(await switchToRetryAttempt())) {
                   return;

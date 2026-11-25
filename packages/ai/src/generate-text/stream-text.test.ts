@@ -4582,6 +4582,184 @@ describe('streamText', () => {
       expect(onError).toHaveBeenCalledTimes(1);
     });
 
+    it('should continue the exponential backoff schedule after a pre-output stream retry', async () => {
+      vi.useFakeTimers();
+      let callCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            const call = ++callCount;
+            if (call === 1) {
+              return {
+                stream: convertArrayToReadableStream([
+                  { type: 'stream-start', warnings: [] },
+                  {
+                    type: 'error',
+                    error: createProviderStreamError({
+                      message: 'initial stream overload',
+                      statusCode: 503,
+                      isRetryable: true,
+                      data: { message: 'initial stream overload' },
+                    }),
+                  },
+                ]),
+              };
+            }
+
+            if (call === 2) {
+              throw new APICallError({
+                message: 'subsequent request overload',
+                url: 'https://api.test.com',
+                requestBodyValues: {},
+                statusCode: 503,
+                isRetryable: true,
+              });
+            }
+
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'recovered' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        maxRetries: 2,
+      });
+
+      const textPromise = result.text;
+
+      await vi.advanceTimersByTimeAsync(1999);
+      expect(callCount).toBe(1);
+
+      await vi.advanceTimersByTimeAsync(1);
+      expect(callCount).toBe(2);
+
+      // Next retry must wait 4000ms rather than restarting at 2000ms.
+      await vi.advanceTimersByTimeAsync(3999);
+      expect(callCount).toBe(2);
+
+      await vi.advanceTimersByTimeAsync(1);
+      expect(callCount).toBe(3);
+      expect(await textPromise).toBe('recovered');
+    });
+
+    it('should give explicit stream retries a fresh maxRetries budget', async () => {
+      let callCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            const call = ++callCount;
+            if (call === 1 || call === 3) {
+              throw new APICallError({
+                message: 'transient request error',
+                url: 'https://api.test.com',
+                requestBodyValues: {},
+                statusCode: 503,
+                responseHeaders: { 'retry-after-ms': '0' },
+                isRetryable: true,
+              });
+            }
+
+            if (call === 2) {
+              return {
+                stream: convertArrayToReadableStream([
+                  { type: 'text-start', id: '1' },
+                  { type: 'text-delta', id: '1', delta: 'partial' },
+                  { type: 'error', error: new Error('mid-stream failure') },
+                ]),
+              };
+            }
+
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '2' },
+                { type: 'text-delta', id: '2', delta: 'recovered' },
+                { type: 'text-end', id: '2' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        maxRetries: 1,
+        streamRetries: 1,
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(callCount).toBe(4);
+      expect(await result.text).toBe('recovered');
+    });
+
+    it('should give callback stream retries a fresh maxRetries budget', async () => {
+      let callCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            const call = ++callCount;
+            if (call === 1 || call === 3) {
+              throw new APICallError({
+                message: 'transient request error',
+                url: 'https://api.test.com',
+                requestBodyValues: {},
+                statusCode: 503,
+                responseHeaders: { 'retry-after-ms': '0' },
+                isRetryable: true,
+              });
+            }
+
+            if (call === 2) {
+              return {
+                stream: convertArrayToReadableStream([
+                  { type: 'text-start', id: '1' },
+                  { type: 'text-delta', id: '1', delta: 'partial' },
+                  { type: 'error', error: new Error('mid-stream failure') },
+                ]),
+              };
+            }
+
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '2' },
+                { type: 'text-delta', id: '2', delta: 'recovered' },
+                { type: 'text-end', id: '2' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        maxRetries: 1,
+        streamRetries: 0,
+        onError: () => ({ retry: true }),
+      });
+
+      await result.consumeStream();
+
+      expect(callCount).toBe(4);
+      expect(await result.text).toBe('recovered');
+    });
+
     it('should invoke onError callback when error is thrown in 2nd step', async () => {
       const onError = vi.fn();
       let responseCount = 0;
