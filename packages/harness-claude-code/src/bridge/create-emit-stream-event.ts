@@ -317,6 +317,21 @@ export function createEmitStreamEvent({
     // into regular stream parts or let them affect the parent step.
     if (msg.parent_tool_use_id != null) {
       emit({ type: 'raw', rawValue: msg });
+      // A subagent's host tool call is answered here, outside the parent's
+      // steps, so its handler record goes with its result. Left behind, it
+      // matched a later identical call of the parent by name and input, and
+      // that call never reached the host.
+      const content = msg.message?.content;
+      if (type === 'user' && Array.isArray(content)) {
+        for (const block of content) {
+          if (
+            block.type === 'tool_result' &&
+            typeof block.tool_use_id === 'string'
+          ) {
+            state.mcpHandlerCalls.delete(block.tool_use_id);
+          }
+        }
+      }
       return;
     }
 

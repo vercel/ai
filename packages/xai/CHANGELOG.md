@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 5.0.50
+
+### Patch Changes
+
+- 565db6d: refactor(xai): declare language model capabilities per model ID in the model catalog
+
 ## 5.0.49
 
 ### Patch Changes

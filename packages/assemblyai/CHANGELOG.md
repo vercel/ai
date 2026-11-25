@@ -1,5 +1,11 @@
 # @ai-sdk/assemblyai
 
+## 3.0.86
+
+### Patch Changes
+
+- dd89e17: fix(assemblyai): decode base64 audio before uploading it for transcription
+
 ## 3.0.85
 
 ### Patch Changes

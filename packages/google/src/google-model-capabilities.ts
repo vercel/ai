@@ -1,11 +1,11 @@
 import { getGoogleLanguageModelEntry } from './google-model-catalog';
 
-/** Compatibility projection of the resolved catalog for existing request code. */
+/** Tool capabilities of a model ID, as declared in the model catalog. */
 export function getGoogleModelCapabilities(modelId: string) {
   const { tools } = getGoogleLanguageModelEntry(modelId).capabilities.language;
   return {
-    supportsGemini2Tools: tools.gemini2,
+    supportsProviderTools: tools.providerTools,
     supportsFileSearch: tools.fileSearch,
-    usesGemini3Features: tools.mixed,
+    supportsMixedTools: tools.mixed,
   };
 }

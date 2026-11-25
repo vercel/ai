@@ -1,5 +1,15 @@
 # @ai-sdk/sandbox-vercel
 
+## 1.0.193
+
+### Patch Changes
+
+- 8956ca5: feat(sandbox-vercel): add `templateName` to `createVercelNetworkSandboxSession` to name the reusable template
+- Updated dependencies [7fffff9]
+- Updated dependencies [3334b4d]
+- Updated dependencies [d84bf24]
+  - @ai-sdk/harness@1.0.193
+
 ## 1.0.192
 
 ### Patch Changes

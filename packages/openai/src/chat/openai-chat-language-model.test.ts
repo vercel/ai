@@ -2250,11 +2250,17 @@ describe('doGenerate', () => {
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'o4-mini',
         messages: [{ role: 'user', content: 'Hello' }],
-        reasoning_effort: 'none',
+        // o4-mini does not accept none, so the lowest supported effort is sent.
+        reasoning_effort: 'low',
       });
 
       expect(result.warnings).toMatchInlineSnapshot(`
         [
+          {
+            "details": "reasoning "none" is not directly supported by this model. mapped to effort "low".",
+            "feature": "reasoning",
+            "type": "compatibility",
+          },
           {
             "details": "temperature is not supported for reasoning models",
             "feature": "temperature",

@@ -1044,7 +1044,7 @@ describe('XaiResponsesLanguageModel', () => {
           expect(requestBody.reasoning.effort).toBe('none');
         });
 
-        it('should coerce top-level reasoning xhigh to reasoning effort "high"', async () => {
+        it('should map top-level reasoning xhigh to reasoning effort "xhigh" for grok-4.3', async () => {
           prepareJsonResponse({
             id: 'resp_123',
             object: 'response',
@@ -1055,6 +1055,25 @@ describe('XaiResponsesLanguageModel', () => {
           });
 
           await createModel('grok-4.3').doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning: 'xhigh',
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning.effort).toBe('xhigh');
+        });
+
+        it('should coerce top-level reasoning xhigh to reasoning effort "high" for unlisted models', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.20-multi-agent',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel('grok-4.20-multi-agent').doGenerate({
             prompt: TEST_PROMPT,
             reasoning: 'xhigh',
           });
