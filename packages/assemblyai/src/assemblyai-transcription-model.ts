@@ -11,6 +11,7 @@ import {
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
+  encodePathSegment,
   extractResponseHeaders,
   parseProviderOptions,
   postJsonToApi,
@@ -281,7 +282,7 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
 
       const response = await fetchImpl(
         this.config.url({
-          path: `/v2/transcript/${transcriptId}`,
+          path: `/v2/transcript/${encodePathSegment(transcriptId)}`,
           modelId: this.modelId,
         }),
         {
@@ -298,7 +299,7 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
         throw await assemblyaiFailedResponseHandler({
           response,
           url: this.config.url({
-            path: `/v2/transcript/${transcriptId}`,
+            path: `/v2/transcript/${encodePathSegment(transcriptId)}`,
             modelId: this.modelId,
           }),
           requestBodyValues: {},
