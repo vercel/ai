@@ -56,6 +56,13 @@ import type {
 } from './openai-responses-provider-metadata';
 
 /**
+ * `response.completed` repeats every output item, including base64 image
+ * generation results, so it can be much larger than the default maximum event
+ * size. The limit is about the maximum length of a string in V8.
+ */
+const MAX_RESPONSES_EVENT_SIZE = 512 * 1024 * 1024;
+
+/**
  * Enforces OpenAI's configuration update restrictions,
  * returning a string describing the unsupported reason if any.
  *
@@ -945,6 +952,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         openaiResponsesChunkSchema,
+        { maxEventSize: MAX_RESPONSES_EVENT_SIZE },
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,

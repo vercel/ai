@@ -139,6 +139,54 @@ describe('createJsonResponseHandler', () => {
 });
 
 describe('createEventSourceResponseHandler', () => {
+  describe('maxEventSize', () => {
+    const event = `data: {"value":"${'x'.repeat(100)}"}\n\n`;
+    const read = async (maxEventSize?: number) => {
+      const handler = createEventSourceResponseHandler(
+        z.object({ value: z.string() }),
+        maxEventSize == null ? undefined : { maxEventSize },
+      );
+      // The limit applies to data that is buffered across chunks.
+      const chunks = [event.slice(0, 60), event.slice(60)].map(chunk =>
+        new TextEncoder().encode(chunk),
+      );
+      const result = await handler({
+        url: 'test-url',
+        requestBodyValues: {},
+        response: new Response(
+          new ReadableStream<Uint8Array>({
+            pull(controller) {
+              const chunk = chunks.shift();
+              if (chunk == null) controller.close();
+              else controller.enqueue(chunk);
+            },
+          }),
+          { status: 200 },
+        ),
+      });
+      return result.value.getReader().read();
+    };
+
+    it('should fail the stream when an event is larger than maxEventSize', async () => {
+      await expect(read(50)).rejects.toMatchObject({
+        name: 'ParseError',
+        type: 'max-buffer-size-exceeded',
+      });
+    });
+
+    it('should parse an event within maxEventSize', async () => {
+      await expect(read(1000)).resolves.toMatchObject({
+        value: { success: true, value: { value: 'x'.repeat(100) } },
+      });
+    });
+
+    it('should keep the default limit without the option', async () => {
+      await expect(read()).resolves.toMatchObject({
+        value: { success: true },
+      });
+    });
+  });
+
   it('should preserve context and mark response body socket errors as retryable', async () => {
     const socketError = Object.assign(new Error('other side closed'), {
       code: 'UND_ERR_SOCKET',
