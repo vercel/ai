@@ -1246,7 +1246,13 @@ export async function createPiSession(
           if (acceptReplayToolResult(args)) {
             return;
           }
-          if (replayBarrier == null && activeTurn != null && !stopped) {
+          if (
+            replayBarrier == null &&
+            activeTurn != null &&
+            !stopped &&
+            !earlyToolResults.has(args.toolCallId) &&
+            !translatorState?.hostToolResults.has(args.toolCallId)
+          ) {
             earlyToolResults.set(args.toolCallId, args);
             translatorState?.hostToolResults.set(args.toolCallId, args.output);
           }

@@ -4854,6 +4854,195 @@ describe('createPiSession', () => {
       expect(strayResolved).toBe(true);
       expect(agent.continue).toHaveBeenCalledOnce();
     });
+
+    it('keeps the first early submission and ignores duplicates before execute', async () => {
+      const preflightReady = createDeferred<void>();
+      const preflightDone = createDeferred<void>();
+      let resolvedToolResult: unknown;
+
+      piMock.session = createFakePiSession({
+        promptImplementation: async (_text, emitEvent) => {
+          emitEvent({ type: 'message_start', message: { role: 'assistant' } });
+          emitEvent({
+            type: 'tool_execution_start',
+            toolCallId: 'tool-early-dup',
+            toolName: 'fastTool',
+            args: {},
+          });
+          preflightReady.resolve();
+          await preflightDone.promise;
+
+          const fastTool = piMock.customTools.find(
+            tool => tool.name === 'fastTool',
+          );
+          if (!fastTool) throw new Error('Expected fastTool.');
+
+          resolvedToolResult = await Promise.race([
+            fastTool.execute(
+              'tool-early-dup',
+              {},
+              undefined,
+              undefined,
+              undefined as never,
+            ),
+            new Promise<never>((_, reject) => {
+              setTimeout(
+                () =>
+                  reject(new Error('execute deadlocked waiting for result')),
+                150,
+              );
+            }),
+          ]);
+
+          emitEvent({
+            type: 'tool_execution_end',
+            toolCallId: 'tool-early-dup',
+            toolName: 'fastTool',
+            result: resolvedToolResult,
+            isError: false,
+          });
+        },
+      }).session;
+
+      const session = await createPiSession({
+        sessionId: 'session-early-dup',
+        sandboxSession: createEmptyRepositorySandboxSession(),
+        sessionWorkDir: '/sandbox/work',
+        settings: {},
+        clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+        isResume: false,
+      });
+
+      const emittedParts: HarnessV1StreamPart[] = [];
+      const control = await session.doPromptTurn({
+        skills: [],
+        prompt: 'run fast tool once',
+        tools: [{ name: 'fastTool' }],
+        emit: part => emittedParts.push(part),
+      });
+
+      await preflightReady.promise;
+      await control.submitToolResult({
+        toolCallId: 'tool-early-dup',
+        output: { ok: 'first', count: 1 },
+      });
+      await control.submitToolResult({
+        toolCallId: 'tool-early-dup',
+        output: { ok: 'second', count: 2 },
+      });
+      preflightDone.resolve();
+      await control.done;
+      await session.doDestroy();
+
+      expect(resolvedToolResult).toEqual({
+        content: [{ type: 'text', text: '{"ok":"first","count":1}' }],
+        details: null,
+      });
+      expect(emittedParts).toContainEqual({
+        type: 'tool-result',
+        toolCallId: 'tool-early-dup',
+        toolName: 'fastTool',
+        result: { ok: 'first', count: 1 },
+      });
+    });
+
+    it('ignores a duplicate submission arriving after execute consumes an early result before tool_execution_end', async () => {
+      const preflightReady = createDeferred<void>();
+      const preflightDone = createDeferred<void>();
+      const executeDone = createDeferred<void>();
+      const allowEnd = createDeferred<void>();
+      let resolvedToolResult: unknown;
+
+      piMock.session = createFakePiSession({
+        promptImplementation: async (_text, emitEvent) => {
+          emitEvent({ type: 'message_start', message: { role: 'assistant' } });
+          emitEvent({
+            type: 'tool_execution_start',
+            toolCallId: 'tool-early-settled',
+            toolName: 'fastTool',
+            args: {},
+          });
+          preflightReady.resolve();
+          await preflightDone.promise;
+
+          const fastTool = piMock.customTools.find(
+            tool => tool.name === 'fastTool',
+          );
+          if (!fastTool) throw new Error('Expected fastTool.');
+
+          resolvedToolResult = await Promise.race([
+            fastTool.execute(
+              'tool-early-settled',
+              {},
+              undefined,
+              undefined,
+              undefined as never,
+            ),
+            new Promise<never>((_, reject) => {
+              setTimeout(
+                () =>
+                  reject(new Error('execute deadlocked waiting for result')),
+                150,
+              );
+            }),
+          ]);
+          executeDone.resolve();
+          await allowEnd.promise;
+
+          emitEvent({
+            type: 'tool_execution_end',
+            toolCallId: 'tool-early-settled',
+            toolName: 'fastTool',
+            result: resolvedToolResult,
+            isError: false,
+          });
+        },
+      }).session;
+
+      const session = await createPiSession({
+        sessionId: 'session-early-settled',
+        sandboxSession: createEmptyRepositorySandboxSession(),
+        sessionWorkDir: '/sandbox/work',
+        settings: {},
+        clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+        isResume: false,
+      });
+
+      const emittedParts: HarnessV1StreamPart[] = [];
+      const control = await session.doPromptTurn({
+        skills: [],
+        prompt: 'run fast tool before end',
+        tools: [{ name: 'fastTool' }],
+        emit: part => emittedParts.push(part),
+      });
+
+      await preflightReady.promise;
+      await control.submitToolResult({
+        toolCallId: 'tool-early-settled',
+        output: { ok: 'first' },
+      });
+      preflightDone.resolve();
+      await executeDone.promise;
+
+      await control.submitToolResult({
+        toolCallId: 'tool-early-settled',
+        output: { ok: 'duplicate' },
+      });
+      allowEnd.resolve();
+      await control.done;
+      await session.doDestroy();
+
+      expect(resolvedToolResult).toEqual({
+        content: [{ type: 'text', text: '{"ok":"first"}' }],
+        details: null,
+      });
+      expect(emittedParts).toContainEqual({
+        type: 'tool-result',
+        toolCallId: 'tool-early-settled',
+        toolName: 'fastTool',
+        result: { ok: 'first' },
+      });
+    });
   });
 });
 
