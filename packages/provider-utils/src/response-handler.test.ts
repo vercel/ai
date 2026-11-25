@@ -130,7 +130,7 @@ describe('createEventSourceResponseHandler', () => {
       });
     });
 
-    it('should keep the default limit without the option', async () => {
+    it('should parse without the option', async () => {
       await expect(read()).resolves.toMatchObject({
         value: { success: true },
       });
