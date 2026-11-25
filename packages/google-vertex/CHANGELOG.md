@@ -1,5 +1,16 @@
 # @ai-sdk/google-vertex
 
+## 5.0.147
+
+### Patch Changes
+
+- b21f9e1: refactor(google-vertex): declare model capabilities per model ID
+- Updated dependencies [aa7cb79]
+  - @ai-sdk/provider-utils@5.0.84
+  - @ai-sdk/anthropic@4.0.109
+  - @ai-sdk/google@4.0.127
+  - @ai-sdk/openai-compatible@3.0.95
+
 ## 5.0.146
 
 ### Patch Changes

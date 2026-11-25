@@ -1,5 +1,13 @@
 # @ai-sdk/alibaba
 
+## 2.0.94
+
+### Patch Changes
+
+- 6ac3b8e: refactor(alibaba): declare model capabilities per model ID
+- Updated dependencies [aa7cb79]
+  - @ai-sdk/provider-utils@5.0.84
+
 ## 2.0.93
 
 ### Patch Changes

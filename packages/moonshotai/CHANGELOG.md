@@ -1,5 +1,13 @@
 # @ai-sdk/moonshotai
 
+## 3.0.96
+
+### Patch Changes
+
+- 45ddf7d: refactor(moonshotai): declare model capabilities per model ID
+- Updated dependencies [aa7cb79]
+  - @ai-sdk/provider-utils@5.0.84
+
 ## 3.0.95
 
 ### Patch Changes

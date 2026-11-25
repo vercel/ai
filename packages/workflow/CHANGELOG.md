@@ -1,5 +1,15 @@
 # @ai-sdk/workflow
 
+## 2.0.114
+
+### Patch Changes
+
+- 8a75476: fix(workflow): keep empty assistant text that carries provider metadata in `WorkflowAgent` response messages
+- Updated dependencies [aa7cb79]
+- Updated dependencies [ac22e59]
+  - @ai-sdk/provider-utils@5.0.84
+  - ai@7.0.182
+
 ## 2.0.113
 
 ### Patch Changes

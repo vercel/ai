@@ -1,5 +1,14 @@
 # @ai-sdk/minimax
 
+## 3.0.86
+
+### Patch Changes
+
+- 34d3512: refactor(minimax): declare model capabilities per model ID
+- Updated dependencies [aa7cb79]
+  - @ai-sdk/provider-utils@5.0.84
+  - @ai-sdk/anthropic@4.0.109
+
 ## 3.0.85
 
 ### Patch Changes
