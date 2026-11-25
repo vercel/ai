@@ -2219,8 +2219,8 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should omit reasoning effort updates for models before GPT-6', async () => {
-        const { warnings } = await createModel('gpt-5.6').doGenerate({
+      it('should omit reasoning effort updates for models without configuration updates', async () => {
+        const { warnings } = await createModel('gpt-5.5').doGenerate({
           prompt: TEST_PROMPT,
           providerOptions: {
             openai: {
@@ -2362,7 +2362,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should warn and drop serviceTier fast for a model without priority processing', async () => {
-        const { warnings } = await createModel('gpt-5-nano').doGenerate({
+        const { warnings } = await createModel('gpt-3.5-turbo').doGenerate({
           prompt: TEST_PROMPT,
           providerOptions: {
             openai: {
