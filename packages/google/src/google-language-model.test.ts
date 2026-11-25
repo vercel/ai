@@ -823,6 +823,35 @@ describe('urlContextMetadata', () => {
     const result = urlContextMetadataSchema.safeParse(output);
     expect(result.success).toBe(true);
   });
+
+  it('validates url context output without urlRetrievalStatus', () => {
+    const output = {
+      urlMetadata: [
+        {
+          retrievedUrl: 'https://example.com/weather',
+        },
+      ],
+    };
+
+    const result = urlContextMetadataSchema.safeParse(output);
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual(output);
+  });
+
+  it('validates url context output with null urlRetrievalStatus', () => {
+    const output = {
+      urlMetadata: [
+        {
+          retrievedUrl: 'https://example.com/weather',
+          urlRetrievalStatus: null,
+        },
+      ],
+    };
+
+    const result = urlContextMetadataSchema.safeParse(output);
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual(output);
+  });
 });
 
 describe('doGenerate', () => {
