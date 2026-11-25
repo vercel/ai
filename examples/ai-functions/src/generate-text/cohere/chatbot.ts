@@ -22,7 +22,7 @@ run(async () => {
 
     const { text, toolCalls, toolResults, responseMessages } =
       await generateText({
-        model: cohere('command-r-plus'),
+        model: cohere('command-a-03-2025'),
         tools: { weatherTool },
         instructions: `You are a helpful, respectful and honest assistant. If the weather is requested use the `,
         messages,

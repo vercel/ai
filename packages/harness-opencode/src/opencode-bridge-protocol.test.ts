@@ -41,6 +41,26 @@ describe('OpenCode bridge protocol', () => {
     `);
   });
 
+  it('accepts text and image prompt content', () => {
+    expect(
+      inboundMessageSchema.parse({
+        type: 'start',
+        operation: 'prompt',
+        prompt: [
+          { type: 'text', text: 'What is in this image?' },
+          { type: 'image', mediaType: 'image/png', data: 'iVBORw0KGgo=' },
+        ],
+      }),
+    ).toMatchObject({
+      type: 'start',
+      operation: 'prompt',
+      prompt: [
+        { type: 'text', text: 'What is in this image?' },
+        { type: 'image', mediaType: 'image/png', data: 'iVBORw0KGgo=' },
+      ],
+    });
+  });
+
   it('accepts shared bridge commands', () => {
     expect(inboundMessageSchema.parse({ type: 'abort' })).toEqual({
       type: 'abort',

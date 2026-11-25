@@ -1,4 +1,4 @@
-import { InvalidArgumentError } from '@ai-sdk/provider';
+import { APICallError, InvalidArgumentError } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { XaiVideoModel } from './xai-video-model';
@@ -82,6 +82,24 @@ describe('XaiVideoModel', () => {
         body: doneStatusResponse,
       },
     },
+    [`${TEST_BASE_URL}/videos/abc%2F..%2F..%2Finternal`]: {
+      response: {
+        type: 'json-value',
+        body: doneStatusResponse,
+      },
+    },
+    [`${TEST_BASE_URL}/videos/%252E`]: {
+      response: {
+        type: 'json-value',
+        body: doneStatusResponse,
+      },
+    },
+    [`${TEST_BASE_URL}/videos/%252E%252E`]: {
+      response: {
+        type: 'json-value',
+        body: doneStatusResponse,
+      },
+    },
   });
 
   describe('constructor', () => {
@@ -101,6 +119,309 @@ describe('XaiVideoModel', () => {
 
       const body = await server.calls[0].requestBodyJson;
       expect(body).toMatchObject({ model: 'grok-imagine-video-1.5' });
+    });
+  });
+
+  describe('upload delivery', () => {
+    it('sends output.upload_url', async () => {
+      const result = await createModel().doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: { output: { uploadUrl: 'https://example.com/dest.mp4' } },
+        },
+      });
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        output: { upload_url: 'https://example.com/dest.mp4' },
+      });
+      expect(result.operation).toMatchObject({ hasUploadUrl: true });
+    });
+    it('completes without a video URL when upload was requested', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: { status: 'done', video: null },
+      };
+      const result = await createModel().doStatus({
+        operation: { requestId: 'req-123', hasUploadUrl: true },
+      });
+      expect(result).toMatchObject({
+        status: 'completed',
+        videos: [{ type: 'uploaded', mediaType: 'video/mp4' }],
+      });
+    });
+    it('does not expose or download a video URL returned in upload mode', async () => {
+      const result = await createModel().doStatus({
+        operation: { requestId: 'req-123', hasUploadUrl: true },
+      });
+      expect(result).toMatchObject({
+        status: 'completed',
+        videos: [{ type: 'uploaded', mediaType: 'video/mp4' }],
+      });
+      if (result.status === 'completed') {
+        expect(result.providerMetadata?.xai).not.toHaveProperty('videoUrl');
+      }
+      expect(server.calls).toHaveLength(1);
+    });
+
+    it.each([
+      ['generation', {}, 'generations'],
+      [
+        'editing',
+        { mode: 'edit-video', videoUrl: 'https://example.com/source.mp4' },
+        'edits',
+      ],
+      [
+        'legacy editing',
+        { videoUrl: 'https://example.com/source.mp4' },
+        'edits',
+      ],
+      [
+        'extension',
+        { mode: 'extend-video', videoUrl: 'https://example.com/source.mp4' },
+        'extensions',
+      ],
+    ])(
+      'forwards upload delivery for %s without persisting the signed URL',
+      async (_name, modeOptions, endpoint) => {
+        const uploadUrl =
+          'https://storage.example.com/video.mp4?signature=test-secret';
+        const result = await createModel().doStart({
+          ...defaultOptions,
+          providerOptions: { xai: { ...modeOptions, output: { uploadUrl } } },
+        });
+        expect(server.calls[0].requestUrl).toBe(
+          `${TEST_BASE_URL}/videos/${endpoint}`,
+        );
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          output: { upload_url: uploadUrl },
+        });
+        expect(result.operation).toStrictEqual({
+          requestId: 'req-123',
+          hasUploadUrl: true,
+        });
+        expect(JSON.stringify(result)).not.toContain('test-secret');
+      },
+    );
+
+    it.each([
+      [
+        'moderation',
+        { status: 'done', video: { respect_moderation: false } },
+        'content policy violation',
+      ],
+      [
+        'failure',
+        { status: 'failed', error: { message: 'upload failed' } },
+        'Video generation failed',
+      ],
+      ['expiry', { status: 'expired' }, 'expired'],
+    ])('preserves %s failures in upload mode', async (_name, body, error) => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body,
+      };
+      const result = await createModel().doStatus({
+        operation: { requestId: 'req-123', hasUploadUrl: true },
+      });
+      expect(result).toMatchObject({
+        status: 'error',
+        error: expect.stringContaining(error),
+      });
+    });
+
+    it('keeps a pending upload pending', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: { status: 'pending' },
+      };
+      expect(
+        await createModel().doStatus({
+          operation: { requestId: 'req-123', hasUploadUrl: true },
+        }),
+      ).toMatchObject({ status: 'pending' });
+    });
+
+    it('keeps Files storage options independent of upload delivery', async () => {
+      await createModel().doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            output: {
+              uploadUrl:
+                'https://storage.example.com/dest.mp4?signature=secret',
+            },
+            storageOptions: { filename: 'copy.mp4', publicUrl: true },
+          },
+        },
+      });
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        output: { upload_url: expect.any(String) },
+        storage_options: { filename: 'copy.mp4', public_url: true },
+      });
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: {
+          status: 'done',
+          video: {
+            respect_moderation: true,
+            storage_error: 'Files persistence failed',
+            file_output: {
+              file_id: 'file-1',
+              filename: 'copy.mp4',
+              public_url: 'https://files.x.ai/copy.mp4',
+            },
+          },
+        },
+      };
+      const result = await createModel().doStatus({
+        operation: { requestId: 'req-123', hasUploadUrl: true },
+      });
+      expect(result).toMatchObject({
+        status: 'completed',
+        videos: [{ type: 'uploaded', mediaType: 'video/mp4' }],
+        providerMetadata: {
+          xai: {
+            storageError: 'Files persistence failed',
+            fileOutput: {
+              fileId: 'file-1',
+              publicUrl: 'https://files.x.ai/copy.mp4',
+            },
+          },
+        },
+      });
+    });
+
+    it.each([
+      { uploadUrl: '' },
+      { uploadUrl: 'not-a-url' },
+      { uploadUrl: 'http://example.com/video.mp4?signature=secret' },
+      { uploadUrl: 'https://user:password@example.com/video.mp4' },
+      { uploadUrl: 'https://example.com/video.mp4#fragment' },
+      { upload_url: 'https://example.com/video.mp4' },
+      { uploadUrl: 42 },
+      {},
+      null,
+    ])('rejects invalid upload configuration before HTTP: %j', async output => {
+      await expect(
+        createModel().doStart({
+          ...defaultOptions,
+          providerOptions: { xai: { output } },
+        }),
+      ).rejects.toThrow(
+        'Invalid xAI video provider options for upload delivery.',
+      );
+      expect(server.calls).toHaveLength(0);
+    });
+
+    it('omits signed URLs from validation error causes', async () => {
+      let caught: unknown;
+      try {
+        await createModel().doStart({
+          ...defaultOptions,
+          providerOptions: {
+            xai: {
+              output: {
+                uploadUrl:
+                  'https://storage.example.com/video.mp4?signature=secret',
+              },
+              resolution: 'invalid',
+            },
+          },
+        });
+      } catch (error) {
+        caught = error;
+      }
+      expect(InvalidArgumentError.isInstance(caught)).toBe(true);
+      expect(caught).toMatchObject({ cause: undefined });
+      expect(String(caught)).not.toContain('signature=secret');
+      expect(server.calls).toHaveLength(0);
+    });
+
+    it('redacts signed URLs from start API errors while preserving retryability', async () => {
+      const uploadUrl =
+        'https://storage.example.com/video.mp4?signature=secret';
+      server.urls[`${TEST_BASE_URL}/videos/generations`].response = {
+        type: 'error',
+        status: 429,
+        body: JSON.stringify({
+          error: { message: `Failed to upload to ${uploadUrl}` },
+        }),
+      };
+      let caught: unknown;
+      try {
+        await createModel().doStart({
+          ...defaultOptions,
+          providerOptions: { xai: { output: { uploadUrl } } },
+        });
+      } catch (error) {
+        caught = error;
+      }
+      expect(APICallError.isInstance(caught)).toBe(true);
+      expect(caught).toMatchObject({
+        statusCode: 429,
+        isRetryable: true,
+        requestBodyValues: { output: { upload_url: '[REDACTED]' } },
+        responseBody: undefined,
+        cause: undefined,
+        data: undefined,
+      });
+      expect(JSON.stringify(caught)).not.toContain('signature=secret');
+      expect(String(caught)).not.toContain('signature=secret');
+    });
+
+    it('omits provider error bodies from upload status request failures', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'error',
+        status: 500,
+        body: JSON.stringify({
+          error: {
+            message: 'https://storage.example.com/video.mp4?signature=secret',
+          },
+        }),
+      };
+      await expect(
+        createModel().doStatus({
+          operation: { requestId: 'req-123', hasUploadUrl: true },
+        }),
+      ).rejects.toMatchObject({
+        message: 'xAI video upload status request failed.',
+        statusCode: 500,
+        isRetryable: true,
+        requestBodyValues: undefined,
+        responseBody: undefined,
+        data: undefined,
+        cause: undefined,
+      });
+    });
+
+    it('does not echo signed destinations from terminal upload failures', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: {
+          status: 'failed',
+          error: {
+            message: 'https://storage.example.com/video.mp4?signature=secret',
+          },
+        },
+      };
+      expect(
+        await createModel().doStatus({
+          operation: { requestId: 'req-123', hasUploadUrl: true },
+        }),
+      ).toMatchObject({ status: 'error', error: 'Video generation failed.' });
+    });
+
+    it('preserves the missing URL error otherwise', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: { status: 'done', video: null },
+      };
+      const result = await createModel().doStatus({
+        operation: { requestId: 'req-123' },
+      });
+      expect(result).toMatchObject({
+        status: 'error',
+        error: 'Video generation completed but no video URL was returned.',
+      });
     });
   });
 
@@ -125,6 +446,77 @@ describe('XaiVideoModel', () => {
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'grok-imagine-video',
         prompt,
+      });
+    });
+
+    it('should map current xAI generation options', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        generateAudio: false,
+        frameImages: [
+          {
+            frameType: 'last_frame',
+            image: { type: 'url', url: 'https://example.com/end.png' },
+          },
+        ],
+        providerOptions: {
+          xai: {
+            storageOptions: {
+              filename: 'result.mp4',
+              expiresAfter: 86_400,
+              publicUrl: { expiresAfter: 3_600 },
+            },
+            keyframes: [
+              {
+                imageUrl: 'https://example.com/middle.png',
+                timestampSeconds: 2.5,
+              },
+            ],
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        generate_audio: false,
+        last_frame: { url: 'https://example.com/end.png' },
+        storage_options: {
+          filename: 'result.mp4',
+          expires_after: 86_400,
+          public_url: { expires_after: 3_600 },
+        },
+        keyframes: [
+          {
+            image: { url: 'https://example.com/middle.png' },
+            timestamp_s: 2.5,
+          },
+        ],
+      });
+      expect(result.operation).toStrictEqual({ requestId: 'req-123' });
+    });
+
+    it('should warn and omit last_frame for grok-imagine-video', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video' });
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        frameImages: [
+          {
+            frameType: 'last_frame',
+            image: { type: 'url', url: 'https://example.com/end.png' },
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'last_frame',
+      );
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'frameImages',
+        details:
+          'xAI only supports last_frame with "grok-imagine-video-1.5". The last frame was ignored.',
       });
     });
 
@@ -870,7 +1262,7 @@ describe('XaiVideoModel', () => {
       );
     });
 
-    it('should warn and exclude an audio inputReference from reference_images', async () => {
+    it('should separate image and audio inputReferences', async () => {
       const model = createModel({ modelId: 'grok-imagine-video-1.5' });
 
       const result = await model.doStart({
@@ -888,17 +1280,13 @@ describe('XaiVideoModel', () => {
       const body = await server.calls[0].requestBodyJson;
       expect(body).toMatchObject({
         reference_images: [{ url: 'https://example.com/ref1.jpg' }],
+        reference_audios: [{ url: 'https://example.com/voice.mp3' }],
       });
       expect(body.reference_images).toHaveLength(1);
-      expect(result.warnings).toContainEqual(
-        expect.objectContaining({
-          type: 'unsupported',
-          feature: 'inputReferences',
-        }),
-      );
+      expect(result.warnings).toStrictEqual([]);
     });
 
-    it('should drop audio-only inputReferences with a warning', async () => {
+    it('should support audio-only reference-to-video', async () => {
       const model = createModel({ modelId: 'grok-imagine-video-1.5' });
 
       const result = await model.doStart({
@@ -913,16 +1301,11 @@ describe('XaiVideoModel', () => {
       });
 
       const body = await server.calls[0].requestBodyJson;
-      expect(body).not.toHaveProperty('reference_audios');
-      // Audio cannot drive R2V, so the request stays text-to-video and no
-      // empty reference_images array is sent.
+      expect(body).toMatchObject({
+        reference_audios: [{ url: 'https://example.com/voice.mp3' }],
+      });
       expect(body).not.toHaveProperty('reference_images');
-      expect(result.warnings).toContainEqual(
-        expect.objectContaining({
-          type: 'unsupported',
-          feature: 'inputReferences',
-        }),
-      );
+      expect(result.warnings).toStrictEqual([]);
     });
 
     it('should not send an empty reference_images array for video-only inputReferences', async () => {
@@ -943,7 +1326,7 @@ describe('XaiVideoModel', () => {
       expect(body).not.toHaveProperty('reference_images');
     });
 
-    it('should keep image-to-video mode when an audio reference is supplied', async () => {
+    it('should combine a pinned first frame with an audio reference', async () => {
       const model = createModel({ modelId: 'grok-imagine-video-1.5' });
 
       const result = await model.doStart({
@@ -965,17 +1348,13 @@ describe('XaiVideoModel', () => {
       const body = await server.calls[0].requestBodyJson;
       expect(body).toMatchObject({
         image: { url: 'https://example.com/start.jpg' },
+        reference_audios: [{ url: 'https://example.com/voice.mp3' }],
       });
       expect(body).not.toHaveProperty('reference_images');
-      expect(result.warnings).toContainEqual(
-        expect.objectContaining({
-          type: 'unsupported',
-          feature: 'inputReferences',
-        }),
-      );
+      expect(result.warnings).toStrictEqual([]);
     });
 
-    it('should send no reference_images for explicit R2V without image references', async () => {
+    it('should support explicit audio-only R2V without reference_images', async () => {
       const model = createModel({ modelId: 'grok-imagine-video-1.5' });
 
       const result = await model.doStart({
@@ -996,19 +1375,10 @@ describe('XaiVideoModel', () => {
 
       const body = await server.calls[0].requestBodyJson;
       expect(body).not.toHaveProperty('reference_images');
-      expect(result.warnings).toContainEqual(
-        expect.objectContaining({
-          type: 'unsupported',
-          feature: 'inputReferences',
-        }),
-      );
-      expect(result.warnings).toContainEqual(
-        expect.objectContaining({
-          type: 'unsupported',
-          feature: 'referenceImages',
-          details: expect.stringContaining('without reference images'),
-        }),
-      );
+      expect(body).toMatchObject({
+        reference_audios: [{ url: 'https://example.com/voice.mp3' }],
+      });
+      expect(result.warnings).toStrictEqual([]);
     });
 
     it('should warn when explicit R2V has no references at all', async () => {
@@ -1224,6 +1594,37 @@ describe('XaiVideoModel', () => {
   });
 
   describe('doStatus', () => {
+    it('should encode the request ID as a single URL path segment', async () => {
+      const model = createModel();
+      const requestId = 'abc/../../internal';
+
+      await model.doStatus({
+        operation: { requestId },
+      });
+
+      expect(server.calls[0].requestUrl).toBe(
+        `${TEST_BASE_URL}/videos/${encodeURIComponent(requestId)}`,
+      );
+    });
+
+    it.each([
+      { requestId: '.', encodedRequestId: '%252E' },
+      { requestId: '..', encodedRequestId: '%252E%252E' },
+    ])(
+      'should preserve the $requestId request ID as a URL path segment',
+      async ({ requestId, encodedRequestId }) => {
+        const model = createModel();
+
+        await model.doStatus({
+          operation: { requestId },
+        });
+
+        expect(server.calls[0].requestUrl).toBe(
+          `${TEST_BASE_URL}/videos/${encodedRequestId}`,
+        );
+      },
+    );
+
     it('should return completed with video data when done', async () => {
       const model = createModel();
 

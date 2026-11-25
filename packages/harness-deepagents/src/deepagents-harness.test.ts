@@ -1,10 +1,12 @@
 import type {
+  HarnessV1BuiltinTool,
   HarnessV1NetworkSandboxSession,
   HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
+import { asSchema } from '@ai-sdk/provider-utils';
 import type * as NodeFsPromises from 'node:fs/promises';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { createDeepAgents } from './deepagents-harness';
 
 // Captures the wireTurn `onClose` handler so tests can fire a close with a chosen reason.
@@ -12,7 +14,14 @@ const closeHolder: { fire?: (code: number, reason: string) => void } = {};
 const sentMessages: unknown[] = [];
 const channelMocks = vi.hoisted(() => ({
   connectOnOpen: false,
-  connects: [] as Array<() => Promise<unknown>>,
+  connects: [] as Array<
+    (options: {
+      abortSignal: AbortSignal;
+      reason: 'open' | 'reconnect';
+    }) => Promise<unknown>
+  >,
+  reconnects: [] as Array<unknown>,
+  keepalives: [] as Array<number | undefined>,
 }));
 const webSocketMocks = vi.hoisted(() => {
   type Listener = (...args: unknown[]) => void;
@@ -20,13 +29,24 @@ const webSocketMocks = vi.hoisted(() => {
     url: string;
     headers: Record<string, string> | undefined;
   }> = [];
-
   class FakeWebSocket {
     private readonly listeners = new Map<string, Set<Listener>>();
+    readonly sent: string[] = [];
+    private challengeSent = false;
 
     constructor(url: string, options?: { headers?: Record<string, string> }) {
       calls.push({ url, headers: options?.headers });
-      queueMicrotask(() => this.emit('open'));
+      queueMicrotask(() => {
+        this.emit('open');
+        this.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+      });
+    }
+
+    on(type: string, listener: Listener): this {
+      const listeners = this.listeners.get(type) ?? new Set();
+      listeners.add(listener);
+      this.listeners.set(type, listeners);
+      return this;
     }
 
     once(type: string, listener: Listener): this {
@@ -45,7 +65,25 @@ const webSocketMocks = vi.hoisted(() => {
       return this;
     }
 
+    send(frame: string): void {
+      this.sent.push(frame);
+    }
+
     private emit(type: string, ...args: unknown[]): void {
+      if (
+        type === 'message' &&
+        !this.challengeSent &&
+        String(args[0]).includes('"bridge-hello"')
+      ) {
+        this.challengeSent = true;
+        this.emit(
+          'message',
+          JSON.stringify({
+            type: 'bridge-auth-challenge',
+            challenge: 'a'.repeat(64),
+          }),
+        );
+      }
       for (const listener of [...(this.listeners.get(type) ?? [])]) {
         listener(...args);
       }
@@ -60,12 +98,28 @@ vi.mock('ws', () => ({ WebSocket: webSocketMocks.WebSocket }));
 vi.mock('@ai-sdk/harness/utils', async importOriginal => {
   const actual = await importOriginal<typeof HarnessUtils>();
   class FakeSandboxChannel {
-    constructor({ connect }: { connect: () => Promise<unknown> }) {
+    constructor({
+      connect,
+      reconnect,
+      keepAliveMs,
+    }: {
+      connect: (options: {
+        abortSignal: AbortSignal;
+        reason: 'open' | 'reconnect';
+      }) => Promise<unknown>;
+      reconnect?: unknown;
+      keepAliveMs?: number;
+    }) {
       channelMocks.connects.push(connect);
+      channelMocks.reconnects.push(reconnect);
+      channelMocks.keepalives.push(keepAliveMs);
     }
     async open(): Promise<void> {
       if (channelMocks.connectOnOpen) {
-        await channelMocks.connects.at(-1)!();
+        await channelMocks.connects.at(-1)!({
+          abortSignal: new AbortController().signal,
+          reason: 'open',
+        });
       }
     }
     on(): () => void {
@@ -96,8 +150,7 @@ vi.mock('node:fs/promises', async importOriginal => {
     readFile: vi.fn(async (input: unknown, ...rest: unknown[]) => {
       const path = typeof input === 'string' ? input : String(input);
       if (path.endsWith('/bridge/index.mjs')) return '// mock bridge\n';
-      if (path.endsWith('/bridge/package.json')) return '{"name":"mock"}';
-      if (path.endsWith('/bridge/pnpm-lock.yaml'))
+      if (path.endsWith('/bridge/pnpm-lockfile.yaml'))
         return 'lockfileVersion: "9.0"\n';
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (actual.readFile as any)(input, ...rest);
@@ -124,7 +177,11 @@ function fakeSandboxSession({
   bridgePortEndpoint?: HarnessV1PortEndpoint;
 } = {}): HarnessV1NetworkSandboxSession {
   const session = {
-    run: async () => ({ exitCode: 0, stdout: '', stderr: '' }),
+    run: async ({ command }: { command: string }) => ({
+      exitCode: 0,
+      stdout: command === 'printf "%s" "$HOME"' ? '/home/vercel-sandbox' : '',
+      stderr: '',
+    }),
     readTextFile: async () => null,
     writeTextFile: async () => {},
     spawn: async ({
@@ -169,6 +226,7 @@ async function startTurn() {
     sandboxSession: fakeSandboxSession(),
   } as unknown as Parameters<typeof harness.doStart>[0]);
   const control = await session.doPromptTurn({
+    skills: [],
     prompt: 'hi',
     emit: () => {},
   } as unknown as Parameters<typeof session.doPromptTurn>[0]);
@@ -179,6 +237,8 @@ describe('createDeepAgents', () => {
   beforeEach(() => {
     channelMocks.connectOnOpen = false;
     channelMocks.connects.length = 0;
+    channelMocks.reconnects.length = 0;
+    channelMocks.keepalives.length = 0;
     webSocketMocks.calls.length = 0;
   });
 
@@ -190,7 +250,28 @@ describe('createDeepAgents', () => {
     expect(harness.supportsBuiltinToolFiltering).toBeUndefined();
   });
 
-  it('ships the node bridge files and a pnpm install command in its bootstrap', async () => {
+  it('registers the native delete tool as a mutation', async () => {
+    const harness = createDeepAgents();
+    const deleteTool = harness.builtinTools.delete;
+    expectTypeOf(deleteTool).toEqualTypeOf<
+      HarnessV1BuiltinTool<{ file_path: string }, any>
+    >();
+    expect(deleteTool).toBeDefined();
+    expect(deleteTool.toolUseKind).toBe('edit');
+    expect(deleteTool).not.toHaveProperty('commonName');
+    expect(deleteTool).not.toHaveProperty('nativeName');
+    const schema = asSchema(deleteTool.inputSchema!);
+    await expect(
+      schema.validate!({ file_path: '/workspace/file.txt' }),
+    ).resolves.toEqual({
+      success: true,
+      value: { file_path: '/workspace/file.txt' },
+    });
+    expect((await schema.validate!({})).success).toBe(false);
+    expect((await schema.validate!({ file_path: 1 })).success).toBe(false);
+  });
+
+  it('ships bridge dependencies and installs them in its bootstrap', async () => {
     const harness = createDeepAgents();
     const bootstrap = await harness.getBootstrap!();
     expect(bootstrap.harnessId).toBe('deepagents');
@@ -201,11 +282,15 @@ describe('createDeepAgents', () => {
       '.harness-bootstrap/deepagents/package.json',
       '.harness-bootstrap/deepagents/pnpm-lock.yaml',
     ]);
-    const commands = bootstrap.commands.map(c => c.command).join('\n');
-    expect(commands).toContain(
-      'pnpm install --frozen-lockfile --store-dir .pnpm-store',
+    const packageManifest = bootstrap.files.find(file =>
+      file.path.endsWith('/package.json'),
     );
-    expect(commands).not.toContain('mkdir -p .harness-bootstrap/deepagents');
+    expect(packageManifest?.content).toContain('"@vscode/ripgrep": "1.18.0"');
+    const commands = bootstrap.commands.map(c => c.command);
+    expect(commands).toEqual([
+      'pnpm install --frozen-lockfile --store-dir .pnpm-store',
+    ]);
+    expect(commands.join('\n')).not.toContain('github.com');
   });
 
   it('caches the bootstrap across calls', async () => {
@@ -216,8 +301,8 @@ describe('createDeepAgents', () => {
   });
 
   it('shares the getter across configured harness instances', () => {
-    const first = createDeepAgents({ model: 'first-model' });
-    const second = createDeepAgents({ model: 'second-model' });
+    const first = createDeepAgents({ effort: 'low' });
+    const second = createDeepAgents({ effort: 'high' });
 
     expect(first.getBootstrap).toBe(second.getBootstrap);
   });
@@ -238,30 +323,184 @@ describe('createDeepAgents', () => {
     } as unknown as Parameters<typeof harness.doStart>[0]);
 
     expect(spawnEnvs.at(0)?.AI_SDK_HARNESS_CLIENT_APP).toBe(
-      'ai-sdk/harness-deepagents/0.0.0-test',
+      'ai-sdk-harness-deepagents/0.0.0-test',
     );
-    expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
+    expect(spawnEnvs.at(0)?.BRIDGE_AUTH_PUBLIC_KEY).toMatch(
+      /^[A-Za-z0-9_-]{43}$/,
+    );
+    expect(spawnEnvs.at(0)).not.toHaveProperty('BRIDGE_CHANNEL_TOKEN');
     expect(spawns.at(0)).toContain(
-      "node '/vercel/sandbox/.harness-bootstrap/deepagents/bridge.mjs'",
+      "node '/home/vercel-sandbox/.ai-sdk-harness/.harness-bootstrap/deepagents/bridge.mjs'",
     );
+    expect(spawns.at(0)).toContain("--home-dir '/home/vercel-sandbox'");
     expect(spawns.at(0)).toContain(
-      "--bootstrap-dir '/vercel/sandbox/.harness-bootstrap/deepagents'",
+      "--bootstrap-dir '/home/vercel-sandbox/.ai-sdk-harness/.harness-bootstrap/deepagents'",
     );
+    const control = await session.doPromptTurn({
+      model: 'agent-model',
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+    expect(sentMessages.at(-1)).toMatchObject({
+      type: 'start',
+      model: 'agent-model',
+    });
 
     await session.doDestroy();
   });
 
+  it('passes inline images through the bridge prompt', async () => {
+    sentMessages.length = 0;
+    const session = await createDeepAgents().doStart({
+      sessionId: 'test-session',
+      sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
+      sandboxSession: fakeSandboxSession(),
+    } as unknown as Parameters<
+      ReturnType<typeof createDeepAgents>['doStart']
+    >[0]);
+
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Describe this image.' },
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: new Uint8Array([1, 2, 3]),
+          },
+        ],
+      },
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(sentMessages.at(-1)).toMatchObject({
+      type: 'start',
+      prompt: [
+        { type: 'text', text: 'Describe this image.' },
+        { type: 'image', mediaType: 'image/png', data: 'AQID' },
+      ],
+    });
+
+    await session.doDestroy();
+  });
+
+  it('loads the saved conversation checkpoint when spawning a resumed bridge', async () => {
+    const spawns: string[] = [];
+    const harness = createDeepAgents();
+    const session = await harness.doStart({
+      sessionId: 'test-session',
+      sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
+      sandboxSession: fakeSandboxSession({ spawns }),
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'deepagents',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    } as unknown as Parameters<typeof harness.doStart>[0]);
+
+    expect(spawns.at(0)).toContain('--resume true');
+
+    await session.doDestroy();
+  });
+
+  it.each([
+    [60_000, '60000'],
+    [undefined, undefined],
+  ])(
+    'passes hostDisconnectTimeoutMs %s to the bridge',
+    async (hostDisconnectTimeoutMs, expected) => {
+      const spawns: string[] = [];
+      const session = await createDeepAgents({
+        hostDisconnectTimeoutMs,
+      }).doStart({
+        sessionId: 'test-session',
+        sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
+        sandboxSession: fakeSandboxSession({ spawns }),
+      });
+
+      expect(
+        spawns.at(0)?.match(/--host-disconnect-timeout-ms '?(\d+)'?/)?.[1],
+      ).toBe(expected);
+
+      await session.doDestroy();
+    },
+  );
+
+  it('passes headers to the bridge for Gateway and direct auth', async () => {
+    sentMessages.length = 0;
+    const gatewaySession = await createDeepAgents({
+      auth: { AI_GATEWAY_API_KEY: 'gateway-key' },
+    }).doStart({
+      sessionId: 'gateway',
+      headers: { 'x-tenant': 'acme' },
+      sessionWorkDir: '/vercel/sandbox/deepagents-gateway',
+      sandboxSession: fakeSandboxSession(),
+    } as unknown as Parameters<
+      ReturnType<typeof createDeepAgents>['doStart']
+    >[0]);
+
+    await gatewaySession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    expect(sentMessages.at(-1)).toMatchObject({
+      type: 'start',
+      headers: { 'x-tenant': 'acme' },
+    });
+    await gatewaySession.doDestroy();
+
+    sentMessages.length = 0;
+    const directSession = await createDeepAgents({
+      auth: { ANTHROPIC_API_KEY: 'anthropic-key' },
+    }).doStart({
+      sessionId: 'direct',
+      headers: { 'x-tenant': 'acme' },
+      sessionWorkDir: '/vercel/sandbox/deepagents-direct',
+      sandboxSession: fakeSandboxSession(),
+    } as unknown as Parameters<
+      ReturnType<typeof createDeepAgents>['doStart']
+    >[0]);
+
+    await directSession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    expect(sentMessages.at(-1)).toMatchObject({
+      type: 'start',
+      headers: { 'x-tenant': 'acme' },
+    });
+    await directSession.doDestroy();
+  });
+
   it('brokers credentials when the sandbox supports additive request transformations', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const forwardedCredentials: Array<{
+      credential: string;
+      environmentVariableName: string;
+    }> = [];
     const addRequestTransformations = vi.fn(async () => {});
     const sandboxSession = fakeSandboxSession({ spawnEnvs });
     Object.assign(sandboxSession, { addRequestTransformations });
     const harness = createDeepAgents({
       auth: {
-        anthropic: {
-          apiKey: 'anthropic-secret',
-          baseUrl: 'https://anthropic.example',
-        },
+        ANTHROPIC_API_KEY: 'anthropic-secret',
+        ANTHROPIC_BASE_URL: 'https://anthropic.example',
+      },
+      credentialForwarding: async options => {
+        forwardedCredentials.push(options);
+        return `ephemeral-${options.environmentVariableName}`;
       },
     });
 
@@ -273,14 +512,131 @@ describe('createDeepAgents', () => {
 
     expect(addRequestTransformations).toHaveBeenCalledWith([
       {
-        match: { host: 'anthropic.example' },
+        match: {
+          host: 'anthropic.example',
+          headers: [
+            {
+              key: { exact: 'x-api-key' },
+              value: { exact: 'ephemeral-ANTHROPIC_API_KEY' },
+            },
+          ],
+        },
         transform: { headers: { 'x-api-key': 'anthropic-secret' } },
       },
     ]);
-    expect(spawnEnvs.at(0)?.ANTHROPIC_API_KEY).toBe('ANTHROPIC_API_KEY');
+    expect(forwardedCredentials).toEqual([
+      {
+        credential: expect.stringMatching(/^aisdkhc_[A-Za-z0-9_-]{43}$/),
+        environmentVariableName: 'ANTHROPIC_API_KEY',
+      },
+    ]);
+    expect(spawnEnvs.at(0)?.ANTHROPIC_API_KEY).toBe(
+      'ephemeral-ANTHROPIC_API_KEY',
+    );
     expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('anthropic-secret');
 
     await session.doDestroy();
+  });
+
+  it('adds a Gateway placeholder when resuming Anthropic authentication', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const addRequestTransformations = vi.fn(async () => {});
+    const sandboxSession = fakeSandboxSession({ spawnEnvs });
+    Object.assign(sandboxSession, { addRequestTransformations });
+    const harness = createDeepAgents({
+      auth: { AI_GATEWAY_API_KEY: 'current-gateway-secret' },
+    });
+    const session = await harness.doStart({
+      sessionId: 'test-session',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'deepagents',
+        specificationVersion: 'harness-v1',
+        data: {
+          sandboxCredentialEnvironment: {
+            ANTHROPIC_API_KEY: 'saved-anthropic-placeholder',
+          },
+        },
+      },
+    } as Parameters<typeof harness.doStart>[0]);
+
+    expect(spawnEnvs[0]?.ANTHROPIC_API_KEY).toBe('saved-anthropic-placeholder');
+    expect(spawnEnvs[0]?.AI_GATEWAY_API_KEY).toMatch(
+      /^aisdkhc_[A-Za-z0-9_-]{43}$/,
+    );
+    expect(JSON.stringify(spawnEnvs[0])).not.toContain(
+      'current-gateway-secret',
+    );
+    expect(addRequestTransformations).toHaveBeenCalledWith([
+      {
+        match: {
+          host: 'ai-gateway.vercel.sh',
+          headers: [
+            {
+              key: { exact: 'x-api-key' },
+              value: { exact: 'saved-anthropic-placeholder' },
+            },
+          ],
+        },
+        transform: { headers: { 'x-api-key': 'current-gateway-secret' } },
+      },
+    ]);
+    await session.doDestroy();
+  });
+
+  it('customizes real credentials when request transformations are unavailable', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const forwardedCredentials: Array<{
+      credential: string;
+      environmentVariableName: string;
+    }> = [];
+    const harness = createDeepAgents({
+      auth: { ANTHROPIC_API_KEY: 'anthropic-secret' },
+      credentialForwarding: options => {
+        forwardedCredentials.push(options);
+        return 'caller-managed-credential';
+      },
+    });
+
+    const session = await harness.doStart({
+      sessionId: 'test-session',
+      sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
+      sandboxSession: fakeSandboxSession({ spawnEnvs }),
+    } as unknown as Parameters<typeof harness.doStart>[0]);
+
+    expect(forwardedCredentials).toEqual([
+      {
+        credential: 'anthropic-secret',
+        environmentVariableName: 'ANTHROPIC_API_KEY',
+      },
+    ]);
+    expect(spawnEnvs.at(0)?.ANTHROPIC_API_KEY).toBe(
+      'caller-managed-credential',
+    );
+    expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('anthropic-secret');
+    expect(warn).not.toHaveBeenCalled();
+
+    await session.doDestroy();
+
+    const identityHarness = createDeepAgents({
+      auth: { ANTHROPIC_API_KEY: 'anthropic-secret' },
+      credentialForwarding: ({ credential }) => credential,
+    });
+    const identitySession = await identityHarness.doStart({
+      sessionId: 'identity-session',
+      sessionWorkDir: '/vercel/sandbox/deepagents-identity-session',
+      sandboxSession: fakeSandboxSession(),
+    } as unknown as Parameters<typeof identityHarness.doStart>[0]);
+
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
+      'The sandbox implementation does not support configuring request transformations, so credential brokering does not work. Falling back to less secure credential forwarding.',
+    );
+
+    await identitySession.doDestroy();
+    warn.mockRestore();
   });
 
   it('passes configured MCP servers to the bridge', async () => {
@@ -296,6 +652,8 @@ describe('createDeepAgents', () => {
     } as unknown as Parameters<typeof harness.doStart>[0]);
 
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Use memory.',
       emit: () => {},
     });
@@ -304,6 +662,34 @@ describe('createDeepAgents', () => {
       type: 'start',
       mcpServers,
     });
+    await session.doDestroy();
+  });
+
+  it('forwards individual active skill directories as readable roots', async () => {
+    sentMessages.length = 0;
+    const session = await createDeepAgents().doStart({
+      sessionId: 'test-session',
+      sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
+      sandboxSession: fakeSandboxSession(),
+    });
+    await session.doPromptTurn({
+      skills: [
+        {
+          name: 'demo',
+          description: 'Demo skill.',
+          content: 'Read reference.md.',
+        },
+      ],
+      tools: [],
+      prompt: 'Use demo.',
+      emit: () => {},
+    });
+    expect(sentMessages[0]).toEqual(
+      expect.objectContaining({
+        type: 'start',
+        readableSkillRoots: ['/home/vercel-sandbox/.agents/skills/demo'],
+      }),
+    );
     await session.doDestroy();
   });
 
@@ -320,6 +706,8 @@ describe('createDeepAgents', () => {
     } as unknown as Parameters<typeof harness.doStart>[0]);
 
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Think carefully.',
       emit: () => {},
     });
@@ -328,8 +716,10 @@ describe('createDeepAgents', () => {
       {
         "effort": "max",
         "prompt": "Think carefully.",
+        "skillsChanged": false,
         "skillsPaths": [
           "/vercel/sandbox/deepagents-test-session/.agents/skills",
+          "/home/vercel-sandbox/.agents/skills",
         ],
         "thinking": {
           "display": "summarized",
@@ -342,9 +732,10 @@ describe('createDeepAgents', () => {
     await session.doDestroy();
   });
 
-  it('reuses a caller-minted token and passes endpoint headers when attaching', async () => {
+  it('ignores mintBridgeToken, keeps the private key on the host, and passes endpoint headers when attaching', async () => {
     channelMocks.connectOnOpen = true;
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const mintBridgeToken = vi.fn(
       (sandboxId: string) => `token-for-${sandboxId}`,
     );
@@ -352,7 +743,27 @@ describe('createDeepAgents', () => {
       url: 'wss://sandbox.example/bridge?existing=value',
       headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
     };
-    const harness = createDeepAgents({ mintBridgeToken, portEndpoint });
+    const reconnect = {
+      maxElapsedMs: 120_000,
+      initialDelayMs: 100,
+      maxDelayMs: 5_000,
+    };
+    const harness = createDeepAgents({
+      mintBridgeToken,
+      portEndpoint,
+      reconnect,
+      keepAliveMs: 100,
+    });
+    expect(
+      warn.mock.calls.filter(([message]) =>
+        String(message).includes('mintBridgeToken'),
+      ),
+    ).toEqual([
+      [
+        'The deepagents harness ignores the deprecated `mintBridgeToken` setting. Sandbox bridge authentication now uses an adapter-generated key pair.',
+      ],
+    ]);
+    warn.mockRestore();
     const sandboxSession = fakeSandboxSession({
       spawnEnvs,
       bridgePortEndpoint: { url: 'ws://unused.example' },
@@ -363,15 +774,16 @@ describe('createDeepAgents', () => {
       sandboxSession,
     });
 
-    expect(mintBridgeToken).toHaveBeenCalledExactlyOnceWith('test-sandbox');
-    expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toBe(
-      'token-for-test-sandbox',
+    expect(spawnEnvs.at(0)?.BRIDGE_AUTH_PUBLIC_KEY).toMatch(
+      /^[A-Za-z0-9_-]{43}$/,
     );
 
     const resumeFrom = await session.doDetach();
-    expect(resumeFrom.data).toMatchObject({
-      bridge: { token: 'token-for-test-sandbox' },
-    });
+    const { privateKey } = (
+      resumeFrom.data as { bridge: { privateKey: string } }
+    ).bridge;
+    expect(privateKey).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(JSON.stringify(spawnEnvs)).not.toContain(privateKey);
 
     const attachedSession = await harness.doStart({
       sessionId: 'test-session',
@@ -379,14 +791,16 @@ describe('createDeepAgents', () => {
       sandboxSession,
       resumeFrom,
     });
-    expect(mintBridgeToken).toHaveBeenCalledTimes(1);
+    expect(mintBridgeToken).not.toHaveBeenCalled();
+    expect(channelMocks.reconnects).toEqual([reconnect, reconnect]);
+    expect(channelMocks.keepalives).toEqual([100, 100]);
     expect(webSocketMocks.calls).toEqual([
       {
-        url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-test-sandbox',
+        url: 'wss://sandbox.example/bridge?existing=value',
         headers: portEndpoint.headers,
       },
       {
-        url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-test-sandbox',
+        url: 'wss://sandbox.example/bridge?existing=value',
         headers: portEndpoint.headers,
       },
     ]);

@@ -13,6 +13,7 @@ export interface AmazonBedrockConverseInput {
   };
   additionalModelRequestFields?: Record<string, unknown>;
   additionalModelResponseFieldPaths?: string[];
+  requestMetadata?: Record<string, string>;
   serviceTier?: {
     type: string;
   };
@@ -183,8 +184,16 @@ export interface AmazonBedrockDocumentBlock {
   };
 }
 
+export interface AmazonBedrockGuardrailTextBlock extends AmazonBedrockTextBlock {
+  qualifiers?: Array<'grounding_source' | 'query' | 'guard_content'>;
+}
+
 export interface AmazonBedrockGuardrailConverseContentBlock {
-  guardContent: unknown;
+  guardContent:
+    | {
+        text: AmazonBedrockGuardrailTextBlock;
+      }
+    | AmazonBedrockImageBlock;
 }
 
 export interface AmazonBedrockImageBlock {

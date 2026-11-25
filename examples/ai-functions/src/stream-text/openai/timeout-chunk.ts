@@ -6,7 +6,7 @@ import { print } from '../../lib/print';
 
 run(async () => {
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     prompt: 'Write a short poem about the ocean.',
     timeout: { chunkMs: 500 },
   });

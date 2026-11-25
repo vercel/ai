@@ -15,6 +15,7 @@ import type { Output } from './output';
 import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 import type { ToolOrder } from './tool-order';
+import type { StoppedBy } from './stopped-by';
 
 /**
  * Event passed to the `onStart` callback.
@@ -246,6 +247,12 @@ export type GenerateTextEndEvent<
     RUNTIME_CONTEXT
   >['rawFinishReason'];
 
+  /**
+   * Why the generation stopped its tool loop, e.g. because of a stop
+   * condition. `generateText`, `streamText`, and `ToolLoopAgent` always set it.
+   */
+  readonly stoppedBy?: StoppedBy;
+
   /** Aggregated token usage across all steps. */
   readonly usage: LanguageModelUsage;
 
@@ -294,7 +301,7 @@ export type GenerateTextEndEvent<
 };
 
 /**
- * Event passed to the telemetry `onAbort` callback.
+ * Event passed to an `onAbort` callback for text generation.
  *
  * Called when a streaming text generation operation is aborted before it
  * completes.
@@ -391,6 +398,43 @@ export type GenerateTextOnStepFinishCallback<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
 > = GenerateTextOnStepEndCallback<TOOLS, RUNTIME_CONTEXT>;
+
+/**
+ * Event passed to the `onStepError` callback.
+ *
+ * Contains the step start event of the step that failed before it produced
+ * a step result, along with the error.
+ */
+export type GenerateTextStepErrorEvent<
+  TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+  OUTPUT extends Output = Output,
+> = GenerateTextStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT> & {
+  /** The error that ended the step. */
+  readonly error: unknown;
+};
+
+/**
+ * Callback that is set using the `onStepError` option.
+ *
+ * Called when a step that started fails before it produces a step result:
+ * when the provider call throws or rejects, or when the model stream ends
+ * without output. `onStepEnd` is not called for such a step. A provider
+ * `error` chunk does not fail the step, it still ends with `onStepEnd` and
+ * `finishReason: 'error'`.
+ *
+ * In `generateText`, an abort or timeout also ends the step here. The error
+ * is the abort or timeout error, or a provider error that has it as its
+ * `cause`. In `streamText`, an abort or timeout ends the step
+ * with `onAbort` instead.
+ *
+ * @param event - The step that failed and the error.
+ */
+export type GenerateTextOnStepErrorCallback<
+  TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+  OUTPUT extends Output = Output,
+> = Callback<GenerateTextStepErrorEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
 
 /**
  * Callback that is set using the `onEnd` option.

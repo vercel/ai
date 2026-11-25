@@ -25,6 +25,15 @@ import {
 } from './types';
 import { encodeMCPHeaderValue } from './mcp-http-headers';
 
+const MCP_NAME_PARAM_METHODS = new Set([
+  'tools/call',
+  'prompts/get',
+  'events/subscribe',
+  'events/unsubscribe',
+  'events/poll',
+  'events/stream',
+]);
+
 function isMessageEvent(event: string | undefined): boolean {
   return event === undefined || event === 'message';
 }
@@ -38,6 +47,7 @@ function isMessageEvent(event: string | undefined): boolean {
  */
 export class HttpMCPTransport implements MCPTransport {
   readonly supportsProtocolVersionDiscovery = true;
+  readonly waitsForProtocolVersionDiscovery = true;
   readonly supportsMcpToolParameterHeaders = true;
   private url: URL;
   private abortController?: AbortController;
@@ -48,6 +58,7 @@ export class HttpMCPTransport implements MCPTransport {
   private inboundSseConnection?: { close: () => void };
   private redirectMode: RequestRedirect;
   private fetchFn: FetchFunction;
+  private customFetch?: FetchFunction;
   private authPromise?: Promise<AuthResult>;
   private onSessionIdChange?: (sessionId: string | undefined) => void;
   private onSessionExpired?: (sessionId: string) => void;
@@ -101,7 +112,8 @@ export class HttpMCPTransport implements MCPTransport {
     this.onSessionIdChange = onSessionIdChange;
     this.onSessionExpired = onSessionExpired;
     this.terminateSessionOnClose = terminateSessionOnClose;
-    this.fetchFn = fetchFn ?? globalThis.fetch;
+    this.fetchFn = fetchFn ?? globalThis.fetch.bind(globalThis);
+    this.customFetch = fetchFn;
   }
 
   setProtocolVersion(version: string): void {
@@ -205,7 +217,7 @@ export class HttpMCPTransport implements MCPTransport {
         serverUrl: this.url,
         resourceMetadataUrl,
         scope,
-        fetchFn: this.fetchFn,
+        fetchFn: this.customFetch,
       }).finally(() => {
         this.authPromise = undefined;
       });
@@ -271,7 +283,9 @@ export class HttpMCPTransport implements MCPTransport {
           ? options.signal
           : AbortSignal.any([transportSignal, options.signal]);
 
-    const attempt = async (triedAuth: boolean = false): Promise<void> => {
+    const attempt = async (
+      triedAuth: boolean = false,
+    ): Promise<MCPClientError | undefined> => {
       try {
         const isInitializeRequest =
           'method' in message && message.method === 'initialize';
@@ -341,13 +355,17 @@ export class HttpMCPTransport implements MCPTransport {
             const jsonRpcMessage = await parseJSONRPCMessage(text).catch(
               () => undefined,
             );
+
             if (jsonRpcMessage != null && 'error' in jsonRpcMessage) {
-              this.onmessage?.(
-                jsonRpcMessage.id == null
-                  ? { ...jsonRpcMessage, id: message.id }
-                  : jsonRpcMessage,
-              );
-              return;
+              return new MCPClientError({
+                message: jsonRpcMessage.error.message,
+                code: jsonRpcMessage.error.code,
+                data: jsonRpcMessage.error.data,
+                cause: jsonRpcMessage.error,
+                statusCode: response.status,
+                url: this.url.href,
+                responseBody: text,
+              });
             }
           }
 
@@ -410,6 +428,8 @@ export class HttpMCPTransport implements MCPTransport {
             .pipeThrough(new TextDecoderStream())
             .pipeThrough(new EventSourceParserStream());
           const reader = stream.getReader();
+          const requestId = 'method' in message ? message.id : undefined;
+          let receivedResponse = false;
 
           const processEvents = async () => {
             try {
@@ -420,6 +440,13 @@ export class HttpMCPTransport implements MCPTransport {
                 if (isMessageEvent(event)) {
                   try {
                     const jsonRpcMessage = await parseJSONRPCMessage(data);
+                    if (
+                      ('result' in jsonRpcMessage ||
+                        'error' in jsonRpcMessage) &&
+                      jsonRpcMessage.id === requestId
+                    ) {
+                      receivedResponse = true;
+                    }
                     this.onmessage?.(jsonRpcMessage);
                   } catch (error) {
                     const e = new MCPClientError({
@@ -439,6 +466,23 @@ export class HttpMCPTransport implements MCPTransport {
                 return;
               }
               this.onerror?.(error);
+            } finally {
+              reader.releaseLock();
+
+              if (
+                requestId !== undefined &&
+                !receivedResponse &&
+                !requestSignal?.aborted
+              ) {
+                this.onmessage?.({
+                  jsonrpc: '2.0',
+                  id: requestId,
+                  error: {
+                    code: -32000,
+                    message: `MCP HTTP Transport Error: SSE stream ended before the response for request ${requestId}`,
+                  },
+                });
+              }
             }
           };
 
@@ -470,7 +514,12 @@ export class HttpMCPTransport implements MCPTransport {
       }
     };
 
-    await attempt();
+    // throw JSON-RPC errors returned by attempt() outside the try/catch
+    // so that they don't trigger onerror / onUncaughtError.
+    const jsonRpcError = await attempt();
+    if (jsonRpcError != null) {
+      throw jsonRpcError;
+    }
   }
 
   private getStandardRequestHeaders(
@@ -483,7 +532,7 @@ export class HttpMCPTransport implements MCPTransport {
     const name =
       message.method === 'resources/read'
         ? params?.uri
-        : message.method === 'tools/call' || message.method === 'prompts/get'
+        : MCP_NAME_PARAM_METHODS.has(message.method)
           ? params?.name
           : undefined;
 

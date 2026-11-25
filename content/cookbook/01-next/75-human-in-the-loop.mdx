@@ -84,7 +84,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     messages,
     tools: {
       getWeatherInformation: tool({
@@ -130,7 +130,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     messages,
     tools: {
       getWeatherInformation: tool({
@@ -304,7 +304,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     messages,
     tools: {
       processPayment: tool({
@@ -335,7 +335,7 @@ When a user denies a tool execution, the model receives the denial and can respo
 
 ```ts highlight="5-6"
 const result = streamText({
-  model: openai('gpt-4o'),
+  model: openai('gpt-6-astra'),
   messages,
   instructions:
     'When a tool execution is not approved by the user, do not retry it. ' +

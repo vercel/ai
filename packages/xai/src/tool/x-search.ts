@@ -8,8 +8,8 @@ import { z } from 'zod/v4';
 export const xSearchArgsSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      allowedXHandles: z.array(z.string()).max(10).optional(),
-      excludedXHandles: z.array(z.string()).max(10).optional(),
+      allowedXHandles: z.array(z.string()).max(20).optional(),
+      excludedXHandles: z.array(z.string()).max(20).optional(),
       fromDate: z.string().optional(),
       toDate: z.string().optional(),
       enableImageUnderstanding: z.boolean().optional(),
@@ -35,7 +35,7 @@ const xSearchOutputSchema = lazySchema(() =>
 );
 
 const xSearchToolFactory = createProviderExecutedToolFactory<
-  {},
+  Record<string, unknown>,
   {
     query: string;
     posts: Array<{
@@ -55,7 +55,7 @@ const xSearchToolFactory = createProviderExecutedToolFactory<
   }
 >({
   id: 'xai.x_search',
-  inputSchema: lazySchema(() => zodSchema(z.object({}))),
+  inputSchema: lazySchema(() => zodSchema(z.looseObject({}))),
   outputSchema: xSearchOutputSchema,
 });
 

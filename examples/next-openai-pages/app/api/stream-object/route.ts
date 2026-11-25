@@ -8,7 +8,7 @@ export async function POST(req: Request) {
   const context = await req.json();
 
   const result = streamText({
-    model: openai('gpt-5-mini'),
+    model: openai('gpt-6-luna'),
     output: Output.object({
       schema: z.object({
         notifications: z.array(

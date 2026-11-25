@@ -52,6 +52,28 @@ describe('downloadBlob()', () => {
     globalThis.fetch = originalFetch;
   });
 
+  it('uses an injected transport while retaining URL and redirect checks', async () => {
+    const customFetch = vi.fn().mockResolvedValueOnce(new Response('content'));
+    const runtimeFetch = vi.fn();
+    globalThis.fetch = runtimeFetch;
+    const blob = await downloadBlob('https://files.example.com/file', {
+      fetch: customFetch,
+    });
+    await expect(blob.text()).resolves.toBe('content');
+    expect(customFetch).toHaveBeenCalledExactlyOnceWith(
+      'https://files.example.com/file',
+      {
+        redirect: 'manual',
+        signal: undefined,
+      },
+    );
+    await expect(
+      downloadBlob('http://127.0.0.1/file', { fetch: customFetch }),
+    ).rejects.toThrow(DownloadError);
+    expect(customFetch).toHaveBeenCalledTimes(1);
+    expect(runtimeFetch).not.toHaveBeenCalled();
+  });
+
   it('should download a blob successfully', async () => {
     const content = new TextEncoder().encode('test content');
     globalThis.fetch = vi.fn().mockResolvedValue(
@@ -258,7 +280,7 @@ describe('downloadBlob() SSRF protection', () => {
         ok: false,
         status: 302,
         headers: {
-          location: 'http://169.254.169.254/latest/meta-data/',
+          location: 'https://169.254.169.254/latest/meta-data/',
         },
         body: new TextEncoder().encode('redirecting'),
         onCancel,
@@ -291,7 +313,7 @@ describe('downloadBlob() SSRF protection', () => {
       createMockStreamResponse({
         ok: false,
         status: 307,
-        headers: { location: 'http://localhost:8080/admin' },
+        headers: { location: 'https://localhost:8080/admin' },
         body: new TextEncoder().encode('redirecting'),
         onCancel,
       }),

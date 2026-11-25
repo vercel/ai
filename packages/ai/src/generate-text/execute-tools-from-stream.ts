@@ -14,6 +14,10 @@ import { executeToolCall } from './execute-tool-call';
 import { isToolExecutionAllowedFinishReason } from './is-tool-execution-allowed-finish-reason';
 import { resolveToolApproval } from './resolve-tool-approval';
 import type { LanguageModelStreamPart } from './stream-language-model-call';
+import {
+  isStreamRetryAttemptBoundaryPart,
+  type StreamRetryAttemptBoundaryPart,
+} from './stream-retry-attempt-boundary';
 import { maybeSignApproval } from './tool-approval-signature';
 import type { ToolApprovalConfiguration } from './tool-approval-configuration';
 import type { TypedToolCall } from './tool-call';
@@ -21,6 +25,8 @@ import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
+import type { StaticToolOutputDenied } from './tool-output-denied';
+import { mapWithConcurrency } from './tool-call-concurrency';
 
 export type ToolExecutionEndStreamPart = {
   type: 'tool-execution-end';
@@ -30,7 +36,13 @@ export type ToolExecutionEndStreamPart = {
 
 export type ExecuteToolsStreamPart<TOOLS extends ToolSet = ToolSet> =
   | LanguageModelStreamPart<TOOLS>
-  | ToolExecutionEndStreamPart;
+  | StaticToolOutputDenied<TOOLS>
+  | ToolExecutionEndStreamPart
+  | StreamRetryAttemptBoundaryPart;
+
+type ExecuteToolsInputStreamPart<TOOLS extends ToolSet> =
+  | LanguageModelStreamPart<TOOLS>
+  | StreamRetryAttemptBoundaryPart;
 
 export function executeToolsFromStream<
   TOOLS extends ToolSet,
@@ -52,8 +64,9 @@ export function executeToolsFromStream<
   onToolExecutionEnd,
   executeToolInTelemetryContext,
   runInTracingChannelSpan,
+  toolCallConcurrency,
 }: {
-  stream: ReadableStream<LanguageModelStreamPart<TOOLS>>;
+  stream: ReadableStream<ExecuteToolsInputStreamPart<TOOLS>>;
   tools: TOOLS | undefined;
   callId: string;
   messages: ModelMessage[];
@@ -71,23 +84,29 @@ export function executeToolsFromStream<
   runInTracingChannelSpan?: NonNullable<
     TelemetryDispatcher['runInTracingChannelSpan']
   >;
+  toolCallConcurrency?: number;
 }): ReadableStream<ExecuteToolsStreamPart<TOOLS>> {
   const toolCallsToExecute: Array<TypedToolCall<TOOLS>> = [];
 
   // forward stream
   return stream.pipeThrough(
     new TransformStream<
-      LanguageModelStreamPart<TOOLS>,
+      ExecuteToolsInputStreamPart<TOOLS>,
       ExecuteToolsStreamPart<TOOLS>
     >({
       async transform(
-        chunk: LanguageModelStreamPart<TOOLS>,
+        chunk: ExecuteToolsInputStreamPart<TOOLS>,
         controller: TransformStreamDefaultController<
           ExecuteToolsStreamPart<TOOLS>
         >,
       ) {
         // immediately forward all chunks
         controller.enqueue(chunk);
+
+        if (isStreamRetryAttemptBoundaryPart(chunk)) {
+          toolCallsToExecute.length = 0;
+          return;
+        }
 
         const chunkType = chunk.type;
 
@@ -127,13 +146,20 @@ export function executeToolsFromStream<
             }
 
             const approvalId = generateId();
-            const signature = await maybeSignApproval({
-              secret: toolApprovalSecret,
-              approvalId,
-              toolCallId: chunk.toolCallId,
-              toolName: chunk.toolName,
-              input: chunk.input,
-            });
+
+            // A signature lets a later request execute this tool call by
+            // replaying the approval from client-supplied history, so a denied
+            // tool call must not get one.
+            const signature =
+              toolApprovalStatus.type === 'denied'
+                ? undefined
+                : await maybeSignApproval({
+                    secret: toolApprovalSecret,
+                    approvalId,
+                    toolCallId: chunk.toolCallId,
+                    toolName: chunk.toolName,
+                    input: chunk.input,
+                  });
 
             switch (toolApprovalStatus.type) {
               case 'user-approval': {
@@ -141,6 +167,9 @@ export function executeToolsFromStream<
                   type: 'tool-approval-request',
                   approvalId,
                   toolCall: chunk,
+                  ...(toolApprovalStatus.reason != null
+                    ? { reason: toolApprovalStatus.reason }
+                    : {}),
                   ...(signature != null ? { signature } : {}),
                 });
 
@@ -153,7 +182,6 @@ export function executeToolsFromStream<
                   approvalId,
                   toolCall: chunk,
                   isAutomatic: true,
-                  ...(signature != null ? { signature } : {}),
                 });
                 controller.enqueue({
                   type: 'tool-approval-response',
@@ -163,6 +191,11 @@ export function executeToolsFromStream<
                   reason: toolApprovalStatus.reason,
                   providerExecuted: chunk.providerExecuted,
                 });
+                controller.enqueue({
+                  type: 'tool-output-denied',
+                  toolCallId: chunk.toolCallId,
+                  toolName: chunk.toolName,
+                } as StaticToolOutputDenied<TOOLS>);
 
                 return; // don't execute tool
               }
@@ -202,8 +235,11 @@ export function executeToolsFromStream<
               return;
             }
 
-            await Promise.all(
-              toolCallsToExecute.map(async toolCall => {
+            await mapWithConcurrency({
+              items: toolCallsToExecute,
+              concurrency: toolCallConcurrency,
+              abortSignal,
+              execute: async toolCall => {
                 try {
                   // Note: we don't await the tool execution here (by leaving out 'await' on recordSpan),
                   // because we want to process the next chunk as soon as possible.
@@ -239,10 +275,8 @@ export function executeToolsFromStream<
                     error,
                   });
                 }
-              }),
-            );
-
-            return;
+              },
+            });
           }
         }
       },

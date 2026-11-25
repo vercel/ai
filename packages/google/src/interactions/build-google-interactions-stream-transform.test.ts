@@ -2,7 +2,10 @@ import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import type { ParseResult } from '@ai-sdk/provider-utils';
+import {
+  isProviderStreamError,
+  type ParseResult,
+} from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
 import { buildGoogleInteractionsStreamTransform } from './build-google-interactions-stream-transform';
 import type { GoogleInteractionsEvent } from './google-interactions-api';
@@ -124,6 +127,68 @@ describe('buildGoogleInteractionsStreamTransform — usage modality', () => {
       video: 57920,
       text: 19,
     });
+  });
+});
+
+describe('buildGoogleInteractionsStreamTransform — agentic video', () => {
+  it('emits processing steps as custom parts', async () => {
+    const parts = await runTransform([
+      {
+        event_type: 'interaction.created',
+        interaction: { id: 'interaction-1', status: 'in_progress' },
+      },
+      {
+        event_type: 'step.start',
+        index: 0,
+        step: {
+          type: 'processing_call',
+          id: 'processing-1',
+          signature: 'call-signature',
+        },
+      },
+      { event_type: 'step.stop', index: 0 },
+      {
+        event_type: 'step.start',
+        index: 1,
+        step: {
+          type: 'processing_result',
+          call_id: 'processing-1',
+          signature: 'result-signature',
+        },
+      },
+      { event_type: 'step.stop', index: 1 },
+      {
+        event_type: 'interaction.completed',
+        interaction: { id: 'interaction-1', status: 'completed' },
+      },
+    ]);
+
+    expect(parts).toEqual(
+      expect.arrayContaining([
+        {
+          type: 'custom',
+          kind: 'google.processing_call',
+          providerMetadata: {
+            google: {
+              signature: 'call-signature',
+              interactionId: 'interaction-1',
+              processingId: 'processing-1',
+            },
+          },
+        },
+        {
+          type: 'custom',
+          kind: 'google.processing_result',
+          providerMetadata: {
+            google: {
+              signature: 'result-signature',
+              interactionId: 'interaction-1',
+              processingCallId: 'processing-1',
+            },
+          },
+        },
+      ]),
+    );
   });
 });
 
@@ -249,5 +314,86 @@ describe('buildGoogleInteractionsStreamTransform — tool call IDs', () => {
         result: [],
       },
     ]);
+  });
+});
+
+describe('buildGoogleInteractionsStreamTransform — errors', () => {
+  it('preserves the event type, code, and raw error event', async () => {
+    const error = {
+      code: '429',
+      message: 'Rate limit reached',
+    };
+    const event: GoogleInteractionsEvent = {
+      event_type: 'error',
+      event_id: 'event-error',
+      error,
+    };
+
+    const parts = await runTransform([event]);
+    const errorPart = parts.find(part => part.type === 'error');
+
+    expect(errorPart).toBeDefined();
+    expect(isProviderStreamError(errorPart!.error)).toBe(true);
+    expect(errorPart!.error).toMatchObject({
+      message: error.message,
+      type: event.event_type,
+      code: error.code,
+      data: event,
+    });
+    expect(parts.at(-1)).toMatchObject({
+      type: 'finish',
+      finishReason: { unified: 'error' },
+    });
+  });
+});
+
+describe('interrupted interactions', () => {
+  it.each([
+    [undefined, 'interrupted'],
+    ['in_progress', 'interrupted'],
+    ['requires_action', 'tool-calls'],
+    ['completed', 'stop'],
+    ['cancelled', 'other'],
+    ['unknown_status', 'other'],
+  ] as const)('handles the last status %s as %s', async (status, unified) => {
+    const parts = await runTransform([
+      {
+        event_type: 'interaction.created',
+        interaction: { id: 'i1', status: 'in_progress' },
+      },
+      { event_type: 'step.start', index: 0, step: { type: 'model_output' } },
+      {
+        event_type: 'step.delta',
+        index: 0,
+        delta: { type: 'text', text: 'Partial answer' },
+      },
+      ...(status == null
+        ? []
+        : [{ event_type: 'interaction.status_update', status }]),
+    ] as Array<GoogleInteractionsEvent>);
+    expect(parts).toContainEqual(
+      expect.objectContaining({ type: 'text-delta', delta: 'Partial answer' }),
+    );
+    expect(parts.filter(part => part.type === 'error')).toEqual([]);
+    expect(parts.filter(part => part.type === 'finish')).toEqual([
+      expect.objectContaining({
+        finishReason: {
+          unified,
+          raw: unified === 'interrupted' ? undefined : status,
+        },
+      }),
+    ]);
+  });
+
+  it('preserves an explicit completion event without a status', async () => {
+    const parts = await runTransform([
+      { event_type: 'interaction.completed', interaction: { id: 'i1' } },
+    ] as Array<GoogleInteractionsEvent>);
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        type: 'finish',
+        finishReason: { unified: 'other', raw: undefined },
+      }),
+    );
   });
 });

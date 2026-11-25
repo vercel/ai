@@ -1,8 +1,504 @@
-import { NoSuchProviderReferenceError } from '@ai-sdk/provider';
-import { prepareResponsesTools } from './openai-responses-prepare-tools';
+import {
+  NoSuchProviderReferenceError,
+  type LanguageModelV4FunctionTool,
+} from '@ai-sdk/provider';
+import { openai } from '../openai-provider';
+import { imageGeneration } from '../tool/image-generation';
+import {
+  findAdditionalToolDefinition,
+  prepareResponsesTools,
+} from './openai-responses-prepare-tools';
 import { describe, it, expect } from 'vitest';
+import { redactTelemetryValue } from '@ai-sdk/provider-utils';
+import { withOpenAIResponseRedaction } from '../redact-openai-tool-credentials';
 
 describe('prepareResponsesTools', () => {
+  it.each(['codeInterpreter', 'shell', 'mcp'] as const)(
+    '%s supplies telemetry redaction for configuration and raw bodies',
+    async name => {
+      const networkPolicy = {
+        type: 'allowlist' as const,
+        allowedDomains: ['example.com'],
+        domainSecrets: [
+          { domain: 'example.com', name: 'KEY', value: 'test-secret' },
+        ],
+      };
+      const tool =
+        name === 'codeInterpreter'
+          ? openai.tools.codeInterpreter({ container: { networkPolicy } })
+          : name === 'shell'
+            ? openai.tools.shell({
+                environment: { type: 'containerAuto', networkPolicy },
+              })
+            : openai.tools.mcp({
+                serverLabel: 'remote',
+                serverUrl: 'https://example.com',
+                authorization: 'test-secret',
+                headers: { 'X-Key': 'test-secret' },
+              });
+      const originalArgs = structuredClone(tool.args);
+      const result = await prepareResponsesTools({
+        tools: [
+          { type: 'provider', id: tool.id, name: 'renamed', args: tool.args },
+        ],
+        toolChoice: undefined,
+      });
+      const body = withOpenAIResponseRedaction({ tools: result.tools });
+      for (const value of [tool.args, body]) {
+        expect(JSON.stringify(value)).toContain('test-secret');
+        expect(JSON.stringify(redactTelemetryValue(value))).toBe(
+          JSON.stringify(value).replaceAll('test-secret', '[redacted]'),
+        );
+      }
+      expect(tool.args).toEqual(originalArgs);
+    },
+  );
+
+  describe('MCP tools', () => {
+    it('should serialize a remote MCP server URL', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.mcp',
+            name: 'mcp',
+            args: {
+              serverLabel: 'remote',
+              serverUrl: 'https://example.com/mcp',
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.tools).toEqual([
+        expect.objectContaining({
+          type: 'mcp',
+          server_label: 'remote',
+          server_url: 'https://example.com/mcp',
+          tunnel_id: undefined,
+        }),
+      ]);
+    });
+
+    it('should serialize a Secure MCP tunnel and preserve MCP options', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.mcp',
+            name: 'mcp',
+            args: {
+              serverLabel: 'secure-tunnel',
+              tunnelId: 'tunnel_0123456789abcdef0123456789abcdef',
+              serverDescription: 'Private MCP server',
+              authorization: 'Bearer test-token',
+              headers: { 'X-Test': 'test-value' },
+              allowedTools: {
+                readOnly: true,
+                toolNames: ['search'],
+              },
+              requireApproval: {
+                never: { toolNames: ['search'] },
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'mcp',
+          server_label: 'secure-tunnel',
+          tunnel_id: 'tunnel_0123456789abcdef0123456789abcdef',
+          server_url: undefined,
+          connector_id: undefined,
+          server_description: 'Private MCP server',
+          authorization: 'Bearer test-token',
+          headers: { 'X-Test': 'test-value' },
+          allowed_tools: {
+            read_only: true,
+            tool_names: ['search'],
+          },
+          require_approval: {
+            never: { tool_names: ['search'] },
+          },
+        },
+      ]);
+    });
+
+    it('should preserve legacy URL and connector combinations', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.mcp',
+            name: 'mcp',
+            args: {
+              serverLabel: 'legacy',
+              serverUrl: 'https://example.com/mcp',
+              connectorId: 'connector_example',
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+      expect(result.tools).toEqual([
+        expect.objectContaining({
+          server_url: 'https://example.com/mcp',
+          connector_id: 'connector_example',
+        }),
+      ]);
+    });
+
+    it.each([
+      { serverLabel: 'missing-target' },
+      {
+        serverLabel: 'undefined-targets',
+        serverUrl: undefined,
+        connectorId: undefined,
+        tunnelId: undefined,
+      },
+    ])('should reject missing MCP targets: %j', async args => {
+      await expect(
+        prepareResponsesTools({
+          tools: [{ type: 'provider', id: 'openai.mcp', name: 'mcp', args }],
+          toolChoice: undefined,
+        }),
+      ).rejects.toThrow(
+        'One of serverUrl, connectorId, or tunnelId must be provided.',
+      );
+    });
+
+    it.each([
+      { serverUrl: 'https://example.com/mcp' },
+      { connectorId: 'connector_example' },
+      {
+        serverUrl: 'https://example.com/mcp',
+        connectorId: 'connector_example',
+      },
+    ])(
+      'should reject a tunnel combined with another target: %j',
+      async targets => {
+        await expect(
+          prepareResponsesTools({
+            tools: [
+              {
+                type: 'provider',
+                id: 'openai.mcp',
+                name: 'mcp',
+                args: {
+                  serverLabel: 'ambiguous-target',
+                  tunnelId: 'tunnel_0123456789abcdef0123456789abcdef',
+                  ...targets,
+                },
+              },
+            ],
+            toolChoice: undefined,
+          }),
+        ).rejects.toThrow(
+          'tunnelId cannot be combined with serverUrl or connectorId.',
+        );
+      },
+    );
+  });
+
+  describe('omitFromRequestTools', () => {
+    const tools = [
+      {
+        type: 'function' as const,
+        name: 'search',
+        inputSchema: { type: 'object' as const },
+      },
+      {
+        type: 'function' as const,
+        name: 'list_issues',
+        inputSchema: { type: 'object' as const },
+        providerOptions: { openai: { omitFromRequestTools: true } },
+      },
+    ];
+
+    it('omits only the marked function from the top-level tools', async () => {
+      const result = await prepareResponsesTools({
+        tools,
+        toolChoice: { type: 'auto' },
+      });
+      expect(
+        result.tools?.map(tool => ('name' in tool ? tool.name : tool.type)),
+      ).toEqual(['search']);
+      expect(result.toolChoice).toBe('auto');
+      expect(result.toolWarnings).toEqual([]);
+      expect(tools).toHaveLength(2);
+    });
+
+    it('supports having only history-loaded functions', async () => {
+      const result = await prepareResponsesTools({
+        tools: [tools[1]],
+        toolChoice: undefined,
+      });
+      expect(result.tools).toEqual([]);
+    });
+
+    it('rejects forcing a function absent from the top-level tools', async () => {
+      await expect(
+        prepareResponsesTools({
+          tools,
+          toolChoice: { type: 'tool', toolName: 'list_issues' },
+        }),
+      ).rejects.toThrow('forcing tool "list_issues"');
+    });
+
+    it('does not put history-loaded functions in allowed_tools', async () => {
+      const result = await prepareResponsesTools({
+        tools,
+        toolChoice: undefined,
+        allowedTools: { toolNames: ['search', 'list_issues'] },
+      });
+      expect(result.toolChoice).toEqual({
+        type: 'allowed_tools',
+        mode: 'auto',
+        tools: [{ type: 'function', name: 'search' }],
+      });
+      expect(result.toolWarnings).toEqual([
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'allowedTools entry "list_issues"',
+        }),
+      ]);
+    });
+  });
+  it('should remove string propertyNames from function tools and warn', async () => {
+    const result = await prepareResponsesTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'get_weather',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              values: {
+                type: 'object',
+                propertyNames: { type: 'string', format: 'uuid' },
+              },
+            },
+          },
+        },
+      ],
+      toolChoice: undefined,
+    });
+
+    expect(result).toEqual({
+      tools: [
+        {
+          type: 'function',
+          name: 'get_weather',
+          description: undefined,
+          parameters: {
+            type: 'object',
+            properties: {
+              values: {
+                type: 'object',
+              },
+            },
+          },
+          strict: false,
+        },
+      ],
+      toolChoice: undefined,
+      toolWarnings: [
+        {
+          type: 'compatibility',
+          feature: 'JSON Schema propertyNames',
+          details:
+            'OpenAI does not support JSON Schema propertyNames. It was removed before sending the schema, so OpenAI will not enforce property-name constraints.',
+        },
+      ],
+    });
+  });
+
+  it('should remove regex lookaround patterns from function tools and warn', async () => {
+    const result = await prepareResponsesTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'create_contact',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              email: {
+                type: 'string',
+                format: 'email',
+                pattern: '^(?!\\.).+@.+$',
+              },
+              username: {
+                type: 'string',
+                pattern: '^@[a-zA-Z0-9_]+$',
+              },
+            },
+          },
+        },
+      ],
+      toolChoice: undefined,
+    });
+
+    expect(result).toEqual({
+      tools: [
+        {
+          type: 'function',
+          name: 'create_contact',
+          description: undefined,
+          parameters: {
+            type: 'object',
+            properties: {
+              email: {
+                type: 'string',
+                format: 'email',
+              },
+              username: {
+                type: 'string',
+                pattern: '^@[a-zA-Z0-9_]+$',
+              },
+            },
+          },
+          strict: false,
+        },
+      ],
+      toolChoice: undefined,
+      toolWarnings: [
+        {
+          type: 'compatibility',
+          feature: 'JSON Schema pattern with regex lookaround',
+          details:
+            'OpenAI does not support regex lookaround in JSON Schema patterns. The pattern was removed before sending the schema, so OpenAI will not enforce that constraint.',
+        },
+      ],
+    });
+  });
+
+  describe('async tools', () => {
+    it('should pass through async mode for function tools', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get the weather',
+            inputSchema: {
+              type: 'object',
+              properties: { city: { type: 'string' } },
+              required: ['city'],
+              additionalProperties: false,
+            },
+            providerOptions: {
+              openai: { async: true },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'function',
+          name: 'get_weather',
+          description: 'Get the weather',
+          parameters: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+            required: ['city'],
+            additionalProperties: false,
+          },
+          async: true,
+          strict: false,
+        },
+      ]);
+    });
+
+    it('should pass through async mode for custom tools', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.custom',
+            name: 'write_sql',
+            args: {
+              description: 'Write a SQL query',
+              async: true,
+              format: { type: 'text' },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'custom',
+          name: 'write_sql',
+          description: 'Write a SQL query',
+          async: true,
+          format: { type: 'text' },
+        },
+      ]);
+    });
+
+    it('should omit async mode and warn for unsupported models', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            inputSchema: { type: 'object', properties: {} },
+            providerOptions: {
+              openai: { async: true },
+            },
+          },
+          {
+            type: 'provider',
+            id: 'openai.custom',
+            name: 'write_sql',
+            args: {
+              async: true,
+            },
+          },
+        ],
+        toolChoice: undefined,
+        supportsAsyncToolCalling: false,
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'function',
+          name: 'get_weather',
+          description: undefined,
+          parameters: { type: 'object', properties: {} },
+          strict: false,
+        },
+        {
+          type: 'custom',
+          name: 'write_sql',
+          description: undefined,
+          format: undefined,
+        },
+      ]);
+      expect(result.toolWarnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'async tool calling for "get_weather"',
+          details:
+            'Async tool calling is only supported by GPT-6 and later models.',
+        },
+        {
+          type: 'unsupported',
+          feature: 'async tool calling for "write_sql"',
+          details:
+            'Async tool calling is only supported by GPT-6 and later models.',
+        },
+      ]);
+    });
+  });
+
   describe('function tools strict mode', () => {
     it('should pass through strict mode when strict is true', async () => {
       const result = await prepareResponsesTools({
@@ -72,7 +568,7 @@ describe('prepareResponsesTools', () => {
       `);
     });
 
-    it('should not include strict mode when strict is undefined', async () => {
+    it('should default strict mode to false when strict is undefined', async () => {
       const result = await prepareResponsesTools({
         tools: [
           {
@@ -97,6 +593,7 @@ describe('prepareResponsesTools', () => {
                 "properties": {},
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
           ],
@@ -163,6 +660,7 @@ describe('prepareResponsesTools', () => {
                 "properties": {},
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
           ],
@@ -260,6 +758,8 @@ describe('prepareResponsesTools', () => {
                   "file-2",
                   "file-3",
                 ],
+                "memory_limit": undefined,
+                "network_policy": undefined,
                 "type": "auto",
               },
               "type": "code_interpreter",
@@ -294,6 +794,8 @@ describe('prepareResponsesTools', () => {
             {
               "container": {
                 "file_ids": [],
+                "memory_limit": undefined,
+                "network_policy": undefined,
                 "type": "auto",
               },
               "type": "code_interpreter",
@@ -328,6 +830,181 @@ describe('prepareResponsesTools', () => {
             {
               "container": {
                 "file_ids": undefined,
+                "memory_limit": undefined,
+                "network_policy": undefined,
+                "type": "auto",
+              },
+              "type": "code_interpreter",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare code interpreter tool with memory limit', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.code_interpreter',
+            name: 'code_interpreter',
+            args: {
+              container: {
+                memoryLimit: '16g',
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "container": {
+                "file_ids": undefined,
+                "memory_limit": "16g",
+                "network_policy": undefined,
+                "type": "auto",
+              },
+              "type": "code_interpreter",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare code interpreter tool with network policy disabled', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.code_interpreter',
+            name: 'code_interpreter',
+            args: {
+              container: {
+                networkPolicy: {
+                  type: 'disabled',
+                },
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "container": {
+                "file_ids": undefined,
+                "memory_limit": undefined,
+                "network_policy": {
+                  "type": "disabled",
+                },
+                "type": "auto",
+              },
+              "type": "code_interpreter",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should combine a memory limit with an allowlist without domain secrets', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.code_interpreter',
+            name: 'code_interpreter',
+            args: {
+              container: {
+                memoryLimit: '4g',
+                networkPolicy: {
+                  type: 'allowlist',
+                  allowedDomains: ['example.com'],
+                },
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.tools).toStrictEqual([
+        {
+          type: 'code_interpreter',
+          container: {
+            type: 'auto',
+            file_ids: undefined,
+            memory_limit: '4g',
+            network_policy: {
+              type: 'allowlist',
+              allowed_domains: ['example.com'],
+              domain_secrets: undefined,
+            },
+          },
+        },
+      ]);
+    });
+
+    it('should prepare code interpreter tool with network policy allowlist and domain secrets', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.code_interpreter',
+            name: 'code_interpreter',
+            args: {
+              container: {
+                networkPolicy: {
+                  type: 'allowlist',
+                  allowedDomains: ['example.com', 'api.test.org'],
+                  domainSecrets: [
+                    {
+                      domain: 'api.test.org',
+                      name: 'API_KEY',
+                      value: 'secret123',
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "container": {
+                "file_ids": undefined,
+                "memory_limit": undefined,
+                "network_policy": {
+                  "allowed_domains": [
+                    "example.com",
+                    "api.test.org",
+                  ],
+                  "domain_secrets": [
+                    {
+                      "domain": "api.test.org",
+                      "name": "API_KEY",
+                      "value": "secret123",
+                    },
+                  ],
+                  "type": "allowlist",
+                },
                 "type": "auto",
               },
               "type": "code_interpreter",
@@ -414,6 +1091,7 @@ describe('prepareResponsesTools', () => {
                 },
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
             {
@@ -427,6 +1105,34 @@ describe('prepareResponsesTools', () => {
   });
 
   describe('image generation', () => {
+    describe.each(['gpt-image-2.5-flare', 'gpt-image-2.5-sunburst'])(
+      '%s quality',
+      model => {
+        it.each(['xhigh', 'max'] as const)(
+          'should pass %s quality',
+          async quality => {
+            const tool = imageGeneration({ model, quality });
+            const result = await prepareResponsesTools({
+              tools: [
+                {
+                  type: 'provider',
+                  id: 'openai.image_generation',
+                  name: 'image_generation',
+                  args: tool.args,
+                },
+              ],
+              toolChoice: undefined,
+            });
+
+            expect(result.toolWarnings).toEqual([]);
+            expect(result.tools).toMatchObject([
+              { type: 'image_generation', model, quality },
+            ]);
+          },
+        );
+      },
+    );
+
     it('should prepare image_generation tool with all options', async () => {
       const result = await prepareResponsesTools({
         tools: [
@@ -453,6 +1159,7 @@ describe('prepareResponsesTools', () => {
           "toolWarnings": [],
           "tools": [
             {
+              "action": undefined,
               "background": "opaque",
               "input_fidelity": undefined,
               "input_image_mask": undefined,
@@ -468,6 +1175,61 @@ describe('prepareResponsesTools', () => {
           ],
         }
       `);
+    });
+
+    it('should pass action, low moderation and a gpt-image-2 size', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.image_generation',
+            name: 'image_generation',
+            args: {
+              action: 'edit',
+              model: 'gpt-image-2',
+              moderation: 'low',
+              size: '1536x864',
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.toolWarnings).toEqual([]);
+      expect(result.tools).toMatchInlineSnapshot(`
+        [
+          {
+            "action": "edit",
+            "background": undefined,
+            "input_fidelity": undefined,
+            "input_image_mask": undefined,
+            "model": "gpt-image-2",
+            "moderation": "low",
+            "output_compression": undefined,
+            "output_format": undefined,
+            "partial_images": undefined,
+            "quality": undefined,
+            "size": "1536x864",
+            "type": "image_generation",
+          },
+        ]
+      `);
+    });
+
+    it('should reject a size that is not WIDTHxHEIGHT', async () => {
+      await expect(
+        prepareResponsesTools({
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.image_generation',
+              name: 'image_generation',
+              args: { size: 'large' },
+            },
+          ],
+          toolChoice: undefined,
+        }),
+      ).rejects.toThrow();
     });
 
     it('should support tool choice selection for image_generation', async () => {
@@ -486,6 +1248,7 @@ describe('prepareResponsesTools', () => {
       expect(result.tools).toMatchInlineSnapshot(`
         [
           {
+            "action": undefined,
             "background": undefined,
             "input_fidelity": undefined,
             "input_image_mask": undefined,
@@ -532,6 +1295,66 @@ describe('prepareResponsesTools', () => {
   });
 
   describe('web search', () => {
+    describe.each([
+      {
+        name: 'webSearch',
+        createTool: openai.tools.webSearch,
+        type: 'web_search',
+      },
+      {
+        name: 'webSearchPreview',
+        createTool: openai.tools.webSearchPreview,
+        type: 'web_search_preview',
+      },
+    ])('$name', ({ createTool, type }) => {
+      it('should prepare the tool without options', async () => {
+        const tool = createTool({});
+
+        const result = await prepareResponsesTools({
+          tools: [{ ...tool, name: type }],
+          toolChoice: undefined,
+        });
+
+        expect(tool.id).toBe(`openai.${type}`);
+        expect(result).toEqual({
+          tools: [{ type }],
+          toolChoice: undefined,
+          toolWarnings: [],
+        });
+      });
+
+      it('should preserve search options and support tool choice', async () => {
+        const userLocation = {
+          type: 'approximate' as const,
+          country: 'US',
+          city: 'San Francisco',
+          region: 'California',
+          timezone: 'America/Los_Angeles',
+        };
+        const tool = createTool({
+          searchContextSize: 'high',
+          userLocation,
+        });
+
+        const result = await prepareResponsesTools({
+          tools: [{ ...tool, name: type }],
+          toolChoice: { type: 'tool', toolName: type },
+        });
+
+        expect(result).toEqual({
+          tools: [
+            {
+              type,
+              search_context_size: 'high',
+              user_location: userLocation,
+            },
+          ],
+          toolChoice: { type },
+          toolWarnings: [],
+        });
+      });
+    });
+
     it('should prepare web_search tool with no options', async () => {
       const result = await prepareResponsesTools({
         tools: [
@@ -804,6 +1627,7 @@ describe('prepareResponsesTools', () => {
                 },
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
             {
@@ -1510,6 +2334,7 @@ describe('prepareResponsesTools', () => {
                 },
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
             {
@@ -1683,6 +2508,7 @@ describe('prepareResponsesTools', () => {
                 },
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
             {
@@ -1772,6 +2598,7 @@ describe('prepareResponsesTools', () => {
                 ],
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
           ],
@@ -1872,6 +2699,7 @@ describe('prepareResponsesTools', () => {
                     ],
                     "type": "object",
                   },
+                  "strict": false,
                   "type": "function",
                 },
                 {
@@ -1911,6 +2739,7 @@ describe('prepareResponsesTools', () => {
                 ],
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
           ],
@@ -2537,6 +3366,7 @@ describe('prepareResponsesTools', () => {
             required: ['sku'],
             additionalProperties: false,
           },
+          strict: false,
           allowed_callers: ['programmatic'],
           output_schema: {
             type: 'object',
@@ -2572,5 +3402,438 @@ describe('prepareResponsesTools', () => {
         type: 'programmatic_tool_calling',
       });
     });
+  });
+});
+
+describe('findAdditionalToolDefinition', () => {
+  const listIssuesTool: LanguageModelV4FunctionTool = {
+    type: 'function',
+    name: 'list_issues',
+    description: 'List Linear issues.',
+    inputSchema: {
+      type: 'object',
+      properties: { team: { type: 'string' } },
+      required: ['team'],
+      additionalProperties: false,
+    },
+    providerOptions: {
+      openai: { omitFromRequestTools: true, deferLoading: true },
+    },
+  };
+
+  it('derives the function definition from the registered tool', async () => {
+    const resolved = await findAdditionalToolDefinition({
+      tools: [listIssuesTool],
+      additionalTool: { type: 'function', name: 'list_issues' },
+    });
+
+    expect(resolved).toEqual({
+      definition: {
+        type: 'function',
+        name: 'list_issues',
+        description: 'List Linear issues.',
+        parameters: {
+          type: 'object',
+          properties: { team: { type: 'string' } },
+          required: ['team'],
+          additionalProperties: false,
+        },
+        strict: false,
+        defer_loading: true,
+      },
+      warnings: [],
+    });
+  });
+
+  it('reads provider options of another provider name', async () => {
+    const tools: Array<LanguageModelV4FunctionTool> = [
+      {
+        ...listIssuesTool,
+        providerOptions: {
+          azure: { omitFromRequestTools: true, deferLoading: true },
+        },
+      },
+    ];
+    const resolved = await findAdditionalToolDefinition({
+      tools,
+      additionalTool: { type: 'function', name: 'list_issues' },
+      providerOptionsName: 'azure',
+    });
+
+    expect(resolved?.definition).toMatchObject({
+      name: 'list_issues',
+      description: 'List Linear issues.',
+      defer_loading: true,
+    });
+  });
+
+  it('derives a namespace definition from the registered namespace tools', async () => {
+    const namespace = { name: 'linear', description: 'Linear tools' };
+    const tools: Array<LanguageModelV4FunctionTool> = [
+      {
+        type: 'function',
+        name: 'get_issue',
+        inputSchema: { type: 'object', properties: {} },
+        providerOptions: { openai: { namespace } },
+      },
+      {
+        type: 'function',
+        name: 'list_issues',
+        description: 'List issues.',
+        inputSchema: { type: 'object', properties: {} },
+        providerOptions: { openai: { namespace } },
+      },
+    ];
+    const resolved = await findAdditionalToolDefinition({
+      tools,
+      additionalTool: { type: 'namespace', name: 'linear' },
+    });
+
+    expect(resolved).toEqual({
+      definition: {
+        type: 'namespace',
+        name: 'linear',
+        description: 'Linear tools',
+        tools: [
+          {
+            type: 'function',
+            name: 'get_issue',
+            description: undefined,
+            parameters: { type: 'object', properties: {} },
+            strict: false,
+          },
+          {
+            type: 'function',
+            name: 'list_issues',
+            description: 'List issues.',
+            parameters: { type: 'object', properties: {} },
+            strict: false,
+          },
+        ],
+      },
+      warnings: [],
+    });
+  });
+
+  it('does not resolve a namespaced function as a function', async () => {
+    const tools: Array<LanguageModelV4FunctionTool> = [
+      {
+        type: 'function',
+        name: 'get_issue',
+        inputSchema: { type: 'object', properties: {} },
+        providerOptions: {
+          openai: {
+            namespace: { name: 'linear', description: 'Linear tools' },
+          },
+        },
+      },
+    ];
+    const resolved = await findAdditionalToolDefinition({
+      tools,
+      additionalTool: { type: 'function', name: 'get_issue' },
+    });
+
+    expect(resolved).toBeUndefined();
+  });
+
+  it('derives a custom definition from the registered custom tool', async () => {
+    const resolved = await findAdditionalToolDefinition({
+      tools: [
+        {
+          type: 'provider',
+          id: 'openai.custom',
+          name: 'apply_patch',
+          args: {
+            description: 'Apply a patch',
+            format: { type: 'text' },
+          },
+        },
+      ],
+      additionalTool: { type: 'custom', name: 'apply_patch' },
+    });
+
+    expect(resolved).toEqual({
+      definition: {
+        type: 'custom',
+        name: 'apply_patch',
+        description: 'Apply a patch',
+        format: { type: 'text' },
+      },
+      warnings: [],
+    });
+  });
+
+  it.each([
+    { type: 'function' as const, name: 'unregistered' },
+    { type: 'custom' as const, name: 'apply_patch' },
+    { type: 'namespace' as const, name: 'unregistered' },
+  ])('does not resolve an unregistered entry: $type $name', async entry => {
+    const resolved = await findAdditionalToolDefinition({
+      tools: [listIssuesTool],
+      additionalTool: entry,
+    });
+
+    expect(resolved).toBeUndefined();
+  });
+
+  it('returns schema warnings of the resolved tool', async () => {
+    const tools: Array<LanguageModelV4FunctionTool> = [
+      {
+        ...listIssuesTool,
+        inputSchema: {
+          type: 'object',
+          properties: {
+            values: {
+              type: 'object',
+              propertyNames: { type: 'string', format: 'uuid' },
+            },
+          },
+        },
+      },
+    ];
+    const resolved = await findAdditionalToolDefinition({
+      tools,
+      additionalTool: { type: 'function', name: 'list_issues' },
+    });
+
+    expect(resolved?.warnings).toEqual([
+      {
+        type: 'compatibility',
+        feature: 'JSON Schema propertyNames',
+        details:
+          'OpenAI does not support JSON Schema propertyNames. It was removed before sending the schema, so OpenAI will not enforce property-name constraints.',
+      },
+    ]);
+  });
+
+  it('does not repeat schema warnings of tools in the request tools', async () => {
+    const tools: Array<LanguageModelV4FunctionTool> = [
+      {
+        ...listIssuesTool,
+        providerOptions: undefined,
+        inputSchema: {
+          type: 'object',
+          properties: {
+            values: {
+              type: 'object',
+              propertyNames: { type: 'string', format: 'uuid' },
+            },
+          },
+        },
+      },
+    ];
+    const resolved = await findAdditionalToolDefinition({
+      tools,
+      additionalTool: { type: 'function', name: 'list_issues' },
+    });
+
+    expect(resolved?.warnings).toEqual([]);
+  });
+
+  it('does not load a tool that restricts allowed callers', async () => {
+    const tools: Array<LanguageModelV4FunctionTool> = [
+      {
+        ...listIssuesTool,
+        providerOptions: {
+          openai: {
+            omitFromRequestTools: true,
+            allowedCallers: ['programmatic'],
+          },
+        },
+      },
+    ];
+    const resolved = await findAdditionalToolDefinition({
+      tools,
+      additionalTool: { type: 'function', name: 'list_issues' },
+    });
+
+    expect(resolved).toEqual({
+      definition: undefined,
+      warnings: [
+        {
+          type: 'unsupported',
+          feature: 'additionalTools entry "list_issues"',
+          details:
+            'the registered tool restricts allowed callers, which a definition loaded from history cannot express; the entry is not loaded',
+        },
+      ],
+    });
+  });
+
+  it('leaves restricted tools out of a loaded namespace', async () => {
+    const namespace = { name: 'linear', description: 'Linear tools' };
+    const tools: Array<LanguageModelV4FunctionTool> = [
+      {
+        type: 'function',
+        name: 'get_issue',
+        inputSchema: { type: 'object', properties: {} },
+        providerOptions: { openai: { namespace } },
+      },
+      {
+        type: 'function',
+        name: 'delete_issue',
+        inputSchema: { type: 'object', properties: {} },
+        providerOptions: {
+          openai: { namespace, allowedCallers: ['programmatic'] },
+        },
+      },
+    ];
+    const resolved = await findAdditionalToolDefinition({
+      tools,
+      additionalTool: { type: 'namespace', name: 'linear' },
+    });
+
+    expect(resolved?.definition).toMatchObject({
+      type: 'namespace',
+      tools: [{ name: 'get_issue' }],
+    });
+    expect(resolved?.warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'additionalTools namespace "linear"',
+        details:
+          'tool "delete_issue" restricts allowed callers, which a definition loaded from history cannot express; it is not loaded',
+      },
+    ]);
+  });
+
+  it('warns about conflicting namespace descriptions', async () => {
+    const tools: Array<LanguageModelV4FunctionTool> = [
+      {
+        type: 'function',
+        name: 'get_issue',
+        inputSchema: { type: 'object', properties: {} },
+        providerOptions: {
+          openai: { namespace: { name: 'linear', description: 'First' } },
+        },
+      },
+      {
+        type: 'function',
+        name: 'list_issues',
+        inputSchema: { type: 'object', properties: {} },
+        providerOptions: {
+          openai: { namespace: { name: 'linear', description: 'Second' } },
+        },
+      },
+    ];
+    const resolved = await findAdditionalToolDefinition({
+      tools,
+      additionalTool: { type: 'namespace', name: 'linear' },
+    });
+
+    expect(resolved?.definition).toMatchObject({ description: 'First' });
+    expect(resolved?.warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'conflicting descriptions for OpenAI tool namespace "linear"',
+        details:
+          'the first registered description is used for the loaded namespace',
+      },
+    ]);
+  });
+
+  it('does not load a tool outside allowedTools', async () => {
+    const resolved = await findAdditionalToolDefinition({
+      tools: [listIssuesTool],
+      additionalTool: { type: 'function', name: 'list_issues' },
+      allowedToolNames: new Set(['search']),
+    });
+
+    expect(resolved).toEqual({
+      definition: undefined,
+      warnings: [
+        {
+          type: 'unsupported',
+          feature: 'additionalTools entry "list_issues"',
+          details:
+            'the tool is not part of allowedTools for this request; the entry is not loaded',
+        },
+      ],
+    });
+  });
+
+  it('does not load a namespace while allowedTools restricts callable tools', async () => {
+    const tools: Array<LanguageModelV4FunctionTool> = [
+      {
+        type: 'function',
+        name: 'get_issue',
+        inputSchema: { type: 'object', properties: {} },
+        providerOptions: {
+          openai: {
+            namespace: { name: 'linear', description: 'Linear tools' },
+          },
+        },
+      },
+    ];
+    const resolved = await findAdditionalToolDefinition({
+      tools,
+      additionalTool: { type: 'namespace', name: 'linear' },
+      allowedToolNames: new Set(['search']),
+    });
+
+    expect(resolved).toEqual({
+      definition: undefined,
+      warnings: [
+        {
+          type: 'unsupported',
+          feature: 'additionalTools namespace "linear"',
+          details:
+            'tool namespaces cannot be loaded while allowedTools restricts the callable tools; the entry is not loaded',
+        },
+      ],
+    });
+  });
+
+  it('explains a namespace whose members all restrict allowed callers', async () => {
+    const namespace = { name: 'linear', description: 'Linear tools' };
+    const tools: Array<LanguageModelV4FunctionTool> = [
+      {
+        type: 'function',
+        name: 'get_issue',
+        inputSchema: { type: 'object', properties: {} },
+        providerOptions: {
+          openai: { namespace, allowedCallers: ['programmatic'] },
+        },
+      },
+    ];
+    const resolved = await findAdditionalToolDefinition({
+      tools,
+      additionalTool: { type: 'namespace', name: 'linear' },
+    });
+
+    expect(resolved?.definition).toBeUndefined();
+    expect(resolved?.warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'additionalTools namespace "linear"',
+        details:
+          'tool "get_issue" restricts allowed callers, which a definition loaded from history cannot express; it is not loaded',
+      },
+    ]);
+  });
+
+  it('does not prepare tools the entry does not reference', async () => {
+    const tools: Array<LanguageModelV4FunctionTool> = [
+      {
+        type: 'function',
+        name: 'unsupported_schema',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            values: {
+              type: 'object',
+              propertyNames: { type: 'number' },
+            },
+          },
+        },
+      },
+      listIssuesTool,
+    ];
+    const resolved = await findAdditionalToolDefinition({
+      tools,
+      additionalTool: { type: 'function', name: 'list_issues' },
+    });
+
+    expect(resolved?.definition?.name).toBe('list_issues');
   });
 });

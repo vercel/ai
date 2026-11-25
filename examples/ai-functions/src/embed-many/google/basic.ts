@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const { embeddings, usage, warnings } = await embedMany({
-    model: google.embeddingModel('gemini-embedding-001'),
+    model: google.embeddingModel('gemini-embedding-2'),
     values: [
       'sunny day at the beach',
       'rainy afternoon in the city',

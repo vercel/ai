@@ -15,6 +15,9 @@ export type PrintFullStreamText = {
 };
 
 export type PrintFullStreamCallbacks<TOOLS extends ToolSet> = {
+  onError?: LifecycleCallback<
+    Extract<TextStreamPart<TOOLS>, { type: 'error' }>
+  >;
   onReasoning?: LifecycleCallback<ReasoningOutput>;
   onToolCall?: LifecycleCallback<
     Extract<TextStreamPart<TOOLS>, { type: 'tool-call' }>
@@ -22,14 +25,23 @@ export type PrintFullStreamCallbacks<TOOLS extends ToolSet> = {
   onToolApproval?: LifecycleCallback<
     Extract<TextStreamPart<TOOLS>, { type: 'tool-approval-request' }>
   >;
+  onToolApprovalResponse?: LifecycleCallback<
+    Extract<TextStreamPart<TOOLS>, { type: 'tool-approval-response' }>
+  >;
+  onToolResult?: LifecycleCallback<
+    Extract<TextStreamPart<TOOLS>, { type: 'tool-result' }>
+  >;
   onText?: LifecycleCallback<PrintFullStreamText>;
 };
 
 export async function printFullStream<TOOLS extends ToolSet>({
   result,
+  onError,
   onReasoning,
   onToolCall,
   onToolApproval,
+  onToolApprovalResponse,
+  onToolResult,
   onText,
 }: {
   result: StreamTextResult<TOOLS, any, any>;
@@ -59,6 +71,7 @@ export async function printFullStream<TOOLS extends ToolSet>({
         console.log(
           `\n\x1b[33m\x1b[1mTOOL APPROVAL RESPONSE\x1b[22m\n${JSON.stringify(chunk, null, 2)}\x1b[0m`,
         );
+        await onToolApprovalResponse?.(chunk);
         break;
       }
 
@@ -66,6 +79,7 @@ export async function printFullStream<TOOLS extends ToolSet>({
         console.log(
           `\n\x1b[32m\x1b[1mTOOL RESULT\x1b[22m\n${JSON.stringify(chunk, null, 2)}\x1b[0m`,
         );
+        await onToolResult?.(chunk);
         break;
       }
 
@@ -147,6 +161,7 @@ export async function printFullStream<TOOLS extends ToolSet>({
         console.error(
           `\n\x1b[31m\x1b[1mERROR\x1b[22m\n${formatStreamError(chunk.error)}\x1b[0m`,
         );
+        await onError?.(chunk);
         break;
     }
   }

@@ -24,6 +24,12 @@ describe('resolveNativeTools', () => {
       resolveNativeTools({ mode: 'deny', toolNames: ['bash', 'Workflow'] }),
     ).toBeUndefined();
   });
+
+  it('leaves the native allow-list undefined when ListAgents is denied', () => {
+    expect(
+      resolveNativeTools({ mode: 'deny', toolNames: ['ListAgents'] }),
+    ).toBeUndefined();
+  });
 });
 
 describe('resolveInactiveNativeTools', () => {
@@ -38,5 +44,14 @@ describe('resolveInactiveNativeTools', () => {
         toolNames: ['bash', 'Workflow'],
       }),
     ).toEqual(['Bash', 'Workflow']);
+  });
+
+  it('preserves ListAgents in the native deny-list', () => {
+    expect(
+      resolveInactiveNativeTools({
+        mode: 'deny',
+        toolNames: ['ListAgents'],
+      }),
+    ).toEqual(['ListAgents']);
   });
 });

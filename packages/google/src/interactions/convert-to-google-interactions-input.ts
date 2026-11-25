@@ -16,11 +16,16 @@ import type {
   GoogleInteractionsContent,
   GoogleInteractionsContentBlock,
   GoogleInteractionsFunctionResultContent,
-  GoogleInteractionsImageContent,
+  GoogleInteractionsFunctionResultPart,
   GoogleInteractionsInput,
   GoogleInteractionsStep,
   GoogleInteractionsTextContent,
+  GoogleInteractionsFileProcessing,
 } from './google-interactions-prompt';
+import {
+  googleInteractionsFileOptionsSchema,
+  type GoogleInteractionsFileOptions,
+} from './google-interactions-file-options';
 
 export type GoogleInteractionsMediaResolution =
   | 'low'
@@ -42,9 +47,8 @@ export type ConvertToGoogleInteractionsInputResult = {
  *   - text / image content → `model_output` step with a single `content` array
  *   - reasoning → `thought` step (`signature` + `summary`)
  *   - tool-call → `function_call` step
- * User turns (and tool-result turns from the previous round) are sent as
- * `user_input` steps whose `content[]` holds the user's parts (text, files,
- * and — for tool-result turns — `function_result` blocks).
+ * User turns are sent as `user_input` steps whose `content[]` holds the
+ * user's text and files. Tool results are top-level `function_result` inputs.
  *
  * Handles text parts, file parts (image / audio / document / video, all four
  * `data.type` shapes), tool-call/tool-result round-tripping, per-step
@@ -163,6 +167,44 @@ export function convertToGoogleInteractionsInput({
             if (fileBlock != null) {
               pendingModelOutput.push(fileBlock);
             }
+          } else if (part.type === 'custom') {
+            flushModelOutput();
+            const google = part.providerOptions?.google as
+              | {
+                  processingId?: unknown;
+                  processingCallId?: unknown;
+                  signature?: unknown;
+                }
+              | undefined;
+            const signature =
+              typeof google?.signature === 'string'
+                ? google.signature
+                : undefined;
+
+            if (
+              part.kind === 'google.processing_call' &&
+              typeof google?.processingId === 'string'
+            ) {
+              steps.push({
+                type: 'processing_call',
+                id: google.processingId,
+                ...(signature != null ? { signature } : {}),
+              });
+            } else if (
+              part.kind === 'google.processing_result' &&
+              typeof google?.processingCallId === 'string'
+            ) {
+              steps.push({
+                type: 'processing_result',
+                call_id: google.processingCallId,
+                ...(signature != null ? { signature } : {}),
+              });
+            } else {
+              warnings.push({
+                type: 'other',
+                message: `google.interactions: unsupported or invalid custom assistant content part "${part.kind}"; part dropped.`,
+              });
+            }
           } else if (part.type === 'tool-call') {
             flushModelOutput();
             const signature = part.providerOptions?.google?.signature as
@@ -190,13 +232,8 @@ export function convertToGoogleInteractionsInput({
         break;
       }
       case 'tool': {
-        /*
-         * Tool-result messages are emitted as a `user_input` step whose
-         * content holds one `function_result` block per tool-result part.
-         * `function_result` remains a content-block type (it sits inside
-         * a step), not a top-level step type.
-         */
-        const content: Array<GoogleInteractionsContentBlock> = [];
+        // The EAP accepts document/audio results in top-level function_result
+        // inputs, but rejects them when nested inside user_input.content.
         for (const part of message.content) {
           if (part.type !== 'tool-result') {
             warnings.push({
@@ -205,19 +242,18 @@ export function convertToGoogleInteractionsInput({
             });
             continue;
           }
-          const block = convertToolResultPart({
-            toolCallId: part.toolCallId,
-            toolName: part.toolName,
-            output: part.output,
-            signature: part.providerOptions?.google?.signature as
-              | string
-              | undefined,
-            warnings,
-          });
-          content.push(block);
-        }
-        if (content.length > 0) {
-          steps.push({ type: 'user_input', content });
+          steps.push(
+            convertToolResultPart({
+              toolCallId: part.toolCallId,
+              toolName: part.toolName,
+              output: part.output,
+              signature: part.providerOptions?.google?.signature as
+                | string
+                | undefined,
+              warnings,
+              mediaResolution,
+            }),
+          );
         }
         break;
       }
@@ -278,10 +314,18 @@ function convertFilePartToContent({
     return undefined;
   }
 
+  const fileOptions = googleInteractionsFileOptionsSchema.parse(
+    Object.fromEntries(
+      Object.entries(part.providerOptions?.google ?? {}).filter(
+        ([, value]) => value != null,
+      ),
+    ),
+  );
+  const resolution = fileOptions.resolution ?? mediaResolution;
   const resolutionField =
-    mediaResolution != null && (kind === 'image' || kind === 'video')
-      ? { resolution: mediaResolution }
-      : {};
+    resolution != null && kind !== 'audio' ? { resolution } : {};
+  const processingField =
+    kind !== 'image' ? getFileProcessingField(fileOptions.processing) : {};
 
   switch (part.data.type) {
     case 'data': {
@@ -291,6 +335,7 @@ function convertFilePartToContent({
         data: convertToBase64(part.data.data),
         mime_type: mimeType,
         ...resolutionField,
+        ...processingField,
       };
     }
     case 'url': {
@@ -301,6 +346,7 @@ function convertFilePartToContent({
           ? { mime_type: part.mediaType }
           : {}),
         ...resolutionField,
+        ...processingField,
       };
     }
     case 'reference': {
@@ -315,9 +361,77 @@ function convertFilePartToContent({
           ? { mime_type: part.mediaType }
           : {}),
         ...resolutionField,
+        ...processingField,
       };
     }
   }
+}
+
+function getFileProcessingField(
+  processing: GoogleInteractionsFileOptions['processing'],
+): { processing?: GoogleInteractionsFileProcessing } {
+  if (processing == null) {
+    return {};
+  }
+
+  if (processing === 'agentic' || processing === 'static') {
+    return { processing };
+  }
+
+  if (processing.type === 'static') {
+    return {
+      processing: {
+        type: 'static',
+        ...(processing.startOffset != null
+          ? { start_offset: `${processing.startOffset}s` }
+          : {}),
+        ...(processing.endOffset != null
+          ? { end_offset: `${processing.endOffset}s` }
+          : {}),
+        ...(processing.fps != null ? { fps: processing.fps } : {}),
+        ...(processing.contentLayers != null
+          ? { content_layers: processing.contentLayers }
+          : {}),
+        ...(processing.pageOptions != null
+          ? {
+              page_options: {
+                ...(processing.pageOptions.startPage != null
+                  ? { start_page: processing.pageOptions.startPage }
+                  : {}),
+                ...(processing.pageOptions.endPage != null
+                  ? { end_page: processing.pageOptions.endPage }
+                  : {}),
+                ...(processing.pageOptions.contentLayers != null
+                  ? { content_layers: processing.pageOptions.contentLayers }
+                  : {}),
+              },
+            }
+          : {}),
+        ...(processing.spreadsheetOptions != null
+          ? {
+              spreadsheet_options: {
+                ...(processing.spreadsheetOptions.sheetIndex != null
+                  ? { sheet_index: processing.spreadsheetOptions.sheetIndex }
+                  : {}),
+                ...(processing.spreadsheetOptions.visibleCells != null
+                  ? {
+                      visible_cells: processing.spreadsheetOptions.visibleCells,
+                    }
+                  : {}),
+                ...(processing.spreadsheetOptions.contentLayers != null
+                  ? {
+                      content_layers:
+                        processing.spreadsheetOptions.contentLayers,
+                    }
+                  : {}),
+              },
+            }
+          : {}),
+      },
+    };
+  }
+
+  return {};
 }
 
 /*
@@ -398,12 +512,14 @@ function convertToolResultPart({
   output,
   signature,
   warnings,
+  mediaResolution,
 }: {
   toolCallId: string;
   toolName: string;
   output: LanguageModelV4ToolResultOutput;
   signature: string | undefined;
   warnings: Array<SharedV4Warning>;
+  mediaResolution?: GoogleInteractionsMediaResolution;
 }): GoogleInteractionsFunctionResultContent {
   const base = {
     type: 'function_result' as const,
@@ -428,24 +544,29 @@ function convertToolResultPart({
         result: output.reason ?? 'Tool execution denied by user.',
       };
     case 'content': {
-      const blocks: Array<
-        GoogleInteractionsTextContent | GoogleInteractionsImageContent
-      > = [];
+      const blocks: Array<GoogleInteractionsFunctionResultPart> = [];
       for (const item of output.value) {
         if (item.type === 'text') {
           blocks.push({ type: 'text', text: item.text });
         } else if (item.type === 'file') {
-          const topLevel = getTopLevelMediaType(item.mediaType);
-          if (topLevel !== 'image') {
+          if (
+            getTopLevelMediaType(item.mediaType) === 'image' &&
+            item.data.type === 'text'
+          ) {
             warnings.push({
               type: 'other',
-              message: `google.interactions: tool-result file with mediaType "${item.mediaType}" is not supported (Interactions \`function_result.result\` accepts only text and image content); part dropped.`,
+              message:
+                'google.interactions: tool-result image part with `data.type === "text"` is not representable as an image; part dropped.',
             });
             continue;
           }
-          const imageBlock = filePartToImageBlock({ part: item, warnings });
-          if (imageBlock != null) {
-            blocks.push(imageBlock);
+          const fileBlock = convertFilePartToContent({
+            part: item,
+            warnings,
+            mediaResolution,
+          });
+          if (fileBlock != null) {
+            blocks.push(fileBlock);
           }
         } else {
           warnings.push({
@@ -455,71 +576,6 @@ function convertToolResultPart({
         }
       }
       return { ...base, result: blocks };
-    }
-  }
-}
-
-function filePartToImageBlock({
-  part,
-  warnings,
-}: {
-  part: {
-    type: 'file';
-    mediaType: string;
-    data:
-      | { type: 'data'; data: Uint8Array | string }
-      | { type: 'url'; url: URL }
-      | { type: 'reference'; reference: Record<string, string> }
-      | { type: 'text'; text: string };
-    filename?: string;
-  };
-  warnings: Array<SharedV4Warning>;
-}): GoogleInteractionsImageContent | undefined {
-  switch (part.data.type) {
-    case 'data': {
-      const mimeType = isFullMediaType(part.mediaType)
-        ? part.mediaType
-        : resolveFullMediaType({
-            part: {
-              type: 'file',
-              mediaType: part.mediaType,
-              data: part.data,
-            } as LanguageModelV4FilePart,
-          });
-      return {
-        type: 'image',
-        data: convertToBase64(part.data.data),
-        mime_type: mimeType,
-      };
-    }
-    case 'url':
-      return {
-        type: 'image',
-        uri: part.data.url.toString(),
-        ...(isFullMediaType(part.mediaType)
-          ? { mime_type: part.mediaType }
-          : {}),
-      };
-    case 'reference': {
-      const uri = resolveProviderReference({
-        reference: part.data.reference,
-        provider: 'google',
-      });
-      return {
-        type: 'image',
-        uri,
-        ...(isFullMediaType(part.mediaType)
-          ? { mime_type: part.mediaType }
-          : {}),
-      };
-    }
-    case 'text': {
-      warnings.push({
-        type: 'other',
-        message:
-          'google.interactions: tool-result image part with `data.type === "text"` is not representable as an image; part dropped.',
-      });
-      return undefined;
     }
   }
 }

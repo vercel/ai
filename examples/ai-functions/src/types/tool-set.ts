@@ -29,7 +29,7 @@ async function generateSomething(prompt: string): Promise<{
   staticToolResults: Array<MyToolResult>;
 }> {
   return generateText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     tools: myToolSet,
     prompt,
   });

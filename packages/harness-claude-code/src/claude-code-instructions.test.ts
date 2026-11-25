@@ -5,7 +5,11 @@ import type {
   HarnessV1Session,
 } from '@ai-sdk/harness';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createBridgeAuthKeyPair } from '@ai-sdk/harness/utils';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /*
  * The claude-code adapter sends `instructions` separately from the user text
@@ -15,6 +19,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  */
 const sentMessages: Array<Record<string, unknown>> = [];
 const openCalls: Array<{ resume?: boolean } | undefined> = [];
+let listenerAttachmentsStarted = 0;
+let listenerAttachmentsFinished = 0;
 
 vi.mock('@ai-sdk/harness/utils', async importOriginal => {
   const actual = await importOriginal<typeof HarnessUtils>();
@@ -22,12 +28,25 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
     async open(opts?: { resume?: boolean }): Promise<void> {
       openCalls.push(opts);
     }
+    beginListenerAttachment(): () => void {
+      listenerAttachmentsStarted++;
+      return () => {
+        listenerAttachmentsFinished++;
+      };
+    }
     on(): () => void {
       return () => {};
     }
     onClose(): void {}
-    send(msg: Record<string, unknown>): void {
+    onReconnect(): () => void {
+      return () => {};
+    }
+    send(
+      msg: Record<string, unknown>,
+      { onSent }: { onSent?: () => void } = {},
+    ): void {
       sentMessages.push(msg);
+      if (onSent) queueMicrotask(onSent);
     }
     beginClose(): void {}
     isClosed(): boolean {
@@ -35,7 +54,11 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
     }
     close(): void {}
   }
-  return { ...actual, SandboxChannel: FakeSandboxChannel };
+  return {
+    ...actual,
+    SandboxChannel: FakeSandboxChannel,
+    readMacOSKeychainPassword: vi.fn(async () => undefined),
+  };
 });
 
 // eslint-disable-next-line import/first
@@ -66,8 +89,13 @@ function emptyStream(): ReadableStream<Uint8Array> {
 function fakeNetworkSandboxSession(): HarnessV1NetworkSandboxSession {
   const port = 4319;
   const session = {
-    run: async () => ({ exitCode: 0, stdout: '', stderr: '' }),
+    run: async ({ command }: { command: string }) => ({
+      exitCode: 0,
+      stdout: command === 'printf "%s" "$HOME"' ? '/home/vercel-sandbox' : '',
+      stderr: '',
+    }),
     readTextFile: async () => null,
+    writeTextFile: async () => {},
     spawn: async () => ({
       stdout: readyStream(port),
       stderr: emptyStream(),
@@ -110,15 +138,49 @@ function lastStart(): Record<string, unknown> {
 const INSTRUCTIONS = 'Use turbo build --concurrency=4.';
 
 describe('claude-code adapter — instructions transport', () => {
-  beforeEach(() => {
+  let homeDirectory: string;
+
+  beforeEach(async () => {
+    homeDirectory = await mkdtemp(join(tmpdir(), 'claude-code-instructions-'));
+    vi.stubEnv('HOME', homeDirectory);
+    vi.stubEnv('USERPROFILE', homeDirectory);
+    vi.stubEnv('CLAUDE_CONFIG_DIR', homeDirectory);
+    for (const name of [
+      'AI_GATEWAY_API_KEY',
+      'VERCEL_OIDC_TOKEN',
+      'ANTHROPIC_API_KEY',
+      'ANTHROPIC_AUTH_TOKEN',
+      'CLAUDE_CODE_OAUTH_TOKEN',
+      'ANTHROPIC_BASE_URL',
+    ]) {
+      vi.stubEnv(name, undefined);
+    }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => {
+        throw new Error(
+          'Unexpected network request in Claude Code adapter test',
+        );
+      }),
+    );
     sentMessages.length = 0;
     openCalls.length = 0;
+    listenerAttachmentsStarted = 0;
+    listenerAttachmentsFinished = 0;
+  });
+
+  afterEach(async () => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    await rm(homeDirectory, { recursive: true, force: true });
   });
 
   it('keeps instructions separate from every user message', async () => {
     const session = await startSession();
 
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'first turn',
       instructions: INSTRUCTIONS,
       emit: () => {},
@@ -127,6 +189,8 @@ describe('claude-code adapter — instructions transport', () => {
     expect(lastStart().instructions).toBe(INSTRUCTIONS);
 
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'second turn',
       instructions: INSTRUCTIONS,
       emit: () => {},
@@ -146,6 +210,8 @@ describe('claude-code adapter — instructions transport', () => {
     });
 
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'resumed turn',
       instructions: INSTRUCTIONS,
       emit: () => {},
@@ -165,6 +231,8 @@ describe('claude-code adapter — instructions transport', () => {
     });
 
     await session.doContinueTurn({
+      skills: [],
+      tools: [],
       instructions: INSTRUCTIONS,
       emit: () => {},
     });
@@ -172,6 +240,65 @@ describe('claude-code adapter — instructions transport', () => {
     expect(lastStart().prompt).toBe('Continue.');
     expect(lastStart().instructions).toBe(INSTRUCTIONS);
     expect(lastStart().continue).toBe(true);
+  });
+
+  it('reruns a recovered suspended turn only once', async () => {
+    const session = await startSession({
+      continueFrom: {
+        type: 'continue-turn',
+        harnessId: 'claude-code',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
+
+    await session.doContinueTurn({
+      skills: [],
+      tools: [],
+      emit: () => {},
+    });
+    await session.doContinueTurn({
+      skills: [],
+      tools: [],
+      emit: () => {},
+    });
+
+    expect(sentMessages.filter(message => message.type === 'start')).toEqual([
+      expect.objectContaining({
+        prompt: 'Continue.',
+        continue: true,
+      }),
+    ]);
+  });
+
+  it('does not rerun a recovered session after its first prompt starts', async () => {
+    const session = await startSession({
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'claude-code',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
+
+    await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Recovered prompt',
+      emit: () => {},
+    });
+    await session.doContinueTurn({
+      skills: [],
+      tools: [],
+      emit: () => {},
+    });
+
+    expect(sentMessages.filter(message => message.type === 'start')).toEqual([
+      expect.objectContaining({
+        prompt: 'Recovered prompt',
+        continue: true,
+      }),
+    ]);
   });
 
   it('distinguishes parked session resume from suspended turn continuation', async () => {
@@ -183,7 +310,7 @@ describe('claude-code adapter — instructions transport', () => {
         data: {
           bridge: {
             port: 4319,
-            token: 'token',
+            privateKey: createBridgeAuthKeyPair().privateKey,
             lastSeenEventId: 7,
           },
         },
@@ -191,7 +318,7 @@ describe('claude-code adapter — instructions transport', () => {
     });
     expect(openCalls.at(-1)).toBeUndefined();
 
-    await startSession({
+    const continuedSession = await startSession({
       continueFrom: {
         type: 'continue-turn',
         harnessId: 'claude-code',
@@ -199,12 +326,22 @@ describe('claude-code adapter — instructions transport', () => {
         data: {
           bridge: {
             port: 4319,
-            token: 'token',
+            privateKey: createBridgeAuthKeyPair().privateKey,
             lastSeenEventId: 7,
           },
         },
       },
     });
     expect(openCalls.at(-1)).toEqual({ resume: true });
+    expect(listenerAttachmentsStarted).toBe(1);
+    expect(listenerAttachmentsFinished).toBe(0);
+
+    const control = await continuedSession.doContinueTurn({
+      skills: [],
+      tools: [],
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+    expect(listenerAttachmentsFinished).toBe(1);
   });
 });

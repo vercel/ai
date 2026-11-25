@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   assertACPAuthenticationMethod,
   createACPInitializeRequest,
+  isACPImagePromptSupported,
   resolveACPLaunchEnvironment,
   validateACPProtocolVersion,
 } from './protocol-configuration';
@@ -9,7 +10,7 @@ import {
 const gateway = {
   apiKey: 'gateway-key',
   baseUrl: 'https://gateway.example',
-  clientAppName: 'ai-sdk/harness-acp',
+  clientAppName: 'ai-sdk-harness-acp',
   clientAppVersion: '0.0.0-test',
 };
 
@@ -111,7 +112,7 @@ describe('ACP protocol configuration', () => {
       }),
     ).toEqual({
       CODEX_CONFIG:
-        '{"model_providers":{"ai_gateway":{"http_headers":{"User-Agent":"ai-sdk/harness-acp/0.0.0-test","x-client-app":"ai-sdk/harness-acp/0.0.0-test"}}}}',
+        '{"model_providers":{"ai_gateway":{"http_headers":{"User-Agent":"ai-sdk-harness-acp/0.0.0-test","x-client-app":"ai-sdk-harness-acp/0.0.0-test"}}}}',
     });
   });
 
@@ -129,9 +130,13 @@ describe('ACP protocol configuration', () => {
             },
           },
         },
+        clientCapabilities: {
+          _meta: { parameterizedModelPicker: true },
+        },
         supportsBooleanSessionConfigOptions: true,
       }).clientCapabilities,
     ).toEqual({
+      _meta: { parameterizedModelPicker: true },
       session: {
         _meta: { direct: true },
         configOptions: {
@@ -167,5 +172,33 @@ describe('ACP protocol configuration', () => {
         methodId: 'gateway',
       }),
     ).not.toThrow();
+  });
+
+  it('supports image prompts from the ACP capability or the image override', () => {
+    expect(
+      isACPImagePromptSupported({
+        initialization: {
+          protocolVersion: 1,
+          agentCapabilities: { promptCapabilities: { image: true } },
+        },
+      }),
+    ).toBe(true);
+    expect(
+      isACPImagePromptSupported({
+        initialization: {
+          protocolVersion: 1,
+          agentCapabilities: { promptCapabilities: { image: false } },
+        },
+        nonTextContentTypes: ['image'],
+      }),
+    ).toBe(true);
+    expect(
+      isACPImagePromptSupported({
+        initialization: {
+          protocolVersion: 1,
+          agentCapabilities: { promptCapabilities: { image: false } },
+        },
+      }),
+    ).toBe(false);
   });
 });

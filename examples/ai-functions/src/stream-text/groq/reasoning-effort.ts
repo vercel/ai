@@ -1,10 +1,10 @@
-import { groq, type GroqLanguageModelChatOptions } from '@ai-sdk/groq';
+import { groq } from '@ai-sdk/groq';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: groq('openai/gpt-oss-120b'),
+    model: groq('qwen/qwen3.6-27b'),
     reasoning: 'none',
     prompt: 'How many "r"s are in the word "strawberry"?',
   });

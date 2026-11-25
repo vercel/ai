@@ -2,7 +2,10 @@ export type OpenCodeObject = Record<string, unknown>;
 
 export type OpenCodeMessageInfo = {
   id?: unknown;
+  sessionID?: unknown;
   role?: unknown;
+  summary?: unknown;
+  error?: unknown;
   type?: unknown;
   providerID?: unknown;
   modelID?: unknown;

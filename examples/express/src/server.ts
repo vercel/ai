@@ -27,7 +27,7 @@ app.get('/', (_req: Request, res: Response) => {
 
 app.post('/', async (req: Request, res: Response) => {
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     prompt,
   });
 
@@ -60,7 +60,7 @@ app.post('/custom-data-parts', async (req: Request, res: Response) => {
         });
 
         const result = streamText({
-          model: openai('gpt-4o'),
+          model: openai('gpt-6-astra'),
           prompt: 'Invent a new holiday and describe its traditions.',
         });
 

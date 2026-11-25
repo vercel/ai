@@ -1,29 +1,30 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type * as DbModule from './db.js';
 
 const originalCwd = process.cwd();
 let tempDirs: string[] = [];
-
-const loadDbModule = async () => {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-sdk-devtools-'));
-  tempDirs.push(tempDir);
-  process.chdir(tempDir);
-  vi.resetModules();
-
-  return {
-    db: await import('./db.js'),
-    tempDir,
-  };
-};
 
 const writeDb = (dbPath: string, runs: Array<Record<string, unknown>>) => {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   fs.writeFileSync(dbPath, JSON.stringify({ runs, steps: [] }));
 };
 
-describe('devtools db path validation', () => {
+describe('devtools db', () => {
+  let db: typeof DbModule;
+  let tempDir: string;
+
+  // Keep cold module transformation out of the test timeout on busy CI runners.
+  beforeEach(async () => {
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-sdk-devtools-'));
+    tempDirs.push(tempDir);
+    process.chdir(tempDir);
+    vi.resetModules();
+    db = await import('./db.js');
+  }, 30_000);
+
   afterEach(() => {
     process.chdir(originalCwd);
     vi.resetModules();
@@ -34,8 +35,67 @@ describe('devtools db path validation', () => {
     tempDirs = [];
   });
 
-  it('accepts real .devtools/generations.json files', async () => {
-    const { db, tempDir } = await loadDbModule();
+  describe.skipIf(process.platform === 'win32')('storage permissions', () => {
+    it.each(['directory symlink', 'database symlink', 'database hard link'])(
+      'rejects a %s without modifying its target',
+      async kind => {
+        const targetDir = fs.mkdtempSync(
+          path.join(os.tmpdir(), 'devtools-target-'),
+        );
+        tempDirs.push(targetDir);
+        fs.chmodSync(targetDir, 0o755);
+        const targetFile = path.join(targetDir, 'generations.json');
+        const originalMode = kind === 'database hard link' ? 0o600 : 0o400;
+        fs.writeFileSync(targetFile, 'unrelated content');
+        fs.chmodSync(targetFile, originalMode);
+        const dbDir = path.join(tempDir, '.devtools');
+
+        if (kind === 'directory symlink') {
+          fs.symlinkSync(targetDir, dbDir);
+        } else {
+          fs.mkdirSync(dbDir);
+          const link =
+            kind === 'database hard link' ? fs.linkSync : fs.symlinkSync;
+          link(targetFile, path.join(dbDir, 'generations.json'));
+        }
+
+        await expect(db.clearDatabase()).rejects.toThrow();
+
+        expect(fs.statSync(targetDir).mode & 0o777).toBe(0o755);
+        expect(fs.statSync(targetFile).mode & 0o777).toBe(originalMode);
+        expect(fs.readFileSync(targetFile, 'utf8')).toBe('unrelated content');
+      },
+    );
+
+    it('rejects a workspace writable by other accounts before creating storage', async () => {
+      fs.chmodSync(tempDir, 0o777);
+
+      await expect(db.clearDatabase()).rejects.toThrow();
+
+      expect(fs.existsSync(path.join(tempDir, '.devtools'))).toBe(false);
+    });
+
+    it.each(['new', 'existing'])(
+      'restricts %s storage to owner-only permissions',
+      async storage => {
+        const dbDir = path.join(tempDir, '.devtools');
+        const dbPath = path.join(dbDir, 'generations.json');
+        const originalUmask = process.umask(0o022);
+        try {
+          if (storage === 'existing') writeDb(dbPath, []);
+
+          await db.createRun('run-1');
+
+          expect(fs.statSync(dbDir).mode & 0o777).toBe(0o700);
+          expect(fs.statSync(dbPath).mode & 0o777).toBe(0o600);
+        } finally {
+          process.umask(originalUmask);
+        }
+      },
+    );
+  });
+
+  it('accepts real .devtools/generations.json files', () => {
     const dbPath = path.join(tempDir, 'app', '.devtools', 'generations.json');
 
     writeDb(dbPath, []);
@@ -43,8 +103,7 @@ describe('devtools db path validation', () => {
     expect(db.validateRemoteDbPath(dbPath)).toBe(fs.realpathSync(dbPath));
   });
 
-  it('rejects paths outside .devtools/generations.json', async () => {
-    const { db, tempDir } = await loadDbModule();
+  it('rejects paths outside .devtools/generations.json', () => {
     const dbPath = path.join(tempDir, 'app', 'generations.json');
 
     writeDb(dbPath, []);
@@ -54,7 +113,6 @@ describe('devtools db path validation', () => {
   });
 
   it('reloads a validated remote devtools database', async () => {
-    const { db, tempDir } = await loadDbModule();
     const run = {
       id: 'run-1',
       started_at: '2026-06-11T00:00:00.000Z',
@@ -71,7 +129,6 @@ describe('devtools db path validation', () => {
   });
 
   it('does not reload arbitrary JSON files', async () => {
-    const { db, tempDir } = await loadDbModule();
     const run = {
       id: 'run-1',
       started_at: '2026-06-11T00:00:00.000Z',
@@ -88,7 +145,6 @@ describe('devtools db path validation', () => {
   });
 
   it('rejects symlinked devtools databases that resolve outside devtools', async () => {
-    const { db, tempDir } = await loadDbModule();
     const dbPath = path.join(tempDir, 'app', '.devtools', 'generations.json');
     const targetPath = path.join(tempDir, 'target.json');
 
@@ -103,7 +159,6 @@ describe('devtools db path validation', () => {
   });
 
   it('rejects devtools databases larger than the size cap', async () => {
-    const { db, tempDir } = await loadDbModule();
     const dbPath = path.join(tempDir, 'app', '.devtools', 'generations.json');
 
     fs.mkdirSync(path.dirname(dbPath), { recursive: true });

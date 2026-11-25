@@ -147,6 +147,37 @@ describe('FireworksImageModel', () => {
     },
   });
 
+  describe('capabilities', () => {
+    it.each([
+      {
+        modelId: 'accounts/fireworks/models/flux-kontext-pro',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'accounts/fireworks/models/playground-v2-5-1024px-aesthetic',
+        supportsFileInputs: false,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'accounts/fireworks/models/custom-image-model',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+    ] as const)(
+      'advertises file=$supportsFileInputs and mask=$supportsMaskInputs for $modelId',
+      ({ modelId, supportsFileInputs, supportsMaskInputs }) => {
+        const model = new FireworksImageModel(modelId, {
+          provider: 'fireworks',
+          baseURL: 'https://api.example.com',
+        });
+
+        expect(model.supportsFileInputs).toBe(supportsFileInputs);
+        expect(model.supportsMaskInputs).toBe(supportsMaskInputs);
+      },
+    );
+  });
+
   describe('doGenerate', () => {
     it('should pass the correct parameters including aspect ratio and seed', async () => {
       const model = createBasicModel();
@@ -964,17 +995,42 @@ describe('FireworksImageModel', () => {
       ).rejects.toThrow('Fireworks image generation failed with status: Error');
     });
 
-    it('should throw error when polling times out', async () => {
-      server.urls[
-        'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro/get_result'
-      ].response = {
-        type: 'json-value',
-        body: { id: 'test-request-123', status: 'Pending', result: null },
+    it('should enforce pollTimeoutMillis while a polling request is pending', async () => {
+      const submitUrl =
+        'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro';
+      const pollUrl = `${submitUrl}/get_result`;
+      let pollingSignal: AbortSignal | null | undefined;
+      const fetch: FetchFunction = async (input, init) => {
+        const url = input instanceof Request ? input.url : input.toString();
+
+        if (url === submitUrl) {
+          return new Response(
+            JSON.stringify({ request_id: 'test-request-123' }),
+            {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            },
+          );
+        }
+
+        if (url === pollUrl) {
+          pollingSignal = init?.signal;
+          return new Promise<Response>((_resolve, reject) => {
+            pollingSignal?.addEventListener(
+              'abort',
+              () => reject(pollingSignal?.reason),
+              { once: true },
+            );
+          });
+        }
+
+        throw new Error(`Unexpected URL: ${url}`);
       };
 
       const model = createAsyncModel({
+        fetch,
         pollIntervalMillis: 10,
-        pollTimeoutMillis: 50,
+        pollTimeoutMillis: 25,
       });
 
       await expect(
@@ -988,7 +1044,9 @@ describe('FireworksImageModel', () => {
           seed: undefined,
           providerOptions: {},
         }),
-      ).rejects.toThrow('Fireworks image generation timed out after 50ms');
+      ).rejects.toThrow('Fireworks image generation timed out after 25ms');
+
+      expect(pollingSignal?.aborted).toBe(true);
     });
 
     it('should throw error when Ready but missing sample', async () => {

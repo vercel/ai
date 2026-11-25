@@ -201,12 +201,14 @@ exports[`streamText > result.files > should contain files 1`] = `
   DefaultGeneratedFileWithType {
     "base64Data": "Hello World",
     "mediaType": "text/plain",
+    "providerMetadata": undefined,
     "type": "file",
     "uint8ArrayData": undefined,
   },
   DefaultGeneratedFileWithType {
     "base64Data": "QkFVRw==",
     "mediaType": "image/jpeg",
+    "providerMetadata": undefined,
     "type": "file",
     "uint8ArrayData": undefined,
   },
@@ -417,6 +419,7 @@ exports[`streamText > result.stream > should send delayed asynchronous tool resu
   {
     "finishReason": "stop",
     "rawFinishReason": "stop",
+    "stoppedBy": "stop-condition",
     "totalUsage": {
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
@@ -505,6 +508,7 @@ exports[`streamText > result.stream > should send tool calls 1`] = `
   {
     "finishReason": "stop",
     "rawFinishReason": "stop",
+    "stoppedBy": "tool-without-execute",
     "totalUsage": {
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
@@ -601,6 +605,7 @@ exports[`streamText > result.stream > should send tool results 1`] = `
   {
     "finishReason": "stop",
     "rawFinishReason": "stop",
+    "stoppedBy": "stop-condition",
     "totalUsage": {
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
@@ -838,6 +843,7 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
   {
     "finishReason": "stop",
     "rawFinishReason": "stop",
+    "stoppedBy": "tool-without-execute",
     "totalUsage": {
       "inputTokenDetails": {
         "cacheReadTokens": undefined,

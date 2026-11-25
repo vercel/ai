@@ -1,4 +1,5 @@
 import type { Warning } from '../types';
+import { getDeprecationCode } from './deprecations';
 
 /**
  * A function for logging warnings.
@@ -87,21 +88,24 @@ export const FIRST_WARNING_INFO_MESSAGE =
   'AI SDK Warning System: To turn off warning logging, set the AI_SDK_LOG_WARNINGS global to false.';
 
 let hasLoggedBefore = false;
+const emittedDeprecationCodes = new Set<string>();
 
 function emitWarning({
   message,
   type,
+  code,
 }: {
   message: string;
   type: 'DeprecationWarning' | 'Warning';
+  code?: string;
 }) {
   if (
     typeof process !== 'undefined' &&
     typeof process.emitWarning === 'function'
   ) {
-    process.emitWarning(message, { type });
+    process.emitWarning(message, code == null ? { type } : { type, code });
   } else {
-    console.warn(message);
+    console.warn(code == null ? message : `[${code}] ${message}`);
   }
 }
 
@@ -111,7 +115,9 @@ function emitWarning({
  * The behavior can be customized via the `AI_SDK_LOG_WARNINGS` global variable:
  * - If set to `false`, warnings are suppressed.
  * - If set to a function, that function is called with the warnings.
- * - Otherwise, warnings are logged to the console using `console.warn`.
+ * - Otherwise, warnings use `process.emitWarning` when available, falling back
+ *   to `console.warn`. Deprecations have stable codes and are emitted once per
+ *   code by the default logger. Custom loggers receive every warning.
  *
  * @param options - The options containing warnings and context.
  * @param options.warnings - The warnings to log.
@@ -148,6 +154,20 @@ export const logWarnings: LogWarningsFunction = options => {
 
   // default behavior: log warnings via process.emitWarning if available, otherwise console.warn
   for (const warning of options.warnings) {
+    const code =
+      warning.type === 'deprecated'
+        ? getDeprecationCode({
+            setting: warning.setting,
+            provider: options.provider,
+          })
+        : undefined;
+    if (code != null) {
+      if (emittedDeprecationCodes.has(code)) {
+        continue;
+      }
+      emittedDeprecationCodes.add(code);
+    }
+
     const message = formatWarning({
       warning,
       provider: options.provider,
@@ -156,6 +176,7 @@ export const logWarnings: LogWarningsFunction = options => {
     emitWarning({
       message,
       type: warning.type === 'deprecated' ? 'DeprecationWarning' : 'Warning',
+      code,
     });
   }
 };
@@ -165,4 +186,5 @@ export const logWarnings: LogWarningsFunction = options => {
  */
 export const resetLogWarningsState = () => {
   hasLoggedBefore = false;
+  emittedDeprecationCodes.clear();
 };

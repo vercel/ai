@@ -7,7 +7,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai('gpt-5-mini'),
+    model: openai('gpt-6-luna'),
     prompt: 'What is an embedding model according to this document?',
     tools: {
       file_search: openai.tools.fileSearch({

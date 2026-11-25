@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: groq('qwen-qwq-32b'),
+    model: groq('qwen/qwen3.6-27b'),
     providerOptions: {
       groq: {
         reasoningFormat: 'parsed',

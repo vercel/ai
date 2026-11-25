@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { showcaseProjects } from '@/lib/showcase';
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/resources/showcase' },
   title: 'AI SDK Showcase',
   description: 'Popular products and projects built with the AI SDK.',
   ...socialCard(

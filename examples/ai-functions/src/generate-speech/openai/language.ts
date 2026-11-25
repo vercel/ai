@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateSpeech({
-    model: openai.speech('tts-1'),
+    model: openai.speech('gpt-4o-mini-tts'),
     text: 'Hello from the AI SDK!',
     language: 'en',
   });

@@ -9,6 +9,7 @@ import {
 import type { TerminalFrameBuffer } from './terminal-frame-buffer';
 import { stripAnsi } from './layout';
 import type { AgentTUIStreamResult } from '../agent-tui-runner';
+import { MockScreen, MockUserInput } from '../test/mock-terminal';
 import type { UIMessageChunk } from 'ai';
 
 type TestInput = TerminalInput &
@@ -65,6 +66,45 @@ describe('TerminalRenderer', () => {
     expect(stripAnsi(output.text())).toContain('│ > hi█');
     expect(stripAnsi(output.text())).toContain('╭ User ');
   });
+
+  it.each([
+    {
+      name: 'an emoji with DEL',
+      inputText: 'hello 😀',
+      backspace: '\u007f',
+    },
+    {
+      name: 'an emoji with BS',
+      inputText: 'hello 😀',
+      backspace: '\b',
+    },
+    {
+      name: 'a combining character sequence',
+      inputText: 'hello e\u0301',
+      backspace: '\u007f',
+    },
+    {
+      name: 'a joined emoji sequence',
+      inputText: 'hello 👨‍👩‍👧‍👦',
+      backspace: '\u007f',
+    },
+  ])(
+    'removes the complete final grapheme for $name',
+    async ({ inputText, backspace }) => {
+      const input = createInput();
+      const renderer = new TerminalRenderer({
+        input,
+        output: createOutput(),
+      });
+      const promptPromise = renderer.readPrompt({ title: 'Test' });
+
+      input.emit('data', Buffer.from(inputText));
+      input.emit('data', Buffer.from(backspace));
+      input.emit('data', Buffer.from('\r'));
+
+      await expect(promptPromise).resolves.toBe('hello ');
+    },
+  );
 
   it('streams assistant text with output tokens per second by default', async () => {
     const input = createInput();
@@ -621,6 +661,342 @@ describe('TerminalRenderer', () => {
     expect(stripAnsi(output.text())).toContain('Denied');
   });
 
+  it('shows tool input, output, and errors without markdown formatting', async () => {
+    const screen = new MockScreen({ columns: 72, rows: 30 });
+    const renderer = new TerminalRenderer({
+      input: new MockUserInput(),
+      output: screen,
+      tools: 'full',
+    });
+
+    await renderer.renderStream(
+      {
+        uiMessageStream: (async function* () {
+          yield { type: 'start', messageId: 'message-1' };
+          yield {
+            type: 'tool-input-available',
+            toolCallId: 'call-1',
+            toolName: 'shell',
+            input: { command: 'rm *.log *.tmp' },
+          } satisfies UIMessageChunk;
+          yield {
+            type: 'tool-output-available',
+            toolCallId: 'call-1',
+            output: { removed_files: ['__status__.log'] },
+          } satisfies UIMessageChunk;
+          yield {
+            type: 'tool-input-available',
+            toolCallId: 'call-2',
+            toolName: 'shell',
+            input: { command: 'echo `whoami`' },
+          } satisfies UIMessageChunk;
+          yield {
+            type: 'tool-output-error',
+            toolCallId: 'call-2',
+            errorText: 'invalid_request_error: `whoami` is not allowed',
+          } satisfies UIMessageChunk;
+          yield { type: 'finish' };
+        })(),
+      },
+      { continueSession: true, waitForExit: false },
+    );
+
+    expect(screen.snapshot()).toMatchInlineSnapshot(`
+      "┌──────────────────────────────────────────────────────────────────────┐
+      │ ╭ Tool · shell ────────────────────────────────────────────── done ╮ │
+      │ │ Input:                                                           │ │
+      │ │ {                                                                │ │
+      │ │   "command": "rm *.log *.tmp"                                    │ │
+      │ │ }                                                                │ │
+      │ │                                                                  │ │
+      │ │ Output:                                                          │ │
+      │ │ {                                                                │ │
+      │ │   "removed_files": [                                             │ │
+      │ │     "__status__.log"                                             │ │
+      │ │   ]                                                              │ │
+      │ │ }                                                                │ │
+      │ ╰──────────────────────────────────────────────────────────────────╯ │
+      │ ╭ Tool Error · shell ──────────────────────────────────────── done ╮ │
+      │ │ Input:                                                           │ │
+      │ │ {                                                                │ │
+      │ │   "command": "echo \`whoami\`"                                     │ │
+      │ │ }                                                                │ │
+      │ │                                                                  │ │
+      │ │ Error:                                                           │ │
+      │ │ invalid_request_error: \`whoami\` is not allowed                   │ │
+      │ ╰──────────────────────────────────────────────────────────────────╯ │
+      │                                                                      │
+      │                                                                      │
+      │                                                                      │
+      └──────────────────────────────────────────────────────────────────────┘
+      ┌ Status ──────────────────────────────────────────────────────────────┐
+      │ Done · Enter another prompt · ↑/↓ · PgUp/PgDn · Esc/Ctrl+C           │
+      └──────────────────────────────────────────────────────────────────────┘"
+    `);
+  });
+
+  it('shows the tool input awaiting approval without markdown formatting', async () => {
+    const screen = new MockScreen({ columns: 72, rows: 16 });
+    const input = new MockUserInput();
+    const renderer = new TerminalRenderer({ input, output: screen });
+    const approvalPromise = renderer.readToolApproval({
+      approvalId: 'approval-1',
+      toolCallId: 'call-1',
+      toolName: 'shell',
+      input: { command: 'rm *.log *.tmp && echo `whoami` > __status__' },
+      messageId: 'message-1',
+      partIndex: 0,
+    });
+
+    expect(screen.snapshot()).toMatchInlineSnapshot(`
+      "┌──────────────────────────────────────────────────────────────────────┐
+      │ ╭ Tool · shell ────────────────────────────────────── approve? y/n ╮ │
+      │ │ Input:                                                           │ │
+      │ │ {                                                                │ │
+      │ │   "command": "rm *.log *.tmp && echo \`whoami\` > __status__"      │ │
+      │ │ }                                                                │ │
+      │ ╰──────────────────────────────────────────────────────────────────╯ │
+      │                                                                      │
+      │                                                                      │
+      │                                                                      │
+      │                                                                      │
+      │                                                                      │
+      └──────────────────────────────────────────────────────────────────────┘
+      ┌ Status ──────────────────────────────────────────────────────────────┐
+      │ Approve tool shell? y/n · ↑/↓ · PgUp/PgDn · Esc/Ctrl+C               │
+      └──────────────────────────────────────────────────────────────────────┘"
+    `);
+
+    input.type('n');
+    await approvalPromise;
+  });
+
+  it('keeps the approval marker visible when the tool title is long', async () => {
+    const screen = new MockScreen({ columns: 40, rows: 14 });
+    const input = new MockUserInput();
+    const renderer = new TerminalRenderer({ input, output: screen });
+    const approvalPromise = renderer.readToolApproval({
+      approvalId: 'approval-1',
+      toolCallId: 'call-1',
+      toolName: 'shell',
+      title: 'Run a shell command in the workspace',
+      input: { command: 'date' },
+      messageId: 'message-1',
+      partIndex: 0,
+    });
+
+    expect(screen.snapshot()).toMatchInlineSnapshot(`
+      "┌──────────────────────────────────────┐
+      │ ╭ Tool · Run a shel…  approve? y/n ╮ │
+      │ │ Input:                           │ │
+      │ │ {                                │ │
+      │ │   "command": "date"              │ │
+      │ │ }                                │ │
+      │ ╰──────────────────────────────────╯ │
+      │                                      │
+      │                                      │
+      │                                      │
+      └──────────────────────────────────────┘
+      ┌ Status ──────────────────────────────┐
+      │ Approve tool Run a shell command in  │
+      └──────────────────────────────────────┘"
+    `);
+
+    input.type('n');
+    await approvalPromise;
+  });
+
+  it('keeps the approval marker visible when the tool title has wide characters', async () => {
+    const screen = new MockScreen({ columns: 40, rows: 14 });
+    const input = new MockUserInput();
+    const renderer = new TerminalRenderer({ input, output: screen });
+    const approvalPromise = renderer.readToolApproval({
+      approvalId: 'approval-1',
+      toolCallId: 'call-1',
+      toolName: 'shell',
+      title: 'シェルコマンドを実行する',
+      input: { command: 'date' },
+      messageId: 'message-1',
+      partIndex: 0,
+    });
+
+    expect(screen.snapshot()).toContain('╭ Tool · シェルコマ…  approve? y/n ╮');
+
+    input.type('n');
+    await approvalPromise;
+  });
+
+  it('scrolls the tool call awaiting approval into view', async () => {
+    const screen = new MockScreen({ columns: 48, rows: 14 });
+    const input = new MockUserInput();
+    const renderer = new TerminalRenderer({ input, output: screen });
+
+    await renderer.renderStream(createToolApprovalRequestThenTextStream(), {
+      title: 'Test',
+      continueSession: true,
+      waitForExit: false,
+    });
+
+    expect(screen.snapshot()).not.toContain('Tool · shell');
+
+    const approvalPromise = renderer.readToolApproval({
+      approvalId: 'approval-1',
+      toolCallId: 'call-1',
+      toolName: 'shell',
+      input: { command: 'date' },
+      messageId: 'message-1',
+      partIndex: 0,
+    });
+
+    expect(screen.snapshot()).toMatchInlineSnapshot(`
+      "┌ Test ────────────────────────────────────────┐
+      │ ╭ Tool · shell ────────────── approve? y/n ╮ │
+      │ │ Input:                                   │ │
+      │ │ {                                        │ │
+      │ │   "command": "date"                      │ │
+      │ │ }                                        │ │
+      │ ╰──────────────────────────────────────────╯ │
+      │ ╭ Assistant ───────────────────────────────╮ │
+      │ │ Line 1                                   │ │
+      │ │ Line 2                                   │ │
+      └──────────────────────────────────────────────┘
+      ┌ Status ──────────────────────────────────────┐
+      │ Approve tool shell? y/n · ↑/↓ · PgUp/PgDn ·  │
+      └──────────────────────────────────────────────┘"
+    `);
+
+    input.type('y');
+    await expect(approvalPromise).resolves.toEqual({ approved: true });
+
+    expect(screen.snapshot()).toMatchInlineSnapshot(`
+      "┌ Test ────────────────────────────────────────┐
+      │ │ Line 3                                   │ │
+      │ │ Line 4                                   │ │
+      │ │ Line 5                                   │ │
+      │ │ Line 6                                   │ │
+      │ │ Line 7                                   │ │
+      │ │ Line 8                                   │ │
+      │ │ Line 9                                   │ │
+      │ │ Line 10                                  │ │
+      │ ╰──────────────────────────────────────────╯ │
+      └──────────────────────────────────────────────┘
+      ┌ Status ──────────────────────────────────────┐
+      │ Approved · Processing input... ↑/↓ · PgUp/Pg │
+      └──────────────────────────────────────────────┘"
+    `);
+  });
+
+  it('keeps the tool call awaiting approval in view when the terminal is resized', async () => {
+    const screen = new MockScreen({ columns: 48, rows: 14 });
+    const input = new MockUserInput();
+    const renderer = new TerminalRenderer({ input, output: screen });
+
+    await renderer.renderStream(createToolApprovalRequestThenTextStream(), {
+      title: 'Test',
+      continueSession: true,
+      waitForExit: false,
+    });
+
+    const approvalPromise = renderer.readToolApproval({
+      approvalId: 'approval-1',
+      toolCallId: 'call-1',
+      toolName: 'shell',
+      input: { command: 'date' },
+      messageId: 'message-1',
+      partIndex: 0,
+    });
+
+    screen.resize(48, 10);
+
+    expect(screen.snapshot()).toMatchInlineSnapshot(`
+      "┌ Test ────────────────────────────────────────┐
+      │ ╭ Tool · shell ────────────── approve? y/n ╮ │
+      │ │ Input:                                   │ │
+      │ │ {                                        │ │
+      │ │   "command": "date"                      │ │
+      │ │ }                                        │ │
+      └──────────────────────────────────────────────┘
+      ┌ Status ──────────────────────────────────────┐
+      │ Approve tool shell? y/n · ↑/↓ · PgUp/PgDn ·  │
+      └──────────────────────────────────────────────┘"
+    `);
+
+    input.type('n');
+    await approvalPromise;
+  });
+
+  it('approves a tool input that is taller than the viewport only after its end was shown', async () => {
+    const screen = new MockScreen({ columns: 48, rows: 14 });
+    const input = new MockUserInput();
+    const renderer = new TerminalRenderer({ input, output: screen });
+    const approvalPromise = renderer.readToolApproval({
+      approvalId: 'approval-1',
+      toolCallId: 'call-1',
+      toolName: 'shell',
+      input: {
+        commands: Array.from({ length: 12 }, (_, index) => `step ${index + 1}`),
+      },
+      messageId: 'message-1',
+      partIndex: 0,
+    });
+
+    input.type('y');
+
+    expect(screen.snapshot()).toMatchInlineSnapshot(`
+      "┌──────────────────────────────────────────────┐
+      │ ╭ Tool · shell ────────────── approve? y/n ╮ │
+      │ │ Input:                                   │ │
+      │ │ {                                        │ │
+      │ │   "commands": [                          │ │
+      │ │     "step 1",                            │ │
+      │ │     "step 2",                            │ │
+      │ │     "step 3",                            │ │
+      │ │     "step 4",                            │ │
+      │ │     "step 5",                            │ │
+      └──────────────────────────────────────────────┘
+      ┌ Status ──────────────────────────────────────┐
+      │ Scroll to the end to approve · n to deny · ↑ │
+      └──────────────────────────────────────────────┘"
+    `);
+
+    input.emit('data', Buffer.from('\x1B[B'));
+    input.type('y');
+
+    expect(screen.snapshot()).toContain('"step 6"');
+    expect(screen.snapshot()).not.toContain('"step 12"');
+    expect(screen.snapshot()).toContain('Scroll to the end to approve');
+
+    input.emit('data', Buffer.from('\x1B[6~'));
+
+    expect(screen.snapshot()).toContain('"step 12"');
+    expect(screen.snapshot()).toContain('│ Approve tool shell? y/n');
+
+    input.type('y');
+    await expect(approvalPromise).resolves.toEqual({ approved: true });
+  });
+
+  it('denies a tool input that is taller than the viewport without scrolling', async () => {
+    const input = new MockUserInput();
+    const renderer = new TerminalRenderer({
+      input,
+      output: new MockScreen({ columns: 48, rows: 14 }),
+    });
+    const approvalPromise = renderer.readToolApproval({
+      approvalId: 'approval-1',
+      toolCallId: 'call-1',
+      toolName: 'shell',
+      input: {
+        commands: Array.from({ length: 12 }, (_, index) => `step ${index + 1}`),
+      },
+      messageId: 'message-1',
+      partIndex: 0,
+    });
+
+    input.type('n');
+
+    await expect(approvalPromise).resolves.toMatchObject({ approved: false });
+  });
+
   it('keeps the terminal session open between turns', async () => {
     const input = createInput();
     const output = createOutput();
@@ -989,6 +1365,36 @@ function createToolApprovalStream(): AgentTUIStreamResult {
         approved: false,
         reason: 'Denied by user.',
       } satisfies UIMessageChunk;
+      yield { type: 'finish' };
+    })(),
+  };
+}
+
+function createToolApprovalRequestThenTextStream(): AgentTUIStreamResult {
+  return {
+    uiMessageStream: (async function* () {
+      yield { type: 'start', messageId: 'message-1' };
+      yield {
+        type: 'tool-input-available',
+        toolCallId: 'call-1',
+        toolName: 'shell',
+        input: { command: 'date' },
+      } satisfies UIMessageChunk;
+      yield {
+        type: 'tool-approval-request',
+        approvalId: 'approval-1',
+        toolCallId: 'call-1',
+      } satisfies UIMessageChunk;
+      yield { type: 'text-start', id: 'text-1' } satisfies UIMessageChunk;
+      yield {
+        type: 'text-delta',
+        id: 'text-1',
+        delta: Array.from(
+          { length: 10 },
+          (_, index) => `Line ${index + 1}`,
+        ).join('\n'),
+      } satisfies UIMessageChunk;
+      yield { type: 'text-end', id: 'text-1' } satisfies UIMessageChunk;
       yield { type: 'finish' };
     })(),
   };

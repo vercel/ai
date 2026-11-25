@@ -115,6 +115,23 @@ const resumeFixtures: Array<{
       { type: 'text-end', id: 'text-2' },
     ] as unknown as ModelCallStreamPart[],
   },
+  {
+    name: 'signed tool approval',
+    parts: [
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'weather',
+        input: { city: 'London' },
+      },
+      {
+        type: 'tool-approval-request',
+        approvalId: 'approval-call-1',
+        toolCallId: 'call-1',
+        signature: 'signed-approval',
+      },
+    ] as ModelCallStreamPart[],
+  },
 ];
 
 describe('createModelCallToUIChunkTransform', () => {
@@ -209,5 +226,41 @@ describe('workflow UI stream reset-step', () => {
       { type: 'text-delta', id: 'text-1', delta: 'retry' },
       { type: 'text-end', id: 'text-1' },
     ]);
+  });
+});
+
+describe('workflow signed tool approvals', () => {
+  it('preserves the approval signature in the UI message chunk', () => {
+    expect(
+      toUIMessageChunk({
+        type: 'tool-approval-request',
+        approvalId: 'approval-call-1',
+        toolCallId: 'call-1',
+        signature: 'signed-approval',
+      }),
+    ).toEqual({
+      type: 'tool-approval-request',
+      approvalId: 'approval-call-1',
+      toolCallId: 'call-1',
+      signature: 'signed-approval',
+    });
+  });
+
+  it('preserves transformed tool input through the UI stream', async () => {
+    await expect(
+      transform([
+        {
+          type: 'tool-approval-request',
+          approvalId: 'approval-call-1',
+          toolCallId: 'call-1',
+          inputSchemaInput: { value: ' requested ' },
+        },
+      ]),
+    ).resolves.toContainEqual({
+      type: 'tool-approval-request',
+      approvalId: 'approval-call-1',
+      toolCallId: 'call-1',
+      inputSchemaInput: { value: ' requested ' },
+    });
   });
 });

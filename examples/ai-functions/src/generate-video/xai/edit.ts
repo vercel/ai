@@ -6,10 +6,10 @@ import { withSpinner } from '../../lib/spinner';
 
 run(async () => {
   const { video } = await withSpinner(
-    'Editing video with xAI grok-imagine-video...',
+    'Editing video with xAI grok-imagine-video-1.5...',
     () =>
       generateVideo({
-        model: xai.video('grok-imagine-video'),
+        model: xai.video('grok-imagine-video-1.5'),
         prompt: 'Render this cat as a dog in the style of 90s anime.',
         providerOptions: {
           xai: {

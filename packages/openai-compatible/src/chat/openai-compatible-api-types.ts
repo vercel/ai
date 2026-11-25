@@ -54,10 +54,9 @@ export interface OpenAICompatibleContentPartInputAudio extends JsonRecord {
   input_audio: { data: string; format: 'wav' | 'mp3' };
 }
 
-// File parts for Google API
 export interface OpenAICompatibleContentPartFile extends JsonRecord {
   type: 'file';
-  file: { filename: string; file_data: string };
+  file: { filename: string; file_data: string } | { file_id: string };
 }
 
 export interface OpenAICompatibleAssistantMessage extends JsonRecord<OpenAICompatibleMessageToolCall> {
@@ -87,6 +86,6 @@ export interface OpenAICompatibleMessageToolCall extends JsonRecord {
 
 export interface OpenAICompatibleToolMessage extends JsonRecord {
   role: 'tool';
-  content: string;
+  content: string | Array<OpenAICompatibleContentPart>;
   tool_call_id: string;
 }

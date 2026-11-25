@@ -5,7 +5,7 @@ import { saveRawChunks } from '../../lib/save-raw-chunks';
 
 run(async () => {
   const result = await streamText({
-    model: openai.responses('gpt-5-mini'),
+    model: openai.responses('gpt-6-luna'),
     prompt: 'Can you search the web for latest NYC mayoral election results?',
     tools: {
       mcp: openai.tools.mcp({

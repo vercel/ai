@@ -12,6 +12,8 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId as defaultGenerateId,
+  isCustomReasoning,
+  mapReasoningToProviderEffort,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -22,6 +24,9 @@ import {
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { googleFailedResponseHandler } from '../google-error';
+import { getGoogleLanguageModelEntry } from '../google-model-catalog';
+import { withGoogleInteractionsRequestRedaction } from '../redact-google-tool-credentials';
+import { googleFilesUrlPattern } from '../google-supported-file-url';
 import { buildGoogleInteractionsStreamTransform } from './build-google-interactions-stream-transform';
 import {
   convertGoogleInteractionsUsage,
@@ -44,6 +49,7 @@ import type {
   GoogleInteractionsNetworkConfig,
   GoogleInteractionsRequestBody,
   GoogleInteractionsResponseFormatEntry,
+  GoogleInteractionsThinkingLevel,
   GoogleInteractionsTool,
   GoogleInteractionsToolChoice,
 } from './google-interactions-prompt';
@@ -131,6 +137,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       return this.config.supportedUrls();
     }
     return {
+      '*': [googleFilesUrlPattern],
       'image/*': [/^https?:\/\/.+/],
       'application/pdf': [/^https?:\/\/.+/],
       'audio/*': [/^https?:\/\/.+/],
@@ -245,6 +252,17 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
               mime_type: entry.mimeType ?? undefined,
             }),
           );
+        } else if (entry.type === 'video') {
+          responseFormatEntries.push(
+            pruneUndefined({
+              type: 'video' as const,
+              aspect_ratio: entry.aspectRatio ?? undefined,
+              resolution: entry.resolution ?? undefined,
+              duration: entry.duration ?? undefined,
+              delivery: entry.delivery ?? undefined,
+              gcs_uri: entry.gcsUri ?? undefined,
+            }),
+          );
         }
       }
     }
@@ -302,6 +320,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       }
       if (options.maxOutputTokens != null)
         droppedFields.push('maxOutputTokens');
+      if (isCustomReasoning(options.reasoning)) droppedFields.push('reasoning');
       if (googleOptions?.thinkingLevel != null)
         droppedFields.push('thinkingLevel');
       if (googleOptions?.thinkingSummaries != null) {
@@ -326,7 +345,20 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
             ? options.stopSequences
             : undefined,
         max_output_tokens: options.maxOutputTokens ?? undefined,
-        thinking_level: googleOptions?.thinkingLevel ?? undefined,
+        thinking_level: mapReasoningToProviderEffort<
+          GoogleInteractionsThinkingLevel,
+          GoogleInteractionsThinkingLevel
+        >({
+          reasoning: options.reasoning,
+          providerOptionsEffort: googleOptions?.thinkingLevel,
+          effortMap: Object.fromEntries(
+            (
+              getGoogleLanguageModelEntry(this.modelId).capabilities.language
+                .reasoning.efforts ?? []
+            ).map(level => [level, level]),
+          ),
+          warnings,
+        }),
         thinking_summaries: googleOptions?.thinkingSummaries ?? undefined,
         tool_choice: toolChoiceForBody,
       });
@@ -436,6 +468,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     const args: GoogleInteractionsRequestBody = pruneUndefined({
       ...(isAgent ? { agent: this.agent } : { model: this.modelId }),
       input,
+      labels: googleOptions?.labels ?? undefined,
       system_instruction: systemInstruction,
       tools: toolsForBody,
       response_format:
@@ -460,7 +493,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     });
 
     return {
-      args,
+      args: withGoogleInteractionsRequestRedaction(args),
       warnings,
       isAgent,
       isBackground: googleOptions?.background === true,
@@ -471,19 +504,17 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
   async doGenerate(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
-    const { args, warnings, isAgent, pollingTimeoutMs } =
+    const { args, warnings, isAgent, isBackground, pollingTimeoutMs } =
       await this.getArgs(options);
 
     const url = `${this.config.baseURL}/interactions`;
 
-    const mergedHeaders = combineHeaders(
-      this.config.headers ? await resolve(this.config.headers) : undefined,
-      options.headers,
-    );
+    const mergedHeaders = async () =>
+      combineHeaders(await resolve(this.config.headers), options.headers);
 
     const postResult = await postJsonToApi({
       url,
-      headers: mergedHeaders,
+      headers: await resolve(mergedHeaders),
       body: args,
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -500,12 +531,12 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     } = postResult;
 
     /*
-     * Agent calls may return a non-terminal status (`in_progress` /
-     * `requires_action`) when invoked with `background: true`. Poll
-     * `GET /interactions/{id}` until terminal so the user-facing surface
-     * matches a synchronous call.
+     * Agent calls and `background: true` calls (e.g. Gemini 4 long decode,
+     * where the server runs every hop) may return a non-terminal status
+     * (`in_progress` / `requires_action`). Poll `GET /interactions/{id}` until
+     * terminal so the user-facing surface matches a synchronous call.
      */
-    if (isAgent && !isTerminalStatus(response.status)) {
+    if ((isAgent || isBackground) && !isTerminalStatus(response.status)) {
       const polled = await pollGoogleInteractionUntilTerminal({
         baseURL: this.config.baseURL,
         interactionId: response.id,
@@ -609,10 +640,8 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
 
     const url = `${this.config.baseURL}/interactions`;
 
-    const mergedHeaders = combineHeaders(
-      this.config.headers ? await resolve(this.config.headers) : undefined,
-      options.headers,
-    );
+    const mergedHeaders = async () =>
+      combineHeaders(await resolve(this.config.headers), options.headers);
 
     /*
      * `background: true` is incompatible with `stream: true` on POST. Drive
@@ -632,11 +661,14 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       });
     }
 
-    const body = { ...args, stream: true };
+    const body = withGoogleInteractionsRequestRedaction({
+      ...args,
+      stream: true,
+    });
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url,
-      headers: mergedHeaders,
+      headers: await resolve(mergedHeaders),
       body,
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -698,13 +730,13 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     args: GoogleInteractionsRequestBody;
     warnings: Array<SharedV4Warning>;
     url: string;
-    mergedHeaders: Record<string, string | undefined>;
+    mergedHeaders: Resolvable<Record<string, string | undefined>>;
     options: LanguageModelV4CallOptions;
     pollingTimeoutMs: number | undefined;
   }): Promise<LanguageModelV4StreamResult> {
     const postResult = await postJsonToApi({
       url,
-      headers: mergedHeaders,
+      headers: await resolve(mergedHeaders),
       body: args,
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

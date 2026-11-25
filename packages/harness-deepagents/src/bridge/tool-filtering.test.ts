@@ -249,4 +249,56 @@ describe('createBuiltinToolFilteringMiddleware', () => {
     expect(events).toEqual([]);
     expect(result).toBeUndefined();
   });
+
+  it.each([
+    { mode: 'deny', toolNames: ['delete'] },
+    { mode: 'allow', toolNames: ['read'] },
+  ] as const)(
+    'denies inactive delete calls under $mode policies',
+    async policy => {
+      const message = new AIMessage({
+        content: '',
+        tool_calls: [
+          {
+            id: 'delete-1',
+            name: 'delete',
+            args: { file_path: '/workspace/file.txt' },
+          },
+        ],
+      });
+      const { events, result } = await runAfterModel({
+        messages: [message],
+        builtinToolFiltering: {
+          mode: policy.mode,
+          toolNames: [...policy.toolNames],
+        },
+      });
+
+      expect(events).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'delete-1',
+          toolName: 'delete',
+          input: '{"file_path":"/workspace/file.txt"}',
+          providerExecuted: true,
+          nativeName: 'delete',
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'delete-1',
+          toolName: 'delete',
+          result:
+            "Tool 'delete' is inactive due to the HarnessAgent tool filtering policy.",
+        },
+      ]);
+      expect(result?.jumpTo).toBe('model');
+      const toolResult = result?.messages?.[1];
+      expect(ToolMessage.isInstance(toolResult)).toBe(true);
+      if (!ToolMessage.isInstance(toolResult)) {
+        throw new Error('expected delete denial tool message');
+      }
+      expect(toolResult.tool_call_id).toBe('delete-1');
+      expect(toolResult.status).toBe('error');
+    },
+  );
 });

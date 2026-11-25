@@ -7,7 +7,7 @@ import {
 
 export * from './use-completion';
 export { Chat } from './chat.vue';
-export { useChat, type UseChatHelpers } from './use-chat';
+export { useChat, type UseChatHelpers, type UseChatOptions } from './use-chat';
 export * from './use-object';
 
 // deprecated aliases

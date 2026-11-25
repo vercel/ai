@@ -70,7 +70,6 @@ export class Completion<BODY extends object = object> {
       // ignore
     } finally {
       this.#loading.set(false);
-      this.#abortController = null;
     }
   };
 
@@ -116,6 +115,7 @@ export class Completion<BODY extends object = object> {
       setAbortController: abortController => {
         this.#abortController = abortController ?? null;
       },
+      getAbortController: () => this.#abortController,
       onFinish: this.#options.onFinish,
       onError: this.#options.onError,
     });

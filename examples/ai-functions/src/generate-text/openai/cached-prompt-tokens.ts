@@ -137,7 +137,7 @@ And all things mean swift death for mortal man.
 
 const runCompletion = async () =>
   await generateText({
-    model: openai('gpt-4o-mini'),
+    model: openai('gpt-4.1-mini'),
     messages: [
       {
         role: 'user',

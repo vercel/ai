@@ -1,6 +1,7 @@
 import {
   generateId,
   isAbortError,
+  normalizeHeaders,
   safeValidateTypes,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
@@ -161,7 +162,7 @@ export class StructuredObject<
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...this.#options.headers,
+          ...normalizeHeaders(this.#options.headers),
         },
         credentials: this.#options.credentials,
         signal: abortController.signal,
@@ -170,7 +171,7 @@ export class StructuredObject<
 
       if (!response.ok) {
         throw new Error(
-          (await response.text()) ?? 'Failed to fetch the response.',
+          (await response.text()) || 'Failed to fetch the response.',
         );
       }
 

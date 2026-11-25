@@ -12,7 +12,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: cohere('command-r-plus'),
+    model: cohere('command-a-03-2025'),
     messages: await convertToModelMessages(messages),
   });
 

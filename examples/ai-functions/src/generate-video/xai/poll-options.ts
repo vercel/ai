@@ -7,7 +7,7 @@ run(async () => {
   process.stdout.write('Generating video ...');
   const startTime = Date.now();
   const { videos } = await generateVideo({
-    model: xai.video('grok-imagine-video'),
+    model: xai.video('grok-imagine-video-1.5'),
     prompt: 'A yorkie among dandelions at Crissy Field in San Francisco.',
     aspectRatio: '16:9',
     duration: 5,

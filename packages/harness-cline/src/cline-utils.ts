@@ -1,43 +1,33 @@
+import { randomUUID } from 'node:crypto';
 import type {
   JSONValue,
   LanguageModelV4FinishReason,
   LanguageModelV4Usage,
 } from '@ai-sdk/provider';
-import {
-  HarnessCapabilityUnsupportedError,
-  type HarnessV1Prompt,
-} from '@ai-sdk/harness';
+import type { HarnessV1Prompt } from '@ai-sdk/harness';
+import { extractHarnessPromptContent } from '@ai-sdk/harness/utils';
 import { secureJsonParse } from '@ai-sdk/provider-utils';
-import type { AgentMessage, AgentUsage } from '@cline/agents';
+import type { AgentMessage, AgentRunInput, AgentUsage } from '@cline/agents';
 
-const HARNESS_ID = 'cline';
+export function extractUserInput(prompt: HarnessV1Prompt): AgentRunInput {
+  const content = extractHarnessPromptContent({ prompt });
+  if (typeof content === 'string') return content;
 
-/**
- * Extract a single user text string from a `HarnessV1Prompt`. The Cline
- * runtime's `run`/`continue` accept a plain string; multimodal user content
- * is not supported in this foundational version.
- */
-export function extractUserText(prompt: HarnessV1Prompt): string {
-  if (typeof prompt === 'string') {
-    return prompt;
-  }
+  const messageContent: AgentMessage['content'] = content.map(part => {
+    if (part.type === 'text') return part;
+    return {
+      type: 'image',
+      image: part.data,
+      mediaType: part.mediaType,
+    };
+  });
 
-  const { content } = prompt;
-  if (typeof content === 'string') {
-    return content;
-  }
-
-  const parts: string[] = [];
-  for (const part of content) {
-    if (part.type !== 'text') {
-      throw new HarnessCapabilityUnsupportedError({
-        message: `cline: only text user-message parts are supported; got '${part.type}'.`,
-        harnessId: HARNESS_ID,
-      });
-    }
-    parts.push(part.text);
-  }
-  return parts.join('\n\n');
+  return {
+    id: randomUUID(),
+    role: 'user',
+    content: messageContent,
+    createdAt: Date.now(),
+  };
 }
 
 export function getErrorText(error: unknown): string {

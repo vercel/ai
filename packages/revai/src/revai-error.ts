@@ -1,14 +1,23 @@
 import { z } from 'zod/v4';
-import { createJsonErrorResponseHandler } from '@ai-sdk/provider-utils';
+import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
+  createJsonErrorResponseHandler,
+} from '@ai-sdk/provider-utils';
 
-export const revaiErrorDataSchema = z.object({
-  error: z.object({
-    message: z.string(),
-    code: z.number(),
-  }),
-});
+export const revaiErrorDataSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      error: z.object({
+        message: z.string(),
+        code: z.number(),
+      }),
+    }),
+  ),
+);
 
-export type RevaiErrorData = z.infer<typeof revaiErrorDataSchema>;
+export type RevaiErrorData = InferSchema<typeof revaiErrorDataSchema>;
 
 export const revaiFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: revaiErrorDataSchema,

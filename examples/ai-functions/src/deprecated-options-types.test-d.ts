@@ -131,9 +131,7 @@ import type {
 import type {
   XaiImageModelOptions,
   XaiImageProviderOptions,
-  XaiLanguageModelChatOptions,
   XaiLanguageModelResponsesOptions,
-  XaiProviderOptions,
   XaiResponsesProviderOptions,
 } from '@ai-sdk/xai';
 import { describe, expectTypeOf, it } from 'vitest';
@@ -335,9 +333,6 @@ describe('deprecated provider options type aliases', () => {
   });
 
   describe('@ai-sdk/xai', () => {
-    it('XaiProviderOptions equals XaiLanguageModelChatOptions', () => {
-      expectTypeOf<XaiProviderOptions>().toEqualTypeOf<XaiLanguageModelChatOptions>();
-    });
     it('XaiResponsesProviderOptions equals XaiLanguageModelResponsesOptions', () => {
       expectTypeOf<XaiResponsesProviderOptions>().toEqualTypeOf<XaiLanguageModelResponsesOptions>();
     });

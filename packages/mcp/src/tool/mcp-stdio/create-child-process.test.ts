@@ -96,6 +96,16 @@ describe('createChildProcess', () => {
     childProcessWithStderr.kill();
   });
 
+  it('should spawn a child process with custom shell option', async () => {
+    const childProcessWithShell = createChildProcess(
+      { command: process.execPath, shell: true },
+      new AbortController().signal,
+    );
+
+    expect(childProcessWithShell.pid).toBeDefined();
+    childProcessWithShell.kill();
+  });
+
   it.runIf(process.platform === 'win32')(
     'should spawn npx on Windows',
     async () => {
@@ -116,6 +126,9 @@ describe('createChildProcess', () => {
       expect(exitCode).toBe(0);
       expect(Buffer.concat(stdout).toString().trim()).toMatch(/^\d+\.\d+\.\d+/);
     },
+    // A cold `npx` start on GitHub-hosted Windows runners can exceed the
+    // default 5s timeout, which made this test flaky.
+    30_000,
   );
 
   it.runIf(process.platform === 'win32')(
@@ -145,6 +158,8 @@ describe('createChildProcess', () => {
         rmSync(cwd, { recursive: true, force: true });
       }
     },
+    // Spawning through the `cmd` shim can be slow on cold Windows runners.
+    30_000,
   );
 
   it.runIf(process.platform === 'win32')(

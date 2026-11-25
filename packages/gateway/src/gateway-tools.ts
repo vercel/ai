@@ -1,3 +1,7 @@
+import { browserbaseFetch } from './tool/browserbase-fetch';
+import { browserbaseSearch } from './tool/browserbase-search';
+import { deepseekFetch } from './tool/deepseek-fetch';
+import { deepseekSearch } from './tool/deepseek-search';
 import { exaSearch } from './tool/exa-search';
 import { parallelSearch } from './tool/parallel-search';
 import { perplexitySearch } from './tool/perplexity-search';
@@ -7,6 +11,34 @@ import { takoSearch } from './tool/tako-search';
  * Gateway-specific provider-defined tools.
  */
 export const gatewayTools = {
+  /**
+   * Fetch page content using Browserbase's lightweight Fetch API.
+   *
+   * Supports raw, Markdown, and schema-driven JSON output as well as redirects,
+   * proxy routing, and TLS controls.
+   */
+  browserbaseFetch,
+
+  /**
+   * Search the web using Browserbase's Search API for fast, structured results.
+   *
+   * Returns titles, URLs, and available publication metadata without requiring
+   * a browser session.
+   */
+  browserbaseSearch,
+
+  /**
+   * Fetch a page as Markdown through DeepSeek's standalone Fetch API.
+   * Executed by AI Gateway for any model, separate from native model web search.
+   */
+  deepseekFetch,
+
+  /**
+   * Search the web through DeepSeek's standalone Search API.
+   * Executed by AI Gateway for any model, separate from native model web search.
+   */
+  deepseekSearch,
+
   /**
    * Search the web using Exa for current information and token-efficient
    * excerpts optimized for agent workflows.

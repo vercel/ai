@@ -7,18 +7,25 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: perplexity('sonar-pro'),
+    model: perplexity('low'),
     prompt:
       'Summarize recent United States federal AI policy updates from official sources.',
     providerOptions: {
       perplexity: {
-        search_domain_filter: [
-          'whitehouse.gov',
-          'congress.gov',
-          'federalregister.gov',
+        tools: [
+          {
+            type: 'web_search',
+            filters: {
+              search_domain_filter: [
+                'whitehouse.gov',
+                'congress.gov',
+                'federalregister.gov',
+              ],
+              search_after_date_filter: '1/1/2026',
+            },
+            max_results: 10,
+          },
         ],
-        search_language_filter: ['en'],
-        search_after_date_filter: '1/1/2026',
       } satisfies PerplexityLanguageModelOptions,
     },
   });

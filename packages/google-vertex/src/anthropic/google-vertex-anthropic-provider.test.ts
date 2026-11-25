@@ -69,6 +69,59 @@ describe('google-vertex-anthropic-provider', () => {
     );
   });
 
+  it.each([
+    ['claude-opus-4-5@20251101', true],
+    ['claude-sonnet-4-5@20250929', true],
+    ['claude-haiku-4-5@20251001', true],
+    ['claude-sonnet-4-6', true],
+    ['claude-opus-4-8', true],
+    ['claude-opus-5', true],
+    ['claude-opus-5-5', true],
+    ['claude-fable-5-1', true],
+    ['claude-fable-5-2', true],
+    ['claude-sonnet-6', true],
+    ['claude-sonnet-5', true],
+    ['claude-sonnet-5-5', true],
+    ['claude-haiku-5-5', true],
+    ['claude-fable-5', true],
+    ['claude-sonnet-4-5-20250929', false],
+    ['claude-3-5-sonnet-v2@20241022', false],
+    ['claude-opus-4-1@20250805', false],
+    ['claude-opus-4@20250514', false],
+    ['claude-sonnet-4@20250514', false],
+    ['claude-3-7-sonnet@20250219', false],
+    ['custom-deployment', false],
+  ] as const)(
+    'should gate the native-output opt-in by Vertex model support: %s',
+    (modelId, supported) => {
+      createGoogleVertexAnthropic({
+        supportsNativeStructuredOutput: true,
+      })(modelId);
+
+      expect(AnthropicLanguageModel).toHaveBeenCalledWith(
+        modelId,
+        expect.objectContaining({
+          supportsNativeStructuredOutput: supported,
+          supportsStrictTools: false,
+        }),
+      );
+    },
+  );
+
+  it.each([undefined, false])(
+    'should keep native output disabled without an opt-in (%s)',
+    supportsNativeStructuredOutput => {
+      createGoogleVertexAnthropic({ supportsNativeStructuredOutput })(
+        'claude-sonnet-4-6',
+      );
+
+      expect(AnthropicLanguageModel).toHaveBeenCalledWith(
+        'claude-sonnet-4-6',
+        expect.objectContaining({ supportsNativeStructuredOutput: false }),
+      );
+    },
+  );
+
   it('should pass baseURL to the model when created', () => {
     const customBaseURL = 'https://custom-url.com';
     const provider = createGoogleVertexAnthropic({
@@ -217,6 +270,7 @@ describe('google-vertex-anthropic-provider', () => {
           "supportsNativeStructuredOutput": false,
           "supportsStrictTools": false,
           "transformRequestBody": [Function],
+          "transformRequestHeaders": [Function],
         }
       `);
   });
@@ -240,6 +294,7 @@ describe('google-vertex-anthropic-provider', () => {
           "supportsNativeStructuredOutput": false,
           "supportsStrictTools": false,
           "transformRequestBody": [Function],
+          "transformRequestHeaders": [Function],
         }
       `);
   });

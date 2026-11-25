@@ -2,16 +2,13 @@
 
 Allows you to use [Valibot](https://valibot.dev/) schemas with AI SDK.
 
-The `valibotSchema` function supports both validation and JSON schema conversion
-for Valibot schemas.
-
 ## Setup
 
 ```bash
-npm install @ai-sdk/valibot
+npm i ai @ai-sdk/valibot @ai-sdk/anthropic valibot
 ```
 
-## Example
+## Usage
 
 ```ts
 import { anthropic } from '@ai-sdk/anthropic';
@@ -20,7 +17,7 @@ import { generateText, Output } from 'ai';
 import * as v from 'valibot';
 
 const result = await generateText({
-  model: anthropic('claude-sonnet-4-5-20250929'),
+  model: anthropic('claude-sonnet-5-5'),
   output: Output.object({
     schema: valibotSchema(
       v.object({
@@ -40,3 +37,5 @@ const result = await generateText({
   prompt: 'Generate a lasagna recipe.',
 });
 ```
+
+See the [Valibot Schema Support documentation](https://ai-sdk.dev/docs/reference/ai-sdk-core/valibot-schema) for more information.

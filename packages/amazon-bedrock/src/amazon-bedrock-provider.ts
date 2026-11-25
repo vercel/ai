@@ -10,14 +10,20 @@ import {
   generateId,
   loadOptionalSetting,
   loadSetting,
-  withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { AmazonBedrockChatLanguageModel } from './amazon-bedrock-chat-language-model';
-import type { AmazonBedrockChatModelId } from './amazon-bedrock-chat-language-model-options';
+import type {
+  AmazonBedrockChatModelId,
+  AmazonBedrockChatModelSettings,
+} from './amazon-bedrock-chat-language-model-options';
 import { AmazonBedrockEmbeddingModel } from './amazon-bedrock-embedding-model';
-import type { AmazonBedrockEmbeddingModelId } from './amazon-bedrock-embedding-model-options';
+import type {
+  AmazonBedrockEmbeddingModelId,
+  AmazonBedrockEmbeddingModelSettings,
+} from './amazon-bedrock-embedding-model-options';
 import { AmazonBedrockImageModel } from './amazon-bedrock-image-model';
 import type { AmazonBedrockImageModelId } from './amazon-bedrock-image-settings';
 import {
@@ -27,6 +33,7 @@ import {
 } from './amazon-bedrock-sigv4-fetch';
 import { AmazonBedrockRerankingModel } from './reranking/amazon-bedrock-reranking-model';
 import type { AmazonBedrockRerankingModelId } from './reranking/amazon-bedrock-reranking-model-options';
+import { resolveAmazonBedrockBaseURL } from './resolve-amazon-bedrock-base-url';
 import { VERSION } from './version';
 
 export interface AmazonBedrockProviderSettings {
@@ -38,6 +45,7 @@ export interface AmazonBedrockProviderSettings {
 
   /**
    * API key for authenticating requests using Bearer token authentication.
+   * A callback is resolved before each request and must return a non-empty key.
    * When provided, this will be used instead of AWS SigV4 authentication.
    * Defaults to the value of the `AWS_BEARER_TOKEN_BEDROCK` environment variable.
    *
@@ -59,7 +67,7 @@ export interface AmazonBedrockProviderSettings {
    * If neither `apiKey` nor `AWS_BEARER_TOKEN_BEDROCK` environment variable is set,
    * the provider will fall back to AWS SigV4 authentication using AWS credentials.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * The AWS access key ID to use for the Bedrock provider. Defaults to the value of the
@@ -112,29 +120,47 @@ export interface AmazonBedrockProviderSettings {
 }
 
 export interface AmazonBedrockProvider extends ProviderV4 {
-  (modelId: AmazonBedrockChatModelId): LanguageModelV4;
+  (
+    modelId: AmazonBedrockChatModelId,
+    settings?: AmazonBedrockChatModelSettings,
+  ): LanguageModelV4;
 
-  languageModel(modelId: AmazonBedrockChatModelId): LanguageModelV4;
+  languageModel(
+    modelId: AmazonBedrockChatModelId,
+    settings?: AmazonBedrockChatModelSettings,
+  ): LanguageModelV4;
 
   /**
    * Creates a model for text embeddings.
    */
-  embedding(modelId: AmazonBedrockEmbeddingModelId): EmbeddingModelV4;
+  embedding(
+    modelId: AmazonBedrockEmbeddingModelId,
+    settings?: AmazonBedrockEmbeddingModelSettings,
+  ): EmbeddingModelV4;
 
   /**
    * Creates a model for text embeddings.
    */
-  embeddingModel(modelId: AmazonBedrockEmbeddingModelId): EmbeddingModelV4;
+  embeddingModel(
+    modelId: AmazonBedrockEmbeddingModelId,
+    settings?: AmazonBedrockEmbeddingModelSettings,
+  ): EmbeddingModelV4;
 
   /**
    * @deprecated Use `embedding` instead.
    */
-  textEmbedding(modelId: AmazonBedrockEmbeddingModelId): EmbeddingModelV4;
+  textEmbedding(
+    modelId: AmazonBedrockEmbeddingModelId,
+    settings?: AmazonBedrockEmbeddingModelSettings,
+  ): EmbeddingModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
-  textEmbeddingModel(modelId: AmazonBedrockEmbeddingModelId): EmbeddingModelV4;
+  textEmbeddingModel(
+    modelId: AmazonBedrockEmbeddingModelId,
+    settings?: AmazonBedrockEmbeddingModelSettings,
+  ): EmbeddingModelV4;
 
   /**
    * Creates a model for image generation.
@@ -169,15 +195,18 @@ export function createAmazonBedrock(
   options: AmazonBedrockProviderSettings = {},
 ): AmazonBedrockProvider {
   // Check for API key authentication first
-  const rawApiKey = loadOptionalSetting({
-    settingValue: options.apiKey,
-    environmentVariableName: 'AWS_BEARER_TOKEN_BEDROCK',
-  });
+  const rawApiKey =
+    typeof options.apiKey === 'string' || options.apiKey == null
+      ? loadOptionalSetting({
+          settingValue: options.apiKey,
+          environmentVariableName: 'AWS_BEARER_TOKEN_BEDROCK',
+        })
+      : options.apiKey;
 
   // FIX 1: Validate API key to ensure proper fallback to SigV4
   // Only use API key if it's a non-empty, non-whitespace string
   const apiKey =
-    rawApiKey && rawApiKey.trim().length > 0 ? rawApiKey.trim() : undefined;
+    typeof rawApiKey === 'string' ? rawApiKey.trim() || undefined : rawApiKey;
 
   // Use API key authentication if available, otherwise fall back to SigV4
   const fetchFunction = apiKey
@@ -267,54 +296,73 @@ export function createAmazonBedrock(
 
   const getHeaders = () => {
     const baseHeaders = options.headers ?? {};
-    return withUserAgentSuffix(baseHeaders, `ai-sdk/amazon-bedrock/${VERSION}`);
+    return withUserAgentSuffix(baseHeaders, `ai-sdk-amazon-bedrock/${VERSION}`);
   };
 
   const getAmazonBedrockRuntimeBaseUrl = (): string =>
-    withoutTrailingSlash(
-      options.baseURL ??
-        `https://bedrock-runtime.${loadSetting({
+    resolveAmazonBedrockBaseURL({
+      baseURL: options.baseURL,
+      getRegion: () =>
+        loadSetting({
           settingValue: options.region,
           settingName: 'region',
           environmentVariableName: 'AWS_REGION',
           description: 'AWS region',
-        })}.amazonaws.com`,
-    ) ?? `https://bedrock-runtime.us-east-1.amazonaws.com`;
+        }),
+      service: 'bedrock-runtime',
+      serviceEndpointUrlEnvironmentVariableName:
+        'AWS_ENDPOINT_URL_BEDROCK_RUNTIME',
+    });
 
   const getAmazonBedrockAgentRuntimeBaseUrl = (): string =>
-    withoutTrailingSlash(
-      options.baseURL ??
-        `https://bedrock-agent-runtime.${loadSetting({
+    resolveAmazonBedrockBaseURL({
+      baseURL: options.baseURL,
+      getRegion: () =>
+        loadSetting({
           settingValue: options.region,
           settingName: 'region',
           environmentVariableName: 'AWS_REGION',
           description: 'AWS region',
-        })}.amazonaws.com`,
-    ) ?? `https://bedrock-agent-runtime.us-west-2.amazonaws.com`;
+        }),
+      service: 'bedrock-agent-runtime',
+      serviceEndpointUrlEnvironmentVariableName:
+        'AWS_ENDPOINT_URL_BEDROCK_AGENT_RUNTIME',
+    });
 
-  const createChatModel = (modelId: AmazonBedrockChatModelId) =>
+  const createChatModel = (
+    modelId: AmazonBedrockChatModelId,
+    settings: AmazonBedrockChatModelSettings = {},
+  ) =>
     new AmazonBedrockChatLanguageModel(modelId, {
       baseUrl: getAmazonBedrockRuntimeBaseUrl,
       headers: getHeaders,
       fetch: fetchFunction,
       generateId,
+      modelFamily: settings.modelFamily,
     });
 
-  const provider = function (modelId: AmazonBedrockChatModelId) {
+  const provider = function (
+    modelId: AmazonBedrockChatModelId,
+    settings?: AmazonBedrockChatModelSettings,
+  ) {
     if (new.target) {
       throw new Error(
         'The Amazon Bedrock model function cannot be called with the new keyword.',
       );
     }
 
-    return createChatModel(modelId);
+    return createChatModel(modelId, settings);
   };
 
-  const createEmbeddingModel = (modelId: AmazonBedrockEmbeddingModelId) =>
+  const createEmbeddingModel = (
+    modelId: AmazonBedrockEmbeddingModelId,
+    settings: AmazonBedrockEmbeddingModelSettings = {},
+  ) =>
     new AmazonBedrockEmbeddingModel(modelId, {
       baseUrl: getAmazonBedrockRuntimeBaseUrl,
       headers: getHeaders,
       fetch: fetchFunction,
+      modelFamily: settings.modelFamily,
     });
 
   const createImageModel = (modelId: AmazonBedrockImageModelId) =>

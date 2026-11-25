@@ -1,3 +1,4 @@
+import type { GoogleFilePartOptions } from './google-file-part-options';
 import type {
   GroundingMetadataSchema,
   PromptFeedbackSchema,
@@ -5,6 +6,8 @@ import type {
   UrlContextMetadataSchema,
   UsageMetadataSchema,
 } from './google-language-model';
+
+export type { GoogleVideoMetadata } from './google-file-part-options';
 
 export type GooglePrompt = {
   systemInstruction?: GoogleSystemInstruction;
@@ -22,11 +25,11 @@ export type GoogleContent = {
 
 export type GoogleContentPart =
   | { text: string; thought?: boolean; thoughtSignature?: string }
-  | {
+  | ({
       inlineData: { mimeType: string; data: string };
       thought?: boolean;
       thoughtSignature?: string;
-    }
+    } & GoogleFilePartOptions)
   | {
       functionCall: { id?: string; name: string; args: unknown };
       thoughtSignature?: string;
@@ -39,11 +42,11 @@ export type GoogleContentPart =
         parts?: Array<GoogleFunctionResponsePart>;
       };
     }
-  | {
+  | ({
       fileData: { mimeType: string; fileUri: string };
       thought?: boolean;
       thoughtSignature?: string;
-    }
+    } & GoogleFilePartOptions)
   | {
       toolCall: {
         toolType: string;
@@ -59,11 +62,29 @@ export type GoogleContentPart =
         id: string;
       };
       thoughtSignature?: string;
+    }
+  | {
+      executableCode: {
+        language: string;
+        code: string;
+      };
+    }
+  | {
+      codeExecutionResult: {
+        outcome: string;
+        output: string;
+      };
     };
 
-export type GoogleFunctionResponsePart = {
-  inlineData: { mimeType: string; data: string };
-};
+export type GoogleFunctionResponsePart = (
+  | {
+      inlineData: { mimeType: string; data: string };
+    }
+  | {
+      fileData: { mimeType: string; fileUri: string };
+    }
+) &
+  GoogleFilePartOptions;
 
 export type GoogleGroundingMetadata = GroundingMetadataSchema;
 
@@ -78,9 +99,30 @@ export type GoogleUsageMetadata = UsageMetadataSchema;
 export interface GoogleProviderMetadata {
   promptFeedback: GooglePromptFeedback | null;
   groundingMetadata: GoogleGroundingMetadata | null;
+  /** Grounding from each automatically continued request, in request order. */
+  groundingMetadataPerRequest?: Array<GoogleGroundingMetadata | null>;
   urlContextMetadata: GoogleUrlContextMetadata | null;
   safetyRatings: GoogleSafetyRating[] | null;
   usageMetadata: GoogleUsageMetadata | null;
+  finishReason?: string | null;
   finishMessage: string | null;
   serviceTier: string | null;
+
+  /**
+   * Opaque token returned when a response stops with `MAX_TOKENS` because it
+   * used up its `maxOutputTokens` budget. Pass it back as
+   * `providerOptions.google.continuationToken` together with a higher
+   * `maxOutputTokens` and the original prompt to resume generation.
+   */
+  continuationToken?: string | null;
+
+  /**
+   * Prompt token count of the first request of a long decode response that
+   * was continued automatically (Gemini 4). Usage is summed across requests
+   * to match billing, and each continued request re-sends the prompt plus all
+   * output so far as input. Use this value instead of the summed input tokens
+   * for context window checks and compaction. Only present when the response
+   * spanned more than one request.
+   */
+  initialPromptTokenCount?: number | null;
 }

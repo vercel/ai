@@ -46,7 +46,7 @@ describe('createGmicloud', () => {
     expect(headers).toEqual(
       expect.objectContaining({
         authorization: 'Bearer mock-api-key',
-        'user-agent': 'ai-sdk/gmicloud/0.0.0-test',
+        'user-agent': 'ai-sdk-gmicloud/0.0.0-test',
       }),
     );
   });

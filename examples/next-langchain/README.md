@@ -20,7 +20,7 @@ Simple text completion using the `useCompletion` hook with LangChain streaming:
 import { ChatOpenAI } from '@langchain/openai';
 import { toUIMessageStream } from '@ai-sdk/langchain';
 
-const model = new ChatOpenAI({ model: 'gpt-4o-mini' });
+const model = new ChatOpenAI({ model: 'gpt-6-luna' });
 const stream = await model.stream([{ role: 'user', content: prompt }]);
 
 return createUIMessageStreamResponse({
@@ -42,7 +42,7 @@ This example shows how to integrate a LangGraph agent with the AI SDK's `useChat
 Demonstrates sending images to the model for analysis using the `@ai-sdk/langchain` adapter:
 
 - **Image upload**: Attach images directly in the chat interface
-- **Vision analysis**: Uses GPT-4o's vision capabilities to analyze images
+- **Vision analysis**: Uses GPT-6 Astra's vision capabilities to analyze images
 - **Multimodal conversion**: The adapter converts images to OpenAI's `image_url` format for vision models
 
 This example showcases the multimodal input support in `convertUserContent()` which handles images and files.
@@ -60,7 +60,7 @@ Demonstrates generating images as multimodal output using OpenAI's image generat
 import { ChatOpenAI, tools } from '@langchain/openai';
 
 const model = new ChatOpenAI({
-  model: 'gpt-4o',
+  model: 'gpt-6-astra',
   useResponsesApi: true,
 });
 
@@ -211,7 +211,7 @@ const weatherTool = tool(
 
 // Create a LangChain agent
 const agent = createAgent({
-  model: 'openai:gpt-4o-mini',
+  model: 'openai:gpt-6-luna',
   tools: [weatherTool],
   systemPrompt: 'You are a helpful weather assistant.',
 });

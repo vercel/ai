@@ -6,23 +6,28 @@ import { TogetherAIImageModel } from './togetherai-image-model';
 const prompt = 'A cute baby sea otter';
 
 function createBasicModel({
+  modelId,
   headers,
   fetch,
   currentDate,
 }: {
+  modelId?: string;
   headers?: () => Record<string, string>;
   fetch?: FetchFunction;
   currentDate?: () => Date;
 } = {}) {
-  return new TogetherAIImageModel('stabilityai/stable-diffusion-xl', {
-    provider: 'togetherai',
-    baseURL: 'https://api.example.com',
-    headers: headers ?? (() => ({ 'api-key': 'test-key' })),
-    fetch,
-    _internal: {
-      currentDate,
+  return new TogetherAIImageModel(
+    modelId ?? 'stabilityai/stable-diffusion-xl',
+    {
+      provider: 'togetherai',
+      baseURL: 'https://api.example.com',
+      headers: headers ?? (() => ({ 'api-key': 'test-key' })),
+      fetch,
+      _internal: {
+        currentDate,
+      },
     },
-  });
+  );
 }
 
 const server = createTestServer({
@@ -37,6 +42,77 @@ const server = createTestServer({
       },
     },
   },
+});
+
+describe('capabilities', () => {
+  it.each([
+    {
+      modelId: 'black-forest-labs/FLUX.1-kontext-pro',
+      supportsFileInputs: true,
+      supportsMaskInputs: false,
+    },
+    ...[
+      'black-forest-labs/FLUX.1-kontext-max',
+      'black-forest-labs/FLUX.1-kontext-dev',
+      'black-forest-labs/FLUX.1-canny',
+      'black-forest-labs/FLUX.1-depth',
+      'black-forest-labs/FLUX.1-redux',
+      'black-forest-labs/FLUX.2-pro',
+      'black-forest-labs/FLUX.2-flex',
+    ].map(modelId => ({
+      modelId,
+      supportsFileInputs: true,
+      supportsMaskInputs: false,
+    })),
+    {
+      modelId: 'black-forest-labs/FLUX.1-schnell',
+      supportsFileInputs: false,
+      supportsMaskInputs: false,
+    },
+    {
+      modelId: 'black-forest-labs/FLUX.2-dev',
+      supportsFileInputs: false,
+      supportsMaskInputs: false,
+    },
+    {
+      modelId: 'google/gemini-3-pro-image',
+      supportsFileInputs: false,
+      supportsMaskInputs: false,
+    },
+    ...[
+      'black-forest-labs/custom-model',
+      'stabilityai/custom-model',
+      'black-forest-labs/FLUX.1-kontext-custom',
+      'custom/FLUX.1-kontext-pro',
+      'black-forest-labs/FLUX.2-custom',
+      'google/gemini-custom',
+    ].map(modelId => ({
+      modelId,
+      supportsFileInputs: undefined,
+      supportsMaskInputs: undefined,
+    })),
+    {
+      modelId: 'stabilityai/stable-diffusion-xl-base-1.0',
+      supportsFileInputs: false,
+      supportsMaskInputs: false,
+    },
+    {
+      modelId: 'custom/image-model',
+      supportsFileInputs: undefined,
+      supportsMaskInputs: undefined,
+    },
+  ] as const)(
+    'advertises file=$supportsFileInputs and mask=$supportsMaskInputs for $modelId',
+    ({ modelId, supportsFileInputs, supportsMaskInputs }) => {
+      const model = new TogetherAIImageModel(modelId, {
+        provider: 'togetherai',
+        baseURL: 'https://api.example.com',
+      });
+
+      expect(model.supportsFileInputs).toBe(supportsFileInputs);
+      expect(model.supportsMaskInputs).toBe(supportsMaskInputs);
+    },
+  );
 });
 
 describe('doGenerate', () => {
@@ -86,6 +162,54 @@ describe('doGenerate', () => {
       prompt,
       response_format: 'base64',
     });
+  });
+
+  it('should omit diffusion options for non-diffusion models', async () => {
+    const model = createBasicModel({
+      modelId: 'google/gemini-3-pro-image',
+    });
+
+    const result = await model.doGenerate({
+      prompt,
+      files: undefined,
+      mask: undefined,
+      n: 1,
+      size: '1264x848',
+      seed: 42,
+      providerOptions: {
+        togetherai: {
+          steps: 20,
+          guidance: 3.5,
+          negative_prompt: 'blurry',
+          disable_safety_checker: true,
+          additional_param: 'value',
+        },
+      },
+      aspectRatio: undefined,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'google/gemini-3-pro-image',
+      prompt,
+      width: 1264,
+      height: 848,
+      response_format: 'base64',
+      additional_param: 'value',
+    });
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'unsupported',
+        feature: 'aspectRatio',
+        details:
+          'This model does not support the `aspectRatio` option. Use `size` instead.',
+      },
+      {
+        type: 'unsupported',
+        feature: 'seed',
+        details:
+          'The google/gemini-3-pro-image model does not support the `seed` option.',
+      },
+    ]);
   });
 
   it('should include n parameter when requesting multiple images', async () => {
@@ -323,6 +447,31 @@ describe('Image Editing', () => {
       },
     },
   });
+
+  it.each(['black-forest-labs/FLUX.2-pro', 'black-forest-labs/FLUX.2-flex'])(
+    'should send standardized file inputs as image_url for %s',
+    async modelId => {
+      const model = createBasicModel({ modelId });
+
+      await model.doGenerate({
+        prompt: 'Make the shirt yellow',
+        files: [{ type: 'url', url: 'https://example.com/input.jpg' }],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: modelId,
+        prompt: 'Make the shirt yellow',
+        image_url: 'https://example.com/input.jpg',
+        response_format: 'base64',
+      });
+    },
+  );
 
   it('should send image_url when URL file is provided', async () => {
     const model = createBasicModel();

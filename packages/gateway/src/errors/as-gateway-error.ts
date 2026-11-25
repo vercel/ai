@@ -31,6 +31,15 @@ export async function asGatewayError(
   error: unknown,
   authMethod?: 'api-key' | 'oidc',
 ) {
+  // Caller cancellation is not a gateway failure and must not become a retryable 500.
+  if (
+    (error instanceof Error ||
+      (typeof DOMException === 'function' && error instanceof DOMException)) &&
+    (error.name === 'AbortError' || error.name === 'TimeoutError')
+  ) {
+    throw error;
+  }
+
   if (GatewayError.isInstance(error)) {
     return error;
   }
@@ -59,6 +68,11 @@ export async function asGatewayError(
       defaultMessage: 'Gateway request failed',
       cause: error,
       authMethod,
+      isRetryable:
+        error.isRetryable &&
+        (error.statusCode == null || error.statusCode < 400)
+          ? true
+          : undefined,
     });
   }
 

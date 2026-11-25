@@ -79,7 +79,11 @@ export async function waitForBridgeReady({
   createTimeoutError,
   createExitError,
 }: WaitForBridgeReadyOptions): Promise<WaitForBridgeReadyResult> {
-  const reader = proc.stdout.pipeThrough(new TextDecoderStream()).getReader();
+  const reader = proc.stdout
+    .pipeThrough(
+      new TextDecoderStream() as ReadableWritablePair<string, Uint8Array>,
+    )
+    .getReader();
   const decoder = lineDecoder();
   const stdoutTail: string[] = [];
   const deadline = Date.now() + timeoutMs;
@@ -192,7 +196,23 @@ export async function waitForBridgeReady({
   }
 }
 
-async function readBridgeMetaReady({
+async function readBridgeMetaReady(options: {
+  sandbox: Experimental_SandboxSession;
+  bridgeStateDir: string;
+  bridgeType: string;
+  abortSignal?: AbortSignal;
+}): Promise<number | undefined> {
+  const meta = await readBridgeMeta(options);
+  if (meta?.state !== 'waiting') return undefined;
+  if (meta.port === undefined || meta.port <= 0) return undefined;
+  return meta.port;
+}
+
+/**
+ * Read `bridge-meta.json`. Resolves to `undefined` when the file is missing,
+ * unreadable, or written by a bridge of another type.
+ */
+export async function readBridgeMeta({
   sandbox,
   bridgeStateDir,
   bridgeType,
@@ -202,7 +222,7 @@ async function readBridgeMetaReady({
   bridgeStateDir: string;
   bridgeType: string;
   abortSignal?: AbortSignal;
-}): Promise<number | undefined> {
+}): Promise<z.infer<typeof bridgeMetaSchema> | undefined> {
   const raw = await Promise.resolve(
     sandbox.readTextFile({
       path: bridgeMetaPath(bridgeStateDir),
@@ -212,13 +232,8 @@ async function readBridgeMetaReady({
   if (raw == null) return undefined;
 
   const parsed = await safeParseJSON({ text: raw, schema: bridgeMetaSchema });
-  if (!parsed.success) return undefined;
-  if (parsed.value.type !== bridgeType) return undefined;
-  if (parsed.value.state !== 'waiting') return undefined;
-  if (parsed.value.port === undefined || parsed.value.port <= 0) {
-    return undefined;
-  }
-  return parsed.value.port;
+  if (!parsed.success || parsed.value.type !== bridgeType) return undefined;
+  return parsed.value;
 }
 
 async function makeBridgeReadyError({

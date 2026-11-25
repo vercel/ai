@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: google('gemini-2.5-pro'),
+    model: google('gemini-3.1-pro-preview'),
     prompt: 'How many "r"s are in the word "strawberry"?',
   });
 

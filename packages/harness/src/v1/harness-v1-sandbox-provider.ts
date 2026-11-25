@@ -7,6 +7,7 @@ import type { HarnessV1NetworkSandboxSession } from './harness-v1-network-sandbo
  * `LanguageModelV4` providers, no I/O performed at construction. The actual
  * sandbox is created (or wrapped) when `HarnessAgent` calls `createSession()`.
  */
+/** @deprecated Supply a sandbox session to `HarnessAgent.createSession()` instead. */
 export interface HarnessV1SandboxProvider {
   readonly specificationVersion: 'harness-sandbox-v1';
   readonly providerId: string;
@@ -54,8 +55,8 @@ export interface HarnessV1SandboxProvider {
 
   /**
    * Reattach to an existing sandbox previously created with the same
-   * `sessionId`. Optional — providers that cannot rehydrate by id (e.g.
-   * just-bash) omit this; the harness throws
+   * `sessionId`. Optional — providers that cannot rehydrate by id omit
+   * this; the harness throws
    * `HarnessCapabilityUnsupportedError` when resume is attempted against
    * them.
    *

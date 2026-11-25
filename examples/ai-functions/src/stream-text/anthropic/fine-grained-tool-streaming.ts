@@ -31,7 +31,7 @@ const tools = {
 
 async function main() {
   const result = streamText({
-    model: anthropic('claude-sonnet-4-6'),
+    model: anthropic('claude-sonnet-5'),
 
     messages: [
       {

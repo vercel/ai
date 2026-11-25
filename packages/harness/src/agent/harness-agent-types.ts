@@ -15,6 +15,7 @@ import type {
   HarnessV1PromptControl,
   HarnessV1PromptTurnOptions,
   HarnessV1ResumeSessionState,
+  HarnessV1SandboxTemplate,
   HarnessV1Session,
   HarnessV1Skill,
   HarnessV1StartOptions,
@@ -24,6 +25,7 @@ import type {
 
 export type HarnessAgentAdapter<TBuiltinTools extends ToolSet = ToolSet> =
   HarnessV1<TBuiltinTools>;
+export type HarnessSandboxTemplate = HarnessV1SandboxTemplate;
 
 export type HarnessAgentBuiltinTool<
   INPUT = unknown,

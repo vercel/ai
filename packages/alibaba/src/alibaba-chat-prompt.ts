@@ -35,6 +35,7 @@ export type AlibabaChatUserMessageContent =
 export interface AlibabaChatAssistantMessage {
   role: 'assistant';
   content: string | null | Array<AlibabaChatAssistantMessageContent>;
+  reasoning_content?: string;
   tool_calls?: Array<{
     id: string;
     type: 'function';

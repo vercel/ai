@@ -8,10 +8,10 @@ import type { HarnessV1ResponseFormat } from './harness-v1-response-format';
 import type {
   HarnessV1ContinueTurnState,
   HarnessV1ResumeSessionState,
+  HarnessV1TurnSettings,
 } from './harness-v1-lifecycle-state';
-import type { HarnessV1Skill } from './harness-v1-skill';
 import type { HarnessV1StreamPart } from './harness-v1-stream-part';
-import type { HarnessV1ToolSpec } from './harness-v1-tool-spec';
+import type { HarnessV1Message } from './harness-v1-message';
 import type { HarnessV1BuiltinToolFiltering } from './harness-v1-tool-filtering';
 
 /**
@@ -23,17 +23,16 @@ import type { HarnessV1BuiltinToolFiltering } from './harness-v1-tool-filtering'
  */
 export type HarnessV1StartOptions = {
   /**
+   * Additional normalized HTTP headers to send with model requests.
+   */
+  readonly headers?: Readonly<Record<string, string>>;
+
+  /**
    * Stable identifier for this harness session. Used as the underlying
    * resource name where the adapter has a notion of a named session
    * (sandbox name, native session id, …).
    */
   readonly sessionId: string;
-
-  /**
-   * Skills made available to the underlying runtime for the lifetime of
-   * the session. Adapters decide how to surface them.
-   */
-  readonly skills?: ReadonlyArray<HarnessV1Skill>;
 
   /**
    * Optional resume payload returned by a prior session lifecycle method. When
@@ -93,9 +92,18 @@ export type HarnessV1StartOptions = {
 };
 
 /**
+ * Result of `HarnessV1Session.doReadHistory`.
+ */
+export type HarnessV1ReadHistoryResult = {
+  readonly messages: ReadonlyArray<HarnessV1Message>;
+  /** Opaque position; pass back as `since` to read only what follows. */
+  readonly cursor: string;
+};
+
+/**
  * Options passed to `HarnessV1Session.doPromptTurn`.
  */
-export type HarnessV1PromptTurnOptions = {
+export type HarnessV1PromptTurnOptions = HarnessV1TurnSettings & {
   /**
    * Fresh input for this turn — either a plain string or a single
    * `ModelMessage`. The harness session owns its own conversation history,
@@ -108,22 +116,6 @@ export type HarnessV1PromptTurnOptions = {
    * JSON response format must throw `HarnessCapabilityUnsupportedError`.
    */
   readonly responseFormat?: HarnessV1ResponseFormat;
-
-  /**
-   * Host-defined tools to make available to the underlying runtime for this
-   * turn. The harness emits `tool-call` events when the runtime calls one
-   * and waits for `submitToolResult`.
-   */
-  readonly tools?: ReadonlyArray<HarnessV1ToolSpec>;
-
-  /**
-   * Free-form instructions for the session. The framework supplies the same
-   * value on every turn. Adapters should append it to the runtime's native
-   * system or developer prompt when supported. Otherwise, they should prepend
-   * it to the first user message of a fresh session and rely on the runtime's
-   * persisted history when resuming.
-   */
-  readonly instructions?: string;
 
   /**
    * Signal that aborts the in-flight turn. The adapter must cancel any
@@ -147,26 +139,12 @@ export type HarnessV1PromptTurnOptions = {
  * in-flight turn rather than starting a new one. It is used to continue a turn
  * that was previously suspended temporarily, e.g. by the workflow slice loop.
  */
-export type HarnessV1ContinueTurnOptions = {
+export type HarnessV1ContinueTurnOptions = HarnessV1TurnSettings & {
   /**
    * Response format of the in-flight turn. Rerun-based adapters use this when
    * reconstructing the turn; attach-based adapters may ignore it.
    */
   readonly responseFormat?: HarnessV1ResponseFormat;
-
-  /**
-   * Host-defined tools to make available for the continued turn. Same shape
-   * as `doPromptTurn`'s `tools`. An adapter that purely attaches to a live turn
-   * may ignore them; an adapter that re-drives the turn (rerun) needs them.
-   */
-  readonly tools?: ReadonlyArray<HarnessV1ToolSpec>;
-
-  /**
-   * Free-form session instructions. An adapter that re-drives the runtime may
-   * need these to reconstruct its native system or developer prompt. An
-   * adapter that attaches to a live turn may ignore them.
-   */
-  readonly instructions?: string;
 
   /**
    * Signal that aborts the continued turn. The adapter must cancel any
@@ -203,14 +181,6 @@ export type HarnessV1Session = {
   readonly isResume: boolean;
 
   /**
-   * The model id the underlying runtime is configured to use, if the adapter
-   * knows it (e.g. from its settings). Surfaced into telemetry as
-   * `gen_ai.request.model` and the trace span labels. Omitted when the adapter
-   * defers to the runtime's own default and has no concrete id.
-   */
-  readonly modelId?: string;
-
-  /**
    * Run one prompt turn. Returns a control handle the host uses to feed
    * tool results, approvals, and user messages back into the turn while it
    * is in flight. The handle's `done` promise resolves when the turn ends.
@@ -231,6 +201,34 @@ export type HarnessV1Session = {
    * `customInstructions`, when supported, steer the compaction summary.
    */
   doCompact(customInstructions?: string): PromiseLike<void>;
+
+  /**
+   * Read the conversation history the runtime itself persisted, normalized
+   * to `HarnessV1Message`.
+   *
+   * The session's history can grow outside the harness contract: the same
+   * runtime conversation may be continued interactively (`claude --resume`),
+   * by another process, or before this session attached. Hosts that render a
+   * continuous record of the conversation — not just the turns they drove —
+   * need to read that history back, and the runtime's own store is the only
+   * source that has it. The adapter owns its runtime's persistence format,
+   * so the read belongs here rather than in every host.
+   *
+   * `since` is the `cursor` from a previous read; the result then contains
+   * only messages recorded after it. The cursor is adapter-owned and opaque
+   * to the host.
+   *
+   * Optional capability: adapters that cannot read their runtime's store
+   * omit the method entirely, and the agent surfaces that as
+   * `HarnessCapabilityUnsupportedError`. An adapter that implements it but
+   * cannot reach the store from the current environment (e.g. it lives
+   * inside a remote sandbox) throws `HarnessHistoryUnavailableError`. A
+   * conversation with no recorded messages yet is not an error — it resolves
+   * to an empty `messages` array.
+   */
+  doReadHistory?(options: {
+    readonly since?: string;
+  }): PromiseLike<HarnessV1ReadHistoryResult>;
 
   /**
    * Continue the in-flight turn **without a new user prompt**, returning the

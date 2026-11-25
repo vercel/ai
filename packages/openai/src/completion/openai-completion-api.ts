@@ -70,7 +70,7 @@ export const openaiCompletionChunkSchema = lazySchema(() =>
           })
           .nullish(),
       }),
-      openaiErrorDataSchema,
+      openaiErrorDataSchema(),
     ]),
   ),
 );

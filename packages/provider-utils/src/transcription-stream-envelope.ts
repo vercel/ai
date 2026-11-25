@@ -271,6 +271,7 @@ export function parseTranscriptionStreamPart(
         part.segments.every(isSegment) &&
         isOptional(part.language, isString) &&
         isOptional(part.durationInSeconds, isNumber) &&
+        isOptional(part.usage, isRecord) &&
         isOptional(part.providerMetadata, isRecord)
         ? part
         : undefined;

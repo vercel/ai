@@ -17,7 +17,7 @@ import { generateText, tool, isStepCount } from 'ai';
 import { z } from 'zod';
 
 const { text, steps } = await generateText({
-  model: 'openai/gpt-4.1',
+  model: 'openai/gpt-6-astra',
   stopWhen: isStepCount(5),
   tools: {
     weather: tool({

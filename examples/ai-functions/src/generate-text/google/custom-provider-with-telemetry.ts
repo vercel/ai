@@ -21,7 +21,7 @@ run(async () => {
   });
 
   await generateText({
-    model: myCustomProvider('gemini-2.5-flash'),
+    model: myCustomProvider('gemini-4-hydrogen'),
     prompt: 'Say hello in 5 words',
     telemetry: {
       functionId: 'custom-provider-demo',

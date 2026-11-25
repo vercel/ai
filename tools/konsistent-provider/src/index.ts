@@ -25,10 +25,10 @@ export const conventions = defineConventions([
     },
   },
   {
-    name: 'package-must-have-tsup-config',
-    description: 'Every package directory must contain tsup.config.ts.',
+    name: 'package-must-have-tsdown-config',
+    description: 'Every package directory must contain tsdown.config.ts.',
     must: {
-      haveFiles: ['tsup.config.ts'],
+      haveFiles: ['tsdown.config.ts'],
     },
   },
   {
@@ -314,6 +314,32 @@ export const conventions = defineConventions([
         {
           name: '${providerId.toPascalCase()}VideoModel',
           implement: ['VideoModelV4'],
+        },
+      ],
+    },
+  },
+  {
+    name: 'provider-decision-model-file-must-export-model-class',
+    description:
+      "Every provider's decision model must implement the experimental spec and use the Decision class prefix.",
+    for: {
+      files: [
+        '${providerId}-decision-model.ts',
+        '*/${providerId}-decision-model.ts',
+      ],
+    },
+    must: {
+      importTypes: [
+        {
+          name: 'Experimental_DecisionModelV4',
+          from: '@ai-sdk/provider',
+          alias: 'DecisionModelV4',
+        },
+      ],
+      exportClasses: [
+        {
+          name: 'Decision${providerId.toPascalCase()}Model',
+          implement: ['DecisionModelV4'],
         },
       ],
     },

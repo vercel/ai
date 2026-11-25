@@ -8,7 +8,7 @@ const vertex = createGoogleVertex({
 
 run(async () => {
   const result = await generateText({
-    model: vertex('gemini-3.5-flash'),
+    model: vertex('gemini-4-hydrogen'),
     prompt: 'Say hello in one word.',
     maxRetries: 0,
   });

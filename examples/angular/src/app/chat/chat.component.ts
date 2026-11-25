@@ -60,7 +60,7 @@ export class ChatComponent {
       },
       {
         body: {
-          selectedModel: 'openai/gpt-5.6',
+          selectedModel: 'openai/gpt-6-astra',
         },
       },
     );

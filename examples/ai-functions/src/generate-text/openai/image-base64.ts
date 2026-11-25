@@ -5,7 +5,8 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: openai('gpt-5-mini'),
+    model: openai('gpt-6-luna'),
+    reasoning: 'none',
     maxOutputTokens: 512,
     messages: [
       {

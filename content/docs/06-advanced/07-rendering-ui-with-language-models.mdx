@@ -48,7 +48,7 @@ const text = generateText({
       }),
       execute: async ({ city, unit }) => {
         const weather = getWeather({ city, unit });
-        const { temperature, unit, description, forecast } = weather;
+        const { temperature, description, forecast } = weather;
 
         return {
           temperature,
@@ -158,14 +158,14 @@ The **AI SDK RSC (`@ai-sdk/rsc`)** takes advantage of RSCs to solve the problem 
 Rather than conditionally rendering user interfaces on the client based on the data returned by the language model, you can directly stream them from the server during a model generation.
 
 ```tsx highlight="3,22-31,38" filename="app/action.ts"
-import { createStreamableUI } from '@ai-sdk/rsc'
+import { createStreamableUI } from '@ai-sdk/rsc';
 
 const uiStream = createStreamableUI();
 
 const text = generateText({
   model: __MODEL__,
-  instructions: 'you are a friendly assistant'
-  prompt: 'what is the weather in SF?'
+  instructions: 'you are a friendly assistant',
+  prompt: 'what is the weather in SF?',
   tools: {
     getWeather: {
       description: 'Get the weather for a location',
@@ -173,30 +173,30 @@ const text = generateText({
         city: z.string().describe('The city to get the weather for'),
         unit: z
           .enum(['C', 'F'])
-          .describe('The unit to display the temperature in')
+          .describe('The unit to display the temperature in'),
       }),
       execute: async ({ city, unit }) => {
-        const weather = getWeather({ city, unit })
-        const { temperature, unit, description, forecast } = weather
+        const weather = getWeather({ city, unit });
+        const { temperature, description, forecast } = weather;
 
         uiStream.done(
           <WeatherCard
             weather={{
               temperature: 47,
               unit: 'F',
-              description: 'sunny'
+              description: 'sunny',
               forecast,
             }}
-          />
-        )
-      }
-    }
-  }
-})
+          />,
+        );
+      },
+    },
+  },
+});
 
 return {
-  display: uiStream.value
-}
+  display: uiStream.value,
+};
 ```
 
 The [`createStreamableUI`](/docs/reference/ai-sdk-rsc/create-streamable-ui) function belongs to the `@ai-sdk/rsc` module and creates a stream that can send React components to the client.

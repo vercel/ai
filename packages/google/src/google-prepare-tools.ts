@@ -3,9 +3,19 @@ import {
   type LanguageModelV4CallOptions,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
-import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import type { GoogleModelId } from './google-language-model-options';
 import { getGoogleModelCapabilities } from './google-model-capabilities';
+
+type FunctionTool = Extract<
+  NonNullable<LanguageModelV4CallOptions['tools']>[number],
+  { type: 'function' }
+>;
+
+type GoogleFunctionDeclaration = {
+  name: string;
+  description: string;
+  parametersJsonSchema: unknown;
+};
 
 export function prepareTools({
   tools,
@@ -21,11 +31,7 @@ export function prepareTools({
   tools:
     | Array<
         | {
-            functionDeclarations: Array<{
-              name: string;
-              description: string;
-              parameters: unknown;
-            }>;
+            functionDeclarations: GoogleFunctionDeclaration[];
           }
         | Record<string, any>
       >
@@ -42,12 +48,19 @@ export function prepareTools({
       };
   toolWarnings: SharedV4Warning[];
 } {
+  // NONE only disables function calling in the Google API. Provider tools
+  // must be omitted so they cannot execute server-side. Keep function
+  // declarations for conversation history containing function calls.
+  if (toolChoice?.type === 'none') {
+    tools = tools?.filter(tool => tool.type === 'function');
+  }
+
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
   const toolWarnings: SharedV4Warning[] = [];
 
-  const { supportsGemini2Tools, supportsFileSearch, usesGemini3Features } =
+  const { supportsProviderTools, supportsFileSearch, supportsMixedTools } =
     getGoogleModelCapabilities(modelId);
 
   if (tools == null) {
@@ -58,7 +71,7 @@ export function prepareTools({
   const hasFunctionTools = tools.some(tool => tool.type === 'function');
   const hasProviderTools = tools.some(tool => tool.type === 'provider');
 
-  if (hasFunctionTools && hasProviderTools && !usesGemini3Features) {
+  if (hasFunctionTools && hasProviderTools && !supportsMixedTools) {
     toolWarnings.push({
       type: 'unsupported',
       feature: `combination of function and provider-defined tools`,
@@ -72,7 +85,7 @@ export function prepareTools({
     ProviderTools.forEach(tool => {
       switch (tool.id) {
         case 'google.google_search':
-          if (supportsGemini2Tools) {
+          if (supportsProviderTools) {
             googleTools.push({ googleSearch: { ...tool.args } });
           } else {
             toolWarnings.push({
@@ -83,7 +96,7 @@ export function prepareTools({
           }
           break;
         case 'google.enterprise_web_search':
-          if (supportsGemini2Tools) {
+          if (supportsProviderTools) {
             googleTools.push({ enterpriseWebSearch: {} });
           } else {
             toolWarnings.push({
@@ -94,7 +107,7 @@ export function prepareTools({
           }
           break;
         case 'google.url_context':
-          if (supportsGemini2Tools) {
+          if (supportsProviderTools) {
             googleTools.push({ urlContext: {} });
           } else {
             toolWarnings.push({
@@ -106,7 +119,7 @@ export function prepareTools({
           }
           break;
         case 'google.code_execution':
-          if (supportsGemini2Tools) {
+          if (supportsProviderTools) {
             googleTools.push({ codeExecution: {} });
           } else {
             toolWarnings.push({
@@ -130,7 +143,7 @@ export function prepareTools({
           }
           break;
         case 'google.vertex_rag_store':
-          if (supportsGemini2Tools) {
+          if (supportsProviderTools) {
             googleTools.push({
               retrieval: {
                 vertex_rag_store: {
@@ -151,7 +164,7 @@ export function prepareTools({
           }
           break;
         case 'google.google_maps':
-          if (supportsGemini2Tools) {
+          if (supportsProviderTools) {
             googleTools.push({ googleMaps: {} });
           } else {
             toolWarnings.push({
@@ -171,19 +184,11 @@ export function prepareTools({
       }
     });
 
-    if (hasFunctionTools && usesGemini3Features && googleTools.length > 0) {
-      const functionDeclarations: Array<{
-        name: string;
-        description: string;
-        parameters: unknown;
-      }> = [];
+    if (hasFunctionTools && supportsMixedTools && googleTools.length > 0) {
+      const functionDeclarations: GoogleFunctionDeclaration[] = [];
       for (const tool of tools) {
         if (tool.type === 'function') {
-          functionDeclarations.push({
-            name: tool.name,
-            description: tool.description ?? '',
-            parameters: convertJSONSchemaToOpenAPISchema(tool.inputSchema),
-          });
+          functionDeclarations.push(prepareFunctionDeclaration(tool));
         }
       }
 
@@ -238,11 +243,7 @@ export function prepareTools({
   for (const tool of tools) {
     switch (tool.type) {
       case 'function':
-        functionDeclarations.push({
-          name: tool.name,
-          description: tool.description ?? '',
-          parameters: convertJSONSchemaToOpenAPISchema(tool.inputSchema),
-        });
+        functionDeclarations.push(prepareFunctionDeclaration(tool));
         if (tool.strict === true) {
           hasStrictTools = true;
         }
@@ -313,4 +314,14 @@ export function prepareTools({
       });
     }
   }
+}
+
+function prepareFunctionDeclaration(
+  tool: FunctionTool,
+): GoogleFunctionDeclaration {
+  return {
+    name: tool.name,
+    description: tool.description ?? '',
+    parametersJsonSchema: tool.inputSchema,
+  };
 }

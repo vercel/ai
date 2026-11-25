@@ -105,7 +105,7 @@ function orderToolEntries<TOOLS extends ToolSet>({
   return [...orderedTools, ...unorderedTools];
 }
 
-function resolveToolDescription<TOOLS extends ToolSet>({
+export function resolveToolDescription<TOOLS extends ToolSet>({
   tool,
   toolName,
   toolsContext,

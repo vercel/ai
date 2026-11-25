@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/mcp",
-  "version": "2.0.36",
+  "version": "2.0.104",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -18,15 +18,15 @@
     "internal.d.ts"
   ],
   "scripts": {
-    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
-    "build:watch": "pnpm clean && tsup --watch",
-    "clean": "rm -rf dist *.tsbuildinfo",
-    "type-check": "tsc --build",
+    "build": "tsdown",
+    "build:watch": "tsdown --watch",
+    "type-check": "tsc --noEmit",
     "test": "pnpm test:node && pnpm test:edge",
     "test:update": "pnpm test:node -u",
     "test:watch": "vitest --config vitest.node.config.js",
     "test:edge": "vitest --config vitest.edge.config.js --run",
-    "test:node": "vitest --config vitest.node.config.js --run"
+    "test:node": "vitest --config vitest.node.config.js --run",
+    "test:windows": "pnpm test:node"
   },
   "exports": {
     "./package.json": "./package.json",
@@ -52,10 +52,11 @@
     "@types/cross-spawn": "^6.0.6",
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "tsup": "^8.5.1",
-    "typescript": "5.8.3",
-    "vitest": "^4.1.6",
-    "zod": "3.25.76"
+    "@vercel/ai-tsdown-config": "workspace:*",
+    "tsdown": "^0.23.0",
+    "typescript": "6.0.3",
+    "vitest": "^4.1.11",
+    "zod": "4.6.7"
   },
   "peerDependencies": {
     "zod": "^3.25.76 || ^4.1.8"

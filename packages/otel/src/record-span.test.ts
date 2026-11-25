@@ -1,4 +1,6 @@
+import { APICallError } from '@ai-sdk/provider';
 import type { Span } from '@opentelemetry/api';
+import { RetryError } from 'ai';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { recordSpan, recordErrorOnSpan } from './record-span';
 import { MockTracer } from './mock-tracer';
@@ -127,6 +129,48 @@ describe('recordErrorOnSpan', () => {
 
     expect(tracer.spans[0].status).toEqual({
       code: 2,
+    });
+  });
+
+  it('should record the HTTP status code from an API call error', () => {
+    const span = tracer.startSpan('test-span');
+
+    recordErrorOnSpan(
+      span,
+      new APICallError({
+        message: 'Bad request',
+        url: 'https://example.com',
+        requestBodyValues: {},
+        statusCode: 400,
+      }),
+    );
+
+    expect(tracer.spans[0].attributes).toEqual({
+      'http.response.status_code': 400,
+    });
+  });
+
+  it('should record the HTTP status code from the last retry error', () => {
+    const span = tracer.startSpan('test-span');
+
+    recordErrorOnSpan(
+      span,
+      new RetryError({
+        message: 'Retries exhausted',
+        reason: 'maxRetriesExceeded',
+        errors: [
+          new APICallError({
+            message: 'Too many requests',
+            url: 'https://example.com',
+            requestBodyValues: {},
+            statusCode: 429,
+          }),
+        ],
+      }),
+    );
+
+    expect(tracer.spans[0].attributes).toEqual({
+      'http.response.status_code': 429,
     });
   });
 });

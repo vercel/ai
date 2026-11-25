@@ -58,7 +58,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: BedrockInvalidToolCallMessage[] } =
     await req.json();
 
-  const model = amazonBedrock('us.anthropic.claude-sonnet-4-5-20250929-v1:0');
+  const model = amazonBedrock('us.anthropic.claude-sonnet-5');
 
   // First turn (no assistant message yet): make the model emit a malformed
   // tool call. It is persisted into the chat history with a raw-string input.

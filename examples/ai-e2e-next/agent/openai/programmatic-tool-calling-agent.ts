@@ -27,7 +27,7 @@ const demandOutputSchema: NonNullable<OpenAIToolOptions['outputSchema']> = {
 };
 
 export const openaiProgrammaticToolCallingAgent = new ToolLoopAgent({
-  model: openai.responses('gpt-5.6'),
+  model: openai.responses('gpt-6-astra'),
   instructions:
     'You are an inventory planning assistant. Use the hosted JavaScript program to coordinate eligible tools when answering inventory questions. Call independent tools in parallel when possible, and explain the result clearly.',
   tools: {

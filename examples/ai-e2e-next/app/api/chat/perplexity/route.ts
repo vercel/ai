@@ -12,7 +12,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: perplexity('sonar-reasoning'),
+    model: perplexity('medium'),
     messages: await convertToModelMessages(messages),
   });
 

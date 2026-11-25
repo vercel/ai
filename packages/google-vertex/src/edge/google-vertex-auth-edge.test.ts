@@ -9,7 +9,7 @@ vi.mock('@ai-sdk/provider-utils', async () => {
   const actual = await vi.importActual('@ai-sdk/provider-utils');
   return {
     ...actual,
-    getRuntimeEnvironmentUserAgent: vi.fn(() => 'runtime/testenv'),
+    getRuntimeEnvironmentUserAgent: vi.fn(() => 'testenv'),
     withUserAgentSuffix: actual.withUserAgentSuffix,
   };
 });
@@ -300,7 +300,7 @@ describe('Google Vertex Edge Auth', () => {
       'https://oauth2.googleapis.com/token',
       expect.objectContaining({
         headers: expect.objectContaining({
-          'user-agent': 'ai-sdk/google-vertex/0.0.0-test runtime/testenv',
+          'user-agent': 'ai-sdk-google-vertex/0.0.0-test testenv',
         }),
       }),
     );

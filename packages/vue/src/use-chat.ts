@@ -8,14 +8,278 @@ import {
 } from 'ai';
 import {
   computed,
+  getCurrentScope,
+  onScopeDispose,
   shallowRef,
   toValue,
-  triggerRef,
   watch,
   type ComputedRef,
   type MaybeRefOrGetter,
   type ShallowRef,
 } from 'vue';
+
+function cloneMetadata<METADATA>(metadata: METADATA): METADATA {
+  if (Array.isArray(metadata)) {
+    return [...metadata] as METADATA;
+  }
+
+  if (
+    metadata != null &&
+    typeof metadata === 'object' &&
+    (Object.getPrototypeOf(metadata) === Object.prototype ||
+      Object.getPrototypeOf(metadata) === null)
+  ) {
+    return { ...metadata } as METADATA;
+  }
+
+  return metadata;
+}
+
+function snapshotValue<T>(value: T): T {
+  if (
+    value == null ||
+    typeof value !== 'object' ||
+    !('parts' in value) ||
+    !Array.isArray(value.parts)
+  ) {
+    return value;
+  }
+
+  const message = value as unknown as UIMessage;
+  const snapshot = {
+    ...message,
+    parts: message.parts.map(part => ({ ...part })),
+  };
+
+  if ('metadata' in message) {
+    snapshot.metadata = cloneMetadata(message.metadata);
+  }
+
+  return snapshot as T;
+}
+
+class VueChatState<
+  UI_MESSAGE extends UIMessage,
+> implements ChatState<UI_MESSAGE> {
+  private messagesValue: UI_MESSAGE[];
+  private publishedMessages: UI_MESSAGE[] = [];
+  private publishedMessageSources: UI_MESSAGE[] = [];
+  private readonly dirtyMessageIndices = new Set<number>();
+  private statusValue: ChatStatus = 'ready';
+  private errorValue: Error | undefined;
+  private queuedMessagesValue: UI_MESSAGE[] = [];
+  private readonly throttleWaitMs: number | undefined;
+  private timeout: ReturnType<typeof setTimeout> | undefined;
+  private hasPendingPublication = false;
+  private isActive = true;
+
+  isPublishing = false;
+
+  constructor({
+    initialMessages,
+    messagesRef,
+    statusRef,
+    errorRef,
+    queuedMessagesRef,
+    throttleWaitMs,
+  }: {
+    initialMessages: UI_MESSAGE[];
+    messagesRef: ShallowRef<UI_MESSAGE[]>;
+    statusRef: ShallowRef<ChatStatus>;
+    errorRef: ShallowRef<Error | undefined>;
+    queuedMessagesRef: ShallowRef<UI_MESSAGE[]>;
+    throttleWaitMs?: number;
+  }) {
+    this.messagesValue = initialMessages;
+    this.messagesRef = messagesRef;
+    this.statusRef = statusRef;
+    this.errorRef = errorRef;
+    this.queuedMessagesRef = queuedMessagesRef;
+    this.throttleWaitMs =
+      throttleWaitMs != null &&
+      Number.isFinite(throttleWaitMs) &&
+      throttleWaitMs > 0
+        ? throttleWaitMs
+        : undefined;
+  }
+
+  private readonly messagesRef: ShallowRef<UI_MESSAGE[]>;
+  private readonly statusRef: ShallowRef<ChatStatus>;
+  private readonly errorRef: ShallowRef<Error | undefined>;
+  private readonly queuedMessagesRef: ShallowRef<UI_MESSAGE[]>;
+
+  get messages(): UI_MESSAGE[] {
+    return this.messagesValue;
+  }
+
+  set messages(messages: UI_MESSAGE[]) {
+    const previousMessages = this.messagesValue;
+    this.messagesValue = messages;
+
+    for (let index = 0; index < messages.length; index++) {
+      if (messages[index] !== previousMessages[index]) {
+        this.dirtyMessageIndices.add(index);
+      }
+    }
+
+    this.schedulePublication();
+  }
+
+  get status(): ChatStatus {
+    return this.statusValue;
+  }
+
+  set status(status: ChatStatus) {
+    this.statusValue = status;
+
+    if (!this.isActive) {
+      return;
+    }
+
+    if (status === 'ready' || status === 'error') {
+      // Terminal states must never become observable before the final message.
+      this.flushPublication();
+    }
+
+    this.statusRef.value = status;
+  }
+
+  get error(): Error | undefined {
+    return this.errorValue;
+  }
+
+  set error(error: Error | undefined) {
+    this.errorValue = error;
+
+    if (this.isActive) {
+      this.errorRef.value = error;
+    }
+  }
+
+  get experimental_queuedMessages(): UI_MESSAGE[] {
+    return this.queuedMessagesValue;
+  }
+
+  set experimental_queuedMessages(experimental_queuedMessages: UI_MESSAGE[]) {
+    this.queuedMessagesValue = experimental_queuedMessages;
+
+    if (this.isActive) {
+      this.queuedMessagesRef.value = experimental_queuedMessages;
+    }
+  }
+
+  pushMessage = (message: UI_MESSAGE) => {
+    this.messagesValue.push(message);
+    this.dirtyMessageIndices.add(this.messagesValue.length - 1);
+    this.schedulePublication();
+  };
+
+  popMessage = () => {
+    this.messagesValue.pop();
+    this.schedulePublication();
+  };
+
+  replaceMessage = (index: number, message: UI_MESSAGE) => {
+    this.messagesValue[index] = message;
+    this.dirtyMessageIndices.add(index);
+    this.schedulePublication();
+  };
+
+  snapshot = snapshotValue;
+
+  publishInitialState() {
+    this.publishMessages();
+    this.statusRef.value = this.statusValue;
+    this.errorRef.value = this.errorValue;
+    this.queuedMessagesRef.value = this.queuedMessagesValue;
+  }
+
+  setMessagesFromConsumer(messages: UI_MESSAGE[]) {
+    this.messagesValue = messages;
+    this.publishedMessages = messages;
+    this.publishedMessageSources = messages;
+    this.dirtyMessageIndices.clear();
+  }
+
+  dispose() {
+    this.isActive = false;
+    this.hasPendingPublication = false;
+    this.dirtyMessageIndices.clear();
+    this.publishedMessages = [];
+    this.publishedMessageSources = [];
+
+    if (this.timeout != null) {
+      clearTimeout(this.timeout);
+      this.timeout = undefined;
+    }
+  }
+
+  private schedulePublication() {
+    if (!this.isActive) {
+      return;
+    }
+
+    if (this.throttleWaitMs == null) {
+      this.publishMessages();
+      return;
+    }
+
+    if (this.timeout == null) {
+      // Publish the leading update immediately, then coalesce updates until
+      // the next interval boundary.
+      this.publishMessages();
+      this.timeout = setTimeout(this.handleIntervalEnd, this.throttleWaitMs);
+    } else {
+      this.hasPendingPublication = true;
+    }
+  }
+
+  private readonly handleIntervalEnd = () => {
+    this.timeout = undefined;
+
+    if (!this.isActive || !this.hasPendingPublication) {
+      return;
+    }
+
+    this.hasPendingPublication = false;
+    this.publishMessages();
+    this.timeout = setTimeout(this.handleIntervalEnd, this.throttleWaitMs);
+  };
+
+  private flushPublication() {
+    if (this.timeout != null) {
+      clearTimeout(this.timeout);
+      this.timeout = undefined;
+    }
+
+    this.hasPendingPublication = false;
+    this.publishMessages();
+  }
+
+  private publishMessages() {
+    if (!this.isActive) {
+      return;
+    }
+
+    const publishedMessages = this.messagesValue.map((message, index) =>
+      this.dirtyMessageIndices.has(index) ||
+      this.publishedMessageSources[index] !== message
+        ? snapshotValue(message)
+        : this.publishedMessages[index],
+    );
+
+    this.publishedMessages = publishedMessages;
+    this.publishedMessageSources = [...this.messagesValue];
+    this.dirtyMessageIndices.clear();
+
+    this.isPublishing = true;
+    try {
+      this.messagesRef.value = publishedMessages;
+    } finally {
+      this.isPublishing = false;
+    }
+  }
+}
 
 /**
  * @internal
@@ -49,6 +313,8 @@ export interface UseChatHelpers<UI_MESSAGE extends UIMessage> extends Pick<
   | 'addToolOutput'
   | 'addToolApprovalResponse'
   | 'clearError'
+  | 'experimental_removeQueuedMessage'
+  | 'experimental_sendQueuedMessageNow'
 > {
   /**
    * The id of the chat.
@@ -69,7 +335,23 @@ export interface UseChatHelpers<UI_MESSAGE extends UIMessage> extends Pick<
    * The list of messages in the chat, which can be updated by the chat instance methods or directly by setting this property.
    */
   messages: ShallowRef<UI_MESSAGE[]>;
+
+  /**
+   * Experimental. Messages that wait to be sent when `experimental_queue` is
+   * enabled, in the order they will be sent.
+   */
+  experimental_queuedMessages: ShallowRef<UI_MESSAGE[]>;
 }
+
+export type UseChatOptions<UI_MESSAGE extends UIMessage> =
+  BaseChatInit<UI_MESSAGE> & {
+    /**
+     * Custom throttle wait time in milliseconds for reactive message updates.
+     * Positive values enable throttling. Defaults to undefined, which disables
+     * throttling.
+     */
+    throttle?: number;
+  };
 
 /**
  * Composable to access messages, status, and other chat properties and
@@ -88,59 +370,12 @@ export interface UseChatHelpers<UI_MESSAGE extends UIMessage> extends Pick<
  * @see BaseChatInit
  */
 export function useChat<UI_MESSAGE extends UIMessage = UIMessage>(
-  init?: MaybeRefOrGetter<BaseChatInit<UI_MESSAGE>>,
+  init?: MaybeRefOrGetter<UseChatOptions<UI_MESSAGE>>,
 ): UseChatHelpers<UI_MESSAGE> {
   const messages = shallowRef<UI_MESSAGE[]>([]);
   const status = shallowRef<ChatStatus>('ready');
   const error = shallowRef<Error | undefined>();
-
-  // this wrapper doesn't need to be reactive and can be reused across chat
-  // instance changes, because the inner refs are reactive and the wrapper
-  // methods trigger updates when needed
-  const chatStateWrapper = {
-    get messages(): UI_MESSAGE[] {
-      return messages.value;
-    },
-
-    set messages(messageList: UI_MESSAGE[]) {
-      messages.value = messageList;
-    },
-
-    get status(): ChatStatus {
-      return status.value;
-    },
-
-    set status(statusValue: ChatStatus) {
-      status.value = statusValue;
-    },
-
-    get error(): Error | undefined {
-      return error.value;
-    },
-
-    set error(errorValue: Error | undefined) {
-      error.value = errorValue;
-    },
-
-    pushMessage(message: UI_MESSAGE) {
-      messages.value.push(message);
-      // needed because messagesRef is a shallowRef
-      triggerRef(messages);
-    },
-
-    popMessage() {
-      messages.value.pop();
-      triggerRef(messages);
-    },
-
-    replaceMessage(index: number, message: UI_MESSAGE) {
-      // message is cloned here because vue's deep reactivity shows unexpected behavior, particularly when updating tool invocation parts
-      messages.value[index] = { ...message };
-      triggerRef(messages);
-    },
-
-    snapshot: <T>(value: T): T => value,
-  } satisfies ChatState<UI_MESSAGE>;
+  const experimental_queuedMessages = shallowRef<UI_MESSAGE[]>([]);
 
   // the instance is created right away thanks to immediate: true. We do it this
   // way instead of a computed to ensure all changes to reactive state happen
@@ -148,22 +383,49 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>(
   const chatInstance = shallowRef<VueChat<UI_MESSAGE>>() as ShallowRef<
     VueChat<UI_MESSAGE>
   >;
+  let chatState: VueChatState<UI_MESSAGE> | undefined;
+
+  watch(
+    messages,
+    messageList => {
+      if (chatState != null && !chatState.isPublishing) {
+        chatState.setMessagesFromConsumer(messageList);
+      }
+    },
+    { flush: 'sync' },
+  );
 
   watch(
     () => toValue(init),
     opts => {
-      // reset the initial state
-      messages.value = opts?.messages ?? [];
-      status.value = 'ready';
-      error.value = undefined;
+      chatState?.dispose();
+
+      const { throttle, ...chatInit } = opts ?? {};
+      const nextChatState = new VueChatState<UI_MESSAGE>({
+        initialMessages: chatInit.messages ?? [],
+        messagesRef: messages,
+        statusRef: status,
+        errorRef: error,
+        queuedMessagesRef: experimental_queuedMessages,
+        throttleWaitMs: throttle,
+      });
+
+      chatState = nextChatState;
+      nextChatState.publishInitialState();
 
       chatInstance.value = new VueChat<UI_MESSAGE>({
-        ...opts,
-        state: chatStateWrapper,
+        ...chatInit,
+        state: nextChatState,
       });
     },
     { immediate: true },
   );
+
+  if (getCurrentScope() != null) {
+    onScopeDispose(() => {
+      chatState?.dispose();
+    });
+  }
 
   return {
     id: computed(() => chatInstance.value.id),
@@ -178,5 +440,10 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>(
     sendMessage: (...args) => chatInstance.value.sendMessage(...args),
     stop: () => chatInstance.value.stop(),
     resumeStream: opts => chatInstance.value.resumeStream(opts),
+    experimental_queuedMessages,
+    experimental_removeQueuedMessage: id =>
+      chatInstance.value.experimental_removeQueuedMessage(id),
+    experimental_sendQueuedMessageNow: id =>
+      chatInstance.value.experimental_sendQueuedMessageNow(id),
   };
 }

@@ -23,6 +23,7 @@ import {
   CodeModeAbortedError,
   CodeModeBridgeLimitError,
   CodeModeConcurrencyError,
+  CodeModeCpuTimeoutError,
   CodeModeDetachedBridgeRequestError,
   CodeModeError,
   CodeModeProtocolError,
@@ -31,6 +32,7 @@ import {
   CodeModeToolApprovalDeniedError,
 } from './errors.js';
 import { invokeHostTool } from './tool-invocation.js';
+import { formatPropertyAccess } from './tool-prompt.js';
 import type {
   CodeModeContinuation,
   CodeModeExecutionPolicy,
@@ -47,6 +49,7 @@ import { fromJsonPayload, toJsonPayload } from './utils/serialization.js';
 const SOURCE_LINE_OFFSET = 1;
 const MAX_RUN_LIMIT = 2_147_483_647;
 const DEFAULT_TIMEOUT_MS = 30_000;
+const DEFAULT_CPU_TIMEOUT_MS = 10_000;
 const DEFAULT_MEMORY_LIMIT_BYTES = 64 * 1024 * 1024;
 const DEFAULT_STACK_LIMIT_BYTES = 2 * 1024 * 1024;
 const DEFAULT_MAX_RESULT_BYTES = 1024 * 1024;
@@ -154,12 +157,13 @@ export async function runCodeMode(input: RunCodeModeInput): Promise<unknown> {
     if (preserved !== undefined) {
       throw translateSourceStack(preserved);
     }
-    throw translateSourceStack(toCodeModeRuntimeError(error));
+    throw translateSourceStack(toCodeModeRuntimeError(error, toolNames));
   }
 }
 
 interface ResolvedExecutionPolicy {
   timeoutMs: number;
+  cpuTimeoutMs: number;
   memoryLimitBytes: number;
   maxStackSizeBytes: number;
   maxResultBytes: number;
@@ -176,6 +180,7 @@ function resolveExecutionPolicy(
 ): ResolvedExecutionPolicy {
   return {
     timeoutMs: policy.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+    cpuTimeoutMs: policy.cpuTimeoutMs ?? DEFAULT_CPU_TIMEOUT_MS,
     memoryLimitBytes: policy.memoryLimitBytes ?? DEFAULT_MEMORY_LIMIT_BYTES,
     maxStackSizeBytes: policy.maxStackSizeBytes ?? DEFAULT_STACK_LIMIT_BYTES,
     maxResultBytes: policy.maxResultBytes ?? DEFAULT_MAX_RESULT_BYTES,
@@ -363,6 +368,7 @@ function toRunLimits(
 ): RunLimits {
   return {
     timeoutMs: policy.timeoutMs,
+    cpuTimeoutMs: policy.cpuTimeoutMs,
     memoryLimitBytes: policy.memoryLimitBytes,
     maxStackSizeBytes: policy.maxStackSizeBytes,
     maxResultBytes: expandedSerializationLimit(policy.maxResultBytes),
@@ -571,14 +577,24 @@ function toolNameForInterruption(
   if (interruption.hostFunctionName === '__codeMode.missing') {
     return String(interruption.arguments[0]);
   }
-  const match = /^__codeMode\.tool(\d+)$/u.exec(interruption.hostFunctionName);
-  const toolName = match === null ? undefined : toolNames[Number(match[1])];
+  const toolName = toolNameForHostFunction(
+    interruption.hostFunctionName,
+    toolNames,
+  );
   if (toolName === undefined) {
     throw new CodeModeProtocolError(
       `Run returned an unknown code-mode host function "${interruption.hostFunctionName}".`,
     );
   }
   return toolName;
+}
+
+function toolNameForHostFunction(
+  hostFunctionName: string,
+  toolNames: string[],
+): string | undefined {
+  const match = /^__codeMode\.tool(\d+)$/u.exec(hostFunctionName);
+  return match === null ? undefined : toolNames[Number(match[1])];
 }
 
 function toCodeModeInterrupt(
@@ -620,7 +636,7 @@ function findPreservedCodeModeError(
   return errors.find(candidate => candidate.code === error.code);
 }
 
-function toCodeModeRuntimeError(error: unknown): unknown {
+function toCodeModeRuntimeError(error: unknown, toolNames: string[]): unknown {
   if (error instanceof TypeError) {
     error.message = translateLimitPath(error.message);
   }
@@ -643,6 +659,11 @@ function toCodeModeRuntimeError(error: unknown): unknown {
         new CodeModeTimeoutError(Number(details?.timeoutMs ?? 0)),
         error,
       );
+    case 'RUN_CPU_TIMEOUT':
+      return copyStack(
+        new CodeModeCpuTimeoutError(Number(details?.cpuTimeoutMs ?? 0)),
+        error,
+      );
     case 'RUN_CONCURRENCY_LIMIT':
       return copyStack(
         new CodeModeConcurrencyError(Number(details?.maxWorkers ?? 0)),
@@ -661,11 +682,23 @@ function toCodeModeRuntimeError(error: unknown): unknown {
         new CodeModeBridgeLimitError(error.message, error.details),
         error,
       );
-    case 'RUN_DETACHED_BRIDGE_REQUEST':
+    case 'RUN_DETACHED_BRIDGE_REQUEST': {
+      let message = error.message;
+      const hostFunctionName = details?.name;
+      if (typeof hostFunctionName === 'string') {
+        const toolName = toolNameForHostFunction(hostFunctionName, toolNames);
+        if (toolName !== undefined) {
+          message = message.replace(
+            hostFunctionName,
+            () => `tools${formatPropertyAccess(toolName)}`,
+          );
+        }
+      }
       return copyStack(
-        new CodeModeDetachedBridgeRequestError(error.message, error.details),
+        new CodeModeDetachedBridgeRequestError(message, error.details),
         error,
       );
+    }
     case 'RUN_PROTOCOL_ERROR':
       return copyStack(
         new CodeModeProtocolError(error.message, error.details),
@@ -679,6 +712,7 @@ function toCodeModeRuntimeError(error: unknown): unknown {
 function translateLimitPath(message: string): string {
   const paths: Record<string, string> = {
     'limits.timeoutMs': 'executionPolicy.timeoutMs',
+    'limits.cpuTimeoutMs': 'executionPolicy.cpuTimeoutMs',
     'limits.memoryLimitBytes': 'executionPolicy.memoryLimitBytes',
     'limits.maxStackSizeBytes': 'executionPolicy.maxStackSizeBytes',
     'limits.maxResultBytes': 'executionPolicy.maxResultBytes',

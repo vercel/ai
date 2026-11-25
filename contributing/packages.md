@@ -1,7 +1,5 @@
 # Packages
 
-When adding new packages under `packages`, please ensure they are added to `/tsconfig.json`.
-
 ## Core Packages
 
 | Package          | NPM Name                 | Description                             |
@@ -42,7 +40,6 @@ When adding new packages under `packages`, please ensure they are added to `/tsc
 | `luma`              | `@ai-sdk/luma`              | Luma (Video)                |
 | `fal`               | `@ai-sdk/fal`               | Fal.ai                      |
 | `hume`              | `@ai-sdk/hume`              | Hume AI                     |
-| `lmnt`              | `@ai-sdk/lmnt`              | LMNT (Speech)               |
 | `langchain`         | `@ai-sdk/langchain`         | LangChain integration       |
 | `llamaindex`        | `@ai-sdk/llamaindex`        | LlamaIndex integration      |
 | `valibot`           | `@ai-sdk/valibot`           | Valibot schema validation   |

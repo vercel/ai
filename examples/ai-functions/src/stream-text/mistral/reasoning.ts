@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: mistral('magistral-small-2507'),
+    model: mistral('magistral-small-latest'),
     prompt: 'What is 2 + 2?',
   });
 

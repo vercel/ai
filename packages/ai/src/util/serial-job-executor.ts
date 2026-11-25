@@ -3,6 +3,7 @@ import type { Job } from './job';
 export class SerialJobExecutor {
   private queue: Array<Job> = [];
   private isProcessing = false;
+  private idleWaiters: Array<() => void> = [];
 
   private async processQueue() {
     if (this.isProcessing) {
@@ -11,12 +12,18 @@ export class SerialJobExecutor {
 
     this.isProcessing = true;
 
-    while (this.queue.length > 0) {
-      await this.queue[0]();
-      this.queue.shift();
-    }
+    try {
+      while (this.queue.length > 0) {
+        await this.queue[0]();
+        this.queue.shift();
+      }
+    } finally {
+      this.isProcessing = false;
 
-    this.isProcessing = false;
+      for (const resolve of this.idleWaiters.splice(0)) {
+        resolve();
+      }
+    }
   }
 
   async run(job: Job): Promise<void> {
@@ -31,6 +38,16 @@ export class SerialJobExecutor {
       });
 
       void this.processQueue();
+    });
+  }
+
+  async waitForIdle(): Promise<void> {
+    if (!this.isProcessing && this.queue.length === 0) {
+      return;
+    }
+
+    await new Promise<void>(resolve => {
+      this.idleWaiters.push(resolve);
     });
   }
 }

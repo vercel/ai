@@ -1,3 +1,5 @@
+import { getGoogleVertexRequestConfig } from './google-vertex-model-matrix';
+import { getGoogleVertexImageModelEntry } from './google-vertex-model-catalog';
 import type { GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { GoogleLanguageModel } from '@ai-sdk/google/internal';
 import type {
@@ -43,7 +45,18 @@ export class GoogleVertexImageModel implements ImageModelV4 {
     return new GoogleVertexImageModel(options.modelId, options.config);
   }
 
-  readonly maxImagesPerCall = 10;
+  readonly maxImagesPerCall = 1;
+
+  get supportsFileInputs(): boolean | undefined {
+    return getGoogleVertexImageModelEntry(this.modelId).capabilities.image
+      ?.fileInput === true
+      ? true
+      : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs === true ? false : undefined;
+  }
 
   get provider(): string {
     return this.config.provider;
@@ -57,7 +70,7 @@ export class GoogleVertexImageModel implements ImageModelV4 {
   async doGenerate(
     options: Parameters<ImageModelV4['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<ImageModelV4['doGenerate']>>> {
-    if (!this.modelId.startsWith('gemini-')) {
+    if (!getGoogleVertexRequestConfig(this.modelId).image?.gemini) {
       throw new Error(
         'Google image models other than Gemini are no longer supported. Use a model ID that starts with `gemini-`.',
       );
@@ -65,7 +78,6 @@ export class GoogleVertexImageModel implements ImageModelV4 {
 
     const {
       prompt,
-      n,
       size,
       aspectRatio,
       seed,
@@ -80,12 +92,6 @@ export class GoogleVertexImageModel implements ImageModelV4 {
     if (mask != null) {
       throw new Error(
         'Gemini image models do not support mask-based image editing.',
-      );
-    }
-
-    if (n != null && n > 1) {
-      throw new Error(
-        'Gemini image models do not support generating a set number of images per call. Use n=1 or omit the n parameter.',
       );
     }
 
@@ -205,6 +211,9 @@ export class GoogleVertexImageModel implements ImageModelV4 {
     };
     return {
       images,
+      ...(result.finishReason.unified === 'content-filter'
+        ? { isRetryable: false }
+        : {}),
       warnings,
       providerMetadata: {
         googleVertex: geminiPayload,

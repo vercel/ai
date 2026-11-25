@@ -1,25 +1,43 @@
-import { describe, expect, it, vi } from 'vitest';
+import * as childProcess from 'node:child_process';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createClaudeCodeRequestTransformations,
   resolveClaudeCodeAuthenticationMode,
   resolveClaudeCodeEnv,
 } from './claude-code-auth';
+import {
+  createClaudeCodeSubscriptionRequestTransformations,
+  readClaudeCodeSubscription,
+  resolveClaudeCodeAuthentication,
+} from './claude-code-subscription';
 
 const noHelper = () => undefined;
 
+vi.mock('node:child_process', async importOriginal => {
+  const actual = await importOriginal<typeof childProcess>();
+  return {
+    ...actual,
+    execFileSync: vi.fn(actual.execFileSync),
+    execSync: vi.fn(actual.execSync),
+  };
+});
+
 describe('resolveClaudeCodeEnv', () => {
-  it('uses explicit anthropic auth when given', () => {
+  it('pins direct anthropic auth when selected', () => {
     const env = resolveClaudeCodeEnv(
-      { anthropic: { apiKey: 'sk-explicit' } },
-      { ANTHROPIC_API_KEY: 'sk-process', AI_GATEWAY_API_KEY: 'gw-key' },
+      'direct',
+      { ANTHROPIC_API_KEY: 'sk-direct', AI_GATEWAY_API_KEY: 'gw-key' },
       { readApiKeyHelper: noHelper },
     );
-    expect(env).toEqual({ ANTHROPIC_API_KEY: 'sk-explicit' });
+    expect(env).toEqual({ ANTHROPIC_API_KEY: 'sk-direct' });
   });
 
-  it('falls back to ANTHROPIC_* env when anthropic option is empty', () => {
+  it('uses ANTHROPIC_* env in direct mode', () => {
     const env = resolveClaudeCodeEnv(
-      { anthropic: {} },
+      'direct',
       {
         ANTHROPIC_API_KEY: 'sk-process',
         ANTHROPIC_BASE_URL: 'https://api.example.com',
@@ -32,10 +50,10 @@ describe('resolveClaudeCodeEnv', () => {
     });
   });
 
-  it('routes through the gateway when gateway option is given', () => {
+  it('routes through the gateway when gateway mode is selected', () => {
     const env = resolveClaudeCodeEnv(
-      { gateway: { apiKey: 'gw-explicit' } },
-      {},
+      'ai-gateway',
+      { AI_GATEWAY_API_KEY: 'gw-explicit' },
       { readApiKeyHelper: noHelper },
     );
     expect(env.AI_GATEWAY_API_KEY).toBe('gw-explicit');
@@ -43,10 +61,13 @@ describe('resolveClaudeCodeEnv', () => {
     expect(env.ANTHROPIC_BASE_URL).toBe('https://ai-gateway.vercel.sh');
   });
 
-  it('uses env gateway auth when gateway option only sets base URL', () => {
+  it('uses gateway auth from the environment', () => {
     const env = resolveClaudeCodeEnv(
-      { gateway: { baseUrl: 'https://gw.example' } },
-      { VERCEL_OIDC_TOKEN: 'oidc-env' },
+      'ai-gateway',
+      {
+        AI_GATEWAY_BASE_URL: 'https://gw.example',
+        VERCEL_OIDC_TOKEN: 'oidc-env',
+      },
       { readApiKeyHelper: noHelper },
     );
     expect(env).toEqual({
@@ -86,6 +107,46 @@ describe('resolveClaudeCodeEnv', () => {
       { readApiKeyHelper: noHelper },
     );
     expect(env).toEqual({ ANTHROPIC_API_KEY: 'sk-auto' });
+  });
+
+  it('uses a supplied authentication environment without ambient or helper fallback', () => {
+    const helper = vi.fn(() => 'helper-key');
+    const auth = { ANTHROPIC_API_KEY: 'programmatic-anthropic-key' };
+
+    expect(
+      resolveClaudeCodeEnv(
+        auth,
+        { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+        { readApiKeyHelper: helper },
+      ),
+    ).toEqual({ ANTHROPIC_API_KEY: 'programmatic-anthropic-key' });
+    expect(helper).not.toHaveBeenCalled();
+    expect(
+      resolveClaudeCodeAuthenticationMode(auth, {
+        AI_GATEWAY_API_KEY: 'ambient-gateway-key',
+      }),
+    ).toBe('direct');
+  });
+
+  it('rejects nested authentication objects before reading ambient credentials', () => {
+    const auth = { anthropic: { apiKey: 'legacy-key' } } as never;
+
+    expect(() =>
+      resolveClaudeCodeEnv(
+        auth,
+        { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+        { readApiKeyHelper: noHelper },
+      ),
+    ).toThrow(
+      'Invalid auth: expected an authentication mode or a flat record with string values.',
+    );
+    expect(() =>
+      resolveClaudeCodeAuthenticationMode(auth, {
+        AI_GATEWAY_API_KEY: 'ambient-gateway-key',
+      }),
+    ).toThrow(
+      'Invalid auth: expected an authentication mode or a flat record with string values.',
+    );
   });
 
   it('forwards host ANTHROPIC_BASE_URL alongside the api key', () => {
@@ -171,26 +232,201 @@ describe('resolveClaudeCodeEnv', () => {
       ANTHROPIC_BASE_URL: 'https://ai-gateway.vercel.sh',
     });
   });
+});
 
-  it('warns when passing a legacy object shape', () => {
-    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    resolveClaudeCodeEnv({ anthropic: {} }, {}, { readApiKeyHelper: noHelper });
-    expect(spy).toHaveBeenCalledWith(
-      expect.stringContaining(
-        'Passing an object to auth options is deprecated',
-      ),
+describe('default apiKeyHelper reader', () => {
+  let homeDirectory: string;
+  let emptyPathDirectory: string;
+
+  beforeEach(async () => {
+    homeDirectory = await mkdtemp(join(tmpdir(), 'claude-code-auth-'));
+    emptyPathDirectory = await mkdtemp(join(tmpdir(), 'claude-code-path-'));
+    await mkdir(join(homeDirectory, '.claude'));
+    vi.stubEnv('HOME', homeDirectory);
+    vi.stubEnv('USERPROFILE', homeDirectory);
+    // No `sh` on PATH, as in a PowerShell or cmd session on Windows.
+    vi.stubEnv('PATH', emptyPathDirectory);
+  });
+
+  afterEach(async () => {
+    vi.clearAllMocks();
+    vi.unstubAllEnvs();
+    await rm(homeDirectory, { recursive: true, force: true });
+    await rm(emptyPathDirectory, { recursive: true, force: true });
+  });
+
+  async function writeApiKeyHelper(command: string) {
+    await writeFile(
+      join(homeDirectory, '.claude', 'settings.json'),
+      JSON.stringify({ apiKeyHelper: command }),
     );
-    spy.mockRestore();
+  }
+
+  it('falls back to the system shell when sh is not on PATH', async () => {
+    await writeApiKeyHelper('echo sk-from-helper');
+
+    expect(resolveClaudeCodeEnv(undefined, {})).toEqual({
+      ANTHROPIC_API_KEY: 'sk-from-helper',
+      ANTHROPIC_AUTH_TOKEN: 'sk-from-helper',
+    });
+  });
+
+  it('ignores an apiKeyHelper command that fails', async () => {
+    await writeApiKeyHelper('exit 1');
+
+    expect(resolveClaudeCodeEnv(undefined, {})).toEqual({});
+  });
+
+  it('preserves sh-based helpers when sh is available', async () => {
+    const command = 'printf "%s" "${HELPER_KEY:-sk-from-sh}"';
+    await writeApiKeyHelper(command);
+    const sh = vi
+      .mocked(childProcess.execFileSync)
+      .mockReturnValueOnce('sk-from-sh\n');
+    const systemShell = vi.mocked(childProcess.execSync);
+
+    expect(resolveClaudeCodeEnv(undefined, {})).toEqual({
+      ANTHROPIC_API_KEY: 'sk-from-sh',
+      ANTHROPIC_AUTH_TOKEN: 'sk-from-sh',
+    });
+    expect(sh).toHaveBeenCalledExactlyOnceWith('sh', ['-c', command], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      windowsHide: true,
+    });
+    expect(systemShell).not.toHaveBeenCalled();
+  });
+
+  it.each([1, 127])(
+    'does not retry a helper that exits with status %s',
+    async status => {
+      await writeApiKeyHelper('exit ' + status);
+      const sh = vi
+        .mocked(childProcess.execFileSync)
+        .mockImplementationOnce(() => {
+          throw Object.assign(new Error('Command failed'), { status });
+        });
+      const systemShell = vi.mocked(childProcess.execSync);
+
+      expect(resolveClaudeCodeEnv(undefined, {})).toEqual({});
+      expect(sh).toHaveBeenCalledOnce();
+      expect(systemShell).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does not fall back when sh cannot be launched due to permissions', async () => {
+    await writeApiKeyHelper('echo sk-from-helper');
+    vi.mocked(childProcess.execFileSync).mockImplementationOnce(() => {
+      throw Object.assign(new Error('spawnSync sh EACCES'), { code: 'EACCES' });
+    });
+    const systemShell = vi.mocked(childProcess.execSync);
+
+    expect(resolveClaudeCodeEnv(undefined, {})).toEqual({});
+    expect(systemShell).not.toHaveBeenCalled();
+  });
+});
+
+describe('resolveClaudeCodeAuthentication', () => {
+  it('does not inspect native storage in Gateway mode', async () => {
+    const readSubscription = vi.fn();
+    await resolveClaudeCodeAuthentication({
+      auth: 'ai-gateway',
+      processEnv: { AI_GATEWAY_API_KEY: 'gateway' },
+      readSubscription,
+    });
+    expect(readSubscription).not.toHaveBeenCalled();
+  });
+
+  it('prefers an explicit process OAuth token over native storage', async () => {
+    const readSubscription = vi.fn();
+    await expect(
+      resolveClaudeCodeAuthentication({
+        auth: 'direct',
+        processEnv: { CLAUDE_CODE_OAUTH_TOKEN: 'process-oauth-token' },
+        readSubscription,
+      }),
+    ).resolves.toEqual({
+      CLAUDE_CODE_OAUTH_TOKEN: 'process-oauth-token',
+    });
+    expect(readSubscription).not.toHaveBeenCalled();
+  });
+
+  it('uses a supplied OAuth authentication environment without ambient or native discovery', async () => {
+    const readSubscription = vi.fn();
+    await expect(
+      resolveClaudeCodeAuthentication({
+        auth: { CLAUDE_CODE_OAUTH_TOKEN: 'supplied-oauth-token' },
+        processEnv: { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+        readSubscription,
+      }),
+    ).resolves.toEqual({
+      CLAUDE_CODE_OAUTH_TOKEN: 'supplied-oauth-token',
+    });
+    expect(readSubscription).not.toHaveBeenCalled();
+  });
+
+  it('uses native storage after direct environment credentials', async () => {
+    const readSubscription = vi.fn(async () => ({
+      CLAUDE_CODE_OAUTH_TOKEN: 'subscription-access-token',
+    }));
+    await expect(
+      resolveClaudeCodeAuthentication({
+        auth: 'direct',
+        processEnv: {},
+        readSubscription,
+      }),
+    ).resolves.toEqual({
+      CLAUDE_CODE_OAUTH_TOKEN: 'subscription-access-token',
+    });
+  });
+
+  it('refreshes and persists file-backed Claude credentials', async () => {
+    const configDirectory = await mkdtemp(join(tmpdir(), 'claude-auth-'));
+    const credentialPath = join(configDirectory, '.credentials.json');
+    await writeFile(
+      credentialPath,
+      JSON.stringify({
+        preserved: true,
+        claudeAiOauth: {
+          accessToken: 'old-access-token',
+          refreshToken: 'old-refresh-token',
+          expiresAt: Date.now() + 60_000,
+        },
+      }),
+    );
+    const fetch = vi.fn(async () =>
+      Response.json({
+        access_token: 'new-access-token',
+        refresh_token: 'new-refresh-token',
+        expires_in: 3600,
+      }),
+    );
+
+    await expect(
+      readClaudeCodeSubscription({
+        env: { CLAUDE_CONFIG_DIR: configDirectory },
+        fetch,
+      }),
+    ).resolves.toEqual({
+      CLAUDE_CODE_OAUTH_TOKEN: 'new-access-token',
+      ANTHROPIC_BASE_URL: 'https://api.anthropic.com',
+    });
+    expect(JSON.parse(await readFile(credentialPath, 'utf8'))).toMatchObject({
+      preserved: true,
+      claudeAiOauth: {
+        accessToken: 'new-access-token',
+        refreshToken: 'new-refresh-token',
+      },
+    });
   });
 });
 
 describe('resolveClaudeCodeAuthenticationMode', () => {
-  it('preserves explicit Anthropic auth despite ambient Gateway credentials', () => {
+  it('preserves direct auth despite ambient Gateway credentials', () => {
     expect(
-      resolveClaudeCodeAuthenticationMode(
-        { anthropic: {} },
-        { AI_GATEWAY_API_KEY: 'gateway-key' },
-      ),
+      resolveClaudeCodeAuthenticationMode('direct', {
+        AI_GATEWAY_API_KEY: 'gateway-key',
+      }),
     ).toBe('direct');
   });
 
@@ -206,25 +442,47 @@ describe('resolveClaudeCodeAuthenticationMode', () => {
 describe('createClaudeCodeRequestTransformations', () => {
   it('injects Anthropic API key and auth token headers at the configured endpoint', () => {
     expect(
-      createClaudeCodeRequestTransformations(
-        {
+      createClaudeCodeRequestTransformations({
+        env: {
           ANTHROPIC_API_KEY: 'api-secret',
           ANTHROPIC_AUTH_TOKEN: 'token-secret',
           ANTHROPIC_BASE_URL: 'https://anthropic.example/v1',
         },
-        'direct',
-      ),
+        sandboxEnv: {
+          ANTHROPIC_API_KEY: 'sandbox-api-secret',
+          ANTHROPIC_AUTH_TOKEN: 'sandbox-token-secret',
+        },
+        auth: 'direct',
+      }),
     ).toEqual([
       {
         match: {
           host: 'anthropic.example',
           path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'x-api-key' },
+              value: { exact: 'sandbox-api-secret' },
+            },
+          ],
         },
         transform: {
-          headers: {
-            'x-api-key': 'api-secret',
-            Authorization: 'Bearer token-secret',
-          },
+          headers: { 'x-api-key': 'api-secret' },
+        },
+      },
+      {
+        match: {
+          host: 'anthropic.example',
+          path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-token-secret' },
+            },
+          ],
+        },
+        transform: {
+          headers: { Authorization: 'Bearer token-secret' },
         },
       },
     ]);
@@ -232,16 +490,27 @@ describe('createClaudeCodeRequestTransformations', () => {
 
   it('uses the resolved Gateway route', () => {
     expect(
-      createClaudeCodeRequestTransformations(
-        {
+      createClaudeCodeRequestTransformations({
+        env: {
           ANTHROPIC_API_KEY: 'gateway-secret',
           ANTHROPIC_BASE_URL: 'https://gateway.example',
         },
-        'ai-gateway',
-      ),
+        sandboxEnv: {
+          ANTHROPIC_API_KEY: 'sandbox-gateway-secret',
+        },
+        auth: 'ai-gateway',
+      }),
     ).toEqual([
       {
-        match: { host: 'gateway.example' },
+        match: {
+          host: 'gateway.example',
+          headers: [
+            {
+              key: { exact: 'x-api-key' },
+              value: { exact: 'sandbox-gateway-secret' },
+            },
+          ],
+        },
         transform: { headers: { 'x-api-key': 'gateway-secret' } },
       },
     ]);

@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const { stream } = streamText({
-    model: xai.responses('grok-4-fast-non-reasoning'),
+    model: xai.responses('grok-4-1-fast-non-reasoning'),
     tools: {
       web_search: xai.tools.webSearch({
         allowedDomains: ['x.ai'],

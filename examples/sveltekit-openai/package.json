@@ -12,26 +12,29 @@
     "clean": "del-cli .svelte-kit && del-cli .vercel"
   },
   "type": "module",
+  "imports": {
+    "#lib/*": "./src/lib/*"
+  },
   "devDependencies": {
     "@ai-sdk/openai": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
     "@ai-sdk/svelte": "workspace:*",
-    "@sveltejs/adapter-vercel": "^6.3.3",
-    "@sveltejs/kit": "^2.60.1",
-    "@sveltejs/vite-plugin-svelte": "^5.1.1",
+    "@sveltejs/adapter-vercel": "^7.0.5",
+    "@sveltejs/kit": "^3.4.0",
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@types/node": "22.19.19",
     "ai": "workspace:*",
     "autoprefixer": "^10.5.0",
     "bits-ui": "^1.8.0",
     "clsx": "^2.1.1",
-    "svelte": "^5.55.7",
+    "svelte": "^5.59.1",
     "svelte-check": "^4.4.8",
     "tailwind-merge": "^3.6.0",
     "tailwind-variants": "^1.0.0",
     "tailwindcss": "^3.4.19",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "^5.9.3",
-    "vite": "^6.4.3",
-    "zod": "3.25.76"
+    "typescript": "6.0.3",
+    "vite": "^8.3.8",
+    "zod": "4.6.7"
   }
 }

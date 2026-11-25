@@ -1,4 +1,7 @@
-import type { LanguageModelV4ProviderTool } from '@ai-sdk/provider';
+import type {
+  JSONSchema7,
+  LanguageModelV4ProviderTool,
+} from '@ai-sdk/provider';
 import { expect, it } from 'vitest';
 import { prepareTools } from './google-prepare-tools';
 
@@ -41,13 +44,58 @@ it('should correctly prepare function tools', () => {
         {
           name: 'testFunction',
           description: 'A test function',
-          parameters: undefined,
+          parametersJsonSchema: { type: 'object', properties: {} },
         },
       ],
     },
   ]);
   expect(result.toolConfig).toBeUndefined();
   expect(result.toolWarnings).toEqual([]);
+});
+
+it('should preserve recursive function tool schemas as JSON Schema', () => {
+  const inputSchema = {
+    type: 'object',
+    properties: {
+      condition: { $ref: '#/$defs/Condition' },
+    },
+    required: ['condition'],
+    $defs: {
+      Condition: {
+        type: 'object',
+        properties: {
+          children: {
+            type: 'array',
+            items: { $ref: '#/$defs/Condition' },
+          },
+        },
+      },
+    },
+  } as JSONSchema7;
+
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'search',
+        description: 'Search with a condition tree',
+        inputSchema,
+      },
+    ],
+    modelId: 'gemini-2.5-flash',
+  });
+
+  expect(result.tools).toEqual([
+    {
+      functionDeclarations: [
+        {
+          name: 'search',
+          description: 'Search with a condition tree',
+          parametersJsonSchema: inputSchema,
+        },
+      ],
+    },
+  ]);
 });
 
 it('should correctly prepare provider-defined tools as array', () => {
@@ -275,7 +323,7 @@ it('should use newest tool support for an unknown future Gemini model', () => {
           {
             name: 'getWeather',
             description: 'Get the weather',
-            parameters: {
+            parametersJsonSchema: {
               type: 'object',
               properties: { location: { type: 'string' } },
             },
@@ -346,7 +394,7 @@ it('should handle tool choice "none"', () => {
         {
           name: 'testFunction',
           description: 'Test',
-          parameters: {},
+          parametersJsonSchema: {},
         },
       ],
     },
@@ -470,7 +518,7 @@ it('should combine function and provider-defined tools on Gemini 3 models', () =
         {
           name: 'testFunction',
           description: 'A test function',
-          parameters: undefined,
+          parametersJsonSchema: { type: 'object', properties: {} },
         },
       ],
     },
@@ -521,7 +569,10 @@ it('should omit server-side tool invocation flag for Vertex Gemini 3', () => {
             {
               "description": "A test function",
               "name": "testFunction",
-              "parameters": undefined,
+              "parametersJsonSchema": {
+                "properties": {},
+                "type": "object",
+              },
             },
           ],
         },
@@ -569,12 +620,12 @@ it('should combine multiple provider tools with function tools on Gemini 3', () 
         {
           name: 'getWeather',
           description: 'Get weather',
-          parameters: undefined,
+          parametersJsonSchema: { type: 'object', properties: {} },
         },
         {
           name: 'bookVenue',
           description: 'Book a venue',
-          parameters: undefined,
+          parametersJsonSchema: { type: 'object', properties: {} },
         },
       ],
     },
@@ -642,7 +693,7 @@ it('should use ANY mode for combined tools with toolChoice required on Gemini 3'
   });
 });
 
-it('should use NONE mode for combined tools with toolChoice none on Gemini 3', () => {
+it('should omit provider tools with toolChoice none on Gemini 3', () => {
   const result = prepareTools({
     tools: [
       {
@@ -662,9 +713,19 @@ it('should use NONE mode for combined tools with toolChoice none on Gemini 3', (
     modelId: 'gemini-3-flash-preview',
   });
 
+  expect(result.tools).toEqual([
+    {
+      functionDeclarations: [
+        {
+          name: 'testFunction',
+          description: 'A test function',
+          parametersJsonSchema: { type: 'object', properties: {} },
+        },
+      ],
+    },
+  ]);
   expect(result.toolConfig).toEqual({
     functionCallingConfig: { mode: 'NONE' },
-    includeServerSideToolInvocations: true,
   });
 });
 
@@ -1015,4 +1076,31 @@ it('should use AUTO mode when no tools have strict: true', () => {
   expect(result.toolConfig).toEqual({
     functionCallingConfig: { mode: 'AUTO' },
   });
+});
+
+it.each([
+  'google.google_search',
+  'google.enterprise_web_search',
+  'google.url_context',
+  'google.code_execution',
+  'google.file_search',
+  'google.vertex_rag_store',
+  'google.google_maps',
+  'google.unknown',
+] as const)('should omit %s when toolChoice is none', id => {
+  for (const modelId of ['gemini-2.5-flash', 'gemini-3-flash-preview']) {
+    for (const isVertexProvider of [false, true]) {
+      const result = prepareTools({
+        tools: [{ type: 'provider', id, name: 'disabled', args: {} }],
+        toolChoice: { type: 'none' },
+        modelId,
+        isVertexProvider,
+      });
+      expect(result).toEqual({
+        tools: undefined,
+        toolConfig: undefined,
+        toolWarnings: [],
+      });
+    }
+  }
 });

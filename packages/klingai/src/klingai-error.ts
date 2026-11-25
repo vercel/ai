@@ -1,12 +1,21 @@
-import { createJsonErrorResponseHandler } from '@ai-sdk/provider-utils';
+import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
+  createJsonErrorResponseHandler,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const klingaiErrorDataSchema = z.object({
-  code: z.number(),
-  message: z.string(),
-});
+export const klingaiErrorDataSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      code: z.number(),
+      message: z.string(),
+    }),
+  ),
+);
 
-export type KlingAIErrorData = z.infer<typeof klingaiErrorDataSchema>;
+export type KlingAIErrorData = InferSchema<typeof klingaiErrorDataSchema>;
 
 export const klingaiFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: klingaiErrorDataSchema,

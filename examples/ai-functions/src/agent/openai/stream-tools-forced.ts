@@ -8,7 +8,7 @@ import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
 const agent = new ToolLoopAgent({
-  model: openai('gpt-5-nano'),
+  model: openai('gpt-5.4-nano'),
   providerOptions: {
     openai: {
       reasoningEffort: 'medium',

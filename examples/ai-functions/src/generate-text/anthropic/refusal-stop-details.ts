@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: anthropic('claude-fable-5'),
+    model: anthropic('claude-fable-5-1'),
     prompt: 'Tell me about the history of the printing press.',
   });
 

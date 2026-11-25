@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: googleVertex('gemini-2.5-flash'),
+    model: googleVertex('gemini-4-hydrogen'),
     tools: {
       google_search: googleVertex.tools.googleSearch({}),
     },

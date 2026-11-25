@@ -18,7 +18,7 @@ import { streamText, Output } from 'ai';
 import { z } from 'zod';
 
 const { partialOutputStream } = streamText({
-  model: 'openai/gpt-4.1',
+  model: 'openai/gpt-6-astra',
   output: Output.object({
     schema: z.object({
       recipe: z.object({

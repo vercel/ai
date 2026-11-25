@@ -18,4 +18,3 @@ const sitemapRoute = createSitemapMarkdownRoute({
 
 export const GET = sitemapRoute.GET;
 export const generateStaticParams = sitemapRoute.generateStaticParams;
-export const revalidate = false;

@@ -7,6 +7,10 @@ import {
 } from '@vercel/geistdocs/source-config';
 import { rehypeCodeDefaultOptions } from 'fumadocs-core/mdx-plugins';
 import { defineDocs } from 'fumadocs-mdx/config';
+import {
+  rehypeCodeTemplates,
+  remarkCodeTemplates,
+} from './lib/geistdocs/code-templates.mjs';
 
 const createDocsCollection = (dir: string) =>
   defineDocs({
@@ -32,8 +36,10 @@ export const cookbookV5 = createDocsCollection('content/v5/cookbook');
 export const cookbookV6 = createDocsCollection('content/v6/cookbook');
 export const cookbookV7 = createDocsCollection('content/v7/cookbook');
 
-export default defineGeistdocsSourceConfig({
+const config = defineGeistdocsSourceConfig({
   mdxOptions: {
+    remarkPlugins: [remarkCodeTemplates],
+    rehypePlugins: defaults => [rehypeCodeTemplates, ...defaults],
     rehypeCodeOptions: {
       // Themes are overridden by defineGeistdocsSourceConfig at runtime, but
       // required at the type level when passing rehypeCodeOptions.
@@ -47,3 +53,13 @@ export default defineGeistdocsSourceConfig({
     },
   },
 });
+
+// Geistdocs always adds the `last-modified` plugin, which spawns `git log`
+// for every MDX file at compile time. Synced content is gitignored, so every
+// lookup returns null while adding ~60s to dev cold starts and ~40s to builds.
+export default {
+  ...config,
+  plugins: config.plugins?.filter(
+    plugin => (plugin as { name?: string }).name !== 'last-modified',
+  ),
+};

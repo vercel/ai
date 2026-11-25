@@ -9,6 +9,8 @@ const skillMd = readFileSync(
   join(process.cwd(), 'data', 'island-rescue', 'SKILL.md'),
 );
 
+// This sandbox is shared across local demo chats. The API route enforces local
+// development only; deployed use requires authentication and sandbox ownership.
 let globalSandboxName: string | null = null;
 async function getSandbox(): Promise<Sandbox> {
   if (globalSandboxName) {
@@ -75,7 +77,7 @@ async function executeShellCommand({
 }
 
 export const openaiShellSkillsAgent = new ToolLoopAgent({
-  model: openai.responses('gpt-5.6'),
+  model: openai.responses('gpt-6-astra'),
   instructions:
     'You have access to a shell tool that can execute commands on the local filesystem. ' +
     'You also have access to skills installed locally. ' +

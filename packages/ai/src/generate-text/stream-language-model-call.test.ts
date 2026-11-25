@@ -506,6 +506,92 @@ describe('streamLanguageModelCall', () => {
         ]
       `);
     });
+
+    describe('prompt conversion warnings', () => {
+      const messages = [
+        {
+          role: 'user' as const,
+          content: [
+            {
+              type: 'image' as const,
+              image: new Uint8Array([1, 2, 3]),
+              mediaType: 'image/png',
+            },
+          ],
+        },
+      ];
+
+      const finish: LanguageModelV4StreamPart = {
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        usage: testUsage,
+      };
+
+      async function getModelCallStartParts(
+        streamParts: LanguageModelV4StreamPart[],
+      ) {
+        const { stream } = await streamLanguageModelCall({
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream(streamParts),
+            }),
+          }),
+          tools: undefined,
+          messages,
+          repairToolCall: undefined,
+        });
+
+        return (await convertReadableStreamToArray(stream)).filter(
+          part => part.type === 'model-call-start',
+        );
+      }
+
+      it('should add the prompt conversion warnings to the stream-start warnings', async () => {
+        expect(
+          await getModelCallStartParts([
+            {
+              type: 'stream-start',
+              warnings: [{ type: 'other', message: 'provider warning' }],
+            },
+            finish,
+          ]),
+        ).toMatchInlineSnapshot(`
+          [
+            {
+              "type": "model-call-start",
+              "warnings": [
+                {
+                  "message": "The "image" content part type is deprecated. Use a "file" part with mediaType: 'image' (or a more specific image/* subtype) instead.",
+                  "setting": ""image" content part",
+                  "type": "deprecated",
+                },
+                {
+                  "message": "provider warning",
+                  "type": "other",
+                },
+              ],
+            },
+          ]
+        `);
+      });
+
+      it('should send the prompt conversion warnings when the provider does not send a stream-start part', async () => {
+        expect(await getModelCallStartParts([finish])).toMatchInlineSnapshot(`
+          [
+            {
+              "type": "model-call-start",
+              "warnings": [
+                {
+                  "message": "The "image" content part type is deprecated. Use a "file" part with mediaType: 'image' (or a more specific image/* subtype) instead.",
+                  "setting": ""image" content part",
+                  "type": "deprecated",
+                },
+              ],
+            },
+          ]
+        `);
+      });
+    });
   });
 
   describe('text parts', () => {
@@ -812,6 +898,7 @@ describe('streamLanguageModelCall', () => {
             "file": DefaultGeneratedFileWithType {
               "base64Data": "SGVsbG8gV29ybGQ=",
               "mediaType": "text/plain",
+              "providerMetadata": undefined,
               "type": "file",
               "uint8ArrayData": undefined,
             },
@@ -852,6 +939,49 @@ describe('streamLanguageModelCall', () => {
       `);
     });
 
+    it.each(['file', 'reasoning-file'] as const)(
+      'should download HTTPS %s parts',
+      async type => {
+        const originalFetch = globalThis.fetch;
+        const fetchMock = vi.fn(async () => new Response('Hello World'));
+        globalThis.fetch = fetchMock;
+        try {
+          const result = await streamLanguageModelCallResult({
+            streamParts: [
+              {
+                type,
+                data: {
+                  type: 'url',
+                  url: new URL('https://example.com/generated.txt'),
+                },
+                mediaType: 'text/plain',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ],
+            tools: undefined,
+          });
+
+          const filePart = result[0];
+          expect(filePart.type).toBe(type);
+          if (filePart.type !== 'file' && filePart.type !== 'reasoning-file') {
+            throw new Error('Expected a file part.');
+          }
+
+          expect(filePart.file.base64).toBe('SGVsbG8gV29ybGQ=');
+          expect(filePart.file.uint8Array).toEqual(
+            new TextEncoder().encode('Hello World'),
+          );
+          expect(fetchMock).toHaveBeenCalledOnce();
+        } finally {
+          globalThis.fetch = originalFetch;
+        }
+      },
+    );
+
     it('should use GeneratedFile with providerMetadata', async () => {
       const result = await streamLanguageModelCallResult({
         streamParts: [
@@ -884,6 +1014,7 @@ describe('streamLanguageModelCall', () => {
             "file": DefaultGeneratedFileWithType {
               "base64Data": undefined,
               "mediaType": "text/plain",
+              "providerMetadata": undefined,
               "type": "file",
               "uint8ArrayData": Uint8Array [
                 72,

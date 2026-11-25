@@ -1,8 +1,15 @@
-import type { SharedV4Warning, TranscriptionModelV4 } from '@ai-sdk/provider';
 import {
+  InvalidArgumentError,
+  type SharedV4Warning,
+  type TranscriptionModelV4,
+} from '@ai-sdk/provider';
+import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
+  isValidHostnamePart,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -106,6 +113,13 @@ export class GoogleVertexTranscriptionModel implements TranscriptionModelV4 {
     }
 
     const region = googleOptions?.region ?? this.config.location;
+    if (!isValidHostnamePart(region)) {
+      throw new InvalidArgumentError({
+        argument: googleOptions?.region != null ? 'region' : 'location',
+        message:
+          'Invalid Google Cloud Speech-to-Text region. Expected a single DNS label (letters, digits, and hyphens).',
+      });
+    }
     const languageCodes = googleOptions?.languageCodes ?? ['auto'];
 
     // The recognize API takes base64-encoded audio in the `content` field. A
@@ -199,33 +213,37 @@ export class GoogleVertexTranscriptionModel implements TranscriptionModelV4 {
 
 // Minimal schema: only the fields the implementation reads, with `.nullish()`
 // so provider API changes don't break parsing.
-const googleVertexTranscriptionResponseSchema = z.object({
-  results: z
-    .array(
-      z.object({
-        alternatives: z
-          .array(
-            z.object({
-              transcript: z.string().nullish(),
-              words: z
-                .array(
-                  z.object({
-                    word: z.string().nullish(),
-                    startOffset: z.string().nullish(),
-                    endOffset: z.string().nullish(),
-                  }),
-                )
-                .nullish(),
-            }),
-          )
-          .nullish(),
-        languageCode: z.string().nullish(),
-      }),
-    )
-    .nullish(),
-  metadata: z
-    .object({
-      totalBilledDuration: z.string().nullish(),
-    })
-    .nullish(),
-});
+const googleVertexTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      results: z
+        .array(
+          z.object({
+            alternatives: z
+              .array(
+                z.object({
+                  transcript: z.string().nullish(),
+                  words: z
+                    .array(
+                      z.object({
+                        word: z.string().nullish(),
+                        startOffset: z.string().nullish(),
+                        endOffset: z.string().nullish(),
+                      }),
+                    )
+                    .nullish(),
+                }),
+              )
+              .nullish(),
+            languageCode: z.string().nullish(),
+          }),
+        )
+        .nullish(),
+      metadata: z
+        .object({
+          totalBilledDuration: z.string().nullish(),
+        })
+        .nullish(),
+    }),
+  ),
+);

@@ -1,13 +1,18 @@
 import {
   NoSuchModelError,
   type TranscriptionModelV4,
+  type SpeechModelV4,
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
+import { AssemblyAISpeechModel } from './assemblyai-speech-model';
+import type { AssemblyAISpeechModelId } from './assemblyai-speech-settings';
 import { AssemblyAITranscriptionModel } from './assemblyai-transcription-model';
 import type { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
 import { VERSION } from './version';
@@ -26,6 +31,11 @@ export interface AssemblyAIProvider extends ProviderV4 {
   transcription(modelId: AssemblyAITranscriptionModelId): TranscriptionModelV4;
 
   /**
+   * Creates a model for speech generation.
+   */
+  speech(modelId: AssemblyAISpeechModelId): SpeechModelV4;
+
+  /**
    * @deprecated Use `embeddingModel` instead.
    */
   textEmbeddingModel(modelId: string): never;
@@ -33,9 +43,10 @@ export interface AssemblyAIProvider extends ProviderV4 {
 
 export interface AssemblyAIProviderSettings {
   /**
-   * API key for authenticating requests.
+   * API key for authenticating requests. May be a string, promise, or a
+   * synchronous/asynchronous callback called before each request.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Custom headers to include in the requests.
@@ -56,22 +67,32 @@ export function createAssemblyAI(
   options: AssemblyAIProviderSettings = {},
 ): AssemblyAIProvider {
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        authorization: loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'ASSEMBLYAI_API_KEY',
-          description: 'AssemblyAI',
-        }),
-        ...options.headers,
-      },
-      `ai-sdk/assemblyai/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          authorization: loadApiKey({
+            apiKey,
+            environmentVariableName: 'ASSEMBLYAI_API_KEY',
+            description: 'AssemblyAI',
+          }),
+          ...options.headers,
+        },
+        `ai-sdk-assemblyai/${VERSION}`,
+      ),
     );
 
   const createTranscriptionModel = (modelId: AssemblyAITranscriptionModelId) =>
     new AssemblyAITranscriptionModel(modelId, {
       provider: `assemblyai.transcription`,
       url: ({ path }) => `https://api.assemblyai.com${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  const createSpeechModel = (modelId: AssemblyAISpeechModelId) =>
+    new AssemblyAISpeechModel(modelId, {
+      provider: `assemblyai.speech`,
+      url: ({ path }) => `https://tts.us.assemblyai.com${path}`,
       headers: getHeaders,
       fetch: options.fetch,
     });
@@ -85,6 +106,8 @@ export function createAssemblyAI(
   provider.specificationVersion = 'v4' as const;
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
+  provider.speech = createSpeechModel;
+  provider.speechModel = createSpeechModel;
 
   provider.languageModel = () => {
     throw new NoSuchModelError({

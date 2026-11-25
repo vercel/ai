@@ -72,8 +72,8 @@ export default function CodexHarnessChat({
                     <img
                       key={index}
                       src={part.url}
-                      alt="Generated image"
-                      className="mb-2"
+                      alt="Image attachment"
+                      className="mb-2 max-w-full max-h-64 rounded"
                     />
                   );
                 }
@@ -96,6 +96,24 @@ export default function CodexHarnessChat({
               }
               case 'tool-bash': {
                 return <HarnessBashToolView invocation={part} key={index} />;
+              }
+              case 'tool-apply_patch': {
+                return (
+                  <HarnessToolView
+                    key={index}
+                    toolName="ApplyPatch"
+                    input={part.input}
+                    state={part.state}
+                    output={
+                      part.state === 'output-available'
+                        ? part.output
+                        : undefined
+                    }
+                    errorText={
+                      part.state === 'output-error' ? part.errorText : undefined
+                    }
+                  />
+                );
               }
               case 'dynamic-tool': {
                 // Codex does not expose file edits as tool calls, but they're instead tracked via these dynamic fileChange events.
@@ -157,7 +175,7 @@ export default function CodexHarnessChat({
       <ChatInput
         status={status}
         maxWidth="5xl"
-        onSubmit={text => sendMessage({ text })}
+        onSubmit={parts => sendMessage({ parts })}
       />
     </div>
   );

@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai.responses('gpt-4o-mini'),
+    model: openai.responses('gpt-4.1-mini'),
     maxOutputTokens: 100,
     instructions: 'You are a helpful assistant.',
     prompt: 'Invent a new holiday and describe its traditions.',

@@ -98,7 +98,7 @@ export async function POST(req: Request) {
   });
 
   const result = streamText({
-    model: openai('gpt-5-mini'),
+    model: openai('gpt-6-luna'),
     messages: await convertToModelMessages(messages),
     stopWhen: isStepCount(5), // multi-steps for server-side tools
     tools,

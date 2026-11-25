@@ -1,3 +1,5 @@
+import { collectVersionPaths } from '@vercel/geistdocs/source';
+import type { GeistdocsVersionPaths } from '@vercel/geistdocs/versions';
 import {
   recipesV5Source,
   recipesV6Source,
@@ -7,28 +9,34 @@ import {
   v7Sources,
 } from './source';
 
-const collect = (
-  bundles: typeof v7Sources,
-  stripPrefix: RegExp | null,
-): Set<string> => {
-  const paths = new Set<string>();
-  for (const bundle of bundles) {
-    for (const page of bundle.source.getPages('en')) {
-      paths.add(stripPrefix ? page.url.replace(stripPrefix, '') : page.url);
-    }
-  }
-  return paths;
-};
-
-// The /resources/recipes mirror participates in version switching even
-// though it stays out of the sitemap/llms/search surfaces.
-const v7Paths = collect([...v7Sources, recipesV7Source], null);
-const v6Paths = collect([...v6Sources, recipesV6Source], /^\/v6/);
-const v5Paths = collect([...v5Sources, recipesV5Source], /^\/v5/);
-const allPaths = new Set([...v7Paths, ...v6Paths, ...v5Paths]);
-
-export const missingVersionPaths = {
-  v7: [...allPaths].filter(path => !v7Paths.has(path)),
-  v6: [...allPaths].filter(path => !v6Paths.has(path)),
-  v5: [...allPaths].filter(path => !v5Paths.has(path)),
-};
+/**
+ * Existing prefix-relative paths for version switching. The recipes mirror
+ * participates even though sitemap, llms.txt, and search use /cookbook.
+ */
+export const getVersionPaths = (
+  lang: string,
+): Record<string, GeistdocsVersionPaths> => ({
+  v7: {
+    fallbackPath: '/docs/introduction',
+    paths: collectVersionPaths({
+      lang,
+      sources: [...v7Sources, recipesV7Source],
+    }),
+  },
+  v6: {
+    fallbackPath: '/docs/introduction',
+    paths: collectVersionPaths({
+      lang,
+      routePrefix: '/v6',
+      sources: [...v6Sources, recipesV6Source],
+    }),
+  },
+  v5: {
+    fallbackPath: '/docs/introduction',
+    paths: collectVersionPaths({
+      lang,
+      routePrefix: '/v5',
+      sources: [...v5Sources, recipesV5Source],
+    }),
+  },
+});

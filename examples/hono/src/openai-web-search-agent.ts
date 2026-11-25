@@ -5,7 +5,7 @@ import {
 import { ToolLoopAgent } from 'ai';
 
 export const openaiWebSearchAgent = new ToolLoopAgent({
-  model: openai('gpt-5-mini'),
+  model: openai('gpt-6-luna'),
   tools: {
     web_search: openai.tools.webSearch({
       searchContextSize: 'low',

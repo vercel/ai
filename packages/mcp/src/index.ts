@@ -8,6 +8,7 @@ export type {
 } from './tool/json-rpc-message';
 
 // Stable exports
+export { createMCPTools } from './tool/create-mcp-tools';
 export {
   createMCPClient,
   type MCPClientConfig,
@@ -37,9 +38,45 @@ export type {
   InitializeResult,
   ListToolsResult,
   McpProviderMetadata,
+  McpToolAnnotations,
   ClientCapabilities as MCPClientCapabilities,
 } from './tool/types';
 export { auth, UnauthorizedError } from './tool/oauth';
+export {
+  MCPClientOAuthError,
+  AuthorizationServerMismatchError,
+} from './error/oauth-error';
+export { MCPClientError } from './error/mcp-client-error';
+export {
+  WebMCPTransport as Experimental_WebMCPTransport,
+  type WebMCPModelContext as Experimental_WebMCPModelContext,
+  type WebMCPTool as Experimental_WebMCPTool,
+} from './tool/webmcp-transport';
+export type { ManagedMCPClient as Experimental_ManagedMCPClient } from './tool/mcp-client';
+export type {
+  MCPEventOperations as Experimental_MCPEventOperations,
+  MCPEventAdapter as Experimental_MCPEventAdapter,
+  ManagedSubscribeInput as Experimental_ManagedSubscribeInput,
+  ManagedSubscription as Experimental_ManagedSubscription,
+  ManagedMCPEvents as Experimental_ManagedMCPEvents,
+} from './tool/mcp-events-adapter';
+export {
+  createMCPEventWebhook as experimental_createMCPEventWebhook,
+  type MCPEventWebhookOptions as Experimental_MCPEventWebhookOptions,
+} from './tool/mcp-event-webhook';
+export type {
+  MCPEvent as Experimental_MCPEvent,
+  MCPEventControl as Experimental_MCPEventControl,
+  MCPEventDefinition as Experimental_MCPEventDefinition,
+  MCPEventStore as Experimental_MCPEventStore,
+  MCPEventSubscription as Experimental_MCPEventSubscription,
+  MCPEventSubscriptionInfo as Experimental_MCPEventSubscriptionInfo,
+  MCPEvents as Experimental_MCPEvents,
+  MCPEventsConfig as Experimental_MCPEventsConfig,
+  ListEventsResult as Experimental_ListEventsResult,
+  SubscribeEventOptions as Experimental_SubscribeEventOptions,
+  SubscribeEventResult as Experimental_SubscribeEventResult,
+} from './tool/mcp-event-types';
 export type {
   OAuthAuthorizationServerInformation,
   OAuthClientProvider,

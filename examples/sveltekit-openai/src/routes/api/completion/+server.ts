@@ -4,10 +4,10 @@ import {
   streamText,
   toUIMessageStream,
 } from 'ai';
-import { env } from '$env/dynamic/private';
+import { OPENAI_API_KEY } from '$app/env/private';
 
 const openai = createOpenAI({
-  apiKey: env?.OPENAI_API_KEY,
+  apiKey: OPENAI_API_KEY,
 });
 
 const system = `
@@ -29,7 +29,7 @@ export const POST = async ({ request }: { request: Request }) => {
   const { prompt } = await request.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     system,
     prompt,
     onError: error => {

@@ -146,6 +146,7 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "stop",
             "rawFinishReason": "stop",
+            "stoppedBy": "model",
             "totalUsage": {
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
@@ -284,6 +285,7 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "stop",
             "rawFinishReason": "stop",
+            "stoppedBy": "model",
             "totalUsage": {
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
@@ -468,6 +470,7 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "stop",
             "rawFinishReason": "stop",
+            "stoppedBy": "model",
             "totalUsage": {
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
@@ -634,6 +637,7 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "stop",
             "rawFinishReason": "stop",
+            "stoppedBy": "model",
             "totalUsage": {
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
@@ -803,6 +807,7 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "tool-calls",
             "rawFinishReason": undefined,
+            "stoppedBy": "tool-without-execute",
             "totalUsage": {
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
@@ -917,6 +922,7 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "stop",
             "rawFinishReason": "stop",
+            "stoppedBy": "model",
             "totalUsage": {
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
@@ -993,5 +999,57 @@ describe('simulateStreamingMiddleware', () => {
         },
       ]
     `);
+  });
+
+  it('should preserve provider metadata from generated text', async () => {
+    const providerMetadata = {
+      testProvider: {
+        signature: 'test-signature',
+      },
+    };
+    const mockModel = new MockLanguageModelV4({
+      async doGenerate() {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: 'This is a test response',
+              providerMetadata,
+            },
+          ],
+          finishReason: { unified: 'stop', raw: 'stop' },
+          usage: testUsage,
+          warnings: [],
+        };
+      },
+    });
+
+    const result = streamText({
+      model: wrapLanguageModel({
+        model: mockModel,
+        middleware: simulateStreamingMiddleware(),
+      }),
+      ...DEFAULT_SETTINGs,
+    });
+
+    expect(await result.content).toEqual([
+      {
+        type: 'text',
+        text: 'This is a test response',
+        providerMetadata,
+      },
+    ]);
+    expect((await result.response).messages).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'text',
+            text: 'This is a test response',
+            providerOptions: providerMetadata,
+          },
+        ],
+      },
+    ]);
   });
 });

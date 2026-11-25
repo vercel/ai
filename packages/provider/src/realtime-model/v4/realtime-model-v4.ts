@@ -3,8 +3,16 @@ import type {
   RealtimeModelV4ClientSecretResult,
 } from './realtime-model-v4-client-secret';
 import type { RealtimeModelV4ClientEvent } from './realtime-model-v4-client-event';
+import type {
+  RealtimeModelV4ServerConnection,
+  RealtimeModelV4SessionIntent,
+} from './realtime-model-v4-server-connection';
 import type { RealtimeModelV4ServerEvent } from './realtime-model-v4-server-event';
 import type { RealtimeModelV4SessionConfig } from './realtime-model-v4-session-config';
+import type {
+  RealtimeModelV4Transport,
+  RealtimeModelV4TransportOptions,
+} from './realtime-model-v4-transport';
 
 /**
  * Specification for a realtime model that supports bidirectional
@@ -29,6 +37,38 @@ export type RealtimeModelV4 = {
    */
   readonly modelId: string;
 
+  /** Conversation semantics and supported transports, when declared. */
+  readonly capabilities?: {
+    conversation: 'continuous' | 'turn-based';
+    transports: readonly ('websocket' | 'webrtc')[];
+    /** Omission preserves the legacy client-secret WebSocket connection. */
+    connections?: readonly (
+      | 'client-secret-websocket'
+      | 'server-websocket'
+      | 'webrtc'
+      | 'provider'
+    )[];
+    /** Omission preserves session-update startup. WebRTC setup may start the session. */
+    startup?: 'session-start' | 'session-update';
+    /** Omission preserves transport-close finalization. */
+    finalization?: 'session-close' | 'transport-close';
+  };
+
+  /** Create a provider-owned browser transport without opening a connection. */
+  createTransport?(
+    options: RealtimeModelV4TransportOptions,
+  ): RealtimeModelV4Transport;
+
+  /** Provider-specific setup for the WebRTC event channel. */
+  getWebRTCConfig?(): { dataChannelLabel: string };
+
+  /** Server-side SDP exchange. Return only the answer and session ID to the client. */
+  doCreateWebRTCSession?(options: {
+    sdp: string;
+    sessionConfig?: RealtimeModelV4SessionConfig;
+    abortSignal?: AbortSignal;
+  }): PromiseLike<{ sessionId: string; sdp: string }>;
+
   /**
    * Server-side: Creates an ephemeral client secret for authenticating
    * browser-side WebSocket connections. The secret is short-lived and
@@ -36,7 +76,7 @@ export type RealtimeModelV4 = {
    *
    * Naming: "do" prefix to prevent accidental direct usage by the user.
    */
-  doCreateClientSecret(
+  doCreateClientSecret?(
     options: RealtimeModelV4ClientSecretOptions,
   ): PromiseLike<RealtimeModelV4ClientSecretResult>;
 
@@ -45,7 +85,7 @@ export type RealtimeModelV4 = {
    * when connecting. Each provider has its own authentication mechanism
    * (e.g. OpenAI uses subprotocol headers, xAI may use query params).
    */
-  getWebSocketConfig(options: { token: string; url: string }): {
+  getWebSocketConfig?(options: { token: string; url: string }): {
     url: string;
     protocols?: string[];
   };
@@ -63,20 +103,49 @@ export type RealtimeModelV4 = {
     raw: unknown,
   ): RealtimeModelV4ServerEvent | RealtimeModelV4ServerEvent[];
 
+  /** Create a raw-event parser per connection and discard it on disconnect. */
+  createServerEventParser?(): (
+    raw: unknown,
+  ) => RealtimeModelV4ServerEvent | RealtimeModelV4ServerEvent[];
+
   /**
-   * Browser-side: Serializes a normalized client event into the
-   * provider's native JSON format for sending over the WebSocket.
+   * Browser-side: Serializes a normalized client event into the provider's
+   * native WebSocket format. Server-side callers should pass the same `intent`
+   * used for `getServerWebSocketConfig`.
    */
   serializeClientEvent(
     event: RealtimeModelV4ClientEvent,
+    options?: { intent?: RealtimeModelV4SessionIntent },
   ): unknown | PromiseLike<unknown>;
 
   /**
-   * Browser-side: Builds the provider-specific session configuration
-   * payload from a normalized session config. Used to construct the
-   * session.update event sent after WebSocket connection.
+   * Browser-side: Builds the provider-specific session configuration payload.
+   * Server-side callers should pass the same `intent` used for
+   * `getServerWebSocketConfig`.
    */
-  buildSessionConfig(config: RealtimeModelV4SessionConfig): unknown;
+  buildSessionConfig(
+    config: RealtimeModelV4SessionConfig,
+    options?: { intent?: RealtimeModelV4SessionIntent },
+  ): unknown;
+
+  /**
+   * Server-side: Returns the upstream WebSocket URL and auth headers for a
+   * server-initiated connection — e.g. a proxy or gateway that holds the
+   * long-lived provider credential and owns the socket itself.
+   *
+   * Unlike `getWebSocketConfig` (browser-side, authenticates with a short-lived
+   * token carried in a subprotocol), this uses the provider credential the
+   * model was constructed with (header auth) and selects supported provider
+   * endpoint variants via `intent` (e.g. transcription).
+   *
+   * May return a promise for providers whose server connection requires a
+   * round-trip (e.g. minting an ephemeral connection token).
+   */
+  getServerWebSocketConfig?(options?: {
+    intent?: RealtimeModelV4SessionIntent;
+  }):
+    | RealtimeModelV4ServerConnection
+    | PromiseLike<RealtimeModelV4ServerConnection>;
 
   /**
    * Browser-side: Returns a message to auto-send back over the WebSocket

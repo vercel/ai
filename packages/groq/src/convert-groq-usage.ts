@@ -34,7 +34,7 @@ export function convertGroqUsage(
     usage.completion_tokens_details?.reasoning_tokens ?? undefined;
   const textTokens =
     reasoningTokens != null
-      ? completionTokens - reasoningTokens
+      ? Math.max(0, completionTokens - reasoningTokens)
       : completionTokens;
 
   return {

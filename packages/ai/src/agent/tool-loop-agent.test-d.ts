@@ -9,6 +9,7 @@ import {
   Output,
   type GenerateTextOnEndCallback,
   type Experimental_ToolCallers,
+  type LanguageModelCallEndEvent,
   type ToolApprovalConfiguration,
   type ToolInputRefinement,
 } from '../generate-text';
@@ -16,7 +17,10 @@ import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
 import type { DeepPartial } from '../util/deep-partial';
 import type { AgentCallParameters, AgentStreamParameters } from './agent';
-import { ToolLoopAgent } from './tool-loop-agent';
+import {
+  ToolLoopAgent,
+  type ToolLoopAgentCallExtensions,
+} from './tool-loop-agent';
 import type { ToolLoopAgentSettings } from './tool-loop-agent-settings';
 
 describe('ToolLoopAgent', () => {
@@ -48,6 +52,17 @@ describe('ToolLoopAgent', () => {
   });
 
   describe('generate', () => {
+    it('should accept toolCallConcurrency in settings and prepareCall', () => {
+      new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        toolCallConcurrency: 1,
+        prepareCall: options => ({
+          ...options,
+          toolCallConcurrency: 2,
+        }),
+      });
+    });
+
     it('should accept include', async () => {
       new ToolLoopAgent({
         model: new MockLanguageModelV4(),
@@ -73,7 +88,8 @@ describe('ToolLoopAgent', () => {
       });
 
       expectTypeOf<Parameters<typeof agent.generate>[0]>().toEqualTypeOf<
-        AgentCallParameters<{ callOption: string }>
+        AgentCallParameters<{ callOption: string }> &
+          ToolLoopAgentCallExtensions
       >();
     });
 
@@ -83,7 +99,7 @@ describe('ToolLoopAgent', () => {
       });
 
       expectTypeOf<Parameters<typeof agent.generate>[0]>().toEqualTypeOf<
-        AgentCallParameters<never>
+        AgentCallParameters<never> & ToolLoopAgentCallExtensions
       >();
     });
 
@@ -188,6 +204,43 @@ describe('ToolLoopAgent', () => {
       });
     });
 
+    it('should type experimental_toolApprovalSecret in settings and prepareCall', () => {
+      type PrepareCall = NonNullable<ToolLoopAgentSettings['prepareCall']>;
+
+      expectTypeOf<
+        Parameters<PrepareCall>[0]['experimental_toolApprovalSecret']
+      >().toEqualTypeOf<string | Uint8Array | undefined>();
+      expectTypeOf<
+        Awaited<ReturnType<PrepareCall>>['experimental_toolApprovalSecret']
+      >().toEqualTypeOf<string | Uint8Array | undefined>();
+
+      const stringSecret = {
+        model: new MockLanguageModelV4(),
+        experimental_toolApprovalSecret: 'secret',
+      } satisfies ToolLoopAgentSettings;
+
+      const byteSecret = {
+        model: new MockLanguageModelV4(),
+        experimental_toolApprovalSecret: new Uint8Array(32),
+      } satisfies ToolLoopAgentSettings;
+
+      new ToolLoopAgent({
+        ...stringSecret,
+        prepareCall: options => {
+          expectTypeOf(options.experimental_toolApprovalSecret).toEqualTypeOf<
+            string | Uint8Array | undefined
+          >();
+
+          return {
+            ...options,
+            experimental_toolApprovalSecret:
+              byteSecret.experimental_toolApprovalSecret,
+            prompt: 'Hello, world!',
+          };
+        },
+      });
+    });
+
     it('should support stable start callbacks', async () => {
       const agent = new ToolLoopAgent({
         model: new MockLanguageModelV4(),
@@ -206,6 +259,27 @@ describe('ToolLoopAgent', () => {
         },
         onStepStart: event => {
           expectTypeOf(event.runtimeContext).toEqualTypeOf<Context>();
+        },
+      });
+    });
+
+    it('should support language model call callbacks in settings', () => {
+      const tools = {
+        calculator: tool({
+          inputSchema: z.object({ expression: z.string() }),
+        }),
+      };
+
+      new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        tools,
+        onLanguageModelCallStart: event => {
+          expectTypeOf(event.callId).toEqualTypeOf<string>();
+        },
+        onLanguageModelCallEnd: event => {
+          expectTypeOf(event.content).toEqualTypeOf<
+            LanguageModelCallEndEvent<typeof tools>['content']
+          >();
         },
       });
     });
@@ -253,7 +327,8 @@ describe('ToolLoopAgent', () => {
       });
 
       expectTypeOf<Parameters<typeof agent.stream>[0]>().toEqualTypeOf<
-        AgentStreamParameters<{ callOption: string }, {}>
+        AgentStreamParameters<{ callOption: string }, {}> &
+          ToolLoopAgentCallExtensions
       >();
     });
 
@@ -263,7 +338,7 @@ describe('ToolLoopAgent', () => {
       });
 
       expectTypeOf<Parameters<typeof agent.stream>[0]>().toEqualTypeOf<
-        AgentStreamParameters<never, {}>
+        AgentStreamParameters<never, {}> & ToolLoopAgentCallExtensions
       >();
     });
 

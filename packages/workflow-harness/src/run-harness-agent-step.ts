@@ -4,8 +4,8 @@ import {
   type RunHarnessAgentOptions,
 } from './run-harness-agent';
 
-export type RunHarnessAgentStepOptions = Omit<
-  RunHarnessAgentOptions,
+export type RunHarnessAgentStepOptions<OUTPUT = unknown> = Omit<
+  RunHarnessAgentOptions<OUTPUT>,
   'timeSliceSeconds'
 >;
 
@@ -17,8 +17,8 @@ export type RunHarnessAgentStepOptions = Omit<
  * unfinished, the returned state has status `ready_for_next_step` and carries
  * the continuation state for the next workflow step.
  */
-export async function runHarnessAgentStep(
-  options: RunHarnessAgentStepOptions,
-): Promise<HarnessWorkflowState> {
+export async function runHarnessAgentStep<OUTPUT = unknown>(
+  options: RunHarnessAgentStepOptions<OUTPUT>,
+): Promise<HarnessWorkflowState<OUTPUT>> {
   return runHarnessAgent(options);
 }

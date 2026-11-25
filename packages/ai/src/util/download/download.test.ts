@@ -29,13 +29,31 @@ describe('download SSRF redirect protection', () => {
     globalThis.fetch = originalFetch;
   });
 
+  it('uses the current download mock after mocks are reset', async () => {
+    const firstFetch = vi.fn().mockResolvedValue(new Response('first'));
+    globalThis.fetch = firstFetch;
+    const options = { url: new URL('https://download.invalid/file') };
+    const first = await download(options);
+    expect(first.data).toEqual(new TextEncoder().encode('first'));
+    expect(firstFetch.mock.calls[0][1]).not.toHaveProperty('dispatcher');
+
+    vi.resetAllMocks();
+    const secondFetch = vi.fn().mockResolvedValue(new Response('second'));
+    globalThis.fetch = secondFetch;
+    const second = await download(options);
+    expect(second.data).toEqual(new TextEncoder().encode('second'));
+    expect(secondFetch).toHaveBeenCalledTimes(1);
+    expect(secondFetch.mock.calls[0][1]).not.toHaveProperty('dispatcher');
+    expect(firstFetch).not.toHaveBeenCalled();
+  });
+
   it('should reject a redirect to a private IP without requesting it', async () => {
     const onCancel = vi.fn();
     const fetchMock = vi.fn().mockResolvedValueOnce({
       ok: false,
       status: 302,
       headers: new Headers({
-        location: 'http://169.254.169.254/latest/meta-data/',
+        location: 'https://169.254.169.254/latest/meta-data/',
       }),
       body: new ReadableStream({
         start(controller) {
@@ -64,7 +82,7 @@ describe('download SSRF redirect protection', () => {
     const fetchMock = vi.fn().mockResolvedValueOnce({
       ok: false,
       status: 307,
-      headers: new Headers({ location: 'http://localhost:8080/admin' }),
+      headers: new Headers({ location: 'https://localhost:8080/admin' }),
       body: new ReadableStream({
         start(controller) {
           controller.enqueue(new TextEncoder().encode('redirecting'));

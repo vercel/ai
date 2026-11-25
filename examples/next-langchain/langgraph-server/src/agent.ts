@@ -77,7 +77,7 @@ const calculatorTool = tool(
 // Create the agent using LangChain's createAgent
 // This is the simplest way to create an agent with tools
 export const graph = createAgent({
-  model: 'openai:gpt-4o-mini',
+  model: 'openai:gpt-6-luna',
   tools: [weatherTool, calculatorTool],
   systemPrompt: `You are a helpful assistant with access to weather and calculator tools.
 When asked about weather, use the get_weather tool.

@@ -3,6 +3,7 @@ import {
   combineHeaders,
   convertInlineFileDataToUint8Array,
   createJsonResponseHandler,
+  encodePathSegment,
   getFromApi,
   postFormDataToApi,
   resolve,
@@ -40,16 +41,14 @@ export class AnthropicSkills implements SkillsV4 {
   private async fetchVersionMetadata({
     skillId,
     version,
-    headers,
   }: {
     skillId: string;
     version: string;
-    headers: Record<string, string | undefined>;
   }): Promise<{ name?: string; description?: string }> {
     const { value: versionResponse } = await getFromApi({
-      url: `${this.config.baseURL}/skills/${skillId}/versions/${version}`,
+      url: `${this.config.baseURL}/skills/${encodePathSegment(skillId)}/versions/${encodePathSegment(version)}`,
       validateUrl: false,
-      headers,
+      headers: await this.getHeaders(),
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         anthropicSkillVersionResponseSchema,
@@ -78,14 +77,16 @@ export class AnthropicSkills implements SkillsV4 {
 
     for (const file of params.files) {
       const content = convertInlineFileDataToUint8Array(file.data);
-      formData.append('files[]', new Blob([content]), file.path);
+      formData.append(
+        'files[]',
+        new Blob([content as Uint8Array<ArrayBuffer>]),
+        file.path,
+      );
     }
-
-    const headers = await this.getHeaders();
 
     const { value: response } = await postFormDataToApi({
       url: `${this.config.baseURL}/skills`,
-      headers,
+      headers: await this.getHeaders(),
       formData,
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -99,7 +100,6 @@ export class AnthropicSkills implements SkillsV4 {
         ? await this.fetchVersionMetadata({
             skillId: response.id,
             version: response.latest_version,
-            headers,
           })
         : {};
 

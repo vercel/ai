@@ -3,6 +3,10 @@ import fs from 'node:fs';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createOpenAI } from '../openai-provider';
 import { OpenAIImageModel } from './openai-image-model';
+import type {
+  OpenAIImageModelEditOptions,
+  OpenAIImageModelGenerationOptions,
+} from './openai-image-model-options';
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('../version', () => ({
@@ -17,6 +21,45 @@ const model = provider.image('dall-e-3');
 const server = createTestServer({
   'https://api.openai.com/v1/images/generations': {},
   'https://api.openai.com/v1/images/edits': {},
+});
+
+describe('image editing capabilities', () => {
+  it.each([
+    'dall-e-2',
+    'gpt-image-1',
+    'gpt-image-1-mini',
+    'gpt-image-1.5',
+    'gpt-image-2',
+    'gpt-image-2.6-flare',
+    'gpt-image-2.6-sunburst',
+    'gpt-image-2.5-flare',
+    'gpt-image-2.5-flare-2026-09-08',
+    'gpt-image-2.5-sunburst',
+    'gpt-image-2.5-sunburst-2026-09-08',
+    'chatgpt-image-latest',
+  ])('advertises file and mask support for %s', modelId => {
+    const model = provider.image(modelId);
+
+    expect(model.supportsFileInputs).toBe(true);
+    expect(model.supportsMaskInputs).toBe(true);
+  });
+
+  it('advertises that dall-e-3 does not support editing inputs', () => {
+    const model = provider.image('dall-e-3');
+
+    expect(model.supportsFileInputs).toBe(false);
+    expect(model.supportsMaskInputs).toBe(false);
+  });
+
+  it.each(['custom-image-model', 'gpt-image-custom', 'chatgpt-image-custom'])(
+    'leaves editing support unknown for %s',
+    modelId => {
+      const model = provider.image(modelId);
+
+      expect(model.supportsFileInputs).toBeUndefined();
+      expect(model.supportsMaskInputs).toBeUndefined();
+    },
+  );
 });
 
 function prepareJsonFixtureResponse(
@@ -46,6 +89,39 @@ function prepareEditFixtureResponse(
 }
 
 describe('doGenerate', () => {
+  describe.each(['gpt-image-2.5-flare', 'gpt-image-2.5-sunburst'])(
+    '%s quality',
+    modelId => {
+      it.each(['xhigh', 'max'] as const)(
+        'should pass %s quality',
+        async quality => {
+          prepareJsonFixtureResponse('openai-image');
+
+          await provider.image(modelId).doGenerate({
+            prompt,
+            files: undefined,
+            mask: undefined,
+            n: 1,
+            size: '1024x1024',
+            aspectRatio: undefined,
+            seed: undefined,
+            providerOptions: {
+              openai: { quality } satisfies OpenAIImageModelGenerationOptions,
+            },
+          });
+
+          expect(await server.calls[0].requestBodyJson).toStrictEqual({
+            model: modelId,
+            prompt,
+            n: 1,
+            size: '1024x1024',
+            quality,
+          });
+        },
+      );
+    },
+  );
+
   it('should pass the model and the settings', async () => {
     prepareJsonFixtureResponse('openai-image');
 
@@ -142,7 +218,7 @@ describe('doGenerate', () => {
       'openai-project': 'test-project',
     });
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/openai/0.0.0-test`,
+      `ai-sdk-openai/0.0.0-test`,
     );
   });
 
@@ -600,7 +676,263 @@ describe('doGenerate', () => {
   });
 });
 
+describe('doGenerate - GPT Image 2.6 options', () => {
+  it('should map complexity, gif and safety options for /images/generations', async () => {
+    prepareJsonFixtureResponse('openai-image');
+
+    await provider.image('gpt-image-2.6-flare').doGenerate({
+      prompt,
+      files: undefined,
+      mask: undefined,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {
+        openai: {
+          complexity: 'low',
+          outputFormat: 'gif',
+          frameCount: 12,
+          frameDurationMs: 100,
+          safetyIdentifier: 'hashed-user',
+        } satisfies OpenAIImageModelGenerationOptions,
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-image-2.6-flare',
+      prompt,
+      n: 1,
+      size: '1024x1024',
+      complexity: 'low',
+      output_format: 'gif',
+      frame_count: 12,
+      frame_duration_ms: 100,
+      safety_identifier: 'hashed-user',
+    });
+  });
+
+  it('should reject gif for edits', async () => {
+    prepareEditFixtureResponse('openai-image-edit');
+
+    await expect(
+      provider.image('gpt-image-2.6-flare').doGenerate({
+        prompt,
+        files: [
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: new Uint8Array([137, 80, 78, 71]),
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: '1024x1024',
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: { openai: { outputFormat: 'gif' } },
+      }),
+    ).rejects.toThrow();
+  });
+
+  it('should send complexity, safety identifier and markup for /images/edits', async () => {
+    prepareEditFixtureResponse('openai-image-edit');
+
+    await provider.image('gpt-image-2.6-flare').doGenerate({
+      prompt,
+      files: [
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: new Uint8Array([137, 80, 78, 71]),
+        },
+      ],
+      mask: undefined,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {
+        openai: {
+          complexity: 'medium',
+          safetyIdentifier: 'hashed-user',
+          markup: `data:image/png;base64,${Buffer.from([137, 80, 78, 71]).toString('base64')}`,
+        } satisfies OpenAIImageModelEditOptions,
+      },
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body).toMatchObject({
+      complexity: 'medium',
+      safety_identifier: 'hashed-user',
+    });
+    const markup = body?.markup as File;
+    expect(markup).toBeInstanceOf(File);
+    expect(markup.type).toBe('image/png');
+  });
+
+  it('should throw when markup and mask are both provided', async () => {
+    const file = {
+      type: 'file' as const,
+      mediaType: 'image/png',
+      data: new Uint8Array([137, 80, 78, 71]),
+    };
+
+    await expect(
+      provider.image('gpt-image-2.6-flare').doGenerate({
+        prompt,
+        files: [file],
+        mask: file,
+        n: 1,
+        size: '1024x1024',
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          openai: { markup: 'data:image/png;base64,iVBORw0KGgo=' },
+        },
+      }),
+    ).rejects.toThrow('`markup` cannot be combined with `mask`.');
+    expect(server.calls).toHaveLength(0);
+  });
+});
+
 describe('doGenerate - image editing', () => {
+  it.each(['image', 'mask', 'markup'] as const)(
+    'should use the configured fetch and abort signal when downloading a URL %s',
+    async downloadTarget => {
+      const controller = new AbortController();
+      let resolveDownloadStarted!: (
+        signal: AbortSignal | null | undefined,
+      ) => void;
+      const downloadStarted = new Promise<AbortSignal | null | undefined>(
+        resolve => {
+          resolveDownloadStarted = resolve;
+        },
+      );
+      let resolveDownload!: (response: Response) => void;
+      let rejectDownload!: (reason?: unknown) => void;
+      const downloadResponse = new Promise<Response>((resolve, reject) => {
+        resolveDownload = resolve;
+        rejectDownload = reject;
+      });
+
+      const downloadFetch = (_input: RequestInfo | URL, init?: RequestInit) => {
+        const signal = init?.signal;
+        resolveDownloadStarted(signal);
+
+        if (signal?.aborted) {
+          rejectDownload(signal.reason);
+        } else {
+          signal?.addEventListener(
+            'abort',
+            () => rejectDownload(signal.reason),
+            { once: true },
+          );
+        }
+
+        return downloadResponse;
+      };
+      const globalFetch = vi.fn();
+      vi.stubGlobal('fetch', globalFetch);
+
+      const editModel = createOpenAI({
+        apiKey: 'test-api-key',
+        fetch: async (_url, init) => {
+          if (_url.toString().startsWith('https://example.com/')) {
+            return downloadFetch(_url, init);
+          }
+          init?.signal?.throwIfAborted();
+          return Response.json({ data: [{ b64_json: 'base64-image' }] });
+        },
+      }).image('gpt-image-1');
+
+      const operation = editModel
+        .doGenerate({
+          prompt,
+          files:
+            downloadTarget === 'image'
+              ? [{ type: 'url', url: 'https://example.com/image.png' }]
+              : [
+                  {
+                    type: 'file',
+                    mediaType: 'image/png',
+                    data: new Uint8Array([137, 80, 78, 71]),
+                  },
+                ],
+          mask:
+            downloadTarget === 'mask'
+              ? { type: 'url', url: 'https://example.com/mask.png' }
+              : undefined,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions:
+            downloadTarget === 'markup'
+              ? { openai: { markup: 'https://example.com/markup.png' } }
+              : {},
+          abortSignal: controller.signal,
+        })
+        .then(
+          () => 'fulfilled' as const,
+          () => 'rejected' as const,
+        );
+
+      try {
+        const downloadSignal = await downloadStarted;
+        controller.abort();
+
+        expect(downloadSignal).toBe(controller.signal);
+        expect(await operation).toBe('rejected');
+        expect(globalFetch).not.toHaveBeenCalled();
+      } finally {
+        resolveDownload(
+          new Response(new Uint8Array([137, 80, 78, 71]), {
+            headers: { 'content-type': 'image/png' },
+          }),
+        );
+        await operation;
+        vi.unstubAllGlobals();
+      }
+    },
+  );
+
+  describe.each(['gpt-image-2.5-flare', 'gpt-image-2.5-sunburst'])(
+    '%s quality',
+    modelId => {
+      it.each(['xhigh', 'max'] as const)(
+        'should pass %s quality',
+        async quality => {
+          prepareEditFixtureResponse('openai-image-edit');
+
+          await provider.image(modelId).doGenerate({
+            prompt,
+            files: [
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: new Uint8Array([137, 80, 78, 71]),
+              },
+            ],
+            mask: undefined,
+            n: 1,
+            size: '1024x1024',
+            aspectRatio: undefined,
+            seed: undefined,
+            providerOptions: {
+              openai: { quality } satisfies OpenAIImageModelEditOptions,
+            },
+          });
+
+          expect(await server.calls[0].requestBodyMultipart).toMatchObject({
+            model: modelId,
+            quality,
+          });
+        },
+      );
+    },
+  );
+
   it('should call /images/edits endpoint when files are provided', async () => {
     prepareEditFixtureResponse('openai-image-edit');
 
@@ -759,6 +1091,7 @@ describe('doGenerate - image editing', () => {
       providerOptions: {
         openai: {
           inputFidelity: 'high',
+          moderation: 'low',
           outputFormat: 'webp',
           outputCompression: 80,
           user: 'user-123',
@@ -768,6 +1101,7 @@ describe('doGenerate - image editing', () => {
 
     expect(await server.calls[0].requestBodyMultipart).toMatchObject({
       input_fidelity: 'high',
+      moderation: 'low',
       output_format: 'webp',
       output_compression: '80',
       user: 'user-123',

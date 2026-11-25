@@ -2,6 +2,7 @@ import type {
   LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4Content,
+  LanguageModelV4FunctionTool,
   LanguageModelV4FinishReason,
   LanguageModelV4GenerateResult,
   LanguageModelV4Source,
@@ -13,40 +14,52 @@ import type {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  convertJsonResponseToolStream,
+  createToolNameMapping,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  createProviderStreamError,
   generateId,
   isCustomReasoning,
   lazySchema,
   mapReasoningToProviderBudget,
   mapReasoningToProviderEffort,
-  parseProviderOptions,
   postJsonToApi,
   resolve,
+  resolveProviderOptions,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   zodSchema,
   type FetchFunction,
   type InferSchema,
-  type ParseResult,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
+  continueGoogleStream,
+  type GoogleStreamPart,
+} from './continue-google-stream';
+import {
+  addGoogleUsageMetadata,
   convertGoogleUsage,
   type GoogleUsageMetadata,
 } from './convert-google-usage';
-import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import { convertToGoogleMessages } from './convert-to-google-messages';
+import { downloadToolResultFiles } from './download-tool-result-files';
 import { getModelPath } from './get-model-path';
-import { googleFailedResponseHandler } from './google-error';
+import {
+  getGoogleErrorSchema,
+  googleFailedResponseHandler,
+  mapGoogleErrorStatusToHttpStatusCode,
+} from './google-error';
+import { sanitizeResponseJsonSchema } from './sanitize-response-json-schema';
 import {
   googleLanguageModelOptions,
   type GoogleLanguageModelOptions,
   type GoogleModelId,
 } from './google-language-model-options';
-import { getGoogleModelCapabilities } from './google-model-capabilities';
+import { getGoogleLanguageModelEntry } from './google-model-catalog';
 import type { GoogleProviderMetadata } from './google-prompt';
 import { prepareTools } from './google-prepare-tools';
 import {
@@ -62,7 +75,15 @@ const configurableSafetySettingCategories = [
   'HARM_CATEGORY_SEXUALLY_EXPLICIT',
 ] as const;
 
-type GoogleConfig = {
+const googleCloudStorageFunctionResponseUrls = {
+  'image/png': [/^gs:\/\/.*$/],
+  'image/jpeg': [/^gs:\/\/.*$/],
+  'image/webp': [/^gs:\/\/.*$/],
+  'application/pdf': [/^gs:\/\/.*$/],
+  'text/plain': [/^gs:\/\/.*$/],
+} satisfies Record<string, RegExp[]>;
+
+export type GoogleLanguageModelConfig = {
   provider: string;
   baseURL: string;
   headers?: Resolvable<Record<string, string | undefined>>;
@@ -73,6 +94,16 @@ type GoogleConfig = {
    * The supported URLs for the model.
    */
   supportedUrls?: () => LanguageModelV4['supportedUrls'];
+
+  /**
+   * Settings for downloading remote files in tool results before conversion.
+   */
+  downloadToolResultFiles?: {
+    maxBytes: number;
+    supportsGoogleCloudStorageUrls?: boolean;
+    /** Transport for untrusted file URLs, without provider authentication. */
+    fetch?: FetchFunction;
+  };
 };
 
 export class GoogleLanguageModel implements LanguageModelV4 {
@@ -80,7 +111,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
   readonly modelId: GoogleModelId;
 
-  private readonly config: GoogleConfig;
+  private readonly config: GoogleLanguageModelConfig;
   private readonly generateId: () => string;
 
   static [WORKFLOW_SERIALIZE](model: GoogleLanguageModel) {
@@ -92,12 +123,12 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
-    config: GoogleConfig;
+    config: GoogleLanguageModelConfig;
   }) {
     return new GoogleLanguageModel(options.modelId, options.config);
   }
 
-  constructor(modelId: GoogleModelId, config: GoogleConfig) {
+  constructor(modelId: GoogleModelId, config: GoogleLanguageModelConfig) {
     this.modelId = modelId;
     this.config = config;
     this.generateId = config.generateId ?? generateId;
@@ -111,8 +142,10 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     return this.config.supportedUrls?.() ?? {};
   }
 
-  private async getArgs(
-    {
+  static async prepareRequest({
+    modelId,
+    config,
+    options: {
       prompt,
       maxOutputTokens,
       temperature,
@@ -127,42 +160,39 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       toolChoice,
       reasoning,
       providerOptions,
-    }: LanguageModelV4CallOptions,
-    { isStreaming = false }: { isStreaming?: boolean } = {},
-  ) {
+      abortSignal,
+    },
+    isStreaming = false,
+  }: {
+    modelId: GoogleModelId;
+    config: GoogleLanguageModelConfig;
+    options: LanguageModelV4CallOptions;
+    isStreaming?: boolean;
+  }) {
     const warnings: SharedV4Warning[] = [];
 
     // Names to look up in providerOptions and to write into providerMetadata.
     // For the Vertex provider we read both the new `googleVertex` key and the
     // legacy `vertex` key (new takes precedence) and write under both for
     // backward compatibility. For other Google providers we use just `google`.
-    const providerOptionsNames: readonly string[] =
-      this.config.provider.includes('vertex')
-        ? (['googleVertex', 'vertex'] as const)
-        : (['google'] as const);
+    const providerOptionsNames: readonly string[] = config.provider.includes(
+      'vertex',
+    )
+      ? (['googleVertex', 'vertex'] as const)
+      : (['google'] as const);
 
-    let googleOptions: GoogleLanguageModelOptions | undefined;
-    for (const name of providerOptionsNames) {
-      googleOptions = await parseProviderOptions({
-        provider: name,
+    // The first present namespace wins as a whole. A Vertex provider also
+    // falls back to the `google` key (e.g. via the AI Gateway).
+    const { options: googleOptions } =
+      await resolveProviderOptions<GoogleLanguageModelOptions>({
         providerOptions,
+        namespaces: [...providerOptionsNames, 'google'],
+        resolution: 'first',
         schema: googleLanguageModelOptions,
       });
-      if (googleOptions != null) break;
-    }
-
-    // Cross-namespace fallback: a Vertex provider may receive options under
-    // the `google` key (e.g. via the AI Gateway).
-    if (googleOptions == null && !providerOptionsNames.includes('google')) {
-      googleOptions = await parseProviderOptions({
-        provider: 'google',
-        providerOptions,
-        schema: googleLanguageModelOptions,
-      });
-    }
 
     // Add warning if Vertex rag tools are used with a non-Vertex Google provider
-    const isVertexProvider = this.config.provider.startsWith('google.vertex.');
+    const isVertexProvider = config.provider.startsWith('google.vertex.');
 
     if (
       tools?.some(
@@ -176,7 +206,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         message:
           "The 'vertex_rag_store' tool is only supported with the Google Vertex provider " +
           'and might not be supported or could behave unexpectedly with the current Google provider ' +
-          `(${this.config.provider}).`,
+          `(${config.provider}).`,
       });
     }
 
@@ -186,7 +216,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         message:
           "'streamFunctionCallArguments' is only supported on the Vertex AI API " +
           'and will be ignored with the current Google provider ' +
-          `(${this.config.provider}). See https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling#streaming-fc`,
+          `(${config.provider}). See https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling#streaming-fc`,
       });
     }
 
@@ -207,7 +237,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         type: 'other',
         message:
           "'sharedRequestType' and 'requestType' are Vertex AI options and " +
-          `are ignored with the current Google provider (${this.config.provider}).`,
+          `are ignored with the current Google provider (${config.provider}).`,
       });
     }
 
@@ -251,23 +281,58 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           message:
             `${droppedImageConfigFields.join(', ')} ` +
             `${droppedImageConfigFields.length === 1 ? 'is a Vertex AI option and is' : 'are Vertex AI options and are'} ` +
-            `ignored with the current Google provider (${this.config.provider}).`,
+            `ignored with the current Google provider (${config.provider}).`,
         });
         imageConfig = geminiApiImageConfig;
       }
     }
 
-    const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
-    const { usesGemini3Features } = getGoogleModelCapabilities(this.modelId);
+    const entry = getGoogleLanguageModelEntry(modelId);
+    const { tools: toolCapabilities, sampling } = entry.capabilities.language;
+    const systemInstructionAsUserMessage =
+      entry.requestConfig.language.systemInstruction === 'user';
+    const supportsPenalties = isVertexProvider || sampling.penalties === true;
 
-    const { contents, systemInstruction } = convertToGoogleMessages(prompt, {
-      isGemmaModel,
-      isGemini3Model: usesGemini3Features,
-      onWarning: warning => warnings.push(warning),
-      providerOptionsNames,
-      supportsFunctionResponseParts: usesGemini3Features,
-      includeFunctionCallIds: !isVertexProvider,
-    });
+    if (!supportsPenalties && frequencyPenalty != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'frequencyPenalty',
+      });
+    }
+    if (!supportsPenalties && presencePenalty != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'presencePenalty',
+      });
+    }
+
+    const supportedFunctionResponseUrls =
+      toolCapabilities.functionResponseParts &&
+      config.downloadToolResultFiles?.supportsGoogleCloudStorageUrls
+        ? googleCloudStorageFunctionResponseUrls
+        : undefined;
+
+    const promptWithDownloadedToolResultFiles = config.downloadToolResultFiles
+      ? await downloadToolResultFiles(prompt, {
+          abortSignal,
+          maxBytes: config.downloadToolResultFiles.maxBytes,
+          fetch: config.downloadToolResultFiles.fetch,
+          supportedUrls: supportedFunctionResponseUrls,
+        })
+      : prompt;
+
+    const { contents, systemInstruction } = convertToGoogleMessages(
+      promptWithDownloadedToolResultFiles,
+      {
+        systemInstructionAsUserMessage,
+        requiresThoughtSignatures: toolCapabilities.thoughtSignatures,
+        onWarning: warning => warnings.push(warning),
+        providerOptionsNames,
+        supportsFunctionResponseParts: toolCapabilities.functionResponseParts,
+        includeFunctionCallIds: !isVertexProvider,
+        supportedFunctionResponseUrls,
+      },
+    );
 
     const {
       tools: googleTools,
@@ -276,15 +341,21 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     } = prepareTools({
       tools,
       toolChoice,
-      modelId: this.modelId,
+      modelId,
       isVertexProvider,
     });
-
-    const resolvedThinking = resolveThinkingConfig({
-      reasoning,
-      modelId: this.modelId,
-      warnings,
+    const toolNameMapping = createToolNameMapping({
+      tools,
+      providerToolNames: {
+        'google.code_execution': 'code_execution',
+      },
     });
+
+    const resolvedThinking =
+      googleOptions?.thinkingConfig?.thinkingBudget != null ||
+      googleOptions?.thinkingConfig?.thinkingLevel != null
+        ? undefined
+        : resolveThinkingConfig({ reasoning, modelId, warnings });
     const thinkingConfig =
       googleOptions?.thinkingConfig || resolvedThinking
         ? { ...resolvedThinking, ...googleOptions?.thinkingConfig }
@@ -331,22 +402,22 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           temperature,
           topK,
           topP,
-          frequencyPenalty,
-          presencePenalty,
+          frequencyPenalty: supportsPenalties ? frequencyPenalty : undefined,
+          presencePenalty: supportsPenalties ? presencePenalty : undefined,
           stopSequences,
           seed,
 
           // response format:
           responseMimeType:
             responseFormat?.type === 'json' ? 'application/json' : undefined,
-          responseSchema:
+          responseJsonSchema:
             responseFormat?.type === 'json' &&
             responseFormat.schema != null &&
-            // Google GenAI does not support all OpenAPI Schema features,
-            // so this is needed as an escape hatch:
+            // Google does not support all JSON Schema features in
+            // responseJsonSchema, so this is needed as an escape hatch:
             // TODO convert into provider option
             (googleOptions?.structuredOutputs ?? true)
-              ? convertJSONSchemaToOpenAPISchema(responseFormat.schema)
+              ? sanitizeResponseJsonSchema(responseFormat.schema)
               : undefined,
           ...(googleOptions?.audioTimestamp && {
             audioTimestamp: googleOptions.audioTimestamp,
@@ -361,57 +432,127 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           ...(imageConfig && { imageConfig }),
         },
         contents,
-        systemInstruction: isGemmaModel ? undefined : systemInstruction,
+        systemInstruction: systemInstructionAsUserMessage
+          ? undefined
+          : systemInstruction,
         safetySettings,
         tools: googleTools,
         toolConfig,
         cachedContent: googleOptions?.cachedContent,
         labels: googleOptions?.labels,
         serviceTier: bodyServiceTier,
+        ...(googleOptions?.continuationToken != null && {
+          continuationToken: googleOptions.continuationToken,
+        }),
       },
       warnings: [...warnings, ...toolWarnings],
       providerOptionsNames,
       extraHeaders: vertexPaygoHeaders,
+      toolNameMapping,
     };
   }
 
-  async doGenerate(
+  private async getArgs(
     options: LanguageModelV4CallOptions,
-  ): Promise<LanguageModelV4GenerateResult> {
-    const { args, warnings, providerOptionsNames, extraHeaders } =
-      await this.getArgs(options);
+    { isStreaming = false }: { isStreaming?: boolean } = {},
+  ) {
+    const { responseFormat, toolChoice } = options;
+    // Enforce the caller's tool choice before the JSON response fallback can
+    // replace it with a forced call to the synthetic response tool.
+    const tools =
+      toolChoice?.type === 'none'
+        ? options.tools?.filter(tool => tool.type === 'function')
+        : options.tools;
+    const entry = getGoogleLanguageModelEntry(this.modelId);
+    const { structuredOutput } = entry.capabilities.language;
+    let jsonResponseTool: LanguageModelV4FunctionTool | undefined;
+    // Gemini models before Gemini 3 reject JSON response formatting together
+    // with function tools. Gemini 3 supports the combination only with automatic
+    // tool choice (AUTO). Forced tool choice (ANY) requires a JSON response tool.
+    if (
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      tools?.some(tool => tool.type === 'function') &&
+      entry.requestConfig.language.jsonResponseTool &&
+      (!structuredOutput.withFunctionTools ||
+        toolChoice?.type === 'required' ||
+        toolChoice?.type === 'tool')
+    ) {
+      let name = 'json';
+      for (let suffix = 1; tools.some(tool => tool.name === name); suffix++) {
+        name = `json_${suffix}`;
+      }
+      jsonResponseTool = {
+        type: 'function',
+        name,
+        description:
+          responseFormat.description ?? 'Respond with a JSON object.',
+        inputSchema: responseFormat.schema,
+      };
+    }
+
+    const prepared = await GoogleLanguageModel.prepareRequest({
+      modelId: this.modelId,
+      config: this.config,
+      options:
+        jsonResponseTool == null
+          ? options
+          : {
+              ...options,
+              responseFormat: undefined,
+              tools: [...(tools ?? []), jsonResponseTool],
+              toolChoice:
+                toolChoice?.type === 'tool'
+                  ? toolChoice
+                  : toolChoice?.type === 'none'
+                    ? { type: 'tool', toolName: jsonResponseTool.name }
+                    : { type: 'required' },
+            },
+      isStreaming,
+    });
+    return { ...prepared, jsonResponseToolName: jsonResponseTool?.name };
+  }
+
+  static convertGenerateContentResponse({
+    config,
+    response,
+    responseHeaders,
+    warnings,
+    providerOptionsNames,
+    toolNameMapping,
+    jsonResponseToolName,
+    initialPromptTokenCount,
+    groundingMetadataPerRequest,
+  }: {
+    config: GoogleLanguageModelConfig;
+    response: InferSchema<typeof responseSchema>;
+    responseHeaders?: Record<string, string>;
+    warnings: SharedV4Warning[];
+    providerOptionsNames: readonly string[];
+    toolNameMapping?: ReturnType<typeof createToolNameMapping>;
+    jsonResponseToolName?: string;
+    initialPromptTokenCount?: number | null;
+    groundingMetadataPerRequest?: Array<GroundingMetadataSchema | null>;
+  }): LanguageModelV4GenerateResult {
     const wrapProviderMetadata = (payload: Record<string, unknown>) =>
       Object.fromEntries(
         providerOptionsNames.map(name => [name, payload]),
       ) as SharedV4ProviderMetadata;
-
-    const mergedHeaders = combineHeaders(
-      this.config.headers ? await resolve(this.config.headers) : undefined,
-      options.headers,
-      extraHeaders,
-    );
-
-    const {
-      responseHeaders,
-      value: response,
-      rawValue: rawResponse,
-    } = await postJsonToApi({
-      url: `${this.config.baseURL}/${getModelPath(
-        this.modelId,
-      )}:generateContent`,
-      headers: mergedHeaders,
-      body: args,
-      failedResponseHandler: googleFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(responseSchema),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
-    });
-
-    const candidate = response.candidates[0];
+    const candidate = response.candidates?.[0];
+    const promptBlockReason = response.promptFeedback?.blockReason;
+    const confirmedPromptBlockReason = isConfirmedPromptBlockReason(
+      promptBlockReason,
+    )
+      ? promptBlockReason
+      : undefined;
+    const isPromptBlocked =
+      candidate?.finishReason == null && confirmedPromptBlockReason != null;
+    const rawFinishReason =
+      candidate?.finishReason ?? confirmedPromptBlockReason;
     const content: Array<LanguageModelV4Content> = [];
 
     // map ordered parts to content:
-    const parts = candidate.content?.parts ?? [];
+    const parts = candidate?.content?.parts ?? [];
 
     const usageMetadata = response.usageMetadata;
 
@@ -423,13 +564,15 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     // Build content array from all parts
     for (const part of parts) {
       if ('executableCode' in part && part.executableCode?.code) {
-        const toolCallId = this.config.generateId();
+        const toolCallId = config.generateId();
         lastCodeExecutionToolCallId = toolCallId;
 
         content.push({
           type: 'tool-call',
           toolCallId,
-          toolName: 'code_execution',
+          toolName:
+            toolNameMapping?.toCustomToolName('code_execution') ??
+            'code_execution',
           input: JSON.stringify(part.executableCode),
           providerExecuted: true,
         });
@@ -438,13 +581,16 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           type: 'tool-result',
           // Results correspond to the most recent executable code part.
           toolCallId: lastCodeExecutionToolCallId!,
-          toolName: 'code_execution',
+          toolName:
+            toolNameMapping?.toCustomToolName('code_execution') ??
+            'code_execution',
           result: {
             outcome: part.codeExecutionResult.outcome,
             output: part.codeExecutionResult.output ?? '',
           },
         });
       } else if ('text' in part && part.text != null) {
+        if (jsonResponseToolName != null && part.thought !== true) continue;
         const thoughtSignatureMetadata = part.thoughtSignature
           ? wrapProviderMetadata({
               thoughtSignature: part.thoughtSignature,
@@ -464,9 +610,26 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           });
         }
       } else if ('functionCall' in part && part.functionCall.name != null) {
+        if (part.functionCall.name === jsonResponseToolName) {
+          content.push({
+            type: 'text',
+            text:
+              typeof part.functionCall.args === 'string'
+                ? part.functionCall.args
+                : JSON.stringify(part.functionCall.args ?? {}),
+            ...(part.thoughtSignature
+              ? {
+                  providerMetadata: wrapProviderMetadata({
+                    thoughtSignature: part.thoughtSignature,
+                  }),
+                }
+              : {}),
+          });
+          continue;
+        }
         content.push({
           type: 'tool-call' as const,
-          toolCallId: part.functionCall.id || this.config.generateId(),
+          toolCallId: part.functionCall.id || config.generateId(),
           toolName: part.functionCall.name,
           input: JSON.stringify(part.functionCall.args ?? {}),
           providerMetadata: part.thoughtSignature
@@ -489,7 +652,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
             : undefined,
         });
       } else if ('toolCall' in part && part.toolCall) {
-        const toolCallId = part.toolCall.id || this.config.generateId();
+        const toolCallId = part.toolCall.id || config.generateId();
         lastServerToolCallId = toolCallId;
         content.push({
           type: 'tool-call',
@@ -511,9 +674,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         });
       } else if ('toolResponse' in part && part.toolResponse) {
         const responseToolCallId =
-          lastServerToolCallId ||
-          part.toolResponse.id ||
-          this.config.generateId();
+          lastServerToolCallId || part.toolResponse.id || config.generateId();
         content.push({
           type: 'tool-result',
           toolCallId: responseToolCallId,
@@ -536,8 +697,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
     const sources =
       extractSources({
-        groundingMetadata: candidate.groundingMetadata,
-        generateId: this.config.generateId,
+        groundingMetadata: candidate?.groundingMetadata,
+        generateId: config.generateId,
       }) ?? [];
     for (const source of sources) {
       content.push(source);
@@ -546,30 +707,155 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     return {
       content,
       finishReason: {
-        unified: mapGoogleFinishReason({
-          finishReason: candidate.finishReason,
-          // Only count client-executed tool calls for finish reason determination.
-          hasToolCalls: content.some(
-            part => part.type === 'tool-call' && !part.providerExecuted,
-          ),
-        }),
-        raw: candidate.finishReason ?? undefined,
+        unified: isPromptBlocked
+          ? 'content-filter'
+          : mapGoogleFinishReason({
+              finishReason: rawFinishReason,
+              // Only count client-executed tool calls for finish reason determination.
+              hasToolCalls: content.some(
+                part => part.type === 'tool-call' && !part.providerExecuted,
+              ),
+            }),
+        raw: rawFinishReason,
       },
       usage: convertGoogleUsage(usageMetadata),
       warnings,
       providerMetadata: wrapProviderMetadata({
         promptFeedback: response.promptFeedback ?? null,
-        groundingMetadata: candidate.groundingMetadata ?? null,
-        urlContextMetadata: candidate.urlContextMetadata ?? null,
-        safetyRatings: candidate.safetyRatings ?? null,
+        groundingMetadata: candidate?.groundingMetadata ?? null,
+        ...(groundingMetadataPerRequest != null
+          ? { groundingMetadataPerRequest }
+          : {}),
+        urlContextMetadata: candidate?.urlContextMetadata ?? null,
+        safetyRatings: candidate?.safetyRatings ?? null,
         usageMetadata: usageMetadata ?? null,
-        finishMessage: candidate.finishMessage ?? null,
-        serviceTier: usageMetadata?.serviceTier ?? null,
+        finishMessage: candidate?.finishMessage ?? null,
+        serviceTier:
+          usageMetadata?.serviceTier ??
+          responseHeaders?.['x-gemini-service-tier'] ??
+          null,
+        ...(candidate?.continuationToken != null
+          ? { continuationToken: candidate.continuationToken }
+          : {}),
+        ...(initialPromptTokenCount != null ? { initialPromptTokenCount } : {}),
       } satisfies GoogleProviderMetadata),
-      request: { body: args },
       response: {
         // TODO timestamp, model id
         id: response.responseId ?? undefined,
+      },
+    };
+  }
+
+  async doGenerate(
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
+    const {
+      args,
+      warnings,
+      providerOptionsNames,
+      extraHeaders,
+      toolNameMapping,
+      jsonResponseToolName,
+    } = await this.getArgs(options);
+
+    const generateContent = async (body: typeof args) =>
+      postJsonToApi({
+        url: `${this.config.baseURL}/${getModelPath(
+          this.modelId,
+        )}:generateContent`,
+        headers: combineHeaders(
+          await resolve(this.config.headers),
+          options.headers,
+          extraHeaders,
+        ),
+        body,
+        failedResponseHandler: googleFailedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(responseSchema),
+        abortSignal: options.abortSignal,
+        fetch: this.config.fetch,
+      });
+
+    let {
+      responseHeaders,
+      value: response,
+      rawValue: rawResponse,
+    } = await generateContent(args);
+
+    // Gemini 4 long decode: a request that reaches the per-request cap while
+    // `maxOutputTokens` budget remains finishes with `CONTINUATION`. Resend
+    // the same request with the continuation token (the server tracks the
+    // cumulative tokens) and combine the content of all requests.
+    //
+    // Usage is summed across requests (matching billing). Each request re-sends
+    // the prompt plus all output so far as input, so the first request's
+    // prompt token count is kept separately for context window checks.
+    const content: LanguageModelV4Content[] = [];
+    const groundingMetadataPerRequest: Array<GroundingMetadataSchema | null> =
+      [];
+    let usageMetadata: GoogleUsageMetadata | undefined;
+    const firstPromptTokenCount = response.usageMetadata?.promptTokenCount;
+    let isContinued = false;
+
+    while (true) {
+      const candidate = response.candidates?.[0];
+      groundingMetadataPerRequest.push(candidate?.groundingMetadata ?? null);
+      const continuationToken =
+        candidate?.finishReason === 'CONTINUATION'
+          ? candidate.continuationToken
+          : undefined;
+
+      usageMetadata = addGoogleUsageMetadata(
+        usageMetadata,
+        response.usageMetadata ?? undefined,
+      );
+
+      if (continuationToken == null) {
+        break;
+      }
+
+      content.push(
+        ...GoogleLanguageModel.convertGenerateContentResponse({
+          config: this.config,
+          response,
+          warnings,
+          providerOptionsNames,
+          toolNameMapping,
+          jsonResponseToolName,
+        }).content,
+      );
+
+      isContinued = true;
+      ({
+        responseHeaders,
+        value: response,
+        rawValue: rawResponse,
+      } = await generateContent({ ...args, continuationToken }));
+    }
+
+    const lastResult = GoogleLanguageModel.convertGenerateContentResponse({
+      config: this.config,
+      response: { ...response, usageMetadata },
+      responseHeaders,
+      warnings,
+      providerOptionsNames,
+      toolNameMapping,
+      jsonResponseToolName,
+      initialPromptTokenCount: isContinued ? firstPromptTokenCount : undefined,
+      groundingMetadataPerRequest: isContinued
+        ? groundingMetadataPerRequest
+        : undefined,
+    });
+
+    const result = {
+      ...lastResult,
+      content: [...content, ...lastResult.content],
+    };
+
+    return {
+      ...result,
+      request: { body: args },
+      response: {
+        ...result.response,
         headers: responseHeaders,
         body: rawResponse,
       },
@@ -579,39 +865,87 @@ export class GoogleLanguageModel implements LanguageModelV4 {
   async doStream(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4StreamResult> {
-    const { args, warnings, providerOptionsNames, extraHeaders } =
-      await this.getArgs(options, { isStreaming: true });
+    const {
+      args,
+      warnings,
+      providerOptionsNames,
+      extraHeaders,
+      toolNameMapping,
+      jsonResponseToolName,
+    } = await this.getArgs(options, { isStreaming: true });
     const wrapProviderMetadata = (payload: Record<string, unknown>) =>
       Object.fromEntries(
         providerOptionsNames.map(name => [name, payload]),
       ) as SharedV4ProviderMetadata;
 
-    const headers = combineHeaders(
-      this.config.headers ? await resolve(this.config.headers) : undefined,
-      options.headers,
-      extraHeaders,
-    );
+    const streamGenerateContent = async (body: typeof args) =>
+      postJsonToApi({
+        url: `${this.config.baseURL}/${getModelPath(
+          this.modelId,
+        )}:streamGenerateContent?alt=sse`,
+        headers: combineHeaders(
+          await resolve(this.config.headers),
+          options.headers,
+          extraHeaders,
+        ),
+        body,
+        failedResponseHandler: googleFailedResponseHandler,
+        successfulResponseHandler:
+          createEventSourceResponseHandler(chunkSchema),
+        abortSignal: options.abortSignal,
+        fetch: this.config.fetch,
+      });
 
-    const { responseHeaders, value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/${getModelPath(
-        this.modelId,
-      )}:streamGenerateContent?alt=sse`,
-      headers,
-      body: args,
-      failedResponseHandler: googleFailedResponseHandler,
-      successfulResponseHandler: createEventSourceResponseHandler(chunkSchema),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
+    const { responseHeaders, value: firstResponse } =
+      await streamGenerateContent(args);
+
+    const groundingMetadataPerRequest: Array<GroundingMetadataSchema | null> =
+      [];
+    let requestGroundingMetadata: GroundingMetadataSchema | null = null;
+
+    // Gemini 4 long decode: when a stream reaches the per-request cap while
+    // `maxOutputTokens` budget remains, its last chunk finishes with
+    // `CONTINUATION`. Resend the same request with the continuation token and
+    // append the new stream, which contains only newly generated content.
+    const response = continueGoogleStream({
+      stream: firstResponse,
+      getContinuationToken: chunk => {
+        const candidate = chunk.candidates?.[0];
+        if (candidate?.groundingMetadata != null) {
+          requestGroundingMetadata = candidate.groundingMetadata;
+        }
+        return candidate?.finishReason === 'CONTINUATION'
+          ? (candidate.continuationToken ?? undefined)
+          : undefined;
+      },
+      continueStream: async continuationToken => {
+        const { value } = await streamGenerateContent({
+          ...args,
+          continuationToken,
+        });
+        groundingMetadataPerRequest.push(requestGroundingMetadata);
+        requestGroundingMetadata = null;
+        return value;
+      },
     });
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let usage: GoogleUsageMetadata | undefined = undefined;
-    let providerMetadata: SharedV4ProviderMetadata | undefined = undefined;
+    // Usage of the completed requests of an automatically continued response.
+    let continuedUsage: GoogleUsageMetadata | undefined = undefined;
+    // Prompt token count of the first request, for context window checks.
+    let initialPromptTokenCount: number | null | undefined = undefined;
+    let promptFeedback: PromptFeedbackSchema | null = null;
     let lastGroundingMetadata: GroundingMetadataSchema | null = null;
     let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
+    let lastSafetyRatings: SafetyRatingSchema[] | null = null;
+    let lastFinishMessage: string | null = null;
+    let lastContinuationToken: string | null = null;
+    let confirmedPromptBlockReason: string | undefined;
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
@@ -623,7 +957,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     let blockCounter = 0;
 
     // Track emitted sources to prevent duplicates
-    const emittedSourceUrls = new Set<string>();
+    const emittedSourceKeys = new Set<string>();
     // Associates code execution results with their preceding call.
     let lastCodeExecutionToolCallId: string | undefined;
     // Associates a server-side tool response with its preceding call (tool combination).
@@ -642,6 +976,19 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       const active = activeStreamingToolCalls.pop();
       if (active == null) {
         return;
+      }
+
+      // Finalized partial-argument calls also separate surrounding blocks.
+      if (currentTextBlockId !== null) {
+        controller.enqueue({ type: 'text-end', id: currentTextBlockId });
+        currentTextBlockId = null;
+      }
+      if (currentReasoningBlockId !== null) {
+        controller.enqueue({
+          type: 'reasoning-end',
+          id: currentReasoningBlockId,
+        });
+        currentReasoningBlockId = null;
       }
 
       const { finalJSON, closingDelta } = active.accumulator.finalize();
@@ -672,10 +1019,10 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       hasToolCalls = true;
     };
 
-    return {
+    const result = {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<ChunkSchema>,
+          GoogleStreamPart<ChunkSchema>,
           LanguageModelV4StreamPart
         >({
           start(controller) {
@@ -683,16 +1030,51 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           },
 
           transform(chunk, controller) {
+            if ('type' in chunk) {
+              // Reset in stream order, after the prior response's buffered
+              // CONTINUATION chunk, rather than when the request starts.
+              finishReason = { unified: 'interrupted', raw: undefined };
+              return;
+            }
+
             if (options.includeRawChunks) {
               controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
             }
 
             if (!chunk.success) {
+              if (finishReason.unified === 'interrupted') {
+                finishReason = { unified: 'error', raw: undefined };
+              }
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
 
             const value = chunk.value;
+
+            if (value.error != null) {
+              finishReason = { unified: 'error', raw: undefined };
+              const error = value.error;
+              const statusCode =
+                error.code ??
+                mapGoogleErrorStatusToHttpStatusCode(error.status);
+              controller.enqueue({
+                type: 'error',
+                error: createProviderStreamError({
+                  message: error.message,
+                  type: error.status,
+                  code: error.code ?? undefined,
+                  statusCode,
+                  isRetryable:
+                    statusCode != null &&
+                    (statusCode === 408 ||
+                      statusCode === 409 ||
+                      statusCode === 429 ||
+                      statusCode >= 500),
+                  data: error,
+                }),
+              });
+              return;
+            }
 
             if (!hasEmittedResponseMetadata && value.responseId != null) {
               hasEmittedResponseMetadata = true;
@@ -708,35 +1090,59 @@ export class GoogleLanguageModel implements LanguageModelV4 {
               usage = usageMetadata;
             }
 
+            if (
+              value.promptFeedback != null &&
+              confirmedPromptBlockReason == null
+            ) {
+              promptFeedback = value.promptFeedback;
+
+              if (
+                isConfirmedPromptBlockReason(value.promptFeedback.blockReason)
+              ) {
+                confirmedPromptBlockReason = value.promptFeedback.blockReason;
+                finishReason = {
+                  unified: 'content-filter',
+                  raw: confirmedPromptBlockReason,
+                };
+              }
+            }
+
             const candidate = value.candidates?.[0];
 
-            // sometimes the API returns an empty candidates array
-            if (candidate == null) {
+            if (candidate != null) {
+              if (candidate.groundingMetadata != null) {
+                lastGroundingMetadata = candidate.groundingMetadata;
+              }
+              if (candidate.urlContextMetadata != null) {
+                lastUrlContextMetadata = candidate.urlContextMetadata;
+              }
+              if (candidate.safetyRatings != null) {
+                lastSafetyRatings = candidate.safetyRatings;
+              }
+              if (candidate.finishMessage != null) {
+                lastFinishMessage = candidate.finishMessage;
+              }
+              if (candidate.continuationToken != null) {
+                lastContinuationToken = candidate.continuationToken;
+              }
+            }
+
+            // A confirmed prompt block is terminal for generated content, but
+            // later chunks can still contribute usage and provider metadata.
+            if (confirmedPromptBlockReason != null || candidate == null) {
               return;
             }
 
             const content = candidate.content;
 
-            if (candidate.groundingMetadata != null) {
-              lastGroundingMetadata = candidate.groundingMetadata;
-            }
-            if (candidate.urlContextMetadata != null) {
-              lastUrlContextMetadata = candidate.urlContextMetadata;
-            }
-
             const sources = extractSources({
               groundingMetadata: candidate.groundingMetadata,
               generateId,
+              emittedSourceKeys,
             });
             if (sources != null) {
               for (const source of sources) {
-                if (
-                  source.sourceType === 'url' &&
-                  !emittedSourceUrls.has(source.url)
-                ) {
-                  emittedSourceUrls.add(source.url);
-                  controller.enqueue(source);
-                }
+                controller.enqueue(source);
               }
             }
 
@@ -752,7 +1158,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                   controller.enqueue({
                     type: 'tool-call',
                     toolCallId,
-                    toolName: 'code_execution',
+                    toolName:
+                      toolNameMapping.toCustomToolName('code_execution'),
                     input: JSON.stringify(part.executableCode),
                     providerExecuted: true,
                   });
@@ -767,7 +1174,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                     controller.enqueue({
                       type: 'tool-result',
                       toolCallId,
-                      toolName: 'code_execution',
+                      toolName:
+                        toolNameMapping.toCustomToolName('code_execution'),
                       result: {
                         outcome: part.codeExecutionResult.outcome,
                         output: part.codeExecutionResult.output ?? '',
@@ -782,16 +1190,40 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                     : undefined;
 
                   if (part.text.length === 0) {
-                    if (
-                      thoughtSignatureMetadata != null &&
-                      currentTextBlockId !== null
-                    ) {
-                      controller.enqueue({
-                        type: 'text-delta',
-                        id: currentTextBlockId,
-                        delta: '',
-                        providerMetadata: thoughtSignatureMetadata,
-                      });
+                    if (thoughtSignatureMetadata != null) {
+                      if (currentTextBlockId !== null) {
+                        controller.enqueue({
+                          type: 'text-delta',
+                          id: currentTextBlockId,
+                          delta: '',
+                          providerMetadata: thoughtSignatureMetadata,
+                        });
+                      } else {
+                        if (currentReasoningBlockId !== null) {
+                          controller.enqueue({
+                            type: 'reasoning-end',
+                            id: currentReasoningBlockId,
+                          });
+                          currentReasoningBlockId = null;
+                        }
+
+                        // Keep the signature in position without merging later content.
+                        const id = String(blockCounter++);
+                        const type =
+                          part.thought === true ? 'reasoning' : 'text';
+                        controller.enqueue({
+                          type: `${type}-start`,
+                          id,
+                          providerMetadata: thoughtSignatureMetadata,
+                        });
+                        controller.enqueue({
+                          type: `${type}-delta`,
+                          id,
+                          delta: '',
+                          providerMetadata: thoughtSignatureMetadata,
+                        });
+                        controller.enqueue({ type: `${type}-end`, id });
+                      }
                     }
                   } else if (part.thought === true) {
                     // End any active text block before starting reasoning
@@ -916,67 +1348,108 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                     providerMetadata: serverMeta,
                   });
                   lastServerToolCallId = undefined;
-                }
-              }
+                } else if ('functionCall' in part) {
+                  const providerMeta = part.thoughtSignature
+                    ? wrapProviderMetadata({
+                        thoughtSignature: part.thoughtSignature,
+                      })
+                    : undefined;
 
-              // Handle streaming and complete function calls
-              for (const part of parts) {
-                if (!('functionCall' in part)) continue;
+                  const isStreamingChunk =
+                    part.functionCall.partialArgs != null ||
+                    (part.functionCall.name != null &&
+                      part.functionCall.willContinue === true);
+                  const isTerminalChunk =
+                    part.functionCall.name == null &&
+                    part.functionCall.args == null &&
+                    part.functionCall.partialArgs == null &&
+                    part.functionCall.willContinue == null;
+                  const isCompleteCall =
+                    part.functionCall.name != null &&
+                    part.functionCall.args != null &&
+                    part.functionCall.partialArgs == null;
+                  // Single-chunk no-args call: `{ name: 'X' }` with no `args`,
+                  // `partialArgs`, or `willContinue`. Carries `thoughtSignature`.
+                  const isNoArgsCompleteCall =
+                    part.functionCall.name != null &&
+                    part.functionCall.args == null &&
+                    part.functionCall.partialArgs == null &&
+                    part.functionCall.willContinue !== true;
 
-                const providerMeta = part.thoughtSignature
-                  ? wrapProviderMetadata({
-                      thoughtSignature: part.thoughtSignature,
-                    })
-                  : undefined;
+                  if (
+                    !isStreamingChunk &&
+                    (isCompleteCall || isNoArgsCompleteCall)
+                  ) {
+                    if (currentTextBlockId !== null) {
+                      controller.enqueue({
+                        type: 'text-end',
+                        id: currentTextBlockId,
+                      });
+                      currentTextBlockId = null;
+                    }
+                    if (currentReasoningBlockId !== null) {
+                      controller.enqueue({
+                        type: 'reasoning-end',
+                        id: currentReasoningBlockId,
+                      });
+                      currentReasoningBlockId = null;
+                    }
+                  }
 
-                const isStreamingChunk =
-                  part.functionCall.partialArgs != null ||
-                  (part.functionCall.name != null &&
-                    part.functionCall.willContinue === true);
-                const isTerminalChunk =
-                  part.functionCall.name == null &&
-                  part.functionCall.args == null &&
-                  part.functionCall.partialArgs == null &&
-                  part.functionCall.willContinue == null;
-                const isCompleteCall =
-                  part.functionCall.name != null &&
-                  part.functionCall.args != null &&
-                  part.functionCall.partialArgs == null;
-                // Single-chunk no-args call: `{ name: 'X' }` with no `args`,
-                // `partialArgs`, or `willContinue`. Carries `thoughtSignature`.
-                const isNoArgsCompleteCall =
-                  part.functionCall.name != null &&
-                  part.functionCall.args == null &&
-                  part.functionCall.partialArgs == null &&
-                  part.functionCall.willContinue !== true;
+                  if (isStreamingChunk) {
+                    if (part.functionCall.name != null) {
+                      const toolCallId = part.functionCall.id || generateId();
+                      const accumulator = new GoogleJSONAccumulator();
+                      activeStreamingToolCalls.push({
+                        toolCallId,
+                        toolName: part.functionCall.name,
+                        accumulator,
+                        providerMetadata: providerMeta,
+                      });
 
-                if (isStreamingChunk) {
-                  if (part.functionCall.name != null) {
-                    const toolCallId = part.functionCall.id || generateId();
-                    const accumulator = new GoogleJSONAccumulator();
-                    activeStreamingToolCalls.push({
-                      toolCallId,
-                      toolName: part.functionCall.name,
-                      accumulator,
-                      providerMetadata: providerMeta,
-                    });
+                      controller.enqueue({
+                        type: 'tool-input-start',
+                        id: toolCallId,
+                        toolName: part.functionCall.name,
+                        providerMetadata: providerMeta,
+                      });
 
-                    controller.enqueue({
-                      type: 'tool-input-start',
-                      id: toolCallId,
-                      toolName: part.functionCall.name,
-                      providerMetadata: providerMeta,
-                    });
-
-                    if (part.functionCall.partialArgs != null) {
+                      if (part.functionCall.partialArgs != null) {
+                        const partialArgs = part.functionCall
+                          .partialArgs as PartialArg[];
+                        const { textDelta } =
+                          accumulator.processPartialArgs(partialArgs);
+                        if (textDelta.length > 0) {
+                          controller.enqueue({
+                            type: 'tool-input-delta',
+                            id: toolCallId,
+                            delta: textDelta,
+                            providerMetadata: providerMeta,
+                          });
+                        }
+                        if (
+                          part.functionCall.willContinue !== true &&
+                          partialArgs.every(arg => arg.willContinue !== true)
+                        ) {
+                          finishActiveStreamingToolCall(controller);
+                        }
+                      }
+                    } else if (
+                      part.functionCall.partialArgs != null &&
+                      activeStreamingToolCalls.length > 0
+                    ) {
+                      const active =
+                        activeStreamingToolCalls[
+                          activeStreamingToolCalls.length - 1
+                        ];
                       const partialArgs = part.functionCall
                         .partialArgs as PartialArg[];
                       const { textDelta } =
-                        accumulator.processPartialArgs(partialArgs);
+                        active.accumulator.processPartialArgs(partialArgs);
                       if (textDelta.length > 0) {
                         controller.enqueue({
                           type: 'tool-input-delta',
-                          id: toolCallId,
+                          id: active.toolCallId,
                           delta: textDelta,
                           providerMetadata: providerMeta,
                         });
@@ -989,102 +1462,86 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                       }
                     }
                   } else if (
-                    part.functionCall.partialArgs != null &&
+                    isTerminalChunk &&
                     activeStreamingToolCalls.length > 0
                   ) {
-                    const active =
-                      activeStreamingToolCalls[
-                        activeStreamingToolCalls.length - 1
-                      ];
-                    const partialArgs = part.functionCall
-                      .partialArgs as PartialArg[];
-                    const { textDelta } =
-                      active.accumulator.processPartialArgs(partialArgs);
-                    if (textDelta.length > 0) {
-                      controller.enqueue({
-                        type: 'tool-input-delta',
-                        id: active.toolCallId,
-                        delta: textDelta,
-                        providerMetadata: providerMeta,
-                      });
-                    }
-                    if (
-                      part.functionCall.willContinue !== true &&
-                      partialArgs.every(arg => arg.willContinue !== true)
-                    ) {
-                      finishActiveStreamingToolCall(controller);
-                    }
+                    finishActiveStreamingToolCall(controller);
+                  } else if (isCompleteCall) {
+                    const toolCallId = part.functionCall.id || generateId();
+                    const toolName = part.functionCall.name!;
+                    const args =
+                      typeof part.functionCall.args === 'string'
+                        ? part.functionCall.args
+                        : JSON.stringify(part.functionCall.args ?? {});
+
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: toolCallId,
+                      toolName,
+                      providerMetadata: providerMeta,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-input-delta',
+                      id: toolCallId,
+                      delta: args,
+                      providerMetadata: providerMeta,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-input-end',
+                      id: toolCallId,
+                      providerMetadata: providerMeta,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-call',
+                      toolCallId,
+                      toolName,
+                      input: args,
+                      providerMetadata: providerMeta,
+                    });
+
+                    hasToolCalls = true;
+                  } else if (isNoArgsCompleteCall) {
+                    const toolCallId = part.functionCall.id || generateId();
+                    const toolName = part.functionCall.name!;
+
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: toolCallId,
+                      toolName,
+                      providerMetadata: providerMeta,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-input-end',
+                      id: toolCallId,
+                      providerMetadata: providerMeta,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-call',
+                      toolCallId,
+                      toolName,
+                      input: '{}',
+                      providerMetadata: providerMeta,
+                    });
+
+                    hasToolCalls = true;
                   }
-                } else if (
-                  isTerminalChunk &&
-                  activeStreamingToolCalls.length > 0
-                ) {
-                  finishActiveStreamingToolCall(controller);
-                } else if (isCompleteCall) {
-                  const toolCallId = part.functionCall.id || generateId();
-                  const toolName = part.functionCall.name!;
-                  const args =
-                    typeof part.functionCall.args === 'string'
-                      ? part.functionCall.args
-                      : JSON.stringify(part.functionCall.args ?? {});
-
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCallId,
-                    toolName,
-                    providerMetadata: providerMeta,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-input-delta',
-                    id: toolCallId,
-                    delta: args,
-                    providerMetadata: providerMeta,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: toolCallId,
-                    providerMetadata: providerMeta,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId,
-                    toolName,
-                    input: args,
-                    providerMetadata: providerMeta,
-                  });
-
-                  hasToolCalls = true;
-                } else if (isNoArgsCompleteCall) {
-                  const toolCallId = part.functionCall.id || generateId();
-                  const toolName = part.functionCall.name!;
-
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCallId,
-                    toolName,
-                    providerMetadata: providerMeta,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: toolCallId,
-                    providerMetadata: providerMeta,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId,
-                    toolName,
-                    input: '{}',
-                    providerMetadata: providerMeta,
-                  });
-
-                  hasToolCalls = true;
                 }
               }
+            }
+
+            if (candidate.finishReason === 'CONTINUATION') {
+              // Usage metadata is per request. The next request reports its
+              // own usage, so bank the usage of this one.
+              if (continuedUsage == null) {
+                initialPromptTokenCount = usage?.promptTokenCount;
+              }
+              continuedUsage = addGoogleUsageMetadata(continuedUsage, usage);
+              usage = undefined;
             }
 
             if (candidate.finishReason != null) {
@@ -1095,20 +1552,12 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                 }),
                 raw: candidate.finishReason,
               };
-
-              providerMetadata = wrapProviderMetadata({
-                promptFeedback: value.promptFeedback ?? null,
-                groundingMetadata: lastGroundingMetadata,
-                urlContextMetadata: lastUrlContextMetadata,
-                safetyRatings: candidate.safetyRatings ?? null,
-                usageMetadata: usageMetadata ?? null,
-                finishMessage: candidate.finishMessage ?? null,
-                serviceTier: usage?.serviceTier ?? null,
-              } satisfies GoogleProviderMetadata);
             }
           },
 
           flush(controller) {
+            usage = addGoogleUsageMetadata(continuedUsage, usage);
+
             if (currentTextBlockId !== null) {
               controller.enqueue({
                 type: 'text-end',
@@ -1126,7 +1575,37 @@ export class GoogleLanguageModel implements LanguageModelV4 {
               type: 'finish',
               finishReason,
               usage: convertGoogleUsage(usage),
-              providerMetadata,
+              providerMetadata: wrapProviderMetadata({
+                promptFeedback,
+                groundingMetadata: lastGroundingMetadata,
+                ...(groundingMetadataPerRequest.length > 0
+                  ? {
+                      groundingMetadataPerRequest: [
+                        ...groundingMetadataPerRequest,
+                        requestGroundingMetadata,
+                      ],
+                    }
+                  : {}),
+                urlContextMetadata: lastUrlContextMetadata,
+                safetyRatings: lastSafetyRatings,
+                usageMetadata: usage ?? null,
+                finishMessage: lastFinishMessage,
+                serviceTier:
+                  usage?.serviceTier ??
+                  responseHeaders?.['x-gemini-service-tier'] ??
+                  null,
+                // Only surface the token when the response stopped early
+                // (budget used up, or continuing failed), not for the
+                // checkpoint tokens of a stream that finished normally.
+                ...(lastContinuationToken != null &&
+                (finishReason.raw === 'MAX_TOKENS' ||
+                  finishReason.raw === 'CONTINUATION')
+                  ? { continuationToken: lastContinuationToken }
+                  : {}),
+                ...(initialPromptTokenCount != null
+                  ? { initialPromptTokenCount }
+                  : {}),
+              } satisfies GoogleProviderMetadata),
             });
           },
         }),
@@ -1134,19 +1613,16 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       response: { headers: responseHeaders },
       request: { body: args },
     };
+    return {
+      ...result,
+      stream:
+        jsonResponseToolName == null
+          ? result.stream
+          : result.stream.pipeThrough(
+              convertJsonResponseToolStream(jsonResponseToolName),
+            ),
+    };
   }
-}
-
-function getMaxOutputTokensForGemini25Model(): number {
-  return 65536;
-}
-
-function getMaxThinkingTokensForGemini25Model(modelId: string): number {
-  const id = modelId.toLowerCase();
-  if (id.includes('2.5-pro') || id.includes('gemini-3-pro-image')) {
-    return 32768;
-  }
-  return 24576;
 }
 
 type GoogleThinkingConfig = NonNullable<
@@ -1167,16 +1643,16 @@ function resolveThinkingConfig({
   }
 
   if (
-    getGoogleModelCapabilities(modelId).usesGemini3Features &&
-    !modelId.includes('gemini-3-pro-image')
+    getGoogleLanguageModelEntry(modelId).requestConfig.language
+      .thinkingFormat === 'level'
   ) {
-    return resolveGemini3ThinkingConfig({ reasoning, modelId, warnings });
+    return resolveThinkingLevelConfig({ reasoning, modelId, warnings });
   }
 
-  return resolveGemini25ThinkingConfig({ reasoning, modelId, warnings });
+  return resolveThinkingBudgetConfig({ reasoning, modelId, warnings });
 }
 
-function resolveGemini3ThinkingConfig({
+function resolveThinkingLevelConfig({
   reasoning,
   modelId,
   warnings,
@@ -1188,22 +1664,19 @@ function resolveGemini3ThinkingConfig({
   modelId: string;
   warnings: SharedV4Warning[];
 }): Pick<GoogleThinkingConfig, 'thinkingLevel'> | undefined {
-  const minimumThinkingLevel = getMinimumThinkingLevelForGemini3Model(modelId);
+  const thinkingLevels =
+    getGoogleLanguageModelEntry(modelId).capabilities.language.reasoning
+      .efforts;
 
-  if (reasoning === 'none') {
-    // It's not possible to fully disable thinking with Gemini 3.
-    return { thinkingLevel: minimumThinkingLevel };
-  }
-
-  const thinkingLevel = mapReasoningToProviderEffort({
+  // It's not possible to fully disable thinking with Gemini 3, so reasoning
+  // 'none' maps to the lowest supported thinking level.
+  const thinkingLevel = mapReasoningToProviderEffort<
+    NonNullable<GoogleThinkingConfig['thinkingLevel']>
+  >({
     reasoning,
-    effortMap: {
-      minimal: minimumThinkingLevel,
-      low: 'low',
-      medium: 'medium',
-      high: 'high',
-      xhigh: 'high',
-    },
+    effortMap: Object.fromEntries(
+      (thinkingLevels ?? []).map(level => [level, level]),
+    ),
     warnings,
   });
 
@@ -1214,32 +1687,7 @@ function resolveGemini3ThinkingConfig({
   return { thinkingLevel };
 }
 
-function getMinimumThinkingLevelForGemini3Model(
-  modelId: string,
-): 'minimal' | 'low' {
-  const modelName = modelId.split('/').at(-1)?.toLowerCase();
-
-  if (modelName === 'gemini-flash-latest') {
-    return 'low';
-  }
-
-  const versionMatch = /^gemini-(\d+)\.(\d+)-flash(?:$|-(?!lite(?:-|$)))/.exec(
-    modelName ?? '',
-  );
-
-  if (versionMatch == null) {
-    return 'minimal';
-  }
-
-  const majorVersion = Number(versionMatch[1]);
-  const minorVersion = Number(versionMatch[2]);
-
-  return majorVersion > 3 || (majorVersion === 3 && minorVersion >= 7)
-    ? 'low'
-    : 'minimal';
-}
-
-function resolveGemini25ThinkingConfig({
+function resolveThinkingBudgetConfig({
   reasoning,
   modelId,
   warnings,
@@ -1250,30 +1698,32 @@ function resolveGemini25ThinkingConfig({
   >;
   modelId: string;
   warnings: SharedV4Warning[];
-}): Pick<GoogleThinkingConfig, 'thinkingBudget'> | undefined {
-  if (reasoning === 'none') {
+}): Pick<GoogleThinkingConfig, 'thinkingBudget'> {
+  const entry = getGoogleLanguageModelEntry(modelId);
+  const minThinkingBudget = entry.capabilities.language.reasoning.minBudget;
+
+  if (reasoning === 'none' && minThinkingBudget === 0) {
     return { thinkingBudget: 0 };
   }
 
   const thinkingBudget = mapReasoningToProviderBudget({
     reasoning,
-    maxOutputTokens: getMaxOutputTokensForGemini25Model(),
-    maxReasoningBudget: getMaxThinkingTokensForGemini25Model(modelId),
-    minReasoningBudget: 0,
+    maxOutputTokens: entry.requestConfig.language.reasoningMaxOutputTokens,
+    maxReasoningBudget: entry.capabilities.language.reasoning.maxBudget,
+    minReasoningBudget: minThinkingBudget,
     warnings,
   });
-  if (thinkingBudget == null) {
-    return undefined;
-  }
   return { thinkingBudget };
 }
 
 function extractSources({
   groundingMetadata,
   generateId,
+  emittedSourceKeys,
 }: {
   groundingMetadata: GroundingMetadataSchema | undefined | null;
   generateId: () => string;
+  emittedSourceKeys?: Set<string>;
 }): undefined | LanguageModelV4Source[] {
   if (!groundingMetadata?.groundingChunks) {
     return undefined;
@@ -1281,27 +1731,42 @@ function extractSources({
 
   const sources: LanguageModelV4Source[] = [];
 
+  const addSource = (source: LanguageModelV4Source, key: string) => {
+    if (emittedSourceKeys?.has(key)) {
+      return;
+    }
+
+    emittedSourceKeys?.add(key);
+    sources.push(source);
+  };
+
   for (const chunk of groundingMetadata.groundingChunks) {
     if (chunk.web != null) {
       // Handle web chunks as URL sources
-      sources.push({
-        type: 'source',
-        sourceType: 'url',
-        id: generateId(),
-        url: chunk.web.uri,
-        title: chunk.web.title ?? undefined,
-      });
+      addSource(
+        {
+          type: 'source',
+          sourceType: 'url',
+          id: generateId(),
+          url: chunk.web.uri,
+          title: chunk.web.title ?? undefined,
+        },
+        JSON.stringify(['url', chunk.web.uri]),
+      );
     } else if (chunk.image != null) {
       // Handle image chunks as image sources
-      sources.push({
-        type: 'source',
-        sourceType: 'url',
-        id: generateId(),
-        // Google requires attribution to the source URI, not the actual image URI.
-        // TODO: add another type in v7 to allow both the image and source URL to be included separately
-        url: chunk.image.sourceUri,
-        title: chunk.image.title ?? undefined,
-      });
+      addSource(
+        {
+          type: 'source',
+          sourceType: 'url',
+          id: generateId(),
+          // Google requires attribution to the source URI, not the actual image URI.
+          // TODO: add another type in v7 to allow both the image and source URL to be included separately
+          url: chunk.image.sourceUri,
+          title: chunk.image.title ?? undefined,
+        },
+        JSON.stringify(['url', chunk.image.sourceUri]),
+      );
     } else if (chunk.retrievedContext != null) {
       // Handle retrievedContext chunks from RAG operations
       const uri = chunk.retrievedContext.uri;
@@ -1309,13 +1774,16 @@ function extractSources({
 
       if (uri && (uri.startsWith('http://') || uri.startsWith('https://'))) {
         // Old format: Google Search with HTTP/HTTPS URL
-        sources.push({
-          type: 'source',
-          sourceType: 'url',
-          id: generateId(),
-          url: uri,
-          title: chunk.retrievedContext.title ?? undefined,
-        });
+        addSource(
+          {
+            type: 'source',
+            sourceType: 'url',
+            id: generateId(),
+            url: uri,
+            title: chunk.retrievedContext.title ?? undefined,
+          },
+          JSON.stringify(['url', uri]),
+        );
       } else if (uri) {
         // Old format: Document with file path (gs://, etc.)
         const title = chunk.retrievedContext.title ?? 'Unknown Document';
@@ -1342,35 +1810,44 @@ function extractSources({
           filename = uri.split('/').pop();
         }
 
-        sources.push({
-          type: 'source',
-          sourceType: 'document',
-          id: generateId(),
-          mediaType,
-          title,
-          filename,
-        });
+        addSource(
+          {
+            type: 'source',
+            sourceType: 'document',
+            id: generateId(),
+            mediaType,
+            title,
+            filename,
+          },
+          JSON.stringify(['document', uri]),
+        );
       } else if (fileSearchStore) {
         // New format: File Search with fileSearchStore (no uri)
         const title = chunk.retrievedContext.title ?? 'Unknown Document';
-        sources.push({
-          type: 'source',
-          sourceType: 'document',
-          id: generateId(),
-          mediaType: 'application/octet-stream',
-          title,
-          filename: fileSearchStore.split('/').pop(),
-        });
+        addSource(
+          {
+            type: 'source',
+            sourceType: 'document',
+            id: generateId(),
+            mediaType: 'application/octet-stream',
+            title,
+            filename: fileSearchStore.split('/').pop(),
+          },
+          JSON.stringify(['file-search', fileSearchStore, title]),
+        );
       }
     } else if (chunk.maps != null) {
       if (chunk.maps.uri) {
-        sources.push({
-          type: 'source',
-          sourceType: 'url',
-          id: generateId(),
-          url: chunk.maps.uri,
-          title: chunk.maps.title ?? undefined,
-        });
+        addSource(
+          {
+            type: 'source',
+            sourceType: 'url',
+            id: generateId(),
+            url: chunk.maps.uri,
+            title: chunk.maps.title ?? undefined,
+          },
+          JSON.stringify(['url', chunk.maps.uri]),
+        );
       }
     }
   }
@@ -1404,6 +1881,18 @@ export const getGroundingMetadataSchema = () =>
               title: z.string().nullish(),
               text: z.string().nullish(),
               fileSearchStore: z.string().nullish(),
+              customMetadata: z
+                .array(
+                  z.object({
+                    key: z.string(),
+                    stringValue: z.string().nullish(),
+                    numericValue: z.number().nullish(),
+                    stringListValue: z
+                      .object({ values: z.array(z.string()).nullish() })
+                      .nullish(),
+                  }),
+                )
+                .nullish(),
             })
             .nullish(),
           maps: z
@@ -1445,14 +1934,15 @@ export const getGroundingMetadataSchema = () =>
       .nullish(),
   });
 
-const partialArgSchema = z.object({
-  jsonPath: z.string(),
-  stringValue: z.string().nullish(),
-  numberValue: z.number().nullish(),
-  boolValue: z.boolean().nullish(),
-  nullValue: z.unknown().nullish(),
-  willContinue: z.boolean().nullish(),
-});
+const partialArgSchema = () =>
+  z.object({
+    jsonPath: z.string(),
+    stringValue: z.string().nullish(),
+    numberValue: z.number().nullish(),
+    boolValue: z.boolean().nullish(),
+    nullValue: z.unknown().nullish(),
+    willContinue: z.boolean().nullish(),
+  });
 
 const getContentSchema = () =>
   z.object({
@@ -1465,7 +1955,7 @@ const getContentSchema = () =>
               id: z.string().nullish(),
               name: z.string().nullish(),
               args: z.unknown().nullish(),
-              partialArgs: z.array(partialArgSchema).nullish(),
+              partialArgs: z.array(partialArgSchema()).nullish(),
               willContinue: z.boolean().nullish(),
             }),
             thoughtSignature: z.string().nullish(),
@@ -1527,28 +2017,37 @@ const getSafetyRatingSchema = () =>
     blocked: z.boolean().nullish(),
   });
 
-const tokenDetailsSchema = z
-  .array(
-    z.object({
-      modality: z.string(),
-      tokenCount: z.number(),
-    }),
-  )
-  .nullish();
+const tokenDetailsSchema = () =>
+  z
+    .array(
+      z
+        .object({
+          modality: z.string(),
+          tokenCount: z.number(),
+        })
+        .loose(),
+    )
+    .nullish();
 
-const usageSchema = z.object({
-  cachedContentTokenCount: z.number().nullish(),
-  thoughtsTokenCount: z.number().nullish(),
-  promptTokenCount: z.number().nullish(),
-  candidatesTokenCount: z.number().nullish(),
-  totalTokenCount: z.number().nullish(),
-  // https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#TrafficType
-  trafficType: z.string().nullish(),
-  serviceTier: z.string().nullish(),
-  // https://ai.google.dev/api/generate-content#Modality
-  promptTokensDetails: tokenDetailsSchema,
-  candidatesTokensDetails: tokenDetailsSchema,
-});
+const usageSchema = () =>
+  z
+    .object({
+      cachedContentTokenCount: z.number().nullish(),
+      thoughtsTokenCount: z.number().nullish(),
+      promptTokenCount: z.number().nullish(),
+      candidatesTokenCount: z.number().nullish(),
+      toolUsePromptTokenCount: z.number().nullish(),
+      totalTokenCount: z.number().nullish(),
+      // https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#TrafficType
+      trafficType: z.string().nullish(),
+      serviceTier: z.string().nullish(),
+      // https://ai.google.dev/api/generate-content#Modality
+      promptTokensDetails: tokenDetailsSchema(),
+      cacheTokensDetails: tokenDetailsSchema(),
+      candidatesTokensDetails: tokenDetailsSchema(),
+      toolUsePromptTokensDetails: tokenDetailsSchema(),
+    })
+    .loose();
 
 // https://ai.google.dev/api/generate-content#UrlRetrievalMetadata
 export const getUrlContextMetadataSchema = () =>
@@ -1563,24 +2062,28 @@ export const getUrlContextMetadataSchema = () =>
       .nullish(),
   });
 
-const responseSchema = lazySchema(() =>
+export const responseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       responseId: z.string().nullish(),
-      candidates: z.array(
-        z.object({
-          content: getContentSchema().nullish().or(z.object({}).strict()),
-          finishReason: z.string().nullish(),
-          finishMessage: z.string().nullish(),
-          safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
-          groundingMetadata: getGroundingMetadataSchema().nullish(),
-          urlContextMetadata: getUrlContextMetadataSchema().nullish(),
-        }),
-      ),
-      usageMetadata: usageSchema.nullish(),
+      candidates: z
+        .array(
+          z.object({
+            content: getContentSchema().nullish().or(z.object({}).strict()),
+            finishReason: z.string().nullish(),
+            finishMessage: z.string().nullish(),
+            continuationToken: z.string().nullish(),
+            safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
+            groundingMetadata: getGroundingMetadataSchema().nullish(),
+            urlContextMetadata: getUrlContextMetadataSchema().nullish(),
+          }),
+        )
+        .nullish(),
+      usageMetadata: usageSchema().nullish(),
       promptFeedback: z
         .object({
           blockReason: z.string().nullish(),
+          blockReasonMessage: z.string().nullish(),
           safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
         })
         .nullish(),
@@ -1588,16 +2091,20 @@ const responseSchema = lazySchema(() =>
   ),
 );
 
+type CandidateSchema = NonNullable<
+  InferSchema<typeof responseSchema>['candidates']
+>[number];
+
 export type GroundingMetadataSchema = NonNullable<
-  InferSchema<typeof responseSchema>['candidates'][number]['groundingMetadata']
+  CandidateSchema['groundingMetadata']
 >;
 
 export type UrlContextMetadataSchema = NonNullable<
-  InferSchema<typeof responseSchema>['candidates'][number]['urlContextMetadata']
+  CandidateSchema['urlContextMetadata']
 >;
 
 export type SafetyRatingSchema = NonNullable<
-  InferSchema<typeof responseSchema>['candidates'][number]['safetyRatings']
+  CandidateSchema['safetyRatings']
 >[number];
 
 export type PromptFeedbackSchema = NonNullable<
@@ -1613,6 +2120,7 @@ export type UsageMetadataSchema = NonNullable<
 const chunkSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      error: getGoogleErrorSchema().nullish(),
       responseId: z.string().nullish(),
       candidates: z
         .array(
@@ -1620,16 +2128,18 @@ const chunkSchema = lazySchema(() =>
             content: getContentSchema().nullish(),
             finishReason: z.string().nullish(),
             finishMessage: z.string().nullish(),
+            continuationToken: z.string().nullish(),
             safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
             groundingMetadata: getGroundingMetadataSchema().nullish(),
             urlContextMetadata: getUrlContextMetadataSchema().nullish(),
           }),
         )
         .nullish(),
-      usageMetadata: usageSchema.nullish(),
+      usageMetadata: usageSchema().nullish(),
       promptFeedback: z
         .object({
           blockReason: z.string().nullish(),
+          blockReasonMessage: z.string().nullish(),
           safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
         })
         .nullish(),
@@ -1638,3 +2148,14 @@ const chunkSchema = lazySchema(() =>
 );
 
 type ChunkSchema = InferSchema<typeof chunkSchema>;
+
+function isConfirmedPromptBlockReason(
+  blockReason: string | null | undefined,
+): blockReason is string {
+  return (
+    blockReason != null &&
+    blockReason !== '' &&
+    blockReason !== 'BLOCK_REASON_UNSPECIFIED' &&
+    blockReason !== 'BLOCKED_REASON_UNSPECIFIED'
+  );
+}

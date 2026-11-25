@@ -95,7 +95,7 @@ const helicone = createHelicone({
 });
 
 const result = await generateText({
-  model: helicone('gpt-4o-mini', {
+  model: helicone('gpt-6-luna', {
     extraBody: {
       helicone: {
         userId: 'user@example.com',
@@ -128,7 +128,7 @@ const helicone = createHelicone({
 });
 
 const result = await generateText({
-  model: helicone('gpt-4o-mini', {
+  model: helicone('gpt-6-luna', {
     extraBody: {
       helicone: {
         properties: {
@@ -166,7 +166,7 @@ const helicone = createHelicone({
 });
 
 const result = await generateText({
-  model: helicone('gpt-4o-mini', {
+  model: helicone('gpt-6-luna', {
     extraBody: {
       helicone: {
         sessionId: 'convo-123',
@@ -204,7 +204,7 @@ const helicone = createHelicone({
 });
 
 const result = await generateText({
-  model: helicone('gpt-4o-mini', {
+  model: helicone('gpt-6-luna', {
     extraBody: {
       helicone: {
         tags: ['customer-support', 'urgent'],
@@ -242,7 +242,7 @@ const helicone = createHelicone({
 });
 
 const result = await streamText({
-  model: helicone('gpt-4o-mini', {
+  model: helicone('gpt-6-luna', {
     extraBody: {
       helicone: {
         userId: 'user@example.com',

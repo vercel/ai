@@ -5,7 +5,11 @@ export {
   type DownloadFunction,
   type WorkflowAgentOptions,
   type WorkflowAgentStreamOptions,
+  type WorkflowAgentCallOptions,
+  type WorkflowAgentGenerateOptions,
+  type WorkflowAgentGenerateResult,
   type WorkflowAgentStreamResult,
+  type WorkflowToolApprovalSecret,
   type GenerationSettings,
   type InferWorkflowAgentTools,
   type InferWorkflowAgentUIMessage,
@@ -23,14 +27,17 @@ export {
   type WorkflowAgentOnFinishCallback,
   type WorkflowAgentOnStepEndCallback,
   type WorkflowAgentOnStepFinishCallback,
-  type StreamTextTransform,
   type TelemetryOptions,
   type ToolCallRepairFunction,
   type WorkflowAgentOnStartCallback,
   type WorkflowAgentOnStepStartCallback,
+  type WorkflowAgentToolExecutionStartEvent,
+  type WorkflowAgentToolExecutionEndEvent,
   type WorkflowAgentOnToolExecutionStartCallback,
   type WorkflowAgentOnToolExecutionEndCallback,
 } from './workflow-agent.js';
+
+export type { WorkflowAgentTimeoutConfiguration } from './workflow-agent-timeout.js';
 
 export {
   createModelCallToUIChunkTransform,

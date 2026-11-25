@@ -1,3 +1,5 @@
+import type { RealtimeModelV4Usage } from './realtime-model-v4-usage';
+
 /**
  * Normalized events emitted by the realtime model (model → browser).
  * Each provider maps its native event format to this discriminated union.
@@ -6,8 +8,55 @@
  * event data for debugging and provider-specific access.
  */
 export type RealtimeModelV4ServerEvent =
+  | {
+      type: 'session-started';
+      sessionId: string;
+      delegationMode?: 'client' | 'provider';
+      raw: unknown;
+    }
+  | {
+      type: 'session-closed';
+      sessionId?: string;
+      usage: { seconds: number };
+      reason: string;
+      raw: unknown;
+    }
+  | {
+      type: 'session-usage';
+      /** Cumulative duration snapshot, not an increment. */
+      usage: { seconds: number };
+      contextWindowUsageRatio?: number;
+      raw: unknown;
+    }
+  | {
+      type: 'audio-chunk';
+      delta: string;
+      raw: unknown;
+    }
+  | {
+      type: 'transcript-fragment';
+      speaker: 'user' | 'assistant';
+      delta: string;
+      startMs: number;
+      endMs: number;
+      raw: unknown;
+    }
+  | {
+      type: 'delegation-created';
+      delegationId: string;
+      target?: 'client' | 'provider';
+      offsetMs?: number;
+      responseId?: string;
+      raw: unknown;
+    }
+  | {
+      type: 'command-acknowledged';
+      /** Provider-native command name that was acknowledged. */
+      command: string;
+      clientEventId?: string;
+      raw: unknown;
+    }
   // ── Session lifecycle ──────────────────────────────────────────────
-
   | {
       type: 'session-created';
       sessionId?: string;
@@ -47,6 +96,7 @@ export type RealtimeModelV4ServerEvent =
       type: 'input-transcription-completed';
       itemId: string;
       transcript: string;
+      usage?: RealtimeModelV4Usage;
       raw: unknown;
     }
 
@@ -60,6 +110,7 @@ export type RealtimeModelV4ServerEvent =
       type: 'response-done';
       responseId: string;
       status: string;
+      usage?: RealtimeModelV4Usage;
       raw: unknown;
     }
 
@@ -184,6 +235,7 @@ export type RealtimeModelV4ServerEvent =
       type: 'error';
       message: string;
       code?: string;
+      clientEventId?: string;
       raw: unknown;
     }
 
@@ -195,5 +247,7 @@ export type RealtimeModelV4ServerEvent =
        * The original event type string from the provider.
        */
       rawType: string;
+      /** Provider usage snapshot without an inferred response association. */
+      usage?: RealtimeModelV4Usage;
       raw: unknown;
     };

@@ -1,12 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
+import { resolveSandboxCredentialEnvironment } from '@ai-sdk/harness/utils';
 import {
   createOpenCodeRequestTransformations,
+  OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
   resolveOpenCodeAuthenticationMode,
   resolveOpenCodeEnv,
   resolveOpenCodeProvider,
   splitOpenCodeModel,
   toOpenCodeGatewayBaseUrl,
 } from './opencode-auth';
+import { resolveOpenCodeAuthentication } from './opencode-subscription';
 
 describe('OpenCode auth', () => {
   it('resolves provider from explicit provider or model prefix', () => {
@@ -18,6 +21,10 @@ describe('OpenCode auth', () => {
     expect(resolveOpenCodeProvider({ model: 'custom/model' })).toBe(
       'anthropic',
     );
+    expect(resolveOpenCodeProvider({ model: 'google/gemini-3.8-flash' })).toBe(
+      'google',
+    );
+    expect(resolveOpenCodeProvider({ model: 'xai/grok-4' })).toBe('xai');
   });
 
   it('splits provider-prefixed models', () => {
@@ -50,12 +57,13 @@ describe('OpenCode auth', () => {
     });
   });
 
-  it('prefers selected direct provider auth before ambient gateway fallback', () => {
+  it('prefers the selected direct provider before ambient gateway fallback', () => {
     expect(
       resolveOpenCodeEnv({
-        auth: { openai: { apiKey: 'openai-key' } },
+        auth: 'openai',
         provider: 'openai',
         processEnv: {
+          OPENAI_API_KEY: 'openai-key',
           AI_GATEWAY_API_KEY: 'gateway-key',
           AI_GATEWAY_BASE_URL: 'https://gateway.example/v1',
         },
@@ -63,26 +71,170 @@ describe('OpenCode auth', () => {
     ).toEqual({ OPENAI_API_KEY: 'openai-key' });
   });
 
-  it('uses explicit OpenAI-compatible auth regardless of selected provider', () => {
+  it('uses a supplied authentication environment instead of ambient credentials', () => {
+    const auth = { OPENAI_API_KEY: 'programmatic-openai-key' };
+
     expect(
       resolveOpenCodeEnv({
-        auth: {
-          openaiCompatible: {
-            apiKey: 'compatible-key',
-            baseUrl: 'https://compatible.example/v1',
-            name: 'compatible',
-            queryParams: { apiVersion: '2026-01-01' },
-          },
-        },
-        provider: 'anthropic',
-        processEnv: { AI_GATEWAY_API_KEY: 'gateway-key' },
+        auth,
+        provider: 'openai',
+        processEnv: { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+      }),
+    ).toEqual({ OPENAI_API_KEY: 'programmatic-openai-key' });
+    expect(
+      resolveOpenCodeAuthenticationMode({
+        auth,
+        provider: 'openai',
+        processEnv: { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+      }),
+    ).toBe('openai');
+  });
+
+  it('resolves Google credentials from a supplied authentication environment', () => {
+    const auth = {
+      GOOGLE_GENERATIVE_AI_API_KEY: 'programmatic-google-key',
+    };
+
+    expect(
+      resolveOpenCodeEnv({
+        auth,
       }),
     ).toEqual({
-      OPENAI_API_KEY: 'compatible-key',
-      OPENAI_BASE_URL: 'https://compatible.example/v1',
-      OPENAI_NAME: 'compatible',
-      OPENAI_QUERY_PARAMS_JSON: '{"apiVersion":"2026-01-01"}',
+      GOOGLE_GENERATIVE_AI_API_KEY: 'programmatic-google-key',
     });
+    expect(
+      resolveOpenCodeAuthenticationMode({
+        auth,
+      }),
+    ).toBe('google');
+  });
+
+  it('ignores an empty ambient Google credential when selecting the fallback provider', () => {
+    const processEnv = {
+      GOOGLE_GENERATIVE_AI_API_KEY: '',
+    };
+
+    expect(resolveOpenCodeEnv({ auth: 'auto', processEnv })).toEqual({});
+    expect(
+      resolveOpenCodeAuthenticationMode({ auth: 'auto', processEnv }),
+    ).toBe('anthropic');
+  });
+
+  it('selects a valid Google credential when unrelated provider credentials are empty', () => {
+    const processEnv = {
+      GOOGLE_GENERATIVE_AI_API_KEY: 'google-key',
+      OPENAI_API_KEY: '',
+      ANTHROPIC_API_KEY: '',
+      ANTHROPIC_AUTH_TOKEN: '',
+      XAI_API_KEY: '',
+      GITHUB_TOKEN: '',
+      GITHUB_COPILOT_TOKEN: '',
+      POE_API_KEY: '',
+      OPENCODE_API_KEY: '',
+      GITLAB_TOKEN: '',
+    };
+
+    expect(resolveOpenCodeEnv({ auth: 'auto', processEnv })).toEqual({
+      GOOGLE_GENERATIVE_AI_API_KEY: 'google-key',
+    });
+    expect(
+      resolveOpenCodeAuthenticationMode({ auth: 'auto', processEnv }),
+    ).toBe('google');
+  });
+
+  it.each(['anthropic', 'openai'] as const)(
+    'keeps explicit %s authentication authoritative over ambient Google credentials',
+    auth => {
+      const processEnv = {
+        ANTHROPIC_API_KEY: 'anthropic-key',
+        OPENAI_API_KEY: 'openai-key',
+        GOOGLE_GENERATIVE_AI_API_KEY: 'google-key',
+      };
+
+      expect(resolveOpenCodeEnv({ auth, processEnv })).toEqual(
+        auth === 'anthropic'
+          ? { ANTHROPIC_API_KEY: 'anthropic-key' }
+          : { OPENAI_API_KEY: 'openai-key' },
+      );
+      expect(resolveOpenCodeAuthenticationMode({ auth, processEnv })).toBe(
+        auth,
+      );
+    },
+  );
+
+  it('uses only the selected provider credentials with direct auth', () => {
+    const processEnv = {
+      AI_GATEWAY_API_KEY: 'gateway-key',
+      VERCEL_OIDC_TOKEN: 'oidc-token',
+      GITHUB_TOKEN: 'github-token',
+      OPENAI_API_KEY: 'openai-key',
+    };
+
+    expect(
+      resolveOpenCodeEnv({
+        auth: 'direct',
+        provider: 'github-copilot',
+        processEnv,
+      }),
+    ).toEqual({ GITHUB_TOKEN: 'github-token' });
+    expect(
+      resolveOpenCodeAuthenticationMode({
+        auth: 'direct',
+        provider: 'github-copilot',
+        processEnv,
+      }),
+    ).toBe('github-copilot');
+  });
+
+  it('resolves direct auth without a provider to the default provider', () => {
+    const processEnv = {
+      VERCEL_OIDC_TOKEN: 'oidc-token',
+      ANTHROPIC_API_KEY: 'anthropic-key',
+    };
+
+    expect(resolveOpenCodeEnv({ auth: 'direct', processEnv })).toEqual({
+      ANTHROPIC_API_KEY: 'anthropic-key',
+    });
+    expect(
+      resolveOpenCodeAuthenticationMode({ auth: 'direct', processEnv }),
+    ).toBe('anthropic');
+  });
+
+  it('preserves the Anthropic fallback for mixed direct-provider credentials', () => {
+    const processEnv = {
+      ANTHROPIC_API_KEY: 'anthropic-key',
+      GOOGLE_GENERATIVE_AI_API_KEY: 'google-key',
+    };
+
+    expect(resolveOpenCodeEnv({ auth: 'auto', processEnv })).toEqual({
+      ANTHROPIC_API_KEY: 'anthropic-key',
+    });
+    expect(
+      resolveOpenCodeAuthenticationMode({ auth: 'auto', processEnv }),
+    ).toBe('anthropic');
+  });
+
+  it('rejects nested authentication objects before reading ambient credentials', () => {
+    const auth = { openai: { apiKey: 'legacy-key' } } as never;
+
+    expect(() =>
+      resolveOpenCodeEnv({
+        auth,
+        provider: 'openai',
+        processEnv: { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+      }),
+    ).toThrow(
+      'Invalid auth: expected an authentication mode or a flat record with string values.',
+    );
+    expect(() =>
+      resolveOpenCodeAuthenticationMode({
+        auth,
+        provider: 'openai',
+        processEnv: { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+      }),
+    ).toThrow(
+      'Invalid auth: expected an authentication mode or a flat record with string values.',
+    );
   });
 
   it('normalizes OpenCode gateway base URLs to /v1', () => {
@@ -119,41 +271,149 @@ describe('OpenCode auth', () => {
       AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh/v1',
     });
   });
+});
 
-  it('warns when passing a legacy object shape', () => {
-    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    resolveOpenCodeEnv({
-      auth: { anthropic: {} },
-      processEnv: {},
-    });
-    expect(spy).toHaveBeenCalledWith(
-      expect.stringContaining(
-        'Passing an object to auth options is deprecated',
-      ),
-    );
-    spy.mockRestore();
+describe('resolveOpenCodeAuthentication', () => {
+  it('never reads native subscriptions for Gateway auth', async () => {
+    const readSubscription = vi.fn();
+    await expect(
+      resolveOpenCodeAuthentication({
+        auth: 'ai-gateway',
+        provider: 'openai',
+        processEnv: { AI_GATEWAY_API_KEY: 'gateway-key' },
+        readSubscription,
+      }),
+    ).resolves.toMatchObject({ authenticationMode: 'ai-gateway' });
+    expect(readSubscription).not.toHaveBeenCalled();
   });
+
+  it('prefers a provider API key before native subscriptions', async () => {
+    const readSubscription = vi.fn();
+    await expect(
+      resolveOpenCodeAuthentication({
+        auth: 'auto',
+        provider: 'xai',
+        processEnv: { XAI_API_KEY: 'environment-key' },
+        readSubscription,
+      }),
+    ).resolves.toEqual({
+      authenticationMode: 'xai',
+      environment: { XAI_API_KEY: 'environment-key' },
+    });
+    expect(readSubscription).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    'openai',
+    'xai',
+    'github-copilot',
+    'poe',
+    'opencode-go',
+    'gitlab',
+  ] as const)(
+    'reads the native %s subscription with direct auth despite ambient Gateway credentials',
+    async provider => {
+      const processEnv = {
+        AI_GATEWAY_API_KEY: 'gateway-key',
+        VERCEL_OIDC_TOKEN: 'oidc-token',
+      };
+      const readSubscription = vi.fn(async () => ({
+        providerId: provider,
+        accessToken: 'subscription-token',
+      }));
+
+      await expect(
+        resolveOpenCodeAuthentication({
+          auth: 'direct',
+          provider,
+          processEnv,
+          readSubscription,
+        }),
+      ).resolves.toEqual({
+        authenticationMode: provider,
+        environment: {
+          AI_SDK_OPENCODE_NATIVE_ACCESS_TOKEN: 'subscription-token',
+        },
+        subscription: {
+          providerId: provider,
+          accessToken: 'subscription-token',
+        },
+      });
+      expect(readSubscription).toHaveBeenCalledExactlyOnceWith({
+        providerId: provider,
+        env: processEnv,
+      });
+    },
+  );
+
+  it('prefers a provider API key before native subscriptions with direct auth', async () => {
+    const readSubscription = vi.fn();
+    await expect(
+      resolveOpenCodeAuthentication({
+        auth: 'direct',
+        provider: 'xai',
+        processEnv: {
+          VERCEL_OIDC_TOKEN: 'oidc-token',
+          XAI_API_KEY: 'environment-key',
+        },
+        readSubscription,
+      }),
+    ).resolves.toEqual({
+      authenticationMode: 'xai',
+      environment: { XAI_API_KEY: 'environment-key' },
+    });
+    expect(readSubscription).not.toHaveBeenCalled();
+  });
+
+  it.each([undefined, 'auto'] as const)(
+    'keeps resolving an ambient OIDC token to Gateway auth with auth %s',
+    async auth => {
+      const readSubscription = vi.fn();
+      await expect(
+        resolveOpenCodeAuthentication({
+          auth,
+          provider: 'github-copilot',
+          processEnv: { VERCEL_OIDC_TOKEN: 'oidc-token' },
+          readSubscription,
+        }),
+      ).resolves.toEqual({
+        authenticationMode: 'ai-gateway',
+        environment: {
+          AI_GATEWAY_API_KEY: 'oidc-token',
+          AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh/v1',
+        },
+      });
+      expect(readSubscription).not.toHaveBeenCalled();
+    },
+  );
 });
 
 describe('resolveOpenCodeAuthenticationMode', () => {
-  it('preserves explicit selected-provider auth despite ambient Gateway credentials', () => {
+  it('preserves selected-provider auth despite ambient Gateway credentials', () => {
     expect(
       resolveOpenCodeAuthenticationMode({
-        auth: { openai: {} },
+        auth: 'openai',
         provider: 'openai',
         processEnv: { AI_GATEWAY_API_KEY: 'gateway-key' },
       }),
     ).toBe('openai');
   });
 
-  it('resolves legacy OpenAI-compatible auth to OpenAI auth', () => {
-    expect(
-      resolveOpenCodeAuthenticationMode({
-        auth: { openaiCompatible: {} },
-        processEnv: {},
-      }),
-    ).toBe('openai');
-  });
+  it.each(['xai', 'github-copilot', 'poe', 'opencode-go', 'gitlab'] as const)(
+    'resolves direct %s auth despite ambient Gateway credentials',
+    provider => {
+      expect(
+        resolveOpenCodeAuthenticationMode({
+          auth: 'direct',
+          provider,
+          processEnv: {
+            AI_GATEWAY_API_KEY: 'gateway-key',
+            VERCEL_OIDC_TOKEN: 'oidc-token',
+          },
+        }),
+      ).toBe(provider);
+    },
+  );
 
   it('resolves ambient Gateway credentials to Gateway auth', () => {
     expect(
@@ -166,22 +426,103 @@ describe('resolveOpenCodeAuthenticationMode', () => {
 });
 
 describe('createOpenCodeRequestTransformations', () => {
+  it.each([
+    {
+      instanceUrl: undefined,
+      host: 'gitlab.com',
+      path: '/api/v4/ai/third_party_agents/direct_access',
+    },
+    {
+      instanceUrl: 'https://gitlab.example',
+      host: 'gitlab.example',
+      path: '/api/v4/ai/third_party_agents/direct_access',
+    },
+    {
+      instanceUrl: 'https://gitlab.example/gitlab',
+      host: 'gitlab.example',
+      path: '/gitlab/api/v4/ai/third_party_agents/direct_access',
+    },
+    {
+      instanceUrl: 'https://gitlab.example/',
+      host: 'gitlab.example',
+      path: '//api/v4/ai/third_party_agents/direct_access',
+    },
+    {
+      instanceUrl: 'https://gitlab.example/gitlab/',
+      host: 'gitlab.example',
+      path: '/gitlab//api/v4/ai/third_party_agents/direct_access',
+    },
+  ])(
+    'restricts GitLab credentials to the POST chat exchange for $instanceUrl',
+    ({ instanceUrl, host, path }) => {
+      expect(
+        createOpenCodeRequestTransformations({
+          env: {
+            GITLAB_TOKEN: 'gitlab-secret',
+            ...(instanceUrl == null
+              ? {}
+              : { GITLAB_INSTANCE_URL: instanceUrl }),
+          },
+          sandboxEnv: { GITLAB_TOKEN: 'sandbox-gitlab-placeholder' },
+          auth: 'gitlab',
+        }),
+      ).toEqual([
+        {
+          match: {
+            host,
+            path: { exact: path },
+            method: ['POST'],
+            headers: [
+              {
+                key: { exact: 'Authorization' },
+                value: { exact: 'Bearer sandbox-gitlab-placeholder' },
+              },
+            ],
+          },
+          transform: { headers: { Authorization: 'Bearer gitlab-secret' } },
+        },
+      ]);
+    },
+  );
+
+  it.each<{
+    env: Record<string, string>;
+    sandboxEnv: Record<string, string>;
+  }>([
+    { env: {}, sandboxEnv: { GITLAB_TOKEN: 'sandbox-gitlab-placeholder' } },
+    { env: { GITLAB_TOKEN: 'gitlab-secret' }, sandboxEnv: {} },
+  ])(
+    'omits GitLab transformations when a credential is missing: %j',
+    sources => {
+      expect(
+        createOpenCodeRequestTransformations({ ...sources, auth: 'gitlab' }),
+      ).toEqual([]);
+    },
+  );
+
   it('uses the resolved OpenAI route', () => {
     expect(
-      createOpenCodeRequestTransformations(
-        {
+      createOpenCodeRequestTransformations({
+        env: {
           OPENAI_API_KEY: 'openai-secret',
           OPENAI_BASE_URL: 'https://openai.example/v1',
           AI_GATEWAY_API_KEY: 'unselected-gateway-secret',
           AI_GATEWAY_BASE_URL: 'https://unselected-gateway.example/v1',
         },
-        'openai',
-      ),
+        sandboxEnv: { OPENAI_API_KEY: 'sandbox-openai-secret' },
+        auth: 'openai',
+      }),
     ).toEqual([
       {
         match: {
           host: 'openai.example',
           path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-openai-secret' },
+            },
+          ],
         },
         transform: {
           headers: { Authorization: 'Bearer openai-secret' },
@@ -190,22 +531,46 @@ describe('createOpenCodeRequestTransformations', () => {
     ]);
   });
 
-  it('uses the resolved Gateway route', () => {
+  it('matches both supported Gateway credential headers', () => {
     expect(
-      createOpenCodeRequestTransformations(
-        {
+      createOpenCodeRequestTransformations({
+        env: {
           OPENAI_API_KEY: 'unselected-openai-secret',
           OPENAI_BASE_URL: 'https://unselected-openai.example/v1',
           AI_GATEWAY_API_KEY: 'gateway-secret',
           AI_GATEWAY_BASE_URL: 'https://gateway.example/v1',
         },
-        'ai-gateway',
-      ),
+        sandboxEnv: {
+          AI_GATEWAY_API_KEY: 'sandbox-gateway-secret',
+        },
+        auth: 'ai-gateway',
+      }),
     ).toEqual([
       {
         match: {
           host: 'gateway.example',
           path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'x-api-key' },
+              value: { exact: 'sandbox-gateway-secret' },
+            },
+          ],
+        },
+        transform: {
+          headers: { Authorization: 'Bearer gateway-secret' },
+        },
+      },
+      {
+        match: {
+          host: 'gateway.example',
+          path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-gateway-secret' },
+            },
+          ],
         },
         transform: {
           headers: { Authorization: 'Bearer gateway-secret' },
@@ -216,21 +581,81 @@ describe('createOpenCodeRequestTransformations', () => {
 
   it('injects both supported Anthropic credential headers', () => {
     expect(
-      createOpenCodeRequestTransformations(
-        {
+      createOpenCodeRequestTransformations({
+        env: {
           ANTHROPIC_API_KEY: 'api-secret',
           ANTHROPIC_AUTH_TOKEN: 'token-secret',
         },
-        'anthropic',
-      ),
+        sandboxEnv: {
+          ANTHROPIC_API_KEY: 'sandbox-api-secret',
+          ANTHROPIC_AUTH_TOKEN: 'sandbox-token-secret',
+        },
+        auth: 'anthropic',
+      }),
     ).toEqual([
       {
-        match: { host: 'api.anthropic.com' },
+        match: {
+          host: 'api.anthropic.com',
+          headers: [
+            {
+              key: { exact: 'x-api-key' },
+              value: { exact: 'sandbox-api-secret' },
+            },
+          ],
+        },
         transform: {
-          headers: {
-            'x-api-key': 'api-secret',
-            Authorization: 'Bearer token-secret',
-          },
+          headers: { 'x-api-key': 'api-secret' },
+        },
+      },
+      {
+        match: {
+          host: 'api.anthropic.com',
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-token-secret' },
+            },
+          ],
+        },
+        transform: {
+          headers: { Authorization: 'Bearer token-secret' },
+        },
+      },
+    ]);
+  });
+
+  it('brokers the Google API key header', async () => {
+    const environment = {
+      GOOGLE_GENERATIVE_AI_API_KEY: 'google-secret',
+    };
+    const sandboxEnvironment = await resolveSandboxCredentialEnvironment({
+      environment,
+      credentialEnvironmentVariables: OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
+      credentialForwarding: () => 'sandbox-google-secret',
+    });
+
+    expect(sandboxEnvironment).toEqual({
+      GOOGLE_GENERATIVE_AI_API_KEY: 'sandbox-google-secret',
+    });
+    expect(
+      createOpenCodeRequestTransformations({
+        env: environment,
+        sandboxEnv: sandboxEnvironment,
+        auth: 'google',
+      }),
+    ).toEqual([
+      {
+        match: {
+          host: 'generativelanguage.googleapis.com',
+          headers: [
+            {
+              key: { exact: 'x-goog-api-key' },
+              value: { exact: 'sandbox-google-secret' },
+            },
+          ],
+        },
+        transform: {
+          headers: { 'x-goog-api-key': 'google-secret' },
         },
       },
     ]);

@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 import { weatherTool } from '../../tools/weather-tool';
 
 const agent = new ToolLoopAgent({
-  model: openai('gpt-5.6'),
+  model: openai('gpt-6-astra'),
   instructions:
     'You are a helpful terminal assistant. Answer in markdown and use tools when they help.',
   tools: {

@@ -2,6 +2,7 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 import * as fs from 'fs';
+import path from 'node:path';
 
 run(async () => {
   const result = await generateText({
@@ -30,79 +31,22 @@ run(async () => {
   await Promise.all(fileIdList.map(fileId => downloadFile(fileId)));
 });
 
-async function downloadFile(file: string) {
-  try {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-
-    if (!apiKey) {
-      throw new Error('ANTHROPIC_API_KEY is not set');
-    }
-    const infoUrl = `https://api.anthropic.com/v1/files/${file}`;
-    const infoPromise = fetch(infoUrl, {
-      method: 'GET',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'files-api-2025-04-14',
-      },
-    });
-
-    const downloadUrl = `https://api.anthropic.com/v1/files/${file}/content`;
-    const downloadPromise = fetch(downloadUrl, {
-      method: 'GET',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'files-api-2025-04-14',
-      },
-    });
-
-    const [infoResponse, downloadResponse] = await Promise.all([
-      infoPromise,
-      downloadPromise,
-    ]);
-
-    if (!infoResponse.ok) {
-      throw new Error(
-        `HTTP Error: ${infoResponse.status} ${infoResponse.statusText}`,
-      );
-    }
-
-    const {
-      filename,
-    }: {
-      type: 'file';
-      id: string;
-      size_bytes: number;
-      created_at: Date;
-      filename: string;
-      mime_type: string;
-      downloadable?: boolean;
-    } = await infoResponse.json();
-
-    if (!downloadResponse.ok) {
-      throw new Error(
-        `HTTP Error: ${downloadResponse.status} ${downloadResponse.statusText}`,
-      );
-    }
-
-    // get as binary data
-    const arrayBuffer = await downloadResponse.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    const outputPath = `output/${filename}`;
-
-    fs.writeFileSync(outputPath, buffer);
-
-    console.log(`file saved: ${outputPath}`);
-    console.log(`file size: ${buffer.length} bytes`);
-
-    return {
-      path: outputPath,
-      size: buffer.length,
-    };
-  } catch (error) {
-    console.error('error:', error);
-    throw error;
-  }
+async function downloadFile(fileId: string) {
+  const files = anthropic.files();
+  const file = { anthropic: fileId };
+  const metadata = await files.getFileMetadata!({ file });
+  const download = await files.downloadFile!({ file });
+  const buffer = Buffer.from(
+    await new Response(download.content).arrayBuffer(),
+  );
+  await fs.promises.mkdir('output', { recursive: true });
+  const outputPath = path.join(
+    'output',
+    path.basename(metadata.filename ?? fileId),
+  );
+  await fs.promises.writeFile(outputPath, buffer);
+  console.log('File saved:', outputPath);
+  console.log('File size:', buffer.length, 'bytes');
+  console.log('Media type:', download.mediaType);
+  return { path: outputPath, size: buffer.length };
 }

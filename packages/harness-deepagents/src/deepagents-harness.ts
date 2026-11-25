@@ -1,4 +1,3 @@
-import { randomBytes } from 'node:crypto';
 import { posix } from 'node:path';
 import {
   commonTool,
@@ -8,31 +7,41 @@ import {
   type HarnessV1BuiltinTool,
   type HarnessV1BuiltinToolFiltering,
   type HarnessV1ContinueTurnState,
-  type HarnessV1NetworkSandboxSession,
+  type HarnessV1CredentialForwarding,
+  type HarnessV1MintBridgeTokenCallback,
   type HarnessV1PermissionMode,
-  type HarnessV1Prompt,
   type HarnessV1PromptControl,
   type HarnessV1PortEndpoint,
   type HarnessV1ResumeSessionState,
   type HarnessV1Session,
-  type HarnessV1Skill,
   type HarnessV1StreamPart,
+  harnessStateDirectoryPath,
+  harnessSessionDataDirectoryPath,
 } from '@ai-sdk/harness';
 import {
+  applyCredentialForwarding,
+  BRIDGE_AUTH_PUBLIC_KEY_ENV,
+  createBridgeAuthKeyPair,
+  createBridgeWebSocketConnect,
+  resolveSandboxCredentialEnvironment,
   markBridgeStarting,
   createBridgeErrorHandler,
   createBridgeStartupError,
   drainBridgeProcessStream,
+  extractHarnessPromptContent,
   forwardBridgeProcessStream,
   getRestrictedSandboxSession,
-  maskSandboxCredentials,
-  resolveSandboxDefaultWorkingDirectory,
+  resolveBridgeEndpoint,
+  resolveBridgePort,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
+  validateBridgeSandboxSettings,
   warnCredentialBrokeringUnavailable,
+  warnMintBridgeTokenIgnored,
   waitForBridgeReady,
-  writeSkills as writeHarnessSkills,
+  writeSkills,
+  type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
 import {
   tool,
@@ -50,7 +59,7 @@ import {
   DEEPAGENTS_CREDENTIAL_ENVIRONMENT_VARIABLES,
   resolveDeepAgentsAuthenticationMode,
   resolveDeepAgentsEnv,
-  type DeepAgentsAuthOptions,
+  type DeepAgentsAuthenticationMode,
 } from './deepagents-auth';
 import {
   outboundMessageSchema,
@@ -64,7 +73,7 @@ type DeepAgentsChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 /**
  * Value to use in User-Agent and `x-client-app` headers.
  */
-const DEEPAGENTS_CLIENT_APP = `ai-sdk/harness-deepagents/${VERSION}`;
+const DEEPAGENTS_CLIENT_APP = `ai-sdk-harness-deepagents/${VERSION}`;
 
 export type DeepAgentsThinkingConfig =
   | {
@@ -84,9 +93,13 @@ export type DeepAgentsThinkingConfig =
 const SKILLS_SOURCE_PATH = '/.agents/skills';
 
 export type DeepAgentsHarnessSettings = {
-  readonly auth?: DeepAgentsAuthOptions;
-  /** Model id for the DeepAgents runtime, e.g. `claude-sonnet-4` (converted to `provider:model`). */
-  readonly model?: string;
+  readonly auth?: DeepAgentsAuthenticationMode;
+  /**
+   * Customizes each credential value before it is forwarded into a sandbox
+   * process. This does not restrict which credentials the harness adapter can
+   * discover, read, or otherwise access in the host process.
+   */
+  readonly credentialForwarding?: HarnessV1CredentialForwarding;
   /**
    * Controls Anthropic extended thinking for the Deep Agents model. Unset
    * preserves the Deep Agents runtime default.
@@ -107,10 +120,29 @@ export type DeepAgentsHarnessSettings = {
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
   readonly startupTimeoutMs?: number;
   /**
-   * Creates the authentication token used by the sandbox bridge. Defaults to
-   * a random 32-byte hexadecimal token.
+   * Abort a running turn when its host disconnects and does not reconnect
+   * within this many milliseconds, so the turn stops spending. A suspended
+   * turn is exempt. Unset keeps the turn running until it finishes.
    */
-  readonly mintBridgeToken?: (sandboxId: string) => string;
+  readonly hostDisconnectTimeoutMs?: number;
+  /**
+   * Configures reconnection attempts after an established bridge connection
+   * drops. The reconnect window includes connection establishment and
+   * backoff delays. Defaults to 30 seconds with exponential backoff from 50
+   * milliseconds up to 2 seconds.
+   */
+  readonly reconnect?: SandboxChannelReconnectOptions;
+  /**
+   * WebSocket ping interval in milliseconds. Defaults to 20_000. Set to 0 to
+   * disable. Two unanswered pings terminate the socket and trigger reconnect.
+   */
+  readonly keepAliveMs?: number;
+  // TODO: Remove in the next major version.
+  /**
+   * @deprecated Sandbox bridge authentication now uses adapter-generated
+   * Ed25519 keys. This setting is ignored and emits a warning.
+   */
+  readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
   /**
    * Maximum LangGraph super-steps per turn before it errors.
    * When omitted, the Deep Agents default applies.
@@ -166,6 +198,13 @@ const DEEPAGENTS_BUILTIN_TOOLS = {
     inputSchema: z.object({ pattern: z.string() }),
   }),
   // No common-name equivalent — keyed by native name.
+  delete: {
+    ...tool({
+      description: 'Delete a file or directory',
+      inputSchema: z.object({ file_path: z.string() }),
+    }),
+    toolUseKind: 'edit',
+  } as HarnessV1BuiltinTool<{ file_path: string }, any>,
   ls: tool({
     description: 'List files in a directory',
     inputSchema: z.object({ path: z.string().optional() }),
@@ -186,18 +225,23 @@ const DEEPAGENTS_BUILTIN_TOOLS = {
 // Live bridge coordinates returned by doDetach/doSuspendTurn so a later process can reattach.
 const deepAgentsBridgeCoordsSchema = z.object({
   port: z.number(),
-  token: z.string(),
+  privateKey: z.string(),
   lastSeenEventId: z.number(),
   sandboxId: z.string().optional(),
 });
 const deepAgentsResumeStateSchema = z.object({
   bridge: deepAgentsBridgeCoordsSchema.optional(),
+  sandboxCredentialEnvironment: z.record(z.string(), z.string()).optional(),
 });
 type DeepAgentsBridgeCoords = z.infer<typeof deepAgentsBridgeCoordsSchema>;
 
 export function createDeepAgents(
   settings: DeepAgentsHarnessSettings = {},
 ): HarnessV1<typeof DEEPAGENTS_BUILTIN_TOOLS> {
+  warnMintBridgeTokenIgnored({
+    harnessId: 'deepagents',
+    mintBridgeToken: settings.mintBridgeToken,
+  });
   return {
     specificationVersion: 'harness-v1',
     harnessId: 'deepagents',
@@ -212,23 +256,22 @@ export function createDeepAgents(
       const toolSafeSandboxSession =
         getRestrictedSandboxSession(sandboxSession);
       const sandboxId = 'id' in sandboxSession ? sandboxSession.id : undefined;
-      validateBasicSandboxSettings({
+      validateBridgeSandboxSettings({
         sandboxSession,
-        port: settings.port,
-        portEndpoint: settings.portEndpoint,
+        portOverride: settings.port,
+        portEndpointOverride: settings.portEndpoint,
       });
-      if (settings.mintBridgeToken != null && sandboxId == null) {
-        throw new HarnessCapabilityUnsupportedError({
-          harnessId: 'deepagents',
-          message:
-            'The deepagents harness cannot use `mintBridgeToken` with a sandbox session that does not expose an id.',
-        });
-      }
-      const defaultWorkingDirectory =
-        await resolveSandboxDefaultWorkingDirectory({
-          sandboxSession,
-          abortSignal: startOpts.abortSignal,
-        });
+      const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
+      const isResume = lifecycleState != null;
+      const isContinue = startOpts.continueFrom != null;
+      const resumeData =
+        isResume && typeof lifecycleState?.data === 'object'
+          ? (lifecycleState.data as {
+              bridge?: DeepAgentsBridgeCoords;
+              sandboxCredentialEnvironment?: Record<string, string>;
+            })
+          : undefined;
+      const coords = resumeData?.bridge;
       const authenticationMode = resolveDeepAgentsAuthenticationMode({
         auth: settings.auth,
       });
@@ -236,42 +279,59 @@ export function createDeepAgents(
         auth: settings.auth,
       });
       let sandboxAuthEnvironment = resolvedAuthEnvironment;
+      let sandboxCredentialEnvironment: Record<string, string> | undefined;
+      let credentialsBrokered = false;
       if (
         'addRequestTransformations' in sandboxSession &&
         sandboxSession.addRequestTransformations != null
       ) {
-        const requestTransformations = createDeepAgentsRequestTransformations(
-          resolvedAuthEnvironment,
-          authenticationMode,
-        );
+        sandboxCredentialEnvironment =
+          await resolveSandboxCredentialEnvironment({
+            environment: resolvedAuthEnvironment,
+            credentialEnvironmentVariables:
+              DEEPAGENTS_CREDENTIAL_ENVIRONMENT_VARIABLES,
+            credentialForwarding: settings.credentialForwarding,
+            previousSandboxCredentialEnvironment:
+              resumeData?.sandboxCredentialEnvironment,
+          });
+        sandboxAuthEnvironment = {
+          ...resolvedAuthEnvironment,
+          ...sandboxCredentialEnvironment,
+        };
+        const requestTransformations = createDeepAgentsRequestTransformations({
+          env: resolvedAuthEnvironment,
+          sandboxEnv: sandboxAuthEnvironment,
+          auth: authenticationMode,
+        });
         if (requestTransformations.length > 0) {
           await sandboxSession.addRequestTransformations(
             requestTransformations,
           );
         }
-        sandboxAuthEnvironment = maskSandboxCredentials({
-          environment: resolvedAuthEnvironment,
-          credentialEnvironmentVariables:
-            DEEPAGENTS_CREDENTIAL_ENVIRONMENT_VARIABLES,
-        });
-      } else {
-        warnCredentialBrokeringUnavailable();
+        credentialsBrokered = true;
       }
-      const bootstrapDir = posix.resolve(
-        defaultWorkingDirectory,
-        BOOTSTRAP_DIR,
-      );
-
-      const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
-      const isResume = lifecycleState != null;
-      const isContinue = startOpts.continueFrom != null;
-      const coords =
-        isResume && typeof lifecycleState?.data === 'object'
-          ? (lifecycleState.data as { bridge?: DeepAgentsBridgeCoords }).bridge
-          : undefined;
+      // Harness SDK state (bootstrap, per-session runs) always lives under
+      // the sandbox's own HOME, never the working directory, so it stays
+      // out of a user-owned workspace.
+      const homeDir = await resolveSandboxHomeDir({
+        sandbox: toolSafeSandboxSession,
+        abortSignal: startOpts.abortSignal,
+      });
+      const stateDir = harnessStateDirectoryPath({ sandboxHomeDir: homeDir });
+      const bootstrapDir = posix.resolve(stateDir, BOOTSTRAP_DIR);
 
       const workDir = startOpts.sessionWorkDir;
-      const sessionDataDir = `${defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
+      /*
+       * Deep Agents discovers repository skills under the working directory.
+       * Harness-provided skills use an absolute home-directory path listed
+       * last, so they take precedence when names collide.
+       */
+      const homeSkillsRoot = `${homeDir}${SKILLS_SOURCE_PATH}`;
+      const skillsPaths = [`${workDir}${SKILLS_SOURCE_PATH}`, homeSkillsRoot];
+      const sessionDataDir = harnessSessionDataDirectoryPath({
+        stateDirectory: stateDir,
+        sessionId: startOpts.sessionId,
+      });
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
 
@@ -293,39 +353,44 @@ export function createDeepAgents(
       // Attach to the still-running bridge (continueFrom replays past the cursor); on failure fall through to a fresh spawn.
       if (coords) {
         try {
-          const endpoint = await resolveBridgeEndpoint({
+          const attachEndpoint = await resolveBridgeEndpoint({
             sandboxSession,
-            override: settings.portEndpoint,
             port: coords.port,
-          });
-          const attachEndpoint = withBridgeToken({
-            endpoint,
-            token: coords.token,
+            portEndpointOverride: settings.portEndpoint,
           });
           const attachChannel: DeepAgentsChannel = new SandboxChannel({
-            connect: () => openWebSocket(attachEndpoint),
+            connect: createBridgeWebSocketConnect({
+              endpoint: attachEndpoint,
+              privateKey: coords.privateKey,
+              webSocketConstructor: WebSocket,
+            }),
             outboundSchema: outboundMessageSchema,
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
             onBridgeError,
+            reconnect: settings.reconnect,
+            keepAliveMs: settings.keepAliveMs,
           });
           await attachChannel.open(isContinue ? { resume: true } : undefined);
           return createSession({
             sessionId: startOpts.sessionId,
             channel: attachChannel,
             proc: undefined,
-            model: settings.model,
             thinking: settings.thinking,
             effort: settings.effort,
             bridgePort: coords.port,
-            bridgeToken: coords.token,
+            bridgePrivateKey: coords.privateKey,
             sandboxId,
+            sandboxCredentialEnvironment,
             isResume: true,
-            attached: true,
+            sandbox: toolSafeSandboxSession,
+            homeDir,
+            skillsPaths,
             permissionMode,
             builtinToolFiltering: startOpts.builtinToolFiltering,
             recursionLimit: settings.recursionLimit,
             mcpServers: settings.mcpServers,
+            headers: startOpts.headers,
           });
         } catch {
           // Bridge no longer reachable — recover by respawning below.
@@ -334,36 +399,30 @@ export function createDeepAgents(
 
       const port = resolveBridgePort({
         sandboxSession,
-        override: settings.port,
+        portOverride: settings.port,
       });
-      const token =
-        settings.mintBridgeToken == null
-          ? randomBytes(32).toString('hex')
-          : settings.mintBridgeToken(sandboxId!);
+      const bridgeAuth = createBridgeAuthKeyPair();
 
-      // Always discover repo-provided skills under <workDir>/.agents/skills (e.g. a cloned repo); a missing dir is tolerated by deepagents.
-      // Absolute paths: LocalShellBackend (non-virtual) treats a leading-slash path as a real fs path.
-      const skillsPaths = [`${workDir}${SKILLS_SOURCE_PATH}`];
-      // Host-provided skills go to $HOME (out of the work dir) and take priority (listed last → wins on name collision).
-      if ((startOpts.skills?.length ?? 0) > 0) {
-        const homeDir = await resolveSandboxHomeDir({
-          sandbox: toolSafeSandboxSession,
-          abortSignal: startOpts.abortSignal,
+      const forwardedAuthEnvironment = credentialsBrokered
+        ? sandboxAuthEnvironment
+        : await applyCredentialForwarding({
+            environment: sandboxAuthEnvironment,
+            credentialEnvironmentVariables:
+              DEEPAGENTS_CREDENTIAL_ENVIRONMENT_VARIABLES,
+            credentialForwarding: settings.credentialForwarding,
+          });
+      if (!credentialsBrokered) {
+        warnCredentialBrokeringUnavailable({
+          environment: resolvedAuthEnvironment,
+          forwardedEnvironment: forwardedAuthEnvironment,
+          credentialEnvironmentVariables:
+            DEEPAGENTS_CREDENTIAL_ENVIRONMENT_VARIABLES,
         });
-        const homeSkillsRoot = `${homeDir}${SKILLS_SOURCE_PATH}`;
-        await writeSkills({
-          sandbox: toolSafeSandboxSession,
-          root: homeSkillsRoot,
-          skills: startOpts.skills ?? [],
-          abortSignal: startOpts.abortSignal,
-        });
-        skillsPaths.push(homeSkillsRoot);
       }
-
       const env = {
-        ...sandboxAuthEnvironment,
+        ...forwardedAuthEnvironment,
         AI_SDK_HARNESS_CLIENT_APP: DEEPAGENTS_CLIENT_APP,
-        BRIDGE_CHANNEL_TOKEN: token,
+        [BRIDGE_AUTH_PUBLIC_KEY_ENV]: bridgeAuth.publicKey,
         BRIDGE_WS_PORT: String(port),
       };
 
@@ -380,7 +439,7 @@ export function createDeepAgents(
       });
 
       const proc = await toolSafeSandboxSession.spawn({
-        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(bootstrapDir)}`,
+        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --home-dir ${shellQuote(homeDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(bootstrapDir)}${isResume ? ' --resume true' : ''}${settings.hostDisconnectTimeoutMs !== undefined ? ` --host-disconnect-timeout-ms ${shellQuote(String(settings.hostDisconnectTimeoutMs))}` : ''}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
@@ -418,18 +477,25 @@ export function createDeepAgents(
       });
       void drainBridgeProcessStream(proc.stdout);
 
-      const endpoint = await resolveBridgeEndpoint({
+      const bridgeEndpoint = await resolveBridgeEndpoint({
         sandboxSession,
-        override: settings.portEndpoint,
         port: boundPort,
+        portEndpointOverride: settings.portEndpoint,
       });
-      const bridgeEndpoint = withBridgeToken({ endpoint, token });
 
       const channel: DeepAgentsChannel = new SandboxChannel({
-        connect: () => openWebSocket(bridgeEndpoint),
+        connect: createBridgeWebSocketConnect({
+          endpoint: bridgeEndpoint,
+          privateKey: bridgeAuth.privateKey,
+          webSocketConstructor: WebSocket,
+          openRetryTimeoutMs: timeoutMs,
+          startAbortSignal: startOpts.abortSignal,
+        }),
         outboundSchema: outboundMessageSchema,
         onDiagnostic,
         onBridgeError,
+        reconnect: settings.reconnect,
+        keepAliveMs: settings.keepAliveMs,
       });
       await channel.open();
 
@@ -437,194 +503,67 @@ export function createDeepAgents(
         sessionId: startOpts.sessionId,
         channel,
         proc,
-        model: settings.model,
         thinking: settings.thinking,
         effort: settings.effort,
         bridgePort: boundPort,
-        bridgeToken: token,
+        bridgePrivateKey: bridgeAuth.privateKey,
         sandboxId,
+        sandboxCredentialEnvironment,
         isResume,
-        // Freshly spawned bridge — it must receive the instructions on the first prompt.
-        attached: false,
+        sandbox: toolSafeSandboxSession,
+        homeDir,
         skillsPaths,
         permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
         recursionLimit: settings.recursionLimit,
         mcpServers: settings.mcpServers,
+        headers: startOpts.headers,
       });
     },
   };
-}
-
-function resolveBridgePort({
-  sandboxSession,
-  override,
-}: {
-  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
-  override: number | undefined;
-}): number {
-  if (override !== undefined) return override;
-  if ('ports' in sandboxSession && sandboxSession.ports.length > 0) {
-    return sandboxSession.ports[0];
-  }
-  throw new HarnessCapabilityUnsupportedError({
-    harnessId: 'deepagents',
-    message:
-      'The deepagents harness needs a TCP port exposed by the sandbox. ' +
-      'Create the sandbox with `ports: [<port>]` or pass `createDeepAgents({ port })`.',
-  });
-}
-
-function validateBasicSandboxSettings({
-  sandboxSession,
-  port,
-  portEndpoint,
-}: {
-  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
-  port: number | undefined;
-  portEndpoint: HarnessV1PortEndpoint | undefined;
-}): void {
-  if ('getPortEndpoint' in sandboxSession) return;
-  if (port == null) {
-    throw new HarnessCapabilityUnsupportedError({
-      harnessId: 'deepagents',
-      message:
-        'The deepagents harness requires an explicit `port` when using a basic sandbox session.',
-    });
-  }
-  if (portEndpoint == null) {
-    throw new HarnessCapabilityUnsupportedError({
-      harnessId: 'deepagents',
-      message:
-        'The deepagents harness requires an explicit `portEndpoint` when using a basic sandbox session.',
-    });
-  }
-}
-
-async function resolveBridgeEndpoint({
-  sandboxSession,
-  override,
-  port,
-}: {
-  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
-  override: HarnessV1PortEndpoint | undefined;
-  port: number;
-}): Promise<HarnessV1PortEndpoint> {
-  if (override != null) return override;
-  if ('getPortEndpoint' in sandboxSession) {
-    return sandboxSession.getPortEndpoint({ port, protocol: 'ws' });
-  }
-  throw new HarnessCapabilityUnsupportedError({
-    harnessId: 'deepagents',
-    message:
-      'The deepagents harness requires an explicit `portEndpoint` when using a basic sandbox session.',
-  });
-}
-
-// Materialize each skill as a native deepagents `<name>/SKILL.md` folder (+ attached files) under the given root, so skills load on demand and file references resolve.
-async function writeSkills({
-  sandbox,
-  root,
-  skills,
-  abortSignal,
-}: {
-  sandbox: SandboxSession;
-  root: string;
-  skills: ReadonlyArray<HarnessV1Skill>;
-  abortSignal?: AbortSignal;
-}): Promise<void> {
-  /*
-   * DeepAgents requires each `SKILL.md` frontmatter name to match the parent
-   * directory name, so keep the stricter lowercase skill-name policy here.
-   */
-  await writeHarnessSkills({
-    sandbox,
-    rootDir: root,
-    skills,
-    abortSignal,
-    skillNamePattern: /^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/,
-    invalidSkillNameMessage: ({ name }) =>
-      `Invalid deepagents skill name '${name}': must be lowercase alphanumeric with hyphens, 1-64 chars.`,
-    filePathMode: 'strip-leading-slashes',
-    invalidSkillFilePathMessage: ({ skillName, filePath }) =>
-      `Invalid skill file path for '${skillName}': ${filePath}`,
-  });
-}
-
-function openWebSocket({
-  url,
-  headers,
-}: HarnessV1PortEndpoint): Promise<WebSocket> {
-  return new Promise((resolve, reject) => {
-    const ws = new WebSocket(url, {
-      headers: headers == null ? undefined : { ...headers },
-    });
-    const onOpen = () => {
-      ws.off('error', onError);
-      resolve(ws);
-    };
-    const onError = (err: Error) => {
-      ws.off('open', onOpen);
-      reject(err);
-    };
-    ws.once('open', onOpen);
-    ws.once('error', onError);
-  });
-}
-
-function withBridgeToken({
-  endpoint,
-  token,
-}: {
-  endpoint: HarnessV1PortEndpoint;
-  token: string;
-}): HarnessV1PortEndpoint {
-  const bridgeUrl = new URL(endpoint.url);
-  bridgeUrl.searchParams.set('agent_bridge_token', token);
-  return { ...endpoint, url: bridgeUrl.toString() };
 }
 
 function createSession({
   sessionId,
   channel,
   proc,
-  model,
   thinking,
   effort,
   bridgePort,
-  bridgeToken,
+  bridgePrivateKey,
   sandboxId,
+  sandboxCredentialEnvironment,
   isResume,
-  attached,
+  sandbox,
+  homeDir,
   skillsPaths,
   permissionMode,
   builtinToolFiltering,
   recursionLimit,
   mcpServers,
+  headers,
 }: {
   sessionId: string;
   channel: DeepAgentsChannel;
   // Undefined on attach — the live bridge was spawned by another process.
   proc: Experimental_SandboxProcess | undefined;
-  model: string | undefined;
   thinking: DeepAgentsThinkingConfig | undefined;
   effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
   bridgePort: number;
-  bridgeToken: string;
+  bridgePrivateKey: string;
   sandboxId: string | undefined;
+  sandboxCredentialEnvironment: Record<string, string> | undefined;
   isResume: boolean;
-  // True only when attaching to a live bridge that already built the agent with
-  // its instructions. A fresh spawn (incl. a respawn on attach failure or a
-  // stop-resume) starts a new bridge that must receive the instructions again.
-  attached: boolean;
+  sandbox: SandboxSession;
+  homeDir: string;
   skillsPaths?: string[];
   permissionMode?: HarnessV1PermissionMode;
   builtinToolFiltering?: HarnessV1BuiltinToolFiltering;
   recursionLimit?: number;
   mcpServers?: Record<string, unknown>;
+  headers?: Readonly<Record<string, string>>;
 }): HarnessV1Session {
   let stopped = false;
-  let instructionsApplied = attached;
 
   const wireTurn = (turnOpts: {
     emit: (event: HarnessV1StreamPart) => void;
@@ -727,6 +666,7 @@ function createSession({
           toolCallId: input.toolCallId,
           output: input.output,
           isError: input.isError,
+          ...(input.toolResult != null ? { toolResult: input.toolResult } : {}),
         });
       },
       submitToolApproval: async input => {
@@ -751,7 +691,6 @@ function createSession({
   return {
     sessionId,
     isResume,
-    modelId: model,
     doPromptTurn: async promptOpts => {
       if (
         promptOpts.responseFormat?.type === 'json' &&
@@ -763,19 +702,30 @@ function createSession({
           harnessId: 'deepagents',
         });
       }
+      const skillWriteResult = await writeSkills({
+        sandbox,
+        homePath: homeDir,
+        skillsDir: '.agents/skills',
+        skills: promptOpts.skills,
+        abortSignal: promptOpts.abortSignal,
+        skillNamePattern: /^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/,
+        invalidSkillNameMessage: ({ name }) =>
+          `Invalid deepagents skill name '${name}': must be lowercase alphanumeric with hyphens, 1-64 chars.`,
+        filePathMode: 'strip-leading-slashes',
+        invalidSkillFilePathMessage: ({ skillName, filePath }) =>
+          `Invalid skill file path for '${skillName}': ${filePath}`,
+      });
       const control = wireTurn({
         emit: promptOpts.emit,
         abortSignal: promptOpts.abortSignal,
       });
 
-      const applyInstructions =
-        !instructionsApplied && !!promptOpts.instructions;
-      instructionsApplied = true;
-
       channel.send({
         type: 'start',
-        prompt: extractUserText(promptOpts.prompt),
-        ...(applyInstructions ? { instructions: promptOpts.instructions } : {}),
+        prompt: extractHarnessPromptContent({ prompt: promptOpts.prompt }),
+        ...(promptOpts.instructions
+          ? { instructions: promptOpts.instructions }
+          : {}),
         tools: (promptOpts.tools ?? []).map(t => ({
           name: t.name,
           description: t.description,
@@ -784,14 +734,23 @@ function createSession({
         ...(promptOpts.responseFormat == null
           ? {}
           : { responseFormat: promptOpts.responseFormat }),
-        ...(model ? { model } : {}),
+        ...(promptOpts.model ? { model: promptOpts.model } : {}),
         ...(thinking ? { thinking } : {}),
         ...(effort ? { effort } : {}),
         ...(skillsPaths?.length ? { skillsPaths } : {}),
+        skillsChanged: skillWriteResult.changed,
+        ...(promptOpts.skills.length > 0
+          ? {
+              readableSkillRoots: promptOpts.skills.map(
+                skill => `${homeDir}/.agents/skills/${skill.name}`,
+              ),
+            }
+          : {}),
         ...(permissionMode ? { permissionMode } : {}),
         ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
         ...(recursionLimit != null ? { recursionLimit } : {}),
         ...(mcpServers == null ? {} : { mcpServers }),
+        ...(headers == null ? {} : { headers }),
       });
 
       return control;
@@ -827,9 +786,12 @@ function createSession({
         harnessId: 'deepagents',
         specificationVersion: 'harness-v1',
         data: {
+          ...(sandboxCredentialEnvironment == null
+            ? {}
+            : { sandboxCredentialEnvironment }),
           bridge: {
             port: bridgePort,
-            token: bridgeToken,
+            privateKey: bridgePrivateKey,
             lastSeenEventId,
             ...(sandboxId == null ? {} : { sandboxId }),
           },
@@ -851,9 +813,12 @@ function createSession({
         harnessId: 'deepagents',
         specificationVersion: 'harness-v1',
         data: {
+          ...(sandboxCredentialEnvironment == null
+            ? {}
+            : { sandboxCredentialEnvironment }),
           bridge: {
             port: bridgePort,
-            token: bridgeToken,
+            privateKey: bridgePrivateKey,
             lastSeenEventId,
             ...(sandboxId == null ? {} : { sandboxId }),
           },
@@ -870,12 +835,14 @@ function createSession({
       }
       stopped = true;
       await teardown({ channel, proc, operation: 'stop' });
-      // In-memory conversation is lost on teardown; the sandbox snapshot preserves the workspace files, not the conversation.
       const payload: HarnessV1ResumeSessionState = {
         type: 'resume-session',
         harnessId: 'deepagents',
         specificationVersion: 'harness-v1',
-        data: {},
+        data:
+          sandboxCredentialEnvironment == null
+            ? {}
+            : { sandboxCredentialEnvironment },
       };
       return payload;
     },
@@ -920,22 +887,4 @@ async function teardown({
     } catch {}
     channel.close();
   }
-}
-
-// Reduce the prompt to plain user text; non-text parts are unsupported.
-function extractUserText(prompt: HarnessV1Prompt): string {
-  if (typeof prompt === 'string') return prompt;
-  const { content } = prompt;
-  if (typeof content === 'string') return content;
-  const parts: string[] = [];
-  for (const part of content) {
-    if (part.type !== 'text') {
-      throw new HarnessCapabilityUnsupportedError({
-        harnessId: 'deepagents',
-        message: `The deepagents harness does not yet support user message parts of type '${part.type}'. Pass a string or a user message whose content contains only text parts.`,
-      });
-    }
-    parts.push(part.text);
-  }
-  return parts.join('\n\n');
 }

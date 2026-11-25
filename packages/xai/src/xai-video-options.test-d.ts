@@ -79,6 +79,24 @@ describe('XaiVideoModelOptions type', () => {
     expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
   });
 
+  it('should allow current generation output and keyframe options', () => {
+    const options = {
+      storageOptions: {
+        filename: 'result.mp4',
+        expiresAfter: 86_400,
+        publicUrl: { expiresAfter: 3_600 },
+      },
+      keyframes: [
+        {
+          imageUrl: 'https://example.com/middle.png',
+          timestampSeconds: 2.5,
+        },
+      ],
+    } satisfies XaiVideoModelOptions;
+
+    expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
+  });
+
   it('should allow an explicitly undefined mode for plain generation', () => {
     const options = {
       mode: undefined,
@@ -269,6 +287,43 @@ describe('XaiVideoModelOptions type', () => {
     const options: XaiVideoModelOptions = {
       mode: 'reference-to-video',
       pollTimeoutMs: 600000,
+    };
+
+    options;
+  });
+
+  it('should allow output options with uploadUrl', () => {
+    const options = {
+      output: {
+        uploadUrl: 'https://example.com/upload',
+      },
+    } satisfies XaiVideoModelOptions;
+
+    expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
+  });
+
+  it('does not allow null upload options', () => {
+    const options: XaiVideoModelOptions = {
+      // @ts-expect-error output is optional, not nullable
+      output: null,
+    };
+    options;
+  });
+
+  it('requires a URL in output options', () => {
+    const options: XaiVideoModelOptions = {
+      // @ts-expect-error output requires uploadUrl
+      output: {},
+    };
+    options;
+  });
+
+  it('should require output.uploadUrl to be a string', () => {
+    const options: XaiVideoModelOptions = {
+      output: {
+        // @ts-expect-error - uploadUrl must be a string
+        uploadUrl: 123,
+      },
     };
 
     options;

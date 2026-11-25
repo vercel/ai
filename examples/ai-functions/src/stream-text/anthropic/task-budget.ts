@@ -7,7 +7,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: anthropic('claude-opus-4-7'),
+    model: anthropic('claude-opus-5-5'),
     prompt: 'Research the pros and cons of Rust vs Go for building CLI tools.',
     maxRetries: 0,
     providerOptions: {

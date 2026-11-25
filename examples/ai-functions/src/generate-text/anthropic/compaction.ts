@@ -34,7 +34,7 @@ ${documentCorpus}
 
 run(async () => {
   const result = await generateText({
-    model: anthropic('claude-opus-4-6'),
+    model: anthropic('claude-opus-5-5'),
     messages: [
       {
         role: 'user',

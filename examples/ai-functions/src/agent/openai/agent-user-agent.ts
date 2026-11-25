@@ -12,7 +12,7 @@ run(async () => {
         id: 'response-id',
         object: 'chat.completion',
         created: 0,
-        model: 'gpt-4o-mini',
+        model: 'gpt-6-luna',
         choices: [
           {
             index: 0,
@@ -29,7 +29,7 @@ run(async () => {
   const openai = createOpenAI({ apiKey: 'test', fetch: capturingFetch });
 
   const agent = new ToolLoopAgent({
-    model: openai.chat('gpt-4o-mini'),
+    model: openai.chat('gpt-6-luna'),
   });
 
   await agent.generate({ prompt: 'hello' });

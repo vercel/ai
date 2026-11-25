@@ -242,7 +242,7 @@ describe('FishAudioTranscriptionModel', () => {
     await model.doGenerate({ audio: audioData, mediaType: 'audio/mpeg' });
 
     expect(server.calls[0].requestUserAgent).toContain(
-      'ai-sdk/fish-audio/0.0.0-test',
+      'ai-sdk-fish-audio/0.0.0-test',
     );
   });
 

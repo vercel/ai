@@ -2,13 +2,14 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "display": "Default",
   "compilerOptions": {
-    "composite": false,
     "declaration": true,
     "declarationMap": true,
+    "emitDeclarationOnly": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "inlineSources": false,
     "isolatedModules": true,
+    "lib": ["ES2024", "dom", "dom.iterable"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "noUnusedLocals": false,
@@ -16,6 +17,8 @@
     "preserveWatchOutput": true,
     "skipLibCheck": true,
     "strict": true,
+    "target": "ES2022",
+    "useDefineForClassFields": false,
     "types": ["@types/node"]
   },
   "exclude": ["node_modules"]

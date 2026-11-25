@@ -1,7 +1,8 @@
 import { openai } from '@ai-sdk/openai';
 import { Sandbox } from '@vercel/sandbox';
 import { ToolLoopAgent, type InferAgentUIMessage } from 'ai';
-// warning: this is a demo sandbox that is shared across chats on localhost
+// This sandbox is shared across local demo chats. The API route enforces local
+// development only; deployed use requires authentication and sandbox ownership.
 let globalSandboxName: string | null = null;
 async function getSandbox(): Promise<Sandbox> {
   if (globalSandboxName) {
@@ -61,7 +62,7 @@ async function executeShellCommand(
 }
 
 export const openaiShellAgent = new ToolLoopAgent({
-  model: openai.responses('gpt-5.6'),
+  model: openai.responses('gpt-6-astra'),
   instructions:
     'You have access to a shell tool that can execute commands on the local filesystem. ' +
     'Use the shell tool when you need to perform file operations or run commands. ' +

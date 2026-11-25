@@ -1,19 +1,36 @@
 import { moonshotai } from '@ai-sdk/moonshotai';
-import { generateText, Output } from 'ai';
-import { z } from 'zod';
+import type { JSONSchema7 } from '@ai-sdk/provider';
+import { generateText, jsonSchema, Output } from 'ai';
+import { print } from '../../lib/print';
 import { run } from '../../lib/run';
+
+type PairOutput = {
+  pair: [string, number];
+};
+
+const schema: JSONSchema7 = {
+  type: 'object',
+  properties: {
+    pair: {
+      type: 'array',
+      items: [{ type: 'string' }, { type: 'number' }],
+    },
+  },
+  required: ['pair'],
+  additionalProperties: false,
+};
 
 run(async () => {
   const result = await generateText({
-    model: moonshotai('kimi-k3'),
+    model: moonshotai('moonshot-v1-8k'),
+    include: { requestBody: true },
     output: Output.object({
-      schema: z.object({
-        holiday: z.string(),
-        traditions: z.array(z.string()),
-      }),
+      name: 'named_pair',
+      schema: jsonSchema<PairOutput>(schema),
     }),
-    prompt: 'Invent a new holiday and describe its traditions.',
+    prompt: 'Return a pair containing the string "age" and the number 42.',
   });
 
-  console.log(JSON.stringify(result.output, null, 2));
+  print('Output:', result.output);
+  print('Request:', result.request.body);
 });

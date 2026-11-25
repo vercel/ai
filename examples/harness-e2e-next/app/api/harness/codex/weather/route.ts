@@ -27,10 +27,11 @@ export async function POST(request: Request) {
   return createUIMessageStreamResponse({
     stream: createUIMessageStream({
       execute: async ({ writer }) => {
-        const session = await resumeOrCreateSession(
-          weatherCodexHarnessAgent,
+        const { session } = await resumeOrCreateSession({
+          agent: weatherCodexHarnessAgent,
           chatId,
-        );
+          ports: [4000],
+        });
 
         const result = await weatherCodexHarnessAgent.stream({
           session,
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
           toUIMessageStream({
             stream: result.stream,
             onError: getHarnessE2EErrorMessage,
-            onFinish: () => detachAndPersist(chatId, session),
+            onFinish: () => detachAndPersist({ chatId, session }),
           }),
         );
       },

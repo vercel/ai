@@ -1,6 +1,9 @@
 import fs from 'node:fs';
 
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import {
+  InvalidResponseDataError,
+  type LanguageModelV4Prompt,
+} from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createOpenAI } from '../openai-provider';
@@ -184,6 +187,233 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should extract a refusal as text content', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-refusal',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-4o-2024-08-06',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: null,
+              refusal: "I'm sorry, I can't assist with that request.",
+            },
+            finish_reason: 'stop',
+          },
+        ],
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toStrictEqual([
+      {
+        type: 'text',
+        text: "I'm sorry, I can't assist with that request.",
+      },
+    ]);
+    expect(result.finishReason).toStrictEqual({
+      unified: 'content-filter',
+      raw: 'stop',
+    });
+  });
+
+  it('should extract a refusal from a real response as text content', async () => {
+    prepareJsonFixtureResponse('openai-refusal');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toStrictEqual([
+      {
+        type: 'text',
+        text: "I'm very sorry, but I can't assist with that request.",
+      },
+    ]);
+    expect(result.finishReason).toStrictEqual({
+      unified: 'content-filter',
+      raw: 'stop',
+    });
+  });
+
+  it('should extract content and refusal as text content', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-content-and-refusal',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-4o-2024-08-06',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: 'Here is the first part. ',
+              refusal: 'I cannot continue with the rest.',
+            },
+            finish_reason: 'stop',
+          },
+        ],
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toStrictEqual([
+      { type: 'text', text: 'Here is the first part. ' },
+      { type: 'text', text: 'I cannot continue with the rest.' },
+    ]);
+    expect(result.finishReason).toStrictEqual({
+      unified: 'content-filter',
+      raw: 'stop',
+    });
+  });
+
+  it('should keep the tool call finish reason when a refusal is present', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-refusal-tool-call',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-4o-2024-08-06',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: null,
+              refusal: 'Let me look that up.',
+              tool_calls: [
+                {
+                  id: 'call-1',
+                  type: 'function',
+                  function: {
+                    name: 'test-tool',
+                    arguments: '{"value":"Spark"}',
+                  },
+                },
+              ],
+            },
+            finish_reason: 'tool_calls',
+          },
+        ],
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toStrictEqual([
+      { type: 'text', text: 'Let me look that up.' },
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'test-tool',
+        input: '{"value":"Spark"}',
+      },
+    ]);
+    expect(result.finishReason).toStrictEqual({
+      unified: 'tool-calls',
+      raw: 'tool_calls',
+    });
+  });
+
+  it('should extract an audio transcript alongside tool calls', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-audio',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-audio-1.5',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: null,
+              audio: {
+                id: 'audio-1',
+                data: 'base64-audio',
+                expires_at: 1711118637,
+                transcript: 'Fix the login bug',
+              },
+              tool_calls: [
+                {
+                  id: 'call-1',
+                  type: 'function',
+                  function: {
+                    name: 'test-tool',
+                    arguments: '{"value":"Spark"}',
+                  },
+                },
+              ],
+            },
+            finish_reason: 'tool_calls',
+          },
+        ],
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toStrictEqual([
+      {
+        type: 'text',
+        text: 'Fix the login bug',
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'test-tool',
+        input: '{"value":"Spark"}',
+      },
+    ]);
+  });
+
+  it('should reject a response without choices', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-empty',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 4,
+          completion_tokens: 0,
+        },
+      },
+    };
+
+    await expect(
+      model.doGenerate({
+        prompt: TEST_PROMPT,
+      }),
+    ).rejects.toSatisfy(
+      error =>
+        InvalidResponseDataError.isInstance(error) &&
+        error.message === 'Response did not contain any choices.',
+    );
+  });
+
   it('should extract usage', async () => {
     server.urls['https://api.openai.com/v1/chat/completions'].response = {
       type: 'json-value',
@@ -274,6 +504,7 @@ describe('doGenerate', () => {
           "user": undefined,
           "verbosity": undefined,
         },
+        "url": "https://api.openai.com/v1/chat/completions",
       }
     `);
   });
@@ -421,6 +652,133 @@ describe('doGenerate', () => {
     });
     expect(response.providerMetadata?.openai.logprobs).toStrictEqual(
       TEST_LOGPROBS.content,
+    );
+  });
+
+  it('should report explicitly empty logprobs as an empty array', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-empty-logprobs',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: '' },
+            logprobs: { content: [], refusal: null },
+            finish_reason: 'stop',
+          },
+        ],
+      },
+    };
+
+    const response = await provider.chat('gpt-3.5-turbo').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: { openai: { logprobs: true } },
+    });
+
+    expect(response.providerMetadata?.openai.logprobs).toStrictEqual([]);
+  });
+
+  it('should include refusal logprobs', async () => {
+    const refusalLogprobs = [
+      { token: 'I', logprob: -0.1, top_logprobs: [] },
+      { token: ' cannot', logprob: -0.2, top_logprobs: [] },
+    ];
+
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-refusal-logprobs',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-4o-2024-08-06',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: null,
+              refusal: 'I cannot help.',
+            },
+            logprobs: { content: null, refusal: refusalLogprobs },
+            finish_reason: 'stop',
+          },
+        ],
+      },
+    };
+
+    const response = await provider.chat('gpt-4o-2024-08-06').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: { openai: { logprobs: true } },
+    });
+
+    expect(response.providerMetadata?.openai.logprobs).toStrictEqual(
+      refusalLogprobs,
+    );
+  });
+
+  it('should include content and refusal logprobs in emission order', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-content-and-refusal-logprobs',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-4o-2024-08-06',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: 'Here. ',
+              refusal: 'I cannot continue.',
+            },
+            logprobs: {
+              content: [
+                { token: 'Here', logprob: -0.1, top_logprobs: [] },
+                { token: '. ', logprob: -0.2, top_logprobs: [] },
+              ],
+              refusal: [
+                { token: 'I', logprob: -0.3, top_logprobs: [] },
+                { token: ' cannot', logprob: -0.4, top_logprobs: [] },
+              ],
+            },
+            finish_reason: 'stop',
+          },
+        ],
+      },
+    };
+
+    const response = await provider.chat('gpt-4o-2024-08-06').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: { openai: { logprobs: true } },
+    });
+
+    expect(response.providerMetadata?.openai.logprobs).toStrictEqual([
+      { token: 'Here', logprob: -0.1, top_logprobs: [] },
+      { token: '. ', logprob: -0.2, top_logprobs: [] },
+      { token: 'I', logprob: -0.3, top_logprobs: [] },
+      { token: ' cannot', logprob: -0.4, top_logprobs: [] },
+    ]);
+  });
+
+  it('should include refusal logprobs from a real response', async () => {
+    prepareJsonFixtureResponse('openai-refusal-logprobs');
+
+    const response = await provider.chat('gpt-4o-2024-08-06').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: { openai: { logprobs: true } },
+    });
+
+    const logprobs = response.providerMetadata?.openai.logprobs as Array<{
+      token: string;
+    }>;
+
+    expect(logprobs.map(({ token }) => token).join('')).toBe(
+      "I'm very sorry, but I can't assist with that.",
     );
   });
 
@@ -632,6 +990,126 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should map unsupported top-level reasoning for GPT-5 models', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const result = await provider.chat('gpt-5.5').doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'minimal',
+    });
+
+    expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+      'low',
+    );
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "minimal" is not directly supported by this model. mapped to effort "low".',
+      },
+    ]);
+  });
+
+  it('should map max reasoning to xhigh for GPT-6 models', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const result = await provider.chat('gpt-6-sol').doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'max',
+    });
+
+    expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+      'xhigh',
+    );
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "max" is not directly supported by this model. mapped to effort "xhigh".',
+      },
+    ]);
+  });
+
+  describe('GPT-5.6 with function tools', () => {
+    const tools = [
+      {
+        type: 'function' as const,
+        name: 'test-tool',
+        inputSchema: { type: 'object' as const, properties: {} },
+      },
+    ];
+    const toolsWarning = {
+      type: 'compatibility',
+      feature: 'reasoning',
+      details:
+        'gpt-5.6-luna does not support function tools with reasoning in the Chat Completions API. reasoning effort set to "none". Use the Responses API to combine reasoning with function tools.',
+    };
+
+    it('should send reasoning effort none with a warning when reasoning is requested', async () => {
+      prepareJsonFixtureResponse('openai-text');
+
+      const result = await provider.chat('gpt-5.6-luna').doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'low',
+        tools,
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'none',
+      );
+      expect(result.warnings).toStrictEqual([toolsWarning]);
+    });
+
+    it.each(['none', 'provider-default', undefined] as const)(
+      'should send reasoning effort none without a warning when reasoning is %s',
+      async reasoning => {
+        prepareJsonFixtureResponse('openai-text');
+
+        const result = await provider.chat('gpt-5.6-luna').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning,
+          tools,
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+          'none',
+        );
+        expect(result.warnings).toStrictEqual([]);
+      },
+    );
+
+    it('should send providerOptions reasoningEffort unchanged', async () => {
+      prepareJsonFixtureResponse('openai-text');
+
+      const result = await provider.chat('gpt-5.6-luna').doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+        tools,
+        providerOptions: { openai: { reasoningEffort: 'low' } },
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'low',
+      );
+      expect(result.warnings).toStrictEqual([]);
+    });
+
+    it('should not change reasoning without tools', async () => {
+      prepareJsonFixtureResponse('openai-text');
+
+      await provider.chat('gpt-5.6-luna').doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'low',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'low',
+      );
+    });
+  });
+
   it('should pass reasoningEffort setting from provider metadata', async () => {
     prepareJsonFixtureResponse('openai-text');
 
@@ -727,6 +1205,28 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should warn that reasoningSummary is not supported by the chat API', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('o3');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: { reasoningSummary: 'detailed' },
+      },
+    });
+
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'unsupported',
+        feature: 'reasoningSummary',
+        details:
+          'reasoningSummary is only supported by the Responses API, not the Chat Completions API',
+      },
+    ]);
+  });
+
   it('should pass tools and toolChoice', async () => {
     prepareJsonFixtureResponse('openai-text');
 
@@ -819,7 +1319,7 @@ describe('doGenerate', () => {
       'openai-project': 'test-project',
     });
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/openai/0.0.0-test`,
+      `ai-sdk-openai/0.0.0-test`,
     );
   });
 
@@ -1037,6 +1537,66 @@ describe('doGenerate', () => {
       `);
 
       expect(warnings).toEqual([]);
+    });
+
+    it('should remove string propertyNames from response schemas and warn', async () => {
+      prepareJsonFixtureResponse('openai-text');
+
+      const model = provider.chat('gpt-4o-2024-08-06');
+
+      const { warnings } = await model.doGenerate({
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              variables: {
+                type: 'object',
+                propertyNames: {
+                  type: 'string',
+                  format: 'uuid',
+                },
+                additionalProperties: { type: 'string' },
+              },
+            },
+            required: ['variables'],
+            additionalProperties: false,
+          },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'response',
+            strict: true,
+            schema: {
+              type: 'object',
+              properties: {
+                variables: {
+                  type: 'object',
+                  additionalProperties: { type: 'string' },
+                },
+              },
+              required: ['variables'],
+              additionalProperties: false,
+            },
+          },
+        },
+      });
+
+      expect(warnings).toStrictEqual([
+        {
+          type: 'compatibility',
+          feature: 'JSON Schema propertyNames',
+          details:
+            'OpenAI does not support JSON Schema propertyNames. It was removed before sending the schema, so OpenAI will not enforce property-name constraints.',
+        },
+      ]);
     });
 
     it('should use json_schema & strict with responseFormat json', async () => {
@@ -1571,6 +2131,111 @@ describe('doGenerate', () => {
       expect(result.warnings).toStrictEqual([]);
     });
 
+    it.each(['gpt-6-sol', 'gpt-6-luna'])(
+      'should preserve disabled reasoning for %s',
+      async modelId => {
+        prepareJsonFixtureResponse('openai-text');
+        const { warnings } = await provider.chat(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: { openai: { reasoningEffort: 'none' } },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          model: modelId,
+          reasoning_effort: 'none',
+        });
+        expect(warnings).toStrictEqual([]);
+      },
+    );
+
+    it.each(['none', 'minimal'] as const)(
+      'should send provider reasoning effort %s unchanged for GPT-6 models',
+      async reasoningEffort => {
+        prepareJsonFixtureResponse('openai-text');
+
+        const result = await provider.chat('gpt-6-astra').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: { reasoningEffort },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-6-astra',
+          messages: [{ role: 'user', content: 'Hello' }],
+          reasoning_effort: reasoningEffort,
+        });
+        expect(result.warnings).toStrictEqual([]);
+      },
+    );
+
+    it.each(['none', 'minimal'] as const)(
+      'should map unsupported GPT-6 reasoning %s to the lowest supported effort',
+      async reasoning => {
+        prepareJsonFixtureResponse('openai-text');
+
+        const result = await provider.chat('gpt-6-astra').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-6-astra',
+          messages: [{ role: 'user', content: 'Hello' }],
+          reasoning_effort: 'low',
+        });
+        expect(result.warnings).toStrictEqual([
+          {
+            type: 'compatibility',
+            feature: 'reasoning',
+            details: `reasoning "${reasoning}" is not directly supported by this model. mapped to effort "low".`,
+          },
+        ]);
+      },
+    );
+
+    it('should strip sampling and logprob settings for GPT-6 models', async () => {
+      prepareJsonFixtureResponse('openai-text');
+
+      const result = await provider.chat('gpt-6-astra').doGenerate({
+        prompt: TEST_PROMPT,
+        temperature: 0.5,
+        topP: 0.7,
+        providerOptions: {
+          openai: {
+            reasoningEffort: 'low',
+            logprobs: 5,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'gpt-6-astra',
+        messages: [{ role: 'user', content: 'Hello' }],
+        reasoning_effort: 'low',
+      });
+      expect(result.warnings).toStrictEqual([
+        {
+          type: 'unsupported',
+          feature: 'temperature',
+          details: 'temperature is not supported for reasoning models',
+        },
+        {
+          type: 'unsupported',
+          feature: 'topP',
+          details: 'topP is not supported for reasoning models',
+        },
+        {
+          type: 'other',
+          message: 'logprobs is not supported for reasoning models',
+        },
+        {
+          type: 'other',
+          message: 'topLogprobs is not supported for reasoning models',
+        },
+      ]);
+    });
+
     it('should still clear temperature when top-level reasoning is none on o4-mini', async () => {
       prepareJsonFixtureResponse('openai-text');
 
@@ -1585,11 +2250,17 @@ describe('doGenerate', () => {
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'o4-mini',
         messages: [{ role: 'user', content: 'Hello' }],
-        reasoning_effort: 'none',
+        // o4-mini does not accept none, so the lowest supported effort is sent.
+        reasoning_effort: 'low',
       });
 
       expect(result.warnings).toMatchInlineSnapshot(`
         [
+          {
+            "details": "reasoning "none" is not directly supported by this model. mapped to effort "low".",
+            "feature": "reasoning",
+            "type": "compatibility",
+          },
           {
             "details": "temperature is not supported for reasoning models",
             "feature": "temperature",
@@ -1969,6 +2640,46 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should send prompt cache retention for GPT-5 models', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const result = await provider.chat('gpt-5.5').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: { openai: { promptCacheRetention: '24h' } },
+    });
+
+    expect((await server.calls[0].requestBodyJson).prompt_cache_retention).toBe(
+      '24h',
+    );
+    expect(result.warnings).toStrictEqual([]);
+  });
+
+  it('should omit legacy prompt cache retention for GPT-6 models', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const result = await provider.chat('gpt-6-astra').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          promptCacheRetention: '24h',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-6-astra',
+      messages: [{ role: 'user', content: 'Hello' }],
+    });
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'unsupported',
+        feature: 'promptCacheRetention',
+        details:
+          'promptCacheRetention is not supported by GPT-6 and later models; use promptCacheOptions instead',
+      },
+    ]);
+  });
+
   it('should send safetyIdentifier extension value', async () => {
     prepareJsonFixtureResponse('openai-text');
 
@@ -2306,9 +3017,89 @@ describe('doGenerate', () => {
     expect(requestBody.service_tier).toBe('fast');
     expect(result.warnings).toEqual([]);
   });
+
+  it('should send serviceTier ultrafast processing setting', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('gpt-5.6-sol');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'ultrafast',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "gpt-5.6-sol",
+        "service_tier": "ultrafast",
+      }
+    `);
+  });
 });
 
 describe('doStream', () => {
+  it.each([
+    [undefined, 'interrupted'],
+    [null, 'interrupted'],
+    ['stop', 'stop'],
+    ['length', 'length'],
+    ['tool_calls', 'tool-calls'],
+    ['unknown_reason', 'other'],
+  ] as const)(
+    'maps a stream ending with finish_reason %j to %s',
+    async (raw, unified) => {
+      server.urls['https://api.openai.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            id: 'chat-1',
+            object: 'chat.completion.chunk',
+            created: 1,
+            model: 'gpt-4o',
+            choices: [
+              {
+                index: 0,
+                delta: { content: 'Partial answer' },
+                finish_reason: null,
+              },
+            ],
+          })}\n\n`,
+          ...(raw === undefined
+            ? []
+            : [
+                `data: ${JSON.stringify({
+                  choices: [{ index: 0, delta: {}, finish_reason: raw }],
+                })}\n\n`,
+                'data: [DONE]\n\n',
+              ]),
+        ],
+      };
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts).toContainEqual({
+        type: 'text-delta',
+        id: '0',
+        delta: 'Partial answer',
+      });
+      expect(parts.filter(part => part.type === 'error')).toEqual([]);
+      expect(parts.filter(part => part.type === 'finish')).toEqual([
+        expect.objectContaining({
+          finishReason: { unified, raw: raw ?? undefined },
+        }),
+      ]);
+    },
+  );
+
   it('should stream text after Azure content filter chunks', async () => {
     server.urls['https://api.openai.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
@@ -2333,6 +3124,488 @@ describe('doStream', () => {
       { type: 'text-delta', id: '0', delta: '' },
       { type: 'text-delta', id: '0', delta: 'Hello' },
     ]);
+  });
+
+  it('should stream a refusal as text deltas', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-refusal","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"role":"assistant","content":null,"refusal":""},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-refusal","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"refusal":"I'm"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-refusal","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"refusal":" sorry, but I can't assist with that request."},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-refusal","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "chatcmpl-refusal",
+          "modelId": "gpt-4o-2024-08-06",
+          "timestamp": 1970-01-01T00:00:01.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "I'm",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " sorry, but I can't assist with that request.",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": {
+            "raw": "stop",
+            "unified": "content-filter",
+          },
+          "providerMetadata": {
+            "openai": {},
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should include refusal logprobs in provider metadata', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-refusal-logprobs","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"role":"assistant","content":null,"refusal":""},"logprobs":{"content":null,"refusal":[]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-refusal-logprobs","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"refusal":"I"},"logprobs":{"content":null,"refusal":[{"token":"I","logprob":-0.1,"top_logprobs":[]}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-refusal-logprobs","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"refusal":" cannot"},"logprobs":{"content":null,"refusal":[{"token":" cannot","logprob":-0.2,"top_logprobs":[]}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-refusal-logprobs","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"stop"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "chatcmpl-refusal-logprobs",
+          "modelId": "gpt-4o-2024-08-06",
+          "timestamp": 1970-01-01T00:00:01.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "I",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " cannot",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": {
+            "raw": "stop",
+            "unified": "content-filter",
+          },
+          "providerMetadata": {
+            "openai": {
+              "logprobs": [
+                {
+                  "logprob": -0.1,
+                  "token": "I",
+                  "top_logprobs": [],
+                },
+                {
+                  "logprob": -0.2,
+                  "token": " cannot",
+                  "top_logprobs": [],
+                },
+              ],
+            },
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should include content logprobs from all streamed chunks', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-content-logprobs","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"logprobs":{"content":[{"token":"Hello","logprob":-0.1,"top_logprobs":[]}],"refusal":null},"finish_reason":null}]}\n\n`,
+        // empty logprobs must not interrupt the collection:
+        `data: {"id":"chatcmpl-content-logprobs","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"content":" there"},"logprobs":{"content":[],"refusal":null},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-content-logprobs","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"content":","},"logprobs":{"content":[{"token":",","logprob":-0.2,"top_logprobs":[]}],"refusal":null},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-content-logprobs","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"content":" you"},"logprobs":{"content":[{"token":" you","logprob":-0.3,"top_logprobs":[]}],"refusal":null},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-content-logprobs","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"stop"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    const finishPart = parts.find(part => part.type === 'finish') as Extract<
+      (typeof parts)[number],
+      { type: 'finish' }
+    >;
+
+    expect(finishPart.finishReason).toStrictEqual({
+      unified: 'stop',
+      raw: 'stop',
+    });
+    // all streamed content logprobs are reported, not only the last chunk:
+    expect(finishPart.providerMetadata?.openai?.logprobs).toStrictEqual([
+      { token: 'Hello', logprob: -0.1, top_logprobs: [] },
+      { token: ',', logprob: -0.2, top_logprobs: [] },
+      { token: ' you', logprob: -0.3, top_logprobs: [] },
+    ]);
+  });
+
+  it('should include content and refusal logprobs from all streamed chunks', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-content-and-refusal-logprobs","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"role":"assistant","content":"Here"},"logprobs":{"content":[{"token":"Here","logprob":-0.1,"top_logprobs":[]}],"refusal":null},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-content-and-refusal-logprobs","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"refusal":"I"},"logprobs":{"content":null,"refusal":[{"token":"I","logprob":-0.2,"top_logprobs":[]}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-content-and-refusal-logprobs","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"refusal":" cannot"},"logprobs":{"content":null,"refusal":[{"token":" cannot","logprob":-0.3,"top_logprobs":[]}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-content-and-refusal-logprobs","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"stop"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    const finishPart = parts.find(part => part.type === 'finish') as Extract<
+      (typeof parts)[number],
+      { type: 'finish' }
+    >;
+
+    expect(finishPart.finishReason).toStrictEqual({
+      unified: 'content-filter',
+      raw: 'stop',
+    });
+    expect(finishPart.providerMetadata?.openai?.logprobs).toStrictEqual([
+      { token: 'Here', logprob: -0.1, top_logprobs: [] },
+      { token: 'I', logprob: -0.2, top_logprobs: [] },
+      { token: ' cannot', logprob: -0.3, top_logprobs: [] },
+    ]);
+  });
+
+  it('should report a refusal and the finish reason from the same chunk', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-refusal-same-chunk","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"role":"assistant","content":null},"finish_reason":null}]}\n\n`,
+        // the last (refusal) delta and the finish reason arrive together:
+        `data: {"id":"chatcmpl-refusal-same-chunk","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"refusal":"I cannot continue."},"finish_reason":"stop"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(parts.filter(part => part.type === 'text-delta')).toStrictEqual([
+      { type: 'text-delta', id: '0', delta: 'I cannot continue.' },
+    ]);
+    expect(parts.find(part => part.type === 'finish')).toMatchObject({
+      finishReason: { unified: 'content-filter', raw: 'stop' },
+    });
+  });
+
+  it('should include refusal logprobs from a real response', async () => {
+    prepareChunksFixtureResponse('openai-refusal-logprobs');
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    const finishPart = parts.find(part => part.type === 'finish') as Extract<
+      (typeof parts)[number],
+      { type: 'finish' }
+    >;
+    const logprobs = finishPart.providerMetadata?.openai?.logprobs as Array<{
+      token: string;
+    }>;
+
+    expect(logprobs.map(({ token }) => token).join('')).toBe(
+      "I'm sorry, but I cannot provide that information.",
+    );
+  });
+
+  it('should stream a refusal from a real response as text deltas', async () => {
+    prepareChunksFixtureResponse('openai-refusal');
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "chatcmpl-Egi9csIJjpCxGlUk8ywkdX7vmz6Si",
+          "modelId": "gpt-4o-2024-08-06",
+          "timestamp": 2026-11-05T03:10:12.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "I'm",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " very",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " sorry",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": ",",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " but",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " I",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " can't",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " assist",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " with",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " that",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": ".",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": {
+            "raw": "stop",
+            "unified": "content-filter",
+          },
+          "providerMetadata": {
+            "openai": {
+              "acceptedPredictionTokens": 0,
+              "rejectedPredictionTokens": 0,
+            },
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 74,
+              "total": 74,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 12,
+              "total": 12,
+            },
+            "raw": {
+              "completion_tokens": 12,
+              "completion_tokens_details": {
+                "accepted_prediction_tokens": 0,
+                "reasoning_tokens": 0,
+                "rejected_prediction_tokens": 0,
+              },
+              "prompt_tokens": 74,
+              "prompt_tokens_details": {
+                "cached_tokens": 0,
+              },
+              "total_tokens": 86,
+            },
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should append refusal deltas to streamed content', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-content-and-refusal","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"role":"assistant","content":"Here is the first part."},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-content-and-refusal","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"refusal":" I cannot continue."},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-content-and-refusal","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "chatcmpl-content-and-refusal",
+          "modelId": "gpt-4o-2024-08-06",
+          "timestamp": 1970-01-01T00:00:01.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Here is the first part.",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " I cannot continue.",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": {
+            "raw": "stop",
+            "unified": "content-filter",
+          },
+          "providerMetadata": {
+            "openai": {},
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
+          },
+        },
+      ]
+    `);
   });
 
   it('should stream text deltas', async () => {
@@ -3347,9 +4620,100 @@ describe('doStream', () => {
         },
         {
           "error": {
-            "code": null,
+            "code": undefined,
+            "data": {
+              "code": null,
+              "message": "stream failed after output",
+              "param": null,
+              "type": "server_error",
+            },
+            "isRetryable": true,
             "message": "stream failed after output",
-            "param": null,
+            "statusCode": 500,
+            "type": "server_error",
+          },
+          "type": "error",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": {
+            "raw": undefined,
+            "unified": "error",
+          },
+          "providerMetadata": {
+            "openai": {},
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should forward error stream parts after a refusal has started', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-refusal-error","object":"chat.completion.chunk","created":1702657020,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"role":"assistant","content":null,"refusal":"I'm sorry"},"finish_reason":null}]}\n\n`,
+        `data: {"error":{"message":"stream failed after refusal","type":"server_error","param":null,"code":null}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "chatcmpl-refusal-error",
+          "modelId": "gpt-4o-2024-08-06",
+          "timestamp": 2023-12-15T16:17:00.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "I'm sorry",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "error": {
+            "code": undefined,
+            "data": {
+              "code": null,
+              "message": "stream failed after refusal",
+              "param": null,
+              "type": "server_error",
+            },
+            "isRetryable": true,
+            "message": "stream failed after refusal",
+            "statusCode": 500,
             "type": "server_error",
           },
           "type": "error",
@@ -3485,6 +4849,7 @@ describe('doStream', () => {
           "user": undefined,
           "verbosity": undefined,
         },
+        "url": "https://api.openai.com/v1/chat/completions",
       }
     `);
   });
@@ -4120,4 +5485,79 @@ describe('doStream', () => {
       expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
     });
   });
+});
+
+it.each(['generate', 'stream'] as const)(
+  'reports the custom HTTP request URL for %s',
+  async mode => {
+    const url = 'https://model.example.test:8443/private/v1/chat/completions';
+    const fetch = vi.fn(async (_url: RequestInfo | URL) =>
+      mode === 'generate'
+        ? Response.json({
+            id: 'test',
+            object: 'chat.completion',
+            created: 1,
+            model: 'test-model',
+            choices: [
+              {
+                index: 0,
+                message: { role: 'assistant', content: 'hello' },
+                finish_reason: 'stop',
+              },
+            ],
+          })
+        : new Response('data: [DONE]\n\n', {
+            headers: { 'content-type': 'text/event-stream' },
+          }),
+    );
+    const provider = createOpenAI({
+      apiKey: 'test-only',
+      baseURL: 'https://model.example.test:8443/private/v1',
+      fetch,
+    });
+    const model = provider.chat('test-model');
+    const result =
+      mode === 'generate'
+        ? await model.doGenerate({ prompt: TEST_PROMPT })
+        : await model.doStream({ prompt: TEST_PROMPT });
+    expect(result.request?.url).toBe(url);
+    expect(fetch.mock.calls[0][0]).toBe(url);
+  },
+);
+
+describe('message name request bodies', () => {
+  it.each(['generate', 'stream'] as const)(
+    'serializes names in %s requests',
+    async mode => {
+      if (mode === 'generate') prepareJsonFixtureResponse('openai-text');
+      else prepareChunksFixtureResponse('openai-text');
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Hello' }],
+          providerOptions: { openai: { name: 'alice' } },
+        },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'Hi' }],
+          providerOptions: { openai: { name: 'bot' } },
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Say OK' }],
+          providerOptions: { openai: { name: 'bob' } },
+        },
+      ];
+      if (mode === 'generate') await model.doGenerate({ prompt });
+      else {
+        const { stream } = await model.doStream({ prompt });
+        await convertReadableStreamToArray(stream);
+      }
+      expect((await server.calls[0].requestBodyJson).messages).toEqual([
+        { role: 'user', content: 'Hello', name: 'alice' },
+        { role: 'assistant', content: 'Hi', name: 'bot' },
+        { role: 'user', content: 'Say OK', name: 'bob' },
+      ]);
+    },
+  );
 });

@@ -1,0 +1,140 @@
+[
+  {
+    "type": "assistant",
+    "parent_tool_use_id": null,
+    "message": {
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_parent_agent",
+          "name": "Agent",
+          "input": {
+            "description": "Run a background command",
+            "prompt": "Run a command and report its output.",
+            "subagent_type": "general-purpose",
+            "run_in_background": true
+          }
+        }
+      ]
+    }
+  },
+  {
+    "type": "system",
+    "subtype": "background_tasks_changed",
+    "tasks": [
+      {
+        "task_id": "task_subagent",
+        "task_type": "local_agent",
+        "description": "Run a background command"
+      }
+    ]
+  },
+  {
+    "type": "system",
+    "subtype": "task_started",
+    "task_id": "task_subagent",
+    "tool_use_id": "toolu_parent_agent",
+    "description": "Run a background command",
+    "subagent_type": "general-purpose",
+    "is_backgrounded": true
+  },
+  {
+    "type": "assistant",
+    "parent_tool_use_id": "toolu_parent_agent",
+    "message": {
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_subagent_bash",
+          "name": "Bash",
+          "input": {
+            "command": "printf subagent-output"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "type": "system",
+    "subtype": "task_progress",
+    "task_id": "task_subagent",
+    "tool_use_id": "toolu_parent_agent",
+    "description": "Running command",
+    "subagent_type": "general-purpose",
+    "usage": {
+      "total_tokens": 8922,
+      "tool_uses": 1,
+      "duration_ms": 2870
+    },
+    "last_tool_name": "Bash",
+    "summary": "Running the requested command"
+  },
+  {
+    "type": "user",
+    "parent_tool_use_id": "toolu_parent_agent",
+    "message": {
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_subagent_bash",
+          "content": "subagent-output",
+          "is_error": false
+        }
+      ]
+    }
+  },
+  {
+    "type": "assistant",
+    "parent_tool_use_id": "toolu_parent_agent",
+    "message": {
+      "content": [
+        {
+          "type": "text",
+          "text": "The command printed subagent-output."
+        }
+      ]
+    }
+  },
+  {
+    "type": "system",
+    "subtype": "task_updated",
+    "task_id": "task_subagent",
+    "patch": {
+      "status": "running",
+      "is_backgrounded": true
+    }
+  },
+  {
+    "type": "system",
+    "subtype": "background_tasks_changed",
+    "tasks": []
+  },
+  {
+    "type": "system",
+    "subtype": "task_notification",
+    "task_id": "task_subagent",
+    "tool_use_id": "toolu_parent_agent",
+    "status": "completed",
+    "output_file": "/tmp/task_subagent.output",
+    "summary": "The command printed subagent-output.",
+    "usage": {
+      "total_tokens": 9641,
+      "tool_uses": 1,
+      "duration_ms": 9089
+    }
+  },
+  {
+    "type": "user",
+    "parent_tool_use_id": null,
+    "message": {
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_parent_agent",
+          "content": "The background agent completed.",
+          "is_error": false
+        }
+      ]
+    }
+  }
+]

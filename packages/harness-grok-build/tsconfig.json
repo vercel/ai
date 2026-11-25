@@ -1,7 +1,6 @@
 {
   "extends": "./node_modules/@vercel/ai-tsconfig/ts-library.json",
   "compilerOptions": {
-    "composite": true,
     "rootDir": "src",
     "outDir": "dist"
   },
@@ -9,11 +8,6 @@
     "dist",
     "build",
     "node_modules",
-    "tsup.config.ts"
-  ],
-  "references": [
-    { "path": "../harness" },
-    { "path": "../harness-acp" },
-    { "path": "../provider-utils" }
+    "tsdown.config.ts"
   ]
 }

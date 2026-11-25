@@ -8,6 +8,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
+    // Keep a non-reasoning model to demonstrate log probabilities.
     model: openai('gpt-4.1-mini'),
     prompt: 'Invent a new holiday and describe its traditions.',
     providerOptions: {

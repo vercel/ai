@@ -148,7 +148,16 @@ describe('createAmazonBedrockAnthropicFetch', () => {
     const text = new TextDecoder().decode(value);
 
     expect(text).toBe(
-      `data: ${JSON.stringify({ type: 'error', error: errorData })}\n\n`,
+      `data: ${JSON.stringify({
+        type: 'error',
+        error: {
+          type: 'ThrottlingException',
+          message: 'Rate limit exceeded',
+          statusCode: 429,
+          isRetryable: true,
+          data: { message: 'Rate limit exceeded' },
+        },
+      })}\n\n`,
     );
   });
 

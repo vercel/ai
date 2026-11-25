@@ -1,7 +1,6 @@
 {
   "extends": "./node_modules/@vercel/ai-tsconfig/ts-library.json",
   "compilerOptions": {
-    "composite": true,
     "rootDir": "src",
     "outDir": "dist"
   },
@@ -13,11 +12,6 @@
     "scripts",
     "build",
     "node_modules",
-    "tsup.config.ts"
-  ],
-  "references": [
-    {
-      "path": "../ai"
-    }
+    "tsdown.config.ts"
   ]
 }

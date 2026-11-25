@@ -22,6 +22,7 @@ import {
   type OAuthTokens,
 } from '@ai-sdk/mcp';
 import 'dotenv/config';
+import { createGuardedFetch } from 'guarded-fetch';
 import { createServer } from 'node:http';
 import { execFile } from 'node:child_process';
 
@@ -126,8 +127,19 @@ class InMemoryOAuthClientProvider implements OAuthClientProvider {
     // none (public client)
     params.set('client_id', clientId);
   };
-  async invalidateCredentials(scope: 'all' | 'client' | 'tokens' | 'verifier') {
-    if (scope === 'all' || scope === 'tokens') this._tokens = undefined;
+  async invalidateCredentials(
+    scope: 'all' | 'client' | 'tokens' | 'verifier',
+    context?: { tokens: OAuthTokens },
+  ) {
+    if (
+      scope === 'all' ||
+      (scope === 'tokens' &&
+        (!context ||
+          (this._tokens?.access_token === context.tokens.access_token &&
+            this._tokens?.refresh_token === context.tokens.refresh_token)))
+    ) {
+      this._tokens = undefined;
+    }
     if (scope === 'all' || scope === 'client')
       this._clientInformation = undefined;
     if (scope === 'all' || scope === 'verifier') this._codeVerifier = undefined;
@@ -138,13 +150,18 @@ async function authorizeWithPkceOnce(
   authProvider: OAuthClientProvider,
   serverUrl: string,
   waitForCode: () => Promise<string>,
+  fetchFn: typeof fetch,
 ): Promise<void> {
-  const result = await auth(authProvider, { serverUrl: new URL(serverUrl) });
+  const result = await auth(authProvider, {
+    serverUrl: new URL(serverUrl),
+    fetchFn,
+  });
   if (result !== 'AUTHORIZED') {
     const authorizationCode = await waitForCode();
     await auth(authProvider, {
       serverUrl: new URL(serverUrl),
       authorizationCode,
+      fetchFn,
     });
   }
 }
@@ -188,41 +205,59 @@ async function main() {
   const authProvider = new InMemoryOAuthClientProvider();
   const serverUrl = 'https://mcp.vercel.com/';
 
-  await authorizeWithPkceOnce(authProvider, serverUrl, () =>
-    waitForAuthorizationCode(Number(8090)),
-  );
+  // On server runtimes, OAuth discovery requires a fetch with connect-time DNS
+  // validation when the authorization server is on a different origin than
+  // the MCP server. The transport reuses it for its own OAuth requests.
+  const guardedFetch = createGuardedFetch();
 
-  const mcpClient = await createMCPClient({
-    transport: { type: 'http', url: serverUrl, authProvider },
-  });
-  const tools = await mcpClient.tools();
+  try {
+    await authorizeWithPkceOnce(
+      authProvider,
+      serverUrl,
+      () => waitForAuthorizationCode(Number(8090)),
+      guardedFetch,
+    );
 
-  console.log(`Retrieved ${Object.keys(tools).length} protected tools`);
-  console.log(`Available tools: ${Object.keys(tools).join(', ')}`);
+    const mcpClient = await createMCPClient({
+      transport: {
+        type: 'http',
+        url: serverUrl,
+        authProvider,
+        fetch: guardedFetch,
+      },
+    });
+    const tools = await mcpClient.tools();
 
-  const { text: answer } = await generateText({
-    model: openai('gpt-4o-mini'),
-    tools,
-    stopWhen: isStepCount(10),
-    onStepFinish: async ({ toolResults }) => {
-      if (toolResults.length > 0) {
-        console.log('Tool execution results:');
-        toolResults.forEach(result => {
-          console.log(
-            `  - ${result.toolName}:`,
-            JSON.stringify(result, null, 2),
-          );
-        });
-      }
-    },
-    instructions: 'You are a helpful assistant with access to protected tools.',
-    prompt:
-      'List the tools available for me to call. Arrange them in alphabetical order.',
-  });
+    console.log(`Retrieved ${Object.keys(tools).length} protected tools`);
+    console.log(`Available tools: ${Object.keys(tools).join(', ')}`);
 
-  await mcpClient.close();
+    const { text: answer } = await generateText({
+      model: openai('gpt-6-luna'),
+      tools,
+      stopWhen: isStepCount(10),
+      onStepFinish: async ({ toolResults }) => {
+        if (toolResults.length > 0) {
+          console.log('Tool execution results:');
+          toolResults.forEach(result => {
+            console.log(
+              `  - ${result.toolName}:`,
+              JSON.stringify(result, null, 2),
+            );
+          });
+        }
+      },
+      instructions:
+        'You are a helpful assistant with access to protected tools.',
+      prompt:
+        'List the tools available for me to call. Arrange them in alphabetical order.',
+    });
 
-  console.log(`FINAL ANSWER: ${answer}`);
+    await mcpClient.close();
+
+    console.log(`FINAL ANSWER: ${answer}`);
+  } finally {
+    await guardedFetch.close();
+  }
 }
 
 main().catch(console.error);

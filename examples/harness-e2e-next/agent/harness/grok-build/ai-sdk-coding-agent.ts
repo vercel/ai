@@ -1,6 +1,5 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { grokBuild } from '@ai-sdk/harness-grok-build';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import type { InferUITools, UIMessage } from 'ai';
 import {
   aiSdkCodingSandboxBootstrapHash,
@@ -23,10 +22,6 @@ will exceed sandbox memory. When asked to do this, use the corresponding
 export const grokBuildAiSdkCodingHarnessAgent = new HarnessAgent({
   harness: grokBuild,
   instructions,
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
   sandboxConfig: {
     workDir: aiSdkCodingSandboxWorkDir,
     bootstrapHash: aiSdkCodingSandboxBootstrapHash,

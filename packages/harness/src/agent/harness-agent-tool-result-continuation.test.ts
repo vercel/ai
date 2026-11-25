@@ -40,6 +40,9 @@ describe('collectHarnessAgentToolResultContinuations', () => {
             toolCallId: 'json',
             toolName: 'tool',
             output: { type: 'json', value: { done: true } },
+            providerOptions: {
+              fake: { nativeRequest: { requestId: 'native-1' } },
+            },
           },
           {
             type: 'tool-result',
@@ -72,26 +75,8 @@ describe('collectHarnessAgentToolResultContinuations', () => {
       },
     ];
 
-    expect(collectHarnessAgentToolResultContinuations({ messages })).toEqual([
-      { toolCallId: 'text', output: 'done' },
-      { toolCallId: 'json', output: { done: true } },
-      { toolCallId: 'error-text', output: 'failed', isError: true },
-      {
-        toolCallId: 'error-json',
-        output: { message: 'failed' },
-        isError: true,
-      },
-      {
-        toolCallId: 'denied',
-        output: { type: 'execution-denied', reason: 'not allowed' },
-      },
-      {
-        toolCallId: 'content',
-        output: {
-          type: 'content',
-          value: [{ type: 'text', text: 'structured' }],
-        },
-      },
-    ]);
+    expect(collectHarnessAgentToolResultContinuations({ messages })).toEqual(
+      messages[0].content,
+    );
   });
 });

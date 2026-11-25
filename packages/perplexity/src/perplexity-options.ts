@@ -1,8 +1,7 @@
-// https://docs.perplexity.ai/models/model-cards
+import type { PerplexityModelIds } from './perplexity-model-catalog';
+
+export type PerplexityAgentPreset = PerplexityModelIds['preset'];
+
 export type PerplexityLanguageModelId =
-  | 'sonar-deep-research'
-  | 'sonar-reasoning-pro'
-  | 'sonar-reasoning'
-  | 'sonar-pro'
-  | 'sonar'
+  | PerplexityModelIds['language']
   | (string & {});

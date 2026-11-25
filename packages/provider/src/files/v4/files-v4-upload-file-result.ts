@@ -8,6 +8,8 @@ import type { SharedV4Warning } from '../../shared/v4/shared-v4-warning';
 export type FilesV4UploadFileResult = {
   /**
    * A provider reference mapping provider names to provider-specific file identifiers.
+   * The key is the canonical provider name (e.g. `openai`) and may differ from
+   * the interface's `provider` id (e.g. `openai.files`).
    */
   providerReference: SharedV4ProviderReference;
 
@@ -20,6 +22,22 @@ export type FilesV4UploadFileResult = {
    * The filename of the uploaded file, if available from the provider.
    */
   filename?: string;
+
+  /**
+   * The size of the uploaded file in bytes, if available from the provider.
+   */
+  byteSize?: number;
+
+  /**
+   * When the file was created, if available from the provider.
+   */
+  createdAt?: Date;
+
+  /**
+   * When the provider will delete the file (retention expiry, e.g. from a
+   * requested upload TTL), if available from the provider.
+   */
+  expiresAt?: Date;
 
   /**
    * Additional provider-specific metadata. They are passed through

@@ -30,6 +30,7 @@ exports[`options.onEnd > should send correct event information (single call path
       "headers": {},
     },
   ],
+  "runtimeContext": {},
   "usage": {
     "tokens": 10,
   },
@@ -45,6 +46,7 @@ exports[`options.onEnd > should send correct event information (single call path
 exports[`options.onStart > should send correct event information 1`] = `
 {
   "callId": "test-call-id",
+  "dimensions": undefined,
   "headers": {
     "user-agent": "ai/0.0.0-test",
   },
@@ -53,6 +55,7 @@ exports[`options.onStart > should send correct event information 1`] = `
   "operationId": "ai.embedMany",
   "provider": "mock-provider",
   "providerOptions": undefined,
+  "runtimeContext": {},
   "value": [
     "sunny day at the beach",
     "rainy afternoon in the city",

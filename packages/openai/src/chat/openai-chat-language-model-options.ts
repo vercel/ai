@@ -4,73 +4,10 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { OpenAIModelIds } from '../openai-model-catalog';
 
 // https://platform.openai.com/docs/models
-export type OpenAIChatModelId =
-  | 'o1'
-  | 'o1-2024-12-17'
-  | 'o3-mini'
-  | 'o3-mini-2025-01-31'
-  | 'o3'
-  | 'o3-2025-04-16'
-  | 'o4-mini'
-  | 'o4-mini-2025-04-16'
-  | 'gpt-4.1'
-  | 'gpt-4.1-2025-04-14'
-  | 'gpt-4.1-mini'
-  | 'gpt-4.1-mini-2025-04-14'
-  | 'gpt-4.1-nano'
-  | 'gpt-4.1-nano-2025-04-14'
-  | 'gpt-4o'
-  | 'gpt-4o-2024-05-13'
-  | 'gpt-4o-2024-08-06'
-  | 'gpt-4o-2024-11-20'
-  | 'gpt-4o-audio-preview'
-  | 'gpt-4o-audio-preview-2024-12-17'
-  | 'gpt-4o-audio-preview-2025-06-03'
-  | 'gpt-4o-mini'
-  | 'gpt-4o-mini-2024-07-18'
-  | 'gpt-4o-mini-audio-preview'
-  | 'gpt-4o-mini-audio-preview-2024-12-17'
-  | 'gpt-4o-search-preview'
-  | 'gpt-4o-search-preview-2025-03-11'
-  | 'gpt-4o-mini-search-preview'
-  | 'gpt-4o-mini-search-preview-2025-03-11'
-  | 'gpt-3.5-turbo-0125'
-  | 'gpt-3.5-turbo'
-  | 'gpt-3.5-turbo-1106'
-  | 'gpt-3.5-turbo-16k'
-  | 'gpt-5'
-  | 'gpt-5-2025-08-07'
-  | 'gpt-5-mini'
-  | 'gpt-5-mini-2025-08-07'
-  | 'gpt-5-nano'
-  | 'gpt-5-nano-2025-08-07'
-  | 'gpt-5-chat-latest'
-  | 'gpt-5.1'
-  | 'gpt-5.1-2025-11-13'
-  | 'gpt-5.1-chat-latest'
-  | 'gpt-5.2'
-  | 'gpt-5.2-2025-12-11'
-  | 'gpt-5.2-chat-latest'
-  | 'gpt-5.2-pro'
-  | 'gpt-5.2-pro-2025-12-11'
-  | 'gpt-5.3-chat-latest'
-  | 'gpt-5.4'
-  | 'gpt-5.4-2026-03-05'
-  | 'gpt-5.4-mini'
-  | 'gpt-5.4-mini-2026-03-17'
-  | 'gpt-5.4-nano'
-  | 'gpt-5.4-nano-2026-03-17'
-  | 'gpt-5.4-pro'
-  | 'gpt-5.4-pro-2026-03-05'
-  | 'gpt-5.5'
-  | 'gpt-5.5-2026-04-23'
-  | 'gpt-5.6'
-  | 'gpt-5.6-luna'
-  | 'gpt-5.6-sol'
-  | 'gpt-5.6-terra'
-  | (string & {});
+export type OpenAIChatModelId = OpenAIModelIds['chat'] | (string & {});
 
 export const openaiLanguageModelChatOptions = lazySchema(() =>
   zodSchema(
@@ -139,12 +76,13 @@ export const openaiLanguageModelChatOptions = lazySchema(() =>
        * - 'flex': 50% cheaper processing at the cost of increased latency. Only available for o3 and o4-mini models.
        * - 'priority': Higher-speed processing with predictably low latency at premium cost. Available for Enterprise customers.
        * - 'fast': OpenAI's newer name for the 'priority' tier. Interchangeable with it.
+       * - 'ultrafast': Access-controlled Ultrafast processing. Only available for gpt-5.6-sol.
        * - 'default': The request will be processed with the standard pricing and performance for the selected model.
        *
        * @default 'auto'
        */
       serviceTier: z
-        .enum(['auto', 'flex', 'priority', 'fast', 'default'])
+        .enum(['auto', 'flex', 'priority', 'fast', 'ultrafast', 'default'])
         .optional(),
 
       /**
@@ -225,4 +163,17 @@ export const openaiLanguageModelChatOptions = lazySchema(() =>
 
 export type OpenAILanguageModelChatOptions = InferSchema<
   typeof openaiLanguageModelChatOptions
+>;
+
+export const openaiChatMessageProviderOptions = lazySchema(() =>
+  zodSchema(
+    z.object({
+      /** The participant name on a system, developer, user, or assistant message. */
+      name: z.string().optional(),
+    }),
+  ),
+);
+
+export type OpenAIChatMessageProviderOptions = InferSchema<
+  typeof openaiChatMessageProviderOptions
 >;

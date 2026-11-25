@@ -1,16 +1,23 @@
 import { gateway } from '@ai-sdk/gateway';
-import type {
-  EmbeddingModelV4,
-  Experimental_SpeechTranslationModelV4,
-  Experimental_VideoModelV4,
-  ImageModelV4,
-  LanguageModelV4,
-  ProviderV4,
-  RerankingModelV4,
-  SpeechModelV4,
-  TranscriptionModelV4,
+import {
+  NoSuchModelError,
+  type Experimental_DecisionModelV4 as DecisionModelV4,
+  type EmbeddingModelV4,
+  type Experimental_ExtractionModelV4 as ExtractionModelV4,
+  type Experimental_SpeechTranslationModelV4,
+  type Experimental_VideoModelV4,
+  type ImageModelV4,
+  type LanguageModelV4,
+  type ProviderV4,
+  type RerankingModelV4,
+  type SpeechModelV4,
+  type TranscriptionModelV4,
 } from '@ai-sdk/provider';
+import type { DecisionModel } from '../decide/decision-result';
+import type { DecisionProvider } from '../decide/decision-provider';
 import { UnsupportedModelVersionError } from '../error';
+import type { ExtractionModel } from '../extract/extraction-result';
+import type { ExtractionProvider } from '../extract/extraction-provider';
 import type { EmbeddingModel } from '../types/embedding-model';
 import type { LanguageModel } from '../types/language-model';
 import type { SpeechModel } from '../types/speech-model';
@@ -25,12 +32,17 @@ import { asTranscriptionModelV4 } from './as-transcription-model-v4';
 import { asVideoModelV4 } from './as-video-model-v4';
 import { asProviderV4 } from './as-provider-v4';
 import type { ImageModel } from '../types/image-model';
+import type { LogWarningsFunction } from '../logger/log-warnings';
 import type { RerankingModel } from '../types/reranking-model';
 import type { VideoModel } from '../types/video-model';
 
-export function resolveLanguageModel(model: LanguageModel): LanguageModelV4 {
+export function resolveLanguageModel(
+  model: LanguageModel,
+  onWarning?: LogWarningsFunction,
+): LanguageModelV4 {
   if (typeof model === 'string') {
-    return getGlobalProvider().languageModel(model);
+    const provider = globalThis.AI_SDK_DEFAULT_PROVIDER ?? gateway;
+    return asLanguageModelV4(provider.languageModel(model), onWarning);
   }
 
   if (!['v4', 'v3', 'v2'].includes(model.specificationVersion)) {
@@ -42,7 +54,7 @@ export function resolveLanguageModel(model: LanguageModel): LanguageModelV4 {
     });
   }
 
-  return asLanguageModelV4(model);
+  return asLanguageModelV4(model, onWarning);
 }
 
 export function resolveEmbeddingModel(model: EmbeddingModel): EmbeddingModelV4 {
@@ -213,7 +225,115 @@ export function resolveRerankingModel(model: RerankingModel): RerankingModelV4 {
   return asRerankingModelV4(model);
 }
 
+export function resolveDecisionModel(model: DecisionModel): DecisionModelV4 {
+  if (typeof model === 'string') {
+    // Use the original provider so experimental methods and their receiver survive.
+    const provider = (globalThis.AI_SDK_DEFAULT_PROVIDER ??
+      gateway) as DecisionProvider;
+
+    const factory:
+      | ((modelId: string) => Exclude<DecisionModel, string>)
+      | undefined = provider.decisionModel ?? provider.evaluationModel;
+    if (typeof factory !== 'function') {
+      throw new NoSuchModelError({
+        modelId: model,
+        modelType: 'decisionModel',
+        message:
+          'The default provider does not support decision models. ' +
+          'Pass a decision model instance or configure AI_SDK_DEFAULT_PROVIDER with a decisionModel method.',
+      });
+    }
+
+    const resolvedModel = factory.call(provider, model);
+    if (resolvedModel == null) {
+      throw new NoSuchModelError({
+        modelId: model,
+        modelType: 'decisionModel',
+      });
+    }
+    model = resolvedModel;
+  }
+
+  if (model.specificationVersion !== 'v4') {
+    throw new UnsupportedModelVersionError({
+      version: model.specificationVersion,
+      provider: model.provider,
+      modelId: model.modelId,
+    });
+  }
+
+  if ('doDecide' in model) {
+    return model;
+  }
+
+  const legacyModel = model;
+  return {
+    specificationVersion: legacyModel.specificationVersion,
+    provider: legacyModel.provider,
+    modelId: legacyModel.modelId,
+    supportedQuestionTypes: legacyModel.supportedQuestionTypes,
+    doDecide: options => legacyModel.doEvaluate(options),
+  };
+}
+
+export function resolveExtractionModel(
+  model: ExtractionModel,
+): ExtractionModelV4 {
+  if (typeof model === 'string') {
+    const provider = (globalThis.AI_SDK_DEFAULT_PROVIDER ??
+      gateway) as ExtractionProvider;
+
+    if (typeof provider.extractionModel !== 'function') {
+      throw new NoSuchModelError({
+        modelId: model,
+        modelType: 'extractionModel',
+        message:
+          'The default provider does not support extraction models. ' +
+          'Pass an extraction model instance or configure AI_SDK_DEFAULT_PROVIDER with an extractionModel method.',
+      });
+    }
+
+    const resolvedModel = provider.extractionModel(model);
+    if (resolvedModel == null) {
+      throw new NoSuchModelError({
+        modelId: model,
+        modelType: 'extractionModel',
+      });
+    }
+    model = resolvedModel;
+  }
+
+  const version: string = model.specificationVersion;
+  if (version !== 'v4') {
+    throw new UnsupportedModelVersionError({
+      version,
+      provider: model.provider,
+      modelId: model.modelId,
+    });
+  }
+  return model;
+}
+
 function getGlobalProvider(): ProviderV4 {
   const provider = globalThis.AI_SDK_DEFAULT_PROVIDER ?? gateway;
   return asProviderV4(provider);
+}
+
+/** Internal adapter for deprecated provider factories. */
+export function asEvaluationModel(model: DecisionModelV4): DecisionModelV4 & {
+  doEvaluate: DecisionModelV4['doDecide'];
+} {
+  if ('doEvaluate' in model && typeof model.doEvaluate === 'function') {
+    return model as DecisionModelV4 & {
+      doEvaluate: DecisionModelV4['doDecide'];
+    };
+  }
+  return {
+    specificationVersion: model.specificationVersion,
+    provider: model.provider,
+    modelId: model.modelId,
+    supportedQuestionTypes: model.supportedQuestionTypes,
+    doDecide: options => model.doDecide(options),
+    doEvaluate: options => model.doDecide(options),
+  };
 }

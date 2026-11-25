@@ -6,10 +6,10 @@ import { withSpinner } from '../../lib/spinner';
 
 run(async () => {
   const { videos } = await withSpinner(
-    'Generating KlingAI image-to-video with kling-v2.6-i2v...',
+    'Generating KlingAI image-to-video with kling-v3.0-i2v...',
     () =>
       generateVideo({
-        model: klingai.video('kling-v2.6-i2v'),
+        model: klingai.video('kling-v3.0-i2v'),
         prompt: {
           image:
             'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-functions/data/comic-cat.png',

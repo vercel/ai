@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: openai.responses('gpt-4o'),
+    model: openai.responses('gpt-6-astra'),
     messages: [
       {
         role: 'user',

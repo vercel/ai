@@ -20,9 +20,18 @@ export async function timeSliceStep(
   'use step';
 
   const { piHarnessAgent } = await import('@/agent/harness/pi/basic-agent');
+  const { acquireHarnessSandboxSession } =
+    await import('@/util/harness-sandbox-session');
+  const sandboxSession = await acquireHarnessSandboxSession({
+    agent: piHarnessAgent,
+    sessionId: state.sessionId,
+    resumeFrom: state.resumeFrom,
+    continueFrom: state.continueFrom,
+  });
   return runHarnessAgentTimeSlice({
     agent: piHarnessAgent,
     state,
+    sandboxSession,
     timeSliceSeconds: DEMO_TIME_SLICE_SECONDS,
   });
 }

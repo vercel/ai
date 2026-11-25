@@ -7,6 +7,13 @@ export type EmbeddingModelV4CallOptions = {
   values: Array<string>;
 
   /**
+   * The requested number of dimensions for the output embeddings.
+   * Must be a positive integer. Support and allowed values depend on the model
+   * and provider implementation.
+   */
+  dimensions?: number;
+
+  /**
    * Abort signal for cancelling the operation.
    */
   abortSignal?: AbortSignal;

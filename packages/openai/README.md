@@ -7,10 +7,8 @@ contains language model support for the OpenAI chat and completion APIs and embe
 
 ## Setup
 
-The OpenAI provider is available in the `@ai-sdk/openai` module. You can install it with
-
 ```bash
-npm i @ai-sdk/openai
+npm i ai @ai-sdk/openai
 ```
 
 ## Skill for Coding Agents
@@ -21,26 +19,16 @@ If you use coding agents such as Claude Code or Cursor, we highly recommend addi
 npx skills add vercel/ai
 ```
 
-## Provider Instance
-
-You can import the default provider instance `openai` from `@ai-sdk/openai`:
-
-```ts
-import { openai } from '@ai-sdk/openai';
-```
-
-## Example
+## Usage
 
 ```ts
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: openai('gpt-5-mini'),
+  model: openai('gpt-6-luna'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
 
-## Documentation
-
-Please check out the **[OpenAI provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/openai)** for more information.
+See the [OpenAI Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/openai) for more information.

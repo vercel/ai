@@ -1,10 +1,15 @@
+import { getAssemblyAITranscriptionModelEntry } from './assemblyai-model-catalog';
 import type {
   TranscriptionModelV4,
   SharedV4Warning,
   SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  lazySchema,
+  zodSchema,
   combineHeaders,
+  convertBase64ToUint8Array,
   createJsonResponseHandler,
   extractResponseHeaders,
   parseProviderOptions,
@@ -72,39 +77,27 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
 
     const body: Omit<AssemblyAITranscriptionAPITypes, 'audio_url'> = {};
 
-    // The legacy `best` model is selected via the deprecated singular
-    // `speech_model` parameter. All other models (e.g. `universal-2`,
-    // `universal-3-pro`, `universal-3-5-pro`) are only accessible via the
-    // `speech_models` array and are rejected by `speech_model`.
+    // AssemblyAI selects models only through the `speech_models` array; the
+    // singular `speech_model` parameter is rejected.
     // See https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model
-    if (this.modelId === 'best') {
-      body.speech_model = this.modelId as 'best';
+    body.speech_models = [this.modelId];
+
+    const { requestConfig } = getAssemblyAITranscriptionModelEntry(
+      this.modelId,
+    );
+    if (requestConfig.transcription.deprecated) {
       warnings.push({
         type: 'deprecated',
         setting: `model '${this.modelId}'`,
-        message:
-          "The 'best' model is a legacy AssemblyAI model. Use 'universal-3-5-pro' instead. See documentation: https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model",
+        message: `AssemblyAI has deprecated '${this.modelId}'. Use 'assemblyai-stt-3-7' instead. See documentation: https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model`,
       });
-    } else {
-      body.speech_models = [this.modelId];
+    }
 
-      // Forward-looking nudge: universal-3-5-pro is AssemblyAI's latest
-      // flagship and is set to replace universal-3-pro. Not a deprecation —
-      // both models still work — so this is an informational warning only.
-      if (
-        this.modelId === 'universal-3-pro' ||
-        this.modelId === 'universal-2'
-      ) {
-        const docsUrl =
-          'https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model';
-        warnings.push({
-          type: 'other',
-          message:
-            this.modelId === 'universal-3-pro'
-              ? `'universal-3-5-pro' is AssemblyAI's latest flagship model and is set to replace 'universal-3-pro'. See ${docsUrl}`
-              : `'universal-3-5-pro' is AssemblyAI's latest flagship model. See ${docsUrl}`,
-        });
-      }
+    if (requestConfig.transcription.replacementWarning != null) {
+      warnings.push({
+        type: 'other',
+        message: `${requestConfig.transcription.replacementWarning} See https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model`,
+      });
     }
 
     // Add provider-specific options
@@ -214,7 +207,7 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
           type: 'deprecated',
           setting: deprecatedBoostOptions.join(', '),
           message:
-            "'wordBoost' and 'boostParam' are deprecated and are rejected by 'universal-3-pro' / 'universal-3-5-pro' and 'slam-1'. Use 'keytermsPrompt' instead.",
+            "'wordBoost' and 'boostParam' are deprecated and are rejected by 'assemblyai-stt-3-7' and 'universal-3-5-pro'. Use 'keytermsPrompt' instead.",
         });
       }
 
@@ -294,7 +287,7 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
         {
           method: 'GET',
           headers: combineHeaders(
-            this.config.headers?.(),
+            await resolve(this.config.headers),
             headers,
           ) as HeadersInit,
           signal: abortSignal,
@@ -338,6 +331,11 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
     options: Parameters<TranscriptionModelV4['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    // The upload endpoint takes the raw file, so a base64 string is decoded.
+    const audio =
+      typeof options.audio === 'string'
+        ? convertBase64ToUint8Array(options.audio)
+        : options.audio;
 
     const { value: uploadResponse } = await postToApi({
       url: this.config.url({
@@ -346,11 +344,11 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
       }),
       headers: {
         'Content-Type': 'application/octet-stream',
-        ...combineHeaders(this.config.headers?.(), options.headers),
+        ...combineHeaders(await resolve(this.config.headers), options.headers),
       },
       body: {
-        content: options.audio,
-        values: options.audio,
+        content: audio,
+        values: audio,
       },
       failedResponseHandler: assemblyaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -367,7 +365,10 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
         path: '/v2/transcript',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: {
         ...body,
         audio_url: uploadResponse.upload_url,
@@ -449,14 +450,22 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
   }
 }
 
-const assemblyaiUploadResponseSchema = z.object({
-  upload_url: z.string(),
-});
+const assemblyaiUploadResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      upload_url: z.string(),
+    }),
+  ),
+);
 
-const assemblyaiSubmitResponseSchema = z.object({
-  id: z.string(),
-  status: z.enum(['queued', 'processing', 'completed', 'error']),
-});
+const assemblyaiSubmitResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      id: z.string(),
+      status: z.enum(['queued', 'processing', 'completed', 'error']),
+    }),
+  ),
+);
 
 const assemblyaiWordSchema = z.object({
   start: z.number(),

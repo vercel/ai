@@ -39,7 +39,7 @@ import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const { text } = await generateText({
-  model: openai('gpt-5-mini'),
+  model: openai('gpt-6-luna'),
   prompt: 'Write a short welcome message for a new user.',
   telemetry: {
     functionId: 'welcome-message',
@@ -66,7 +66,7 @@ const raindropTelemetry = raindrop({
 });
 
 const { text } = await generateText({
-  model: openai('gpt-5-mini'),
+  model: openai('gpt-6-luna'),
   prompt: 'Summarize the latest support ticket.',
   telemetry: {
     functionId: 'support-summary',
@@ -110,7 +110,7 @@ export async function POST(req: Request) {
   });
 
   const result = streamText({
-    model: openai('gpt-5-mini'),
+    model: openai('gpt-6-luna'),
     messages: await convertToModelMessages(messages),
     telemetry: {
       functionId: 'chat-route',
@@ -133,7 +133,7 @@ export async function POST(req: Request) {
 
 ```ts
 const result = await generateText({
-  model: openai('gpt-5-mini'),
+  model: openai('gpt-6-luna'),
   prompt: 'Summarize this private document.',
   telemetry: {
     recordInputs: false,

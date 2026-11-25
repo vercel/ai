@@ -7,7 +7,7 @@ import { run } from '../../lib/run';
 import { z } from 'zod';
 
 const agent = new ToolLoopAgent({
-  model: openai('gpt-4o'),
+  model: openai('gpt-6-astra'),
   callOptionsSchema: z.object({
     strict: z.boolean(),
   }),

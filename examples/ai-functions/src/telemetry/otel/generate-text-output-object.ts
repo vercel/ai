@@ -17,7 +17,7 @@ registerTelemetry(new LegacyOpenTelemetry());
 
 run(async () => {
   await generateText({
-    model: openai('gpt-4o-mini'),
+    model: openai('gpt-6-luna'),
     output: Output.object({
       schema: z.object({
         recipe: z.object({

@@ -6,57 +6,73 @@ describe('getGoogleModelCapabilities', () => {
     {
       modelId: 'gemini-pro',
       expected: {
-        supportsGemini2Tools: false,
+        supportsProviderTools: false,
         supportsFileSearch: false,
-        usesGemini3Features: false,
+        supportsMixedTools: false,
       },
     },
     {
       modelId: 'gemini-pro-vision',
       expected: {
-        supportsGemini2Tools: false,
+        supportsProviderTools: false,
         supportsFileSearch: false,
-        usesGemini3Features: false,
+        supportsMixedTools: false,
       },
     },
     {
       modelId: 'gemini-1.5-flash',
       expected: {
-        supportsGemini2Tools: false,
+        supportsProviderTools: false,
         supportsFileSearch: false,
-        usesGemini3Features: false,
+        supportsMixedTools: false,
       },
     },
     {
       modelId: 'gemini-robotics-er-1.5-preview',
       expected: {
-        supportsGemini2Tools: false,
+        supportsProviderTools: false,
         supportsFileSearch: false,
-        usesGemini3Features: false,
+        supportsMixedTools: false,
       },
     },
     {
       modelId: 'gemini-2.0-flash',
       expected: {
-        supportsGemini2Tools: true,
+        supportsProviderTools: true,
         supportsFileSearch: false,
-        usesGemini3Features: false,
+        supportsMixedTools: false,
       },
     },
     {
       modelId: 'gemini-2.5-flash',
       expected: {
-        supportsGemini2Tools: true,
+        supportsProviderTools: true,
         supportsFileSearch: true,
-        usesGemini3Features: false,
+        supportsMixedTools: false,
+      },
+    },
+    {
+      modelId: 'eu.gemini-2.5-flash',
+      expected: {
+        supportsProviderTools: true,
+        supportsFileSearch: true,
+        supportsMixedTools: false,
       },
     },
     {
       modelId: 'gemini-3.1-pro-preview',
       expected: {
-        supportsGemini2Tools: true,
+        supportsProviderTools: true,
         supportsFileSearch: true,
-        usesGemini3Features: true,
+        supportsMixedTools: true,
+      },
+    },
+    {
+      modelId: 'au.gemini-3.5-flash',
+      expected: {
+        supportsProviderTools: true,
+        supportsFileSearch: true,
+        supportsMixedTools: true,
       },
     },
     {
@@ -64,25 +80,25 @@ describe('getGoogleModelCapabilities', () => {
       // future-model fixture as new Gemini generations are released.
       modelId: 'gemini-99-pro-preview',
       expected: {
-        supportsGemini2Tools: true,
+        supportsProviderTools: true,
         supportsFileSearch: true,
-        usesGemini3Features: true,
+        supportsMixedTools: true,
       },
     },
     {
       modelId: 'gemini-ultra-latest',
       expected: {
-        supportsGemini2Tools: true,
+        supportsProviderTools: true,
         supportsFileSearch: true,
-        usesGemini3Features: true,
+        supportsMixedTools: true,
       },
     },
     {
       modelId: 'nano-banana-pro-preview',
       expected: {
-        supportsGemini2Tools: true,
+        supportsProviderTools: true,
         supportsFileSearch: false,
-        usesGemini3Features: false,
+        supportsMixedTools: false,
       },
     },
   ])(

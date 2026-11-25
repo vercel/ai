@@ -1,4 +1,4 @@
-import { env } from '$env/dynamic/private';
+import { OPENAI_API_KEY } from '$app/env/private';
 import { createOpenAI } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
@@ -10,15 +10,15 @@ import {
 import { z } from 'zod';
 
 const openai = createOpenAI({
-  apiKey: env?.OPENAI_API_KEY,
+  apiKey: OPENAI_API_KEY,
 });
 
 export const POST = async ({ request }: { request: Request }) => {
   const { messages } = await request.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
-    messages: convertToModelMessages(messages),
+    model: openai('gpt-6-astra'),
+    messages: await convertToModelMessages(messages),
     stopWhen: isStepCount(5), // multi-steps for server-side tools
     tools: {
       // server-side tool with execute function:

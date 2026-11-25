@@ -74,7 +74,7 @@ const createModelsForRuntime = (
   invalidModel: vertex('no-such-model'),
   languageModels: [
     ...createModelVariants(vertex, 'gemini-2.5-flash-image'),
-    ...createModelVariants(vertex, 'gemini-2.5-flash'),
+    ...createModelVariants(vertex, 'gemini-4-hydrogen'),
   ],
   embeddingModels: [
     createEmbeddingModelWithCapabilities(
@@ -86,6 +86,7 @@ const createModelsForRuntime = (
   ],
   imageModels: [
     createImageModelWithCapabilities(vertex.image('gemini-2.5-flash-image')),
+    createImageModelWithCapabilities(vertex.image('gemini-nano-banana-2.1')),
   ],
 });
 

@@ -20,7 +20,10 @@ import {
 } from 'vitest';
 import { TogetherAIRerankingModel } from './reranking/togetherai-reranking-model';
 import { TogetherAIImageModel } from './togetherai-image-model';
-import { createTogetherAI } from './togetherai-provider';
+import {
+  createTogetherAI,
+  getModelStructuredOutputSupport,
+} from './togetherai-provider';
 
 // Add type assertion for the mocked class
 const OpenAICompatibleChatLanguageModelMock =
@@ -48,6 +51,19 @@ vi.mock('./togetherai-image-model', () => ({
 vi.mock('./reranking/togetherai-reranking-model', () => ({
   TogetherAIRerankingModel: vi.fn(),
 }));
+
+const structuredOutputSupportCases = [
+  ['deepseek-ai/DeepSeek-V4-Flash-0731', true],
+  ['deepseek-ai/DeepSeek-V4.1-Flash', true],
+  ['deepseek-ai/DeepSeek-V4.1-Flash-1017', true],
+  ['openai/gpt-oss-120b', true],
+  ['zai-org/GLM-5.2', true],
+  ['zai-org/GLM-5.3-Flash', true],
+  ['moonshotai/Kimi-K3', true],
+  ['MiniMaxAI/MiniMax-M3.1-Flash', true],
+  ['zai-org/GLM-5.3', false],
+  ['custom-model-id', false],
+] as const;
 
 describe('TogetherAIProvider', () => {
   const originalEnv = { ...process.env };
@@ -204,6 +220,17 @@ describe('TogetherAIProvider', () => {
       const config = OpenAICompatibleChatLanguageModelMock.mock.calls[0][1];
       expect(config.includeUsage).toBe(true);
     });
+
+    it.each(structuredOutputSupportCases)(
+      'should set supportsStructuredOutputs for %s to %s',
+      (modelId, expected) => {
+        const provider = createTogetherAI();
+        provider.chatModel(modelId);
+
+        const config = OpenAICompatibleChatLanguageModelMock.mock.calls[0][1];
+        expect(config.supportsStructuredOutputs).toBe(expected);
+      },
+    );
   });
 
   describe('completionModel', () => {
@@ -288,4 +315,13 @@ describe('TogetherAIProvider', () => {
       expect(model).toBeInstanceOf(TogetherAIRerankingModel);
     });
   });
+});
+
+describe('getModelStructuredOutputSupport', () => {
+  it.each(structuredOutputSupportCases)(
+    'returns structured output support for %s as %s',
+    (modelId, expected) => {
+      expect(getModelStructuredOutputSupport(modelId)).toBe(expected);
+    },
+  );
 });

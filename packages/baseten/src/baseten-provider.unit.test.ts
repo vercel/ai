@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { DecisionBasetenModel } from './baseten-decision-model';
 import { createBaseten } from './baseten-provider';
 import {
   LanguageModelV4,
@@ -173,6 +174,28 @@ describe('BasetenProvider', () => {
 
         const config = OpenAICompatibleChatLanguageModelMock.mock.calls[0][1];
         expect(config.includeUsage).toBe(true);
+      });
+    });
+
+    // Without this flag the openai-compatible chat model rewrites
+    // `response_format: json_schema` to `json_object`, silently discarding the
+    // schema, name, and strict flag with only a call warning.
+    describe('supportsStructuredOutputs', () => {
+      it('should be set for the default Model APIs path', () => {
+        createBaseten().chatModel('deepseek-ai/DeepSeek-V3-0324');
+
+        const config = OpenAICompatibleChatLanguageModelMock.mock.calls[0][1];
+        expect(config.supportsStructuredOutputs).toBe(true);
+      });
+
+      it('should be set for a dedicated /sync/v1 deployment', () => {
+        createBaseten({
+          modelURL:
+            'https://model-123.api.baseten.co/environments/production/sync/v1',
+        }).chatModel();
+
+        const config = OpenAICompatibleChatLanguageModelMock.mock.calls[0][1];
+        expect(config.supportsStructuredOutputs).toBe(true);
       });
     });
 
@@ -631,7 +654,7 @@ describe('BasetenProvider', () => {
       });
 
       expect(fetchMock.mock.calls[0][1].headers['user-agent']).toContain(
-        'ai-sdk/baseten/0.0.0-test',
+        'ai-sdk-baseten/0.0.0-test',
       );
     });
   });
@@ -675,6 +698,38 @@ describe('BasetenProvider', () => {
 
       const model2 = provider('test-model');
       expect(model2).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
+    });
+  });
+
+  describe('decisionModel', () => {
+    it('should call the Model APIs System One endpoint and ignore modelURL', async () => {
+      const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            answers: { refund: { type: 'noul', noul: 0.9 } },
+            usage: { input_tokens: 12, output_tokens: 1 },
+          }),
+          { headers: { 'content-type': 'application/json' } },
+        ),
+      );
+      const provider = createBaseten({
+        modelURL:
+          'https://model-123.api.baseten.co/environments/production/sync/v1',
+        fetch,
+      });
+      const model = provider.decisionModel(
+        'decision-models/baseten-groundhog-latest',
+      );
+
+      expect(model).toBeInstanceOf(DecisionBasetenModel);
+      expect(model.provider).toBe('baseten.decision');
+      await model.doDecide({
+        state: [{ type: 'text', text: 'Please refund me.' }],
+        questions: { refund: { type: 'boolean' } },
+      });
+      expect(fetch.mock.calls[0][0]).toBe(
+        'https://inference.baseten.co/v1/systemone',
+      );
     });
   });
 });

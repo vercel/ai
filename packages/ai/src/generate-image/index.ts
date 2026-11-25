@@ -1,2 +1,5 @@
 export { generateImage } from './generate-image';
-export type { GenerateImageResult } from './generate-image-result';
+export type {
+  GenerateImageCall,
+  GenerateImageResult,
+} from './generate-image-result';

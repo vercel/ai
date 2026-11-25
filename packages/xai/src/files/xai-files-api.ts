@@ -8,9 +8,20 @@ export const xaiFilesResponseSchema = lazySchema(() =>
       object: z.string().nullish(),
       bytes: z.number().nullish(),
       created_at: z.number().nullish(),
+      expires_at: z.number().nullish(),
       filename: z.string().nullish(),
       purpose: z.string().nullish(),
       status: z.string().nullish(),
+    }),
+  ),
+);
+
+export const xaiFileDeleteResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      id: z.string(),
+      object: z.string().nullish(),
+      deleted: z.boolean(),
     }),
   ),
 );

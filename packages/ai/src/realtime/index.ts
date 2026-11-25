@@ -8,6 +8,7 @@ export { AbstractRealtimeSession as Experimental_AbstractRealtimeSession } from 
 export type {
   RealtimeSessionOptions as Experimental_RealtimeSessionOptions,
   RealtimeState as Experimental_RealtimeState,
+  RealtimeSessionState as Experimental_RealtimeSessionState,
   RealtimeStatus as Experimental_RealtimeStatus,
 } from './realtime-session';
 export type { RealtimeSetupResponse as Experimental_RealtimeSetupResponse } from './realtime-types';
@@ -17,7 +18,10 @@ export type {
   RealtimeFactoryGetTokenOptions as Experimental_RealtimeFactoryGetTokenOptions,
   RealtimeFactoryGetTokenResult as Experimental_RealtimeFactoryGetTokenResult,
   RealtimeModel as Experimental_RealtimeModel,
+  RealtimeServerConnection as Experimental_RealtimeServerConnection,
   RealtimeServerEvent as Experimental_RealtimeServerEvent,
   RealtimeSessionConfig as Experimental_RealtimeSessionConfig,
+  RealtimeSessionIntent as Experimental_RealtimeSessionIntent,
   RealtimeToolDefinition as Experimental_RealtimeToolDefinition,
+  RealtimeUsage as Experimental_RealtimeUsage,
 } from '../types/realtime-model';

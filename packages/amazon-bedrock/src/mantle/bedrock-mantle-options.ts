@@ -1,13 +1,11 @@
+import type { AmazonBedrockModelIds } from '../amazon-bedrock-model-catalog';
+
 export type BedrockMantleChatModelId =
-  | 'openai.gpt-oss-20b'
-  | 'openai.gpt-oss-120b'
-  | 'openai.gpt-oss-safeguard-20b'
-  | 'openai.gpt-oss-safeguard-120b'
+  | AmazonBedrockModelIds['mantleChat']
   | (string & {});
 
 export type BedrockMantleResponsesModelId =
-  | 'openai.gpt-oss-20b'
-  | 'openai.gpt-oss-120b'
+  | AmazonBedrockModelIds['mantleResponses']
   | (string & {});
 
 export type BedrockMantleModelId =

@@ -1,5 +1,8 @@
+import { getTogetherAIImageModelEntry } from './togetherai-model-catalog';
 import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
   combineHeaders,
   convertImageModelFileToDataUri,
   createJsonResponseHandler,
@@ -18,7 +21,7 @@ import { z } from 'zod/v4';
 interface TogetherAIImageModelConfig {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string>;
+  headers?: Resolvable<Record<string, string>>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
@@ -27,7 +30,20 @@ interface TogetherAIImageModelConfig {
 
 export class TogetherAIImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
-  readonly maxImagesPerCall = 1;
+  get maxImagesPerCall() {
+    return getTogetherAIImageModelEntry(this.modelId).capabilities.image
+      .maxImagesPerCall;
+  }
+
+  get supportsFileInputs(): boolean | undefined {
+    const support = getTogetherAIImageModelEntry(this.modelId).capabilities
+      .image.fileInput;
+    return support === 'unknown' ? undefined : support;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs == null ? undefined : false;
+  }
 
   get provider(): string {
     return this.config.provider;
@@ -92,6 +108,25 @@ export class TogetherAIImageModel implements ImageModelV4 {
       schema: togetheraiImageModelOptionsSchema,
     });
 
+    const isNonDiffusionModel = !getTogetherAIImageModelEntry(this.modelId)
+      .capabilities.image.diffusion;
+
+    const modelOptions = { ...togetheraiOptions };
+    if (isNonDiffusionModel) {
+      delete modelOptions.steps;
+      delete modelOptions.guidance;
+      delete modelOptions.negative_prompt;
+      delete modelOptions.disable_safety_checker;
+
+      if (seed != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'seed',
+          details: `The ${this.modelId} model does not support the \`seed\` option.`,
+        });
+      }
+    }
+
     // Handle image input from files
     let imageUrl: string | undefined;
     if (files != null && files.length > 0) {
@@ -110,11 +145,11 @@ export class TogetherAIImageModel implements ImageModelV4 {
     // https://docs.together.ai/reference/post_images-generations
     const { value: response, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/images/generations`,
-      headers: combineHeaders(this.config.headers?.(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       body: {
         model: this.modelId,
         prompt,
-        ...(seed != null ? { seed } : {}),
+        ...(seed != null && !isNonDiffusionModel ? { seed } : {}),
         ...(n > 1 ? { n } : {}),
         ...(splitSize && {
           width: parseInt(splitSize[0]),
@@ -122,7 +157,7 @@ export class TogetherAIImageModel implements ImageModelV4 {
         }),
         ...(imageUrl != null ? { image_url: imageUrl } : {}),
         response_format: 'base64',
-        ...(togetheraiOptions ?? {}),
+        ...modelOptions,
       },
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: togetheraiErrorSchema,

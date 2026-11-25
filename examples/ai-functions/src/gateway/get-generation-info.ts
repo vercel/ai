@@ -3,7 +3,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: gateway('anthropic/claude-haiku-4.5'),
+    model: gateway('anthropic/claude-haiku-5.5'),
     prompt: 'What animals are relatives of the tenrec?',
   });
 

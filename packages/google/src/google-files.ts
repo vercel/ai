@@ -6,6 +6,8 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
   combineHeaders,
   convertInlineFileDataToUint8Array,
   createJsonResponseHandler,
@@ -13,6 +15,7 @@ import {
   lazySchema,
   parseProviderOptions,
   zodSchema,
+  encodePathSegment,
   getFromApi,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
@@ -30,7 +33,7 @@ export type GoogleFilesUploadOptions = {
 interface GoogleFilesConfig {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 }
 
@@ -52,7 +55,8 @@ export class GoogleFiles implements FilesV4 {
       schema: googleFilesUploadOptionsSchema,
     })) as GoogleFilesUploadOptions | undefined;
 
-    const resolvedHeaders = this.config.headers();
+    const getHeaders = async () =>
+      combineHeaders(await resolve(this.config.headers), options.headers);
     const fetchFn = this.config.fetch ?? globalThis.fetch;
 
     const warnings: Array<SharedV4Warning> = [];
@@ -70,7 +74,7 @@ export class GoogleFiles implements FilesV4 {
     const initResponse = await fetchFn(`${baseOrigin}/upload/v1beta/files`, {
       method: 'POST',
       headers: {
-        ...resolvedHeaders,
+        ...(await getHeaders()),
         'X-Goog-Upload-Protocol': 'resumable',
         'X-Goog-Upload-Command': 'start',
         'X-Goog-Upload-Header-Content-Length': String(fileBytes.length),
@@ -82,6 +86,7 @@ export class GoogleFiles implements FilesV4 {
           ...(displayName != null ? { display_name: displayName } : {}),
         },
       }),
+      signal: options.abortSignal,
     });
 
     if (!initResponse.ok) {
@@ -106,7 +111,8 @@ export class GoogleFiles implements FilesV4 {
         'X-Goog-Upload-Offset': '0',
         'X-Goog-Upload-Command': 'upload, finalize',
       },
-      body: fileBytes,
+      body: ensureArrayBufferBacked(fileBytes),
+      signal: options.abortSignal,
     });
 
     if (!uploadResponse.ok) {
@@ -135,16 +141,23 @@ export class GoogleFiles implements FilesV4 {
         });
       }
 
-      await delay(pollIntervalMs);
+      await delay(pollIntervalMs, { abortSignal: options.abortSignal });
+
+      const fileNameMatch = /^files\/([^/]+)$/.exec(file.name);
+      const filePath =
+        fileNameMatch != null
+          ? `files/${encodePathSegment(fileNameMatch[1])}`
+          : encodePathSegment(file.name);
 
       const { value: fileStatus } = await getFromApi({
-        url: `${this.config.baseURL}/${file.name}`,
+        url: `${this.config.baseURL}/${filePath}`,
         validateUrl: false,
-        headers: combineHeaders(resolvedHeaders),
+        headers: await getHeaders(),
         successfulResponseHandler: createJsonResponseHandler(
           googleFileResponseSchema,
         ),
         failedResponseHandler: googleFailedResponseHandler,
+        abortSignal: options.abortSignal,
         fetch: this.config.fetch,
       });
 
@@ -180,6 +193,14 @@ export class GoogleFiles implements FilesV4 {
       },
     };
   }
+}
+
+function ensureArrayBufferBacked(data: Uint8Array): Uint8Array<ArrayBuffer> {
+  if (data.buffer instanceof ArrayBuffer) {
+    return data as Uint8Array<ArrayBuffer>;
+  }
+
+  return new Uint8Array(data);
 }
 
 type GoogleFileResource = {

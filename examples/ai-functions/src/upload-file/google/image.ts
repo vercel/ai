@@ -16,7 +16,7 @@ run(async () => {
   console.log('Provider metadata:', providerMetadata);
 
   const result = await generateText({
-    model: google('gemini-2.5-flash'),
+    model: google('gemini-4-hydrogen'),
     messages: [
       {
         role: 'user',

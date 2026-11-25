@@ -1,4 +1,10 @@
 export type { GoogleErrorData } from './google-error';
+export type { GoogleFilePartOptions } from './google-file-part-options';
+export type { GoogleInteractionsFileOptions } from './interactions/google-interactions-file-options';
+export type {
+  GoogleDecisionModelId,
+  GoogleDecisionModelOptions,
+} from './google-decision-model-options';
 export type {
   GoogleLanguageModelOptions,
   /** @deprecated Use `GoogleLanguageModelOptions` instead. */
@@ -6,6 +12,7 @@ export type {
 } from './google-language-model-options';
 export type {
   GoogleProviderMetadata,
+  GoogleVideoMetadata,
   /** @deprecated Use `GoogleProviderMetadata` instead. */
   GoogleProviderMetadata as GoogleGenerativeAIProviderMetadata,
 } from './google-prompt';
@@ -37,6 +44,7 @@ export type { GoogleFilesUploadOptions } from './google-files';
 export type {
   GoogleLanguageModelInteractionsOptions,
   GoogleInteractionsModelId,
+  GoogleInteractionsVideoOptions,
 } from './interactions/google-interactions-language-model-options';
 export type { GoogleInteractionsProviderMetadata } from './interactions/google-interactions-provider-metadata';
 export type { GoogleInteractionsAgentName } from './interactions/google-interactions-agent';
@@ -60,6 +68,11 @@ export type {
   GoogleRealtimeModelId as Experimental_GoogleRealtimeModelId,
   GoogleRealtimeModelOptions as Experimental_GoogleRealtimeModelOptions,
 } from './realtime/google-realtime-model-options';
+export { GoogleTranscriptionModel } from './transcription/google-transcription-model';
+export type {
+  GoogleTranscriptionModelId,
+  GoogleTranscriptionModelOptions,
+} from './transcription/google-transcription-model-options';
 export {
   GoogleSpeechTranslationModel as Experimental_GoogleSpeechTranslationModel,
   /** @deprecated Use `Experimental_GoogleSpeechTranslationModel` instead. */

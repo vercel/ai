@@ -10,7 +10,7 @@ async function main() {
 
   try {
     // Or use the AI SDK's stdio transport by importing:
-    // import { Experimental_StdioMCPTransport as StdioClientTransport } from 'ai/mcp-stdio'
+    // import { StdioMCPTransport as StdioClientTransport } from '@ai-sdk/mcp/mcp-stdio'
     const stdioTransport = new StdioClientTransport({
       command: 'node',
       args: ['src/stdio/dist/server.js'],
@@ -24,7 +24,7 @@ async function main() {
     });
 
     const { text: answer } = await generateText({
-      model: openai('gpt-4o-mini'),
+      model: openai('gpt-6-luna'),
       tools: await mcpClient.tools({
         schemas: {
           'get-pokemon': {

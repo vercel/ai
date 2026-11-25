@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: xai.responses('grok-4.5'),
+    model: xai.responses('grok-4.7'),
     tools: {
       web_search: xai.tools.webSearch({ enableImageSearch: true }),
     },

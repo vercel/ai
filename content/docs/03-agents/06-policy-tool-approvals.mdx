@@ -24,11 +24,15 @@ OPA is a general policy engine. If you can express a rule as code over structure
 - Cost and usage: deny or require approval for calls that exceed a budget, token ceiling, or per-user quota.
 - Compliance and change control: gate destructive or regulated actions on the right approver, environment, or time window.
 
-The decision is not limited to the current call's arguments. The policy `input` also carries `messages`, the full model and tool-call history for the run, so a rule can factor in what already happened: prior tool calls, the sequence of actions so far, or a running total across the conversation. Examples:
+The decision is not limited to the current call's arguments. The policy `input` also carries `messages`: the conversation that was sent to the model for the step that produced the call, including the tool calls and tool results of earlier steps. A rule can factor in what already happened: prior tool calls, the sequence of actions so far, or a running total across the conversation. Examples:
 
 - Require approval once a run has already performed N writes.
 - Deny a second irreversible action (a push, a delete) in the same conversation.
 - Track cumulative spend or token usage across steps and stop at a ceiling.
+
+With `generateText`, `streamText`, and `ToolLoopAgent`, these rules also apply when the model returns several tool calls in one response. See [Several tool calls in one response](#several-tool-calls-in-one-response).
+
+A rule over `messages` only sees what is sent to the model. When `prepareStep` replaces the messages of a step, for example to shorten a long conversation, the tool calls that are no longer in them do not count. In that case, keep a limit that must hold for the whole conversation in a store of your own and pass its state to the policy, for example through `runtimeContext`.
 
 ### Best fit: deterministic checks
 
@@ -60,6 +64,28 @@ The policy is consulted before every tool dispatch and maps to one of the standa
 - `requires-approval` pauses the run and waits for a human `tool-approval-response`.
 - No matching rule normalizes to `not-applicable`, which the SDK treats as allow. Add `default decision := { "decision": "deny" }` to your policy to default-deny instead.
 
+### Several tool calls in one response
+
+A model can return several tool calls in one response. `generateText`, `streamText`, and `ToolLoopAgent` decide on all of them before they run any of them, and `messages` is the same for each call: it does not contain the response itself. A rule that counts earlier tool calls would see none of the other calls of that response.
+
+`opaPolicy` therefore evaluates every tool call after the first one of a response twice, unless the first evaluation already denies it:
+
+1. With `messages` as they were sent to the model.
+2. With the earlier tool calls of the same response appended as an assistant message. Tool calls that are denied are followed by a tool message with their `execution-denied` result. The other tool calls have no result yet.
+
+The more restrictive decision applies: `deny` before `requires-approval`, before no matching rule, before `allow`.
+
+- A limit such as a budget, a quota, or "only one delete per conversation" counts the earlier tool calls of the same response.
+- A rule that allows a tool call only after another one, such as "deploy only after the tests ran", is not satisfied by a tool call of the same response, because that call has not run yet.
+- Check a prerequisite through the earlier tool's result in history, not through the presence of its tool call. A tool call does not prove that the tool ran or succeeded. This also matters when an approved tool call is evaluated again before it runs: the history then contains the response with the tool calls, but not their results.
+- Base a limit that must hold within one response on tool calls, not on tool results. The earlier tool calls of a response have no results when the policy is evaluated.
+- OPA receives two queries for such a tool call, so it appears twice in OPA decision logs. A custom `toInput` is called twice as well. When it returns the same input both times, for example because it does not use `messages`, the policy is evaluated once. With `wrapMcpTools` in hard allowlist mode (`default: 'denied'`), a tool call whose first evaluation is `not-applicable` is treated as denied by the fallback and evaluated once.
+- `opaPolicy` recognizes the tool calls of one response by the `messages` array they are evaluated with. `generateText`, `streamText`, and `ToolLoopAgent` pass the same array for all tool calls of a response and a new array for every response. When a caller passes a separate array for each tool call, `opaPolicy` evaluates each tool call once, with `messages` as passed. A caller must not pass one array for several responses: the tool calls of the earlier responses would count as earlier tool calls of the later ones.
+
+### Tool calls that a user approved
+
+When the policy returns `requires-approval` and the user approves, the policy is evaluated for that tool call once more before the tool runs. In this evaluation, `messages` include the response with the tool call and the approval. A `deny` blocks the tool call. Any other decision lets it run, and `requires-approval` does not ask the user again.
+
 ## Quick start
 
 ```ts
@@ -80,7 +106,7 @@ const toolApproval = opaPolicy({
 
 // 3. Pass it to generateText (or streamText / ToolLoopAgent). Everything else is normal.
 const result = await generateText({
-  model: anthropic('claude-sonnet-4-5'),
+  model: anthropic('claude-sonnet-5-5'),
   tools: { git, bash, queryLogs },
   toolApproval,
   prompt: 'find the failing test and push the fix',
@@ -89,7 +115,7 @@ const result = await generateText({
 
 ## Writing the Rego policy
 
-The policy emits a decision object. `reason` is optional and is surfaced back to the model (for `deny`) or to the human approver (for `requires-approval`).
+The policy emits a decision object. `reason` is optional and is surfaced back to the model (for `deny`) or to the human approver (for `requires-approval`). A manual approval request exposes it as `reason` in core results and as `approval.requestReason` in UI messages.
 
 ```rego
 package agent.call
@@ -120,7 +146,7 @@ decision := { "decision": "requires-approval", "reason": "kubectl by oncall" } {
 Notes:
 
 - The legacy boolean shape (`{ "allow": true | false, "reason": "..." }`) is also accepted, so existing rules migrate without rewriting.
-- The default OPA `input` shape is `{ tool: { name }, args, messages, runtimeContext }`.
+- The default OPA `input` shape is `{ tool: { name }, args, messages, runtimeContext }`. `messages` does not contain the response with the tool call, except when a tool call that a user approved is evaluated again. See [Several tool calls in one response](#several-tool-calls-in-one-response) and [Tool calls that a user approved](#tool-calls-that-a-user-approved).
 - Override the input shape with `toInput`:
 
 ```ts
@@ -156,9 +182,10 @@ Run with `opa test policy.rego policy_test.rego`.
 ### Errors fail closed
 
 - If the backend errors (server unreachable, WASM fault, misbuilt bundle), `opaPolicy` returns `denied` with the error message as the reason.
+- If the backend returns a present but unrecognized decision, such as an unknown `decision` value or a non-boolean legacy `allow` value, `opaPolicy` returns `denied`.
 - The error never rejects out of the callback and never aborts the run.
 - A backend outage blocks the affected call rather than silently allowing it.
-- This is distinct from a rule that returns no match, which normalizes to `not-applicable` (allow). Use a `default ... deny` rule if you want unmatched calls denied too.
+- This is distinct from a rule that returns no match: `null` or `undefined` normalizes to `not-applicable` (allow). Use a `default ... deny` rule if you want unmatched calls denied too.
 
 ## Loading the policy
 
@@ -290,7 +317,7 @@ import { wasmPolicyClient, opaCapabilityMiddleware } from '@ai-sdk/policy-opa';
 const client = await wasmPolicyClient({ wasm });
 
 const wrappedModel = wrapLanguageModel({
-  model: anthropic('claude-sonnet-4-5'),
+  model: anthropic('claude-sonnet-5-5'),
   middleware: opaCapabilityMiddleware({ client, path: 'agent/tools/allowed' }),
 });
 ```
@@ -323,6 +350,8 @@ Defaults for uncovered tools:
 - `'user-approval'` (default): require a human. Good when you trust the source but want a safety net.
 - `'denied'`: hard allowlist mode. The policy enumerates what is allowed; everything else is rejected.
 - `'approved'`: allow. Only when the discovery source is fully trusted.
+
+When the approval is an `opaPolicy` approval, the fallback is applied to each policy evaluation for a tool call, before the evaluations are compared. This holds when you pass `opaPolicy(...)` or `shadow(opaPolicy(...))` directly. A custom wrapper function around it hides the fallback from the policy, so the fallback then applies to the combined decision only.
 
 Despite the name, it works on any `Record<string, Tool>`.
 

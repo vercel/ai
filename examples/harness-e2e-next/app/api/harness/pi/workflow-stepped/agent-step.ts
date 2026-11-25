@@ -10,8 +10,17 @@ export async function agentStep(
 
   const { piSteppedWorkflowAgent } =
     await import('@/agent/harness/pi/basic-stepped-agent');
+  const { acquireHarnessSandboxSession } =
+    await import('@/util/harness-sandbox-session');
+  const sandboxSession = await acquireHarnessSandboxSession({
+    agent: piSteppedWorkflowAgent,
+    sessionId: state.sessionId,
+    resumeFrom: state.resumeFrom,
+    continueFrom: state.continueFrom,
+  });
   return runHarnessAgentStep({
     agent: piSteppedWorkflowAgent,
     state,
+    sandboxSession,
   });
 }

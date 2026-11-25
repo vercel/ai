@@ -17,7 +17,7 @@ import { runAgentTUI } from '@ai-sdk/tui';
 import { ToolLoopAgent } from 'ai';
 
 const agent = new ToolLoopAgent({
-  model: openai('gpt-5'),
+  model: openai('gpt-6-astra'),
   instructions: 'You are a helpful terminal assistant.',
 });
 
@@ -151,6 +151,9 @@ type TerminalPartDisplayMode =
   section appears, then collapse it.
 - `"hidden"`: Omit the section entirely.
 
+A tool call that is waiting for an approval decision is always shown with its
+input until the decision is made, regardless of the display mode.
+
 ### `ResponseStatisticsMode`
 
 Controls which response statistic is shown:
@@ -191,17 +194,21 @@ await runAgentTUI({
 ## Example with Sandbox
 
 ```ts
-import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
+import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
 
-const sandboxSession = await createJustBashSandbox({
+const sandboxSession = await createJustBashNetworkSandboxSession({
   cwd: '/home/user',
-}).createSession();
-
-await runAgentTUI({
-  title: 'Sandbox Assistant',
-  agent,
-  sandbox: sandboxSession.restricted(),
 });
+
+try {
+  await runAgentTUI({
+    title: 'Sandbox Assistant',
+    agent,
+    sandbox: sandboxSession.restricted(),
+  });
+} finally {
+  await sandboxSession.destroy();
+}
 ```
 
 The sandbox is forwarded to every `agent.stream()` call as

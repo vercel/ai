@@ -2,24 +2,53 @@ import { build } from 'esbuild';
 import { writeFileSync, statSync } from 'fs';
 import { join } from 'path';
 
-// Bundle size limits in bytes
-const LIMIT = 450 * 1024;
+// Both realtime transports add ~32 KiB to all exports; named probes guard tree shaking.
+// experimental_streamSpeech and the bundled gateway speech client add ~6 KiB.
+// Streaming image decoding also ships through the bundled Gateway image client.
+// Shared provider credential redaction adds ~1.6 KiB to telemetry-enabled exports.
+// Patched Zod adds ~36 KiB; public message schemas retain the classic API.
+// Internal schemas use Mini, preserving the existing named-export budgets.
+// The opt-in useChat message queue adds ~3 KiB.
+// Bounded validation of malformed UI messages adds ~1.5 KiB.
+// The experimental extract API adds ~5 KiB.
+// The bundled Gateway extraction client adds ~4 KiB.
+// Steering interrupts add ~3 KiB.
+// Extraction telemetry adds ~2.5 KiB.
+// The bundled Gateway Live model and continuous client-secret sessions add ~6 KiB.
+// Per-call warning callbacks and prompt warnings in step warnings add ~1 KiB.
+const LIMIT = 675 * 1024;
 
 interface BundleResult {
   size: number;
   path: string;
   condition: string;
+  limit: number;
 }
 
-async function bundleForNode(): Promise<BundleResult> {
-  const outfile = join(process.cwd(), 'dist-bundle-check', 'node.js');
-  const metafile = join(process.cwd(), 'dist-bundle-check', 'node-meta.json');
+async function bundleForNode(
+  entry?: 'generateText' | 'tool',
+): Promise<BundleResult> {
+  const label = entry == null ? 'node' : `node-${entry}`;
+  const outfile = join(process.cwd(), 'dist-bundle-check', `${label}.js`);
+  const metafile = join(
+    process.cwd(),
+    'dist-bundle-check',
+    `${label}-meta.json`,
+  );
 
   const result = await build({
-    entryPoints: [join(process.cwd(), 'src', 'index.ts')],
+    ...(entry == null
+      ? { entryPoints: [join(process.cwd(), 'src', 'index.ts')] }
+      : {
+          stdin: {
+            contents: `export { ${entry} } from './src/index';`,
+            resolveDir: process.cwd(),
+            loader: 'ts' as const,
+          },
+        }),
     bundle: true,
     platform: 'node',
-    target: 'es2020',
+    target: 'es2022',
     format: 'esm',
     outfile,
     metafile: true,
@@ -30,22 +59,43 @@ async function bundleForNode(): Promise<BundleResult> {
   writeFileSync(metafile, JSON.stringify(result.metafile, null, 2));
 
   const size = statSync(outfile).size;
-  return { size, path: outfile, condition: 'node' };
+  return {
+    size,
+    path: outfile,
+    condition: label,
+    limit:
+      entry === 'tool'
+        ? 8 * 1024
+        : entry === 'generateText'
+          ? 310 * 1024
+          : LIMIT,
+  };
 }
 
-async function bundleForBrowser(): Promise<BundleResult> {
-  const outfile = join(process.cwd(), 'dist-bundle-check', 'browser.js');
+async function bundleForBrowser(
+  entry?: 'generateText' | 'tool',
+): Promise<BundleResult> {
+  const label = entry == null ? 'browser' : `browser-${entry}`;
+  const outfile = join(process.cwd(), 'dist-bundle-check', `${label}.js`);
   const metafile = join(
     process.cwd(),
     'dist-bundle-check',
-    'browser-meta.json',
+    `${label}-meta.json`,
   );
 
   const result = await build({
-    entryPoints: [join(process.cwd(), 'src', 'index.ts')],
+    ...(entry == null
+      ? { entryPoints: [join(process.cwd(), 'src', 'index.ts')] }
+      : {
+          stdin: {
+            contents: `export { ${entry} } from './src/index';`,
+            resolveDir: process.cwd(),
+            loader: 'ts' as const,
+          },
+        }),
     bundle: true,
     platform: 'browser',
-    target: 'es2020',
+    target: 'es2022',
     format: 'esm',
     outfile,
     metafile: true,
@@ -57,7 +107,17 @@ async function bundleForBrowser(): Promise<BundleResult> {
   writeFileSync(metafile, JSON.stringify(result.metafile, null, 2));
 
   const size = statSync(outfile).size;
-  return { size, path: outfile, condition: 'browser' };
+  return {
+    size,
+    path: outfile,
+    condition: label,
+    limit:
+      entry === 'tool'
+        ? 8 * 1024
+        : entry === 'generateText'
+          ? 298 * 1024
+          : LIMIT,
+  };
 }
 
 function formatSize(bytes: number): string {
@@ -80,14 +140,17 @@ async function main() {
   console.log('📦 Checking bundle sizes...\n');
 
   try {
-    const [nodeResult, browserResult] = await Promise.all([
+    const results = await Promise.all([
       bundleForNode(),
       bundleForBrowser(),
+      bundleForNode('generateText'),
+      bundleForBrowser('generateText'),
+      bundleForNode('tool'),
+      bundleForBrowser('tool'),
     ]);
 
     console.log('Bundle sizes:');
-    const nodePass = checkSize(nodeResult, LIMIT);
-    const browserPass = checkSize(browserResult, LIMIT);
+    const checks = results.map(result => checkSize(result, result.limit));
 
     console.log('\n---');
 
@@ -98,7 +161,7 @@ async function main() {
 
     console.log('\n---');
 
-    if (nodePass && browserPass) {
+    if (checks.every(Boolean)) {
       console.log('✅ All bundle size checks passed!');
       process.exit(0);
     } else {

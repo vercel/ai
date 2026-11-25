@@ -175,4 +175,69 @@ describe('prepareTools', () => {
       }
     `);
   });
+
+  it('should reject strict tools when the endpoint does not support them', () => {
+    expect(() =>
+      prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'strictTool',
+            inputSchema: { type: 'object', properties: {} },
+            strict: true,
+          },
+        ],
+        supportsStrictToolCalls: false,
+      }),
+    ).toThrow(
+      'DeepSeek strict tool calls require a beta base URL ending in `/beta`.',
+    );
+  });
+
+  it('should reject mixed strict and non-strict tools on the beta endpoint', () => {
+    expect(() =>
+      prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'strictTool',
+            inputSchema: { type: 'object', properties: {} },
+            strict: true,
+          },
+          {
+            type: 'function',
+            name: 'nonStrictTool',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        supportsStrictToolCalls: true,
+      }),
+    ).toThrow(
+      'DeepSeek strict mode requires every function tool in the request to set `strict: true`.',
+    );
+  });
+
+  it('should accept all-strict tools on the beta endpoint', () => {
+    const result = prepareTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'firstStrictTool',
+          inputSchema: { type: 'object', properties: {} },
+          strict: true,
+        },
+        {
+          type: 'function',
+          name: 'secondStrictTool',
+          inputSchema: { type: 'object', properties: {} },
+          strict: true,
+        },
+      ],
+      supportsStrictToolCalls: true,
+    });
+
+    expect(result.tools?.every(tool => tool.function.strict === true)).toBe(
+      true,
+    );
+  });
 });

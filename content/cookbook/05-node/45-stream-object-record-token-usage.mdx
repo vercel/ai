@@ -19,7 +19,7 @@ import { streamText, Output } from 'ai';
 import { z } from 'zod';
 
 const result = streamText({
-  model: 'openai/gpt-4.1',
+  model: 'openai/gpt-6-astra',
   output: Output.object({
     schema: z.object({
       recipe: z.object({
@@ -34,18 +34,26 @@ const result = streamText({
     console.log('Token usage:', usage);
   },
 });
+
+// Consume the stream so onEnd can record usage.
+await result.consumeStream();
 ```
+
+The `onEnd` callback only fires once the stream is consumed — for example by
+iterating `partialOutputStream`, piping it, or calling `result.consumeStream()`.
+Without consuming the stream, the result is created but the callback is never
+called.
 
 ## `usage` Promise
 
 The `streamText` result contains a `usage` promise that resolves to the total token usage.
 
-```ts file='index.ts' highlight={"28,30"}
+```ts file='index.ts' highlight={"29,32"}
 import { streamText, Output, LanguageModelUsage } from 'ai';
 import { z } from 'zod';
 
 const result = streamText({
-  model: 'openai/gpt-4.1',
+  model: 'openai/gpt-6-astra',
   output: Output.object({
     schema: z.object({
       recipe: z.object({
@@ -68,8 +76,10 @@ function recordUsage({
   console.log('Total tokens:', totalTokens);
 }
 
+// use as promise:
 result.usage.then(recordUsage);
 
+// or use with async/await:
 recordUsage(await result.usage);
 
 for await (const partialObject of result.partialOutputStream) {

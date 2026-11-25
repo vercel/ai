@@ -1,7 +1,7 @@
 /**
  * Integration test workflows for WorkflowAgent using mock providers.
  */
-import { tool } from 'ai';
+import { tool, type ModelMessage, type LanguageModelUsage } from 'ai';
 import { WorkflowAgent } from '../workflow-agent.js';
 import { mockTextModel, mockSequenceModel } from '../providers/mock.js';
 import { retryingModel } from './retrying-model.js';
@@ -26,6 +26,13 @@ async function echoStep(input: { step: number }): Promise<string> {
 async function throwingStep(): Promise<string> {
   'use step';
   throw new FatalError('Tool execution failed fatally');
+}
+
+async function executeApprovedAction(input: {
+  action: string;
+}): Promise<string> {
+  'use step';
+  return `executed:${input.action}`;
 }
 
 // ============================================================================
@@ -514,6 +521,96 @@ export async function agentToolApprovalE2e() {
   };
 }
 
+const signedToolApprovalSecret = {
+  environmentVariable: 'WORKFLOW_TOOL_APPROVAL_SECRET',
+};
+
+export async function agentSignedToolApprovalIssueE2e() {
+  'use workflow';
+  const agent = new WorkflowAgent({
+    model: mockSequenceModel([
+      {
+        type: 'tool-call',
+        toolName: 'riskyTool',
+        input: JSON.stringify({ action: 'delete' }),
+      },
+    ]),
+    tools: {
+      riskyTool: tool({
+        description: 'A dangerous tool that needs approval',
+        inputSchema: z.object({ action: z.string() }),
+        execute: executeApprovedAction,
+        needsApproval: true,
+      }),
+    },
+    experimental_toolApprovalSecret: signedToolApprovalSecret,
+  });
+
+  const result = await agent.stream({
+    messages: [{ role: 'user', content: 'do something risky' }],
+    writable: getWritable(),
+  });
+
+  return { toolCallsCount: result.toolCalls.length };
+}
+
+export async function agentSignedToolApprovalResumeE2e(signature: string) {
+  'use workflow';
+  const agent = new WorkflowAgent({
+    model: mockSequenceModel([{ type: 'text', text: 'approved action done' }]),
+    tools: {
+      riskyTool: tool({
+        description: 'A dangerous tool that needs approval',
+        inputSchema: z.object({ action: z.string() }),
+        execute: executeApprovedAction,
+        needsApproval: true,
+      }),
+    },
+    experimental_toolApprovalSecret: signedToolApprovalSecret,
+  });
+
+  const result = await agent.stream({
+    messages: [
+      { role: 'user', content: 'do something risky' },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'riskyTool',
+            input: { action: 'delete' },
+          },
+          {
+            type: 'tool-approval-request',
+            approvalId: 'approval-call-1',
+            toolCallId: 'call-1',
+            signature,
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-approval-response',
+            approvalId: 'approval-call-1',
+            approved: true,
+          },
+        ],
+      },
+    ],
+    writable: getWritable(),
+  });
+
+  return {
+    lastStepText: result.steps.at(-1)?.text,
+    containsApprovedToolResult: JSON.stringify(result.messages).includes(
+      'executed:delete',
+    ),
+  };
+}
+
 // ============================================================================
 // Tool with input schema (tests serialization across step boundary)
 // ============================================================================
@@ -711,4 +808,63 @@ export async function agentSandboxE2e() {
     secondPrepareStepSawConstructorSandbox,
     prepareStepSawStepSandbox,
   };
+}
+
+export async function agentGenerateE2e(repair: boolean): Promise<{
+  text: string;
+  output: string;
+  toolOutputs: number[];
+  responseMessages: ModelMessage[];
+  usage: LanguageModelUsage;
+  events: string[];
+}> {
+  'use workflow';
+  const events: string[] = [];
+  const agent = new WorkflowAgent({
+    model: mockSequenceModel([
+      {
+        type: 'tool-call',
+        toolName: 'addNumbers',
+        input: repair ? '{' : '{"a":3,"b":7}',
+      },
+      { type: 'text', text: 'The sum is 10' },
+    ]),
+    tools: {
+      addNumbers: tool({
+        inputSchema: z.object({ a: z.number(), b: z.number() }),
+        execute: addNumbers,
+      }),
+    },
+    onStepEnd: () => {
+      events.push('step');
+    },
+    onEnd: () => {
+      events.push('end');
+    },
+  });
+  const result = await agent.generate({
+    prompt: 'Add 3 and 7',
+    repairToolCall: repairToolCall as any,
+  });
+  return {
+    text: result.text,
+    output: result.output,
+    toolOutputs: result.staticToolResults.map(result => result.output),
+    responseMessages: result.responseMessages,
+    usage: result.usage,
+    events,
+  };
+}
+
+export async function agentGenerateUndefinedFailureE2e() {
+  'use workflow';
+  try {
+    await new WorkflowAgent({
+      model: mockSequenceModel([{ type: 'error', error: undefined }]),
+      maxRetries: 0,
+    }).generate({ prompt: 'fail' });
+    return { rejected: false, wasUndefined: false };
+  } catch (error) {
+    return { rejected: true, wasUndefined: error === undefined };
+  }
 }

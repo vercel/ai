@@ -19,7 +19,6 @@ describe('doRerank', () => {
         fs.readFileSync(`src/reranking/__fixtures__/${filename}.json`, 'utf8'),
       ),
     };
-    return;
   }
 
   describe('json documents', () => {

@@ -1,4 +1,5 @@
 import { visibleLength } from './terminal-text';
+import { sanitizeTerminalText } from './sanitize-terminal-text';
 
 export type MarkdownToken =
   | { type: 'text'; text: string }
@@ -18,7 +19,7 @@ const ansi = {
 const tableSeparator = '─';
 
 export function renderMarkdown(input: string): string {
-  const lines = input.split('\n');
+  const lines = sanitizeTerminalText(input, { multiline: true }).split('\n');
   const output: string[] = [];
 
   for (let index = 0; index < lines.length; index += 1) {

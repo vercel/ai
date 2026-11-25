@@ -16,19 +16,31 @@ import type { UploadFileResult } from './upload-file-result';
  * Uploads a file using a files API interface.
  *
  * @param api - The Files API interface to use for uploading.
- * @param data - The file data to upload (tagged `{ type: 'data' | 'text' }`).
+ * @param data - The file data to upload (tagged `{ type: 'data' | 'text' | 'stream' }`).
+ * Stream data is sent without buffering by providers that support streaming
+ * uploads (others reject with `UnsupportedFunctionalityError`); the provider
+ * consumes the stream — any failed upload, including validation failures
+ * before a request is made, cancels it. Do not reuse it.
  * @param mediaType - Optional IANA media type. Auto-detected from file bytes
- * when omitted (falls back to `text/plain` for the `text` variant).
- * @param filename - Optional filename for the uploaded file.
+ * when omitted (falls back to `text/plain` for the `text` variant and
+ * `application/octet-stream` for the `stream` variant, which cannot be sniffed).
+ * @param filename - Optional filename for the uploaded file. Multipart-based
+ * providers default it to `"blob"` when omitted.
+ * @param abortSignal - Optional signal to cancel the upload.
+ * @param headers - Optional additional HTTP headers for the request.
  * @param providerOptions - Additional provider-specific options.
  *
- * @returns A result object containing the provider reference and optional metadata.
+ * @returns A result object containing the provider reference, optional
+ * metadata, and — when reported by the provider — `byteSize`, `createdAt`,
+ * and `expiresAt` (the provider-applied retention expiry).
  */
 export async function uploadFile({
   api,
   data: dataArg,
   mediaType: mediaTypeArg,
   filename,
+  abortSignal,
+  headers,
   providerOptions,
 }: {
   /**
@@ -54,35 +66,55 @@ export async function uploadFile({
       ? { type: 'data', data: dataArg }
       : dataArg;
 
+  // stream data cannot be sniffed without consuming it
   const mediaType =
     mediaTypeArg ??
     (data.type === 'text'
       ? 'text/plain'
-      : (detectMediaType({ data: data.data }) ??
-        (isLikelyText(data.data) ? 'text/plain' : 'application/octet-stream')));
+      : data.type === 'stream'
+        ? 'application/octet-stream'
+        : (detectMediaType({ data: data.data }) ??
+          (isLikelyText(data.data)
+            ? 'text/plain'
+            : 'application/octet-stream')));
 
-  const filesApi: FilesV4 =
-    'uploadFile' in api
-      ? api
-      : typeof api.files === 'function'
-        ? api.files()
-        : (() => {
-            throw new Error(
-              'The provider does not support file uploads. Make sure it exposes a files() method.',
-            );
-          })();
+  let result;
+  try {
+    const filesApi: FilesV4 =
+      'uploadFile' in api
+        ? api
+        : typeof api.files === 'function'
+          ? api.files()
+          : (() => {
+              throw new Error(
+                'The provider does not support file uploads. Make sure it exposes a files() method.',
+              );
+            })();
 
-  const result = await filesApi.uploadFile({
-    data,
-    mediaType,
-    filename,
-    providerOptions,
-  });
+    result = await filesApi.uploadFile({
+      data,
+      mediaType,
+      filename,
+      abortSignal,
+      headers,
+      providerOptions,
+    });
+  } catch (error) {
+    // ownership guarantee: a failed upload releases the stream, even when
+    // the provider rejected before (or without) consuming it
+    if (data.type === 'stream') {
+      await data.stream.cancel(error).catch(() => {});
+    }
+    throw error;
+  }
 
   return new DefaultUploadFileResult({
     providerReference: result.providerReference,
     mediaType: result.mediaType,
     filename: result.filename,
+    byteSize: result.byteSize,
+    createdAt: result.createdAt,
+    expiresAt: result.expiresAt,
     providerMetadata: result.providerMetadata,
     warnings: result.warnings,
   });
@@ -92,6 +124,9 @@ class DefaultUploadFileResult implements UploadFileResult {
   readonly providerReference: ProviderReference;
   readonly mediaType?: string;
   readonly filename?: string;
+  readonly byteSize?: number;
+  readonly createdAt?: Date;
+  readonly expiresAt?: Date;
   readonly providerMetadata?: ProviderMetadata;
   readonly warnings: Array<Warning>;
 
@@ -99,12 +134,18 @@ class DefaultUploadFileResult implements UploadFileResult {
     providerReference: ProviderReference;
     mediaType?: string;
     filename?: string;
+    byteSize?: number;
+    createdAt?: Date;
+    expiresAt?: Date;
     providerMetadata?: ProviderMetadata;
     warnings: Array<Warning>;
   }) {
     this.providerReference = options.providerReference;
     this.mediaType = options.mediaType;
     this.filename = options.filename;
+    this.byteSize = options.byteSize;
+    this.createdAt = options.createdAt;
+    this.expiresAt = options.expiresAt;
     this.providerMetadata = options.providerMetadata;
     this.warnings = options.warnings;
   }

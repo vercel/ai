@@ -6,10 +6,8 @@ The **[Cohere provider](https://ai-sdk.dev/providers/ai-sdk-providers/cohere)** 
 
 ## Setup
 
-The Cohere provider is available in the `@ai-sdk/cohere` module. You can install it with
-
 ```bash
-npm i @ai-sdk/cohere
+npm i ai @ai-sdk/cohere
 ```
 
 ## Skill for Coding Agents
@@ -20,26 +18,16 @@ If you use coding agents such as Claude Code or Cursor, we highly recommend addi
 npx skills add vercel/ai
 ```
 
-## Provider Instance
-
-You can import the default provider instance `cohere` from `@ai-sdk/cohere`:
-
-```ts
-import { cohere } from '@ai-sdk/cohere';
-```
-
-## Example
+## Usage
 
 ```ts
 import { cohere } from '@ai-sdk/cohere';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: cohere('command-r-plus'),
+  model: cohere('command-a-03-2025'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
 
-## Documentation
-
-Please check out the **[Cohere provider](https://ai-sdk.dev/providers/ai-sdk-providers/cohere)** for more information.
+See the [Cohere Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/cohere) for more information.

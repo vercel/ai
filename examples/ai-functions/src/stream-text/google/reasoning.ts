@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: google('gemini-2.5-flash'),
+    model: google('gemini-4-hydrogen'),
     tools: { weather: weatherTool },
     prompt: 'What is the weather in San Francisco?',
     stopWhen: isStepCount(2),

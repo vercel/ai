@@ -2,11 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   experimental_runCodeMode as runCodeMode,
   experimental_setMaxWorkers as setMaxWorkers,
-} from '../../dist/index.js';
+} from '../index.js';
 
 describe('options validation', () => {
   it.each([
     ['timeoutMs', 0],
+    ['cpuTimeoutMs', 0],
     ['memoryLimitBytes', -1],
     ['maxStackSizeBytes', 1.5],
     ['maxResultBytes', Number.NaN],

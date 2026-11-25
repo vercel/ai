@@ -1,5 +1,8 @@
 import {
+  type Experimental_DecisionModelV4 as DecisionModelV4,
   type EmbeddingModelV4,
+  type Experimental_ExtractionModelV4 as ExtractionModelV4,
+  type Experimental_VideoModelV3,
   type Experimental_VideoModelV4,
   type FilesV4,
   type ImageModelV4,
@@ -13,6 +16,10 @@ import {
   type SpeechModelV4,
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
+import type { DecisionModel } from '../decide/decision-result';
+import type { DecisionProvider } from '../decide/decision-provider';
+import type { ExtractionModel } from '../extract/extraction-result';
+import type { ExtractionProvider } from '../extract/extraction-provider';
 import { asProviderV4 } from '../model/as-provider-v4';
 import {
   resolveEmbeddingModel,
@@ -22,6 +29,9 @@ import {
   resolveSpeechModel,
   resolveTranscriptionModel,
   resolveVideoModel,
+  resolveDecisionModel,
+  resolveExtractionModel,
+  asEvaluationModel,
 } from '../model/resolve-model';
 import type { EmbeddingModel } from '../types/embedding-model';
 import type { ImageModel } from '../types/image-model';
@@ -30,6 +40,12 @@ import type { RerankingModel } from '../types/reranking-model';
 import type { SpeechModel } from '../types/speech-model';
 import type { TranscriptionModel } from '../types/transcription-model';
 import type { VideoModel } from '../types/video-model';
+
+type ProviderWithOptionalVideoModel = {
+  videoModel?: (
+    modelId: string,
+  ) => Experimental_VideoModelV3 | Experimental_VideoModelV4;
+};
 
 /**
  * Creates a custom provider with specified language models, text embedding models, image models, transcription models, speech models, file APIs, skill APIs, and an optional fallback provider.
@@ -42,6 +58,8 @@ import type { VideoModel } from '../types/video-model';
  * @param {Record<string, SpeechModel>} [options.speechModels] - A record of speech models, where keys are model IDs and values are speech model instances.
  * @param {Record<string, RerankingModel>} [options.rerankingModels] - A record of reranking models, where keys are model IDs and values are reranking model instances.
  * @param {Record<string, VideoModel>} [options.videoModels] - A record of video models, where keys are model IDs and values are video model instances.
+ * @param {Record<string, DecisionModel>} [options.decisionModels] - Experimental decision models or default-provider model IDs, keyed by alias.
+ * @param {Record<string, ExtractionModel>} [options.extractionModels] - Experimental extraction models or default-provider model IDs, keyed by alias.
  * @param {FilesV4} [options.files] - A files interface for uploading files.
  * @param {SkillsV4} [options.skills] - A skills interface for uploading skills.
  * @param {ProviderV2 | ProviderV3 | ProviderV4} [options.fallbackProvider] - An optional fallback provider to use when a requested model is not found in the custom provider.
@@ -60,6 +78,14 @@ export function customProvider<
   FILES extends FilesV4 | undefined = undefined,
   SKILLS extends SkillsV4 | undefined = undefined,
   FALLBACK extends ProviderV2 | ProviderV3 | ProviderV4 | undefined = undefined,
+  DECISION_MODELS extends Record<string, DecisionModel> = Record<
+    string,
+    DecisionModel
+  >,
+  EXTRACTION_MODELS extends Record<string, ExtractionModel> = Record<
+    string,
+    ExtractionModel
+  >,
 >({
   languageModels,
   embeddingModels,
@@ -68,6 +94,9 @@ export function customProvider<
   speechModels,
   rerankingModels,
   videoModels,
+  decisionModels: decisionModelsArg,
+  evaluationModels,
+  extractionModels,
   files,
   skills,
   fallbackProvider: fallbackProviderArg,
@@ -79,6 +108,10 @@ export function customProvider<
   speechModels?: SPEECH_MODELS;
   rerankingModels?: RERANKING_MODELS;
   videoModels?: VIDEO_MODELS;
+  decisionModels?: DECISION_MODELS;
+  /** @deprecated Use `decisionModels` instead. When both are set, `decisionModels` takes precedence. */
+  evaluationModels?: DECISION_MODELS;
+  extractionModels?: EXTRACTION_MODELS;
   files?: FILES;
   skills?: SKILLS;
   fallbackProvider?: FALLBACK;
@@ -92,6 +125,14 @@ export function customProvider<
   rerankingModel(modelId: ExtractModelId<RERANKING_MODELS>): RerankingModelV4;
   speechModel(modelId: ExtractModelId<SPEECH_MODELS>): SpeechModelV4;
   videoModel(modelId: ExtractModelId<VIDEO_MODELS>): Experimental_VideoModelV4;
+  decisionModel(modelId: ExtractModelId<DECISION_MODELS>): DecisionModelV4;
+  /** @deprecated Use `decisionModel` instead. */
+  evaluationModel(modelId: ExtractModelId<DECISION_MODELS>): DecisionModelV4 & {
+    doEvaluate: DecisionModelV4['doDecide'];
+  };
+  extractionModel(
+    modelId: ExtractModelId<EXTRACTION_MODELS>,
+  ): ExtractionModelV4;
 } & (FILES extends FilesV4
     ? { files(): FilesV4 }
     : [FALLBACK] extends [{ files: () => FilesV4 }]
@@ -102,6 +143,7 @@ export function customProvider<
     : [FALLBACK] extends [{ skills: () => SkillsV4 }]
       ? { skills(): SkillsV4 }
       : { skills?(): SkillsV4 }) {
+  const decisionModels = decisionModelsArg ?? evaluationModels;
   const fallbackProvider =
     fallbackProviderArg == null ? undefined : asProviderV4(fallbackProviderArg);
 
@@ -117,6 +159,16 @@ export function customProvider<
     videoModel(
       modelId: ExtractModelId<VIDEO_MODELS>,
     ): Experimental_VideoModelV4;
+    decisionModel(modelId: ExtractModelId<DECISION_MODELS>): DecisionModelV4;
+    /** @deprecated Use `decisionModel` instead. */
+    evaluationModel(
+      modelId: ExtractModelId<DECISION_MODELS>,
+    ): DecisionModelV4 & {
+      doEvaluate: DecisionModelV4['doDecide'];
+    };
+    extractionModel(
+      modelId: ExtractModelId<EXTRACTION_MODELS>,
+    ): ExtractionModelV4;
   } = {
     specificationVersion: 'v4',
     languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV4 {
@@ -203,6 +255,47 @@ export function customProvider<
 
       throw new NoSuchModelError({ modelId, modelType: 'rerankingModel' });
     },
+    decisionModel(modelId: ExtractModelId<DECISION_MODELS>): DecisionModelV4 {
+      if (decisionModels != null && Object.hasOwn(decisionModels, modelId)) {
+        return resolveDecisionModel(decisionModels[modelId]);
+      }
+
+      const provider = fallbackProviderArg as DecisionProvider | undefined;
+      const factory:
+        | ((modelId: string) => Exclude<DecisionModel, string>)
+        | undefined = provider?.decisionModel ?? provider?.evaluationModel;
+      if (typeof factory === 'function') {
+        const model = factory.call(provider, modelId);
+        if (model != null) {
+          return resolveDecisionModel(model);
+        }
+      }
+
+      throw new NoSuchModelError({ modelId, modelType: 'decisionModel' });
+    },
+    evaluationModel(modelId: ExtractModelId<DECISION_MODELS>) {
+      return asEvaluationModel(this.decisionModel(modelId));
+    },
+    extractionModel(
+      modelId: ExtractModelId<EXTRACTION_MODELS>,
+    ): ExtractionModelV4 {
+      if (
+        extractionModels != null &&
+        Object.hasOwn(extractionModels, modelId)
+      ) {
+        return resolveExtractionModel(extractionModels[modelId]);
+      }
+
+      const provider = fallbackProviderArg as ExtractionProvider | undefined;
+      if (typeof provider?.extractionModel === 'function') {
+        const model = provider.extractionModel(modelId);
+        if (model != null) {
+          return resolveExtractionModel(model);
+        }
+      }
+
+      throw new NoSuchModelError({ modelId, modelType: 'extractionModel' });
+    },
     videoModel(
       modelId: ExtractModelId<VIDEO_MODELS>,
     ): Experimental_VideoModelV4 {
@@ -210,11 +303,11 @@ export function customProvider<
         return resolveVideoModel(videoModels[modelId]);
       }
 
-      // TODO AI SDK v7
-      // @ts-expect-error - videoModel support is experimental
-      const videoModel = fallbackProvider?.videoModel;
-      if (videoModel) {
-        return videoModel(modelId);
+      const provider = fallbackProviderArg as
+        | ProviderWithOptionalVideoModel
+        | undefined;
+      if (provider?.videoModel) {
+        return resolveVideoModel(provider.videoModel(modelId));
       }
 
       throw new NoSuchModelError({ modelId, modelType: 'videoModel' });

@@ -723,7 +723,8 @@ const runtimeTool = dynamicTool({
   inputSchema: z.object({}),
   execute: async input => {
     // Input and output are typed as 'unknown'
-    return { result: `Processed: ${input.query}` };
+    const { query } = input as { query: string };
+    return { result: `Processed: ${query}` };
   },
 });
 ```

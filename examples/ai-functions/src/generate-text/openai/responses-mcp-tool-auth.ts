@@ -10,7 +10,7 @@ run(async () => {
   const accessToken = await getMCPToken(serverUrl);
 
   const result = await generateText({
-    model: openai.responses('gpt-5-mini'),
+    model: openai.responses('gpt-6-luna'),
     prompt: 'What tools you got?',
     tools: {
       mcp: openai.tools.mcp({

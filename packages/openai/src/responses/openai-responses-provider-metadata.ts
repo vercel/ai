@@ -1,6 +1,8 @@
 import type {
   openaiResponsesChunkSchema,
+  OpenAIResponsesInputTransformation,
   OpenAIResponsesLogprobs,
+  OpenAIResponsesPromptCacheDiagnostics,
 } from './openai-responses-api';
 import type { InferSchema } from '@ai-sdk/provider-utils';
 
@@ -16,6 +18,8 @@ export type ResponsesProviderMetadata = {
   logprobs?: Array<OpenAIResponsesLogprobs>;
   serviceTier?: string;
   reasoningContext?: string;
+  promptCacheDiagnostics?: OpenAIResponsesPromptCacheDiagnostics;
+  inputTransformations?: Array<OpenAIResponsesInputTransformation>;
 };
 
 export type ResponsesReasoningProviderMetadata = {
@@ -29,6 +33,22 @@ export type OpenaiResponsesReasoningProviderMetadata = {
 
 export type OpenaiResponsesProviderMetadata = {
   openai: ResponsesProviderMetadata;
+};
+
+export type ResponsesToolCallProviderMetadata = {
+  itemId: string;
+  async?: boolean;
+  namespace?: string;
+  caller?:
+    | { type: 'direct' }
+    | {
+        type: 'program';
+        callerId: string;
+      };
+};
+
+export type OpenaiResponsesToolCallProviderMetadata = {
+  openai: ResponsesToolCallProviderMetadata;
 };
 
 export type ResponsesCompactionProviderMetadata = {
@@ -52,6 +72,10 @@ export type OpenaiResponsesTextProviderMetadata = {
 };
 
 export type ResponsesSourceDocumentProviderMetadata =
+  | {
+      type: 'file_search';
+      fileId: string;
+    }
   | {
       type: 'file_citation';
       fileId: string;
