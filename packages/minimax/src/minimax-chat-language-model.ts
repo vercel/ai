@@ -25,25 +25,33 @@ export class MiniMaxChatLanguageModel
   extends AnthropicLanguageModel
   implements LanguageModelV4
 {
-  private readonly supportsM31Features: boolean;
+  private readonly requestConfig: ReturnType<
+    typeof getMiniMaxLanguageModelEntry
+  >['requestConfig']['language'];
 
   constructor(modelId: string, config: MiniMaxChatConfig) {
-    const supportsM31Features =
-      getMiniMaxLanguageModelEntry(modelId).capabilities.language.m31Features;
+    const requestConfig =
+      getMiniMaxLanguageModelEntry(modelId).requestConfig.language;
     super(modelId, {
       ...config,
-      ...(supportsM31Features && {
+      ...(requestConfig.mediaUrls && {
         convertMediaPart: convertToMiniMaxMediaPart,
-        maxTemperature: 2,
+      }),
+      ...(requestConfig.maxTemperature != null && {
+        maxTemperature: requestConfig.maxTemperature,
+      }),
+      ...(requestConfig.samplingWithThinking && {
         supportsTemperatureAndTopPWithThinking: true,
+      }),
+      ...(requestConfig.cacheControl === 'minimax' && {
         cacheControlProviderOptionsName: 'minimax',
       }),
     });
-    this.supportsM31Features = supportsM31Features;
+    this.requestConfig = requestConfig;
   }
 
   get supportedUrls() {
-    return this.supportsM31Features
+    return this.requestConfig.mediaUrls
       ? { 'image/*': [/^https?:\/\//], 'video/*': [/^https?:\/\//] }
       : super.supportedUrls;
   }
@@ -67,7 +75,7 @@ export class MiniMaxChatLanguageModel
     const { reasoning, providerOptions } = options;
 
     if (
-      !this.supportsM31Features ||
+      this.requestConfig.reasoning !== 'effort' ||
       !isCustomReasoning(reasoning) ||
       providerOptions?.minimax?.effort != null ||
       providerOptions?.anthropic?.effort != null
@@ -90,7 +98,7 @@ export class MiniMaxChatLanguageModel
     return {
       options: {
         ...options,
-        // M3.1 and later use effort instead of Anthropic thinking budgets.
+        // Sent as effort instead of an Anthropic thinking budget.
         reasoning: undefined,
         providerOptions: {
           ...providerOptions,

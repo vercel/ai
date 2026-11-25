@@ -143,6 +143,39 @@ describe('WebMCPTransport', () => {
     );
   });
 
+  it('keeps same-named tools with different sources bound to their own frames', async () => {
+    const page: WebMCPTool = {
+      name: cart.name,
+      description: cart.description,
+      origin: cart.origin,
+      source: {},
+    };
+    const frame = { ...page, source: {} };
+    const { client, modelContext } = await connect({ tools: [page, frame] });
+
+    const { tools } = await client.listTools();
+    expect(tools.map(tool => tool.name)).toEqual(['getCart', 'getCart_2']);
+
+    modelContext.getTools.mockResolvedValue([frame, page]);
+    expect((await client.listTools()).tools.map(tool => tool.name)).toEqual([
+      'getCart_2',
+      'getCart',
+    ]);
+
+    await client.callTool({ name: 'getCart' });
+    expect(modelContext.executeTool).toHaveBeenLastCalledWith(
+      page,
+      {},
+      { signal: expect.any(AbortSignal) },
+    );
+    await client.callTool({ name: 'getCart_2' });
+    expect(modelContext.executeTool).toHaveBeenLastCalledWith(
+      frame,
+      {},
+      { signal: expect.any(AbortSignal) },
+    );
+  });
+
   it('keeps colliding tool names bound to their original frame and origin across rediscovery', async () => {
     const otherFrame = { ...cart, window: {} };
     const otherOrigin = { ...cart, origin: 'https://other.example' };
