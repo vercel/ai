@@ -1,5 +1,12 @@
 # @ai-sdk/gladia
 
+## 3.0.85
+
+### Patch Changes
+
+- Updated dependencies [aa7cb79]
+  - @ai-sdk/provider-utils@5.0.84
+
 ## 3.0.84
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @ai-sdk/mcp
 
+## 2.0.105
+
+### Patch Changes
+
+- cab8529: fix(mcp): align MCP Events with SEP-3415 capability negotiation, `Mcp-Name` routing header, and per-message `webhook-id`
+- 62bcb3e: Fix WebMCP tool aliases and routing in browsers that expose the owning frame as `source` instead of `window`, while preserving compatibility with older browsers.
+- Updated dependencies [aa7cb79]
+  - @ai-sdk/provider-utils@5.0.84
+
 ## 2.0.104
 
 ### Patch Changes

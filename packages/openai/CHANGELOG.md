@@ -1,5 +1,14 @@
 # @ai-sdk/openai
 
+## 4.0.124
+
+### Patch Changes
+
+- 47c1403: feat(provider/openai): add an `outputFileExpiresAfter` batch provider option that sets `output_expires_after` on batch creation, and expose the batch output and error file IDs on batch status and list results as `providerMetadata.openai.outputFileId` / `errorFileId`
+- 2c7a5a0: chore(openai): align model catalog capabilities with live OpenAI API results and list discontinued model IDs
+- Updated dependencies [aa7cb79]
+  - @ai-sdk/provider-utils@5.0.84
+
 ## 4.0.123
 
 ### Patch Changes
