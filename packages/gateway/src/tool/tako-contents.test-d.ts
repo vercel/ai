@@ -4,6 +4,7 @@ import { gatewayTools } from '../gateway-tools';
 import type { GatewayToolError } from './gateway-tool-error';
 import type {
   TakoContentItem,
+  TakoContentsCell,
   TakoContentsConfig,
   TakoContentsInput,
   TakoContentsOutput,
@@ -56,7 +57,24 @@ expectTypeOf<TakoContentsInput>().not.toHaveProperty('extra_body');
 expectTypeOf<TakoContentsInput>().not.toHaveProperty('maxCostUsd');
 expectTypeOf<TakoContentsInput>().not.toHaveProperty('extraBody');
 
-expectTypeOf<TakoContentItem>().toMatchTypeOf<TakoResultContent>();
+expectTypeOf<TakoContentItem['export_pricing']>().toEqualTypeOf<
+  TakoResultContent['export_pricing']
+>();
+expectTypeOf<TakoContentItem['premium_rows']>().toEqualTypeOf<
+  TakoResultContent['premium_rows']
+>();
+expectTypeOf<Array<{ a: number }>>().toMatchTypeOf<TakoContentsCell>();
+expectTypeOf<
+  NonNullable<TakoContentItem['records']>[number]['any']
+>().toEqualTypeOf<TakoContentsCell>();
+expectTypeOf<
+  NonNullable<TakoContentItem['dataset']>['columns'][number]['type']
+>().toEqualTypeOf<
+  'array' | 'boolean' | 'date' | 'datetime' | 'number' | 'string'
+>();
+expectTypeOf<
+  NonNullable<TakoContentItem['manifest']>[number]['premium_class']
+>().toEqualTypeOf<string | null | undefined>();
 expectTypeOf<TakoContentItem['source_url']>().toEqualTypeOf<string>();
 expectTypeOf<TakoContentItem['delivery']>().toEqualTypeOf<
   'inline' | 'quote' | 'url' | undefined
@@ -66,7 +84,7 @@ expectTypeOf<TakoContentItem['offset']>().toEqualTypeOf<
 >();
 expectTypeOf<TakoContentItem['premium']>().toEqualTypeOf<boolean | undefined>();
 expectTypeOf<TakoContentsResponse['contents']>().toEqualTypeOf<
-  TakoContentItem[]
+  TakoContentItem[] | undefined
 >();
 
 type Usage = NonNullable<TakoContentsResponse['usage']>;

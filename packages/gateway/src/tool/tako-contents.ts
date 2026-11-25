@@ -43,7 +43,10 @@ export interface TakoContentsConfig {
    * isn't. Web pages ignore it.
    */
   maxRows?: number;
-  /** Maximum characters of extracted web page text. Tako cards ignore it. */
+  /**
+   * Maximum characters of a web page's full extracted text. It doesn't apply
+   * to highlights, which use `highlights.max_characters`. Tako cards ignore it.
+   */
   maxChars?: number;
   /**
    * Reveal a card's premium cells and bill them. Off by default, and the model
@@ -53,19 +56,38 @@ export interface TakoContentsConfig {
    */
   premium?: boolean;
   /**
-   * Most one call can cost, in USD (0-1,000,000). Defaults to 1. Tako prices
-   * the call before running it, and when the price is above this cap the call
-   * fails with `invalid_input`, gives the quoted price, and charges nothing.
-   * The price is an upper bound, so a call that would have fit can be refused.
-   * Premium and large `url` exports usually need a higher cap.
+   * Limit on each call's quoted price, in USD (0-1,000,000). Defaults to 1.
+   * Tako quotes the call before running it, the way `quote_only` does. When
+   * the quote is above this limit, the call fails with `invalid_input` and
+   * nothing is charged; the error may include the quoted price. The quote is
+   * an upper bound, so a call whose charge would have fit can be refused.
+   * Premium and large `url` exports usually need a higher limit.
    */
   maxCostUsd?: number;
   /**
    * Extra Tako request fields in snake_case, deep-merged into the body last.
-   * Can't set fields this tool models; Tako rejects unknown keys (api_error).
+   * Can't set fields this tool models; Tako rejects unknown keys (invalid_input).
    */
   extraBody?: Record<string, unknown>;
 }
+
+/**
+ * A card data cell. Columns of type `array` hold an array of objects, or null.
+ */
+export type TakoContentsCell =
+  | boolean
+  | number
+  | string
+  | null
+  | Array<Record<string, unknown>>;
+
+export type TakoContentsColumnType =
+  | 'array'
+  | 'boolean'
+  | 'date'
+  | 'datetime'
+  | 'number'
+  | 'string';
 
 export interface TakoContentsInput {
   url: string;
@@ -81,13 +103,45 @@ export interface TakoContentsInput {
   quote_only?: boolean;
 }
 
-/** One content item: the Tako Search content shape plus export fields. */
-export interface TakoContentItem extends TakoResultContent {
+/**
+ * One content item: the Tako Search content shape plus export fields. Card
+ * data also allows `array` columns, whose cells are arrays of objects.
+ */
+export interface TakoContentItem extends Omit<
+  TakoResultContent,
+  'dataset' | 'manifest' | 'records'
+> {
+  records?: Array<Record<string, TakoContentsCell>> | null;
+  dataset?: {
+    columns: Array<{
+      name: string;
+      type: TakoContentsColumnType;
+      unit?: string | null;
+    }>;
+    rows: TakoContentsCell[][];
+    total_rows: number;
+    truncated: boolean;
+    ref: string;
+    sources: Array<{
+      name: string;
+      index?: 'data' | 'web';
+    }>;
+    provenance?: 'query' | 'web_extraction';
+  } | null;
+  manifest?: Array<{
+    dtype?: TakoContentsColumnType | null;
+    entity?: string | null;
+    metric?: string | null;
+    name?: string | null;
+    unit?: string | null;
+    /** Set on a premium column, such as `company_record` or `person_contact`. */
+    premium_class?: string | null;
+  }> | null;
   /** The URL the call fetched. */
   source_url: string;
   /** How Tako answered: a `quote` (its cost is a price, not a charge), or the content. */
   delivery?: 'inline' | 'quote' | 'url';
-  /** What the card shows. Null for a web page and for a quote. */
+  /** Describes the whole card, not only the delivered rows. Null for a web page; may be null on a quote. */
   description?: string | null;
   /** The request's offset, echoed on a card export. */
   offset?: number | null;
@@ -97,7 +151,8 @@ export interface TakoContentItem extends TakoResultContent {
 
 export interface TakoContentsResponse {
   request_id: string;
-  contents: TakoContentItem[];
+  /** One item per call today. */
+  contents?: TakoContentItem[];
   usage?: {
     total_cost_usd: number;
     compute?: {
@@ -145,7 +200,7 @@ const takoContentsInputSchema = lazySchema(() =>
       ),
       max_chars: z.describe(
         z.optional(z.number()),
-        'Maximum characters of extracted web page text (1-1,000,000). Omit it to return the whole page. Tako cards ignore it.',
+        "Maximum characters of a web page's full extracted text (1-1,000,000). Omit it to return the whole page. It doesn't apply to highlights, which use highlights.max_characters. Tako cards ignore it.",
       ),
       highlights: z.describe(
         z.optional(
@@ -170,8 +225,63 @@ const takoContentsInputSchema = lazySchema(() =>
   ),
 );
 
+const columnTypeSchema = () =>
+  z.enum(['array', 'boolean', 'date', 'datetime', 'number', 'string']);
+
+const cellSchema = () =>
+  z.nullable(
+    z.union([
+      z.boolean(),
+      z.number(),
+      z.string(),
+      z.array(z.record(z.string(), z.unknown())),
+    ]),
+  );
+
+// Overrides the Search shape, which doesn't allow array columns or premium_class.
 const takoContentItemSchema = () =>
   z.extend(takoResultContentSchema(), {
+    records: z.nullish(z.array(z.record(z.string(), cellSchema()))),
+    dataset: z.nullish(
+      z.catchall(
+        z.object({
+          columns: z.array(
+            z.object({
+              name: z.string(),
+              type: columnTypeSchema(),
+              unit: z.nullish(z.string()),
+            }),
+          ),
+          rows: z.array(z.array(cellSchema())),
+          total_rows: z.number(),
+          truncated: z.boolean(),
+          ref: z.string(),
+          sources: z.array(
+            z.object({
+              name: z.string(),
+              index: z.optional(z.enum(['data', 'web'])),
+            }),
+          ),
+          provenance: z.optional(z.enum(['query', 'web_extraction'])),
+        }),
+        z.unknown(),
+      ),
+    ),
+    manifest: z.nullish(
+      z.array(
+        z.catchall(
+          z.object({
+            dtype: z.nullish(columnTypeSchema()),
+            entity: z.nullish(z.string()),
+            metric: z.nullish(z.string()),
+            name: z.nullish(z.string()),
+            unit: z.nullish(z.string()),
+            premium_class: z.nullish(z.string()),
+          }),
+          z.unknown(),
+        ),
+      ),
+    ),
     source_url: z.string(),
     delivery: z.optional(z.enum(['inline', 'quote', 'url'])),
     description: z.nullish(z.string()),
@@ -185,7 +295,7 @@ const takoContentsOutputSchema = lazySchema(() =>
       z.catchall(
         z.object({
           request_id: z.string(),
-          contents: z.array(takoContentItemSchema()),
+          contents: z.optional(z.array(takoContentItemSchema())),
           usage: z.nullish(
             z.catchall(
               z.object({

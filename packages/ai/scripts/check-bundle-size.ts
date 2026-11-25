@@ -16,7 +16,8 @@ import { join } from 'path';
 // Extraction telemetry adds ~2.5 KiB.
 // The bundled Gateway Live model and continuous client-secret sessions add ~6 KiB.
 // Per-call warning callbacks and prompt warnings in step warnings add ~1 KiB.
-const LIMIT = 675 * 1024;
+// The Gateway Tako Contents tool adds ~4 KiB.
+const LIMIT = 676 * 1024;
 
 interface BundleResult {
   size: number;

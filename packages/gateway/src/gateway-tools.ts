@@ -74,7 +74,7 @@ export const gatewayTools = {
    *
    * Supports inline delivery or a short-lived download link, card data
    * formats, row paging, query-focused web passages, free price quotes, and a
-   * per-call cost cap. A card export is billed per row at the card's
+   * limit on each call's quoted price. A card export is billed per row at the card's
    * `content.export_pricing`; see Tako's pricing page:
    * https://docs.tako.com/documentation/integrating-tako/contents/pricing
    */

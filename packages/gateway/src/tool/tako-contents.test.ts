@@ -226,11 +226,82 @@ describe('takoContents', () => {
       error: 'invalid_input',
       statusCode: 422,
       statusText: 'Unprocessable Entity',
-      message:
-        "This export would cost up to $2.50, above this application's $1.00 limit per call.",
+      message: "This export costs more than this application's limit per call.",
     });
 
     expect(result.success).toBe(true);
+  });
+
+  describe('a card with an array column', () => {
+    const awards = [{ name: 'Best Picture', year: 2024 }];
+    const manifest = [
+      { name: 'Film', dtype: 'string' },
+      { name: 'Awards', dtype: 'array' },
+      { name: 'Email', dtype: 'string', premium_class: 'person_contact' },
+    ];
+    const item = (fields: Record<string, unknown>) => ({
+      request_id: 'contents-7',
+      contents: [
+        {
+          source_url: 'https://tako.com/card/abc/',
+          delivery: 'inline',
+          total_rows: 1,
+          truncated: false,
+          manifest,
+          ...fields,
+        },
+      ],
+    });
+
+    it.each([
+      [
+        'json_records',
+        {
+          content_format: 'json_records',
+          records: [{ Film: 'Example', Awards: awards, Email: null }],
+        },
+      ],
+      [
+        'json_compact',
+        {
+          content_format: 'json_compact',
+          dataset: {
+            columns: [
+              { name: 'Film', type: 'string' },
+              { name: 'Awards', type: 'array' },
+              { name: 'Email', type: 'string' },
+            ],
+            rows: [['Example', awards, null]],
+            total_rows: 1,
+            truncated: false,
+            ref: 'https://tako.com/card/abc/',
+            sources: [{ name: 'Example Source', index: 'data' }],
+            redacted_cells: { Email: [0] },
+          },
+        },
+      ],
+      [
+        'csv',
+        {
+          content_format: 'csv',
+          data: 'Film,Awards,Email\nExample,"[...]",[premium: withheld]',
+        },
+      ],
+    ])('accepts a %s export and keeps premium_class', async (_, fields) => {
+      const value = item(fields);
+      const result = await validateOutput(value);
+
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.value).toEqual(value);
+    });
+  });
+
+  it('accepts a response without contents', async () => {
+    const value = { request_id: 'contents-8' };
+    const result = await validateOutput(value);
+
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.value).toEqual(value);
   });
 
   it('rejects a content item missing source_url', async () => {
