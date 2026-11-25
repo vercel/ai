@@ -1,5 +1,12 @@
 # @ai-sdk/devtools
 
+## 1.0.85
+
+### Patch Changes
+
+- d644053: fix(devtools): update @hono/node-server dependency from 1.19.15 to 2.1.6 to address GHSA-rmxm-3fg6-px4f
+  - ai@7.0.181
+
 ## 1.0.84
 
 ### Patch Changes
