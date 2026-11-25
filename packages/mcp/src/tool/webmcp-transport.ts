@@ -23,7 +23,10 @@ export interface WebMCPTool {
   origin: string;
   /** Opaque owner handle. Passed back to ModelContext without inspecting it. */
   source?: unknown;
-  /** Legacy owner handle used by older browser implementations. */
+  /**
+   * Legacy owner handle used by older browser implementations.
+   * TODO: Remove this field and its fallback once Chrome 160 is out of Canary.
+   */
   window?: unknown;
   annotations?: {
     readOnlyHint?: boolean;
