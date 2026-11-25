@@ -11,7 +11,7 @@ import {
 import type { AlibabaChatPrompt } from './alibaba-chat-prompt';
 import type { CacheControlValidator } from './get-cache-control';
 
-function formatImageUrl({ part }: { part: LanguageModelV4FilePart }): string {
+function formatFileUrl({ part }: { part: LanguageModelV4FilePart }): string {
   if (part.data.type === 'url') {
     return part.data.url.toString();
   }
@@ -105,21 +105,38 @@ export function convertToAlibabaChatMessages({
                   }
                   case 'url':
                   case 'data': {
-                    if (getTopLevelMediaType(part.mediaType) === 'image') {
+                    const topLevelMediaType = getTopLevelMediaType(
+                      part.mediaType,
+                    );
+
+                    if (topLevelMediaType === 'image') {
                       return {
                         type: 'image_url',
                         image_url: {
-                          url: formatImageUrl({ part }),
+                          url: formatFileUrl({ part }),
                         },
                         ...(partCacheControl
                           ? { cache_control: partCacheControl }
                           : {}),
                       };
-                    } else {
-                      throw new UnsupportedFunctionalityError({
-                        functionality: 'Only image file parts are supported',
-                      });
                     }
+
+                    if (topLevelMediaType === 'video') {
+                      return {
+                        type: 'video_url',
+                        video_url: {
+                          url: formatFileUrl({ part }),
+                        },
+                        ...(partCacheControl
+                          ? { cache_control: partCacheControl }
+                          : {}),
+                      };
+                    }
+
+                    throw new UnsupportedFunctionalityError({
+                      functionality:
+                        'Only image and video file parts are supported',
+                    });
                   }
                 }
               }

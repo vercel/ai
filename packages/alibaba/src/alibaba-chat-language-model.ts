@@ -186,6 +186,10 @@ export class AlibabaChatLanguageModel implements LanguageModelV4 {
         ? { preserve_thinking: preserveThinking }
         : {}),
 
+      ...(alibabaOptions?.promptCacheOptions != null
+        ? { prompt_cache_options: alibabaOptions.promptCacheOptions }
+        : {}),
+
       // Convert messages with cache control support
       messages: convertToAlibabaChatMessages({
         prompt: resolvedPrompt,
@@ -496,10 +500,15 @@ function resolveAlibabaThinking({
     | InferSchema<typeof alibabaLanguageModelChatOptions>
     | undefined;
   warnings: SharedV4Warning[];
-}): { enable_thinking?: boolean; thinking_budget?: number } {
+}): {
+  enable_thinking?: boolean;
+  thinking_budget?: number;
+  reasoning_effort?: string;
+} {
   if (
     alibabaOptions?.enableThinking != null ||
-    alibabaOptions?.thinkingBudget != null
+    alibabaOptions?.thinkingBudget != null ||
+    alibabaOptions?.reasoningEffort != null
   ) {
     return {
       ...(alibabaOptions.enableThinking != null
@@ -507,6 +516,9 @@ function resolveAlibabaThinking({
         : {}),
       ...(alibabaOptions.thinkingBudget != null
         ? { thinking_budget: alibabaOptions.thinkingBudget }
+        : {}),
+      ...(alibabaOptions.reasoningEffort != null
+        ? { reasoning_effort: alibabaOptions.reasoningEffort }
         : {}),
     };
   }
@@ -546,6 +558,12 @@ const alibabaUsageSchema = () =>
         cached_tokens: z.number().nullish(),
         cache_creation_input_tokens: z.number().nullish(),
         cache_type: z.string().nullish(),
+        cache_creation: z
+          .looseObject({
+            ephemeral_5m_input_tokens: z.number().nullish(),
+            ephemeral_1h_input_tokens: z.number().nullish(),
+          })
+          .nullish(),
       })
       .nullish(),
     completion_tokens_details: z
