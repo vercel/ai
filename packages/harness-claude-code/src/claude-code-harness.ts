@@ -42,6 +42,7 @@ import {
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
+  stopPreviousBridge,
   validateBridgeSandboxSettings,
   warnCredentialBrokeringUnavailable,
   warnMintBridgeTokenIgnored,
@@ -218,6 +219,11 @@ export type ClaudeCodeHarnessSettings = {
    * milliseconds up to 2 seconds.
    */
   readonly reconnect?: SandboxChannelReconnectOptions;
+  /**
+   * WebSocket ping interval in milliseconds. Defaults to 20_000. Set to 0 to
+   * disable. Two unanswered pings terminate the socket and trigger reconnect.
+   */
+  readonly keepAliveMs?: number;
   /**
    * Called with bridge connection lifecycle events: reconnect attempts,
    * successful reconnects, and `reconnect-failed` once the connection is
@@ -1089,8 +1095,9 @@ export function createClaudeCode(
        * try to reopen a socket to the still-running bridge. Parked sessions wait
        * for the next `start`; suspended turns request replay of everything past
        * the persisted cursor. No spawn, no fresh key (the existing bridge
-       * still authorises the persisted one). If the bridge is gone the open
-       * throws and we fall through to a spawn-based recovery.
+       * still authorises the persisted one). If the open throws, because the
+       * bridge is gone or too slow to answer, we fall through to a spawn-based
+       * recovery.
        */
       if (coords) {
         try {
@@ -1111,6 +1118,7 @@ export function createClaudeCode(
             onDiagnostic,
             onBridgeError,
             reconnect: settings.reconnect,
+            keepAliveMs: settings.keepAliveMs,
             onDebug: settings.onDebug,
           });
           const finishListenerAttachment = isContinue
@@ -1164,7 +1172,19 @@ export function createClaudeCode(
             turnStartTimeoutMs: settings.turnStartTimeoutMs ?? 120_000,
           });
         } catch {
-          // Bridge no longer reachable — recover by respawning below.
+          /*
+           * Bridge not reachable — recover by respawning below. A bridge that
+           * is only too slow to answer still holds its port and runs its
+           * turn, so stop it and the processes it started, by the pid
+           * `bridge-meta.json` records, before `markBridgeStarting`
+           * overwrites that record.
+           */
+          await stopPreviousBridge({
+            sandbox: toolSafeSandboxSession,
+            bridgeStateDir,
+            bridgeType: 'claude-code',
+            abortSignal: startOpts.abortSignal,
+          });
         }
       }
 
@@ -1283,6 +1303,7 @@ export function createClaudeCode(
         onDiagnostic,
         onBridgeError,
         reconnect: settings.reconnect,
+        keepAliveMs: settings.keepAliveMs,
         onDebug: settings.onDebug,
         // In replay mode the respawned bridge reloaded the finished turn from
         // disk; seed the cursor and resume so it streams the tail (incl.
@@ -1463,8 +1484,8 @@ function createSession({
 
   /*
    * The Claude conversation this session currently embodies. Seeded from the
-   * resume state and updated from every `finish` part's metadata — each turn
-   * may fork a new id, so the latest observation is the one a later
+   * resume state and updated from init raw events and `finish` metadata. Each
+   * turn may fork a new id, so the latest observation is the one a later
    * stop/detach must record for exact resume.
    */
   let lastClaudeSessionId = resumeSessionId;
@@ -1614,7 +1635,6 @@ function createSession({
       'tool-result',
       'finish-step',
       'compaction',
-      'raw',
     ] as const;
     for (const type of eventTypes) {
       unsubs.push(
@@ -1624,6 +1644,29 @@ function createSession({
         }),
       );
     }
+    unsubs.push(
+      channel.on('raw', msg => {
+        if (!belongsToTurn(msg)) return;
+        const rawValue = (msg as { rawValue?: unknown }).rawValue;
+        if (
+          rawValue != null &&
+          typeof rawValue === 'object' &&
+          !Array.isArray(rawValue)
+        ) {
+          const raw = rawValue as Record<string, unknown>;
+          const sessionId = raw.sessionId;
+          if (
+            raw.type === 'system' &&
+            raw.subtype === 'init' &&
+            typeof sessionId === 'string' &&
+            sessionId.length > 0
+          ) {
+            lastClaudeSessionId = sessionId;
+          }
+        }
+        forward(msg);
+      }),
+    );
     unsubs.push(
       channel.on('finish', msg => {
         if (!belongsToTurn(msg)) return;
@@ -1880,8 +1923,8 @@ function createSession({
        * rerun: the bridge was respawned with no in-flight turn to attach to, so
        * re-drive the runtime's own thread from the workdir snapshot via
        * `continue: true`. Lossy — work in flight at the suspension is
-       * recomputed. This is the rare bridge-died fallback; the common slice path
-       * is `attach`.
+       * recomputed. This is the fallback for a bridge that died or did not
+       * answer the attach; the common slice path is `attach`.
        */
       // Same as `doPromptTurn`: an already-aborted signal settled the turn in
       // `wireTurn`, so don't re-drive the thread nobody is waiting on.

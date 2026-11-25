@@ -34,13 +34,13 @@
     "client:stdio": "tsx src/stdio/client.ts",
     "custom-transport:build": "tsc src/custom-transport/server.ts --outDir src/custom-transport/dist --target es2023 --module nodenext",
     "custom-transport:client": "tsx src/custom-transport/client.ts",
-    "type-check": "tsc --build"
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@ai-sdk/openai": "workspace:*",
-    "@modelcontextprotocol/node": "^2.0.0",
-    "@modelcontextprotocol/sdk": "^1.32.1",
-    "@modelcontextprotocol/server": "^2.0.0",
+    "@modelcontextprotocol/node": "^2.1.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "@modelcontextprotocol/server": "^2.3.0",
     "ai": "workspace:*",
     "dotenv": "16.4.5",
     "express": "5.0.1",

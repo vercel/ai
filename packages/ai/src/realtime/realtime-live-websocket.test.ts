@@ -582,3 +582,165 @@ describe('Live over an application WebSocket relay', () => {
     expect(browser.track.stop).toHaveBeenCalledOnce();
   });
 });
+
+describe('Live with a client-secret WebSocket', () => {
+  let browser: ReturnType<typeof installLiveWebSocket>;
+  const sessions: Session[] = [];
+  const socket = () => FakeWebSocket.instances.at(-1)!;
+  const secretModel = (): RealtimeModel => {
+    const model = liveModel();
+    return {
+      ...model,
+      capabilities: {
+        ...model.capabilities!,
+        connections: ['client-secret-websocket', 'server-websocket'],
+      },
+      getWebSocketConfig: vi.fn(({ token, url }) => ({
+        url,
+        protocols: ['live.v1', `auth.${token}`],
+      })),
+    };
+  };
+  const create = (options: Partial<RealtimeSessionOptions> = {}) => {
+    const session = new Session({
+      model: secretModel(),
+      api: { token: '/api/live-token' },
+      ...options,
+    });
+    sessions.push(session);
+    return session;
+  };
+  beforeEach(() => {
+    browser = installLiveWebSocket();
+  });
+  afterEach(() => {
+    sessions.forEach(s => s.dispose());
+    sessions.length = 0;
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('fetches the token, opens the socket with model protocols, and finalizes on close', async () => {
+    const setup = deferred<Response>();
+    browser.fetch.mockReturnValueOnce(setup.promise);
+    const model = secretModel();
+    const session = create({ model, sessionConfig: { instructions: 'Hi' } });
+    const connecting = session.connect();
+    // Playback is primed before the token round trip, inside the user gesture.
+    expect(FakeAudioContext.instances).toHaveLength(1);
+    expect(FakeWebSocket.instances).toHaveLength(0);
+    setup.resolve(
+      Response.json({ token: 'vcst_x', url: 'wss://gateway.example/live' }),
+    );
+    await connecting;
+    await flushEvents();
+    expect(browser.fetch).toHaveBeenCalledWith(
+      '/api/live-token',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ sessionConfig: { instructions: 'Hi' } }),
+      }),
+    );
+    expect(model.getWebSocketConfig).toHaveBeenCalledWith({
+      token: 'vcst_x',
+      url: 'wss://gateway.example/live',
+    });
+    expect(socket().url).toBe('wss://gateway.example/live');
+    expect(socket().protocols).toEqual(['live.v1', 'auth.vcst_x']);
+    socket().open();
+    await flushEvents();
+    expect(socket().sent[0]).toEqual({
+      type: 'session-start',
+      config: {
+        instructions: 'Hi',
+        inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+        outputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+      },
+    });
+    socket().emit({
+      type: 'session-started',
+      sessionId: 'live-1',
+      delegationMode: 'client',
+      raw: {},
+    });
+    await flushEvents();
+    expect(session.snapshot.status).toBe('connected');
+    await vi.waitFor(() => expect(browser.getUserMedia).toHaveBeenCalled());
+
+    const closing = session.close();
+    await flushEvents();
+    expect(socket().sent.at(-1)?.type).toBe('session-close');
+    socket().emit({
+      type: 'session-closed',
+      usage: { seconds: 3 },
+      reason: 'close_requested',
+      raw: {},
+    });
+    socket().close();
+    await closing;
+    expect(session.snapshot.session).toMatchObject({
+      usage: { seconds: 3 },
+      finalization: 'confirmed',
+    });
+    expect(session.snapshot.status).toBe('disconnected');
+  });
+
+  it('opens no socket when disconnected during the token request', async () => {
+    const setup = deferred<Response>();
+    browser.fetch.mockReturnValueOnce(setup.promise);
+    const session = create();
+    const connecting = session.connect();
+    session.disconnect();
+    setup.resolve(
+      Response.json({ token: 'vcst_x', url: 'wss://gateway.example/live' }),
+    );
+    await connecting;
+    await flushEvents();
+    expect(FakeWebSocket.instances).toHaveLength(0);
+    expect(session.snapshot.status).toBe('disconnected');
+  });
+
+  it('rejects setup tools for continuous sessions', async () => {
+    browser.fetch.mockResolvedValueOnce(
+      Response.json({
+        token: 'vcst_x',
+        url: 'wss://gateway.example/live',
+        tools: [{ type: 'function', name: 'lookup', parameters: {} }],
+      }),
+    );
+    const onError = vi.fn();
+    const session = create({ onError });
+    await session.connect();
+    await flushEvents();
+    expect(onError.mock.calls[0][0].message).toContain(
+      'Realtime setup tools for continuous sessions',
+    );
+    expect(FakeWebSocket.instances).toHaveLength(0);
+    expect(session.snapshot.status).toBe('error');
+  });
+
+  it('requires an explicit client-secret declaration for continuous token sessions', async () => {
+    const onError = vi.fn();
+    const model = secretModel();
+    const { connections: _omitted, ...capabilities } = model.capabilities!;
+    const session = create({ model: { ...model, capabilities }, onError });
+    await session.connect();
+    await flushEvents();
+    expect(onError.mock.calls[0][0].message).toBe(
+      'Realtime model does not support client-secret-websocket',
+    );
+    expect(browser.fetch).not.toHaveBeenCalled();
+    expect(FakeWebSocket.instances).toHaveLength(0);
+  });
+
+  it('still rejects tokens for continuous models without client-secret WebSockets', async () => {
+    const onError = vi.fn();
+    const session = create({ model: liveModel(), onError });
+    await session.connect();
+    await flushEvents();
+    expect(onError.mock.calls[0][0].message).toBe(
+      'Realtime model does not support client-secret-websocket',
+    );
+    expect(browser.fetch).not.toHaveBeenCalled();
+  });
+});

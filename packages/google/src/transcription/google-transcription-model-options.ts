@@ -4,10 +4,10 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { GoogleModelIds } from '../google-model-catalog';
 
 export type GoogleTranscriptionModelId =
-  | 'gemini-3.5-transcribe'
-  | 'gemini-3.5-transcribe-live'
+  | GoogleModelIds['transcription']
   | (string & {});
 
 /**
@@ -50,6 +50,29 @@ export const googleTranscriptionModelOptions = lazySchema(() =>
        *   (lists, numbers, dates, paragraph breaks), and grammar/casing polish.
        */
       mode: z.enum(['SMART', 'VERBATIM']).optional(),
+
+      /**
+       * Options for live transcription models such as
+       * `gemini-3.5-transcribe-live`.
+       */
+      streaming: z
+        .object({
+          /**
+           * Server-side voice activity detection, which splits the audio into
+           * segments at pauses (enabled by default).
+           *
+           * Set `disabled: true` for push-to-talk input: the whole audio
+           * stream is then transcribed as a single turn, without splitting at
+           * pauses, and the transcript is finalized as soon as the audio
+           * stream ends.
+           */
+          automaticActivityDetection: z
+            .object({
+              disabled: z.boolean().optional(),
+            })
+            .optional(),
+        })
+        .optional(),
     }),
   ),
 );

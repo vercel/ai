@@ -1,12 +1,9 @@
-import {
-  UnsupportedFunctionalityError,
-  type Experimental_DecisionModelV4 as DecisionModelV4,
-  type Experimental_DecisionModelV4State as DecisionModelV4State,
-  type SharedV4ProviderMetadata,
+import type {
+  Experimental_DecisionModelV4 as DecisionModelV4,
+  SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  convertUint8ArrayToBase64,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   getErrorMessage,
@@ -22,6 +19,9 @@ import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import type { GatewayConfig } from './gateway-config';
 import { gatewayDecisionProviderOptionsSchema } from './gateway-provider-options';
+import { gatewayWarningSchema } from './gateway-warning-schema';
+import { withGatewayRequestTelemetryRedaction } from './redact-gateway-request-credentials';
+import { toGatewayStateParts } from './to-gateway-state-parts';
 
 export class GatewayDecisionModel implements DecisionModelV4 {
   readonly specificationVersion = 'v4';
@@ -56,7 +56,7 @@ export class GatewayDecisionModel implements DecisionModelV4 {
   }: Parameters<DecisionModelV4['doDecide']>[0]): Promise<
     Awaited<ReturnType<DecisionModelV4['doDecide']>>
   > {
-    const stateParts = toGatewayDecisionState(state);
+    const stateParts = toGatewayStateParts({ state, modelType: 'decision' });
     const gatewayOptions = await parseProviderOptions({
       provider: 'gateway',
       providerOptions,
@@ -82,7 +82,7 @@ export class GatewayDecisionModel implements DecisionModelV4 {
           this.getModelConfigHeaders(),
           await resolve(this.config.o11yHeaders),
         ),
-        body: {
+        body: withGatewayRequestTelemetryRedaction({
           stateParts,
           questions,
           maxOutputTokens,
@@ -90,7 +90,7 @@ export class GatewayDecisionModel implements DecisionModelV4 {
           ...(validatedProviderOptions
             ? { providerOptions: validatedProviderOptions }
             : {}),
-        },
+        }),
         successfulResponseHandler: createJsonResponseHandler(
           gatewayDecisionResponseSchema,
         ),
@@ -156,29 +156,6 @@ const gatewayDecisionAnswerSchema = () =>
     }),
   ]);
 
-const gatewayDecisionWarningSchema = () =>
-  z.discriminatedUnion('type', [
-    z.object({
-      type: z.literal('unsupported'),
-      feature: z.string(),
-      details: z.optional(z.string()),
-    }),
-    z.object({
-      type: z.literal('compatibility'),
-      feature: z.string(),
-      details: z.optional(z.string()),
-    }),
-    z.object({
-      type: z.literal('deprecated'),
-      setting: z.string(),
-      message: z.string(),
-    }),
-    z.object({
-      type: z.literal('other'),
-      message: z.string(),
-    }),
-  ]);
-
 const gatewayDecisionResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
@@ -196,31 +173,10 @@ const gatewayDecisionResponseSchema = lazySchema(() =>
           outputTokens: z.optional(z.number()),
         }),
       ),
-      warnings: z.optional(z.array(gatewayDecisionWarningSchema())),
+      warnings: z.optional(z.array(gatewayWarningSchema())),
       providerMetadata: z.optional(
         z.record(z.string(), z.record(z.string(), z.unknown())),
       ),
     }),
   ),
 );
-
-function toGatewayDecisionState(
-  state: DecisionModelV4State,
-): DecisionModelV4State {
-  return state.map(part => {
-    if (part.type !== 'file') return part;
-    if (part.data.type !== 'data') {
-      throw new UnsupportedFunctionalityError({
-        functionality: `Gateway decision file input: ${part.data.type} data`,
-      });
-    }
-    const { data } = part.data;
-    return {
-      ...part,
-      data: {
-        type: 'data',
-        data: typeof data === 'string' ? data : convertUint8ArrayToBase64(data),
-      },
-    };
-  });
-}

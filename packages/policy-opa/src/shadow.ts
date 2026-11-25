@@ -5,6 +5,11 @@ import type {
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { ToolApprovalConfiguration } from 'ai';
+import {
+  applyApprovalFallback,
+  type ApprovalFallbackStatus,
+  getApprovalFallbackHook,
+} from './approval-fallback';
 import type { PolicyDecision } from './policy-decision';
 
 interface GenericApprovalArgs {
@@ -117,6 +122,22 @@ export function shadow<
 
     return effective;
   };
+
+  // Pass on the internal fallback hook of a wrapped policy (for example
+  // `opaPolicy`). `wrapMcpTools` applies its fallback through that hook, so the
+  // fallback stays part of every policy evaluation when the policy is in
+  // shadow mode, instead of only applying to the final status.
+  const applyFallbackToApproval =
+    getApprovalFallbackHook<
+      ToolApprovalConfiguration<TOOLS & ToolSet, RUNTIME_CONTEXT>
+    >(approval);
+  if (applyFallbackToApproval != null) {
+    Object.defineProperty(wrapped, applyApprovalFallback, {
+      value: (fallback: ApprovalFallbackStatus) =>
+        shadow(applyFallbackToApproval(fallback), opts),
+      enumerable: false,
+    });
+  }
 
   // `wrapped` is typed against the erased `GenericApprovalArgs`; TS can't prove
   // that matches the SDK's per-tool-set function arm, so bridge it here.

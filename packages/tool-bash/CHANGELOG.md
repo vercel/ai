@@ -1,5 +1,74 @@
 # @ai-sdk/tool-bash
 
+## 1.0.35
+
+### Patch Changes
+
+- Updated dependencies [d834c5b]
+- Updated dependencies [7760e33]
+- Updated dependencies [28d17e6]
+- Updated dependencies [797dc02]
+  - ai@7.0.181
+
+## 1.0.34
+
+### Patch Changes
+
+- ai@7.0.180
+
+## 1.0.33
+
+### Patch Changes
+
+- Updated dependencies [7e55599]
+  - ai@7.0.179
+
+## 1.0.32
+
+### Patch Changes
+
+- 1d2c2ff: Bound bash tool output collection before returning it from supporting sandbox adapters, and copy retained prefixes so truncated results do not keep large source strings alive. Preserve output text, omission counts, command completion, exit codes, and timeout behavior. Custom sandbox implementations remain compatible; just-bash's interpreter buffering remains subject to its native execution limits.
+- Updated dependencies [0b8cbfa]
+- Updated dependencies [6815153]
+- Updated dependencies [15bfd6b]
+- Updated dependencies [15bfd6b]
+- Updated dependencies [2613bb4]
+- Updated dependencies [63593a7]
+  - ai@7.0.178
+
+## 1.0.31
+
+### Patch Changes
+
+- Updated dependencies [e403988]
+- Updated dependencies [b792b56]
+  - ai@7.0.177
+
+## 1.0.30
+
+### Patch Changes
+
+- ai@7.0.176
+
+## 1.0.29
+
+### Patch Changes
+
+- ai@7.0.175
+
+## 1.0.28
+
+### Patch Changes
+
+- f630e0d: fix(tool-bash, tool-web-fetch): update zod dependency from 3.25.76 to 4.6.7 to address GHSA-mrhx-c7xc-m3w5
+- Updated dependencies [3bea041]
+- Updated dependencies [30d35eb]
+- Updated dependencies [fab7478]
+- Updated dependencies [10ff0b1]
+- Updated dependencies [718824c]
+- Updated dependencies [d99098a]
+  - ai@7.0.174
+
 ## 1.0.27
 
 ### Patch Changes

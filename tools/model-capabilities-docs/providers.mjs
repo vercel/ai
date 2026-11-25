@@ -13,6 +13,7 @@ import { cartesiaDocs } from './providers/cartesia.mjs';
 import { assemblyaiDocs } from './providers/assemblyai.mjs';
 import { prodiaDocs } from './providers/prodia.mjs';
 import { heygenDocs } from './providers/heygen.mjs';
+import { liquidDocs } from './providers/liquid.mjs';
 import { gmicloudDocs } from './providers/gmicloud.mjs';
 import { bytedanceDocs } from './providers/bytedance.mjs';
 import { klingaiDocs } from './providers/klingai.mjs';
@@ -57,6 +58,7 @@ export const providers = [
   assemblyaiDocs,
   prodiaDocs,
   heygenDocs,
+  liquidDocs,
   gmicloudDocs,
   bytedanceDocs,
   klingaiDocs,

@@ -29,6 +29,7 @@ from `examples/ai-functions`.
 | ----------------- | ------------------------------ |
 | Vercel AI Gateway | `AI_GATEWAY_API_KEY`           |
 | TypeSafe AI       | `TYPESAFE_AI_API_KEY`          |
+| Baseten           | `BASETEN_API_KEY`              |
 | Perplexity        | `PERPLEXITY_API_KEY`           |
 | OpenAI            | `OPENAI_API_KEY`               |
 | Anthropic         | `ANTHROPIC_API_KEY`            |
@@ -53,6 +54,8 @@ All paths below are relative to this directory. Run any script with
 | [typesafe-ai/structured-rubrics.ts](./typesafe-ai/structured-rubrics.ts) | Use JSON objects and arrays in state, instructions, and criteria.                                     |
 | [typesafe-ai/registry.ts](./typesafe-ai/registry.ts)                     | Register a custom model alias and route answers using probability thresholds.                         |
 | [typesafe-ai/error-handling.ts](./typesafe-ai/error-handling.ts)         | Submit oversized state and inspect `APICallError` details if the provider rejects it.                 |
+| [baseten/basic.ts](./baseten/basic.ts)                                   | Decide answers to Choice, Boolean, and Score questions with bison-1 and inspect usage and confidence. |
+| [baseten/image.ts](./baseten/image.ts)                                   | Ask groundhog-1 about an image passed as a file part in the state.                                    |
 | [perplexity/basic.ts](./perplexity/basic.ts)                             | Decide answers to Boolean, Choice, and Score questions with Perplexity.                               |
 | [perplexity/criteria-only.ts](./perplexity/criteria-only.ts)             | Omit instructions or set them to null, using structured criteria to describe the decision.            |
 | [perplexity/single-level-score.ts](./perplexity/single-level-score.ts)   | Use a single Score level and inspect its zero score, probability, and legend.                         |
@@ -63,7 +66,7 @@ All paths below are relative to this directory. Run any script with
 
 ## Interpreting results
 
-TypeSafe AI, OpenAI, Perplexity, and Google provide native decisions.
+TypeSafe AI, Baseten, OpenAI, Perplexity, and Google provide native decisions.
 The Anthropic adapter uses structured language-model output and evaluates all
 questions in one prompt. Its boolean probabilities are prompted estimates;
 Choice and Score answers do not include probability distributions.

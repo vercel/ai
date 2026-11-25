@@ -1,4 +1,4 @@
-import { z } from 'zod/v4';
+import type { GoogleFilePartOptions } from './google-file-part-options';
 import type {
   GroundingMetadataSchema,
   PromptFeedbackSchema,
@@ -6,6 +6,8 @@ import type {
   UrlContextMetadataSchema,
   UsageMetadataSchema,
 } from './google-language-model';
+
+export type { GoogleVideoMetadata } from './google-file-part-options';
 
 export type GooglePrompt = {
   systemInstruction?: GoogleSystemInstruction;
@@ -21,26 +23,13 @@ export type GoogleContent = {
   parts: Array<GoogleContentPart>;
 };
 
-export const googleVideoMetadataSchema = z.object({
-  /** Start offset as a duration in seconds, e.g. `'3.5s'`. */
-  startOffset: z.string().optional(),
-  /** End offset as a duration in seconds, e.g. `'10s'`. */
-  endOffset: z.string().optional(),
-  /** Frames per second in the range (0, 24]. Defaults to 1. */
-  fps: z.number().gt(0).max(24).optional(),
-});
-
-/** Metadata for preprocessing video file parts. */
-export type GoogleVideoMetadata = z.infer<typeof googleVideoMetadataSchema>;
-
 export type GoogleContentPart =
   | { text: string; thought?: boolean; thoughtSignature?: string }
-  | {
+  | ({
       inlineData: { mimeType: string; data: string };
-      videoMetadata?: GoogleVideoMetadata;
       thought?: boolean;
       thoughtSignature?: string;
-    }
+    } & GoogleFilePartOptions)
   | {
       functionCall: { id?: string; name: string; args: unknown };
       thoughtSignature?: string;
@@ -53,12 +42,11 @@ export type GoogleContentPart =
         parts?: Array<GoogleFunctionResponsePart>;
       };
     }
-  | {
+  | ({
       fileData: { mimeType: string; fileUri: string };
-      videoMetadata?: GoogleVideoMetadata;
       thought?: boolean;
       thoughtSignature?: string;
-    }
+    } & GoogleFilePartOptions)
   | {
       toolCall: {
         toolType: string;
@@ -88,13 +76,15 @@ export type GoogleContentPart =
       };
     };
 
-export type GoogleFunctionResponsePart =
+export type GoogleFunctionResponsePart = (
   | {
       inlineData: { mimeType: string; data: string };
     }
   | {
       fileData: { mimeType: string; fileUri: string };
-    };
+    }
+) &
+  GoogleFilePartOptions;
 
 export type GoogleGroundingMetadata = GroundingMetadataSchema;
 

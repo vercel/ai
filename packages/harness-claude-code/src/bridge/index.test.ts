@@ -702,6 +702,35 @@ describe('Claude Code bridge configuration', () => {
     expect(state.onStop?.()).toEqual({ claudeSessionId: 'claude-session-2' });
   });
 
+  test('surfaces the observed session id when a turn ends without finish', async () => {
+    state.messages = [
+      {
+        type: 'system',
+        subtype: 'init',
+        session_id: 'claude-session-3',
+      },
+      {
+        type: 'result',
+        subtype: 'error_during_execution',
+        errors: ['boom'],
+        session_id: 'claude-session-3',
+      },
+    ];
+
+    await import('./index');
+
+    expect(state.emitted.some(msg => msg.type === 'finish')).toBe(false);
+    expect(state.emitted).toContainEqual({
+      type: 'raw',
+      rawValue: {
+        type: 'system',
+        subtype: 'init',
+        sessionId: 'claude-session-3',
+      },
+    });
+    expect(state.onStop?.()).toEqual({ claudeSessionId: 'claude-session-3' });
+  });
+
   test('reports the latest cumulative cost when one bridge turn receives multiple results', async () => {
     state.steering = true;
     state.createQuery = args =>
@@ -2557,6 +2586,142 @@ describe('Claude Code bridge configuration', () => {
         providerExecuted: false,
       },
     ]);
+  });
+
+  test('sends a host tool call the main agent repeats after a subagent made the same call', async () => {
+    state.start.tools = [
+      { name: 'list_people', inputSchema: { type: 'object', properties: {} } },
+    ];
+    // The host answers only the calls it was sent.
+    const sentToHost = (toolCallId: unknown) =>
+      state.emitted.some(
+        event =>
+          event.type === 'tool-call' &&
+          event.providerExecuted === false &&
+          event.toolCallId === toolCallId,
+      );
+    state.requestToolResult = toolCallId =>
+      sentToHost(toolCallId)
+        ? Promise.resolve({ output: [] })
+        : new Promise(() => {});
+    const callListPeople = (toolUseId: string) =>
+      Promise.race([
+        state.toolHandlers.get('list_people')!(
+          {},
+          {
+            requestId: toolUseId,
+            _meta: { 'claudecode/toolUseId': toolUseId },
+          },
+        ),
+        new Promise(resolve => setTimeout(() => resolve('unanswered'), 200)),
+      ]);
+    const toolUse = (id: string, name: string, parent: string | null) => ({
+      type: 'assistant',
+      parent_tool_use_id: parent,
+      message: {
+        role: 'assistant',
+        content: [{ type: 'tool_use', id, name, input: {} }],
+      },
+    });
+    const toolResult = (id: string, parent: string | null) => ({
+      type: 'user',
+      parent_tool_use_id: parent,
+      message: {
+        role: 'user',
+        content: [{ type: 'tool_result', tool_use_id: id, content: '[]' }],
+      },
+    });
+    const results: Record<string, unknown> = {};
+    state.createQuery = () =>
+      (async function* () {
+        yield toolUse('agent-1', 'Agent', null);
+        // A subagent's messages carry its parent tool use and are forwarded raw.
+        yield toolUse(
+          'subagent-call',
+          'mcp__harness-tools__list_people',
+          'agent-1',
+        );
+        results.subagent = await callListPeople('subagent-call');
+        yield toolResult('subagent-call', 'agent-1');
+        yield toolResult('agent-1', null);
+        // The main agent then makes the same call with the same input.
+        yield toolUse('agent-call', 'mcp__harness-tools__list_people', null);
+        results.agent = await callListPeople('agent-call');
+        yield toolResult('agent-call', null);
+        yield { type: 'result', subtype: 'success', result: 'done' };
+      })();
+
+    await import('./index');
+
+    expect(
+      state.emitted
+        .filter(
+          event =>
+            event.type === 'tool-call' && event.toolName === 'list_people',
+        )
+        .map(event => event.toolCallId),
+    ).toEqual(['subagent-call', 'agent-call']);
+    expect(results.agent).not.toBe('unanswered');
+    expect(results.agent).toEqual(results.subagent);
+  });
+
+  test('runs a host tool call once when its handler runs first under another id', async () => {
+    state.start.tools = [
+      { name: 'list_people', inputSchema: { type: 'object', properties: {} } },
+    ];
+    let handlerResult: unknown;
+    state.createQuery = () =>
+      (async function* () {
+        handlerResult = await state.toolHandlers.get('list_people')!(
+          {},
+          {
+            requestId: 'request-1',
+            _meta: { 'claudecode/toolUseId': 'handler-id' },
+          },
+        );
+        yield {
+          type: 'assistant',
+          parent_tool_use_id: null,
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool_use',
+                id: 'reported-id',
+                name: 'mcp__harness-tools__list_people',
+                input: {},
+              },
+            ],
+          },
+        };
+        yield {
+          type: 'user',
+          parent_tool_use_id: null,
+          message: {
+            role: 'user',
+            content: [
+              {
+                type: 'tool_result',
+                tool_use_id: 'reported-id',
+                content: '{}',
+              },
+            ],
+          },
+        };
+        yield { type: 'result', subtype: 'success', result: 'done' };
+      })();
+
+    await import('./index');
+
+    expect(
+      state.emitted
+        .filter(event => event.type === 'tool-call')
+        .map(event => event.toolCallId),
+    ).toEqual(['handler-id']);
+    expect(handlerResult).toEqual({
+      content: [{ type: 'text', text: '{}' }],
+      isError: undefined,
+    });
   });
 
   test.each([

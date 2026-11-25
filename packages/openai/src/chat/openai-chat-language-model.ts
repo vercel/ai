@@ -1,5 +1,6 @@
 import {
   InvalidResponseDataError,
+  UnsupportedFunctionalityError,
   type LanguageModelV4,
   type LanguageModelV4CallOptions,
   type LanguageModelV4Content,
@@ -149,6 +150,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       !modelCapabilities.endpoints.chat.functionToolsWithReasoning &&
       openaiOptions.reasoningEffort == null &&
       (tools?.some(tool => tool.type === 'function') ?? false);
+
+    if (
+      requiresNoReasoningEffort &&
+      modelCapabilities.reasoning.efforts?.includes('none') === false
+    ) {
+      throw new UnsupportedFunctionalityError({
+        functionality: `function tools with ${this.modelId} in the Chat Completions API; use the Responses API instead`,
+      });
+    }
 
     if (
       requiresNoReasoningEffort &&

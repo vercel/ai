@@ -3,6 +3,10 @@ import type { MCPEventAdapter } from './mcp-events-adapter';
 import { z } from 'zod/v4';
 import { ResultSchema, type RequestOptions } from './types';
 
+/** Extension identifier for MCP Events (SEP-3415). */
+export const MCP_EVENTS_EXTENSION_NAME =
+  'io.modelcontextprotocol/events' as const;
+
 const JsonSchemaSchema = z.union([
   z.boolean(),
   z.record(z.string(), z.unknown()),

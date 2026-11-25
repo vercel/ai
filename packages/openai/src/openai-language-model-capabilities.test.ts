@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { getOpenAILanguageModelCapabilities } from './openai-model-catalog';
+import {
+  getOpenAILanguageModelCapabilities,
+  openaiDiscontinuedModelIds,
+  openaiModelCatalog,
+} from './openai-model-catalog';
 
 describe('getOpenAILanguageModelCapabilities', () => {
   describe('isReasoningModel', () => {
@@ -76,17 +80,12 @@ describe('getOpenAILanguageModelCapabilities', () => {
   describe('supportsNonReasoningParameters', () => {
     it.each([
       ['gpt-5.1', true],
-      ['gpt-5.1-chat-latest', true],
       ['gpt-5.1-codex-mini', true],
       ['gpt-5.1-codex', true],
       ['gpt-5.2', true],
-      ['gpt-5.2-pro', true],
-      ['gpt-5.2-chat-latest', true],
-      ['gpt-5.3-chat-latest', true],
       ['gpt-5.4', true],
       ['gpt-5.4-mini', true],
       ['gpt-5.4-nano', true],
-      ['gpt-5.4-pro', true],
       ['gpt-5.4-2026-03-05', true],
       ['gpt-5.4-mini-2026-03-17', true],
       ['gpt-5.4-nano-2026-03-17', true],
@@ -96,20 +95,29 @@ describe('getOpenAILanguageModelCapabilities', () => {
       ['gpt-5.6-luna', true],
       ['gpt-5.6-sol', true],
       ['gpt-5.6-terra', true],
-      ['gpt-5.99', true],
-      ['gpt-5.100', true],
       ['gpt-6-sol', true],
       ['gpt-6-luna', true],
       ['gpt-6.1-terra', true],
       ['gpt-6-astra', false],
       ['gpt-6.1-sol', false],
+      ['gpt-6.2-astra', false],
+      ['gpt-6.2-sol', false],
+      // Unlisted reasoning models use the generic reasoning row.
       ['gpt-99', false],
+      ['gpt-5.99', false],
+      ['gpt-5.100', false],
       ['gpt-5', false],
       ['gpt-5.0', false],
       ['gpt-5-mini', false],
       ['gpt-5-nano', false],
       ['gpt-5-pro', false],
       ['gpt-5-chat-latest', false],
+      // These models do not accept reasoning effort none.
+      ['gpt-5.1-chat-latest', false],
+      ['gpt-5.2-chat-latest', false],
+      ['gpt-5.3-chat-latest', false],
+      ['gpt-5.2-pro', false],
+      ['gpt-5.4-pro', false],
       ['ft:gpt-99:org:custom:abc123', false],
       ['acme-gpt-99-proxy', false],
     ])(
@@ -134,9 +142,26 @@ describe('getOpenAILanguageModelCapabilities', () => {
         supportsAsyncToolCalling: true,
         supportedReasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
         supportsNonReasoningParameters: false,
-        supportsChatFunctionToolsWithReasoning: true,
+        supportsChatFunctionToolsWithReasoning: false,
       });
     });
+
+    it.each(['gpt-6.2-astra', 'gpt-6.2-sol'])(
+      'supports the documented %s capabilities',
+      modelId => {
+        expect(getOpenAILanguageModelCapabilities(modelId)).toEqual({
+          isReasoningModel: true,
+          systemMessageMode: 'developer',
+          supportsFlexProcessing: false,
+          supportsPriorityProcessing: true,
+          supportsConfigurationUpdate: true,
+          supportsAsyncToolCalling: true,
+          supportedReasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+          supportsNonReasoningParameters: false,
+          supportsChatFunctionToolsWithReasoning: false,
+        });
+      },
+    );
 
     it('supports the documented GPT-6.1 Terra capabilities', () => {
       expect(getOpenAILanguageModelCapabilities('gpt-6.1-terra')).toEqual({
@@ -155,7 +180,7 @@ describe('getOpenAILanguageModelCapabilities', () => {
           'max',
         ],
         supportsNonReasoningParameters: true,
-        supportsChatFunctionToolsWithReasoning: true,
+        supportsChatFunctionToolsWithReasoning: false,
       });
     });
 
@@ -176,7 +201,11 @@ describe('getOpenAILanguageModelCapabilities', () => {
     );
 
     it.each([
-      ['gpt-5.6', false],
+      ['gpt-5.5', false],
+      ['gpt-5.6', true],
+      ['gpt-5.6-luna', true],
+      ['gpt-5.6-sol', true],
+      ['gpt-5.6-terra', true],
       ['gpt-6-astra', true],
       ['gpt-6.1', true],
       ['gpt-99', true],
@@ -213,10 +242,16 @@ describe('getOpenAILanguageModelCapabilities', () => {
       ['gpt-5.5', ['none', 'low', 'medium', 'high', 'xhigh']],
       ['gpt-5.6', ['none', 'low', 'medium', 'high', 'xhigh', 'max']],
       ['gpt-5.6-luna', ['none', 'low', 'medium', 'high', 'xhigh', 'max']],
-      ['gpt-5-pro', undefined],
-      ['gpt-5-codex', undefined],
+      ['gpt-5-pro', ['high']],
+      ['gpt-5-codex', ['low', 'medium', 'high']],
+      ['gpt-5.1-codex-max', ['none', 'low', 'medium', 'high', 'xhigh']],
+      ['gpt-5.2-pro', ['medium', 'high', 'xhigh']],
+      ['gpt-5.3-codex', ['none', 'low', 'medium', 'high', 'xhigh']],
+      ['gpt-5.2-chat-latest', ['medium']],
+      ['o3', ['low', 'medium', 'high']],
+      // Non-reasoning models declare no efforts.
       ['gpt-5-chat-latest', undefined],
-      ['gpt-5.2-pro', undefined],
+      ['gpt-4o', undefined],
     ])('%s supports the expected reasoning efforts', (modelId, expected) => {
       expect(
         getOpenAILanguageModelCapabilities(modelId).supportedReasoningEfforts,
@@ -226,10 +261,20 @@ describe('getOpenAILanguageModelCapabilities', () => {
 
   describe('supportsChatFunctionToolsWithReasoning', () => {
     it.each([
-      ['gpt-5.5', true],
+      ['gpt-5.2', true],
+      ['gpt-5.4', false],
+      ['gpt-5.4-mini', false],
+      ['gpt-5.4-nano', false],
+      ['gpt-5.5', false],
       ['gpt-5.6', false],
       ['gpt-5.6-luna', false],
-      ['gpt-6-sol', true],
+      ['gpt-6-sol', false],
+      ['gpt-6-luna', false],
+      ['gpt-6-astra', false],
+      ['gpt-6.1-sol', false],
+      ['gpt-6.1-terra', false],
+      ['gpt-6.2-astra', false],
+      ['gpt-6.2-sol', false],
     ])('%s: %s', (modelId, expected) => {
       expect(
         getOpenAILanguageModelCapabilities(modelId)
@@ -248,6 +293,9 @@ describe('getOpenAILanguageModelCapabilities', () => {
       ['gpt-5', true],
       ['gpt-5.99', true],
       ['gpt-6-astra', true],
+      ['gpt-6.1-sol', true],
+      ['gpt-6.2-astra', false],
+      ['gpt-6.2-sol', false],
       ['gpt-99', true],
       ['gpt-99-chat-latest', false],
       ['ft:gpt-99:org:custom:abc123', false],
@@ -267,11 +315,12 @@ describe('getOpenAILanguageModelCapabilities', () => {
       ['o99', true],
       ['gpt-4.1', true],
       ['gpt-5', true],
-      ['gpt-5.4-nano', false],
+      ['gpt-5-nano', true],
+      ['gpt-5.4-nano', true],
       ['gpt-5.99', true],
       ['gpt-6-astra', true],
       ['gpt-99', true],
-      ['gpt-99-nano', false],
+      ['gpt-99-nano', true],
       ['gpt-99-chat-latest', false],
       ['ft:gpt-99:org:custom:abc123', false],
       ['acme-gpt-99-proxy', false],
@@ -282,6 +331,15 @@ describe('getOpenAILanguageModelCapabilities', () => {
           getOpenAILanguageModelCapabilities(modelId)
             .supportsPriorityProcessing,
         ).toEqual(expectedCapabilities);
+      },
+    );
+  });
+
+  describe('openaiDiscontinuedModelIds', () => {
+    it.each(openaiDiscontinuedModelIds)(
+      '%s stays listed in the catalog',
+      modelId => {
+        expect(openaiModelCatalog).toHaveProperty([modelId]);
       },
     );
   });

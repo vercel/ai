@@ -1,5 +1,36 @@
 # @ai-sdk/xai
 
+## 5.0.50
+
+### Patch Changes
+
+- 565db6d: refactor(xai): declare language model capabilities per model ID in the model catalog
+
+## 5.0.49
+
+### Patch Changes
+
+- 6f56c29: keep the mcp call arguments in the `input` of mcpServer tool calls instead of returning an empty object
+- 61ce23e: fix(xai): keep the search arguments in the `input` of xSearch tool calls instead of returning an empty object
+
+## 5.0.48
+
+### Patch Changes
+
+- d30fae5: Derive video and default speech model IDs from the model catalog without changing supported models or audio defaults.
+- Updated dependencies [1d2c2ff]
+  - @ai-sdk/provider-utils@5.0.83
+
+## 5.0.47
+
+### Patch Changes
+
+- Updated dependencies [10ff0b1]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/provider@4.0.39
+  - @ai-sdk/provider-utils@5.0.82
+
 ## 5.0.46
 
 ### Patch Changes

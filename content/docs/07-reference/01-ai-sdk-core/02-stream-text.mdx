@@ -915,7 +915,7 @@ retain the content their contracts require.
       type: 'Experimental_Steering',
       isOptional: true,
       description:
-        "Experimental steering object created with `experimental_createSteering()`. Messages sent with `steering.steer()` are added as user messages at the next step boundary, after the current step and its tool calls are done. Messages sent with `steering.queue()` wait until the model finishes its current task and are added one per task. A waiting message keeps the loop going for another step unless a stop condition is met. `steer()` and `queue()` resolve with `{ type: 'delivered', id, message, stepNumber }` or `{ type: 'not-delivered', id, message, reason }`. See [Steering](/docs/agents/loop-control#steering).",
+        "Experimental steering object created with `experimental_createSteering()`. Messages sent with `steering.steer()` are added as user messages at the next step boundary, after the current step and its tool calls are done. Pass `{ interrupt: true }` to `steer()` to cancel a model call that has not produced any output yet and make it again in the same step with the message. Messages sent with `steering.queue()` wait until the model finishes its current task and are added one per task. A waiting message keeps the loop going for another step unless a stop condition is met. `steer()` and `queue()` resolve with `{ type: 'delivered', id, message, stepNumber }` or `{ type: 'not-delivered', id, message, reason }`. See [Steering](/docs/agents/loop-control#steering).",
     },
     {
       name: 'experimental_download',
@@ -1768,6 +1768,13 @@ retain the content their contracts require.
       ],
     },
     {
+      name: 'onWarning',
+      type: '(options: { warnings: Warning[]; provider?: string; model?: string }) => void',
+      isOptional: true,
+      description:
+        'Callback that receives the warnings of the call, e.g. unsupported settings or deprecated prompt parts. When it is set, the warnings are not sent to the global warning logger (`AI_SDK_LOG_WARNINGS`).',
+    },
+    {
       name: 'onStepFinish',
       type: 'GenerateTextOnStepFinishCallback<TOOLS>',
       isOptional: true,
@@ -1795,6 +1802,12 @@ retain the content their contracts require.
               type: 'string | undefined',
               description:
                 'The raw reason why the generation finished (from the provider).',
+            },
+            {
+              name: 'stoppedBy',
+              type: "'model' | 'stop-condition' | 'tool-without-execute' | 'approval' | undefined",
+              description:
+                'Why the generation stopped its tool loop. Unlike `finishReason`, which describes the last model call, it tells whether the model, a stop condition, a tool without an `execute` function, or a tool approval ended the loop. See [Loop Control](/docs/agents/loop-control#why-the-loop-stopped).',
             },
             {
               name: 'output',
@@ -2723,6 +2736,12 @@ retain the content their contracts require.
       type: 'PromiseLike<string | undefined>',
       description:
         'The raw reason why the generation finished (from the provider).',
+    },
+    {
+      name: 'stoppedBy',
+      type: "PromiseLike<'model' | 'stop-condition' | 'tool-without-execute' | 'approval' | undefined>",
+      description:
+        'Why the generation stopped its tool loop. Unlike `finishReason`, which describes the last model call, it tells whether the model, a stop condition, a tool without an `execute` function, or a tool approval ended the loop. See [Loop Control](/docs/agents/loop-control#why-the-loop-stopped). Like `finishReason`, it rejects when the stream is aborted. Automatically consumes the stream.',
     },
     {
       name: 'usage',
@@ -4023,6 +4042,12 @@ retain the content their contracts require.
               type: 'string | undefined',
               description:
                 'The raw reason why the generation finished (from the provider).',
+            },
+            {
+              name: 'stoppedBy',
+              type: "'model' | 'stop-condition' | 'tool-without-execute' | 'approval' | undefined",
+              description:
+                'Why the generation stopped its tool loop. See [Loop Control](/docs/agents/loop-control#why-the-loop-stopped).',
             },
             {
               name: 'totalUsage',

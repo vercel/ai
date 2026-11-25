@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/tool-web-fetch",
-  "version": "1.0.23",
+  "version": "1.0.31",
   "description": "Provider-independent web fetch tool for the AI SDK",
   "type": "module",
   "license": "Apache-2.0",
@@ -25,10 +25,9 @@
     }
   },
   "scripts": {
-    "build": "pnpm clean && tsdown",
+    "build": "tsdown",
     "build:watch": "tsdown --watch",
-    "clean": "del-cli *.tsbuildinfo",
-    "type-check": "tsc --build",
+    "type-check": "tsc --noEmit",
     "test": "pnpm test:node",
     "test:node": "vitest --config vitest.node.config.js --run",
     "test:watch": "vitest --config vitest.node.config.js"

@@ -1,5 +1,50 @@
 # @ai-sdk/azure
 
+## 4.0.131
+
+### Patch Changes
+
+- Updated dependencies [c3ee424]
+  - @ai-sdk/openai@4.0.123
+
+## 4.0.130
+
+### Patch Changes
+
+- Updated dependencies [1d2c2ff]
+- Updated dependencies [2af50d0]
+  - @ai-sdk/provider-utils@5.0.83
+  - @ai-sdk/openai@4.0.122
+  - @ai-sdk/deepseek@3.0.89
+
+## 4.0.129
+
+### Patch Changes
+
+- Updated dependencies [1a7440b]
+  - @ai-sdk/openai@4.0.121
+
+## 4.0.128
+
+### Patch Changes
+
+- Updated dependencies [ed981f8]
+  - @ai-sdk/openai@4.0.120
+
+## 4.0.127
+
+### Patch Changes
+
+- 3a48c5d: Add the MAI-Image-2.7 and MAI-Image-2.7-Flash image models and the `background` provider option (`'transparent'` or `'opaque'`) for MAI image generations and edits. On the MAI image API, `background: 'auto'` is not sent and produces a warning; OpenAI image deployments keep accepting it.
+- Updated dependencies [5aa836f]
+- Updated dependencies [10ff0b1]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/openai@4.0.119
+  - @ai-sdk/provider@4.0.39
+  - @ai-sdk/provider-utils@5.0.82
+  - @ai-sdk/deepseek@3.0.88
+
 ## 4.0.126
 
 ### Patch Changes

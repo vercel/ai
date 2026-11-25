@@ -1,5 +1,70 @@
 # @ai-sdk/harness-pi
 
+## 1.0.196
+
+### Patch Changes
+
+- 9c51030: fix(harness-pi): harden temporary configuration by using `mkdtemp`
+- Updated dependencies [7fffff9]
+- Updated dependencies [3334b4d]
+- Updated dependencies [d84bf24]
+  - @ai-sdk/harness@1.0.193
+
+## 1.0.195
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.192
+
+## 1.0.194
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.191
+
+## 1.0.193
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.190
+
+## 1.0.192
+
+### Patch Changes
+
+- Updated dependencies [1d2c2ff]
+- Updated dependencies [04a8f38]
+  - @ai-sdk/provider-utils@5.0.83
+  - @ai-sdk/harness@1.0.189
+
+## 1.0.191
+
+### Patch Changes
+
+- Updated dependencies [679b5b5]
+  - @ai-sdk/harness@1.0.188
+
+## 1.0.190
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.187
+
+## 1.0.189
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.186
+
+## 1.0.188
+
+### Patch Changes
+
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/provider-utils@5.0.82
+  - @ai-sdk/harness@1.0.185
+
 ## 1.0.187
 
 ### Patch Changes

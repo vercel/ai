@@ -1,5 +1,42 @@
 # @ai-sdk/mcp
 
+## 2.0.104
+
+### Patch Changes
+
+- 38646e7: Add `Experimental_WebMCPTransport` to discover and call browser WebMCP tools through `createMCPClient`, with cancellation, frame-aware tool aliases, and structured results. Export the browser API types as `Experimental_WebMCPModelContext` and `Experimental_WebMCPTool`.
+
+  Add `createMCPTools` to validate forwarded MCP definitions and create model-facing tools without execute functions, sharing schema, metadata, and result conversion with connected MCP clients. Invalid MCP App resource URI metadata is reported as `MCPClientError`, preserving the original validation error as its cause.
+
+## 2.0.103
+
+### Patch Changes
+
+- d55f3cf: fix(mcp): keep the HTTP status, URL, and response body on `MCPClientError` when a failed HTTP response contains a JSON-RPC error body
+
+## 2.0.102
+
+### Patch Changes
+
+- Updated dependencies [1d2c2ff]
+  - @ai-sdk/provider-utils@5.0.83
+
+## 2.0.101
+
+### Patch Changes
+
+- 95b78c9: Reject pending HTTP MCP requests when their SSE response stream closes or disconnects before delivering the matching JSON-RPC response, preventing tool calls from hanging indefinitely.
+
+## 2.0.100
+
+### Patch Changes
+
+- Updated dependencies [10ff0b1]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/provider@4.0.39
+  - @ai-sdk/provider-utils@5.0.82
+
 ## 2.0.99
 
 ### Patch Changes

@@ -1,5 +1,70 @@
 # @ai-sdk/sandbox-just-bash
 
+## 1.0.193
+
+### Patch Changes
+
+- Updated dependencies [7fffff9]
+- Updated dependencies [3334b4d]
+- Updated dependencies [d84bf24]
+  - @ai-sdk/harness@1.0.193
+
+## 1.0.192
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.192
+
+## 1.0.191
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.191
+
+## 1.0.190
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.190
+
+## 1.0.189
+
+### Patch Changes
+
+- 1d2c2ff: Bound bash tool output collection before returning it from supporting sandbox adapters, and copy retained prefixes so truncated results do not keep large source strings alive. Preserve output text, omission counts, command completion, exit codes, and timeout behavior. Custom sandbox implementations remain compatible; just-bash's interpreter buffering remains subject to its native execution limits.
+- Updated dependencies [1d2c2ff]
+- Updated dependencies [04a8f38]
+  - @ai-sdk/provider-utils@5.0.83
+  - @ai-sdk/harness@1.0.189
+
+## 1.0.188
+
+### Patch Changes
+
+- Updated dependencies [679b5b5]
+  - @ai-sdk/harness@1.0.188
+
+## 1.0.187
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.187
+
+## 1.0.186
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.186
+
+## 1.0.185
+
+### Patch Changes
+
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/provider-utils@5.0.82
+  - @ai-sdk/harness@1.0.185
+
 ## 1.0.184
 
 ### Patch Changes

@@ -1,4 +1,4 @@
-import { getGoogleVertexRequestConfig } from '../google-vertex-model-catalog-config';
+import { getGoogleVertexRequestConfig } from '../google-vertex-model-matrix';
 import { InvalidArgumentError } from '@ai-sdk/provider';
 import {
   createOpenAICompatible,

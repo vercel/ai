@@ -7,11 +7,18 @@ import {
   type Experimental_ExtractionModelV4Field as ExtractionField,
   type Experimental_ExtractionModelV4Result as ExtractionModelV4Result,
 } from '@ai-sdk/provider';
+import { DownloadError } from '@ai-sdk/provider-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
-import { createDownload, experimental_extract as extract } from '../index';
+import {
+  createDownload,
+  experimental_extract as extract,
+  type Experimental_ExtractionStatePart,
+} from '../index';
 import { ExtractionMockModelV4 } from '../test/extraction-mock-model-v4';
+import type { Telemetry } from '../telemetry/telemetry';
+import { VERSION } from '../version';
 
 const state =
   'Invoice INV-2041, total due $1,250.00 by March 3, 2027 at 17:30. Call Ana or Bo within 2 hours.';
@@ -204,6 +211,51 @@ it('extracts every field in one call and preserves metadata', async () => {
     model: model.modelId,
   });
 });
+
+it.each(['', ' INV-2041 ', '   '])(
+  'normalizes empty answers and preserves text %j and metadata',
+  async value => {
+    const providerAnswers: ExtractionModelV4Result['answers'] = {
+      ...answers,
+      invoiceNumber: {
+        type: 'text',
+        value,
+        confidence: 0.98,
+        source: { type: 'text', part: 0, start: 8, end: 16 },
+      },
+      dueDate: { type: 'date', value: '' },
+      contacts: {
+        type: 'list',
+        value: [],
+        items: [],
+        confidence: 0.8,
+        pNull: 0.9,
+      },
+    };
+    const result = await extract({
+      ...setup({ answers: providerAnswers, warnings: [] }),
+      state,
+      fields,
+    });
+    expect(result.answers).toEqual({
+      ...providerAnswers,
+      invoiceNumber: {
+        ...providerAnswers.invoiceNumber,
+        value: value === '' ? null : value,
+      },
+      dueDate: { type: 'date', value: null },
+      contacts: { type: 'list', value: null, confidence: 0.8, pNull: 0.9 },
+    });
+    expect(result.answers.contacts).not.toHaveProperty('items');
+    expect(providerAnswers.contacts).toEqual({
+      type: 'list',
+      value: [],
+      items: [],
+      confidence: 0.8,
+      pNull: 0.9,
+    });
+  },
+);
 
 it('accepts null values for fields the state does not contain', async () => {
   const empty = Object.fromEntries(
@@ -788,4 +840,462 @@ it('stops before provider I/O when the download transport blocks a URL', async (
   expect(fetch).toHaveBeenCalledTimes(1);
   expect(globalFetch).not.toHaveBeenCalled();
   expect(doExtract).not.toHaveBeenCalled();
+});
+
+describe('telemetry', () => {
+  it('emits operation and model-call lifecycle events', async () => {
+    const onStart = vi.fn();
+    const onEnd = vi.fn();
+    const events: string[] = [];
+    const record = (name: string) => (event: unknown) => {
+      events.push(name);
+      calls[name].push(event);
+    };
+    const calls: Record<string, unknown[]> = {
+      experimental_onExtractStart: [],
+      experimental_onExtractionModelCallStart: [],
+      experimental_onExtractionModelCallEnd: [],
+      experimental_onExtractEnd: [],
+      extractOnStart: [],
+      extractOnEnd: [],
+    };
+    const integration: Telemetry = {
+      onStart,
+      onEnd,
+      experimental_onExtractStart: record('experimental_onExtractStart'),
+      experimental_onExtractionModelCallStart: record(
+        'experimental_onExtractionModelCallStart',
+      ),
+      experimental_onExtractionModelCallEnd: record(
+        'experimental_onExtractionModelCallEnd',
+      ),
+      experimental_onExtractEnd: record('experimental_onExtractEnd'),
+    };
+
+    await extract({
+      ...setup({
+        answers: { ...answers, contacts: { type: 'list', value: [] } },
+        warnings: [],
+        usage: { inputTokens: 40, outputTokens: 12 },
+      }),
+      state,
+      fields,
+      referenceDate: '2026-11-18',
+      telemetry: {
+        integrations: integration,
+        functionId: 'extract-test',
+        recordInputs: false,
+        recordOutputs: true,
+      },
+      runtimeContext: { requestId: 'request-1', secret: 'hidden' },
+      onStart: record('extractOnStart'),
+      onEnd: record('extractOnEnd'),
+      _internal: { generateCallId: () => 'test-call-id' },
+    });
+
+    expect(onStart).not.toHaveBeenCalled();
+    expect(onEnd).not.toHaveBeenCalled();
+    expect(events).toEqual([
+      'extractOnStart',
+      'experimental_onExtractStart',
+      'experimental_onExtractionModelCallStart',
+      'experimental_onExtractionModelCallEnd',
+      'extractOnEnd',
+      'experimental_onExtractEnd',
+    ]);
+    expect(calls.experimental_onExtractStart[0]).toMatchObject({
+      callId: 'test-call-id',
+      operationId: 'ai.extract',
+      provider: 'mock-provider',
+      modelId: 'mock-model-id',
+      state: '',
+      fields: {},
+      runtimeContext: {},
+      maxRetries: 2,
+      recordInputs: false,
+      recordOutputs: true,
+      functionId: 'extract-test',
+      aiVersion: VERSION,
+    });
+    expect(calls.experimental_onExtractionModelCallStart[0]).toMatchObject({
+      callId: 'test-call-id',
+      operationId: 'ai.extract.doExtract',
+      state: [],
+      fields: {},
+    });
+    expect(calls.experimental_onExtractionModelCallEnd[0]).toMatchObject({
+      callId: 'test-call-id',
+      operationId: 'ai.extract.doExtract',
+      answers: { ...answers, contacts: { type: 'list', value: null } },
+      usage: { inputTokens: 40, outputTokens: 12 },
+    });
+    expect(calls.experimental_onExtractEnd[0]).toMatchObject({
+      callId: 'test-call-id',
+      operationId: 'ai.extract',
+      answers: { ...answers, contacts: { type: 'list', value: null } },
+      usage: { inputTokens: 40, outputTokens: 12, totalTokens: 52 },
+      runtimeContext: {},
+    });
+    for (const name of [
+      'experimental_onExtractStart',
+      'experimental_onExtractionModelCallStart',
+      'experimental_onExtractionModelCallEnd',
+      'experimental_onExtractEnd',
+    ]) {
+      const event = calls[name][0] as {
+        state: unknown;
+        fields: unknown;
+        referenceDate: unknown;
+      };
+      expect(event.fields).toEqual({});
+      expect(event.referenceDate).toBeUndefined();
+      expect(event.state).toEqual(name.includes('ModelCall') ? [] : '');
+    }
+    expect(calls.extractOnStart[0]).toMatchObject({
+      operationId: 'ai.extract',
+      state,
+      fields,
+      referenceDate: '2026-11-18',
+      runtimeContext: { requestId: 'request-1', secret: 'hidden' },
+    });
+    expect(calls.extractOnEnd[0]).toMatchObject({
+      operationId: 'ai.extract',
+      runtimeContext: { requestId: 'request-1', secret: 'hidden' },
+    });
+  });
+
+  it('hides answers from integrations when outputs are not recorded', async () => {
+    const experimental_onExtractionModelCallEnd = vi.fn();
+    const experimental_onExtractEnd = vi.fn();
+    const onEnd = vi.fn();
+
+    await extract({
+      ...setup(),
+      state,
+      fields,
+      telemetry: {
+        integrations: {
+          experimental_onExtractionModelCallEnd,
+          experimental_onExtractEnd,
+        },
+        recordOutputs: false,
+      },
+      onEnd,
+    });
+
+    for (const callback of [
+      experimental_onExtractionModelCallEnd,
+      experimental_onExtractEnd,
+    ]) {
+      expect(callback.mock.calls[0][0].answers).toEqual({});
+      expect(callback.mock.calls[0][0].fields).toEqual(fields);
+    }
+    expect(onEnd.mock.calls[0][0].answers).toEqual(answers);
+  });
+
+  it.each([true, false])(
+    'keeps request headers and provider options out of integrations with recordInputs %s',
+    async recordInputs => {
+      const experimental_onExtractStart = vi.fn();
+      const experimental_onExtractEnd = vi.fn();
+      const onStart = vi.fn();
+      const headers = { authorization: 'Bearer secret-token' };
+      const providerOptions = {
+        gateway: { byok: { openai: [{ apiKey: 'secret-key' }] } },
+      };
+
+      await extract({
+        ...setup(),
+        state,
+        fields,
+        headers,
+        providerOptions,
+        telemetry: {
+          recordInputs,
+          integrations: {
+            experimental_onExtractStart,
+            experimental_onExtractEnd,
+          },
+        },
+        onStart,
+      });
+
+      for (const callback of [
+        experimental_onExtractStart,
+        experimental_onExtractEnd,
+      ]) {
+        const event = callback.mock.calls[0][0];
+        expect(event.headers).toBeUndefined();
+        expect(event.providerOptions).toEqual({});
+        expect(JSON.stringify(event)).not.toContain('secret');
+      }
+      expect(onStart.mock.calls[0][0]).toMatchObject({
+        headers,
+        providerOptions,
+      });
+    },
+  );
+
+  it('redacts file urls and references from state sent to integrations', async () => {
+    const experimental_onExtractStart = vi.fn();
+    const onStart = vi.fn();
+    const url = 'https://files.example.com/invoice.pdf?X-Amz-Signature=secret';
+    const fileState: Experimental_ExtractionStatePart[] = [
+      { type: 'text', text: 'Invoice' },
+      {
+        type: 'file' as const,
+        mediaType: 'application/pdf',
+        data: new URL(url),
+      },
+      { type: 'file', mediaType: 'application/pdf', data: url },
+      {
+        type: 'file',
+        mediaType: 'application/pdf',
+        data: { type: 'reference', reference: { openai: 'secret-reference' } },
+      },
+      {
+        type: 'file',
+        mediaType: 'application/pdf',
+        data: { openai: 'secret-bare-reference' },
+      },
+    ];
+
+    await extract({
+      ...setup({
+        answers: { invoiceNumber: { type: 'text', value: 'INV-2041' } },
+        warnings: [],
+      }),
+      state: fileState,
+      fields: { invoiceNumber: fields.invoiceNumber },
+      experimental_download: async requests =>
+        requests.map(() => ({
+          data: new Uint8Array([1, 2, 3]),
+          mediaType: 'application/pdf',
+        })),
+      telemetry: { integrations: { experimental_onExtractStart } },
+      onStart,
+    });
+
+    const event = experimental_onExtractStart.mock.calls[0][0];
+    expect(JSON.stringify(event)).not.toContain('secret');
+    expect(event.state).toEqual([
+      { type: 'text', text: 'Invoice' },
+      { type: 'file', mediaType: 'application/pdf', data: '[redacted]' },
+      { type: 'file', mediaType: 'application/pdf', data: '[redacted]' },
+      { type: 'file', mediaType: 'application/pdf', data: '[redacted]' },
+      { type: 'file', mediaType: 'application/pdf', data: '[redacted]' },
+    ]);
+    expect(onStart.mock.calls[0][0].state).toBe(fileState);
+  });
+
+  it('strips part provider options from extraction telemetry only', async () => {
+    const onTelemetry = vi.fn();
+    const url = new URL(
+      'https://files.example.com/invoice.pdf?X-Amz-Signature=secret',
+    );
+    const providerOptions = {
+      anthropic: { title: 'private-title', context: 'private-context' },
+    };
+    const jsonPart = {
+      type: 'json' as const,
+      value: { providerOptions: { user: { value: 'keep' } } },
+    };
+    const fileState: Experimental_ExtractionStatePart[] = [
+      { type: 'text', text: 'Invoice', providerOptions },
+      {
+        type: 'file',
+        mediaType: 'application/pdf',
+        data: url,
+        providerOptions,
+      },
+      jsonPart,
+    ];
+    const bytes = new Uint8Array([1, 2, 3]);
+    const { model, doExtract } = setup({
+      answers: { invoiceNumber: { type: 'text', value: 'INV-2041' } },
+      warnings: [],
+    });
+
+    await extract({
+      model,
+      state: fileState,
+      fields: { invoiceNumber: fields.invoiceNumber },
+      experimental_download: async requests =>
+        requests.map(() => ({ data: bytes, mediaType: 'application/pdf' })),
+      telemetry: {
+        recordInputs: true,
+        integrations: {
+          experimental_onExtractStart: onTelemetry,
+          experimental_onExtractionModelCallStart: onTelemetry,
+          experimental_onExtractionModelCallEnd: onTelemetry,
+          experimental_onExtractEnd: onTelemetry,
+        },
+      },
+    });
+
+    expect(onTelemetry).toHaveBeenCalledTimes(4);
+    for (const [event] of onTelemetry.mock.calls) {
+      expect(event.state).toEqual([
+        { type: 'text', text: 'Invoice' },
+        {
+          type: 'file',
+          mediaType: 'application/pdf',
+          data:
+            event.operationId === 'ai.extract.doExtract'
+              ? { type: 'data', data: bytes }
+              : '[redacted]',
+        },
+        jsonPart,
+      ]);
+    }
+    expect(fileState[0]).toHaveProperty('providerOptions', providerOptions);
+    expect(fileState[1]).toMatchObject({ data: url, providerOptions });
+    expect(doExtract.mock.calls[0][0].state).toEqual([
+      { type: 'text', text: 'Invoice', providerOptions },
+      {
+        type: 'file',
+        mediaType: 'application/pdf',
+        data: { type: 'data', data: bytes },
+        providerOptions,
+      },
+      jsonPart,
+    ]);
+  });
+
+  it('redacts the url of a failed download from telemetry errors', async () => {
+    const onError = vi.fn();
+    const url = 'https://files.example.com/invoice.pdf?X-Amz-Signature=secret';
+    const { model, doExtract } = setup();
+
+    const error = await extract({
+      model,
+      state: [
+        { type: 'file', mediaType: 'application/pdf', data: new URL(url) },
+      ],
+      fields,
+      experimental_download: async () => {
+        throw new DownloadError({
+          url,
+          message: `Download of ${url} exceeded maximum size of 10 bytes.`,
+        });
+      },
+      telemetry: { integrations: { onError } },
+    }).catch(error => error);
+
+    expect(error.url).toBe(url);
+    expect(doExtract).not.toHaveBeenCalled();
+    const delivered = onError.mock.calls[0][0].error;
+    expect(DownloadError.isInstance(delivered)).toBe(true);
+    expect(
+      `${delivered.url} ${delivered.message} ${delivered.stack}`,
+    ).not.toContain('secret');
+  });
+
+  it('includes only selected runtime context fields', async () => {
+    const experimental_onExtractStart = vi.fn();
+    const experimental_onExtractEnd = vi.fn();
+
+    await extract({
+      ...setup(),
+      state,
+      fields,
+      telemetry: {
+        integrations: {
+          experimental_onExtractStart,
+          experimental_onExtractEnd,
+        },
+        includeRuntimeContext: { requestId: true },
+      },
+      runtimeContext: { requestId: 'request-1', secret: 'hidden' },
+    });
+
+    for (const callback of [
+      experimental_onExtractStart,
+      experimental_onExtractEnd,
+    ]) {
+      expect(callback).toHaveBeenCalledWith(
+        expect.objectContaining({ runtimeContext: { requestId: 'request-1' } }),
+      );
+    }
+  });
+
+  it('emits an error event when extraction fails', async () => {
+    const error = new Error('extraction failed');
+    const onError = vi.fn();
+    const experimental_onExtractEnd = vi.fn();
+    const { model } = setup();
+    model.doExtract = vi.fn().mockRejectedValue(error);
+
+    await expect(
+      extract({
+        model,
+        state,
+        fields,
+        maxRetries: 0,
+        telemetry: { integrations: { onError, experimental_onExtractEnd } },
+        _internal: { generateCallId: () => 'test-call-id' },
+      }),
+    ).rejects.toBe(error);
+
+    expect(onError).toHaveBeenCalledWith({
+      aiVersion: VERSION,
+      callId: 'test-call-id',
+      error,
+    });
+    expect(experimental_onExtractEnd).not.toHaveBeenCalled();
+  });
+
+  it('emits an error event and no end events when a field is refused', async () => {
+    const onError = vi.fn();
+    const experimental_onExtractionModelCallEnd = vi.fn();
+    const experimental_onExtractEnd = vi.fn();
+    const onEnd = vi.fn();
+
+    await expect(
+      extract({
+        ...setup({
+          answers: { ...answers, total: { type: 'refusal' } },
+          warnings: [],
+        }),
+        state,
+        fields,
+        telemetry: {
+          integrations: {
+            onError,
+            experimental_onExtractionModelCallEnd,
+            experimental_onExtractEnd,
+          },
+        },
+        onEnd,
+        _internal: { generateCallId: () => 'test-call-id' },
+      }),
+    ).rejects.toSatisfy(ExtractionRefusalError.isInstance);
+
+    expect(onError).toHaveBeenCalledWith(
+      expect.objectContaining({ callId: 'test-call-id' }),
+    );
+    expect(experimental_onExtractionModelCallEnd).not.toHaveBeenCalled();
+    expect(experimental_onExtractEnd).not.toHaveBeenCalled();
+    expect(onEnd).not.toHaveBeenCalled();
+  });
+
+  it('emits no events when a field type is unsupported', async () => {
+    const onError = vi.fn();
+    const experimental_onExtractStart = vi.fn();
+    const onStart = vi.fn();
+
+    await expect(
+      extract({
+        model: new ExtractionMockModelV4({ supportedFieldTypes: ['text'] }),
+        state,
+        fields,
+        telemetry: { integrations: { onError, experimental_onExtractStart } },
+        onStart,
+      }),
+    ).rejects.toSatisfy(ExtractionUnsupportedFieldTypeError.isInstance);
+
+    expect(experimental_onExtractStart).not.toHaveBeenCalled();
+    expect(onStart).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+  });
 });

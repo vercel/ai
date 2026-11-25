@@ -1,17 +1,22 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import type { LanguageModelV4GenerateResult } from '@ai-sdk/provider';
+import type {
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+} from '@ai-sdk/provider';
 import { createOpenAI, openai } from '@ai-sdk/openai';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { RetryError } from '../util/retry-error';
-import { tool } from '@ai-sdk/provider-utils';
+import { DownloadError, tool } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { embed } from '../embed/embed';
 import { embedMany } from '../embed/embed-many';
 import { decide } from '../decide/decide';
+import { extract } from '../extract/extract';
 import { generateText } from '../generate-text';
+import { createSteering } from '../generate-text/steering';
 import { streamText } from '../generate-text/stream-text';
 import { isStepCount } from '../generate-text/stop-condition';
 import { rerank } from '../rerank/rerank';
@@ -19,6 +24,7 @@ import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
 import { DecisionMockModelV4 } from '../test/decision-mock-model-v4';
+import { ExtractionMockModelV4 } from '../test/extraction-mock-model-v4';
 import { createTelemetryDispatcher } from './create-telemetry-dispatcher';
 import type { InferTelemetryEvent } from './telemetry';
 import {
@@ -574,6 +580,143 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
     `);
   });
 
+  it('traces one step span when a steering interrupt redoes the generateText model call', async () => {
+    const steering = createSteering();
+    let calls = 0;
+
+    const sequence = await collectTracingChannelEventSequence(async () => {
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async ({ abortSignal }) => {
+            calls++;
+            if (calls === 1) {
+              void steering.steer('Use Paris, Texas instead.', {
+                interrupt: true,
+              });
+              throw abortSignal?.reason;
+            }
+            return {
+              content: [{ type: 'text', text: 'It is sunny.' }],
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: {
+                inputTokens: {
+                  total: 3,
+                  noCache: 3,
+                  cacheRead: undefined,
+                  cacheWrite: undefined,
+                },
+                outputTokens: {
+                  total: 3,
+                  text: 3,
+                  reasoning: undefined,
+                },
+              },
+              warnings: [],
+            };
+          },
+        }),
+        prompt: 'What is the weather in Paris?',
+        experimental_steering: steering,
+        telemetry: {
+          functionId: 'tracing-channel-generate-text-interrupt-test',
+        },
+      });
+    });
+
+    expect(calls).toBe(2);
+    expect(sequence).toMatchInlineSnapshot(`
+      [
+        "bindStart generateText",
+        "bindStart step",
+        "bindStart languageModelCall",
+        "asyncEnd languageModelCall",
+        "bindStart languageModelCall",
+        "asyncEnd languageModelCall",
+        "asyncEnd step",
+        "asyncEnd generateText",
+      ]
+    `);
+  });
+
+  it('traces one step span when a steering interrupt redoes the streamText model call', async () => {
+    const steering = createSteering();
+    let calls = 0;
+
+    const sequence = await collectTracingChannelEventSequence(async () => {
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async options => {
+            calls++;
+            if (calls === 1) {
+              const stream = new ReadableStream<LanguageModelV4StreamPart>({
+                start(controller) {
+                  controller.enqueue({ type: 'stream-start', warnings: [] });
+                  options.abortSignal?.addEventListener(
+                    'abort',
+                    () => controller.error(options.abortSignal?.reason),
+                    { once: true },
+                  );
+                },
+              });
+              setTimeout(() => {
+                void steering.steer('Use Paris, Texas instead.', {
+                  interrupt: true,
+                });
+              }, 0);
+              return { stream };
+            }
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'It is sunny.' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: {
+                    inputTokens: {
+                      total: 3,
+                      noCache: 3,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: {
+                      total: 3,
+                      text: 3,
+                      reasoning: undefined,
+                    },
+                  },
+                },
+              ]),
+            };
+          },
+        }),
+        prompt: 'What is the weather in Paris?',
+        experimental_steering: steering,
+        telemetry: {
+          functionId: 'tracing-channel-stream-text-interrupt-test',
+        },
+      });
+
+      await result.consumeStream();
+    });
+
+    expect(calls).toBe(2);
+    expect(sequence).toMatchInlineSnapshot(`
+      [
+        "bindStart streamText",
+        "bindStart step",
+        "bindStart languageModelCall",
+        "asyncEnd languageModelCall",
+        "bindStart languageModelCall",
+        "asyncEnd languageModelCall",
+        "asyncEnd step",
+        "asyncEnd streamText",
+      ]
+    `);
+  });
+
   it('includes the SDK version with allowlisted context on every tracing span', async () => {
     const usage = {
       inputTokens: {
@@ -720,6 +863,23 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
         runtimeContext,
         telemetry,
       });
+
+      await extract({
+        model: new ExtractionMockModelV4({
+          doExtract: async () => ({
+            answers: {
+              invoiceNumber: { type: 'text', value: 'INV-2041' },
+            },
+            warnings: [],
+          }),
+        }),
+        state: 'Invoice INV-2041',
+        fields: {
+          invoiceNumber: { type: 'text', instructions: 'Invoice number' },
+        },
+        runtimeContext,
+        telemetry,
+      });
     });
 
     expect(messages.map(message => message.type)).toEqual(
@@ -733,6 +893,7 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
         'embedMany',
         'rerank',
         'experimental_decide',
+        'experimental_extract',
       ]),
     );
 
@@ -749,6 +910,7 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
       'embedMany',
       'rerank',
       'experimental_decide',
+      'experimental_extract',
     ] as const) {
       const startMessage = messages.find(message => message.type === type);
       expect(startMessage?.event).toEqual(
@@ -952,6 +1114,212 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
     expect(
       (decideMessage?.event as { runtimeContext?: unknown })?.runtimeContext,
     ).toEqual({ requestId: 'request-1' });
+  });
+
+  it('traces the current extract lifecycle sequence', async () => {
+    const sequence = await collectTracingChannelEventSequence(async () => {
+      await extract({
+        model: new ExtractionMockModelV4({
+          doExtract: async () => ({
+            answers: {
+              invoiceNumber: { type: 'text', value: 'INV-2041' },
+            },
+            warnings: [],
+          }),
+        }),
+        state: 'Invoice INV-2041',
+        fields: {
+          invoiceNumber: { type: 'text', instructions: 'Invoice number' },
+        },
+      });
+    });
+
+    expect(sequence).toMatchInlineSnapshot(`
+      [
+        "bindStart experimental_extract",
+        "asyncEnd experimental_extract",
+      ]
+    `);
+  });
+
+  it.each([
+    { name: 'an omitted allowlist', telemetry: undefined },
+    { name: 'an empty allowlist', telemetry: {} },
+    {
+      name: 'an explicitly excluded field',
+      telemetry: { includeRuntimeContext: { secret: false } },
+    },
+  ])('excludes extract runtime context with $name', async ({ telemetry }) => {
+    const messages = await collectTracingChannelStartMessages(async () => {
+      await extract({
+        model: new ExtractionMockModelV4({
+          doExtract: async () => ({
+            answers: {
+              invoiceNumber: { type: 'text', value: 'INV-2041' },
+            },
+            warnings: [],
+          }),
+        }),
+        state: 'Invoice INV-2041',
+        fields: {
+          invoiceNumber: { type: 'text', instructions: 'Invoice number' },
+        },
+        telemetry,
+        runtimeContext: { secret: 'hidden' },
+      });
+    });
+
+    const extractMessage = messages.find(
+      message => message.type === 'experimental_extract',
+    );
+
+    expect(
+      (extractMessage?.event as { runtimeContext?: unknown })?.runtimeContext,
+    ).toEqual({});
+  });
+
+  it('includes only allowlisted extract runtime context in tracing', async () => {
+    const messages = await collectTracingChannelStartMessages(async () => {
+      await extract({
+        model: new ExtractionMockModelV4({
+          doExtract: async () => ({
+            answers: {
+              invoiceNumber: { type: 'text', value: 'INV-2041' },
+            },
+            warnings: [],
+          }),
+        }),
+        state: 'Invoice INV-2041',
+        fields: {
+          invoiceNumber: { type: 'text', instructions: 'Invoice number' },
+        },
+        telemetry: { includeRuntimeContext: { requestId: true } },
+        runtimeContext: { requestId: 'request-1', secret: 'hidden' },
+      });
+    });
+
+    const extractMessage = messages.find(
+      message => message.type === 'experimental_extract',
+    );
+
+    expect(
+      (extractMessage?.event as { runtimeContext?: unknown })?.runtimeContext,
+    ).toEqual({ requestId: 'request-1' });
+  });
+
+  it('keeps request headers and provider options out of extract tracing', async () => {
+    const messages = await collectTracingChannelStartMessages(async () => {
+      await extract({
+        model: new ExtractionMockModelV4({
+          doExtract: async () => ({
+            answers: {
+              invoiceNumber: { type: 'text', value: 'INV-2041' },
+            },
+            warnings: [],
+          }),
+        }),
+        state: 'Invoice INV-2041',
+        fields: {
+          invoiceNumber: { type: 'text', instructions: 'Invoice number' },
+        },
+        headers: { authorization: 'Bearer secret-token' },
+        providerOptions: {
+          gateway: { byok: { openai: [{ apiKey: 'secret-key' }] } },
+        },
+      });
+    });
+
+    const extractMessage = messages.find(
+      message => message.type === 'experimental_extract',
+    );
+
+    expect(extractMessage?.event).toMatchObject({ providerOptions: {} });
+    expect(
+      (extractMessage?.event as { headers?: unknown })?.headers,
+    ).toBeUndefined();
+    expect(JSON.stringify(extractMessage?.event)).not.toContain('secret');
+  });
+
+  it('redacts file urls and failed download urls from extract tracing', async () => {
+    const url = 'https://files.example.com/invoice.pdf?X-Amz-Signature=secret';
+    const published: unknown[] = [];
+    const tracingChannel = diagnosticsChannel.tracingChannel(
+      AI_SDK_TELEMETRY_TRACING_CHANNEL,
+    );
+    const subscribers = {
+      start(message: unknown) {
+        published.push((message as TelemetryTracingChannelMessage).event);
+      },
+      end() {},
+      asyncStart() {},
+      asyncEnd() {},
+      error(message: unknown) {
+        published.push((message as { error?: unknown }).error);
+      },
+    };
+    tracingChannel.subscribe(subscribers);
+
+    let error: any;
+    try {
+      error = await extract({
+        model: new ExtractionMockModelV4(),
+        state: [
+          { type: 'file', mediaType: 'application/pdf', data: new URL(url) },
+        ],
+        fields: {
+          invoiceNumber: { type: 'text', instructions: 'Invoice number' },
+        },
+        experimental_download: async () => {
+          throw new DownloadError({
+            url,
+            message: `Download of ${url} exceeded maximum size of 10 bytes.`,
+          });
+        },
+      }).catch(error => error);
+    } finally {
+      tracingChannel.unsubscribe(subscribers);
+    }
+
+    expect(error.url).toBe(url);
+    expect(published).toHaveLength(2);
+    for (const value of published) {
+      const text = JSON.stringify(value);
+      expect(text).not.toContain('secret');
+      if (value instanceof Error) {
+        expect(`${value.message} ${value.stack}`).not.toContain('secret');
+      }
+    }
+  });
+
+  it('hides extraction inputs in tracing when inputs are not recorded', async () => {
+    const messages = await collectTracingChannelStartMessages(async () => {
+      await extract({
+        model: new ExtractionMockModelV4({
+          doExtract: async () => ({
+            answers: {
+              invoiceNumber: { type: 'text', value: 'INV-2041' },
+            },
+            warnings: [],
+          }),
+        }),
+        state: 'Invoice INV-2041',
+        fields: {
+          invoiceNumber: { type: 'text', instructions: 'Invoice number' },
+        },
+        referenceDate: '2026-11-18',
+        telemetry: { recordInputs: false },
+      });
+    });
+
+    const extractMessage = messages.find(
+      message => message.type === 'experimental_extract',
+    );
+
+    expect(extractMessage?.event).toMatchObject({ state: '' });
+    expect(
+      (extractMessage?.event as { referenceDate?: unknown })?.referenceDate,
+    ).toBeUndefined();
+    expect((extractMessage?.event as { fields?: unknown })?.fields).toEqual({});
   });
 
   describe.each(['generateText', 'streamText'] as const)(

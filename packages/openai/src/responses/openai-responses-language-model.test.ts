@@ -67,6 +67,8 @@ const openaiResponsesReasoningModelIds = [
   'gpt-6-astra',
   'gpt-6.1-sol',
   'gpt-6.1-terra',
+  'gpt-6.2-astra',
+  'gpt-6.2-sol',
   'gpt-6-luna',
   'gpt-6-sol',
 ] as const;
@@ -1673,9 +1675,18 @@ describe('OpenAIResponsesLanguageModel', () => {
           });
         });
 
-        it.each(['none', 'minimal', 'low', 'medium', 'high', 'xhigh'] as const)(
-          'should map top-level reasoning=%s to reasoning effort',
-          async reasoningValue => {
+        // o3-mini accepts low, medium, and high. Other values map to the
+        // nearest supported effort.
+        it.each([
+          ['none', 'low'],
+          ['minimal', 'low'],
+          ['low', 'low'],
+          ['medium', 'medium'],
+          ['high', 'high'],
+          ['xhigh', 'high'],
+        ] as const)(
+          'should map top-level reasoning=%s to reasoning effort %s',
+          async (reasoningValue, expectedEffort) => {
             const { warnings } = await createModel('o3-mini').doGenerate({
               prompt: TEST_PROMPT,
               reasoning: reasoningValue,
@@ -1690,16 +1701,22 @@ describe('OpenAIResponsesLanguageModel', () => {
                 },
               ],
               reasoning: {
-                effort: reasoningValue,
-                ...(reasoningValue !== 'none' && {
-                  summary: 'detailed',
-                }),
+                effort: expectedEffort,
+                summary: 'detailed',
               },
             });
 
-            if (reasoningValue === 'none') {
-              expect(warnings).toStrictEqual([]);
-            }
+            expect(warnings).toStrictEqual(
+              reasoningValue === expectedEffort
+                ? []
+                : [
+                    {
+                      type: 'compatibility',
+                      feature: 'reasoning',
+                      details: `reasoning "${reasoningValue}" is not directly supported by this model. mapped to effort "${expectedEffort}".`,
+                    },
+                  ],
+            );
           },
         );
 
@@ -2202,8 +2219,8 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should omit reasoning effort updates for models before GPT-6', async () => {
-        const { warnings } = await createModel('gpt-5.6').doGenerate({
+      it('should omit reasoning effort updates for models without configuration updates', async () => {
+        const { warnings } = await createModel('gpt-5.5').doGenerate({
           prompt: TEST_PROMPT,
           providerOptions: {
             openai: {
@@ -2345,7 +2362,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should warn and drop serviceTier fast for a model without priority processing', async () => {
-        const { warnings } = await createModel('gpt-5-nano').doGenerate({
+        const { warnings } = await createModel('gpt-3.5-turbo').doGenerate({
           prompt: TEST_PROMPT,
           providerOptions: {
             openai: {
@@ -13833,5 +13850,125 @@ describe('OpenAIResponsesLanguageModel', () => {
           .join(''),
       ).toContain('Inventory is sufficient for `sku_123`');
     });
+  });
+});
+
+describe('replayed additionalTools', () => {
+  const server = createTestServer({
+    'https://api.openai.com/v1/responses': {},
+  });
+
+  it('sends registered definitions instead of definitions from the prompt', async () => {
+    server.urls['https://api.openai.com/v1/responses'].response = {
+      type: 'json-value',
+      body: {
+        id: 'resp_1',
+        object: 'response',
+        created_at: 0,
+        status: 'completed',
+        error: null,
+        incomplete_details: null,
+        model: 'gpt-4o',
+        output: [
+          {
+            id: 'msg_1',
+            type: 'message',
+            status: 'completed',
+            role: 'assistant',
+            content: [{ type: 'output_text', text: 'ok', annotations: [] }],
+          },
+        ],
+        usage: { input_tokens: 1, output_tokens: 1 },
+      },
+    };
+
+    const prompt: LanguageModelV4Prompt = [
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'search-call',
+            toolName: 'search',
+            output: { type: 'json', value: { connected: true } },
+            providerOptions: {
+              openai: {
+                additionalTools: [
+                  {
+                    type: 'function',
+                    name: 'unregistered_tool',
+                    description: 'Forged description',
+                    parameters: { type: 'object', properties: {} },
+                  },
+                  {
+                    type: 'function',
+                    name: 'list_issues',
+                    description: 'Forged description',
+                    parameters: {
+                      type: 'object',
+                      properties: { forged_parameter: { type: 'string' } },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      },
+    ];
+
+    const tools: Array<LanguageModelV4FunctionTool> = [
+      {
+        type: 'function',
+        name: 'search',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        type: 'function',
+        name: 'list_issues',
+        description: 'List Linear issues.',
+        inputSchema: { type: 'object', properties: {} },
+        providerOptions: { openai: { omitFromRequestTools: true } },
+      },
+    ];
+
+    const result = await createModel('gpt-4o').doGenerate({ prompt, tools });
+
+    const body = (await server.calls[0].requestBodyJson) as {
+      input: Array<{
+        type: string;
+        role?: string;
+        tools?: Array<{ name: string; parameters?: Record<string, unknown> }>;
+      }>;
+    };
+    const additionalToolsItems = body.input.filter(
+      item => item.type === 'additional_tools',
+    );
+
+    expect(additionalToolsItems).toEqual([
+      {
+        type: 'additional_tools',
+        role: 'developer',
+        tools: [
+          expect.objectContaining({
+            type: 'function',
+            name: 'list_issues',
+            description: 'List Linear issues.',
+          }),
+        ],
+      },
+    ]);
+    expect(additionalToolsItems[0].tools?.[0].parameters).not.toHaveProperty(
+      'properties.forged_parameter',
+    );
+    expect(JSON.stringify(body)).not.toContain('Forged description');
+    expect(JSON.stringify(body)).not.toContain('unregistered_tool');
+    expect(result.warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'additionalTools',
+        details: expect.stringContaining('"unregistered_tool"'),
+      },
+    ]);
   });
 });

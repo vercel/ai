@@ -57,4 +57,17 @@ describe('lazy schema initialization', () => {
     expect(asSchema(assemblyaiTranscriptionModelOptionsSchema)).toBe(first);
     expect(constructed).toHaveBeenCalledTimes(count);
   });
+
+  it('defers speech option schema construction until first use', async () => {
+    constructed.mockClear();
+    const { assemblyaiSpeechModelOptionsSchema } =
+      await import('./assemblyai-speech-model-options');
+    expect(constructed).not.toHaveBeenCalled();
+
+    const first = asSchema(assemblyaiSpeechModelOptionsSchema);
+    expect(constructed).toHaveBeenCalled();
+    const count = constructed.mock.calls.length;
+    expect(asSchema(assemblyaiSpeechModelOptionsSchema)).toBe(first);
+    expect(constructed).toHaveBeenCalledTimes(count);
+  });
 });

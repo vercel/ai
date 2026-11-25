@@ -1,5 +1,77 @@
 # @ai-sdk/tool-web-fetch
 
+## 1.0.31
+
+### Patch Changes
+
+- Updated dependencies [d834c5b]
+- Updated dependencies [7760e33]
+- Updated dependencies [28d17e6]
+- Updated dependencies [797dc02]
+  - ai@7.0.181
+
+## 1.0.30
+
+### Patch Changes
+
+- ai@7.0.180
+
+## 1.0.29
+
+### Patch Changes
+
+- Updated dependencies [7e55599]
+  - ai@7.0.179
+
+## 1.0.28
+
+### Patch Changes
+
+- Updated dependencies [0b8cbfa]
+- Updated dependencies [1d2c2ff]
+- Updated dependencies [6815153]
+- Updated dependencies [15bfd6b]
+- Updated dependencies [15bfd6b]
+- Updated dependencies [2613bb4]
+- Updated dependencies [63593a7]
+  - ai@7.0.178
+  - @ai-sdk/provider-utils@5.0.83
+
+## 1.0.27
+
+### Patch Changes
+
+- Updated dependencies [e403988]
+- Updated dependencies [b792b56]
+  - ai@7.0.177
+
+## 1.0.26
+
+### Patch Changes
+
+- ai@7.0.176
+
+## 1.0.25
+
+### Patch Changes
+
+- ai@7.0.175
+
+## 1.0.24
+
+### Patch Changes
+
+- f630e0d: fix(tool-bash, tool-web-fetch): update zod dependency from 3.25.76 to 4.6.7 to address GHSA-mrhx-c7xc-m3w5
+- Updated dependencies [3bea041]
+- Updated dependencies [30d35eb]
+- Updated dependencies [fab7478]
+- Updated dependencies [10ff0b1]
+- Updated dependencies [718824c]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - ai@7.0.174
+  - @ai-sdk/provider-utils@5.0.82
+
 ## 1.0.23
 
 ### Patch Changes

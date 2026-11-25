@@ -1,5 +1,76 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.197
+
+### Patch Changes
+
+- d84bf24: fix(harness-claude-code): stop the recorded bridge before respawning on a failed attach
+- d507814: fix(harness-claude-code): drop a subagent's host tool call record once its result passes
+- Updated dependencies [7fffff9]
+- Updated dependencies [3334b4d]
+- Updated dependencies [d84bf24]
+  - @ai-sdk/harness@1.0.193
+
+## 1.0.196
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.192
+
+## 1.0.195
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.191
+
+## 1.0.194
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.190
+
+## 1.0.193
+
+### Patch Changes
+
+- 31120c5: fix(harness-claude-code): preserve session ID from `init` events
+- 04a8f38: fix(harness): keep silent sandbox bridge connections alive with WebSocket pings and reconnect when a peer stops responding, controllable via `keepAliveMs` option for bridge-backed harness adapters
+- Updated dependencies [1d2c2ff]
+- Updated dependencies [04a8f38]
+  - @ai-sdk/provider-utils@5.0.83
+  - @ai-sdk/harness@1.0.189
+
+## 1.0.192
+
+### Patch Changes
+
+- Updated dependencies [679b5b5]
+  - @ai-sdk/harness@1.0.188
+
+## 1.0.191
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.187
+
+## 1.0.190
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.186
+
+## 1.0.189
+
+### Patch Changes
+
+- f630e0d: fix(harness): update bridge zod dependency to 4.6.7 to address GHSA-mrhx-c7xc-m3w5
+- Updated dependencies [10ff0b1]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/provider@4.0.39
+  - @ai-sdk/provider-utils@5.0.82
+  - @ai-sdk/harness@1.0.185
+
 ## 1.0.188
 
 ### Patch Changes

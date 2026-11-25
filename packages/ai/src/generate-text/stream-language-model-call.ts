@@ -280,6 +280,7 @@ export async function streamLanguageModelCall<
   // a Prompt or a standardized Prompt.
   onStart?: (args: {
     promptMessages: LanguageModelV4Prompt;
+    promptWarnings: Array<CallWarning>;
   }) => Promise<void> | void;
 } & Prompt &
   LanguageModelCallOptions): Promise<{
@@ -310,6 +311,7 @@ export async function streamLanguageModelCall<
     allowSystemInMessages,
   } as Prompt);
 
+  const promptWarnings: Array<CallWarning> = [];
   const promptMessages = await convertToLanguageModelPrompt({
     prompt: {
       instructions: standardizedPrompt.instructions,
@@ -319,6 +321,7 @@ export async function streamLanguageModelCall<
     download,
     abortSignal,
     provider: resolvedModel.provider.split('.')[0],
+    warnings: promptWarnings,
   });
 
   const stepTools = await prepareTools({
@@ -333,7 +336,7 @@ export async function streamLanguageModelCall<
   });
 
   await notify({
-    event: { promptMessages },
+    event: { promptMessages, promptWarnings },
     callbacks: onStart,
   });
 
@@ -403,6 +406,7 @@ export async function streamLanguageModelCall<
       request,
       onLanguageModelCallEnd,
       collectContent,
+      promptWarnings,
     }),
   );
 
@@ -434,6 +438,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   request,
   onLanguageModelCallEnd,
   collectContent,
+  promptWarnings,
 }: {
   tools: TOOLS | undefined;
   instructions: Instructions | undefined;
@@ -452,6 +457,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   request?: { url?: string };
   onLanguageModelCallEnd?: Arrayable<OnLanguageModelCallEndCallback<TOOLS>>;
   collectContent: boolean;
+  promptWarnings: Array<CallWarning>;
 }) {
   // keep track of parsed tool calls so provider-emitted approval requests can reference them
   // keep track of tool inputs for provider-side tool results
@@ -474,11 +480,23 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   // repair or refine them.
   const withholdToolParts = toolChoice.type === 'none';
 
+  let hasStarted = false;
+
   return new TransformStream<
     LanguageModelV4StreamPart,
     LanguageModelStreamPart<TOOLS>
   >({
     async transform(chunk, controller) {
+      if (!hasStarted && chunk.type !== 'stream-start') {
+        hasStarted = true;
+        if (promptWarnings.length > 0) {
+          controller.enqueue({
+            type: 'model-call-start',
+            warnings: promptWarnings,
+          });
+        }
+      }
+
       if (isOutputChunk(chunk)) {
         const outputChunkTimestampMs = now();
 
@@ -849,6 +867,9 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
                 output: chunk.result,
                 providerExecuted: true,
                 dynamic: chunk.dynamic,
+                ...(chunk.preliminary != null
+                  ? { preliminary: chunk.preliminary }
+                  : {}),
                 ...(chunk.providerMetadata != null
                   ? { providerMetadata: chunk.providerMetadata }
                   : {}),
@@ -878,8 +899,9 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         case 'stream-start': {
           controller.enqueue({
             type: 'model-call-start',
-            warnings: chunk.warnings,
+            warnings: [...promptWarnings, ...chunk.warnings],
           });
+          hasStarted = true;
           break;
         }
 

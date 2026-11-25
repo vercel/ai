@@ -1,5 +1,88 @@
 # @ai-sdk/harness
 
+## 1.0.193
+
+### Patch Changes
+
+- 7fffff9: fix(harness): stream a host tool call that throws as a `tool-error` instead of a successful `tool-result` whose output is the error
+- 3334b4d: fix(harness): stop the sandbox channel heartbeat from terminating a connection that is still receiving data, which trapped large bridge events on slow links in a reconnect-and-replay loop
+- d84bf24: fix(harness-claude-code): stop the recorded bridge before respawning on a failed attach
+  - ai@7.0.181
+
+## 1.0.192
+
+### Patch Changes
+
+- Updated dependencies [d834c5b]
+- Updated dependencies [7760e33]
+- Updated dependencies [28d17e6]
+- Updated dependencies [797dc02]
+  - ai@7.0.181
+
+## 1.0.191
+
+### Patch Changes
+
+- ai@7.0.180
+
+## 1.0.190
+
+### Patch Changes
+
+- Updated dependencies [7e55599]
+  - ai@7.0.179
+
+## 1.0.189
+
+### Patch Changes
+
+- 04a8f38: fix(harness): keep silent sandbox bridge connections alive with WebSocket pings and reconnect when a peer stops responding, controllable via `keepAliveMs` option for bridge-backed harness adapters
+- Updated dependencies [0b8cbfa]
+- Updated dependencies [1d2c2ff]
+- Updated dependencies [6815153]
+- Updated dependencies [15bfd6b]
+- Updated dependencies [15bfd6b]
+- Updated dependencies [2613bb4]
+- Updated dependencies [63593a7]
+  - ai@7.0.178
+  - @ai-sdk/provider-utils@5.0.83
+
+## 1.0.188
+
+### Patch Changes
+
+- 679b5b5: Honor globally registered telemetry in HarnessAgent when no per-call telemetry settings are supplied.
+- Updated dependencies [e403988]
+- Updated dependencies [b792b56]
+  - ai@7.0.177
+
+## 1.0.187
+
+### Patch Changes
+
+- ai@7.0.176
+
+## 1.0.186
+
+### Patch Changes
+
+- ai@7.0.175
+
+## 1.0.185
+
+### Patch Changes
+
+- Updated dependencies [3bea041]
+- Updated dependencies [30d35eb]
+- Updated dependencies [fab7478]
+- Updated dependencies [10ff0b1]
+- Updated dependencies [718824c]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - ai@7.0.174
+  - @ai-sdk/provider@4.0.39
+  - @ai-sdk/provider-utils@5.0.82
+
 ## 1.0.184
 
 ### Patch Changes

@@ -1,5 +1,5 @@
 import type {
-  ModelCapabilities,
+  ModelCapability,
   ModelEntry,
   ProviderOptionDefinition,
   ProviderOptionDefinitions,
@@ -63,113 +63,141 @@ export const miniMaxProviderOptions = {
   } satisfies Record<keyof MiniMaxVideoModelOptions, ProviderOptionDefinition>,
 } as const satisfies ProviderOptionDefinitions;
 
-const languageModelIds = [
-  'minimax-m3.1-flash',
-  'minimax-m3',
-  'minimax-m2.7',
-  'minimax-m2.7-highspeed',
-  'minimax-m2.5',
-  'minimax-m2.5-highspeed',
-  'minimax-m2.1',
-  'minimax-m2.1-highspeed',
-  'minimax-m2',
-] as const;
-const videoModelIds = ['MiniMax-H3', 'MiniMax-H3-Max'] as const;
-const documentedLanguageCapabilities: Record<
-  string,
-  NonNullable<ModelCapabilities['language']>
-> = {
+/*
+ * Every model type below has the same layout: the row type, the matrix (model
+ * IDs by capability), the builder that turns a row into a catalog entry, and
+ * the row for model IDs that are not listed.
+ *
+ * A row is flat and every listed model fills in every cell. Nothing in a row
+ * is derived from the model ID. The fallback for unlisted language model IDs
+ * is the only place that looks at the model ID.
+ */
+
+// Language models
+
+/** One row of the language model matrix. */
+export type MiniMaxLanguageModelRow = {
+  /**
+   * `false`: nothing is documented for the model ID. Object generation and
+   * tool support are then reported as `'unknown'`.
+   */
+  documented: boolean;
+  image: boolean;
+  /** Accepts image and video inputs as HTTP(S) URLs. */
+  mediaUrls: boolean;
+  /**
+   * Highest temperature the model accepts. `undefined`: the limit of the
+   * Anthropic-compatible API applies.
+   */
+  maxTemperature: number | undefined;
+  /** Accepts temperature and topP while thinking. */
+  samplingWithThinking: boolean;
+  /** Provider options that cache control is read from. */
+  cacheControl: 'anthropic' | 'minimax';
+  /**
+   * How the portable reasoning setting is sent: as a MiniMax `effort`, or as
+   * an Anthropic thinking `budget`.
+   */
+  reasoning: 'effort' | 'budget';
+};
+
+/**
+ * Language model matrix: model IDs by capability. To add a model, add a row
+ * and fill in every column.
+ */
+const languageModelDefinitions = {
   'minimax-m3.1-flash': {
-    inputs: { image: true, audio: 'unknown' },
-    objectGeneration: true,
-    tools: { usage: true, streaming: true },
-    reasoning: { support: 'unknown' },
-    sampling: { temperature: 'unknown', topP: 'unknown', logprobs: 'unknown' },
+    documented: true,
+    image: true,
+    mediaUrls: true,
+    maxTemperature: 2,
+    samplingWithThinking: true,
+    cacheControl: 'minimax',
+    reasoning: 'effort',
   },
   'minimax-m3': {
-    inputs: { image: false, audio: 'unknown' },
-    objectGeneration: true,
-    tools: { usage: true, streaming: true },
-    reasoning: { support: 'unknown' },
-    sampling: { temperature: 'unknown', topP: 'unknown', logprobs: 'unknown' },
+    documented: true,
+    image: false,
+    mediaUrls: false,
+    maxTemperature: undefined,
+    samplingWithThinking: false,
+    cacheControl: 'anthropic',
+    reasoning: 'budget',
   },
   'minimax-m2.7': {
-    inputs: { image: false, audio: 'unknown' },
-    objectGeneration: true,
-    tools: { usage: true, streaming: true },
-    reasoning: { support: 'unknown' },
-    sampling: { temperature: 'unknown', topP: 'unknown', logprobs: 'unknown' },
+    documented: true,
+    image: false,
+    mediaUrls: false,
+    maxTemperature: undefined,
+    samplingWithThinking: false,
+    cacheControl: 'anthropic',
+    reasoning: 'budget',
   },
   'minimax-m2.7-highspeed': {
-    inputs: { image: false, audio: 'unknown' },
-    objectGeneration: true,
-    tools: { usage: true, streaming: true },
-    reasoning: { support: 'unknown' },
-    sampling: { temperature: 'unknown', topP: 'unknown', logprobs: 'unknown' },
+    documented: true,
+    image: false,
+    mediaUrls: false,
+    maxTemperature: undefined,
+    samplingWithThinking: false,
+    cacheControl: 'anthropic',
+    reasoning: 'budget',
   },
   'minimax-m2.5': {
-    inputs: { image: false, audio: 'unknown' },
-    objectGeneration: true,
-    tools: { usage: true, streaming: true },
-    reasoning: { support: 'unknown' },
-    sampling: { temperature: 'unknown', topP: 'unknown', logprobs: 'unknown' },
+    documented: true,
+    image: false,
+    mediaUrls: false,
+    maxTemperature: undefined,
+    samplingWithThinking: false,
+    cacheControl: 'anthropic',
+    reasoning: 'budget',
   },
   'minimax-m2.5-highspeed': {
-    inputs: { image: false, audio: 'unknown' },
-    objectGeneration: true,
-    tools: { usage: true, streaming: true },
-    reasoning: { support: 'unknown' },
-    sampling: { temperature: 'unknown', topP: 'unknown', logprobs: 'unknown' },
+    documented: true,
+    image: false,
+    mediaUrls: false,
+    maxTemperature: undefined,
+    samplingWithThinking: false,
+    cacheControl: 'anthropic',
+    reasoning: 'budget',
   },
   'minimax-m2.1': {
-    inputs: { image: false, audio: 'unknown' },
-    objectGeneration: true,
-    tools: { usage: true, streaming: true },
-    reasoning: { support: 'unknown' },
-    sampling: { temperature: 'unknown', topP: 'unknown', logprobs: 'unknown' },
+    documented: true,
+    image: false,
+    mediaUrls: false,
+    maxTemperature: undefined,
+    samplingWithThinking: false,
+    cacheControl: 'anthropic',
+    reasoning: 'budget',
   },
   'minimax-m2.1-highspeed': {
-    inputs: { image: false, audio: 'unknown' },
-    objectGeneration: true,
-    tools: { usage: true, streaming: true },
-    reasoning: { support: 'unknown' },
-    sampling: { temperature: 'unknown', topP: 'unknown', logprobs: 'unknown' },
+    documented: true,
+    image: false,
+    mediaUrls: false,
+    maxTemperature: undefined,
+    samplingWithThinking: false,
+    cacheControl: 'anthropic',
+    reasoning: 'budget',
   },
   'minimax-m2': {
-    inputs: { image: false, audio: 'unknown' },
-    objectGeneration: true,
-    tools: { usage: true, streaming: true },
-    reasoning: { support: 'unknown' },
-    sampling: { temperature: 'unknown', topP: 'unknown', logprobs: 'unknown' },
+    documented: true,
+    image: false,
+    mediaUrls: false,
+    maxTemperature: undefined,
+    samplingWithThinking: false,
+    cacheControl: 'anthropic',
+    reasoning: 'budget',
   },
-} satisfies Record<
-  (typeof languageModelIds)[number],
-  NonNullable<ModelCapabilities['language']>
->;
-const unknownLanguageCapabilities: NonNullable<ModelCapabilities['language']> =
-  {
-    inputs: { image: 'unknown', audio: 'unknown' },
-    objectGeneration: 'unknown',
-    tools: { usage: 'unknown', streaming: 'unknown' },
-    reasoning: { support: 'unknown' },
-    sampling: { temperature: 'unknown', topP: 'unknown', logprobs: 'unknown' },
-  };
-export function getMiniMaxLanguageModelEntry(modelId: string) {
-  // Compare version components as integers: M3.123 is newer than M3.1.
-  // Assume later M-series models retain the M3.1 capabilities.
-  const version = /^minimax-m(\d+)(?:\.(\d+))?(?:\.\d+)*(?:-|$)/i.exec(modelId);
-  const supportsM31Features =
-    version != null &&
-    (Number(version[1]) > 3 ||
-      (Number(version[1]) === 3 && Number(version[2] ?? 0) >= 1));
+} satisfies Record<string, MiniMaxLanguageModelRow>;
 
+/** Maps a matrix row to its entry. Nothing here inspects the model ID. */
+function createLanguageModelEntry(row: MiniMaxLanguageModelRow) {
+  const documentedSupport: ModelCapability = row.documented ? true : 'unknown';
   const entry = {
     capabilities: {
       language: {
-        ...(documentedLanguageCapabilities[modelId] ??
-          unknownLanguageCapabilities),
-        m31Features: supportsM31Features,
-        inputs: { image: supportsM31Features, audio: false },
+        inputs: { image: row.image, audio: false },
+        objectGeneration: documentedSupport,
+        tools: { usage: documentedSupport, streaming: documentedSupport },
         reasoning: { support: true },
         sampling: { temperature: true, topP: true, logprobs: false },
       },
@@ -179,20 +207,112 @@ export function getMiniMaxLanguageModelEntry(modelId: string) {
         Object.keys(miniMaxProviderOptions.language).map(key => [key, true]),
       ),
     },
+    requestConfig: {
+      language: {
+        mediaUrls: row.mediaUrls,
+        maxTemperature: row.maxTemperature,
+        samplingWithThinking: row.samplingWithThinking,
+        cacheControl: row.cacheControl,
+        reasoning: row.reasoning,
+      },
+    },
   } as const;
-  return entry satisfies ModelEntry;
+  return entry satisfies ModelEntry<{
+    language: Omit<MiniMaxLanguageModelRow, 'documented' | 'image'>;
+  }>;
 }
-const modelResolutionSettings: Record<
-  string,
-  { supported: readonly string[]; default: string }
-> = {
-  'MiniMax-H3': { supported: ['768P', '2K'], default: '2K' },
-  'MiniMax-H3-Max': { supported: ['480P', '768P'], default: '768P' },
+
+const listedLanguageModelEntries = Object.fromEntries(
+  Object.entries<MiniMaxLanguageModelRow>(languageModelDefinitions).map(
+    ([modelId, row]) => [modelId, createLanguageModelEntry(row)],
+  ),
+);
+
+/**
+ * Returns the entry of a listed language model ID from its row. Every other
+ * model ID uses the fallback for unlisted IDs.
+ */
+export function getMiniMaxLanguageModelEntry(modelId: string) {
+  return Object.prototype.hasOwnProperty.call(
+    listedLanguageModelEntries,
+    modelId,
+  )
+    ? listedLanguageModelEntries[modelId]
+    : createLanguageModelEntry(getUnlistedLanguageModelRow(modelId));
+}
+
+/**
+ * Resolves a language model ID that is not listed in the matrix to a row.
+ * This is the only place that derives capabilities from the model ID: an
+ * unlisted M-series model from M3.1 on is assumed to behave like M3.1, so
+ * that new models keep working before they are listed.
+ */
+function getUnlistedLanguageModelRow(modelId: string): MiniMaxLanguageModelRow {
+  // Compare version components as integers: M3.123 is newer than M3.1.
+  const version = /^minimax-m(\d+)(?:\.(\d+))?(?:\.\d+)*(?:-|$)/i.exec(modelId);
+  const m31OrLater =
+    version != null &&
+    (Number(version[1]) > 3 ||
+      (Number(version[1]) === 3 && Number(version[2] ?? 0) >= 1));
+
+  return m31OrLater
+    ? {
+        documented: false,
+        image: true,
+        mediaUrls: true,
+        maxTemperature: 2,
+        samplingWithThinking: true,
+        cacheControl: 'minimax',
+        reasoning: 'effort',
+      }
+    : {
+        documented: false,
+        image: false,
+        mediaUrls: false,
+        maxTemperature: undefined,
+        samplingWithThinking: false,
+        cacheControl: 'anthropic',
+        reasoning: 'budget',
+      };
+}
+
+// Video models
+
+type MiniMaxVideoResolution = (typeof minimaxVideoResolutions)[number];
+
+/** One row of the video model matrix. */
+export type MiniMaxVideoModelRow = {
+  resolutions: readonly MiniMaxVideoResolution[];
+  defaultResolution: MiniMaxVideoResolution;
+  minDurationSeconds: number;
+  /** Reference-to-video: reference images, videos, and audio. */
+  references: boolean;
 };
 
-export function getMiniMaxVideoModelEntry(modelId: string) {
-  const resolutionSettings = modelResolutionSettings[modelId];
-  const references = modelId !== 'MiniMax-H3-Max';
+const videoModelDefinitions = {
+  'MiniMax-H3': {
+    resolutions: ['768P', '2K'],
+    defaultResolution: '2K',
+    minDurationSeconds: 4,
+    references: true,
+  },
+  'MiniMax-H3-Max': {
+    resolutions: ['480P', '768P'],
+    defaultResolution: '768P',
+    minDurationSeconds: 5,
+    references: false,
+  },
+} satisfies Record<string, MiniMaxVideoModelRow>;
+
+/** Row for video model IDs that are not listed in the matrix. */
+const unlistedVideoModel: MiniMaxVideoModelRow = {
+  resolutions: minimaxVideoResolutions,
+  defaultResolution: '2K',
+  minDurationSeconds: 5,
+  references: true,
+};
+
+function createVideoModelEntry(row: MiniMaxVideoModelRow) {
   const entry = {
     capabilities: {
       video: {
@@ -201,8 +321,8 @@ export function getMiniMaxVideoModelEntry(modelId: string) {
           image: true,
           firstFrame: true,
           lastFrame: { condition: 'A first frame is also supplied.' },
-          referenceImage: references,
-          referenceVideo: references,
+          referenceImage: row.references,
+          referenceVideo: row.references,
         },
         generateAudio: false,
         aspectRatio: { condition: 'No frame images are supplied.' },
@@ -218,15 +338,14 @@ export function getMiniMaxVideoModelEntry(modelId: string) {
         ...Object.fromEntries(
           Object.keys(miniMaxProviderOptions.video).map(key => [key, true]),
         ),
-        referenceAudioUrls: references,
+        referenceAudioUrls: row.references,
       },
     },
     requestConfig: {
       video: {
-        supportedResolutions:
-          resolutionSettings?.supported ?? minimaxVideoResolutions,
-        defaultResolution: resolutionSettings?.default ?? '2K',
-        minDurationSeconds: modelId === 'MiniMax-H3' ? 4 : 5,
+        supportedResolutions: row.resolutions,
+        defaultResolution: row.defaultResolution,
+        minDurationSeconds: row.minDurationSeconds,
       },
     },
   } as const;
@@ -238,6 +357,22 @@ export function getMiniMaxVideoModelEntry(modelId: string) {
     };
   }>;
 }
+
+export function getMiniMaxVideoModelEntry(modelId: string) {
+  return createVideoModelEntry(
+    Object.prototype.hasOwnProperty.call(videoModelDefinitions, modelId)
+      ? videoModelDefinitions[modelId as keyof typeof videoModelDefinitions]
+      : unlistedVideoModel,
+  );
+}
+
+// Image models. No capability differs between them, so there is no matrix.
+
+const imageModelIds = [
+  'MiniMax-H3-Image',
+  'MiniMax-H3-Image-Highspeed',
+] as const;
+
 export function getMiniMaxImageModelEntry() {
   return {
     capabilities: {
@@ -263,17 +398,18 @@ export function getMiniMaxImageModelEntry() {
 }
 
 export const minimaxModelCatalog = Object.fromEntries([
-  ...['MiniMax-H3-Image', 'MiniMax-H3-Image-Highspeed'].map(
-    id => [id, getMiniMaxImageModelEntry()] as const,
-  ),
-  ...languageModelIds.map(
+  ...imageModelIds.map(id => [id, getMiniMaxImageModelEntry()] as const),
+  ...Object.keys(languageModelDefinitions).map(
     id => [id, getMiniMaxLanguageModelEntry(id)] as const,
   ),
-  ...videoModelIds.map(id => [id, getMiniMaxVideoModelEntry(id)] as const),
+  ...Object.keys(videoModelDefinitions).map(
+    id => [id, getMiniMaxVideoModelEntry(id)] as const,
+  ),
 ]);
 
-/** Known model IDs, derived from the declarations used to build the catalog. */
+/** Known model IDs, derived from the matrices used to build the catalog. */
 export type MiniMaxModelIds = {
-  language: (typeof languageModelIds)[number];
-  video: (typeof videoModelIds)[number];
+  image: (typeof imageModelIds)[number];
+  language: keyof typeof languageModelDefinitions;
+  video: keyof typeof videoModelDefinitions;
 };

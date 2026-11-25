@@ -32,6 +32,7 @@ import { GoogleEmbeddingModel } from './google-embedding-model';
 import type { GoogleEmbeddingModelId } from './google-embedding-model-options';
 import { GoogleBatch } from './google-batch';
 import { GoogleLanguageModel } from './google-language-model';
+import { getGoogleLanguageModelEntry } from './google-model-catalog';
 import type { GoogleModelId } from './google-language-model-options';
 import { googleTools } from './google-tools';
 
@@ -41,6 +42,7 @@ import type {
 } from './google-image-settings';
 import { GoogleImageModel } from './google-image-model';
 import { GoogleFiles } from './google-files';
+import { googleFilesUrlPattern } from './google-supported-file-url';
 import { GoogleVideoModel } from './google-video-model';
 import type { GoogleVideoModelId } from './google-video-settings';
 import { GoogleSpeechModel } from './google-speech-model';
@@ -58,8 +60,6 @@ import { GoogleSpeechTranslationModel } from './speech-translation/google-speech
 import type { GoogleSpeechTranslationModelId } from './speech-translation/google-speech-translation-model-options';
 
 const DEFAULT_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
-const googleFilesUrlPattern =
-  /^https:\/\/generativelanguage\.googleapis\.com\/v1beta\/files\/.*$/;
 
 export interface GoogleProvider extends ProviderV4 {
   (modelId: GoogleModelId): LanguageModelV4;
@@ -260,10 +260,6 @@ const supportedExternalUrlMediaTypes = [
 
 const externalHttpsUrlPattern = /^https:\/\/.*$/;
 
-function supportsExternalFileUrls(modelId: string) {
-  return /(^|\/)gemini-/.test(modelId) && !/(^|\/)gemini-2\.0/.test(modelId);
-}
-
 /**
  * Create a Google provider instance.
  */
@@ -291,7 +287,9 @@ export function createGoogle(
 
   const getSupportedUrls = (
     modelId?: GoogleModelId,
-    includeExternalUrls = modelId == null || supportsExternalFileUrls(modelId),
+    includeExternalUrls = modelId == null ||
+      getGoogleLanguageModelEntry(modelId).capabilities.language.inputs
+        .externalFileUrls,
   ) => ({
     '*': [
       googleFilesUrlPattern,

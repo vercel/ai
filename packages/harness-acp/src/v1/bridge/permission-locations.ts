@@ -20,22 +20,32 @@ export async function areACPToolLocationsTrusted({
   try {
     const canonicalWorkDir = await realpath(workDir);
     for (const location of locations) {
+      // Native tools may trim paths or expand home-directory shorthand after
+      // approval. Do not authorize those forms as literal workspace paths.
       if (
         typeof location.path !== 'string' ||
-        location.path.trim().length === 0
+        location.path.length === 0 ||
+        location.path !== location.path.trim() ||
+        location.path === '~' ||
+        location.path.startsWith('~/')
       ) {
         return false;
       }
 
-      // Keep the original components for realpath: normalizing a symlink
-      // followed by `..` first can change which file the agent will access.
-      const canonicalPath = await resolvePermissionPath(
-        path.posix.isAbsolute(location.path)
-          ? location.path
-          : `${workDir}/${location.path}`,
-      );
-      if (!isInsidePath(canonicalWorkDir, canonicalPath)) {
-        return false;
+      const absolutePath = path.posix.isAbsolute(location.path)
+        ? location.path
+        : `${workDir}/${location.path}`;
+      // Native runtimes differ in whether they normalize parent components
+      // before filesystem access. Both interpretations must stay inside the
+      // workspace, including when a symlink precedes a parent component.
+      for (const candidatePath of [
+        absolutePath,
+        path.posix.normalize(absolutePath),
+      ]) {
+        const canonicalPath = await resolvePermissionPath(candidatePath);
+        if (!isInsidePath(canonicalWorkDir, canonicalPath)) {
+          return false;
+        }
       }
     }
     return true;

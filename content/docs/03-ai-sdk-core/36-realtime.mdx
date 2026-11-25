@@ -30,7 +30,9 @@ The typical flow is:
 1. Tool calls are handled by your application with `onToolCall`.
 
 For continuous **OpenAI Live** conversations, use an application-owned WebSocket
-relay or optional WebRTC via `api.session`. Live uses client delegation: your
+relay or optional WebRTC via `api.session`. With
+[AI Gateway](/providers/ai-sdk-providers/ai-gateway#live-models), the browser can
+also connect straight to the Gateway with a token from `api.token`. Live uses client delegation: your
 application handles delegated work and submits context rather than using the
 turn-based tool loop below. See the
 [`experimental_useRealtime` reference](/docs/reference/ai-sdk-ui/use-realtime)

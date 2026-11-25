@@ -1,5 +1,61 @@
 # @ai-sdk/google
 
+## 4.0.126
+
+### Patch Changes
+
+- 1145cd5: refactor(google): declare language model capabilities per model ID in the model catalog
+- 6e2e4ff: fix(google): remove the file processing early access model IDs from the model ID suggestions
+
+  File slicing works with the regular Gemini 3 and Gemini 4 model IDs, such as `gemini-4-hydrogen`. Other model IDs can still be passed as strings.
+
+## 4.0.125
+
+### Patch Changes
+
+- afb4e69: Add Extended Multimodal File Inspection options for Gemini documents, spreadsheets, audio, and video, including per-file rendering resolution. Add the `gemini-4-argon-file-processing-eap` and `gemini-3.8-flash-file-processing-eap` model IDs for early-access evaluation.
+
+  Send Interactions tool results as top-level `function_result` inputs so file selections remain inside their tool result and are accepted by the EAP API.
+
+## 4.0.124
+
+### Patch Changes
+
+- 378af05: fix(google, google-vertex): finish live transcription streams without the 3-second grace period
+
+  `gemini-3.5-transcribe-live` ends each segment with `generationComplete` and never sends `turnComplete`, so live transcription streams always waited out the 3-second finish grace period and merged all segments into one `transcript-final` without separating whitespace. Segments now complete on `generationComplete`, and streams finish as soon as server voice activity detection shows that all sent audio has been transcribed.
+
+  Adds `providerOptions.google.streaming.automaticActivityDetection.disabled` (`googleVertex` on Vertex) for push-to-talk input: the audio stream is transcribed as a single turn without splitting at pauses, and the transcript is finalized as soon as the audio input closes.
+
+## 4.0.123
+
+### Patch Changes
+
+- 875de7b: feat(google): add the `gemini-4-neon` model ID with `xhigh` thinking support
+- 1f53cc2: Derive model ID types from the model catalog while preserving the IDs accepted by each model type and endpoint.
+- Updated dependencies [1d2c2ff]
+  - @ai-sdk/provider-utils@5.0.83
+
+## 4.0.122
+
+### Patch Changes
+
+- 3bea041: fix(google): reject structured output schemas in batch requests because inline Google batch requests ignore `responseJsonSchema`
+- b0fccbd: fix(provider/google): redact MCP server credentials in telemetry
+
+  Google Interactions MCP server headers can contain connector credentials, which
+  were recorded in tool telemetry. `google.tools.mcpServer` now provides a
+  redacted telemetry view of its header values, and Interactions request bodies do
+  the same for provider error reporting, while the actual request keeps the
+  credentials.
+
+- a4de3a2: fix(google): include `promptFeedback.blockReasonMessage` in provider metadata
+- Updated dependencies [10ff0b1]
+- Updated dependencies [e878ab3]
+- Updated dependencies [d99098a]
+  - @ai-sdk/provider@4.0.39
+  - @ai-sdk/provider-utils@5.0.82
+
 ## 4.0.121
 
 ### Patch Changes

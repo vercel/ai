@@ -147,7 +147,9 @@ export class ToolLoopAgent<
 
     const baseCallArgs = {
       ...settingsWithoutCallbacks,
-      stopWhen: this.settings.stopWhen ?? createDefaultStopCondition(20),
+      stopWhen:
+        this.settings.stopWhen ??
+        createDefaultStopCondition(20, this.settings.onWarning),
       ...options,
     };
 

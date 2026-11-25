@@ -1,7 +1,28 @@
 import {
-  getGoogleVertexRequestConfig as requestConfig,
+  anthropicModelDefinitions,
+  embeddingModelDefinitions,
+  findRow,
+  getGoogleVertexRequestConfig,
+  getUnlistedImageModelRow,
+  imageModelDefinitions,
+  languageModelDefinitions,
+  listedLanguageRequestConfig,
+  maasModelDefinitions,
+  speechModelDefinitions,
+  transcriptionModelDefinitions,
+  videoModelDefinitions,
+  xaiModelDefinitions,
+  type GoogleVertexAnthropicModelRow,
+  type GoogleVertexEmbeddingModelRow,
+  type GoogleVertexImageModelRow,
+  type GoogleVertexLanguageModelRow,
+  type GoogleVertexMaasModelRow,
+  type GoogleVertexSpeechModelRow,
+  type GoogleVertexTranscriptionModelRow,
+  type GoogleVertexVideoModelRow,
+  type GoogleVertexXaiModelRow,
   type VertexRequestConfig,
-} from './google-vertex-model-catalog-config';
+} from './google-vertex-model-matrix';
 import type {
   ModelEntry,
   ProviderOptionDefinition,
@@ -15,95 +36,6 @@ import type { GoogleVertexEmbeddingModelOptions } from './google-vertex-embeddin
 import type { GoogleVertexTranscriptionModelOptions } from './google-vertex-transcription-model-options';
 import type { GoogleVertexTranscriptionModelGeminiOptions } from './gemini-transcription/google-vertex-gemini-transcription-model-options';
 import type { GoogleVertexSpeechModelOptions } from './google-vertex-speech-model-options';
-const documentedImageDetails: Record<
-  string,
-  { imageGeneration: boolean; aspectRatios: readonly string[] }
-> = {
-  'gemini-nano-banana-2.1': {
-    imageGeneration: true,
-    aspectRatios: [
-      '1:1',
-      '2:3',
-      '3:2',
-      '3:4',
-      '4:3',
-      '4:5',
-      '5:4',
-      '9:16',
-      '16:9',
-      '21:9',
-      '1:8',
-      '8:1',
-      '1:4',
-      '4:1',
-    ],
-  },
-  'gemini-3.1-flash-image-preview': {
-    imageGeneration: true,
-    aspectRatios: [
-      '1:1',
-      '2:3',
-      '3:2',
-      '3:4',
-      '4:3',
-      '4:5',
-      '5:4',
-      '9:16',
-      '16:9',
-      '21:9',
-    ],
-  },
-  'gemini-3-pro-image-preview': {
-    imageGeneration: true,
-    aspectRatios: [
-      '1:1',
-      '2:3',
-      '3:2',
-      '3:4',
-      '4:3',
-      '4:5',
-      '5:4',
-      '9:16',
-      '16:9',
-      '21:9',
-    ],
-  },
-  'gemini-2.5-flash-image': {
-    imageGeneration: true,
-    aspectRatios: [
-      '1:1',
-      '2:3',
-      '3:2',
-      '3:4',
-      '4:3',
-      '4:5',
-      '5:4',
-      '9:16',
-      '16:9',
-      '21:9',
-    ],
-  },
-};
-const documentedTranscriptionDetails: Record<
-  string,
-  { wordTimestampDescription: string; languageDetectionDescription: string }
-> = {
-  chirp_2: {
-    wordTimestampDescription:
-      'Available with a potential quality and speed tradeoff',
-    languageDetectionDescription: "Auto detection with `['auto']`",
-  },
-  chirp_3: {
-    wordTimestampDescription:
-      'Available with a potential transcription quality tradeoff',
-    languageDetectionDescription: "Auto detection with `['auto']`",
-  },
-  telephony: {
-    wordTimestampDescription: 'Available',
-    languageDetectionDescription:
-      'Explicit supported language codes, with alternative language detection support',
-  },
-};
 
 export const googleVertexProviderOptions = {
   language: googleProviderOptions.language,
@@ -150,6 +82,7 @@ export const googleVertexProviderOptions = {
     wordTimestamp: { description: 'Include Gemini word timestamps.' },
     diarization: { description: 'Enable Gemini speaker diarization.' },
     mode: { description: 'Verbatim or smart Gemini transcription formatting.' },
+    streaming: { description: 'Live Gemini voice activity detection.' },
   } satisfies Record<
     | keyof GoogleVertexTranscriptionModelOptions
     | keyof GoogleVertexTranscriptionModelGeminiOptions,
@@ -166,31 +99,49 @@ export const googleVertexProviderOptions = {
   },
 } as const satisfies ProviderOptionDefinitions;
 
+/*
+ * The builders that turn a row of a model matrix into a catalog entry, and
+ * the catalogs built from them. The matrices are in
+ * `google-vertex-model-matrix.ts`. Nothing here inspects the model ID.
+ */
+
 type VertexEntry = ModelEntry<VertexRequestConfig>;
 
-function languageEntry(modelId: string): VertexEntry {
-  const entry = getGoogleLanguageModelEntry(modelId);
+/**
+ * Vertex AI restrictions on a Google language model. They hold for every
+ * model, so they are applied here instead of being a column.
+ */
+const vertexLanguageProviderOptionOverrides = { serviceTier: false } as const;
+
+function createLanguageModelEntry(
+  row: GoogleVertexLanguageModelRow,
+): VertexEntry {
+  const google = getGoogleLanguageModelEntry(row.googleModelId);
   return {
-    capabilities: { language: entry.capabilities.language },
+    capabilities: { language: google.capabilities.language },
     providerOptions: {
-      language: { ...entry.providerOptions.language, serviceTier: false },
+      language: {
+        ...google.providerOptions.language,
+        ...vertexLanguageProviderOptionOverrides,
+      },
     },
-    requestConfig: { language: requestConfig(modelId).language },
+    requestConfig: { language: listedLanguageRequestConfig },
   };
 }
 
-export function getGoogleVertexImageModelEntry(modelId: string): VertexEntry {
-  const known = imageModelIds.some(id => id === modelId);
+function createImageModelEntry(row: GoogleVertexImageModelRow): VertexEntry {
   return {
     capabilities: {
       image: {
         sizes: {
           description: 'Use aspectRatio; the size option is unsupported.',
         },
-        fileInput: known ? true : 'unknown',
-        maskInput: known ? false : 'unknown',
+        fileInput: row.documented ? true : 'unknown',
+        maskInput: row.documented ? false : 'unknown',
         maxImagesPerCall: 1,
-        ...documentedImageDetails[modelId],
+        ...(row.documented
+          ? { imageGeneration: true, aspectRatios: row.aspectRatios }
+          : {}),
       },
     },
     providerOptions: {
@@ -206,23 +157,22 @@ export function getGoogleVertexImageModelEntry(modelId: string): VertexEntry {
         ]),
       ),
     },
-    requestConfig: { image: requestConfig(modelId).image },
+    requestConfig: { image: { gemini: row.api === 'gemini' } },
   };
 }
 
-function embeddingEntry(modelId: string): VertexEntry {
-  const gemini = modelId.startsWith('gemini-embedding-');
+function createEmbeddingModelEntry(
+  row: GoogleVertexEmbeddingModelRow,
+): VertexEntry {
   return {
     capabilities: {
       embedding: {
-        defaultDimensions: gemini ? 3072 : 768,
+        defaultDimensions: row.defaultDimensions,
         customDimensions: 'unknown',
         ...{
-          maxEmbeddingsPerCall:
-            requestConfig(modelId).embedding!.maxEmbeddingsPerCall,
+          maxEmbeddingsPerCall: row.maxEmbeddingsPerCall,
           supportsParallelCalls: true,
-          multimodal:
-            requestConfig(modelId).embedding!.endpoint === 'embedContent',
+          multimodal: row.multimodal,
         },
       },
     },
@@ -234,63 +184,16 @@ function embeddingEntry(modelId: string): VertexEntry {
         autoTruncate: true,
       },
     },
-    requestConfig: { embedding: requestConfig(modelId).embedding },
+    requestConfig: {
+      embedding: {
+        endpoint: row.endpoint,
+        maxEmbeddingsPerCall: row.maxEmbeddingsPerCall,
+      },
+    },
   };
 }
 
-function speechEntry(modelId: string): VertexEntry {
-  const chirp = requestConfig(modelId).speech?.api === 'cloud-tts';
-  return {
-    capabilities: {
-      speech: { instructions: !chirp, ...{ multiSpeaker: !chirp } },
-    },
-    providerOptions: {
-      speech: {
-        multiSpeakerVoiceConfig: chirp ? false : true,
-        speechMetadata: chirp
-          ? false
-          : { condition: 'Requires Gemini 3.8 TTS.' },
-        turns: chirp ? false : { condition: 'Requires Gemini 3.8 TTS.' },
-      },
-    },
-    requestConfig: { speech: requestConfig(modelId).speech },
-  };
-}
-
-function transcriptionEntry(modelId: string): VertexEntry {
-  const config = requestConfig(modelId).transcription!;
-  const gemini = config.api === 'gemini';
-  return {
-    capabilities: {
-      transcription: {
-        transcription: !config.live,
-        streaming: config.live,
-        duration: gemini ? false : true,
-        segments: config.live
-          ? false
-          : { condition: 'Requires word timestamps.' },
-        language: true,
-        ...documentedTranscriptionDetails[modelId],
-      },
-    },
-    providerOptions: {
-      transcription: {
-        languageCodes: true,
-        enableAutomaticPunctuation: !gemini,
-        enableWordTimeOffsets: !gemini,
-        region: !gemini,
-        customVocabulary: gemini,
-        wordTimestamp: gemini,
-        diarization: gemini,
-        mode: gemini,
-      },
-    },
-    requestConfig: { transcription: config },
-  };
-}
-
-function videoEntry(modelId: string): VertexEntry {
-  const veo3 = modelId.startsWith('veo-3');
+function createVideoModelEntry(row: GoogleVertexVideoModelRow): VertexEntry {
   return {
     capabilities: {
       video: {
@@ -306,7 +209,7 @@ function videoEntry(modelId: string): VertexEntry {
           },
           referenceVideo: false,
         },
-        generateAudio: veo3,
+        generateAudio: row.generateAudio,
         aspectRatio: true,
         resolution: true,
         duration: true,
@@ -321,7 +224,7 @@ function videoEntry(modelId: string): VertexEntry {
         pollTimeoutMs: true,
         personGeneration: true,
         negativePrompt: true,
-        generateAudio: veo3,
+        generateAudio: row.generateAudio,
         gcsOutputDirectory: true,
         referenceImages: {
           condition: 'Requires a Veo model supporting reference images.',
@@ -331,116 +234,91 @@ function videoEntry(modelId: string): VertexEntry {
   };
 }
 
-const languageModelIds = [
-  'gemini-nano-banana-2.1',
-  'gemini-4-argon',
-  'gemini-4-carbon',
-  'gemini-4-hydrogen',
-  'gemini-3.8-flash',
-  'gemini-3.7-flash',
-  'gemini-3.6-flash',
-  'gemini-3.5-flash',
-  'gemini-3.5-flash-lite',
-  'gemini-2.5-pro',
-  'gemini-2.5-flash',
-  'gemini-2.5-flash-lite',
-  'gemini-2.0-flash-lite',
-  'gemini-2.0-flash',
-  'gemini-2.0-flash-001',
-  'gemini-1.5-flash',
-  'gemini-1.5-flash-001',
-  'gemini-1.5-flash-002',
-  'gemini-1.5-pro',
-  'gemini-1.5-pro-001',
-  'gemini-1.5-pro-002',
-  'gemini-1.0-pro-001',
-  'gemini-1.0-pro-vision-001',
-  'gemini-1.0-pro',
-  'gemini-1.0-pro-002',
-  'gemini-2.0-flash-lite-preview-02-05',
-  'gemini-2.5-flash-preview-09-2025',
-  'gemini-3-pro-preview',
-  'gemini-3-pro-image-preview',
-  'gemini-3-flash-preview',
-  'gemini-3.1-pro-preview',
-  'gemini-3.1-flash-image-preview',
-  'gemini-3.1-flash-lite-preview',
-  'gemini-2.0-pro-exp-02-05',
-  'gemini-2.0-flash-exp',
-] as const;
+function createSpeechModelEntry(row: GoogleVertexSpeechModelRow): VertexEntry {
+  return {
+    capabilities: {
+      speech: {
+        instructions: row.instructions,
+        ...{ multiSpeaker: row.multiSpeaker },
+      },
+    },
+    providerOptions: {
+      speech: {
+        multiSpeakerVoiceConfig: row.multiSpeaker,
+        speechMetadata: row.speechMetadata,
+        turns: row.turns,
+      },
+    },
+    requestConfig: { speech: { api: row.api } },
+  };
+}
 
-const imageModelIds = [
-  'gemini-2.5-flash-image',
-  'gemini-3-pro-image-preview',
-  'gemini-3.1-flash-image-preview',
-  'gemini-nano-banana-2.1',
-] as const;
+function createTranscriptionModelEntry(
+  row: GoogleVertexTranscriptionModelRow,
+): VertexEntry {
+  const gemini = row.api === 'gemini';
+  return {
+    capabilities: {
+      transcription: {
+        transcription: row.mode === 'batch',
+        streaming: row.mode === 'live',
+        duration: row.duration,
+        segments: row.segments,
+        language: true,
+        ...(row.wordTimestamps != null
+          ? { wordTimestampDescription: row.wordTimestamps }
+          : {}),
+        ...(row.languageDetection != null
+          ? { languageDetectionDescription: row.languageDetection }
+          : {}),
+      },
+    },
+    providerOptions: {
+      transcription: {
+        // Cloud Speech-to-Text options
+        languageCodes: true,
+        enableAutomaticPunctuation: !gemini,
+        enableWordTimeOffsets: !gemini,
+        region: !gemini,
+        // Gemini options
+        customVocabulary: gemini,
+        wordTimestamp: gemini,
+        diarization: gemini,
+        mode: gemini,
+      },
+    },
+    requestConfig: {
+      transcription: { api: row.api, live: row.mode === 'live' },
+    },
+  };
+}
 
-const embeddingModelIds = [
-  'textembedding-gecko',
-  'textembedding-gecko@001',
-  'textembedding-gecko@003',
-  'textembedding-gecko-multilingual',
-  'textembedding-gecko-multilingual@001',
-  'text-multilingual-embedding-002',
-  'text-embedding-004',
-  'text-embedding-005',
-  'gemini-embedding-001',
-  'gemini-embedding-2',
-  'gemini-embedding-2-preview',
-] as const;
-
-const videoModelIds = [
-  'veo-2.0-generate-preview',
-  'veo-2.0-generate-exp',
-  'veo-2.0-generate-001',
-  'veo-3.0-generate-001',
-  'veo-3.0-fast-generate-001',
-  'veo-3.0-generate-preview',
-  'veo-3.0-fast-generate-preview',
-  'veo-3.1-generate-001',
-  'veo-3.1-fast-generate-001',
-  'veo-3.1-generate-preview',
-  'veo-3.1-fast-generate-preview',
-] as const;
-
-const speechModelIds = [
-  'gemini-2.5-flash-tts',
-  'gemini-2.5-pro-tts',
-  'gemini-2.5-flash-lite-preview-tts',
-  'gemini-3.1-flash-tts-preview',
-  'chirp-3-hd',
-] as const;
-
-const transcriptionModelIds = ['chirp_2', 'chirp_3', 'telephony'] as const;
-
-const geminiTranscriptionModelIds = [
-  'gemini-3.5-transcribe',
-  'gemini-3.5-transcribe-live',
-] as const;
+// Vertex AI model catalog (Google models)
 
 const entries: [string, VertexEntry][] = [
-  ...languageModelIds.map((id): [string, VertexEntry] => [
+  ...Object.entries<GoogleVertexLanguageModelRow>(languageModelDefinitions).map(
+    ([id, row]): [string, VertexEntry] => [id, createLanguageModelEntry(row)],
+  ),
+  ...Object.entries<GoogleVertexImageModelRow>(imageModelDefinitions).map(
+    ([id, row]): [string, VertexEntry] => [id, createImageModelEntry(row)],
+  ),
+  ...Object.entries<GoogleVertexEmbeddingModelRow>(
+    embeddingModelDefinitions,
+  ).map(([id, row]): [string, VertexEntry] => [
     id,
-    languageEntry(id),
+    createEmbeddingModelEntry(row),
   ]),
-  ...imageModelIds.map((id): [string, VertexEntry] => [
+  ...Object.entries<GoogleVertexVideoModelRow>(videoModelDefinitions).map(
+    ([id, row]): [string, VertexEntry] => [id, createVideoModelEntry(row)],
+  ),
+  ...Object.entries<GoogleVertexSpeechModelRow>(speechModelDefinitions).map(
+    ([id, row]): [string, VertexEntry] => [id, createSpeechModelEntry(row)],
+  ),
+  ...Object.entries<GoogleVertexTranscriptionModelRow>(
+    transcriptionModelDefinitions,
+  ).map(([id, row]): [string, VertexEntry] => [
     id,
-    getGoogleVertexImageModelEntry(id),
-  ]),
-  ...embeddingModelIds.map((id): [string, VertexEntry] => [
-    id,
-    embeddingEntry(id),
-  ]),
-  ...videoModelIds.map((id): [string, VertexEntry] => [id, videoEntry(id)]),
-  ...speechModelIds.map((id): [string, VertexEntry] => [id, speechEntry(id)]),
-  ...transcriptionModelIds.map((id): [string, VertexEntry] => [
-    id,
-    transcriptionEntry(id),
-  ]),
-  ...geminiTranscriptionModelIds.map((id): [string, VertexEntry] => [
-    id,
-    transcriptionEntry(id),
+    createTranscriptionModelEntry(row),
   ]),
 ];
 
@@ -459,185 +337,86 @@ export const googleVertexModelCatalog: Readonly<Record<string, VertexEntry>> =
     return catalog;
   }, {});
 
-const vertexAnthropicModels = {
-  'claude-fable-5-1': {
-    image: true,
-    objectGeneration: true,
-    tools: true,
-    streaming: true,
-    computerUse: true,
-  },
-  'claude-fable-5-2': {
-    image: true,
-    objectGeneration: true,
-    tools: true,
-    streaming: true,
-    computerUse: true,
-  },
-  'claude-3-7-sonnet@20250219': {
-    image: true,
-    objectGeneration: true,
-    tools: true,
-    streaming: true,
-    computerUse: true,
-  },
-  'claude-3-5-sonnet-v2@20241022': {
-    image: true,
-    objectGeneration: true,
-    tools: true,
-    streaming: true,
-    computerUse: true,
-  },
-  'claude-3-5-sonnet@20240620': {
-    image: true,
-    objectGeneration: true,
-    tools: true,
-    streaming: true,
-    computerUse: false,
-  },
-  'claude-3-5-haiku@20241022': {
-    image: false,
-    objectGeneration: true,
-    tools: true,
-    streaming: true,
-    computerUse: false,
-  },
-  'claude-3-sonnet@20240229': {
-    image: true,
-    objectGeneration: true,
-    tools: true,
-    streaming: true,
-    computerUse: false,
-  },
-  'claude-3-haiku@20240307': {
-    image: true,
-    objectGeneration: true,
-    tools: true,
-    streaming: true,
-    computerUse: false,
-  },
-  'claude-3-opus@20240229': {
-    image: true,
-    objectGeneration: true,
-    tools: true,
-    streaming: true,
-    computerUse: false,
-  },
-  // Known IDs without declared capabilities retain the custom-model fallback.
-  'claude-fable-5': undefined,
-  'claude-haiku-5-5': undefined,
-  'claude-opus-4-1@20250805': undefined,
-  'claude-opus-4-5@20251101': undefined,
-  'claude-opus-4-6': undefined,
-  'claude-opus-4-7': undefined,
-  'claude-opus-4-8': undefined,
-  'claude-opus-4@20250514': undefined,
-  'claude-opus-5': undefined,
-  'claude-opus-5-5': undefined,
-  'claude-sonnet-4-5@20250929': undefined,
-  'claude-sonnet-4-6': undefined,
-  'claude-sonnet-4@20250514': undefined,
-  'claude-sonnet-5': undefined,
-  'claude-sonnet-5-5': undefined,
-};
 export const googleVertexAnthropicModelCatalog = Object.fromEntries(
-  Object.entries(vertexAnthropicModels).flatMap(([id, support]) => {
-    if (support == null) return [];
-    const entry = {
-      capabilities: {
-        language: {
-          inputs: { image: support.image, audio: false },
-          objectGeneration: support.objectGeneration,
-          tools: {
-            usage: support.tools,
-            streaming: support.streaming,
-            computerUse: support.computerUse,
-          },
-          reasoning: { support: 'unknown' },
-          sampling: {
-            temperature: 'unknown',
-            topP: 'unknown',
-            logprobs: false,
-          },
-        },
-      },
-    } as const;
-    return [[id, entry satisfies ModelEntry]];
-  }),
-);
-const vertexXaiModels = {
-  'xai/grok-4.20-reasoning': { reasoning: true },
-  'xai/grok-4.20-non-reasoning': { reasoning: false },
-  'xai/grok-4.1-fast-reasoning': { reasoning: true },
-  'xai/grok-4.1-fast-non-reasoning': { reasoning: false },
-};
-export const googleVertexXaiModelCatalog = Object.fromEntries(
-  Object.entries(vertexXaiModels).map(([id, support]) => {
-    const entry = {
-      capabilities: {
-        language: {
-          inputs: { image: 'unknown', audio: 'unknown' },
-          objectGeneration: 'unknown',
-          tools: { usage: 'unknown', streaming: 'unknown' },
-          reasoning: { support: support.reasoning },
-          sampling: {
-            temperature: 'unknown',
-            topP: 'unknown',
-            logprobs: 'unknown',
+  Object.entries<GoogleVertexAnthropicModelRow>(anthropicModelDefinitions)
+    .filter(([, row]) => row.documented)
+    .map(([id, row]) => {
+      const entry = {
+        capabilities: {
+          language: {
+            inputs: { image: row.image, audio: false },
+            objectGeneration: row.objectGeneration,
+            tools: {
+              usage: row.tools,
+              streaming: row.toolStreaming,
+              computerUse: row.computerUse,
+            },
+            reasoning: { support: 'unknown' },
+            sampling: {
+              temperature: 'unknown',
+              topP: 'unknown',
+              logprobs: false,
+            },
           },
         },
-      },
-    } as const;
-    return [id, entry satisfies ModelEntry];
-  }),
-);
-const vertexMaasModels = {
-  'deepseek-ai/deepseek-r1-0528-maas': { publisher: 'DeepSeek' },
-  'deepseek-ai/deepseek-v3.1-maas': { publisher: 'DeepSeek' },
-  'deepseek-ai/deepseek-v3.2-maas': { publisher: 'DeepSeek' },
-  'openai/gpt-oss-120b-maas': { publisher: 'OpenAI' },
-  'openai/gpt-oss-20b-maas': { publisher: 'OpenAI' },
-  'meta/llama-4-maverick-17b-128e-instruct-maas': { publisher: 'Meta' },
-  'meta/llama-4-scout-17b-16e-instruct-maas': { publisher: 'Meta' },
-  'minimax/minimax-m2-maas': { publisher: 'MiniMax' },
-  'qwen/qwen3-coder-480b-a35b-instruct-maas': { publisher: 'Qwen' },
-  'qwen/qwen3-next-80b-a3b-instruct-maas': { publisher: 'Qwen' },
-  'qwen/qwen3-next-80b-a3b-thinking-maas': { publisher: 'Qwen' },
-  'moonshotai/kimi-k2-thinking-maas': { publisher: 'Moonshot' },
-};
-export const googleVertexMaasModelCatalog = Object.fromEntries(
-  Object.entries(vertexMaasModels).map(([id, support]) => {
-    const entry = {
-      capabilities: {
-        language: {
-          inputs: { image: 'unknown', audio: 'unknown' },
-          objectGeneration: 'unknown',
-          tools: { usage: 'unknown', streaming: 'unknown' },
-          reasoning: { support: 'unknown' },
-          sampling: {
-            temperature: 'unknown',
-            topP: 'unknown',
-            logprobs: 'unknown',
-          },
-          publisher: support.publisher,
-        },
-      },
-      requestConfig: requestConfig(id),
-    } as const;
-    return [id, entry satisfies ModelEntry<VertexRequestConfig>];
-  }),
+      } as const;
+      return [id, entry satisfies ModelEntry];
+    }),
 );
 
-/** Known model IDs, derived from the declarations used to build the catalog. */
-export type GoogleVertexModelIds = {
-  language: (typeof languageModelIds)[number];
-  image: (typeof imageModelIds)[number];
-  embedding: (typeof embeddingModelIds)[number];
-  video: (typeof videoModelIds)[number];
-  speech: (typeof speechModelIds)[number];
-  transcription: (typeof transcriptionModelIds)[number];
-  geminiTranscription: (typeof geminiTranscriptionModelIds)[number];
-  anthropic: keyof typeof vertexAnthropicModels;
-  xai: keyof typeof vertexXaiModels;
-  maas: keyof typeof vertexMaasModels;
-};
+export const googleVertexXaiModelCatalog = Object.fromEntries(
+  Object.entries<GoogleVertexXaiModelRow>(xaiModelDefinitions).map(
+    ([id, row]) => {
+      const entry = {
+        capabilities: {
+          language: {
+            inputs: { image: 'unknown', audio: 'unknown' },
+            objectGeneration: 'unknown',
+            tools: { usage: 'unknown', streaming: 'unknown' },
+            reasoning: { support: row.reasoning },
+            sampling: {
+              temperature: 'unknown',
+              topP: 'unknown',
+              logprobs: 'unknown',
+            },
+          },
+        },
+      } as const;
+      return [id, entry satisfies ModelEntry];
+    },
+  ),
+);
+
+export const googleVertexMaasModelCatalog = Object.fromEntries(
+  Object.entries<GoogleVertexMaasModelRow>(maasModelDefinitions).map(
+    ([id, row]) => {
+      const entry = {
+        capabilities: {
+          language: {
+            inputs: { image: 'unknown', audio: 'unknown' },
+            objectGeneration: 'unknown',
+            tools: { usage: 'unknown', streaming: 'unknown' },
+            reasoning: { support: 'unknown' },
+            sampling: {
+              temperature: 'unknown',
+              topP: 'unknown',
+              logprobs: 'unknown',
+            },
+            publisher: row.publisher,
+          },
+        },
+        requestConfig: getGoogleVertexRequestConfig(id),
+      } as const;
+      return [id, entry satisfies ModelEntry<VertexRequestConfig>];
+    },
+  ),
+);
+
+export function getGoogleVertexImageModelEntry(modelId: string): VertexEntry {
+  return createImageModelEntry(
+    findRow<GoogleVertexImageModelRow>(imageModelDefinitions, modelId) ??
+      getUnlistedImageModelRow(modelId),
+  );
+}
+
+export type { GoogleVertexModelIds } from './google-vertex-model-matrix';
