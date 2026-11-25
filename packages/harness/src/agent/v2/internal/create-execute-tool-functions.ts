@@ -25,11 +25,11 @@ import type {
   HarnessV2ToolExecutionOutput,
   HarnessV2ToolExecutionValue,
 } from '../../../v2/harness-v2-drive-context';
-import type { HarnessV2EffectContext } from '../../../v2/harness-v2-effect';
 import type { HarnessV2NetworkSandboxSession } from '../../../v2/harness-v2-network-sandbox-session';
-import type { HarnessV2ToolResult } from '../../../v2/harness-v2-stream-part';
 import { isPlainJSONValue } from './utils';
 import {
+  createToolApprovalRequestPart,
+  createToolApprovalToolCall,
   createToolApprovalUnsupportedError,
   describeToolCallDenial,
   requiresApproval,
@@ -37,16 +37,16 @@ import {
   type ResolvedToolApprovalStatus,
   type ToolApprovalPolicy,
 } from './tool-approval';
-import type { HarnessAgentEffectFunction } from './create-effect-function';
+import type {
+  HarnessAgentEffectContext,
+  HarnessAgentEffectFunction,
+} from './create-effect-function';
 import type {
   HarnessAgentLog,
   HarnessAgentLogToolApprovalRequestEvent,
   HarnessAgentLogToolApprovalResponseEvent,
 } from './create-log';
-import type {
-  HarnessAgentStreamPart,
-  HarnessAgentStreamWriter,
-} from './create-stream-writer';
+import type { HarnessAgentStreamWriter } from './create-stream-writer';
 
 /**
  * `T` with its properties made writable, for building log event data.
@@ -257,112 +257,36 @@ function validateBuiltinToolValue(options: {
 }
 
 /**
- * Emits a `tool-result` part attributed to an effect attempt.
+ * Returns the error message of a failed attempt for its `tool-error` part, or
+ * `undefined` if the attempt was aborted or the drive state is invalid, which
+ * are not tool failures and emit no part. A `HarnessCancellationError` keeps
+ * its message unchanged, so the call shows as ended by the cancel.
  */
-function emitToolResult(options: {
-  /**
-   * Context of the attempt that produced the part.
-   */
-  context: HarnessV2EffectContext;
-
-  /**
-   * ID of the tool call.
-   */
-  toolCallId: string;
-
-  /**
-   * Name of the called tool.
-   */
-  toolName: string;
-
-  /**
-   * JSON result or error message.
-   */
-  result: JSONValue;
-
-  /**
-   * Whether the part reports an error.
-   */
-  isError?: boolean;
-
-  /**
-   * Whether the part is a preliminary result.
-   */
-  preliminary?: boolean;
-
-  /**
-   * Whether the part belongs to a dynamic tool call.
-   */
-  dynamic?: boolean;
-}): void {
-  const { context, toolCallId, toolName, result } = options;
-  const part: HarnessV2ToolResult = {
-    type: 'tool-result',
-    toolCallId,
-    toolName,
-    result,
-  };
-  if (options.isError) part.isError = true;
-  if (options.preliminary) part.preliminary = true;
-  if (options.dynamic) part.dynamic = true;
-  context.emit(part);
-}
-
-/**
- * Emits the error `tool-result` part of a failed attempt, unless the attempt
- * was aborted or the drive state is invalid, which are not tool failures.
- * A `HarnessCancellationError` emits its message unchanged, so the call shows
- * as ended by the cancel.
- */
-function emitToolError(options: {
+function getToolErrorMessage(options: {
   /**
    * Context of the attempt that failed.
    */
-  context: HarnessV2EffectContext;
-
-  /**
-   * ID of the tool call.
-   */
-  toolCallId: string;
-
-  /**
-   * Name of the called tool.
-   */
-  toolName: string;
+  context: HarnessAgentEffectContext;
 
   /**
    * What the attempt threw.
    */
   error: unknown;
-
-  /**
-   * Whether the part belongs to a dynamic tool call.
-   */
-  dynamic?: boolean;
-}): void {
-  const { context, toolCallId, toolName, error, dynamic } = options;
+}): string | undefined {
+  const { context, error } = options;
   if (
     context.abortSignal.aborted ||
     HarnessInvalidDriveStateError.isInstance(error)
   ) {
-    return;
+    return undefined;
   }
-  let message: string;
   try {
-    message = HarnessCancellationError.isInstance(error)
+    return HarnessCancellationError.isInstance(error)
       ? error.message
       : (getErrorMessage(error) ?? String(error));
   } catch {
-    message = 'Unknown effect error';
+    return 'Unknown effect error';
   }
-  emitToolResult({
-    context,
-    toolCallId,
-    toolName,
-    result: message,
-    isError: true,
-    dynamic,
-  });
 }
 
 /**
@@ -497,7 +421,7 @@ export function createExecuteToolFunctions(options: {
    * tool runs.
    */
   async function markExecutionStart(
-    context: HarnessV2EffectContext,
+    context: HarnessAgentEffectContext,
   ): Promise<void> {
     await log.append({
       type: 'tool-execution-start',
@@ -595,20 +519,11 @@ export function createExecuteToolFunctions(options: {
         });
       }
       if (appended) {
-        const part: Extract<
-          HarnessAgentStreamPart,
-          { type: 'tool-approval-request' }
-        > = {
-          type: 'tool-approval-request',
-          approvalId: approval.request.data.approvalId,
-          toolCallId,
-        };
-        if (approval.request.data.reason != null)
-          part.reason = approval.request.data.reason;
-        if (approval.request.data.isAutomatic != null)
-          part.isAutomatic = approval.request.data.isAutomatic;
         writer.emit({
-          part,
+          part: createToolApprovalRequestPart({
+            request: approval.request.data,
+            tools,
+          }),
           key: id,
         });
       }
@@ -657,25 +572,21 @@ export function createExecuteToolFunctions(options: {
       if (appended) {
         const { response } = approval;
         if (request.data.isAutomatic) {
-          const part: Extract<
-            HarnessAgentStreamPart,
-            { type: 'tool-approval-response' }
-          > = {
-            type: 'tool-approval-response',
-            approvalId: response.data.approvalId,
-            toolCall: {
-              type: 'tool-call',
-              toolCallId,
-              toolName: request.data.toolName,
-              input: request.data.input,
+          writer.emit({
+            part: {
+              type: 'tool-approval-response',
+              approvalId: response.data.approvalId,
+              toolCall: createToolApprovalToolCall({
+                request: request.data,
+                tools,
+              }),
+              approved: response.data.approved,
+              ...(response.data.reason != null && {
+                reason: response.data.reason,
+              }),
             },
-            approved: response.data.approved,
-          };
-          if (tools[request.data.toolName]?.type === 'dynamic') {
-            part.toolCall.dynamic = true;
-          }
-          if (response.data.reason != null) part.reason = response.data.reason;
-          writer.emit({ part, key: id });
+            key: id,
+          });
         }
         if (!response.data.approved) {
           writer.emit({
@@ -724,11 +635,13 @@ export function createExecuteToolFunctions(options: {
     /**
      * Context of the current effect attempt.
      */
-    context: HarnessV2EffectContext;
+    context: HarnessAgentEffectContext;
   }): AsyncGenerator<SerializableValue> {
     const { toolCallId, toolName, toolInput, tool, context } = options;
-    const dynamic =
-      tool == null || isProviderExecuted(tool) || tool.type === 'dynamic';
+    const toolCallFields =
+      tool == null || isProviderExecuted(tool) || tool.type === 'dynamic'
+        ? { toolCallId, toolName, input: toolInput, dynamic: true as const }
+        : { toolCallId, toolName, input: toolInput };
 
     try {
       /*
@@ -806,13 +719,11 @@ export function createExecuteToolFunctions(options: {
       })) {
         if (part.type === 'preliminary') {
           const raw = toJSONValue({ value: part.output });
-          emitToolResult({
-            context,
-            toolCallId,
-            toolName,
-            result: raw,
+          context.emit({
+            type: 'tool-result',
+            ...toolCallFields,
+            output: raw,
             preliminary: true,
-            dynamic,
           });
           yield { raw } satisfies HarnessV2ToolExecutionValue;
         } else {
@@ -837,7 +748,7 @@ export function createExecuteToolFunctions(options: {
         );
       }
 
-      emitToolResult({ context, toolCallId, toolName, result: raw, dynamic });
+      context.emit({ type: 'tool-result', ...toolCallFields, output: raw });
       /*
        * The cast is needed because `ToolResultOutput` contains interfaces,
        * which TypeScript never treats as `SerializableValue`; the value was
@@ -850,7 +761,10 @@ export function createExecuteToolFunctions(options: {
             modelOutput,
           }) satisfies HarnessV2ToolExecutionValue as SerializableValue;
     } catch (error) {
-      emitToolError({ context, toolCallId, toolName, error, dynamic });
+      const message = getToolErrorMessage({ context, error });
+      if (message != null) {
+        context.emit({ type: 'tool-error', ...toolCallFields, error: message });
+      }
       throw error;
     }
   }
@@ -893,12 +807,62 @@ export function createExecuteToolFunctions(options: {
     execute: Parameters<HarnessAgentExecuteBuiltinToolFunction>[0]['execute'];
 
     /**
+     * Tool input, already parsed from the model's JSON.
+     */
+    input: JSONValue;
+
+    /**
      * Context of the current effect attempt.
      */
-    context: HarnessV2EffectContext;
+    context: HarnessAgentEffectContext;
+
+    /**
+     * Whether the call is an MCP tool call rather than a built-in tool call.
+     */
     mcp?: boolean;
   }): AsyncGenerator<SerializableValue> {
-    const { toolCallId, toolName, tool, execute, context, mcp } = options;
+    const { toolCallId, toolName, tool, execute, input, context, mcp } =
+      options;
+    /*
+     * Built-in tools are executed by the harness runtime and are not part of
+     * the agent's tool set, so their calls are dynamic and provider-executed.
+     * MCP tools are defined at runtime, so their calls are dynamic.
+     */
+    const toolCallFields = {
+      toolCallId,
+      toolName,
+      input,
+      dynamic: true as const,
+      ...(!mcp && { providerExecuted: true }),
+    };
+
+    /**
+     * Emits the `tool-result` part of a value the tool produced, or its
+     * `tool-error` part if the value is an error.
+     */
+    function emitValue(options: {
+      /**
+       * Value the tool produced.
+       */
+      value: HarnessV2ToolExecutionValue;
+
+      /**
+       * Whether the value is a preliminary result.
+       */
+      preliminary?: boolean;
+    }): void {
+      const { value, preliminary } = options;
+      context.emit(
+        value.isError
+          ? { type: 'tool-error', ...toolCallFields, error: value.raw }
+          : {
+              type: 'tool-result',
+              ...toolCallFields,
+              output: value.raw,
+              ...(preliminary && { preliminary }),
+            },
+      );
+    }
     const functionName = mcp ? 'executeMcpTool' : 'executeBuiltinTool';
     try {
       if (!mcp && tool == null) {
@@ -913,14 +877,7 @@ export function createExecuteToolFunctions(options: {
       if (!(Symbol.asyncIterator in result)) {
         const value = await result;
         validateBuiltinToolValue({ value, functionName });
-        emitToolResult({
-          context,
-          toolCallId,
-          toolName,
-          result: value.raw,
-          isError: value.isError,
-          dynamic: mcp,
-        });
+        emitValue({ value });
         /*
          * The cast is needed because `ToolResultOutput` contains interfaces,
          * which TypeScript never treats as `SerializableValue`; the value was
@@ -933,15 +890,7 @@ export function createExecuteToolFunctions(options: {
       let last: HarnessV2ToolExecutionValue | undefined;
       for await (const value of result) {
         validateBuiltinToolValue({ value, functionName });
-        emitToolResult({
-          context,
-          toolCallId,
-          toolName,
-          result: value.raw,
-          preliminary: true,
-          isError: value.isError,
-          dynamic: mcp,
-        });
+        emitValue({ value, preliminary: true });
         last = value;
         /*
          * The cast is needed because `ToolResultOutput` contains interfaces,
@@ -955,16 +904,12 @@ export function createExecuteToolFunctions(options: {
           `The ${mcp ? 'MCP' : 'built-in'} tool '${toolName}' produced no value.`,
         );
       }
-      emitToolResult({
-        context,
-        toolCallId,
-        toolName,
-        result: last.raw,
-        isError: last.isError,
-        dynamic: mcp,
-      });
+      emitValue({ value: last });
     } catch (error) {
-      emitToolError({ context, toolCallId, toolName, error, dynamic: mcp });
+      const message = getToolErrorMessage({ context, error });
+      if (message != null) {
+        context.emit({ type: 'tool-error', ...toolCallFields, error: message });
+      }
       throw error;
     }
   }
@@ -988,7 +933,14 @@ export function createExecuteToolFunctions(options: {
         replay: 'never',
         input,
         fn: context =>
-          runBuiltinTool({ toolCallId, toolName, execute, context, mcp: true }),
+          runBuiltinTool({
+            toolCallId,
+            toolName,
+            execute,
+            input,
+            context,
+            mcp: true,
+          }),
       });
       return output as HarnessV2ToolExecutionOutput<T>;
     },
@@ -1082,7 +1034,14 @@ export function createExecuteToolFunctions(options: {
         replay: tool?.replay ?? 'never',
         input,
         fn: context =>
-          runBuiltinTool({ toolCallId, toolName, tool, execute, context }),
+          runBuiltinTool({
+            toolCallId,
+            toolName,
+            tool,
+            execute,
+            input,
+            context,
+          }),
       });
 
       /*

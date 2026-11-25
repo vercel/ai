@@ -8,11 +8,20 @@ import type {
   HarnessAgentEffectFunction,
   HarnessAgentEffectOptions,
 } from './create-effect-function';
+import type { HarnessAgentStreamPart } from './create-stream-writer';
 
-test('redeclares the adapter effect signature without changing it', () => {
-  expectTypeOf<HarnessAgentEffectFunction>().toEqualTypeOf<
+test('exposes the agent effect function as the adapter effect function', () => {
+  expectTypeOf<HarnessAgentEffectFunction>().toMatchTypeOf<
     HarnessV2DriveContext['effect']
   >();
-  expectTypeOf<HarnessAgentEffectFunction>().toEqualTypeOf<HarnessV2EffectFunction>();
-  expectTypeOf<HarnessAgentEffectOptions>().toEqualTypeOf<HarnessV2EffectOptions>();
+  expectTypeOf<HarnessAgentEffectFunction>().toMatchTypeOf<HarnessV2EffectFunction>();
+  expectTypeOf<Omit<HarnessAgentEffectOptions, 'fn'>>().toEqualTypeOf<
+    Omit<HarnessV2EffectOptions, 'fn'>
+  >();
+});
+
+test('lets engine effect callbacks emit agent stream parts', () => {
+  expectTypeOf<
+    Parameters<Parameters<HarnessAgentEffectOptions['fn']>[0]['emit']>[0]
+  >().toEqualTypeOf<HarnessAgentStreamPart>();
 });

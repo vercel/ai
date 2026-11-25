@@ -1,9 +1,10 @@
 import type { SerializableValue } from '@ai-sdk/provider';
-import { generateId } from '@ai-sdk/provider-utils';
+import { generateId, type ToolSet } from '@ai-sdk/provider-utils';
 import type { World } from '@workflow/world';
 import type { HarnessAgentSession } from '../harness-agent-session';
 import type { HarnessAgentStorageEncryption } from './create-storage-encryption';
 import type { HarnessV2EffectOutput } from '../../../v2/harness-v2-effect';
+import type { HarnessV2BuiltinToolSet } from '../../../v2/harness-v2-builtin-tool';
 import { parseToolEffect } from './create-execute-tool-functions';
 import type {
   HarnessAgentLog,
@@ -19,7 +20,10 @@ import {
   isDriveProcessGone,
   type HarnessAgentDriveProcess,
 } from './drive-process';
-import { isPendingToolApproval } from './tool-approval';
+import {
+  createToolApprovalRequestPart,
+  isPendingToolApproval,
+} from './tool-approval';
 
 /**
  * Identity of a drive, recorded on its `drive-start`: what tells the drive
@@ -95,7 +99,7 @@ export type HarnessAgentDriveIdentity = {
  *    interruption, since a retry replaces their output. A non-retryable
  *    interruption's output stays, matching the partial output the harness
  *    receives. Each of the turn's tool calls whose latest attempt is a
- *    non-retryable interruption gets an error `tool-result` part under the
+ *    non-retryable interruption gets a `tool-error` part under the
  *    key `tool-interrupted:${startId}`, unless the stream has it already:
  *    the tool does not run again, so no other part ends the call. A
  *    finished turn is not repaired.
@@ -126,8 +130,28 @@ export async function startDrive(options: {
    * Identity of the drive.
    */
   driveIdentity: HarnessAgentDriveIdentity;
+
+  /**
+   * The agent's tools, used to recreate tool parts lost from the stream.
+   */
+  tools: ToolSet;
+
+  /**
+   * The harness's built-in tools, used to recreate tool parts lost from the
+   * stream.
+   */
+  builtinTools: HarnessV2BuiltinToolSet;
 }): Promise<boolean> {
-  const { log, writer, world, session, driveIdentity, encryption } = options;
+  const {
+    log,
+    writer,
+    world,
+    session,
+    driveIdentity,
+    encryption,
+    tools,
+    builtinTools,
+  } = options;
   await log.refresh();
 
   const abandoned = log.getEffects().filter(attempt => attempt.end == null);
@@ -162,23 +186,21 @@ export async function startDrive(options: {
       id: `drive-start:${driveIdentity.driveId}`,
       data: driveIdentity,
     });
-    repairTurnStream({ log, writer, turn, keys: records.positions });
+    repairTurnStream({
+      log,
+      writer,
+      turn,
+      keys: records.positions,
+      tools,
+      builtinTools,
+    });
     for (const approval of pending) {
       if (records.positions.has(approval.request.id)) continue;
-      const part: Extract<
-        HarnessAgentStreamPart,
-        { type: 'tool-approval-request' }
-      > = {
-        type: 'tool-approval-request',
-        approvalId: approval.request.data.approvalId,
-        toolCallId: approval.request.data.toolCallId,
-      };
-      if (approval.request.data.reason != null)
-        part.reason = approval.request.data.reason;
-      if (approval.request.data.isAutomatic != null)
-        part.isAutomatic = approval.request.data.isAutomatic;
       writer.emit({
-        part,
+        part: createToolApprovalRequestPart({
+          request: approval.request.data,
+          tools,
+        }),
         key: approval.request.id,
       });
     }
@@ -209,7 +231,14 @@ export async function startDrive(options: {
 
   if (turn == null || !turnUnfinished) return true;
   const records = await readStreamKeys({ encryption, world, session });
-  repairTurnStream({ log, writer, turn, keys: records.positions });
+  repairTurnStream({
+    log,
+    writer,
+    turn,
+    keys: records.positions,
+    tools,
+    builtinTools,
+  });
   return true;
 }
 
@@ -304,8 +333,18 @@ function repairTurnStream(options: {
    * Keys of the records already in the stream.
    */
   keys: ReadonlyMap<string, number>;
+
+  /**
+   * The agent's tools.
+   */
+  tools: ToolSet;
+
+  /**
+   * The harness's built-in tools.
+   */
+  builtinTools: HarnessV2BuiltinToolSet;
 }): void {
-  const { log, writer, turn, keys } = options;
+  const { log, writer, turn, keys, tools, builtinTools } = options;
   const { turnId } = turn.start.data;
 
   const startKey = `turn-start:${turnId}`;
@@ -347,17 +386,32 @@ function repairTurnStream(options: {
     ) {
       continue;
     }
+    const { toolCallId, toolName } = toolEffect;
+    const error = describeInterruptedToolCall({
+      toolName,
+      partial: output.partial,
+    });
+    /*
+     * Built-in tool calls are executed by the harness runtime, and calls of
+     * tools outside the agent's tool set (e.g. MCP tools) are defined at
+     * runtime. Both are dynamic, like the parts the tool execution functions
+     * emit for them.
+     */
+    const isBuiltinTool = Object.hasOwn(builtinTools, toolName);
+    const toolCallFields = { toolCallId, toolName, input: start.data.input };
     writer.emit({
-      part: {
-        type: 'tool-result',
-        toolCallId: toolEffect.toolCallId,
-        toolName: toolEffect.toolName,
-        result: describeInterruptedToolCall({
-          toolName: toolEffect.toolName,
-          partial: output.partial,
-        }),
-        isError: true,
-      },
+      part:
+        isBuiltinTool ||
+        !Object.hasOwn(tools, toolName) ||
+        tools[toolName].type === 'dynamic'
+          ? {
+              type: 'tool-error',
+              ...toolCallFields,
+              error,
+              dynamic: true,
+              ...(isBuiltinTool && { providerExecuted: true }),
+            }
+          : { type: 'tool-error', ...toolCallFields, error },
       key,
     });
   }

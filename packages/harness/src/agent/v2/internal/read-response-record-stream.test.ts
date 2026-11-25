@@ -269,7 +269,12 @@ describe('readResponseRecordStream', () => {
     const request: HarnessAgentStreamPart = {
       type: 'tool-approval-request',
       approvalId: 'approval-1',
-      toolCallId: 'call-1',
+      toolCall: {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'weather',
+        input: {},
+      },
     };
     await writeRecords({
       world,

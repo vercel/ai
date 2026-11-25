@@ -34,11 +34,7 @@ import {
   type HarnessAgentFinishTurnFunction,
 } from './internal/create-finish-functions';
 import { createGateBuiltinToolFunction } from './internal/create-gate-builtin-tool-function';
-import {
-  createLog,
-  type HarnessAgentLog,
-  type HarnessAgentLogToolApprovalRequestEvent,
-} from './internal/create-log';
+import { createLog, type HarnessAgentLog } from './internal/create-log';
 import {
   createStorageEncryption,
   type HarnessAgentStorageEncryption,
@@ -745,7 +741,6 @@ export class HarnessAgent<
       }),
       abortSignal,
       tools: this.tools,
-      toolCalls: log.getToolApprovals().map(approval => approval.request.data),
       harnessId: this.harnessId,
       callId: generateId(),
     });
@@ -1006,9 +1001,6 @@ export class HarnessAgent<
     let startIndex: number;
     let encryption: HarnessAgentStorageEncryption;
     let startTurnId: string | undefined;
-    let toolCalls:
-      | HarnessAgentLogToolApprovalRequestEvent['data'][]
-      | undefined;
     try {
       if (approvalResponses != null) {
         if (approvalResponses.length === 0) {
@@ -1019,9 +1011,6 @@ export class HarnessAgent<
         encryption = await this.getStorageEncryption({ session });
         const log = createLog({ world: this.world, runId, encryption });
         await log.refresh();
-        toolCalls = log
-          .getToolApprovals()
-          .map(approval => approval.request.data);
         const selected = selectToolApprovalResponses({
           log,
           responses: approvalResponses,
@@ -1094,7 +1083,6 @@ export class HarnessAgent<
       }),
       abortSignal,
       tools: this.tools,
-      toolCalls,
       harnessId: this.harnessId,
       callId: generateId(),
     });
@@ -1393,6 +1381,8 @@ async function runDrivePass(options: {
         writer,
         world,
         session,
+        tools: userTools,
+        builtinTools: harness.builtinTools,
         driveIdentity: {
           driveId,
           ...(runtimeDeadline != null && {

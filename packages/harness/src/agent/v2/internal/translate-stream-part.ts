@@ -9,33 +9,6 @@ import type { HarnessV2FinishReason } from '../../../v2/harness-v2-stream-part';
 import type { HarnessAgentStreamPart } from './create-stream-writer';
 
 /**
- * What a translated `tool-call` part recorded about its call, so the call's
- * results can be translated with the same input and origin.
- */
-export type TranslatedToolCall = {
-  /**
-   * Name of the called tool.
-   */
-  toolName: string;
-
-  /**
-   * Parsed tool input, or the raw input text if it was not valid JSON.
-   */
-  input: unknown;
-
-  /**
-   * Whether the harness runtime executed the tool, if known.
-   */
-  providerExecuted?: boolean;
-
-  /**
-   * Whether the call is untyped, i.e. its tool is not part of the agent's tool
-   * set or its input could not be parsed.
-   */
-  dynamic: boolean;
-};
-
-/**
  * Translates a harness finish reason into the AI SDK's finish reason and raw
  * finish reason. `cancelled` has no AI SDK equivalent: it becomes `other` with
  * the raw finish reason `cancelled`, replacing any raw reason the harness
@@ -63,14 +36,10 @@ export function translateFinishReason(options: {
  *   the UI uses the same tool part for streamed input and the final result.
  * - `tool-call` parses its JSON input (empty input counts as `{}`). The call is
  *   dynamic if the part says so, the tool is not in `tools`, or the input is
- *   not valid JSON, in which case it is also marked `invalid`. The call is
- *   recorded in `toolCalls`.
- * - `tool-result` becomes `tool-error` when `isError` is set, otherwise
- *   `tool-result`, with input and origin taken from the recorded call.
- * - `tool-approval-request` uses the tool call
- *   recorded in `toolCalls`, including calls loaded from the log before a
- *   continuation response. `tool-approval-response` and `tool-output-denied`
- *   pass through unchanged.
+ *   not valid JSON, in which case it is also marked `invalid`.
+ * - `tool-result`, `tool-error`, `tool-approval-request`,
+ *   `tool-approval-response` and `tool-output-denied` are already AI SDK
+ *   stream parts and pass through unchanged.
  * - `file-change` and `compaction` have no AI SDK equivalent and become a
  *   synthetic dynamic, provider-executed `tool-call` and `tool-result` pair
  *   under the reserved names `fileChange` and `compaction`.
@@ -89,14 +58,8 @@ export async function translateStreamPart<TOOLS extends ToolSet>(options: {
    * The agent's tools, used to tell typed from dynamic tool calls.
    */
   tools: TOOLS;
-
-  /**
-   * Tool calls translated so far in the turn, keyed by tool call ID. Updated
-   * by `tool-call` parts.
-   */
-  toolCalls: Map<string, TranslatedToolCall>;
 }): Promise<TextStreamPart<TOOLS>[]> {
-  const { part, tools, toolCalls } = options;
+  const { part, tools } = options;
   switch (part.type) {
     case 'text-start':
     case 'text-end':
@@ -145,15 +108,6 @@ export async function translateStreamPart<TOOLS extends ToolSet>(options: {
         tools[part.toolName].type === 'dynamic' ||
         !parsed.success;
       const input = parsed.success ? parsed.value : part.input;
-      const call: TranslatedToolCall = {
-        toolName: part.toolName,
-        input,
-        dynamic,
-      };
-      if (part.providerExecuted != null) {
-        call.providerExecuted = part.providerExecuted;
-      }
-      toolCalls.set(part.toolCallId, call);
       return [
         withOptionalProperties({
           part: {
@@ -173,77 +127,9 @@ export async function translateStreamPart<TOOLS extends ToolSet>(options: {
       ];
     }
 
-    case 'tool-result': {
-      const call = toolCalls.get(part.toolCallId);
-      const dynamic = part.dynamic ?? call?.dynamic;
-      const optional = {
-        dynamic: dynamic ? true : undefined,
-        providerExecuted: call?.providerExecuted,
-        providerMetadata: part.providerMetadata,
-      };
-      if (part.isError === true) {
-        return [
-          withOptionalProperties({
-            part: {
-              type: 'tool-error',
-              toolCallId: part.toolCallId,
-              toolName: part.toolName,
-              input: call?.input,
-              error: part.result,
-            },
-            optional,
-          }) as TextStreamPart<TOOLS>,
-        ];
-      }
-      return [
-        withOptionalProperties({
-          part: {
-            type: 'tool-result',
-            toolCallId: part.toolCallId,
-            toolName: part.toolName,
-            input: call?.input,
-            output: part.result,
-          },
-          optional: { ...optional, preliminary: part.preliminary },
-        }) as TextStreamPart<TOOLS>,
-      ];
-    }
-
-    case 'tool-approval-request': {
-      const call = toolCalls.get(part.toolCallId);
-      if (call == null) {
-        throw new HarnessEffectError({
-          message: `HarnessAgent: tool call '${part.toolCallId}' was not found for approval '${part.approvalId}'.`,
-        });
-      }
-      const toolCall = withOptionalProperties({
-        part: {
-          type: 'tool-call',
-          toolCallId: part.toolCallId,
-          toolName: call.toolName,
-          input: call.input,
-        },
-        optional: {
-          dynamic: call.dynamic ? true : undefined,
-          providerExecuted: call.providerExecuted,
-          providerMetadata: part.providerMetadata,
-        },
-      });
-      return [
-        withOptionalProperties({
-          part: {
-            type: 'tool-approval-request',
-            approvalId: part.approvalId,
-            toolCall,
-          },
-          optional: {
-            reason: part.reason,
-            isAutomatic: part.isAutomatic,
-          },
-        }) as TextStreamPart<TOOLS>,
-      ];
-    }
-
+    case 'tool-result':
+    case 'tool-error':
+    case 'tool-approval-request':
     case 'tool-approval-response':
     case 'tool-output-denied':
       return [part as TextStreamPart<TOOLS>];

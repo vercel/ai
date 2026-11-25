@@ -106,7 +106,8 @@ describe('createStreamWriter', () => {
       type: 'tool-result',
       toolCallId: 'call',
       toolName: 'test',
-      result,
+      input: {},
+      output: result,
     });
     writer.emit({
       part: part('private model output'),
@@ -127,7 +128,8 @@ describe('createStreamWriter', () => {
           type: 'tool-result',
           toolCallId: 'call',
           toolName: 'test',
-          result: { secret: 'private tool result' },
+          input: {},
+          output: { secret: 'private tool result' },
         },
       },
       { part: part('private model output'), key: 'step', startId: 'attempt' },
@@ -200,7 +202,8 @@ describe('createStreamWriter', () => {
       type: 'tool-result',
       toolCallId: 'call-1',
       toolName: 'fetchJson',
-      result,
+      input: {},
+      output: result,
     });
     await writer.flush();
 
@@ -210,15 +213,15 @@ describe('createStreamWriter', () => {
       HarnessAgentStreamPart,
       { type: 'tool-result' }
     >;
-    expect(Object.hasOwn(part.result as object, '__proto__')).toBe(true);
-    expect(Object.hasOwn(part.result as object, 'constructor')).toBe(true);
+    expect(Object.hasOwn(part.output as object, '__proto__')).toBe(true);
+    expect(Object.hasOwn(part.output as object, 'constructor')).toBe(true);
     expect(
       Object.hasOwn(
-        (part.result as { constructor: object }).constructor,
+        (part.output as { constructor: object }).constructor,
         'prototype',
       ),
     ).toBe(true);
-    expect((part.result as { value: string }).value).toBe('kept');
+    expect((part.output as { value: string }).value).toBe('kept');
   });
 
   test('stores a string that mentions a sensitive key without escaping it', async () => {

@@ -79,6 +79,7 @@ function createDrive(options: {
   });
   const gateBuiltinTool = createGateBuiltinToolFunction({
     log: options.log,
+    tools: {},
     builtinTools: options.builtinTools ?? builtinTools,
     effect,
     abortSignal: abortController.signal,
@@ -248,7 +249,10 @@ describe('createGateBuiltinToolFunction', () => {
         type: 'tool-result',
         toolCallId: 'call-1',
         toolName: 'Bash',
-        result: { stdout: 'file.txt' },
+        input: { command: 'ls' },
+        output: { stdout: 'file.txt' },
+        dynamic: true,
+        providerExecuted: true,
       },
     ]);
   });
@@ -274,18 +278,24 @@ describe('createGateBuiltinToolFunction', () => {
       ),
     ).toEqual([{ raw: 'a' }, { raw: 'ab' }, { raw: 'abc' }, { raw: 'abcd' }]);
     expect(await readParts({ world })).toEqual([
-      ...['a', 'ab', 'abc'].map(result => ({
+      ...['a', 'ab', 'abc'].map(output => ({
         type: 'tool-result',
         toolCallId: 'call-1',
         toolName: 'Bash',
-        result,
+        input: { command: 'ls' },
+        output,
         preliminary: true,
+        dynamic: true,
+        providerExecuted: true,
       })),
       {
         type: 'tool-result',
         toolCallId: 'call-1',
         toolName: 'Bash',
-        result: 'abcd',
+        input: { command: 'ls' },
+        output: 'abcd',
+        dynamic: true,
+        providerExecuted: true,
       },
     ]);
   });
@@ -304,11 +314,13 @@ describe('createGateBuiltinToolFunction', () => {
     ]);
     expect(await readParts({ world })).toEqual([
       {
-        type: 'tool-result',
+        type: 'tool-error',
         toolCallId: 'call-1',
         toolName: 'Bash',
-        result: 'command failed',
-        isError: true,
+        input: { command: 'ls' },
+        error: 'command failed',
+        dynamic: true,
+        providerExecuted: true,
       },
     ]);
   });
@@ -335,7 +347,10 @@ describe('createGateBuiltinToolFunction', () => {
         type: 'tool-result',
         toolCallId: 'call-1',
         toolName: 'Bash',
-        result: 'first',
+        input: { command: 'ls' },
+        output: 'first',
+        dynamic: true,
+        providerExecuted: true,
       },
     ]);
   });
@@ -506,11 +521,13 @@ describe('createGateBuiltinToolFunction', () => {
     ]);
     expect(await readParts({ world })).toEqual([
       {
-        type: 'tool-result',
+        type: 'tool-error',
         toolCallId: 'call-1',
         toolName: 'weather',
-        result: message,
-        isError: true,
+        input: { city: 'Paris' },
+        error: message,
+        dynamic: true,
+        providerExecuted: true,
       },
     ]);
 

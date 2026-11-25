@@ -1,7 +1,13 @@
 import { expectTypeOf, test } from 'vitest';
 import type { SerializableValue } from '@ai-sdk/provider';
 import type { ToolSet } from '@ai-sdk/provider-utils';
-import type { ToolApprovalResponseOutput, TypedToolOutputDenied } from 'ai';
+import type {
+  StaticToolOutputDenied,
+  ToolApprovalRequestOutput,
+  ToolApprovalResponseOutput,
+  TypedToolError,
+  TypedToolResult,
+} from 'ai';
 import type { HarnessV2DriveContext } from '../../../v2/harness-v2-drive-context';
 import type {
   HarnessV2EffectContext,
@@ -49,32 +55,43 @@ test('copies every adapter stream part into the agent stream parts', () => {
           | 'retract'
           | 'yield'
           | 'settle'
+          | 'tool-approval-request'
           | 'tool-approval-response'
-          | 'tool-output-denied';
+          | 'tool-output-denied'
+          | 'tool-result'
+          | 'tool-error';
       }
     >
   >().toEqualTypeOf<HarnessV2StreamPart>();
 });
 
-test('approval requests reference tool calls by ID', () => {
+test('keeps engine-emitted tool parts out of the adapter stream parts', () => {
   expectTypeOf<
-    Extract<HarnessAgentStreamPart, { type: 'tool-approval-request' }>
-  >().not.toHaveProperty('input');
-  expectTypeOf<
-    Extract<HarnessAgentStreamPart, { type: 'tool-approval-request' }>
-  >().not.toHaveProperty('toolName');
+    Extract<
+      HarnessV2StreamPart,
+      { type: 'tool-approval-request' | 'tool-result' | 'tool-error' }
+    >
+  >().toBeNever();
 });
 
-test('uses the AI SDK approval response stream part', () => {
+test('uses the AI SDK tool stream parts', () => {
+  expectTypeOf<
+    Extract<HarnessAgentStreamPart, { type: 'tool-approval-request' }>
+  >().toEqualTypeOf<ToolApprovalRequestOutput<ToolSet>>();
   expectTypeOf<
     Extract<HarnessAgentStreamPart, { type: 'tool-approval-response' }>
   >().toEqualTypeOf<ToolApprovalResponseOutput<ToolSet>>();
-});
-
-test('uses the AI SDK denied tool output stream part', () => {
   expectTypeOf<
     Extract<HarnessAgentStreamPart, { type: 'tool-output-denied' }>
-  >().toEqualTypeOf<TypedToolOutputDenied<ToolSet>>();
+  >().toEqualTypeOf<
+    { type: 'tool-output-denied' } & StaticToolOutputDenied<ToolSet>
+  >();
+  expectTypeOf<
+    Extract<HarnessAgentStreamPart, { type: 'tool-result' }>
+  >().toEqualTypeOf<{ type: 'tool-result' } & TypedToolResult<ToolSet>>();
+  expectTypeOf<
+    Extract<HarnessAgentStreamPart, { type: 'tool-error' }>
+  >().toEqualTypeOf<{ type: 'tool-error' } & TypedToolError<ToolSet>>();
 });
 
 test('derives agent finish parts from the finish function options', () => {

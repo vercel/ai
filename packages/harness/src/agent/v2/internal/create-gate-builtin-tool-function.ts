@@ -13,13 +13,14 @@ import type {
   HarnessV2ToolGateOutput,
 } from '../../../v2/harness-v2-drive-context';
 import type {
-  HarnessV2EffectContext,
   HarnessV2EffectError,
   HarnessV2EffectOutput,
 } from '../../../v2/harness-v2-effect';
-import type { HarnessV2ToolResult } from '../../../v2/harness-v2-stream-part';
 import { isPlainJSONValue } from './utils';
-import type { HarnessAgentEffectFunction } from './create-effect-function';
+import type {
+  HarnessAgentEffectContext,
+  HarnessAgentEffectFunction,
+} from './create-effect-function';
 import type { HarnessAgentLog } from './create-log';
 
 /**
@@ -180,53 +181,6 @@ function validateValue(options: {
 }
 
 /**
- * Emits a `tool-result` part attributed to an effect attempt.
- */
-function emitToolResult(options: {
-  /**
-   * Context of the attempt that produced the part.
-   */
-  context: HarnessV2EffectContext;
-
-  /**
-   * ID of the tool call.
-   */
-  toolCallId: string;
-
-  /**
-   * Name of the called tool.
-   */
-  toolName: string;
-
-  /**
-   * JSON result or error message.
-   */
-  result: JSONValue;
-
-  /**
-   * Whether the part reports an error.
-   */
-  isError?: boolean;
-
-  /**
-   * Whether the part is a preliminary result.
-   */
-  preliminary?: boolean;
-}): void {
-  const { context, toolCallId, toolName, result, isError, preliminary } =
-    options;
-  const part: HarnessV2ToolResult = {
-    type: 'tool-result',
-    toolCallId,
-    toolName,
-    result,
-  };
-  if (isError) part.isError = true;
-  if (preliminary) part.preliminary = true;
-  context.emit(part);
-}
-
-/**
  * Creates the drive context's `gateBuiltinTool()` for one drive.
  *
  * Each call is recorded as the effect `tool:${toolCallId}` named
@@ -318,12 +272,14 @@ export function createGateBuiltinToolFunction(options: {
           availableTools: Object.keys(builtinTools),
         });
         if (!context.abortSignal.aborted) {
-          emitToolResult({
-            context,
+          context.emit({
+            type: 'tool-error',
             toolCallId,
             toolName,
-            result: getErrorMessage(error),
-            isError: true,
+            input,
+            error: getErrorMessage(error),
+            dynamic: true,
+            providerExecuted: true,
           });
         }
         throw error;
@@ -367,6 +323,17 @@ export function createGateBuiltinToolFunction(options: {
     tool: HarnessV2BuiltinToolSet[string];
   }): Promise<HarnessV2ToolGateOutput> {
     const { toolCallId, toolName, input, tool } = options;
+    /*
+     * Built-in tools are executed by the harness runtime and are not part of
+     * the agent's tool set, so their calls are dynamic and provider-executed.
+     */
+    const toolCallFields = {
+      toolCallId,
+      toolName,
+      input,
+      dynamic: true as const,
+      providerExecuted: true,
+    };
     const reports: GateReport[] = [];
     let wake: (() => void) | undefined;
     let ended = false;
@@ -392,7 +359,7 @@ export function createGateBuiltinToolFunction(options: {
      * the attempt as interrupted.
      */
     async function nextReport(
-      context: HarnessV2EffectContext,
+      context: HarnessAgentEffectContext,
     ): Promise<GateReport> {
       for (;;) {
         if (context.abortSignal.aborted) throw context.abortSignal.reason;
@@ -424,7 +391,7 @@ export function createGateBuiltinToolFunction(options: {
      * right after its `yield`.
      */
     async function* runAttempt(
-      context: HarnessV2EffectContext,
+      context: HarnessAgentEffectContext,
     ): AsyncGenerator<SerializableValue> {
       /*
        * TODO: Revisit this marker. It commits before the gate approves the
@@ -442,22 +409,19 @@ export function createGateBuiltinToolFunction(options: {
       for (;;) {
         const report = await nextReport(context);
         if (report.type === 'error') {
-          emitToolResult({
-            context,
-            toolCallId,
-            toolName,
-            result: report.error.message,
-            isError: true,
+          context.emit({
+            type: 'tool-error',
+            ...toolCallFields,
+            error: report.error.message,
           });
           throw new HarnessEffectError(report.error);
         }
 
-        emitToolResult({
-          context,
-          toolCallId,
-          toolName,
-          result: report.value.raw,
-          preliminary: report.type === 'partial',
+        context.emit({
+          type: 'tool-result',
+          ...toolCallFields,
+          output: report.value.raw,
+          ...(report.type === 'partial' && { preliminary: true }),
         });
         /*
          * The cast is needed because `ToolResultOutput` contains interfaces,

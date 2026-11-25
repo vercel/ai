@@ -7,7 +7,13 @@ import {
   parseJSON,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
-import type { ToolApprovalResponseOutput, TypedToolOutputDenied } from 'ai';
+import type {
+  StaticToolOutputDenied,
+  ToolApprovalRequestOutput,
+  ToolApprovalResponseOutput,
+  TypedToolError,
+  TypedToolResult,
+} from 'ai';
 import type { World } from '@workflow/world';
 import type { HarnessAgentSession } from '../harness-agent-session';
 import { decodeJSONRecordValue, encodeJSONRecord } from './encode-json-record';
@@ -17,17 +23,23 @@ import type {
   HarnessV2CallWarning,
   HarnessV2FinishReason,
   HarnessV2Metadata,
-  HarnessV2ToolApprovalRequest,
   HarnessV2ToolCall,
   HarnessV2ToolInputDelta,
   HarnessV2ToolInputEnd,
   HarnessV2ToolInputStart,
-  HarnessV2ToolResult,
   HarnessV2Usage,
 } from '../../../v2/harness-v2-stream-part';
 
 /**
- * Automatic approval response emitted by the engine for a host tool call.
+ * Approval request for a host tool call. Emitted by the engine only, keyed
+ * `tool-approval-request:${toolCallId}`.
+ */
+type HarnessAgentToolApprovalRequestPart<TOOLS extends ToolSet> =
+  ToolApprovalRequestOutput<TOOLS>;
+
+/**
+ * Automatic approval response for a host tool call. Emitted by the engine
+ * only, keyed `tool-approval-response:${toolCallId}`.
  */
 type HarnessAgentToolApprovalResponsePart<TOOLS extends ToolSet> =
   ToolApprovalResponseOutput<TOOLS>;
@@ -36,19 +48,49 @@ type HarnessAgentToolApprovalResponsePart<TOOLS extends ToolSet> =
  * Reports that a host tool call was denied and its tool did not run.
  * Emitted by the engine only, keyed `tool-output-denied:${toolCallId}`.
  */
-type HarnessAgentToolOutputDeniedPart<TOOLS extends ToolSet> =
-  TypedToolOutputDenied<TOOLS>;
+type HarnessAgentToolOutputDeniedPart<TOOLS extends ToolSet> = {
+  /**
+   * Reports that a host tool call was denied.
+   */
+  type: 'tool-output-denied';
+} & StaticToolOutputDenied<TOOLS>;
+
+/**
+ * Result of a tool call. Emitted by the engine only, through the effect
+ * attempt that executed or gated the tool.
+ */
+type HarnessAgentToolResultPart<TOOLS extends ToolSet> = {
+  /**
+   * Reports the result of a tool call.
+   */
+  type: 'tool-result';
+} & TypedToolResult<TOOLS>;
+
+/**
+ * Error result of a tool call. Emitted by the engine only, through the effect
+ * attempt that executed or gated the tool, or keyed
+ * `tool-interrupted:${startId}` for an attempt interrupted by a crash.
+ */
+type HarnessAgentToolErrorPart<TOOLS extends ToolSet> = {
+  /**
+   * Reports the error result of a tool call.
+   */
+  type: 'tool-error';
+} & TypedToolError<TOOLS>;
 
 /**
  * Stream events handled by the HarnessAgent engine: the engine-side superset of
  * `HarnessV2StreamPart`. The `start-turn`, `finish-step`, `finish-turn`,
- * `retract`, `yield`, `settle`, `tool-approval-response` and
- * `tool-output-denied` variants are produced only
- * by the engine: `start-turn` when a turn starts, the finish parts from the
- * drive context's `finishStep()` and `finishTurn()`, `retract` from the
- * stream writer's `retract()`, `yield` when a drive yields at its deadline,
- * `settle` when a drive leaves nothing to drive, and the approval response
- * and denial parts from `executeHostTool()`. A harness never emits them.
+ * `retract`, `yield`, `settle`, `tool-approval-request`,
+ * `tool-approval-response`, `tool-output-denied`, `tool-result` and
+ * `tool-error` variants
+ * are produced only by the engine: `start-turn` when a turn starts, the
+ * finish parts from the drive context's `finishStep()` and `finishTurn()`,
+ * `retract` from the stream writer's `retract()`, `yield` when a drive yields
+ * at its deadline, `settle` when a drive leaves nothing to drive, the
+ * approval and denial parts from `executeHostTool()`, and `tool-result` and
+ * `tool-error` from the tool execution functions and `gateBuiltinTool()`. A
+ * harness never emits them.
  *
  * This union is redeclared rather than derived from `HarnessV2StreamPart`, so
  * every change to that type must be mirrored here.
@@ -192,8 +234,9 @@ export type HarnessAgentStreamPart =
        */
       nativeName?: string;
     })
-  | HarnessV2ToolApprovalRequest
-  | HarnessV2ToolResult
+  | HarnessAgentToolApprovalRequestPart<ToolSet>
+  | HarnessAgentToolResultPart<ToolSet>
+  | HarnessAgentToolErrorPart<ToolSet>
   | {
       /**
        * Completes one model step.

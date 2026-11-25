@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from 'vitest';
+import { z } from 'zod/v4';
 import { DefaultHarnessAgentSession } from '../harness-agent-session';
 import { InMemoryWorld } from '../in-memory-world';
 import {
@@ -213,6 +214,8 @@ describe('startDrive', () => {
         writer,
         world,
         session,
+        tools: {},
+        builtinTools: {},
         driveIdentity: { driveId: 'drive' },
       }),
     ).toBe(false);
@@ -247,6 +250,8 @@ describe('startDrive', () => {
         writer,
         world,
         session,
+        tools: {},
+        builtinTools: {},
         driveIdentity: { driveId: 'drive' },
       }),
     ).toBe(false);
@@ -269,6 +274,8 @@ describe('startDrive', () => {
         writer,
         world,
         session,
+        tools: {},
+        builtinTools: {},
         driveIdentity: driveIdentity({
           driveId: 'drive',
           deadline: 1_000,
@@ -326,6 +333,8 @@ describe('startDrive', () => {
           writer,
           world,
           session,
+          tools: {},
+          builtinTools: {},
           driveIdentity: driveIdentity({ driveId: 'drive', queueJobId }),
         }),
       ).toBe(false);
@@ -353,6 +362,8 @@ describe('startDrive', () => {
             writer,
             world,
             session,
+            tools: {},
+            builtinTools: {},
             driveIdentity: { driveId: 'drive' },
           }),
         ).toBe(false);
@@ -379,6 +390,8 @@ describe('startDrive', () => {
         writer,
         world,
         session,
+        tools: {},
+        builtinTools: {},
         driveIdentity: { driveId: 'drive' },
       }),
     ).toBe(false);
@@ -443,6 +456,8 @@ describe('startDrive', () => {
           writer,
           world,
           session,
+          tools: {},
+          builtinTools: {},
           driveIdentity: driveIdentity({ driveId: 'drive', queueJobId }),
         }),
       ).toBe(true);
@@ -488,11 +503,12 @@ describe('startDrive', () => {
         { part: { type: 'retract', startIds: ['model', 'unstarted'] } },
         {
           part: {
-            type: 'tool-result',
+            type: 'tool-error',
             toolCallId: 'b',
             toolName: 'bash',
-            result: 'The bash call was interrupted before it finished.',
-            isError: true,
+            input: null,
+            error: 'The bash call was interrupted before it finished.',
+            dynamic: true,
           },
           key: 'tool-interrupted:executed',
         },
@@ -542,6 +558,8 @@ describe('startDrive', () => {
           writer,
           world,
           session,
+          tools: {},
+          builtinTools: { bash: { inputSchema: z.object({}) } },
           driveIdentity: { driveId },
         }),
       ).toBe(true);
@@ -556,12 +574,14 @@ describe('startDrive', () => {
       },
       {
         part: {
-          type: 'tool-result',
+          type: 'tool-error',
           toolCallId: 'call-1',
           toolName: 'bash',
-          result:
+          input: null,
+          error:
             'The bash call was interrupted before it finished.\nPartial output before the interruption:\n{"status":"in-progress"}',
-          isError: true,
+          dynamic: true,
+          providerExecuted: true,
         },
         key: 'tool-interrupted:executed',
       },
@@ -587,6 +607,8 @@ describe('startDrive', () => {
         writer,
         world,
         session,
+        tools: {},
+        builtinTools: {},
         driveIdentity: { driveId: 'drive' },
       }),
     ).toBe(true);
@@ -625,6 +647,8 @@ describe('startDrive', () => {
         writer,
         world,
         session,
+        tools: {},
+        builtinTools: {},
         driveIdentity: { driveId: 'drive' },
       }),
     ).toBe(true);
@@ -658,6 +682,8 @@ describe('startDrive', () => {
         writer,
         world,
         session,
+        tools: {},
+        builtinTools: {},
         driveIdentity: { driveId: 'drive' },
       };
       expect(await startDrive(options)).toBe(false);
@@ -668,7 +694,12 @@ describe('startDrive', () => {
           part: {
             type: 'tool-approval-request',
             approvalId: 'approval-1',
-            toolCallId: 'call-1',
+            toolCall: {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'weather',
+              input: {},
+            },
           },
           key: 'tool-approval-request:call-1',
         },
@@ -716,6 +747,8 @@ describe('startDrive', () => {
           writer,
           world,
           session,
+          tools: {},
+          builtinTools: {},
           driveIdentity: { driveId: 'drive' },
         }),
       ).toBe(true);
@@ -738,6 +771,8 @@ describe('startDrive', () => {
           writer,
           world,
           session,
+          tools: {},
+          builtinTools: {},
           driveIdentity: { driveId: 'drive' },
         }),
       ).toBe(true);

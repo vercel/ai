@@ -37,7 +37,6 @@ import { getReasoningOutput } from './harness-generate-text-result';
 import {
   translateFinishReason,
   translateStreamPart,
-  type TranslatedToolCall,
 } from './translate-stream-part';
 import type {
   HarnessAgentStreamPart,
@@ -232,7 +231,6 @@ export class HarnessStreamTextResult<
   private readonly _totalUsage = new DelayedPromise<LanguageModelUsage>();
 
   private readonly steps_: Array<StepResult<TOOLS, RUNTIME_CONTEXT>> = [];
-  private readonly translatedToolCalls = new Map<string, TranslatedToolCall>();
   private stepContent: Array<ContentPart<TOOLS>> = [];
   private stepTextContent = new Map<string, CollectedTextContent>();
   private stepReasoningContent = new Map<string, CollectedReasoningContent>();
@@ -273,17 +271,6 @@ export class HarnessStreamTextResult<
     tools: TOOLS;
 
     /**
-     * Tool calls loaded from the log when their stream parts precede this
-     * response or need repair. Used for approval and result translation,
-     * without emitting those calls again.
-     */
-    toolCalls?: ReadonlyArray<{
-      toolCallId: string;
-      toolName: string;
-      input: unknown;
-    }>;
-
-    /**
      * Identifier of the harness adapter, part of the reported provider.
      */
     harnessId: string;
@@ -297,15 +284,6 @@ export class HarnessStreamTextResult<
     this.providerName = `harness:${options.harnessId}`;
     this.modelId = options.harnessId;
     this.callId = options.callId;
-    for (const call of options.toolCalls ?? []) {
-      this.translatedToolCalls.set(call.toolCallId, {
-        toolName: call.toolName,
-        input: call.input,
-        dynamic:
-          !Object.hasOwn(options.tools, call.toolName) ||
-          options.tools[call.toolName].type === 'dynamic',
-      });
-    }
 
     let controller!: ReadableStreamDefaultController<HarnessStreamEntry<TOOLS>>;
     this.baseStream = new ReadableStream<HarnessStreamEntry<TOOLS>>({
@@ -512,7 +490,6 @@ export class HarnessStreamTextResult<
     const translated = await translateStreamPart({
       part,
       tools: this.tools,
-      toolCalls: this.translatedToolCalls,
     });
     for (const translatedPart of translated) {
       if (translatedPart.type === 'error') {

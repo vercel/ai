@@ -4,12 +4,17 @@ import type {
   ToolApprovalResponse,
   ToolSet,
 } from '@ai-sdk/provider-utils';
-import type { ToolApprovalStatus } from 'ai';
+import type {
+  ToolApprovalRequestOutput,
+  ToolApprovalStatus,
+  TypedToolCall,
+} from 'ai';
 import { HarnessCapabilityUnsupportedError } from '../../../errors/harness-capability-unsupported-error';
 import { DEFAULT_PERMISSION_MODE } from '../../internal/permission-mode';
 import type {
   HarnessAgentLog,
   HarnessAgentLogToolApproval,
+  HarnessAgentLogToolApprovalRequestEvent,
 } from './create-log';
 
 /**
@@ -277,6 +282,58 @@ export function describeToolCallDenial(options: {
   return reason == null || reason === ''
     ? 'The tool call was denied.'
     : `The tool call was denied: ${reason}`;
+}
+
+/**
+ * Creates the tool call of an approval request. Approvals are only requested
+ * for valid calls of the agent's own tools, which the harness never executes,
+ * so the call is dynamic only if its tool is a dynamic tool.
+ */
+export function createToolApprovalToolCall(options: {
+  /**
+   * Recorded approval request.
+   */
+  request: HarnessAgentLogToolApprovalRequestEvent['data'];
+
+  /**
+   * The agent's tools.
+   */
+  tools: ToolSet;
+}): TypedToolCall<ToolSet> {
+  const { request, tools } = options;
+  const toolCall = {
+    type: 'tool-call' as const,
+    toolCallId: request.toolCallId,
+    toolName: request.toolName,
+    input: request.input,
+  };
+  return tools[request.toolName]?.type === 'dynamic'
+    ? { ...toolCall, dynamic: true }
+    : toolCall;
+}
+
+/**
+ * Creates the `tool-approval-request` part of a recorded approval request.
+ */
+export function createToolApprovalRequestPart(options: {
+  /**
+   * Recorded approval request.
+   */
+  request: HarnessAgentLogToolApprovalRequestEvent['data'];
+
+  /**
+   * The agent's tools.
+   */
+  tools: ToolSet;
+}): ToolApprovalRequestOutput<ToolSet> {
+  const { request } = options;
+  return {
+    type: 'tool-approval-request',
+    approvalId: request.approvalId,
+    toolCall: createToolApprovalToolCall(options),
+    ...(request.reason != null && { reason: request.reason }),
+    ...(request.isAutomatic != null && { isAutomatic: request.isAutomatic }),
+  };
 }
 
 /**

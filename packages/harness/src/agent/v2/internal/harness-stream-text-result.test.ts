@@ -37,7 +37,6 @@ function createResult(options: {
   records?: HarnessAgentStreamPartRecord[];
   readError?: Error;
   aborted?: boolean;
-  toolCalls?: Array<{ toolCallId: string; toolName: string; input: unknown }>;
 }) {
   const abortController = new AbortController();
   if (options.aborted) abortController.abort();
@@ -55,7 +54,6 @@ function createResult(options: {
     }),
     abortSignal: abortController.signal,
     tools: {},
-    toolCalls: options.toolCalls,
     harnessId: 'fake',
     callId: 'call',
   });
@@ -70,16 +68,19 @@ async function readPartTypes(
 }
 
 describe('HarnessStreamTextResult', () => {
-  test('resolves approval parts from log context without re-emitting earlier tool calls', async () => {
+  test('passes approval parts through without re-emitting earlier tool calls', async () => {
     const result = createResult({
-      toolCalls: [
-        { toolCallId: 'call-1', toolName: 'weather', input: { city: 'Paris' } },
-      ],
       parts: [
         {
           type: 'tool-approval-request',
           approvalId: 'approval-1',
-          toolCallId: 'call-1',
+          toolCall: {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            input: { city: 'Paris' },
+            dynamic: true,
+          },
           isAutomatic: true,
         },
         {
@@ -211,7 +212,13 @@ describe('HarnessStreamTextResult', () => {
         {
           type: 'tool-approval-request',
           approvalId: 'approval-1',
-          toolCallId: 'call-1',
+          toolCall: {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            input: { city: 'Berlin' },
+            dynamic: true,
+          },
         },
         { type: 'finish-step', finishReason: toolCallsReason, usage },
         { type: 'settle' },
@@ -434,11 +441,12 @@ describe('HarnessStreamTextResult', () => {
             input: '{}',
           },
           {
-            type: 'tool-result',
+            type: 'tool-error',
             toolCallId: 'call-1',
             toolName: 'weather',
-            result: 'weather backend timeout',
-            isError: true,
+            input: {},
+            error: 'weather backend timeout',
+            dynamic: true,
           },
           finishStepPart,
           { type: 'finish-turn', finishReason, totalUsage: usage },

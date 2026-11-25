@@ -9,10 +9,7 @@ import {
 import { HarnessCancellationError } from '../../../errors/harness-cancellation-error';
 import { HarnessEffectError } from '../../../errors/harness-effect-error';
 import { HarnessInvalidDriveStateError } from '../../../errors/harness-invalid-drive-state-error';
-import type {
-  HarnessV2EffectFunction,
-  HarnessV2EffectOptions,
-} from '../../../v2/harness-v2-drive-context';
+import type { HarnessV2EffectOptions } from '../../../v2/harness-v2-drive-context';
 import type {
   HarnessV2EffectContext,
   HarnessV2EffectOutput,
@@ -23,23 +20,50 @@ import type {
   HarnessAgentLogEffectProgressEvent,
   HarnessAgentLogEffectStartEvent,
 } from './create-log';
-import type { HarnessAgentStreamWriter } from './create-stream-writer';
+import type {
+  HarnessAgentStreamPart,
+  HarnessAgentStreamWriter,
+} from './create-stream-writer';
 
 /**
- * Options of one `effect()` call. Same as `HarnessV2EffectOptions`, redeclared
- * so the engine does not depend on the adapter-facing type.
+ * Context passed to an effect callback. Same as `HarnessV2EffectContext`,
+ * except that `emit()` accepts every `HarnessAgentStreamPart`, so the engine
+ * can emit parts a harness never emits, such as `tool-result`.
+ */
+export type HarnessAgentEffectContext = Omit<HarnessV2EffectContext, 'emit'> & {
+  /**
+   * Emits a stream part produced by this attempt to the agent's output.
+   */
+  emit(part: HarnessAgentStreamPart): void;
+};
+
+/**
+ * Options of one `effect()` call. Same as `HarnessV2EffectOptions`, except
+ * that the callback receives a `HarnessAgentEffectContext`.
  */
 export type HarnessAgentEffectOptions<
   T extends SerializableValue = SerializableValue,
-> = HarnessV2EffectOptions<T>;
+> = Omit<HarnessV2EffectOptions<T>, 'fn'> & {
+  /**
+   * Work to run for a new attempt.
+   */
+  fn: (context: HarnessAgentEffectContext) => PromiseLike<T> | AsyncIterable<T>;
+};
 
 /**
  * Runs a keyed effect and returns its committed output. Terminal outputs are
  * replayed; recorded retryable interruptions permit a new attempt. Callback
  * failures become error outputs, except a thrown `HarnessCancellationError`,
  * which becomes an interruption. Persistence failures reject the call.
+ *
+ * Assignable to `HarnessV2EffectFunction`, so the drive context exposes it to
+ * a harness with the narrower `HarnessV2EffectContext`.
  */
-export type HarnessAgentEffectFunction = HarnessV2EffectFunction;
+export type HarnessAgentEffectFunction = <
+  T extends SerializableValue = SerializableValue,
+>(
+  options: HarnessAgentEffectOptions<T>,
+) => Promise<HarnessV2EffectOutput<T>>;
 
 /**
  * Callback outcome and an optional drive-rebuild error to propagate after
@@ -108,12 +132,12 @@ async function executeCallback(options: {
   /**
    * Emit function passed to the callback, bound to this attempt.
    */
-  emit: HarnessV2EffectContext['emit'];
+  emit: HarnessAgentEffectContext['emit'];
   /**
    * Work to execute once its start has committed.
    */
   fn: (
-    context: HarnessV2EffectContext,
+    context: HarnessAgentEffectContext,
   ) => PromiseLike<SerializableValue> | AsyncIterable<SerializableValue>;
 }): Promise<CallbackOutput> {
   const { log, abortSignal, attempt, emit, fn } = options;

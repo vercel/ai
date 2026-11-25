@@ -136,16 +136,16 @@ export type HarnessV2ToolGateOutput =
       /**
        * Reports a partial value of the running call, e.g. streamed command
        * output. Each value is complete and replaces the previous one; it is
-       * not a delta. The agent records it as the call's latest partial output
-       * and emits a preliminary `tool-result` part. Resolves once the value is
-       * committed; does nothing once the call ended.
+       * not a delta. The agent records it as the call's latest partial
+       * output. Resolves once the value is committed; does nothing once the
+       * call ended.
        */
       partial(value: HarnessV2ToolExecutionValue): Promise<void>;
 
       /**
        * Ends the call with the result the runtime reported, e.g. from its
-       * after-hook (`PostToolUse`). The agent records it and emits the final
-       * `tool-result` part. Resolves once the end is committed.
+       * after-hook (`PostToolUse`). The agent records it. Resolves once the
+       * end is committed.
        *
        * Call exactly one of `result()` and `error()`: the first call wins, and
        * later calls (including `partial()`) do nothing. A call that never
@@ -157,8 +157,8 @@ export type HarnessV2ToolGateOutput =
 
       /**
        * Ends the call with the failure the runtime reported, e.g. from its
-       * failure hook (`PostToolUseFailure`). The agent records it and emits an
-       * error `tool-result` part. Same rules as `result()`.
+       * failure hook (`PostToolUseFailure`). The agent records it. Same rules
+       * as `result()`.
        */
       error(error: HarnessV2EffectError): Promise<void>;
     }
@@ -200,12 +200,9 @@ export type HarnessV2ToolGateOutput =
  * JSON. Invalid calls (an unknown tool or input that does not match the
  * tool's input schema) are recorded as `error` outcomes too.
  *
- * The agent emits the `tool-result` parts (preliminary, final and error) of
- * host tools itself, so the adapter must not emit them. A tool without
- * `execute` (a client tool) resolves `suspended` without being recorded.
- *
- * Calls may resolve `denied` or `suspended` for approval. The agent emits
- * approval stream parts itself, so the adapter must not emit them.
+ * A tool without `execute` (a client tool) resolves `suspended` without
+ * being recorded. Calls may also resolve `denied` or `suspended` for
+ * approval.
  */
 export type HarnessV2ExecuteHostToolFunction = <
   T extends JSONValue = JSONValue,
@@ -246,9 +243,6 @@ export type HarnessV2ExecuteHostToolFunction = <
  * values and whose last yielded value is the final value. Every value is
  * complete, not a delta. A thrown error becomes an `error` outcome, except a
  * `HarnessCancellationError`, which becomes `interrupted`.
- *
- * The agent emits the `tool-result` parts (preliminary, final and error) of
- * these calls itself, so the adapter must not emit them.
  */
 export type HarnessV2ExecuteBuiltinToolFunction = <
   T extends JSONValue = JSONValue,
@@ -290,9 +284,8 @@ export type HarnessV2ExecuteBuiltinToolFunction = <
  *
  * The callback receives the attempt's abort signal and returns a final value
  * or yields complete partial values followed by the final value. Returned
- * MCP errors retain their content through `isError`. The engine emits all
- * dynamic tool results; the adapter must not emit them again. No sandbox is
- * resolved for remote MCP execution.
+ * MCP errors retain their content through `isError`. No sandbox is resolved
+ * for remote MCP execution.
  */
 export type HarnessV2ExecuteMcpToolFunction = <
   T extends JSONValue = JSONValue,
@@ -321,9 +314,6 @@ export type HarnessV2ExecuteMcpToolFunction = <
  * A tool that is not one of the harness's built-in tools is recorded as an
  * `error` and `denied` too. `input` must already be parsed from the model's
  * JSON.
- *
- * The agent emits the `tool-result` parts (preliminary, final and error) of
- * built-in tools itself, so the adapter must not emit them.
  */
 export type HarnessV2GateBuiltinToolFunction = (call: {
   /**

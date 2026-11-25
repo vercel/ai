@@ -3,7 +3,6 @@ import type {
   JSONValue,
   SerializableValue,
 } from '@ai-sdk/provider';
-import type { ToolApprovalRequest } from '@ai-sdk/provider-utils';
 import type { HarnessV2EffectError } from './harness-v2-effect';
 
 /**
@@ -240,64 +239,6 @@ export type HarnessV2ToolCall = {
 };
 
 /**
- * Approval request for a tool call executed by the harness.
- */
-export type HarnessV2ToolApprovalRequest = Pick<
-  ToolApprovalRequest,
-  'type' | 'approvalId' | 'toolCallId' | 'reason' | 'isAutomatic'
-> & {
-  /**
-   * Optional provider metadata associated with the approval request.
-   */
-  providerMetadata?: Record<string, JSONObject>;
-};
-
-/**
- * Result of a tool call executed by the harness.
- */
-export type HarnessV2ToolResult = {
-  /**
-   * Reports the result of a tool call executed by the harness.
-   */
-  type: 'tool-result';
-
-  /**
-   * Identifier of the tool call this result belongs to.
-   */
-  toolCallId: string;
-
-  /**
-   * Name of the tool that produced the result.
-   */
-  toolName: string;
-
-  /**
-   * JSON result of the tool call, or the error message for an error result.
-   */
-  result: JSONValue;
-
-  /**
-   * Whether the result is an error.
-   */
-  isError?: boolean;
-
-  /**
-   * Whether the result is preliminary and replaced by a later result.
-   */
-  preliminary?: boolean;
-
-  /**
-   * Whether the tool is defined at runtime, e.g. an MCP tool.
-   */
-  dynamic?: boolean;
-
-  /**
-   * Optional provider metadata associated with the tool result.
-   */
-  providerMetadata?: Record<string, JSONObject>;
-};
-
-/**
  * Warning emitted when a harness cannot honor a requested setting or tool.
  */
 export type HarnessV2CallWarning =
@@ -484,8 +425,6 @@ export type HarnessV2StreamPart =
        */
       nativeName?: string;
     })
-  | HarnessV2ToolApprovalRequest
-  | HarnessV2ToolResult
   | {
       /**
        * Reports a filesystem change made during the harness session.

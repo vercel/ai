@@ -5,7 +5,6 @@ import { HarnessEffectError } from '../../../errors/harness-effect-error';
 import {
   translateFinishReason,
   translateStreamPart,
-  type TranslatedToolCall,
 } from './translate-stream-part';
 import type { HarnessAgentStreamPart } from './create-stream-writer';
 
@@ -16,15 +15,8 @@ const tools = {
   }),
 };
 
-function translate(options: {
-  part: HarnessAgentStreamPart;
-  toolCalls?: Map<string, TranslatedToolCall>;
-}) {
-  return translateStreamPart({
-    part: options.part,
-    tools,
-    toolCalls: options.toolCalls ?? new Map(),
-  });
+function translate(options: { part: HarnessAgentStreamPart }) {
+  return translateStreamPart({ part: options.part, tools });
 }
 
 describe('translateFinishReason', () => {
@@ -51,12 +43,10 @@ describe('translateStreamPart', () => {
     { toolName: 'dynamicWeather', dynamic: true },
     { toolName: 'mcp__context7__query_docs', dynamic: true },
   ])(
-    'keeps $toolName dynamic classification consistent from input start to result',
+    'keeps $toolName dynamic classification consistent from input start to call',
     async ({ toolName, dynamic }) => {
-      const toolCalls = new Map<string, TranslatedToolCall>();
       const start = await translate({
         part: { type: 'tool-input-start', id: 'call-1', toolName },
-        toolCalls,
       });
       const call = await translate({
         part: {
@@ -65,19 +55,9 @@ describe('translateStreamPart', () => {
           toolName,
           input: '{"city":"Berlin"}',
         },
-        toolCalls,
-      });
-      const result = await translate({
-        part: {
-          type: 'tool-result',
-          toolCallId: 'call-1',
-          toolName,
-          result: 'sunny',
-        },
-        toolCalls,
       });
 
-      expect([start, call, result].map(parts => parts[0])).toEqual([
+      expect([start, call].map(parts => parts[0])).toEqual([
         {
           type: 'tool-input-start',
           id: 'call-1',
@@ -91,149 +71,51 @@ describe('translateStreamPart', () => {
           input: { city: 'Berlin' },
           dynamic,
         },
-        {
-          type: 'tool-result',
-          toolCallId: 'call-1',
-          toolName,
-          input: { city: 'Berlin' },
-          output: 'sunny',
-          dynamic,
-        },
       ]);
     },
   );
 
-  test('translates host tool approval parts', async () => {
-    const toolCalls = new Map<string, TranslatedToolCall>();
-    await translate({
-      part: {
-        type: 'tool-call',
-        toolCallId: 'call-1',
-        toolName: 'weather',
-        input: '{"city":"Berlin"}',
-      },
-      toolCalls,
-    });
-    await translate({
-      part: {
-        type: 'tool-call',
-        toolCallId: 'call-2',
-        toolName: 'unknownTool',
-        input: '{}',
-      },
-      toolCalls,
-    });
-    expect(
-      await translate({
-        part: {
-          type: 'tool-approval-request',
-          approvalId: 'approval-1',
-          toolCallId: 'call-1',
-          reason: 'Check first',
-        },
-        toolCalls,
-      }),
-    ).toMatchInlineSnapshot(`
-      [
-        {
-          "approvalId": "approval-1",
-          "reason": "Check first",
-          "toolCall": {
-            "input": {
-              "city": "Berlin",
-            },
-            "toolCallId": "call-1",
-            "toolName": "weather",
-            "type": "tool-call",
-          },
-          "type": "tool-approval-request",
-        },
-      ]
-    `);
-    expect(
-      await translate({
-        part: {
-          type: 'tool-approval-response',
-          approvalId: 'approval-2',
-          toolCall: {
-            type: 'tool-call',
-            toolCallId: 'call-2',
-            toolName: 'unknownTool',
-            input: {},
-            dynamic: true,
-          },
-          approved: false,
-          reason: 'No',
-        },
-        toolCalls,
-      }),
-    ).toMatchInlineSnapshot(`
-      [
-        {
-          "approvalId": "approval-2",
-          "approved": false,
-          "reason": "No",
-          "toolCall": {
-            "dynamic": true,
-            "input": {},
-            "toolCallId": "call-2",
-            "toolName": "unknownTool",
-            "type": "tool-call",
-          },
-          "type": "tool-approval-response",
-        },
-      ]
-    `);
-    expect(
-      await translate({
-        part: {
-          type: 'tool-output-denied',
-          toolCallId: 'call-2',
-          toolName: 'unknownTool',
-        },
-      }),
-    ).toEqual([
-      {
-        type: 'tool-output-denied',
-        toolCallId: 'call-2',
-        toolName: 'unknownTool',
-      },
-    ]);
-  });
+  const toolCall = {
+    type: 'tool-call' as const,
+    toolCallId: 'call-1',
+    toolName: 'weather',
+    input: { city: 'Berlin' },
+  };
 
-  test('rejects approval parts without their recorded tool call', async () => {
-    await expect(
-      translate({
-        part: {
-          type: 'tool-approval-request',
-          approvalId: 'approval-1',
-          toolCallId: 'missing',
-        },
-      }),
-    ).rejects.toThrow(
-      "tool call 'missing' was not found for approval 'approval-1'",
-    );
-  });
-
-  test('passes approval responses through without looking up the tool call', async () => {
-    const part: Extract<
-      HarnessAgentStreamPart,
-      { type: 'tool-approval-response' }
-    > = {
+  test.each<HarnessAgentStreamPart>([
+    {
+      type: 'tool-approval-request',
+      approvalId: 'approval-1',
+      toolCall,
+      reason: 'Check first',
+    },
+    {
       type: 'tool-approval-response',
       approvalId: 'approval-1',
-      toolCall: {
-        type: 'tool-call',
-        toolCallId: 'call-1',
-        toolName: 'weather',
-        input: { city: 'Berlin' },
-        providerMetadata: { test: { key: 'value' } },
-      },
+      toolCall: { ...toolCall, providerMetadata: { test: { key: 'value' } } },
       approved: true,
       reason: 'Trusted',
       providerExecuted: false,
-    };
-
+    },
+    { type: 'tool-output-denied', toolCallId: 'call-1', toolName: 'weather' },
+    {
+      type: 'tool-result',
+      toolCallId: 'call-1',
+      toolName: 'weather',
+      input: { city: 'Berlin' },
+      output: { temperature: 20 },
+      preliminary: true,
+    },
+    {
+      type: 'tool-error',
+      toolCallId: 'call-2',
+      toolName: 'Bash',
+      input: { command: 'ls' },
+      error: 'failed',
+      dynamic: true,
+      providerExecuted: true,
+    },
+  ])('passes $type parts through unchanged', async part => {
     const result = await translate({ part });
     expect(result).toEqual([part]);
     expect(result[0]).toBe(part);
@@ -261,9 +143,7 @@ describe('translateStreamPart', () => {
     ]);
   });
 
-  test('translates a typed tool call and its result with the recorded input', async () => {
-    const toolCalls = new Map<string, TranslatedToolCall>();
-
+  test('translates a typed tool call with its parsed input', async () => {
     expect(
       await translate({
         part: {
@@ -272,7 +152,6 @@ describe('translateStreamPart', () => {
           toolName: 'weather',
           input: '{"city":"Berlin"}',
         },
-        toolCalls,
       }),
     ).toEqual([
       {
@@ -280,45 +159,6 @@ describe('translateStreamPart', () => {
         toolCallId: 'call-1',
         toolName: 'weather',
         input: { city: 'Berlin' },
-      },
-    ]);
-    expect(
-      await translate({
-        part: {
-          type: 'tool-result',
-          toolCallId: 'call-1',
-          toolName: 'weather',
-          result: { temperature: 20 },
-        },
-        toolCalls,
-      }),
-    ).toEqual([
-      {
-        type: 'tool-result',
-        toolCallId: 'call-1',
-        toolName: 'weather',
-        input: { city: 'Berlin' },
-        output: { temperature: 20 },
-      },
-    ]);
-    expect(
-      await translate({
-        part: {
-          type: 'tool-result',
-          toolCallId: 'call-1',
-          toolName: 'weather',
-          result: 'failed',
-          isError: true,
-        },
-        toolCalls,
-      }),
-    ).toEqual([
-      {
-        type: 'tool-error',
-        toolCallId: 'call-1',
-        toolName: 'weather',
-        input: { city: 'Berlin' },
-        error: 'failed',
       },
     ]);
   });

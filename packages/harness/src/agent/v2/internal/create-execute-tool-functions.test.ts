@@ -285,7 +285,8 @@ describe('createExecuteToolFunctions', () => {
           type: 'tool-result',
           toolCallId: 'mcp-1',
           toolName: 'mcp__server__tool',
-          result: { text: 'remote' },
+          input: { query: 'hello' },
+          output: { text: 'remote' },
           dynamic: true,
         },
       ]);
@@ -311,12 +312,11 @@ describe('createExecuteToolFunctions', () => {
         (await readParts({ world })).map(part => [
           part.type,
           'preliminary' in part ? part.preliminary : undefined,
-          'isError' in part ? part.isError : undefined,
         ]),
       ).toEqual([
-        ['tool-result', true, undefined],
-        ['tool-result', true, true],
-        ['tool-result', undefined, true],
+        ['tool-result', true],
+        ['tool-error', undefined],
+        ['tool-error', undefined],
       ]);
     });
 
@@ -346,11 +346,11 @@ describe('createExecuteToolFunctions', () => {
       expect(output.type).toBe('error');
       expect(await readParts({ world })).toEqual([
         {
-          type: 'tool-result',
+          type: 'tool-error',
           toolCallId: 'mcp-1',
           toolName: 'remote',
-          result: 'Error: remote failure',
-          isError: true,
+          input: {},
+          error: 'Error: remote failure',
           dynamic: true,
         },
       ]);
@@ -421,7 +421,8 @@ describe('createExecuteToolFunctions', () => {
             type: 'tool-result',
             toolCallId: 'call-1',
             toolName: 'weather',
-            result: { city: 'Paris', temperature: 21 },
+            input: { city: 'Paris' },
+            output: { city: 'Paris', temperature: 21 },
           },
           startId: starts[0].id,
         },
@@ -480,12 +481,12 @@ describe('createExecuteToolFunctions', () => {
       ).toStrictEqual({ type: 'result', value: { raw: null } });
       expect(await readParts({ world })).toEqual([
         expect.objectContaining({
-          result: expect.objectContaining({
+          output: expect.objectContaining({
             observedAt: '2026-01-02T03:04:05.000Z',
             custom: 'custom',
           }),
         }),
-        expect.objectContaining({ result: null }),
+        expect.objectContaining({ output: null }),
       ]);
     });
 
@@ -574,18 +575,19 @@ describe('createExecuteToolFunctions', () => {
       ]);
       expect(await readParts({ world })).toEqual([
         expect.objectContaining({
-          result: { status: 'loading' },
+          output: { status: 'loading' },
           preliminary: true,
         }),
         expect.objectContaining({
-          result: { status: 'done', temperature: 21 },
+          output: { status: 'done', temperature: 21 },
           preliminary: true,
         }),
         {
           type: 'tool-result',
           toolCallId: 'call-1',
           toolName: 'weather',
-          result: { status: 'done', temperature: 21 },
+          input: { city: 'Paris' },
+          output: { status: 'done', temperature: 21 },
         },
       ]);
     });
@@ -618,7 +620,7 @@ describe('createExecuteToolFunctions', () => {
         });
         expect(
           (await readParts({ world: drive.world })).some(
-            part => part.type === 'tool-result' && part.isError === true,
+            part => part.type === 'tool-error',
           ),
         ).toBe(false);
 
@@ -651,11 +653,11 @@ describe('createExecuteToolFunctions', () => {
       });
       expect(await readParts({ world })).toEqual([
         {
-          type: 'tool-result',
+          type: 'tool-error',
           toolCallId: 'call-1',
           toolName: 'weather',
-          result: 'Error: Weather service unavailable.',
-          isError: true,
+          input: { city: 'Paris' },
+          error: 'Error: Weather service unavailable.',
         },
       ]);
     });
@@ -706,11 +708,11 @@ describe('createExecuteToolFunctions', () => {
         await readLogEvents({ world, types: ['effect-end'] }),
       ).toHaveLength(2);
       expect((await readParts({ world }))[0]).toEqual({
-        type: 'tool-result',
+        type: 'tool-error',
         toolCallId: 'call-1',
         toolName: 'Bash',
-        result: message,
-        isError: true,
+        input: {},
+        error: message,
         dynamic: true,
       });
     });
@@ -804,7 +806,7 @@ describe('createExecuteToolFunctions', () => {
 
       await executeHostTool(call);
       expect(await readParts({ world })).toEqual([
-        expect.objectContaining({ result: 'sunny', dynamic: true }),
+        expect.objectContaining({ output: 'sunny', dynamic: true }),
       ]);
     });
 
@@ -834,11 +836,11 @@ describe('createExecuteToolFunctions', () => {
       expect(getSandboxSession).not.toHaveBeenCalled();
       expect(await readParts({ world })).toEqual([
         {
-          type: 'tool-result',
+          type: 'tool-error',
           toolCallId: 'call-1',
           toolName: 'weather',
-          result: expect.stringContaining("remove it from tool 'weather'"),
-          isError: true,
+          input: { city: 'Paris' },
+          error: expect.stringContaining("remove it from tool 'weather'"),
         },
       ]);
       expect(
@@ -996,7 +998,12 @@ describe('createExecuteToolFunctions', () => {
           part: {
             type: 'tool-approval-request',
             approvalId,
-            toolCallId: 'call-1',
+            toolCall: {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'weather',
+              input: { city: 'Paris' },
+            },
             reason: 'Check the city.',
           },
           key: 'tool-approval-request:call-1',
@@ -1207,7 +1214,10 @@ describe('createExecuteToolFunctions', () => {
           type: 'tool-result',
           toolCallId: 'call-1',
           toolName: 'bash',
-          result: { stdout: 'file.txt' },
+          input: { command: 'ls' },
+          output: { stdout: 'file.txt' },
+          dynamic: true,
+          providerExecuted: true,
         },
       ]);
     });
@@ -1295,21 +1305,30 @@ describe('createExecuteToolFunctions', () => {
           type: 'tool-result',
           toolCallId: 'call-1',
           toolName: 'bash',
-          result: 'a',
+          input: { command: 'ls' },
+          output: 'a',
           preliminary: true,
+          dynamic: true,
+          providerExecuted: true,
         },
         {
           type: 'tool-result',
           toolCallId: 'call-1',
           toolName: 'bash',
-          result: 'ab',
+          input: { command: 'ls' },
+          output: 'ab',
           preliminary: true,
+          dynamic: true,
+          providerExecuted: true,
         },
         {
           type: 'tool-result',
           toolCallId: 'call-1',
           toolName: 'bash',
-          result: 'ab',
+          input: { command: 'ls' },
+          output: 'ab',
+          dynamic: true,
+          providerExecuted: true,
         },
       ]);
     });
@@ -1357,11 +1376,13 @@ describe('createExecuteToolFunctions', () => {
       ]);
       expect(await readParts({ world })).toEqual([
         {
-          type: 'tool-result',
+          type: 'tool-error',
           toolCallId: 'call-1',
           toolName: 'bash',
-          result: 'Error: command failed',
-          isError: true,
+          input: { command: 'ls' },
+          error: 'Error: command failed',
+          dynamic: true,
+          providerExecuted: true,
         },
       ]);
     });
@@ -1408,11 +1429,13 @@ describe('createExecuteToolFunctions', () => {
         { startId: expect.any(String), output },
       ]);
       expect((await readParts({ world })).at(-1)).toEqual({
-        type: 'tool-result',
+        type: 'tool-error',
         toolCallId: 'call-1',
         toolName: 'bash',
-        result: 'The turn was cancelled.',
-        isError: true,
+        input: { command: 'ls' },
+        error: 'The turn was cancelled.',
+        dynamic: true,
+        providerExecuted: true,
       });
     });
 
@@ -1508,11 +1531,13 @@ describe('createExecuteToolFunctions', () => {
       ).toEqual([]);
       expect(await readParts({ world })).toEqual([
         {
-          type: 'tool-result',
+          type: 'tool-error',
           toolCallId: 'call-1',
           toolName: 'weather',
-          result: message,
-          isError: true,
+          input: { city: 'Paris' },
+          error: message,
+          dynamic: true,
+          providerExecuted: true,
         },
       ]);
     });
