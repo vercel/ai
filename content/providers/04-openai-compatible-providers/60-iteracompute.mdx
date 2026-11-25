@@ -48,7 +48,7 @@ Pass an IteraCompute model ID to `.chatModel()`, keeping the complete ID includi
 its namespace:
 
 ```ts
-const model = iteracompute.chatModel('qwen/qwen3.8-27b');
+const model = iteracompute.chatModel('deepseek/deepseek-v4.1-flash-1017');
 ```
 
 Find current model IDs in the [models endpoint](https://api.iteracompute.com/v1/models).
@@ -57,7 +57,10 @@ and account-specific context limits.
 
 ### Example
 
-Use `generateText` to generate text with the model:
+Use `generateText` to generate text with the model. Calls to
+[DeepSeek V4.1 Flash 1017](https://iteracompute.com/models/deepseek-v4-1-flash-1017/)
+are billed against your IteraCompute API balance at published rates.
+Keep your API key on the server:
 
 ```ts
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
@@ -71,7 +74,7 @@ const iteracompute = createOpenAICompatible({
 });
 
 const { text } = await generateText({
-  model: iteracompute.chatModel('qwen/qwen3.8-27b'),
+  model: iteracompute.chatModel('deepseek/deepseek-v4.1-flash-1017'),
   prompt: 'Explain what an API gateway does in one sentence.',
   maxOutputTokens: 1024,
 });
