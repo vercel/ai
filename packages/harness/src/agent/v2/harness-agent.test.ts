@@ -717,9 +717,11 @@ describe('HarnessAgent', () => {
     await expect(session.getSandboxSession()).rejects.toThrow(
       'first agent resolver',
     );
-    await expect(
-      currentAgent.stream({ prompt: 'hello', session }),
-    ).rejects.toThrow('a turn of this session is still running');
+    const streamResult = await currentAgent.stream({
+      prompt: 'hello',
+      session,
+    });
+    await streamResult.consumeStream();
     await expect(session.getSandboxSession()).resolves.toBe(
       resolvedSandboxSession,
     );
@@ -869,29 +871,117 @@ describe('HarnessAgent turns', () => {
     expect(result.totalUsage.inputTokens).toBe(10);
   });
 
-  test('rejects a call while a call for the session is in progress', async () => {
+  test('queues a prompt call while a call for the session is in progress', async () => {
     const { agent, session } = await setup();
 
-    const [first, second] = await Promise.allSettled([
+    const [first, second] = await Promise.all([
       agent.stream({ prompt: 'one', session }),
       agent.stream({ prompt: 'two', session }),
     ]);
 
-    expect(first.status).toBe('fulfilled');
-    expect(second).toMatchObject({
-      status: 'rejected',
-      reason: expect.objectContaining({
-        message: expect.stringContaining(
-          'a turn of this session is still running',
-        ),
-      }),
-    });
-    if (first.status === 'fulfilled') {
-      expect(await first.value.text).toBe('echo: one');
-    }
+    expect((await first.steps).map(step => step.text)).toEqual([
+      'echo: one',
+      'echo: two',
+    ]);
+    expect(await second.text).toBe('echo: two');
   });
 
-  test('rejects a call while the log shows an unfinished turn', async () => {
+  test('merges several queued prompts into one turn when the adapter delivers them together', async () => {
+    const world = new InMemoryWorld();
+    const turn1Started = new DelayedPromise<void>();
+    const releaseTurn1 = new DelayedPromise<void>();
+    let turnNumber = 0;
+
+    const mergingHarness: HarnessV2 = {
+      specificationVersion: 'harness-v2',
+      harnessId: 'merging-v2',
+      builtinTools: {},
+      async drive({ context }) {
+        for (;;) {
+          const pending = context.log
+            .getUndeliveredSubmissions()
+            .filter(submission => submission.data.type === 'prompt');
+          if (pending.length === 0) return;
+
+          const current = ++turnNumber;
+          const submissionIds = pending.map(submission => submission.id);
+          const mergedText = pending
+            .map(submission =>
+              submission.data.type === 'prompt'
+                ? String(submission.data.message.content)
+                : '',
+            )
+            .join(' + ');
+
+          await context.effect({
+            key: `model:${current}`,
+            name: 'model',
+            replay: 'safe',
+            input: mergedText,
+            deliveredSubmissionIds: submissionIds,
+            fn: async ({ emit }) => {
+              if (current === 1) {
+                turn1Started.resolve();
+                await releaseTurn1.promise;
+              }
+              emit({ type: 'text-start', id: `t-${current}` });
+              emit({
+                type: 'text-delta',
+                id: `t-${current}`,
+                delta: `merged: ${mergedText}`,
+              });
+              emit({ type: 'text-end', id: `t-${current}` });
+              return mergedText;
+            },
+          });
+          await context.finishStep({
+            stepNumber: 0,
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage,
+          });
+          await context.finishTurn({
+            finishReason: { unified: 'stop', raw: 'stop' },
+            totalUsage: usage,
+          });
+        }
+      },
+    };
+
+    const agent = new HarnessAgent({
+      harness: mergingHarness,
+      world,
+      getSandboxSession,
+    });
+    const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+
+    const first = await agent.stream({ prompt: 'one', session });
+    await turn1Started.promise;
+
+    const second = await agent.stream({ prompt: 'two', session });
+    const third = await agent.stream({ prompt: 'three', session });
+    releaseTurn1.resolve();
+
+    expect((await first.steps).map(step => step.text)).toEqual([
+      'merged: one',
+      'merged: two + three',
+    ]);
+    expect(await second.text).toBe('merged: two + three');
+    expect(await third.text).toBe('merged: two + three');
+
+    const turnStarts = await readLogEvents({
+      world,
+      runId: session.runId,
+      types: ['turn-start'],
+    });
+    expect(turnStarts).toHaveLength(2);
+    expect(
+      turnStarts[1].type === 'turn-start'
+        ? turnStarts[1].data.submissionIds
+        : [],
+    ).toHaveLength(2);
+  });
+
+  test('queues a prompt when the log already has a waiting prompt', async () => {
     const world = new InMemoryWorld();
     const first = await setup({ world });
     const session = first.session;
@@ -905,9 +995,8 @@ describe('HarnessAgent turns', () => {
       },
     });
 
-    await expect(
-      first.agent.generate({ prompt: 'hello', session }),
-    ).rejects.toThrow('a turn of this session is still running');
+    const result = await first.agent.generate({ prompt: 'hello', session });
+    expect(result.text).toBe('echo: hello');
   });
 
   test('runs a session in later calls', async () => {
@@ -1781,15 +1870,27 @@ describe('HarnessAgent crash recovery', () => {
 
     await agent.drive({ session });
 
+    const turnStarts = await readLogEvents({
+      world,
+      runId: session.runId,
+      types: ['turn-start'],
+    });
+    const finishTurns = await readLogEvents({
+      world,
+      runId: session.runId,
+      types: ['finish-turn'],
+    });
+    expect(turnStarts).toHaveLength(1);
+    const turnId =
+      turnStarts[0].type === 'turn-start' ? turnStarts[0].data.turnId : '';
     expect(
-      (
-        await readLogEvents({
-          world,
-          runId: session.runId,
-          types: ['finish-turn'],
-        })
-      ).map(event => event.type === 'finish-turn' && event.data.turnId),
+      turnStarts[0].type === 'turn-start' && turnStarts[0].data.submissionIds,
     ).toEqual(['prompt']);
+    expect(
+      finishTurns.map(
+        event => event.type === 'finish-turn' && event.data.turnId,
+      ),
+    ).toEqual([turnId]);
   });
 
   test('drives nothing without a turn or a prompt to run', async () => {
@@ -2184,7 +2285,7 @@ describe('HarnessAgent cancel', () => {
     await log.append({
       type: 'turn-start',
       id: 'turn-start:p1',
-      data: { turnId: 'p1' },
+      data: { turnId: 'p1', submissionIds: ['p1'] },
     });
     return { world, agent, session, log };
   }
@@ -2670,72 +2771,99 @@ describe('HarnessAgent tool approvals', () => {
       harnessId: 'approval-v2',
       builtinTools: {},
       async drive({ context }) {
-        const prompt = context.log
-          .getUndeliveredSubmissions()
-          .find(submission => submission.data.type === 'prompt');
-        const turn = context.log.getCurrentTurn();
-        const promptId =
-          prompt?.id ??
-          (turn != null && turn.finish == null
-            ? turn.submissions[0]?.id
-            : undefined);
-        if (promptId == null) return;
-        if (
-          prompt == null &&
-          context.log
-            .getUndeliveredSubmissions()
-            .some(submission => submission.data.type === 'cancel')
-        ) {
-          await context.finishTurn({
-            finishReason: { unified: 'cancelled', raw: undefined },
-            totalUsage: usage,
+        for (;;) {
+          const turn = context.log.getCurrentTurn();
+          const resuming = turn != null && turn.finish == null;
+          const prompt = resuming
+            ? undefined
+            : context.log
+                .getUndeliveredSubmissions()
+                .find(submission => submission.data.type === 'prompt');
+          const promptId = resuming ? turn.submissions[0]?.id : prompt?.id;
+          if (promptId == null) return;
+          if (
+            resuming &&
+            context.log
+              .getUndeliveredSubmissions()
+              .some(submission => submission.data.type === 'cancel')
+          ) {
+            await context.finishTurn({
+              finishReason: { unified: 'cancelled', raw: undefined },
+              totalUsage: usage,
+            });
+            continue;
+          }
+
+          const isFirstTurn =
+            context.log.getTurns().length === 0 ||
+            context.log.getTurns()[0]?.submissions[0]?.id === promptId;
+          if (!isFirstTurn) {
+            await context.effect({
+              key: `model:${promptId}:0`,
+              name: 'model',
+              replay: 'safe',
+              input: null,
+              deliveredSubmissionIds: [promptId],
+              fn: async ({ emit }) => {
+                emit({ type: 'text-start', id: `text-${promptId}` });
+                emit({
+                  type: 'text-delta',
+                  id: `text-${promptId}`,
+                  delta: 'done',
+                });
+                emit({ type: 'text-end', id: `text-${promptId}` });
+                return null;
+              },
+            });
+            await context.finishStep({ stepNumber: 0, finishReason, usage });
+            await context.finishTurn({ finishReason, totalUsage: usage });
+            continue;
+          }
+
+          const calls = [
+            { toolCallId: 'call-weather', toolName: 'weather', input: {} },
+            { toolCallId: 'call-time', toolName: 'time', input: {} },
+          ];
+          await context.effect({
+            key: `model:${promptId}:0`,
+            name: 'model',
+            replay: 'safe',
+            input: null,
+            deliveredSubmissionIds: resuming ? [] : [promptId],
+            fn: async ({ emit }) => {
+              for (const call of calls) {
+                emit({ type: 'tool-call', ...call, input: '{}' });
+              }
+              return null;
+            },
           });
-          return;
-        }
+          let suspended = false;
+          for (const call of calls) {
+            const output = await context.executeHostTool(call);
+            if (output.type === 'suspended') suspended = true;
+          }
+          await context.finishStep({
+            stepNumber: 0,
+            finishReason: toolCallsReason,
+            usage,
+          });
+          if (suspended) return;
 
-        const calls = [
-          { toolCallId: 'call-weather', toolName: 'weather', input: {} },
-          { toolCallId: 'call-time', toolName: 'time', input: {} },
-        ];
-        await context.effect({
-          key: `model:${promptId}:0`,
-          name: 'model',
-          replay: 'safe',
-          input: null,
-          deliveredSubmissionIds: prompt == null ? [] : [promptId],
-          fn: async ({ emit }) => {
-            for (const call of calls) {
-              emit({ type: 'tool-call', ...call, input: '{}' });
-            }
-            return null;
-          },
-        });
-        let suspended = false;
-        for (const call of calls) {
-          const output = await context.executeHostTool(call);
-          if (output.type === 'suspended') suspended = true;
+          await context.effect({
+            key: `model:${promptId}:1`,
+            name: 'model',
+            replay: 'safe',
+            input: null,
+            fn: async ({ emit }) => {
+              emit({ type: 'text-start', id: 'text' });
+              emit({ type: 'text-delta', id: 'text', delta: 'done' });
+              emit({ type: 'text-end', id: 'text' });
+              return null;
+            },
+          });
+          await context.finishStep({ stepNumber: 1, finishReason, usage });
+          await context.finishTurn({ finishReason, totalUsage: usage });
         }
-        await context.finishStep({
-          stepNumber: 0,
-          finishReason: toolCallsReason,
-          usage,
-        });
-        if (suspended) return;
-
-        await context.effect({
-          key: `model:${promptId}:1`,
-          name: 'model',
-          replay: 'safe',
-          input: null,
-          fn: async ({ emit }) => {
-            emit({ type: 'text-start', id: 'text' });
-            emit({ type: 'text-delta', id: 'text', delta: 'done' });
-            emit({ type: 'text-end', id: 'text' });
-            return null;
-          },
-        });
-        await context.finishStep({ stepNumber: 1, finishReason, usage });
-        await context.finishTurn({ finishReason, totalUsage: usage });
       },
     };
   }
@@ -2810,9 +2938,6 @@ describe('HarnessAgent tool approvals', () => {
     const ids = await getApprovalIds(first);
     expect(Object.keys(ids)).toEqual(['weather', 'time']);
 
-    await expect(agent.stream({ prompt: 'again', session })).rejects.toThrow(
-      'waits for tool approval responses',
-    );
     await expect(
       agent.stream({
         session,
@@ -2933,5 +3058,38 @@ describe('HarnessAgent tool approvals', () => {
       }),
     ).rejects.toThrow('belongs to a turn that is not running anymore');
     expect(weather).not.toHaveBeenCalled();
+  });
+
+  test('queues a prompt while waiting for tool approvals and runs it once approvals finish', async () => {
+    const { agent, session } = await setup();
+    const first = await agent.generate({ prompt: 'go', session });
+    const ids = await getApprovalIds(first);
+
+    const queued = await agent.stream({ prompt: 'after approvals', session });
+
+    const resumed = await agent.stream({
+      session,
+      messages: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-approval-response',
+              approvalId: ids.weather,
+              approved: true,
+            },
+            {
+              type: 'tool-approval-response',
+              approvalId: ids.time,
+              approved: true,
+            },
+          ],
+        },
+      ],
+    });
+
+    expect((await resumed.steps).map(step => step.text)).toContain('done');
+    expect(await queued.text).toBe('done');
+    expect(await queued.finishReason).toBe('stop');
   });
 });

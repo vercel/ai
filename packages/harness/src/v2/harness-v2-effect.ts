@@ -102,11 +102,14 @@ export type HarnessV2Effect = {
   /**
    * Submission IDs whose delivery has already been recorded for this effect.
    *
-   * Only one turn runs at a time, and each turn starts with one prompt: a
-   * prompt submitted while a turn is running waits until that turn finished.
-   * So an effect may deliver at most one prompt that has not started a turn
-   * yet, and only once the previous turn finished. Otherwise `effect()`
-   * rejects with `HarnessAdapterContractError` without recording anything.
+   * Only one turn runs at a time: a prompt submitted while a turn is running
+   * waits until that turn finished. Once the previous turn finished, an
+   * adapter merges all waiting prompts that have not started a turn yet into a
+   * single prompt and delivers all of their submission IDs together in one
+   * effect, starting a single turn for all of them, using the turn settings
+   * from the latest queued prompt among them. Delivering a prompt while the
+   * previous turn has not finished rejects with `HarnessAdapterContractError`
+   * without recording anything.
    */
   readonly deliveredSubmissionIds: readonly string[];
 

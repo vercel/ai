@@ -80,7 +80,9 @@ export type HarnessV2Skill = {
 };
 
 /**
- * Adapter-facing configuration applied to a single prompt submission.
+ * Adapter-facing configuration carried by a prompt submission. When multiple
+ * queued prompts are delivered together as a single turn, the adapter must use
+ * the turn settings from the latest queued prompt among them.
  */
 export type HarnessV2TurnSettings = {
   /**

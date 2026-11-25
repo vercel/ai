@@ -113,7 +113,7 @@ The steps are below:
 
 - Only end the turn (`finishReason: 'error'`, recorded as `finish-turn`) for errors known to be permanent, where another drive cannot succeed, and for a turn whose drives keep failing a bounded number of times in a row, as far as either case is relevant to us. `durable-harness` does the same with its `Unavailable` errors and its `failing` code after 8 failed deliveries in a row.
 
-22. [ ] Allow several queued prompts to be delivered together as a single turn.
+22. [x] Allow several queued prompts to be delivered together as a single turn.
 
 - Accept prompts while a turn is running (`generate()` and `stream()` currently reject), and queue them for after that turn.
 - Merging is up to the adapter: it delivers all pending prompts in one effect (listing all of them in `deliveredSubmissionIds`), so that they start a single turn. Update the Pi adapter to do so.

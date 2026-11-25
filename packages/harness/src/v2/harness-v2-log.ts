@@ -181,8 +181,10 @@ export type HarnessV2LogEffectAttempt = {
  */
 export type HarnessV2LogTurn = {
   /**
-   * Prompt submissions whose delivery started the turn. Currently a turn is
-   * always started by exactly one prompt.
+   * Prompt submissions whose delivery started the turn, in log order. When
+   * several prompts are waiting before a turn starts, adapters merge them into
+   * a single prompt and deliver all of them together; the latest prompt's
+   * `settings` apply.
    */
   readonly submissions: readonly HarnessV2LogSubmissionEvent[];
 

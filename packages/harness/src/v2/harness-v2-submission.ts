@@ -17,7 +17,9 @@ export type HarnessV2Submission =
       readonly message: UserModelMessage;
 
       /**
-       * Settings that apply to this turn.
+       * Settings that apply to this turn. When multiple queued prompts are
+       * delivered together as a single turn, the adapter must use the settings
+       * from the latest queued prompt among them.
        */
       readonly settings: HarnessV2TurnSettings;
     }

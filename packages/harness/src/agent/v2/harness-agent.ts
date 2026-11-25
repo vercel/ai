@@ -45,8 +45,13 @@ import {
 } from './internal/create-stream-writer';
 import { readResponseRecordStream } from './internal/read-response-record-stream';
 import {
+  attachSessionDrive,
   claimSessionDrive,
+  consumeSessionDriveQueuedWork,
+  getActiveSessionDrive,
+  markSessionDriveQueuedWork,
   releaseSessionDrive,
+  type SessionDriveOutcome,
 } from './internal/session-drives';
 import {
   HarnessAfterFinishError,
@@ -64,7 +69,6 @@ import {
   sendDurableHarnessAgentDriveRetry,
 } from './internal/durable-agent-queue';
 import {
-  hasWaitingPrompt,
   isAwaitingToolApproval,
   isSessionSettled,
   startDrive,
@@ -590,11 +594,12 @@ export class HarnessAgent<
    * Runs a prompt as a turn of the session, or continues the session's turn
    * with tool approval responses, and streams the response.
    *
-   * The prompt is appended to the session's log as a `prompt` submission and
-   * a drive of the session starts. The result reads the session's World
-   * stream from the moment the prompt was submitted until the drive ended.
-   * Rejects if a turn of the session is still running, including one that
-   * waits for tool approval responses.
+   * The prompt is appended to the session's log as a `prompt` submission. If
+   * no drive of the session is running in this process, a drive starts; if a
+   * turn is already running (including one that waits for tool approval
+   * responses), the prompt is queued for after that turn. The result reads the
+   * session's World stream from the turn that delivers this prompt until the
+   * drive ends (or until the session settles when no local drive ran).
    *
    * If the input's last message is a `tool` message, its
    * `tool-approval-response` parts (as `convertToModelMessages()` creates
@@ -717,9 +722,13 @@ export class HarnessAgent<
     this.bindSession({ session });
 
     if (!claimSessionDrive({ world: this.world, session })) return;
-    try {
+    const driveEnd = (async () => {
       await this.sendBackstop({ runId });
-      await this.runDrive({ session, queueJobId });
+      return this.runDrive({ session, queueJobId });
+    })();
+    attachSessionDrive({ world: this.world, session, driveEnd });
+    try {
+      await driveEnd;
     } finally {
       releaseSessionDrive({ world: this.world, session });
     }
@@ -972,17 +981,21 @@ export class HarnessAgent<
    * a drive of the session, and returns the result reading the drive's
    * output.
    *
-   * Only one turn runs at a time, and each call starts one drive. So the call
-   * rejects if a call for the session is still in progress in this process,
-   * or if the session's log shows a turn that has not finished or a prompt
-   * that has not started its turn. Because of that, everything written to the
-   * session's stream after the submission belongs to this call's turn, and
-   * the result reads it from the stream position taken before the
-   * submission was appended.
+   * Appends either a `prompt` submission or `tool-approval-response`
+   * submissions, ensures the session is driven, and returns the result stream.
    *
-   * Tool approval responses are the exception: they continue the running
-   * turn, which waits for them, so the result reads everything written
-   * after the stream position taken before they were appended.
+   * Prompts submitted while a turn is running (including while waiting for tool
+   * approval responses) are queued in the log for after that turn. When a drive
+   * is already running in this process, the queued prompt attaches to that
+   * drive's completion promise and marks queued work so the drive re-checks
+   * before releasing its claim. When no local drive runs (e.g. another process
+   * owns the session or the current turn awaits tool approval responses), the
+   * result follows the World stream from the turn that delivers this prompt
+   * until the session settles.
+   *
+   * Tool approval responses continue the running turn, which waits for them,
+   * so the result reads everything written after the stream position taken
+   * before they were appended.
    */
   private async startResponse(options: {
     /**
@@ -1015,33 +1028,21 @@ export class HarnessAgent<
     this.connectQueue();
     this.bindSession({ session });
 
-    /*
-     * One call per session at a time within this process. This only guards
-     * calls in the same process: making sure that only one drive changes a
-     * session across processes comes with the steps that add queueing,
-     * recovery and fencing.
-     */
-    /*
-     * TODO: Instead of rejecting a call while a turn is running, queue its
-     * prompt: append the submission without delivering it, and let the drive
-     * start its turn as soon as the running turn finished. The call's result
-     * then starts reading at that turn's `start` part.
-     */
-    if (!claimSessionDrive({ world: this.world, session })) {
-      throw createTurnRunningError();
-    }
-
     const submissionId = generateId();
     const approvalResponses = collectToolApprovalResponses({
       prompt: call.prompt,
       messages: call.messages,
     });
-    let driveEnd: Promise<void>;
+    let driveEnd: Promise<SessionDriveOutcome> | undefined;
     let startIndex: number;
     let encryption: HarnessAgentStorageEncryption;
-    let startTurnId: string | undefined;
-    try {
-      if (approvalResponses != null) {
+    let startSubmissionId: string | undefined;
+
+    if (approvalResponses != null) {
+      if (!claimSessionDrive({ world: this.world, session })) {
+        throw createTurnRunningError();
+      }
+      try {
         if (approvalResponses.length === 0) {
           throw new Error(
             `HarnessAgent.${functionName}: a trailing \`tool\` message must contain tool approval responses.`,
@@ -1066,56 +1067,66 @@ export class HarnessAgent<
           (await this.world.streams.getInfo(runId, streamName)).tailIndex + 1;
         await this.sendBackstop({ runId });
         await appendToolApprovalResponses({ log, responses: selected });
-      } else {
-        const message = resolvePromptMessage({
-          prompt: call.prompt,
-          messages: call.messages,
-        });
-        const settings = await this.getTurnSettings();
-        encryption = await this.getStorageEncryption({ session });
-        const log = createLog({ world: this.world, runId, encryption });
-        if (await hasRunningTurn({ log })) {
-          throw isAwaitingToolApproval({ log })
-            ? createAwaitingToolApprovalError()
-            : createTurnRunningError();
-        }
-
-        startIndex =
-          (await this.world.streams.getInfo(runId, streamName)).tailIndex + 1;
-        /*
-         * Sent before the submission is appended, so that a crash at any
-         * later point of the call leaves a queue job that continues the turn.
-         */
-        await this.sendBackstop({ runId });
-        await log.append({
-          type: 'submission',
-          id: submissionId,
-          data: { type: 'prompt', message, settings },
-        });
-        startTurnId = submissionId;
+        driveEnd = this.runDrive({ session });
+        attachSessionDrive({ world: this.world, session, driveEnd });
+      } catch (error) {
+        releaseSessionDrive({ world: this.world, session });
+        throw error;
       }
-      driveEnd = this.runDrive({ session });
-    } catch (error) {
-      releaseSessionDrive({ world: this.world, session });
-      throw error;
+      void driveEnd
+        .finally(() => releaseSessionDrive({ world: this.world, session }))
+        .catch(() => {});
+    } else {
+      const message = resolvePromptMessage({
+        prompt: call.prompt,
+        messages: call.messages,
+      });
+      const settings = await this.getTurnSettings();
+      encryption = await this.getStorageEncryption({ session });
+      const log = createLog({ world: this.world, runId, encryption });
+
+      startIndex =
+        (await this.world.streams.getInfo(runId, streamName)).tailIndex + 1;
+      /*
+       * Sent before the submission is appended, so that a crash at any
+       * later point of the call leaves a queue job that continues the turn.
+       */
+      await this.sendBackstop({ runId });
+      await log.append({
+        type: 'submission',
+        id: submissionId,
+        data: { type: 'prompt', message, settings },
+      });
+      startSubmissionId = submissionId;
+
+      if (isAwaitingToolApproval({ log })) {
+        driveEnd = undefined;
+      } else if (claimSessionDrive({ world: this.world, session })) {
+        driveEnd = this.runDrive({ session });
+        attachSessionDrive({ world: this.world, session, driveEnd });
+        void driveEnd
+          .finally(() => releaseSessionDrive({ world: this.world, session }))
+          .catch(() => {});
+      } else {
+        markSessionDriveQueuedWork({ world: this.world, session });
+        driveEnd = getActiveSessionDrive({ world: this.world, session });
+      }
     }
-    void driveEnd
-      .finally(() => releaseSessionDrive({ world: this.world, session }))
-      .catch(() => {});
 
     /*
      * The result reads the session's stream from `startIndex` on until the
-     * drive ended and everything it wrote was read. For a prompt, it starts
-     * at the turn's `start-turn` record (the turn's ID is the submission's
-     * ID): records the drive writes before the turn starts, such as recovery
-     * output for an earlier turn, are not part of this turn.
+     * drive ended and everything it wrote was read (or until the session
+     * settles when no local drive ran). For a prompt, it starts at the
+     * `start-turn` record whose `submissionIds` include this prompt's ID:
+     * records written before that turn starts, such as an earlier turn or
+     * recovery output, are not part of this turn's response.
      */
     return new HarnessStreamTextResult({
       records: readResponseRecordStream({
         encryption,
         world: this.world,
         session,
-        startTurnId,
+        startSubmissionId,
         startIndex,
         abortSignal,
         driveEnd,
@@ -1140,9 +1151,12 @@ export class HarnessAgent<
   }
 
   /**
-   * Runs one drive of the session and resolves once it ended. Rejects with
-   * what the harness or the engine threw if the drive failed without an
-   * unfinished turn to report the error in.
+   * Runs one drive of the session (re-checking before returning if another
+   * call in this process queued a prompt while the pass was finishing) and
+   * resolves with `'ran'` if at least one pass executed the harness or
+   * `'skipped'` if `startDrive()` found nothing to run. Rejects with what the
+   * harness or the engine threw if the drive failed without an unfinished turn
+   * to report the error in.
    */
   private async runDrive(options: {
     /**
@@ -1154,7 +1168,7 @@ export class HarnessAgent<
      * ID of the queue job whose delivery runs the drive.
      */
     queueJobId?: string;
-  }): Promise<void> {
+  }): Promise<SessionDriveOutcome> {
     const agentId = this.durable ? this.id : undefined;
     const scheduleRetry =
       agentId != null && options.queueJobId == null
@@ -1164,17 +1178,35 @@ export class HarnessAgent<
               queueJob: { runId: options.session.runId, agentId },
             })
         : undefined;
-    return runDrivePass({
-      encryption: await this.getStorageEncryption({ session: options.session }),
-      world: this.world,
+    const encryption = await this.getStorageEncryption({
       session: options.session,
-      queueJobId: options.queueJobId,
-      scheduleRetry,
-      harness: this.harness,
-      userTools: this.userTools,
-      toolApproval: this.toolApproval,
-      workDir: this.sandboxConfig.workDir,
     });
+    let ran = false;
+    for (;;) {
+      const pass = await runDrivePass({
+        encryption,
+        world: this.world,
+        session: options.session,
+        queueJobId: options.queueJobId,
+        scheduleRetry,
+        harness: this.harness,
+        userTools: this.userTools,
+        toolApproval: this.toolApproval,
+        workDir: this.sandboxConfig.workDir,
+      });
+      if (pass.outcome === 'ran') ran = true;
+      if (pass.yielded || pass.outcome === 'skipped') {
+        return ran ? 'ran' : 'skipped';
+      }
+      if (
+        !consumeSessionDriveQueuedWork({
+          world: this.world,
+          session: options.session,
+        })
+      ) {
+        return ran ? 'ran' : 'skipped';
+      }
+    }
   }
 
   /**
@@ -1361,7 +1393,7 @@ async function runDrivePass(options: {
    * Normalized `sandboxConfig.workDir`, if configured.
    */
   workDir?: string;
-}): Promise<void> {
+}): Promise<{ outcome: SessionDriveOutcome; yielded: boolean }> {
   const {
     world,
     session,
@@ -1464,7 +1496,7 @@ async function runDrivePass(options: {
         },
       }))
     ) {
-      return;
+      return { outcome: 'skipped', yielded: false };
     }
 
     const effect = createEffectFunction({
@@ -1521,6 +1553,7 @@ async function runDrivePass(options: {
       writer,
       yielded: yieldAbortSignal.aborted,
     });
+    return { outcome: 'ran', yielded: yieldAbortSignal.aborted };
   } catch (error) {
     if (HarnessStorageEncryptionError.isInstance(error)) throw error;
     /*
@@ -1550,7 +1583,7 @@ async function runDrivePass(options: {
     if (classifyDriveError({ error }) === 'permanent') {
       await failCurrentTurn({ log, writer, finishTurn, error });
       await writeDriveEnd({ log, writer, yielded: false });
-      return;
+      return { outcome: 'ran', yielded: false };
     }
 
     const turnId = turn.start.data.turnId;
@@ -1581,7 +1614,7 @@ async function runDrivePass(options: {
           ),
         });
         await writeDriveEnd({ log, writer, yielded: false });
-        return;
+        return { outcome: 'ran', yielded: false };
       }
     }
 
@@ -1683,38 +1716,12 @@ async function failCurrentTurn(options: {
 }
 
 /**
- * Returns whether the session's log shows a running turn: a current turn
- * that has not finished, or an undelivered `prompt` submission that has not
- * started a turn.
- */
-async function hasRunningTurn(options: {
-  /**
-   * Engine log of the session.
-   */
-  log: HarnessAgentLog;
-}): Promise<boolean> {
-  const { log } = options;
-  await log.refresh();
-  const turn = log.getCurrentTurn();
-  return (turn != null && turn.finish == null) || hasWaitingPrompt({ log });
-}
-
-/**
- * Returns the error for a call made while a turn of its session is running.
+ * Returns the error for a tool approval response call made while a drive of
+ * its session is still running in this process.
  */
 function createTurnRunningError(): Error {
   return new Error(
     'HarnessAgent: a turn of this session is still running. Wait for it to finish before sending another prompt.',
-  );
-}
-
-/**
- * Returns the error for a prompt sent while the session's turn waits for tool
- * approval responses.
- */
-function createAwaitingToolApprovalError(): Error {
-  return new Error(
-    'HarnessAgent: the turn of this session waits for tool approval responses. Respond to its tool approval requests before sending another prompt.',
   );
 }
 

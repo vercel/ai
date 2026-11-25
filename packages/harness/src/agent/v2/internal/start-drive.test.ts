@@ -17,7 +17,11 @@ import {
   trackRunningDrive,
   type HarnessAgentDriveProcess,
 } from './drive-process';
-import { startDrive, type HarnessAgentDriveIdentity } from './start-drive';
+import {
+  isSessionSettled,
+  startDrive,
+  type HarnessAgentDriveIdentity,
+} from './start-drive';
 
 const encryption = {
   encrypt: async ({ data }: { data: Uint8Array }) => data,
@@ -63,7 +67,7 @@ const prompt: HarnessAgentLogEvent = {
 const turnStart: HarnessAgentLogEvent = {
   type: 'turn-start',
   id: 'turn-start:turn',
-  data: { turnId: 'turn' },
+  data: { turnId: 'turn', submissionIds: ['turn'] },
 };
 
 /**
@@ -511,7 +515,10 @@ describe('startDrive', () => {
         },
       ]);
       expect(await readRecords({ world })).toEqual([
-        { part: { type: 'start-turn' }, key: 'turn-start:turn' },
+        {
+          part: { type: 'start-turn', submissionIds: ['turn'] },
+          key: 'turn-start:turn',
+        },
         { part: { type: 'retract', startIds: ['model', 'unstarted'] } },
         {
           part: {
@@ -579,7 +586,10 @@ describe('startDrive', () => {
     }
 
     expect(await readRecords({ world })).toEqual([
-      { part: { type: 'start-turn' }, key: 'turn-start:turn' },
+      {
+        part: { type: 'start-turn', submissionIds: ['turn'] },
+        key: 'turn-start:turn',
+      },
       {
         part: { type: 'finish-step', finishReason, usage },
         key: 'finish-step:turn:0',
@@ -666,7 +676,10 @@ describe('startDrive', () => {
     await writer.flush();
 
     expect(await readRecords({ world })).toEqual([
-      { part: { type: 'start-turn' }, key: 'turn-start:turn' },
+      {
+        part: { type: 'start-turn', submissionIds: ['turn'] },
+        key: 'turn-start:turn',
+      },
     ]);
   });
 
@@ -700,7 +713,10 @@ describe('startDrive', () => {
       expect(await startDrive(options)).toBe(false);
       await writer.flush();
       expect(await readRecords({ world })).toEqual([
-        { part: { type: 'start-turn' }, key: 'turn-start:turn' },
+        {
+          part: { type: 'start-turn', submissionIds: ['turn'] },
+          key: 'turn-start:turn',
+        },
         {
           part: {
             type: 'tool-approval-request',
@@ -787,6 +803,27 @@ describe('startDrive', () => {
           driveIdentity: { driveId: 'drive' },
         }),
       ).toBe(true);
+    });
+
+    test('isSessionSettled stays true when awaiting tool approvals even with a queued prompt', async () => {
+      const { log } = await setup({
+        events: [
+          prompt,
+          turnStart,
+          request,
+          {
+            type: 'submission',
+            id: 'queued',
+            data: {
+              type: 'prompt',
+              message: { role: 'user', content: 'next' },
+              settings: { skills: [], tools: [] },
+            },
+          },
+        ],
+      });
+
+      expect(isSessionSettled({ log })).toBe(true);
     });
   });
 });

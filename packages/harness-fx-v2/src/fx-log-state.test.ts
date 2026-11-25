@@ -163,7 +163,7 @@ describe('readFxLogState', () => {
     expect(state.turns).toHaveLength(1);
     expect(state.turns[0]).toMatchObject({
       index: 0,
-      prompt: { id: 'p1' },
+      prompts: [{ id: 'p1' }],
       ended: true,
       checkpoint: { finishReason: { unified: 'stop', raw: 'end_turn' } },
     });

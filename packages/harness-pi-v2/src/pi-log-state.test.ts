@@ -224,11 +224,32 @@ describe('readPiLogState', () => {
       new Map([['c1', { type: 'result', value: { raw: 'file' } }]]),
     );
     expect(result.currentTurn).toEqual({
-      prompt: {
-        id: 'p1',
-        message: { role: 'user', content: 'p1' },
-        settings,
-      },
+      prompts: [
+        {
+          id: 'p1',
+          message: { role: 'user', content: 'p1' },
+          settings,
+        },
+      ],
+      firstModelOrdinal: 0,
+      ended: false,
+    });
+  });
+
+  test('reads all prompt submissions of a merged current turn', () => {
+    const result = readPiLogState({
+      log: createStubLog({
+        submissions: [prompt('p1'), prompt('p2')],
+        effects: [attempt({ key: 'model:0', delivered: ['p1', 'p2'] })],
+        currentTurn: { submissions: [prompt('p1'), prompt('p2')] },
+      }),
+    });
+
+    expect(result.currentTurn).toEqual({
+      prompts: [
+        { id: 'p1', message: { role: 'user', content: 'p1' }, settings },
+        { id: 'p2', message: { role: 'user', content: 'p2' }, settings },
+      ],
       firstModelOrdinal: 0,
       ended: false,
     });
@@ -304,11 +325,13 @@ describe('restorePiTranscript', () => {
           modelEffect({ ordinal: 1, appended: [result] }),
         ],
         currentTurn: {
-          prompt: {
-            id: 'p1',
-            message: { role: 'user', content: 'first' },
-            settings,
-          },
+          prompts: [
+            {
+              id: 'p1',
+              message: { role: 'user', content: 'first' },
+              settings,
+            },
+          ],
           firstModelOrdinal: 0,
           ended: false,
         },
@@ -351,11 +374,13 @@ describe('restorePiTranscript', () => {
           ],
         ]),
         currentTurn: {
-          prompt: {
-            id: 'p1',
-            message: { role: 'user', content: 'first' },
-            settings,
-          },
+          prompts: [
+            {
+              id: 'p1',
+              message: { role: 'user', content: 'first' },
+              settings,
+            },
+          ],
           firstModelOrdinal: 0,
           ended: true,
         },

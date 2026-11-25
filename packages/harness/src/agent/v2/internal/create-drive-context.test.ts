@@ -63,7 +63,7 @@ const allEvents: HarnessAgentLogEvent[] = [
   {
     type: 'turn-start',
     id: 'turn-start:prompt-1',
-    data: { turnId: 'prompt-1' },
+    data: { turnId: 'prompt-1', submissionIds: ['prompt-1'] },
   },
   {
     type: 'effect-start',

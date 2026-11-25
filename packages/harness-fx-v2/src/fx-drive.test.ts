@@ -4,7 +4,7 @@ import type {
   HarnessV2TurnSettings,
 } from '@ai-sdk/harness';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { tool, type ToolSet } from '@ai-sdk/provider-utils';
+import { DelayedPromise, tool, type ToolSet } from '@ai-sdk/provider-utils';
 import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
 import { describe, expect, test, vi } from 'vitest';
 import { z } from 'zod/v4';
@@ -1032,5 +1032,49 @@ describe('FxDrive', () => {
       expect(runtime.requests).toHaveLength(1);
       expect(weather).not.toHaveBeenCalled();
     });
+  });
+
+  test('merges several queued prompts into a single prompt and turn', async () => {
+    const firstModelStarted = new DelayedPromise<void>();
+    const releaseFirstModel = new DelayedPromise<void>();
+    const textFixture = await readFixture({ name: 'gateway-text.sse.txt' });
+    const { agent, session, runtime, readState, log } = await setup({
+      responses: [
+        async () => {
+          firstModelStarted.resolve();
+          await releaseFirstModel.promise;
+          return new Response(textFixture, {
+            status: 200,
+            headers: { 'content-type': 'text/event-stream' },
+          });
+        },
+        textFixture,
+      ],
+    });
+
+    const first = await agent.stream({ prompt: 'turn one', session });
+    await firstModelStarted.promise;
+
+    const second = await agent.stream({ prompt: 'queued A', session });
+    const third = await agent.stream({ prompt: 'queued B', session });
+    releaseFirstModel.resolve();
+
+    expect((await first.steps).length).toBe(2);
+    expect(await second.finishReason).toBe('stop');
+    expect(await third.finishReason).toBe('stop');
+
+    const state = readState();
+    expect(state.prompts).toHaveLength(3);
+    expect(state.pendingPrompts).toEqual([]);
+    expect(state.turns).toHaveLength(2);
+    expect(state.turns[1].prompts.map(prompt => prompt.id)).toEqual([
+      state.prompts[1].id,
+      state.prompts[2].id,
+    ]);
+    expect(
+      log().getEffect({ key: 'turn:1' })?.start.data.deliveredSubmissionIds,
+    ).toEqual([state.prompts[1].id, state.prompts[2].id]);
+    expect(runtime.requests).toHaveLength(2);
+    expect(runtime.requests[1].body).toContain('queued A\\n\\nqueued B');
   });
 });

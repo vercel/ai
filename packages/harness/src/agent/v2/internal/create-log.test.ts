@@ -1395,7 +1395,7 @@ function turnStart(turnId: string): HarnessAgentLogEvent {
   return {
     type: 'turn-start',
     id: `turn-start:${turnId}`,
-    data: { turnId },
+    data: { turnId, submissionIds: [turnId] },
   };
 }
 
@@ -1636,7 +1636,11 @@ describe('createLog lookups', () => {
     const log = await logOf([
       prompt('p1'),
       start({ id: 'before', key: 'before' }),
-      { type: 'turn-start', id: 'turn-start:p1', data: { turnId: 'p1' } },
+      {
+        type: 'turn-start',
+        id: 'turn-start:p1',
+        data: { turnId: 'p1', submissionIds: ['p1'] },
+      },
       start({ id: 'm0', key: 'model:0', delivered: ['p1'] }),
       {
         type: 'finish-step',
@@ -1658,7 +1662,11 @@ describe('createLog lookups', () => {
         },
       },
       prompt('p2'),
-      { type: 'turn-start', id: 'turn-start:p2', data: { turnId: 'p2' } },
+      {
+        type: 'turn-start',
+        id: 'turn-start:p2',
+        data: { turnId: 'p2', submissionIds: ['p2'] },
+      },
       start({ id: 'm1', key: 'model:1', delivered: ['p2'] }),
     ]);
 
@@ -1722,7 +1730,11 @@ describe('createLog lookups', () => {
           settings: { tools: [], skills: [] },
         },
       },
-      { type: 'turn-start', id: 'turn-start:p1', data: { turnId: 'p1' } },
+      {
+        type: 'turn-start',
+        id: 'turn-start:p1',
+        data: { turnId: 'p1', submissionIds: ['p1'] },
+      },
       { type: 'drive-start', id: 'drive-start:d1', data: { driveId: 'd1' } },
       {
         type: 'drive-error',

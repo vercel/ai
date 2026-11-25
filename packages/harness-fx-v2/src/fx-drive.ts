@@ -109,6 +109,50 @@ export function toFxPromptInput(options: {
 }
 
 /**
+ * Merges one or more prompt user messages into a single libfx prompt input.
+ * Text-only messages are concatenated with a blank line (`\n\n`); when any
+ * message contains image parts, all parts are combined into one content array
+ * with `\n\n` text separators between prompts.
+ */
+function toMergedFxPromptInput(options: {
+  /**
+   * User messages of the merged prompt submissions, in log order.
+   */
+  messages: readonly UserModelMessage[];
+}): FxPromptInput {
+  const { messages } = options;
+  if (messages.length === 1) {
+    return toFxPromptInput({ message: messages[0]! });
+  }
+  const extracted = messages.map(message =>
+    extractHarnessPromptContent({ prompt: message }),
+  );
+  if (extracted.every(content => typeof content === 'string')) {
+    return extracted.join('\n\n');
+  }
+  const parts: Array<
+    | { type: 'text'; text: string }
+    | { type: 'image'; data: string; mimeType: string }
+  > = [];
+  for (let index = 0; index < extracted.length; index++) {
+    if (index > 0) parts.push({ type: 'text', text: '\n\n' });
+    const content = extracted[index]!;
+    if (typeof content === 'string') {
+      parts.push({ type: 'text', text: content });
+    } else {
+      for (const part of content) {
+        parts.push(
+          part.type === 'text'
+            ? { type: 'text', text: part.text }
+            : { type: 'image', data: part.data, mimeType: part.mediaType },
+        );
+      }
+    }
+  }
+  return parts;
+}
+
+/**
  * Waits before retrying a failed model request, resolving early when the
  * signal aborts. The timer keeps the process alive, since the retry is
  * pending work of the drive.
@@ -438,7 +482,7 @@ export class FxDrive {
       } else if (hasPendingCancel({ log: this.context.log })) {
         await this.finishCancelledRecordedTurn({ turnIndex: latest.index });
       } else if (
-        !(await this.runTurn({ index: latest.index, prompt: latest.prompt }))
+        !(await this.runTurn({ index: latest.index, prompts: latest.prompts }))
       ) {
         return;
       }
@@ -446,9 +490,9 @@ export class FxDrive {
     for (;;) {
       if (this.halted || this.context.yieldAbortSignal.aborted) return;
       this.state = this.readState();
-      const prompt = this.state.pendingPrompts[0];
-      if (prompt == null) return;
-      if (!(await this.runTurn({ index: this.state.turns.length, prompt }))) {
+      const prompts = this.state.pendingPrompts;
+      if (prompts.length === 0) return;
+      if (!(await this.runTurn({ index: this.state.turns.length, prompts }))) {
         return;
       }
     }
@@ -462,10 +506,10 @@ export class FxDrive {
   }
 
   /**
-   * Runs one turn live: delivers its prompt, runs libfx's turn on an engine
-   * restored from the previous turn, finishes its last step, records the
-   * checkpoint and finishes the turn. Returns `false` without finishing the
-   * turn when the drive halted. A cancelled turn is finished by
+   * Runs one turn live: delivers its merged prompts, runs libfx's turn on an
+   * engine restored from the previous turn, finishes its last step, records
+   * the checkpoint and finishes the turn. Returns `false` without finishing
+   * the turn when the drive halted. A cancelled turn is finished by
    * `finishCancelledTurn()` instead.
    */
   private async runTurn(options: {
@@ -475,18 +519,20 @@ export class FxDrive {
     index: number;
 
     /**
-     * Prompt that starts the turn.
+     * Prompts that start the turn, in log order.
      */
-    prompt: FxPromptSubmission;
+    prompts: readonly FxPromptSubmission[];
   }): Promise<boolean> {
-    const { index, prompt } = options;
+    const { index, prompts } = options;
+    const submissionIds = prompts.map(prompt => prompt.id);
+    const settings = prompts.at(-1)!.settings;
     const delivery = await this.guard(
       this.context.effect({
         key: `turn:${index}`,
         name: 'turn',
         replay: 'safe',
-        input: { submissionId: prompt.id },
-        deliveredSubmissionIds: [prompt.id],
+        input: { submissionIds },
+        deliveredSubmissionIds: submissionIds,
         fn: async () => null,
       }),
     );
@@ -500,19 +546,19 @@ export class FxDrive {
     const run = this.createRun({
       index,
       mode: 'live',
-      settings: prompt.settings,
+      settings,
     });
     this.liveRun = run;
     this.checkCancel();
     let engine: FxEngine | undefined;
     try {
-      if (!(await this.prepareMcp({ run, prompt }))) {
+      if (!(await this.prepareMcp({ run, prompts }))) {
         return run.cancelled && !this.halted
           ? this.finishCancelledTurn({ run })
           : false;
       }
       engine = await this.createEngine({ run, base });
-      const stopReason = await this.promptEngine({ run, engine, prompt });
+      const stopReason = await this.promptEngine({ run, engine, prompts });
       if (stopReason == null) {
         return run.cancelled && !this.halted
           ? this.finishCancelledTurn({ run })
@@ -766,8 +812,9 @@ export class FxDrive {
     base?: Uint8Array;
   }): Promise<Uint8Array | undefined> {
     const { turn, base } = options;
+    const settings = turn.prompts.at(-1)!.settings;
     if (
-      Object.keys(turn.prompt.settings.mcpServers ?? {}).length > 0 &&
+      Object.keys(settings.mcpServers ?? {}).length > 0 &&
       ![...this.state.modelEffects.values()].some(
         effect => effect.turnIndex === turn.index,
       )
@@ -776,13 +823,13 @@ export class FxDrive {
     const run = this.createRun({
       index: turn.index,
       mode: 'offline',
-      settings: turn.prompt.settings,
+      settings,
     });
     let engine: FxEngine | undefined;
     try {
-      await this.prepareMcp({ run, prompt: turn.prompt });
+      await this.prepareMcp({ run, prompts: turn.prompts });
       engine = await this.createEngine({ run, base });
-      await this.promptEngine({ run, engine, prompt: turn.prompt });
+      await this.promptEngine({ run, engine, prompts: turn.prompts });
       return await engine.checkpoint();
     } finally {
       try {
@@ -835,9 +882,9 @@ export class FxDrive {
    */
   private async prepareMcp(options: {
     run: FxTurnRun;
-    prompt: FxPromptSubmission;
+    prompts: readonly FxPromptSubmission[];
   }): Promise<boolean> {
-    const { run, prompt } = options;
+    const { run, prompts } = options;
     const { mcpServers } = run.settings;
     if (mcpServers == null || Object.keys(mcpServers).length === 0) return true;
     const runtime = createFxMcpRuntime({
@@ -848,10 +895,12 @@ export class FxDrive {
       ]),
     });
     run.mcpRuntime = runtime;
+    const lastPromptId = prompts.at(-1)!.id;
+    const submissionIds = prompts.map(prompt => prompt.id);
     let catalog: FxMcpCatalog;
     if (run.mode === 'offline') {
       const recorded = this.context.log.getEffect({
-        key: `mcp-discovery:${prompt.id}`,
+        key: `mcp-discovery:${lastPromptId}`,
       })?.end?.data.output;
       if (recorded?.type !== 'result')
         throw new Error('fx MCP discovery has no recorded catalog.');
@@ -859,10 +908,10 @@ export class FxDrive {
     } else {
       const output = await this.guard(
         this.context.effect({
-          key: `mcp-discovery:${prompt.id}`,
+          key: `mcp-discovery:${lastPromptId}`,
           name: 'mcp.discovery',
           replay: 'safe',
-          input: { submissionId: prompt.id },
+          input: { submissionIds },
           fn: ({ abortSignal }) =>
             this.translateCancel({
               run,
@@ -967,15 +1016,19 @@ export class FxDrive {
     engine: FxEngine;
 
     /**
-     * Prompt of the turn.
+     * Prompts of the turn, in log order.
      */
-    prompt: FxPromptSubmission;
+    prompts: readonly FxPromptSubmission[];
   }): Promise<string | undefined> {
-    const { run, engine, prompt } = options;
+    const { run, engine, prompts } = options;
     const live = run.mode === 'live';
     const stopped = () =>
       live && (this.halted || run.cancelled || run.suspended);
-    const turn = engine.prompt(toFxPromptInput({ message: prompt.message }));
+    const turn = engine.prompt(
+      toMergedFxPromptInput({
+        messages: prompts.map(prompt => prompt.message),
+      }),
+    );
     run.engineTurn = turn;
     if (stopped()) turn.cancel();
     let stopReason: string;

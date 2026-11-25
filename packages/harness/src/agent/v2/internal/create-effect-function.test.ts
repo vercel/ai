@@ -1707,13 +1707,20 @@ describe('createEffectFunction', () => {
         'turn-start',
         'effect-start',
       ]);
-      expect(events[0]).toEqual({
+      expect(events[0]).toMatchObject({
         type: 'turn-start',
-        id: 'turn-start:prompt-1',
-        data: { turnId: 'prompt-1' },
+        data: { submissionIds: ['prompt-1'] },
       });
+      const turnId =
+        events[0].type === 'turn-start' ? events[0].data.turnId : undefined;
+      expect(turnId).toEqual(expect.any(String));
+      expect(turnId).not.toBe('prompt-1');
+      expect(events[0].id).toBe(`turn-start:${turnId}`);
       expect(await readStream({ world, runId })).toEqual([
-        { part: { type: 'start-turn' }, key: 'turn-start:prompt-1' },
+        {
+          part: { type: 'start-turn', submissionIds: ['prompt-1'] },
+          key: `turn-start:${turnId}`,
+        },
       ]);
     });
 
@@ -1771,28 +1778,47 @@ describe('createEffectFunction', () => {
       expect(await readStream({ world, runId })).toEqual([]);
     });
 
-    test('rejects an effect that delivers more than one waiting prompt', async () => {
+    test('starts a single turn for several waiting prompts delivered together in log order', async () => {
       const { effect, log, world, runId } = await setup();
       await appendSubmission({ log, id: 'prompt-1', type: 'prompt' });
       await appendSubmission({ log, id: 'prompt-2', type: 'prompt' });
-      const fn = vi.fn(async () => 'done');
 
-      await expect(
-        effect({
+      expect(
+        await effect({
           key: 'key',
           ...effectOptions,
-          deliveredSubmissionIds: ['prompt-1', 'prompt-2'],
-          fn,
+          deliveredSubmissionIds: ['prompt-2', 'prompt-1'],
+          fn: async () => 'done',
         }),
-      ).rejects.toSatisfy(HarnessAdapterContractError.isInstance);
-      expect(fn).not.toHaveBeenCalled();
-      expect(
-        await readLogEvents({
-          world,
-          runId,
-          types: ['turn-start', 'effect-start'],
-        }),
-      ).toEqual([]);
+      ).toEqual({ type: 'result', value: 'done' });
+
+      const turnStarts = await readLogEvents({
+        world,
+        runId,
+        types: ['turn-start'],
+      });
+      expect(turnStarts).toHaveLength(1);
+      expect(turnStarts[0]).toMatchObject({
+        type: 'turn-start',
+        data: { submissionIds: ['prompt-1', 'prompt-2'] },
+      });
+      const turnId =
+        turnStarts[0].type === 'turn-start'
+          ? turnStarts[0].data.turnId
+          : undefined;
+      expect(log.getCurrentTurn()?.submissions.map(s => s.id)).toEqual([
+        'prompt-1',
+        'prompt-2',
+      ]);
+      expect(await readStream({ world, runId })).toEqual([
+        {
+          part: {
+            type: 'start-turn',
+            submissionIds: ['prompt-1', 'prompt-2'],
+          },
+          key: `turn-start:${turnId}`,
+        },
+      ]);
     });
 
     test('rejects a prompt while the latest turn has not finished', async () => {
@@ -1837,11 +1863,12 @@ describe('createEffectFunction', () => {
         fn: async () => 'done',
       });
       await appendSubmission({ log, id: 'prompt-2', type: 'prompt' });
+      const firstTurnId = log.getCurrentTurn()!.start.data.turnId;
       await log.append({
         type: 'finish-turn',
-        id: 'finish-turn:prompt-1',
+        id: `finish-turn:${firstTurnId}`,
         data: {
-          turnId: 'prompt-1',
+          turnId: firstTurnId,
           finishReason: { unified: 'stop', raw: 'stop' },
           totalUsage: {
             inputTokens: {
@@ -1862,11 +1889,16 @@ describe('createEffectFunction', () => {
         fn: async () => 'done',
       });
 
+      const turnStarts = await readLogEvents({
+        world,
+        runId,
+        types: ['turn-start'],
+      });
       expect(
-        (await readLogEvents({ world, runId, types: ['turn-start'] })).map(
-          event => event.id,
+        turnStarts.map(event =>
+          event.type === 'turn-start' ? event.data.submissionIds : undefined,
         ),
-      ).toEqual(['turn-start:prompt-1', 'turn-start:prompt-2']);
+      ).toEqual([['prompt-1'], ['prompt-2']]);
     });
 
     test('lets only one of two concurrent effects start a turn', async () => {

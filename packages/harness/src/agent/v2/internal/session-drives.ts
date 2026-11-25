@@ -23,20 +23,47 @@ import type { HarnessAgentSession } from '../harness-agent-session';
 const STATE_KEY = Symbol.for('@ai-sdk/harness//session-drives');
 
 /**
- * Returns the IDs of the runs that hold the sessions of `world` claimed for
- * a drive in this process, created on first use.
+ * Outcome of an in-process session drive: `'ran'` when at least one pass
+ * executed the harness, `'skipped'` when `startDrive()` found nothing to run
+ * (for example, another process owns the session or the current turn awaits
+ * tool approval responses).
  */
-function getClaimedRunIds(options: { world: World }): Set<string> {
+export type SessionDriveOutcome = 'ran' | 'skipped';
+
+/**
+ * In-process bookkeeping for a claimed session drive.
+ */
+type ActiveSessionDrive = {
+  /**
+   * Promise that settles when the active drive (including any follow-up passes
+   * for prompts queued in this process) ends.
+   */
+  driveEnd?: Promise<SessionDriveOutcome>;
+
+  /**
+   * Whether another call in this process queued a prompt while this drive was
+   * active, so the drive must re-check the log before releasing its claim.
+   */
+  hasQueuedWork: boolean;
+};
+
+/**
+ * Returns the map of active drive claims for `world` in this process, created
+ * on first use.
+ */
+function getClaimedDrives(options: {
+  world: World;
+}): Map<string, ActiveSessionDrive> {
   const holder = globalThis as {
-    [STATE_KEY]?: WeakMap<World, Set<string>>;
+    [STATE_KEY]?: WeakMap<World, Map<string, ActiveSessionDrive>>;
   };
-  const runIdsByWorld = (holder[STATE_KEY] ??= new WeakMap());
-  let runIds = runIdsByWorld.get(options.world);
-  if (runIds == null) {
-    runIds = new Set();
-    runIdsByWorld.set(options.world, runIds);
+  const drivesByWorld = (holder[STATE_KEY] ??= new WeakMap());
+  let drives = drivesByWorld.get(options.world);
+  if (drives == null) {
+    drives = new Map();
+    drivesByWorld.set(options.world, drives);
   }
-  return runIds;
+  return drives;
 }
 
 /**
@@ -58,9 +85,98 @@ export function claimSessionDrive(options: {
    */
   session: HarnessAgentSession;
 }): boolean {
-  const runIds = getClaimedRunIds({ world: options.world });
-  if (runIds.has(options.session.runId)) return false;
-  runIds.add(options.session.runId);
+  const drives = getClaimedDrives({ world: options.world });
+  if (drives.has(options.session.runId)) return false;
+  drives.set(options.session.runId, { hasQueuedWork: false });
+  return true;
+}
+
+/**
+ * Associates the active drive's completion promise with an existing in-process
+ * claim so queued prompt calls in the same process can observe its end.
+ */
+export function attachSessionDrive(options: {
+  /**
+   * World that stores the session.
+   */
+  world: World;
+
+  /**
+   * Claimed session.
+   */
+  session: HarnessAgentSession;
+
+  /**
+   * Promise settling when the active drive finishes.
+   */
+  driveEnd: Promise<SessionDriveOutcome>;
+}): void {
+  const active = getClaimedDrives({ world: options.world }).get(
+    options.session.runId,
+  );
+  if (active != null) active.driveEnd = options.driveEnd;
+}
+
+/**
+ * Returns the completion promise of the session's active in-process drive, if
+ * one is attached.
+ */
+export function getActiveSessionDrive(options: {
+  /**
+   * World that stores the session.
+   */
+  world: World;
+
+  /**
+   * Session to inspect.
+   */
+  session: HarnessAgentSession;
+}): Promise<SessionDriveOutcome> | undefined {
+  return getClaimedDrives({ world: options.world }).get(options.session.runId)
+    ?.driveEnd;
+}
+
+/**
+ * Records that a prompt was queued in this process while the session's drive
+ * is active, so the drive re-checks the log before releasing its claim.
+ */
+export function markSessionDriveQueuedWork(options: {
+  /**
+   * World that stores the session.
+   */
+  world: World;
+
+  /**
+   * Session whose active drive should re-check for queued prompts.
+   */
+  session: HarnessAgentSession;
+}): void {
+  const active = getClaimedDrives({ world: options.world }).get(
+    options.session.runId,
+  );
+  if (active != null) active.hasQueuedWork = true;
+}
+
+/**
+ * Returns whether queued work was marked on the session's active drive since
+ * the last check, clearing the flag.
+ */
+export function consumeSessionDriveQueuedWork(options: {
+  /**
+   * World that stores the session.
+   */
+  world: World;
+
+  /**
+   * Session whose active drive is finishing a pass.
+   */
+  session: HarnessAgentSession;
+}): boolean {
+  const active = getClaimedDrives({ world: options.world }).get(
+    options.session.runId,
+  );
+  if (active == null || !active.hasQueuedWork) return false;
+  active.hasQueuedWork = false;
   return true;
 }
 
@@ -80,5 +196,5 @@ export function releaseSessionDrive(options: {
    */
   session: HarnessAgentSession;
 }): void {
-  getClaimedRunIds({ world: options.world }).delete(options.session.runId);
+  getClaimedDrives({ world: options.world }).delete(options.session.runId);
 }

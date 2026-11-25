@@ -259,18 +259,18 @@ async function executeCallback(options: {
  * returns `{ type: 'interrupted', retryable: true }` without recording
  * anything, since nothing ran. Recorded terminal outputs still replay.
  *
- * Turns start here: before appending a new attempt's `effect-start`, a
- * delivered `prompt` submission without a `turn-start` event gets one (ID
- * `turn-start:${submissionId}`), and the `start-turn` stream part is emitted under
- * that key if the append was new. The turn therefore starts before the first
- * effect that hands its prompt to the model. Steer submissions and unknown
- * submission IDs never start a turn.
+ * Turns start here: before appending a new attempt's `effect-start`, any
+ * delivered `prompt` submissions without a `turn-start` event start a single
+ * turn together (`turn-start:${turnId}` with an opaque generated `turnId` and
+ * their `submissionIds` in log order), and the `start-turn` stream part is
+ * emitted under that key if the append was accepted. The turn therefore starts
+ * before the first effect that hands its prompts to the model. Steer
+ * submissions and unknown submission IDs never start a turn.
  *
  * Only one turn runs at a time: a prompt submitted while a turn is running
  * waits until that turn finished. A new attempt therefore rejects with
- * `HarnessInvalidDriveStateError`, without writing anything, if it delivers
- * more than one prompt that has not started a turn, or a prompt while the
- * latest turn has not finished.
+ * `HarnessAdapterContractError`, without writing anything, if it delivers a
+ * prompt that has not started a turn while the latest turn has not finished.
  */
 export function createEffectFunction(options: {
   /**
@@ -301,11 +301,11 @@ export function createEffectFunction(options: {
   const running = new Set<string>();
 
   /**
-   * Submission ID of the turn whose `turn-start` event is being appended by
-   * this effect function, until that append settled. Counts as an unfinished
-   * turn, so a concurrent effect cannot start another turn meanwhile.
+   * Whether a `turn-start` event is currently being appended by this effect
+   * function, until that append settles. Counts as an unfinished turn, so a
+   * concurrent effect cannot start another turn meanwhile.
    */
-  let startingTurn: string | undefined;
+  let startingTurn = false;
 
   /**
    * Records an outcome only for an accepted, unfinished attempt and returns its
@@ -355,16 +355,16 @@ export function createEffectFunction(options: {
   }
 
   /**
-   * Starts the turn of the `prompt` submission among the given ones that has
-   * no `turn-start` event yet, if there is one. Appends are first-wins, so a
-   * turn whose start another drive already committed is not started again,
-   * and the `start-turn` part is only emitted for a new append.
+   * Starts a single turn for all `prompt` submissions among the given ones
+   * that have no `turn-start` event yet, ordered by their position in the log.
+   * Appends are first-wins, so a turn whose start another drive already
+   * committed is not started again, and the `start-turn` part is only emitted
+   * when this append became the current turn.
    *
-   * A session runs one turn at a time, and each turn starts with exactly one
-   * prompt; prompts submitted meanwhile wait until the turn finished. So this
-   * rejects with `HarnessAdapterContractError`, before writing anything, if
-   * the given submissions include more than one prompt without a turn, or if
-   * the latest turn has not finished yet.
+   * A session runs one turn at a time: prompts submitted meanwhile wait until
+   * the turn finished. So this rejects with `HarnessAdapterContractError`,
+   * before writing anything, if the given submissions include any prompt
+   * without a turn while the latest turn has not finished yet.
    */
   async function maybeStartTurn(options: {
     /**
@@ -372,51 +372,47 @@ export function createEffectFunction(options: {
      */
     submissionIds: readonly string[];
   }): Promise<void> {
-    const prompts = new Set(
-      log
-        .getSubmissions()
-        .filter(submission => submission.data.type === 'prompt')
-        .map(submission => submission.id),
-    );
+    const requested = new Set(options.submissionIds);
     const startedPrompts = new Set(
       log
         .getTurns()
         .flatMap(turn => turn.submissions.map(submission => submission.id)),
     );
-    const waiting = options.submissionIds.filter(
-      submissionId =>
-        prompts.has(submissionId) && !startedPrompts.has(submissionId),
-    );
+    const waiting = log
+      .getSubmissions()
+      .filter(
+        submission =>
+          submission.data.type === 'prompt' &&
+          requested.has(submission.id) &&
+          !startedPrompts.has(submission.id),
+      )
+      .map(submission => submission.id);
     if (waiting.length === 0) return;
-    if (waiting.length > 1) {
-      throw new HarnessAdapterContractError({
-        message:
-          'HarnessAgent.effect: an effect can start at most one turn, but it delivers more than one prompt that has not started a turn.',
-      });
-    }
     const currentTurn = log.getCurrentTurn();
-    if (
-      startingTurn != null ||
-      (currentTurn != null && currentTurn.finish == null)
-    ) {
+    if (startingTurn || (currentTurn != null && currentTurn.finish == null)) {
       throw new HarnessAdapterContractError({
         message:
           'HarnessAgent.effect: a prompt cannot start a turn while the previous turn has not finished.',
       });
     }
 
-    const [submissionId] = waiting;
-    const id = `turn-start:${submissionId}`;
-    startingTurn = submissionId;
+    const turnId = generateId();
+    const id = `turn-start:${turnId}`;
+    startingTurn = true;
     try {
       const appended = await log.append({
         type: 'turn-start',
         id,
-        data: { turnId: submissionId },
+        data: { turnId, submissionIds: waiting },
       });
-      if (appended) writer.emit({ part: { type: 'start-turn' }, key: id });
+      if (appended && log.getCurrentTurn()?.start.data.turnId === turnId) {
+        writer.emit({
+          part: { type: 'start-turn', submissionIds: waiting },
+          key: id,
+        });
+      }
     } finally {
-      startingTurn = undefined;
+      startingTurn = false;
     }
   }
 

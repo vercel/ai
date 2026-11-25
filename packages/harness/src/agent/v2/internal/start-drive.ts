@@ -352,7 +352,13 @@ function repairTurnStream(options: {
 
   const startKey = `turn-start:${turnId}`;
   if (!keys.has(startKey)) {
-    writer.emit({ part: { type: 'start-turn' }, key: startKey });
+    writer.emit({
+      part: {
+        type: 'start-turn',
+        submissionIds: turn.start.data.submissionIds,
+      },
+      key: startKey,
+    });
   }
 
   const turnAttempts = log.getEffects({ turnId });
@@ -442,9 +448,10 @@ export function isAwaitingToolApproval(options: {
 }
 
 /**
- * Returns whether the session has nothing left to drive for now: no prompt
- * waits to start a turn, and the current turn is absent, finished, or waits
- * for tool approval responses (see `isAwaitingToolApproval()`).
+ * Returns whether the session has nothing left to drive for now: the current
+ * turn waits for tool approval responses (blocking any waiting prompts until
+ * approvals or a cancel arrive), or no prompt waits to start a turn and the
+ * current turn is absent or finished.
  */
 export function isSessionSettled(options: {
   /**
@@ -453,9 +460,10 @@ export function isSessionSettled(options: {
   log: HarnessAgentLog;
 }): boolean {
   const { log } = options;
+  if (isAwaitingToolApproval({ log })) return true;
   if (hasWaitingPrompt({ log })) return false;
   const turn = log.getCurrentTurn();
-  return turn == null || turn.finish != null || isAwaitingToolApproval({ log });
+  return turn == null || turn.finish != null;
 }
 
 /**

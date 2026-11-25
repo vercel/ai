@@ -145,7 +145,7 @@ describe('readResponseRecordStream', () => {
           encryption,
           startTurnId: 'turn',
           startIndex: 1,
-          driveEnd: Promise.resolve(),
+          driveEnd: Promise.resolve('ran'),
         }),
       ),
     ).toEqual([
@@ -196,7 +196,7 @@ describe('readResponseRecordStream', () => {
         session,
         startTurnId: 'turn',
         startIndex: 0,
-        driveEnd: Promise.resolve(),
+        driveEnd: Promise.resolve('ran'),
       }),
     );
 
@@ -333,7 +333,7 @@ describe('readResponseRecordStream', () => {
           world,
           session,
           startIndex: 1,
-          driveEnd: Promise.resolve(),
+          driveEnd: Promise.resolve('ran'),
         }),
       ),
     ).toEqual([
@@ -372,6 +372,87 @@ describe('readResponseRecordStream', () => {
 
     expect(await reading).toEqual([
       { part: { type: 'start-turn' }, key: 'turn-start:turn' },
+    ]);
+  });
+
+  test('starts at the start-turn record whose submissionIds include startSubmissionId', async () => {
+    const world = new InMemoryWorld();
+    await writeRecords({
+      world,
+      records: [
+        {
+          part: { type: 'start-turn', submissionIds: ['p1'] },
+          key: 'turn-start:t1',
+        },
+        { part: { type: 'text-delta', id: 'a', delta: 'first' }, startId: 'a' },
+        {
+          part: { type: 'start-turn', submissionIds: ['p2', 'p3'] },
+          key: 'turn-start:t2',
+        },
+        {
+          part: { type: 'text-delta', id: 'b', delta: 'merged' },
+          startId: 'b',
+        },
+        { part: { type: 'settle' } },
+      ],
+    });
+
+    const stream = readResponseRecordStream({
+      encryption,
+      world,
+      session,
+      startSubmissionId: 'p3',
+      startIndex: 0,
+      driveEnd: Promise.resolve('ran'),
+    });
+
+    expect(await readAll(stream)).toEqual([
+      {
+        part: { type: 'start-turn', submissionIds: ['p2', 'p3'] },
+        key: 'turn-start:t2',
+      },
+      { part: { type: 'text-delta', id: 'b', delta: 'merged' }, startId: 'b' },
+      { part: { type: 'settle' } },
+    ]);
+  });
+
+  test('follows until settle when driveEnd resolves with skipped', async () => {
+    const world = new InMemoryWorld();
+    const driveEnd = new DelayedPromise<'ran' | 'skipped'>();
+    const stream = readResponseRecordStream({
+      encryption,
+      world,
+      session,
+      startSubmissionId: 'p2',
+      startIndex: 0,
+      driveEnd: driveEnd.promise,
+    });
+    const reading = readAll(stream);
+
+    driveEnd.resolve('skipped');
+    await writeRecords({
+      world,
+      records: [
+        {
+          part: { type: 'start-turn', submissionIds: ['p2'] },
+          key: 'turn-start:t2',
+        },
+        { part: { type: 'text-delta', id: 'b', delta: 'later' }, startId: 'b' },
+        { part: { type: 'yield' } },
+      ],
+    });
+    await writeRecords({
+      world,
+      records: [{ part: { type: 'settle' } }],
+    });
+
+    expect(await reading).toEqual([
+      {
+        part: { type: 'start-turn', submissionIds: ['p2'] },
+        key: 'turn-start:t2',
+      },
+      { part: { type: 'text-delta', id: 'b', delta: 'later' }, startId: 'b' },
+      { part: { type: 'settle' } },
     ]);
   });
 });

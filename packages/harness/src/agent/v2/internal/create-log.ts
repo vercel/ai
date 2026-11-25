@@ -155,8 +155,7 @@ export type HarnessAgentLogFinishStepEvent = {
    */
   readonly data: {
     /**
-     * ID of the step's turn. Currently the ID of the `prompt` submission
-     * that started the turn.
+     * ID of the step's turn.
      */
     readonly turnId: string;
 
@@ -196,20 +195,25 @@ export type HarnessAgentLogTurnStartEvent = {
    * Records the start of a turn, visible only to the agent engine. Written
    * by the effect function under the ID `turn-start:${turnId}`, right
    * before the `effect-start` that first delivers the turn's `prompt`
-   * submission. From then on, that submission counts as delivered and the
+   * submissions. From then on, those submissions have started a turn and the
    * turn is the session's current turn.
    */
   readonly type: 'turn-start';
 
   /**
-   * Turn identity.
+   * Turn identity and the prompt submissions that started it.
    */
   readonly data: {
     /**
-     * ID of the turn. Currently the ID of the `prompt` submission that
-     * starts the turn.
+     * Opaque ID of the turn.
      */
     readonly turnId: string;
+
+    /**
+     * IDs of the `prompt` submissions whose delivery started the turn, in
+     * log order.
+     */
+    readonly submissionIds: readonly string[];
   };
 
   /**
@@ -505,11 +509,10 @@ export type HarnessAgentLogToolApprovalResponseEvent = {
  * behavior, such as tracking partial effect output. These events are not exposed
  * to harness adapters and therefore do not belong in HarnessV2LogEvent.
  *
- * The `turnId` of `turn-start`, `finish-step` and `finish-turn` events is
- * currently the ID of the `prompt` submission that started the turn, and the
- * engine relies on that (e.g. to find prompts that have not started a turn).
- * Adapters only see `turnId` on `finish-turn` events, as an opaque string,
- * so this relationship can change without affecting them.
+ * The `turnId` of `turn-start`, `finish-step` and `finish-turn` events is an
+ * opaque generated ID independent of submission IDs. Adapters only see `turnId`
+ * on `finish-turn` events as an opaque string, and learn which submissions
+ * started a turn from `HarnessV2LogTurn['submissions']`.
  *
  * Runtime checks for common fields and supported event types live in
  * is-valid-harness-agent-log-event.ts. Changes to these fields or event types
@@ -1126,6 +1129,7 @@ export function createLog({
   >();
   const turns: Mutable<HarnessAgentLogTurn>[] = [];
   const turnsById = new Map<string, Mutable<HarnessAgentLogTurn>>();
+  const startedPromptIds = new Set<string>();
   const drives = new Map<string, Mutable<HarnessAgentLogDrive>>();
   const crashes = new Map<string, HarnessAgentLogDriveCrashEvent>();
   const driveErrors = new Map<string, HarnessAgentLogDriveErrorEvent>();
@@ -1290,15 +1294,28 @@ export function createLog({
       }
 
       case 'turn-start': {
-        const { turnId } = event.data;
+        const { turnId, submissionIds } = event.data;
         if (turnsById.has(turnId)) return;
-        const submission = submissions.find(item => item.id === turnId);
+        const currentTurn = turns.at(-1);
+        if (currentTurn != null && currentTurn.finish == null) return;
+        if (
+          submissionIds.some(submissionId => startedPromptIds.has(submissionId))
+        ) {
+          return;
+        }
+        const requested = new Set(submissionIds);
+        const turnSubmissions: HarnessV2LogSubmissionEvent[] = [];
+        for (const item of submissions) {
+          if (item.data.type === 'prompt' && requested.has(item.id)) {
+            turnSubmissions.push({ ...item, data: item.data });
+          }
+        }
+        for (const submission of turnSubmissions) {
+          startedPromptIds.add(submission.id);
+        }
         const turn: Mutable<HarnessAgentLogTurn> = {
           start: event,
-          submissions:
-            submission?.data.type === 'prompt'
-              ? [{ ...submission, data: submission.data }]
-              : [],
+          submissions: turnSubmissions,
           steps: [],
         };
         turns.push(turn);

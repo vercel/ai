@@ -100,17 +100,17 @@ export type PiModelEffectRecord = {
 };
 
 /**
- * The turn started by the latest delivered prompt.
+ * The turn started by the latest delivered prompt submissions.
  */
 export type PiCurrentTurn = {
   /**
-   * Prompt that started the turn.
+   * Prompt submissions whose delivery started the turn, in log order.
    */
-  prompt: PiPromptSubmission;
+  prompts: PiPromptSubmission[];
 
   /**
    * Ordinal reserved for the turn's first model call. MCP discovery can
-   * deliver the prompt before that call exists.
+   * deliver the prompts before that call exists.
    */
   firstModelOrdinal: number;
 
@@ -236,26 +236,26 @@ export function readPiLogState(options: {
 
   let currentTurn: PiCurrentTurn | undefined;
   const turn = log.getCurrentTurn();
-  const turnSubmission = turn?.submissions[0];
-  const prompt =
-    turnSubmission == null ? undefined : toPromptSubmission(turnSubmission);
+  const turnPrompts = turn == null ? [] : toPromptSubmissions(turn.submissions);
+  const turnPromptIds = new Set(turnPrompts.map(prompt => prompt.id));
+  const lastPrompt = turnPrompts.at(-1);
   const firstModelEffect =
-    prompt == null
+    lastPrompt == null
       ? undefined
       : modelEffects.find(record =>
-          record.deliveredSubmissionIds.includes(prompt.id),
+          record.deliveredSubmissionIds.some(id => turnPromptIds.has(id)),
         );
   const discovery =
-    prompt == null
+    lastPrompt == null
       ? undefined
-      : log.getEffect({ key: `mcp-discovery:${prompt.id}` });
+      : log.getEffect({ key: `mcp-discovery:${lastPrompt.id}` });
   const firstModelOrdinal =
     firstModelEffect?.ordinal ??
     (discovery?.start.data.input as { firstModelOrdinal?: number } | undefined)
       ?.firstModelOrdinal;
-  if (turn != null && prompt != null && firstModelOrdinal != null) {
+  if (turn != null && turnPrompts.length > 0 && firstModelOrdinal != null) {
     currentTurn = {
-      prompt,
+      prompts: turnPrompts,
       firstModelOrdinal,
       ended: turn.finish != null,
     };

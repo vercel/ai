@@ -37,6 +37,11 @@ export type HarnessV2<
   /**
    * Drives one session using the host-provided effects, tools, streams, and
    * abort signals.
+   *
+   * When multiple queued `prompt` submissions are waiting before a turn
+   * starts, the adapter must merge them into a single prompt and deliver all
+   * of their submission IDs together in one effect, using the turn settings
+   * (`HarnessV2TurnSettings`) from the latest queued prompt among them.
    */
   drive(options: {
     sessionId: string;

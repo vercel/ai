@@ -120,7 +120,10 @@ async function startTurn(options: {
   await options.log.append({
     type: 'turn-start',
     id: `turn-start:${options.submissionId}`,
-    data: { turnId: options.submissionId },
+    data: {
+      turnId: options.submissionId,
+      submissionIds: [options.submissionId],
+    },
   });
 }
 
@@ -267,9 +270,10 @@ describe('createFinishFunctions', () => {
     });
 
     test('counts steps per turn', async () => {
-      const { log, finishStep } = await setup();
+      const { log, finishStep, finishTurn } = await setup();
       await deliverPrompt({ log, submissionId: 'p1' });
       await finishStep({ stepNumber: 0, finishReason, usage });
+      await finishTurn({ finishReason, totalUsage: usage });
       await deliverPrompt({ log, submissionId: 'p2' });
 
       await finishStep({ stepNumber: 0, finishReason, usage });
@@ -457,11 +461,13 @@ describe('createFinishFunctions', () => {
       await submit({ log, submissionId: 'p1' });
       await submit({ log, submissionId: 'p2' });
       await startTurn({ log, submissionId: 'p2' });
+      await finishTurn({ finishReason, totalUsage: usage });
       await startTurn({ log, submissionId: 'p1' });
 
       await finishTurn({ finishReason, totalUsage: usage });
 
       expect(await readEventIds({ log, type: 'finish-turn' })).toEqual([
+        'finish-turn:p2',
         'finish-turn:p1',
       ]);
     });
@@ -472,6 +478,7 @@ describe('createFinishFunctions', () => {
       await deliverPrompt({ log, submissionId: 'p1' });
 
       await finishStep({ stepNumber: 0, finishReason, usage });
+      await finishTurn({ finishReason, totalUsage: usage });
       await deliverPrompt({ log, submissionId: 'p2' });
       await finishStep({ stepNumber: 0, finishReason, usage });
       await finishStep({ stepNumber: 1, finishReason, usage });

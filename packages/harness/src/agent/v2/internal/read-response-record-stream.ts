@@ -5,6 +5,7 @@ import {
   decodeStreamRecords,
   type HarnessAgentStreamPartRecord,
 } from './create-stream-writer';
+import type { SessionDriveOutcome } from './session-drives';
 
 /**
  * Reads the records of one response from the session's World stream, which
@@ -12,22 +13,26 @@ import {
  *
  * Reading starts at the chunk `startIndex`. With `startTurnId`, records
  * before that turn's `start-turn` record (keyed `turn-start:${startTurnId}`)
- * are dropped; that record and every record after it are delivered. How
- * reading ends depends on `driveEnd`:
+ * are dropped; with `startSubmissionId`, records before the `start-turn`
+ * record whose `submissionIds` include `startSubmissionId` are dropped. That
+ * record and every record after it are delivered. How reading ends depends on
+ * `driveEnd`:
  *
- * - With `driveEnd`, the stream belongs to one drive: once `driveEnd`
- *   resolved, reading continues up to the World stream's end at that moment
- *   and then closes. If `driveEnd` rejects, the stream errors with its
- *   reason. The drive flushes its writer before it settles, and every chunk
- *   of the World stream ends with a blank line; counting those lines is how
- *   the reader knows it reached that end.
- * - Without `driveEnd`, the stream follows the session across drives:
- *   `yield` records are dropped, and the stream closes right after the
- *   effective `settle` record. The chunks up to the World stream's end when
- *   reading starts are its history: a `settle` record in the history that
- *   other delivered records follow is superseded and dropped, and one that
- *   ends the history is delivered once the history was read. After the
- *   history, the first `settle` record is effective.
+ * - With `driveEnd` resolving to `'ran'`, the stream belongs to one drive:
+ *   once `driveEnd` resolved, reading continues up to the World stream's end
+ *   at that moment and then closes. If `driveEnd` rejects, the stream errors
+ *   with its reason. The drive flushes its writer before it settles, and every
+ *   chunk of the World stream ends with a blank line; counting those lines is
+ *   how the reader knows it reached that end.
+ * - Without `driveEnd`, or when `driveEnd` resolves to `'skipped'` (because
+ *   another drive owns the session or the current turn awaits tool approval
+ *   responses), the stream follows the session across drives: `yield` records
+ *   are dropped, and the stream closes right after the effective `settle`
+ *   record. The chunks up to the World stream's end when reading starts are
+ *   its history: a `settle` record in the history that other delivered records
+ *   follow is superseded and dropped, and one that ends the history is
+ *   delivered once the history was read. After the history, the first `settle`
+ *   record is effective.
  *
  * Either way, the stream closes as soon as `abortSignal` fired, when the
  * World stream ends, or when it is cancelled. Reading never affects a drive.
@@ -56,20 +61,28 @@ export function readResponseRecordStream(options: {
   startTurnId?: string;
 
   /**
+   * ID of the `prompt` submission whose turn's `start-turn` record the
+   * response starts at, if records before it are not part of the response.
+   */
+  startSubmissionId?: string;
+
+  /**
    * Ends reading early.
    */
   abortSignal?: AbortSignal;
 
   /**
    * Settles once the drive that writes the response ended. Omit it to follow
-   * the session until it settled.
+   * the session until it settled; resolving to `'skipped'` also transitions to
+   * following the session until it settled.
    */
-  driveEnd?: Promise<void>;
+  driveEnd?: Promise<SessionDriveOutcome>;
 }): ReadableStream<HarnessAgentStreamPartRecord> {
   const {
     world,
     session,
     startTurnId,
+    startSubmissionId,
     startIndex,
     abortSignal,
     driveEnd,
@@ -106,7 +119,9 @@ export function readResponseRecordStream(options: {
       let tailIndex: number | undefined;
       let historyTail: number | undefined;
       let heldSettle: HarnessAgentStreamPartRecord | undefined;
-      let started = startKey == null;
+      let following = driveEnd == null;
+      let deliveredSettle = false;
+      let started = startKey == null && startSubmissionId == null;
 
       /**
        * Closes the stream, once.
@@ -160,10 +175,20 @@ export function readResponseRecordStream(options: {
        */
       const deliver = (record: HarnessAgentStreamPartRecord): void => {
         if (!started) {
-          if (record.key !== startKey) return;
+          if (startKey != null) {
+            if (record.key !== startKey) return;
+          } else if (startSubmissionId != null) {
+            if (
+              record.part.type !== 'start-turn' ||
+              !record.part.submissionIds?.includes(startSubmissionId)
+            ) {
+              return;
+            }
+          }
           started = true;
         }
-        if (driveEnd != null) {
+        if (!following) {
+          if (record.part.type === 'settle') deliveredSettle = true;
           controller.enqueue(record);
           return;
         }
@@ -191,7 +216,12 @@ export function readResponseRecordStream(options: {
       }
 
       void driveEnd
-        ?.then(async () => {
+        ?.then(async outcome => {
+          if (outcome === 'skipped') {
+            following = true;
+            if (deliveredSettle) close();
+            return;
+          }
           tailIndex = (await world.streams.getInfo(runId, streamName))
             .tailIndex;
           closeIfDrained();

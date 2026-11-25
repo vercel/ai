@@ -4,7 +4,7 @@ import type {
   HarnessV2TurnSettings,
 } from '@ai-sdk/harness';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { tool, type ToolSet } from '@ai-sdk/provider-utils';
+import { DelayedPromise, tool, type ToolSet } from '@ai-sdk/provider-utils';
 import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
 import {
   createAssistantMessageEventStream,
@@ -954,5 +954,198 @@ describe('PiDrive', () => {
       expect(runtime.faux.state.callCount).toBe(1);
       expect(weather).not.toHaveBeenCalled();
     });
+  });
+
+  test('merges several queued prompts into a single turn', async () => {
+    const { agent, session, runtime, readState, log } = await setup();
+    const firstModelStarted = new DelayedPromise<void>();
+    const releaseFirstModel = new DelayedPromise<void>();
+    runtime.faux.setResponses([
+      async () => {
+        firstModelStarted.resolve();
+        await releaseFirstModel.promise;
+        return fauxAssistantMessage('First answer');
+      },
+      context => {
+        const userTexts = context.messages
+          .filter(message => message.role === 'user')
+          .map(message =>
+            typeof message.content === 'string'
+              ? message.content
+              : message.content
+                  .filter(part => part.type === 'text')
+                  .map(part => part.text)
+                  .join(''),
+          );
+        return fauxAssistantMessage(`Saw: ${userTexts.join(' | ')}`);
+      },
+    ]);
+
+    const first = await agent.stream({ prompt: 'turn one', session });
+    await firstModelStarted.promise;
+
+    const second = await agent.stream({ prompt: 'queued A', session });
+    const third = await agent.stream({ prompt: 'queued B', session });
+    releaseFirstModel.resolve();
+
+    expect((await first.steps).map(step => step.text)).toEqual([
+      'First answer',
+      'Saw: turn one | queued A\n\nqueued B',
+    ]);
+    expect(await second.text).toBe('Saw: turn one | queued A\n\nqueued B');
+    expect(await third.text).toBe('Saw: turn one | queued A\n\nqueued B');
+
+    const state = readState();
+    expect(state.prompts).toHaveLength(3);
+    expect(state.pendingPrompts).toEqual([]);
+    expect(state.modelEffects).toMatchObject([
+      { ordinal: 0, deliveredSubmissionIds: [state.prompts[0].id] },
+      {
+        ordinal: 1,
+        deliveredSubmissionIds: [state.prompts[1].id, state.prompts[2].id],
+      },
+    ]);
+    expect(log().getTurns()).toHaveLength(2);
+    expect(
+      log()
+        .getTurns()[1]
+        .submissions.map(submission => submission.id),
+    ).toEqual([state.prompts[1].id, state.prompts[2].id]);
+  });
+
+  test('applies the latest prompt settings when merging pending prompts', async () => {
+    const runtime = createTestModelRuntime();
+    const sandbox = await createJustBashNetworkSandboxSession({
+      sandboxId: 'sandbox-1',
+    });
+    let seenSystemPrompt: string | undefined;
+    let seenToolNames: string[] = [];
+    const resolveModelSpy = vi.spyOn(runtime, 'resolveModel');
+    runtime.faux.setResponses([
+      context => {
+        const systemMessage = context.messages.find(
+          message => message.role === 'system',
+        );
+        seenSystemPrompt =
+          systemMessage != null && typeof systemMessage.content === 'string'
+            ? systemMessage.content
+            : undefined;
+        const tools = context.messages.flatMap(message =>
+          message.role === 'system' ? (message.toolsAdded ?? []) : [],
+        );
+        seenToolNames = tools.map(tool => tool.name);
+        return fauxAssistantMessage('merged');
+      },
+    ]);
+
+    const submissions = [
+      {
+        type: 'submission' as const,
+        id: 'p1',
+        data: {
+          type: 'prompt' as const,
+          message: { role: 'user' as const, content: 'first' },
+          settings: {
+            model: 'old-model',
+            skills: [],
+            tools: [
+              {
+                name: 'oldTool',
+                description: 'old',
+                inputSchema: { type: 'object' as const, properties: {} },
+              },
+            ],
+            instructions: 'old instructions',
+          },
+        },
+      },
+      {
+        type: 'submission' as const,
+        id: 'p2',
+        data: {
+          type: 'prompt' as const,
+          message: { role: 'user' as const, content: 'second' },
+          settings: {
+            model: 'latest-model',
+            skills: [],
+            tools: [
+              {
+                name: 'latestTool',
+                description: 'latest',
+                inputSchema: { type: 'object' as const, properties: {} },
+              },
+            ],
+            instructions: 'latest instructions',
+          },
+        },
+      },
+    ];
+    let delivered: string[] = [];
+    const context: HarnessV2DriveContext = {
+      log: {
+        append: async () => true,
+        onAppend: () => () => {},
+        getSubmissions: () => submissions,
+        getUndeliveredSubmissions: () =>
+          submissions.filter(s => !delivered.includes(s.id)),
+        getEffect: () => undefined,
+        getEffects: () => [],
+        getCurrentTurn: () => undefined,
+        getTurns: () => [],
+        getAdapterEvents: () => [],
+      },
+      effect: async options => {
+        delivered = [...delivered, ...(options.deliveredSubmissionIds ?? [])];
+        const result = options.fn({
+          abortSignal: new AbortController().signal,
+          startId: 'start-1',
+          emit: () => {},
+        });
+        let value: unknown;
+        if (Symbol.asyncIterator in result) {
+          for await (const chunk of result) value = chunk;
+        } else {
+          value = await result;
+        }
+        return { type: 'result', value } as never;
+      },
+      finishStep: async () => {},
+      finishTurn: async () => {},
+      executeHostTool: async () => ({
+        type: 'error',
+        error: { message: 'unused' },
+      }),
+      executeBuiltinTool: async () => ({
+        type: 'error',
+        error: { message: 'unused' },
+      }),
+      executeMcpTool: async () => ({
+        type: 'error',
+        error: { message: 'unused' },
+      }),
+      gateBuiltinTool: async () => ({
+        type: 'suspended',
+        reason: 'approval',
+      }),
+      sandbox: async () => ({ session: sandbox, workDir: 'project' }),
+      unsafeEmit: () => {},
+      stopAbortSignal: new AbortController().signal,
+      yieldAbortSignal: new AbortController().signal,
+    };
+
+    const drive = new PiDrive({
+      sessionId: 'session-1',
+      context,
+      runtime,
+    });
+    await drive.run();
+
+    expect(seenSystemPrompt).toBe('latest instructions');
+    expect(seenToolNames).toContain('latestTool');
+    expect(seenToolNames).not.toContain('oldTool');
+    expect(resolveModelSpy).toHaveBeenLastCalledWith({
+      modelId: 'latest-model',
+    });
+    expect(delivered).toEqual(['p1', 'p2']);
   });
 });

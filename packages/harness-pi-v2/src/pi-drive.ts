@@ -151,6 +151,55 @@ export function toPiUserMessage(options: {
 }
 
 /**
+ * Merges one or more prompt user messages into a single Pi user message.
+ * Text-only messages are concatenated with a blank line (`\n\n`); when any
+ * message contains image parts, all parts are combined into one content array
+ * with `\n\n` text separators between prompts.
+ */
+function toMergedPiUserMessage(options: {
+  /**
+   * User messages of the merged prompt submissions, in log order.
+   */
+  messages: readonly UserModelMessage[];
+
+  /**
+   * Timestamp of the Pi message.
+   */
+  timestamp: number;
+}): UserMessage {
+  const { messages, timestamp } = options;
+  if (messages.length === 1) {
+    return toPiUserMessage({ message: messages[0]!, timestamp });
+  }
+  const extracted = messages.map(message =>
+    extractHarnessPromptContent({ prompt: message }),
+  );
+  if (extracted.every(content => typeof content === 'string')) {
+    return { role: 'user', content: extracted.join('\n\n'), timestamp };
+  }
+  const parts: Array<
+    | { type: 'text'; text: string }
+    | { type: 'image'; data: string; mimeType: string }
+  > = [];
+  for (let index = 0; index < extracted.length; index++) {
+    if (index > 0) parts.push({ type: 'text', text: '\n\n' });
+    const content = extracted[index]!;
+    if (typeof content === 'string') {
+      parts.push({ type: 'text', text: content });
+    } else {
+      for (const part of content) {
+        parts.push(
+          part.type === 'text'
+            ? { type: 'text', text: part.text }
+            : { type: 'image', data: part.data, mimeType: part.mediaType },
+        );
+      }
+    }
+  }
+  return { role: 'user', content: parts, timestamp };
+}
+
+/**
  * Returns the reason of a Pi `done` event for a successful model response.
  */
 function toDoneReason(options: {
@@ -332,10 +381,10 @@ export class PiDrive {
   private mcpTools: PiHostAgentTool[] = [];
 
   /**
-   * Pi messages of prompts handed to Pi whose delivery no model call
-   * recorded yet, by submission ID.
+   * Merged Pi messages handed to Pi whose delivery no model call recorded yet,
+   * paired with the submission IDs each message delivers.
    */
-  private readonly handed = new Map<string, Message>();
+  private readonly handed: Array<{ ids: string[]; message: Message }> = [];
 
   /**
    * IDs of every prompt handed to Pi in this drive. A handed prompt stays
@@ -424,7 +473,7 @@ export class PiDrive {
       const { currentTurn } = this.state;
       if (currentTurn != null && !currentTurn.ended) {
         if (!restored.resume) {
-          await this.runPrompt({ prompt: currentTurn.prompt });
+          await this.runPrompts({ prompts: currentTurn.prompts });
           if (!(await this.finishRun())) return;
         } else {
           this.startTurn({ firstOrdinal: currentTurn.firstModelOrdinal });
@@ -448,7 +497,7 @@ export class PiDrive {
             );
           if (
             !this.turnCancelled &&
-            (await this.prepareMcp({ prompt: currentTurn.prompt }))
+            (await this.prepareMcp({ prompts: currentTurn.prompts }))
           ) {
             await this.agent!.continue();
           }
@@ -459,11 +508,11 @@ export class PiDrive {
       for (;;) {
         if (this.halted || context.yieldAbortSignal.aborted) return;
         this.state = this.readState();
-        const prompt = this.state.pendingPrompts.find(
+        const prompts = this.state.pendingPrompts.filter(
           pending => !this.given.has(pending.id),
         );
-        if (prompt == null) return;
-        await this.runPrompt({ prompt });
+        if (prompts.length === 0) return;
+        await this.runPrompts({ prompts });
         if (!(await this.finishRun())) return;
       }
     } finally {
@@ -484,10 +533,10 @@ export class PiDrive {
     const { currentTurn } = this.state;
     const resumedSettings =
       currentTurn != null && !currentTurn.ended
-        ? currentTurn.prompt.settings
+        ? currentTurn.prompts.at(-1)?.settings
         : undefined;
     const initialSettings =
-      resumedSettings ?? this.state.pendingPrompts[0]?.settings;
+      resumedSettings ?? this.state.pendingPrompts.at(-1)?.settings;
     this.hostToolNames = new Set(initialSettings?.tools.map(spec => spec.name));
     const restored = restorePiTranscript({
       state: this.state,
@@ -523,48 +572,58 @@ export class PiDrive {
   }
 
   /**
-   * Hands a prompt to Pi as a new turn, with the model and tools of the
-   * prompt's settings, and resolves once Pi's run for it settled.
+   * Hands one or more pending prompts to Pi as a single turn, with the model,
+   * instructions and tools of the latest prompt's settings, and resolves once
+   * Pi's run for it settled.
    */
-  private async runPrompt(options: {
+  private async runPrompts(options: {
     /**
-     * Prompt that starts the turn.
+     * Prompts that start the turn, in log order.
      */
-    prompt: PiPromptSubmission;
+    prompts: readonly PiPromptSubmission[];
   }): Promise<void> {
     const agent = this.agent!;
-    const { prompt } = options;
+    const { prompts } = options;
+    const settings = prompts.at(-1)!.settings;
     this.startTurn({ firstOrdinal: this.nextModelOrdinal });
-    this.given.add(prompt.id);
-    if (!(await this.prepareMcp({ prompt }))) return;
-    const message = toPiUserMessage({
-      message: prompt.message,
+    for (const prompt of prompts) {
+      this.given.add(prompt.id);
+    }
+    if (!(await this.prepareMcp({ prompts }))) return;
+    const message = toMergedPiUserMessage({
+      messages: prompts.map(prompt => prompt.message),
       timestamp: Date.now(),
     });
-    this.hostToolNames = new Set(prompt.settings.tools.map(spec => spec.name));
-    agent.state.model = this.resolveModel({ settings: prompt.settings });
-    agent.state.tools = this.createAgentTools({ settings: prompt.settings });
-    if (Object.keys(prompt.settings.mcpServers ?? {}).length === 0)
-      this.handed.set(prompt.id, message);
+    this.hostToolNames = new Set(settings.tools.map(spec => spec.name));
+    agent.state.model = this.resolveModel({ settings });
+    agent.state.tools = this.createAgentTools({ settings });
+    if (Object.keys(settings.mcpServers ?? {}).length === 0) {
+      this.handed.push({
+        ids: prompts.map(prompt => prompt.id),
+        message,
+      });
+    }
     await agent.prompt(message);
   }
 
   /**
    * Records or restores discovery before Pi sees tools. Discovery delivers
-   * the prompt so failures and cancellation can finish a zero-step turn.
+   * all prompts of the turn so failures and cancellation can finish a
+   * zero-step turn.
    */
   private async prepareMcp(options: {
-    prompt: PiPromptSubmission;
+    prompts: readonly PiPromptSubmission[];
   }): Promise<boolean> {
     await this.mcpRuntime?.close();
     this.mcpRuntime = undefined;
     this.mcpTools = [];
-    const { prompt } = options;
-    const { mcpServers } = prompt.settings;
+    const { prompts } = options;
+    const settings = prompts.at(-1)!.settings;
+    const { mcpServers } = settings;
     if (mcpServers == null || Object.keys(mcpServers).length === 0) {
       this.setMcpInstructions({ instructions: '' });
       this.agent!.state.tools = this.createAgentTools({
-        settings: prompt.settings,
+        settings,
       });
       return true;
     }
@@ -576,16 +635,17 @@ export class PiDrive {
       ]),
     });
     this.mcpRuntime = runtime;
+    const submissionIds = prompts.map(prompt => prompt.id);
     const output = await this.guard(
       this.context.effect({
-        key: `mcp-discovery:${prompt.id}`,
+        key: `mcp-discovery:${prompts.at(-1)!.id}`,
         name: 'mcp.discovery',
         replay: 'safe',
         input: {
-          submissionId: prompt.id,
+          submissionIds,
           firstModelOrdinal: this.turnFirstOrdinal,
         },
-        deliveredSubmissionIds: [prompt.id],
+        deliveredSubmissionIds: submissionIds,
         fn: ({ abortSignal }) =>
           this.translateCancel(() =>
             runtime.discover({
@@ -602,7 +662,7 @@ export class PiDrive {
       if (!this.turnCancelled) this.halt();
       return false;
     }
-    const hostNames = new Set(prompt.settings.tools.map(tool => tool.name));
+    const hostNames = new Set(settings.tools.map(tool => tool.name));
     const names = new Set<string>();
     this.mcpTools = runtime
       .createTools({ catalog: output.value })
@@ -649,7 +709,7 @@ export class PiDrive {
       .join('\n\n');
     this.setMcpInstructions({ instructions });
     this.agent!.state.tools = this.createAgentTools({
-      settings: prompt.settings,
+      settings,
     });
     return true;
   }
@@ -1108,15 +1168,14 @@ export class PiDrive {
     const ids: string[] = [];
     for (const message of options.appended) {
       if (message.role !== 'user') continue;
-      for (const [id, handed] of this.handed) {
-        if (
-          handed === message ||
-          JSON.stringify(handed) === JSON.stringify(message)
-        ) {
-          this.handed.delete(id);
-          ids.push(id);
-          break;
-        }
+      const index = this.handed.findIndex(
+        entry =>
+          entry.message === message ||
+          JSON.stringify(entry.message) === JSON.stringify(message),
+      );
+      if (index !== -1) {
+        ids.push(...this.handed[index]!.ids);
+        this.handed.splice(index, 1);
       }
     }
     return ids;

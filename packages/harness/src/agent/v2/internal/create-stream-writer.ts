@@ -102,6 +102,12 @@ export type HarnessAgentStreamPart =
        * `turn-start:${turnId}`.
        */
       type: 'start-turn';
+
+      /**
+       * IDs of the `prompt` submissions whose delivery started the turn, in
+       * log order.
+       */
+      readonly submissionIds?: readonly string[];
     }
   | {
       /**

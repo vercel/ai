@@ -105,8 +105,8 @@ export type FxPromptSubmission = {
 };
 
 /**
- * A turn read from the log: one prompt, delivered by the effect
- * `turn:${index}`.
+ * A turn read from the log: one or more prompts merged and delivered together
+ * by the effect `turn:${index}`.
  */
 export type FxTurnRecord = {
   /**
@@ -115,9 +115,9 @@ export type FxTurnRecord = {
   index: number;
 
   /**
-   * Prompt that started the turn.
+   * Prompts whose delivery started the turn, in log order.
    */
-  prompt: FxPromptSubmission;
+  prompts: FxPromptSubmission[];
 
   /**
    * Whether the turn finished.
@@ -311,13 +311,11 @@ export function readFxLogState(options: {
    */
   const turns: FxTurnRecord[] = [];
   for (const [index, logTurn] of log.getTurns().entries()) {
-    const submission = logTurn.submissions[0];
-    const prompt =
-      submission == null ? undefined : toPromptSubmission(submission);
-    if (prompt == null) break;
+    const prompts = toPromptSubmissions(logTurn.submissions);
+    if (prompts.length === 0) break;
     const turn: FxTurnRecord = {
       index,
-      prompt,
+      prompts,
       ended: logTurn.finish != null,
     };
     const output = log.getEffect({ key: `checkpoint:${index}` })?.end?.data
