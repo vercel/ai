@@ -294,6 +294,109 @@ describe('OpenAI batch service', () => {
     expect(multipart?.['expires_after[seconds]']).toBe('3600');
   });
 
+  it('sends output_expires_after when outputFileExpiresAfter is set', async () => {
+    prepareCreateResponse();
+    const batch = createOpenAI({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+
+    await batch.doStartBatch({
+      requests: [
+        { id: 'france', ...request('What is the capital of France?') },
+      ],
+      providerOptions: { openai: { outputFileExpiresAfter: 172_800 } },
+    });
+
+    expect(await server.calls[1].requestBodyJson).toEqual({
+      input_file_id: 'file-input',
+      endpoint: '/v1/responses',
+      completion_window: '24h',
+      output_expires_after: { anchor: 'created_at', seconds: 172_800 },
+    });
+  });
+
+  it.each([
+    ['the azure namespace', { azure: { outputFileExpiresAfter: 3600 } }, 3600],
+    [
+      'the openai namespace as a fallback',
+      { openai: { outputFileExpiresAfter: 7200 } },
+      7200,
+    ],
+    [
+      'the azure namespace over the openai namespace',
+      {
+        azure: { outputFileExpiresAfter: 3600 },
+        openai: { outputFileExpiresAfter: 7200 },
+      },
+      3600,
+    ],
+  ])(
+    'reads outputFileExpiresAfter from %s for azure-named providers',
+    async (_, providerOptions, seconds) => {
+      prepareCreateResponse();
+      const batch = createOpenAI({
+        apiKey: 'test-api-key',
+        name: 'azure',
+      }).experimental_batch();
+
+      await batch.doStartBatch({
+        requests: [
+          { id: 'france', ...request('What is the capital of France?') },
+        ],
+        providerOptions,
+      });
+
+      expect(await server.calls[1].requestBodyJson).toMatchObject({
+        output_expires_after: { anchor: 'created_at', seconds },
+      });
+    },
+  );
+
+  it.each([3600, 2_592_000])(
+    'accepts outputFileExpiresAfter %s',
+    async outputFileExpiresAfter => {
+      prepareCreateResponse();
+      const batch = createOpenAI({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
+
+      await batch.doStartBatch({
+        requests: [
+          { id: 'france', ...request('What is the capital of France?') },
+        ],
+        providerOptions: { openai: { outputFileExpiresAfter } },
+      });
+
+      expect(await server.calls[1].requestBodyJson).toMatchObject({
+        output_expires_after: {
+          anchor: 'created_at',
+          seconds: outputFileExpiresAfter,
+        },
+      });
+    },
+  );
+
+  it.each([3599, 2_592_001, 3600.5])(
+    'rejects outputFileExpiresAfter %s before uploading the batch input file',
+    async outputFileExpiresAfter => {
+      const fetchMock = vi.fn();
+      const batch = createOpenAI({
+        apiKey: 'test-api-key',
+        fetch: fetchMock,
+      }).experimental_batch();
+
+      await expect(
+        batch.doStartBatch({
+          requests: [
+            { id: 'france', ...request('What is the capital of France?') },
+          ],
+          providerOptions: { openai: { outputFileExpiresAfter } },
+        }),
+      ).rejects.toMatchObject({ name: 'AI_InvalidArgumentError' });
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
   it('omits inputFileExpiresAt when the upload response carries no expiry', async () => {
     prepareCreateResponse();
     server.urls[urls.files].response = {
@@ -458,7 +561,9 @@ describe('OpenAI batch service', () => {
           batchResponse({
             id: 'batch_122',
             status: 'completed',
-            request_counts: { total: 2, completed: 2, failed: 0 },
+            output_file_id: 'file-output',
+            error_file_id: 'file-errors',
+            request_counts: { total: 2, completed: 1, failed: 1 },
           }),
         ],
         first_id: 'batch_123',
@@ -503,11 +608,14 @@ describe('OpenAI batch service', () => {
           requestCounts: {
             total: 2,
             pending: 0,
-            completed: 2,
-            failed: 0,
+            completed: 1,
+            failed: 1,
           },
           createdAt: '2023-11-14T22:13:20.000Z',
           expiresAt: '2023-11-15T22:13:20.000Z',
+          providerMetadata: {
+            openai: { outputFileId: 'file-output', errorFileId: 'file-errors' },
+          },
         },
       ],
       nextCursor: 'batch_122',
@@ -565,6 +673,79 @@ describe('OpenAI batch service', () => {
         batchId: 'batch_123',
       }),
     ).resolves.toMatchObject({ status, rawStatus });
+  });
+
+  it.each([
+    [
+      'both file ids',
+      {
+        output_file_id: 'file-output',
+        error_file_id: 'file-errors',
+        request_counts: { total: 2, completed: 1, failed: 1 },
+      },
+      { openai: { outputFileId: 'file-output', errorFileId: 'file-errors' } },
+    ],
+    [
+      'only the output file id',
+      { output_file_id: 'file-output', error_file_id: null },
+      { openai: { outputFileId: 'file-output' } },
+    ],
+    [
+      'only the error file id',
+      {
+        output_file_id: null,
+        error_file_id: 'file-errors',
+        request_counts: { total: 2, completed: 0, failed: 2 },
+      },
+      { openai: { errorFileId: 'file-errors' } },
+    ],
+  ])(
+    'returns %s in status provider metadata',
+    async (_, fileIds, providerMetadata) => {
+      server.urls[urls.batch].response = {
+        type: 'json-value',
+        body: batchResponse(fileIds),
+      };
+      const batch = createOpenAI({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
+
+      const status = await batch.doGetBatchStatus({ batchId: 'batch_123' });
+
+      expect(status.providerMetadata).toEqual(providerMetadata);
+    },
+  );
+
+  it('treats empty-string file ids as missing in status provider metadata', async () => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: batchResponse({ output_file_id: '', error_file_id: 'file-errors' }),
+    };
+    const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
+
+    const status = await batch.doGetBatchStatus({ batchId: 'batch_123' });
+    expect(status.providerMetadata).toEqual({
+      openai: { errorFileId: 'file-errors' },
+    });
+
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: batchResponse({ output_file_id: '', error_file_id: '' }),
+    };
+    const emptyStatus = await batch.doGetBatchStatus({ batchId: 'batch_123' });
+    expect(emptyStatus).not.toHaveProperty('providerMetadata');
+  });
+
+  it('omits status provider metadata when OpenAI returns no file ids', async () => {
+    const { output_file_id, error_file_id, ...body } = batchResponse({
+      status: 'in_progress',
+    });
+    server.urls[urls.batch].response = { type: 'json-value', body };
+    const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
+
+    const status = await batch.doGetBatchStatus({ batchId: 'batch_123' });
+
+    expect(status).not.toHaveProperty('providerMetadata');
   });
 
   it('normalizes status counts, timestamps, and batch errors', async () => {

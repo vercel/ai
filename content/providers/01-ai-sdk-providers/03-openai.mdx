@@ -2691,6 +2691,30 @@ Each request specifies its `type` and `model`. OpenAI requires every text
 request in a batch to use the same model and throws before submission when the
 models differ.
 
+#### Provider Options
+
+Batch-level options go in `providerOptions.openai`:
+
+- **inputFileExpiresAfter** _number_
+
+  Time to live in seconds for the uploaded batch input file. OpenAI accepts
+  integers from 3600 (1 hour) to 2592000 (30 days). Defaults to 48 hours.
+
+- **outputFileExpiresAfter** _number_
+
+  Time to live in seconds for the batch output and error files, measured from
+  when each file is created. OpenAI accepts integers from 3600 (1 hour) to
+  2592000 (30 days). When omitted, OpenAI's default file retention applies.
+
+#### Provider Metadata
+
+The batch start result includes `providerMetadata.openai.inputFileId` and,
+when OpenAI reports it, `inputFileExpiresAt`. `experimental_getBatchStatus` results, and each item in the `batches` array of
+`experimental_listBatches` results (not the page itself), include
+`providerMetadata.openai.outputFileId` and `errorFileId` once OpenAI has
+created those files; `experimental_startBatch` results do not. A reported file ID does not mean the file can still be
+downloaded: it may have expired or been deleted.
+
 #### Webhooks
 
 <Note>
