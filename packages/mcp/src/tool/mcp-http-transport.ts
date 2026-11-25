@@ -25,6 +25,15 @@ import {
 } from './types';
 import { encodeMCPHeaderValue } from './mcp-http-headers';
 
+const MCP_NAME_PARAM_METHODS = new Set([
+  'tools/call',
+  'prompts/get',
+  'events/subscribe',
+  'events/unsubscribe',
+  'events/poll',
+  'events/stream',
+]);
+
 function isMessageEvent(event: string | undefined): boolean {
   return event === undefined || event === 'message';
 }
@@ -523,7 +532,7 @@ export class HttpMCPTransport implements MCPTransport {
     const name =
       message.method === 'resources/read'
         ? params?.uri
-        : message.method === 'tools/call' || message.method === 'prompts/get'
+        : MCP_NAME_PARAM_METHODS.has(message.method)
           ? params?.name
           : undefined;
 
