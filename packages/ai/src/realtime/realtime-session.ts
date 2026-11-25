@@ -1046,7 +1046,7 @@ export abstract class AbstractRealtimeSession {
               type: 'conversation-item-truncate',
               itemId: position.itemId,
               contentIndex: 0,
-              audioEndMs: Math.round(position.offsetMs),
+              audioEndMs: position.audioEndMs,
             });
         }
         break;

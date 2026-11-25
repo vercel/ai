@@ -15,13 +15,13 @@ export type BrowserRealtimeAudioOptions = {
 };
 
 /**
- * One scheduled chunk of output audio. `itemOffset` is how much audio of the
- * same item (in seconds) was scheduled before this chunk.
+ * One scheduled chunk of output audio. `itemOffset` is how many samples of the
+ * same item were scheduled before this chunk.
  */
 type ScheduledPlayback = {
   itemId: string | undefined;
   startTime: number;
-  endTime: number;
+  sampleCount: number;
   itemOffset: number;
 };
 
@@ -47,8 +47,7 @@ export class BrowserRealtimeAudio {
   }> = [];
   private playbackTime = 0;
   private activeSources = new Map<AudioBufferSourceNode, ScheduledPlayback>();
-  private lastEndedPlayback: ScheduledPlayback | undefined;
-  private scheduledItem: { id: string; seconds: number } | undefined;
+  private scheduledItem: { id: string; samples: number } | undefined;
   private isPlaying = false;
   private playbackPaused = false;
   private readonly maxPlaybackSeconds: number;
@@ -210,7 +209,6 @@ export class BrowserRealtimeAudio {
       }
     }
     this.activeSources.clear();
-    this.lastEndedPlayback = undefined;
 
     if (this.playbackContext != null) {
       this.playbackTime = this.playbackContext.currentTime;
@@ -220,35 +218,39 @@ export class BrowserRealtimeAudio {
 
   /**
    * The item the user is currently hearing and how far into that item
-   * playback is.
+   * playback is, in whole milliseconds. Queued items play back to back, so
+   * this is resolved from the scheduled chunk under the playback clock, not
+   * from the most recently received item.
    */
-  getPlaybackPosition(): { itemId: string; offsetMs: number } | undefined {
+  getPlaybackPosition(): { itemId: string; audioEndMs: number } | undefined {
     const ctx = this.playbackContext;
     if (ctx == null) return undefined;
     const now = ctx.currentTime;
 
-    // latest chunk that has started.
-    let current = this.lastEndedPlayback;
-    let earliest: ScheduledPlayback | undefined;
+    // Chunks are scheduled back to back, in insertion order. Take the latest
+    // chunk that has started, or the first pending one if none has (an
+    // `ended` event can fire marginally before the next chunk's start time).
+    let current: ScheduledPlayback | undefined;
     for (const playback of this.activeSources.values()) {
-      if (earliest == null || playback.startTime < earliest.startTime)
-        earliest = playback;
-      if (
-        playback.startTime <= now &&
-        (current == null || playback.startTime >= current.startTime)
-      )
-        current = playback;
+      if (current != null && playback.startTime > now) break;
+      current = playback;
     }
-    current ??= earliest;
     if (current?.itemId == null) return undefined;
 
+    const rate = this.playbackSampleRate;
     const played = Math.min(
       Math.max(now - current.startTime, 0),
-      current.endTime - current.startTime,
+      current.sampleCount / rate,
+    );
+    const heardMs = Math.round((current.itemOffset / rate + played) * 1000);
+    // Never report more than the item's scheduled audio, rounded down:
+    // providers reject a truncation past the end of the item.
+    const scheduledMs = Math.floor(
+      ((current.itemOffset + current.sampleCount) * 1000) / rate,
     );
     return {
       itemId: current.itemId,
-      offsetMs: (current.itemOffset + played) * 1000,
+      audioEndMs: Math.min(heardMs, scheduledMs),
     };
   }
 
@@ -293,35 +295,30 @@ export class BrowserRealtimeAudio {
 
       const itemOffset =
         itemId != null && this.scheduledItem?.id === itemId
-          ? this.scheduledItem.seconds
+          ? this.scheduledItem.samples
           : 0;
       if (itemId != null)
         this.scheduledItem = {
           id: itemId,
-          seconds: itemOffset + buffer.duration,
+          samples: itemOffset + samples.length,
         };
-      const playback: ScheduledPlayback = {
+      this.activeSources.set(source, {
         itemId,
         startTime,
-        endTime: this.playbackTime,
+        sampleCount: samples.length,
         itemOffset,
-      };
-      this.activeSources.set(source, playback);
-      this.setPlaying(ctx.state === 'running');
-      if (this.playbackContext !== ctx) return;
-
+      });
+      // Attach before publishing the playing state: a listener that stops
+      // playback must find this source fully set up so it is detached.
       source.onended = () => {
         source.disconnect();
         this.activeSources.delete(source);
-        if (
-          this.lastEndedPlayback == null ||
-          playback.startTime > this.lastEndedPlayback.startTime
-        )
-          this.lastEndedPlayback = playback;
         if (this.playbackQueue.length === 0 && this.activeSources.size === 0) {
           this.setPlaying(false);
         }
       };
+      this.setPlaying(ctx.state === 'running');
+      if (this.playbackContext !== ctx) return;
     }
   }
 }
