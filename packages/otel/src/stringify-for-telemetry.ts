@@ -22,14 +22,34 @@ export function stringifyForTelemetry(prompt: LanguageModelV4Prompt): string {
       content:
         typeof message.content === 'string'
           ? message.content
-          : message.content.map(part =>
-              part.type === 'file'
-                ? {
-                    ...part,
-                    data: serializeFileData(part.data),
-                  }
-                : part,
-            ),
+          : message.content.map(part => {
+              if (part.type === 'file') {
+                return {
+                  ...part,
+                  data: serializeFileData(part.data),
+                };
+              }
+              if (
+                part.type === 'tool-result' &&
+                part.output.type === 'content'
+              ) {
+                return {
+                  ...part,
+                  output: {
+                    ...part.output,
+                    value: part.output.value.map(item =>
+                      item.type === 'file'
+                        ? {
+                            ...item,
+                            data: serializeFileData(item.data),
+                          }
+                        : item,
+                    ),
+                  },
+                };
+              }
+              return part;
+            }),
     })),
   );
 }

@@ -203,6 +203,76 @@ function convertMessagePartToSemConv(
   }
 }
 
+function isBinaryData(value: unknown): value is Uint8Array | ArrayBuffer {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  if (ArrayBuffer.isView(value)) {
+    return Object.prototype.toString.call(value) === '[object Uint8Array]';
+  }
+
+  return Object.prototype.toString.call(value) === '[object ArrayBuffer]';
+}
+
+function serializeBinaryData(value: unknown): unknown {
+  return isBinaryData(value) ? convertDataContentToBase64String(value) : value;
+}
+
+function serializeToolResultContentPart(part: unknown): unknown {
+  if (part == null || typeof part !== 'object' || !('type' in part)) {
+    return part;
+  }
+
+  const typedPart = part as {
+    type: string;
+    data?: unknown;
+  };
+
+  switch (typedPart.type) {
+    case 'file': {
+      const rawData = typedPart.data;
+      if (isBinaryData(rawData)) {
+        return {
+          ...typedPart,
+          data: convertDataContentToBase64String(rawData),
+        };
+      }
+      if (
+        rawData != null &&
+        typeof rawData === 'object' &&
+        'type' in rawData &&
+        (rawData as { type: unknown }).type === 'data' &&
+        'data' in rawData
+      ) {
+        const fileData = rawData as { type: 'data'; data: unknown };
+        const serialized = serializeBinaryData(fileData.data);
+        if (serialized !== fileData.data) {
+          return {
+            ...typedPart,
+            data: {
+              ...fileData,
+              data: serialized,
+            },
+          };
+        }
+      }
+      return part;
+    }
+
+    case 'file-data':
+    case 'image-data': {
+      const serialized = serializeBinaryData(typedPart.data);
+      return serialized !== typedPart.data
+        ? { ...typedPart, data: serialized }
+        : part;
+    }
+
+    default:
+      return part;
+  }
+}
+
 function convertToolResultOutputToResponse(output: unknown): unknown {
   if (output == null || typeof output !== 'object' || !('type' in output)) {
     return output;
@@ -222,6 +292,13 @@ function convertToolResultOutputToResponse(output: unknown): unknown {
       return typedOutput.value;
     case 'execution-denied':
       return { denied: true, reason: typedOutput.reason };
+    case 'content':
+      return Array.isArray(typedOutput.value)
+        ? {
+            ...typedOutput,
+            value: typedOutput.value.map(serializeToolResultContentPart),
+          }
+        : output;
     default:
       return output;
   }
