@@ -86,7 +86,7 @@ describe('AnthropicLanguageModel', () => {
         ...TEST_PROMPT,
         {
           role: 'system',
-          content: 'Answer in one sentence.',
+          content: 'Be concise.',
           providerOptions: {
             anthropic: { cacheControl: { type: 'ephemeral' } },
           },
@@ -105,7 +105,7 @@ describe('AnthropicLanguageModel', () => {
         content: [
           {
             type: 'text',
-            text: 'Answer in one sentence.',
+            text: 'Be concise.',
             cache_control: { type: 'ephemeral' },
           },
         ],
