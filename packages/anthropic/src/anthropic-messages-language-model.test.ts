@@ -62,6 +62,43 @@ describe('AnthropicMessagesLanguageModel', () => {
     };
   }
 
+  it('keeps a later system message in messages with midConversationSystemMessages', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+    await model.doGenerate({
+      prompt: [
+        ...TEST_PROMPT,
+        {
+          role: 'system',
+          content: 'Answer in one sentence.',
+          providerOptions: {
+            anthropic: { cacheControl: { type: 'ephemeral' } },
+          },
+        },
+      ],
+      providerOptions: { anthropic: { midConversationSystemMessages: true } },
+    });
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).not.toHaveProperty('system');
+    expect(body).not.toHaveProperty('midConversationSystemMessages');
+    expect(body.messages).toEqual([
+      { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+      {
+        role: 'system',
+        content: [
+          {
+            type: 'text',
+            text: 'Answer in one sentence.',
+            cache_control: { type: 'ephemeral' },
+          },
+        ],
+      },
+    ]);
+    expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+      'mid-conversation-system-2026-04-07',
+    );
+  });
+
   describe('initial per-message effort', () => {
     it.each([
       { method: 'generate', requestEffort: undefined },
