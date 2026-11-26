@@ -450,6 +450,7 @@ export class HarnessStreamTextResult<
         return;
 
       case 'start-turn':
+        this.turnFinish = undefined;
         this.enqueue({ part: { type: 'custom', kind: START_TURN_KIND } });
         return;
 

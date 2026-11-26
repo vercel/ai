@@ -999,6 +999,161 @@ describe('HarnessAgent turns', () => {
     expect(result.text).toBe('echo: hello');
   });
 
+  test('continues a running stream when a follow-up prompt is appended to the log from another process and the adapter runs one turn per drive', async () => {
+    const world = new InMemoryWorld();
+    const turn1Started = new DelayedPromise<void>();
+    const releaseTurn1 = new DelayedPromise<void>();
+    let turnCount = 0;
+
+    const singleTurnHarness: HarnessV2 = {
+      specificationVersion: 'harness-v2',
+      harnessId: 'single-turn-v2',
+      builtinTools: {},
+      async drive({ context }) {
+        const prompt = context.log
+          .getUndeliveredSubmissions()
+          .find(submission => submission.data.type === 'prompt');
+        if (prompt == null || prompt.data.type !== 'prompt') return;
+        const current = ++turnCount;
+        const text = String(prompt.data.message.content);
+        await context.effect({
+          key: `model:${current}`,
+          name: 'model',
+          replay: 'safe',
+          input: text,
+          deliveredSubmissionIds: [prompt.id],
+          fn: async ({ emit }) => {
+            if (current === 1) {
+              turn1Started.resolve();
+              await releaseTurn1.promise;
+            }
+            emit({ type: 'text-start', id: `t-${current}` });
+            emit({
+              type: 'text-delta',
+              id: `t-${current}`,
+              delta: `turn ${current}: ${text}`,
+            });
+            emit({ type: 'text-end', id: `t-${current}` });
+            return text;
+          },
+        });
+        await context.finishStep({
+          stepNumber: 0,
+          finishReason: { unified: 'stop', raw: 'stop' },
+          usage,
+        });
+        await context.finishTurn({
+          finishReason: { unified: 'stop', raw: 'stop' },
+          totalUsage: usage,
+        });
+      },
+    };
+
+    const agent = new HarnessAgent({
+      harness: singleTurnHarness,
+      world,
+      getSandboxSession,
+    });
+    const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+
+    const first = await agent.stream({ prompt: 'one', session });
+    await turn1Started.promise;
+
+    await createLog({ encryption, world, runId: session.runId }).append({
+      type: 'submission',
+      id: 'remote-prompt',
+      data: {
+        type: 'prompt',
+        message: { role: 'user', content: 'two' },
+        settings: { skills: [], tools: [] },
+      },
+    });
+    releaseTurn1.resolve();
+
+    expect((await first.steps).map(step => step.text)).toEqual([
+      'turn 1: one',
+      'turn 2: two',
+    ]);
+    expect(await first.finishReason).toBe('stop');
+  });
+
+  test('readStream continues past the current turn into a follow-up prompt turn until settle', async () => {
+    const world = new InMemoryWorld();
+    const turn1Started = new DelayedPromise<void>();
+    const releaseTurn1 = new DelayedPromise<void>();
+    let turnCount = 0;
+
+    const harness: HarnessV2 = {
+      specificationVersion: 'harness-v2',
+      harnessId: 'read-stream-followup-v2',
+      builtinTools: {},
+      async drive({ context }) {
+        for (;;) {
+          const prompt = context.log
+            .getUndeliveredSubmissions()
+            .find(submission => submission.data.type === 'prompt');
+          if (prompt == null || prompt.data.type !== 'prompt') return;
+          const current = ++turnCount;
+          const text = String(prompt.data.message.content);
+          await context.effect({
+            key: `model:${current}`,
+            name: 'model',
+            replay: 'safe',
+            input: text,
+            deliveredSubmissionIds: [prompt.id],
+            fn: async ({ emit }) => {
+              if (current === 1) {
+                turn1Started.resolve();
+                await releaseTurn1.promise;
+              }
+              emit({ type: 'text-start', id: `t-${current}` });
+              emit({
+                type: 'text-delta',
+                id: `t-${current}`,
+                delta: `echo: ${text}`,
+              });
+              emit({ type: 'text-end', id: `t-${current}` });
+              return text;
+            },
+          });
+          await context.finishStep({
+            stepNumber: 0,
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage,
+          });
+          await context.finishTurn({
+            finishReason: { unified: 'stop', raw: 'stop' },
+            totalUsage: usage,
+          });
+        }
+      },
+    };
+
+    const agent = new HarnessAgent({
+      harness,
+      world,
+      getSandboxSession,
+    });
+    const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+
+    const first = await agent.stream({ prompt: 'one', session });
+    await turn1Started.promise;
+
+    const observed = await agent.readStream({ session });
+    const second = await agent.stream({ prompt: 'two', session });
+    releaseTurn1.resolve();
+
+    expect((await first.steps).map(step => step.text)).toEqual([
+      'echo: one',
+      'echo: two',
+    ]);
+    expect((await observed.steps).map(step => step.text)).toEqual([
+      'echo: one',
+      'echo: two',
+    ]);
+    expect(await second.text).toBe('echo: two');
+  });
+
   test('runs a session in later calls', async () => {
     const { agent, session } = await setup();
 

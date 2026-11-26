@@ -121,7 +121,7 @@ The steps are below:
 - Decide how `turnId` is derived for a turn started by several prompts. It stays opaque to adapters.
 - Decide whose turn settings apply to a turn started by several prompts.
 
-23. [ ] Let the turn of a follow-up prompt continue the stream that `agent.stream()` returned for the turn running when the prompt was submitted.
+23. [x] Let the turn of a follow-up prompt continue the stream that `agent.stream()` returned for the turn running when the prompt was submitted.
 
 - A stream is not a per-turn construct: the session's World stream already spans all turns. The result keeps reading past its turn's `finish` part into the turns of follow-up prompts, instead of ending at its own turn's `finish`.
 - This does not merge turns: each follow-up prompt still starts its own turn. No `HarnessV2` change.

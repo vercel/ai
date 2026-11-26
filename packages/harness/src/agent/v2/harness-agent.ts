@@ -69,6 +69,7 @@ import {
   sendDurableHarnessAgentDriveRetry,
 } from './internal/durable-agent-queue';
 import {
+  hasWaitingPrompt,
   isAwaitingToolApproval,
   isSessionSettled,
   startDrive,
@@ -1198,12 +1199,11 @@ export class HarnessAgent<
       if (pass.yielded || pass.outcome === 'skipped') {
         return ran ? 'ran' : 'skipped';
       }
-      if (
-        !consumeSessionDriveQueuedWork({
-          world: this.world,
-          session: options.session,
-        })
-      ) {
+      const hasQueuedWork = consumeSessionDriveQueuedWork({
+        world: this.world,
+        session: options.session,
+      });
+      if (!pass.hasWaitingPrompt && !hasQueuedWork) {
         return ran ? 'ran' : 'skipped';
       }
     }
@@ -1393,7 +1393,11 @@ async function runDrivePass(options: {
    * Normalized `sandboxConfig.workDir`, if configured.
    */
   workDir?: string;
-}): Promise<{ outcome: SessionDriveOutcome; yielded: boolean }> {
+}): Promise<{
+  outcome: SessionDriveOutcome;
+  yielded: boolean;
+  hasWaitingPrompt: boolean;
+}> {
   const {
     world,
     session,
@@ -1496,7 +1500,7 @@ async function runDrivePass(options: {
         },
       }))
     ) {
-      return { outcome: 'skipped', yielded: false };
+      return { outcome: 'skipped', yielded: false, hasWaitingPrompt: false };
     }
 
     const effect = createEffectFunction({
@@ -1547,13 +1551,21 @@ async function runDrivePass(options: {
       yieldAbortSignal,
     });
 
+    const previousFinishedTurns = log
+      .getTurns()
+      .filter(turn => turn.finish != null).length;
     await harness.drive({ sessionId: session.sessionId, context });
-    await writeDriveEnd({
+    const { hasWaitingPrompt: waitingPrompt } = await writeDriveEnd({
       log,
       writer,
       yielded: yieldAbortSignal.aborted,
+      previousFinishedTurns,
     });
-    return { outcome: 'ran', yielded: yieldAbortSignal.aborted };
+    return {
+      outcome: 'ran',
+      yielded: yieldAbortSignal.aborted,
+      hasWaitingPrompt: waitingPrompt,
+    };
   } catch (error) {
     if (HarnessStorageEncryptionError.isInstance(error)) throw error;
     /*
@@ -1581,9 +1593,21 @@ async function runDrivePass(options: {
     }
 
     if (classifyDriveError({ error }) === 'permanent') {
+      const previousFinishedTurns = log
+        .getTurns()
+        .filter(item => item.finish != null).length;
       await failCurrentTurn({ log, writer, finishTurn, error });
-      await writeDriveEnd({ log, writer, yielded: false });
-      return { outcome: 'ran', yielded: false };
+      const { hasWaitingPrompt: waitingPrompt } = await writeDriveEnd({
+        log,
+        writer,
+        yielded: false,
+        previousFinishedTurns,
+      });
+      return {
+        outcome: 'ran',
+        yielded: false,
+        hasWaitingPrompt: waitingPrompt,
+      };
     }
 
     const turnId = turn.start.data.turnId;
@@ -1604,6 +1628,9 @@ async function runDrivePass(options: {
     if (recorded) {
       const consecutive = log.getConsecutiveDriveErrorCount({ turnId });
       if (consecutive >= MAX_CONSECUTIVE_DRIVE_ERRORS) {
+        const previousFinishedTurns = log
+          .getTurns()
+          .filter(item => item.finish != null).length;
         await failCurrentTurn({
           log,
           writer,
@@ -1613,8 +1640,17 @@ async function runDrivePass(options: {
             { cause: error },
           ),
         });
-        await writeDriveEnd({ log, writer, yielded: false });
-        return { outcome: 'ran', yielded: false };
+        const { hasWaitingPrompt: waitingPrompt } = await writeDriveEnd({
+          log,
+          writer,
+          yielded: false,
+          previousFinishedTurns,
+        });
+        return {
+          outcome: 'ran',
+          yielded: false,
+          hasWaitingPrompt: waitingPrompt,
+        };
       }
     }
 
@@ -1640,7 +1676,9 @@ async function runDrivePass(options: {
 /**
  * Writes the end of a drive to the stream, after refreshing the log: a
  * `settle` part if the session has nothing left to drive, otherwise a
- * `yield` part if the drive yielded, otherwise nothing.
+ * `yield` part if the drive yielded, otherwise nothing. Returns whether a
+ * waiting prompt can start a new turn once this pass ends (only when this pass
+ * finished at least one turn, so a no-op adapter does not loop indefinitely).
  */
 async function writeDriveEnd(options: {
   /**
@@ -1657,14 +1695,32 @@ async function writeDriveEnd(options: {
    * Whether the drive yielded at its deadline.
    */
   yielded: boolean;
-}): Promise<void> {
-  const { log, writer, yielded } = options;
+
+  /**
+   * Number of finished turns recorded before this pass ran.
+   */
+  previousFinishedTurns: number;
+}): Promise<{ hasWaitingPrompt: boolean }> {
+  const { log, writer, yielded, previousFinishedTurns } = options;
   await log.refresh();
   if (isSessionSettled({ log })) {
     writer.unsafeEmit({ type: 'settle' });
-  } else if (yielded) {
-    writer.unsafeEmit({ type: 'yield' });
+    return { hasWaitingPrompt: false };
   }
+  if (yielded) {
+    writer.unsafeEmit({ type: 'yield' });
+    return { hasWaitingPrompt: false };
+  }
+  const finishedTurns = log
+    .getTurns()
+    .filter(turn => turn.finish != null).length;
+  const turn = log.getCurrentTurn();
+  return {
+    hasWaitingPrompt:
+      finishedTurns > previousFinishedTurns &&
+      (turn == null || turn.finish != null) &&
+      hasWaitingPrompt({ log }),
+  };
 }
 
 /**

@@ -599,4 +599,191 @@ describe('HarnessStreamTextResult', () => {
       expect(await result.steps).toHaveLength(1);
     });
   });
+
+  describe('multiple turns in one response', () => {
+    const stepUsage = {
+      inputTokens: {
+        total: 10,
+        noCache: 10,
+        cacheRead: 0,
+        cacheWrite: 0,
+      },
+      outputTokens: { total: 5, text: 5, reasoning: 0 },
+    };
+
+    test('streams start-turn and finish-turn boundaries across turns and aggregates totalUsage', async () => {
+      const result = createResult({
+        records: [
+          {
+            part: { type: 'start-turn', submissionIds: ['p1'] },
+            key: 'turn-start:t1',
+          },
+          { part: { type: 'text-start', id: 't1' }, startId: 'a1' },
+          {
+            part: { type: 'text-delta', id: 't1', delta: 'first' },
+            startId: 'a1',
+          },
+          { part: { type: 'text-end', id: 't1' }, startId: 'a1' },
+          {
+            part: {
+              type: 'finish-step',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: stepUsage,
+            },
+            key: 'finish-step:t1:0',
+          },
+          {
+            part: {
+              type: 'finish-turn',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              totalUsage: stepUsage,
+            },
+            key: 'finish-turn:t1',
+          },
+          {
+            part: { type: 'start-turn', submissionIds: ['p2'] },
+            key: 'turn-start:t2',
+          },
+          { part: { type: 'text-start', id: 't2' }, startId: 'a2' },
+          {
+            part: { type: 'text-delta', id: 't2', delta: 'second' },
+            startId: 'a2',
+          },
+          { part: { type: 'text-end', id: 't2' }, startId: 'a2' },
+          {
+            part: {
+              type: 'finish-step',
+              finishReason: { unified: 'cancelled', raw: undefined },
+              usage: stepUsage,
+            },
+            key: 'finish-step:t2:0',
+          },
+          {
+            part: {
+              type: 'finish-turn',
+              finishReason: { unified: 'cancelled', raw: undefined },
+              totalUsage: stepUsage,
+            },
+            key: 'finish-turn:t2',
+          },
+          { part: { type: 'settle' } },
+        ],
+      });
+
+      const fullParts: Array<{ type: string; kind?: string }> = [];
+      const fullStreamPromise = (async () => {
+        for await (const part of result.fullStream) {
+          fullParts.push(part as { type: string; kind?: string });
+        }
+      })();
+      const uiChunks: Array<{ type: string; kind?: string }> = [];
+      const uiStreamPromise = (async () => {
+        for await (const chunk of result.toUIMessageStream()) {
+          uiChunks.push(chunk as { type: string; kind?: string });
+        }
+      })();
+      await Promise.all([fullStreamPromise, uiStreamPromise]);
+
+      const format = (items: Array<{ type: string; kind?: string }>) =>
+        items.map(item =>
+          item.kind == null ? item.type : `${item.type}:${item.kind}`,
+        );
+
+      expect(format(fullParts)).toEqual([
+        'start',
+        'custom:harness.start-turn',
+        'start-step',
+        'text-start',
+        'text-delta',
+        'text-end',
+        'finish-step',
+        'custom:harness.finish-turn',
+        'custom:harness.start-turn',
+        'start-step',
+        'text-start',
+        'text-delta',
+        'text-end',
+        'finish-step',
+        'custom:harness.finish-turn',
+        'finish',
+      ]);
+      expect(format(uiChunks)).toEqual([
+        'start',
+        'custom:harness.start-turn',
+        'start-step',
+        'text-start',
+        'text-delta',
+        'text-end',
+        'finish-step',
+        'custom:harness.finish-turn',
+        'custom:harness.start-turn',
+        'start-step',
+        'text-start',
+        'text-delta',
+        'text-end',
+        'finish-step',
+        'custom:harness.finish-turn',
+        'finish',
+      ]);
+      expect((await result.steps).map(step => step.text)).toEqual([
+        'first',
+        'second',
+      ]);
+      expect(await result.totalUsage).toMatchObject({
+        inputTokens: 20,
+        outputTokens: 10,
+      });
+      expect(await result.finishReason).toBe('other');
+      expect(await result.rawFinishReason).toBe('cancelled');
+    });
+
+    test('resets turnFinish on start-turn so a follow-up turn paused for approval uses its last step finishReason', async () => {
+      const result = createResult({
+        records: [
+          {
+            part: { type: 'start-turn', submissionIds: ['p1'] },
+            key: 'turn-start:t1',
+          },
+          { part: { type: 'text-start', id: 't1' }, startId: 'a1' },
+          {
+            part: { type: 'text-delta', id: 't1', delta: 'done' },
+            startId: 'a1',
+          },
+          { part: { type: 'text-end', id: 't1' }, startId: 'a1' },
+          {
+            part: {
+              type: 'finish-step',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: stepUsage,
+            },
+            key: 'finish-step:t1:0',
+          },
+          {
+            part: {
+              type: 'finish-turn',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              totalUsage: stepUsage,
+            },
+            key: 'finish-turn:t1',
+          },
+          {
+            part: { type: 'start-turn', submissionIds: ['p2'] },
+            key: 'turn-start:t2',
+          },
+          {
+            part: {
+              type: 'finish-step',
+              finishReason: { unified: 'tool-calls', raw: 'tool_use' },
+              usage: stepUsage,
+            },
+            key: 'finish-step:t2:0',
+          },
+          { part: { type: 'settle' } },
+        ],
+      });
+
+      expect(await result.finishReason).toBe('tool-calls');
+      expect(await result.rawFinishReason).toBe('tool_use');
+    });
+  });
 });
