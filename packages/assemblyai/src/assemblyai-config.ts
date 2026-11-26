@@ -1,4 +1,8 @@
-import type { Resolvable, FetchFunction } from '@ai-sdk/provider-utils';
+import type {
+  Resolvable,
+  FetchFunction,
+  WebSocketConstructor,
+} from '@ai-sdk/provider-utils';
 
 export type AssemblyAIConfig = {
   provider: string;
@@ -6,4 +10,5 @@ export type AssemblyAIConfig = {
   headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   generateId?: () => string;
+  webSocket?: WebSocketConstructor;
 };
