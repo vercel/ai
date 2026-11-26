@@ -4,6 +4,12 @@
 
 ### Patch Changes
 
+- ai@6.0.338
+
+## 0.0.1
+
+### Patch Changes
+
 - ai@6.0.337
 
 ## 0.0.1
