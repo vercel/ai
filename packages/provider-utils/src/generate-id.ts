@@ -10,7 +10,7 @@ import { InvalidArgumentError } from '@ai-sdk/provider';
  * @param separator - The separator between the prefix and the random part of the ID. Default: '-'.
  * @param size - The size of the random part of the ID to generate. Default: 16.
  */
-export const createIdGenerator = ({
+export const createIdGenerator = /* @__NO_SIDE_EFFECTS__ */ ({
   prefix,
   size = 16,
   alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',

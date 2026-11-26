@@ -13,6 +13,7 @@ export type Citation = LanguageModelV4Citation;
  * Creates a citation schema that validates the provider metadata of the
  * source with the given schema.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function createCitationSchema(
   providerMetadataSchema: $ZodType<ProviderMetadata>,
 ): ZodType<Citation> {
