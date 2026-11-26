@@ -1,5 +1,12 @@
 # @ai-sdk/assemblyai
 
+## 1.0.53
+
+### Patch Changes
+
+- Updated dependencies [a503655]
+  - @ai-sdk/provider-utils@3.0.48
+
 ## 1.0.52
 
 ### Patch Changes
