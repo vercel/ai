@@ -1032,4 +1032,34 @@ console.log(text);`,
     websiteUrl: 'https://upstash.com',
     npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
   },
+  {
+    slug: 'oxylabs',
+    name: 'Oxylabs',
+    description:
+      'Live web search and page reading for agents, powered by the Oxylabs Web API. Search ranks results as someone in a chosen country sees them and can read the top pages in the same call. Scrape returns any page as Markdown or HTML, including JavaScript-heavy and bot-protected ones, rendering JavaScript when a page needs it.',
+    packageName: 'oxylabs-ai-sdk',
+    tags: ['search', 'web', 'scraping', 'extraction'],
+    apiKeyEnvName: 'OXYLABS_WEB_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add oxylabs-ai-sdk',
+      npm: 'npm install oxylabs-ai-sdk',
+      yarn: 'yarn add oxylabs-ai-sdk',
+      bun: 'bun add oxylabs-ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { oxylabsTools } from 'oxylabs-ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'What are the top news headlines in Germany today? Cite your sources.',
+  tools: oxylabsTools(),
+  stopWhen: isStepCount(10),
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/oxylabs/oxylabs-ai-sdk#readme',
+    apiKeyUrl: 'https://dashboard.oxylabs.io/',
+    websiteUrl: 'https://oxylabs.io',
+    npmUrl: 'https://www.npmjs.com/package/oxylabs-ai-sdk',
+  },
 ];
