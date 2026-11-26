@@ -1,0 +1,113 @@
+---
+title: ProxyStacks Relay
+description: Learn how to use the ProxyStacks Relay community provider for the AI SDK.
+---
+
+# ProxyStacks Relay
+
+[ProxyStacks Relay](https://proxystacks.com) is a multi-model AI inference gateway providing unified OpenAI-compatible access to frontier coding, reasoning, and multimodal models with pay-as-you-go USD metering, 0% top-up fees, and global plus low-latency Asia-Pacific routing.
+
+The [`@proxystacks/ai-sdk-provider`](https://www.npmjs.com/package/@proxystacks/ai-sdk-provider) package wraps `@ai-sdk/openai-compatible` with preconfigured endpoints, `RELAY_API_KEY` environment resolution, and typed model IDs for the [ProxyStacks model catalog](https://proxystacks.com/en/models).
+
+## Setup
+
+The ProxyStacks Relay provider is available in the [`@proxystacks/ai-sdk-provider`](https://www.npmjs.com/package/@proxystacks/ai-sdk-provider) package. Install it alongside the AI SDK with:
+
+<InstallPackages packages="ai @proxystacks/ai-sdk-provider" />
+
+Create an API key in the [ProxyStacks Relay console](https://proxystacks.com) and set `RELAY_API_KEY` in your environment:
+
+```bash
+RELAY_API_KEY=sk-relay-your-api-key
+```
+
+## Provider Instance
+
+The package exports a default `proxystacks` provider that reads `RELAY_API_KEY` from the environment and connects to `https://proxystacks.com/v1`:
+
+```ts
+import { proxystacks } from '@proxystacks/ai-sdk-provider';
+```
+
+Use `createProxyStacks` when you want to pass credentials explicitly, customize headers, or route through the low-latency Asia-Pacific CN2 edge (`https://hk.proxystacks.com/v1`):
+
+```ts
+import { createProxyStacks } from '@proxystacks/ai-sdk-provider';
+
+const proxystacks = createProxyStacks({
+  apiKey: process.env.RELAY_API_KEY,
+  region: 'hk', // 'global' (default) or 'hk'
+});
+```
+
+`createProxyStacks` accepts the following optional settings:
+
+- **baseURL** _string_ — Custom URL prefix for API calls. Defaults to `https://proxystacks.com/v1` (or `https://hk.proxystacks.com/v1` when `region: 'hk'`).
+- **region** `'global' | 'hk'` — Select the default global gateway or the low-latency Hong Kong edge.
+- **apiKey** _string_ — API key sent in the `Authorization: Bearer` header. Defaults to `process.env.RELAY_API_KEY`.
+- **headers** _Record&lt;string, string&gt;_ — Additional HTTP headers included with requests.
+- **queryParams** _Record&lt;string, string&gt;_ — Optional URL query parameters appended to requests.
+- **fetch** — Custom `fetch` implementation.
+
+## Language Models
+
+Call the provider with any published model ID from the [ProxyStacks model catalog](https://proxystacks.com/en/models):
+
+```ts
+const codingModel = proxystacks('claude-sonnet-5-5');
+const reasoningModel = proxystacks('gpt-6.1-sol');
+const fastModel = proxystacks('deepseek-v4.1-flash');
+const repoModel = proxystacks('glm-5.3');
+```
+
+## Examples
+
+### `generateText`
+
+```ts
+import { proxystacks } from '@proxystacks/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: proxystacks('kimi-k3.1-pro'),
+  prompt: 'Write a concise TypeScript retry helper with exponential backoff.',
+});
+
+console.log(text);
+```
+
+### `streamText`
+
+```ts
+import { proxystacks } from '@proxystacks/ai-sdk-provider';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: proxystacks('claude-sonnet-5-5'),
+  prompt: 'Summarize the trade-offs between WAL archiving and logical replication.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+### Embeddings
+
+```ts
+import { proxystacks } from '@proxystacks/ai-sdk-provider';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: proxystacks.textEmbeddingModel('text-embedding-3-small'),
+  value: 'Semantic search over gateway request logs',
+});
+```
+
+## Additional Resources
+
+- [ProxyStacks Relay website](https://proxystacks.com)
+- [ProxyStacks documentation](https://proxystacks.com/en/docs)
+- [ProxyStacks model catalog](https://proxystacks.com/en/models)
+- [ProxyStacks pricing](https://proxystacks.com/en/pricing)
+- [ProxyStacks AI SDK provider repository](https://github.com/proxystacksLab/ai-sdk-provider)
