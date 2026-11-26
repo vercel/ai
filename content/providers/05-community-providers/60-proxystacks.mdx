@@ -54,7 +54,7 @@ const proxystacks = createProxyStacks({
 Call the provider with any published model ID from the [ProxyStacks model catalog](https://proxystacks.com/en/models):
 
 ```ts
-const codingModel = proxystacks('funsion-sonnet-5-5');
+const codingModel = proxystacks('claude-sonnet-5-5');
 const reasoningModel = proxystacks('gpt-6.1-sol');
 const fastModel = proxystacks('deepseek-v4.1-flash');
 const repoModel = proxystacks('glm-5.3');
@@ -83,7 +83,7 @@ import { proxystacks } from '@proxystacks/ai-sdk-provider';
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: proxystacks('funsion-sonnet-5-5'),
+  model: proxystacks('claude-sonnet-5-5'),
   prompt: 'Summarize the trade-offs between WAL archiving and logical replication.',
 });
 
