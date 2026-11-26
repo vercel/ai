@@ -23,7 +23,9 @@ import {
   type HarnessAgentContinueTurnState,
 } from '@ai-sdk/harness/agent';
 import { tool, type ToolResultOutput } from '@ai-sdk/provider-utils';
+import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
+import { mkdir, rm, stat, writeFile } from 'node:fs/promises';
 import { devNull, tmpdir } from 'node:os';
 import path from 'node:path';
 import { z } from 'zod/v4';
@@ -51,6 +53,10 @@ type FakeExtensionsResult = {
   readonly runtime: object;
 };
 type ResourceLoaderOptions = {
+  readonly agentDir?: string;
+  readonly systemPromptOverride?: (
+    base: string | undefined,
+  ) => string | undefined;
   readonly agentsFilesOverride?: (base: {
     agentsFiles: Array<{ path: string; content: string }>;
   }) => { agentsFiles: Array<{ path: string; content: string }> };
@@ -68,6 +74,14 @@ type ResourceLoaderOptions = {
 };
 
 type FakeSkillsResult = { skills: Skill[]; diagnostics: unknown[] };
+
+function hostRootOf(resourceLoaderOptions: ResourceLoaderOptions[]): string {
+  const agentDir = resourceLoaderOptions.at(-1)?.agentDir;
+  if (agentDir == null) {
+    throw new Error('Expected the resource loader to receive an agentDir.');
+  }
+  return path.dirname(agentDir);
+}
 
 const piMock = vi.hoisted(() => {
   const extensionHandlers = new Map<
@@ -3167,7 +3181,6 @@ describe('createPiSession', () => {
       piMock.session = fakePiSession;
 
       const sessionId = `session-disabled-reattach-${lifecycle}`;
-      const hostRoot = path.join(tmpdir(), 'ai-sdk-harness', 'pi', sessionId);
       const session = await createPiSession({
         sessionId,
         sandboxSession: createSandboxSession(),
@@ -3176,6 +3189,7 @@ describe('createPiSession', () => {
         clientApp: 'ai-sdk-harness-pi/0.0.0-test',
         isResume: false,
       });
+      const hostRoot = hostRootOf(piMock.resourceLoaderOptions);
       const control = await session.doPromptTurn({
         skills: [],
         prompt: 'go',
@@ -4396,10 +4410,15 @@ describe('createPiSession', () => {
       { projectTrusted: false },
     );
     expect(SettingsManager.create).not.toHaveBeenCalled();
+    expect(vi.mocked(ModelRuntime.create).mock.lastCall?.[0]).toMatchObject({
+      modelsPath: null,
+    });
+    expect(
+      piMock.resourceLoaderOptions.at(-1)?.systemPromptOverride?.('custom'),
+    ).toBeUndefined();
   });
 
   describe('host root', () => {
-    const piBaseDir = path.join(tmpdir(), 'ai-sdk-harness', 'pi');
     const startSession = (sessionId: string) =>
       createPiSession({
         sessionId,
@@ -4410,42 +4429,59 @@ describe('createPiSession', () => {
         isResume: false,
       });
 
-    it.each([
-      ['..', '%2E%2E', 'pi-host-root-sentinel-dot-dot'],
-      ['.', '%2E', 'pi-host-root-sentinel-dot'],
-    ])(
-      'keeps the host root of session %j inside the Pi directory',
-      async (sessionId, segment, sentinelId) => {
-        const sentinelRoot = path.join(piBaseDir, sentinelId);
-        const sentinel = await startSession(sentinelId);
-        expect(existsSync(sentinelRoot)).toBe(true);
-
-        const session = await startSession(sessionId);
-        const sessionRoot = path.join(piBaseDir, segment);
-        expect(existsSync(sessionRoot)).toBe(true);
-
+    it('creates a private, unpredictable host root directly in the temp directory', async () => {
+      const session = await startSession('session-private-host-root');
+      const hostRoot = hostRootOf(piMock.resourceLoaderOptions);
+      const agentDir = path.join(hostRoot, 'agent');
+      try {
+        expect(path.dirname(hostRoot)).toBe(tmpdir());
+        expect(path.basename(hostRoot)).toMatch(
+          /^ai-sdk-harness-pi-[A-Za-z0-9]{6}$/,
+        );
+        if (process.platform !== 'win32') {
+          expect((await stat(hostRoot)).mode & 0o777).toBe(0o700);
+          expect((await stat(agentDir)).mode & 0o777).toBe(0o700);
+        }
+      } finally {
         await session.doDestroy();
+      }
+      expect(existsSync(hostRoot)).toBe(false);
+    });
 
-        expect(existsSync(sessionRoot)).toBe(false);
-        expect(existsSync(sentinelRoot)).toBe(true);
-        expect(existsSync(piBaseDir)).toBe(true);
-        await sentinel.doDestroy();
-      },
-    );
-
-    it('keeps distinct host roots for session IDs that differ only by separators', async () => {
-      const first = await startSession('pi-host-root/collision');
-      const second = await startSession('pi-host-root-collision');
-      const firstRoot = path.join(piBaseDir, 'pi-host-root%2Fcollision');
-      const secondRoot = path.join(piBaseDir, 'pi-host-root-collision');
-      expect(existsSync(firstRoot)).toBe(true);
-      expect(existsSync(secondRoot)).toBe(true);
+    it('gives each session its own host root, even for the same session ID', async () => {
+      const first = await startSession('session-shared-id');
+      const firstRoot = hostRootOf(piMock.resourceLoaderOptions);
+      const second = await startSession('session-shared-id');
+      const secondRoot = hostRootOf(piMock.resourceLoaderOptions);
+      expect(secondRoot).not.toBe(firstRoot);
 
       await first.doDestroy();
 
       expect(existsSync(firstRoot)).toBe(false);
       expect(existsSync(secondRoot)).toBe(true);
       await second.doDestroy();
+    });
+
+    it('does not adopt a planted directory at the former fixed path', async () => {
+      const sessionId = `session-planted-${randomUUID()}`;
+      const formerBaseDir = path.join(tmpdir(), 'ai-sdk-harness', 'pi');
+      const plantedSessionDir = path.join(formerBaseDir, sessionId);
+      await mkdir(path.join(plantedSessionDir, 'agent'), { recursive: true });
+      await writeFile(
+        path.join(plantedSessionDir, 'agent', 'models.json'),
+        '{}',
+      );
+      try {
+        const session = await startSession(sessionId);
+        const hostRoot = hostRootOf(piMock.resourceLoaderOptions);
+        expect(hostRoot.startsWith(`${formerBaseDir}${path.sep}`)).toBe(false);
+        expect(vi.mocked(ModelRuntime.create).mock.lastCall?.[0]).toMatchObject(
+          { modelsPath: null },
+        );
+        await session.doDestroy();
+      } finally {
+        await rm(plantedSessionDir, { recursive: true, force: true });
+      }
     });
   });
 });

@@ -1,5 +1,36 @@
 # ai
 
+## 7.0.182
+
+### Patch Changes
+
+- ac22e59: fix(ai): truncate the realtime audio item that is actually playing when the user interrupts
+
+  On barge-in, WebSocket realtime sessions sent `conversation-item-truncate` for the most recently received audio item, with an offset measured from when playback started rather than from the start of that item. When a short spoken preamble was queued ahead of the answer (for example before a tool call), interrupting near the end of the answer was rejected by the provider (`Audio content of 12950ms is already shorter than 13957ms`), and other interruptions silently cut the wrong item or at the wrong position. Playback now tracks the item and in-item position of each scheduled audio chunk, including across playback underruns, and truncates that item at the position the user heard.
+
+- Updated dependencies [ff3b865]
+- Updated dependencies [aa7cb79]
+  - @ai-sdk/gateway@4.0.155
+  - @ai-sdk/provider-utils@5.0.84
+
+## 7.0.181
+
+### Patch Changes
+
+- d834c5b: add per-call `onWarning` callback and include prompt conversion warnings in the step warnings
+- 7760e33: add stoppedBy to generateText and streamText results, onEnd, and the finish part to tell why the tool loop stopped
+- 28d17e6: report why the run ended for steering messages sent after it, and count steering messages as delivered when prepareStep turns their text into parts or adds provider options
+- 797dc02: Strip provider options from text and file parts in extraction telemetry while preserving arbitrary JSON state and the options sent to the provider.
+- Updated dependencies [f2732a6]
+  - @ai-sdk/gateway@4.0.154
+
+## 7.0.180
+
+### Patch Changes
+
+- Updated dependencies [83026e8]
+  - @ai-sdk/gateway@4.0.153
+
 ## 7.0.179
 
 ### Patch Changes

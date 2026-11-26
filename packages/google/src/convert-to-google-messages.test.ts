@@ -394,7 +394,7 @@ describe('Gemma model system instructions', () => {
         { role: 'system', content: 'You are a helpful assistant.' },
         { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
       ],
-      { isGemmaModel: true },
+      { systemInstructionAsUserMessage: true },
     );
 
     expect(result).toMatchInlineSnapshot(`
@@ -426,7 +426,7 @@ describe('Gemma model system instructions', () => {
         { role: 'system', content: 'Be concise.' },
         { role: 'user', content: [{ type: 'text', text: 'Hi' }] },
       ],
-      { isGemmaModel: true },
+      { systemInstructionAsUserMessage: true },
     );
 
     expect(result).toMatchInlineSnapshot(`
@@ -459,7 +459,7 @@ describe('Gemma model system instructions', () => {
         { role: 'system', content: 'You are helpful.' },
         { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
       ],
-      { isGemmaModel: false },
+      { systemInstructionAsUserMessage: false },
     );
 
     expect(result).toMatchInlineSnapshot(`
@@ -488,7 +488,7 @@ describe('Gemma model system instructions', () => {
   it('should handle Gemma model with system instruction but no user messages', async () => {
     const result = convertToGoogleMessages(
       [{ role: 'system', content: 'You are helpful.' }],
-      { isGemmaModel: true },
+      { systemInstructionAsUserMessage: true },
     );
 
     expect(result).toMatchInlineSnapshot(`
@@ -2275,7 +2275,7 @@ describe('server tool combination round-trip', () => {
           ],
         },
       ],
-      { isGemini3Model: true },
+      { requiresThoughtSignatures: true },
     );
 
     expect(result.contents).toEqual([
@@ -2533,7 +2533,7 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
   it('injects skip_thought_signature_validator and emits a warning for Gemini 3 when a tool-call has no signature', () => {
     const onWarning = vi.fn();
     const result = convertToGoogleMessages(promptWithToolCallMissingSignature, {
-      isGemini3Model: true,
+      requiresThoughtSignatures: true,
       onWarning,
     });
 
@@ -2582,7 +2582,7 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
         },
       ],
       {
-        isGemini3Model: true,
+        requiresThoughtSignatures: true,
         providerOptionsNames: ['googleVertex', 'vertex'],
         onWarning,
       },
@@ -2646,7 +2646,7 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
           ],
         },
       ],
-      { isGemini3Model: true, onWarning },
+      { requiresThoughtSignatures: true, onWarning },
     );
 
     expect(result.contents[0].parts[2]).toStrictEqual({
@@ -2711,7 +2711,7 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
           ],
         },
       ],
-      { isGemini3Model: true, onWarning },
+      { requiresThoughtSignatures: true, onWarning },
     );
 
     expect(result.contents[0].parts[3]).toStrictEqual({
@@ -2754,7 +2754,7 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
           ],
         },
       ],
-      { isGemini3Model: true, onWarning },
+      { requiresThoughtSignatures: true, onWarning },
     );
 
     expect(result.contents[0].parts).toStrictEqual([
@@ -2782,7 +2782,7 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
   it('does NOT inject the sentinel for non-Gemini-3 models', () => {
     const onWarning = vi.fn();
     const result = convertToGoogleMessages(promptWithToolCallMissingSignature, {
-      isGemini3Model: false,
+      requiresThoughtSignatures: false,
       onWarning,
     });
 
@@ -2812,7 +2812,7 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
           ],
         },
       ],
-      { isGemini3Model: true, onWarning },
+      { requiresThoughtSignatures: true, onWarning },
     );
 
     const assistant = result.contents.find(c => c.role === 'model');
@@ -2841,7 +2841,7 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
         },
       ],
       {
-        isGemini3Model: true,
+        requiresThoughtSignatures: true,
         providerOptionsNames: ['googleVertex', 'vertex'],
         onWarning,
       },
@@ -2874,7 +2874,7 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
           ],
         },
       ],
-      { isGemini3Model: true, onWarning },
+      { requiresThoughtSignatures: true, onWarning },
     );
 
     const assistant = result.contents.find(c => c.role === 'model');
@@ -2913,7 +2913,7 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
           ],
         },
       ],
-      { isGemini3Model: true, onWarning },
+      { requiresThoughtSignatures: true, onWarning },
     );
 
     expect(onWarning).toHaveBeenCalledTimes(1);

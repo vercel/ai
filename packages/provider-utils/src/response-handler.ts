@@ -183,6 +183,15 @@ export const createJsonErrorResponseHandler =
 export const createEventSourceResponseHandler =
   <T>(
     chunkSchema: FlexibleSchema<T>,
+    {
+      maxEventSize,
+    }: {
+      /**
+       * Maximum size of a single event in characters. Defaults to the
+       * `parseJsonEventStream` default of 64 * 1024 * 1024 characters.
+       */
+      maxEventSize?: number;
+    } = {},
   ): ResponseHandler<ReadableStream<ParseResult<T>>> =>
   async ({ response, url, requestBodyValues }) => {
     const responseHeaders = extractResponseHeaders(response);
@@ -202,6 +211,7 @@ export const createEventSourceResponseHandler =
           responseHeaders,
         }),
         schema: chunkSchema,
+        maxEventSize,
       }),
     };
   };

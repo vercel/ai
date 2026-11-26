@@ -1,5 +1,30 @@
 # @ai-sdk/tui
 
+## 1.0.183
+
+### Patch Changes
+
+- Updated dependencies [ac22e59]
+  - ai@7.0.182
+
+## 1.0.182
+
+### Patch Changes
+
+- 2d2fc46: fix(tui): show the input of the tool call that an approval decision applies to
+- 25972d7: fix(tui): show tool input and output exactly and require scrolling to the end of a tool input before approving it
+- Updated dependencies [d834c5b]
+- Updated dependencies [7760e33]
+- Updated dependencies [28d17e6]
+- Updated dependencies [797dc02]
+  - ai@7.0.181
+
+## 1.0.181
+
+### Patch Changes
+
+- ai@7.0.180
+
 ## 1.0.180
 
 ### Patch Changes

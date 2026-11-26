@@ -44,7 +44,8 @@ type VercelSandboxCreationSettings = DistributiveOmit<
  *   keyed by the recipe identity, and forks an ephemeral sandbox per session
  *   from the snapshot. Use `name` to override the auto-derived template name.
  *
- * @deprecated Use `VercelNetworkSandboxSessionCreateOptions` for new sessions.
+ * @deprecated Use `VercelNetworkSandboxSessionCreateOptions` for new sessions,
+ * where `templateName` names the template and `name` names the live sandbox.
  */
 export type VercelSandboxSettings =
   | { sandbox: Sandbox }

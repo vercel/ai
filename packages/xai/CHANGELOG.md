@@ -1,5 +1,25 @@
 # @ai-sdk/xai
 
+## 5.0.51
+
+### Patch Changes
+
+- Updated dependencies [aa7cb79]
+  - @ai-sdk/provider-utils@5.0.84
+
+## 5.0.50
+
+### Patch Changes
+
+- 565db6d: refactor(xai): declare language model capabilities per model ID in the model catalog
+
+## 5.0.49
+
+### Patch Changes
+
+- 6f56c29: keep the mcp call arguments in the `input` of mcpServer tool calls instead of returning an empty object
+- 61ce23e: fix(xai): keep the search arguments in the `input` of xSearch tool calls instead of returning an empty object
+
 ## 5.0.48
 
 ### Patch Changes

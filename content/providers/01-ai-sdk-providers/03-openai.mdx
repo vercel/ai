@@ -2691,6 +2691,30 @@ Each request specifies its `type` and `model`. OpenAI requires every text
 request in a batch to use the same model and throws before submission when the
 models differ.
 
+#### Provider Options
+
+Batch-level options go in `providerOptions.openai`:
+
+- **inputFileExpiresAfter** _number_
+
+  Time to live in seconds for the uploaded batch input file. OpenAI accepts
+  integers from 3600 (1 hour) to 2592000 (30 days). Defaults to 48 hours.
+
+- **outputFileExpiresAfter** _number_
+
+  Time to live in seconds for the batch output and error files, measured from
+  when each file is created. OpenAI accepts integers from 3600 (1 hour) to
+  2592000 (30 days). When omitted, OpenAI's default file retention applies.
+
+#### Provider Metadata
+
+The batch start result includes `providerMetadata.openai.inputFileId` and,
+when OpenAI reports it, `inputFileExpiresAt`. `experimental_getBatchStatus` results, and each item in the `batches` array of
+`experimental_listBatches` results (not the page itself), include
+`providerMetadata.openai.outputFileId` and `errorFileId` once OpenAI has
+created those files; `experimental_startBatch` results do not. A reported file ID does not mean the file can still be
+downloaded: it may have expired or been deleted.
+
 #### Webhooks
 
 <Note>
@@ -3527,9 +3551,9 @@ The following optional provider options are available for OpenAI completion mode
 #### Request Capabilities
 
 Reasoning and sampling support depend on the selected model and request options.
-Conditional cells describe when a parameter is supported. "Not declared" means
-the catalog does not enumerate reasoning efforts; it does not mean every effort
-is supported.
+Conditional cells describe when a parameter is supported. Every reasoning model
+lists the reasoning efforts it accepts. "Not declared" means the model does not
+reason.
 
 {/* model-capabilities:openai-language-request:start */}
 
@@ -3547,23 +3571,23 @@ is supported.
 | `gpt-5.6-sol`         | <Check /> | `none`, `low`, `medium`, `high`, `xhigh`, `max` | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
 | `gpt-5.6-terra`       | <Check /> | `none`, `low`, `medium`, `high`, `xhigh`, `max` | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
 | `gpt-5.5`             | <Check /> | `none`, `low`, `medium`, `high`, `xhigh`        | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
-| `gpt-5.4-pro`         | <Check /> | Not declared                                    | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
+| `gpt-5.4-pro`         | <Check /> | `medium`, `high`, `xhigh`                       | <Cross />                                        | <Cross />                                        |
 | `gpt-5.4`             | <Check /> | `none`, `low`, `medium`, `high`, `xhigh`        | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
 | `gpt-5.4-mini`        | <Check /> | `none`, `low`, `medium`, `high`, `xhigh`        | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
 | `gpt-5.4-nano`        | <Check /> | `none`, `low`, `medium`, `high`, `xhigh`        | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
-| `gpt-5.3-chat-latest` | <Check /> | Not declared                                    | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
-| `gpt-5.2-pro`         | <Check /> | Not declared                                    | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
-| `gpt-5.2-chat-latest` | <Check /> | Not declared                                    | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
+| `gpt-5.3-chat-latest` | <Check /> | `medium`                                        | <Cross />                                        | <Cross />                                        |
+| `gpt-5.2-pro`         | <Check /> | `medium`, `high`, `xhigh`                       | <Cross />                                        | <Cross />                                        |
+| `gpt-5.2-chat-latest` | <Check /> | `medium`                                        | <Cross />                                        | <Cross />                                        |
 | `gpt-5.2`             | <Check /> | `none`, `low`, `medium`, `high`, `xhigh`        | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
-| `gpt-5.1-codex-mini`  | <Check /> | Not declared                                    | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
-| `gpt-5.1-codex`       | <Check /> | Not declared                                    | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
-| `gpt-5.1-chat-latest` | <Check /> | Not declared                                    | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
+| `gpt-5.1-codex-mini`  | <Check /> | `none`, `low`, `medium`, `high`                 | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
+| `gpt-5.1-codex`       | <Check /> | `none`, `low`, `medium`, `high`                 | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
+| `gpt-5.1-chat-latest` | <Check /> | `medium`                                        | <Cross />                                        | <Cross />                                        |
 | `gpt-5.1`             | <Check /> | `none`, `low`, `medium`, `high`                 | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
-| `gpt-5-pro`           | <Check /> | Not declared                                    | <Cross />                                        | <Cross />                                        |
+| `gpt-5-pro`           | <Check /> | `high`                                          | <Cross />                                        | <Cross />                                        |
 | `gpt-5`               | <Check /> | `minimal`, `low`, `medium`, `high`              | <Cross />                                        | <Cross />                                        |
 | `gpt-5-mini`          | <Check /> | `minimal`, `low`, `medium`, `high`              | <Cross />                                        | <Cross />                                        |
 | `gpt-5-nano`          | <Check /> | `minimal`, `low`, `medium`, `high`              | <Cross />                                        | <Cross />                                        |
-| `gpt-5-codex`         | <Check /> | Not declared                                    | <Cross />                                        | <Cross />                                        |
+| `gpt-5-codex`         | <Check /> | `low`, `medium`, `high`                         | <Cross />                                        | <Cross />                                        |
 | `gpt-5-chat-latest`   | <Cross /> | Not declared                                    | <Check />                                        | <Check />                                        |
 | `gpt-4.1`             | <Cross /> | Not declared                                    | <Check />                                        | <Check />                                        |
 | `gpt-4.1-mini`        | <Cross /> | Not declared                                    | <Check />                                        | <Check />                                        |
@@ -4133,9 +4157,9 @@ The following provider options are available:
 
 | Model                       | Transcription | Streaming | Duration  | Segments  | Language  |
 | --------------------------- | ------------- | --------- | --------- | --------- | --------- |
-| `whisper-1`                 | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
-| `gpt-4o-mini-transcribe`    | <Check />     | <Cross /> | <Cross /> | <Cross /> | <Cross /> |
-| `gpt-4o-transcribe`         | <Check />     | <Cross /> | <Cross /> | <Cross /> | <Cross /> |
+| `whisper-1`                 | <Check />     | <Check /> | <Check /> | <Check /> | <Check /> |
+| `gpt-4o-mini-transcribe`    | <Check />     | <Check /> | <Cross /> | <Cross /> | <Cross /> |
+| `gpt-4o-transcribe`         | <Check />     | <Check /> | <Cross /> | <Cross /> | <Cross /> |
 | `gpt-4o-transcribe-diarize` | <Check />     | <Cross /> | <Check /> | <Check /> | <Cross /> |
 | `gpt-transcribe`            | <Check />     | <Check /> | <Cross /> | <Cross /> | <Check /> |
 | `gpt-live-transcribe`       | <Cross />     | <Check /> | <Cross /> | <Cross /> | <Cross /> |

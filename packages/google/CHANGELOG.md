@@ -1,5 +1,29 @@
 # @ai-sdk/google
 
+## 4.0.127
+
+### Patch Changes
+
+- Updated dependencies [aa7cb79]
+  - @ai-sdk/provider-utils@5.0.84
+
+## 4.0.126
+
+### Patch Changes
+
+- 1145cd5: refactor(google): declare language model capabilities per model ID in the model catalog
+- 6e2e4ff: fix(google): remove the file processing early access model IDs from the model ID suggestions
+
+  File slicing works with the regular Gemini 3 and Gemini 4 model IDs, such as `gemini-4-hydrogen`. Other model IDs can still be passed as strings.
+
+## 4.0.125
+
+### Patch Changes
+
+- afb4e69: Add Extended Multimodal File Inspection options for Gemini documents, spreadsheets, audio, and video, including per-file rendering resolution. Add the `gemini-4-argon-file-processing-eap` and `gemini-3.8-flash-file-processing-eap` model IDs for early-access evaluation.
+
+  Send Interactions tool results as top-level `function_result` inputs so file selections remain inside their tool result and are accepted by the EAP API.
+
 ## 4.0.124
 
 ### Patch Changes

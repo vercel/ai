@@ -15,7 +15,8 @@ import { join } from 'path';
 // Steering interrupts add ~3 KiB.
 // Extraction telemetry adds ~2.5 KiB.
 // The bundled Gateway Live model and continuous client-secret sessions add ~6 KiB.
-const LIMIT = 670 * 1024;
+// Per-call warning callbacks and prompt warnings in step warnings add ~1 KiB.
+const LIMIT = 675 * 1024;
 
 interface BundleResult {
   size: number;
@@ -66,7 +67,7 @@ async function bundleForNode(
       entry === 'tool'
         ? 8 * 1024
         : entry === 'generateText'
-          ? 306 * 1024
+          ? 310 * 1024
           : LIMIT,
   };
 }
@@ -114,7 +115,7 @@ async function bundleForBrowser(
       entry === 'tool'
         ? 8 * 1024
         : entry === 'generateText'
-          ? 294 * 1024
+          ? 298 * 1024
           : LIMIT,
   };
 }

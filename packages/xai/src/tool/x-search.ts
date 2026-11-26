@@ -35,7 +35,7 @@ const xSearchOutputSchema = lazySchema(() =>
 );
 
 const xSearchToolFactory = createProviderExecutedToolFactory<
-  {},
+  Record<string, unknown>,
   {
     query: string;
     posts: Array<{
@@ -55,7 +55,7 @@ const xSearchToolFactory = createProviderExecutedToolFactory<
   }
 >({
   id: 'xai.x_search',
-  inputSchema: lazySchema(() => zodSchema(z.object({}))),
+  inputSchema: lazySchema(() => zodSchema(z.looseObject({}))),
   outputSchema: xSearchOutputSchema,
 });
 

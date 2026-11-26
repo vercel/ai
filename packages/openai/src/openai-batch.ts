@@ -72,6 +72,19 @@ const openaiBatchProviderOptionsSchema = lazySchema(() =>
         .min(3600)
         .max(2_592_000)
         .optional(),
+
+      /**
+       * TTL in seconds for the batch output and error files, measured from
+       * when each file is created. OpenAI accepts integers between 3600
+       * (1 hour) and 2592000 (30 days) inclusive. Defaults to OpenAI's file
+       * retention.
+       */
+      outputFileExpiresAfter: z
+        .number()
+        .int()
+        .min(3600)
+        .max(2_592_000)
+        .optional(),
     }),
   ),
 );
@@ -303,6 +316,14 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
         input_file_id: uploadedFile.id,
         endpoint: openaiBatchEndpoint,
         completion_window: '24h',
+        ...(batchOptions?.outputFileExpiresAfter != null
+          ? {
+              output_expires_after: {
+                anchor: 'created_at',
+                seconds: batchOptions.outputFileExpiresAfter,
+              },
+            }
+          : {}),
       },
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -354,7 +375,7 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
     options: BatchV4OperationOptions,
   ): Promise<BatchV4Status> {
     const batch = await this.retrieveBatch(options);
-    return convertOpenAIBatchStatus(batch);
+    return convertOpenAIBatchStatusWithFileMetadata(batch);
   }
 
   async doCancelBatch(
@@ -407,7 +428,7 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
     return {
       batches: page.data.map(batch => ({
         batchId: batch.id,
-        ...convertOpenAIBatchStatus(batch),
+        ...convertOpenAIBatchStatusWithFileMetadata(batch),
       })),
       ...(page.has_more && page.last_id != null
         ? { nextCursor: page.last_id }
@@ -621,6 +642,36 @@ function convertOpenAIBatchStatus(batch: OpenAIBatchResponse): BatchV4Status {
       : {}),
     ...(createdAt != null ? { createdAt } : {}),
     ...(expiresAt != null ? { expiresAt } : {}),
+  };
+}
+
+// Status and list results carry the output/error file ids; start results don't.
+function convertOpenAIBatchStatusWithFileMetadata(
+  batch: OpenAIBatchResponse,
+): BatchV4Status {
+  const fileMetadata = convertOpenAIBatchFileMetadata(batch);
+  return {
+    ...convertOpenAIBatchStatus(batch),
+    ...(fileMetadata != null
+      ? { providerMetadata: { openai: fileMetadata } }
+      : {}),
+  };
+}
+
+function convertOpenAIBatchFileMetadata(
+  batch: OpenAIBatchResponse,
+): { outputFileId?: string; errorFileId?: string } | undefined {
+  // Treat empty strings like missing ids.
+  const outputFileId = batch.output_file_id || undefined;
+  const errorFileId = batch.error_file_id || undefined;
+
+  if (outputFileId == null && errorFileId == null) {
+    return undefined;
+  }
+
+  return {
+    ...(outputFileId != null ? { outputFileId } : {}),
+    ...(errorFileId != null ? { errorFileId } : {}),
   };
 }
 

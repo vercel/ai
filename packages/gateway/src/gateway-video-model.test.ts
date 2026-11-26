@@ -246,6 +246,59 @@ describe('GatewayVideoModel', () => {
       expect(result.videos).toEqual(mockVideos);
     });
 
+    it('should return base64 videos that are larger than the default maximum event size', async () => {
+      // a result event of about 65 MiB that arrives in several chunks:
+      const encoder = new TextEncoder();
+      const dataChunk = new Uint8Array(1024 * 1024).fill(65); // 'A'
+      const dataChunkCount = 65;
+      const chunks = [
+        encoder.encode(
+          'data: {"type":"result","videos":[{"type":"base64","mediaType":"video/mp4","data":"',
+        ),
+        ...Array.from({ length: dataChunkCount }, () => dataChunk),
+        encoder.encode('"}]}\n\n'),
+      ];
+
+      // The response is a byte stream, because encoding 65 MiB of strings in
+      // the test server takes seconds on Node.js 20 and 22.
+      const result = await createTestModel({
+        fetch: async () =>
+          new Response(
+            new ReadableStream<Uint8Array>({
+              pull(controller) {
+                const chunk = chunks.shift();
+                if (chunk == null) {
+                  controller.close();
+                } else {
+                  controller.enqueue(chunk);
+                }
+              },
+            }),
+            { headers: { 'content-type': 'text/event-stream' } },
+          ),
+      }).doGenerate({
+        prompt: 'Test prompt',
+        image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
+        n: 1,
+        aspectRatio: undefined,
+        resolution: undefined,
+        duration: undefined,
+        fps: undefined,
+        seed: undefined,
+        generateAudio: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.videos).toHaveLength(1);
+      const [video] = result.videos;
+      expect(video.type).toBe('base64');
+      expect(video.type === 'base64' && video.data.length).toBe(
+        dataChunkCount * dataChunk.length,
+      );
+    });
+
     it('should return URL-type videos correctly', async () => {
       const mockVideos: VideoData[] = [
         {

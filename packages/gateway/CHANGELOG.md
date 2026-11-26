@@ -1,5 +1,31 @@
 # @ai-sdk/gateway
 
+## 4.0.155
+
+### Patch Changes
+
+- ff3b865: chore(provider/gateway): update gateway model settings files
+- aa7cb79: fix(provider-utils): limit the size of a single server-sent event
+
+  `parseJsonEventStream` and `createEventSourceResponseHandler` buffered an event until it was complete, without a limit. A streaming response that never completed an event could exhaust the memory and crash the process. A single event is now limited to 67,108,864 characters (64 MiB of ASCII text). A stream that exceeds the limit fails with an error and the response body is cancelled.
+
+  The limit also applies to the streams that `useChat` and `useCompletion` read. `parseJsonEventStream` has a new `maxEventSize` option to change it. The gateway video model uses it to accept a result event of up to 536,870,912 characters, because that event contains the generated videos.
+
+- Updated dependencies [aa7cb79]
+  - @ai-sdk/provider-utils@5.0.84
+
+## 4.0.154
+
+### Patch Changes
+
+- f2732a6: chore(provider/gateway): update gateway model settings files
+
+## 4.0.153
+
+### Patch Changes
+
+- 83026e8: fix(gateway): redact BYOK credentials in telemetry copies of Gateway request bodies
+
 ## 4.0.152
 
 ### Patch Changes

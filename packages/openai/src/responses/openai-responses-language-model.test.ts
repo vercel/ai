@@ -1675,9 +1675,18 @@ describe('OpenAIResponsesLanguageModel', () => {
           });
         });
 
-        it.each(['none', 'minimal', 'low', 'medium', 'high', 'xhigh'] as const)(
-          'should map top-level reasoning=%s to reasoning effort',
-          async reasoningValue => {
+        // o3-mini accepts low, medium, and high. Other values map to the
+        // nearest supported effort.
+        it.each([
+          ['none', 'low'],
+          ['minimal', 'low'],
+          ['low', 'low'],
+          ['medium', 'medium'],
+          ['high', 'high'],
+          ['xhigh', 'high'],
+        ] as const)(
+          'should map top-level reasoning=%s to reasoning effort %s',
+          async (reasoningValue, expectedEffort) => {
             const { warnings } = await createModel('o3-mini').doGenerate({
               prompt: TEST_PROMPT,
               reasoning: reasoningValue,
@@ -1692,16 +1701,22 @@ describe('OpenAIResponsesLanguageModel', () => {
                 },
               ],
               reasoning: {
-                effort: reasoningValue,
-                ...(reasoningValue !== 'none' && {
-                  summary: 'detailed',
-                }),
+                effort: expectedEffort,
+                summary: 'detailed',
               },
             });
 
-            if (reasoningValue === 'none') {
-              expect(warnings).toStrictEqual([]);
-            }
+            expect(warnings).toStrictEqual(
+              reasoningValue === expectedEffort
+                ? []
+                : [
+                    {
+                      type: 'compatibility',
+                      feature: 'reasoning',
+                      details: `reasoning "${reasoningValue}" is not directly supported by this model. mapped to effort "${expectedEffort}".`,
+                    },
+                  ],
+            );
           },
         );
 
@@ -2204,8 +2219,8 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should omit reasoning effort updates for models before GPT-6', async () => {
-        const { warnings } = await createModel('gpt-5.6').doGenerate({
+      it('should omit reasoning effort updates for models without configuration updates', async () => {
+        const { warnings } = await createModel('gpt-5.5').doGenerate({
           prompt: TEST_PROMPT,
           providerOptions: {
             openai: {
@@ -2347,7 +2362,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should warn and drop serviceTier fast for a model without priority processing', async () => {
-        const { warnings } = await createModel('gpt-5-nano').doGenerate({
+        const { warnings } = await createModel('gpt-3.5-turbo').doGenerate({
           prompt: TEST_PROMPT,
           providerOptions: {
             openai: {
@@ -7973,6 +7988,55 @@ describe('OpenAIResponsesLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it('should parse a response.completed event that is larger than the default maximum event size', async () => {
+      // `response.completed` repeats every output item, so several base64
+      // images make it larger than 64 MiB. It arrives in several chunks.
+      const encoder = new TextEncoder();
+      const dataChunk = new Uint8Array(1024 * 1024).fill(65); // 'A'
+      const dataChunkCount = 65;
+      const chunks = [
+        encoder.encode(
+          'data: {"type":"response.completed","response":{"id":"resp_1","created_at":1741269019,"model":"gpt-5.4","service_tier":"default","usage":{"input_tokens":10,"input_tokens_details":{"cached_tokens":0},"output_tokens":20,"output_tokens_details":{"reasoning_tokens":0}},"output":[{"type":"image_generation_call","id":"ig_1","status":"completed","result":"',
+        ),
+        ...Array.from({ length: dataChunkCount }, () => dataChunk),
+        encoder.encode('"}]}}\n\n'),
+      ];
+
+      const model = new OpenAIResponsesLanguageModel('gpt-5.4', {
+        provider: 'openai',
+        url: ({ path }) => `https://api.openai.com/v1${path}`,
+        headers: () => ({ Authorization: `Bearer APIKEY` }),
+        generateId: mockId(),
+        fetch: async () =>
+          new Response(
+            new ReadableStream<Uint8Array>({
+              pull(controller) {
+                const chunk = chunks.shift();
+                if (chunk == null) {
+                  controller.close();
+                } else {
+                  controller.enqueue(chunk);
+                }
+              },
+            }),
+            { headers: { 'content-type': 'text/event-stream' } },
+          ),
+      });
+
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+
+      // Usage and the finish reason are read only from `response.completed`,
+      // so they show that the 65 MiB event parsed.
+      expect(parts.some(part => part.type === 'error')).toBe(false);
+      const finish = parts.find(part => part.type === 'finish');
+      expect(finish).toMatchObject({
+        type: 'finish',
+        usage: { inputTokens: { total: 10 }, outputTokens: { total: 20 } },
+        finishReason: { unified: 'stop' },
+      });
+    });
+
     it('should stream refusal content parts as text and map the finish reason to content-filter', async () => {
       prepareChunksFixtureResponse('openai-refusal.1');
 

@@ -1192,6 +1192,42 @@ describe('HttpMCPTransport', () => {
     expect(server.calls[1].requestUserAgent).toContain('ai-sdk/');
   });
 
+  it('should send Mcp-Name on events requests that carry a name', async () => {
+    const mcpNames: Record<string, string | null> = {};
+    const fetch = vi.fn(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        const message = JSON.parse(String(init?.body));
+        mcpNames[message.method] = new Headers(init?.headers).get('mcp-name');
+        return Response.json({ jsonrpc: '2.0', id: message.id, result: {} });
+      },
+    );
+    transport = new HttpMCPTransport({
+      url: 'http://localhost:4000/mcp',
+      initialProtocolVersion: LATEST_PROTOCOL_VERSION,
+      fetch,
+    });
+    await transport.start();
+
+    for (const [id, method] of [
+      'events/list',
+      'events/subscribe',
+      'events/unsubscribe',
+    ].entries()) {
+      await transport.send({
+        jsonrpc: '2.0',
+        id,
+        method,
+        params: method === 'events/list' ? {} : { name: 'incident.created' },
+      });
+    }
+
+    expect(mcpNames).toEqual({
+      'events/list': null,
+      'events/subscribe': 'incident.created',
+      'events/unsubscribe': 'incident.created',
+    });
+  });
+
   it('should deduplicate OAuth refresh when inbound SSE and initialize both get 401', async () => {
     const trace: string[] = [];
     let storedTokens: OAuthTokens = {

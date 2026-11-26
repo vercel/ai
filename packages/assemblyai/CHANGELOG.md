@@ -1,5 +1,18 @@
 # @ai-sdk/assemblyai
 
+## 3.0.87
+
+### Patch Changes
+
+- Updated dependencies [aa7cb79]
+  - @ai-sdk/provider-utils@5.0.84
+
+## 3.0.86
+
+### Patch Changes
+
+- dd89e17: fix(assemblyai): decode base64 audio before uploading it for transcription
+
 ## 3.0.85
 
 ### Patch Changes

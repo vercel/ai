@@ -1426,7 +1426,58 @@ describe('doStream', () => {
     },
   );
 
-  it.each(['gpt-4o-transcribe', 'whisper-1'])(
+  it.each(['whisper-1', 'gpt-4o-transcribe', 'gpt-4o-mini-transcribe'])(
+    'should stream %s using OpenAI realtime transcription',
+    async modelId => {
+      MockWebSocket.instances = [];
+      const model = new OpenAITranscriptionModel(modelId, {
+        provider: 'test-provider',
+        url: ({ path }) => `https://api.openai.com/v1${path}`,
+        headers: () => ({ Authorization: 'Bearer test-api-key' }),
+        webSocket: MockWebSocket,
+      });
+
+      const result = await model.doStream({
+        audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+        inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+      });
+
+      const partsPromise = convertReadableStreamToArray(result.stream);
+      const ws = MockWebSocket.instances[0];
+      expect(ws.url.toString()).toBe(
+        'wss://api.openai.com/v1/realtime?intent=transcription',
+      );
+      ws.open();
+      await flush();
+
+      expect(JSON.parse(ws.send.mock.calls[0][0])).toEqual({
+        type: 'session.update',
+        session: {
+          type: 'transcription',
+          audio: {
+            input: {
+              format: { type: 'audio/pcm', rate: 24000 },
+              transcription: { model: modelId },
+              turn_detection: null,
+            },
+          },
+        },
+      });
+
+      ws.message({
+        type: 'conversation.item.input_audio_transcription.completed',
+        item_id: 'item-1',
+        transcript: 'Hello',
+      });
+      expect(await partsPromise).toContainEqual({
+        type: 'transcript-final',
+        id: 'item-1',
+        text: 'Hello',
+      });
+    },
+  );
+
+  it.each(['gpt-4o-transcribe-diarize'])(
     'should reject %s for streaming transcription',
     async modelId => {
       const model = new OpenAITranscriptionModel(modelId, {

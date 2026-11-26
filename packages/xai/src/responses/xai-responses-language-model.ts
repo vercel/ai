@@ -47,6 +47,13 @@ import {
 } from './xai-responses-language-model-options';
 import { prepareResponsesTools } from './xai-responses-prepare-tools';
 
+/**
+ * `response.completed` repeats every output item, including base64 image
+ * generation results, so it can be much larger than the default maximum event
+ * size. The limit is about the maximum length of a string in V8.
+ */
+const MAX_RESPONSES_EVENT_SIZE = 512 * 1024 * 1024;
+
 export type XaiResponsesConfig = {
   provider: string;
   baseURL: string | undefined;
@@ -279,11 +286,11 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       }
     }
 
-    const { portable: reasoningCapabilities } =
+    const { portableEfforts } =
       getXaiLanguageModelEntry(modelId).capabilities.language.reasoning;
     let resolvedReasoningEffort = options.reasoningEffort;
     if (resolvedReasoningEffort == null && isCustomReasoning(reasoning)) {
-      if (!reasoningCapabilities.configurable) {
+      if (portableEfforts.length === 0) {
         warnings.push({
           type: 'unsupported',
           feature: 'reasoning',
@@ -292,15 +299,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       } else {
         resolvedReasoningEffort = mapReasoningToProviderEffort({
           reasoning,
-          effortMap: {
-            ...(reasoningCapabilities.none && {
-              none: 'none' as const,
-            }),
-            low: 'low',
-            medium: 'medium',
-            high: 'high',
-            ...(reasoningCapabilities.xhigh && { xhigh: 'xhigh' as const }),
-          },
+          effortMap: Object.fromEntries(
+            portableEfforts.map(effort => [effort, effort]),
+          ),
           warnings,
         });
       }
@@ -717,6 +718,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         xaiResponsesChunkSchema,
+        { maxEventSize: MAX_RESPONSES_EVENT_SIZE },
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -1265,7 +1267,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                       : (part.arguments ?? '');
 
                 const shouldEmit =
-                  part.type === 'custom_tool_call'
+                  part.type === 'custom_tool_call' || part.type === 'mcp_call'
                     ? event.type === 'response.output_item.done'
                     : !seenToolCalls.has(part.id);
 

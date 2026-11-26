@@ -478,6 +478,135 @@ describe('client-delegation runtime correctness', () => {
     expect(onError).not.toHaveBeenCalled();
   });
 
+  describe('barge-in truncation with queued items', () => {
+    const audioDelta = (itemId: string, seconds: number) =>
+      emit({
+        type: 'audio-delta',
+        responseId: 'response',
+        itemId,
+        delta: encodeRealtimeAudio(
+          new Float32Array(Math.round(seconds * 24000)),
+        ),
+        raw: {},
+      });
+
+    const setup = async () => {
+      const onError = vi.fn();
+      const session = create({
+        model: legacyModel(),
+        api: { token: '/token' },
+        onError,
+      });
+      await ready(session, true);
+      const playback = FakeAudioContext.instances[0];
+      playback.state = 'running';
+      return { session, playback, onError };
+    };
+
+    it('truncates the answer at its own offset when interrupted near its end', async () => {
+      const { playback, onError } = await setup();
+      await audioDelta('preamble', 1.5);
+      await audioDelta('answer', 12.95);
+      playback.currentTime = 1.5 + 12.457;
+      await emit({ type: 'speech-started', raw: {} });
+      expect(socket().sent.at(-1)).toEqual({
+        type: 'conversation-item-truncate',
+        itemId: 'answer',
+        contentIndex: 0,
+        audioEndMs: 12457,
+      });
+      expect(onError).not.toHaveBeenCalled();
+    });
+
+    it('truncates the item that is playing, not the most recently received one', async () => {
+      const { playback } = await setup();
+      await audioDelta('preamble', 1.5);
+      await audioDelta('answer', 12.95);
+      playback.currentTime = 1;
+      await emit({ type: 'speech-started', raw: {} });
+      expect(socket().sent.at(-1)).toEqual({
+        type: 'conversation-item-truncate',
+        itemId: 'preamble',
+        contentIndex: 0,
+        audioEndMs: 1000,
+      });
+    });
+
+    it('accumulates the offset across chunks of the playing item only', async () => {
+      const { playback } = await setup();
+      await audioDelta('preamble', 1.5);
+      for (let index = 0; index < 4; index++) await audioDelta('answer', 1);
+      playback.currentTime = 1.5 + 2.5;
+      await emit({ type: 'speech-started', raw: {} });
+      expect(socket().sent.at(-1)).toEqual({
+        type: 'conversation-item-truncate',
+        itemId: 'answer',
+        contentIndex: 0,
+        audioEndMs: 2500,
+      });
+    });
+
+    it('keeps the item offset when playback underruns mid-item', async () => {
+      const { playback } = await setup();
+      await audioDelta('answer', 1);
+      playback.currentTime = 1.2;
+      playback.sources[0].onended?.();
+      await audioDelta('answer', 1);
+      expect(playback.sources[1].start).toHaveBeenCalledWith(1.2);
+      playback.currentTime = 1.7;
+      await emit({ type: 'speech-started', raw: {} });
+      expect(socket().sent.at(-1)).toEqual({
+        type: 'conversation-item-truncate',
+        itemId: 'answer',
+        contentIndex: 0,
+        audioEndMs: 1500,
+      });
+    });
+
+    it('never truncates past the end of an item whose length is not whole milliseconds', async () => {
+      const { playback, onError } = await setup();
+      // 24013 samples at 24 kHz is 1000.54 ms; rounding would report 1001 ms.
+      await audioDelta('answer', 24013 / 24000);
+      // Playback finished on the audio thread, but `ended` has not fired yet.
+      playback.currentTime = 1.05;
+      await emit({ type: 'speech-started', raw: {} });
+      expect(socket().sent.at(-1)).toEqual({
+        type: 'conversation-item-truncate',
+        itemId: 'answer',
+        contentIndex: 0,
+        audioEndMs: 1000,
+      });
+      expect(onError).not.toHaveBeenCalled();
+    });
+
+    it('truncates the next item at zero when the previous one ended marginally early', async () => {
+      const { playback } = await setup();
+      await audioDelta('preamble', 1);
+      playback.currentTime = 0.999;
+      playback.sources[0].onended?.();
+      await audioDelta('answer', 1);
+      expect(playback.sources[1].start).toHaveBeenCalledWith(1);
+      await emit({ type: 'speech-started', raw: {} });
+      expect(socket().sent.at(-1)).toEqual({
+        type: 'conversation-item-truncate',
+        itemId: 'answer',
+        contentIndex: 0,
+        audioEndMs: 0,
+      });
+    });
+
+    it('detaches a source stopped by a listener reacting to playback starting', async () => {
+      const { session, playback } = await setup();
+      session.onPublish = key => {
+        if (key === 'isPlaying' && session.snapshot.isPlaying)
+          session.stopPlayback();
+      };
+      await audioDelta('answer', 1);
+      expect(playback.sources[0].stop).toHaveBeenCalledTimes(1);
+      expect(playback.sources[0].onended).toBeNull();
+    });
+  });
+
   it('rejects a legacy playback budget before token or browser effects', async () => {
     const onError = vi.fn();
     await create({
