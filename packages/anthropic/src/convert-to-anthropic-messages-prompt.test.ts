@@ -859,7 +859,7 @@ describe('system messages', () => {
       { role: 'user', content: [{ type: 'text', text: 'hi' }] },
       {
         role: 'system',
-        content: 'answer in one sentence',
+        content: 'be concise',
         providerOptions: { anthropic: { cacheControl: { type: 'ephemeral' } } },
       },
     ];
@@ -875,7 +875,7 @@ describe('system messages', () => {
       expect(result.prompt.system).toEqual([
         {
           type: 'text',
-          text: 'answer in one sentence',
+          text: 'be concise',
           cache_control: { type: 'ephemeral' },
         },
       ]);
@@ -901,7 +901,7 @@ describe('system messages', () => {
           content: [
             {
               type: 'text',
-              text: 'answer in one sentence',
+              text: 'be concise',
               cache_control: { type: 'ephemeral' },
             },
           ],
