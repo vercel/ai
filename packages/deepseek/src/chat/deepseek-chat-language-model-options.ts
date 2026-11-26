@@ -4,16 +4,10 @@ import {
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { DeepSeekModelIds } from '../deepseek-model-catalog';
 
 // https://api-docs.deepseek.com/quick_start/pricing
-export type DeepSeekChatModelId =
-  | 'deepseek-flash'
-  | 'deepseek-v4-flash'
-  | 'deepseek-v4-pro'
-  | 'deepseek-v4-flash-vision-exp'
-  // Retired aliases remain assignable through the string escape hatch, but are
-  // intentionally omitted from first-class editor suggestions.
-  | (string & {});
+export type DeepSeekChatModelId = DeepSeekModelIds['chat'] | (string & {});
 
 function createDeepseekChatOptionsSchema() {
   return z.object({

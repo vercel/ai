@@ -1,3 +1,4 @@
+import { getFireworksLanguageModelEntry } from './fireworks-model-catalog';
 import {
   OpenAICompatibleChatLanguageModel,
   OpenAICompatibleCompletionLanguageModel,
@@ -11,7 +12,10 @@ import type {
   ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolveWith,
   loadApiKey,
+  mapReasoningToProviderEffort,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -49,8 +53,9 @@ export interface FireworksProviderSettings {
   /**
    * Fireworks API key. Default value is taken from the `FIREWORKS_API_KEY`
    * environment variable.
+   * A function is called before each request and may return a promise.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
   /**
    * Base URL for the API calls.
    */
@@ -115,22 +120,24 @@ export function createFireworks(
 ): FireworksProvider {
   const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'FIREWORKS_API_KEY',
-          description: 'Fireworks API key',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk-fireworks/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'FIREWORKS_API_KEY',
+            description: 'Fireworks API key',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-fireworks/${VERSION}`,
+      ),
     );
 
   interface CommonModelConfig {
     provider: string;
     url: ({ path }: { path: string }) => string;
-    headers: () => Record<string, string>;
+    headers: Resolvable<Record<string, string>>;
     fetch?: FetchFunction;
   }
 
@@ -146,8 +153,18 @@ export function createFireworks(
       ...getCommonModelConfig('chat'),
       includeUsage: true,
       errorStructure: fireworksErrorStructure,
-      supportsStructuredOutputs: true,
-      transformRequestBody: (args, warnings) => {
+      supportsStructuredOutputs:
+        getFireworksLanguageModelEntry(modelId).capabilities.language
+          .structuredOutput.jsonSchema,
+      mapReasoning: ({ reasoning, warnings }) =>
+        mapReasoningToProviderEffort({
+          reasoning,
+          effortMap:
+            getFireworksLanguageModelEntry(modelId).requestConfig.language
+              .reasoningEffortMap,
+          warnings,
+        }),
+      transformRequestBody: args => {
         const thinking = args.thinking as
           | { type?: string; budgetTokens?: number }
           | undefined;
@@ -160,31 +177,11 @@ export function createFireworks(
           reasoningHistory: __,
           promptCacheKey: ___,
           serviceTier: ____,
-          reasoning_effort,
           ...rest
         } = args;
 
-        // Fireworks supports low, medium, and high reasoning levels.
-        const mappedReasoningEffort =
-          reasoning_effort === 'minimal'
-            ? 'low'
-            : reasoning_effort === 'xhigh' || reasoning_effort === 'max'
-              ? 'high'
-              : reasoning_effort;
-
-        if (mappedReasoningEffort !== reasoning_effort) {
-          warnings?.push({
-            type: 'compatibility',
-            feature: 'reasoning',
-            details: `reasoning "${reasoning_effort}" is not directly supported by this model. mapped to effort "${mappedReasoningEffort}".`,
-          });
-        }
-
         return {
           ...rest,
-          ...(reasoning_effort != null && {
-            reasoning_effort: mappedReasoningEffort,
-          }),
           ...(promptCacheKey !== undefined && {
             prompt_cache_key: promptCacheKey,
           }),

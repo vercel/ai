@@ -76,7 +76,10 @@ const hume = createHume({
 
 You can use the following optional settings to customize the Hume provider instance:
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
+
+  Pass a synchronous or asynchronous callback to resolve the key before each
+  request. The callback is responsible for caching and refreshing credentials.
 
   API key that is being sent using the `X-Hume-Api-Key` header.
   It defaults to the `HUME_API_KEY` environment variable.
@@ -183,6 +186,20 @@ The following provider options are available:
 
 ### Model Capabilities
 
+{/* model-capabilities:hume-speech:start */}
+
 | Model     | Instructions | Speed     | Output Formats |
 | --------- | ------------ | --------- | -------------- |
 | `default` | <Check />    | <Check /> | mp3, pcm, wav  |
+
+{/* model-capabilities:hume-speech:end */}
+
+### Provider Option Catalog
+
+{/* model-capabilities:hume-provider-options:start */}
+
+| Operation | Option    | Description                                                                                                                                         |
+| --------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| speech    | `context` | Context for the speech synthesis request. Can be either a generationId for retrieving a previous generation, or a list of utterances to synthesize. |
+
+{/* model-capabilities:hume-provider-options:end */}

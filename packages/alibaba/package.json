@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/alibaba",
-  "version": "2.0.76",
+  "version": "2.0.95",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -17,10 +17,9 @@
     "README.md"
   ],
   "scripts": {
-    "build": "pnpm clean && tsdown",
-    "build:watch": "pnpm clean && tsdown --watch",
-    "clean": "del-cli *.tsbuildinfo",
-    "type-check": "tsc --build",
+    "build": "tsdown",
+    "build:watch": "tsdown --watch",
+    "type-check": "tsc --noEmit",
     "test": "pnpm test:node && pnpm test:edge",
     "test:update": "pnpm test:node -u",
     "test:watch": "vitest --config vitest.node.config.js",
@@ -46,7 +45,7 @@
     "@vercel/ai-tsdown-config": "workspace:*",
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
-    "zod": "3.25.76"
+    "zod": "4.6.7"
   },
   "peerDependencies": {
     "zod": "^3.25.76 || ^4.1.8"

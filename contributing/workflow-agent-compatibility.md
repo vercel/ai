@@ -140,7 +140,7 @@ generated identifiers.
 ## Validation
 
 Run the Workflow Node and edge suites for this phase, including existing
-transport/transform tests, plus `pnpm type-check:full` and formatting/lint checks.
+transport/transform tests, plus `pnpm type-check` and formatting/lint checks.
 Real-runtime tests use the separate `test:integration` command; ordinary Node or
 edge suites do not count as validation of Workflow serialization or replay.
 

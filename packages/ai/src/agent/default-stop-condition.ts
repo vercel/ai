@@ -1,5 +1,35 @@
-import { logWarnings } from '../logger/log-warnings';
+import { createLogWarnings } from '../logger/create-log-warnings';
+import type { LogWarningsFunction } from '../logger/log-warnings';
 import type { StopCondition } from '../generate-text/stop-condition';
+
+/**
+ * Logs the warning for the default stopWhen condition.
+ */
+export function logDefaultStopConditionWarning({
+  stepCount,
+  provider,
+  modelId,
+  onWarning,
+}: {
+  stepCount: number;
+  provider: string;
+  modelId: string;
+  onWarning?: LogWarningsFunction;
+}): void {
+  createLogWarnings(onWarning)({
+    provider,
+    model: modelId,
+    warnings: [
+      {
+        type: 'other',
+        message:
+          `The tool loop stopped because it reached the default stopWhen condition, isStepCount(${stepCount}). ` +
+          'To allow more steps, set stopWhen to isStepCount(...) with a higher limit or provide a custom stop condition. ' +
+          'Learn more: https://ai-sdk.dev/docs/agents/loop-control',
+      },
+    ],
+  });
+}
 
 /**
  * Stop conditions are only evaluated when the tool loop can otherwise continue,
@@ -7,6 +37,7 @@ import type { StopCondition } from '../generate-text/stop-condition';
  */
 export function createDefaultStopCondition(
   stepCount: number,
+  onWarning?: LogWarningsFunction,
 ): StopCondition<any, any> {
   return ({ steps }) => {
     if (steps.length !== stepCount) {
@@ -14,18 +45,11 @@ export function createDefaultStopCondition(
     }
 
     const { provider, modelId } = steps[steps.length - 1].model;
-    logWarnings({
+    logDefaultStopConditionWarning({
+      stepCount,
       provider,
-      model: modelId,
-      warnings: [
-        {
-          type: 'other',
-          message:
-            `The tool loop stopped because it reached the default stopWhen condition, isStepCount(${stepCount}). ` +
-            'To allow more steps, set stopWhen to isStepCount(...) with a higher limit or provide a custom stop condition. ' +
-            'Learn more: https://ai-sdk.dev/docs/agents/loop-control',
-        },
-      ],
+      modelId,
+      onWarning,
     });
 
     return true;

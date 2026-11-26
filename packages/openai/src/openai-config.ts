@@ -1,4 +1,5 @@
 import type {
+  Resolvable,
   FetchFunction,
   WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
@@ -15,7 +16,7 @@ export type OpenAIConfig = {
   requestModelId?: string;
   baseURL?: string;
   url: (options: { modelId: string; path: string }) => string;
-  headers?: () => OpenAIHeaders;
+  headers?: Resolvable<OpenAIHeaders>;
   fetch?: FetchFunction;
   webSocket?: WebSocketConstructor;
   generateId?: () => string;

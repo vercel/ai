@@ -27,7 +27,6 @@ export {
   type WorkflowAgentOnFinishCallback,
   type WorkflowAgentOnStepEndCallback,
   type WorkflowAgentOnStepFinishCallback,
-  type StreamTextTransform,
   type TelemetryOptions,
   type ToolCallRepairFunction,
   type WorkflowAgentOnStartCallback,
@@ -37,6 +36,8 @@ export {
   type WorkflowAgentOnToolExecutionStartCallback,
   type WorkflowAgentOnToolExecutionEndCallback,
 } from './workflow-agent.js';
+
+export type { WorkflowAgentTimeoutConfiguration } from './workflow-agent-timeout.js';
 
 export {
   createModelCallToUIChunkTransform,

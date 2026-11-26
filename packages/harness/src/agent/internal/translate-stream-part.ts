@@ -14,8 +14,8 @@ import { generateId, type ToolSet } from '@ai-sdk/provider-utils';
  *   - tool-call events are not translated here — validation against the
  *     merged tool set is async and handled by `validateToolCall` in
  *     `run-prompt.ts`
- *   - a failed `tool-result` from a provider-executed tool becomes a
- *     `tool-error` (see `isProviderExecuted`)
+ *   - a failed `tool-result` becomes a `tool-error`, marked provider-executed
+ *     unless its tool call is a host tool's (see `isProviderExecuted`)
  *   - the harness `raw` part is forwarded as the AI SDK `raw` part
  *
  * Returns an array of zero or more AI SDK parts. Most harness events project
@@ -131,17 +131,14 @@ export function translateStreamPart<TOOLS extends ToolSet>(
 
     case 'tool-result':
       const toolCall = options.getToolCall?.(event.toolCallId);
-      if (
-        event.isError === true &&
-        (toolCall?.providerExecuted ??
-          options.isProviderExecuted?.(event.toolCallId) ??
-          true)
-      ) {
+      if (event.isError === true) {
         /*
-         * `providerExecuted` decides whether the message survives:
-         * `toUIMessageChunk` forwards the real error text only for
+         * `providerExecuted` decides whether the message survives when the
+         * application redacts tool errors (`redactToolErrors`):
+         * `toUIMessageChunk` then forwards the real error text only for
          * provider-executed errors, and replaces every other one with the
-         * generic `onError` string.
+         * `onError` string. A failed host tool is not provider-executed, so
+         * its error stays redactable.
          */
         return [
           {
@@ -150,7 +147,10 @@ export function translateStreamPart<TOOLS extends ToolSet>(
             toolName: event.toolName,
             input: toolCall?.input,
             error: event.result,
-            providerExecuted: true,
+            providerExecuted:
+              toolCall?.providerExecuted ??
+              options.isProviderExecuted?.(event.toolCallId) ??
+              true,
             ...(event.dynamic !== undefined ? { dynamic: event.dynamic } : {}),
             ...(event.providerMetadata !== undefined
               ? { providerMetadata: event.providerMetadata }

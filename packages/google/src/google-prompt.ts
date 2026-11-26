@@ -1,3 +1,4 @@
+import type { GoogleFilePartOptions } from './google-file-part-options';
 import type {
   GroundingMetadataSchema,
   PromptFeedbackSchema,
@@ -5,6 +6,8 @@ import type {
   UrlContextMetadataSchema,
   UsageMetadataSchema,
 } from './google-language-model';
+
+export type { GoogleVideoMetadata } from './google-file-part-options';
 
 export type GooglePrompt = {
   systemInstruction?: GoogleSystemInstruction;
@@ -22,11 +25,11 @@ export type GoogleContent = {
 
 export type GoogleContentPart =
   | { text: string; thought?: boolean; thoughtSignature?: string }
-  | {
+  | ({
       inlineData: { mimeType: string; data: string };
       thought?: boolean;
       thoughtSignature?: string;
-    }
+    } & GoogleFilePartOptions)
   | {
       functionCall: { id?: string; name: string; args: unknown };
       thoughtSignature?: string;
@@ -39,11 +42,11 @@ export type GoogleContentPart =
         parts?: Array<GoogleFunctionResponsePart>;
       };
     }
-  | {
+  | ({
       fileData: { mimeType: string; fileUri: string };
       thought?: boolean;
       thoughtSignature?: string;
-    }
+    } & GoogleFilePartOptions)
   | {
       toolCall: {
         toolType: string;
@@ -73,13 +76,15 @@ export type GoogleContentPart =
       };
     };
 
-export type GoogleFunctionResponsePart =
+export type GoogleFunctionResponsePart = (
   | {
       inlineData: { mimeType: string; data: string };
     }
   | {
       fileData: { mimeType: string; fileUri: string };
-    };
+    }
+) &
+  GoogleFilePartOptions;
 
 export type GoogleGroundingMetadata = GroundingMetadataSchema;
 

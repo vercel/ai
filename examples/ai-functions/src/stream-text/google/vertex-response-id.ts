@@ -10,7 +10,7 @@ import { run } from '../../lib/run';
  */
 run(async () => {
   const result = streamText({
-    model: googleVertex('gemini-3.8-flash'),
+    model: googleVertex('gemini-4-hydrogen'),
     prompt: 'Reply with only the word: ok',
     include: { rawChunks: true },
   });

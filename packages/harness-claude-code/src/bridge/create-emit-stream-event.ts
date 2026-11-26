@@ -6,6 +6,8 @@ type Emit = (message: Record<string, unknown>) => void;
 export type ClaudeMessage = {
   type?: string;
   subtype?: string;
+  session_id?: string;
+  permissionMode?: string;
   parent_tool_use_id?: string | null;
   model?: string;
   error?: string;
@@ -51,6 +53,12 @@ export type ClaudeMessage = {
   total_cost_usd?: number;
   structured_output?: unknown;
   tool_use_result?: unknown;
+  terminal_reason?: string;
+  deferred_tool_use?: {
+    id: string;
+    name: string;
+    input: Record<string, unknown>;
+  };
 };
 
 type MessageBlock = {
@@ -215,6 +223,30 @@ export function createEmitStreamEvent({
       streamStarted = true;
     }
 
+    if (
+      type === 'system' &&
+      (msg.subtype === 'init' || msg.subtype === 'status')
+    ) {
+      // Expose resume metadata without forwarding the large init payload
+      // (tools, MCP servers, skills, plugins, and other session metadata).
+      emit({
+        type: 'raw',
+        rawValue: {
+          type,
+          subtype: msg.subtype,
+          ...(msg.subtype === 'init' &&
+          typeof msg.session_id === 'string' &&
+          msg.session_id.length > 0
+            ? { sessionId: msg.session_id }
+            : {}),
+          ...(msg.permissionMode != null
+            ? { permissionMode: msg.permissionMode }
+            : {}),
+        },
+      });
+      return;
+    }
+
     if (type === 'system' && msg.subtype === 'api_retry') {
       if (
         typeof msg.error_status === 'number' &&
@@ -285,6 +317,21 @@ export function createEmitStreamEvent({
     // into regular stream parts or let them affect the parent step.
     if (msg.parent_tool_use_id != null) {
       emit({ type: 'raw', rawValue: msg });
+      // A subagent's host tool call is answered here, outside the parent's
+      // steps, so its handler record goes with its result. Left behind, it
+      // matched a later identical call of the parent by name and input, and
+      // that call never reached the host.
+      const content = msg.message?.content;
+      if (type === 'user' && Array.isArray(content)) {
+        for (const block of content) {
+          if (
+            block.type === 'tool_result' &&
+            typeof block.tool_use_id === 'string'
+          ) {
+            state.mcpHandlerCalls.delete(block.tool_use_id);
+          }
+        }
+      }
       return;
     }
 

@@ -59,6 +59,9 @@ export type LanguageModelCallEndEvent<TOOLS extends ToolSet = ToolSet> =
     /** Optional provider-specific metadata for this model call. */
     readonly providerMetadata?: ProviderMetadata;
 
+    /** HTTP origin reported by the provider, excluding URL credentials and path. */
+    readonly request?: { readonly url?: string };
+
     /** Performance metrics for the model call. */
     readonly performance: {
       /** Time spent waiting for the language model response in milliseconds. */

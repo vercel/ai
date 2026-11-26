@@ -9,10 +9,11 @@ import {
   asSchema,
   getErrorMessage,
   safeParseJSON,
+  withUserAgentSuffix,
   type Context,
 } from '@ai-sdk/provider-utils';
 import {
-  experimental_filterActiveTools as filterActiveTools,
+  filterActiveTools,
   InvalidToolInputError,
   isDeepEqualData,
   type ActiveTools,
@@ -21,14 +22,19 @@ import {
   type LanguageModel,
   type ModelMessage,
   type StepResult,
+  type Telemetry,
+  type DurableTelemetryContext,
   type ToolCallRepairFunction,
+  type ToolInputRefinement,
   type ToolChoice,
+  type ToolOrder,
   type ToolSet,
 } from 'ai';
 import {
   createRestrictedTelemetryDispatcher,
   createToolSearchState,
   filterIncludedContext,
+  mergeObjects,
   parseToolCall,
 } from 'ai/internal';
 import { buildModelStepResult } from './build-model-step-result.js';
@@ -52,8 +58,10 @@ import { resolveToolContext } from './resolve-tool-context.js';
 import {
   resolveSerializableTools,
   serializeToolSet,
+  toLanguageModelToolDefinitions,
   type SerializableToolDef,
 } from './serializable-schema.js';
+import { withServerToolFields } from './with-server-tool-fields.js';
 import type {
   GenerationSettings,
   PrepareStepCallback,
@@ -62,7 +70,6 @@ import type {
   WorkflowAgentOnStepFinishCallback,
   TelemetryOptions,
   WorkflowAgentOnStepStartCallback,
-  StreamTextTransform,
 } from './workflow-agent.js';
 
 // Re-export for consumers
@@ -78,9 +85,7 @@ const prepareStepGenerationSettingKeys = [
   'stopSequences',
   'seed',
   'maxRetries',
-  'headers',
   'reasoning',
-  'providerOptions',
 ] as const satisfies readonly (keyof GenerationSettings)[];
 
 function mergePrepareStepGenerationSettings(
@@ -95,7 +100,68 @@ function mergePrepareStepGenerationSettings(
     }
   }
 
-  return { ...current, ...definedOverrides };
+  return {
+    ...current,
+    ...definedOverrides,
+    ...(overrides.providerOptions !== undefined && {
+      providerOptions: mergeObjects(
+        current.providerOptions,
+        overrides.providerOptions,
+      ),
+    }),
+    ...(overrides.headers !== undefined && {
+      headers: mergePrepareStepHeaders(current.headers, overrides.headers),
+    }),
+  };
+}
+
+function mergePrepareStepHeaders(
+  callHeaders: Record<string, string | undefined> | undefined,
+  stepHeaders: Record<string, string | undefined>,
+): Record<string, string | undefined> {
+  const merged = { ...callHeaders, ...stepHeaders };
+
+  const stepSetsUserAgent = Object.keys(stepHeaders).some(
+    key => key.toLowerCase() === 'user-agent',
+  );
+
+  // A user-agent returned by prepareStep replaces the call value. Add the
+  // agent suffix again so usage stays attributed to WorkflowAgent.
+  return stepSetsUserAgent
+    ? withUserAgentSuffix(merged, 'ai-sdk-agent/workflow')
+    : merged;
+}
+
+function countInstructionMessages(
+  instructions: Instructions | undefined,
+): number {
+  if (instructions === undefined) return 0;
+  if (typeof instructions === 'string') return 1;
+  return Array.isArray(instructions) ? instructions.length : 1;
+}
+
+function toInstructionMessages(
+  instructions: Instructions,
+): LanguageModelV4Prompt {
+  return typeof instructions === 'string'
+    ? [{ role: 'system', content: instructions }]
+    : (Array.isArray(instructions) ? instructions : [instructions]).map(
+        message => ({
+          role: 'system' as const,
+          content: message.content,
+          providerOptions: message.providerOptions,
+        }),
+      );
+}
+
+function countLeadingSystemMessages(prompt: LanguageModelV4Prompt): number {
+  let count = 0;
+
+  while (prompt[count]?.role === 'system') {
+    count++;
+  }
+
+  return count;
 }
 
 /**
@@ -151,15 +217,22 @@ export async function* modelCallIterator({
   prepareStep,
   generationSettings,
   toolChoice,
+  toolOrder,
   runtimeContext,
   toolsContext,
   telemetry,
+  telemetryRecorder,
+  telemetryCallId,
+  telemetryContexts,
   includeRawChunks = false,
   timeoutAt,
+  stepTimeoutMs,
+  firstChunkTimeoutMs,
+  chunkTimeoutMs,
   repairToolCall,
+  refineToolInput,
   download,
   responseFormat,
-  experimental_transform,
   experimental_sandbox: sandbox,
 }: {
   prompt: LanguageModelV4Prompt;
@@ -179,17 +252,28 @@ export async function* modelCallIterator({
   prepareStep?: PrepareStepCallback<any>;
   generationSettings?: GenerationSettings;
   toolChoice?: ToolChoice<ToolSet>;
+  toolOrder?: ToolOrder<ToolSet>;
   runtimeContext?: Context;
   toolsContext?: Record<string, Context | undefined>;
   telemetry?: TelemetryOptions<Context, ToolSet>;
+  /**
+   * Records telemetry events instead of dispatching them, so a durable run
+   * can report them when it ends. Model-call events then use the timing
+   * measured inside the model step.
+   */
+  telemetryRecorder?: Telemetry;
+  /** Telemetry call ID of the recorded run, passed to model steps. */
+  telemetryCallId?: string;
+  telemetryContexts?: Array<DurableTelemetryContext | undefined>;
   includeRawChunks?: boolean;
   timeoutAt?: number;
+  stepTimeoutMs?: number;
+  firstChunkTimeoutMs?: number;
+  chunkTimeoutMs?: number;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
+  refineToolInput?: ToolInputRefinement<ToolSet>;
   download?: ModelCallOptions['download'];
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
-  experimental_transform?:
-    | StreamTextTransform<ToolSet>
-    | Array<StreamTextTransform<ToolSet>>;
   experimental_sandbox?: SandboxSession;
 }): AsyncGenerator<
   ModelCallIteratorYieldValue,
@@ -199,9 +283,12 @@ export async function* modelCallIterator({
   LanguageModelV4ToolResultPart[]
 > {
   let conversationPrompt = [...prompt]; // Create a mutable copy
+  let instructionMessageCount = countInstructionMessages(initialInstructions);
+  let currentInstructions = initialInstructions;
   let currentModel: LanguageModel = model;
   let currentGenerationSettings = generationSettings ?? {};
   let currentToolChoice = toolChoice;
+  let currentToolOrder = toolOrder;
   let currentRuntimeContext: Context = runtimeContext ?? {};
   let currentToolsContext: Record<string, Context | undefined> =
     toolsContext ?? {};
@@ -231,7 +318,9 @@ export async function* modelCallIterator({
     any,
     any
   >({
-    telemetry: telemetry as any,
+    telemetry: (telemetryRecorder == null
+      ? telemetry
+      : { ...telemetry, integrations: telemetryRecorder }) as any,
     includeRuntimeContext: telemetry?.includeRuntimeContext,
     includeToolsContext: telemetry?.includeToolsContext,
   }) as any;
@@ -248,11 +337,22 @@ export async function* modelCallIterator({
 
     let stepSandbox = sandbox;
 
+    // Like in generateText and streamText, prepareStep overrides for the
+    // model, tool choice, active tools, and generation settings apply to the
+    // current step only. Every step starts from the call-level values.
+    // Messages, the instructions, and contexts stay changed for later steps.
+    currentModel = model;
+    currentGenerationSettings = generationSettings ?? {};
+    currentToolChoice = toolChoice;
+    currentToolOrder = toolOrder;
+    currentActiveTools = undefined;
+
     // Call prepareStep callback before each step if provided
     if (prepareStep) {
       const prepareResult = await prepareStep({
         model: currentModel,
         initialInstructions,
+        instructions: currentInstructions,
         initialMessages,
         stepNumber,
         steps,
@@ -268,31 +368,25 @@ export async function* modelCallIterator({
       if (prepareResult?.model !== undefined) {
         currentModel = prepareResult.model;
       }
-      // Apply messages override BEFORE system so the system message
-      // isn't lost when messages replaces the prompt.
+      // The messages override is applied first so the instructions are not
+      // lost when messages replaces the prompt.
       if (prepareResult?.messages !== undefined) {
         conversationPrompt = [...prepareResult.messages];
+        instructionMessageCount =
+          countLeadingSystemMessages(conversationPrompt);
       }
-      if (prepareResult?.system !== undefined) {
-        // Update or prepend system message in the conversation prompt.
-        // Applied AFTER messages override so the system message isn't
-        // lost when messages replaces the prompt.
-        if (
-          conversationPrompt.length > 0 &&
-          conversationPrompt[0].role === 'system'
-        ) {
-          // Replace existing system message
-          conversationPrompt[0] = {
-            role: 'system',
-            content: prepareResult.system,
-          };
-        } else {
-          // Prepend new system message
-          conversationPrompt.unshift({
-            role: 'system',
-            content: prepareResult.system,
-          });
-        }
+      const instructionOverride =
+        prepareResult?.instructions ?? prepareResult?.system;
+      if (instructionOverride !== undefined) {
+        // The instructions are the leading system messages of the prompt.
+        // Replace them with the messages of the new instructions.
+        const instructionMessages = toInstructionMessages(instructionOverride);
+        conversationPrompt = [
+          ...instructionMessages,
+          ...conversationPrompt.slice(instructionMessageCount),
+        ];
+        instructionMessageCount = instructionMessages.length;
+        currentInstructions = instructionOverride;
       }
       if (prepareResult?.runtimeContext !== undefined) {
         currentRuntimeContext = prepareResult.runtimeContext;
@@ -305,6 +399,9 @@ export async function* modelCallIterator({
       }
       if (prepareResult?.activeTools !== undefined) {
         currentActiveTools = prepareResult.activeTools;
+      }
+      if (prepareResult?.toolOrder !== undefined) {
+        currentToolOrder = prepareResult.toolOrder;
       }
       currentGenerationSettings = mergePrepareStepGenerationSettings(
         currentGenerationSettings,
@@ -364,16 +461,13 @@ export async function* modelCallIterator({
       });
       const modelCallInfo = getModelInfo(currentModel);
 
-      await telemetryDispatcher.onLanguageModelCallStart?.({
+      const languageModelCallStartEvent = {
         callId: 'workflow-agent',
         provider: modelCallInfo.provider,
         modelId: modelCallInfo.modelId,
         system: undefined,
         messages: conversationPrompt as unknown as ModelMessage[],
-        tools:
-          serializedTools == null
-            ? undefined
-            : Object.values(serializedTools).map(tool => ({ ...tool })),
+        tools: toLanguageModelToolDefinitions(serializedTools),
         maxOutputTokens: currentGenerationSettings.maxOutputTokens,
         temperature: currentGenerationSettings.temperature,
         topP: currentGenerationSettings.topP,
@@ -385,7 +479,14 @@ export async function* modelCallIterator({
         reasoning: currentGenerationSettings.reasoning,
         providerOptions: currentGenerationSettings.providerOptions,
         headers: currentGenerationSettings.headers,
-      } as never);
+      };
+      // A recorded call is reported after the model step returns, with the
+      // time the provider call started inside the step.
+      if (telemetryRecorder == null) {
+        await telemetryDispatcher.onLanguageModelCallStart?.(
+          languageModelCallStartEvent,
+        );
+      }
 
       const stepInputMessages = (mode === 'generate'
         ? [...conversationPrompt]
@@ -393,15 +494,21 @@ export async function* modelCallIterator({
       const callOptions = {
         ...currentGenerationSettings,
         toolChoice: currentToolChoice,
+        toolOrder: currentToolOrder,
         includeRawChunks,
         timeoutAt,
+        stepTimeoutMs,
+        firstChunkTimeoutMs,
+        chunkTimeoutMs,
         repairToolCall,
         download,
         responseFormat,
         include,
-        experimental_transform,
         telemetry: dispatchTelemetryInStep
           ? {
+              ...(telemetryCallId != null
+                ? { callId: telemetryCallId, contexts: telemetryContexts }
+                : {}),
               functionId: telemetry?.functionId,
               recordInputs: telemetry?.recordInputs,
               recordOutputs: telemetry?.recordOutputs,
@@ -415,21 +522,48 @@ export async function* modelCallIterator({
             }
           : undefined,
       };
-      const modelCallResult =
+      const runModelStep = () =>
         mode === 'generate'
-          ? await doGenerateStep(
+          ? doGenerateStep(
               conversationPrompt,
               currentModel,
               serializedTools,
               callOptions,
             )
-          : await doStreamStep(
+          : doStreamStep(
               conversationPrompt,
               currentModel,
               writable,
               serializedTools,
               callOptions,
             );
+      // Fallback start time for a model step that fails without returning its
+      // timing. In a workflow, this is the time of the last delivered event.
+      const modelStepStartedAt = Date.now();
+      let modelCallResult: Awaited<ReturnType<typeof runModelStep>>;
+      try {
+        modelCallResult = await runModelStep();
+      } catch (error) {
+        // The provider call failed inside the step, for example when the
+        // stream could not be started after all retries. Report the call so
+        // the failed request has a model-call span; the run's error event,
+        // recorded when the failure is delivered, ends it.
+        if (telemetryRecorder != null) {
+          await telemetryDispatcher.onLanguageModelCallStart?.({
+            ...languageModelCallStartEvent,
+            timestamp: modelStepStartedAt,
+          });
+        }
+        throw error;
+      }
+      const modelCallTiming = modelCallResult.timing;
+
+      if (telemetryRecorder != null) {
+        await telemetryDispatcher.onLanguageModelCallStart?.({
+          ...languageModelCallStartEvent,
+          timestamp: modelCallTiming?.startedAt ?? modelStepStartedAt,
+        });
+      }
 
       if (modelCallResult.aborted) {
         wasAborted = true;
@@ -446,6 +580,7 @@ export async function* modelCallIterator({
         toolCalls: serializedToolCalls,
         finish,
         raw,
+        model: modelInfo,
         providerExecutedToolResults,
         toolInputLifecycleEvents,
         repairedToolCallIds,
@@ -455,6 +590,7 @@ export async function* modelCallIterator({
         tools: effectiveTools,
         serializedTools,
         repairToolCall,
+        refineToolInput,
         repairedToolCallIds: new Set(repairedToolCallIds),
         instructions:
           conversationPrompt
@@ -496,6 +632,7 @@ export async function* modelCallIterator({
         finish,
         providerExecutedToolResults,
         {
+          model: modelInfo,
           tools: effectiveTools,
           requestMessages:
             mode === 'generate' && include?.requestMessages
@@ -515,8 +652,12 @@ export async function* modelCallIterator({
         usage: step.usage,
         content: step.content,
         responseId: step.response.id,
+        performance: step.performance,
         ...(finish?.providerMetadata != null
           ? { providerMetadata: finish.providerMetadata }
+          : {}),
+        ...(modelCallTiming != null
+          ? { timestamp: modelCallTiming.endedAt }
           : {}),
       });
 
@@ -571,9 +712,8 @@ export async function* modelCallIterator({
           ),
         );
 
-        // Add assistant message content in provider emission order. Invalid
-        // tool calls are not part of StepResult.content, so retain the previous
-        // behavior of appending them to the prompt.
+        // Add assistant message content in provider emission order. Tool calls
+        // that are missing from the step content are appended to the prompt.
         // Note: providerMetadata from the tool call is mapped to providerOptions
         // in the prompt format, following the AI SDK convention. This is critical
         // for providers like Gemini that require thoughtSignature to be preserved
@@ -626,17 +766,17 @@ export async function* modelCallIterator({
             : Array.isArray(stopConditions)
               ? stopConditions
               : [stopConditions];
-        const stopConditionMet = stopConditionList.some(test =>
-          test({ steps }),
-        );
         const hasClientToolCalls = toolCalls.some(
           toolCall => !toolCall.providerExecuted,
         );
+        // Like in generateText, stop conditions are only evaluated when the
+        // loop can otherwise continue. A condition that records why the loop
+        // stopped is then not called for a run that ends on its own.
+        const canContinue =
+          isToolExecutionAllowed &&
+          (hasClientToolCalls || pendingDeferredToolCallIds.size > 0);
 
-        done =
-          !isToolExecutionAllowed ||
-          stopConditionMet ||
-          (!hasClientToolCalls && pendingDeferredToolCallIds.size === 0);
+        done = !canContinue || stopConditionList.some(test => test({ steps }));
       } else if (
         hasTerminalError ||
         mode === 'generate' ||
@@ -719,6 +859,7 @@ async function validateToolCallInputs({
   tools,
   serializedTools,
   repairToolCall,
+  refineToolInput,
   repairedToolCallIds,
   instructions,
   messages,
@@ -728,6 +869,7 @@ async function validateToolCallInputs({
   tools: ToolSet;
   serializedTools: Record<string, SerializableToolDef>;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
+  refineToolInput?: ToolInputRefinement<ToolSet>;
   repairedToolCallIds: Set<string>;
   instructions?: Instructions;
   messages: ModelMessage[];
@@ -739,14 +881,50 @@ async function validateToolCallInputs({
         return toolCall;
       }
 
-      const tool = tools[toolCall.toolName];
+      const tool = Object.prototype.hasOwnProperty.call(
+        tools,
+        toolCall.toolName,
+      )
+        ? tools[toolCall.toolName]
+        : undefined;
       if (tool == null) {
         return toolCall;
       }
 
       const inputSchema = asSchema(tool.inputSchema);
       if (inputSchema.validate == null) {
-        return toolCall;
+        // The input parsed inside the model step is final for a tool without
+        // a runtime validator, so only the refinement is left to apply.
+        const refine =
+          refineToolInput != null &&
+          Object.prototype.hasOwnProperty.call(
+            refineToolInput,
+            toolCall.toolName,
+          )
+            ? refineToolInput[toolCall.toolName]
+            : undefined;
+        if (refine == null) {
+          return withServerToolFields(toolCall, tool);
+        }
+        try {
+          const input = await refine(toolCall.input as never);
+          return withServerToolFields(
+            {
+              ...toolCall,
+              input,
+              // Keep the input from before the refinement. When an approved call
+              // is validated again, the refinement runs on this value, so a
+              // refinement that is not idempotent still gives the approved input.
+              ...(isDeepEqualData(toolCall.input, input)
+                ? {}
+                : { inputSchemaInput: toolCall.input }),
+            },
+            tool,
+          );
+        } catch (error) {
+          // Like parseToolCall, a refinement that throws makes the call invalid.
+          return { ...toolCall, dynamic: true, invalid: true, error };
+        }
       }
 
       let repairedInput: { value: unknown } | undefined;
@@ -793,6 +971,7 @@ async function validateToolCallInputs({
                 }
                 return repairedToolCall;
               },
+        refineToolInput,
         instructions,
         messages,
         abortSignal,
@@ -909,8 +1088,13 @@ async function invokeToolInputLifecycleCallbacks({
       toolNamesByCallId.set(toolCallId, value);
     }
 
+    // An available event can lack a start event when the input was not
+    // streamed, so the parsed tool call provides the tool name.
     const toolName =
-      type === 'start' ? value : toolNamesByCallId.get(toolCallId);
+      type === 'start'
+        ? value
+        : (toolNamesByCallId.get(toolCallId) ??
+          toolCallsById.get(toolCallId)?.toolName);
     if (toolName == null) {
       continue;
     }
@@ -1001,7 +1185,7 @@ function getAssistantMessageContent(
   for (const part of step.content) {
     switch (part.type) {
       case 'text':
-        if (part.text.length > 0) {
+        if (part.text.length > 0 || part.providerMetadata != null) {
           content.push({
             type: 'text',
             text: part.text,

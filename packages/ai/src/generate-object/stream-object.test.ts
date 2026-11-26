@@ -2544,3 +2544,46 @@ describe('streamObject', () => {
     });
   });
 });
+
+it('sanitizes provider request URLs in streamed object results and callbacks', async () => {
+  const onStepEnd = vitest.fn();
+  const onFinish = vitest.fn();
+  const result = streamObject({
+    model: new MockLanguageModelV4({
+      doStream: async () => ({
+        request: {
+          url: 'https://user:password@model.example.test:8443/private?key=secret#fragment',
+        },
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start', warnings: [] },
+          { type: 'text-start', id: 'text' },
+          { type: 'text-delta', id: 'text', delta: '{"value":"hello"}' },
+          { type: 'text-end', id: 'text' },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ]),
+      }),
+    }),
+    schema: z.object({ value: z.string() }),
+    prompt: 'hello',
+    onStepEnd,
+    onFinish,
+  });
+  await convertAsyncIterableToArray(result.partialObjectStream);
+  expect((await result.request).url).toBe('https://model.example.test:8443');
+  for (const callback of [onStepEnd, onFinish]) {
+    expect(callback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        request: expect.objectContaining({
+          url: 'https://model.example.test:8443',
+        }),
+      }),
+    );
+    expect(JSON.stringify(callback.mock.calls)).not.toMatch(
+      /password|private|secret|fragment/,
+    );
+  }
+});

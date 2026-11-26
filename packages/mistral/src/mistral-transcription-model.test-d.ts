@@ -40,3 +40,20 @@ const invalidOptions: MistralTranscriptionModelOptions = {
   timestampGranularities: ['sentence'],
 };
 invalidOptions;
+
+const realtimeOptions = {
+  targetStreamingDelayMs: 480,
+  diarize: true,
+  speakerReferences: { Jane: 'base64-audio' },
+  turnDetection: {
+    startThreshold: 0.5,
+    eagerEndThreshold: 0.4,
+    endThreshold: 0.3,
+    minSilenceMs: 300,
+    endTimeoutMs: 2500,
+  },
+} satisfies MistralTranscriptionModelOptions;
+expectTypeOf(realtimeOptions).toMatchTypeOf<MistralTranscriptionModelOptions>();
+expectTypeOf(
+  mistral.transcription('voxtral-mini-transcribe-realtime-3').doStream,
+).toEqualTypeOf<TranscriptionModelV4['doStream']>();

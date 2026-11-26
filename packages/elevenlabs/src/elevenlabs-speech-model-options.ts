@@ -59,6 +59,8 @@ function compositionPlanSchema() {
 export const elevenLabsSpeechModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      /** Return speech character alignment or music lyric word timestamps. */
+      withTimestamps: z.boolean().optional(),
       languageCode: z.string().optional(),
       voiceSettings: z
         .object({

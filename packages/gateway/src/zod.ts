@@ -2,32 +2,76 @@ import {
   any,
   array,
   boolean,
+  catchall,
   discriminatedUnion,
   enum as enumType,
-  literal,
+  extend,
+  instanceof as instanceOf,
+  int,
   json,
+  length,
+  literal,
+  maxLength,
+  maximum,
+  minLength,
+  minimum,
+  never,
+  nullable,
+  nullish,
   number,
   object,
+  optional,
+  pipe,
   record,
+  refine,
   string,
+  transform,
   union,
   unknown,
-} from 'zod/v4';
+  url,
+  globalRegistry,
+  type ZodMiniType,
+} from 'zod/v4/mini';
 
-// Import individual Zod factories so bundlers do not retain the full `z`
-// namespace and all of its locale exports.
+// Import individual Mini factories so bundlers retain only the schemas in use.
 export const z = {
   any,
   array,
   boolean,
+  catchall,
+  describe,
   discriminatedUnion,
   enum: enumType,
-  literal,
+  extend,
+  instanceof: instanceOf,
+  int,
   json,
+  length,
+  literal,
+  maxLength,
+  maximum,
+  minLength,
+  minimum,
+  never,
+  nullable,
+  nullish,
   number,
   object,
+  optional,
+  pipe,
   record,
+  refine,
   string,
+  transform,
   union,
   unknown,
+  url,
 };
+
+// Zod 3.25.76 bundles Mini without a describe helper. Register on a clone to
+// preserve descriptions without raising the minimum supported Zod version.
+function describe<T extends ZodMiniType>(schema: T, description: string): T {
+  const clone = schema.clone();
+  globalRegistry.add(clone, { description });
+  return clone;
+}

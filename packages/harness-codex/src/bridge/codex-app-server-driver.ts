@@ -20,6 +20,7 @@ import { isDeepStrictEqual } from 'node:util';
 import {
   assertTrustedApplyPatchHook,
   createTrustedApplyPatchHook,
+  toTomlInline,
 } from './codex-tool-filtering-hook';
 
 type Emit = (message: Record<string, unknown>) => void;
@@ -27,6 +28,7 @@ type Emit = (message: Record<string, unknown>) => void;
 const CODEX_CLI_PATH = fileURLToPath(
   new URL('./node_modules/@openai/codex/bin/codex.js', import.meta.url),
 );
+const BACKGROUND_TERMINAL_POLL_INTERVAL_MS = 1_000;
 
 type RunTurnOptions = {
   start: StartMessage;
@@ -77,8 +79,10 @@ export function createCodexAppServerRuntime(): {
   };
 
   const runTurn = async (options: RunTurnOptions): Promise<void> => {
-    const { start, turn, emit, workdir, threadId, codexModel, codexConfig } =
-      options;
+    const { start, turn, emit, workdir, threadId, codexModel } = options;
+    const { codexConfig, providerCliOverrides } = splitModelProviderConfig(
+      options.codexConfig,
+    );
     if (activeTurn != null) throw new Error('A Codex turn is already active.');
     const toolPolicy = resolveCodexBuiltinToolPolicy({
       builtinToolFiltering: start.builtinToolFiltering,
@@ -100,9 +104,13 @@ export function createCodexAppServerRuntime(): {
           }
         : {}),
     };
+    const cliOverrides = [
+      ...providerCliOverrides,
+      ...(trustedHook?.cliOverrides ?? []),
+    ];
     const processConfig = {
       thread: nextConfig,
-      cliOverrides: trustedHook?.cliOverrides ?? [],
+      cliOverrides,
     };
     if (client != null && !isDeepStrictEqual(loadedConfig, processConfig)) {
       await close();
@@ -131,9 +139,7 @@ export function createCodexAppServerRuntime(): {
     if (client == null) {
       const created = new CodexAppServerClient({
         executable: process.execPath,
-        args: createCodexAppServerArgs({
-          cliOverrides: trustedHook?.cliOverrides,
-        }),
+        args: createCodexAppServerArgs({ cliOverrides }),
         cwd: workdir,
         env: process.env,
         onNotification: notification => {
@@ -233,6 +239,33 @@ export function createCodexAppServerRuntime(): {
         clientFailure,
         exitFailure,
       ]);
+    const waitForBackgroundTerminals = async (): Promise<void> => {
+      while (true) {
+        const response = await raceWithProcess({
+          operation: runningClient.request({
+            method: 'thread/backgroundTerminals/list',
+            params: { threadId: currentTurn.threadId!, limit: 1 },
+          }),
+        });
+        const terminals = asRecord(response)?.data;
+        if (!Array.isArray(terminals)) {
+          throw new Error(
+            'Codex app-server thread/backgroundTerminals/list returned an invalid response.',
+          );
+        }
+        if (terminals.length === 0) return;
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        try {
+          await raceWithProcess({
+            operation: new Promise<void>(resolve => {
+              timer = setTimeout(resolve, BACKGROUND_TERMINAL_POLL_INTERVAL_MS);
+            }),
+          });
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+    };
     let stopSteering = () => {};
     const steeringStopped = new Promise<void>(resolve => {
       stopSteering = resolve;
@@ -377,8 +410,19 @@ export function createCodexAppServerRuntime(): {
       const result = await raceWithProcess({
         operation: handler.waitForCompletion(),
       });
+      if (result.status !== 'completed') {
+        keepClient = true;
+        assertSuccessfulTurn(result);
+      }
+      /*
+       * Codex reports turn completion while background terminals started by
+       * the turn may still be running. They belong to this app-server process,
+       * so the turn stays open until they exit. The client is kept only after
+       * this wait; an app-server failure or invalid response while waiting
+       * closes it, while an abort keeps it through the abort handling below.
+       */
+      await waitForBackgroundTerminals();
       keepClient = true;
-      assertSuccessfulTurn(result);
     } catch (error) {
       if (turn.abortSignal.aborted && currentTurn.turnId != null) {
         let timer: ReturnType<typeof setTimeout> | undefined;
@@ -427,6 +471,36 @@ export function createCodexAppServerArgs({
   ];
 }
 
+/*
+ * Codex app-server admits turn input only when a thread's provider matches
+ * the provider resolved from process-level configuration, which ignores
+ * per-thread config overrides. Provider selection and definitions therefore
+ * go on the app-server command line so threads and process agree.
+ */
+export function splitModelProviderConfig(
+  codexConfig: Record<string, unknown>,
+): {
+  codexConfig: Record<string, unknown>;
+  providerCliOverrides: string[];
+} {
+  const {
+    model_provider: modelProvider,
+    model_providers: modelProviders,
+    ...threadConfig
+  } = codexConfig;
+  return {
+    codexConfig: threadConfig,
+    providerCliOverrides: [
+      ...(modelProvider === undefined
+        ? []
+        : [`model_provider=${toTomlInline(modelProvider)}`]),
+      ...(modelProviders === undefined
+        ? []
+        : [`model_providers=${toTomlInline(modelProviders)}`]),
+    ],
+  };
+}
+
 export function createThreadParams({
   start,
   workdir,
@@ -438,6 +512,13 @@ export function createThreadParams({
   codexModel: string | undefined;
   codexConfig: Record<string, unknown>;
 }): Record<string, unknown> {
+  /*
+   * Codex app-server does not expose an option to skip reading project
+   * configuration. Project configuration is trust-gated, but the full-access
+   * permissions below can grant project trust automatically. Repository hooks
+   * still require separate per-hook trust before execution, so this is an
+   * accepted limitation rather than complete project configuration isolation.
+   */
   return {
     ...(codexModel == null ? {} : { model: codexModel }),
     cwd: workdir,

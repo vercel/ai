@@ -10,6 +10,7 @@ This error occurs when `experimental_toolApprovalSecret` is configured and a too
 Common causes:
 
 - The approval was fabricated by the client (no signature present)
+- The client approved a tool call that the server denied automatically (automatic denials are not signed)
 - The tool arguments were modified after the approval was signed
 - The server secret changed between issuance and verification (e.g. after key rotation without overlap)
 

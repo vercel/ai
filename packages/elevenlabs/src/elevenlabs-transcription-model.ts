@@ -1,3 +1,4 @@
+import { getElevenLabsTranscriptionModelEntry } from './elevenlabs-model-catalog';
 import {
   InvalidArgumentError,
   UnsupportedFunctionalityError,
@@ -6,6 +7,7 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   lazySchema,
   zodSchema,
   combineHeaders,
@@ -74,7 +76,8 @@ const elevenLabsLateFinalizationErrorTypes = new Set([
 const finalCommitGracePeriodMs = 250;
 
 function isRealtimeTranscriptionModelId(modelId: string): boolean {
-  return modelId === 'scribe_v2_realtime';
+  return getElevenLabsTranscriptionModelEntry(modelId).capabilities
+    .transcription.streaming;
 }
 
 interface ElevenLabsTranscriptionModelConfig extends ElevenLabsConfig {
@@ -134,18 +137,33 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
 
     // Create form data with base fields
     const formData = new FormData();
-    const blob =
-      audio instanceof Uint8Array
-        ? new Blob([audio as Uint8Array<ArrayBuffer>])
-        : new Blob([convertBase64ToUint8Array(audio)]);
-
     formData.append('model_id', this.modelId);
-    const fileExtension = mediaTypeToExtension(mediaType);
-    formData.append(
-      'file',
-      new File([blob], 'audio', { type: mediaType }),
-      `audio.${fileExtension}`,
-    );
+
+    // ElevenLabs accepts exactly one of `file` or `source_url`.
+    const sourceUrl = elevenlabsOptions?.sourceUrl;
+    if (sourceUrl != null) {
+      formData.append('source_url', sourceUrl);
+
+      if (audio.length > 0) {
+        warnings.push({
+          type: 'other',
+          message:
+            'ElevenLabs transcribes providerOptions.elevenlabs.sourceUrl; the audio input was ignored.',
+        });
+      }
+    } else {
+      const blob =
+        audio instanceof Uint8Array
+          ? new Blob([audio as Uint8Array<ArrayBuffer>])
+          : new Blob([convertBase64ToUint8Array(audio)]);
+      const fileExtension = mediaTypeToExtension(mediaType);
+      formData.append(
+        'file',
+        new File([blob], 'audio', { type: mediaType }),
+        `audio.${fileExtension}`,
+      );
+    }
+
     formData.append('diarize', String(elevenlabsOptions?.diarize ?? true));
 
     // Add provider-specific options
@@ -197,7 +215,10 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
         path: '/v1/speech-to-text',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       formData,
       failedResponseHandler: elevenlabsFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -318,7 +339,10 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
       stream: createElevenLabsRealtimeTranscriptionStream({
         abortSignal: options.abortSignal,
         audio: options.audio,
-        headers: combineHeaders(this.config.headers?.(), options.headers),
+        headers: combineHeaders(
+          await resolve(this.config.headers),
+          options.headers,
+        ),
         includeLanguageDetection:
           streamingOptions?.includeLanguageDetection === true,
         includeRawChunks: options.includeRawChunks,

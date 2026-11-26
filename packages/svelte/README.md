@@ -1,4 +1,4 @@
-# AI SDK: Svelte provider
+# AI SDK - Svelte integration
 
 [Svelte](https://svelte.dev/) UI components for the [AI SDK](https://ai-sdk.dev/docs):
 

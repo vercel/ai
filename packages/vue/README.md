@@ -1,4 +1,4 @@
-# AI SDK: Vue.js provider
+# AI SDK - Vue.js integration
 
 [Vue.js](https://vuejs.org/) UI components for the [AI SDK](https://ai-sdk.dev/docs):
 

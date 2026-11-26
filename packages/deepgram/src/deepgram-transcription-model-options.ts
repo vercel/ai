@@ -45,6 +45,25 @@ export const deepgramTranscriptionModelOptionsSchema = lazySchema(() =>
       uttSplit: z.number().nullish(),
       /** Whether to include filler words (um, uh, etc.) in the transcript. */
       fillerWords: z.boolean().nullish(),
+      /** Options for live transcription over the /v1/listen WebSocket. */
+      streaming: z
+        .object({
+          /** Return revisable transcripts before a segment is finalized. */
+          interimResults: z.boolean().optional(),
+          /** Silence duration in milliseconds, or false to disable endpointing. */
+          endpointing: z
+            .union([z.number().int().nonnegative(), z.literal(false)])
+            .optional(),
+          /** Number of interleaved input audio channels. Defaults to one. */
+          channels: z.number().int().positive().optional(),
+          /** Transcribe each input channel independently. */
+          multichannel: z.boolean().optional(),
+          /** Emit speech-start events in raw chunks. */
+          vadEvents: z.boolean().optional(),
+          /** Silence duration in milliseconds before an utterance-end event. */
+          utteranceEndMs: z.number().int().min(1000).optional(),
+        })
+        .optional(),
     }),
   ),
 );

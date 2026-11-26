@@ -124,13 +124,11 @@ function mockRealpathCommand(
   return { stdout };
 }
 
-const hostWorkDir = '/tmp/pi-test-host';
 const sandboxWorkDir = '/sandbox/workspace';
 
 function makeOps(behaviors: Parameters<typeof makeMockSandbox>[0]) {
   const env = makeMockSandbox(behaviors);
   const paths = createPiPathMapper({
-    hostWorkDir,
     sandboxWorkDir,
     readableRoots: [{ sandboxDir: '/home/vercel-sandbox/.agents/skills' }],
   });
@@ -156,7 +154,7 @@ describe('createPiRemoteOps with just-bash', () => {
 
       const ops = createPiRemoteOps({
         sandbox,
-        paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
+        paths: createPiPathMapper({ sandboxWorkDir }),
       });
 
       expect((await ops.readBuffer('notes.md')).toString('utf8')).toBe(
@@ -219,7 +217,7 @@ describe('createPiRemoteOps with just-bash', () => {
       });
       const ops = createPiRemoteOps({
         sandbox: sandboxWithGrep,
-        paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
+        paths: createPiPathMapper({ sandboxWorkDir }),
       });
 
       expect(
@@ -423,7 +421,7 @@ describe('createPiRemoteOps with just-bash', () => {
 
       const ops = createPiRemoteOps({
         sandbox,
-        paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
+        paths: createPiPathMapper({ sandboxWorkDir }),
       });
 
       await expect(ops.readBuffer('outside-link/secret.txt')).rejects.toThrow(
@@ -464,7 +462,7 @@ async function makeJustBashOps() {
   const sandbox = sandboxSession.restricted();
   const ops = createPiRemoteOps({
     sandbox,
-    paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
+    paths: createPiPathMapper({ sandboxWorkDir }),
   });
 
   return { sandboxSession, sandbox, ops };
@@ -508,7 +506,6 @@ function makeNativeShellOps(workDir: string) {
   return createPiRemoteOps({
     sandbox,
     paths: createPiPathMapper({
-      hostWorkDir: canonicalWorkDir,
       sandboxWorkDir: canonicalWorkDir,
     }),
   });
@@ -690,7 +687,6 @@ describe('createPiRemoteOps.readBuffer', () => {
       const ops = createPiRemoteOps({
         sandbox,
         paths: createPiPathMapper({
-          hostWorkDir,
           sandboxWorkDir,
           writableRoots: [root],
         }),
@@ -739,7 +735,6 @@ describe('createPiRemoteOps.readBuffer', () => {
       const ops = createPiRemoteOps({
         sandbox,
         paths: createPiPathMapper({
-          hostWorkDir: workspace,
           sandboxWorkDir: workspace,
         }),
       });
@@ -777,7 +772,7 @@ describe('createPiRemoteOps.writeFile', () => {
     const sandboxEnv = makeMockSandbox({ readBinary: () => null });
     const ops = createPiRemoteOps({
       sandbox: sandboxEnv.sandbox,
-      paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
+      paths: createPiPathMapper({ sandboxWorkDir }),
       onFileChange,
     });
     await ops.writeFile('a.txt', 'x');
@@ -795,7 +790,7 @@ describe('createPiRemoteOps.writeFile', () => {
     });
     const ops = createPiRemoteOps({
       sandbox: sandboxEnv.sandbox,
-      paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
+      paths: createPiPathMapper({ sandboxWorkDir }),
       onFileChange,
     });
     await ops.writeFile('a.txt', 'x');
@@ -835,7 +830,7 @@ describe('createPiRemoteOps.editFile', () => {
     });
     const ops = createPiRemoteOps({
       sandbox: sandboxEnv.sandbox,
-      paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
+      paths: createPiPathMapper({ sandboxWorkDir }),
     });
     const result = await ops.editFile('a.txt', 'old text', 'new text');
     expect(result).toBe('new text here, and old text again');
@@ -847,7 +842,7 @@ describe('createPiRemoteOps.editFile', () => {
     });
     const ops = createPiRemoteOps({
       sandbox: sandboxEnv.sandbox,
-      paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
+      paths: createPiPathMapper({ sandboxWorkDir }),
     });
     await expect(ops.editFile('a.txt', 'missing', 'x')).rejects.toThrow(
       /not found/,
@@ -880,6 +875,9 @@ describe('createPiRemoteOps.listDirectory', () => {
 });
 
 describe('createPiRemoteOps.grepFiles', () => {
+  // Root ignores file permissions, so grep can't hit a permission error.
+  const isRoot = process.getuid?.() === 0;
+
   it('builds the grep command with the requested flags', async () => {
     const env = makeOps({
       run: () => ({ stdout: 'foo.ts:1:hit\n' }),
@@ -957,60 +955,66 @@ describe('createPiRemoteOps.grepFiles', () => {
     );
   });
 
-  it('preserves GNU grep matches when recursive traversal also reports diagnostics', async () => {
-    const workDir = await mkdtemp(path.join(tmpdir(), 'pi-grep-gnu-'));
-    const blockedDirectory = path.join(workDir, 'blocked');
+  it.skipIf(isRoot)(
+    'preserves GNU grep matches when recursive traversal also reports diagnostics',
+    async () => {
+      const workDir = await mkdtemp(path.join(tmpdir(), 'pi-grep-gnu-'));
+      const blockedDirectory = path.join(workDir, 'blocked');
 
-    try {
-      await writeFile(path.join(workDir, 'match.txt'), 'needle\n');
-      await mkdir(blockedDirectory);
-      await writeFile(path.join(blockedDirectory, 'hidden.txt'), 'needle\n');
-      await chmod(blockedDirectory, 0);
+      try {
+        await writeFile(path.join(workDir, 'match.txt'), 'needle\n');
+        await mkdir(blockedDirectory);
+        await writeFile(path.join(blockedDirectory, 'hidden.txt'), 'needle\n');
+        await chmod(blockedDirectory, 0);
 
-      const output = await makeNativeShellOps(workDir).grepFiles('needle', {
-        literal: true,
-      });
+        const output = await makeNativeShellOps(workDir).grepFiles('needle', {
+          literal: true,
+        });
 
-      expect(output).toContain('match.txt:1:needle');
-      expect(output).toContain('Permission denied');
-    } finally {
-      await chmod(blockedDirectory, 0o700).catch(() => {});
-      await rm(workDir, { recursive: true, force: true });
-    }
-  });
+        expect(output).toContain('match.txt:1:needle');
+        expect(output).toContain('Permission denied');
+      } finally {
+        await chmod(blockedDirectory, 0o700).catch(() => {});
+        await rm(workDir, { recursive: true, force: true });
+      }
+    },
+  );
 
-  it('bounds GNU grep diagnostics independently of the match limit', async () => {
-    const workDir = await mkdtemp(path.join(tmpdir(), 'pi-grep-gnu-'));
-    const blockedDirectories = Array.from({ length: 250 }, (_, index) =>
-      path.join(workDir, `blocked-${String(index).padStart(3, '0')}`),
-    );
-
-    try {
-      await writeFile(path.join(workDir, 'match.txt'), 'needle\n');
-      await Promise.all(
-        blockedDirectories.map(async directory => {
-          await mkdir(directory);
-          await chmod(directory, 0);
-        }),
+  it.skipIf(isRoot)(
+    'bounds GNU grep diagnostics independently of the match limit',
+    async () => {
+      const workDir = await mkdtemp(path.join(tmpdir(), 'pi-grep-gnu-'));
+      const blockedDirectories = Array.from({ length: 250 }, (_, index) =>
+        path.join(workDir, `blocked-${String(index).padStart(3, '0')}`),
       );
 
-      const output = await makeNativeShellOps(workDir).grepFiles('needle', {
-        literal: true,
-        limit: 1,
-      });
+      try {
+        await writeFile(path.join(workDir, 'match.txt'), 'needle\n');
+        await Promise.all(
+          blockedDirectories.map(async directory => {
+            await mkdir(directory);
+            await chmod(directory, 0);
+          }),
+        );
 
-      expect(output).toContain('match.txt:1:needle');
-      expect(output).toContain('Permission denied');
-      expect(Buffer.byteLength(output)).toBeLessThan(8_300);
-    } finally {
-      await Promise.all(
-        blockedDirectories.map(directory =>
-          chmod(directory, 0o700).catch(() => {}),
-        ),
-      );
-      await rm(workDir, { recursive: true, force: true });
-    }
-  });
+        const output = await makeNativeShellOps(workDir).grepFiles('needle', {
+          literal: true,
+          limit: 1,
+        });
+
+        expect(output).toContain('match.txt:1:needle');
+        expect(output).toContain('Permission denied');
+        expect(Buffer.byteLength(output)).toBeLessThan(8_300);
+      } finally {
+        await Promise.all(
+          blockedDirectories.map(directory =>
+            chmod(directory, 0o700).catch(() => {}),
+          ),
+        );
+        await rm(workDir, { recursive: true, force: true });
+      }
+    },
+  );
 
   it('rejects workspace symlinks before running grep outside readable roots', async () => {
     const outsideSecretPath = '/home/vercel-sandbox/CODEX_API_KEY';
@@ -1196,7 +1200,6 @@ async function makePathPolicyFixture() {
   const ops = createPiRemoteOps({
     sandbox: createNativeFileSandbox({ readCalls, writeCalls }),
     paths: createPiPathMapper({
-      hostWorkDir: path.join(root, 'host-mirror'),
       sandboxWorkDir: workspace,
       readableRoots: [{ sandboxDir: home }],
       deniedRoots: [denied, dotDenied, path.join(workspace, 'private')],
@@ -1249,7 +1252,6 @@ describe('createPiRemoteOps with denied roots', () => {
       const ops = createPiRemoteOps({
         sandbox,
         paths: createPiPathMapper({
-          hostWorkDir: path.join(root, 'host-mirror'),
           sandboxWorkDir: workspace,
           readableRoots: [{ sandboxDir: home }],
           deniedRoots: [alias, canonicalRoot],
@@ -1427,7 +1429,6 @@ describe('createPiRemoteOps with denied roots', () => {
       const ops = createPiRemoteOps({
         sandbox,
         paths: createPiPathMapper({
-          hostWorkDir,
           sandboxWorkDir,
           deniedRoots: [
             `${sandboxWorkDir}/private`,
@@ -1478,7 +1479,6 @@ describe('createPiRemoteOps with denied roots', () => {
       const ops = createPiRemoteOps({
         sandbox,
         paths: createPiPathMapper({
-          hostWorkDir,
           sandboxWorkDir,
           deniedRoots: [alias, canonicalRoot],
         }),
@@ -1561,7 +1561,6 @@ describe('createPiRemoteOps configured writable roots', () => {
   }) {
     const env = makeMockSandbox(input.behaviors);
     const paths = createPiPathMapper({
-      hostWorkDir,
       sandboxWorkDir,
       readableRoots: input.policy.readableRoots?.map(sandboxDir => ({
         sandboxDir,

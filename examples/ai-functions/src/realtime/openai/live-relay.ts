@@ -18,9 +18,10 @@ server.on('upgrade', (request, socket, head) => {
     socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');
     return;
   }
-  clients.handleUpgrade(request, socket, head, client => {
+  clients.handleUpgrade(request, socket, head, async client => {
     try {
-      const { url, headers } = model.getServerWebSocketConfig();
+      const { url, headers } = await model.getServerWebSocketConfig();
+      if (client.readyState !== WebSocket.OPEN) return;
       relayLiveConnection(
         client,
         new WebSocket(url, { headers, handshakeTimeout: 10_000 }),

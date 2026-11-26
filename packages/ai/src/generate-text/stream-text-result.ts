@@ -1,6 +1,11 @@
 import type { Citation } from '../types/citation';
 import type { JSONObject } from '@ai-sdk/provider';
-import type { Context, IdGenerator, ToolSet } from '@ai-sdk/provider-utils';
+import type {
+  Context,
+  IdGenerator,
+  ToolSet,
+  UserModelMessage,
+} from '@ai-sdk/provider-utils';
 import type { ServerResponse } from 'node:http';
 import type {
   CallWarning,
@@ -44,6 +49,7 @@ import type {
   StaticToolResult,
   TypedToolResult,
 } from './tool-result';
+import type { StoppedBy } from './stopped-by';
 
 export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   /**
@@ -116,14 +122,35 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   /**
    * Process an error, e.g. to log it. Default to `() => 'An error occurred.'`.
    *
+   * This callback handles stream errors. It also handles failed tool calls
+   * (tool execution errors and invalid tool calls) when `redactToolErrors` is
+   * enabled, which is the default when this callback is provided.
+   *
    * Tool execution errors marked `providerExecuted: true` bypass this callback.
    * Their strings pass through unchanged; other values are JSON-stringified to
    * preserve provider error data for model-message round trips and harness
-   * runtime error messages. Stream errors and invalid tool calls still use it.
+   * runtime error messages. Invalid tool calls of provider-executed tools
+   * always use it.
    *
    * @returns error message to include in the data stream.
    */
   onError?: (error: unknown) => string;
+
+  /**
+   * Replace the error text of failed tool calls (tool execution errors and
+   * invalid tool calls) with the result of `onError`.
+   *
+   * By default, the client receives the same error text as the model. The UI
+   * messages are sent back to the model on the next request, so a different
+   * text changes the message history that the model's reasoning and answers
+   * are based on. Some models reject such a history, for example Anthropic
+   * models with preserved thinking. To keep error details away from the model
+   * and the client, throw a safe error from the tool's `execute` function.
+   *
+   * Default to `true` when `onError` is provided, so that an existing
+   * `onError` keeps handling tool errors, and to `false` otherwise.
+   */
+  redactToolErrors?: boolean;
 };
 
 export type ConsumeStreamOptions = {
@@ -239,6 +266,17 @@ export interface StreamTextResult<
    * Automatically consumes the stream.
    */
   readonly rawFinishReason: PromiseLike<string | undefined>;
+
+  /**
+   * Why the generation stopped its tool loop. Unlike `finishReason`, which
+   * describes the last model call, it tells whether the model, a stop
+   * condition, a tool without an `execute` function, or a tool approval ended
+   * the loop. `streamText` and `ToolLoopAgent` always set it. Like
+   * `finishReason`, it rejects when the stream is aborted.
+   *
+   * Automatically consumes the stream.
+   */
+  readonly stoppedBy?: PromiseLike<StoppedBy | undefined>;
 
   /**
    * The total token usage of the generated response.
@@ -551,6 +589,23 @@ export type TextStreamToolApprovalRequestPart<TOOLS extends ToolSet> =
 export type TextStreamToolApprovalResponsePart<TOOLS extends ToolSet> =
   ToolApprovalResponseOutput<TOOLS>;
 
+/**
+ * Experimental. A steering message that was added to the run before the step
+ * with the given number. Streamed before the output of that step.
+ */
+export type TextStreamSteeringMessagePart = {
+  type: 'steering-message';
+
+  /** The id of the steering message. */
+  id: string;
+
+  /** The user message that was added to the run. */
+  message: UserModelMessage;
+
+  /** The number of the step whose model call received the message. */
+  stepNumber: number;
+};
+
 export type TextStreamStartStepPart = {
   type: 'start-step';
   request: LanguageModelRequestMetadata;
@@ -575,6 +630,12 @@ export type TextStreamFinishPart = {
   type: 'finish';
   finishReason: FinishReason;
   rawFinishReason: string | undefined;
+
+  /**
+   * Why the generation stopped its tool loop. `streamText` and
+   * `ToolLoopAgent` always set it.
+   */
+  stoppedBy?: StoppedBy;
   totalUsage: LanguageModelUsage;
 };
 
@@ -591,6 +652,10 @@ export type TextStreamErrorPart = {
 export type TextStreamRawPart = {
   type: 'raw';
   rawValue: unknown;
+};
+
+export type TextStreamPingPart = {
+  type: 'ping';
 };
 
 export type TextStreamPart<TOOLS extends ToolSet> =
@@ -613,10 +678,12 @@ export type TextStreamPart<TOOLS extends ToolSet> =
   | TextStreamToolOutputDeniedPart<TOOLS>
   | TextStreamToolApprovalRequestPart<TOOLS>
   | TextStreamToolApprovalResponsePart<TOOLS>
+  | TextStreamSteeringMessagePart
   | TextStreamStartStepPart
   | TextStreamFinishStepPart
   | TextStreamStartPart
   | TextStreamFinishPart
   | TextStreamAbortPart
   | TextStreamErrorPart
+  | TextStreamPingPart
   | TextStreamRawPart;

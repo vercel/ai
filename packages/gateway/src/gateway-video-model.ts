@@ -28,6 +28,16 @@ import { z } from './zod';
 import type { GatewayConfig } from './gateway-config';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
+import { withGatewayRequestTelemetryRedaction } from './redact-gateway-request-credentials';
+
+/**
+ * Maximum size of the result event: 512 * 1024 * 1024 characters.
+ *
+ * The result event contains all generated videos, which can be base64 encoded,
+ * so it can be much larger than the default maximum event size. The limit is
+ * about the maximum length of a string in V8.
+ */
+const MAX_RESULT_EVENT_SIZE = 512 * 1024 * 1024;
 
 export class GatewayVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4' as const;
@@ -70,7 +80,9 @@ export class GatewayVideoModel implements VideoModelV4 {
           await resolve(this.config.o11yHeaders),
           { accept: 'text/event-stream' },
         ),
-        body: this.buildRequestBody(options),
+        body: withGatewayRequestTelemetryRedaction(
+          this.buildRequestBody(options),
+        ),
         successfulResponseHandler: async ({
           response,
           url,
@@ -92,6 +104,7 @@ export class GatewayVideoModel implements VideoModelV4 {
           const eventStream = parseJsonEventStream({
             stream: response.body,
             schema: gatewayVideoEventSchema,
+            maxEventSize: MAX_RESULT_EVENT_SIZE,
           });
 
           const reader = eventStream.getReader();
@@ -209,12 +222,12 @@ export class GatewayVideoModel implements VideoModelV4 {
           this.getModelConfigHeaders(),
           await resolve(this.config.o11yHeaders),
         ),
-        body: {
+        body: withGatewayRequestTelemetryRedaction({
           ...this.buildRequestBody(options),
           // The spec option is `webhookUrl`; the Gateway's wire contract for a
           // completion webhook is `callbackUrl`.
           ...(webhookUrl && { callbackUrl: webhookUrl }),
-        },
+        }),
         successfulResponseHandler: createJsonResponseHandler(
           gatewayVideoStartResponseSchema,
         ),
@@ -354,7 +367,7 @@ export class GatewayVideoModel implements VideoModelV4 {
       ...(resolution && { resolution }),
       ...(duration && { duration }),
       ...(fps && { fps }),
-      ...(seed && { seed }),
+      ...(seed != null && { seed }),
       ...(generateAudio !== undefined && { generateAudio }),
       ...(providerOptions && { providerOptions }),
       ...(image && { image: maybeEncodeVideoFile(image) }),
@@ -403,14 +416,19 @@ function maybeEncodeVideoFile(file: VideoModelV4File) {
 }
 
 const providerMetadataEntrySchema = () =>
-  z
-    .object({
-      videos: z.array(z.unknown()).optional(),
-    })
-    .catchall(z.unknown());
+  z.catchall(
+    z.object({
+      videos: z.optional(z.array(z.unknown())),
+    }),
+    z.unknown(),
+  );
 
 const gatewayVideoDataSchema = () =>
   z.union([
+    z.object({
+      type: z.literal('uploaded'),
+      mediaType: z.string(),
+    }),
     z.object({
       type: z.literal('url'),
       url: z.string(),
@@ -428,12 +446,12 @@ const gatewayVideoWarningSchema = () =>
     z.object({
       type: z.literal('unsupported'),
       feature: z.string(),
-      details: z.string().optional(),
+      details: z.optional(z.string()),
     }),
     z.object({
       type: z.literal('compatibility'),
       feature: z.string(),
-      details: z.string().optional(),
+      details: z.optional(z.string()),
     }),
     z.object({
       type: z.literal('deprecated'),
@@ -452,17 +470,17 @@ const gatewayVideoEventSchema = lazySchema(() =>
       z.object({
         type: z.literal('result'),
         videos: z.array(gatewayVideoDataSchema()),
-        warnings: z.array(gatewayVideoWarningSchema()).optional(),
-        providerMetadata: z
-          .record(z.string(), providerMetadataEntrySchema())
-          .optional(),
+        warnings: z.optional(z.array(gatewayVideoWarningSchema())),
+        providerMetadata: z.optional(
+          z.record(z.string(), providerMetadataEntrySchema()),
+        ),
       }),
       z.object({
         type: z.literal('error'),
         message: z.string(),
         errorType: z.string(),
         statusCode: z.number(),
-        param: z.unknown().nullable(),
+        param: z.nullable(z.unknown()),
       }),
     ]),
   ),
@@ -472,10 +490,10 @@ const gatewayVideoStartResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       operation: z.unknown(),
-      warnings: z.array(gatewayVideoWarningSchema()).nullish(),
-      providerMetadata: z
-        .record(z.string(), providerMetadataEntrySchema())
-        .nullish(),
+      warnings: z.nullish(z.array(gatewayVideoWarningSchema())),
+      providerMetadata: z.nullish(
+        z.record(z.string(), providerMetadataEntrySchema()),
+      ),
     }),
   ),
 );
@@ -485,31 +503,31 @@ const gatewayVideoStatusResponseSchema = lazySchema(() =>
     z.discriminatedUnion('status', [
       z.object({
         status: z.literal('pending'),
-        warnings: z.array(gatewayVideoWarningSchema()).nullish(),
-        providerMetadata: z
-          .record(z.string(), providerMetadataEntrySchema())
-          .nullish(),
+        warnings: z.nullish(z.array(gatewayVideoWarningSchema())),
+        providerMetadata: z.nullish(
+          z.record(z.string(), providerMetadataEntrySchema()),
+        ),
       }),
       z.object({
         status: z.literal('completed'),
         videos: z.array(gatewayVideoDataSchema()),
-        warnings: z.array(gatewayVideoWarningSchema()).nullish(),
-        providerMetadata: z
-          .record(z.string(), providerMetadataEntrySchema())
-          .nullish(),
+        warnings: z.nullish(z.array(gatewayVideoWarningSchema())),
+        providerMetadata: z.nullish(
+          z.record(z.string(), providerMetadataEntrySchema()),
+        ),
       }),
       z.object({
         status: z.literal('error'),
         error: z.string(),
-        providerMetadata: z
-          .record(z.string(), providerMetadataEntrySchema())
-          .nullish(),
+        providerMetadata: z.nullish(
+          z.record(z.string(), providerMetadataEntrySchema()),
+        ),
       }),
       z.object({
         status: z.literal('cancelled'),
-        providerMetadata: z
-          .record(z.string(), providerMetadataEntrySchema())
-          .nullish(),
+        providerMetadata: z.nullish(
+          z.record(z.string(), providerMetadataEntrySchema()),
+        ),
       }),
     ]),
   ),

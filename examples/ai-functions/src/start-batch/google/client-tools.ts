@@ -12,7 +12,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const provider = google;
-  const model = 'gemini-3.8-flash';
+  const model = 'gemini-4-hydrogen';
   let executeCallCount = 0;
   const tools = {
     get_weather: tool({

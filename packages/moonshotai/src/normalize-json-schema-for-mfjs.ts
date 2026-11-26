@@ -58,16 +58,15 @@ function normalizeDefinition(definition: unknown, isRoot: boolean): unknown {
 
   const result: Record<string, unknown> = { ...root };
 
-  // Existing prefixItems stay first (they are positional).
+  // Existing prefixItems stay first (they are positional). Normalize children
+  // only in the generic traversal below, after rewriting tuple items.
   if (Array.isArray(result.items)) {
     const tuple = result.items;
     result.prefixItems = [
       ...(Array.isArray(result.prefixItems) ? result.prefixItems : []),
-      ...tuple.map(item => normalizeDefinition(item, false)),
+      ...tuple,
     ];
     delete result.items;
-  } else if (isRecord(result.items)) {
-    result.items = normalizeDefinition(result.items, false);
   }
 
   // MFJS requires type to live inside anyOf items, except at the root, which

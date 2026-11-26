@@ -21,6 +21,8 @@ const baseSettings = {
   forwardEnv: ['PROVIDER_API_KEY', 'SECOND_PROVIDER_API_KEY'],
   env: { PROVIDER_BASE_URL: 'https://provider.example' },
   modelMapping: { type: 'session-config-option', path: 'model' },
+  isMcpToolCall: () => false,
+  resolveHostToolCall: () => undefined,
 } as const satisfies ACPV1Settings;
 
 function identity({
@@ -193,7 +195,7 @@ describe('validateACPLifecycleCompatibility', () => {
     authenticationProfile,
     bridge: {
       port: 4319,
-      token: 'bridge-token',
+      privateKey: 'bridge-private-key',
       lastSeenEventId: 7,
       sandboxId: 'sandbox-1',
     },

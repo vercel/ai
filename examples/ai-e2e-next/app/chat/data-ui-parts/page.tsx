@@ -4,16 +4,19 @@ import ChatInput from '@/components/chat-input';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, type FinishReason, type UIMessage } from 'ai';
 import { useState } from 'react';
+import { z } from 'zod';
+
+const dataPartSchemas = {
+  weather: z.object({
+    city: z.string(),
+    weather: z.string().optional(),
+    status: z.enum(['loading', 'success']),
+  }),
+};
 
 type MyMessage = UIMessage<
   never,
-  {
-    weather: {
-      city: string;
-      weather: string;
-      status: 'loading' | 'success';
-    };
-  }
+  { weather: z.infer<typeof dataPartSchemas.weather> }
 >;
 
 export default function Chat() {
@@ -25,6 +28,7 @@ export default function Chat() {
       transport: new DefaultChatTransport({
         api: '/api/chat/data-ui-parts',
       }),
+      dataPartSchemas,
       onData: dataPart => {
         console.log('dataPart', JSON.stringify(dataPart, null, 2));
       },
@@ -90,7 +94,7 @@ export default function Chat() {
 
       {error && (
         <div className="mt-4">
-          <div className="text-red-500">An error occurred.</div>
+          <div className="text-red-500">{error.message}</div>
           <button
             type="button"
             className="px-4 py-2 mt-4 text-blue-500 rounded-md border border-blue-500"

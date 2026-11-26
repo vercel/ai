@@ -1,5 +1,8 @@
 import { APICallError, type LanguageModelV4Prompt } from '@ai-sdk/provider';
+import { withTelemetryRedaction } from '@ai-sdk/provider-utils';
 import { tool } from 'ai';
+import { createTelemetryDispatcher } from 'ai/internal';
+import { buildModelStepResult } from './build-model-step-result.js';
 import { MockLanguageModelV4 } from 'ai/test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
@@ -26,6 +29,56 @@ const success = {
 };
 
 describe('doGenerateStep', () => {
+  it('retains body redaction after the model-step return is serialized', async () => {
+    const body = withTelemetryRedaction(
+      { tools: [{ type: 'mcp', authorization: 'test-secret' }] },
+      value => ({
+        ...value,
+        tools: [{ type: 'mcp', authorization: '[redacted]' }],
+      }),
+    );
+    const model = new MockLanguageModelV4({
+      doGenerate: { ...success, request: { body }, response: { body } },
+    });
+    const returned = await doGenerateStep(
+      prompt,
+      model,
+      {},
+      {
+        include: { requestBody: true, responseBody: true },
+      },
+    );
+    const result = structuredClone(returned);
+    if (result.aborted) throw new Error('Unexpected abort');
+    const step = await buildModelStepResult(
+      result.raw,
+      result.toolCalls,
+      result.finish,
+      result.providerExecutedToolResults,
+      { stepNumber: 0, runtimeContext: {}, toolsContext: {} },
+    );
+    expect(JSON.stringify(step.request.body)).toContain('test-secret');
+    expect(JSON.stringify(step.response.body)).toContain('test-secret');
+    const recorded: string[] = [];
+    const dispatcher = createTelemetryDispatcher({
+      telemetry: {
+        integrations: {
+          onStepEnd: event => {
+            recorded.push(
+              JSON.stringify({
+                request: event.request,
+                response: event.response,
+              }),
+            );
+          },
+        },
+      },
+    });
+    await dispatcher.onStepEnd?.(step as never);
+    expect(recorded.join('')).not.toContain('test-secret');
+    expect(recorded.join('')).toContain('[redacted]');
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
     vi.useRealTimers();

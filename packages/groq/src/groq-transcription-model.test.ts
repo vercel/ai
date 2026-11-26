@@ -61,6 +61,104 @@ describe('doGenerate', () => {
     };
   }
 
+  it('sends the audio URL without a file attachment', async () => {
+    prepareJsonResponse();
+    const audio = new URL('https://storage.example.com/large-audio.mp3');
+    const result = await model.doGenerateFromUrl!({
+      audio,
+      providerOptions: {
+        groq: {
+          responseFormat: 'verbose_json',
+          language: 'en',
+          prompt: 'Galileo',
+          temperature: 0,
+          timestampGranularities: ['word', 'segment'],
+        },
+      },
+    });
+    expect(await server.calls[0].requestBodyMultipart).toEqual({
+      model: 'whisper-large-v3-turbo',
+      url: audio.href,
+      response_format: 'verbose_json',
+      language: 'en',
+      prompt: 'Galileo',
+      temperature: '0',
+      'timestamp_granularities[]': 'segment',
+    });
+    expect(result?.text).toBe('Hello world!');
+    expect(result?.language).toBe('English');
+    expect(result?.durationInSeconds).toBe(2.5);
+    expect(server.calls).toHaveLength(1);
+  });
+
+  it.each([301, 302, 303, 307, 308])(
+    'declines native URLs when Groq cannot follow a %s redirect',
+    async status => {
+      server.urls[
+        'https://api.groq.com/openai/v1/audio/transcriptions'
+      ].response = {
+        type: 'error',
+        status: 400,
+        body: JSON.stringify({
+          error: {
+            message: `failed to retrieve media: received status code: ${status}`,
+            type: 'invalid_request_error',
+          },
+        }),
+      };
+      expect(
+        await model.doGenerateFromUrl!({
+          audio: new URL('https://example.com/redirect'),
+        }),
+      ).toBeUndefined();
+    },
+  );
+
+  it.each([
+    [400, 'failed to retrieve media: received status code: 404'],
+    [400, 'invalid audio format'],
+    [401, 'invalid API key'],
+    [429, 'rate limit exceeded'],
+  ])('preserves other native URL errors (%s)', async (status, message) => {
+    server.urls[
+      'https://api.groq.com/openai/v1/audio/transcriptions'
+    ].response = {
+      type: 'error',
+      status,
+      body: JSON.stringify({
+        error: { message, type: 'invalid_request_error' },
+      }),
+    };
+    await expect(
+      model.doGenerateFromUrl!({
+        audio: new URL('https://example.com/audio.mp3'),
+      }),
+    ).rejects.toMatchObject({ message, statusCode: status });
+  });
+
+  it('strips media fragments without mutating the input URL', async () => {
+    prepareJsonResponse();
+    const audio = new URL('https://example.com/audio.mp3#t=0');
+    const result = await model.doGenerateFromUrl!({ audio });
+    expect(result?.text).toBe('Hello world!');
+    expect(await server.calls[0].requestBodyMultipart).toMatchObject({
+      url: 'https://example.com/audio.mp3',
+    });
+    expect(audio.hash).toBe('#t=0');
+  });
+
+  it.each([
+    'ftp://example.com/audio.mp3',
+    'https://user:secret@example.com/audio.mp3',
+  ])('rejects unsupported URL forms before HTTP: %s', async value => {
+    await expect(
+      model.doGenerateFromUrl!({ audio: new URL(value) }),
+    ).rejects.toThrow(
+      'Groq URL transcription requires an HTTP(S) URL without userinfo.',
+    );
+    expect(server.calls).toHaveLength(0);
+  });
+
   it('should pass the model', async () => {
     prepareJsonResponse();
 
@@ -113,34 +211,40 @@ describe('doGenerate', () => {
       mediaType: 'audio/wav',
     });
 
-    expect(result.text).toBe('Hello world!');
+    expect(result?.text).toBe('Hello world!');
   });
 
-  it('should extract a plain-text transcription response', async () => {
-    server.urls[
-      'https://api.groq.com/openai/v1/audio/transcriptions'
-    ].response = {
-      type: 'binary',
-      headers: textResponse.headers,
-      body: Buffer.from(textResponse.body),
-    };
+  it.each(['file', 'url'])(
+    'should extract a plain-text transcription response for %s input',
+    async input => {
+      server.urls[
+        'https://api.groq.com/openai/v1/audio/transcriptions'
+      ].response = {
+        type: 'binary',
+        headers: textResponse.headers,
+        body: Buffer.from(textResponse.body),
+      };
 
-    const result = await model.doGenerate({
-      audio: audioData,
-      mediaType: 'audio/wav',
-      providerOptions: {
-        groq: {
-          responseFormat: 'text',
-        },
-      },
-    });
+      const providerOptions = { groq: { responseFormat: 'text' } };
+      const result =
+        input === 'url'
+          ? await model.doGenerateFromUrl!({
+              audio: new URL('https://example.com/audio.mp3'),
+              providerOptions,
+            })
+          : await model.doGenerate({
+              audio: audioData,
+              mediaType: 'audio/wav',
+              providerOptions,
+            });
 
-    expect(await server.calls[0].requestBodyMultipart).toMatchObject({
-      response_format: 'text',
-    });
-    expect(result.text).toBe(textResponse.body);
-    expect(result.response.body).toBe(textResponse.body);
-  });
+      expect(await server.calls[0].requestBodyMultipart).toMatchObject({
+        response_format: 'text',
+      });
+      expect(result?.text).toBe(textResponse.body);
+      expect(result?.response.body).toBe(textResponse.body);
+    },
+  );
 
   it('should include response data with timestamp, modelId and headers', async () => {
     prepareJsonResponse({

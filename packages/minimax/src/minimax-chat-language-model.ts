@@ -1,3 +1,4 @@
+import { getMiniMaxLanguageModelEntry } from './minimax-model-catalog';
 import { AnthropicLanguageModel } from '@ai-sdk/anthropic/internal';
 import type {
   LanguageModelV4,
@@ -24,33 +25,33 @@ export class MiniMaxChatLanguageModel
   extends AnthropicLanguageModel
   implements LanguageModelV4
 {
-  private readonly supportsM31Features: boolean;
+  private readonly requestConfig: ReturnType<
+    typeof getMiniMaxLanguageModelEntry
+  >['requestConfig']['language'];
 
   constructor(modelId: string, config: MiniMaxChatConfig) {
-    // Compare version components as integers: M3.123 is newer than M3.1.
-    // Assume later M-series models retain the M3.1 capabilities.
-    const version = /^minimax-m(\d+)(?:\.(\d+))?(?:\.\d+)*(?:-|$)/i.exec(
-      modelId,
-    );
-    const supportsM31Features =
-      version != null &&
-      (Number(version[1]) > 3 ||
-        (Number(version[1]) === 3 && Number(version[2] ?? 0) >= 1));
-
+    const requestConfig =
+      getMiniMaxLanguageModelEntry(modelId).requestConfig.language;
     super(modelId, {
       ...config,
-      ...(supportsM31Features && {
+      ...(requestConfig.mediaUrls && {
         convertMediaPart: convertToMiniMaxMediaPart,
-        maxTemperature: 2,
+      }),
+      ...(requestConfig.maxTemperature != null && {
+        maxTemperature: requestConfig.maxTemperature,
+      }),
+      ...(requestConfig.samplingWithThinking && {
         supportsTemperatureAndTopPWithThinking: true,
+      }),
+      ...(requestConfig.cacheControl === 'minimax' && {
         cacheControlProviderOptionsName: 'minimax',
       }),
     });
-    this.supportsM31Features = supportsM31Features;
+    this.requestConfig = requestConfig;
   }
 
   get supportedUrls() {
-    return this.supportsM31Features
+    return this.requestConfig.mediaUrls
       ? { 'image/*': [/^https?:\/\//], 'video/*': [/^https?:\/\//] }
       : super.supportedUrls;
   }
@@ -74,7 +75,7 @@ export class MiniMaxChatLanguageModel
     const { reasoning, providerOptions } = options;
 
     if (
-      !this.supportsM31Features ||
+      this.requestConfig.reasoning !== 'effort' ||
       !isCustomReasoning(reasoning) ||
       providerOptions?.minimax?.effort != null ||
       providerOptions?.anthropic?.effort != null
@@ -82,36 +83,22 @@ export class MiniMaxChatLanguageModel
       return { options, warnings };
     }
 
-    if (reasoning === 'none') {
-      warnings.push({
-        type: 'compatibility',
-        feature: 'reasoning',
-        details:
-          `reasoning 'none' is not supported by ${this.modelId}; it always reasons. ` +
-          `Using effort 'low' to minimize thinking instead.`,
-      });
-    }
-
-    const effort =
-      reasoning === 'none'
-        ? 'low'
-        : mapReasoningToProviderEffort({
-            reasoning,
-            effortMap: {
-              minimal: 'low',
-              low: 'low',
-              medium: 'medium',
-              high: 'high',
-              xhigh: 'xhigh',
-              max: 'max',
-            },
-            warnings,
-          });
+    const effort = mapReasoningToProviderEffort({
+      reasoning,
+      effortMap: {
+        low: 'low',
+        medium: 'medium',
+        high: 'high',
+        xhigh: 'xhigh',
+        max: 'max',
+      },
+      warnings,
+    });
 
     return {
       options: {
         ...options,
-        // M3.1 and later use effort instead of Anthropic thinking budgets.
+        // Sent as effort instead of an Anthropic thinking budget.
         reasoning: undefined,
         providerOptions: {
           ...providerOptions,

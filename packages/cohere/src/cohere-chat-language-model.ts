@@ -9,6 +9,8 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
   lazySchema,
   zodSchema,
   combineHeaders,
@@ -31,7 +33,15 @@ import {
   cohereLanguageModelChatOptions,
   type CohereChatModelId,
 } from './cohere-chat-language-model-options';
+import {
+  cohereCitationSchema,
+  mapCohereCitationToSource,
+} from './cohere-citations';
 import { cohereFailedResponseHandler } from './cohere-error';
+import {
+  getCohereLanguageModelEntry,
+  type CohereLanguageModelEntry,
+} from './cohere-model-catalog';
 import { prepareTools } from './cohere-prepare-tools';
 import { convertCohereUsage, type CohereUsage } from './convert-cohere-usage';
 import { convertToCohereChatPrompt } from './convert-to-cohere-chat-prompt';
@@ -40,7 +50,7 @@ import { mapCohereFinishReason } from './map-cohere-finish-reason';
 type CohereChatConfig = {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   generateId: () => string;
 };
@@ -151,6 +161,7 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
 
         // reasoning:
         ...resolveCohereThinking({
+          modelEntry: getCohereLanguageModelEntry(this.modelId),
           reasoning,
           cohereOptions,
           warnings,
@@ -171,7 +182,10 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/chat`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: args,
       failedResponseHandler: cohereFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -197,22 +211,15 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
 
     // citations:
     for (const citation of response.message.citations ?? []) {
-      content.push({
-        type: 'source',
-        sourceType: 'document',
-        id: this.config.generateId(),
-        mediaType: 'text/plain',
-        title: citation.sources[0]?.document?.title || 'Document',
-        providerMetadata: {
-          cohere: {
-            start: citation.start,
-            end: citation.end,
-            text: citation.text,
-            sources: citation.sources,
-            ...(citation.type && { citationType: citation.type }),
-          },
-        },
-      });
+      // Tool-sourced citations (e.g. citations of tool results in a follow-up
+      // step) have no document to point at, so they are not emitted as sources.
+      const source = mapCohereCitationToSource(citation, () =>
+        this.config.generateId(),
+      );
+
+      if (source != null) {
+        content.push(source);
+      }
     }
 
     // tool calls:
@@ -237,7 +244,9 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
       request: { body: args },
       response: {
         // TODO timestamp, model id
-        id: response.generation_id ?? undefined,
+        // Cohere v2 returns `id`; `generation_id` is the v1 field, kept only
+        // for compatibility with proxies/mocks that still return it.
+        id: response.id ?? response.generation_id ?? undefined,
         headers: responseHeaders,
         body: rawResponse,
       },
@@ -252,7 +261,10 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: { ...args, stream: true },
       failedResponseHandler: cohereFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -277,6 +289,8 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
     } | null = null;
 
     let isActiveReasoning = false;
+
+    const generateId = this.config.generateId;
 
     return {
       stream: response.pipeThrough(
@@ -357,6 +371,29 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
                 return;
               }
 
+              case 'citation-start': {
+                const citations = value.delta?.message?.citations;
+                if (citations == null) {
+                  return;
+                }
+
+                for (const citation of Array.isArray(citations)
+                  ? citations
+                  : [citations]) {
+                  // Tool-only citations have no document, so they are not
+                  // emitted as sources (matching doGenerate).
+                  const source = mapCohereCitationToSource(
+                    citation,
+                    generateId,
+                  );
+
+                  if (source != null) {
+                    controller.enqueue(source);
+                  }
+                }
+                return;
+              }
+
               case 'tool-call-start': {
                 const toolId = value.delta.message.tool_calls.id;
                 const toolName = value.delta.message.tool_calls.function.name;
@@ -413,9 +450,9 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
                     toolCallId: pendingToolCall.id,
                     toolName: pendingToolCall.name,
                     input: JSON.stringify(
-                      await parseJSON({
+                      (await parseJSON({
                         text: pendingToolCall.arguments?.trim() || '{}',
-                      }),
+                      })) ?? {},
                     ),
                   });
 
@@ -463,18 +500,24 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
 }
 
 function resolveCohereThinking({
+  modelEntry,
   reasoning,
   cohereOptions,
   warnings,
 }: {
+  modelEntry: CohereLanguageModelEntry;
   reasoning: LanguageModelV4CallOptions['reasoning'];
   cohereOptions: InferSchema<typeof cohereLanguageModelChatOptions>;
   warnings: SharedV4Warning[];
 }): { thinking?: { type: string; token_budget?: number } } {
+  const {
+    capabilities: { language: capabilities },
+    requestConfig: { language: defaults },
+  } = modelEntry;
   if (cohereOptions.thinking) {
     return {
       thinking: {
-        type: cohereOptions.thinking.type ?? 'enabled',
+        type: cohereOptions.thinking.type ?? defaults.thinkingType,
         token_budget: cohereOptions.thinking.tokenBudget,
       },
     };
@@ -490,37 +533,37 @@ function resolveCohereThinking({
 
   const tokenBudget = mapReasoningToProviderBudget({
     reasoning,
-    maxOutputTokens: 32768,
-    maxReasoningBudget: 32768,
+    maxOutputTokens: defaults.reasoningMaxOutputTokens,
+    maxReasoningBudget: capabilities.reasoning.maxBudget,
     warnings,
   });
-
-  if (tokenBudget == null) {
-    return {};
-  }
 
   return { thinking: { type: 'enabled', token_budget: tokenBudget } };
 }
 
 // Loose, nested objects included: the parsed value is returned as `usage.raw`.
+// All fields are optional in the API specification, so every field is nullish.
 const cohereUsageSchema = () =>
   z.looseObject({
     billed_units: z
       .looseObject({
-        input_tokens: z.number(),
-        output_tokens: z.number(),
+        input_tokens: z.number().nullish(),
+        output_tokens: z.number().nullish(),
       })
       .nullish(),
-    tokens: z.looseObject({
-      input_tokens: z.number(),
-      output_tokens: z.number(),
-    }),
+    tokens: z
+      .looseObject({
+        input_tokens: z.number().nullish(),
+        output_tokens: z.number().nullish(),
+      })
+      .nullish(),
     cached_tokens: z.number().nullish(),
   });
 
 const cohereChatResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      id: z.string().nullish(),
       generation_id: z.string().nullish(),
       message: z.object({
         role: z.string(),
@@ -551,30 +594,10 @@ const cohereChatResponseSchema = lazySchema(() =>
             }),
           )
           .nullish(),
-        citations: z
-          .array(
-            z.object({
-              start: z.number(),
-              end: z.number(),
-              text: z.string(),
-              sources: z.array(
-                z.object({
-                  type: z.string().optional(),
-                  id: z.string().optional(),
-                  document: z.object({
-                    id: z.string().optional(),
-                    text: z.string(),
-                    title: z.string(),
-                  }),
-                }),
-              ),
-              type: z.string().optional(),
-            }),
-          )
-          .nullish(),
+        citations: z.array(cohereCitationSchema).nullish(),
       }),
       finish_reason: z.string(),
-      usage: cohereUsageSchema(),
+      usage: cohereUsageSchema().nullish(),
     }),
   ),
 );
@@ -584,8 +607,22 @@ const cohereChatResponseSchema = lazySchema(() =>
 const cohereChatChunkSchema = lazySchema(() =>
   zodSchema(
     z.discriminatedUnion('type', [
+      // `citation-start` events can arrive without citations, and a single
+      // citation may be sent instead of an array.
       z.object({
         type: z.literal('citation-start'),
+        index: z.number().nullish(),
+        delta: z
+          .object({
+            message: z
+              .object({
+                citations: z
+                  .union([cohereCitationSchema, z.array(cohereCitationSchema)])
+                  .nullish(),
+              })
+              .nullish(),
+          })
+          .nullish(),
       }),
       z.object({
         type: z.literal('citation-end'),

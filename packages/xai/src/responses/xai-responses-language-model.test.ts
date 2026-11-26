@@ -1,4 +1,5 @@
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import { safeParseJSON } from '@ai-sdk/provider-utils';
 import {
   convertReadableStreamToArray,
   mockId,
@@ -6,8 +7,22 @@ import {
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import fs from 'node:fs';
+import { mcpServer } from '../tool/mcp-server';
+import { xSearch } from '../tool/x-search';
 import { XaiResponsesLanguageModel } from './xai-responses-language-model';
 import type { XaiLanguageModelResponsesOptions } from './xai-responses-language-model-options';
+
+const MCP_SERVER_ARGS = {
+  serverUrl: 'https://mcp.deepwiki.com/mcp',
+  serverLabel: 'deepwiki',
+};
+
+const MCP_TOOL = {
+  type: 'provider' as const,
+  id: 'xai.mcp' as const,
+  name: 'mcp',
+  args: MCP_SERVER_ARGS,
+};
 
 const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'hello' }] },
@@ -1029,7 +1044,7 @@ describe('XaiResponsesLanguageModel', () => {
           expect(requestBody.reasoning.effort).toBe('none');
         });
 
-        it('should coerce top-level reasoning xhigh to reasoning effort "high"', async () => {
+        it('should map top-level reasoning xhigh to reasoning effort "xhigh" for grok-4.3', async () => {
           prepareJsonResponse({
             id: 'resp_123',
             object: 'response',
@@ -1045,7 +1060,51 @@ describe('XaiResponsesLanguageModel', () => {
           });
 
           const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning.effort).toBe('xhigh');
+        });
+
+        it('should coerce top-level reasoning xhigh to reasoning effort "high" for unlisted models', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.20-multi-agent',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel('grok-4.20-multi-agent').doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning: 'xhigh',
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
           expect(requestBody.reasoning.effort).toBe('high');
+        });
+
+        it('should map top-level reasoning none to the lowest effort for grok-4.7', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.7',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          const result = await createModel('grok-4.7').doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning: 'none',
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning.effort).toBe('low');
+          expect(result.warnings).toContainEqual({
+            type: 'compatibility',
+            feature: 'reasoning',
+            details:
+              'reasoning "none" is not directly supported by this model. mapped to effort "low".',
+          });
         });
 
         it('should map top-level reasoning xhigh to reasoning effort "xhigh" for grok-4.6', async () => {
@@ -1758,6 +1817,49 @@ describe('XaiResponsesLanguageModel', () => {
 
         expect(result.content).toMatchSnapshot();
       });
+
+      it('should keep the search arguments when the tool call input is parsed', async () => {
+        const searchArguments = { query: 'ai sdk', limit: '5', mode: 'Latest' };
+
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast-non-reasoning',
+          output: [
+            {
+              type: 'custom_tool_call',
+              id: 'ctc_123',
+              call_id: 'xs_call_123',
+              name: 'x_keyword_search',
+              input: JSON.stringify(searchArguments),
+              status: 'completed',
+            },
+          ],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.x_search',
+              name: 'x_search',
+              args: {},
+            },
+          ],
+        });
+
+        const toolCall = result.content.find(part => part.type === 'tool-call');
+
+        expect(
+          await safeParseJSON({
+            text: toolCall!.input,
+            schema: xSearch().inputSchema,
+          }),
+        ).toMatchObject({ success: true, value: searchArguments });
+      });
     });
 
     describe('code_interpreter tool', () => {
@@ -1777,6 +1879,31 @@ describe('XaiResponsesLanguageModel', () => {
         });
 
         expect(result.content).toMatchSnapshot();
+      });
+    });
+
+    describe('mcp tool', () => {
+      it('should keep the mcp arguments when the tool call input is parsed', async () => {
+        prepareJsonFixtureResponse('xai-mcp-tool.1');
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [MCP_TOOL],
+        });
+
+        const toolCall = result.content.find(part => part.type === 'tool-call');
+
+        expect(toolCall).toMatchObject({
+          toolName: 'mcp',
+          input: '{"repoName":"vercel/ai"}',
+          providerExecuted: true,
+        });
+        expect(
+          await safeParseJSON({
+            text: toolCall!.input,
+            schema: mcpServer(MCP_SERVER_ARGS).inputSchema,
+          }),
+        ).toMatchObject({ success: true, value: { repoName: 'vercel/ai' } });
       });
     });
 
@@ -2516,6 +2643,54 @@ describe('XaiResponsesLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it('should parse a response.completed event that is larger than the default maximum event size', async () => {
+      // `response.completed` repeats every output item, so several base64
+      // images make it larger than 64 MiB. It arrives in several chunks.
+      const encoder = new TextEncoder();
+      const dataChunk = new Uint8Array(1024 * 1024).fill(65); // 'A'
+      const dataChunkCount = 65;
+      const chunks = [
+        encoder.encode(
+          'data: {"type":"response.completed","response":{"id":"resp_1","created_at":1700000000,"model":"grok-4.5","object":"response","status":"completed","usage":{"input_tokens":10,"output_tokens":20,"total_tokens":30},"output":[{"type":"image_generation_call","id":"ig_1","status":"completed","result":"',
+        ),
+        ...Array.from({ length: dataChunkCount }, () => dataChunk),
+        encoder.encode('"}]}}\n\n'),
+      ];
+
+      const model = new XaiResponsesLanguageModel('grok-4.5', {
+        provider: 'xai.responses',
+        baseURL: 'https://api.x.ai/v1',
+        headers: () => ({ Authorization: 'Bearer test-key' }),
+        generateId: mockId(),
+        fetch: async () =>
+          new Response(
+            new ReadableStream<Uint8Array>({
+              pull(controller) {
+                const chunk = chunks.shift();
+                if (chunk == null) {
+                  controller.close();
+                } else {
+                  controller.enqueue(chunk);
+                }
+              },
+            }),
+            { headers: { 'content-type': 'text/event-stream' } },
+          ),
+      });
+
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+
+      // Usage and the finish reason are read only from `response.completed`,
+      // so they show that the 65 MiB event parsed.
+      expect(parts.some(part => part.type === 'error')).toBe(false);
+      expect(parts.find(part => part.type === 'finish')).toMatchObject({
+        type: 'finish',
+        usage: { inputTokens: { total: 10 }, outputTokens: { total: 20 } },
+        finishReason: { unified: 'stop' },
+      });
+    });
+
     it.each(['missing', 'invalid-json', 'provider-error', 'empty-status'])(
       'handles a stream ending with %s',
       async ending => {
@@ -3135,6 +3310,87 @@ describe('XaiResponsesLanguageModel', () => {
         expect(parts).toMatchSnapshot();
       });
 
+      it('should keep the search arguments when the streamed tool call input is parsed', async () => {
+        const searchArguments = { query: 'ai sdk', limit: '5', mode: 'Latest' };
+        const item = {
+          type: 'custom_tool_call',
+          id: 'ctc_123',
+          call_id: 'xs_call_123',
+          name: 'x_keyword_search',
+        };
+
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: { ...item, input: '', status: 'in_progress' },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.custom_tool_call_input.delta',
+            item_id: 'ctc_123',
+            output_index: 0,
+            delta: JSON.stringify(searchArguments),
+          }),
+          JSON.stringify({
+            type: 'response.custom_tool_call_input.done',
+            item_id: 'ctc_123',
+            output_index: 0,
+            input: JSON.stringify(searchArguments),
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              ...item,
+              input: JSON.stringify(searchArguments),
+              status: 'completed',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.completed',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.x_search',
+              name: 'x_search',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const toolCall = parts.find(part => part.type === 'tool-call');
+
+        expect(
+          await safeParseJSON({
+            text: toolCall!.input,
+            schema: xSearch().inputSchema,
+          }),
+        ).toMatchObject({ success: true, value: searchArguments });
+      });
+
       it('should not emit duplicate text-delta from response.output_item.done after streaming', async () => {
         prepareStreamChunks([
           JSON.stringify({
@@ -3232,6 +3488,50 @@ describe('XaiResponsesLanguageModel', () => {
     });
 
     describe('tool call streaming', () => {
+      it('should stream the mcp tool call with its arguments', async () => {
+        prepareChunksFixtureResponse('xai-mcp-tool.1');
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [MCP_TOOL],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const toolParts = parts.filter(
+          part =>
+            part.type === 'tool-input-start' ||
+            part.type === 'tool-input-delta' ||
+            part.type === 'tool-input-end' ||
+            part.type === 'tool-call' ||
+            part.type === 'tool-result',
+        );
+
+        expect(toolParts.map(part => part.type)).toEqual([
+          'tool-input-start',
+          'tool-input-delta',
+          'tool-input-end',
+          'tool-call',
+          'tool-result',
+        ]);
+        expect(toolParts[1]).toMatchObject({
+          delta: '{"repoName":"vercel/ai"}',
+        });
+
+        const toolCall = parts.find(part => part.type === 'tool-call');
+
+        expect(toolCall).toMatchObject({
+          toolName: 'mcp',
+          input: '{"repoName":"vercel/ai"}',
+          providerExecuted: true,
+        });
+        expect(
+          await safeParseJSON({
+            text: toolCall!.input,
+            schema: mcpServer(MCP_SERVER_ARGS).inputSchema,
+          }),
+        ).toMatchObject({ success: true, value: { repoName: 'vercel/ai' } });
+      });
+
       it('should stream web_search tool calls', async () => {
         prepareStreamChunks([
           JSON.stringify({
@@ -4695,6 +4995,84 @@ describe('XaiResponsesLanguageModel', () => {
           title: 'example',
         });
       });
+
+      it('should not emit streamed citations again from output_item.done', async () => {
+        const annotation = {
+          type: 'url_citation',
+          url: 'https://example.com',
+          title: 'example',
+        };
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_text.delta',
+            item_id: 'msg_123',
+            output_index: 0,
+            content_index: 0,
+            delta: 'Hello',
+          }),
+          JSON.stringify({
+            type: 'response.output_text.annotation.added',
+            item_id: 'msg_123',
+            output_index: 0,
+            content_index: 0,
+            annotation_index: 0,
+            annotation,
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            output_index: 0,
+            item: {
+              type: 'message',
+              id: 'msg_123',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Hello',
+                  annotations: [annotation],
+                },
+              ],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts.filter(part => part.type === 'source')).toEqual([
+          {
+            type: 'source',
+            sourceType: 'url',
+            id: 'id-0',
+            url: 'https://example.com',
+            title: 'example',
+          },
+        ]);
+      });
     });
 
     describe('cost_in_usd_ticks streaming', () => {
@@ -5055,6 +5433,59 @@ describe('XaiResponsesLanguageModel', () => {
           delta: 'Hi',
         }),
       );
+    });
+  });
+
+  describe('incomplete response handling (doGenerate)', () => {
+    it('should set finish reason to length for max_output_tokens', async () => {
+      prepareJsonResponse({
+        id: 'resp_123',
+        object: 'response',
+        model: 'grok-4-fast-non-reasoning',
+        status: 'incomplete',
+        incomplete_details: { reason: 'max_output_tokens' },
+        output: [
+          {
+            type: 'message',
+            id: 'msg_456',
+            role: 'assistant',
+            status: 'incomplete',
+            content: [
+              { type: 'output_text', text: 'partial output', annotations: [] },
+            ],
+          },
+        ],
+        usage: { input_tokens: 100, output_tokens: 4096 },
+      });
+
+      const result = await createModel().doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.finishReason).toStrictEqual({
+        unified: 'length',
+        raw: 'max_output_tokens',
+      });
+    });
+
+    it('should set finish reason to other when incomplete_details is missing', async () => {
+      prepareJsonResponse({
+        id: 'resp_123',
+        object: 'response',
+        model: 'grok-4-fast-non-reasoning',
+        status: 'incomplete',
+        output: [],
+        usage: { input_tokens: 50, output_tokens: 200 },
+      });
+
+      const result = await createModel().doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.finishReason).toStrictEqual({
+        unified: 'other',
+        raw: 'incomplete',
+      });
     });
   });
 

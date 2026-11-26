@@ -1,3 +1,4 @@
+import { sanitizeRequestMetadata } from '../telemetry/get-request-origin';
 import type { JSONValue } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -447,7 +448,7 @@ export async function generateObject<
     const warnings = generateResult.warnings;
     const resultProviderMetadata = generateResult.providerMetadata;
     const request: Omit<LanguageModelRequestMetadata, 'messages'> =
-      generateResult.request ?? {};
+      sanitizeRequestMetadata(generateResult.request) ?? {};
     const response: Omit<LanguageModelResponseMetadata, 'messages'> =
       responseData;
 

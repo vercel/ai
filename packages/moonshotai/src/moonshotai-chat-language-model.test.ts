@@ -608,7 +608,7 @@ describe('doGenerate', () => {
         reasoning: 'xhigh',
       });
       expect((await server.calls[1].requestBodyJson).reasoning_effort).toBe(
-        'max',
+        'high',
       );
 
       await provider.chatModel('kimi-k3').doGenerate({
@@ -634,22 +634,54 @@ describe('doGenerate', () => {
       );
     });
 
-    it('should warn and omit reasoning_effort for reasoning none', async () => {
+    it('should map reasoning none to the lowest reasoning_effort with a warning', async () => {
       const result = await provider.chatModel('kimi-k3').doGenerate({
         prompt: TEST_PROMPT,
         reasoning: 'none',
       });
 
-      expect(
-        (await server.calls[0].requestBodyJson).reasoning_effort,
-      ).toBeUndefined();
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'low',
+      );
       expect(result.warnings).toEqual([
         {
-          type: 'unsupported',
-          feature: 'reasoning "none"',
-          details: 'Kimi K3 reasoning cannot be disabled.',
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "none" is not directly supported by this model. mapped to effort "low".',
         },
       ]);
+    });
+
+    it('should map reasoning none to thinking enabled for Kimi K2.7 with a warning', async () => {
+      const result = await provider.chatModel('kimi-k2.7-code').doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'thinking',
+      );
+      expect(result.warnings).toEqual([
+        {
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "none" is not supported by Kimi K2.7; thinking cannot be disabled. Using thinking enabled instead.',
+        },
+      ]);
+    });
+
+    it('should map reasoning none to disabled thinking for unknown models', async () => {
+      const result = await provider.chatModel('custom-model').doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.thinking).toStrictEqual({ type: 'disabled' });
+      expect(requestBody.reasoning_effort).toBeUndefined();
+      expect(result.warnings).toEqual([]);
     });
 
     it.each(['kimi-k3', 'kimi-k3.1-pro', 'kimi-k3.1-pro-highspeed'] as const)(
@@ -687,7 +719,7 @@ describe('doGenerate', () => {
         });
 
         expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
-          'high',
+          'low',
         );
       },
     );

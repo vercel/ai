@@ -11,7 +11,9 @@ import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import type { Telemetry } from '../telemetry/telemetry';
 import { DecisionMockModelV4 } from '../test/decision-mock-model-v4';
-import { experimental_decide as decide } from '../index';
+import { createDownload, experimental_decide as decide } from '../index';
+import { VERSION } from '../version';
+import type { DecisionStatePart } from './decision-state';
 
 const questions = {
   topic: {
@@ -250,6 +252,7 @@ describe('input validation', () => {
       const { model, doDecide } = setup();
       for (const criteria of [
         undefined,
+        null,
         {},
         { true: null },
         { false: null },
@@ -269,20 +272,33 @@ describe('input validation', () => {
     },
   );
 
+  it('forwards null Boolean criteria with instructions', async () => {
+    const { model, doDecide } = setup({
+      answers: { refund: answers.refund },
+      warnings: [],
+    });
+    const questions = {
+      refund: {
+        type: 'boolean',
+        instructions: 'Refund?',
+        criteria: null,
+      },
+    } as const;
+    const result = await decide({ model, state: 'text', questions });
+    expect(doDecide.mock.calls[0][0].questions).toBe(questions);
+    expect(result.answers).toEqual({ refund: answers.refund });
+  });
+
   const cyclic: Record<string, unknown> = {};
   cyclic.self = cyclic;
   it.each([
-    null,
-    true,
-    42,
-    new Date(),
-    { value: undefined },
     { value: NaN },
-    { fn: () => true },
+    { value: Infinity },
     cyclic,
-    [undefined],
-    new Array(2),
-  ])('rejects non-JSON state %s before I/O', async state => {
+    { value: new Array(2) },
+    [{ type: 'json', value: { bad: NaN } }],
+    [{ type: 'json', value: cyclic }],
+  ])('rejects non-serializable JSON state %s before I/O', async state => {
     const { model, doDecide } = setup();
     await expect(
       decide({ model, state: state as never, questions }),
@@ -290,45 +306,23 @@ describe('input validation', () => {
     expect(doDecide).not.toHaveBeenCalled();
   });
 
-  it.each([
-    {},
-    [],
-    null,
-    { test: { type: 'other', instructions: 'test' } },
-    { test: { type: 'boolean', instructions: null } },
-    { test: { type: 'box' } },
-    { test: { type: 'box', instructions: null } },
-    { test: { type: 'choice', instructions: 42, criteria: { a: null } } },
-    { test: { type: 'score', instructions: false, criteria: ['Low', 'High'] } },
-    {
-      test: {
-        type: 'boolean',
-        instructions: () => true,
-        criteria: { true: 'Yes' },
-      },
+  const outOfOrder: DecisionStatePart[] = [];
+  outOfOrder[2] = { type: 'text', text: 'third' };
+  const deleted: DecisionStatePart[] = [
+    { type: 'text', text: 'first' },
+    { type: 'json', value: {} },
+  ];
+  delete deleted[0];
+  it.each([new Array(2), outOfOrder, deleted].map(state => [state]))(
+    'rejects state parts with array holes %j before I/O',
+    async state => {
+      const { model, doDecide } = setup();
+      await expect(
+        decide({ model, state: state as never, questions }),
+      ).rejects.toBeInstanceOf(InvalidArgumentError);
+      expect(doDecide).not.toHaveBeenCalled();
     },
-    { test: { type: 'boolean', criteria: { true: 42 } } },
-    { test: { type: 'boolean', criteria: { yes: 'Yes' } } },
-    {
-      test: { type: 'boolean', instructions: 'test', criteria: { yes: 'yes' } },
-    },
-    { test: { type: 'choice', instructions: 'test', criteria: {} } },
-    { test: { type: 'choice', instructions: 'test', criteria: { a: 42 } } },
-    { test: { type: 'score', instructions: 'test', criteria: [] } },
-    {
-      test: {
-        type: 'score',
-        instructions: 'test',
-        criteria: ['Low', undefined],
-      },
-    },
-  ])('rejects invalid questions %s before I/O', async invalidQuestions => {
-    const { model, doDecide } = setup();
-    await expect(
-      decide({ model, state: 'text', questions: invalidQuestions as never }),
-    ).rejects.toBeInstanceOf(InvalidArgumentError);
-    expect(doDecide).not.toHaveBeenCalled();
-  });
+  );
 
   it('allows repeated JSON references without treating them as cycles', async () => {
     const shared = { text: 'hello' };
@@ -339,6 +333,34 @@ describe('input validation', () => {
         questions,
       }),
     ).resolves.toBeDefined();
+  });
+
+  it.each([
+    {},
+    [],
+    { test: { type: 'boolean', instructions: null } },
+    { test: { type: 'boolean', criteria: { yes: 'Yes' } } },
+    {
+      test: { type: 'boolean', instructions: 'test', criteria: { yes: 'yes' } },
+    },
+    {
+      test: { type: 'choice', instructions: { n: NaN }, criteria: { a: null } },
+    },
+    {
+      test: {
+        type: 'choice',
+        instructions: 'test',
+        criteria: { a: [Infinity] },
+      },
+    },
+    { test: { type: 'choice', instructions: 'test', criteria: {} } },
+    { test: { type: 'score', instructions: 'test', criteria: [] } },
+  ])('rejects invalid questions %s before I/O', async invalidQuestions => {
+    const { model, doDecide } = setup();
+    await expect(
+      decide({ model, state: 'text', questions: invalidQuestions as never }),
+    ).rejects.toBeInstanceOf(InvalidArgumentError);
+    expect(doDecide).not.toHaveBeenCalled();
   });
 });
 
@@ -694,8 +716,8 @@ describe('telemetry', () => {
         operationId: 'ai.decide',
         provider: 'mock-provider',
         modelId: 'mock-model-id',
-        state,
-        questions,
+        state: {},
+        questions: {},
         runtimeContext: {},
         maxRetries: 2,
         recordInputs: false,
@@ -707,8 +729,8 @@ describe('telemetry', () => {
       expect.objectContaining({
         callId: 'test-call-id',
         operationId: 'ai.decide.doDecide',
-        state: [{ type: 'json', value: state }],
-        questions,
+        state: [],
+        questions: {},
       }),
     );
     expect(experimental_onDecisionModelCallEnd).toHaveBeenCalledWith(
@@ -731,12 +753,16 @@ describe('telemetry', () => {
     expect(decideOnStart).toHaveBeenCalledWith(
       expect.objectContaining({
         operationId: 'ai.decide',
+        state,
+        questions,
         runtimeContext: { requestId: 'request-1', secret: 'hidden' },
       }),
     );
     expect(decideOnEnd).toHaveBeenCalledWith(
       expect.objectContaining({
         operationId: 'ai.decide',
+        state,
+        questions,
         runtimeContext: { requestId: 'request-1', secret: 'hidden' },
       }),
     );
@@ -779,6 +805,7 @@ describe('telemetry', () => {
     ).rejects.toBe(error);
 
     expect(onError).toHaveBeenCalledWith({
+      aiVersion: VERSION,
       callId: 'test-call-id',
       error,
     });
@@ -832,24 +859,6 @@ it('treats an empty array as an empty list of state parts', async () => {
   expect(doDecide.mock.calls[0][0].state).toEqual([]);
 });
 
-it.each(
-  [
-    ['legacy JSON array'],
-    [{ arbitrary: 'object' }],
-    [{ type: 'image', image: 'iVBORw==' }],
-    [{ type: 'text', text: 42 }],
-    [{ type: 'file', mediaType: 'image/png' }],
-    [{ type: 'json', value: undefined }],
-    [{ type: 'json', value: { bad: NaN } }],
-  ].map(state => [state]),
-)('rejects malformed state parts before I/O: %j', async state => {
-  const { model, doDecide } = setup();
-  await expect(
-    decide({ model, questions, state: state as never }),
-  ).rejects.toBeInstanceOf(InvalidArgumentError);
-  expect(doDecide).not.toHaveBeenCalled();
-});
-
 it('downloads image URLs and sends their bytes to the decision model', async () => {
   const { model, doDecide } = setup();
   const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
@@ -858,10 +867,12 @@ it('downloads image URLs and sends their bytes to the decision model', async () 
       headers: { 'content-type': 'image/png' },
     }),
   );
-  vi.stubGlobal('fetch', fetch);
+  const globalFetch = vi.fn();
+  vi.stubGlobal('fetch', globalFetch);
   await decide({
     model,
     questions,
+    experimental_download: createDownload({ fetch }),
     state: [
       {
         type: 'file',
@@ -871,6 +882,7 @@ it('downloads image URLs and sends their bytes to the decision model', async () 
     ],
   });
   expect(fetch).toHaveBeenCalledTimes(1);
+  expect(globalFetch).not.toHaveBeenCalled();
   expect(doDecide.mock.calls[0][0].state).toEqual([
     {
       type: 'file',
@@ -890,6 +902,7 @@ it('stops before provider I/O when an image download fails', async () => {
     decide({
       model,
       questions,
+      experimental_download: createDownload(),
       state: [
         {
           type: 'file',
@@ -898,7 +911,32 @@ it('stops before provider I/O when an image download fails', async () => {
         },
       ],
     }),
-  ).rejects.toMatchObject({ name: 'AI_DownloadError' });
+  ).rejects.toMatchObject({ name: 'AI_DownloadError', statusCode: 404 });
+  expect(doDecide).not.toHaveBeenCalled();
+});
+
+it('rejects remote file state without a download hook', async () => {
+  const { model, doDecide } = setup();
+  const fetch = vi.fn();
+  vi.stubGlobal('fetch', fetch);
+
+  await expect(
+    decide({
+      model,
+      questions,
+      state: [
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: new URL('https://attacker.example/package.png'),
+        },
+      ],
+    }),
+  ).rejects.toMatchObject({
+    name: 'AI_DownloadError',
+    message: expect.stringContaining('experimental_download'),
+  });
+  expect(fetch).not.toHaveBeenCalled();
   expect(doDecide).not.toHaveBeenCalled();
 });
 
@@ -1054,6 +1092,20 @@ it('preserves normalized box coordinates', async () => {
   });
   expect(result.answers.target).toEqual({ type: 'box', box: validBox });
 });
+
+it.each([{}, { instructions: undefined }, { instructions: null }])(
+  'forwards optional Box instructions: %j',
+  async instructionFields => {
+    const model = boxModel(validBox);
+    const doDecide = vi.spyOn(model, 'doDecide');
+    const questions = {
+      target: { type: 'box', ...instructionFields },
+    } as const;
+    const result = await decide({ model, state: '', questions });
+    expect(doDecide.mock.calls[0][0].questions).toBe(questions);
+    expect(result.answers.target).toEqual({ type: 'box', box: validBox });
+  },
+);
 
 it.each([
   undefined,

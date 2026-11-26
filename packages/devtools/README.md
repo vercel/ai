@@ -1,4 +1,4 @@
-# AI SDK DevTools
+# AI SDK - DevTools
 
 A local development tool for debugging and inspecting AI SDK applications. View LLM requests, responses, tool calls, and multi-step interactions in a web-based UI.
 

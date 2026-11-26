@@ -422,6 +422,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "warnings": [],
     },
   ],
+  "stoppedBy": "model",
   "text": "Hello, world!",
   "toolCalls": [
     {

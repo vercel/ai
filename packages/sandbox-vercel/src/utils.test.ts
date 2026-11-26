@@ -268,7 +268,25 @@ describe('Vercel template snapshots', () => {
 
     expect(createMock).toHaveBeenCalledWith({
       timeout: 60_000,
+      persistent: true,
       name: 'live-session',
+      source: { type: 'snapshot', snapshotId: 'snap_derived' },
+    });
+  });
+
+  it('keeps persistent: false on the live sandbox so stopping it writes no snapshot', async () => {
+    await createLiveSandboxFromSnapshot({
+      baseParams: {
+        runtime: 'node24',
+        timeout: 60_000,
+        persistent: false,
+      },
+      snapshotId: 'snap_derived',
+    });
+
+    expect(createMock).toHaveBeenCalledWith({
+      timeout: 60_000,
+      persistent: false,
       source: { type: 'snapshot', snapshotId: 'snap_derived' },
     });
   });

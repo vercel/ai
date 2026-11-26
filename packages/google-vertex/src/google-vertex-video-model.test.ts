@@ -196,6 +196,27 @@ describe('GoogleVertexVideoModel', () => {
       });
     });
 
+    it('should pass seed when it is 0', async () => {
+      let capturedBody: unknown;
+      const model = createMockModel({
+        onRequest: (url, body) => {
+          if (url.includes(':predictLongRunning')) {
+            capturedBody = body;
+          }
+        },
+      });
+
+      await model.doStart({
+        ...defaultOptions,
+        seed: 0,
+      });
+
+      expect(capturedBody).toStrictEqual({
+        instances: [{ prompt }],
+        parameters: { sampleCount: 1, seed: 0 },
+      });
+    });
+
     it('should pass aspect ratio when provided', async () => {
       let capturedBody: unknown;
       const model = createMockModel({

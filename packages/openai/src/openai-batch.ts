@@ -19,6 +19,7 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   combineHeaders,
   convertAsyncIteratorToReadableStream,
   createJsonLinesResponseHandler,
@@ -47,7 +48,7 @@ import {
   type OpenAIResponsesLogprobs,
 } from './responses/openai-responses-api';
 import {
-  mapWebSearchOutput,
+  mapWebSearchResult,
   OpenAIResponsesLanguageModel,
   openaiResponsesSupportedUrls,
 } from './responses/openai-responses-language-model';
@@ -66,6 +67,19 @@ const openaiBatchProviderOptionsSchema = lazySchema(() =>
        * 2592000 (30 days) inclusive. Defaults to 48 hours.
        */
       inputFileExpiresAfter: z
+        .number()
+        .int()
+        .min(3600)
+        .max(2_592_000)
+        .optional(),
+
+      /**
+       * TTL in seconds for the batch output and error files, measured from
+       * when each file is created. OpenAI accepts integers between 3600
+       * (1 hour) and 2592000 (30 days) inclusive. Defaults to OpenAI's file
+       * retention.
+       */
+      outputFileExpiresAfter: z
         .number()
         .int()
         .min(3600)
@@ -267,7 +281,10 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
 
     const { value: uploadedFile } = await postToApi({
       url: this.getUrl('/files'),
-      headers: combineHeaders(this.options.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.options.config.headers),
+        options.headers,
+      ),
       body: {
         content: formData,
         values: {
@@ -291,11 +308,22 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
 
     const { value: batch } = await postJsonToApi({
       url: this.getUrl('/batches'),
-      headers: combineHeaders(this.options.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.options.config.headers),
+        options.headers,
+      ),
       body: {
         input_file_id: uploadedFile.id,
         endpoint: openaiBatchEndpoint,
         completion_window: '24h',
+        ...(batchOptions?.outputFileExpiresAfter != null
+          ? {
+              output_expires_after: {
+                anchor: 'created_at',
+                seconds: batchOptions.outputFileExpiresAfter,
+              },
+            }
+          : {}),
       },
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -347,7 +375,7 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
     options: BatchV4OperationOptions,
   ): Promise<BatchV4Status> {
     const batch = await this.retrieveBatch(options);
-    return convertOpenAIBatchStatus(batch);
+    return convertOpenAIBatchStatusWithFileMetadata(batch);
   }
 
   async doCancelBatch(
@@ -357,7 +385,10 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
       url: this.getUrl(
         `/batches/${encodeURIComponent(options.batchId)}/cancel`,
       ),
-      headers: combineHeaders(this.options.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.options.config.headers),
+        options.headers,
+      ),
       body: {},
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -381,7 +412,10 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
 
     const { value: page } = await getFromApi({
       url: url.toString(),
-      headers: combineHeaders(this.options.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.options.config.headers),
+        options.headers,
+      ),
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         openaiBatchListResponseSchema,
@@ -394,7 +428,7 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
     return {
       batches: page.data.map(batch => ({
         batchId: batch.id,
-        ...convertOpenAIBatchStatus(batch),
+        ...convertOpenAIBatchStatusWithFileMetadata(batch),
       })),
       ...(page.has_more && page.last_id != null
         ? { nextCursor: page.last_id }
@@ -437,7 +471,10 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
   ): Promise<OpenAIBatchResponse> {
     const { value: batch } = await getFromApi({
       url: this.getUrl(`/batches/${encodeURIComponent(options.batchId)}`),
-      headers: combineHeaders(this.options.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.options.config.headers),
+        options.headers,
+      ),
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         openaiBatchResponseSchema,
@@ -461,7 +498,7 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
       const { value: lines } = await getFromApi({
         url: this.getUrl(`/files/${encodeURIComponent(fileId)}/content`),
         headers: combineHeaders(
-          this.options.config.headers?.(),
+          await resolve(this.options.config.headers),
           options.headers,
         ),
         failedResponseHandler: openaiFailedResponseHandler,
@@ -608,6 +645,36 @@ function convertOpenAIBatchStatus(batch: OpenAIBatchResponse): BatchV4Status {
   };
 }
 
+// Status and list results carry the output/error file ids; start results don't.
+function convertOpenAIBatchStatusWithFileMetadata(
+  batch: OpenAIBatchResponse,
+): BatchV4Status {
+  const fileMetadata = convertOpenAIBatchFileMetadata(batch);
+  return {
+    ...convertOpenAIBatchStatus(batch),
+    ...(fileMetadata != null
+      ? { providerMetadata: { openai: fileMetadata } }
+      : {}),
+  };
+}
+
+function convertOpenAIBatchFileMetadata(
+  batch: OpenAIBatchResponse,
+): { outputFileId?: string; errorFileId?: string } | undefined {
+  // Treat empty strings like missing ids.
+  const outputFileId = batch.output_file_id || undefined;
+  const errorFileId = batch.error_file_id || undefined;
+
+  if (outputFileId == null && errorFileId == null) {
+    return undefined;
+  }
+
+  return {
+    ...(outputFileId != null ? { outputFileId } : {}),
+    ...(errorFileId != null ? { errorFileId } : {}),
+  };
+}
+
 function mapOpenAIBatchStatus(rawStatus: string): BatchV4Status['status'] {
   switch (rawStatus) {
     case 'completed':
@@ -732,6 +799,7 @@ async function convertOpenAIBatchResult(
   const content: LanguageModelV4GenerateResult['content'] = [];
   const logprobs: Array<NonNullable<OpenAIResponsesLogprobs>> = [];
   let hasFunctionCall = false;
+  let hasRefusal = false;
 
   for (const part of response.output) {
     switch (part.type) {
@@ -758,6 +826,12 @@ async function convertOpenAIBatchResult(
 
       case 'message': {
         for (const contentPart of part.content) {
+          if (contentPart.type === 'refusal') {
+            hasRefusal = true;
+            content.push({ type: 'text', text: contentPart.refusal });
+            continue;
+          }
+
           content.push({ type: 'text', text: contentPart.text });
           if (contentPart.logprobs != null) {
             logprobs.push(contentPart.logprobs);
@@ -812,9 +886,7 @@ async function convertOpenAIBatchResult(
           type: 'tool-result',
           toolCallId: part.id,
           toolName: 'web_search',
-          ...(part.status === 'failed' || part.status === 'incomplete'
-            ? { isError: true, result: { status: part.status } }
-            : { result: mapWebSearchOutput(part.action) }),
+          ...mapWebSearchResult(part),
           dynamic: true,
         });
         break;
@@ -891,6 +963,12 @@ async function convertOpenAIBatchResult(
       ...(response.reasoning?.context != null
         ? { reasoningContext: response.reasoning.context }
         : {}),
+      ...(response.prompt_cache_diagnostics != null
+        ? { promptCacheDiagnostics: response.prompt_cache_diagnostics }
+        : {}),
+      ...(response.input_transformations != null
+        ? { inputTransformations: response.input_transformations }
+        : {}),
     },
   };
 
@@ -902,6 +980,7 @@ async function convertOpenAIBatchResult(
         unified: mapOpenAIResponseFinishReason({
           finishReason: response.incomplete_details?.reason,
           hasFunctionCall,
+          hasRefusal,
         }),
         raw: response.incomplete_details?.reason ?? undefined,
       },

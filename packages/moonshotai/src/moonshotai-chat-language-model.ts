@@ -10,6 +10,8 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
@@ -40,9 +42,8 @@ import {
   type MoonshotAIChatLogprob,
   type MoonshotAIChatTokenUsage,
 } from './moonshotai-chat-api-types';
+import { getMoonshotAILanguageModelEntry } from './moonshotai-model-catalog';
 import {
-  getMoonshotAIModelFamily,
-  isMoonshotAIKimiModel,
   moonshotaiLanguageModelOptions,
   type MoonshotAIChatModelId,
 } from './moonshotai-chat-options';
@@ -51,7 +52,7 @@ import { prepareTools } from './moonshotai-prepare-tools';
 
 export type MoonshotAIChatConfig = {
   provider: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   includeUsage?: boolean;
@@ -105,6 +106,16 @@ function getMoonshotAIStreamErrorMetadata(type?: string | null): {
       return {};
   }
 }
+
+/**
+ * Reasoning efforts supported by the Moonshot AI API. Other reasoning levels
+ * are mapped to the closest supported effort.
+ */
+const moonshotReasoningEffortMap = {
+  low: 'low',
+  high: 'high',
+  max: 'max',
+} as const;
 
 export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
@@ -185,7 +196,9 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
       allWarnings.push({ type: 'unsupported', feature: 'seed' });
     }
 
-    const supportsSamplingOptions = !isMoonshotAIKimiModel(this.modelId);
+    const modelEntry = getMoonshotAILanguageModelEntry(this.modelId);
+    const supportsSamplingOptions =
+      modelEntry.capabilities.language.sampling.temperature;
 
     if (!supportsSamplingOptions && temperature != null) {
       allWarnings.push({
@@ -222,7 +235,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
       toolWarnings,
     } = prepareTools({ tools, toolChoice, modelId: this.modelId });
 
-    const modelFamily = getMoonshotAIModelFamily(this.modelId);
+    const reasoningControl = modelEntry.requestConfig.language.reasoning;
     const requestedThinking = moonshotOptions.thinking;
     const requestedReasoningEffort = moonshotOptions.reasoningEffort;
     const preserveReasoning = moonshotOptions.reasoningHistory === 'preserved';
@@ -249,8 +262,8 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
       }
     };
 
-    switch (modelFamily) {
-      case 'kimi-k3': {
+    switch (reasoningControl) {
+      case 'effort': {
         if (requestedThinking != null) {
           allWarnings.push({
             type: 'unsupported',
@@ -259,48 +272,37 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
               'Kimi K3 always reasons and does not accept the thinking field. The option has been omitted.',
           });
         }
-        if (reasoning === 'none') {
-          allWarnings.push({
-            type: 'unsupported',
-            feature: 'reasoning "none"',
-            details: 'Kimi K3 reasoning cannot be disabled.',
-          });
-        }
-        reasoningEffort =
-          requestedReasoningEffort ??
-          (isCustomReasoning(reasoning) && reasoning !== 'none'
-            ? mapReasoningToProviderEffort({
-                reasoning,
-                effortMap: {
-                  minimal: 'low',
-                  low: 'low',
-                  medium: 'high',
-                  high: 'high',
-                  xhigh: 'max',
-                  max: 'max',
-                },
-                warnings: allWarnings,
-              })
-            : undefined);
+        // Kimi K3 reasoning cannot be disabled, so reasoning 'none' maps to
+        // the lowest effort.
+        reasoningEffort = mapReasoningToProviderEffort({
+          reasoning,
+          providerOptionsEffort: requestedReasoningEffort,
+          effortMap: moonshotReasoningEffortMap,
+          warnings: allWarnings,
+        });
         break;
       }
-      case 'kimi-k2.7': {
+      case 'thinking-always-on': {
         warnUnsupportedReasoningEffort();
-        if (requestedThinking?.type === 'disabled' || reasoning === 'none') {
+        if (requestedThinking?.type === 'disabled') {
           allWarnings.push({
             type: 'unsupported',
-            feature:
-              requestedThinking?.type === 'disabled'
-                ? 'thinking.type "disabled"'
-                : 'reasoning "none"',
+            feature: 'thinking.type "disabled"',
             details: 'Kimi K2.7 thinking cannot be disabled.',
+          });
+        } else if (requestedThinking == null && reasoning === 'none') {
+          allWarnings.push({
+            type: 'compatibility',
+            feature: 'reasoning',
+            details:
+              'reasoning "none" is not supported by Kimi K2.7; thinking cannot be disabled. Using thinking enabled instead.',
           });
         } else if (requestedThinking?.type === 'enabled') {
           thinking = { type: 'enabled' };
         }
         break;
       }
-      case 'kimi-k2.6': {
+      case 'thinking-with-history': {
         warnUnsupportedReasoningEffort();
         const thinkingType =
           requestedThinking?.type ??
@@ -317,7 +319,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         }
         break;
       }
-      case 'kimi-k2.5': {
+      case 'thinking': {
         warnUnsupportedReasoningEffort();
         const thinkingType =
           requestedThinking?.type ??
@@ -337,7 +339,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         }
         break;
       }
-      case 'moonshot-v1': {
+      case 'none': {
         warnUnsupportedReasoningEffort();
         if (requestedThinking != null) {
           allWarnings.push({
@@ -362,32 +364,21 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         break;
       }
       case 'unknown': {
-        if (reasoning === 'none') {
-          allWarnings.push({
-            type: 'unsupported',
-            feature: 'reasoning "none"',
-            details:
-              'Use providerOptions.moonshotai.thinking to control thinking on custom models.',
-          });
-        }
+        // The capabilities of unknown models are not known, so reasoning
+        // 'none' is sent as disabled thinking and the API decides.
         reasoningEffort =
           requestedReasoningEffort ??
           (isCustomReasoning(reasoning) && reasoning !== 'none'
             ? mapReasoningToProviderEffort({
                 reasoning,
-                effortMap: {
-                  minimal: 'low',
-                  low: 'low',
-                  medium: 'high',
-                  high: 'high',
-                  xhigh: 'max',
-                  max: 'max',
-                },
+                effortMap: moonshotReasoningEffortMap,
                 warnings: allWarnings,
               })
             : undefined);
         if (requestedThinking?.type != null) {
           thinking = { type: requestedThinking.type };
+        } else if (reasoning === 'none') {
+          thinking = { type: 'disabled' };
         }
         if (preserveReasoning) {
           allWarnings.push({
@@ -494,7 +485,10 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: args,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -584,7 +578,10 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(

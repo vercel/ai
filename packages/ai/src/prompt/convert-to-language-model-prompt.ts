@@ -41,17 +41,20 @@ export async function convertToLanguageModelPrompt({
   // `provider` is only needed here to convert legacy tool output types via `mapToolResultOutput`.
   // TODO: remove in v8 when "file-id" and "image-file-id" types are removed
   provider,
+  warnings,
 }: {
   prompt: StandardizedPrompt;
   supportedUrls: Record<string, RegExp[]>;
   download: DownloadFunction | undefined;
   abortSignal?: AbortSignal;
   provider?: string;
+  warnings?: Warning[];
 }): Promise<LanguageModelV4Prompt> {
   const downloadedAssets = await downloadAssets(
     prompt.messages,
     download ?? createDefaultDownloadFunction(undefined, abortSignal),
     supportedUrls,
+    abortSignal,
   );
 
   const messages = [
@@ -65,7 +68,12 @@ export async function convertToLanguageModelPrompt({
           }))
       : []),
     ...prompt.messages.map(message =>
-      convertToLanguageModelMessage({ message, downloadedAssets, provider }),
+      convertToLanguageModelMessage({
+        message,
+        downloadedAssets,
+        provider,
+        warnings,
+      }),
     ),
   ];
 
@@ -160,6 +168,7 @@ export function convertToLanguageModelMessage({
   // `provider` is only needed here to convert legacy tool output types via `mapToolResultOutput`.
   // TODO: remove in v8 when "file-id" and "image-file-id" types are removed
   provider,
+  warnings: collectedWarnings,
 }: {
   message: ModelMessage;
   downloadedAssets: Record<
@@ -167,8 +176,9 @@ export function convertToLanguageModelMessage({
     { mediaType: string | undefined; data: Uint8Array }
   >;
   provider?: string;
+  warnings?: Warning[];
 }): LanguageModelV4Message {
-  const warnings: Warning[] = [];
+  const warnings: Warning[] = collectedWarnings ?? [];
 
   const role = message.role;
   switch (role) {
@@ -207,7 +217,7 @@ export function convertToLanguageModelMessage({
           .filter(part => part.type !== 'text' || part.text !== ''),
         providerOptions: message.providerOptions,
       };
-      if (warnings.length > 0) {
+      if (collectedWarnings == null && warnings.length > 0) {
         logWarnings({ warnings });
       }
       return converted;
@@ -325,7 +335,7 @@ export function convertToLanguageModelMessage({
           }),
         providerOptions: message.providerOptions,
       };
-      if (warnings.length > 0) {
+      if (collectedWarnings == null && warnings.length > 0) {
         logWarnings({ warnings });
       }
       return converted;
@@ -368,7 +378,7 @@ export function convertToLanguageModelMessage({
           }),
         providerOptions: message.providerOptions,
       };
-      if (warnings.length > 0) {
+      if (collectedWarnings == null && warnings.length > 0) {
         logWarnings({ warnings });
       }
       return converted;
@@ -409,6 +419,7 @@ export async function downloadAssets(
   messages: ModelMessage[],
   download: DownloadFunction,
   supportedUrls: Record<string, RegExp[]>,
+  abortSignal?: AbortSignal,
 ): Promise<
   Record<string, { mediaType: string | undefined; data: Uint8Array }>
 > {
@@ -445,8 +456,10 @@ export async function downloadAssets(
         }
 
         for (const contentPart of part.output.value) {
-          if (contentPart.type === 'file') {
-            downloadableFiles.push(contentPart);
+          const filePart = getDownloadableFilePart(contentPart);
+
+          if (filePart != null) {
+            downloadableFiles.push(filePart);
           }
         }
       }
@@ -461,8 +474,10 @@ export async function downloadAssets(
           continue;
         }
         for (const contentPart of part.output.value) {
-          if (contentPart.type === 'file') {
-            downloadableFiles.push(contentPart);
+          const filePart = getDownloadableFilePart(contentPart);
+
+          if (filePart != null) {
+            downloadableFiles.push(filePart);
           }
         }
       }
@@ -478,6 +493,7 @@ export async function downloadAssets(
     .filter((part): part is UrlTaggedFile => part.data.type === 'url')
     .map(part => ({
       url: part.data.url,
+      abortSignal,
       isUrlSupportedByModel:
         part.mediaType != null &&
         isUrlSupported({
@@ -501,6 +517,74 @@ export async function downloadAssets(
       )
       .filter(file => file != null),
   );
+}
+
+/**
+ * Resolves the tool result content parts that point at a remote file to the
+ * tagged file shape, including the deprecated `file-url` and `image-url`
+ * types, so that they are downloaded and inlined exactly like their `file`
+ * replacement. Returns `undefined` for content that is already inline or
+ * provider-referenced.
+ */
+function getDownloadableFilePart(
+  contentPart: Extract<ToolResultOutput, { type: 'content' }>['value'][number],
+): FilePart | undefined {
+  switch (contentPart.type) {
+    case 'file':
+      return contentPart;
+    case 'file-url':
+      return {
+        type: 'file',
+        data: { type: 'url', url: new URL(contentPart.url) },
+        mediaType:
+          contentPart.mediaType ?? getMediaTypeFromUrl(contentPart.url),
+        providerOptions: contentPart.providerOptions,
+      };
+    case 'image-url':
+      return {
+        type: 'file',
+        data: { type: 'url', url: new URL(contentPart.url) },
+        mediaType: 'image',
+        providerOptions: contentPart.providerOptions,
+      };
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * Resolves file data and media type for a remote tool result content part: the downloaded
+ * bytes when the asset was fetched, otherwise the URL reference. `originalUrl`
+ * is preserved when the URL string does not round-trip through `URL`.
+ */
+function resolveDownloadedFile({
+  url,
+  originalUrl,
+  downloadedAssets,
+  mediaType,
+}: {
+  url: URL;
+  originalUrl: string;
+  downloadedAssets: Record<
+    string,
+    { mediaType: string | undefined; data: Uint8Array }
+  >;
+  mediaType: string;
+}): Pick<LanguageModelV4FilePart, 'data' | 'mediaType'> {
+  const convertedPart = convertPartToLanguageModelPart(
+    {
+      type: 'file',
+      data: {
+        type: 'url',
+        url,
+        ...(url.toString() !== originalUrl ? { originalUrl } : {}),
+      },
+      mediaType,
+    },
+    downloadedAssets,
+  ) as LanguageModelV4FilePart;
+
+  return { data: convertedPart.data, mediaType: convertedPart.mediaType };
 }
 
 /**
@@ -632,7 +716,7 @@ export function mapToolResultOutput({
               mediaType === 'application/octet-stream'
                 ? `Unable to infer media type from URL. Defaulting to 'application/octet-stream'.`
                 : `Inferred media type '${mediaType}' from URL.`;
-            message = `The "file-url" tool result content part with URL "${item.url}" is missing a "mediaType". ${inferenceSuffix} ${message}`;
+            message = `A "file-url" tool result content part is missing a "mediaType". ${inferenceSuffix} ${message}`;
           }
           warnings.push({
             type: 'deprecated',
@@ -641,12 +725,12 @@ export function mapToolResultOutput({
           });
           return {
             type: 'file' as const,
-            data: {
-              type: 'url' as const,
+            ...resolveDownloadedFile({
               url,
-              ...(url.toString() !== item.url ? { originalUrl: item.url } : {}),
-            },
-            mediaType,
+              originalUrl: item.url,
+              downloadedAssets,
+              mediaType,
+            }),
             providerOptions: item.providerOptions,
           };
         }
@@ -709,12 +793,12 @@ export function mapToolResultOutput({
           });
           return {
             type: 'file' as const,
-            data: {
-              type: 'url' as const,
+            ...resolveDownloadedFile({
               url,
-              ...(url.toString() !== item.url ? { originalUrl: item.url } : {}),
-            },
-            mediaType: 'image',
+              originalUrl: item.url,
+              downloadedAssets,
+              mediaType: 'image',
+            }),
             providerOptions: item.providerOptions,
           };
         }

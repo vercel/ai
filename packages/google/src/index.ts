@@ -1,4 +1,10 @@
 export type { GoogleErrorData } from './google-error';
+export type { GoogleFilePartOptions } from './google-file-part-options';
+export type { GoogleInteractionsFileOptions } from './interactions/google-interactions-file-options';
+export type {
+  GoogleDecisionModelId,
+  GoogleDecisionModelOptions,
+} from './google-decision-model-options';
 export type {
   GoogleLanguageModelOptions,
   /** @deprecated Use `GoogleLanguageModelOptions` instead. */
@@ -6,6 +12,7 @@ export type {
 } from './google-language-model-options';
 export type {
   GoogleProviderMetadata,
+  GoogleVideoMetadata,
   /** @deprecated Use `GoogleProviderMetadata` instead. */
   GoogleProviderMetadata as GoogleGenerativeAIProviderMetadata,
 } from './google-prompt';

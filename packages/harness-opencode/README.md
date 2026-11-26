@@ -1,4 +1,4 @@
-# AI SDK OpenCode Harness
+# AI SDK - OpenCode Harness
 
 The OpenCode harness connects `HarnessAgent` to OpenCode through a sandboxed
 bridge.

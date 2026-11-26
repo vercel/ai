@@ -506,6 +506,92 @@ describe('streamLanguageModelCall', () => {
         ]
       `);
     });
+
+    describe('prompt conversion warnings', () => {
+      const messages = [
+        {
+          role: 'user' as const,
+          content: [
+            {
+              type: 'image' as const,
+              image: new Uint8Array([1, 2, 3]),
+              mediaType: 'image/png',
+            },
+          ],
+        },
+      ];
+
+      const finish: LanguageModelV4StreamPart = {
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        usage: testUsage,
+      };
+
+      async function getModelCallStartParts(
+        streamParts: LanguageModelV4StreamPart[],
+      ) {
+        const { stream } = await streamLanguageModelCall({
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream(streamParts),
+            }),
+          }),
+          tools: undefined,
+          messages,
+          repairToolCall: undefined,
+        });
+
+        return (await convertReadableStreamToArray(stream)).filter(
+          part => part.type === 'model-call-start',
+        );
+      }
+
+      it('should add the prompt conversion warnings to the stream-start warnings', async () => {
+        expect(
+          await getModelCallStartParts([
+            {
+              type: 'stream-start',
+              warnings: [{ type: 'other', message: 'provider warning' }],
+            },
+            finish,
+          ]),
+        ).toMatchInlineSnapshot(`
+          [
+            {
+              "type": "model-call-start",
+              "warnings": [
+                {
+                  "message": "The "image" content part type is deprecated. Use a "file" part with mediaType: 'image' (or a more specific image/* subtype) instead.",
+                  "setting": ""image" content part",
+                  "type": "deprecated",
+                },
+                {
+                  "message": "provider warning",
+                  "type": "other",
+                },
+              ],
+            },
+          ]
+        `);
+      });
+
+      it('should send the prompt conversion warnings when the provider does not send a stream-start part', async () => {
+        expect(await getModelCallStartParts([finish])).toMatchInlineSnapshot(`
+          [
+            {
+              "type": "model-call-start",
+              "warnings": [
+                {
+                  "message": "The "image" content part type is deprecated. Use a "file" part with mediaType: 'image' (or a more specific image/* subtype) instead.",
+                  "setting": ""image" content part",
+                  "type": "deprecated",
+                },
+              ],
+            },
+          ]
+        `);
+      });
+    });
   });
 
   describe('text parts', () => {

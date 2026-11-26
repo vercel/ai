@@ -6,10 +6,10 @@
     "@ai-sdk/openai": "workspace:*",
     "ai": "workspace:*",
     "dotenv": "16.4.5",
-    "zod": "3.25.76"
+    "zod": "4.6.7"
   },
   "scripts": {
-    "type-check": "tsc --build",
+    "type-check": "tsc --noEmit",
     "dev": "tsx src/server.ts"
   },
   "devDependencies": {

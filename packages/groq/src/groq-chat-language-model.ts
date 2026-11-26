@@ -11,6 +11,8 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
   StreamingToolCallTracker,
   combineHeaders,
   convertJsonResponseToolStream,
@@ -40,12 +42,13 @@ import {
   type GroqChatModelId,
 } from './groq-chat-language-model-options';
 import { groqErrorDataSchema, groqFailedResponseHandler } from './groq-error';
+import { getGroqLanguageModelEntry } from './groq-model-catalog';
 import { prepareTools } from './groq-prepare-tools';
 import { mapGroqFinishReason } from './map-groq-finish-reason';
 
 type GroqChatConfig = {
   provider: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
 };
@@ -147,6 +150,10 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
     providerOptions,
   }: LanguageModelV4CallOptions) {
     const warnings: SharedV4Warning[] = [];
+    const {
+      capabilities: { language: capabilities },
+      requestConfig: { language: defaults },
+    } = getGroqLanguageModelEntry(this.modelId);
 
     const groqOptions = await parseProviderOptions({
       provider: 'groq',
@@ -157,6 +164,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
     // Groq rejects JSON response formatting together with function tools.
     let jsonResponseTool: LanguageModelV4FunctionTool | undefined;
     if (
+      !capabilities.structuredOutput.withFunctionTools &&
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
       tools?.some(tool => tool.type === 'function')
@@ -174,10 +182,12 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
       };
     }
 
-    const structuredOutputs = groqOptions?.structuredOutputs ?? true;
-    const strictJsonSchema = groqOptions?.strictJsonSchema ?? true;
+    const structuredOutputs =
+      groqOptions?.structuredOutputs ?? defaults.structuredOutputs;
+    const strictJsonSchema =
+      groqOptions?.strictJsonSchema ?? defaults.strictJsonSchema;
 
-    if (topK != null) {
+    if (topK != null && capabilities.sampling.topK === false) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
@@ -215,26 +225,25 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
 
     let reasoningEffort = groqOptions?.reasoningEffort;
     if (reasoningEffort == null && isCustomReasoning(reasoning)) {
-      if (reasoning === 'none') {
-        if (this.modelId === 'qwen/qwen3.6-27b') {
-          reasoningEffort = 'none';
-        } else {
-          warnings.push({
-            type: 'unsupported',
-            feature: 'reasoning',
-            details: `reasoning "${reasoning}" is not supported by this model.`,
-          });
-        }
+      const supportsNoneReasoning = capabilities.reasoning.disable;
+      // GPT-OSS models always reason, so reasoning 'none' maps to the lowest
+      // effort. Other models do not reason, so there is nothing to disable.
+      const alwaysReasons = capabilities.reasoning.always;
+
+      if (reasoning === 'none' && !supportsNoneReasoning && !alwaysReasons) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'reasoning',
+          details: `reasoning "${reasoning}" is not supported by this model.`,
+        });
       } else {
         reasoningEffort = mapReasoningToProviderEffort({
           reasoning,
           effortMap: {
-            minimal: 'low',
+            ...(supportsNoneReasoning && { none: 'none' as const }),
             low: 'low',
             medium: 'medium',
             high: 'high',
-            xhigh: 'high',
-            max: 'high',
           },
           warnings,
         });
@@ -310,7 +319,10 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: args,
       failedResponseHandler: groqFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -397,7 +409,10 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: groqFailedResponseHandler,
       successfulResponseHandler:
