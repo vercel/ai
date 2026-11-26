@@ -368,6 +368,39 @@ export const ReadResourceResultSchema = ResultSchema.extend({
 });
 export type ReadResourceResult = z.infer<typeof ReadResourceResultSchema>;
 
+// Skills (SEP-2640, io.modelcontextprotocol/skills)
+export const SkillResourceSchema = z
+  .object({
+    uri: z.string(),
+    digest: z.string(),
+    size: z.number().int().nonnegative(),
+  })
+  .loose();
+export type MCPSkillResource = z.infer<typeof SkillResourceSchema>;
+
+export const SkillEntrySchema = z
+  .object({
+    uri: z.string(),
+    frontmatter: z.record(z.string(), z.unknown()),
+    resources: z.union([z.array(SkillResourceSchema), z.literal('dynamic')]),
+  })
+  .loose();
+export type MCPSkill = z.infer<typeof SkillEntrySchema>;
+
+export const ListSkillsResultSchema = PaginatedResultSchema.extend({
+  skills: z.array(SkillEntrySchema),
+  ttlMs: z.optional(z.number()),
+  cacheScope: z.optional(z.union([z.literal('public'), z.literal('private')])),
+});
+export type ListSkillsResult = z.infer<typeof ListSkillsResultSchema>;
+
+export const GetSkillResultSchema = ResultSchema.extend({
+  uri: z.string(),
+  frontmatter: z.record(z.string(), z.unknown()),
+  resources: z.union([z.array(SkillResourceSchema), z.literal('dynamic')]),
+});
+export type GetSkillResult = z.infer<typeof GetSkillResultSchema>;
+
 // Completions
 const PromptReferenceSchema = z
   .object({

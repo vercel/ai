@@ -27,6 +27,12 @@ export {
   fingerprintMCPAppResource,
   detectMCPAppResourceDrift,
 } from './tool/mcp-app-fingerprint';
+export {
+  MCP_SKILLS_EXTENSION_NAME,
+  mcpSkillsClientCapabilities,
+  readMCPSkillFile,
+  type MCPSkillFile,
+} from './tool/mcp-skills';
 export { ElicitationRequestSchema, ElicitResultSchema } from './tool/types';
 export type {
   CallToolResult,
@@ -35,8 +41,12 @@ export type {
   Configuration,
   ElicitationRequest,
   ElicitResult,
+  GetSkillResult,
   InitializeResult,
+  ListSkillsResult,
   ListToolsResult,
+  MCPSkill,
+  MCPSkillResource,
   McpProviderMetadata,
   McpToolAnnotations,
   ClientCapabilities as MCPClientCapabilities,
