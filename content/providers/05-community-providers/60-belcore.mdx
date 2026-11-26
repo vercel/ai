@@ -1,0 +1,119 @@
+---
+title: Belcore
+description: Learn how to use the Belcore provider for the AI SDK.
+---
+
+# Belcore
+
+[Belcore](https://belcore.xyz) adds long-term memory and an emotion state to chat applications through one API. The [Belcore provider](https://github.com/terracore-kr/belcore-integrations) lets you call it with `generateText` and `streamText`.
+
+You keep the conversation history in your own database and send it with each call. Belcore selects the context that matters from the whole history, answers, and returns the updated emotion state for you to save. Belcore does not store conversation text.
+
+## Setup
+
+The Belcore provider is available in the `@belcore/ai-sdk` module. You can install it with:
+
+```bash
+pnpm add @belcore/ai-sdk
+```
+
+Get an API key at [belcore.xyz](https://belcore.xyz) and set it on your server:
+
+```bash
+BELCORE_API_KEY=your-api-key
+```
+
+## Provider Instance
+
+You can import the default provider instance `belcore` from `@belcore/ai-sdk`:
+
+```ts
+import { belcore } from '@belcore/ai-sdk';
+```
+
+If you need a customized setup, use `createBelcore`:
+
+```ts
+import { createBelcore } from '@belcore/ai-sdk';
+
+const belcore = createBelcore({
+  apiKey: process.env.BELCORE_API_KEY,
+});
+```
+
+## Language Models
+
+Create a model by calling the provider instance. The model id is optional and selects the underlying model that writes the reply:
+
+```ts
+const model = belcore('openai/gpt-4o-mini');
+```
+
+## Examples
+
+### `generateText`
+
+Send the full history from your database. Pass the emotion state from the previous turn in `providerOptions`, and save the one that comes back:
+
+```ts
+import { generateText } from 'ai';
+import { belcore } from '@belcore/ai-sdk';
+
+const { text, providerMetadata } = await generateText({
+  model: belcore('openai/gpt-4o-mini'),
+  system: 'You are a helpful assistant.',
+  messages: history,
+  providerOptions: { belcore: { emotion: lastEmotion } },
+});
+
+await saveEmotion(providerMetadata?.belcore?.emotion);
+```
+
+### `streamText`
+
+```ts
+import { streamText } from 'ai';
+import { belcore } from '@belcore/ai-sdk';
+
+const result = streamText({
+  model: belcore(),
+  messages: history,
+});
+
+for await (const delta of result.textStream) {
+  process.stdout.write(delta);
+}
+```
+
+The reply arrives as a single chunk.
+
+## Provider Options
+
+Pass these under `providerOptions.belcore`:
+
+- **emotion** _object_
+
+  The emotion state returned by the previous call. Omit it on the first turn.
+
+- **traits** _object_
+
+  Character traits (`obsession`, `edginess`, `stability`), each from 0 to 100.
+
+- **intimacyLevel** _number_
+
+  Relationship level from 0 to 10.
+
+- **endUserId**, **subjectId** _string_
+
+  Optional. Belcore keeps the numeric emotion state for this user so that you do not have to send `emotion`. You can export or delete it at any time.
+
+## Limitations
+
+- Text only. File parts, tool calls and reasoning parts are dropped with a warning.
+- Tool calling is not supported.
+- `temperature`, `maxOutputTokens` and similar settings are ignored with a warning.
+
+## References
+
+- [Belcore integrations on GitHub](https://github.com/terracore-kr/belcore-integrations)
+- [`@belcore/ai-sdk` on npm](https://www.npmjs.com/package/@belcore/ai-sdk)
