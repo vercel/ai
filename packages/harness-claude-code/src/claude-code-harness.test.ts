@@ -668,6 +668,60 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
+  it('sends configured subagent definitions to the bridge and omits when unset', async () => {
+    const agents = {
+      reviewer: {
+        description: 'Reviews changes. Delegate any review to it.',
+        prompt: 'You review the uncommitted changes.',
+        tools: ['Read', 'Grep', 'Glob'],
+        model: 'haiku',
+      },
+    };
+    const configuredHarness = createClaudeCode({ agents });
+    const configuredSession = await configuredHarness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+
+    const configuredControl = await configuredSession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Review the repo.',
+      emit: () => {},
+    });
+    void Promise.resolve(configuredControl.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({ agents });
+    await configuredSession.doDestroy();
+
+    const defaultHarness = createClaudeCode();
+    const defaultSession = await defaultHarness.doStart({
+      sessionId: 's2',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s2',
+    });
+
+    const defaultControl = await defaultSession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Inspect the repo.',
+      emit: () => {},
+    });
+    void Promise.resolve(defaultControl.done).catch(() => {});
+
+    expect(lastStart()).not.toHaveProperty('agents');
+    await defaultSession.doDestroy();
+  });
+
   it('sets the client app for AI Gateway auth', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const harness = createClaudeCode({
@@ -2096,6 +2150,64 @@ describe('createClaudeCode adapter', () => {
       maxBudgetUsd: 0.5,
     });
 
+    await attachedSession.doDestroy();
+  });
+
+  it('sends configured subagent definitions when rerunning a continued turn and after attaching', async () => {
+    const agents = {
+      reviewer: {
+        description: 'Reviews changes.',
+        prompt: 'You review changes.',
+        tools: ['Read', 'Grep'],
+      },
+    };
+    const harness = createClaudeCode({ agents });
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      writes: [],
+      runs: [],
+    });
+
+    const continuedSession = await harness.doStart({
+      sessionId: 's-continue',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s-continue',
+      continueFrom: {
+        type: 'continue-turn',
+        harnessId: 'claude-code',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
+    const continuedControl = await continuedSession.doContinueTurn({
+      skills: [],
+      tools: [],
+      emit: () => {},
+    });
+    void Promise.resolve(continuedControl.done).catch(() => {});
+    expect(lastStart()).toMatchObject({ agents, continue: true });
+    await continuedSession.doDestroy();
+
+    const freshSession = await harness.doStart({
+      sessionId: 's-attach',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s-attach',
+    });
+    const resumeFrom = await freshSession.doDetach();
+    const attachedSession = await harness.doStart({
+      sessionId: 's-attach',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s-attach',
+      resumeFrom,
+    });
+    const attachedControl = await attachedSession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'delegate review',
+      emit: () => {},
+    });
+    void Promise.resolve(attachedControl.done).catch(() => {});
+    expect(lastStart()).toMatchObject({ agents });
     await attachedSession.doDestroy();
   });
 

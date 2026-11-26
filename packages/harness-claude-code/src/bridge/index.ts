@@ -943,6 +943,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       ...(start.forwardSubagentText !== undefined
         ? { forwardSubagentText: start.forwardSubagentText }
         : {}),
+      ...(start.agents !== undefined ? { agents: start.agents } : {}),
       ...(start.env !== undefined ? { env: sdkEnv } : {}),
       ...(skillsOption ? { skills: skillsOption } : {}),
       ...(nativeTools !== undefined ? { tools: nativeTools } : {}),
