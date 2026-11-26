@@ -2992,7 +2992,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
               if (
                 activeReasoningPart != null &&
-                activeReasoningPart.source !== 'text'
+                activeReasoningPart.source !== 'text' &&
+                (activeReasoningPart.source === 'summary' ||
+                  value.summary_index > 0)
               ) {
                 // when OpenAI stores the message data, we can immediately conclude the reasoning part
                 // since we do not need to send the encrypted content.

@@ -11868,6 +11868,113 @@ describe('OpenAIResponsesLanguageModel', () => {
         },
       );
 
+      it('should stream raw reasoning text when an empty summary part finishes first', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: ${JSON.stringify({
+              type: 'response.created',
+              sequence_number: 0,
+              response: {
+                id: 'resp_1',
+                object: 'response',
+                created_at: 0,
+                status: 'in_progress',
+                model: 'example-model',
+                output: [],
+                usage: null,
+              },
+            })}\n\n`,
+            `data: ${JSON.stringify({
+              type: 'response.output_item.added',
+              sequence_number: 1,
+              output_index: 0,
+              item: {
+                id: 'rs_1',
+                type: 'reasoning',
+                summary: [],
+              },
+            })}\n\n`,
+            `data: ${JSON.stringify({
+              type: 'response.reasoning_summary_part.added',
+              sequence_number: 2,
+              item_id: 'rs_1',
+              output_index: 0,
+              summary_index: 0,
+              part: { type: 'summary_text', text: '' },
+            })}\n\n`,
+            `data: ${JSON.stringify({
+              type: 'response.reasoning_summary_part.done',
+              sequence_number: 3,
+              item_id: 'rs_1',
+              output_index: 0,
+              summary_index: 0,
+              part: { type: 'summary_text', text: '' },
+            })}\n\n`,
+            `data: ${JSON.stringify({
+              type: 'response.reasoning_text.delta',
+              sequence_number: 4,
+              item_id: 'rs_1',
+              output_index: 0,
+              content_index: 0,
+              delta: 'Raw ',
+            })}\n\n`,
+            `data: ${JSON.stringify({
+              type: 'response.reasoning_text.delta',
+              sequence_number: 5,
+              item_id: 'rs_1',
+              output_index: 0,
+              content_index: 0,
+              delta: 'reasoning',
+            })}\n\n`,
+            `data: ${JSON.stringify({
+              type: 'response.output_item.done',
+              sequence_number: 6,
+              output_index: 0,
+              item: {
+                id: 'rs_1',
+                type: 'reasoning',
+                status: 'completed',
+                summary: [],
+              },
+            })}\n\n`,
+            `data: ${JSON.stringify({
+              type: 'response.completed',
+              sequence_number: 7,
+              response: {
+                id: 'resp_1',
+                object: 'response',
+                created_at: 0,
+                status: 'completed',
+                model: 'example-model',
+                output: [],
+                usage: {
+                  input_tokens: 1,
+                  output_tokens: 1,
+                  total_tokens: 2,
+                },
+              },
+            })}\n\n`,
+          ],
+        };
+
+        const { stream } = await createModel('example-model').doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: { openai: { store: true } },
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        expect(parts.filter(part => part.type === 'error')).toEqual([]);
+        expect(
+          parts.filter(part => part.type.startsWith('reasoning-')),
+        ).toMatchObject([
+          { type: 'reasoning-start', id: 'rs_1:0' },
+          { type: 'reasoning-delta', id: 'rs_1:0', delta: 'Raw ' },
+          { type: 'reasoning-delta', id: 'rs_1:0', delta: 'reasoning' },
+          { type: 'reasoning-end', id: 'rs_1:0' },
+        ]);
+      });
+
       it('should correlate rotated item ids by output index', async () => {
         // Captured from GitHub Copilot's Responses API with gpt-5.3-codex on
         // 2026-08-06. Opaque ids and encrypted content were sanitized while
