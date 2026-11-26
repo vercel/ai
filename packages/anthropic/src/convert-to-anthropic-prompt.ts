@@ -161,6 +161,7 @@ export async function convertToAnthropicPrompt({
   toolsetNames = {},
   convertMediaPart,
   convertInlineTool,
+  keepMidConversationSystemMessages = false,
 }: {
   prompt: LanguageModelV4Prompt;
   sendReasoning: boolean;
@@ -181,6 +182,13 @@ export async function convertToAnthropicPrompt({
    * Required when the prompt contains such additions.
    */
   convertInlineTool?: AnthropicInlineToolConverter;
+
+  /**
+   * Keeps a system message that follows other messages in `messages` even
+   * when no system message comes before it, instead of making it the
+   * top-level `system` prompt.
+   */
+  keepMidConversationSystemMessages?: boolean;
 }): Promise<{
   prompt: AnthropicPrompt;
   betas: Set<string>;
@@ -258,12 +266,12 @@ export async function convertToAnthropicPrompt({
 
           // A system message that only carries message-level controls may have
           // empty text; do not emit an empty text block for it.
-          if (
+          const emitsText =
             text !== '' ||
             (toolChanges.length === 0 &&
               systemMessageOptions?.clearAt == null &&
-              systemMessageOptions?.effort == null)
-          ) {
+              systemMessageOptions?.effort == null);
+          if (emitsText) {
             content.push({
               type: 'text' as const,
               text,
@@ -334,6 +342,19 @@ export async function convertToAnthropicPrompt({
             toolChangeCount++;
           }
 
+          // Without a text block, the message's cache control marks its last
+          // tool change, so the cached prefix ends where this message ends.
+          const lastToolChange = content.at(-1);
+          if (!emitsText && lastToolChange != null) {
+            const cacheControl = validator.getCacheControl(providerOptions, {
+              type: 'system message',
+              canCache: true,
+            });
+            if (cacheControl != null) {
+              lastToolChange.cache_control = cacheControl;
+            }
+          }
+
           // Every change was ignored and nothing else is left to send.
           if (
             content.length === 0 &&
@@ -361,7 +382,10 @@ export async function convertToAnthropicPrompt({
         );
         if (
           i === 0 ||
-          (system == null && toolChangeCount === 0 && !hasInlineSystemOptions)
+          (!keepMidConversationSystemMessages &&
+            system == null &&
+            toolChangeCount === 0 &&
+            !hasInlineSystemOptions)
         ) {
           if (toolChangeCount > 0) {
             warnings.push({

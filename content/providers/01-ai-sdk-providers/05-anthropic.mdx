@@ -439,6 +439,15 @@ The following optional provider options are available for Anthropic models:
   Optional. Defaults to `false`. Emit typed `ping` parts during streaming without
   enabling raw chunks. See [Streaming heartbeats](#streaming-heartbeats).
 
+- `midConversationSystemMessages` _boolean_
+
+  Optional. Defaults to `false`. Keeps a system message that follows user or
+  assistant messages in `messages` even when no system message comes before
+  it. By default the first system message becomes the top-level `system`
+  prompt wherever it appears. Enable this only for models that support
+  mid-conversation system messages. See
+  [Mid-Conversation System Controls](#mid-conversation-system-controls).
+
 - `disableParallelToolUse` _boolean_
 
   Optional. Disables the use of parallel tool calls. Defaults to `false`.
@@ -2174,6 +2183,15 @@ follow Anthropic's [content placement rules](https://platform.claude.com/docs/en
 
 Turn-scoped messages with `clearAt` support text only. Put effort updates in a
 separate message, as in the example above.
+
+The first system message of a prompt becomes the top-level `system` field even
+when it follows other messages. To keep such a message in place, for example a
+reminder appended to a conversation that has no initial instructions, set
+`providerOptions.anthropic.midConversationSystemMessages: true` on the request.
+
+A `cacheControl` provider option on a mid-conversation system message marks
+its text block. When the message has no text and only carries `toolChanges`,
+it marks the last tool change instead.
 
 <Note>
   `clearAt` applies only to mid-conversation system messages. On initial system

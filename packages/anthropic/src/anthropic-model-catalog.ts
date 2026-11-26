@@ -18,6 +18,9 @@ export const anthropicProviderOptions = {
     thread: { description: 'Create or continue a short-lived message thread.' },
     sendReasoning: { description: 'Whether to send reasoning to the model.' },
     includePings: { description: 'Include transient ping events in streams.' },
+    midConversationSystemMessages: {
+      description: 'Keep later system messages in the conversation.',
+    },
     structuredOutputMode: {
       description: 'How structured outputs are generated.',
     },

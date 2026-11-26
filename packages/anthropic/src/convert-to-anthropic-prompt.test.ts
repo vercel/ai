@@ -859,6 +859,103 @@ describe('system messages', () => {
     });
   });
 
+  it('should put the cache control of a system message without text on its last tool change', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        { role: 'system', content: 'initial' },
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            anthropic: {
+              cacheControl: { type: 'ephemeral' },
+              toolChanges: [
+                { type: 'tool_addition', toolName: 'get_forecast' },
+                { type: 'tool_removal', toolName: 'get_weather' },
+              ],
+            },
+          },
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages.at(-1)).toEqual({
+      role: 'system',
+      content: [
+        {
+          type: 'tool_addition',
+          tool: { type: 'tool_reference', name: 'get_forecast' },
+        },
+        {
+          type: 'tool_removal',
+          tool: { type: 'tool_reference', name: 'get_weather' },
+          cache_control: { type: 'ephemeral' },
+        },
+      ],
+    });
+  });
+
+  describe('a system message after other messages with no system message before it', () => {
+    const prompt: LanguageModelV4Prompt = [
+      { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+      {
+        role: 'system',
+        content: 'answer in one sentence',
+        providerOptions: { anthropic: { cacheControl: { type: 'ephemeral' } } },
+      },
+    ];
+
+    it('should become the top-level system prompt by default', async () => {
+      const result = await convertToAnthropicPrompt({
+        prompt,
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result.prompt.system).toEqual([
+        {
+          type: 'text',
+          text: 'answer in one sentence',
+          cache_control: { type: 'ephemeral' },
+        },
+      ]);
+      expect(result.prompt.messages).toEqual([
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+      ]);
+    });
+
+    it('should stay in place with its cache control when keepMidConversationSystemMessages is set', async () => {
+      const result = await convertToAnthropicPrompt({
+        prompt,
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+        keepMidConversationSystemMessages: true,
+      });
+
+      expect(result.prompt.system).toBeUndefined();
+      expect(result.prompt.messages).toEqual([
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        {
+          role: 'system',
+          content: [
+            {
+              type: 'text',
+              text: 'answer in one sentence',
+              cache_control: { type: 'ephemeral' },
+            },
+          ],
+        },
+      ]);
+      expect(result.betas.has('mid-conversation-system-2026-04-07')).toBe(true);
+    });
+  });
+
   it('should emit tool definitions for tools added by value and prefer the inline tools beta', async () => {
     const definition = {
       name: 'get_forecast',

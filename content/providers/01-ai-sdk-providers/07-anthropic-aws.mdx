@@ -234,28 +234,29 @@ The following option definitions are generated from the provider catalog.
 
 {/* model-capabilities:anthropic-aws-provider-options:start */}
 
-| Operation | Option                   | Description                                        |
-| --------- | ------------------------ | -------------------------------------------------- |
-| language  | `thread`                 | Create or continue a short-lived message thread.   |
-| language  | `sendReasoning`          | Whether to send reasoning to the model.            |
-| language  | `includePings`           | Include transient ping events in streams.          |
-| language  | `structuredOutputMode`   | How structured outputs are generated.              |
-| language  | `thinking`               | Extended thinking configuration.                   |
-| language  | `disableParallelToolUse` | Use at most one tool per response.                 |
-| language  | `cacheControl`           | Prompt cache control settings.                     |
-| language  | `metadata`               | Request metadata, such as a user ID.               |
-| language  | `mcpServers`             | MCP servers to use in the request.                 |
-| language  | `container`              | Container and Agent Skills configuration.          |
-| language  | `toolStreaming`          | Fine-grained streaming of tool inputs and outputs. |
-| language  | `effort`                 | Effort spent on thinking, text, and tool calls.    |
-| language  | `taskBudget`             | Advisory token budget for an agentic task.         |
-| language  | `speed`                  | Fast mode for faster output token speeds.          |
-| language  | `serviceTier`            | Service tier for the request.                      |
-| language  | `inferenceGeo`           | Where model inference runs.                        |
-| language  | `fallbacks`              | Server-side fallback models.                       |
-| language  | `anthropicBeta`          | Additional beta features to enable.                |
-| language  | `safeguards`             | Server-side safeguards to run.                     |
-| language  | `compaction`             | On-demand conversation summary.                    |
-| language  | `contextManagement`      | Server-side context management.                    |
+| Operation | Option                          | Description                                        |
+| --------- | ------------------------------- | -------------------------------------------------- |
+| language  | `thread`                        | Create or continue a short-lived message thread.   |
+| language  | `sendReasoning`                 | Whether to send reasoning to the model.            |
+| language  | `includePings`                  | Include transient ping events in streams.          |
+| language  | `midConversationSystemMessages` | Keep later system messages in the conversation.    |
+| language  | `structuredOutputMode`          | How structured outputs are generated.              |
+| language  | `thinking`                      | Extended thinking configuration.                   |
+| language  | `disableParallelToolUse`        | Use at most one tool per response.                 |
+| language  | `cacheControl`                  | Prompt cache control settings.                     |
+| language  | `metadata`                      | Request metadata, such as a user ID.               |
+| language  | `mcpServers`                    | MCP servers to use in the request.                 |
+| language  | `container`                     | Container and Agent Skills configuration.          |
+| language  | `toolStreaming`                 | Fine-grained streaming of tool inputs and outputs. |
+| language  | `effort`                        | Effort spent on thinking, text, and tool calls.    |
+| language  | `taskBudget`                    | Advisory token budget for an agentic task.         |
+| language  | `speed`                         | Fast mode for faster output token speeds.          |
+| language  | `serviceTier`                   | Service tier for the request.                      |
+| language  | `inferenceGeo`                  | Where model inference runs.                        |
+| language  | `fallbacks`                     | Server-side fallback models.                       |
+| language  | `anthropicBeta`                 | Additional beta features to enable.                |
+| language  | `safeguards`                    | Server-side safeguards to run.                     |
+| language  | `compaction`                    | On-demand conversation summary.                    |
+| language  | `contextManagement`             | Server-side context management.                    |
 
 {/* model-capabilities:anthropic-aws-provider-options:end */}
