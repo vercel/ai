@@ -900,6 +900,7 @@ const openaiResponsesModeledChunkTypes = new Set([
   'response.reasoning_summary_part.added',
   'response.reasoning_summary_part.done',
   'response.reasoning_summary_text.delta',
+  'response.reasoning_text.delta',
 ]);
 
 /**
@@ -1523,6 +1524,12 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
         item_id: z.string(),
         output_index: z.number().nullish(),
         summary_index: z.number(),
+        delta: z.string(),
+      }),
+      z.object({
+        type: z.literal('response.reasoning_text.delta'),
+        item_id: z.string(),
+        output_index: z.number().nullish(),
         delta: z.string(),
       }),
       z.object({

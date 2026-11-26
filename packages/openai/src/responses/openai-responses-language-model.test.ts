@@ -11721,6 +11721,153 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('reasoning', () => {
+      it.each([
+        { name: 'raw text only', sources: ['text'] },
+        { name: 'raw text before summary', sources: ['text', 'summary'] },
+        { name: 'summary before raw text', sources: ['summary', 'text'] },
+      ] as const)(
+        'should stream reasoning once with $name',
+        async ({ sources }) => {
+          const response = {
+            id: 'resp_1',
+            object: 'response',
+            created_at: 0,
+            status: 'in_progress',
+            model: 'example-model',
+            output: [],
+            usage: null,
+          };
+          const reasoning = {
+            id: 'rs_1',
+            type: 'reasoning',
+            summary: [],
+            content: [{ type: 'reasoning_text', text: '' }],
+          };
+          const message = {
+            id: 'msg_1',
+            type: 'message',
+            role: 'assistant',
+            status: 'completed',
+            content: [{ type: 'output_text', text: '4', annotations: [] }],
+          };
+          const reasoningText = 'The user asks for 2 + 2.';
+          const reasoningPart = { item_id: 'rs_1', output_index: 0 };
+          const textPart = { ...reasoningPart, content_index: 0 };
+          const summaryPart = { ...reasoningPart, summary_index: 0 };
+          const textDeltas = ['The user asks ', 'for 2 + 2.'];
+          const summaryDeltas = ['The user ', 'asks for 2 + 2.'];
+          const reasoningEvents = {
+            text: [
+              ...textDeltas.map(delta => ({
+                type: 'response.reasoning_text.delta',
+                ...textPart,
+                delta,
+              })),
+              {
+                type: 'response.reasoning_text.done',
+                ...textPart,
+                text: reasoningText,
+              },
+            ],
+            summary: [
+              { type: 'response.reasoning_summary_part.added', ...summaryPart },
+              ...summaryDeltas.map(delta => ({
+                type: 'response.reasoning_summary_text.delta',
+                ...summaryPart,
+                delta,
+              })),
+              { type: 'response.reasoning_summary_part.done', ...summaryPart },
+            ],
+          };
+          const events = [
+            { type: 'response.created', response },
+            {
+              type: 'response.output_item.added',
+              output_index: 0,
+              item: reasoning,
+            },
+            ...sources.flatMap<{ type: string }>(
+              source => reasoningEvents[source],
+            ),
+            {
+              type: 'response.output_item.done',
+              output_index: 0,
+              item: {
+                ...reasoning,
+                status: 'completed',
+                content: [{ type: 'reasoning_text', text: reasoningText }],
+              },
+            },
+            {
+              type: 'response.output_item.added',
+              output_index: 1,
+              item: { ...message, status: 'in_progress', content: [] },
+            },
+            {
+              type: 'response.output_text.delta',
+              item_id: 'msg_1',
+              output_index: 1,
+              content_index: 0,
+              delta: '4',
+              logprobs: [],
+            },
+            {
+              type: 'response.output_item.done',
+              output_index: 1,
+              item: message,
+            },
+            {
+              type: 'response.completed',
+              response: {
+                ...response,
+                status: 'completed',
+                usage: {
+                  input_tokens: 10,
+                  input_tokens_details: { cached_tokens: 0 },
+                  output_tokens: 8,
+                  output_tokens_details: { reasoning_tokens: 6 },
+                  total_tokens: 18,
+                },
+              },
+            },
+          ];
+
+          server.urls['https://api.openai.com/v1/responses'].response = {
+            type: 'stream-chunks',
+            chunks: events.map(
+              (event, sequence_number) =>
+                `event: ${event.type}\ndata: ${JSON.stringify({ ...event, sequence_number })}\n\n`,
+            ),
+          };
+
+          const { stream } = await createModel('example-model').doStream({
+            prompt: TEST_PROMPT,
+            providerOptions: { openai: { store: true } },
+          });
+
+          const parts = await convertReadableStreamToArray(stream);
+          const expectedDeltas =
+            sources[0] === 'text' ? textDeltas : summaryDeltas;
+          expect(parts.filter(part => part.type === 'error')).toEqual([]);
+          expect(
+            parts.filter(
+              part =>
+                part.type.startsWith('reasoning-') ||
+                part.type === 'text-delta',
+            ),
+          ).toMatchObject([
+            { type: 'reasoning-start', id: 'rs_1:0' },
+            ...expectedDeltas.map(delta => ({
+              type: 'reasoning-delta',
+              id: 'rs_1:0',
+              delta,
+            })),
+            { type: 'reasoning-end', id: 'rs_1:0' },
+            { type: 'text-delta', id: 'msg_1', delta: '4' },
+          ]);
+        },
+      );
+
       it('should correlate rotated item ids by output index', async () => {
         // Captured from GitHub Copilot's Responses API with gpt-5.3-codex on
         // 2026-08-06. Opaque ids and encrypted content were sanitized while
