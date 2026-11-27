@@ -1474,6 +1474,123 @@ for await (const part of result.stream) {
 }
 ```
 
+#### Tako Contents
+
+The Tako Contents tool fetches the data behind one Tako result using [Tako's Contents API](https://docs.tako.com/documentation/integrating-tako/contents/overview). Pass it a card's `webpage_url` to get the card's rows, or a web result's `url` to get the page's extracted text. This tool is executed by the AI Gateway. Use it with Tako Search, so the model can search first and then fetch the results it needs:
+
+```ts
+import { gateway, generateText, isStepCount } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-5.4-nano',
+  prompt:
+    'Find a Tako card for Nvidia quarterly revenue, fetch its rows, and report the largest quarter-over-quarter increase.',
+  tools: {
+    tako_search: gateway.tools.takoSearch(),
+    tako_contents: gateway.tools.takoContents(),
+  },
+  stopWhen: isStepCount(5),
+});
+
+console.log(result.text);
+```
+
+Content is returned inline by default, and the AI Gateway caps a model-requested inline export at 2,000 rows. A long card export can fill the model's context. To keep the data out of context, set `mode: 'url'`. Each content item then carries a signed download link in `url`, and your application saves the file:
+
+```ts
+import { writeFile } from 'node:fs/promises';
+import { gateway, generateText, isStepCount } from 'ai';
+import { guardedFetch } from 'guarded-fetch';
+
+const result = await generateText({
+  model: 'openai/gpt-5.4-nano',
+  prompt:
+    'Find a Tako card for US monthly unemployment since 1990 and export its data.',
+  tools: {
+    tako_search: gateway.tools.takoSearch(),
+    tako_contents: gateway.tools.takoContents({
+      mode: 'url',
+      contentFormat: 'csv',
+      maxRows: 10_000,
+      maxCostUsd: 0.5,
+    }),
+  },
+  stopWhen: isStepCount(3),
+});
+
+for (const toolResult of result.steps.flatMap(step => step.toolResults)) {
+  if (toolResult.dynamic || toolResult.toolName !== 'tako_contents') continue;
+  if ('error' in toolResult.output) continue;
+
+  for (const item of toolResult.output.contents ?? []) {
+    if (item.delivery !== 'url' || !item.url) continue;
+    const response = await guardedFetch(item.url, { httpsOnly: true });
+    if (!response.ok) throw new Error(`Download failed: ${response.status}`);
+    await writeFile('unemployment.csv', await response.text());
+  }
+}
+```
+
+The download link comes from a tool result, so a server that fetches it should treat it as untrusted input. `guardedFetch` blocks private network addresses and checks every redirect; see [Secure URL Fetching](/docs/advanced/secure-url-fetching).
+
+A card export is billed at the card's `content.export_pricing`: a baseline plus a rate per 1,000 exported rows. Revealing premium cells costs more, and a card whose `export_pricing.variable_cost_max_usd` is set can add a variable-cost charge of up to that amount. Set `quote_only` to get an export's price for free before requesting it. See [Tako's Contents pricing](https://docs.tako.com/documentation/integrating-tako/contents/pricing) for the rates.
+
+The Tako Contents tool supports these optional configuration options. They override values the model includes in a tool call. `premium`, `maxCostUsd`, and `extraBody` are developer-only: the model can't see or set them.
+
+- **mode** _'inline' | 'url'_ - Delivery mode. `'inline'`, the default, returns the content in the tool result. `'url'` returns a signed download link that expires after a few minutes. A `'url'` export without `maxRows` exports and bills the whole card, up to 100,000 rows.
+- **contentFormat** _'csv' | 'json_compact' | 'json_records' | 'card_json'_ - Serialization for card data. `'card_json'` returns the card's own structure, and not every card type supports it. Web pages always return text.
+- **maxRows** _number_ - Row cap per card export. A card with a date column keeps its newest rows. A data surcharge applies per 1,000 exported rows, so lower values cost less. The 2,000-row inline cap applies only to a value the model sets, not to this one. Web pages ignore it.
+- **maxChars** _number_ - Character cap on a web page's full extracted text. Omit it to return the whole page. It doesn't apply to highlights, which use `highlights.max_characters`. Tako cards ignore it.
+- **premium** _boolean_ - Reveal a card's premium cells and bill them. Defaults to `false`. Premium cells are otherwise withheld: a withheld cell reads `[premium: withheld]` in CSV and is `null` in JSON formats, and `redacted_cells` lists which rows held a value. With `premium: true`, the export charges `export_pricing.premium_row_cpm_usd` per 1,000 premium records on top of the row rate, and `premium_rows` counts those records. `'card_json'` rejects it, and web pages ignore it.
+- **maxCostUsd** _number_ - A limit on each export's quoted price, in USD, from 0 to 1,000,000.
+  - Defaults to `1`.
+  - Tako quotes the export before running it, the way `quote_only` does. When the quote is above the limit, the call fails with an `invalid_input` error and nothing is charged. The error may include the quoted price.
+  - It applies to exports only. A `quote_only` call ignores it, so it can price an export above the limit.
+  - The quote is an upper bound, so a call whose charge would have fit can be refused.
+  - Premium exports and large `'url'` exports usually need a higher limit.
+- **extraBody** _Record&lt;string, unknown&gt;_ - Extra Tako request fields, in snake_case, deep-merged into the request body last. It can't set a field the tool already models (the gateway answers `invalid_input`), and Tako rejects unknown keys, so a typo comes back as an `invalid_input` error. It's limited to 16,384 serialized characters.
+
+The model can also set these per call:
+
+- **offset** _number_ - Card rows to skip before the export starts. Use it with `max_rows` to page through a long list. Cards with a date column, sports cards, and `card_json` exports reject an offset above 0.
+- **highlights** _object_ - Return only the passages of a web page that answer `highlights.query`, instead of its full text. `highlights.max_characters` caps the passages, defaulting to 4,000 characters; `maxChars` doesn't apply to them.
+- **quote_only** _boolean_ - Return only the price of the export, without fetching content or charging for it. The item's `delivery` is `'quote'`, its `cost` is a price rather than a charge, and its payload and `url` fields are `null`.
+
+Each tool result contains a `request_id`, an optional `contents` array that normally holds one item, and, when Tako reports it, a `usage` object whose `total_cost_usd` is the call's charge. Each item carries the requested `source_url`, a `delivery` (currently `'inline'`, `'url'`, or `'quote'`; new values may be added), and the content fields Tako Search uses for a card's `content`. Card data can also include `array` columns, whose cells are arrays of objects, and `manifest` entries mark premium columns with `premium_class`.
+
+Tool failures, including a call refused by `maxCostUsd`, appear as `tool-error` parts in `result.content` (for `generateText`) or `result.stream` (for `streamText`).
+
+The tool works with both `generateText` and `streamText`:
+
+```ts
+import { gateway, isStepCount, streamText } from 'ai';
+
+const result = streamText({
+  model: 'openai/gpt-5.4-nano',
+  prompt:
+    'Find recent reporting on US inflation, read the passages of the most relevant article that discuss the next Fed meeting, and summarize them.',
+  tools: {
+    tako_search: gateway.tools.takoSearch(),
+    tako_contents: gateway.tools.takoContents(),
+  },
+  stopWhen: isStepCount(5),
+});
+
+for await (const part of result.stream) {
+  switch (part.type) {
+    case 'text-delta':
+      process.stdout.write(part.text);
+      break;
+    case 'tool-result':
+      console.log('\nTool result:', JSON.stringify(part, null, 2));
+      break;
+    case 'tool-error':
+      console.log('\nTool error:', JSON.stringify(part, null, 2));
+      break;
+  }
+}
+```
+
 #### Parallel Search
 
 The Parallel Search tool enables models to search the web using [Parallel AI's Search API](https://docs.parallel.ai/api-reference/search/search). The model provides a research objective and a few keyword queries, and the tool returns relevant excerpts from web pages, optimized for LLM consumption.

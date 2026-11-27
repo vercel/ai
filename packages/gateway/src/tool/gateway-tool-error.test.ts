@@ -7,6 +7,7 @@ describe('Gateway tool errors', () => {
     'deepseekFetch',
     'deepseekSearch',
     'parallelSearch',
+    'takoContents',
     'takoSearch',
   ] as const)(
     '%s preserves structured errors and additive fields',

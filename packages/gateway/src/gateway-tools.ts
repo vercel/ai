@@ -5,6 +5,7 @@ import { deepseekSearch } from './tool/deepseek-search';
 import { exaSearch } from './tool/exa-search';
 import { parallelSearch } from './tool/parallel-search';
 import { perplexitySearch } from './tool/perplexity-search';
+import { takoContents } from './tool/tako-contents';
 import { takoSearch } from './tool/tako-search';
 
 /**
@@ -66,6 +67,18 @@ export const gatewayTools = {
    * domain, language, date range, and recency filters.
    */
   perplexitySearch,
+
+  /**
+   * Fetch the data behind one Tako result: a Tako card's rows, or a web page's
+   * extracted text. Pairs with `takoSearch`.
+   *
+   * Supports inline delivery or a short-lived download link, card data
+   * formats, row paging, query-focused web passages, free price quotes, and a
+   * limit on each export's quoted price. A card export is billed per row at the card's
+   * `content.export_pricing`; see Tako's pricing page:
+   * https://docs.tako.com/documentation/integrating-tako/contents/pricing
+   */
+  takoContents,
 
   /**
    * Search the web and Tako's curated knowledge graph in one call for
