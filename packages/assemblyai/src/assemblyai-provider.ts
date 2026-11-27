@@ -10,6 +10,7 @@ import {
   loadApiKey,
   withUserAgentSuffix,
   type FetchFunction,
+  type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { AssemblyAISpeechModel } from './assemblyai-speech-model';
 import type { AssemblyAISpeechModelId } from './assemblyai-speech-settings';
@@ -58,6 +59,13 @@ export interface AssemblyAIProviderSettings {
    * or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
+
+  /**
+   * Custom WebSocket implementation for streaming transcription. Defaults to
+   * the global `WebSocket`; streaming authenticates with a temporary token in
+   * the URL, so no header support is needed.
+   */
+  webSocket?: WebSocketConstructor;
 }
 
 /**
@@ -87,6 +95,7 @@ export function createAssemblyAI(
       url: ({ path }) => `https://api.assemblyai.com${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      webSocket: options.webSocket,
     });
 
   const createSpeechModel = (modelId: AssemblyAISpeechModelId) =>

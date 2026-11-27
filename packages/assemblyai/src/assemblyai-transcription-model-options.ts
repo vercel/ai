@@ -59,7 +59,8 @@ export const assemblyaiTranscriptionModelOptionsSchema = lazySchema(() =>
       disfluencies: z.boolean().nullish(),
       /**
        * Enable a domain-specific model to improve accuracy for specialized
-       * terminology. Currently supports `'medical-v1'` (Medical Mode).
+       * terminology: `'medical-v1'` (Medical Mode) or `'veterinary-v1'`
+       * (Veterinary Mode, beta).
        */
       domain: z.string().nullish(),
       /**
@@ -117,8 +118,9 @@ export const assemblyaiTranscriptionModelOptionsSchema = lazySchema(() =>
        */
       multichannel: z.boolean().nullish(),
       /**
-       * Provide natural-language context (up to 1,500 words) to steer the model.
-       * Only supported by `assemblyai-stt-3-7` and `universal-3-5-pro`.
+       * Provide natural-language context to steer the model: up to 1,500 words
+       * for `assemblyai-stt-3-7` and `universal-3-5-pro`, or up to 1,750
+       * characters for streaming models.
        */
       prompt: z.string().nullish(),
       /**
@@ -200,6 +202,84 @@ export const assemblyaiTranscriptionModelOptionsSchema = lazySchema(() =>
        * Threshold for speech detection (0-1).
        */
       speechThreshold: z.number().min(0).max(1).nullish(),
+      /**
+       * Options for streaming transcription over the Streaming v3 WebSocket
+       * (`experimental_streamTranscribe`). Ignored by `transcribe`.
+       *
+       * @see https://www.assemblyai.com/docs/streaming/turn-detection
+       */
+      streaming: z
+        .object({
+          /**
+           * Latency and accuracy preset that sets the turn-detection defaults
+           * (`min_turn_silence`, `max_turn_silence`, `interruption_delay`).
+           * The server applies `'balanced'` when unset.
+           */
+          mode: z.enum(['min_latency', 'balanced', 'max_accuracy']).optional(),
+          /**
+           * Silence in milliseconds before the model checks whether the turn
+           * is complete. The server clamps it to 50-10000 ms.
+           */
+          minTurnSilence: z.number().int().nonnegative().optional(),
+          /**
+           * Maximum silence in milliseconds before the turn is forced to end.
+           */
+          maxTurnSilence: z.number().int().positive().optional(),
+          /**
+           * Confidence (0-1) required to classify an audio frame as speech.
+           * Raise it in noisy environments.
+           */
+          vadThreshold: z.number().min(0).max(1).optional(),
+          /**
+           * How soon in milliseconds (0-1000) after speech begins the first
+           * partial is emitted. Tunes voice-agent barge-in responsiveness.
+           */
+          interruptionDelay: z.number().int().min(0).max(1000).optional(),
+          /**
+           * Whether to emit `transcript-partial` parts. Defaults to `true`, or
+           * to `false` when `redactPii` is enabled (only final turns are
+           * redacted).
+           */
+          includePartialTurns: z.boolean().optional(),
+          /**
+           * Your voice agent's most recent spoken reply. The model uses it as
+           * context for the next user turn, which helps with short or
+           * ambiguous answers and spelled-out entities. Max 1750 characters.
+           */
+          agentContext: z.string().max(1750).optional(),
+          /**
+           * Number of prior turns (0-100) carried forward as context. `0`
+           * disables context carryover. Most integrations should leave it
+           * unset.
+           */
+          previousContextNTurns: z.number().int().min(0).max(100).optional(),
+          /**
+           * Language codes to steer transcription toward, e.g. `['en', 'es']`
+           * (max 10). When unset, the model code-switches natively.
+           */
+          languageCodes: z.array(z.string()).max(10).optional(),
+          /**
+           * Hard cap (1-10) on the number of speaker labels. Requires
+           * `speakerLabels`.
+           */
+          maxSpeakers: z.number().int().min(1).max(10).optional(),
+          /**
+           * Voice Focus isolates the primary voice and suppresses background
+           * noise: `'near-field'` for headsets and phones, `'far-field'` for
+           * distant microphones.
+           */
+          voiceFocus: z.enum(['near-field', 'far-field']).optional(),
+          /**
+           * How aggressively Voice Focus suppresses background audio (0-1).
+           * Requires `voiceFocus`.
+           */
+          voiceFocusThreshold: z.number().min(0).max(1).optional(),
+          /**
+           * Seconds of inactivity (5-3600) before the server ends the session.
+           */
+          inactivityTimeout: z.number().int().min(5).max(3600).optional(),
+        })
+        .optional(),
       /**
        * Whether to generate a summary of the transcription.
        */

@@ -1,4 +1,5 @@
 import type {
+  ModelCapability,
   ModelEntry,
   ProviderOptionDefinition,
   ProviderOptionDefinitions,
@@ -58,7 +59,7 @@ export const assemblyaiProviderOptions = {
     },
     domain: {
       description:
-        "Enable a domain-specific model to improve accuracy for specialized terminology. Currently supports `'medical-v1'` (Medical Mode).",
+        "Enable a domain-specific model to improve accuracy for specialized terminology: `'medical-v1'` (Medical Mode) or `'veterinary-v1'` (Veterinary Mode, beta).",
     },
     entityDetection: { description: 'Whether to enable entity detection.' },
     filterProfanity: {
@@ -73,7 +74,7 @@ export const assemblyaiProviderOptions = {
     },
     keytermsPrompt: {
       description:
-        'Domain-specific keyterms to boost recognition for (max 6 words per phrase). Replaces `wordBoost` for newer models: supported by `assemblyai-stt-3-7` and `universal-3-5-pro` (and `universal-2` when metaphone is enabled for the account).',
+        'Domain-specific keyterms to boost recognition for (max 6 words per phrase). Replaces `wordBoost` for newer models: supported by `assemblyai-stt-3-7`, `universal-3-5-pro`, and the streaming models (up to 100 terms), and by `universal-2` when metaphone is enabled for the account.',
     },
     languageCode: { description: 'Language code for the transcription.' },
     languageConfidenceThreshold: {
@@ -86,7 +87,7 @@ export const assemblyaiProviderOptions = {
     multichannel: { description: 'Whether to process audio as multichannel.' },
     prompt: {
       description:
-        'Provide natural-language context (up to 1,500 words) to steer the model. Only supported by `assemblyai-stt-3-7` and `universal-3-5-pro`.',
+        'Provide natural-language context to steer the model: up to 1,500 words for `assemblyai-stt-3-7` and `universal-3-5-pro`, or up to 1,750 characters for streaming models.',
     },
     punctuate: {
       description: 'Whether to add punctuation to the transcription.',
@@ -127,6 +128,10 @@ export const assemblyaiProviderOptions = {
       description: 'Number of speakers expected in the audio.',
     },
     speechThreshold: { description: 'Threshold for speech detection (0-1).' },
+    streaming: {
+      description:
+        'Options for streaming transcription over the Streaming v3 WebSocket: turn detection (`mode`, `minTurnSilence`, `maxTurnSilence`, `vadThreshold`, `interruptionDelay`), `agentContext`, `languageCodes`, `voiceFocus`, `maxSpeakers`, and more.',
+    },
     summarization: {
       description: 'Whether to generate a summary of the transcription.',
     },
@@ -152,64 +157,147 @@ export const assemblyaiProviderOptions = {
 
 export const assemblyaiTranscriptionModelIds = [
   'assemblyai-stt-3-7',
+  'assemblyai-stt-3-7-realtime',
+  'assemblyai-stt-3-7-realtime-agent',
   'universal-2',
   'universal-3-5-pro',
+  'universal-3-6-pro',
 ] as const;
 
+/**
+ * Pre-recorded models run on the `/v2/transcript` REST API through
+ * `transcribe`; streaming models run on the Streaming v3 WebSocket through
+ * `experimental_streamTranscribe`. The deprecated `universal-3-5-pro` is still
+ * accepted by both.
+ */
 const modelPolicies: Record<
   string,
   {
+    api: 'pre-recorded' | 'streaming' | 'both';
     deprecated?: boolean;
     replacementWarning?: string;
     prompted?: boolean;
   }
 > = {
-  'assemblyai-stt-3-7': { prompted: true },
+  'assemblyai-stt-3-7': { api: 'pre-recorded', prompted: true },
+  'assemblyai-stt-3-7-realtime': { api: 'streaming' },
+  'assemblyai-stt-3-7-realtime-agent': { api: 'streaming' },
   'universal-2': {
+    api: 'pre-recorded',
     replacementWarning:
       "'assemblyai-stt-3-7' is AssemblyAI's latest flagship model; 'universal-2' remains available for languages it does not support.",
   },
-  'universal-3-5-pro': { prompted: true, deprecated: true },
+  'universal-3-5-pro': {
+    api: 'both',
+    prompted: true,
+    deprecated: true,
+  },
+  'universal-3-6-pro': { api: 'streaming' },
 };
+
+/**
+ * Top-level transcription options that also apply to streaming sessions.
+ * Every other top-level option only applies to pre-recorded transcription.
+ */
+export const assemblyaiStreamingSharedOptionKeys = [
+  'domain',
+  'filterProfanity',
+  'keytermsPrompt',
+  'languageCode',
+  'languageDetection',
+  'prompt',
+  'redactPii',
+  'redactPiiPolicies',
+  'redactPiiSub',
+  'speakerLabels',
+] as const satisfies ReadonlyArray<keyof AssemblyAITranscriptionModelOptions>;
+
+function getStreamingTranscriptionProviderOptions(): Record<
+  string,
+  ModelCapability
+> {
+  return {
+    ...Object.fromEntries(
+      Object.keys(assemblyaiProviderOptions.transcription).map(
+        key => [key, false] as const,
+      ),
+    ),
+    ...Object.fromEntries(
+      assemblyaiStreamingSharedOptionKeys.map(key => [key, true] as const),
+    ),
+    streaming: true,
+    domain: {
+      condition: 'Requires an account with Medical or Veterinary Mode enabled.',
+    },
+    redactPiiPolicies: { condition: 'Requires redactPii.' },
+    redactPiiSub: { condition: 'Requires redactPii.' },
+  };
+}
+
+function getPreRecordedTranscriptionProviderOptions(
+  known: boolean,
+  prompted: boolean,
+): Record<string, ModelCapability> {
+  return {
+    ...Object.fromEntries(
+      Object.keys(assemblyaiProviderOptions.transcription).map(
+        key => [key, known ? true : 'unknown'] as const,
+      ),
+    ),
+    prompt: known ? prompted : 'unknown',
+    temperature: known ? prompted : 'unknown',
+    removeAudioTags: known ? prompted : 'unknown',
+    wordBoost: known ? !prompted : 'unknown',
+    boostParam: known ? !prompted : 'unknown',
+    keytermsPrompt: prompted
+      ? true
+      : {
+          condition:
+            'Supported by Universal-2 when enabled for the account; use AssemblyAI-STT-3.7 otherwise.',
+        },
+    domain: {
+      condition: 'Requires a model and account with Medical Mode enabled.',
+    },
+    redactPiiReturnUnredacted: { condition: 'Requires redactPii.' },
+    redactStaticEntities: { condition: 'Requires redactPii.' },
+    redactPiiAudioOptions: { condition: 'Requires redactPiiAudio.' },
+    streaming: known ? false : 'unknown',
+  };
+}
+
 export function getAssemblyAITranscriptionModelEntry(modelId: string) {
   const policy = modelPolicies[modelId];
   const known = policy != null;
-  const prompted = policy?.prompted ?? false;
+  const streamingOnly = policy?.api === 'streaming';
+  const streaming = policy?.api === 'streaming' || policy?.api === 'both';
   return {
     capabilities: {
       transcription: {
-        transcription: true,
-        streaming: false,
+        transcription: !streamingOnly,
+        streaming: known ? streaming : 'unknown',
         duration: true,
         segments: true,
-        language: true,
+        language: streamingOnly
+          ? { condition: 'Returned when languageDetection is enabled.' }
+          : true,
       },
     },
     providerOptions: {
-      transcription: {
-        ...Object.fromEntries(
-          Object.keys(assemblyaiProviderOptions.transcription).map(
-            key => [key, known ? true : 'unknown'] as const,
-          ),
-        ),
-        prompt: known ? prompted : 'unknown',
-        temperature: known ? prompted : 'unknown',
-        removeAudioTags: known ? prompted : 'unknown',
-        wordBoost: known ? !prompted : 'unknown',
-        boostParam: known ? !prompted : 'unknown',
-        keytermsPrompt: prompted
-          ? true
-          : {
-              condition:
-                'Supported by Universal-2 when enabled for the account; use AssemblyAI-STT-3.7 otherwise.',
-            },
-        domain: {
-          condition: 'Requires a model and account with Medical Mode enabled.',
-        },
-        redactPiiReturnUnredacted: { condition: 'Requires redactPii.' },
-        redactStaticEntities: { condition: 'Requires redactPii.' },
-        redactPiiAudioOptions: { condition: 'Requires redactPiiAudio.' },
-      },
+      transcription: streamingOnly
+        ? getStreamingTranscriptionProviderOptions()
+        : {
+            ...getPreRecordedTranscriptionProviderOptions(
+              known,
+              policy?.prompted ?? false,
+            ),
+            ...(streaming
+              ? {
+                  streaming: {
+                    condition: 'Streaming transcription only (deprecated).',
+                  },
+                }
+              : {}),
+          },
     },
     requestConfig: {
       transcription: {

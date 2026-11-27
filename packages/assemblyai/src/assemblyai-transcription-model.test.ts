@@ -266,6 +266,17 @@ describe('doGenerate', () => {
     };
   }
 
+  it('should reject streaming models without calling the API', async () => {
+    await expect(
+      provider
+        .transcription('assemblyai-stt-3-7-realtime-agent')
+        .doGenerate({ audio: audioData, mediaType: 'audio/wav' }),
+    ).rejects.toThrow(
+      "'assemblyai-stt-3-7-realtime-agent' is a streaming model. Use it with experimental_streamTranscribe, or use 'assemblyai-stt-3-7' with transcribe.",
+    );
+    expect(server.calls).toHaveLength(0);
+  });
+
   it('should pass newer models via the speech_models parameter', async () => {
     prepareJsonResponse();
 
