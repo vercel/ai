@@ -1032,4 +1032,32 @@ console.log(text);`,
     websiteUrl: 'https://upstash.com',
     npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
   },
+  {
+    slug: 'fidemcheck',
+    name: 'Fidem',
+    description:
+      'Check which company operates an online shop before your agent pays. Returns the company the site claims to be and whether it is in an official register (EU VIES, UK Companies House), domain age, TLS certificate, return window and open phishing lists, each with its source. Free, no API key.',
+    packageName: '@fidemcheck/ai-sdk',
+    tags: ['security', 'payments', 'commerce'],
+    installCommand: {
+      pnpm: 'pnpm add @fidemcheck/ai-sdk',
+      npm: 'npm install @fidemcheck/ai-sdk',
+      yarn: 'yarn add @fidemcheck/ai-sdk',
+      bun: 'bun add @fidemcheck/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { checkShop } from '@fidemcheck/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Before buying, check who runs tienda-demo.fidemcheck.com.',
+  tools: { checkShop: checkShop() },
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://fidemcheck.com/vercel-ai-sdk-check-online-shop.html',
+    websiteUrl: 'https://fidemcheck.com',
+    npmUrl: 'https://www.npmjs.com/package/@fidemcheck/ai-sdk',
+  },
 ];
