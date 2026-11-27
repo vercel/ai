@@ -22,17 +22,49 @@ import type {
 } from 'ai';
 import type { DownloadFunction, ProviderOptions } from './workflow-agent.js';
 
+/**
+ * Fields that relate a stream part to the executions of a model step. A model
+ * step can run more than once, and two executions can overlap. Readers use
+ * these fields to keep the parts of one execution only (see
+ * `createModelCallToUIChunkTransform`).
+ */
+interface ModelStepExecutionFields {
+  /** The execution of a model step that wrote this part. */
+  attemptId?: string;
+  /**
+   * The execution of the preceding model step that the workflow continued
+   * with. Set on the first part that the workflow writes once the model step
+   * has returned.
+   */
+  commitAttemptId?: string;
+}
+
+type WithModelStepExecution<PART> = PART extends unknown
+  ? PART & ModelStepExecutionFields
+  : never;
+
 export type ModelCallStreamPart<TTools extends ToolSet = ToolSet> =
-  | LanguageModelStreamPart<TTools>
-  | {
-      type: 'tool-approval-request';
-      approvalId: string;
-      toolCallId: string;
-      signature?: string;
-      /** Raw input before the original tool schema transformed it. */
-      inputSchemaInput?: unknown;
-    }
-  | { type: 'reset-step' };
+  | WithModelStepExecution<
+      | LanguageModelStreamPart<TTools>
+      | {
+          type: 'tool-approval-request';
+          approvalId: string;
+          toolCallId: string;
+          signature?: string;
+          /** Raw input before the original tool schema transformed it. */
+          inputSchemaInput?: unknown;
+        }
+    >
+  /**
+   * Starts an execution of a model step. Parts that an earlier execution of
+   * the same model call wrote are no longer valid.
+   */
+  | ({ type: 'reset-step' } & ModelStepExecutionFields)
+  /**
+   * Carries `commitAttemptId` when the workflow has no other part to write
+   * after a model step.
+   */
+  | { type: 'commit-step'; commitAttemptId: string; attemptId?: undefined };
 
 export type ModelStopCondition = StopCondition<NoInfer<ToolSet>, any>;
 
@@ -256,6 +288,11 @@ export type ModelCallResult =
   | {
       aborted?: false;
       timing?: ModelCallTiming;
+      /**
+       * Execution of the model step that produced this result, as written on
+       * its stream parts. Present only on streamed results that recorded it.
+       */
+      attemptId?: string;
       toolCalls: ParsedToolCall[];
       finish: ModelCallFinish | undefined;
       raw: ModelCallRawResult;

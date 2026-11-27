@@ -586,7 +586,9 @@ describe('WorkflowAgent stream completion contract', () => {
 
       expect(model.doStreamCalls[0].includeRawChunks).toBe(includeRawChunks);
       expect(parts.filter(part => part.type === 'raw')).toEqual(
-        includeRawChunks ? [{ type: 'raw', rawValue }] : [],
+        includeRawChunks
+          ? [{ type: 'raw', rawValue, attemptId: expect.any(String) }]
+          : [],
       );
       expect(
         parts

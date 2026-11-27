@@ -603,8 +603,10 @@ export async function* modelCallIterator({
         abortSignal: currentGenerationSettings.abortSignal,
       });
       if (mode === 'stream' && writable != null) {
-        // Replace the tool-call chunk deferred inside the model step with the
-        // original schema's validated, normalized, or repaired result.
+        // Name the execution of the model step whose result this workflow
+        // continues with, then replace the tool-call chunk deferred inside the
+        // model step with the original schema's validated, normalized, or
+        // repaired result.
         await writeDeferredToolCalls(
           writable,
           toolCalls.filter(
@@ -612,6 +614,7 @@ export async function* modelCallIterator({
               serializedTools[serializedToolCalls[index].toolName]
                 ?.hasOwnValidator,
           ),
+          modelCallResult.attemptId,
         );
       }
       await invokeToolInputLifecycleCallbacks({
@@ -1036,23 +1039,39 @@ async function repairToolCallInStep({
 async function writeDeferredToolCalls(
   writable: WritableStream<ModelCallStreamPart<ToolSet>>,
   toolCalls: ParsedToolCall[],
+  committedAttemptId?: string,
 ) {
   'use step';
+  const parts: Array<ModelCallStreamPart<ToolSet>> = [];
+  for (const toolCall of toolCalls) {
+    parts.push(toolCall as ModelCallStreamPart<ToolSet>);
+    // Match streamModelCall, which follows an invalid call with a tool-error.
+    if (toolCall.invalid && !toolCall.providerExecuted) {
+      parts.push({
+        type: 'tool-error',
+        toolCallId: toolCall.toolCallId,
+        toolName: toolCall.toolName,
+        input: toolCall.input,
+        error: getErrorMessage(toolCall.error),
+        dynamic: true,
+      } as ModelCallStreamPart<ToolSet>);
+    }
+  }
+
+  // Name the execution of the model step that the workflow continued with on
+  // the first part, so it costs no stream write of its own. Without another
+  // part to write, a part of its own carries it.
+  if (committedAttemptId != null) {
+    parts[0] =
+      parts.length > 0
+        ? { ...parts[0], commitAttemptId: committedAttemptId }
+        : { type: 'commit-step', commitAttemptId: committedAttemptId };
+  }
+
   const writer = writable.getWriter();
   try {
-    for (const toolCall of toolCalls) {
-      await writer.write(toolCall as ModelCallStreamPart<ToolSet>);
-      // Match streamModelCall, which follows an invalid call with a tool-error.
-      if (toolCall.invalid && !toolCall.providerExecuted) {
-        await writer.write({
-          type: 'tool-error',
-          toolCallId: toolCall.toolCallId,
-          toolName: toolCall.toolName,
-          input: toolCall.input,
-          error: getErrorMessage(toolCall.error),
-          dynamic: true,
-        } as ModelCallStreamPart<ToolSet>);
-      }
+    for (const part of parts) {
+      await writer.write(part);
     }
   } finally {
     writer.releaseLock();

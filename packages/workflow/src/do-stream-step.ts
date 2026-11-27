@@ -10,6 +10,7 @@ import {
   type ToolSet,
 } from 'ai';
 import { isOutputChunk, logWarnings, prepareRetries } from 'ai/internal';
+import { createIdGenerator } from '@ai-sdk/provider-utils';
 import { languageModelPromptToModelMessages } from './language-model-prompt-to-model-messages.js';
 import {
   createModelCallTimeouts,
@@ -24,6 +25,10 @@ import {
   type LanguageModelCallTelemetry,
 } from './model-call-telemetry.js';
 
+import {
+  asFatalModelStepError,
+  MODEL_STEP_MAX_RETRIES,
+} from './model-step-retries.js';
 import type {
   ModelCallFinish as StreamFinish,
   ModelCallOptions as DoStreamStepOptions,
@@ -59,24 +64,41 @@ export async function doStreamStep(
 ): Promise<DoStreamStepResult> {
   'use step';
 
-  return runModelCallWithTelemetry({
-    telemetry: options?.telemetry,
-    serializedTools,
-    execute: languageModelCallTelemetry =>
-      streamModelStep(
-        conversationPrompt,
-        modelInit,
-        writable,
-        serializedTools,
-        options,
-        languageModelCallTelemetry,
-      ),
-  });
+  try {
+    return await runModelCallWithTelemetry({
+      telemetry: options?.telemetry,
+      serializedTools,
+      execute: languageModelCallTelemetry =>
+        streamModelStep(
+          conversationPrompt,
+          modelInit,
+          writable,
+          serializedTools,
+          options,
+          languageModelCallTelemetry,
+        ),
+    });
+  } catch (error) {
+    // Model-call retries are handled below. A fatal failure keeps the
+    // workflow runtime from adding another retry layer around the step.
+    throw asFatalModelStepError(error);
+  }
 }
 
-// Model-call retries are handled below so the workflow runtime must not add
-// another retry layer around the durable step.
-doStreamStep.maxRetries = 0;
+doStreamStep.maxRetries = MODEL_STEP_MAX_RETRIES;
+
+// Short: the id is repeated on every part of a response, and it only has to
+// tell apart the executions of one model call.
+const generateAttemptId = createIdGenerator({ size: 8 });
+
+/** Where one execution of a model step writes its stream parts. */
+interface ModelStepOutput {
+  writer: WritableStreamDefaultWriter<ModelCallStreamPart<ToolSet>>;
+  /** Identifies this execution on every part it writes. */
+  attemptId: string;
+  /** Settles when the part that announces this execution was written. */
+  announced: Promise<void>;
+}
 
 async function streamModelStep(
   conversationPrompt: LanguageModelV4Prompt,
@@ -86,6 +108,54 @@ async function streamModelStep(
   options: DoStreamStepOptions | undefined,
   languageModelCallTelemetry: LanguageModelCallTelemetry | undefined,
 ): Promise<DoStreamStepResult> {
+  if (writable == null) {
+    return streamModelCallToOutput(
+      conversationPrompt,
+      modelInit,
+      undefined,
+      serializedTools,
+      options,
+      languageModelCallTelemetry,
+    );
+  }
+
+  // A model step can run more than once: the workflow runtime runs it again
+  // when an execution did not report its outcome, and an execution that the
+  // runtime has given up on can still be writing. Every part carries the id of
+  // the execution that wrote it, so a reader can keep one execution's parts.
+  const attemptId = generateAttemptId();
+  // Acquire the writer once to avoid per-chunk lock overhead.
+  const writer = writable.getWriter();
+  // Announce this execution before the model is called, so the write overlaps
+  // the provider request. It invalidates parts left by an earlier execution.
+  // Later writes are queued behind it; it is awaited before the first of them.
+  const announced = writer.write({ type: 'reset-step', attemptId });
+  announced.catch(() => {});
+
+  try {
+    return await streamModelCallToOutput(
+      conversationPrompt,
+      modelInit,
+      { writer, attemptId, announced },
+      serializedTools,
+      options,
+      languageModelCallTelemetry,
+    );
+  } finally {
+    writer.releaseLock();
+  }
+}
+
+async function streamModelCallToOutput(
+  conversationPrompt: LanguageModelV4Prompt,
+  modelInit: LanguageModel,
+  output: ModelStepOutput | undefined,
+  serializedTools: Record<string, SerializableToolDef> | undefined,
+  options: DoStreamStepOptions | undefined,
+  languageModelCallTelemetry: LanguageModelCallTelemetry | undefined,
+): Promise<DoStreamStepResult> {
+  const writer = output?.writer;
+  const attemptId = output?.attemptId;
   const timeout =
     options?.timeoutAt == null ? undefined : options.timeoutAt - Date.now();
 
@@ -139,7 +209,7 @@ async function streamModelStep(
   // streamModelCall derives the model responseFormat from its output spec.
   // WorkflowAgent parses output outside the model-call helper, so this minimal
   // output spec only carries the responseFormat across the step boundary.
-  const output =
+  const outputSpec =
     options?.responseFormat == null
       ? undefined
       : {
@@ -185,7 +255,7 @@ async function streamModelStep(
           abortSignal,
           headers: options?.headers,
           reasoning: options?.reasoning,
-          output,
+          output: outputSpec,
           maxOutputTokens: options?.maxOutputTokens,
           temperature: options?.temperature,
           topP: options?.topP,
@@ -244,22 +314,12 @@ async function streamModelStep(
   let hasReceivedOutputChunk = false;
   const ongoingToolCallToolNames = new Map<string, string>();
 
-  let writer:
-    | WritableStreamDefaultWriter<ModelCallStreamPart<ToolSet>>
-    | undefined;
-
   // The provider response stream has started. Like in streamText, the wait
   // for its first output chunk starts here.
   timeouts.startFirstChunkTimeout();
 
   try {
-    // Acquire writer once before the loop to avoid per-chunk lock overhead
-    writer = writable?.getWriter();
-
-    // A workflow step can be retried after already writing partial output.
-    // Reset the current UI step before every attempt so a retry invalidates
-    // chunks left behind by an earlier execution.
-    await writer?.write({ type: 'reset-step' });
+    await output?.announced;
 
     for await (const part of readUntilAborted(modelStream, abortSignal)) {
       // Only model output counts for the first-chunk and chunk timeouts.
@@ -463,6 +523,7 @@ async function streamModelStep(
             approvalId: part.approvalId,
             toolCallId: part.toolCall.toolCallId,
             ...(part.signature != null ? { signature: part.signature } : {}),
+            attemptId,
           });
         } else if (
           // The original schema must validate and normalize these calls outside
@@ -479,7 +540,7 @@ async function streamModelStep(
             serializedTools?.[part.toolName]?.hasOwnValidator
           )
         ) {
-          await writer.write(part);
+          await writer.write({ ...part, attemptId });
         }
       }
 
@@ -500,7 +561,6 @@ async function streamModelStep(
     throw error;
   } finally {
     timeouts.clear();
-    writer?.releaseLock();
   }
 
   if (
@@ -525,6 +585,7 @@ async function streamModelStep(
   });
 
   return {
+    ...(attemptId != null ? { attemptId } : {}),
     toolCalls,
     finish,
     raw: {

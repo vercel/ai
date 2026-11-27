@@ -4,7 +4,7 @@
 import { tool, type ModelMessage, type LanguageModelUsage } from 'ai';
 import { WorkflowAgent } from '../workflow-agent.js';
 import { mockTextModel, mockSequenceModel } from '../providers/mock.js';
-import { retryingModel } from './retrying-model.js';
+import { failingModel, retryingModel } from './retrying-model.js';
 import { createTestSandbox } from './test-sandbox.js';
 import { FatalError, getWritable } from 'workflow';
 import { z } from 'zod/v4';
@@ -66,6 +66,21 @@ export async function agentModelRetriesE2e() {
     writable: getWritable(),
   });
   return result.steps.at(-1)?.text;
+}
+
+export async function agentModelCallFailureE2e() {
+  'use workflow';
+  const agent = new WorkflowAgent({ model: failingModel() });
+  try {
+    await agent.stream({
+      messages: [{ role: 'user', content: 'fail the model call' }],
+      writable: getWritable(),
+    });
+    return { rejected: false as const };
+  } catch (error) {
+    const { name, message } = error as Error;
+    return { rejected: true as const, name, message };
+  }
 }
 
 export async function agentStreamErrorE2e() {

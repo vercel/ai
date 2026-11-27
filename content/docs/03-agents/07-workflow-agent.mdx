@@ -187,10 +187,10 @@ return createUIMessageStreamResponse({
 });
 ```
 
-The transform also forwards `reset-step` events emitted by `WorkflowAgent` on
-retries.
-Clients remove partial parts from the failed model-call step before processing
-the retried output.
+A model-call step can run more than once. The workflow runtime runs it again when an execution did not report its outcome, for example because the function instance was terminated during the model call, and two executions can overlap.
+Every execution writes a `reset-step` event before its output and tags its stream parts with an `attemptId`.
+The transform forwards `reset-step`, so clients remove the partial parts of the earlier execution, and it forwards the parts of one execution only: the latest one, or the one named by the `commitAttemptId` that `WorkflowAgent` writes on its next stream part once the model step has returned.
+If you read the raw `ModelCallStreamPart` stream without the transform, apply the same rule.
 
 ## Resumable Streaming with WorkflowChatTransport
 
@@ -996,7 +996,7 @@ const result = await agent.stream({
 });
 ```
 
-A number has the same meaning as `totalMs`. Inside a workflow, it sets an absolute deadline for model calls. Each model step checks it before dispatch, before SDK retry attempts, and after the provider returns. The same deadline remains in effect after a tool suspends and resumes. SDK `maxRetries` governs model retries; the durable model step does not add another retry layer. Expiration before dispatch rejects with `TimeoutError`; expiration during SDK retry backoff rejects with `AbortError`. Neither starts a new retry.
+A number has the same meaning as `totalMs`. Inside a workflow, it sets an absolute deadline for model calls. Each model step checks it before dispatch, before SDK retry attempts, and after the provider returns. The same deadline remains in effect after a tool suspends and resumes. SDK `maxRetries` governs model retries; the durable model step does not add another retry layer for failed model calls. The workflow runtime runs the model step again only when an execution did not report its outcome, which calls the model again. Expiration before dispatch rejects with `TimeoutError`; expiration during SDK retry backoff rejects with `AbortError`. Neither starts a new retry.
 
 The other values apply to one model call and start again for the next one:
 
