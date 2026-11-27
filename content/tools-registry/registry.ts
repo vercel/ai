@@ -1032,4 +1032,40 @@ console.log(text);`,
     websiteUrl: 'https://upstash.com',
     npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
   },
+  {
+    slug: 'sarj-ai',
+    name: 'Sarj AI',
+    description:
+      'Read call history, details, available transcripts, and post-call analysis from your Sarj AI organization. Four read-only tools for Arabic-first enterprise voice workflows, connected through authenticated MCP.',
+    packageName: '@sarj-ai/ai-sdk-tools',
+    tags: ['voice', 'calls', 'transcripts', 'analysis', 'mcp'],
+    apiKeyEnvName: 'SARJ_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @sarj-ai/ai-sdk-tools ai',
+      npm: 'npm install @sarj-ai/ai-sdk-tools ai',
+      yarn: 'yarn add @sarj-ai/ai-sdk-tools ai',
+      bun: 'bun add @sarj-ai/ai-sdk-tools ai',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+  import { createSarjTools } from '@sarj-ai/ai-sdk-tools';
+
+  const apiKey = process.env.SARJ_API_KEY;
+  if (!apiKey) throw new Error('Set SARJ_API_KEY to a calls:read credential.');
+  const sarj = await createSarjTools({ apiKey });
+  try {
+    const { text } = await generateText({
+      model: 'openai/gpt-5-mini',
+      tools: sarj.tools,
+      prompt: 'List my three most recent calls and summarize their statuses. Omit personal data.',
+      stopWhen: isStepCount(3),
+    });
+    console.log(text);
+  } finally {
+    await sarj.close();
+  }`,
+    docsUrl: 'https://platform-docs.sarj.ai/integrations/ai-sdk',
+    apiKeyUrl: 'https://platform.sarj.ai/api-keys',
+    websiteUrl: 'https://sarj.ai',
+    npmUrl: 'https://www.npmjs.com/package/@sarj-ai/ai-sdk-tools',
+  },
 ];
