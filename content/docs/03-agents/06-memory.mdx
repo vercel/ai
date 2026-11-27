@@ -327,6 +327,44 @@ The tools read `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` from the 
 
 See the [Upstash AgentKit provider documentation](/providers/community-providers/upstash-agentkit) for full setup and configuration. It also covers chat history, search tools for RAG, rate limiting, and tool caching.
 
+### Qdrant
+
+[Qdrant](https://qdrant.tech) is an open-source vector search engine. The [`qdrant-ai-sdk`](https://www.npmjs.com/package/qdrant-ai-sdk) package provides `qdrant-store` and `qdrant-find` tools, so the model decides what to save and when to look it up. Recall uses semantic search over the vectors of your embedding model, or over vectors that [Qdrant Cloud Inference](https://qdrant.tech/documentation/inference/cloud-inference/) creates.
+
+```bash
+pnpm add qdrant-ai-sdk @qdrant/js-client-rest
+```
+
+```ts
+__PROVIDER_IMPORT__;
+import { QdrantClient } from '@qdrant/js-client-rest';
+import { ToolLoopAgent } from 'ai';
+import { createQdrantTools } from 'qdrant-ai-sdk';
+
+const client = new QdrantClient({
+  url: process.env.QDRANT_URL,
+  apiKey: process.env.QDRANT_API_KEY,
+});
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  tools: createQdrantTools({
+    client,
+    collectionName: 'memories',
+    embeddingModel: 'openai/text-embedding-3-small',
+    scope: { userId: 'user-123' },
+  }),
+});
+
+const result = await agent.generate({
+  prompt: 'Remember that my favorite editor is Neovim',
+});
+```
+
+Create the `memories` collection first, with a vector size that matches the embedding model and a payload index on `metadata.userId`. The `scope` values are the tenant boundary, so take them from your authenticated session. In multi-user apps, call `createQdrantTools` inside your request handler so each request uses the right user. The package requires AI SDK 7 and works with any AI SDK provider.
+
+See the [Qdrant provider documentation](/providers/community-providers/qdrant) for full setup and configuration. It also covers payload indexes, Qdrant Cloud Inference, and search tools for RAG.
+
 ## Custom Tool
 
 Building your own memory tool from scratch is the most flexible approach. You control the storage format, the interface, and the retrieval logic. This requires the most upfront work but gives you full ownership of how memory works, with no provider lock-in and no external dependencies.
