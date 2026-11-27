@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
+import { HOST_TOOL_PREFIX, resolveHostToolName } from './host-tool-names';
 
 type Emit = (message: Record<string, unknown>) => void;
 
@@ -160,7 +161,6 @@ export function createClaudeStreamEventState(): ClaudeStreamEventState {
 }
 
 const UNRECOVERABLE_API_RETRY_STATUSES = new Set([401, 403, 404]);
-const HOST_TOOL_PREFIX = 'mcp__harness-tools__';
 const RAW_TASK_MESSAGE_SUBTYPES = new Set([
   'background_tasks_changed',
   'task_started',
@@ -182,6 +182,7 @@ export function createEmitStreamEvent({
   emitTerminalError,
   onCompactionBoundary,
   toCommonName,
+  toHostToolName = resolveHostToolName,
 }: {
   state: ClaudeStreamEventState;
   emit: Emit;
@@ -193,6 +194,7 @@ export function createEmitStreamEvent({
     tokensAfter?: number;
   }) => void;
   toCommonName: (nativeName: string) => string;
+  toHostToolName?: (nativeName: string) => string | undefined;
 }): (event: ClaudeMessage) => void {
   let streamStarted = false;
 
@@ -342,6 +344,7 @@ export function createEmitStreamEvent({
         state,
         send: emit,
         toCommonName,
+        toHostToolName,
       });
       return;
     }
@@ -362,8 +365,8 @@ export function createEmitStreamEvent({
             state.structuredOutputToolUseIds.add(block.id);
             continue;
           }
-          if (block.name.startsWith(HOST_TOOL_PREFIX)) {
-            const hostToolName = block.name.slice(HOST_TOOL_PREFIX.length);
+          const hostToolName = toHostToolName(block.name);
+          if (hostToolName !== undefined) {
             state.pendingStepToolUseIds.add(block.id);
             state.mcpToolCalls.set(block.id, {
               toolName: hostToolName,
@@ -731,12 +734,14 @@ function handleStreamEvent({
   state,
   send,
   toCommonName,
+  toHostToolName,
 }: {
   event: ClaudeMessage['event'] | undefined;
   message: ClaudeMessage;
   state: ClaudeStreamEventState;
   send: Emit;
   toCommonName: (nativeName: string) => string;
+  toHostToolName: (nativeName: string) => string | undefined;
 }): void {
   if (!event) return;
 
@@ -805,9 +810,7 @@ function handleStreamEvent({
       if (nativeName === 'AskUserQuestion') {
         return;
       }
-      const hostToolName = nativeName.startsWith(HOST_TOOL_PREFIX)
-        ? nativeName.slice(HOST_TOOL_PREFIX.length)
-        : undefined;
+      const hostToolName = toHostToolName(nativeName);
       const dynamic = isExternalMcpTool(nativeName);
       partialBlocks.set(index, { id, kind: 'tool-input' });
       send({
