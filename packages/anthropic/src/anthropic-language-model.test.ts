@@ -16327,6 +16327,121 @@ describe('computer toolset', () => {
     ]);
   });
 
+  describe('tools named like Object.prototype members', () => {
+    function prepareToolsetResponse() {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'json-value',
+        body: {
+          id: 'msg_toolset',
+          type: 'message',
+          role: 'assistant',
+          content: [{ type: 'text', text: 'Done.' }],
+          model: 'claude-opus-5-5',
+          stop_reason: 'end_turn',
+          stop_sequence: null,
+          usage: { input_tokens: 4, output_tokens: 30 },
+        },
+      };
+    }
+
+    async function getToolsetNames() {
+      const requestBody = await server.calls[0].requestBodyJson;
+      const blocks = requestBody.messages.flatMap((message: any) =>
+        Array.isArray(message.content) ? message.content : [],
+      );
+
+      return {
+        toolUse: blocks.find((block: any) => block.type === 'tool_use')
+          ?.toolset_name,
+        toolResult: blocks.find((block: any) => block.type === 'tool_result')
+          ?.toolset_name,
+      };
+    }
+
+    it.each(['lookup', 'constructor', 'toString', '__proto__'])(
+      'should send the toolset_name from provider metadata for a tool named %s',
+      async toolName => {
+        prepareToolsetResponse();
+
+        await provider('claude-opus-5-5').doGenerate({
+          prompt: [
+            { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'toolu_call',
+                  toolName,
+                  input: {},
+                  providerOptions: { anthropic: { toolsetName: 'computer' } },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'toolu_call',
+                  toolName,
+                  output: { type: 'text', value: 'ok' },
+                  providerOptions: { anthropic: { toolsetName: 'computer' } },
+                },
+              ],
+            },
+          ],
+        });
+
+        expect(await getToolsetNames()).toEqual({
+          toolUse: 'computer',
+          toolResult: 'computer',
+        });
+      },
+    );
+
+    it.each(['constructor', 'toString', '__proto__'])(
+      'should send the toolset_name of a toolset whose tool is named %s',
+      async toolName => {
+        prepareToolsetResponse();
+
+        await provider('claude-opus-5-5').doGenerate({
+          tools: [{ ...computerToolset, name: toolName }],
+          prompt: [
+            { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'toolu_call',
+                  toolName,
+                  input: { action: 'screenshot' },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'toolu_call',
+                  toolName,
+                  output: { type: 'text', value: 'ok' },
+                },
+              ],
+            },
+          ],
+        });
+
+        expect(await getToolsetNames()).toEqual({
+          toolUse: 'computer',
+          toolResult: 'computer',
+        });
+      },
+    );
+  });
+
   it('should send member configs', async () => {
     server.urls['https://api.anthropic.com/v1/messages'].response = {
       type: 'json-value',

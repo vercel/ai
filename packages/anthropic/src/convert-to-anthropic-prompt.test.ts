@@ -6462,6 +6462,56 @@ describe('toolsets', () => {
     ]);
   });
 
+  it.each(['constructor', 'toString', '__proto__'])(
+    'should use the provider metadata toolset name for a tool named %s when no toolsets are passed',
+    async toolName => {
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'toolu_call',
+                toolName,
+                input: {},
+                providerOptions: { anthropic: { toolsetName: 'computer' } },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'toolu_call',
+                toolName,
+                output: { type: 'text', value: 'OK' },
+                providerOptions: { anthropic: { toolsetName: 'computer' } },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result.prompt.messages[0].content).toEqual([
+        expect.objectContaining({
+          type: 'tool_use',
+          toolset_name: 'computer',
+        }),
+      ]);
+      expect(result.prompt.messages[1].content).toEqual([
+        expect.objectContaining({
+          type: 'tool_result',
+          toolset_name: 'computer',
+        }),
+      ]);
+    },
+  );
+
   it.each([
     { input: { coordinate: [1, 2] }, toolName: 'computer' },
     { input: { action: null, coordinate: [1, 2] }, toolName: 'computer' },
