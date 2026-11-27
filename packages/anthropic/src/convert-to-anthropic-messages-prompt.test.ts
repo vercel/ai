@@ -854,6 +854,71 @@ describe('system messages', () => {
     });
   });
 
+  it('should not add the cache control of a system message to a tool definition that has its own', async () => {
+    const definition = {
+      name: 'get_forecast',
+      description: 'Get forecast',
+      input_schema: { type: 'object' as const },
+      cache_control: { type: 'ephemeral' as const },
+    };
+    const cacheControlValidator = new CacheControlValidator();
+
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        { role: 'system', content: 'initial' },
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            anthropic: {
+              cacheControl: { type: 'ephemeral' },
+              toolChanges: [
+                {
+                  type: 'tool_addition',
+                  tool: {
+                    type: 'function',
+                    name: 'get_forecast',
+                    description: 'Get forecast',
+                    inputSchema: { type: 'object' },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+      cacheControlValidator,
+      convertInlineTool: async () => ({
+        definition,
+        warnings: [],
+        betas: new Set(),
+      }),
+    });
+
+    expect(result.prompt.messages.at(-1)).toStrictEqual({
+      role: 'system',
+      content: [
+        {
+          type: 'tool_addition',
+          tool: { type: 'tool_definition', definition },
+        },
+      ],
+    });
+    // the skipped marker does not count toward the breakpoint limit
+    for (let i = 0; i < 4; i++) {
+      expect(
+        cacheControlValidator.getCacheControl(
+          { anthropic: { cacheControl: { type: 'ephemeral' } } },
+          { type: 'test', canCache: true },
+        ),
+      ).toEqual({ type: 'ephemeral' });
+    }
+  });
+
   describe('a system message after other messages with no system message before it', () => {
     const prompt: LanguageModelV3Prompt = [
       { role: 'user', content: [{ type: 'text', text: 'hi' }] },

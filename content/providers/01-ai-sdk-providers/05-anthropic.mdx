@@ -1653,6 +1653,11 @@ when it follows other messages. To keep such a message in place, for example a
 reminder appended to a conversation that has no initial instructions, set
 `providerOptions.anthropic.midConversationSystemMessages: true` on the request.
 
+Use the same value on every request of a conversation. Changing it moves the
+message between the top-level `system` field and `messages`, so the next request
+misses the prompt cache, and thinking blocks from earlier turns can fail
+Anthropic's [prefix check](https://platform.claude.com/docs/en/build-with-claude/preserved-thinking/prefix-checks).
+
 A `cacheControl` provider option on a mid-conversation system message marks
 its text block. When the message has no text and only carries `toolChanges`,
 it marks the last tool change instead.
