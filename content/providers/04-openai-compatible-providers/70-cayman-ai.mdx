@@ -1,0 +1,93 @@
+---
+title: Cayman AI
+description: Use the Cayman AI OpenAI-compatible API with the AI SDK.
+---
+
+# Cayman AI Provider
+
+[Cayman AI](https://willdebonaire.github.io/cayman-ai-site/) provides OpenAI-compatible access to a catalog of text models through a single endpoint.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Create a Cayman AI API key and set it as a server-side environment variable:
+
+```bash
+export CAYMAN_AI_API_KEY=your-api-key
+```
+
+## Provider Instance
+
+Create a Cayman AI provider instance with `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const cayman = createOpenAICompatible({
+  name: 'cayman-ai',
+  apiKey: process.env.CAYMAN_AI_API_KEY,
+  baseURL: 'http://50.114.206.42:18473/v1',
+  includeUsage: true,
+});
+```
+
+The `apiKey` setting sends your key as a Bearer token in the `Authorization` header.
+
+## Language Models
+
+Create a language model by passing a Cayman AI model ID to the provider instance:
+
+```ts
+const model = cayman('deepseek/deepseek-v4.1-flash');
+```
+
+The full model list is available from the models endpoint:
+
+```bash
+curl http://50.114.206.42:18473/v1/models
+```
+
+### Generate Text
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const cayman = createOpenAICompatible({
+  name: 'cayman-ai',
+  apiKey: process.env.CAYMAN_AI_API_KEY,
+  baseURL: 'http://50.114.206.42:18473/v1',
+});
+
+const { text } = await generateText({
+  model: cayman('deepseek/deepseek-v4.1-flash'),
+  prompt: 'Explain what an inference API does in one sentence.',
+});
+
+console.log(text);
+```
+
+### Stream Text
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const cayman = createOpenAICompatible({
+  name: 'cayman-ai',
+  apiKey: process.env.CAYMAN_AI_API_KEY,
+  baseURL: 'http://50.114.206.42:18473/v1',
+});
+
+const result = streamText({
+  model: cayman('deepseek/deepseek-v4.1-flash'),
+  prompt: 'Write a short story about a machine that learns to listen.',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
