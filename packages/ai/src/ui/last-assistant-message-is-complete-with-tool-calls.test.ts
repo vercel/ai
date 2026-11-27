@@ -123,6 +123,88 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
     ).toBe(true);
   });
 
+  it('should return true when the tool has an output-denied state', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithToolCalls({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-deleteFile',
+                toolCallId: 'call_2',
+                state: 'output-denied',
+                input: { path: '/tmp/report.txt' },
+                approval: { id: 'approval_1', approved: false },
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  it('should return true when a tool output is denied and the other tool calls are complete', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithToolCalls({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-getLocation',
+                toolCallId: 'call_1',
+                state: 'output-available',
+                input: {},
+                output: 'Berlin',
+              },
+              {
+                type: 'tool-deleteFile',
+                toolCallId: 'call_2',
+                state: 'output-denied',
+                input: { path: '/tmp/report.txt' },
+                approval: { id: 'approval_1', approved: false },
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  it('should return false when a tool output is denied but another tool call has no output yet', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithToolCalls({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-getLocation',
+                toolCallId: 'call_1',
+                state: 'input-available',
+                input: {},
+              },
+              {
+                type: 'tool-deleteFile',
+                toolCallId: 'call_2',
+                state: 'output-denied',
+                input: { path: '/tmp/report.txt' },
+                approval: { id: 'approval_1', approved: false },
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(false);
+  });
+
   it('should return true when text precedes the last completed tool call', () => {
     expect(
       lastAssistantMessageIsCompleteWithToolCalls({
