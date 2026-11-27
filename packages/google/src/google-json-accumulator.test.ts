@@ -757,6 +757,45 @@ describe('GoogleJSONAccumulator', () => {
       expect(result.text).toBe(result.finalJSON);
     });
 
+    it('should ignore an object terminator after the object elements', () => {
+      const result = accumulate([
+        [{ jsonPath: '$.destination.to', stringValue: 'board' }],
+        [{ jsonPath: '$.destination{}' }],
+      ]);
+
+      expect(result.finalJSON).toBe('{"destination":{"to":"board"}}');
+      expect(result.text).toBe(result.finalJSON);
+    });
+
+    it('should keep an empty object when terminated with {}', () => {
+      const result = accumulate([
+        [{ jsonPath: '$.prompt', stringValue: 'a fox' }],
+        [{ jsonPath: '$.options{}' }],
+      ]);
+
+      expect(result.finalJSON).toBe('{"prompt":"a fox","options":{}}');
+      expect(result.text).toBe(result.finalJSON);
+    });
+
+    it('should accumulate tool arguments matching Vertex object terminator stream', () => {
+      const result = accumulate([
+        [{ jsonPath: '$.destination.to', stringValue: 'board' }],
+        [{ jsonPath: '$.destination.to', stringValue: '' }],
+        [{ jsonPath: '$.destination{}' }],
+        [{ jsonPath: '$.items[0].name', stringValue: 'a' }],
+        [{ jsonPath: '$.items[0].name', stringValue: '' }],
+        [{ jsonPath: '$.items[0]{}' }],
+        [{ jsonPath: '$.options{}' }],
+        [{ jsonPath: '$.prompt', stringValue: 'a fox' }],
+        [{ jsonPath: '$.prompt', stringValue: '' }],
+      ]);
+
+      expect(result.finalJSON).toBe(
+        '{"destination":{"to":"board"},"items":[{"name":"a"}],"options":{},"prompt":"a fox"}',
+      );
+      expect(result.text).toBe(result.finalJSON);
+    });
+
     it('should ignore a string terminator', () => {
       const result = accumulate([
         [{ jsonPath: '$.location', stringValue: 'Boston', willContinue: true }],
