@@ -11517,6 +11517,46 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
       });
 
+      it('should throw an api error for nested error events without sequence_number before output starts', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `event: error\ndata: {"type":"error","error":{"message":"Failed to download file.","type":"invalid_request_error","param":"url","code":"invalid_value"}}\n\n`,
+          ],
+        };
+
+        await expect(
+          createModel('gpt-5').doStream({
+            prompt: TEST_PROMPT,
+            includeRawChunks: false,
+          }),
+        ).rejects.toMatchObject({
+          message: 'Failed to download file.',
+          statusCode: 400,
+          isRetryable: false,
+        });
+      });
+
+      it('should throw an api error for documented top-level error events without sequence_number before output starts', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data:{"type":"error","code":"rate_limit_exceeded","message":"Rate limit reached","param":null}\n\n`,
+          ],
+        };
+
+        await expect(
+          createModel('gpt-5').doStream({
+            prompt: TEST_PROMPT,
+            includeRawChunks: false,
+          }),
+        ).rejects.toMatchObject({
+          message: 'Rate limit reached',
+          statusCode: 429,
+          isRetryable: true,
+        });
+      });
+
       it('should throw an api error for documented top-level error events before output starts', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'stream-chunks',
