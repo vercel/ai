@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 4.0.111
+
+### Patch Changes
+
+- 55d9909: fix(anthropic): keep the cache control of mid-conversation system messages that carry only tool changes, and add the `midConversationSystemMessages` option to keep a later system message in place when no system message comes before it
+
 ## 4.0.110
 
 ### Patch Changes

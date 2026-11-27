@@ -1,5 +1,13 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.150
+
+### Patch Changes
+
+- da02251: refactor(amazon-bedrock): declare model capabilities per model ID
+- Updated dependencies [55d9909]
+  - @ai-sdk/anthropic@4.0.111
+
 ## 5.0.149
 
 ### Patch Changes

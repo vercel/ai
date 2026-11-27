@@ -4,6 +4,13 @@
 
 ### Patch Changes
 
+- ai@7.0.184
+- @ai-sdk/rsc@3.0.184
+
+## 0.0.1
+
+### Patch Changes
+
 - ai@7.0.183
 - @ai-sdk/rsc@3.0.183
 
