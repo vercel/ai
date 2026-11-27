@@ -1,0 +1,84 @@
+---
+title: UplinkSwitch
+description: Learn how to use the UplinkSwitch provider for the AI SDK.
+---
+
+# UplinkSwitch
+
+[UplinkSwitch](https://uplinkswitch.ai) is a hosted API gateway that serves the models in its public catalog through one key and one base URL. The provider wraps `@ai-sdk/openai-compatible` with the UplinkSwitch base URL and key.
+
+## Setup
+
+The UplinkSwitch provider is available in the `@uplinkswitch/ai-sdk-provider` module. You can install it with:
+
+<InstallPackages packages="@uplinkswitch/ai-sdk-provider" />
+
+Create a key in the [UplinkSwitch console](https://uplinkswitch.ai/console) and set it as an environment variable:
+
+```bash
+UPLINKSWITCH_API_KEY=your-api-key
+```
+
+## Provider Instance
+
+You can import the default provider instance `uplinkswitch`, which reads `UPLINKSWITCH_API_KEY`:
+
+```ts
+import { uplinkswitch } from '@uplinkswitch/ai-sdk-provider';
+```
+
+If you need a customized setup, you can use `createUplinkSwitch` and create a provider instance with your settings:
+
+```ts
+import { createUplinkSwitch } from '@uplinkswitch/ai-sdk-provider';
+
+const uplinkswitch = createUplinkSwitch({
+  apiKey: process.env.UPLINKSWITCH_API_KEY ?? '',
+});
+```
+
+You can use the following optional settings to customize the UplinkSwitch provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls.
+  The default prefix is `https://api.uplinkswitch.com/v1`.
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header.
+  It defaults to the `UPLINKSWITCH_API_KEY` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+
+- **includeUsage** _boolean_
+
+  Include token usage in streaming responses. Defaults to `true`.
+
+## Language Models
+
+Create a model with the provider instance and use it with `generateText` or `streamText`:
+
+```ts
+import { uplinkswitch } from '@uplinkswitch/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: uplinkswitch('gpt-6.1-sol'),
+  prompt: 'Explain what an API gateway does in one sentence.',
+});
+```
+
+The provider also exposes `chatModel`, `languageModel` and `embeddingModel`. Model ids are listed at [uplinkswitch.ai/models](https://uplinkswitch.ai/models) and served as JSON at `https://api.uplinkswitch.com/v1/catalog`.
+
+## Additional Resources
+
+- [npm package](https://www.npmjs.com/package/@uplinkswitch/ai-sdk-provider)
+- [Source](https://github.com/uplinkswitch/uplinkswitch-ai-sdk-provider)
+- [AI SDK guide](https://uplinkswitch.ai/guides/vercel-ai-sdk)
