@@ -57,9 +57,14 @@ export type AssemblyAIStreamingAudioFormat = {
 const MIN_SAMPLE_RATE = 8000;
 const MAX_SAMPLE_RATE = 96_000;
 
-/** AssemblyAI rejects binary audio messages shorter or longer than these. */
+/**
+ * AssemblyAI rejects binary audio messages shorter than 20 ms or longer than
+ * 1000 ms, and recommends 50-100 ms per message for turn latency.
+ */
 const MIN_CHUNK_SECONDS = 0.02;
-const MAX_CHUNK_SECONDS = 1;
+const MAX_CHUNK_SECONDS = 0.1;
+
+const WEBSOCKET_OPEN = 1;
 
 export function getAssemblyAIStreamingAudioFormat(
   inputAudioFormat: TranscriptionModelV4StreamOptions['inputAudioFormat'],
@@ -180,7 +185,9 @@ export function createAssemblyAIStreamingTranscriptionStream({
         | undefined;
       let connection: WebSocketConnection | undefined;
       let audioStarted = false;
+      let audioBytesSent = 0;
       let language: string | undefined;
+      let sessionEnded = false;
       let sessionId: string | undefined;
       const finalizedTurns = new Set<number>();
       const finalTexts: string[] = [];
@@ -190,12 +197,33 @@ export function createAssemblyAIStreamingTranscriptionStream({
         endSecond: number;
       }> = [];
 
+      // AssemblyAI keeps a session that was not explicitly terminated open,
+      // so a session the server has not ended gets a best-effort `Terminate`
+      // before the socket closes (cancel, abort, or a local error).
+      const terminateSession = () => {
+        const socket = connection?.socket;
+        if (
+          sessionEnded ||
+          !audioStarted ||
+          socket?.readyState !== WEBSOCKET_OPEN
+        ) {
+          return;
+        }
+        sessionEnded = true;
+        try {
+          socket.send(JSON.stringify({ type: 'Terminate' }));
+        } catch {
+          // the socket is closing
+        }
+      };
+
       cleanup = () => {
         if (audioReader != null) {
           void audioReader.cancel().catch(() => {});
         } else {
           void audio.cancel().catch(() => {});
         }
+        terminateSession();
         connection?.close();
       };
 
@@ -206,14 +234,35 @@ export function createAssemblyAIStreamingTranscriptionStream({
         controller.error(error);
       };
 
-      // Each binary message must carry 20-1000 ms of audio, so client chunks
+      const finish = (usage: {
+        audio_duration_seconds?: number;
+        session_duration_seconds?: number;
+      }) => {
+        if (finished) return;
+        finished = true;
+        controller.enqueue({
+          type: 'finish',
+          text: finalTexts.join(' '),
+          segments,
+          language,
+          // Exact duration of the audio sent, excluding silence padding;
+          // AssemblyAI reports whole seconds in `usage`.
+          durationInSeconds: audioBytesSent / (sampleRate * bytesPerSample),
+          ...(Object.keys(usage).length > 0 && { usage }),
+        });
+        controller.close();
+        cleanup();
+      };
+
+      // Each binary message must carry 20-100 ms of audio, so client chunks
       // are regrouped on sample boundaries. A final remainder shorter than
       // 20 ms is padded with silence.
       const sendAudio = async (socket: WebSocketLike) => {
         audioReader = audio.getReader();
         let pending = new Uint8Array(0);
-        const send = async (bytes: Uint8Array) => {
+        const send = async (bytes: Uint8Array, audioBytes = bytes.length) => {
           socket.send(bytes);
+          audioBytesSent += audioBytes;
           await waitForWebSocketBufferDrain(socket);
         };
         try {
@@ -245,9 +294,10 @@ export function createAssemblyAIStreamingTranscriptionStream({
         if (pending.length > 0) {
           const padded = new Uint8Array(minChunkBytes).fill(silenceByte);
           padded.set(pending.subarray(0, minChunkBytes));
-          await send(padded);
+          await send(padded, pending.length);
         }
         if (finished) return;
+        sessionEnded = true;
         socket.send(JSON.stringify({ type: 'Terminate' }));
       };
 
@@ -342,33 +392,32 @@ export function createAssemblyAIStreamingTranscriptionStream({
             }
 
             case 'Termination': {
-              if (finished) break;
-              finished = true;
-              controller.enqueue({
-                type: 'finish',
-                text: finalTexts.join(' '),
-                segments,
-                language,
+              sessionEnded = true;
+              // AssemblyAI reports the session duration (time the WebSocket
+              // was open) separately from the audio duration.
+              finish({
                 ...(event.audio_duration_seconds != null && {
-                  durationInSeconds: event.audio_duration_seconds,
+                  audio_duration_seconds: event.audio_duration_seconds,
                 }),
-                // AssemblyAI reports the session duration (time the WebSocket
-                // was open) separately from the audio duration.
-                usage: {
-                  ...(event.audio_duration_seconds != null && {
-                    audio_duration_seconds: event.audio_duration_seconds,
-                  }),
-                  ...(event.session_duration_seconds != null && {
-                    session_duration_seconds: event.session_duration_seconds,
-                  }),
-                },
+                ...(event.session_duration_seconds != null && {
+                  session_duration_seconds: event.session_duration_seconds,
+                }),
               });
-              controller.close();
-              cleanup();
               break;
             }
 
             case 'Error': {
+              sessionEnded = true;
+              // `inactivityTimeout` elapsing ends the session with this error
+              // instead of `Termination`; the finalized turns are kept. A turn
+              // still in progress has no final transcript and is dropped.
+              if (
+                event.error_code === 3006 &&
+                /inactivity/i.test(event.error ?? '')
+              ) {
+                finish({});
+                break;
+              }
               finishWithError(
                 new Error(
                   `AssemblyAI streaming transcription error${event.error_code != null ? ` (code ${event.error_code})` : ''}: ${event.error ?? 'unknown error'}`,

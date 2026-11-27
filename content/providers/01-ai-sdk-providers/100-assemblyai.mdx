@@ -507,11 +507,24 @@ The AssemblyAI streaming endpoint authenticates with a WebSocket header. Use a
 header-capable WebSocket implementation, such as `ws`, in runtimes whose native
 WebSocket constructor cannot send headers.
 
-AssemblyAI requires each audio message to carry 20 to 1000 ms of audio, so the
-provider regroups incoming chunks and pads a final chunk shorter than 20 ms with
-silence. When the audio stream ends, the provider ends the session, and the
-finish event reports AssemblyAI's `audio_duration_seconds` and
-`session_duration_seconds` as `usage`.
+AssemblyAI requires each audio message to carry 20 to 1000 ms of audio and
+recommends 50 to 100 ms, so the provider regroups incoming chunks into messages
+of 20 to 100 ms and pads a final chunk shorter than 20 ms with silence. When the
+audio stream ends, the provider ends the session with a `Terminate` message,
+and the finish event reports the exact duration of the audio sent as
+`durationInSeconds`, and AssemblyAI's `audio_duration_seconds` and
+`session_duration_seconds` (whole seconds) as `usage`. Cancelling the stream or
+aborting the request also sends `Terminate` before closing the socket.
+
+Live audio is paced by the microphone. When streaming a file, pace it close to
+real time: AssemblyAI accepts audio faster than real time but processes it at
+about 1.25 times real time, and closes the session with error `3007` once more
+than five minutes of audio is buffered ahead of processing.
+
+With `inactivityTimeout` set, AssemblyAI ends the session when no audio arrives
+for that many seconds. The stream then finishes normally with the turns
+finalized so far; a turn still in progress has no final transcript and is not
+included, and `usage` is omitted because AssemblyAI does not report it.
 
 The `streaming` provider options mirror AssemblyAI's streaming connection
 parameters: `agentContext`, `domain`, `filterProfanity`, `inactivityTimeout`,

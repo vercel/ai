@@ -183,7 +183,7 @@ const modelPolicies: Record<
   'universal-3-6-pro': {
     streaming: true,
     replacementWarning:
-      "'universal-3-6-pro' is AssemblyAI's previous-generation streaming model; 'assemblyai-stt-3-7-realtime-agent' replaces it.",
+      "'universal-3-6-pro' is AssemblyAI's previous flagship streaming model and is still supported; use 'assemblyai-stt-3-7-realtime' for notetakers and captions or 'assemblyai-stt-3-7-realtime-agent' for voice agents.",
   },
 };
 export function getAssemblyAITranscriptionModelEntry(modelId: string) {

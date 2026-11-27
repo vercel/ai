@@ -911,7 +911,8 @@ describe('doStream', () => {
           { text: 'world.', startSecond: 0.42, endSecond: 0.9 },
         ],
         language: 'en',
-        durationInSeconds: 2,
+        // 1280 bytes of 16 kHz 16-bit PCM sent.
+        durationInSeconds: 0.04,
         usage: { audio_duration_seconds: 2, session_duration_seconds: 3 },
       },
     ]);
@@ -924,10 +925,10 @@ describe('doStream', () => {
     );
   });
 
-  it('regroups audio into 20-1000 ms frames and pads the final frame with silence', async () => {
+  it('regroups audio into 20-100 ms frames and pads the final frame with silence', async () => {
     const model = createStreamingModel();
     const result = await model.doStream!({
-      // 16 kHz 16-bit PCM: 20 ms = 640 bytes, 1000 ms = 32000 bytes.
+      // 16 kHz 16-bit PCM: 20 ms = 640 bytes, 100 ms = 3200 bytes.
       audio: convertArrayToReadableStream([
         new Uint8Array(320).fill(1),
         new Uint8Array(320).fill(1),
@@ -949,8 +950,7 @@ describe('doStream', () => {
     padded.set(new Uint8Array(161).fill(3));
     expect(ws.binaryFrames()).toStrictEqual([
       new Uint8Array(640).fill(1),
-      new Uint8Array(32000).fill(2),
-      new Uint8Array(16000).fill(2),
+      ...Array.from({ length: 15 }, () => new Uint8Array(3200).fill(2)),
       padded,
     ]);
   });
@@ -977,6 +977,104 @@ describe('doStream', () => {
     const padded = new Uint8Array(160).fill(0xff);
     padded.set(new Uint8Array(10).fill(7));
     expect(ws.binaryFrames()).toStrictEqual([padded]);
+  });
+
+  it('finishes with the finalized turns when the inactivity timeout ends the session', async () => {
+    const model = createStreamingModel();
+    const audioCancel = vi.fn();
+    const result = await model.doStream!({
+      audio: new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new Uint8Array(3200).fill(1));
+        },
+        cancel: audioCancel,
+      }),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      providerOptions: { assemblyai: { streaming: { inactivityTimeout: 5 } } },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    expect(new URL(ws.url).searchParams.get('inactivity_timeout')).toBe('5');
+    ws.open();
+    ws.message({ type: 'Begin', id: 'session-1' });
+    await flush();
+    ws.message({
+      type: 'Turn',
+      turn_order: 0,
+      end_of_turn: true,
+      transcript: 'Hello world.',
+      words: [{ text: 'Hello', start: 0, end: 100, word_is_final: true }],
+    });
+    ws.message({
+      type: 'Error',
+      error_code: 3006,
+      error:
+        'User Input Validation Error: Session terminated due to inactivity: No messages received for 5 seconds',
+    });
+
+    expect((await partsPromise).at(-1)).toStrictEqual({
+      type: 'finish',
+      text: 'Hello world.',
+      segments: [{ text: 'Hello', startSecond: 0, endSecond: 0.1 }],
+      language: undefined,
+      durationInSeconds: 0.1,
+    });
+    expect(audioCancel).toHaveBeenCalled();
+    // The server already ended the session, so no `Terminate` follows.
+    expect(ws.send).not.toHaveBeenCalledWith(
+      JSON.stringify({ type: 'Terminate' }),
+    );
+    expect(ws.close).toHaveBeenCalled();
+  });
+
+  it('terminates the session, closes the socket, and cancels the audio when the consumer cancels', async () => {
+    const model = createStreamingModel();
+    const audioCancel = vi.fn();
+    const result = await model.doStream!({
+      audio: new ReadableStream<Uint8Array>({ cancel: audioCancel }),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+    });
+
+    const reader = result.stream.getReader();
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ type: 'Begin', id: 'session-1' });
+    expect(await reader.read()).toStrictEqual({
+      done: false,
+      value: { type: 'stream-start', warnings: [] },
+    });
+
+    await reader.cancel();
+
+    expect(audioCancel).toHaveBeenCalled();
+    expect(ws.send).toHaveBeenCalledWith(JSON.stringify({ type: 'Terminate' }));
+    expect(ws.send.mock.invocationCallOrder.at(-1)).toBeLessThan(
+      ws.close.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('terminates the session, closes the socket, and errors the stream on abort', async () => {
+    const model = createStreamingModel();
+    const abortController = new AbortController();
+    const audioCancel = vi.fn();
+    const result = await model.doStream!({
+      audio: new ReadableStream<Uint8Array>({ cancel: audioCancel }),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      abortSignal: abortController.signal,
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ type: 'Begin', id: 'session-1' });
+    await flush();
+    abortController.abort(new Error('caller aborted'));
+
+    await expect(partsPromise).rejects.toThrow('caller aborted');
+    expect(audioCancel).toHaveBeenCalled();
+    expect(ws.send).toHaveBeenCalledWith(JSON.stringify({ type: 'Terminate' }));
+    expect(ws.close).toHaveBeenCalled();
   });
 
   it('errors the stream with the AssemblyAI error message and code', async () => {
@@ -1066,7 +1164,7 @@ describe('doStream', () => {
         {
           type: 'other',
           message:
-            "'universal-3-6-pro' is AssemblyAI's previous-generation streaming model; 'assemblyai-stt-3-7-realtime-agent' replaces it. See https://www.assemblyai.com/docs/streaming/select-the-speech-model",
+            "'universal-3-6-pro' is AssemblyAI's previous flagship streaming model and is still supported; use 'assemblyai-stt-3-7-realtime' for notetakers and captions or 'assemblyai-stt-3-7-realtime-agent' for voice agents. See https://www.assemblyai.com/docs/streaming/select-the-speech-model",
         },
       ],
     });
