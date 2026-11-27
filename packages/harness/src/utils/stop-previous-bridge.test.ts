@@ -1,5 +1,12 @@
 import { execFile, spawn } from 'node:child_process';
-import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { execPath, kill } from 'node:process';
@@ -37,6 +44,8 @@ function makeSandbox({
   commandLine = bridgeCommandLine,
   others = {},
   onSignal = (pid, _signal, processes) => processes.delete(pid),
+  processListOutput,
+  processListStdoutLength,
 }: {
   meta: string | null;
   commandLine?: string;
@@ -46,8 +55,11 @@ function makeSandbox({
     signal: string,
     processes: Map<number, FakeProcess>,
   ) => void;
+  processListOutput?: () => string;
+  processListStdoutLength?: () => number | undefined;
 }) {
   const runs: string[] = [];
+  const runOptions: Array<{ command: string; maxOutputLength?: number }> = [];
   const processes = new Map<number, FakeProcess>([
     [42, { parent: 1, start: '1042', commandLine }],
   ]);
@@ -62,9 +74,17 @@ function makeSandbox({
   const sandbox = {
     readTextFile: async ({ path: file }: { path: string }) =>
       file === `${bridgeStateDir}/bridge-meta.json` ? meta : null,
-    run: async ({ command }: { command: string }) => {
+    run: async ({
+      command,
+      maxOutputLength,
+    }: {
+      command: string;
+      maxOutputLength?: number;
+    }) => {
       runs.push(command);
+      runOptions.push({ command, maxOutputLength });
       let stdout = '';
+      let stdoutLength: number | undefined;
       const kill = /^kill -(\w+) ([\d ]+)$/.exec(command);
       if (kill) {
         const [, signal, pids] = kill;
@@ -73,15 +93,23 @@ function makeSandbox({
         }
       } else if (command.includes('/proc/42/cmdline')) {
         stdout = processes.get(42)?.commandLine ?? '';
+      } else if (processListOutput) {
+        stdout = processListOutput();
+        stdoutLength = processListStdoutLength?.();
       } else {
         for (const [pid, { parent, start, state = 'S' }] of processes) {
           stdout += `${pid} ${parent} ${state} ${start}\n`;
         }
       }
-      return { exitCode: 0, stdout, stderr: '' };
+      return {
+        exitCode: 0,
+        stdout,
+        stderr: '',
+        ...(stdoutLength !== undefined ? { stdoutLength } : {}),
+      };
     },
   } as unknown as Experimental_SandboxSession;
-  return { sandbox, runs };
+  return { sandbox, runs, runOptions };
 }
 
 describe('stopPreviousBridge', () => {
@@ -292,6 +320,163 @@ describe('stopPreviousBridge', () => {
       'kill -TERM 42',
       processListing,
     ]);
+  });
+
+  it('handles large process lists linearly and caps parsed entries', async () => {
+    let killed = false;
+    const rows = ['42 1 S 1042'];
+    for (let i = 10_000; i < 50_000; i++) {
+      rows.push(`${i} 42 S 1`);
+    }
+    const fullListing = `${rows.join('\n')}\n`;
+    const { sandbox, runs } = makeSandbox({
+      meta: recordedBridge,
+      onSignal: () => {
+        killed = true;
+      },
+      processListOutput: () => (killed ? '' : fullListing),
+    });
+
+    const start = Date.now();
+    await stopPreviousBridge({
+      sandbox,
+      bridgeStateDir,
+      bridgeType: 'claude-code',
+    });
+    const elapsedMs = Date.now() - start;
+
+    expect(elapsedMs).toBeLessThan(2_000);
+    const killRuns = runs.filter(run => run.startsWith('kill -TERM '));
+    const signalledPids = killRuns.flatMap(run =>
+      run.slice('kill -TERM '.length).split(' ').map(Number),
+    );
+    expect(signalledPids[0]).toBe(42);
+    expect(signalledPids.length).toBe(10_000);
+  });
+
+  it('batches kill commands when the process tree exceeds 500 pids', async () => {
+    const others: Record<number, { parent: number }> = {};
+    for (let pid = 100; pid < 1_300; pid++) {
+      others[pid] = { parent: 42 };
+    }
+    const { sandbox, runs } = makeSandbox({
+      meta: recordedBridge,
+      others,
+    });
+
+    await stopPreviousBridge({
+      sandbox,
+      bridgeStateDir,
+      bridgeType: 'claude-code',
+    });
+
+    const killRuns = runs.filter(run => run.startsWith('kill -TERM '));
+    expect(killRuns.length).toBe(3);
+    const batchSizes = killRuns.map(
+      run => run.slice('kill -TERM '.length).split(' ').length,
+    );
+    expect(batchSizes).toEqual([500, 500, 201]);
+    expect(killRuns[0]!.startsWith('kill -TERM 42 ')).toBe(true);
+  });
+
+  it('handles parent-child cycles without looping', async () => {
+    const cyclicListing = '42 44 S 1042\n43 42 S 1043\n44 43 S 1044\n';
+    let killed = false;
+    const { sandbox, runs } = makeSandbox({
+      meta: recordedBridge,
+      onSignal: () => {
+        killed = true;
+      },
+      processListOutput: () => (killed ? '' : cyclicListing),
+    });
+
+    await stopPreviousBridge({
+      sandbox,
+      bridgeStateDir,
+      bridgeType: 'claude-code',
+    });
+
+    expect(runs).toEqual([
+      bridgeProbe,
+      processListing,
+      'kill -TERM 42 43 44',
+      processListing,
+    ]);
+  });
+
+  it('passes maxOutputLength and ignores a truncated trailing line', async () => {
+    let killed = false;
+    const truncatedListing = '42 1 S 1042\n43 42 S 1043\n44 42 S 10';
+    const { sandbox, runs, runOptions } = makeSandbox({
+      meta: recordedBridge,
+      onSignal: () => {
+        killed = true;
+      },
+      processListOutput: () => (killed ? '' : truncatedListing),
+      processListStdoutLength: () =>
+        killed ? 0 : truncatedListing.length + 100,
+    });
+
+    await stopPreviousBridge({
+      sandbox,
+      bridgeStateDir,
+      bridgeType: 'claude-code',
+    });
+
+    expect(runOptions[0]?.maxOutputLength).toBeGreaterThan(0);
+    expect(runOptions[1]?.maxOutputLength).toBeGreaterThan(0);
+    expect(runs).toEqual([
+      bridgeProbe,
+      processListing,
+      'kill -TERM 42 43',
+      processListing,
+    ]);
+  });
+
+  it('does not glob-expand filenames when reading crafted /proc stat lines', async () => {
+    const { sandbox, runs } = makeSandbox({ meta: recordedBridge });
+    await stopPreviousBridge({
+      sandbox,
+      bridgeStateDir,
+      bridgeType: 'claude-code',
+    });
+    const listingCommand = runs[1]!;
+
+    const workDir = await mkdtemp(path.join(tmpdir(), 'proc-glob-test-'));
+    try {
+      const fakeProc = path.join(workDir, 'proc');
+      await mkdir(path.join(fakeProc, '42'), { recursive: true });
+      await mkdir(path.join(fakeProc, '99'), { recursive: true });
+      await mkdir(path.join(fakeProc, '100'), { recursive: true });
+      await mkdir(path.join(fakeProc, 'self'), { recursive: true });
+      await writeFile(path.join(fakeProc, 'self', 'stat'), '1 (sh) S 0\n');
+      await writeFile(
+        path.join(fakeProc, '42', 'stat'),
+        '42 (node) S 1 1 1 0 -1 0 0 0 0 0 0 0 0 0 20 0 1 0 1042 0\n',
+      );
+      await writeFile(
+        path.join(fakeProc, '99', 'stat'),
+        '99 (a0000*\n) S 1 1 1 0 -1 0 0 0 0 0 0 0 0 0 20 0 1 0 1099 0\n',
+      );
+      await writeFile(
+        path.join(fakeProc, '100', 'stat'),
+        '100 (a) S 42\n) S 1 1 1 0 -1 0 0 0 0 0 0 0 0 0 20 0 1 0 1100 0\n',
+      );
+      await writeFile(
+        path.join(workDir, '(a0000\n10000 42 S 1\n10001 42 S 1'),
+        '',
+      );
+
+      const script = listingCommand.replaceAll('/proc', fakeProc);
+      const { stdout } = await execFileAsync('bash', ['-c', script], {
+        cwd: workDir,
+        encoding: 'utf8',
+      });
+
+      expect(stdout.trim()).toBe('42 1 S 1042');
+    } finally {
+      await rm(workDir, { recursive: true, force: true });
+    }
   });
 });
 
