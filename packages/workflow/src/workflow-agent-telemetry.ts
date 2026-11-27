@@ -18,10 +18,12 @@ import { createTelemetryDispatcher, DefaultStepResult } from 'ai/internal';
  * them to the registered integrations when the run ends or suspends.
  *
  * The run's call ID is generated in the workflow body and shared with its
- * model steps. A preparation step captures each integration's tracing and
- * sampling context. Bound integrations report model calls live and reconstruct
- * the enclosing spans at completion. Integrations without a durable bridge
- * retain live per-model tracing; ordinary event integrations receive the run.
+ * model steps. The first model step captures each integration's tracing and
+ * sampling context and returns it, so the workflow passes it to later model
+ * steps and to the report. Bound integrations report model calls live and
+ * reconstruct the enclosing spans at completion. Integrations without a
+ * durable bridge retain live per-model tracing; ordinary event integrations
+ * receive the run.
  */
 
 const recordedEventTypes = [
@@ -75,7 +77,18 @@ export function createWorkflowAgentTelemetryRecorder(): {
   integration: Telemetry;
   events: RecordedTelemetryEvent[];
   callId: string;
+  /**
+   * The integrations' durable tracing contexts, in registration order. Unset
+   * until a model step has captured and returned them, so the value is the
+   * same when the workflow is replayed.
+   */
   contexts?: Array<DurableTelemetryContext | undefined>;
+  /**
+   * Set once a model step has returned. A returned step without contexts
+   * reported its model call without a durable context, so the report must
+   * not capture one afterwards.
+   */
+  hasModelStepResult?: boolean;
 } {
   const events: RecordedTelemetryEvent[] = [];
   // Generated in the workflow body, where random values are replayed
@@ -96,20 +109,35 @@ export function createWorkflowAgentTelemetryRecorder(): {
   return { integration: integration as Telemetry, events, callId };
 }
 
-/** Resolve integration capabilities and sampling once, outside the workflow VM. */
-export async function prepareWorkflowAgentTelemetry({
+/**
+ * The recorded start event of a run, which integrations capture their durable
+ * context from.
+ */
+export function getRecordedStartEvent(
+  events: RecordedTelemetryEvent[],
+): Record<string, unknown> | undefined {
+  return events[0]?.type === 'onStart' ? events[0].event : undefined;
+}
+
+/**
+ * Resolve integration capabilities and sampling once per run. Call it in a
+ * step: globally registered integrations are not visible in the workflow VM.
+ * Returns one entry per registered integration, so the result is empty when
+ * none is registered.
+ */
+export async function captureWorkflowAgentTelemetryContexts({
   callId,
-  event,
+  startEvent,
 }: {
   callId: string;
-  event: RecordedTelemetryEvent;
+  /** The recorded start event of the run. */
+  startEvent: Record<string, unknown>;
 }): Promise<Array<DurableTelemetryContext | undefined>> {
-  'use step';
   return Promise.all(
     (globalThis.AI_SDK_TELEMETRY_INTEGRATIONS ?? []).map(async integration => {
       try {
         return await integration.experimental_durable?.captureContext({
-          ...event.event,
+          ...startEvent,
           callId,
         } as never);
       } catch {
@@ -135,14 +163,30 @@ export async function reportWorkflowAgentTelemetry({
   events,
   callId = generateCallId(),
   contexts,
+  captureContexts = false,
 }: {
   telemetry: RecordedTelemetrySettings;
   events: RecordedTelemetryEvent[];
   /** The run's telemetry call ID, also used by its model steps. */
   callId?: string;
   contexts?: Array<DurableTelemetryContext | undefined>;
+  /**
+   * Capture the contexts here when no model step returned them, for a run
+   * that ended before its first model step or whose first model step failed.
+   */
+  captureContexts?: boolean;
 }): Promise<void> {
   'use step';
+
+  if (contexts == null && captureContexts) {
+    const startEvent = getRecordedStartEvent(events);
+    if (startEvent != null) {
+      contexts = await captureWorkflowAgentTelemetryContexts({
+        callId,
+        startEvent,
+      });
+    }
+  }
 
   for (const [index, integration] of (
     globalThis.AI_SDK_TELEMETRY_INTEGRATIONS ?? []

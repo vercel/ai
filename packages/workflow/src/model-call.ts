@@ -102,6 +102,12 @@ export interface ModelCallTelemetry {
    */
   callId?: string;
   contexts?: Array<DurableTelemetryContext | undefined>;
+  /**
+   * The recorded start event of the run. Set while no model step has returned
+   * the integrations' durable contexts: the model step then captures them
+   * before its model call and returns them as `telemetryContexts`.
+   */
+  startEvent?: Record<string, unknown>;
   functionId?: string;
   recordInputs?: boolean;
   recordOutputs?: boolean;
@@ -251,11 +257,24 @@ export interface ModelCallModelInfo {
   modelId: string;
 }
 
+/**
+ * The integrations' durable telemetry contexts, in registration order.
+ * Present only on the result of a model step that captured them.
+ */
+export type ModelCallTelemetryContexts = Array<
+  DurableTelemetryContext | undefined
+>;
+
 export type ModelCallResult =
-  | { aborted: true; timing?: ModelCallTiming }
+  | {
+      aborted: true;
+      timing?: ModelCallTiming;
+      telemetryContexts?: ModelCallTelemetryContexts;
+    }
   | {
       aborted?: false;
       timing?: ModelCallTiming;
+      telemetryContexts?: ModelCallTelemetryContexts;
       toolCalls: ParsedToolCall[];
       finish: ModelCallFinish | undefined;
       raw: ModelCallRawResult;

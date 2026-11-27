@@ -23,7 +23,6 @@ import {
   type ModelMessage,
   type StepResult,
   type Telemetry,
-  type DurableTelemetryContext,
   type ToolCallRepairFunction,
   type ToolInputRefinement,
   type ToolChoice,
@@ -62,6 +61,10 @@ import {
   type SerializableToolDef,
 } from './serializable-schema.js';
 import { withServerToolFields } from './with-server-tool-fields.js';
+import {
+  getRecordedStartEvent,
+  type createWorkflowAgentTelemetryRecorder,
+} from './workflow-agent-telemetry.js';
 import type {
   GenerationSettings,
   PrepareStepCallback,
@@ -222,8 +225,7 @@ export async function* modelCallIterator({
   toolsContext,
   telemetry,
   telemetryRecorder,
-  telemetryCallId,
-  telemetryContexts,
+  telemetryRun,
   includeRawChunks = false,
   timeoutAt,
   stepTimeoutMs,
@@ -262,9 +264,15 @@ export async function* modelCallIterator({
    * measured inside the model step.
    */
   telemetryRecorder?: Telemetry;
-  /** Telemetry call ID of the recorded run, passed to model steps. */
-  telemetryCallId?: string;
-  telemetryContexts?: Array<DurableTelemetryContext | undefined>;
+  /**
+   * The recorded run. Model steps receive its call ID and the integrations'
+   * durable contexts. The first model step captures the contexts from the
+   * run's start event; they are stored here when it returns.
+   */
+  telemetryRun?: Pick<
+    ReturnType<typeof createWorkflowAgentTelemetryRecorder>,
+    'callId' | 'events' | 'contexts' | 'hasModelStepResult'
+  >;
   includeRawChunks?: boolean;
   timeoutAt?: number;
   stepTimeoutMs?: number;
@@ -506,9 +514,17 @@ export async function* modelCallIterator({
         include,
         telemetry: dispatchTelemetryInStep
           ? {
-              ...(telemetryCallId != null
-                ? { callId: telemetryCallId, contexts: telemetryContexts }
-                : {}),
+              ...(telemetryRun == null
+                ? {}
+                : telemetryRun.contexts == null
+                  ? {
+                      callId: telemetryRun.callId,
+                      startEvent: getRecordedStartEvent(telemetryRun.events),
+                    }
+                  : {
+                      callId: telemetryRun.callId,
+                      contexts: telemetryRun.contexts,
+                    }),
               functionId: telemetry?.functionId,
               recordInputs: telemetry?.recordInputs,
               recordOutputs: telemetry?.recordOutputs,
@@ -555,6 +571,10 @@ export async function* modelCallIterator({
           });
         }
         throw error;
+      }
+      if (telemetryRun != null) {
+        telemetryRun.hasModelStepResult = true;
+        telemetryRun.contexts ??= modelCallResult.telemetryContexts;
       }
       const modelCallTiming = modelCallResult.timing;
 

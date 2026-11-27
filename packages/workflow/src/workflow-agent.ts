@@ -84,7 +84,6 @@ import {
 } from './workflow-agent-timeout.js';
 import {
   createWorkflowAgentTelemetryRecorder,
-  prepareWorkflowAgentTelemetry,
   reportWorkflowAgentTelemetry,
 } from './workflow-agent-telemetry.js';
 import {
@@ -2613,13 +2612,6 @@ export class WorkflowAgent<
       toolsContext: toolsContext as unknown as InferToolSetContext<TTools>,
     });
 
-    if (telemetryRecorder != null) {
-      telemetryRecorder.contexts = await prepareWorkflowAgentTelemetry({
-        callId: telemetryRecorder.callId,
-        event: telemetryRecorder.events[0],
-      });
-    }
-
     // Helper to wrap executeTool with onToolExecutionStart/onToolExecutionEnd callbacks
     async function executeToolWithCallbacks(
       toolCall: { toolCallId: string; toolName: string; input: unknown },
@@ -2846,8 +2838,7 @@ export class WorkflowAgent<
       toolsContext,
       telemetry: effectiveTelemetry,
       telemetryRecorder: telemetryRecorder?.integration,
-      telemetryCallId: telemetryRecorder?.callId,
-      telemetryContexts: telemetryRecorder?.contexts,
+      telemetryRun: telemetryRecorder,
       includeRawChunks: options.includeRawChunks ?? false,
       timeoutAt,
       stepTimeoutMs,
@@ -3674,6 +3665,10 @@ async function reportRecordedTelemetry({
       events: recorder.events,
       callId: recorder.callId,
       contexts: recorder.contexts,
+      // No model step returned the contexts: the run ended before its first
+      // model step, or that step failed after capturing them.
+      captureContexts:
+        recorder.contexts == null && recorder.hasModelStepResult !== true,
     });
   } catch {
     // Telemetry must never change the outcome of the run.

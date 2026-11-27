@@ -811,6 +811,154 @@ describe('modelCallIterator', () => {
       ]);
       vi.useRealTimers();
     });
+
+    describe('durable contexts', () => {
+      const context = {
+        traceId: '1'.repeat(32),
+        rootSpanId: '2'.repeat(16),
+        traceFlags: 1,
+        samplingDecision: 2 as const,
+      };
+      const toolCall: ParsedToolCall = {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'testTool',
+        input: {},
+      };
+      const tools = {
+        testTool: { description: 'A test tool', inputSchema: z.object({}) },
+      } as unknown as ToolSet;
+
+      function createRun() {
+        const recorder = createWorkflowAgentTelemetryRecorder();
+        recorder.integration.onStart!({
+          operationId: 'ai.workflowAgent.stream',
+          messages: [{ role: 'user', content: 'test' }],
+        } as never);
+        return recorder;
+      }
+
+      function modelStepTelemetry(call: number) {
+        return vi.mocked(doStreamStep).mock.calls[call][4]?.telemetry;
+      }
+
+      it('passes the start event to the first model step and its contexts to later steps', async () => {
+        vi.stubGlobal('AI_SDK_TELEMETRY_INTEGRATIONS', undefined);
+        vi.mocked(doStreamStep)
+          .mockResolvedValueOnce({
+            ...createMockDoStreamStepResult({
+              toolCalls: [toolCall],
+              finishReason: 'tool-calls',
+            }),
+            telemetryContexts: [context],
+          })
+          .mockResolvedValueOnce(createMockDoStreamStepResult());
+        const recorder = createRun();
+        const iterator = modelCallIterator({
+          prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+          tools,
+          model: vi.fn() as any,
+          telemetryRecorder: recorder.integration,
+          telemetryRun: recorder,
+        });
+
+        await iterator.next();
+        expect(modelStepTelemetry(0)).toMatchObject({
+          callId: recorder.callId,
+          startEvent: recorder.events[0].event,
+          stepNumber: 0,
+        });
+        expect(modelStepTelemetry(0)).not.toHaveProperty('contexts');
+        expect(recorder.contexts).toEqual([context]);
+
+        await iterator.next([
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'testTool',
+            output: { type: 'text', value: 'done' },
+          },
+        ]);
+        expect(modelStepTelemetry(1)).toMatchObject({
+          callId: recorder.callId,
+          contexts: [context],
+          stepNumber: 1,
+        });
+        // The start event crosses the step boundary once per run.
+        expect(modelStepTelemetry(1)).not.toHaveProperty('startEvent');
+        expect(recorder.contexts).toEqual([context]);
+      });
+
+      it('stops asking for a capture once a step found no integration', async () => {
+        vi.stubGlobal('AI_SDK_TELEMETRY_INTEGRATIONS', undefined);
+        vi.mocked(doStreamStep)
+          .mockResolvedValueOnce({
+            ...createMockDoStreamStepResult({
+              toolCalls: [toolCall],
+              finishReason: 'tool-calls',
+            }),
+            telemetryContexts: [],
+          })
+          .mockResolvedValueOnce(createMockDoStreamStepResult());
+        const recorder = createRun();
+        const iterator = modelCallIterator({
+          prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+          tools,
+          model: vi.fn() as any,
+          telemetryRecorder: recorder.integration,
+          telemetryRun: recorder,
+        });
+
+        await iterator.next();
+        await iterator.next([
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'testTool',
+            output: { type: 'text', value: 'done' },
+          },
+        ]);
+        expect(modelStepTelemetry(1)).toMatchObject({ contexts: [] });
+        expect(modelStepTelemetry(1)).not.toHaveProperty('startEvent');
+      });
+
+      it('leaves the contexts unset when the first model step fails', async () => {
+        vi.stubGlobal('AI_SDK_TELEMETRY_INTEGRATIONS', undefined);
+        vi.mocked(doStreamStep).mockRejectedValue(new Error('rejected'));
+        const recorder = createRun();
+        const iterator = modelCallIterator({
+          prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+          tools: {},
+          model: vi.fn() as any,
+          telemetryRecorder: recorder.integration,
+          telemetryRun: recorder,
+        });
+
+        await expect(iterator.next()).rejects.toThrow('rejected');
+        expect(recorder.contexts).toBeUndefined();
+        expect(recorder.hasModelStepResult).toBeUndefined();
+      });
+
+      it('accepts a model step result without contexts', async () => {
+        vi.stubGlobal('AI_SDK_TELEMETRY_INTEGRATIONS', undefined);
+        // A result persisted by a version that did not capture in the step.
+        vi.mocked(doStreamStep).mockResolvedValue(
+          createMockDoStreamStepResult(),
+        );
+        const recorder = createRun();
+        const iterator = modelCallIterator({
+          prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+          tools: {},
+          model: vi.fn() as any,
+          telemetryRecorder: recorder.integration,
+          telemetryRun: recorder,
+        });
+
+        await iterator.next();
+        expect(recorder.contexts).toBeUndefined();
+        expect(recorder.hasModelStepResult).toBe(true);
+      });
+    });
   });
 
   describe('conversation prompt', () => {

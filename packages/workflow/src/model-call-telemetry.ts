@@ -6,6 +6,7 @@ import {
   resolveSerializableTools,
   type SerializableToolDef,
 } from './serializable-schema.js';
+import { captureWorkflowAgentTelemetryContexts } from './workflow-agent-telemetry.js';
 
 const generateCallId = createIdGenerator({ prefix: 'call', size: 24 });
 
@@ -47,6 +48,10 @@ export function shouldDispatchModelCallTelemetryInStep(telemetry?: {
  * Report model calls live. A bound durable integration receives the run's
  * serialized tracing context; an integration without a bridge retains its
  * existing per-model operation. Other integrations receive the recorded run.
+ *
+ * The first model step of a run receives the run's start event instead of
+ * the contexts. It captures them before the model call, uses them for this
+ * call, and returns them so the workflow can pass them to later steps.
  */
 export async function runModelCallWithTelemetry<
   RESULT extends ModelCallResult,
@@ -61,13 +66,21 @@ export async function runModelCallWithTelemetry<
 }): Promise<RESULT> {
   if (telemetry == null) return execute(undefined);
   const callId = telemetry.callId ?? generateCallId();
+  const capturedContexts =
+    telemetry.contexts == null && telemetry.startEvent != null
+      ? await captureWorkflowAgentTelemetryContexts({
+          callId,
+          startEvent: telemetry.startEvent,
+        })
+      : undefined;
+  const contexts = telemetry.contexts ?? capturedContexts;
   const dispatcher = createTelemetryDispatcher({ telemetry });
   const bindings = (globalThis.AI_SDK_TELEMETRY_INTEGRATIONS ?? []).flatMap(
     (integration, index) => {
       if (integration.experimental_durable == null) return [];
       return [
         {
-          run: telemetry.contexts?.[index],
+          run: contexts?.[index],
           dispatcher: createTelemetryDispatcher({
             telemetry: { ...telemetry, integrations: integration },
           }),
@@ -185,5 +198,11 @@ export async function runModelCallWithTelemetry<
       );
     }
   }
-  return { ...result, timing: { startedAt, endedAt } };
+  return {
+    ...result,
+    timing: { startedAt, endedAt },
+    ...(capturedContexts == null
+      ? {}
+      : { telemetryContexts: capturedContexts }),
+  };
 }
