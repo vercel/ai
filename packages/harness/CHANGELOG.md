@@ -1,5 +1,12 @@
 # @ai-sdk/harness
 
+## 1.0.196
+
+### Patch Changes
+
+- 974e80e: fix(harness): harden `stopPreviousBridge` process listing and tree traversal
+  - ai@7.0.184
+
 ## 1.0.195
 
 ### Patch Changes
