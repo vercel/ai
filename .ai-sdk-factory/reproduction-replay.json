@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 25526,
+  "expectationRevision": 1,
+  "command": "pnpm -C packages/harness-claude-code exec vitest --config vitest.node.config.js --run src/bridge/issue-25526.test.ts",
+  "artifactPaths": [
+    "packages/harness-claude-code/src/bridge/issue-25526.test.ts",
+    "packages/harness-claude-code/src/bridge/__fixtures__/issue-25526.json",
+    "examples/ai-functions/src/reproduction/issue-25526.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_25526: selected option labels are missing from the answer delivered to Claude"
+  }
+}
