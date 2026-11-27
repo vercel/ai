@@ -33,6 +33,7 @@ import type {
   PrepareStepCallback,
   ToolCallRepairFunction,
 } from './workflow-agent.js';
+import { withoutDeliveryFields } from './test/stream-delivery-fields.js';
 
 // Mock the modelCallIterator
 vi.mock('./model-call-iterator.js', () => ({
@@ -543,14 +544,18 @@ describe('WorkflowAgent', () => {
           value: `Error: ${errorMessage}`,
         },
       });
-      expect(write.mock.calls.map(([chunk]) => chunk)).toContainEqual({
+      expect(
+        write.mock.calls.map(([chunk]) => withoutDeliveryFields(chunk)),
+      ).toContainEqual({
         type: 'tool-error',
         toolCallId: 'test-call-id',
         toolName: 'testTool',
         input: '{}',
         error: `Error: ${errorMessage}`,
       });
-      expect(write.mock.calls.map(([chunk]) => chunk)).not.toContainEqual(
+      expect(
+        write.mock.calls.map(([chunk]) => withoutDeliveryFields(chunk)),
+      ).not.toContainEqual(
         expect.objectContaining({
           type: 'tool-result',
           toolCallId: 'test-call-id',
@@ -712,7 +717,9 @@ describe('WorkflowAgent', () => {
         input: toolInput,
         output: rawToolResult,
       });
-      expect(write.mock.calls.map(([chunk]) => chunk)).toContainEqual(
+      expect(
+        write.mock.calls.map(([chunk]) => withoutDeliveryFields(chunk)),
+      ).toContainEqual(
         expect.objectContaining({
           type: 'tool-result',
           toolCallId: 'test-call-id',
@@ -1140,7 +1147,9 @@ describe('WorkflowAgent', () => {
           value: 'Search failed: Rate limit exceeded',
         },
       });
-      expect(write.mock.calls.map(([chunk]) => chunk)).toContainEqual({
+      expect(
+        write.mock.calls.map(([chunk]) => withoutDeliveryFields(chunk)),
+      ).toContainEqual({
         type: 'tool-error',
         toolCallId: 'provider-call-id',
         toolName: 'WebSearch',
@@ -1248,7 +1257,7 @@ describe('WorkflowAgent', () => {
       const writes: any[] = [];
       const mockWritable = new WritableStream({
         write: chunk => {
-          writes.push(chunk);
+          writes.push(withoutDeliveryFields(chunk));
         },
         close: vi.fn(),
       });
@@ -1515,7 +1524,7 @@ describe('WorkflowAgent', () => {
       const writtenChunks: unknown[] = [];
       const mockWritable = new WritableStream({
         write: chunk => {
-          writtenChunks.push(chunk);
+          writtenChunks.push(withoutDeliveryFields(chunk));
         },
         close: vi.fn(),
       });
@@ -1632,7 +1641,7 @@ describe('WorkflowAgent', () => {
       const writtenChunks: unknown[] = [];
       const mockWritable = new WritableStream({
         write: chunk => {
-          writtenChunks.push(chunk);
+          writtenChunks.push(withoutDeliveryFields(chunk));
         },
         close: vi.fn(),
       });
@@ -1719,7 +1728,7 @@ describe('WorkflowAgent', () => {
       const writtenChunks: unknown[] = [];
       const mockWritable = new WritableStream({
         write: chunk => {
-          writtenChunks.push(chunk);
+          writtenChunks.push(withoutDeliveryFields(chunk));
         },
         close: vi.fn(),
       });
@@ -3968,7 +3977,7 @@ describe('WorkflowAgent', () => {
       const closeFn = vi.fn();
       const mockWritable = new WritableStream({
         write: chunk => {
-          writtenChunks.push(chunk);
+          writtenChunks.push(withoutDeliveryFields(chunk));
         },
         close: closeFn,
       });
@@ -4012,7 +4021,7 @@ describe('WorkflowAgent', () => {
       const writtenChunks: unknown[] = [];
       const mockWritable = new WritableStream({
         write: chunk => {
-          writtenChunks.push(chunk);
+          writtenChunks.push(withoutDeliveryFields(chunk));
         },
         close: vi.fn(),
       });
@@ -4631,7 +4640,9 @@ describe('WorkflowAgent', () => {
           value: 'model sees: weather summary',
         },
       });
-      expect(write.mock.calls.map(([chunk]) => chunk)).toContainEqual(
+      expect(
+        write.mock.calls.map(([chunk]) => withoutDeliveryFields(chunk)),
+      ).toContainEqual(
         expect.objectContaining({
           type: 'tool-result',
           toolCallId: 'call-1',
@@ -4789,7 +4800,9 @@ describe('WorkflowAgent', () => {
             : [],
         ),
       ).toHaveLength(1);
-      expect(write.mock.calls.map(([chunk]) => chunk)).toContainEqual({
+      expect(
+        write.mock.calls.map(([chunk]) => withoutDeliveryFields(chunk)),
+      ).toContainEqual({
         type: 'tool-output-denied',
         toolCallId: 'call-1',
       });

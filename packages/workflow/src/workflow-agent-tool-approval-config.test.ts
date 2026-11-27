@@ -17,6 +17,7 @@ import { MockLanguageModelV4, convertArrayToReadableStream } from 'ai/test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { WorkflowAgent } from './workflow-agent.js';
+import { withoutDeliveryFields } from './test/stream-delivery-fields.js';
 
 type Mode = 'generate' | 'stream';
 
@@ -1031,7 +1032,12 @@ describe('stream workflow agent automatic approval decisions', () => {
       messages: prompt,
       writable: new WritableStream({
         write(chunk) {
-          chunks.push(chunk as { type: string; toolCallId?: string });
+          chunks.push(
+            withoutDeliveryFields(chunk) as {
+              type: string;
+              toolCallId?: string;
+            },
+          );
         },
       }),
     });

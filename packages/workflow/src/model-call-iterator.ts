@@ -53,6 +53,7 @@ import {
   addToolResultsToConversation,
   type ProviderExecutedToolResultPosition,
 } from './add-tool-results-to-conversation.js';
+import { createStreamOutbox, type StreamOutbox } from './stream-outbox.js';
 import { toModelResponseMessages } from './to-model-response-messages.js';
 import { resolveToolContext } from './resolve-tool-context.js';
 import {
@@ -208,6 +209,7 @@ export async function* modelCallIterator({
   initialMessages = prompt as unknown as ModelMessage[],
   tools = {},
   writable,
+  streamOutbox = createStreamOutbox(writable),
   model,
   stopConditions,
   onStepEnd,
@@ -242,6 +244,11 @@ export async function* modelCallIterator({
   initialMessages?: Array<ModelMessage>;
   tools: ToolSet;
   writable?: WritableStream<ModelCallStreamPart<ToolSet>>;
+  /**
+   * Holds the parts that the workflow writes around the model calls. Created
+   * for `writable` when the caller does not share one.
+   */
+  streamOutbox?: StreamOutbox;
   model: LanguageModel;
   stopConditions?: ModelStopCondition[] | ModelStopCondition;
   onStepEnd?: WorkflowAgentOnStepEndCallback<any>;
@@ -522,6 +529,10 @@ export async function* modelCallIterator({
             }
           : undefined,
       };
+      // The model step writes what the workflow held back, such as the
+      // results of the tools that ran since the last model call. Taken once,
+      // so that a model step that is dispatched again gets the same parts.
+      const streamPrelude = streamOutbox.take();
       const runModelStep = () =>
         mode === 'generate'
           ? doGenerateStep(
@@ -535,7 +546,7 @@ export async function* modelCallIterator({
               currentModel,
               writable,
               serializedTools,
-              callOptions,
+              { ...callOptions, streamPrelude },
             );
       // Fallback start time for a model step that fails without returning its
       // timing. In a workflow, this is the time of the last delivered event.
@@ -602,19 +613,21 @@ export async function* modelCallIterator({
         ),
         abortSignal: currentGenerationSettings.abortSignal,
       });
-      if (mode === 'stream' && writable != null) {
+      if (mode === 'stream') {
         // Name the execution of the model step whose result this workflow
-        // continues with, then replace the tool-call chunk deferred inside the
+        // continues with, and replace the tool-call chunk deferred inside the
         // model step with the original schema's validated, normalized, or
-        // repaired result.
-        await writeDeferredToolCalls(
-          writable,
-          toolCalls.filter(
-            (_, index) =>
-              serializedTools[serializedToolCalls[index].toolName]
-                ?.hasOwnValidator,
+        // repaired result. Held until the next step that writes: the caller
+        // writes them while the tools run, or when it ends the stream.
+        streamOutbox.commit(modelCallResult.attemptId);
+        streamOutbox.push(
+          ...deferredToolCallParts(
+            toolCalls.filter(
+              (_, index) =>
+                serializedTools[serializedToolCalls[index].toolName]
+                  ?.hasOwnValidator,
+            ),
           ),
-          modelCallResult.attemptId,
         );
       }
       await invokeToolInputLifecycleCallbacks({
@@ -1036,12 +1049,10 @@ async function repairToolCallInStep({
   });
 }
 
-async function writeDeferredToolCalls(
-  writable: WritableStream<ModelCallStreamPart<ToolSet>>,
+/** The stream parts of tool calls that the model step did not write. */
+function deferredToolCallParts(
   toolCalls: ParsedToolCall[],
-  committedAttemptId?: string,
-) {
-  'use step';
+): Array<ModelCallStreamPart<ToolSet>> {
   const parts: Array<ModelCallStreamPart<ToolSet>> = [];
   for (const toolCall of toolCalls) {
     parts.push(toolCall as ModelCallStreamPart<ToolSet>);
@@ -1057,25 +1068,7 @@ async function writeDeferredToolCalls(
       } as ModelCallStreamPart<ToolSet>);
     }
   }
-
-  // Name the execution of the model step that the workflow continued with on
-  // the first part, so it costs no stream write of its own. Without another
-  // part to write, a part of its own carries it.
-  if (committedAttemptId != null) {
-    parts[0] =
-      parts.length > 0
-        ? { ...parts[0], commitAttemptId: committedAttemptId }
-        : { type: 'commit-step', commitAttemptId: committedAttemptId };
-  }
-
-  const writer = writable.getWriter();
-  try {
-    for (const part of parts) {
-      await writer.write(part);
-    }
-  } finally {
-    writer.releaseLock();
-  }
+  return parts;
 }
 
 async function invokeToolInputLifecycleCallbacks({

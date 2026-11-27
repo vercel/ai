@@ -64,6 +64,7 @@ import {
   verifyToolApprovalSignature,
 } from 'ai/internal';
 import { getWorkflowMetadata } from 'workflow';
+import { createStreamOutbox } from './stream-outbox.js';
 import { addToolResultsToConversation } from './add-tool-results-to-conversation.js';
 import { createLanguageModelToolResultOutput } from './create-language-model-tool-result-output.js';
 import type { ParsedToolCall } from './model-call.js';
@@ -2113,6 +2114,10 @@ export class WorkflowAgent<
     mode: 'generate' | 'stream',
     telemetryReport: WorkflowAgentTelemetryReport,
   ): Promise<WorkflowExecutionResult<TTools, TOutput>> {
+    // Parts for the stream that no step has written yet (see StreamOutbox).
+    const streamOutbox = createStreamOutbox(
+      mode === 'stream' ? options.writable : undefined,
+    );
     const {
       onEnd,
       effectiveModel,
@@ -2454,14 +2459,15 @@ export class WorkflowAgent<
       const deniedResults = deniedToolApprovals
         .filter(denial => !denial.providerExecuted)
         .map(denial => ({ toolCallId: denial.toolCallId }));
-      if (
-        options.writable &&
-        (toolResultContent.length > 0 || deniedResults.length > 0)
-      ) {
-        await writeApprovalToolResults(
-          options.writable,
-          approvedRawResults,
-          deniedResults,
+      if (toolResultContent.length > 0 || deniedResults.length > 0) {
+        // Written by the first model step, before its own output.
+        streamOutbox.push(
+          ...toolResultParts(
+            approvedRawResults.map(result => ({ ...result, isError: false })),
+          ),
+          ...toolOutputDeniedParts(deniedResults),
+          { type: 'finish-step' },
+          { type: 'start-step' },
         );
       }
     }
@@ -2826,6 +2832,7 @@ export class WorkflowAgent<
       model: effectiveModel,
       tools: effectiveTools as ToolSet,
       writable: options.writable,
+      streamOutbox,
       prompt: modelPrompt,
       initialInstructions: effectiveInstructions,
       initialMessages: prompt.messages,
@@ -3279,10 +3286,10 @@ export class WorkflowAgent<
 
             // Emit tool-approval-request chunks for tools that need approval
             // so useChat can show the approval UI
-            if (options.writable) {
-              if (allToolResults.length > 0) {
-                await writeToolResults(
-                  options.writable,
+            // Written when the stream is closed below.
+            if (allToolResults.length > 0) {
+              streamOutbox.push(
+                ...toolResultParts(
                   executedResults.map(r => ({
                     toolCallId: r.modelResult.toolCallId,
                     toolName: r.modelResult.toolName,
@@ -3292,22 +3299,13 @@ export class WorkflowAgent<
                     output: r.rawOutput,
                     isError: r.isError,
                   })),
-                );
-              }
-
-              if (deniedToolResults.length > 0) {
-                await writeToolOutputDenied(
-                  options.writable,
-                  deniedToolResults.map(result => ({
-                    toolCallId: result.toolCallId,
-                  })),
-                );
-              }
-
-              if (approvalMessages.length > 0) {
-                await writeApprovalRequests(options.writable, approvalMessages);
-              }
+                ),
+              );
             }
+            streamOutbox.push(
+              ...toolOutputDeniedParts(deniedToolResults),
+              ...approvalRequestParts(approvalMessages),
+            );
 
             await closeOutput();
             return {
@@ -3317,21 +3315,28 @@ export class WorkflowAgent<
             };
           }
 
-          // Execute client tools (all have execute functions at this point)
-          const clientToolResults = await mapWithConcurrency({
-            items: executableToolCalls,
-            concurrency: toolCallConcurrency,
-            abortSignal: effectiveAbortSignal,
-            execute: toolCall =>
-              executeToolWithCallbacks(
-                toolCall,
-                stepTools,
-                iterMessages,
-                toolsContext,
-                currentStepNumber,
-                toolExecutionSandbox,
-              ),
-          });
+          // Execute client tools (all have execute functions at this point).
+          // The tool calls that the model step left to the workflow are
+          // written meanwhile, so that they show while the tools run.
+          const [clientToolResults] = await Promise.all([
+            mapWithConcurrency({
+              items: executableToolCalls,
+              concurrency: toolCallConcurrency,
+              abortSignal: effectiveAbortSignal,
+              execute: toolCall =>
+                executeToolWithCallbacks(
+                  toolCall,
+                  stepTools,
+                  iterMessages,
+                  toolsContext,
+                  currentStepNumber,
+                  toolExecutionSandbox,
+                ),
+            }),
+            executableToolCalls.length > 0 && streamOutbox.hasParts()
+              ? streamOutbox.flush()
+              : undefined,
+          ]);
 
           // For provider-executed tools, use the results from the stream
           const providerToolResultEntries = await Promise.all(
@@ -3417,17 +3422,11 @@ export class WorkflowAgent<
           // Write tool results and step boundaries to the stream so the UI can
           // transition tool parts to the appropriate output state and properly
           // separate multi-step model calls in the message history.
-          if (options.writable) {
-            if (deniedToolResults.length > 0) {
-              await writeToolOutputDenied(
-                options.writable,
-                deniedToolResults.map(result => ({
-                  toolCallId: result.toolCallId,
-                })),
-              );
-            }
-            await writeToolResults(
-              options.writable,
+          // The next model step writes these before its own output, or the
+          // end of the stream does when no model step follows.
+          streamOutbox.push(
+            ...toolOutputDeniedParts(deniedToolResults),
+            ...toolResultParts(
               executedToolResults.map(r => ({
                 toolCallId: r.modelResult.toolCallId,
                 toolName: r.modelResult.toolName,
@@ -3437,9 +3436,14 @@ export class WorkflowAgent<
                 output: r.rawOutput,
                 isError: r.isError,
               })),
-              true,
-            );
-          }
+            ),
+            // Step boundaries, so the UI message history properly separates
+            // the tool call step from the subsequent text step. This ensures
+            // convertToModelMessages creates separate assistant messages for
+            // tool calls and text responses.
+            { type: 'finish-step' },
+            { type: 'start-step' },
+          );
 
           // Track the tool calls and results for this step
           lastStepToolCalls = toolCalls.map(tc => ({
@@ -3624,14 +3628,13 @@ export class WorkflowAgent<
       }
     }
 
+    // One step writes everything that is still held, the finish chunk, and
+    // closes the stream.
     async function closeOutput() {
-      if (options.writable) {
-        const sendFinish = options.sendFinish ?? true;
-        const preventClose = options.preventClose ?? false;
-        if (sendFinish || !preventClose) {
-          await closeStream(options.writable, preventClose, sendFinish);
-        }
+      if (options.sendFinish ?? true) {
+        streamOutbox.push({ type: 'finish' });
       }
+      await streamOutbox.flush({ close: !(options.preventClose ?? false) });
     }
   }
 }
@@ -3697,59 +3700,26 @@ function normalizeStepForTelemetry<
  * Aggregate token usage across all steps.
  */
 /**
- * Close the writable stream, optionally sending a finish chunk first.
- * This is a step function because writable.getWriter() and writable.close()
- * cannot be called in workflow context (sandbox limitation).
+ * The tool-approval-request chunks that useChat consumes to show the
+ * approval UI.
  */
-async function closeStream(
-  writable: WritableStream<any>,
-  preventClose?: boolean,
-  sendFinish?: boolean,
-) {
-  'use step';
-  if (sendFinish) {
-    const writer = writable.getWriter();
-    try {
-      await writer.write({ type: 'finish' });
-    } finally {
-      writer.releaseLock();
-    }
-  }
-  if (!preventClose) {
-    await writable.close();
-  }
-}
-
-/**
- * Write tool-approval-request chunks to the writable stream.
- * These are consumed by useChat to show the approval UI.
- */
-async function writeApprovalRequests(
-  writable: WritableStream<any>,
+function approvalRequestParts(
   approvalRequests: Array<{
     approvalId: string;
     toolCallId: string;
     signature?: string;
     inputSchemaInput?: unknown;
   }>,
-) {
-  'use step';
-  const writer = writable.getWriter();
-  try {
-    for (const request of approvalRequests) {
-      await writer.write({
-        type: 'tool-approval-request',
-        approvalId: request.approvalId,
-        toolCallId: request.toolCallId,
-        ...(request.signature != null ? { signature: request.signature } : {}),
-        ...(request.inputSchemaInput !== undefined
-          ? { inputSchemaInput: request.inputSchemaInput }
-          : {}),
-      });
-    }
-  } finally {
-    writer.releaseLock();
-  }
+): Array<ModelCallStreamPart<ToolSet>> {
+  return approvalRequests.map(request => ({
+    type: 'tool-approval-request',
+    approvalId: request.approvalId,
+    toolCallId: request.toolCallId,
+    ...(request.signature != null ? { signature: request.signature } : {}),
+    ...(request.inputSchemaInput !== undefined
+      ? { inputSchemaInput: request.inputSchemaInput }
+      : {}),
+  }));
 }
 
 async function signWorkflowToolApproval({
@@ -3862,8 +3832,10 @@ function getWorkflowToolApprovalSecret({
   return secret;
 }
 
-async function writeToolResults(
-  writable: WritableStream<any>,
+/**
+ * The stream parts that move tool parts in the UI to their output state.
+ */
+function toolResultParts(
   results: Array<{
     toolCallId: string;
     toolName: string;
@@ -3871,98 +3843,37 @@ async function writeToolResults(
     output: unknown;
     isError: boolean;
   }>,
-  writeStepBoundary = false,
-) {
-  'use step';
-  const writer = writable.getWriter();
-  try {
-    for (const r of results) {
-      await writer.write(
-        r.isError
-          ? {
-              type: 'tool-error',
-              toolCallId: r.toolCallId,
-              toolName: r.toolName,
-              input: r.input,
-              error: r.output,
-            }
-          : {
-              type: 'tool-result',
-              toolCallId: r.toolCallId,
-              toolName: r.toolName,
-              input: r.input,
-              output: r.output,
-            },
-      );
-    }
-    if (writeStepBoundary) {
-      // Emit step boundaries so the UI message history properly separates
-      // the tool call step from the subsequent text step. This ensures
-      // convertToModelMessages creates separate assistant messages for
-      // tool calls and text responses.
-      await writer.write({ type: 'finish-step' });
-      await writer.write({ type: 'start-step' });
-    }
-  } finally {
-    writer.releaseLock();
-  }
-}
-
-async function writeApprovalToolResults(
-  writable: WritableStream<any>,
-  approvedResults: Array<{
-    toolCallId: string;
-    toolName: string;
-    input: unknown;
-    output: unknown;
-  }>,
-  deniedResults: Array<{ toolCallId: string }>,
-) {
-  'use step';
-  const writer = writable.getWriter();
-  try {
-    for (const r of approvedResults) {
-      await writer.write({
-        type: 'tool-result',
-        toolCallId: r.toolCallId,
-        toolName: r.toolName,
-        input: r.input,
-        output: r.output,
-      });
-    }
-    for (const r of deniedResults) {
-      await writer.write({
-        type: 'tool-output-denied',
-        toolCallId: r.toolCallId,
-      });
-    }
-    await writer.write({ type: 'finish-step' });
-    await writer.write({ type: 'start-step' });
-  } finally {
-    writer.releaseLock();
-  }
+): Array<ModelCallStreamPart<ToolSet>> {
+  return results.map(
+    r =>
+      (r.isError
+        ? {
+            type: 'tool-error',
+            toolCallId: r.toolCallId,
+            toolName: r.toolName,
+            input: r.input,
+            error: r.output,
+          }
+        : {
+            type: 'tool-result',
+            toolCallId: r.toolCallId,
+            toolName: r.toolName,
+            input: r.input,
+            output: r.output,
+          }) as ModelCallStreamPart<ToolSet>,
+  );
 }
 
 /**
- * Write tool-output-denied chunks to the writable stream for tool calls that
- * the approval configuration denied.
+ * The tool-output-denied chunks for tool calls that were denied.
  */
-async function writeToolOutputDenied(
-  writable: WritableStream<any>,
+function toolOutputDeniedParts(
   deniedResults: Array<{ toolCallId: string }>,
-) {
-  'use step';
-  const writer = writable.getWriter();
-  try {
-    for (const result of deniedResults) {
-      await writer.write({
-        type: 'tool-output-denied',
-        toolCallId: result.toolCallId,
-      });
-    }
-  } finally {
-    writer.releaseLock();
-  }
+): Array<ModelCallStreamPart<ToolSet>> {
+  return deniedResults.map(result => ({
+    type: 'tool-output-denied',
+    toolCallId: result.toolCallId,
+  }));
 }
 
 function isInWorkflow(): boolean {

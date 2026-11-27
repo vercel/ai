@@ -234,6 +234,10 @@ export function toUIMessageChunk(
  * (`commitAttemptId`), the transform resets the step and forwards that
  * execution's parts instead. Parts without an `attemptId` are always
  * forwarded.
+ *
+ * A step that writes parts on behalf of the workflow can also run more than
+ * once. Those parts carry a `writeId`, and the transform forwards each of
+ * them once.
  */
 export function createModelCallToUIChunkTransform({
   uiStartIndex = 0,
@@ -278,6 +282,8 @@ export function createModelCallToUIChunkTransform({
   // False until the stream shows where an execution starts or ends. A reader
   // that joins in the middle of an execution adopts it.
   let hasSeenAttemptBoundary = false;
+  // Ids of the parts already seen that the workflow asked a step to write.
+  const seenWriteIds = new Set<string>();
 
   return new TransformStream<ModelCallStreamPart<ToolSet>, UIMessageChunk>({
     start: controller => {
@@ -289,6 +295,15 @@ export function createModelCallToUIChunkTransform({
       enqueue(controller, { type: 'finish' });
     },
     transform: (part, controller) => {
+      if (part.writeId != null) {
+        // A step that writes parts for the workflow can run again.
+        if (seenWriteIds.has(part.writeId)) return;
+        seenWriteIds.add(part.writeId);
+        if (seenWriteIds.size > MAX_RETAINED_WRITE_IDS) {
+          seenWriteIds.delete(seenWriteIds.values().next().value as string);
+        }
+      }
+
       if (part.commitAttemptId != null) {
         hasSeenAttemptBoundary = true;
         // A commit for an execution that is not retained was applied before,
@@ -360,3 +375,9 @@ export function createModelCallToUIChunkTransform({
  * than two executions of one model call are not expected.
  */
 const MAX_RETAINED_ATTEMPTS = 3;
+
+/**
+ * How many ids of written parts the transform remembers. A repeated part
+ * follows the original closely, since both come from executions of one step.
+ */
+const MAX_RETAINED_WRITE_IDS = 1024;

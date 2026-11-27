@@ -37,6 +37,12 @@ interface ModelStepExecutionFields {
    * has returned.
    */
   commitAttemptId?: string;
+  /**
+   * Identifies a part that the workflow asked a step to write. The step can
+   * run more than once and then writes the part again with the same id, so a
+   * reader drops a part whose id it has already seen.
+   */
+  writeId?: string;
 }
 
 type WithModelStepExecution<PART> = PART extends unknown
@@ -64,7 +70,25 @@ export type ModelCallStreamPart<TTools extends ToolSet = ToolSet> =
    * Carries `commitAttemptId` when the workflow has no other part to write
    * after a model step.
    */
-  | { type: 'commit-step'; commitAttemptId: string; attemptId?: undefined };
+  | {
+      type: 'commit-step';
+      commitAttemptId: string;
+      attemptId?: undefined;
+      writeId?: string;
+    }
+  /** Ends the agent's output for one `stream()` call. */
+  | ({ type: 'finish' | 'finish-step' | 'start-step' } & {
+      attemptId?: undefined;
+      commitAttemptId?: string;
+      writeId?: string;
+    })
+  | {
+      type: 'tool-output-denied';
+      toolCallId: string;
+      attemptId?: undefined;
+      commitAttemptId?: string;
+      writeId?: string;
+    };
 
 export type ModelStopCondition = StopCondition<NoInfer<ToolSet>, any>;
 
@@ -115,6 +139,12 @@ export interface ModelCallOptions {
     requestMessages?: boolean;
   };
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
+  /**
+   * Stream mode: parts that the workflow held back for this step to write
+   * before its own output, such as the results of the tools that ran after
+   * the previous model call.
+   */
+  streamPrelude?: Array<ModelCallStreamPart<ToolSet>>;
   /**
    * Set when globally registered integrations are not available in the
    * workflow body. The model step then runs the provider call in the

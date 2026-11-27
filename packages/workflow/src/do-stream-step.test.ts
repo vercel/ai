@@ -537,6 +537,69 @@ describe('doStreamStep', () => {
     expect(writtenParts[0].type).toBe('reset-step');
   });
 
+  it('writes the parts held by the workflow before it announces the execution', async () => {
+    const writtenParts: Array<{ type: string }> = [];
+    let typesWrittenAtDispatch: string[] | undefined;
+    const model = new MockLanguageModelV4({
+      doStream: async () => {
+        // Let the queued writes reach the sink.
+        await new Promise(resolve => setTimeout(resolve, 0));
+        typesWrittenAtDispatch = writtenParts.map(part => part.type);
+        return successfulStream();
+      },
+    });
+    const streamPrelude = [
+      { type: 'finish-step' as const, writeId: 'w-0' },
+      { type: 'start-step' as const, writeId: 'w-1' },
+    ];
+
+    await doStreamStep(
+      prompt,
+      model,
+      new WritableStream({
+        write(part) {
+          writtenParts.push(part);
+        },
+      }),
+      undefined,
+      { streamPrelude },
+    );
+
+    // Before the model responds, so the writes overlap the model call.
+    expect(typesWrittenAtDispatch).toEqual([
+      'finish-step',
+      'start-step',
+      'reset-step',
+    ]);
+    // As handed over: they belong to the workflow, not to this execution.
+    expect(writtenParts.slice(0, 2)).toEqual(streamPrelude);
+  });
+
+  it('writes the parts held by the workflow when the call ends before it streams', async () => {
+    const writtenParts: Array<{ type: string }> = [];
+    const doStream = vi.fn();
+    const model = new MockLanguageModelV4({ doStream });
+
+    const result = await doStreamStep(
+      prompt,
+      model,
+      new WritableStream({
+        write(part) {
+          writtenParts.push(part);
+        },
+      }),
+      undefined,
+      {
+        timeoutAt: Date.now() - 1,
+        streamPrelude: [{ type: 'start-step', writeId: 'w-0' }],
+      },
+    );
+
+    expect(result).toEqual({ aborted: true });
+    expect(doStream).not.toHaveBeenCalled();
+    expect(writtenParts[0]).toEqual({ type: 'start-step', writeId: 'w-0' });
+  });
+
   it('releases the writable when the model call fails', async () => {
     const model = new MockLanguageModelV4({
       doStream: async () => {

@@ -462,6 +462,56 @@ describe('model step executions in createModelCallToUIChunkTransform', () => {
     ]);
   });
 
+  it('forwards a part once when the step that wrote it ran again', async () => {
+    // The parts the workflow held for the second model call: the step
+    // boundary after the first one. Both executions of the second model call
+    // write them before they announce themselves.
+    const held: ModelCallStreamPart[] = [
+      { type: 'finish-step', writeId: 'w-0', commitAttemptId: 'a' },
+      { type: 'start-step', writeId: 'w-1' },
+    ];
+    const third = execution('c', 'A third execution.');
+
+    const chunks = await transform([
+      ...first,
+      ...held,
+      ...second.slice(0, 3),
+      ...held,
+      ...third,
+      ...second.slice(3),
+      { type: 'commit-step', commitAttemptId: 'c' },
+    ]);
+
+    // One step boundary between the two model calls, and none at the place
+    // where the second execution wrote it again.
+    expect(chunks.filter(chunk => chunk.type === 'start-step')).toHaveLength(2);
+    expect(
+      await renderedTexts([
+        ...first,
+        ...held,
+        ...second.slice(0, 3),
+        ...held,
+        ...third,
+        ...second.slice(3),
+        { type: 'commit-step', commitAttemptId: 'c' },
+      ]),
+    ).toEqual(['The answer from execution one.', 'A third execution.']);
+  });
+
+  it('forwards parts with different write ids', async () => {
+    const chunks = await transform([
+      { type: 'finish-step', writeId: 'w-0' },
+      { type: 'start-step', writeId: 'w-1' },
+      { type: 'finish-step', writeId: 'w-2' },
+      { type: 'start-step', writeId: 'w-3' },
+    ]);
+
+    expect(chunks.filter(chunk => chunk.type === 'start-step')).toHaveLength(
+      // One from the transform itself.
+      3,
+    );
+  });
+
   it('resumes at a UI chunk index when executions overlapped', async () => {
     const parts = [
       ...interleave(first, second, 3),

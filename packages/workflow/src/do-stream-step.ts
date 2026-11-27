@@ -126,14 +126,19 @@ async function streamModelStep(
   const attemptId = generateAttemptId();
   // Acquire the writer once to avoid per-chunk lock overhead.
   const writer = writable.getWriter();
-  // Announce this execution before the model is called, so the write overlaps
-  // the provider request. It invalidates parts left by an earlier execution.
-  // Later writes are queued behind it; it is awaited before the first of them.
-  const announced = writer.write({ type: 'reset-step', attemptId });
+  // Before the model is called, so that these writes overlap the provider
+  // request: first the parts the workflow held back for this step, then the
+  // part that announces this execution. It invalidates parts left by an
+  // earlier execution. Later writes are queued behind these; they are awaited
+  // before the first of them.
+  const announced = Promise.all([
+    ...(options?.streamPrelude ?? []).map(part => writer.write(part)),
+    writer.write({ type: 'reset-step', attemptId }),
+  ]).then(() => {});
   announced.catch(() => {});
 
   try {
-    return await streamModelCallToOutput(
+    const result = await streamModelCallToOutput(
       conversationPrompt,
       modelInit,
       { writer, attemptId, announced },
@@ -141,6 +146,10 @@ async function streamModelStep(
       options,
       languageModelCallTelemetry,
     );
+    // A call that ends before it streams anything still has to deliver the
+    // parts that the workflow handed to it.
+    await announced;
+    return result;
   } finally {
     writer.releaseLock();
   }
