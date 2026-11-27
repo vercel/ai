@@ -1,0 +1,54 @@
+---
+title: Gnani AI
+description: Gnani AI speech models for the Vercel AI SDK. Use Prisma for speech-to-text and Timbre for text-to-speech in nine Indian languages and English.
+---
+
+# Gnani AI
+
+Use `transcribe()` with **Gnani Prisma** to turn recordings into text, and `generateSpeech()` with **Gnani Timbre** to turn text into audio. Both model families support English and nine Indian languages. [Speech-to-text docs](https://docs.gnani.ai/api/STT/overview) · [Text-to-speech docs](https://docs.gnani.ai/api/TTS/tts-inference)
+
+## Setup
+
+Install `gnani-ai`, the Gnani AI community provider for AI SDK 7. [npm package](https://www.npmjs.com/package/gnani-ai) · [Provider README](https://github.com/ANAMASGARD/gnani-ai-sdk#readme)
+
+<InstallPackages packages="gnani-ai" />
+
+With Deno, run `deno add npm:gnani-ai`.
+
+Set `GNANI_API_KEY` in your server environment. The `gnani` export reads it when making a request. To pass a key explicitly, use `createGnani({ apiKey })` or `new Gnani({ apiKey })`. [Get a Gnani API key](https://app.gnani.ai)
+
+The package includes AI SDK 7 and re-exports `transcribe()` and `generateSpeech()`. Existing AI SDK 7 projects can also import those functions directly from `ai`.
+
+## Speech-to-text with Prisma
+
+Pass a recording of up to 30 seconds to `transcribe()`. Use `prisma-v3.0` to detect the spoken language or transcribe speech that mixes languages. With `prisma-v2.5`, set `providerOptions.gnani.language_code` to the recording's locale or use its `en-IN` default. [Prisma REST guide](https://docs.gnani.ai/api/STT/speech-to-text)
+
+```ts
+import { readFile } from 'node:fs/promises';
+import { gnani, transcribe } from 'gnani-ai';
+
+const { text } = await transcribe({
+  model: gnani.transcription('prisma-v3.0'),
+  audio: await readFile('recording.wav'),
+});
+console.log(text);
+```
+
+## Text-to-speech with Timbre
+
+Choose a voice from the selected model's catalog, such as `Shivani` for `timbre-v3.0` or `Nalini` for `timbre-v2.5`. This example saves a Hindi greeting as a WAV file. [Timbre voice catalog](https://docs.gnani.ai/api/TTS/available-voices)
+
+```ts
+import { writeFile } from 'node:fs/promises';
+import { generateSpeech, gnani } from 'gnani-ai';
+
+const { audio } = await generateSpeech({
+  model: gnani.speech('timbre-v3.0'),
+  text: 'नमस्ते, आप कैसे हैं?',
+  language: 'hi-IN',
+  voice: 'Shivani',
+  outputFormat: 'wav',
+});
+
+await writeFile('greeting.wav', audio.uint8Array);
+```
