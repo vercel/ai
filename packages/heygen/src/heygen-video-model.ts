@@ -248,6 +248,9 @@ export class HeyGenVideoModel implements VideoModelV4 {
       });
     }
 
+    const resolutionLabel = (['480p', '768p', '1080p', '2k'] as const).find(
+      label => label === String(options.resolution),
+    );
     const frameSize =
       options.resolution != null && heygenOptions?.resolution == null
         ? frameSizes[options.resolution]
@@ -255,6 +258,7 @@ export class HeyGenVideoModel implements VideoModelV4 {
     if (
       options.resolution != null &&
       heygenOptions?.resolution == null &&
+      resolutionLabel == null &&
       frameSize == null
     ) {
       throw new InvalidArgumentError({
@@ -264,7 +268,10 @@ export class HeyGenVideoModel implements VideoModelV4 {
       });
     }
     const resolution =
-      heygenOptions?.resolution ?? frameSize?.resolution ?? '768p';
+      heygenOptions?.resolution ??
+      resolutionLabel ??
+      frameSize?.resolution ??
+      '768p';
     const aspectRatio =
       options.aspectRatio ??
       frameSize?.aspectRatio ??

@@ -307,10 +307,21 @@ describe('HeyGenVideoModel', () => {
 
   it.each([
     ['960x416', '480p', '21:9'],
+    ['832x480', '480p', '16:9'],
+    ['640x480', '480p', '4:3'],
+    ['480x480', '480p', '1:1'],
+    ['480x640', '480p', '3:4'],
+    ['480x832', '480p', '9:16'],
+    ['1536x672', '768p', '21:9'],
     ['1344x768', '768p', '16:9'],
+    ['1024x768', '768p', '4:3'],
+    ['768x768', '768p', '1:1'],
+    ['768x1024', '768p', '3:4'],
     ['768x1344', '768p', '9:16'],
+    ['1890x1080', '1080p', '16:9'],
     ['1080x1890', '1080p', '9:16'],
     ['2688x1536', '2k', '16:9'],
+    ['1536x2688', '2k', '9:16'],
   ] as const)(
     'maps the documented frame size %s',
     async (resolution, tier, ratio) => {
@@ -321,6 +332,74 @@ describe('HeyGenVideoModel', () => {
       });
     },
   );
+
+  it.each(['text_to_video', 'image_to_video', 'reference_to_video'] as const)(
+    'accepts native resolution labels supplied at runtime for %s',
+    async mode => {
+      for (const resolution of ['480p', '768p', '1080p', '2k']) {
+        const options = {
+          ...defaultOptions,
+          aspectRatio: '16:9' as const,
+          ...(mode === 'image_to_video' ? { image } : {}),
+          ...(mode === 'reference_to_video'
+            ? { inputReferences: [video] }
+            : {}),
+        };
+        // JavaScript callers can supply a provider-native size class at runtime.
+        const native = await createModel().doStart({
+          ...options,
+          resolution: resolution as `${number}x${number}`,
+        });
+        const nativeBody = await server.calls.at(-1)?.requestBodyJson;
+        const override = await createModel().doStart({
+          ...options,
+          providerOptions: { heygen: { resolution } },
+        });
+        expect(nativeBody).toEqual(await server.calls.at(-1)?.requestBodyJson);
+        expect(native.operation).toEqual(override.operation);
+        expect(native.warnings).toEqual(override.warnings);
+      }
+    },
+  );
+
+  it('preserves the aspect ratio inferred from pixel dimensions', async () => {
+    await createModel().doStart({ ...defaultOptions, resolution: '480x832' });
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      resolution: '480p',
+      aspect_ratio: '9:16',
+    });
+    await createModel().doStart({
+      ...defaultOptions,
+      resolution: '480x832',
+      aspectRatio: '4:3',
+    });
+    expect(await server.calls[1].requestBodyJson).toMatchObject({
+      resolution: '480p',
+      aspect_ratio: '4:3',
+    });
+  });
+
+  it('keeps an explicit provider resolution authoritative over a runtime label', async () => {
+    await createModel().doStart({
+      ...defaultOptions,
+      resolution: '768p' as `${number}x${number}`,
+      providerOptions: { heygen: { resolution: '480p' } },
+    });
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      resolution: '480p',
+    });
+  });
+
+  it('rejects a high-resolution label with an unsupported aspect ratio', async () => {
+    await expect(
+      createModel().doStart({
+        ...defaultOptions,
+        resolution: '2k' as `${number}x${number}`,
+        aspectRatio: '1:1',
+      }),
+    ).rejects.toThrow('HeyGen 1080p and 2k require');
+    expect(server.calls).toHaveLength(0);
+  });
 
   it('gives the provider resolution precedence over the standard resolution', async () => {
     await createModel().doStart({
