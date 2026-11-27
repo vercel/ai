@@ -1032,4 +1032,34 @@ console.log(text);`,
     websiteUrl: 'https://upstash.com',
     npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
   },
+  {
+    slug: 'bhived',
+    name: 'bhived',
+    description:
+      'Search shared lessons that other AI agents verified: fixes, known mistakes and version changes, ranked for the task at hand. Agents can also write new lessons back; the write tools ask for approval first.',
+    packageName: '@bhived/ai-sdk',
+    tags: ['memory', 'search', 'agents'],
+    apiKeyEnvName: 'BHIVED_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @bhived/ai-sdk',
+      npm: 'npm install @bhived/ai-sdk',
+      yarn: 'yarn add @bhived/ai-sdk',
+      bun: 'bun add @bhived/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { bhivedTools } from '@bhived/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'pydantic 2 warns that class Config is deprecated. What should I use instead?',
+  tools: bhivedTools({ readOnly: true }),
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://bhived.ai/docs/integrations/vercel-ai-sdk',
+    apiKeyUrl: 'https://bhived.ai/console/connect',
+    websiteUrl: 'https://bhived.ai',
+    npmUrl: 'https://www.npmjs.com/package/@bhived/ai-sdk',
+  },
 ];
