@@ -23,6 +23,7 @@ import {
   type MCPEvents,
   type MCPEventsConfig,
 } from './mcp-event-types';
+import { MCP_SKILLS_EXTENSION_NAME } from './mcp-skills';
 import { MCPClientError } from '../error/mcp-client-error';
 import type {
   JSONRPCError,
@@ -50,6 +51,7 @@ import {
   DiscoverResultSchema,
   ElicitationRequestSchema,
   ElicitResultSchema,
+  GetSkillResultSchema,
   InitializeResultSchema,
   InputRequiredElicitationSchema,
   InputRequiredResultSchema,
@@ -58,6 +60,7 @@ import {
   ListResourceTemplatesResultSchema,
   ListResourcesResultSchema,
   ListPromptsResultSchema,
+  ListSkillsResultSchema,
   ListToolsResultSchema,
   ReadResourceResultSchema,
   ResultSchema,
@@ -71,9 +74,11 @@ import {
   type Configuration as ClientConfiguration,
   type ElicitationRequest,
   type ElicitResult,
+  type GetSkillResult,
   type ListResourceTemplatesResult,
   type ListResourcesResult,
   type ListPromptsResult,
+  type ListSkillsResult,
   type ListToolsResult,
   type McpToolSet,
   type Notification,
@@ -377,6 +382,16 @@ export interface MCPClient {
     arguments?: Record<string, unknown>;
     options?: RequestOptions;
   }): Promise<GetPromptResult>;
+
+  listSkills(options?: {
+    params?: PaginatedRequest['params'];
+    options?: RequestOptions;
+  }): Promise<ListSkillsResult>;
+
+  getSkill(args: {
+    uri: string;
+    options?: RequestOptions;
+  }): Promise<GetSkillResult>;
 
   /** @deprecated Use `listPrompts` instead. */
   experimental_listPrompts(options?: {
@@ -849,6 +864,17 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
         if (!this.serverCapabilities.prompts) {
           throw new MCPClientError({
             message: `Server does not support prompts`,
+          });
+        }
+        break;
+      case 'skills/list':
+      case 'skills/get':
+        if (
+          this.serverCapabilities.extensions?.[MCP_SKILLS_EXTENSION_NAME] ==
+          null
+        ) {
+          throw new MCPClientError({
+            message: 'Server does not support skills',
           });
         }
         break;
@@ -1346,6 +1372,34 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
     });
   }
 
+  private async listSkillsInternal({
+    params,
+    options,
+  }: {
+    params?: PaginatedRequest['params'];
+    options?: RequestOptions;
+  } = {}): Promise<ListSkillsResult> {
+    return this.request({
+      request: { method: 'skills/list', params },
+      resultSchema: ListSkillsResultSchema,
+      options,
+    });
+  }
+
+  private async getSkillInternal({
+    uri,
+    options,
+  }: {
+    uri: string;
+    options?: RequestOptions;
+  }): Promise<GetSkillResult> {
+    return this.request({
+      request: { method: 'skills/get', params: { uri } },
+      resultSchema: GetSkillResultSchema,
+      options,
+    });
+  }
+
   private async completeInternal({
     options,
     ...params
@@ -1572,6 +1626,26 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
     options?: RequestOptions;
   }): Promise<GetPromptResult> {
     return this.getPromptInternal({ name, args, options });
+  }
+
+  listSkills({
+    params,
+    options,
+  }: {
+    params?: PaginatedRequest['params'];
+    options?: RequestOptions;
+  } = {}): Promise<ListSkillsResult> {
+    return this.listSkillsInternal({ params, options });
+  }
+
+  getSkill({
+    uri,
+    options,
+  }: {
+    uri: string;
+    options?: RequestOptions;
+  }): Promise<GetSkillResult> {
+    return this.getSkillInternal({ uri, options });
   }
 
   /** @deprecated Use `listPrompts` instead. */
