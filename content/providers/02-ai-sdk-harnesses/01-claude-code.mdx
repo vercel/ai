@@ -194,6 +194,18 @@ Skills without an override keep their Claude Code defaults, so other bundled
 skills such as `code-review`, `simplify`, and `claude-api` remain available
 when provided by the installed Claude Code runtime.
 
+## Host Tool Names
+
+Host tools are registered with Claude Code as `mcp__harness-tools__<name>`.
+The adapter also accepts the bare tool name, such as `weather`, and reports
+both forms using the host tool name in stream events. These calls are
+host-executed and remain subject to `HarnessAgent`'s `toolApproval`.
+
+Bare-name aliases are not created for Claude Code built-in tool names,
+`StructuredOutput`, or names starting with `mcp__`, to avoid redirecting
+built-in or other MCP tools. Host tools with those names must be called using
+their full `mcp__harness-tools__<name>` name.
+
 ## Auto Permission Mode
 
 Opt in to Claude Code's own permission classifier with an adapter setting:

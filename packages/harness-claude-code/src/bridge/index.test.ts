@@ -336,7 +336,230 @@ describe('Claude Code bridge configuration', () => {
           event.isError === true,
       ),
     ).toEqual([]);
+    expect(state.emitted).toContainEqual({
+      type: 'tool-input-start',
+      id: toolCallId,
+      toolName: 'weather',
+      providerExecuted: false,
+    });
+    expect(
+      state.emitted.filter(event => event.type === 'tool-call'),
+    ).toHaveLength(1);
   });
+
+  test.each([
+    { nativeName: 'weather', handlerFirst: false },
+    { nativeName: 'weather', handlerFirst: true },
+    { nativeName: 'mcp__harness-tools__weather', handlerFirst: false },
+    { nativeName: 'mcp__harness-tools__weather', handlerFirst: true },
+  ])(
+    'deduplicates $nativeName calls and results with handlerFirst=$handlerFirst',
+    async ({ nativeName, handlerFirst }) => {
+      state.start.tools = [
+        { name: 'weather', inputSchema: { type: 'object' } },
+      ];
+      const input = { city: 'Paris' };
+      const output = { celsius: 20 };
+      state.requestToolResult = vi.fn(async () => {
+        expect(state.emitted).toContainEqual({
+          type: 'tool-call',
+          toolCallId: 'weather-call',
+          toolName: 'weather',
+          input: JSON.stringify(input),
+          providerExecuted: false,
+        });
+        return { output };
+      });
+      const assistantMessage = {
+        type: 'assistant',
+        message: {
+          content: [
+            { type: 'tool_use', id: 'weather-call', name: nativeName, input },
+          ],
+        },
+      };
+      state.createQuery = () =>
+        (async function* () {
+          if (!handlerFirst) yield assistantMessage;
+          await state.toolHandlers.get('weather')!(input, {
+            requestId: 'weather-call',
+            _meta: { 'claudecode/toolUseId': 'weather-call' },
+          });
+          if (handlerFirst) yield assistantMessage;
+          yield {
+            type: 'user',
+            message: {
+              content: [
+                {
+                  type: 'tool_result',
+                  tool_use_id: 'weather-call',
+                  content: JSON.stringify(output),
+                },
+              ],
+            },
+          };
+          yield { type: 'result', subtype: 'success', result: '20°C' };
+        })();
+
+      await import('./index');
+
+      expect(state.requestToolResult).toHaveBeenCalledExactlyOnceWith(
+        'weather-call',
+      );
+      expect(
+        state.emitted.filter(event => event.type === 'tool-call'),
+      ).toHaveLength(1);
+      expect(
+        state.emitted.filter(event => event.type === 'tool-result'),
+      ).toEqual([
+        {
+          type: 'tool-result',
+          toolCallId: 'weather-call',
+          toolName: 'weather',
+          result: output,
+          isError: false,
+        },
+      ]);
+    },
+  );
+
+  const reservedToolNames = [
+    'Read',
+    'Write',
+    'Edit',
+    'Bash',
+    'Glob',
+    'Grep',
+    'WebSearch',
+    'WebFetch',
+    'NotebookEdit',
+    'TodoWrite',
+    'Agent',
+    'TaskCreate',
+    'TaskGet',
+    'TaskUpdate',
+    'TaskList',
+    'TaskStop',
+    'TaskOutput',
+    'Monitor',
+    'ListAgents',
+    'ListMcpResources',
+    'ReadMcpResource',
+    'ExitPlanMode',
+    'EnterWorktree',
+    'ExitWorktree',
+    'AskUserQuestion',
+    'Skill',
+    'ToolSearch',
+    'StructuredOutput',
+    'mcp__external__weather',
+    'mcp__harness-tools__nested',
+  ];
+
+  test.each([false, true])(
+    'excludes conflicting aliases with safe tools=%s',
+    async includeSafeTool => {
+      state.start.tools = [
+        ...reservedToolNames,
+        ...(includeSafeTool ? ['weather'] : []),
+      ].map(name => ({
+        name,
+        inputSchema: { type: 'object' },
+      }));
+
+      await import('./index');
+
+      if (includeSafeTool) {
+        expect(state.queryArgs[0]?.options.toolAliases).toEqual({
+          weather: 'mcp__harness-tools__weather',
+        });
+      } else {
+        expect(state.queryArgs[0]?.options).not.toHaveProperty('toolAliases');
+      }
+    },
+  );
+
+  test('omits aliases when there are no host tools', async () => {
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).not.toHaveProperty('toolAliases');
+  });
+
+  test.each([
+    { permissionMode: 'allow-reads', autoMode: false },
+    { permissionMode: 'allow-edits', autoMode: false },
+    { permissionMode: 'allow-reads', autoMode: true },
+    { permissionMode: 'allow-edits', autoMode: true },
+  ])(
+    'keeps host permissions separate with $permissionMode and autoMode=$autoMode',
+    async ({ permissionMode, autoMode }) => {
+      state.start = {
+        ...state.start,
+        permissionMode,
+        autoMode,
+        tools: [{ name: 'weather', inputSchema: { type: 'object' } }],
+      };
+      state.requestToolApproval = vi.fn(async () => ({ approved: false }));
+
+      await import('./index');
+
+      const options = state.queryArgs[0]!.options;
+      const canUseTool = options.canUseTool as (
+        toolName: string,
+        input: Record<string, unknown>,
+        options: { toolUseID: string },
+      ) => Promise<unknown>;
+      const hooks = options.hooks as {
+        PreToolUse: Array<{
+          matcher?: string;
+          hooks: Array<
+            (
+              input: Record<string, unknown>,
+              toolUseID: string,
+            ) => Promise<unknown>
+          >;
+        }>;
+      };
+      const approvalHook = hooks.PreToolUse.find(
+        entry => entry.matcher == null,
+      )!.hooks[0]!;
+      for (const toolName of ['weather', 'mcp__harness-tools__weather']) {
+        expect(
+          await approvalHook(
+            {
+              hook_event_name: 'PreToolUse',
+              cwd: '/workspace',
+              tool_name: toolName,
+              tool_input: { city: 'Paris' },
+            },
+            toolName,
+          ),
+        ).toEqual({});
+        expect(
+          await canUseTool(
+            toolName,
+            { city: 'Paris' },
+            { toolUseID: toolName },
+          ),
+        ).toEqual({
+          behavior: 'allow',
+          updatedInput: { city: 'Paris' },
+        });
+      }
+      expect(state.requestToolApproval).not.toHaveBeenCalled();
+      expect(state.emitted.filter(event => event.type === 'tool-call')).toEqual(
+        [],
+      );
+      for (const toolName of ['unregistered', 'mcp__external__weather']) {
+        expect(
+          await canUseTool(toolName, {}, { toolUseID: toolName }),
+        ).toMatchObject({
+          behavior: 'deny',
+        });
+      }
+      expect(state.requestToolApproval).toHaveBeenCalledTimes(2);
+    },
+  );
 
   test.each(['hook-first', 'boundary-first'] as const)(
     'closes a compaction-only turn when the %s event arrives first',

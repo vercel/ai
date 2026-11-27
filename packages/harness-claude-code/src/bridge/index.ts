@@ -57,7 +57,9 @@ import {
 } from './create-emit-stream-event';
 import { jsonSchemaToZodObject } from './json-schema-to-zod';
 import { areFileToolPathsTrusted } from './permission-paths';
+import { HOST_TOOL_PREFIX, resolveHostToolName } from './host-tool-names';
 import {
+  PUBLIC_TO_NATIVE,
   resolveInactiveNativeTools,
   resolveNativeTools,
 } from './tool-filtering';
@@ -214,6 +216,7 @@ type Emit = (msg: Record<string, unknown>) => void;
 
 function createPermissionOptions(input: {
   start: StartMessage;
+  toHostToolName: (toolName: string) => string | undefined;
   inactiveNativeTools: readonly string[];
   turn: BridgeTurn;
   emit: Emit;
@@ -272,10 +275,11 @@ function createPermissionOptions(input: {
       options: { toolUseID: string; blockedPath?: string },
     ) => {
       if (
-        toolName.startsWith('mcp__harness-tools__') ||
+        input.toHostToolName(toolName) !== undefined ||
         (!autoMode &&
           !(await needsHostApproval({
             toolName,
+            toHostToolName: input.toHostToolName,
             toolInput,
             permissionMode,
             inactiveNativeTools,
@@ -484,6 +488,7 @@ function createGatewayModelOverrides(
 
 async function needsHostApproval(input: {
   toolName: string;
+  toHostToolName: (toolName: string) => string | undefined;
   toolInput: unknown;
   cwd: string;
   readableSkillRoots: readonly string[];
@@ -492,7 +497,7 @@ async function needsHostApproval(input: {
   permissionMode: 'allow-reads' | 'allow-edits' | 'allow-all';
   inactiveNativeTools: ReadonlySet<string>;
 }): Promise<boolean> {
-  if (input.toolName.startsWith('mcp__harness-tools__')) return false;
+  if (input.toHostToolName(input.toolName) !== undefined) return false;
   if (
     input.inactiveNativeTools.has(input.toolName) ||
     nativeToolRequiresApproval({
@@ -606,6 +611,7 @@ async function isProtectedClaudeFileWrite(input: {
  */
 function createApprovalPreToolUseHook(input: {
   permissionMode: 'allow-reads' | 'allow-edits' | 'allow-all';
+  toHostToolName: (toolName: string) => string | undefined;
   autoMode: boolean;
   inactiveNativeTools: ReadonlySet<string>;
   decisions: Map<string, { approved: boolean; reason?: string }>;
@@ -653,6 +659,7 @@ function createApprovalPreToolUseHook(input: {
           })
         : await needsHostApproval({
             toolName,
+            toHostToolName: input.toHostToolName,
             toolInput: hookInput.tool_input,
             cwd: hookInput.cwd,
             readableSkillRoots: input.readableSkillRoots,
@@ -728,6 +735,23 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   }
 
   const streamEventState = createClaudeStreamEventState();
+
+  const reservedToolNames = new Set([
+    ...Object.keys(NATIVE_TOOL_KINDS),
+    ...Object.keys(NATIVE_TO_COMMON),
+    ...Object.values(PUBLIC_TO_NATIVE),
+    'StructuredOutput',
+  ]);
+  const toolAliases = Object.fromEntries(
+    (start.tools ?? [])
+      .filter(
+        tool =>
+          !reservedToolNames.has(tool.name) && !tool.name.startsWith('mcp__'),
+      )
+      .map(tool => [tool.name, `${HOST_TOOL_PREFIX}${tool.name}`]),
+  );
+  const toHostToolName = (toolName: string) =>
+    resolveHostToolName(toolName, toolAliases);
 
   const mcpServers: Record<string, unknown> = { ...start.mcpServers };
   if (start.tools && start.tools.length > 0) {
@@ -878,6 +902,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   >();
   const toolCwds = new Map<string, string>();
   const permissionOptions = createPermissionOptions({
+    toHostToolName,
     toolCwds,
     approvalDecisions,
     start,
@@ -896,6 +921,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const modelOverrides = createGatewayModelOverrides(start.model, sdkEnv);
   const deferredToolUseIds = new Set<string>();
   const approvalPreToolUseHook = createApprovalPreToolUseHook({
+    toHostToolName,
     toolCwds,
     readableSkillRoots: start.readableSkillRoots ?? [],
     additionalDirectories: start.additionalDirectories ?? [],
@@ -1014,6 +1040,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       ...permissionOptions,
       ...(Object.keys(settings).length > 0 ? { settings } : {}),
       mcpServers,
+      ...(Object.keys(toolAliases).length > 0 ? { toolAliases } : {}),
       settingSources: ['user'],
       cwd: workdir,
       abortController: abortCtl,
@@ -1130,6 +1157,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     emitTerminalError,
     onCompactionBoundary: boundary => compaction.onBoundary(boundary),
     toCommonName,
+    toHostToolName,
   });
 
   /*
