@@ -693,6 +693,7 @@ function createSession({
       name: string;
       description?: string;
       inputSchema: unknown;
+      deferLoading?: boolean;
     }>;
     abortSignal?: AbortSignal;
   }): Promise<{ restartThread: boolean }> => {
@@ -908,6 +909,7 @@ function createSession({
         name: t.name,
         description: t.description,
         inputSchema: t.inputSchema,
+        deferLoading: t.deferLoading,
       }));
       const { restartThread } = await synchronizeTurnConfiguration({
         skills: promptOpts.skills,
@@ -968,6 +970,7 @@ function createSession({
         name: t.name,
         description: t.description,
         inputSchema: t.inputSchema,
+        deferLoading: t.deferLoading,
       }));
       const { restartThread } = await synchronizeTurnConfiguration({
         skills: continueOpts.skills,
@@ -1251,6 +1254,7 @@ function fingerprintCodexTurnConfiguration({
     name: string;
     description?: string;
     inputSchema: unknown;
+    deferLoading?: boolean;
   }>;
 }): string {
   const canonical = JSON.stringify(
