@@ -10,7 +10,7 @@
 - **Prompt**: The action of sending a user message that starts a new turn. The message is referred to as "prompt message" or just "prompt".
 - **Steer**: The action of sending a user message sent while a turn is running, which the agent picks up at its next safe point instead of starting a new turn. The message is referred to as "steering message", or just "steer".
 - **Queue**: The action of sending a user message that will start a new turn, while a previous turn is running. Unlike steering, this will wait for the turn to be done, and effectively it is just the same as a regular prompt, with the difference that it is being queued ahead of actually sending it to the agent.
-- **Cancel**: A submission with which the user stops a running turn. The turn finishes with finish reason `cancelled`; prompts waiting for a later turn are not affected.
+- **Cancel**: A submission with which the user stops a running turn. Prompts queued for a later turn are not affected.
 - **Instructions**: Standing guidance that shapes how the agent behaves across all turns, also called the system prompt.
 - **Skill**: A packaged set of instructions and optional resources that the agent loads when a task needs them.
 - **Tool**: A capability the model can call with structured input to act on the outside world or get information. A tool call produces a tool result that goes back to the model.
