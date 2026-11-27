@@ -1,0 +1,319 @@
+---
+title: deAPI
+description: Learn how to use the deAPI provider for the AI SDK.
+---
+
+# deAPI
+
+[deAPI](https://deapi.ai) runs open-source image, video, audio and embedding models on a distributed GPU network, serves open chat models, and exposes them through an OpenAI-compatible API.
+
+The deAPI provider for the AI SDK supports:
+
+- **Language models**: DeepSeek, Qwen, Kimi, GLM, Seed and other open models with tools, structured output, reasoning and the cost of every call
+- **Image generation and editing**: Flux, Z-Image and Qwen image models, including instruction-based editing with input images
+- **Video generation**: text-to-video and image-to-video with LTX and MiniMax models
+- **Embeddings**: 1024-dimensional BGE-M3 embeddings
+- **Speech**: text-to-speech and speech-to-text
+
+Learn more in the [deAPI documentation](https://docs.deapi.ai).
+
+## Setup
+
+The deAPI provider is available in the `@deapi/ai-sdk-provider` module. You can install it with:
+
+<InstallPackages packages="@deapi/ai-sdk-provider" />
+
+Create an API key in the [deAPI dashboard](https://app.deapi.ai/settings/api-keys) and set it as an environment variable:
+
+```bash
+DEAPI_API_KEY=sk-dp-...
+```
+
+## Provider Instance
+
+You can import the default provider instance `deapi` from `@deapi/ai-sdk-provider`:
+
+```ts
+import { deapi } from '@deapi/ai-sdk-provider';
+```
+
+If you need a customized setup, you can use `createDeAPI` and create a provider instance with your settings:
+
+```ts
+import { createDeAPI } from '@deapi/ai-sdk-provider';
+
+const deapi = createDeAPI({
+  apiKey: process.env.DEAPI_API_KEY ?? '',
+});
+```
+
+You can use the following optional settings to customize the deAPI provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `https://oai.deapi.ai/v1`.
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header.
+  It defaults to the `DEAPI_API_KEY` environment variable and is read when a model is called, not when the provider is created.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
+## Language Models
+
+You can create models that call the deAPI chat completions API using the provider instance.
+The first argument is the model id, e.g. `deepseek-v4.1-flash`:
+
+```ts
+import { deapi } from '@deapi/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text, providerMetadata } = await generateText({
+  model: deapi('deepseek-v4.1-flash'),
+  prompt: 'Write a haiku about open-source models.',
+});
+
+console.log(providerMetadata?.deapi?.cost); // USD charged for this call
+```
+
+`deapi.languageModel()` and `deapi.chatModel()` return the same model. The models work with `generateText` and `streamText`, including tools and structured output through `Output`.
+
+### Cost
+
+deAPI returns the amount it charged for each call, and the provider exposes it as `providerMetadata.deapi.cost` (USD).
+With `streamText` the provider always requests the final usage chunk, so `await result.providerMetadata` carries the cost as well.
+
+### Reasoning
+
+Set the reasoning effort with the `reasoning` call option or with `providerOptions.deapi.reasoningEffort`.
+Both are sent as `reasoning_effort` (`none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`); the reasoning comes back as `reasoningText`:
+
+```ts
+import { deapi } from '@deapi/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text, reasoningText } = await generateText({
+  model: deapi('qwen3.8-flash'),
+  prompt: 'How many minutes from 09:47 to 13:15?',
+  reasoning: 'low',
+});
+```
+
+Models differ in the levels they accept (`glm-5.3` takes `low`, `high` and `max`); an unsupported level returns a 400 that lists the accepted values.
+
+### Listing Models
+
+`deapi.listModels()` returns the chat models available to your API key, with context window, output limit, input modalities and prices in USD per token:
+
+```ts
+import { deapi } from '@deapi/ai-sdk-provider';
+
+const models = await deapi.listModels();
+```
+
+### Model Capabilities
+
+| Model                         | Image Input | Object Generation | Tool Usage |
+| ----------------------------- | ----------- | ----------------- | ---------- |
+| `deepseek-v4.1-flash`         | <Check />   | <Check />         | <Check />  |
+| `deepseek-v4.1-flash:economy` | <Check />   | <Check />         | <Check />  |
+| `glm-5.3`                     | <Cross />   | <Check />         | <Check />  |
+| `glm-5.3-flash`               | <Check />   | <Check />         | <Check />  |
+| `gpt-6-luna`                  | <Check />   | <Check />         | <Check />  |
+| `hy3`                         | <Cross />   | <Check />         | <Check />  |
+| `kimi-k3`                     | <Check />   | <Check />         | <Check />  |
+| `qwen3.8-flash`               | <Check />   | <Check />         | <Check />  |
+| `qwen3.8-max`                 | <Check />   | <Check />         | <Check />  |
+| `seed-2.0-lite`               | <Check />   | <Check />         | <Check />  |
+| `seed-2.0-mini`               | <Check />   | <Check />         | <Check />  |
+| `seed-2.0-pro`                | <Check />   | <Check />         | <Check />  |
+| `seed-2.1-turbo`              | <Check />   | <Check />         | <Check />  |
+
+The table follows the input modalities and supported parameters that `GET /v1/models` reports for each model.
+`glm-5.3` does not accept `json_schema`, so for that model the provider requests `json_object` and puts the schema in a system message.
+See the [deAPI chat reference](https://docs.deapi.ai/openai-compatibility#chat-completions-llms) for limits and prices per model.
+
+## Image Models
+
+You can create models that call the deAPI image API using the `.image()` factory method.
+For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
+
+```ts
+import { deapi } from '@deapi/ai-sdk-provider';
+import { generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: deapi.image('Flux1schnell'),
+  prompt: 'A red fox in a snowy forest, cinematic lighting',
+  size: '1024x1024',
+});
+```
+
+To edit images, pass them in the prompt. Editing models follow an instruction; masks (inpainting) are not supported.
+
+```ts
+import { deapi } from '@deapi/ai-sdk-provider';
+import { generateImage } from 'ai';
+import { readFile } from 'node:fs/promises';
+
+const { image } = await generateImage({
+  model: deapi.image('QwenImageEdit_Plus_NF4'),
+  prompt: {
+    images: [await readFile('./source.png')],
+    text: 'Make the sky stormy',
+  },
+});
+```
+
+| Model                      | Generation          | Editing             | Sizes                                   |
+| -------------------------- | ------------------- | ------------------- | --------------------------------------- |
+| `Flux1schnell`             | <Check size={18} /> | <Cross size={18} /> | `512x512` to `1536x1024`                |
+| `ZImageTurbo_INT8`         | <Check size={18} /> | <Cross size={18} /> | `512x512`, `768x768`, `1024x1024`       |
+| `ZAnimeDistill_8Step_INT8` | <Check size={18} /> | <Cross size={18} /> | `512x512`, `768x768`, `1024x1024`       |
+| `Flux_2_Klein_4B_BF16`     | <Check size={18} /> | <Check size={18} /> | 256 to 1536 px per side, in steps of 16 |
+| `QwenImageEdit_Plus_NF4`   | <Cross size={18} /> | <Check size={18} /> |                                         |
+
+`Flux_2_Klein_4B_BF16` combines up to 3 input images, `QwenImageEdit_Plus_NF4` takes 1 (up to 10 MB each).
+Images are returned as PNG. The `quality` setting (`low`, `medium`, `high`, `auto`) can be passed with `providerOptions.deapi.quality`.
+
+## Video Models
+
+You can create models that call the deAPI video API using the `.video()` factory method.
+For more on video generation with the AI SDK see [generateVideo()](/docs/reference/ai-sdk-core/generate-video).
+
+```ts
+import { deapi } from '@deapi/ai-sdk-provider';
+import { experimental_generateVideo as generateVideo } from 'ai';
+import { writeFile } from 'node:fs/promises';
+
+const { video } = await generateVideo({
+  model: deapi.video('Ltx2_3_22B_Dist_INT8'),
+  prompt: 'A paper boat drifting down a rain-soaked street',
+  duration: 5,
+  resolution: '768x768',
+});
+
+await writeFile('./clip.mp4', video.uint8Array);
+```
+
+deAPI video generation is asynchronous. The model implements the start/status flow, so `generateVideo` polls the job until the video is ready (configurable with the `poll` option).
+
+For image-to-video, pass the first frame in the prompt:
+
+```ts
+import { deapi } from '@deapi/ai-sdk-provider';
+import { experimental_generateVideo as generateVideo } from 'ai';
+import { readFile } from 'node:fs/promises';
+
+const { video } = await generateVideo({
+  model: deapi.video('Ltxv_13B_0_9_8_Distilled_FP8'),
+  prompt: {
+    image: await readFile('./first-frame.png'),
+    text: 'The camera pushes in slowly',
+  },
+  duration: 3,
+  resolution: '512x512',
+});
+```
+
+| Model                          | Duration (s)      | Resolution                                                | FPS | Image Input         |
+| ------------------------------ | ----------------- | --------------------------------------------------------- | --- | ------------------- |
+| `Ltxv_13B_0_9_8_Distilled_FP8` | 1, 2, 3, 4        | `512x512`, `512x768`, `768x512`, `768x768`                | 30  | <Check size={18} /> |
+| `Ltx2_3_22B_Dist_INT8`         | 3, 4, 5, 6, 8, 10 | `768x768`, `768x1024`, `1024x768`, `1024x1024`            | 24  | <Check size={18} /> |
+| `Ltx2_5_22B_Dist_INT8`         | 3, 4, 5, 6, 8, 10 | `768x768`, `1344x768`, `768x1344`, `1024x768`, `768x1024` | 24  | <Check size={18} /> |
+| `MiniMaxH3_33B_Turbo_INT8`     | 8                 | `1344x768`, `768x1344`, `1024x768`, `768x1024`, `768x768` | 24  | <Check size={18} /> |
+
+A text prompt is required, also for image-to-video. `aspectRatio`, `fps`, `seed`, `generateAudio`, reference images and last-frame images are not supported and produce warnings.
+
+## Embedding Models
+
+You can create models that call the deAPI embeddings API using the `.embedding()` factory method.
+
+```ts
+import { deapi } from '@deapi/ai-sdk-provider';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: deapi.embedding('Bge_M3_FP16'),
+  value: 'sunny day at the beach',
+});
+```
+
+| Model         | Dimensions |
+| ------------- | ---------- |
+| `Bge_M3_FP16` | 1024       |
+
+## Speech Models
+
+You can create models that call the deAPI speech API using the `.speech()` factory method.
+
+```ts
+import { deapi } from '@deapi/ai-sdk-provider';
+import { generateSpeech } from 'ai';
+import { writeFile } from 'node:fs/promises';
+
+const { audio } = await generateSpeech({
+  model: deapi.speech('Kokoro'),
+  text: 'Hello from deAPI!',
+  voice: 'af_nova',
+});
+
+await writeFile('./speech.mp3', audio.uint8Array);
+```
+
+| Model                             | Instructions        | Speed               | Language            | Output Formats |
+| --------------------------------- | ------------------- | ------------------- | ------------------- | -------------- |
+| `Kokoro`                          | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | mp3            |
+| `Chatterbox`                      | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | mp3            |
+| `Qwen3_TTS_12Hz_1_7B_CustomVoice` | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | mp3            |
+| `Qwen3_TTS_12Hz_1_7B_VoiceDesign` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | mp3            |
+
+OpenAI voice names (`alloy`, `nova`, …) are mapped to the model's own voices. `Qwen3_TTS_12Hz_1_7B_VoiceDesign` takes a voice description in `instructions` instead of a voice.
+
+## Transcription Models
+
+You can create models that call the deAPI transcription API using the `.transcription()` factory method.
+
+```ts
+import { deapi } from '@deapi/ai-sdk-provider';
+import { transcribe } from 'ai';
+import { readFile } from 'node:fs/promises';
+
+const result = await transcribe({
+  model: deapi.transcription('WhisperLargeV3Ct2'),
+  audio: await readFile('./audio.mp3'),
+  timestampGranularities: ['segment'],
+});
+
+console.log(result.text);
+```
+
+| Model               | Transcription       | Duration            | Segments            | Language            |
+| ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `WhisperLargeV3Ct2` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+
+Duration, segments and the detected language are returned when you set `timestampGranularities` (`segment` and/or `word`).
+The optional provider option `language` (ISO-639-1, e.g. `en`) is available. A single audio file can be up to 20 MB.
+
+<Note>
+  Please see the [deAPI OpenAI compatibility
+  reference](https://docs.deapi.ai/openai-compatibility) for the full list of
+  models and their limits. You can also pass any available model ID as a string.
+</Note>
+
+## Additional Resources
+
+- [deAPI Provider Repository](https://github.com/deapi-ai/deapi-ai-sdk-provider)
+- [NPM Package](https://www.npmjs.com/package/@deapi/ai-sdk-provider)
+- [deAPI Documentation](https://docs.deapi.ai)
+- [deAPI Dashboard](https://app.deapi.ai/dashboard)
