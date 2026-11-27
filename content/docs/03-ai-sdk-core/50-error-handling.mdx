@@ -122,6 +122,11 @@ for await (const textPart of textStream) {
 }
 ```
 
+The initial call and each stream recovery get their own `maxRetries` budget
+for failures while starting the stream. For example, with `maxRetries: 2`
+and `streamRetries: 2`, a single step can make nine provider request attempts:
+three to open the initial stream and three for each of two automatic recoveries.
+
 Stream retries rerun only the failed model step with the same accumulated
 conversation and generation context. Earlier completed steps, including their
 tool calls and tool results, are not replayed. Tool input, tool calls, approval

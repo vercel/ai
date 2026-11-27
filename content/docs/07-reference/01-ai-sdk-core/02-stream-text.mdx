@@ -472,14 +472,14 @@ retain the content their contracts require.
       type: 'number',
       isOptional: true,
       description:
-        'Maximum number of retries. Set to 0 to disable retries. Default: 2.',
+        'Maximum number of retries when starting a model call. Set to 0 to disable request retries. Default: 2.',
     },
     {
       name: 'streamRetries',
       type: 'number',
       isOptional: true,
       description:
-        'Maximum number of automatic retries for provider error events received after response streaming begins. Retries rerun only the current model step and preserve completed earlier steps and their tool results. Tool-related output and client-side tool work from failed attempts are discarded; other output already emitted cannot be retracted, but is excluded from the recovered step result, structured output parsing, response messages, and subsequent model steps. Final request and response metadata come from the recovered attempt. Open text and reasoning parts are ended before recovered output begins. onStepStart runs once for the logical step, onLanguageModelCallStart runs for each attempt, and onLanguageModelCallEnd runs for attempts that reach a model-call finish. Provider-executed tool work cannot be undone and may repeat. Set to 0 to disable automatic retries while allowing onError to request one callback-directed retry. With automatic retries configured, onError can request at most one additional retry after they are exhausted, bounding total recovery calls to streamRetries + 1. Omit to disable all stream retry behavior and preserve incremental tool streaming for existing onError observers. Default: 0.',
+        'Maximum number of automatic retries for provider error events received after response streaming begins. Retries rerun only the current model step and preserve completed earlier steps and their tool results. Tool-related output and client-side tool work from failed attempts are discarded; other output already emitted cannot be retracted, but is excluded from the recovered step result, structured output parsing, response messages, and subsequent model steps. Final request and response metadata come from the recovered attempt. Open text and reasoning parts are ended before recovered output begins. onStepStart runs once for the logical step, onLanguageModelCallStart runs for each attempt, and onLanguageModelCallEnd runs for attempts that reach a model-call finish. Provider-executed tool work cannot be undone and may repeat. Set to 0 to disable automatic retries while allowing onError to request one callback-directed retry. With automatic retries configured, onError can request at most one additional retry after they are exhausted, for up to streamRetries + 1 recoveries per step. Starting the initial stream and each recovery stream has its own maxRetries budget for request failures. Omit to disable all stream retry behavior and preserve incremental tool streaming for existing onError observers. Default: 0.',
     },
     {
       name: 'abortSignal',
