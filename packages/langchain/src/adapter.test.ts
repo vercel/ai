@@ -4354,3 +4354,192 @@ describe('toUIMessageStream callbacks', () => {
     expect(onFinish).toHaveBeenCalledWith(valuesData);
   });
 });
+
+describe('toUIMessageStream reasoning deduplication', () => {
+  const reasoningOutput = (id: string, text: string) => [
+    { type: 'reasoning', id, summary: [{ type: 'summary_text', text }] },
+  ];
+
+  /**
+   * OpenAI Responses streams end with a chunk carrying the full response in
+   * `response_metadata.output`, and newer `@langchain/core` versions derive
+   * `contentBlocks` reasoning from it.
+   */
+  const createTerminalChunk = (
+    id: string,
+    reasoningId: string,
+    text: string,
+  ) => {
+    const chunk = new AIMessageChunk({
+      id,
+      content: [],
+      response_metadata: { output: reasoningOutput(reasoningId, text) },
+    });
+    Object.defineProperty(chunk, 'contentBlocks', {
+      get: () => [{ type: 'reasoning', reasoning: text }],
+    });
+    return chunk;
+  };
+
+  const createModelChunks = (id: string, reasoningId: string) => [
+    new AIMessageChunk({
+      id,
+      content: [],
+      additional_kwargs: { reasoning: { id: reasoningId, summary: [] } },
+    }),
+    new AIMessageChunk({
+      id,
+      content: [{ type: 'reasoning', reasoning: 'Thinking' }],
+    }),
+    new AIMessageChunk({
+      id,
+      content: [{ type: 'reasoning', reasoning: ' hard' }],
+    }),
+    new AIMessageChunk({ id, content: 'Answer' }),
+    createTerminalChunk(id, reasoningId, 'Thinking hard'),
+  ];
+
+  const getParts = async (stream: ReadableStream<unknown>) => {
+    let message: UIMessage | undefined;
+    for await (const m of readUIMessageStream({
+      stream: toUIMessageStream(stream),
+    })) {
+      message = m;
+    }
+    return message?.parts.flatMap(part =>
+      part.type === 'reasoning' || part.type === 'text'
+        ? [{ type: part.type, text: part.text }]
+        : [],
+    );
+  };
+
+  const expectedParts = [
+    { type: 'reasoning', text: 'Thinking hard' },
+    { type: 'text', text: 'Answer' },
+  ];
+
+  it('should not repeat streamed reasoning from the terminal chunk in direct model streams', async () => {
+    const parts = await getParts(
+      convertArrayToReadableStream(createModelChunks('msg-1', 'rs_1')),
+    );
+
+    expect(parts).toEqual(expectedParts);
+  });
+
+  it('should not repeat streamed reasoning from the terminal chunk in streamEvents streams', async () => {
+    // Deltas use the run ID while the terminal chunk uses the response ID
+    const chunks = createModelChunks('run-1', 'rs_1');
+    chunks[chunks.length - 1] = createTerminalChunk(
+      'resp_1',
+      'rs_1',
+      'Thinking hard',
+    );
+
+    const parts = await getParts(
+      convertArrayToReadableStream([
+        {
+          event: 'on_chat_model_start',
+          run_id: 'run-1',
+          data: { input: 'Hi' },
+        },
+        ...chunks.map(chunk => ({
+          event: 'on_chat_model_stream',
+          run_id: 'run-1',
+          data: { chunk },
+        })),
+      ]),
+    );
+
+    expect(parts).toEqual(expectedParts);
+  });
+
+  it('should not repeat streamed reasoning from the terminal chunk in LangGraph streams', async () => {
+    const human = { id: 'human-1', type: 'human', content: 'Hi' };
+    const ai = {
+      id: 'msg-1',
+      type: 'ai',
+      content: 'Answer',
+      response_metadata: { output: reasoningOutput('rs_1', 'Thinking hard') },
+    };
+
+    const parts = await getParts(
+      convertArrayToReadableStream([
+        ['values', { messages: [human] }],
+        ...createModelChunks('msg-1', 'rs_1').map(chunk => [
+          'messages',
+          [chunk, { langgraph_step: 1 }],
+        ]),
+        ['values', { messages: [human, ai] }],
+      ]),
+    );
+
+    expect(parts).toEqual(expectedParts);
+  });
+
+  it('should emit reasoning that only arrives in the terminal chunk', async () => {
+    const parts = await getParts(
+      convertArrayToReadableStream([
+        ['messages', [new AIMessageChunk({ id: 'msg-1', content: 'Answer' })]],
+        ['messages', [createTerminalChunk('msg-1', 'rs_1', 'Thinking hard')]],
+      ]),
+    );
+
+    expect(parts).toEqual([
+      { type: 'text', text: 'Answer' },
+      { type: 'reasoning', text: 'Thinking hard' },
+    ]);
+  });
+
+  it('should not re-emit reasoning from earlier turns in LangGraph streams', async () => {
+    const history = [
+      { id: 'human-1', type: 'human', content: 'First question' },
+      {
+        id: 'msg-1',
+        type: 'ai',
+        content: 'First answer',
+        response_metadata: {
+          output: reasoningOutput('rs_1', 'Earlier thinking'),
+        },
+      },
+      { id: 'human-2', type: 'human', content: 'Hi' },
+    ];
+    const ai = {
+      id: 'msg-2',
+      type: 'ai',
+      content: 'Answer',
+      response_metadata: { output: reasoningOutput('rs_2', 'Thinking hard') },
+    };
+
+    const parts = await getParts(
+      convertArrayToReadableStream([
+        ['values', { messages: history }],
+        ...createModelChunks('msg-2', 'rs_2').map(chunk => [
+          'messages',
+          [chunk, { langgraph_step: 1 }],
+        ]),
+        ['values', { messages: [...history, ai] }],
+      ]),
+    );
+
+    expect(parts).toEqual(expectedParts);
+  });
+
+  it('should emit reasoning for new messages only available in LangGraph values', async () => {
+    const human = { id: 'human-1', type: 'human', content: 'Hi' };
+    const ai = {
+      id: 'msg-1',
+      type: 'ai',
+      content: 'Answer',
+      response_metadata: { output: reasoningOutput('rs_1', 'Thinking hard') },
+    };
+
+    const parts = await getParts(
+      convertArrayToReadableStream([
+        ['values', { messages: [human] }],
+        ['values', { messages: [human, ai] }],
+      ]),
+    );
+
+    expect(parts).toEqual([{ type: 'reasoning', text: 'Thinking hard' }]);
+  });
+});

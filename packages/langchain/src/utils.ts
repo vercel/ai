@@ -505,12 +505,16 @@ export function processModelChunk(
   /**
    * Handle reasoning content from contentBlocks or response_metadata.output
    * For direct model streams, we check both sources since there's no values event
-   * that would cause duplication (unlike LangGraph streams)
+   * that would cause duplication (unlike LangGraph streams).
+   * Accumulated reasoning is skipped if this message already streamed its deltas.
    */
   const reasoning =
     extractReasoningFromContentBlocks(chunk) ||
     extractReasoningFromValuesMessage(chunk);
-  if (reasoning) {
+  const reasoningAlreadyStreamed =
+    state.reasoningMessageId === state.messageId &&
+    hasAccumulatedReasoning(chunk);
+  if (reasoning && !reasoningAlreadyStreamed) {
     if (!state.reasoningStarted) {
       // Track the ID used for reasoning-start to ensure subsequent chunks use the same ID
       state.reasoningMessageId = state.messageId;
@@ -830,6 +834,35 @@ function isGPT5ReasoningOutput(obj: unknown): obj is GPT5ReasoningOutput {
     (obj as { type: string }).type === 'reasoning' &&
     'summary' in obj &&
     Array.isArray((obj as { summary: unknown }).summary)
+  );
+}
+
+/**
+ * Checks if a streaming chunk carries the complete reasoning instead of a delta.
+ *
+ * OpenAI Responses streams end with a chunk whose `response_metadata.output`
+ * holds the full response, and `@langchain/core` derives `contentBlocks`
+ * reasoning from it. Emitting that reasoning after its deltas duplicates it.
+ *
+ * @param msg - The streaming chunk to check.
+ * @returns True if the chunk contains accumulated reasoning output.
+ */
+export function hasAccumulatedReasoning(msg: unknown): boolean {
+  if (msg == null || typeof msg !== 'object') return false;
+
+  // For serialized LangChain messages, the data is in kwargs
+  const msgObj = msg as Record<string, unknown>;
+  const kwargs =
+    msgObj.kwargs && typeof msgObj.kwargs === 'object'
+      ? (msgObj.kwargs as Record<string, unknown>)
+      : msgObj;
+
+  const responseMetadata = (
+    kwargs as { response_metadata?: { output?: unknown[] } }
+  ).response_metadata;
+  return (
+    Array.isArray(responseMetadata?.output) &&
+    responseMetadata.output.some(isGPT5ReasoningOutput)
   );
 }
 
@@ -1426,6 +1459,7 @@ export function processLangGraphEvent(
     emittedImages,
     emittedReasoningIds,
     messageReasoningIds,
+    streamedReasoningMessageIds,
     toolCallInfoByIndex,
     emittedToolCallsByKey,
   } = state;
@@ -1746,7 +1780,11 @@ export function processLangGraphEvent(
         }
 
         const reasoning = extractReasoningFromContentBlocks(msg);
-        if (reasoning) {
+        // Accumulated reasoning repeats deltas this message already streamed
+        const reasoningAlreadyStreamed =
+          streamedReasoningMessageIds.has(msgId) &&
+          hasAccumulatedReasoning(msg);
+        if (reasoning && !reasoningAlreadyStreamed) {
           // Use stored reasoning ID, or current chunk's ID, or fall back to message ID
           const reasoningId =
             messageReasoningIds.get(msgId) ?? chunkReasoningId ?? msgId;
@@ -1765,6 +1803,7 @@ export function processLangGraphEvent(
           });
           // Also ensure the reasoning ID is marked (handles case where ID wasn't in first chunk)
           emittedReasoningIds.add(reasoningId);
+          streamedReasoningMessageIds.add(msgId);
         }
 
         /**
@@ -1984,6 +2023,28 @@ export function processLangGraphEvent(
     }
 
     case 'values': {
+      /**
+       * The first values snapshot holds the state from before this run (e.g.
+       * checkpointed earlier turns). Its messages were already shown, so record
+       * them to avoid emitting their reasoning again. Messages that already
+       * streamed in this run are not historical.
+       */
+      if (state.historicalMessageIds == null) {
+        state.historicalMessageIds = new Set();
+        const snapshotMessages =
+          data != null && typeof data === 'object' && 'messages' in data
+            ? (data as { messages?: unknown[] }).messages
+            : undefined;
+        for (const msg of Array.isArray(snapshotMessages)
+          ? snapshotMessages
+          : []) {
+          const msgId = getMessageId(msg);
+          if (msgId && !messageSeen.has(msgId)) {
+            state.historicalMessageIds.add(msgId);
+          }
+        }
+      }
+
       /**
        * Finalize all pending message chunks
        */
@@ -2296,6 +2357,7 @@ export function processLangGraphEvent(
             /**
              * Determine if we should emit reasoning:
              * - If we already emitted this reasoning ID, skip
+             * - If the message is from before this run, skip (shown in an earlier turn)
              * - If the message was streamed this request, emit (normal flow)
              * - If NOT streamed but has NO tool_calls, emit (pure reasoning in values case)
              * - If NOT streamed but HAS tool_calls, skip (historical HITL message)
@@ -2303,6 +2365,7 @@ export function processLangGraphEvent(
             const shouldEmitReasoning =
               reasoningId &&
               !emittedReasoningIds.has(reasoningId) &&
+              !state.historicalMessageIds.has(msgId) &&
               (wasStreamedThisRequest || !hasToolCalls);
 
             if (shouldEmitReasoning) {
