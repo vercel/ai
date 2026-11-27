@@ -1741,7 +1741,7 @@ const usageSchema = () =>
       candidatesTokensDetails: tokenDetailsSchema(),
       toolUsePromptTokensDetails: tokenDetailsSchema(),
     })
-    .catchall(z.json());
+    .catchall(z.json().optional());
 
 // https://ai.google.dev/api/generate-content#UrlRetrievalMetadata
 export const getUrlContextMetadataSchema = () =>
