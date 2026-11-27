@@ -1026,6 +1026,14 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       ? new JsonObjectTextExtractor()
       : undefined;
 
+    type ReasoningContentBlock = {
+      type: 'reasoning';
+      id: string;
+      hasSignature?: boolean;
+      hasRedactedData?: boolean;
+      redactedContent?: string;
+    };
+
     const contentBlocks: Record<
       number,
       | {
@@ -1036,8 +1044,90 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
           isJsonResponseTool?: boolean;
         }
       | { type: 'text' }
-      | { type: 'reasoning'; redactedContent?: string }
+      | ReasoningContentBlock
     > = {};
+    const reasoningSegmentCounts: Record<number, number> = {};
+
+    const nextReasoningId = (blockIndex: number): string => {
+      const count = reasoningSegmentCounts[blockIndex] ?? 0;
+      reasoningSegmentCounts[blockIndex] = count + 1;
+      return count === 0 ? String(blockIndex) : `${blockIndex}-${count}`;
+    };
+
+    const closeTextBlock = (
+      controller: TransformStreamDefaultController<LanguageModelV4StreamPart>,
+      blockIndex: number,
+    ) => {
+      controller.enqueue({
+        type: 'text-end',
+        id: String(blockIndex),
+      });
+    };
+
+    const closeReasoningBlock = (
+      controller: TransformStreamDefaultController<LanguageModelV4StreamPart>,
+      block: ReasoningContentBlock,
+    ) => {
+      const redactedPayload: AmazonBedrockReasoningMetadata | null =
+        block.redactedContent != null
+          ? { redactedContent: block.redactedContent }
+          : null;
+      controller.enqueue({
+        type: 'reasoning-end',
+        id: block.id,
+        ...(redactedPayload != null
+          ? {
+              providerMetadata: {
+                amazonBedrock: redactedPayload,
+                bedrock: redactedPayload,
+              },
+            }
+          : {}),
+      });
+    };
+
+    const ensureReasoningBlock = (
+      controller: TransformStreamDefaultController<LanguageModelV4StreamPart>,
+      blockIndex: number,
+      incomingKind: 'text' | 'signature' | 'data' | 'redactedContent',
+    ): { id: string; block?: ReasoningContentBlock } => {
+      const existing = contentBlocks[blockIndex];
+      // Close an active text block before switching the same index to reasoning
+      // so text-end and reasoning-start stay paired (for example after an empty
+      // non-toolUse contentBlockStart).
+      if (existing?.type === 'text') {
+        closeTextBlock(controller, blockIndex);
+        delete contentBlocks[blockIndex];
+      } else if (
+        // A signature or redacted payload ends the active thinking block. When Bedrock
+        // streams consecutive thinking blocks under one contentBlockIndex, close the
+        // finished block lazily on the next reasoning delta so trailing single-block
+        // streams without contentBlockStop keep their exact event sequence.
+        existing?.type === 'reasoning' &&
+        (existing.hasSignature ||
+          existing.hasRedactedData ||
+          (existing.redactedContent != null &&
+            incomingKind !== 'redactedContent'))
+      ) {
+        closeReasoningBlock(controller, existing);
+        delete contentBlocks[blockIndex];
+      }
+
+      if (contentBlocks[blockIndex] == null) {
+        const id = nextReasoningId(blockIndex);
+        contentBlocks[blockIndex] = { type: 'reasoning', id };
+        controller.enqueue({
+          type: 'reasoning-start',
+          id,
+        });
+      }
+
+      const current = contentBlocks[blockIndex];
+      if (current.type === 'reasoning') {
+        return { id: current.id, block: current };
+      }
+      return { id: String(blockIndex) };
+    };
 
     return {
       stream: response.pipeThrough(
@@ -1231,27 +1321,9 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
 
               if (contentBlock != null) {
                 if (contentBlock.type === 'reasoning') {
-                  const redactedPayload: AmazonBedrockReasoningMetadata | null =
-                    contentBlock.redactedContent != null
-                      ? { redactedContent: contentBlock.redactedContent }
-                      : null;
-                  controller.enqueue({
-                    type: 'reasoning-end',
-                    id: String(blockIndex),
-                    ...(redactedPayload != null
-                      ? {
-                          providerMetadata: {
-                            amazonBedrock: redactedPayload,
-                            bedrock: redactedPayload,
-                          },
-                        }
-                      : {}),
-                  });
+                  closeReasoningBlock(controller, contentBlock);
                 } else if (contentBlock.type === 'text') {
-                  controller.enqueue({
-                    type: 'text-end',
-                    id: String(blockIndex),
-                  });
+                  closeTextBlock(controller, blockIndex);
                 } else if (contentBlock.type === 'tool-call') {
                   if (contentBlock.isJsonResponseTool) {
                     isJsonResponseFromTool = true;
@@ -1300,85 +1372,76 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
                 value.contentBlockDelta.delta.reasoningContent;
 
               if ('text' in reasoningContent && reasoningContent.text) {
-                if (contentBlocks[blockIndex] == null) {
-                  contentBlocks[blockIndex] = { type: 'reasoning' };
-                  controller.enqueue({
-                    type: 'reasoning-start',
-                    id: String(blockIndex),
-                  });
-                }
-
+                const { id } = ensureReasoningBlock(
+                  controller,
+                  blockIndex,
+                  'text',
+                );
                 controller.enqueue({
                   type: 'reasoning-delta',
-                  id: String(blockIndex),
+                  id,
                   delta: reasoningContent.text,
                 });
               } else if (
                 'signature' in reasoningContent &&
                 reasoningContent.signature
               ) {
-                if (contentBlocks[blockIndex] == null) {
-                  contentBlocks[blockIndex] = { type: 'reasoning' };
-                  controller.enqueue({
-                    type: 'reasoning-start',
-                    id: String(blockIndex),
-                  });
+                const { id, block } = ensureReasoningBlock(
+                  controller,
+                  blockIndex,
+                  'signature',
+                );
+                if (block != null) {
+                  block.hasSignature = true;
                 }
-                {
-                  const signaturePayload: AmazonBedrockReasoningMetadata = {
-                    signature: reasoningContent.signature,
-                  };
-                  controller.enqueue({
-                    type: 'reasoning-delta',
-                    id: String(blockIndex),
-                    delta: '',
-                    providerMetadata: {
-                      amazonBedrock: signaturePayload,
-                      bedrock: signaturePayload,
-                    },
-                  });
-                }
+                const signaturePayload: AmazonBedrockReasoningMetadata = {
+                  signature: reasoningContent.signature,
+                };
+                controller.enqueue({
+                  type: 'reasoning-delta',
+                  id,
+                  delta: '',
+                  providerMetadata: {
+                    amazonBedrock: signaturePayload,
+                    bedrock: signaturePayload,
+                  },
+                });
               } else if ('data' in reasoningContent && reasoningContent.data) {
-                if (contentBlocks[blockIndex] == null) {
-                  contentBlocks[blockIndex] = { type: 'reasoning' };
-                  controller.enqueue({
-                    type: 'reasoning-start',
-                    id: String(blockIndex),
-                  });
+                const { id, block } = ensureReasoningBlock(
+                  controller,
+                  blockIndex,
+                  'data',
+                );
+                if (block != null) {
+                  block.hasRedactedData = true;
                 }
-                {
-                  const redactedPayload: AmazonBedrockReasoningMetadata = {
-                    redactedData: reasoningContent.data,
-                  };
-                  controller.enqueue({
-                    type: 'reasoning-delta',
-                    id: String(blockIndex),
-                    delta: '',
-                    providerMetadata: {
-                      amazonBedrock: redactedPayload,
-                      bedrock: redactedPayload,
-                    },
-                  });
-                }
+                const redactedPayload: AmazonBedrockReasoningMetadata = {
+                  redactedData: reasoningContent.data,
+                };
+                controller.enqueue({
+                  type: 'reasoning-delta',
+                  id,
+                  delta: '',
+                  providerMetadata: {
+                    amazonBedrock: redactedPayload,
+                    bedrock: redactedPayload,
+                  },
+                });
               } else if (
                 'redactedContent' in reasoningContent &&
                 reasoningContent.redactedContent
               ) {
-                if (contentBlocks[blockIndex] == null) {
-                  contentBlocks[blockIndex] = { type: 'reasoning' };
-                  controller.enqueue({
-                    type: 'reasoning-start',
-                    id: String(blockIndex),
-                  });
-                }
-
-                const contentBlock = contentBlocks[blockIndex];
-                if (contentBlock.type === 'reasoning') {
+                const { block } = ensureReasoningBlock(
+                  controller,
+                  blockIndex,
+                  'redactedContent',
+                );
+                if (block != null) {
                   // accumulate and attach once via reasoning-end: the merged
                   // provider metadata of a reasoning part is last-write-wins,
                   // so per-delta metadata would drop earlier chunks
-                  contentBlock.redactedContent =
-                    (contentBlock.redactedContent ?? '') +
+                  block.redactedContent =
+                    (block.redactedContent ?? '') +
                     reasoningContent.redactedContent;
                 }
               }
