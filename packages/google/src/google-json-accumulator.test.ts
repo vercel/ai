@@ -757,6 +757,31 @@ describe('GoogleJSONAccumulator', () => {
       expect(result.text).toBe(result.finalJSON);
     });
 
+    it('should treat a path ending in {} as the end of an object', () => {
+      const result = accumulate([
+        [
+          {
+            jsonPath: '$.destination.to',
+            stringValue: 'board',
+            willContinue: true,
+          },
+        ],
+        [{ jsonPath: '$.destination.to', stringValue: '' }],
+        [{ jsonPath: '$.destination{}' }],
+        [{ jsonPath: '$.items[0].name', stringValue: 'a', willContinue: true }],
+        [{ jsonPath: '$.items[0].name', stringValue: '' }],
+        [{ jsonPath: '$.items[0]{}' }],
+        [{ jsonPath: '$.options{}' }],
+        [{ jsonPath: '$.prompt', stringValue: 'a fox', willContinue: true }],
+        [{ jsonPath: '$.prompt', stringValue: '' }],
+      ]);
+
+      expect(result.finalJSON).toBe(
+        '{"destination":{"to":"board"},"items":[{"name":"a"}],"options":{},"prompt":"a fox"}',
+      );
+      expect(result.text).toBe(result.finalJSON);
+    });
+
     it('should ignore a string terminator', () => {
       const result = accumulate([
         [{ jsonPath: '$.location', stringValue: 'Boston', willContinue: true }],

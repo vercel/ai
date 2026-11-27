@@ -51,12 +51,15 @@ export class GoogleJSONAccumulator {
     let delta = '';
 
     for (const arg of partialArgs) {
-      // Vertex terminates an array with a value-less `$.path[]` entry. For an
-      // empty array, that terminator is the only entry sent for the path.
+      // Vertex terminates an array with a value-less `$.path[]` entry or an
+      // object with a value-less `$.path{}` entry. For an empty container, that
+      // terminator is the only entry sent for the path.
       const isArrayTerminator = arg.jsonPath.endsWith('[]');
-      const jsonPath = isArrayTerminator
-        ? arg.jsonPath.slice(0, -2)
-        : arg.jsonPath;
+      const isObjectTerminator = arg.jsonPath.endsWith('{}');
+      const jsonPath =
+        isArrayTerminator || isObjectTerminator
+          ? arg.jsonPath.slice(0, -2)
+          : arg.jsonPath;
       const rawPath = jsonPath.replace(/^\$\./, '');
       if (!rawPath || rawPath === '$') continue;
 
