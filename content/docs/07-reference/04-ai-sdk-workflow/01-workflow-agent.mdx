@@ -111,6 +111,13 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
         'Maximum number of local tool calls executing concurrently within a step, including approved calls. Must be a positive integer. Set to 1 for sequential execution in model order. Defaults to unlimited concurrency. Can be changed by prepareCall; explicit generate/stream call options take precedence. Provider-executed tools are unaffected.',
     },
     {
+      name: 'includeMessagesInToolExecution',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        "Whether tools receive the conversation as `messages` in their execution options. Defaults to true. When a tool's execute function is a workflow step, its arguments are stored as the step input, so the conversation is stored again for every tool call. Set to false when your tools do not read `messages`; they then receive an empty array. Per-call values override this default.",
+    },
+    {
       name: 'activeTools',
       type: 'ActiveTools<TTools>',
       isOptional: true,
@@ -642,6 +649,13 @@ In addition to the options in the table, `stream()` accepts the generation setti
       isOptional: true,
       description:
         'Override the local tool call concurrency limit for this call. Must be a positive integer. Set to 1 for sequential execution in model order, including approved calls. Takes precedence over the constructor and prepareCall.',
+    },
+    {
+      name: 'includeMessagesInToolExecution',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'Whether tools receive the conversation as `messages` in their execution options for this call. Set to false to pass an empty array instead. Overrides the constructor value.',
     },
     {
       name: 'activeTools',

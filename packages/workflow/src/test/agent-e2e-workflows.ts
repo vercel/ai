@@ -23,6 +23,14 @@ async function echoStep(input: { step: number }): Promise<string> {
   return `step-${input.step}-done`;
 }
 
+async function countToolMessages(
+  _input: { step: number },
+  options: { messages: ModelMessage[] },
+): Promise<number> {
+  'use step';
+  return options.messages.length;
+}
+
 async function throwingStep(): Promise<string> {
   'use step';
   throw new FatalError('Tool execution failed fatally');
@@ -867,4 +875,53 @@ export async function agentGenerateUndefinedFailureE2e() {
   } catch (error) {
     return { rejected: true, wasUndefined: error === undefined };
   }
+}
+
+/**
+ * Runs two tool calls in separate steps with a tool that is a workflow step
+ * and returns the number of conversation messages each tool call received.
+ */
+export async function agentToolMessagesE2e(input: {
+  agentSetting?: boolean;
+  callSetting?: boolean;
+  mode: 'stream' | 'generate';
+}) {
+  'use workflow';
+  const agent = new WorkflowAgent({
+    model: mockSequenceModel([
+      {
+        type: 'tool-call',
+        toolName: 'countToolMessages',
+        input: JSON.stringify({ step: 1 }),
+      },
+      {
+        type: 'tool-call',
+        toolName: 'countToolMessages',
+        input: JSON.stringify({ step: 2 }),
+      },
+      { type: 'text', text: 'All done!' },
+    ]),
+    tools: {
+      countToolMessages: tool({
+        description: 'Count the conversation messages',
+        inputSchema: z.object({ step: z.number() }),
+        execute: countToolMessages,
+      }),
+    },
+    includeMessagesInToolExecution: input.agentSetting,
+  });
+  const callOptions = {
+    messages: [{ role: 'user' as const, content: 'Count twice' }],
+    includeMessagesInToolExecution: input.callSetting,
+  };
+  const result =
+    input.mode === 'generate'
+      ? await agent.generate(callOptions)
+      : await agent.stream({ ...callOptions, writable: getWritable() });
+  return {
+    text: result.steps.at(-1)?.text,
+    messageCounts: result.steps.flatMap(step =>
+      step.toolResults.map(toolResult => toolResult.output),
+    ),
+  };
 }

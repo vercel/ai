@@ -106,6 +106,47 @@ export function toLanguageModelToolDefinitions(
   );
 }
 
+type SerializedInputSchema = {
+  jsonSchema: JSONSchema7;
+  hasOwnValidator: boolean;
+};
+
+/**
+ * JSON Schema of tool input schemas, by schema object.
+ *
+ * The agent serializes its tool set before every model call, and a workflow
+ * replays all earlier model calls each time it resumes. Converting a Zod or
+ * Standard Schema to JSON Schema is the expensive part of that, and its result
+ * only depends on the schema, so it is kept for as long as the schema object
+ * lives. Everything else in a tool definition is read from the tool each time.
+ */
+const serializedInputSchemas = new WeakMap<object, SerializedInputSchema>();
+
+function serializeInputSchema(
+  inputSchema: Tool['inputSchema'] | undefined,
+): SerializedInputSchema {
+  // `asSchema` builds a new default schema when a tool has none.
+  const key =
+    inputSchema != null &&
+    (typeof inputSchema === 'object' || typeof inputSchema === 'function')
+      ? (inputSchema as object)
+      : undefined;
+  const cached = key == null ? undefined : serializedInputSchemas.get(key);
+  if (cached != null) {
+    return cached;
+  }
+
+  const schema = asSchema(inputSchema);
+  const serialized: SerializedInputSchema = {
+    jsonSchema: schema.jsonSchema as JSONSchema7,
+    hasOwnValidator: schema.validate != null,
+  };
+  if (key != null) {
+    serializedInputSchemas.set(key, serialized);
+  }
+  return serialized;
+}
+
 /**
  * Converts a ToolSet (with Zod/standard schemas and execute functions) to a
  * serializable record of tool definitions. Execution functions and callbacks
@@ -123,7 +164,7 @@ export function serializeToolSet<TOOLS extends ToolSet>(
 ): Record<string, SerializableToolDef> {
   return Object.fromEntries(
     Object.entries(tools).map(([name, t]) => {
-      const inputSchema = asSchema(t.inputSchema);
+      const inputSchema = serializeInputSchema(t.inputSchema);
       const def: SerializableToolDef = {
         title: t.title,
         metadata: t.metadata,
@@ -133,13 +174,13 @@ export function serializeToolSet<TOOLS extends ToolSet>(
           toolsContext,
           experimental_sandbox: sandbox,
         }),
-        inputSchema: inputSchema.jsonSchema as JSONSchema7,
+        inputSchema: inputSchema.jsonSchema,
         strict: t.strict,
         inputExamples: t.inputExamples,
         providerOptions: t.providerOptions,
       };
 
-      if (inputSchema.validate != null) {
+      if (inputSchema.hasOwnValidator) {
         def.hasOwnValidator = true;
       }
 

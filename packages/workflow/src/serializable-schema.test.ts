@@ -391,3 +391,173 @@ describe('resolveSerializableTools', () => {
     });
   });
 });
+
+describe('serializeToolSet input schema reuse', () => {
+  // A Standard Schema that counts its JSON Schema conversions. `asSchema`
+  // wraps it in a new schema object on every call, like a Zod schema.
+  function createCountedSchema(properties: JSONSchema7['properties'] = {}) {
+    const convert = vi.fn(
+      (): Record<string, unknown> => ({ type: 'object', properties }),
+    );
+    const schema = {
+      '~standard': {
+        version: 1 as const,
+        vendor: 'test',
+        validate: (value: unknown) => ({ value }),
+        jsonSchema: { input: convert, output: convert },
+      },
+    };
+    return { schema, convert };
+  }
+
+  it('converts an input schema to JSON Schema once across calls', () => {
+    const { schema, convert } = createCountedSchema({
+      city: { type: 'string' },
+    });
+    const tools = {
+      getWeather: tool({ description: 'Get weather', inputSchema: schema }),
+    };
+
+    const first = serializeToolSet(tools);
+    const second = serializeToolSet(tools);
+
+    expect(convert).toHaveBeenCalledTimes(1);
+    expect(second).toEqual(first);
+    expect(first.getWeather).toEqual({
+      description: 'Get weather',
+      inputSchema: {
+        type: 'object',
+        properties: { city: { type: 'string' } },
+        additionalProperties: false,
+      },
+      hasOwnValidator: true,
+    });
+  });
+
+  it('returns the same definitions as a first serialization for Zod schemas', () => {
+    const createTools = () => ({
+      search: tool({
+        description: 'Search',
+        inputSchema: z.object({
+          query: z.string().describe('Search query'),
+          limit: z.number().int().min(1).max(10).optional(),
+        }),
+      }),
+    });
+    const tools = createTools();
+
+    serializeToolSet(tools);
+
+    // Equal to the definitions of tools that were never serialized before.
+    expect(serializeToolSet(tools)).toEqual(serializeToolSet(createTools()));
+  });
+
+  it('shares the JSON Schema between tool sets that use the same input schema', () => {
+    const { schema, convert } = createCountedSchema();
+
+    const all = serializeToolSet({
+      first: tool({ description: 'First', inputSchema: schema }),
+      second: tool({ description: 'Second', inputSchema: schema }),
+    });
+    const filtered = serializeToolSet({
+      second: tool({ description: 'Second, changed', inputSchema: schema }),
+    });
+
+    expect(convert).toHaveBeenCalledTimes(1);
+    expect(Object.keys(filtered)).toEqual(['second']);
+    expect(filtered.second.description).toBe('Second, changed');
+    expect(filtered.second.inputSchema).toEqual(all.first.inputSchema);
+  });
+
+  it('converts a replaced input schema', () => {
+    const original = createCountedSchema({ city: { type: 'string' } });
+    const replacement = createCountedSchema({ country: { type: 'string' } });
+    const getWeather = tool({
+      description: 'Get weather',
+      inputSchema: original.schema,
+    });
+
+    serializeToolSet({ getWeather });
+    const serialized = serializeToolSet({
+      getWeather: { ...getWeather, inputSchema: replacement.schema },
+    });
+
+    expect(replacement.convert).toHaveBeenCalledTimes(1);
+    expect(serialized.getWeather.inputSchema.properties).toEqual({
+      country: { type: 'string' },
+    });
+  });
+
+  it('reads all other tool fields again on every call', () => {
+    const { schema } = createCountedSchema();
+    const describeTool = vi.fn(
+      ({ context }: { context: { city: string } }) =>
+        `Weather in ${context.city}`,
+    );
+    const createTool = (strict?: boolean) =>
+      tool({
+        description: describeTool,
+        inputSchema: schema,
+        contextSchema: jsonSchema<{ city: string }>({
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+        }),
+        strict,
+      });
+
+    const berlin = serializeToolSet(
+      { getWeather: createTool() },
+      { toolsContext: { getWeather: { city: 'Berlin' } } },
+    );
+    const paris = serializeToolSet(
+      { getWeather: createTool(true) },
+      { toolsContext: { getWeather: { city: 'Paris' } } },
+    );
+
+    expect(describeTool).toHaveBeenCalledTimes(2);
+    expect(berlin.getWeather.description).toBe('Weather in Berlin');
+    expect(berlin.getWeather.strict).toBeUndefined();
+    expect(paris.getWeather.description).toBe('Weather in Paris');
+    expect(paris.getWeather.strict).toBe(true);
+  });
+
+  it('does not keep a schema whose conversion fails', () => {
+    const convert = vi
+      .fn<() => Record<string, unknown>>()
+      .mockImplementationOnce(() => {
+        throw new Error('conversion failed');
+      })
+      .mockImplementation(() => ({ type: 'object', properties: {} }));
+    const tools = {
+      broken: tool({
+        inputSchema: {
+          '~standard': {
+            version: 1 as const,
+            vendor: 'test',
+            validate: (value: unknown) => ({ value }),
+            jsonSchema: { input: convert, output: convert },
+          },
+        },
+      }),
+    };
+
+    expect(() => serializeToolSet(tools)).toThrow('conversion failed');
+    expect(serializeToolSet(tools).broken.inputSchema).toEqual({
+      type: 'object',
+      properties: {},
+      additionalProperties: false,
+    });
+  });
+
+  it('serializes tools without an input schema', () => {
+    const tools = { noInput: { description: 'No input' } } as any;
+
+    expect(serializeToolSet(tools)).toEqual(serializeToolSet(tools));
+    expect(serializeToolSet(tools).noInput.inputSchema).toEqual({
+      type: 'object',
+      properties: {},
+      additionalProperties: false,
+    });
+  });
+});

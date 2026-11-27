@@ -698,6 +698,91 @@ describe('modelCallIterator', () => {
     });
   });
 
+  describe('tool set passed to model steps', () => {
+    it('follows the active tools and tools context of each step', async () => {
+      vi.mocked(doStreamStep)
+        .mockResolvedValueOnce(
+          createMockDoStreamStepResult({
+            toolCalls: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'weather',
+                input: { city: 'Berlin' },
+              },
+            ],
+            finishReason: 'tool-calls',
+            finishRaw: 'tool_calls',
+            rawOverrides: {
+              content: [{ type: 'tool-call', toolCallIndex: 0 }],
+            },
+          }),
+        )
+        .mockResolvedValue(createMockDoStreamStepResult());
+
+      const weatherInput = z.object({ city: z.string() });
+      const searchInput = z.object({ query: z.string() });
+      const weatherResult: LanguageModelV4ToolResultPart = {
+        type: 'tool-result',
+        toolCallId: 'call-1',
+        toolName: 'weather',
+        output: { type: 'text', value: 'sunny' },
+      };
+
+      const iterator = modelCallIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {
+          weather: tool({
+            description: ({ context }) => `Weather, unit ${context.unit}`,
+            inputSchema: weatherInput,
+            contextSchema: z.object({ unit: z.string() }),
+            execute: async () => 'sunny',
+          }),
+          search: tool({ description: 'Search', inputSchema: searchInput }),
+        },
+        model: vi.fn() as any,
+        stopConditions: ({ steps }) => steps.length === 3,
+        prepareStep: ({ stepNumber }) =>
+          stepNumber === 0
+            ? {
+                activeTools: ['weather'],
+                toolsContext: { weather: { unit: 'celsius' } },
+              }
+            : stepNumber === 1
+              ? { toolsContext: { weather: { unit: 'fahrenheit' } } }
+              : { activeTools: ['search'] },
+      });
+
+      await iterator.next();
+      await iterator.next([weatherResult]);
+
+      const serializedTools = vi
+        .mocked(doStreamStep)
+        .mock.calls.map(call => call[3]);
+      expect(serializedTools).toHaveLength(2);
+      expect(Object.keys(serializedTools[0]!)).toEqual(['weather']);
+      expect(serializedTools[0]!.weather.description).toBe(
+        'Weather, unit celsius',
+      );
+      expect(Object.keys(serializedTools[1]!)).toEqual(['weather', 'search']);
+      expect(serializedTools[1]!.weather.description).toBe(
+        'Weather, unit fahrenheit',
+      );
+      // The input schema is the same in every step, the rest is not reused.
+      expect(serializedTools[1]!.weather.inputSchema).toEqual(
+        serializedTools[0]!.weather.inputSchema,
+      );
+      expect(serializedTools[1]!.weather.inputSchema).toMatchObject({
+        type: 'object',
+        properties: { city: { type: 'string' } },
+        required: ['city'],
+      });
+      expect(serializedTools[1]!.search.inputSchema).toMatchObject({
+        properties: { query: { type: 'string' } },
+      });
+    });
+  });
+
   describe('telemetry', () => {
     afterEach(() => {
       vi.unstubAllGlobals();
