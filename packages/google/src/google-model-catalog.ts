@@ -1477,6 +1477,10 @@ function getMinimumThinkingLevelForGemini3Model(
     return 'low';
   }
 
+  if (/^gemini-4-(?:argon|carbon)(?:$|-)/.test(modelName ?? '')) {
+    return 'low';
+  }
+
   const proVersionMatch = /^gemini-(\d+)(?:\.\d+)?-pro(?:$|-)/.exec(
     modelName ?? '',
   );
