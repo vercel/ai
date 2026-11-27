@@ -6,6 +6,36 @@ import { describe, expect, it } from 'vitest';
 import { createToolNameMapping } from './create-tool-name-mapping';
 
 describe('createToolNameMapping', () => {
+  it.each(['constructor', 'toString', '__proto__'])(
+    'should preserve the unmapped tool name %s',
+    name => {
+      const mapping = createToolNameMapping({
+        tools: [],
+        providerToolNames: {},
+      });
+
+      expect(mapping.toProviderToolName(name)).toBe(name);
+      expect(mapping.toCustomToolName(name)).toBe(name);
+    },
+  );
+
+  it('should map a provider tool with __proto__ as its custom name', () => {
+    const mapping = createToolNameMapping({
+      tools: [
+        {
+          type: 'provider',
+          id: 'openai.web_search',
+          name: '__proto__',
+          args: {},
+        },
+      ],
+      providerToolNames: { 'openai.web_search': 'web_search' },
+    });
+
+    expect(mapping.toProviderToolName('__proto__')).toBe('web_search');
+    expect(mapping.toCustomToolName('web_search')).toBe('__proto__');
+  });
+
   it('should create mappings for provider-defined tools', () => {
     const tools: Array<
       LanguageModelV4FunctionTool | LanguageModelV4ProviderTool
