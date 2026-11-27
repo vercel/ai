@@ -1,0 +1,109 @@
+---
+title: TeamoRouter
+description: Learn how to use TeamoRouter with the AI SDK.
+---
+
+# TeamoRouter Provider
+
+The [TeamoRouter](https://teamorouter.com) provider gives one API key for Claude, GPT, Gemini, DeepSeek, GLM, Kimi, and Qwen models through the TeamoRouter gateway. Claude models are sent to TeamoRouter's Anthropic-compatible Messages endpoint (via `@ai-sdk/anthropic`). Every other model is sent to its OpenAI-compatible Chat Completions endpoint (via `@ai-sdk/openai-compatible`). View all available models at [teamorouter.com/models](https://teamorouter.com/models).
+
+## Setup
+
+The TeamoRouter provider is available in the `@teamorouter/ai-sdk-provider` module. You can install it with
+
+<InstallPackages packages="@teamorouter/ai-sdk-provider" />
+
+## Provider Instance
+
+You can import the default provider instance `teamorouter`, which reads the `TEAMOROUTER_API_KEY` environment variable:
+
+```ts
+import { teamorouter } from '@teamorouter/ai-sdk-provider';
+```
+
+If you need a customized setup, use `createTeamoRouter`:
+
+```ts
+import { createTeamoRouter } from '@teamorouter/ai-sdk-provider';
+
+const teamorouter = createTeamoRouter({
+  apiKey: process.env.TEAMOROUTER_API_KEY,
+});
+```
+
+You can create an API key in the [TeamoRouter dashboard](https://teamorouter.com/dashboard).
+
+You can use the following optional settings to customize the provider instance:
+
+- **apiKey** _string_
+
+  API key. Defaults to the `TEAMOROUTER_API_KEY` environment variable.
+
+- **baseURL** _string_
+
+  OpenAI-compatible base URL. Defaults to `https://api.teamorouter.com/v1`. Claude models use the same base URL for `/messages`.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in every request. By default the provider sends `X-Client-Source: ai-sdk-teamorouter`, and a value you pass here overrides it.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom fetch implementation, for example for testing or proxies.
+
+## Language Models
+
+Pass any chat model id from [teamorouter.com/models](https://teamorouter.com/models):
+
+```ts
+import { teamorouter } from '@teamorouter/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: teamorouter('claude-sonnet-5-5'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+Streaming and tool calls work the same way for both routes:
+
+```ts
+import { teamorouter } from '@teamorouter/ai-sdk-provider';
+import { stepCountIs, streamText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = streamText({
+  model: teamorouter('deepseek-v4-flash'),
+  tools: {
+    weather: tool({
+      description: 'Get the weather for a city',
+      inputSchema: z.object({ city: z.string() }),
+      execute: async ({ city }) => ({ city, tempC: 21 }),
+    }),
+  },
+  stopWhen: stepCountIs(3),
+  prompt: 'What is the weather in Lisbon?',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+## Model Capabilities
+
+| Model               | Endpoint             | Tool Usage          | Tool Streaming      |
+| ------------------- | -------------------- | ------------------- | ------------------- |
+| `claude-sonnet-5-5` | Anthropic Messages   | <Check size={18} /> | <Check size={18} /> |
+| `claude-opus-5-5`   | Anthropic Messages   | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5.5`           | Chat Completions     | <Check size={18} /> | <Check size={18} /> |
+| `gemini-3.8-flash`  | Chat Completions     | <Check size={18} /> | <Check size={18} /> |
+| `deepseek-v4-flash` | Chat Completions     | <Check size={18} /> | <Check size={18} /> |
+| `glm-5.3`           | Chat Completions     | <Check size={18} /> | <Check size={18} /> |
+| `kimi-k3`           | Chat Completions     | <Check size={18} /> | <Check size={18} /> |
+
+<Note>
+  The table above lists popular models; any chat model id from the [model
+  list](https://teamorouter.com/models) can be used. Only language models are
+  supported; `embeddingModel()` and `imageModel()` throw `NoSuchModelError`.
+</Note>
