@@ -13,7 +13,7 @@ import {
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { SubquadraticChatLanguageModel } from './subquadratic-chat-language-model';
-import type { SubquadraticChatModelId } from './subquadratic-chat-options';
+import type { SubquadraticChatModelId } from './subquadratic-chat-language-model-options';
 import { DecisionSubquadraticModel } from './subquadratic-decision-model';
 import type { SubquadraticDecisionModelId } from './subquadratic-decision-model-options';
 import { VERSION } from './version';

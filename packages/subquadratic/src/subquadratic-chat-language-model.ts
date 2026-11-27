@@ -10,7 +10,7 @@ import {
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
-import type { SubquadraticChatModelId } from './subquadratic-chat-options';
+import type { SubquadraticChatModelId } from './subquadratic-chat-language-model-options';
 import type { SubquadraticConfig } from './subquadratic-config';
 import { subquadraticRequestDefaults } from './subquadratic-model-catalog';
 

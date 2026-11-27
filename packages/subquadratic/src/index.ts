@@ -2,7 +2,7 @@ export { createSubquadratic, subquadratic } from './subquadratic-provider';
 export type {
   SubquadraticChatModelId,
   SubquadraticLanguageModelChatOptions,
-} from './subquadratic-chat-options';
+} from './subquadratic-chat-language-model-options';
 export type {
   SubquadraticDecisionModelId,
   SubquadraticDecisionModelOptions,
