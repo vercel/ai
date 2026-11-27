@@ -1,0 +1,30 @@
+{
+  "id": "chatcmpl-mwz9173c_7b0cd0",
+  "object": "chat.completion",
+  "created": 1795800133,
+  "model": "subq-savant-1.4",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "391",
+        "reasoning": "17*23 = 391."
+      },
+      "finish_reason": "stop",
+      "logprobs": null
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 114,
+    "completion_tokens": 10,
+    "total_tokens": 124,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 7
+    }
+  },
+  "metadata": {}
+}

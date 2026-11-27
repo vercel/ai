@@ -1,0 +1,38 @@
+{
+  "model": "subq-snap-1.2",
+  "answers": {
+    "department": {
+      "type": "choice",
+      "choice": "billing",
+      "probabilities": {
+        "billing": 0.91203373670578,
+        "technical": 0.08690913021564484,
+        "sales": 0.001057146000675857
+      },
+      "confidence": 0.86805060505867
+    },
+    "is_urgent": {
+      "type": "noul",
+      "noul": 0.9779278039932251
+    },
+    "frustration": {
+      "type": "score",
+      "score": 1.2455794215202332,
+      "legend": {
+        "0": "Calm",
+        "1": "Frustrated",
+        "2": "Very angry"
+      },
+      "probabilities": {
+        "0": 0.040326036512851715,
+        "1": 0.6737685203552246,
+        "2": 0.2859054505825043
+      },
+      "confidence": 0.510652769356966
+    }
+  },
+  "usage": {
+    "input_tokens": 177,
+    "output_tokens": 0
+  }
+}

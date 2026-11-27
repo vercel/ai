@@ -70,6 +70,7 @@
     "@ai-sdk/sandbox-just-bash": "workspace:*",
     "@ai-sdk/sandbox-vercel": "workspace:*",
     "@ai-sdk/scaledown": "workspace:*",
+    "@ai-sdk/subquadratic": "workspace:*",
     "@ai-sdk/tencent": "workspace:*",
     "@ai-sdk/togetherai": "workspace:*",
     "@ai-sdk/tool-bash": "workspace:*",

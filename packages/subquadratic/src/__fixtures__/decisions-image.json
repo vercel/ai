@@ -1,0 +1,19 @@
+{
+  "model": "subq-snap-1.2",
+  "answers": {
+    "animal": {
+      "type": "choice",
+      "choice": "cat",
+      "probabilities": {
+        "cat": 0.9971537590026855,
+        "dog": 0.002635008655488491,
+        "bird": 0.0002112537040375173
+      },
+      "confidence": 0.9957306385040283
+    }
+  },
+  "usage": {
+    "input_tokens": 345,
+    "output_tokens": 0
+  }
+}

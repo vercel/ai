@@ -1,0 +1,290 @@
+---
+title: SubQ
+description: Use SubQ's Chat Completions and Decisions APIs with the AI SDK.
+---
+
+# SubQ Provider
+
+The [SubQ](https://subq.ai) provider supports SubQ Savant language models through
+the [Chat Completions API](https://docs.subq.ai/endpoints/chat-completions-api/)
+and SubQ Snap decision models through the
+[Decisions API](https://docs.subq.ai/endpoints/decisions-api/).
+
+## Setup
+
+The SubQ provider is available in the `@ai-sdk/subquadratic` module. You can
+install it with:
+
+<InstallPackages packages="ai @ai-sdk/subquadratic" />
+
+Create an API key in the [SubQ Console](https://console.subq.ai) and set it in
+the `SUBQUADRATIC_API_KEY` environment variable:
+
+```bash
+export SUBQUADRATIC_API_KEY=your_api_key_here
+```
+
+## Provider Instance
+
+Import the default instance:
+
+```ts
+import { subquadratic } from '@ai-sdk/subquadratic';
+```
+
+Or create a customized instance:
+
+```ts
+import { createSubquadratic } from '@ai-sdk/subquadratic';
+
+const subquadratic = createSubquadratic({
+  apiKey: process.env.SUBQUADRATIC_API_KEY,
+});
+```
+
+The following settings are optional:
+
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_: The key sent as a bearer token in the `Authorization` header. Defaults to the `SUBQUADRATIC_API_KEY` environment variable.
+
+  Pass a function to resolve credentials before each request, including when keys
+  rotate. The function can return a string or a promise. Credential caching and
+  refresh are managed by the function.
+
+- **baseURL** _string_: The API URL prefix. Defaults to `https://api.subq.ai/v1`.
+- **headers** _Record&lt;string, string&gt;_: Additional request headers.
+- **fetch** _typeof fetch_: A custom fetch implementation.
+
+## Language Models
+
+Create a SubQ Savant model with the provider instance, or with
+`subquadratic.chatModel()` or `subquadratic.languageModel()`:
+
+```ts
+import { subquadratic } from '@ai-sdk/subquadratic';
+import { generateText } from 'ai';
+
+const { text, reasoningText, usage } = await generateText({
+  model: subquadratic('subq-savant-1.4'),
+  prompt:
+    'In three bullets, explain indemnification, limitation of liability, and insurance requirements.',
+});
+```
+
+SubQ Savant is in early access and is enabled per organization. It accepts text,
+image, and PDF input, and supports streaming, tool calls, and JSON schema
+structured outputs.
+
+### Reasoning
+
+SubQ Savant always reasons before it answers, and its reasoning is returned as
+reasoning content. The top-level `reasoning` option maps to SubQ's
+`reasoning_effort`:
+
+| `reasoning`      | `reasoning_effort` |
+| ---------------- | ------------------ |
+| `minimal`, `low` | `low`              |
+| `medium`, `high` | `high`             |
+| `xhigh`, `max`   | `max`              |
+| `none`           | `low`              |
+
+Reasoning cannot be turned off, so `none` is sent as `low`. Values that are not
+sent as given produce a compatibility warning. When `reasoning` is omitted, SubQ
+uses `high`. Reasoning tokens are included in `usage.outputTokens.total` and
+reported in `usage.outputTokens.reasoning`. `maxOutputTokens` limits reasoning
+and answer tokens together.
+
+To send a raw `reasoning_effort`, set `reasoningEffort` in provider options:
+
+```ts
+const result = await generateText({
+  model: subquadratic('subq-savant-1.4'),
+  prompt: 'Summarize the open questions in this contract.',
+  providerOptions: {
+    subquadratic: { reasoningEffort: 'max' },
+  },
+});
+```
+
+### Restrictions
+
+The provider adapts these settings to what SubQ accepts:
+
+- **temperature**: SubQ accepts only `1`. Other values are omitted with an
+  unsupported warning.
+- **toolChoice**: SubQ supports `auto` and `none`. `required` is sent as `auto`,
+  and a specific tool is sent as `auto` with only that tool, each with an
+  unsupported warning. Instruct the model to use the tool in the prompt and
+  verify that a tool call was made.
+- **Images**: SubQ does not accept image URLs, so the AI SDK downloads them and
+  sends their data inline.
+
+### Example
+
+```ts
+import { subquadratic } from '@ai-sdk/subquadratic';
+import { streamText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = streamText({
+  model: subquadratic('subq-savant-1.4'),
+  tools: {
+    weather: tool({
+      description: 'Get the weather in a location',
+      inputSchema: z.object({ location: z.string() }),
+      execute: async ({ location }) => ({ location, temperature: 72 }),
+    }),
+  },
+  prompt: 'What is the weather in San Francisco? Use the weather tool.',
+});
+
+for await (const part of result.fullStream) {
+  console.log(part);
+}
+```
+
+### Language Model Capabilities
+
+{/* model-capabilities:subquadratic-language:start */}
+
+| Model                | Image Input | Object Generation | Tool Usage | Tool Streaming | JSON Schema | Reasoning | Reasoning Efforts | Temperature                                    |
+| -------------------- | ----------- | ----------------- | ---------- | -------------- | ----------- | --------- | ----------------- | ---------------------------------------------- |
+| `subq-savant-1.4`    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />   | <Check /> | low, high, max    | Conditional: Only 1; other values are omitted. |
+| `subq-savant-latest` | <Check />   | <Check />         | <Check />  | <Check />      | <Check />   | <Check /> | low, high, max    | Conditional: Only 1; other values are omitted. |
+
+{/* model-capabilities:subquadratic-language:end */}
+
+## Decision Models
+
+Use `subquadratic.decisionModel()` with
+[`experimental_decide`](/docs/reference/ai-sdk-core/decide) to call SubQ Snap.
+This API is experimental and may change in patch releases.
+
+```ts
+import { subquadratic } from '@ai-sdk/subquadratic';
+import { experimental_decide as decide } from 'ai';
+
+const result = await decide({
+  model: subquadratic.decisionModel('subq-snap-1.2'),
+  state:
+    'I was charged twice for my subscription this month and nobody has answered my emails for a week.',
+  questions: {
+    department: {
+      type: 'choice',
+      instructions: 'Which team should handle this?',
+      criteria: {
+        billing: 'Payments, invoicing, refunds',
+        technical: 'Bugs, outages, integrations',
+        sales: 'Pricing, upgrades, new accounts',
+      },
+    },
+    urgent: {
+      type: 'boolean',
+      instructions: 'Does this convey urgency?',
+    },
+    frustration: {
+      type: 'score',
+      instructions: 'How frustrated is the customer?',
+      criteria: ['Calm', 'Frustrated', 'Very angry'],
+    },
+  },
+});
+
+result.answers.urgent.probability; // P(true), from 0 to 1
+result.answers.department.choice; // 'billing' | 'technical' | 'sales'
+result.answers.frustration.score; // Expected zero-based level, from 0 to 2
+```
+
+The provider maps SDK `boolean` questions to SubQ's native `noul` type and returns
+Choice and Score probability distributions without rounding. Every question
+requires `instructions`. Box questions are not supported.
+
+### Images
+
+Add image file parts to `state`. The provider sends them in SubQ's top-level
+`images` array as base64 data, and keeps text and JSON parts in the native
+`state`. A `state` that contains only images is sent as `null`.
+
+```ts
+import { readFileSync } from 'node:fs';
+
+const result = await decide({
+  model: subquadratic.decisionModel('subq-snap-1.2'),
+  state: [
+    { type: 'text', text: 'A photo from a customer upload.' },
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: readFileSync('photo.png'),
+    },
+  ],
+  questions: {
+    animal: {
+      type: 'choice',
+      instructions: 'Which animal is shown?',
+      criteria: { cat: null, dog: null, bird: null },
+    },
+  },
+});
+```
+
+Images must be JPEG, PNG, or WebP. SubQ does not accept remote URLs, so pass file
+data inline; `experimental_decide` downloads URL file state before calling the
+provider.
+
+A single text part is sent as a string and a single JSON part as structured
+JSON. Other combinations of text and JSON parts are joined with newlines.
+
+### Confidence, legends, and usage
+
+SubQ's confidence values and Score legends are available in
+`providerMetadata.subquadratic`, keyed by question ID. Confidence is distinct
+from the selected option's probability.
+
+```ts
+const metadata = result.providerMetadata?.subquadratic;
+console.log(metadata?.confidence); // Choice and Score confidence by question ID
+console.log(metadata?.legend); // Score index-to-description maps by question ID
+console.log(result.usage.inputTokens);
+```
+
+SubQ decisions report input tokens only; `usage.outputTokens` is `0`.
+
+### Decision limits
+
+The provider validates these limits before sending the decision request:
+
+| Input          | Limit                           |
+| -------------- | ------------------------------- |
+| Questions      | 1–128, each with `instructions` |
+| Choice options | 2–255                           |
+| Score levels   | 2–10                            |
+
+SubQ decision models do not accept provider-specific options,
+`maxOutputTokens`, or `reasoning`; these produce unsupported warnings and are not
+sent to the API.
+
+### Decision Model Capabilities
+
+{/* model-capabilities:subquadratic-decision:start */}
+
+| Model              | Boolean   | Choice    | Score     | Box       | Image Input | Reasoning | Max Output Tokens |
+| ------------------ | --------- | --------- | --------- | --------- | ----------- | --------- | ----------------- |
+| `subq-snap-1.2`    | <Check /> | <Check /> | <Check /> | <Cross /> | <Check />   | <Cross /> | <Cross />         |
+| `subq-snap-latest` | <Check /> | <Check /> | <Check /> | <Cross /> | <Check />   | <Cross /> | <Cross />         |
+
+{/* model-capabilities:subquadratic-decision:end */}
+
+## Provider Option Reference
+
+The following option definitions are generated from the provider catalog.
+
+{/* model-capabilities:subquadratic-provider-options:start */}
+
+| Operation | Option             | Description                                                                                                                                                                                    |
+| --------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| language  | `user`             | A unique identifier representing your end-user, which can help providers to monitor and detect abuse.                                                                                          |
+| language  | `reasoningEffort`  | Reasoning effort sent as `reasoning_effort`, unchanged. SubQ accepts `low`, `high`, and `max`; `minimal`, `medium`, and `xhigh` run as `low`, `high`, and `max`. Reasoning cannot be disabled. |
+| language  | `textVerbosity`    | Controls the verbosity of the generated text. Defaults to `medium`.                                                                                                                            |
+| language  | `strictJsonSchema` | Whether to use strict JSON schema validation. When true, the model uses constrained decoding to guarantee schema compliance. Only used when a schema is provided.                              |
+
+{/* model-capabilities:subquadratic-provider-options:end */}
