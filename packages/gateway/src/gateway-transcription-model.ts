@@ -152,6 +152,7 @@ export class GatewayTranscriptionModel implements TranscriptionModelV4 {
       throw await asGatewayError(
         error,
         await parseAuthMethod(resolvedHeaders ?? {}),
+        abortSignal,
       );
     }
   }

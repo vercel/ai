@@ -131,6 +131,7 @@ export class GatewaySpeechModel
       throw await asGatewayError(
         error,
         await parseAuthMethod(resolvedHeaders ?? {}),
+        abortSignal,
       );
     }
   }

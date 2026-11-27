@@ -137,6 +137,7 @@ export class GatewayExtractionModel implements ExtractionModelV4 {
       throw await asGatewayError(
         error,
         await parseAuthMethod(resolvedHeaders ?? {}),
+        abortSignal,
       );
     }
   }

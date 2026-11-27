@@ -183,6 +183,7 @@ export class GatewayVideoModel implements VideoModelV4 {
       throw await asGatewayError(
         error,
         await parseAuthMethod(resolvedHeaders ?? {}),
+        abortSignal,
       );
     }
   }
@@ -254,6 +255,7 @@ export class GatewayVideoModel implements VideoModelV4 {
       throw await asGatewayError(
         error,
         await parseAuthMethod(resolvedHeaders ?? {}),
+        abortSignal,
       );
     }
   }
@@ -342,6 +344,7 @@ export class GatewayVideoModel implements VideoModelV4 {
       throw await asGatewayError(
         error,
         await parseAuthMethod(resolvedHeaders ?? {}),
+        abortSignal,
       );
     }
   }

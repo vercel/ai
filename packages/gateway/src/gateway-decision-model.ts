@@ -119,6 +119,7 @@ export class GatewayDecisionModel implements DecisionModelV4 {
       throw await asGatewayError(
         error,
         await parseAuthMethod(resolvedHeaders ?? {}),
+        abortSignal,
       );
     }
   }

@@ -88,6 +88,7 @@ export class GatewayRerankingModel implements RerankingModelV4 {
       throw await asGatewayError(
         error,
         await parseAuthMethod(resolvedHeaders ?? {}),
+        abortSignal,
       );
     }
   }

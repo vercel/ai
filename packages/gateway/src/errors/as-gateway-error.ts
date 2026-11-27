@@ -30,14 +30,29 @@ function isTimeoutError(error: unknown): boolean {
 export async function asGatewayError(
   error: unknown,
   authMethod?: 'api-key' | 'oidc',
+  callerSignal?: AbortSignal,
 ) {
   // Caller cancellation is not a gateway failure and must not become a retryable 500.
+  // When the caller's signal is provided and already aborted, the AbortError/TimeoutError
+  // is a genuine user cancellation and must be re-thrown as-is.
+  // When no signal is provided (e.g. stream error handlers), preserve existing behaviour.
+  // When a signal IS provided but is NOT aborted, the error came from an internal source
+  // (e.g. undici connection-pool cleanup) and should be treated as a retryable error.
   if (
     (error instanceof Error ||
       (typeof DOMException === 'function' && error instanceof DOMException)) &&
     (error.name === 'AbortError' || error.name === 'TimeoutError')
   ) {
-    throw error;
+    if (!callerSignal || callerSignal.aborted) {
+      throw error;
+    }
+    // Internal abort (connection pool, etc.) — surface as a retryable gateway error
+    // so the AI SDK retry layer can transparently retry the request.
+    return new GatewayTimeoutError({
+      message: `Gateway connection was reset: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      statusCode: 503,
+      cause: error,
+    });
   }
 
   if (GatewayError.isInstance(error)) {

@@ -112,6 +112,7 @@ export class GatewayLanguageModel implements LanguageModelV4 {
       throw await asGatewayError(
         error,
         await parseAuthMethod(resolvedHeaders ?? {}),
+        abortSignal,
       );
     }
   }
@@ -190,6 +191,7 @@ export class GatewayLanguageModel implements LanguageModelV4 {
       throw await asGatewayError(
         error,
         await parseAuthMethod(resolvedHeaders ?? {}),
+        abortSignal,
       );
     }
   }
