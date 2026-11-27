@@ -174,6 +174,16 @@ export const anthropicLanguageModelOptions = lazySchema(() => {
       sendReasoning: z.boolean().optional(),
 
       /**
+       * Keep a system message that follows user or assistant messages in the
+       * `messages` array, even when no system message comes before it. By
+       * default the first system message becomes the top-level `system`
+       * prompt wherever it appears, which models without mid-conversation
+       * system message support require. Enable this only for models that
+       * support mid-conversation system messages.
+       */
+      midConversationSystemMessages: z.boolean().optional(),
+
+      /**
        * Allow tool definitions supplied by value in system-message tool changes.
        * Defaults to false. Enable only for server-controlled messages: inline
        * definitions can add tools or replace their configured restrictions.
