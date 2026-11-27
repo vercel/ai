@@ -26,13 +26,15 @@ export function createStitchableStream<T>(): {
   let controller: ReadableStreamDefaultController<T> | null = null;
   let isClosed = false;
   let isCancelled = false;
+  let isTerminated = false;
   let waitForNewStream = createResolvablePromise<void>();
 
   const terminate = () => {
-    if (isCancelled) {
+    if (isCancelled || isTerminated) {
       return;
     }
 
+    isTerminated = true;
     isClosed = true;
     waitForNewStream.resolve();
 
@@ -125,7 +127,11 @@ export function createStitchableStream<T>(): {
         onCancel?: () => void;
       },
     ) => {
-      if (isCancelled) {
+      // Streams that arrive after the outer stream was cancelled or terminated
+      // can no longer be consumed. Discard them instead of throwing, so that a
+      // producer that is still running (e.g. the first step of `streamText`
+      // when `stopStream()` is called on the `start` part) does not fail.
+      if (isCancelled || isTerminated) {
         callbacks?.onCancel?.();
         void innerStream.cancel().catch(() => {});
         return;
@@ -147,7 +153,7 @@ export function createStitchableStream<T>(): {
      * finish processing and then close the outer stream.
      */
     close: () => {
-      if (isCancelled) {
+      if (isCancelled || isTerminated) {
         return;
       }
 
@@ -161,7 +167,8 @@ export function createStitchableStream<T>(): {
 
     /**
      * Immediately close the outer stream. This will cancel all inner streams
-     * and close the outer stream.
+     * and close the outer stream. Streams added afterwards are cancelled and
+     * discarded.
      */
     terminate,
   };

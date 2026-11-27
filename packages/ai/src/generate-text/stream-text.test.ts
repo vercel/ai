@@ -22823,6 +22823,52 @@ describe('streamText', () => {
         });
       });
 
+      it('should end cleanly and cancel the model stream when stopStream is called on the start part', async () => {
+        let modelStreamCancelled = false;
+
+        await expectUndefinedUnhandledRejections({
+          fn: async () => {
+            const result = streamText({
+              model: createTestModel({
+                // never closes by itself, so only a cancel can release it:
+                stream: new ReadableStream<LanguageModelV4StreamPart>({
+                  start(controller) {
+                    controller.enqueue({ type: 'text-start', id: '1' });
+                    controller.enqueue({
+                      type: 'text-delta',
+                      id: '1',
+                      delta: 'Hello',
+                    });
+                  },
+                  cancel() {
+                    modelStreamCancelled = true;
+                  },
+                }),
+              }),
+              prompt: 'test-input',
+              experimental_transform: ({ stopStream }) =>
+                new TransformStream({
+                  transform(chunk, controller) {
+                    controller.enqueue(chunk);
+
+                    if (chunk.type === 'start') {
+                      stopStream();
+                    }
+                  },
+                }),
+            });
+
+            expect(
+              (await convertAsyncIterableToArray(result.stream)).map(
+                chunk => chunk.type,
+              ),
+            ).toEqual(['start']);
+          },
+        });
+
+        expect(modelStreamCancelled).toBe(true);
+      });
+
       it('options.onStepEnd should be called', async () => {
         let result!: Parameters<
           Required<Parameters<typeof streamText>[0]>['onStepEnd']
