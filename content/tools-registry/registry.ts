@@ -1047,22 +1047,22 @@ console.log(text);`,
       bun: 'bun add @sarj-ai/ai-sdk-tools ai',
     },
     codeExample: `import { generateText, isStepCount } from 'ai';
-  import { createSarjTools } from '@sarj-ai/ai-sdk-tools';
+import { createSarjTools } from '@sarj-ai/ai-sdk-tools';
 
-  const apiKey = process.env.SARJ_API_KEY;
-  if (!apiKey) throw new Error('Set SARJ_API_KEY to a calls:read credential.');
-  const sarj = await createSarjTools({ apiKey });
-  try {
-    const { text } = await generateText({
-      model: 'openai/gpt-5-mini',
-      tools: sarj.tools,
-      prompt: 'List my three most recent calls and summarize their statuses. Omit personal data.',
-      stopWhen: isStepCount(3),
-    });
-    console.log(text);
-  } finally {
-    await sarj.close();
-  }`,
+const apiKey = process.env.SARJ_API_KEY;
+if (!apiKey) throw new Error('Set SARJ_API_KEY to a calls:read credential.');
+const sarj = await createSarjTools({ apiKey });
+try {
+  const { text } = await generateText({
+    model: 'openai/gpt-5-mini',
+    tools: sarj.tools,
+    prompt: 'List my three most recent calls and summarize their statuses. Omit personal data.',
+    stopWhen: isStepCount(3),
+  });
+  console.log(text);
+} finally {
+  await sarj.close();
+}`,
     docsUrl: 'https://platform-docs.sarj.ai/integrations/ai-sdk',
     apiKeyUrl: 'https://platform.sarj.ai/api-keys',
     websiteUrl: 'https://sarj.ai',
