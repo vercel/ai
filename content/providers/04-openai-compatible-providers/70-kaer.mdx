@@ -1,0 +1,84 @@
+---
+title: Kaer
+description: Use the Kaer OpenAI compatible API with the AI SDK.
+---
+
+# Kaer Provider
+
+[Kaer](https://kaer.ai) serves its Janus models, `janus-1-flash` and `janus-1-pro`, through an OpenAI-compatible API.
+You can use its Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module, including streaming and tool calling.
+
+## Setup
+
+The Kaer provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API.
+You can install it with:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+## Provider Instance
+
+To use Kaer, create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const kaer = createOpenAICompatible({
+  name: 'kaer',
+  baseURL: 'https://api.kaer.ai/v1',
+  apiKey: process.env.KAER_API_KEY,
+  includeUsage: true,
+});
+```
+
+## Language Models
+
+You can create models using the Kaer provider instance.
+The first argument is the model id, e.g. `janus-1-flash`.
+
+```ts
+const model = kaer('janus-1-flash');
+```
+
+### Example: `generateText`
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const kaer = createOpenAICompatible({
+  name: 'kaer',
+  baseURL: 'https://api.kaer.ai/v1',
+  apiKey: process.env.KAER_API_KEY,
+  includeUsage: true,
+});
+
+const { text } = await generateText({
+  model: kaer('janus-1-flash'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+### Example: `streamText`
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const kaer = createOpenAICompatible({
+  name: 'kaer',
+  baseURL: 'https://api.kaer.ai/v1',
+  apiKey: process.env.KAER_API_KEY,
+  includeUsage: true,
+});
+
+const result = streamText({
+  model: kaer('janus-1-pro'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+For more information, see Kaer's [AI SDK integration guide](https://docs.kaer.ai/integrations/vercel-ai-sdk).
