@@ -1095,6 +1095,99 @@ describe('MCPClient', () => {
     `);
   });
 
+  it('should keep extra result fields in the tool output but only pass content to the model via toModelOutput', async () => {
+    createMockTransport.mockImplementation(
+      () =>
+        new MockMCPTransport({
+          overrideTools: [
+            {
+              name: 'get-extra-fields',
+              description: 'Returns fields outside the standard result shape',
+              inputSchema: { type: 'object' },
+            },
+          ],
+          toolCallResults: {
+            'get-extra-fields': {
+              content: [
+                {
+                  type: 'text',
+                  text: 'Hello world',
+                  annotations: { audience: ['user'] },
+                  extraPartField: 'part-value',
+                },
+              ],
+              structuredContent: { greeting: 'Hello world' },
+              _meta: { 'example.com/trace-id': 'abc' },
+              extraResultField: { foo: 'bar' },
+              isError: false,
+            } as unknown as CallToolResult,
+          },
+        }),
+    );
+
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    const tools = await client.tools();
+    const tool = tools['get-extra-fields'];
+
+    const output = await tool.execute!(
+      {},
+      { messages: [], toolCallId: '1', context: {} },
+    );
+
+    // unknown fields on the result and on content parts survive validation
+    // and are available to the application in the tool output:
+    expect(output).toMatchInlineSnapshot(`
+      {
+        "_meta": {
+          "example.com/trace-id": "abc",
+        },
+        "content": [
+          {
+            "annotations": {
+              "audience": [
+                "user",
+              ],
+            },
+            "extraPartField": "part-value",
+            "text": "Hello world",
+            "type": "text",
+          },
+        ],
+        "extraResultField": {
+          "foo": "bar",
+        },
+        "isError": false,
+        "structuredContent": {
+          "greeting": "Hello world",
+        },
+      }
+    `);
+
+    // only the content parts are passed to the model; fields outside of
+    // `content` and extra fields on known part types are not included:
+    expect(tool.toModelOutput).toBeDefined();
+    expect(
+      await (tool.toModelOutput as Function)({
+        toolCallId: '1',
+        input: {},
+        output,
+      }),
+    ).toMatchInlineSnapshot(`
+      {
+        "type": "content",
+        "value": [
+          {
+            "text": "Hello world",
+            "type": "text",
+          },
+        ],
+      }
+    `);
+  });
+
   it('should fallback to JSON when result has no content array via toModelOutput', async () => {
     createMockTransport.mockImplementation(
       () =>
