@@ -449,9 +449,17 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     const reasoning =
       choice.message.reasoning_content ?? choice.message.reasoning;
     if (reasoning != null && reasoning.length > 0) {
+      const signature = choice.message.reasoning_signature;
       content.push({
         type: 'reasoning',
         text: reasoning,
+        ...(signature == null
+          ? {}
+          : {
+              providerOptions: {
+                [this.providerOptionsName]: { reasoningSignature: signature },
+              },
+            }),
       });
     }
 
@@ -680,6 +688,26 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     let isActiveReasoning = false;
     let isActiveText = false;
     let hasRefusal = false;
+    // The signature can arrive on any reasoning delta, so it is held until the
+    // reasoning block closes and handed over with its `reasoning-end`.
+    let reasoningSignature: string | undefined;
+    const endReasoning = (
+      controller: TransformStreamDefaultController<LanguageModelV4StreamPart>,
+    ) => {
+      controller.enqueue({
+        type: 'reasoning-end',
+        id: 'reasoning-0',
+        ...(reasoningSignature === undefined
+          ? {}
+          : {
+              providerMetadata: {
+                [this.providerOptionsName]: { reasoningSignature },
+              },
+            }),
+      });
+      isActiveReasoning = false;
+      reasoningSignature = undefined;
+    };
     const convertUsage = (
       usage: z.infer<ReturnType<typeof openaiCompatibleTokenUsageSchema>>,
     ) => this.convertUsage(usage);
@@ -801,11 +829,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
 
             const enqueueTextDelta = (textDelta: string) => {
               if (isActiveReasoning) {
-                controller.enqueue({
-                  type: 'reasoning-end',
-                  id: 'reasoning-0',
-                });
-                isActiveReasoning = false;
+                endReasoning(controller);
               }
 
               if (!isActiveText) {
@@ -819,6 +843,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
                 delta: textDelta,
               });
             };
+
+            if (delta.reasoning_signature != null) {
+              reasoningSignature = delta.reasoning_signature;
+            }
 
             // enqueue reasoning before text deltas:
             const reasoningContent = delta.reasoning_content ?? delta.reasoning;
@@ -849,11 +877,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
             if (delta.tool_calls != null && delta.tool_calls.length > 0) {
               // end active reasoning block before tool calls start
               if (isActiveReasoning) {
-                controller.enqueue({
-                  type: 'reasoning-end',
-                  id: 'reasoning-0',
-                });
-                isActiveReasoning = false;
+                endReasoning(controller);
               }
 
               for (const toolCallDelta of delta.tool_calls) {
@@ -864,7 +888,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
 
           flush(controller) {
             if (isActiveReasoning) {
-              controller.enqueue({ type: 'reasoning-end', id: 'reasoning-0' });
+              endReasoning(controller);
             }
 
             if (isActiveText) {
@@ -1043,6 +1067,8 @@ const OpenAICompatibleChatResponseSchema = lazySchema(() =>
               ),
             reasoning_content: z.string().nullish(),
             reasoning: z.string().nullish(),
+            // See the streaming delta schema below for why the signature is read.
+            reasoning_signature: z.string().nullish(),
             tool_calls: z
               .array(
                 z.object({
@@ -1101,6 +1127,10 @@ const chunkBaseSchema = () =>
             // providers serving `gpt-oss` set `reasoning`. See #7866
             reasoning_content: z.string().nullish(),
             reasoning: z.string().nullish(),
+            // A gateway fronting a signed-thinking backend sends the signature
+            // alongside the reasoning text. Without it the replayed block is
+            // unsigned, which the backend discards or rejects.
+            reasoning_signature: z.string().nullish(),
             tool_calls: z
               .array(
                 z.object({

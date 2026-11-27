@@ -63,6 +63,11 @@ export interface OpenAICompatibleAssistantMessage extends JsonRecord<OpenAICompa
   role: 'assistant';
   content?: string | null;
   reasoning_content?: string;
+  /**
+   * Authenticates `reasoning_content` so a backend that requires signed
+   * thinking accepts the replayed block.
+   */
+  reasoning_signature?: string;
   tool_calls?: Array<OpenAICompatibleMessageToolCall>;
 }
 
