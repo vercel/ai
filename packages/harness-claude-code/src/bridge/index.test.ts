@@ -3,6 +3,7 @@ import type { z } from 'zod/v4';
 import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import bareWeatherMessages from './__fixtures__/issue-25560-bare-weather.json';
 
 type QueryArgs = {
   prompt: AsyncIterable<unknown>;
@@ -256,6 +257,85 @@ describe('Claude Code bridge configuration', () => {
       }
     }
     vi.resetModules();
+  });
+
+  test('issue 25560: a bare weather call executes the host tool', async () => {
+    state.start.tools = [
+      {
+        name: 'weather',
+        inputSchema: {
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+        },
+      },
+    ];
+    const toolCallId = 'toolu_01L9WiFvMvQnn3Nf3FKsKaRm';
+    const output = { city: 'Paris', celsius: 20 };
+    const hostResults = vi.fn(async () => {
+      // An alias alone must not leave the handler waiting for an unrequested
+      // host result. This is the host's real prerequisite for executing a tool.
+      expect(state.emitted).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-call',
+          toolCallId,
+          toolName: 'weather',
+          providerExecuted: false,
+        }),
+      );
+      return { output };
+    });
+    state.requestToolResult = hostResults;
+    state.createQuery = args =>
+      (async function* () {
+        let handled = false;
+        for (const message of bareWeatherMessages) {
+          if (message.type === 'user' && handled) continue;
+          yield message;
+          if (message.type !== 'assistant') continue;
+          // Mirror the SDK's documented single-hop lookup, using its actual
+          // live tool_use and tool_result messages rather than inventing them.
+          const aliases = args.options.toolAliases as
+            | Record<string, string>
+            | undefined;
+          const resolvedName = aliases?.weather ?? 'weather';
+          if (resolvedName === 'mcp__harness-tools__weather') {
+            await state.toolHandlers.get('weather')!(
+              { city: 'Paris' },
+              {
+                requestId: toolCallId,
+                _meta: { 'claudecode/toolUseId': toolCallId },
+              },
+            );
+            handled = true;
+          }
+        }
+        yield { type: 'result', subtype: 'success', result: '20°C' };
+      })();
+
+    await import('./index');
+
+    expect(
+      hostResults,
+      'Bare weather call must execute the host tool without a failed provider turn',
+    ).toHaveBeenCalledExactlyOnceWith(toolCallId);
+    expect(state.emitted).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-result',
+        toolCallId,
+        toolName: 'weather',
+        result: output,
+        isError: false,
+      }),
+    );
+    expect(
+      state.emitted.filter(
+        event =>
+          event.type === 'tool-result' &&
+          event.toolCallId === toolCallId &&
+          event.isError === true,
+      ),
+    ).toEqual([]);
   });
 
   test.each(['hook-first', 'boundary-first'] as const)(
