@@ -691,9 +691,9 @@ console.log(text);`,
   },
   {
     slug: 'pexafy',
-    name: 'Pexafy',
+    name: 'Pexafy Stock Photos',
     description:
-      'Pexafy adds semantic stock photo search to your agents: describe a scene in plain English and get real, free-to-use photographs from Unsplash, Pexels, Pixabay and six more libraries, each with an image URL, alt text, license and credit line.',
+      'Pexafy Stock Photos adds semantic photo search to your agents: describe a scene in plain English and get real, free-to-use photographs from Unsplash, Pexels, Pixabay and more, each with an image URL, alt text, license and credit line.',
     packageName: 'pexafy-ai-sdk',
     tags: ['images', 'photos', 'search'],
     apiKeyEnvName: 'PEXAFY_API_KEY',
