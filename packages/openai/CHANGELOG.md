@@ -1,5 +1,16 @@
 # @ai-sdk/openai
 
+## 4.0.125
+
+### Patch Changes
+
+- 80d778a: fix(openai, xai): accept Responses stream events larger than 64 MiB
+
+  `createEventSourceResponseHandler` has a new `maxEventSize` option. The OpenAI and xAI Responses language models use it to accept events of up to 512 MiB, because `response.completed` repeats every output item, including base64 image generation results. Streams with several large generated images exceeded the default limit and failed after all images were delivered.
+
+- Updated dependencies [80d778a]
+  - @ai-sdk/provider-utils@5.0.85
+
 ## 4.0.124
 
 ### Patch Changes
