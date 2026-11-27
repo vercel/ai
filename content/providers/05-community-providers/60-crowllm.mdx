@@ -1,0 +1,98 @@
+---
+title: CrowLLM
+description: Learn how to use CrowLLM with the AI SDK.
+---
+
+# CrowLLM Provider
+
+[CrowLLM](https://crowllm.com) is an OpenAI-compatible API gateway: one endpoint (`https://crowllm.com/v1`), one key, and every model behind it — including a mostly zero-rated `:free` shelf next to the paid ids. The catalog is public and keyless at [crowllm.com/api/pricing](https://crowllm.com/api/pricing).
+
+The CrowLLM provider is a thin wrapper around `@ai-sdk/openai-compatible`, so streaming, tool calls, structured output and image input work the same way they do with any OpenAI-compatible provider.
+
+## Setup
+
+The CrowLLM provider is available in the [`crowllm-ai-sdk`](https://www.npmjs.com/package/crowllm-ai-sdk) module. Install it alongside the AI SDK:
+
+<InstallPackages packages="ai crowllm-ai-sdk @ai-sdk/openai-compatible zod" />
+
+Create an API key at [crowllm.com](https://crowllm.com) and add it to your environment:
+
+```bash
+# .env
+CROWLLM_API_KEY=your_api_key_here
+```
+
+## Provider Instance
+
+Create a provider instance with `createCrowLLM`:
+
+```ts
+import { createCrowLLM } from 'crowllm-ai-sdk';
+
+const crowllm = createCrowLLM({
+  apiKey: process.env.CROWLLM_API_KEY,
+});
+```
+
+`createCrowLLM` also accepts a custom `baseURL` (defaults to `https://crowllm.com/v1`) and extra `headers`.
+
+## Language Models
+
+Call the provider with a model ID to create a language model:
+
+```ts
+const model = crowllm('deepseek-v4-flash');
+```
+
+Any ID from the gateway's public catalog works, for example `glm-5.3`, `kimi-k3` or `claude-opus-4-7`. Most IDs ending in `:free` are zero-rated, but a few are metered — [crowllm.com/api/pricing](https://crowllm.com/api/pricing) is the authoritative price list.
+
+## Examples
+
+### Generate Text
+
+```ts
+import { generateText } from 'ai';
+import { createCrowLLM } from 'crowllm-ai-sdk';
+
+const crowllm = createCrowLLM({ apiKey: process.env.CROWLLM_API_KEY });
+
+const { text } = await generateText({
+  model: crowllm('deepseek-v4-flash'),
+  prompt: 'Write a haiku about a crow on a wire.',
+});
+```
+
+### Stream Text
+
+```ts
+import { streamText } from 'ai';
+import { createCrowLLM } from 'crowllm-ai-sdk';
+
+const crowllm = createCrowLLM({ apiKey: process.env.CROWLLM_API_KEY });
+
+const result = streamText({
+  model: crowllm('glm-5.3'),
+  prompt: 'Explain what an API gateway does in two sentences.',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+## Model Catalog
+
+`GET https://crowllm.com/v1/models` is public and keyless, so you can list every served ID without a key. Rates are published at [crowllm.com/api/pricing](https://crowllm.com/api/pricing).
+
+### Common Models
+
+| Model ID | Context | Input (USD/1M) | Output (USD/1M) |
+| :--- | ---: | ---: | ---: |
+| `glm-5.3` | 200K | 0.5976 | 2.09155 |
+| `deepseek-v4-flash` | 128K | 0.14 | 0.55 |
+| `kimi-k3` | 256K | 2.49 | 12.99 |
+| `claude-opus-4-7` | 200K | 4.00 | 20.00 |
+| `gemini-3.7-flash` | 1M | 0.75 | 3.75 |
+| `grok-4.7:free` | 256K | 0 | 0 |
+
+Ids ending in `:free` are mostly zero-rated; a few are metered, so check `/api/pricing` before relying on one.
