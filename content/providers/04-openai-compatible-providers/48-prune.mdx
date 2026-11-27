@@ -1,0 +1,79 @@
+---
+title: Prune
+description: Use Prune (OpenAI-compatible control plane) with the AI SDK.
+---
+
+# Prune Provider
+
+[Prune](https://withprune.com) is an OpenAI-compatible control plane: vault the provider API key, semantic cache and cheaper-model routing on the path, Shield before the model, signed receipts on every call.
+
+Keep provider `sk-` keys out of the Next.js app. Vault them in Prune. Put only a `prune_` key in env.
+
+Guide: [Use Prune with the Vercel AI SDK](https://withprune.com/guides/use-prune-with-vercel-ai-sdk)
+
+## Setup
+
+The Prune provider is available via the `@ai-sdk/openai-compatible` module (or `@ai-sdk/openai` with a custom `baseURL`). You can install it with:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+### Prune Setup
+
+1. Create an account at [withprune.com](https://withprune.com).
+2. Vault an OpenAI (or other) provider key under Connect → Providers.
+3. Copy your `prune_…` API key.
+4. Set env:
+
+```bash
+export PRUNE_API_KEY=prune_...
+export PRUNE_BASE_URL=https://api.withprune.com/v1
+```
+
+## Provider Instance
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const prune = createOpenAICompatible({
+  name: 'prune',
+  apiKey: process.env.PRUNE_API_KEY,
+  baseURL: process.env.PRUNE_BASE_URL || 'https://api.withprune.com/v1',
+  includeUsage: true,
+});
+```
+
+You can also use `createOpenAI` from `@ai-sdk/openai` with the same `baseURL` and `apiKey`.
+
+## Language Models
+
+```ts
+const model = prune('gpt-4o-mini');
+```
+
+Use a model id you vaulted in Prune.
+
+### Example
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const prune = createOpenAICompatible({
+  name: 'prune',
+  apiKey: process.env.PRUNE_API_KEY,
+  baseURL: 'https://api.withprune.com/v1',
+  includeUsage: true,
+});
+
+const { text } = await generateText({
+  model: prune('gpt-4o-mini'),
+  prompt: 'Summarize our refund policy in one sentence.',
+});
+
+console.log(text);
+```
+
+## More
+
+- [Use Prune with the Vercel AI SDK](https://withprune.com/guides/use-prune-with-vercel-ai-sdk)
+- [Example](https://github.com/surenkotian/prune/tree/main/examples/vercel-ai-sdk)
