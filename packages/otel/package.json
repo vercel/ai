@@ -34,8 +34,10 @@
   },
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
-    "@opentelemetry/api": "1.9.1",
-    "ai": "workspace:*"
+    "@opentelemetry/api": "1.9.1"
+  },
+  "peerDependencies": {
+    "ai": "workspace:^"
   },
   "devDependencies": {
     "@ai-sdk/provider-utils": "workspace:*",
@@ -44,6 +46,7 @@
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
     "@vercel/ai-tsdown-config": "workspace:*",
+    "ai": "workspace:*",
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
     "zod": "4.6.7"
