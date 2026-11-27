@@ -1,7 +1,7 @@
 # AI SDK - Hume Provider
 
 The **[Hume provider](https://ai-sdk.dev/providers/ai-sdk-providers/hume)** for the [AI SDK](https://ai-sdk.dev/docs)
-contains support for the Hume API.
+does not currently include any models.
 
 > **Deploying to Vercel?** With Vercel's AI Gateway you can access Hume (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
 
@@ -22,13 +22,9 @@ npx skills add vercel/ai
 ## Usage
 
 ```ts
-import { hume } from '@ai-sdk/hume';
-import { generateSpeech } from 'ai';
+import { createHume } from '@ai-sdk/hume';
 
-const result = await generateSpeech({
-  model: hume.speech('aurora'),
-  text: 'Hello, world!',
-});
+const hume = createHume({ apiKey: process.env.HUME_API_KEY });
 ```
 
-See the [Hume Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/hume) for more information.
+Hume retired its text-to-speech (TTS) API on November 13, 2026, so this package no longer includes a speech model. See the [Hume Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/hume) for more information.

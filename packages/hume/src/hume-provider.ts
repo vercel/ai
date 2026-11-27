@@ -1,29 +1,7 @@
-import { humeSpeechModelIds } from './hume-model-catalog';
-import {
-  NoSuchModelError,
-  type SpeechModelV4,
-  type ProviderV4,
-} from '@ai-sdk/provider';
-import {
-  resolveWith,
-  type Resolvable,
-  loadApiKey,
-  withUserAgentSuffix,
-  type FetchFunction,
-} from '@ai-sdk/provider-utils';
-import { HumeSpeechModel } from './hume-speech-model';
-import { VERSION } from './version';
+import { NoSuchModelError, type ProviderV4 } from '@ai-sdk/provider';
+import type { FetchFunction, Resolvable } from '@ai-sdk/provider-utils';
 
-export interface HumeProvider extends ProviderV4 {
-  (settings?: {}): {
-    speech: HumeSpeechModel;
-  };
-
-  /**
-   * Creates a model for speech synthesis.
-   */
-  speech(): SpeechModelV4;
-}
+export interface HumeProvider extends ProviderV4 {}
 
 export interface HumeProviderSettings {
   /**
@@ -47,65 +25,31 @@ export interface HumeProviderSettings {
 /**
  * Create an Hume provider instance.
  */
-export function createHume(options: HumeProviderSettings = {}): HumeProvider {
-  const getHeaders = () =>
-    resolveWith(options.apiKey, apiKey =>
-      withUserAgentSuffix(
-        {
-          'X-Hume-Api-Key': loadApiKey({
-            apiKey,
-            environmentVariableName: 'HUME_API_KEY',
-            description: 'Hume',
-          }),
-          ...options.headers,
-        },
-        `ai-sdk-hume/${VERSION}`,
-      ),
-    );
-
-  const createSpeechModel = () =>
-    new HumeSpeechModel(humeSpeechModelIds[0], {
-      provider: `hume.speech`,
-      url: ({ path }) => `https://api.hume.ai${path}`,
-      headers: getHeaders,
-      fetch: options.fetch,
-    });
-
-  const provider = function () {
-    return {
-      speech: createSpeechModel(),
-    };
+export function createHume(_options: HumeProviderSettings = {}): HumeProvider {
+  return {
+    specificationVersion: 'v4',
+    languageModel(modelId) {
+      throw new NoSuchModelError({
+        modelId,
+        modelType: 'languageModel',
+        message: 'Hume does not provide language models',
+      });
+    },
+    embeddingModel(modelId) {
+      throw new NoSuchModelError({
+        modelId,
+        modelType: 'embeddingModel',
+        message: 'Hume does not provide embedding models',
+      });
+    },
+    imageModel(modelId) {
+      throw new NoSuchModelError({
+        modelId,
+        modelType: 'imageModel',
+        message: 'Hume does not provide image models',
+      });
+    },
   };
-
-  provider.specificationVersion = 'v4' as const;
-  provider.speech = createSpeechModel;
-  provider.speechModel = createSpeechModel;
-
-  provider.languageModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'languageModel',
-      message: 'Hume does not provide language models',
-    });
-  };
-
-  provider.embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'embeddingModel',
-      message: 'Hume does not provide embedding models',
-    });
-  };
-
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'imageModel',
-      message: 'Hume does not provide image models',
-    });
-  };
-
-  return provider as HumeProvider;
 }
 
 /**
