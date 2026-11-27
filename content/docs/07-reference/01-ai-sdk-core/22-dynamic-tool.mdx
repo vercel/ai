@@ -66,6 +66,13 @@ export const customTool = dynamicTool({
                 "Keep this tool out of the model context until toolSearch discovers it. Supports direct calling or code mode with toolDiscovery: 'conversation'. Discovered tools become available on the next model step. Defaults to false.",
             },
             {
+              name: 'replay',
+              isOptional: true,
+              type: "'never' | 'safe'",
+              description:
+                "Whether a durable executor may run the tool again after an execution was interrupted without recording its outcome. 'never' runs the tool at most once per tool call and reports an interrupted execution as interrupted. 'safe' allows running it again, e.g. for read-only or idempotent tools. Only relevant for durable executors such as a HarnessAgent with a World. Defaults to 'never'.",
+            },
+            {
               name: 'title',
               isOptional: true,
               type: 'string',

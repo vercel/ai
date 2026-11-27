@@ -1,0 +1,26 @@
+data: {"type":"stream-start","warnings":[]}
+
+data: {"type":"response-metadata","id":"msg_011Ch1VxyJgXpxoajKqvq44U","modelId":"claude-haiku-4-5-20251001"}
+
+data: {"type":"custom","kind":"anthropic.message_start","providerMetadata":{"anthropic":{"id":"msg_011Ch1VxyJgXpxoajKqvq44U","model":"claude-haiku-4-5-20251001","usage":{"service_tier":"standard","input_tokens":2696,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":0},"output_tokens":20,"inference_geo":"not_available","speed":"standard"}}}}
+
+data: {"type":"tool-input-start","id":"toolu_011oy9fvwfHVh3aDtkRYxpPn","toolName":"shell"}
+
+data: {"type":"tool-input-delta","id":"toolu_011oy9fvwfHVh3aDtkRYxpPn","delta":"{\"action\": \"run"}
+
+data: {"type":"tool-input-delta","id":"toolu_011oy9fvwfHVh3aDtkRYxpPn","delta":"\", \"command\": \"printf 'run"}
+
+data: {"type":"tool-input-delta","id":"toolu_011oy9fvwfHVh3aDtkRYxpPn","delta":"\\\\n' >> runs."}
+
+data: {"type":"tool-input-delta","id":"toolu_011oy9fvwfHVh3aDtkRYxpPn","delta":"txt"}
+
+data: {"type":"tool-input-delta","id":"toolu_011oy9fvwfHVh3aDtkRYxpPn","delta":"\"}"}
+
+data: {"type":"tool-input-end","id":"toolu_011oy9fvwfHVh3aDtkRYxpPn"}
+
+data: {"type":"tool-call","toolCallId":"toolu_011oy9fvwfHVh3aDtkRYxpPn","toolName":"shell","input":"{\"action\": \"run\", \"command\": \"printf 'run\\\\n' >> runs.txt\"}","providerMetadata":{"anthropic":{"caller":{"type":"direct"}}}}
+
+data: {"type":"finish","finishReason":{"unified":"tool-calls","raw":"tool_use"},"usage":{"inputTokens":{"total":2696,"noCache":2696,"cacheRead":0,"cacheWrite":0},"outputTokens":{"total":79},"raw":{"service_tier":"standard","input_tokens":2696,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":0},"output_tokens":79,"inference_geo":"not_available","speed":"standard"}},"providerMetadata":{"anthropic":{"usage":{"service_tier":"standard","input_tokens":2696,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":0},"output_tokens":79,"inference_geo":"not_available","speed":"standard"},"stopSequence":null,"serviceTier":"standard","iterations":null,"container":null,"contextManagement":null},"gateway":{"routing":{"originalModelId":"anthropic/claude-haiku-4.5","resolvedProvider":"anthropic","fallbacksAvailable":["bedrock","vertexAnthropic"],"canonicalSlug":"anthropic/claude-haiku-4.5","finalProvider":"anthropic","modelAttemptCount":1,"modelAttempts":[{"canonicalSlug":"anthropic/claude-haiku-4.5","success":true,"providerAttemptCount":1,"providerAttempts":[{"provider":"anthropic","credentialType":"system","success":true,"startTime":1794599050855,"endTime":1794599051744,"providerRequestId":"req_011Ch1VxxzawU3FfgfKxEuYu","statusCode":200,"providerResponseId":"msg_011Ch1VxyJgXpxoajKqvq44U"}]}],"totalProviderAttemptCount":1,"clientSessionId":"gateway-shell","clientSessionIdSource":"explicit"},"cost":"0.003091","marketCost":"0.003091","surchargeCost":"0.0001","gatewayCost":"0.003191","inferenceCost":"0.003091","inputInferenceCost":"0.002696","outputInferenceCost":"0.000395","providerAllowlistCost":"0.0001","generationId":"gen_01M7B70QJ8STK2SPA05DXAV5GH"}}}
+
+DONE
+

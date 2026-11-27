@@ -1,0 +1,26 @@
+data: {"type":"stream-start","warnings":[]}
+
+data: {"type":"response-metadata","id":"msg_011Ch1VxvjR2tqKA86NzD2Mj","modelId":"claude-haiku-4-5-20251001"}
+
+data: {"type":"custom","kind":"anthropic.message_start","providerMetadata":{"anthropic":{"id":"msg_011Ch1VxvjR2tqKA86NzD2Mj","model":"claude-haiku-4-5-20251001","usage":{"service_tier":"standard","input_tokens":2795,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":0},"output_tokens":1,"inference_geo":"not_available","speed":"standard"}}}}
+
+data: {"type":"text-start","id":"0"}
+
+data: {"type":"text-delta","id":"0","delta":"The"}
+
+data: {"type":"text-delta","id":"0","delta":" first"}
+
+data: {"type":"text-delta","id":"0","delta":" line of notes.txt is"}
+
+data: {"type":"text-delta","id":"0","delta":":"}
+
+data: {"type":"text-delta","id":"0","delta":" **"}
+
+data: {"type":"text-delta","id":"0","delta":"FIRST LINE**"}
+
+data: {"type":"text-end","id":"0"}
+
+data: {"type":"finish","finishReason":{"unified":"stop","raw":"end_turn"},"usage":{"inputTokens":{"total":2795,"noCache":2795,"cacheRead":0,"cacheWrite":0},"outputTokens":{"total":17},"raw":{"service_tier":"standard","input_tokens":2795,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":0},"output_tokens":17,"inference_geo":"not_available","speed":"standard"}},"providerMetadata":{"anthropic":{"usage":{"service_tier":"standard","input_tokens":2795,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":0},"output_tokens":17,"inference_geo":"not_available","speed":"standard"},"stopSequence":null,"serviceTier":"standard","iterations":null,"container":null,"contextManagement":null},"gateway":{"routing":{"originalModelId":"anthropic/claude-haiku-4.5","resolvedProvider":"anthropic","fallbacksAvailable":["bedrock","vertexAnthropic"],"canonicalSlug":"anthropic/claude-haiku-4.5","finalProvider":"anthropic","modelAttemptCount":1,"modelAttempts":[{"canonicalSlug":"anthropic/claude-haiku-4.5","success":true,"providerAttemptCount":1,"providerAttempts":[{"provider":"anthropic","credentialType":"system","success":true,"startTime":1794599050271,"endTime":1794599050774,"providerRequestId":"req_011Ch1VxvRYxTNdDAuSi48Cq","statusCode":200,"providerResponseId":"msg_011Ch1VxvjR2tqKA86NzD2Mj"}]}],"totalProviderAttemptCount":1,"clientSessionId":"gateway-read-file","clientSessionIdSource":"explicit"},"cost":"0.00288","marketCost":"0.00288","surchargeCost":"0.0001","gatewayCost":"0.00298","inferenceCost":"0.00288","inputInferenceCost":"0.002795","outputInferenceCost":"0.000085","providerAllowlistCost":"0.0001","generationId":"gen_01M7B70Q02YBXYCMWPDD0TRCZG"}}}
+
+DONE
+

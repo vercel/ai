@@ -13,6 +13,7 @@ export {
 } from './bridge-user-message-submitter';
 export { classifyDiskLog, type DiskLogRecoveryMode } from './classify-disk-log';
 export { getAiGatewayAuthFromEnv } from './ai-gateway-auth';
+export { getAiGatewayAuthFromEnv as getAiGatewayAuthFromEnvV2 } from './v2/ai-gateway-auth';
 export { isHarnessAuthenticationEnvironment } from './authentication-environment';
 export { getJwtExpiresAt, parseJwtPayload } from './native-subscription/jwt';
 export { readLinuxSecretServicePassword } from './native-subscription/linux-secret-service';

@@ -6,6 +6,13 @@ export default defineConfig({
     include: ['**/*.test.ts', '**/*.test.tsx'],
     // The sandbox bridge runtime is node-only (binds a real WebSocket server
     // via `ws` + `node:http`); its test cannot run under edge-runtime.
-    exclude: ['**/src/bridge/**', '**/node_modules/**'],
+    // The Next.js and Vercel config helpers read the project's files with
+    // `node:fs`, at build time.
+    exclude: [
+      '**/src/bridge/**',
+      '**/src/next/**',
+      '**/src/vercel/**',
+      '**/node_modules/**',
+    ],
   },
 });

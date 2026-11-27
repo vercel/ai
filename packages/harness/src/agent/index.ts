@@ -2,6 +2,7 @@ export { HarnessAgent } from './harness-agent';
 export { createHarnessSandboxTemplate } from './create-harness-sandbox-template';
 export type { HarnessAllTools } from './harness-agent-tool-types';
 export type {
+  HarnessAgentMcpServerConfig,
   HarnessAgentSandboxConfig,
   HarnessAgentSandboxCreator,
   HarnessAgentSettings,
@@ -31,6 +32,11 @@ export type {
   HarnessSandboxTemplate,
 } from './harness-agent-types';
 export { HarnessAgentSession } from './harness-agent-session';
+export { InMemoryWorld } from './v2/in-memory-world';
+export {
+  createDurableHarnessAgentQueueHandler,
+  DURABLE_HARNESS_AGENT_QUEUE_HANDLER_ROUTE,
+} from './v2/internal/durable-agent-queue';
 export { collectHarnessAgentToolApprovalContinuations } from './harness-agent-tool-approval-continuation';
 export { collectHarnessAgentToolResultContinuations } from './harness-agent-tool-result-continuation';
 export {

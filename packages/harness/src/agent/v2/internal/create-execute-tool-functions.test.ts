@@ -1,0 +1,1604 @@
+import type { JSONValue } from '@ai-sdk/provider';
+import {
+  dynamicTool,
+  tool,
+  type Experimental_SandboxSession as SandboxSession,
+  type ToolExecutionOptions,
+  type ToolSet,
+} from '@ai-sdk/provider-utils';
+import { afterEach, describe, expect, test, vi } from 'vitest';
+import { z } from 'zod/v4';
+import { HarnessCancellationError } from '../../../errors/harness-cancellation-error';
+import type { HarnessV2BuiltinToolSet } from '../../../v2/harness-v2-builtin-tool';
+import type {
+  HarnessV2ToolExecutionValue,
+  HarnessV2ExecuteMcpToolFunction,
+} from '../../../v2/harness-v2-drive-context';
+import { DefaultHarnessAgentSession } from '../harness-agent-session';
+import { InMemoryWorld } from '../in-memory-world';
+import { createEffectFunction } from './create-effect-function';
+import {
+  createExecuteToolFunctions,
+  type HarnessAgentExecuteBuiltinToolFunction,
+  type HarnessAgentExecuteHostToolFunction,
+} from './create-execute-tool-functions';
+import type { ToolApprovalPolicy } from './tool-approval';
+import {
+  createLog,
+  decodeLogEvent,
+  type HarnessAgentLog,
+  type HarnessAgentLogEvent,
+} from './create-log';
+import {
+  createStreamWriter,
+  decodeStreamRecords,
+  type HarnessAgentStreamPartRecord,
+} from './create-stream-writer';
+
+const encryption = {
+  encrypt: async ({ data }: { data: Uint8Array }) => data,
+  decrypt: async ({ data }: { data: Uint8Array }) => data,
+};
+
+const abortControllers = new Set<AbortController>();
+
+afterEach(() => {
+  for (const controller of abortControllers) controller.abort();
+  abortControllers.clear();
+});
+
+const runId = 'tool-session';
+const session = new DefaultHarnessAgentSession({
+  sessionId: 'session-1',
+  sandboxId: 'sandbox-1',
+  runId,
+});
+
+const sandboxSession = { description: 'sandbox' } as SandboxSession;
+
+const builtinTools: HarnessV2BuiltinToolSet = {
+  bash: { inputSchema: z.object({ command: z.string() }) },
+  read: { inputSchema: z.object({ path: z.string() }), replay: 'safe' },
+};
+
+/**
+ * Creates `executeHostTool()` and `executeBuiltinTool()` for a new drive on
+ * the given session log, with the given app tools and `builtinTools` as the
+ * harness's built-in tools.
+ */
+function createDrive(options: {
+  world: InMemoryWorld;
+  log: HarnessAgentLog;
+  tools?: ToolSet;
+  builtinTools?: HarnessV2BuiltinToolSet;
+  yieldAbortSignal?: AbortSignal;
+  toolApproval?: ToolApprovalPolicy;
+}): {
+  executeHostTool: HarnessAgentExecuteHostToolFunction;
+  executeBuiltinTool: HarnessAgentExecuteBuiltinToolFunction;
+  executeMcpTool: HarnessV2ExecuteMcpToolFunction;
+  abortController: AbortController;
+  getSandboxSession: ReturnType<typeof vi.fn>;
+  writer: ReturnType<typeof createStreamWriter>;
+} {
+  const abortController = new AbortController();
+  abortControllers.add(abortController);
+  const writer = createStreamWriter({
+    encryption,
+    world: options.world,
+    session,
+    abortSignal: abortController.signal,
+  });
+  const effect = createEffectFunction({
+    log: options.log,
+    stopAbortSignal: abortController.signal,
+    yieldAbortSignal: options.yieldAbortSignal ?? new AbortController().signal,
+    writer,
+  });
+  const getSandboxSession = vi.fn(async () => sandboxSession);
+  const { executeHostTool, executeBuiltinTool, executeMcpTool } =
+    createExecuteToolFunctions({
+      log: options.log,
+      tools: options.tools ?? {},
+      builtinTools: options.builtinTools ?? builtinTools,
+      effect,
+      writer,
+      toolApproval: options.toolApproval,
+      stopAbortSignal: abortController.signal,
+      getSandboxSession,
+    });
+  return {
+    executeHostTool,
+    executeBuiltinTool,
+    executeMcpTool,
+    abortController,
+    getSandboxSession,
+    writer,
+  };
+}
+
+async function setup(options?: {
+  tools?: ToolSet;
+  builtinTools?: HarnessV2BuiltinToolSet;
+  yieldAbortSignal?: AbortSignal;
+  toolApproval?: ToolApprovalPolicy;
+}) {
+  const world = new InMemoryWorld();
+  await world.events.create(runId, {
+    eventType: 'run_created',
+    eventData: { deploymentId: 'test', workflowName: 'harness', input: [] },
+  });
+  const log = createLog({ encryption, world, runId });
+  return { world, log, ...createDrive({ world, log, ...options }) };
+}
+
+/**
+ * Creates the tool functions for a later drive of the session, on a new log
+ * refreshed like a drive's log at its start.
+ */
+async function createNextDrive(options: {
+  world: InMemoryWorld;
+  tools?: ToolSet;
+  toolApproval?: ToolApprovalPolicy;
+}) {
+  const log = createLog({ encryption, world: options.world, runId });
+  await log.refresh();
+  return {
+    log,
+    ...createDrive({
+      world: options.world,
+      log,
+      tools: options.tools,
+      toolApproval: options.toolApproval,
+    }),
+  };
+}
+
+/**
+ * Reads the agent log events stored in the World, in log order, keeping the
+ * first event of each ID.
+ */
+async function readLogEvents(options: {
+  world: InMemoryWorld;
+  types?: HarnessAgentLogEvent['type'][];
+}): Promise<HarnessAgentLogEvent[]> {
+  const { data } = await options.world.events.list({
+    runId,
+    pagination: { sortOrder: 'asc', limit: 10_000 },
+    resolveData: 'all',
+  });
+  const events: HarnessAgentLogEvent[] = [];
+  const ids = new Set<string>();
+  for (const worldEvent of data) {
+    const event = await decodeLogEvent({ encryption, event: worldEvent });
+    if (event == null || ids.has(event.id)) continue;
+    ids.add(event.id);
+    if (options.types == null || options.types.includes(event.type)) {
+      events.push(event);
+    }
+  }
+  return events;
+}
+
+/**
+ * Reads every record written to the session's stream so far.
+ */
+async function readStream(options: {
+  world: InMemoryWorld;
+}): Promise<HarnessAgentStreamPartRecord[]> {
+  const { data } = await options.world.streams.getChunks(
+    runId,
+    session.getStreamName(),
+    { limit: 1000 },
+  );
+  return decodeStreamRecords({
+    encryption,
+    text: data.map(chunk => new TextDecoder().decode(chunk.data)).join(''),
+  });
+}
+
+/**
+ * Returns the stream parts written so far, without their record tags.
+ */
+async function readParts(options: { world: InMemoryWorld }) {
+  return (await readStream(options)).flatMap(record =>
+    Object.hasOwn(record, 'part') ? [record.part] : [],
+  );
+}
+
+/**
+ * Returns the data of every committed event of the given effect event type.
+ */
+async function readEffectEvents(options: {
+  world: InMemoryWorld;
+  type: 'effect-start' | 'effect-progress' | 'effect-end';
+}) {
+  return (
+    await readLogEvents({ world: options.world, types: [options.type] })
+  ).map(event => event.data);
+}
+
+/**
+ * Execute callback that runs until its attempt is aborted.
+ */
+function executeUntilAborted(options: {
+  abortSignal: AbortSignal;
+}): Promise<HarnessV2ToolExecutionValue> {
+  return new Promise((_resolve, reject) => {
+    options.abortSignal.addEventListener(
+      'abort',
+      () => reject(options.abortSignal.reason),
+      { once: true },
+    );
+  });
+}
+
+const call = {
+  toolCallId: 'call-1',
+  toolName: 'weather',
+  input: { city: 'Paris' },
+};
+
+const bashCall = {
+  toolCallId: 'call-1',
+  toolName: 'bash',
+  input: { command: 'ls' },
+};
+
+const readCall = {
+  toolCallId: 'call-1',
+  toolName: 'read',
+  input: { path: 'file.txt' },
+};
+
+describe('createExecuteToolFunctions', () => {
+  describe('executeMcpTool', () => {
+    test('records dynamic MCP results without resolving the sandbox and replays them', async () => {
+      const { executeMcpTool, world, log, getSandboxSession } = await setup();
+      const execute = vi.fn(async () => ({ raw: { text: 'remote' } }));
+      const call = {
+        toolCallId: 'mcp-1',
+        toolName: 'mcp__server__tool',
+        input: { query: 'hello' },
+        execute,
+      };
+      expect(await executeMcpTool(call)).toEqual({
+        type: 'result',
+        value: { raw: { text: 'remote' } },
+      });
+      expect(log.getEffect({ key: 'tool:mcp-1' })?.start.data.replay).toBe(
+        'never',
+      );
+      expect(
+        (await readLogEvents({ world, types: ['tool-execution-start'] }))
+          .length,
+      ).toBe(1);
+      const next = await createNextDrive({ world });
+      expect(await next.executeMcpTool(call)).toEqual({
+        type: 'result',
+        value: { raw: { text: 'remote' } },
+      });
+      expect(execute).toHaveBeenCalledTimes(1);
+      expect(getSandboxSession).not.toHaveBeenCalled();
+      expect(await readParts({ world })).toEqual([
+        {
+          type: 'tool-result',
+          toolCallId: 'mcp-1',
+          toolName: 'mcp__server__tool',
+          input: { query: 'hello' },
+          output: { text: 'remote' },
+          dynamic: true,
+        },
+      ]);
+    });
+
+    test('preserves returned MCP errors and complete partial values', async () => {
+      const { executeMcpTool, world } = await setup();
+      const output = await executeMcpTool({
+        toolCallId: 'mcp-1',
+        toolName: 'remote',
+        input: {},
+        execute:
+          async function* (): AsyncGenerator<HarnessV2ToolExecutionValue> {
+            yield { raw: 'working' };
+            yield { raw: { content: 'failed' }, isError: true };
+          },
+      });
+      expect(output).toEqual({
+        type: 'result',
+        value: { raw: { content: 'failed' }, isError: true },
+      });
+      expect(
+        (await readParts({ world })).map(part => [
+          part.type,
+          'preliminary' in part ? part.preliminary : undefined,
+        ]),
+      ).toEqual([
+        ['tool-result', true],
+        ['tool-error', undefined],
+        ['tool-error', undefined],
+      ]);
+    });
+
+    test('rejects non-JSON input without recording it', async () => {
+      const { executeMcpTool, log } = await setup();
+      await expect(
+        executeMcpTool({
+          toolCallId: 'mcp-1',
+          toolName: 'remote',
+          input: new Date() as never,
+          execute: async () => ({ raw: null }),
+        }),
+      ).rejects.toThrow('executeMcpTool: `input` must be a JSON value');
+      expect(log.getEffects()).toEqual([]);
+    });
+
+    test('records thrown MCP failures as dynamic errors', async () => {
+      const { executeMcpTool, world } = await setup();
+      const output = await executeMcpTool({
+        toolCallId: 'mcp-1',
+        toolName: 'remote',
+        input: {},
+        execute: async () => {
+          throw new Error('remote failure');
+        },
+      });
+      expect(output.type).toBe('error');
+      expect(await readParts({ world })).toEqual([
+        {
+          type: 'tool-error',
+          toolCallId: 'mcp-1',
+          toolName: 'remote',
+          input: {},
+          error: 'Error: remote failure',
+          dynamic: true,
+        },
+      ]);
+    });
+
+    test('does not invoke the remote callback while yielding', async () => {
+      const controller = new AbortController();
+      controller.abort();
+      const { executeMcpTool } = await setup({
+        yieldAbortSignal: controller.signal,
+      });
+      const execute = vi.fn(async () => ({ raw: null }));
+      expect(
+        (
+          await executeMcpTool({
+            toolCallId: 'mcp-1',
+            toolName: 'remote',
+            input: {},
+            execute,
+          })
+        ).type,
+      ).toBe('interrupted');
+      expect(execute).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('executeHostTool', () => {
+    test('executes the tool as a recorded effect and emits its result', async () => {
+      let executionOptions: ToolExecutionOptions<unknown> | undefined;
+      const { world, log, executeHostTool } = await setup({
+        tools: {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+            execute: async ({ city }, options) => {
+              executionOptions = options;
+              return { city, temperature: 21 };
+            },
+          }),
+        },
+      });
+
+      expect(await executeHostTool(call)).toStrictEqual({
+        type: 'result',
+        value: { raw: { city: 'Paris', temperature: 21 } },
+      });
+
+      expect(executionOptions).toEqual({
+        toolCallId: 'call-1',
+        messages: [],
+        abortSignal: expect.any(AbortSignal),
+        context: undefined,
+        experimental_sandbox: sandboxSession,
+      });
+      const starts = await readLogEvents({ world, types: ['effect-start'] });
+      expect(starts).toEqual([
+        expect.objectContaining({
+          data: expect.objectContaining({
+            key: 'tool:call-1',
+            name: 'tool.weather',
+            replay: 'never',
+            input: { city: 'Paris' },
+          }),
+        }),
+      ]);
+      expect(await readStream({ world })).toEqual([
+        {
+          part: {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            input: { city: 'Paris' },
+            output: { city: 'Paris', temperature: 21 },
+          },
+          startId: starts[0].id,
+        },
+      ]);
+    });
+
+    test('uses the tool replay policy', async () => {
+      const { log, executeHostTool, world } = await setup({
+        tools: {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+            replay: 'safe',
+            execute: async () => 'sunny',
+          }),
+        },
+      });
+      await executeHostTool(call);
+      expect(
+        (await readLogEvents({ world, types: ['effect-start'] }))[0],
+      ).toMatchObject({ data: { replay: 'safe' } });
+    });
+
+    test('converts tool outputs to JSON', async () => {
+      const { world, executeHostTool } = await setup({
+        tools: {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+            execute: async () => ({
+              observedAt: new Date('2026-01-02T03:04:05.000Z'),
+              missing: undefined,
+              custom: { toJSON: () => 'custom' },
+            }),
+          }),
+          nothing: tool({
+            inputSchema: z.object({}),
+            execute: async () => undefined,
+          }),
+        },
+      });
+
+      expect(await executeHostTool(call)).toStrictEqual({
+        type: 'result',
+        value: {
+          raw: {
+            observedAt: '2026-01-02T03:04:05.000Z',
+            custom: 'custom',
+          },
+        },
+      });
+      expect(
+        await executeHostTool({
+          toolCallId: 'call-2',
+          toolName: 'nothing',
+          input: {},
+        }),
+      ).toStrictEqual({ type: 'result', value: { raw: null } });
+      expect(await readParts({ world })).toEqual([
+        expect.objectContaining({
+          output: expect.objectContaining({
+            observedAt: '2026-01-02T03:04:05.000Z',
+            custom: 'custom',
+          }),
+        }),
+        expect.objectContaining({ output: null }),
+      ]);
+    });
+
+    test('returns the model output only when the tool defines toModelOutput', async () => {
+      const toModelOutput = vi.fn(
+        ({ output }: { output: { observedAt: Date } }) => ({
+          type: 'text' as const,
+          value: `Observed at ${output.observedAt.getUTCFullYear()}`,
+        }),
+      );
+      const { executeHostTool } = await setup({
+        tools: {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+            execute: async () => ({
+              observedAt: new Date('2026-01-02T03:04:05.000Z'),
+            }),
+            toModelOutput,
+          }),
+        },
+      });
+
+      expect(await executeHostTool(call)).toStrictEqual({
+        type: 'result',
+        value: {
+          raw: { observedAt: '2026-01-02T03:04:05.000Z' },
+          modelOutput: { type: 'text', value: 'Observed at 2026' },
+        },
+      });
+      expect(toModelOutput).toHaveBeenCalledWith({
+        toolCallId: 'call-1',
+        input: { city: 'Paris' },
+        output: { observedAt: new Date('2026-01-02T03:04:05.000Z') },
+      });
+    });
+
+    test('records an unserializable model output as an error', async () => {
+      const { executeHostTool } = await setup({
+        tools: {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+            execute: async () => 'sunny',
+            toModelOutput: () =>
+              ({
+                type: 'json',
+                value: { callback: () => 'not serializable' },
+              }) as never,
+          }),
+        },
+      });
+
+      expect(await executeHostTool(call)).toEqual({
+        type: 'error',
+        error: {
+          message:
+            "Error: The model output of tool 'weather' is not serializable.",
+        },
+      });
+    });
+
+    test('records preliminary values of generator tools as partial output', async () => {
+      const { world, log, executeHostTool } = await setup({
+        tools: {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+            async *execute() {
+              yield { status: 'loading' };
+              yield { status: 'done', temperature: 21 };
+            },
+          }),
+        },
+      });
+
+      expect(await executeHostTool(call)).toStrictEqual({
+        type: 'result',
+        value: { raw: { status: 'done', temperature: 21 } },
+      });
+      expect(
+        (await readLogEvents({ world, types: ['effect-progress'] })).map(
+          event => event.type === 'effect-progress' && event.data.partial,
+        ),
+      ).toEqual([
+        { raw: { status: 'loading' } },
+        { raw: { status: 'done', temperature: 21 } },
+        { raw: { status: 'done', temperature: 21 } },
+      ]);
+      expect(await readParts({ world })).toEqual([
+        expect.objectContaining({
+          output: { status: 'loading' },
+          preliminary: true,
+        }),
+        expect.objectContaining({
+          output: { status: 'done', temperature: 21 },
+          preliminary: true,
+        }),
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'weather',
+          input: { city: 'Paris' },
+          output: { status: 'done', temperature: 21 },
+        },
+      ]);
+    });
+
+    test.each(['never', 'safe'] as const)(
+      'resolves an interruption with the last partial value: %s',
+      async replay => {
+        const execute = vi.fn();
+        let abortController: AbortController | undefined;
+        const tools: ToolSet = {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+            replay,
+            async *execute() {
+              execute();
+              yield { status: 'loading' };
+              abortController?.abort();
+              yield { status: 'done' };
+            },
+          }),
+        };
+        const drive = await setup({ tools });
+        abortController = drive.abortController;
+
+        const output = await drive.executeHostTool(call);
+        expect(output).toStrictEqual({
+          type: 'interrupted',
+          retryable: replay === 'safe',
+          partial: { raw: { status: 'loading' } },
+        });
+        expect(
+          (await readParts({ world: drive.world })).some(
+            part => part.type === 'tool-error',
+          ),
+        ).toBe(false);
+
+        abortController = undefined;
+        const next = createDrive({ world: drive.world, log: drive.log, tools });
+        expect(await next.executeHostTool(call)).toStrictEqual(
+          replay === 'safe'
+            ? { type: 'result', value: { raw: { status: 'done' } } }
+            : output,
+        );
+        expect(execute).toHaveBeenCalledTimes(replay === 'safe' ? 2 : 1);
+      },
+    );
+
+    test('records a thrown error and emits an error result', async () => {
+      const { world, executeHostTool } = await setup({
+        tools: {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+            execute: async (): Promise<string> => {
+              throw new Error('Weather service unavailable.');
+            },
+          }),
+        },
+      });
+
+      expect(await executeHostTool(call)).toEqual({
+        type: 'error',
+        error: { message: 'Error: Weather service unavailable.' },
+      });
+      expect(await readParts({ world })).toEqual([
+        {
+          type: 'tool-error',
+          toolCallId: 'call-1',
+          toolName: 'weather',
+          input: { city: 'Paris' },
+          error: 'Error: Weather service unavailable.',
+        },
+      ]);
+    });
+
+    test('records calls to unknown and provider-executed tools as errors', async () => {
+      const { world, log, executeHostTool, getSandboxSession } = await setup({
+        tools: {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+            execute: async () => 'sunny',
+          }),
+          search: {
+            type: 'provider',
+            id: 'test.search',
+            isProviderExecuted: true,
+            args: {},
+            inputSchema: z.object({}),
+            outputSchema: z.string(),
+          },
+        },
+      });
+
+      const message =
+        "AI_NoSuchToolError: Model tried to call unavailable tool 'Bash'. Available tools: weather.";
+      expect(
+        await executeHostTool({
+          toolCallId: 'call-1',
+          toolName: 'Bash',
+          input: {},
+        }),
+      ).toEqual({ type: 'error', error: { message } });
+      expect(
+        await executeHostTool({
+          toolCallId: 'call-2',
+          toolName: 'search',
+          input: {},
+        }),
+      ).toEqual({
+        type: 'error',
+        error: {
+          message:
+            "AI_NoSuchToolError: Model tried to call unavailable tool 'search'. Available tools: weather.",
+        },
+      });
+
+      expect(getSandboxSession).not.toHaveBeenCalled();
+      expect(
+        await readLogEvents({ world, types: ['effect-end'] }),
+      ).toHaveLength(2);
+      expect((await readParts({ world }))[0]).toEqual({
+        type: 'tool-error',
+        toolCallId: 'call-1',
+        toolName: 'Bash',
+        input: {},
+        error: message,
+        dynamic: true,
+      });
+    });
+
+    test('records input that does not match the input schema as an error', async () => {
+      const execute = vi.fn(async () => 'sunny');
+      const { log, executeHostTool, world } = await setup({
+        tools: {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+            execute,
+          }),
+        },
+      });
+
+      const output = await executeHostTool({ ...call, input: { city: 42 } });
+      expect(output).toMatchObject({ type: 'error' });
+      expect(output.type === 'error' && output.error.message).toContain(
+        'Invalid input for tool weather',
+      );
+      expect(execute).not.toHaveBeenCalled();
+      expect(
+        await readLogEvents({ world, types: ['effect-start'] }),
+      ).toHaveLength(1);
+      expect(
+        await readLogEvents({ world, types: ['tool-execution-start'] }),
+      ).toEqual([]);
+    });
+
+    test('commits tool-execution-start after resolving the sandbox and before executing the tool', async () => {
+      const committedBeforeExecute: unknown[] = [];
+      let world!: InMemoryWorld;
+      const setupResult = await setup({
+        tools: {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+            execute: async () => {
+              committedBeforeExecute.push(
+                ...(await readLogEvents({
+                  world,
+                  types: ['tool-execution-start'],
+                })),
+              );
+              return 'sunny';
+            },
+          }),
+        },
+      });
+      world = setupResult.world;
+      const { getSandboxSession, executeHostTool } = setupResult;
+
+      await executeHostTool(call);
+
+      const [start] = await readLogEvents({ world, types: ['effect-start'] });
+      expect(getSandboxSession).toHaveBeenCalledTimes(1);
+      expect(committedBeforeExecute).toEqual([
+        {
+          type: 'tool-execution-start',
+          id: `tool-execution-start:${start.id}`,
+          data: { startId: start.id },
+        },
+      ]);
+    });
+
+    test('hides tool context validation details', async () => {
+      const { executeHostTool } = await setup({
+        tools: {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+            contextSchema: z.object({ apiKey: z.string() }),
+            execute: async () => 'sunny',
+          }),
+        },
+      });
+
+      expect(await executeHostTool(call)).toEqual({
+        type: 'error',
+        error: { message: 'Error: Tool context validation failed.' },
+      });
+    });
+
+    test('marks results of dynamic tools as dynamic', async () => {
+      const { world, executeHostTool } = await setup({
+        tools: {
+          weather: dynamicTool({
+            inputSchema: z.object({ city: z.string() }),
+            execute: async () => 'sunny',
+          }),
+        },
+      });
+
+      await executeHostTool(call);
+      expect(await readParts({ world })).toEqual([
+        expect.objectContaining({ output: 'sunny', dynamic: true }),
+      ]);
+    });
+
+    test('refuses a tool that requires approval without running it', async () => {
+      const execute = vi.fn(async () => 'sunny');
+      const needsApproval = vi.fn(() => true);
+      const { world, executeHostTool, getSandboxSession } = await setup({
+        tools: {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+            needsApproval,
+            execute,
+          }),
+        },
+      });
+
+      expect(await executeHostTool(call)).toMatchObject({
+        type: 'error',
+        error: {
+          message: expect.stringContaining(
+            "AI_HarnessCapabilityUnsupportedError: HarnessAgent: `needsApproval` is not supported with HarnessV2; remove it from tool 'weather' and use the `toolApproval` setting instead.",
+          ),
+        },
+      });
+      expect(execute).not.toHaveBeenCalled();
+      expect(needsApproval).not.toHaveBeenCalled();
+      expect(getSandboxSession).not.toHaveBeenCalled();
+      expect(await readParts({ world })).toEqual([
+        {
+          type: 'tool-error',
+          toolCallId: 'call-1',
+          toolName: 'weather',
+          input: { city: 'Paris' },
+          error: expect.stringContaining("remove it from tool 'weather'"),
+        },
+      ]);
+      expect(
+        await readLogEvents({ world, types: ['tool-execution-start'] }),
+      ).toEqual([]);
+    });
+
+    test('suspends client tools without recording them', async () => {
+      const { world, log, executeHostTool, getSandboxSession } = await setup({
+        tools: {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+            outputSchema: z.string(),
+          }),
+        },
+      });
+
+      expect(await executeHostTool(call)).toEqual({
+        type: 'suspended',
+        reason: 'client-tool',
+      });
+      expect(await readLogEvents({ world })).toEqual([]);
+      expect(await readStream({ world })).toEqual([]);
+      expect(getSandboxSession).not.toHaveBeenCalled();
+    });
+
+    test('rejects input that is not a JSON value without recording it', async () => {
+      const { log, executeHostTool, world } = await setup({
+        tools: {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+            execute: async () => 'sunny',
+          }),
+        },
+      });
+
+      await expect(
+        executeHostTool({
+          ...call,
+          // oxlint-disable-next-line ai-sdk/no-as-unknown-as -- intentionally invalid value for a runtime validation test.
+          input: { city: new Date() } as unknown as JSONValue,
+        }),
+      ).rejects.toThrow(
+        'HarnessAgent.executeHostTool: `input` must be a JSON value.',
+      );
+      expect(await readLogEvents({ world })).toEqual([]);
+    });
+
+    test('replays a recorded call without executing or emitting again', async () => {
+      const execute = vi.fn(async () => 'sunny');
+      const tools: ToolSet = {
+        weather: tool({
+          inputSchema: z.object({ city: z.string() }),
+          execute,
+          toModelOutput: ({ output }) => ({
+            type: 'text',
+            value: `${output}!`,
+          }),
+        }),
+      };
+      const { world, log, executeHostTool } = await setup({ tools });
+      const output = await executeHostTool(call);
+      const records = await readStream({ world });
+
+      const next = createDrive({ world, log, tools });
+      expect(await next.executeHostTool(call)).toStrictEqual(output);
+      expect(output).toStrictEqual({
+        type: 'result',
+        value: {
+          raw: 'sunny',
+          modelOutput: { type: 'text', value: 'sunny!' },
+        },
+      });
+      expect(execute).toHaveBeenCalledTimes(1);
+      expect(next.getSandboxSession).not.toHaveBeenCalled();
+      expect(await readStream({ world })).toEqual(records);
+    });
+  });
+
+  describe('executeHostTool approvals', () => {
+    function weatherTools(execute: () => Promise<string>) {
+      return {
+        weather: tool({
+          inputSchema: z.object({ city: z.string() }),
+          execute,
+        }),
+      };
+    }
+
+    async function respond(options: {
+      log: HarnessAgentLog;
+      approved: boolean;
+      reason?: string;
+    }): Promise<string> {
+      const approval = options.log.getToolApproval({
+        toolCallId: call.toolCallId,
+      })!;
+      const id = `response-${options.approved}`;
+      const data: {
+        type: 'tool-approval-response';
+        approvalId: string;
+        approved: boolean;
+        reason?: string;
+      } = {
+        type: 'tool-approval-response',
+        approvalId: approval.request.data.approvalId,
+        approved: options.approved,
+      };
+      if (options.reason != null) data.reason = options.reason;
+      await options.log.append({
+        type: 'submission',
+        id,
+        data,
+      });
+      return id;
+    }
+
+    test('suspends a call that requires user approval and requests approval once', async () => {
+      const execute = vi.fn(async () => 'sunny');
+      const { world, log, executeHostTool } = await setup({
+        tools: weatherTools(execute),
+        toolApproval: {
+          weather: { type: 'user-approval', reason: 'Check the city.' },
+        },
+      });
+
+      expect(await executeHostTool(call)).toEqual({
+        type: 'suspended',
+        reason: 'approval',
+      });
+      expect(await executeHostTool(call)).toEqual({
+        type: 'suspended',
+        reason: 'approval',
+      });
+      expect(execute).not.toHaveBeenCalled();
+      const approvalId = log.getToolApproval({ toolCallId: 'call-1' })!.request
+        .data.approvalId;
+      expect(
+        await readLogEvents({ world, types: ['tool-approval-request'] }),
+      ).toEqual([
+        {
+          type: 'tool-approval-request',
+          id: 'tool-approval-request:call-1',
+          data: {
+            approvalId,
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            input: { city: 'Paris' },
+            reason: 'Check the city.',
+          },
+        },
+      ]);
+      expect(await readStream({ world })).toEqual([
+        {
+          part: {
+            type: 'tool-approval-request',
+            approvalId,
+            toolCall: {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'weather',
+              input: { city: 'Paris' },
+            },
+            reason: 'Check the city.',
+          },
+          key: 'tool-approval-request:call-1',
+        },
+      ]);
+      expect(await readEffectEvents({ world, type: 'effect-start' })).toEqual(
+        [],
+      );
+    });
+
+    test('runs an approved call in a later drive and delivers the response submission', async () => {
+      const execute = vi.fn(async () => 'sunny');
+      const tools = weatherTools(execute);
+      const toolApproval: ToolApprovalPolicy = {
+        weather: { type: 'user-approval' },
+      };
+      const { world, log, executeHostTool } = await setup({
+        tools,
+        toolApproval,
+      });
+      await executeHostTool(call);
+      const submissionId = await respond({ log, approved: true });
+
+      const next = await createNextDrive({ world, tools, toolApproval });
+      expect(await next.executeHostTool(call)).toEqual({
+        type: 'result',
+        value: { raw: 'sunny' },
+      });
+      expect(execute).toHaveBeenCalledTimes(1);
+      expect(
+        (await readLogEvents({ world, types: ['tool-approval-response'] })).map(
+          event => event.data,
+        ),
+      ).toEqual([
+        {
+          approvalId: expect.any(String),
+          toolCallId: 'call-1',
+          approved: true,
+          submissionId,
+        },
+      ]);
+      expect((await readParts({ world })).map(part => part.type)).toEqual([
+        'tool-approval-request',
+        'tool-result',
+      ]);
+    });
+
+    test('denies a call whose user denied it, once, without running it', async () => {
+      const execute = vi.fn(async () => 'sunny');
+      const tools = weatherTools(execute);
+      const toolApproval: ToolApprovalPolicy = {
+        weather: { type: 'user-approval' },
+      };
+      const { world, log, executeHostTool } = await setup({
+        tools,
+        toolApproval,
+      });
+      await executeHostTool(call);
+      await respond({ log, approved: false, reason: 'Not now' });
+
+      const next = await createNextDrive({ world, tools, toolApproval });
+      const denied = {
+        type: 'denied',
+        reason: 'The tool call was denied: Not now',
+      };
+      expect(await next.executeHostTool(call)).toEqual(denied);
+      expect(await next.executeHostTool(call)).toEqual(denied);
+      expect(execute).not.toHaveBeenCalled();
+      expect(await readEffectEvents({ world, type: 'effect-start' })).toEqual(
+        [],
+      );
+      expect(
+        (await readStream({ world })).filter(
+          record => record.part.type === 'tool-output-denied',
+        ),
+      ).toEqual([
+        {
+          part: {
+            type: 'tool-output-denied',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+          },
+          key: 'tool-output-denied:call-1',
+        },
+      ]);
+    });
+
+    test('approves a call automatically and runs it', async () => {
+      const execute = vi.fn(async () => 'sunny');
+      const { world, executeHostTool } = await setup({
+        tools: weatherTools(execute),
+        toolApproval: { weather: { type: 'approved', reason: 'Trusted' } },
+      });
+
+      expect(await executeHostTool(call)).toEqual({
+        type: 'result',
+        value: { raw: 'sunny' },
+      });
+      const parts = await readParts({ world });
+      expect(parts.map(part => part.type)).toEqual([
+        'tool-approval-request',
+        'tool-approval-response',
+        'tool-result',
+      ]);
+      expect(parts[0]).toMatchObject({ isAutomatic: true });
+      expect(parts[1]).toEqual({
+        type: 'tool-approval-response',
+        approvalId: expect.any(String),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: call.toolCallId,
+          toolName: call.toolName,
+          input: call.input,
+        },
+        approved: true,
+        reason: 'Trusted',
+      });
+    });
+
+    test('denies a call automatically without running it', async () => {
+      const execute = vi.fn(async () => 'sunny');
+      const { world, executeHostTool, writer } = await setup({
+        tools: weatherTools(execute),
+        toolApproval: { weather: { type: 'denied' } },
+      });
+
+      expect(await executeHostTool(call)).toEqual({
+        type: 'denied',
+        reason: 'The tool call was denied.',
+      });
+      await writer.flush();
+      expect(execute).not.toHaveBeenCalled();
+      expect((await readParts({ world })).map(part => part.type)).toEqual([
+        'tool-approval-request',
+        'tool-approval-response',
+        'tool-output-denied',
+      ]);
+    });
+
+    test('records an invalid call as an error without asking for approval', async () => {
+      const execute = vi.fn(async () => 'sunny');
+      const { world, executeHostTool } = await setup({
+        tools: weatherTools(execute),
+        toolApproval: { weather: { type: 'user-approval' } },
+      });
+
+      expect(
+        await executeHostTool({ ...call, input: { city: 42 } }),
+      ).toMatchObject({ type: 'error' });
+      expect(
+        await readLogEvents({ world, types: ['tool-approval-request'] }),
+      ).toEqual([]);
+    });
+
+    test('resolves a retryable interruption without recording once the drive stopped', async () => {
+      const execute = vi.fn(async () => 'sunny');
+      const { world, executeHostTool, abortController } = await setup({
+        tools: weatherTools(execute),
+        toolApproval: { weather: { type: 'user-approval' } },
+      });
+      abortController.abort();
+
+      expect(await executeHostTool(call)).toEqual({
+        type: 'interrupted',
+        retryable: true,
+      });
+      expect(
+        await readLogEvents({ world, types: ['tool-approval-request'] }),
+      ).toEqual([]);
+    });
+  });
+
+  describe('executeBuiltinTool', () => {
+    test('records the returned value as one partial and the final value, and emits the final tool result', async () => {
+      const { world, log, executeBuiltinTool } = await setup();
+
+      const output = await executeBuiltinTool({
+        ...bashCall,
+        execute: async () => ({
+          raw: { stdout: 'file.txt' },
+          modelOutput: { type: 'text', value: 'file.txt' },
+        }),
+      });
+
+      const value = {
+        raw: { stdout: 'file.txt' },
+        modelOutput: { type: 'text', value: 'file.txt' },
+      };
+      expect(output).toEqual({ type: 'result', value });
+      expect(await readEffectEvents({ world, type: 'effect-start' })).toEqual([
+        {
+          key: 'tool:call-1',
+          attempt: 1,
+          name: 'tool.bash',
+          replay: 'never',
+          input: { command: 'ls' },
+          deliveredSubmissionIds: [],
+        },
+      ]);
+      expect(
+        await readEffectEvents({ world, type: 'effect-progress' }),
+      ).toEqual([{ startId: expect.any(String), partial: value }]);
+      expect(await readEffectEvents({ world, type: 'effect-end' })).toEqual([
+        { startId: expect.any(String), output: { type: 'result', value } },
+      ]);
+      expect(await readParts({ world })).toEqual([
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'bash',
+          input: { command: 'ls' },
+          output: { stdout: 'file.txt' },
+          providerExecuted: true,
+        },
+      ]);
+    });
+
+    test('commits tool-execution-start before running execute', async () => {
+      const { log, executeBuiltinTool, world } = await setup();
+      let committedBeforeExecute: unknown[] = [];
+
+      await executeBuiltinTool({
+        ...bashCall,
+        execute: async () => {
+          committedBeforeExecute = await readLogEvents({
+            world,
+            types: ['tool-execution-start'],
+          });
+          return { raw: 'file.txt' };
+        },
+      });
+
+      const [start] = await readLogEvents({ world, types: ['effect-start'] });
+      expect(committedBeforeExecute).toEqual([
+        {
+          type: 'tool-execution-start',
+          id: `tool-execution-start:${start.id}`,
+          data: { startId: start.id },
+        },
+      ]);
+    });
+
+    test('runs a never-replay attempt again when its interruption was recorded as retryable', async () => {
+      const { log, executeBuiltinTool, world } = await setup();
+      await log.append({
+        type: 'effect-start',
+        id: 'abandoned',
+        data: {
+          key: 'tool:call-1',
+          attempt: 1,
+          name: 'tool.bash',
+          replay: 'never',
+          input: { command: 'ls' },
+          deliveredSubmissionIds: [],
+        },
+      });
+      await log.append({
+        type: 'effect-end',
+        id: 'recovered',
+        data: {
+          startId: 'abandoned',
+          output: { type: 'interrupted', retryable: true },
+        },
+      });
+
+      expect(
+        await executeBuiltinTool({
+          ...bashCall,
+          execute: async () => ({ raw: 'file.txt' }),
+        }),
+      ).toEqual({ type: 'result', value: { raw: 'file.txt' } });
+      expect(await readEffectEvents({ world, type: 'effect-start' })).toEqual([
+        expect.objectContaining({ attempt: 1 }),
+        expect.objectContaining({ attempt: 2 }),
+      ]);
+    });
+
+    test('records yielded values as partials and the last one as the final value', async () => {
+      const { world, log, executeBuiltinTool } = await setup();
+
+      const output = await executeBuiltinTool({
+        ...bashCall,
+        async *execute() {
+          yield { raw: 'a' };
+          yield { raw: 'ab' };
+        },
+      });
+
+      expect(output).toEqual({ type: 'result', value: { raw: 'ab' } });
+      expect(
+        await readEffectEvents({ world, type: 'effect-progress' }),
+      ).toEqual([
+        { startId: expect.any(String), partial: { raw: 'a' } },
+        { startId: expect.any(String), partial: { raw: 'ab' } },
+      ]);
+      expect(await readParts({ world })).toEqual([
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'bash',
+          input: { command: 'ls' },
+          output: 'a',
+          preliminary: true,
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'bash',
+          input: { command: 'ls' },
+          output: 'ab',
+          preliminary: true,
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'bash',
+          input: { command: 'ls' },
+          output: 'ab',
+          providerExecuted: true,
+        },
+      ]);
+    });
+
+    test('passes the attempt abort signal to execute', async () => {
+      const { executeBuiltinTool } = await setup();
+      const execute = vi.fn(async () => ({ raw: null }));
+
+      await executeBuiltinTool({ ...bashCall, execute });
+
+      expect(execute).toHaveBeenCalledWith({
+        abortSignal: expect.any(AbortSignal),
+      });
+    });
+
+    test('uses the built-in tool replay policy', async () => {
+      const { log, executeBuiltinTool, world } = await setup();
+
+      await executeBuiltinTool({
+        ...readCall,
+        execute: async () => ({ raw: 'contents' }),
+      });
+
+      expect(await readEffectEvents({ world, type: 'effect-start' })).toEqual([
+        expect.objectContaining({ name: 'tool.read', replay: 'safe' }),
+      ]);
+    });
+
+    test('records a thrown error and emits an error tool result', async () => {
+      const { world, log, executeBuiltinTool } = await setup();
+
+      const output = await executeBuiltinTool({
+        ...bashCall,
+        execute: async () => {
+          throw new Error('command failed');
+        },
+      });
+
+      expect(output).toEqual({
+        type: 'error',
+        error: { message: 'Error: command failed' },
+      });
+      expect(await readEffectEvents({ world, type: 'effect-end' })).toEqual([
+        { startId: expect.any(String), output },
+      ]);
+      expect(await readParts({ world })).toEqual([
+        {
+          type: 'tool-error',
+          toolCallId: 'call-1',
+          toolName: 'bash',
+          input: { command: 'ls' },
+          error: 'Error: command failed',
+          providerExecuted: true,
+        },
+      ]);
+    });
+
+    test('returns a recorded outcome in a later drive without running execute again', async () => {
+      const { world, log, executeBuiltinTool } = await setup();
+      await executeBuiltinTool({
+        ...bashCall,
+        execute: async () => ({ raw: 'first' }),
+      });
+
+      const execute = vi.fn(async () => ({ raw: 'second' }));
+      const nextDrive = await createNextDrive({ world });
+      const output = await nextDrive.executeBuiltinTool({
+        ...bashCall,
+        execute,
+      });
+
+      expect(output).toEqual({ type: 'result', value: { raw: 'first' } });
+      expect(execute).not.toHaveBeenCalled();
+      expect(
+        await readEffectEvents({ world, type: 'effect-start' }),
+      ).toHaveLength(1);
+      expect(await readParts({ world })).toHaveLength(1);
+    });
+
+    test('records a HarnessCancellationError as interrupted and emits an error tool result', async () => {
+      const { world, executeBuiltinTool } = await setup();
+
+      const output = await executeBuiltinTool({
+        ...bashCall,
+        async *execute() {
+          yield { raw: 'partial' };
+          throw new HarnessCancellationError();
+        },
+      });
+
+      expect(output).toEqual({
+        type: 'interrupted',
+        retryable: false,
+        partial: { raw: 'partial' },
+      });
+      expect(await readEffectEvents({ world, type: 'effect-end' })).toEqual([
+        { startId: expect.any(String), output },
+      ]);
+      expect((await readParts({ world })).at(-1)).toEqual({
+        type: 'tool-error',
+        toolCallId: 'call-1',
+        toolName: 'bash',
+        input: { command: 'ls' },
+        error: 'The turn was cancelled.',
+        providerExecuted: true,
+      });
+    });
+
+    test('records an attempt as interrupted when the drive stops', async () => {
+      const { log, executeBuiltinTool, abortController, world } = await setup();
+
+      const pending = executeBuiltinTool({
+        ...bashCall,
+        async *execute({ abortSignal }) {
+          yield { raw: 'partial' };
+          yield await executeUntilAborted({ abortSignal });
+        },
+      });
+      await expect
+        .poll(() => readEffectEvents({ world, type: 'effect-progress' }))
+        .toHaveLength(1);
+      abortController.abort();
+
+      const output = {
+        type: 'interrupted',
+        retryable: false,
+        partial: { raw: 'partial' },
+      };
+      expect(await pending).toEqual(output);
+      expect(await readEffectEvents({ world, type: 'effect-end' })).toEqual([
+        { startId: expect.any(String), output },
+      ]);
+    });
+
+    test('returns a never-replay interruption without running execute again', async () => {
+      const { world, log, executeBuiltinTool, abortController } = await setup();
+      const pending = executeBuiltinTool({
+        ...bashCall,
+        execute: executeUntilAborted,
+      });
+      await expect
+        .poll(() => readEffectEvents({ world, type: 'effect-start' }))
+        .toHaveLength(1);
+      abortController.abort();
+      await pending;
+
+      const execute = vi.fn(async () => ({ raw: 'second' }));
+      const nextDrive = await createNextDrive({ world });
+
+      expect(
+        await nextDrive.executeBuiltinTool({ ...bashCall, execute }),
+      ).toEqual({ type: 'interrupted', retryable: false });
+      expect(execute).not.toHaveBeenCalled();
+    });
+
+    test('runs a safe-replay interruption again in a new attempt', async () => {
+      const { world, log, executeBuiltinTool, abortController } = await setup();
+      const pending = executeBuiltinTool({
+        ...readCall,
+        execute: executeUntilAborted,
+      });
+      await expect
+        .poll(() => readEffectEvents({ world, type: 'effect-start' }))
+        .toHaveLength(1);
+      abortController.abort();
+      await pending;
+
+      const nextDrive = await createNextDrive({ world });
+      const output = await nextDrive.executeBuiltinTool({
+        ...readCall,
+        execute: async () => ({ raw: 'contents' }),
+      });
+
+      expect(output).toEqual({ type: 'result', value: { raw: 'contents' } });
+      expect(await readEffectEvents({ world, type: 'effect-start' })).toEqual([
+        expect.objectContaining({ attempt: 1 }),
+        expect.objectContaining({ attempt: 2 }),
+      ]);
+    });
+
+    test('records calls to tools that are not built-in tools as errors without running execute', async () => {
+      const { world, executeBuiltinTool } = await setup();
+      const execute = vi.fn(async () => ({ raw: 'sunny' }));
+      const message =
+        "AI_NoSuchToolError: Model tried to call unavailable tool 'weather'. Available tools: bash, read.";
+
+      const output = await executeBuiltinTool({
+        toolCallId: 'call-1',
+        toolName: 'weather',
+        input: { city: 'Paris' },
+        execute,
+      });
+
+      expect(output).toEqual({ type: 'error', error: { message } });
+      expect(execute).not.toHaveBeenCalled();
+      expect(
+        await readLogEvents({ world, types: ['tool-execution-start'] }),
+      ).toEqual([]);
+      expect(await readParts({ world })).toEqual([
+        {
+          type: 'tool-error',
+          toolCallId: 'call-1',
+          toolName: 'weather',
+          input: { city: 'Paris' },
+          error: message,
+          providerExecuted: true,
+          dynamic: true,
+        },
+      ]);
+    });
+
+    test.each<{
+      description: string;
+      execute: () =>
+        | Promise<HarnessV2ToolExecutionValue>
+        | AsyncIterable<HarnessV2ToolExecutionValue>;
+      message: string;
+    }>([
+      {
+        description: 'a value whose raw output is not JSON',
+        execute: async () =>
+          // oxlint-disable-next-line ai-sdk/no-as-unknown-as -- intentionally invalid value for a runtime validation test.
+          ({ raw: new Date() }) as unknown as HarnessV2ToolExecutionValue,
+        message:
+          'Error: HarnessAgent.executeBuiltinTool: `raw` must be a JSON value.',
+      },
+      {
+        description: 'an iterable that yields nothing',
+        async *execute() {},
+        message: "Error: The built-in tool 'bash' produced no value.",
+      },
+    ])('records $description as an error', async ({ execute, message }) => {
+      const { executeBuiltinTool } = await setup();
+
+      expect(await executeBuiltinTool({ ...bashCall, execute })).toEqual({
+        type: 'error',
+        error: { message },
+      });
+    });
+
+    test('starts no attempt once the yield signal fired', async () => {
+      const yieldController = new AbortController();
+      yieldController.abort();
+      const { log, executeBuiltinTool, world } = await setup({
+        yieldAbortSignal: yieldController.signal,
+      });
+      const execute = vi.fn(async () => ({ raw: null }));
+
+      expect(await executeBuiltinTool({ ...bashCall, execute })).toEqual({
+        type: 'interrupted',
+        retryable: true,
+      });
+      expect(execute).not.toHaveBeenCalled();
+      expect(await readEffectEvents({ world, type: 'effect-start' })).toEqual(
+        [],
+      );
+    });
+
+    test('rejects input that is not a JSON value without recording it', async () => {
+      const { log, executeBuiltinTool, world } = await setup();
+
+      await expect(
+        executeBuiltinTool({
+          ...bashCall,
+          // oxlint-disable-next-line ai-sdk/no-as-unknown-as -- intentionally invalid value for a runtime validation test.
+          input: { when: new Date() } as unknown as JSONValue,
+          execute: async () => ({ raw: null }),
+        }),
+      ).rejects.toThrow(
+        'HarnessAgent.executeBuiltinTool: `input` must be a JSON value.',
+      );
+      expect(await readEffectEvents({ world, type: 'effect-start' })).toEqual(
+        [],
+      );
+    });
+  });
+});

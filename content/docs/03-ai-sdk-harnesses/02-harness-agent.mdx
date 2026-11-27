@@ -730,6 +730,10 @@ source can change, add whatever identifies it to the name. Without a template,
 - `stopWhen`: condition(s) for finishing a result slice after a completed
   harness tool step that can continue into another model step.
 - `tools`: AI SDK tools executed by the host when the harness calls them.
+- `mcpServers`: construction-time remote MCP server configuration for HarnessV2.
+  Supports Streamable HTTP URLs and optional headers. Stdio servers are currently
+  unsupported. HarnessV1 rejects this top-level setting; configure its MCP
+  servers on the individual adapter. See [MCP tools](/docs/ai-sdk-harnesses/tools#mcp-tools-with-harnessv2).
 - `runtimeContext`: application context forwarded to lifecycle callbacks and
   results for every turn; `prepareCall` can replace it for a new prompt turn.
 - `activeTools`: allowlist of built-in and host-executed tools the harness can

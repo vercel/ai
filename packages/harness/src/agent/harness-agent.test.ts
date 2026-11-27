@@ -16,6 +16,7 @@ import {
   tool,
   type Experimental_SandboxSession as SandboxSession,
 } from '@ai-sdk/provider-utils';
+import type { World } from '@workflow/world';
 import {
   convertToModelMessages,
   isStepCount,
@@ -28,6 +29,16 @@ import { HarnessAgent } from './harness-agent';
 import { HarnessAgentSession } from './harness-agent-session';
 import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-unsupported-error';
 import { hashHarnessBootstrap } from './internal/bootstrap-recipe';
+
+test.each<Record<string, { url: string }>>([
+  {},
+  { remote: { url: 'https://mcp.example.com' } },
+])('rejects defined top-level MCP servers with HarnessV1', mcpServers => {
+  const { harness } = mockHarness({ script: () => [] });
+  expect(() => new HarnessAgent({ harness, mcpServers })).toThrow(
+    'top-level `mcpServers` is only supported with HarnessV2',
+  );
+});
 
 /**
  * Build a mock harness whose session emits a canned event script. Each
@@ -428,6 +439,112 @@ function makeLifecycleSession(options: {
 }
 
 describe('HarnessAgent', () => {
+  test('rejects world settings when using a HarnessV1 adapter', () => {
+    const { harness } = mockHarness({ script: () => [] });
+
+    expect(
+      () => new HarnessAgent({ harness, world: {} as World, id: 'agent' }),
+    ).toThrow('`world` is only supported with HarnessV2');
+  });
+
+  test('rejects a sandbox session resolver when using a HarnessV1 adapter', () => {
+    const { harness } = mockHarness({ script: () => [] });
+
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          getSandboxSession: async () => ({}) as SandboxSession,
+        }),
+    ).toThrow('`getSandboxSession` is only supported with HarnessV2');
+  });
+
+  test('rejects sandboxId when using a HarnessV1 adapter', async () => {
+    const { harness } = mockHarness({ script: () => [] });
+    const agent = new HarnessAgent({ harness });
+
+    await expect(
+      agent.createSession({ sandboxId: 'sandbox-id' }),
+    ).rejects.toThrow('`sandboxId` is only supported with HarnessV2');
+  });
+
+  test('rejects runId when using a HarnessV1 adapter', async () => {
+    const { harness } = mockHarness({ script: () => [] });
+    const agent = new HarnessAgent({ harness });
+
+    await expect(agent.createSession({ runId: 'wrun_1' })).rejects.toThrow(
+      '`runId` is only supported with HarnessV2',
+    );
+  });
+
+  test.each(['drive', 'readStream', 'experimental_crash', 'cancel'] as const)(
+    'rejects %s() when using a HarnessV1 adapter',
+    async method => {
+      const { harness } = mockHarness({ script: () => [] });
+      const agent = new HarnessAgent({ harness });
+
+      await expect(agent[method]({ session: {} as never })).rejects.toThrow(
+        `${method}() is only supported with HarnessV2`,
+      );
+    },
+  );
+
+  test('routes experimental_crash() to the HarnessV2 implementation', async () => {
+    const agent = new HarnessAgent({
+      harness: {
+        specificationVersion: 'harness-v2',
+        harnessId: 'mock-v2',
+        builtinTools: {},
+        drive: async () => {},
+      },
+      getSandboxSession: async () => ({}) as SandboxSession,
+    });
+    const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+
+    await expect(agent.experimental_crash({ session })).rejects.toThrow(
+      'HarnessAgent.experimental_crash: there is no current drive to crash.',
+    );
+  });
+
+  test('routes cancel() to the HarnessV2 implementation', async () => {
+    const agent = new HarnessAgent({
+      harness: {
+        specificationVersion: 'harness-v2',
+        harnessId: 'mock-v2',
+        builtinTools: {},
+        drive: async () => {},
+      },
+      getSandboxSession: async () => ({}) as SandboxSession,
+    });
+    const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+
+    await expect(agent.cancel({ session })).rejects.toThrow(
+      'HarnessAgent.cancel: the session has no running turn.',
+    );
+  });
+
+  test('rejects approval-requiring tools when proxying to a HarnessV2 adapter', () => {
+    expect(
+      () =>
+        new HarnessAgent({
+          harness: {
+            specificationVersion: 'harness-v2',
+            harnessId: 'mock-v2',
+            builtinTools: {},
+            drive: async () => {},
+          },
+          getSandboxSession: async () => ({}) as SandboxSession,
+          tools: {
+            deleteFile: tool({
+              inputSchema: z.object({ path: z.string() }),
+              needsApproval: true,
+              execute: async () => 'deleted',
+            }),
+          },
+        }),
+    ).toThrow(HarnessCapabilityUnsupportedError);
+  });
+
   test('uses prepared runtime context for each prompt turn and filters telemetry', async () => {
     type RuntimeContext = { requestId: string; secret: string };
     const configuredContext = { requestId: 'default', secret: 'configured' };

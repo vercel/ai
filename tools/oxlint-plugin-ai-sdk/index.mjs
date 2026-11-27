@@ -1,3 +1,14 @@
+import noAsUnknownAs from './rules/no-as-unknown-as.mjs';
+import noConditionalObjectSpread from './rules/no-conditional-object-spread.mjs';
+import noProcessEnvMutation from './rules/no-process-env-mutation.mjs';
+import noPrototypeChainPropertyChecks from './rules/no-prototype-chain-property-checks.mjs';
+import noPrototypeMutation from './rules/no-prototype-mutation.mjs';
+import noPrototypePollutingObjects from './rules/no-prototype-polluting-objects.mjs';
+import noPrototypePropertyAccess from './rules/no-prototype-property-access.mjs';
+import requireExplicitAbortPropertyNames from './rules/require-explicit-abort-property-names.mjs';
+import requireObjectParameter from './rules/require-object-parameter.mjs';
+import requireOptionalProperties from './rules/require-optional-properties.mjs';
+
 /**
  * Repo-local oxlint plugin for AI SDK conventions.
  *
@@ -63,11 +74,124 @@ const requireValidateUrl = {
   },
 };
 
+const requireDocblock = {
+  meta: {
+    type: 'problem',
+    docs: {
+      description: 'Require multiline docblocks on selected declarations.',
+    },
+  },
+  create(context) {
+    const functionLikeTypes = new Set([
+      'FunctionDeclaration',
+      'FunctionExpression',
+      'ArrowFunctionExpression',
+      'MethodDefinition',
+      'TSDeclareMethod',
+      'TSAbstractMethodDefinition',
+      'TSFunctionType',
+      'TSMethodSignature',
+      'TSCallSignatureDeclaration',
+      'TSConstructSignatureDeclaration',
+    ]);
+
+    const isInsideFunctionOrMethod = node => {
+      let ancestor = node.parent;
+
+      while (ancestor !== undefined && ancestor !== null) {
+        if (functionLikeTypes.has(ancestor.type)) return true;
+        ancestor = ancestor.parent;
+      }
+
+      return false;
+    };
+
+    const isDeclaredTypeProperty = node => {
+      let ancestor = node.parent;
+
+      while (ancestor !== undefined && ancestor !== null) {
+        if (functionLikeTypes.has(ancestor.type)) return false;
+
+        if (
+          ancestor.type === 'TSTypeAliasDeclaration' ||
+          ancestor.type === 'TSInterfaceDeclaration'
+        ) {
+          return true;
+        }
+
+        ancestor = ancestor.parent;
+      }
+
+      return false;
+    };
+
+    const reportIfMissingDocblock = node => {
+      const commentTarget =
+        node.parent?.type === 'ExportNamedDeclaration' ||
+        node.parent?.type === 'ExportDefaultDeclaration'
+          ? node.parent
+          : node;
+      const docblocks = context.sourceCode
+        .getCommentsBefore(commentTarget)
+        .filter(
+          comment =>
+            comment.type === 'Block' && comment.value.startsWith('*'),
+        );
+
+      const docblock = docblocks[docblocks.length - 1];
+      if (docblock === undefined) {
+        context.report({
+          node,
+          message: 'Add a JSDoc comment immediately before this declaration.',
+        });
+      } else if (
+        !/^\*[\t ]*\r?\n[\s\S]*\r?\n[\t ]*$/.test(docblock.value)
+      ) {
+        context.report({
+          node,
+          message:
+            'Use a multiline JSDoc comment with the opening and closing delimiters on separate lines.',
+        });
+      }
+    };
+
+    return {
+      FunctionDeclaration(node) {
+        if (!isInsideFunctionOrMethod(node)) {
+          reportIfMissingDocblock(node);
+        }
+      },
+      ClassDeclaration: reportIfMissingDocblock,
+      MethodDefinition: reportIfMissingDocblock,
+      TSDeclareMethod: reportIfMissingDocblock,
+      TSAbstractMethodDefinition: reportIfMissingDocblock,
+      TSInterfaceDeclaration: reportIfMissingDocblock,
+      TSTypeAliasDeclaration: reportIfMissingDocblock,
+      TSPropertySignature(node) {
+        if (isDeclaredTypeProperty(node)) {
+          reportIfMissingDocblock(node);
+        }
+      },
+    };
+  },
+};
+
 export default {
   meta: {
     name: 'ai-sdk',
   },
   rules: {
     'require-validate-url': requireValidateUrl,
+    'require-docblock': requireDocblock,
+    'require-explicit-abort-property-names': requireExplicitAbortPropertyNames,
+    'require-object-parameter': requireObjectParameter,
+    'require-optional-properties': requireOptionalProperties,
+    'no-as-unknown-as': noAsUnknownAs,
+    'no-conditional-object-spread': noConditionalObjectSpread,
+    'no-prototype-polluting-objects': noPrototypePollutingObjects,
+    'no-prototype-chain-property-checks': noPrototypeChainPropertyChecks,
+    'no-process-env-mutation': noProcessEnvMutation,
+    'no-prototype-mutation': noPrototypeMutation,
+    'no-prototype-property-access': noPrototypePropertyAccess,
   },
 };

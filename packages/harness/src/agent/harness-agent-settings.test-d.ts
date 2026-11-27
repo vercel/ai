@@ -1,5 +1,6 @@
 import type { HarnessV1, HarnessV1SandboxProvider } from '../v1';
 import type { HarnessAgentSettings } from './harness-agent-settings';
+import type { HarnessAgentMcpServerConfig } from './index';
 import { HarnessAgent } from './harness-agent';
 import type { HarnessAllTools } from './harness-agent-tool-types';
 import {
@@ -51,6 +52,17 @@ const sandbox = undefined as never as HarnessV1SandboxProvider;
 type Settings = HarnessAgentSettings<typeof harness, typeof userTools>;
 
 describe('HarnessAgentSettings tool filtering types', () => {
+  test('exposes MCP configuration through the agent-facing type', () => {
+    expectTypeOf<HarnessAgentMcpServerConfig>().toEqualTypeOf<{
+      readonly type?: 'http';
+      readonly url: string;
+      readonly headers?: Readonly<Record<string, string>>;
+    }>();
+    expectTypeOf<Settings['mcpServers']>().toEqualTypeOf<
+      Readonly<Record<string, HarnessAgentMcpServerConfig>> | undefined
+    >();
+  });
+
   test('rejects toolsContext when no tool declares context', () => {
     const settings: Settings = {
       harness,
@@ -278,7 +290,19 @@ describe('HarnessAgentSettings tool filtering types', () => {
       },
     };
 
-    const agent = new HarnessAgent(settings);
+    /*
+     * Assigning the literal narrows `settings` to the settings branch
+     * without a `world`, which loses the `HarnessAgentSettings` alias that
+     * the constructor would infer its type parameters from, so they are
+     * passed explicitly.
+     */
+    const agent = new HarnessAgent<
+      typeof harness,
+      typeof userTools,
+      RuntimeContext,
+      never,
+      CallOptions
+    >(settings);
     expectTypeOf<
       NonNullable<Parameters<typeof agent.createSession>[0]>['runtimeContext']
     >().toEqualTypeOf<RuntimeContext | undefined>();
