@@ -1,0 +1,37 @@
+{
+  "run_id": "01a209b5-9b71-73b6-ad90-229662e4bdab",
+  "answers": {
+    "science": {
+      "type": "noul",
+      "noul": 0.9491
+    },
+    "delivery": {
+      "type": "choice",
+      "choice": "reading",
+      "confidence": 0.7593,
+      "probabilities": {
+        "reading": 0.8395,
+        "conversational": 0.0099,
+        "performing": 0.1505
+      }
+    },
+    "clarity": {
+      "type": "score",
+      "score": 1.82,
+      "confidence": 0.73,
+      "probabilities": {
+        "0": 0.0284,
+        "1": 0.1232,
+        "2": 0.8484
+      },
+      "legend": {
+        "0": "Hard to understand",
+        "1": "Somewhat clear",
+        "2": "Very clear"
+      }
+    }
+  },
+  "received": {
+    "input_tokens": 3179
+  }
+}

@@ -1,4 +1,3 @@
-import { asSchema } from '@ai-sdk/provider-utils';
 import { describe, expect, it, vi } from 'vitest';
 import type * as Zod from 'zod/v4';
 
@@ -45,16 +44,9 @@ vi.mock('zod/v4', async importOriginal => {
 });
 
 describe('lazy schema initialization', () => {
-  it('defers schema construction until first use and caches the validator', async () => {
+  it('defers schema construction until first use', async () => {
     constructed.mockClear();
-    const { humeSpeechModelOptionsSchema } =
-      await import('./hume-speech-model-options');
+    await import('./hume-provider');
     expect(constructed).not.toHaveBeenCalled();
-
-    const first = asSchema(humeSpeechModelOptionsSchema);
-    expect(constructed).toHaveBeenCalled();
-    const count = constructed.mock.calls.length;
-    expect(asSchema(humeSpeechModelOptionsSchema)).toBe(first);
-    expect(constructed).toHaveBeenCalledTimes(count);
   });
 });

@@ -1,25 +1,25 @@
-import { z } from 'zod/v4';
 import {
+  createJsonErrorResponseHandler,
   lazySchema,
   zodSchema,
-  type InferSchema,
-  createJsonErrorResponseHandler,
 } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
 
-export const humeErrorDataSchema = lazySchema(() =>
+// Hume's API gateway answers a 401, a 429, and a 404 for an unserved path or
+// method before the request reaches the service, and those bodies have no code.
+const humeErrorDataSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      error: z.object({
-        message: z.string(),
-        code: z.number(),
-      }),
+      code: z.string().nullish(),
+      message: z.string(),
+      param: z.string().nullish(),
+      request_id: z.string().nullish(),
     }),
   ),
 );
 
-export type HumeErrorData = InferSchema<typeof humeErrorDataSchema>;
-
 export const humeFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: humeErrorDataSchema,
-  errorToMessage: data => data.error.message,
+  errorToMessage: ({ code, message, param }) =>
+    `${message}${code != null ? ` (${code})` : ''}${param != null ? ` [${param}]` : ''}`,
 });

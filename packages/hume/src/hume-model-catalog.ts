@@ -1,39 +1,40 @@
-import type {
-  ModelEntry,
-  ProviderOptionDefinition,
-  ProviderOptionDefinitions,
-} from '@ai-sdk/provider';
-import type { HumeSpeechModelOptions } from './hume-speech-model-options';
+import type { ModelEntry } from '@ai-sdk/provider';
 
-export const humeProviderOptions = {
-  speech: {
-    context: {
-      description:
-        'Context for the speech synthesis request. Can be either a generationId for retrieving a previous generation, or a list of utterances to synthesize.',
-    },
-  } satisfies Record<keyof HumeSpeechModelOptions, ProviderOptionDefinition>,
-} as const satisfies ProviderOptionDefinitions;
+// These adapter limits apply to custom IDs as well as catalog models.
+export const humeDecisionModelLimits = {
+  supportedQuestionTypes: ['choice', 'score', 'boolean'],
+  maxQuestions: 20,
+  minChoiceOptions: 2,
+  maxChoiceOptions: 20,
+  minScoreLevels: 2,
+  maxScoreLevels: 10,
+} as const;
 
-// Hume has no selectable model ID. Preserve the existing empty-string identity.
-export const humeSpeechModelIds = [''] as const;
-export function getHumeSpeechModelEntry(_modelId: string) {
-  const speech = {
-    instructions: true,
-    speed: true,
-    outputFormats: ['mp3', 'pcm', 'wav'],
-  } as const;
+const decisionModelIds = ['audio-decisions'] as const;
+export function getHumeDecisionModelEntry(_modelId: string) {
   return {
-    capabilities: { speech },
-    providerOptions: { speech: { context: true } },
-    requestConfig: { speech: { defaultOutputFormat: 'mp3' } },
-  } as const satisfies ModelEntry<{ speech: { defaultOutputFormat: 'mp3' } }>;
+    capabilities: {
+      decision: {
+        questionTypes: {
+          boolean: true,
+          choice: true,
+          score: true,
+          box: false,
+        },
+        inputs: { image: false },
+        reasoning: false,
+        maxOutputTokens: false,
+        ...humeDecisionModelLimits,
+      },
+    },
+  } satisfies ModelEntry;
 }
 
 export const humeModelCatalog = Object.fromEntries(
-  humeSpeechModelIds.map(id => [id, getHumeSpeechModelEntry(id)]),
+  decisionModelIds.map(id => [id, getHumeDecisionModelEntry(id)] as const),
 );
 
 /** Known model IDs, derived from the declarations used to build the catalog. */
 export type HumeModelIds = {
-  speech: (typeof humeSpeechModelIds)[number];
+  decision: (typeof decisionModelIds)[number];
 };

@@ -1,9 +1,8 @@
-import type { Resolvable, FetchFunction } from '@ai-sdk/provider-utils';
+import type { FetchFunction, Resolvable } from '@ai-sdk/provider-utils';
 
 export type HumeConfig = {
   provider: string;
-  url: (options: { modelId: string; path: string }) => string;
+  baseURL: string;
   headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
-  generateId?: () => string;
 };

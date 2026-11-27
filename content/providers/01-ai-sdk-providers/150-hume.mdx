@@ -1,205 +1,164 @@
 ---
 title: Hume
-description: Learn how to set up the Hume provider and check AI Gateway availability.
+description: Learn how to use the Hume Audio Decisions API with the AI SDK.
 ---
 
 # Hume Provider
 
-The [Hume](https://hume.ai/) provider contains support for the Hume text-to-speech (TTS) API.
-Hume models are not currently available through [AI Gateway](https://vercel.com/ai-gateway/models), so the opening example uses `@ai-sdk/hume` directly. See [Using AI Gateway](#using-ai-gateway) below for supported alternatives.
+The [Hume](https://hume.ai/) provider is available in the `@ai-sdk/hume` package.
+It supports the [Hume Audio Decisions API](https://dev.hume.ai/audio-decisions/docs/overview),
+which answers Boolean, Choice, and Score questions about a recording with
+estimates of how human raters would respond.
+Hume retired its text-to-speech (TTS) API on November 13, 2026, so the package no longer includes a speech model.
 
-```ts
-import { generateSpeech } from 'ai';
-import { hume } from '@ai-sdk/hume';
-import { writeFile } from 'node:fs/promises';
+## Setup
 
-const { audio } = await generateSpeech({
-  model: hume.speech(),
-  text: 'Hello, world!',
-  outputFormat: 'mp3',
-});
-
-await writeFile('speech.mp3', audio.uint8Array);
-```
-
-## Using AI Gateway
-
-The current [AI Gateway model catalog](https://vercel.com/ai-gateway/models) does not list Hume models. Use `@ai-sdk/hume` for the APIs on this page. To use other speech models through Gateway, install `ai` and configure a Gateway API key:
-
-<InstallPackages packages="ai" />
-
-Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
-
-```bash
-export AI_GATEWAY_API_KEY=your_api_key_here
-```
-
-Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
-See the [Gateway documentation](/providers/ai-sdk-providers/ai-gateway) for supported models and APIs.
-
-## Using `@ai-sdk/hume`
-
-For direct access to Hume, install `ai` and `@ai-sdk/hume`:
+Install `ai` and `@ai-sdk/hume`:
 
 <InstallPackages packages="ai @ai-sdk/hume" />
 
-Set your Hume API credential in the `HUME_API_KEY` environment variable:
+Create an API key on the [Hume Platform](https://cloud.hume.ai/settings/organization/api-keys) and set it in the `HUME_API_KEY` environment variable:
 
 ```bash
 export HUME_API_KEY=your_api_key_here
 ```
 
-<Note>
-  The following sections document the direct `@ai-sdk/hume` provider, including
-  its model factories and settings. Gateway model and feature availability can
-  differ.
-</Note>
-
 ## Provider Instance
 
-You can import the default provider instance `hume` from `@ai-sdk/hume`:
+Import the default instance:
 
 ```ts
 import { hume } from '@ai-sdk/hume';
 ```
 
-If you need a customized setup, you can import `createHume` from `@ai-sdk/hume` and create a provider instance with your settings:
+Or create a customized instance:
 
 ```ts
 import { createHume } from '@ai-sdk/hume';
 
 const hume = createHume({
-  // custom settings, e.g.
-  fetch: customFetch,
+  apiKey: process.env.HUME_API_KEY,
 });
 ```
 
-You can use the following optional settings to customize the Hume provider instance:
+The following settings are optional:
 
-- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_: The key sent in the `X-Hume-Api-Key` header. Defaults to the `HUME_API_KEY` environment variable.
 
-  Pass a synchronous or asynchronous callback to resolve the key before each
-  request. The callback is responsible for caching and refreshing credentials.
+  Pass a function to resolve credentials before each request, including when keys
+  rotate. The function can return a string or a promise. Credential caching and
+  refresh are managed by the function.
 
-  API key that is being sent using the `X-Hume-Api-Key` header.
-  It defaults to the `HUME_API_KEY` environment variable.
+- **baseURL** _string_: The API URL prefix. Defaults to `https://api.cloud.hume.ai`.
+- **headers** _Record&lt;string, string&gt;_: Additional request headers.
+- **fetch** _typeof fetch_: A custom fetch implementation.
 
-- **headers** _Record&lt;string,string&gt;_
+## Decision Models
 
-  Custom headers to include in the requests.
-
-- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
-
-  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
-  Defaults to the global `fetch` function.
-  You can use it as a middleware to intercept requests,
-  or to provide a custom fetch implementation for e.g. testing.
-
-## Speech Models
-
-You can create models that call the [Hume speech API](https://dev.hume.ai/docs/text-to-speech-tts/overview)
-using the `.speech()` factory method.
+Use `hume.decisionModel()` with
+[`experimental_decide`](/docs/reference/ai-sdk-core/decide) to call the
+[Audio Decisions API](https://dev.hume.ai/audio-decisions/reference/decisions/create).
+This API is experimental and may change in patch releases.
 
 ```ts
-const model = hume.speech();
-```
-
-You can pass standard speech generation options like `voice`, `speed`, `instructions`, and `outputFormat`:
-
-```ts
-import { generateSpeech } from 'ai';
 import { hume } from '@ai-sdk/hume';
+import { experimental_decide as decide } from 'ai';
+import { readFileSync } from 'node:fs';
 
-const result = await generateSpeech({
-  model: hume.speech(),
-  text: 'Hello, world!',
-  voice: 'd8ab67c6-953d-4bd8-9370-8fa53a0f1453',
-  speed: 1.0,
-  instructions: 'Speak in a friendly, conversational tone.',
-  outputFormat: 'mp3',
-});
-```
-
-### Supported Parameters
-
-- **text** _string_ (required)
-
-  The text to convert to speech.
-
-- **voice** _string_
-
-  The voice ID to use for the generated audio.
-  Defaults to `'d8ab67c6-953d-4bd8-9370-8fa53a0f1453'`.
-
-- **speed** _number_
-
-  Speech rate multiplier.
-
-- **instructions** _string_
-
-  Description or instructions for how the text should be spoken.
-
-- **outputFormat** _string_
-
-  The audio format to generate. Supported values: `'mp3'`, `'pcm'`, `'wav'`.
-  Defaults to `'mp3'`.
-
-<Note>
-  The `language` parameter is not supported by Hume speech models and will be
-  ignored with a warning.
-</Note>
-
-### Provider Options
-
-You can pass additional provider-specific options using the `providerOptions` argument:
-
-```ts
-import { generateSpeech } from 'ai';
-import { hume } from '@ai-sdk/hume';
-import { type HumeSpeechModelOptions } from '@ai-sdk/hume';
-
-const result = await generateSpeech({
-  model: hume.speech(),
-  text: 'Hello, world!',
-  providerOptions: {
-    hume: {
-      context: {
-        generationId: 'previous-generation-id',
+const result = await decide({
+  model: hume.decisionModel('audio-decisions'),
+  state: [
+    { type: 'text', text: 'A voice message left on the support line.' },
+    {
+      type: 'file',
+      mediaType: 'audio/mpeg',
+      data: readFileSync('voicemail.mp3'),
+    },
+  ],
+  questions: {
+    frustrated: {
+      type: 'boolean',
+      instructions: 'Does the caller sound frustrated?',
+    },
+    request: {
+      type: 'choice',
+      instructions: 'What is the caller asking for?',
+      criteria: {
+        refund: 'Money back for a purchase',
+        support: 'Help with a problem',
+        callback: 'A call back from the team',
       },
-    } satisfies HumeSpeechModelOptions,
+    },
+    urgency: {
+      type: 'score',
+      instructions: 'How urgent does the caller sound?',
+      criteria: ['Not urgent', 'Somewhat urgent', 'Very urgent'],
+    },
   },
 });
+
+result.answers.frustrated.probability; // P(true), from 0 to 1
+result.answers.request.choice; // 'refund' | 'support' | 'callback'
+result.answers.urgency.score; // Expected zero-based level, from 0 to 2
 ```
 
-The following provider options are available:
+`audio-decisions` is available. The provider maps SDK `boolean` questions to
+Hume's native `noul` type and sends their `true` and `false` criteria when
+present. Every question requires `instructions`, and criteria must be strings.
+Hume rounds probabilities and scores to four decimal places. Box questions are
+unsupported.
 
-- **context** _object_
+See Hume's guides to [writing questions](https://dev.hume.ai/audio-decisions/docs/writing-questions)
+and [interpreting answers](https://dev.hume.ai/audio-decisions/docs/interpreting-answers)
+for how to phrase questions and set thresholds.
 
-  Context for the speech synthesis request. Can be either:
-  - `{ generationId: string }` - ID of a previously generated speech synthesis to use as context.
-  - `{ utterances: Utterance[] }` - An array of utterance objects for context, where each utterance has:
-    - `text` _string_ (required) - The text content.
-    - `description` _string_ - Instructions for how the text should be spoken.
-    - `speed` _number_ - Speech rate multiplier.
-    - `trailingSilence` _number_ - Duration of silence to add after the utterance in seconds.
-    - `voice` _object_ - Voice configuration, either `{ id: string, provider?: 'HUME_AI' | 'CUSTOM_VOICE' }` or `{ name: string, provider?: 'HUME_AI' | 'CUSTOM_VOICE' }`.
+### Audio and context
 
-### Model Capabilities
+The state must contain exactly one MP3 (`audio/mpeg`) or WAV (`audio/wav`) file
+part. An `audio/*` media type is resolved from the file's contents. Text parts
+are joined with newlines and sent as Hume's `context`; JSON parts and other file
+types are unsupported. Hume does not accept remote URLs, so pass file data
+inline; `experimental_decide` downloads URL file state before calling the
+provider when `experimental_download` is configured.
 
-{/* model-capabilities:hume-speech:start */}
+### Confidence, legends, and response metadata
 
-| Model     | Instructions | Speed     | Output Formats |
-| --------- | ------------ | --------- | -------------- |
-| `default` | <Check />    | <Check /> | mp3, pcm, wav  |
+Hume's confidence values and Score legends are available in
+`providerMetadata.hume`, keyed by question ID. Confidence is distinct from the
+selected option's probability.
 
-{/* model-capabilities:hume-speech:end */}
+```ts
+const metadata = result.providerMetadata?.hume;
+console.log(metadata?.confidence); // Choice and Score confidence by question ID
+console.log(metadata?.legend); // Score index-to-description maps by question ID
+console.log(result.response.id); // Hume run ID
+console.log(result.usage.inputTokens);
+```
 
-### Provider Option Catalog
+### Decision limits
 
-{/* model-capabilities:hume-provider-options:start */}
+The provider validates these limits before sending the decision request:
 
-| Operation | Option    | Description                                                                                                                                         |
-| --------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| speech    | `context` | Context for the speech synthesis request. Can be either a generationId for retrieving a previous generation, or a list of utterances to synthesize. |
+| Input          | Limit                                            |
+| -------------- | ------------------------------------------------ |
+| Questions      | 1–20, each with `instructions`                   |
+| Choice options | 2–20                                             |
+| Score levels   | 2–10, all non-null                               |
+| Audio          | Exactly one MP3 or WAV file; no other file types |
 
-{/* model-capabilities:hume-provider-options:end */}
+See Hume's [limits](https://dev.hume.ai/audio-decisions/docs/limits) for
+API-enforced audio duration, request size, text length, and rate limits. Hume
+decision models do not accept provider-specific options, `maxOutputTokens`, or
+`reasoning`; these produce unsupported warnings and are not sent to the API.
+
+### Decision Model Capabilities
+
+{/* model-capabilities:hume-decision:start */}
+
+| Model             | Boolean   | Choice    | Score     | Box       | Image Input | Reasoning | Max Output Tokens |
+| ----------------- | --------- | --------- | --------- | --------- | ----------- | --------- | ----------------- |
+| `audio-decisions` | <Check /> | <Check /> | <Check /> | <Cross /> | <Cross />   | <Cross /> | <Cross />         |
+
+{/* model-capabilities:hume-decision:end */}
+
+`audio-decisions` accepts audio input only.

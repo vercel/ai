@@ -1,36 +1,37 @@
-import { humeSpeechModelIds } from './hume-model-catalog';
 import {
   NoSuchModelError,
-  type SpeechModelV4,
   type ProviderV4,
+  type Experimental_DecisionModelV4 as DecisionModelV4,
 } from '@ai-sdk/provider';
 import {
-  resolveWith,
-  type Resolvable,
   loadApiKey,
+  resolveWith,
+  withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
-import { HumeSpeechModel } from './hume-speech-model';
+import { DecisionHumeModel } from './hume-decision-model';
+import type { HumeDecisionModelId } from './hume-decision-model-options';
 import { VERSION } from './version';
 
 export interface HumeProvider extends ProviderV4 {
-  (settings?: {}): {
-    speech: HumeSpeechModel;
-  };
-
-  /**
-   * Creates a model for speech synthesis.
-   */
-  speech(): SpeechModelV4;
+  /** Creates an experimental decision model using the Hume Audio Decisions API. */
+  decisionModel(modelId: HumeDecisionModelId): DecisionModelV4;
 }
 
 export interface HumeProviderSettings {
   /**
    * API key for authenticating requests. May be a string, promise, or a
    * synchronous/asynchronous callback called before each request.
+   * Defaults to the HUME_API_KEY environment variable.
    */
   apiKey?: Resolvable<string>;
+
+  /**
+   * API URL prefix. Defaults to https://api.cloud.hume.ai.
+   */
+  baseURL?: string;
 
   /**
    * Custom headers to include in the requests.
@@ -48,6 +49,9 @@ export interface HumeProviderSettings {
  * Create an Hume provider instance.
  */
 export function createHume(options: HumeProviderSettings = {}): HumeProvider {
+  const baseURL =
+    withoutTrailingSlash(options.baseURL ?? 'https://api.cloud.hume.ai') ??
+    'https://api.cloud.hume.ai';
   const getHeaders = () =>
     resolveWith(options.apiKey, apiKey =>
       withUserAgentSuffix(
@@ -63,49 +67,37 @@ export function createHume(options: HumeProviderSettings = {}): HumeProvider {
       ),
     );
 
-  const createSpeechModel = () =>
-    new HumeSpeechModel(humeSpeechModelIds[0], {
-      provider: `hume.speech`,
-      url: ({ path }) => `https://api.hume.ai${path}`,
-      headers: getHeaders,
-      fetch: options.fetch,
-    });
-
-  const provider = function () {
-    return {
-      speech: createSpeechModel(),
-    };
+  return {
+    specificationVersion: 'v4',
+    decisionModel: (modelId: HumeDecisionModelId) =>
+      new DecisionHumeModel(modelId, {
+        provider: 'hume.decision',
+        baseURL,
+        headers: getHeaders,
+        fetch: options.fetch,
+      }),
+    languageModel(modelId) {
+      throw new NoSuchModelError({
+        modelId,
+        modelType: 'languageModel',
+        message: 'Hume does not provide language models',
+      });
+    },
+    embeddingModel(modelId) {
+      throw new NoSuchModelError({
+        modelId,
+        modelType: 'embeddingModel',
+        message: 'Hume does not provide embedding models',
+      });
+    },
+    imageModel(modelId) {
+      throw new NoSuchModelError({
+        modelId,
+        modelType: 'imageModel',
+        message: 'Hume does not provide image models',
+      });
+    },
   };
-
-  provider.specificationVersion = 'v4' as const;
-  provider.speech = createSpeechModel;
-  provider.speechModel = createSpeechModel;
-
-  provider.languageModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'languageModel',
-      message: 'Hume does not provide language models',
-    });
-  };
-
-  provider.embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'embeddingModel',
-      message: 'Hume does not provide embedding models',
-    });
-  };
-
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'imageModel',
-      message: 'Hume does not provide image models',
-    });
-  };
-
-  return provider as HumeProvider;
 }
 
 /**
