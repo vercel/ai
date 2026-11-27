@@ -1032,4 +1032,36 @@ console.log(text);`,
     websiteUrl: 'https://upstash.com',
     npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
   },
+  {
+    slug: 'proxmint',
+    name: 'Proxmint',
+    description:
+      'Read web pages through residential, datacenter or mobile proxy IPs in the country the model picks. Returns the status, final URL, title and readable text; a second tool reads the account balance and bandwidth left.',
+    packageName: 'proxmint-ai-sdk',
+    tags: ['web-fetch', 'proxy', 'scraping'],
+    apiKeyEnvName: 'PROXMINT_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add proxmint-ai-sdk',
+      npm: 'npm install proxmint-ai-sdk',
+      yarn: 'yarn add proxmint-ai-sdk',
+      bun: 'bun add proxmint-ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { fetchPage } from 'proxmint-ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Open https://example.com as a visitor from Germany and tell me what the page says.',
+  tools: {
+    fetchPage: fetchPage(),
+  },
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://proxmint.com/docs/ai-sdk',
+    apiKeyUrl: 'https://proxmint.com/dashboard/settings',
+    websiteUrl: 'https://proxmint.com',
+    npmUrl: 'https://www.npmjs.com/package/proxmint-ai-sdk',
+  },
 ];
