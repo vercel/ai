@@ -5,7 +5,7 @@ description: Use Hubris OpenAI compatible API with the AI SDK.
 
 # Hubris Provider
 
-[Hubris](https://hubris.pw) is a ruble-billed LLM gateway giving access to 400+ models (OpenAI, Anthropic, Google, and more) behind a single API key. It offers an OpenAI-compatible API that you can use with the AI SDK.
+[Hubris](https://hubris.pro) is a ruble-billed LLM gateway giving access to 400+ models (OpenAI, Anthropic, Google, and more) behind a single API key. It offers an OpenAI-compatible API that you can use with the AI SDK.
 
 ## Setup
 
@@ -23,15 +23,15 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 
 const hubris = createOpenAICompatible({
   name: 'hubris',
-  baseURL: 'https://api.hubris.pw/v1',
+  baseURL: 'https://api.hubris.pro/v1',
   apiKey: process.env.HUBRIS_API_KEY,
 });
 ```
 
 <Note>
   You can obtain an API key by creating an account at
-  [hubris.pw](https://hubris.pw) and generating a key on the
-  [keys page](https://hubris.pw/keys).
+  [hubris.pro](https://hubris.pro) and generating a key on the
+  [keys page](https://hubris.pro/keys).
 </Note>
 
 ## Language Models
@@ -42,7 +42,7 @@ You can interact with Hubris models using a provider instance. For example, to u
 const model = hubris.chatModel('claude-sonnet-5');
 ```
 
-See the full model catalog at [hubris.pw/models](https://hubris.pw/models).
+See the full model catalog at [hubris.pro/models](https://hubris.pro/models).
 
 ### Example - Generate Text
 
@@ -54,7 +54,7 @@ import { generateText } from 'ai';
 
 const hubris = createOpenAICompatible({
   name: 'hubris',
-  baseURL: 'https://api.hubris.pw/v1',
+  baseURL: 'https://api.hubris.pro/v1',
   apiKey: process.env.HUBRIS_API_KEY,
 });
 
