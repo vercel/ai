@@ -10,12 +10,12 @@ export function isAnthropicModel({
   modelFamily?: AmazonBedrockChatModelSettings['modelFamily'];
   reasoningBudgetTokens?: number;
 }): boolean {
-  const config =
+  const { claude } =
     getAmazonBedrockLanguageModelEntry(modelId).requestConfig.language;
   return (
     modelFamily === 'anthropic' ||
-    config.anthropic ||
-    (config.applicationInferenceProfile && reasoningBudgetTokens != null)
+    claude === true ||
+    (claude === 'unknown' && reasoningBudgetTokens != null)
   );
 }
 
