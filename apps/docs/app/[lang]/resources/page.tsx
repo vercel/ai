@@ -34,7 +34,7 @@ const featuredLinks = [
   {
     title: 'Add your product',
     description: 'Share a product built with the AI SDK for the showcase.',
-    href: 'https://github.com/vercel/ai/discussions/1914',
+    href: 'https://community.vercel.com/c/ai-sdk/62',
   },
 ];
 
