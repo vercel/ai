@@ -389,5 +389,88 @@ describe('TopazImageModel', () => {
         createModel().doGenerate({ ...defaultOptions }),
       ).rejects.toThrow('Insufficient credits');
     });
+
+    it.each([
+      { processId: '.', encodedProcessId: '%252E' },
+      { processId: '..', encodedProcessId: '%252E%252E' },
+      {
+        processId: 'proc/123?foo=bar#baz',
+        encodedProcessId: 'proc%2F123%3Ffoo%3Dbar%23baz',
+      },
+    ])(
+      'encodes processId $processId in status and download URLs',
+      async ({ processId, encodedProcessId }) => {
+        const requestedUrls: string[] = [];
+        const customModel = new TopazImageModel('wonder-3.5', {
+          provider: 'topaz.image',
+          baseURL: TEST_BASE_URL,
+          headers: () => ({ 'X-API-Key': 'test-key' }),
+          fetch: async url => {
+            const urlStr = String(url);
+            requestedUrls.push(urlStr);
+
+            if (urlStr.endsWith('/image/v1/enhance-gen/async')) {
+              return Response.json({ process_id: processId });
+            }
+            if (urlStr.includes('/image/v1/status/')) {
+              return Response.json({ status: 'Completed' });
+            }
+            if (urlStr.includes('/image/v1/download/')) {
+              return Response.json({ download_url: DOWNLOAD_URL });
+            }
+            return new Response(outputBytes, { status: 200 });
+          },
+        });
+
+        await customModel.doGenerate({ ...defaultOptions });
+
+        expect(requestedUrls).toContain(
+          `${TEST_BASE_URL}/image/v1/status/${encodedProcessId}`,
+        );
+        expect(requestedUrls).toContain(
+          `${TEST_BASE_URL}/image/v1/download/${encodedProcessId}`,
+        );
+      },
+    );
+
+    it.each([
+      { processId: '.', encodedProcessId: '%252E' },
+      { processId: '..', encodedProcessId: '%252E%252E' },
+    ])(
+      'encodes processId $processId in cancel URL on timeout',
+      async ({ processId, encodedProcessId }) => {
+        const requestedUrls: string[] = [];
+        const customModel = new TopazImageModel('wonder-3.5', {
+          provider: 'topaz.image',
+          baseURL: TEST_BASE_URL,
+          headers: () => ({ 'X-API-Key': 'test-key' }),
+          fetch: async url => {
+            const urlStr = String(url);
+            requestedUrls.push(urlStr);
+
+            if (urlStr.endsWith('/image/v1/enhance-gen/async')) {
+              return Response.json({ process_id: processId });
+            }
+            if (urlStr.includes('/image/v1/status/')) {
+              return Response.json({ status: 'Processing' });
+            }
+            return new Response(null, { status: 200 });
+          },
+        });
+
+        await expect(
+          customModel.doGenerate({
+            ...defaultOptions,
+            providerOptions: {
+              topaz: { pollIntervalMillis: 5, pollTimeoutMillis: 1 },
+            },
+          }),
+        ).rejects.toThrow();
+
+        expect(requestedUrls.at(-1)).toBe(
+          `${TEST_BASE_URL}/image/v1/cancel/${encodedProcessId}`,
+        );
+      },
+    );
   });
 });
