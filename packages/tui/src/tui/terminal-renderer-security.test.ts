@@ -112,7 +112,7 @@ describe('terminal output sanitization', () => {
     },
   );
 
-  it('shows invisible format characters in tool cards and approval prompts', async () => {
+  it('shows invisible characters in tool cards and approval prompts', async () => {
     const { screen, input, renderer } = createTerminal();
     await renderer.renderStream(
       {
@@ -123,7 +123,7 @@ describe('terminal output sanitization', () => {
             {
               ...toolPart,
               title: 'ti\u2066tle',
-              output: 'admin\u200b@example.com',
+              output: 'admin\u200b@example.com\u3164',
             },
           ],
         },
@@ -140,18 +140,22 @@ describe('terminal output sanitization', () => {
       approvalId: 'approval-1',
       toolCallId: 'call-2',
       toolName: 'na\u2067me',
-      input: 'report_\u202efdp.exe\u{e0041}',
+      input: 'report_\u202efdp.exe\u{e0041}\u{e0100}\u2028',
       messageId: 'message-1',
       partIndex: 1,
     });
     input.type('n');
     await approval;
 
-    expect(screen.rawOutput()).not.toMatch(/\p{Cf}/u);
+    expect(screen.rawOutput()).not.toMatch(
+      /[\p{Cf}\p{Default_Ignorable_Code_Point}\p{Zl}\p{Zp}]/u,
+    );
     expect(screen.rawOutput()).toContain('Tool · ti\\u{2066}tle');
     expect(screen.rawOutput()).toContain('Approve tool na\\u{2067}me? y/n');
-    expect(screen.rawOutput()).toContain('admin\\u{200b}@example.com');
-    expect(screen.rawOutput()).toContain('report_\\u{202e}fdp.exe\\u{e0041}');
+    expect(screen.rawOutput()).toContain('admin\\u{200b}@example.com\\u{3164}');
+    expect(screen.rawOutput()).toContain(
+      'report_\\u{202e}fdp.exe\\u{e0041}\\u{e0100}\\u{2028}',
+    );
   });
 
   it('keeps format characters in assistant text', async () => {
