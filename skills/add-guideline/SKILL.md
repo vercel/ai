@@ -1,6 +1,6 @@
 ---
 name: add-guideline
-description: Use when adding or changing repository guidelines or verifiers under .agents/guidelines or .agents/verifiers.
+description: Use when adding or changing repository guidelines under .agents/guidelines or verifiers under .agents/verifiers.
 metadata:
   internal: true
 ---
