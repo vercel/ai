@@ -4,7 +4,10 @@
 - **Provider:** A service that offers model access through an API.
 - **Agent**: A model-driven component that interprets input and chooses responses or actions toward a goal. Its behavior is non-deterministic because it depends on AI model outputs, and it may work across multiple steps or request tool calls.
 - **Harness**: The application or software runtime that powers an agent and coordinates its execution. It handles deterministic logic such as constructing and passing prompts, running the agent loop, and executing tool calls; the agent's choices are driven by the model.
-- **Session**: A long-lived conversation between an application and an agent, which keeps history and state across many turns. A session is tied to one sandbox.
+- **Session**: A long-lived conversation between an application and an agent, which keeps history and state across many turns. A session is tied to one sandbox. At any point, a session is in one of three states:
+  - **Running**: The agent is actively executing work for the session.
+  - **Pending**: Nothing is actively running, but unfinished work remains (such as an interrupted turn or a queued prompt waiting to start a turn), so resuming execution will continue without new user input.
+  - **Idle**: No further progress can be made until external user input arrives (no unfinished turn and no queued prompt, or the current turn is waiting for tool approval responses).
 - **Turn**: The agent's work on one prompt, from receiving it until it finishes with the final agent response and no more tool calls, which can span many steps. Only one turn of a session runs at a time.
 - **Step**: One model call within a turn, together with the tool calls it requested and their results. A turn ends once a step requests no more tool calls or the agent stops.
 - **Prompt**: The action of sending a user message that starts a new turn. The message is referred to as "prompt message" or just "prompt".
@@ -26,6 +29,6 @@
   - **Default working directory**: The directory that commands in a sandbox run in when no other directory is given, as set up by the sandbox itself.
   - **Work directory**: The directory inside the sandbox where the agent works on a session's files. It may be the same directory as the sandbox's default working directory, but conceptually it's separate and may be another directory, e.g. a subdirectory of the sandbox's default working directory.
 - **Stream**: The append-only sequence of a session's output, which readers follow live or read back later.
-- **API response**: The output returned by one API invocation, rather than a unit of agent execution. It normally includes the steps performed until the turn finishes or external input, such as tool approval responses, is needed to continue. If queued prompts start further turns before the session settles, one API response can span multiple turns. It can also end early because of a runtime deadline, abort or failure. A streaming API response is bounded by `start` and `finish` parts on normal completion, independently of turn boundaries.
+- **API response**: The output returned by one API invocation, rather than a unit of agent execution. It normally includes the steps performed until the turn finishes or external input, such as tool approval responses, is needed to continue. If queued prompts start further turns before the session becomes idle, one API response can span multiple turns. It can also end early because of a runtime deadline, abort or failure. A streaming API response is bounded by `start` and `finish` parts on normal completion, independently of turn boundaries.
 - **Stream part**: One unit of the output an agent streams while it works, such as a piece of text, reasoning, a tool call or a tool result.
 - **Finish reason**: Why a step or turn ended, such as a normal stop, a tool call, hitting a length limit, an error, or a cancel.
