@@ -25,6 +25,18 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
       /**
+       * Selects OpenAI access programs for the request, sent as `access_programs`.
+       * Keys are program categories and values are program names, passed through
+       * unchanged so new programs work without an SDK update. For example,
+       * `{ cyber: 'daybreak_blue' }` selects Daybreak Blue (Trusted Access for Cyber).
+       * OpenAI validates the names and rejects unknown ones.
+       * The programs the API applied are returned in `providerMetadata.openai.accessPrograms`.
+       *
+       * @see https://developers.openai.com/api/docs/guides/daybreak
+       */
+      accessPrograms: z.record(z.string(), z.string()).optional(),
+
+      /**
        * The ID of the OpenAI Conversation to continue.
        * You must create a conversation first via the OpenAI API.
        * Cannot be used in conjunction with `previousResponseId`.

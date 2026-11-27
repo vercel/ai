@@ -37,6 +37,13 @@ export type OpenAIResponsesInputTransformation = z.infer<
   ReturnType<typeof openaiResponsesInputTransformationSchema>
 >;
 
+const openaiResponsesAccessProgramsSchema = () =>
+  z.record(z.string(), z.string().nullish());
+
+export type OpenAIResponsesAccessPrograms = z.infer<
+  ReturnType<typeof openaiResponsesAccessProgramsSchema>
+>;
+
 const openaiResponsesPromptCacheDiagnosticsSchema = () =>
   z.object({
     type: z.string(),
@@ -993,6 +1000,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
       z.object({
         type: z.enum(['response.completed', 'response.incomplete']),
         response: z.object({
+          access_programs: openaiResponsesAccessProgramsSchema().nullish(),
           prompt_cache_diagnostics:
             openaiResponsesPromptCacheDiagnosticsSchema().nullish(),
           input_transformations: z
@@ -1012,6 +1020,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
         type: z.literal('response.failed'),
         sequence_number: z.number(),
         response: z.object({
+          access_programs: openaiResponsesAccessProgramsSchema().nullish(),
           prompt_cache_diagnostics:
             openaiResponsesPromptCacheDiagnosticsSchema().nullish(),
           input_transformations: z
@@ -1897,6 +1906,7 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
           ]),
         )
         .optional(),
+      access_programs: openaiResponsesAccessProgramsSchema().nullish(),
       service_tier: z.string().nullish(),
       prompt_cache_diagnostics:
         openaiResponsesPromptCacheDiagnosticsSchema().nullish(),

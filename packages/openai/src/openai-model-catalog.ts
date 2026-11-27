@@ -16,6 +16,7 @@ type OpenAILanguageProviderOption = keyof OpenAILanguageModelResponsesOptions;
  */
 export const openaiProviderOptions = {
   language: {
+    accessPrograms: { description: 'Access program, such as Daybreak.' },
     conversation: { description: 'OpenAI Conversation ID to continue.' },
     include: { description: 'Extra fields to include in the response.' },
     includeWebSearchSources: {

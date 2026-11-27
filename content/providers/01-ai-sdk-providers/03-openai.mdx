@@ -340,6 +340,16 @@ The following provider options are available:
 - **safetyIdentifier** _string_
   A stable identifier used to help detect users of your application that may be violating OpenAI's usage policies. The IDs should be a string that uniquely identifies each user.
 
+- **accessPrograms** _Record&lt;string, string&gt;_
+  Selects OpenAI access programs for the request, sent as `access_programs`.
+  Keys are program categories and values are program names, passed to OpenAI
+  unchanged. For example, `{ cyber: 'daybreak_blue' }` selects the
+  [Daybreak](https://developers.openai.com/api/docs/guides/daybreak) Blue program.
+  OpenAI validates the names, requires an API key from a project with the program
+  enabled, and rejects a model that doesn't support the selected program.
+  When omitted, OpenAI applies the model's default.
+  The applied program is returned as `providerMetadata.openai.accessPrograms`.
+
 - **systemMessageMode** _'system' | 'developer' | 'remove'_
   Controls the role of the system message when making requests. By default (when omitted), for models that support reasoning the `system` message is automatically converted to a `developer` message. Setting `systemMessageMode` to `system` passes the system message as a system-level instruction; `developer` passes it as a developer message; `remove` omits the system message from the request.
 
@@ -395,6 +405,10 @@ The following OpenAI-specific metadata may be returned:
   Input items that OpenAI changed before generation, such as dropped reasoning
   items. Each entry contains `type`, `action`, `reason`, and, when supplied by
   OpenAI, `id`. Available on generation, streaming, and batch results.
+- **accessPrograms** _(optional)_
+  Access programs OpenAI applied to the request, keyed by program category, such as
+  `{ cyber: 'daybreak_blue' }`. Omitted when OpenAI reports none. Available on
+  generation, streaming, and batch results.
 
 #### Preserving Reasoning Across Turns
 

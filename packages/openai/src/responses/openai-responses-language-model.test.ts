@@ -2340,6 +2340,178 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send accessPrograms provider option', async () => {
+        const { warnings } = await createModel('gpt-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              accessPrograms: { cyber: 'daybreak_blue' },
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          access_programs: { cyber: 'daybreak_blue' },
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should not send access_programs when accessPrograms is not set', async () => {
+        const { request } = await createModel('gpt-5').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+          'access_programs',
+        );
+        expect(request?.body).not.toHaveProperty('access_programs');
+      });
+
+      it('should reject a null accessPrograms provider option', async () => {
+        await expect(
+          createModel('gpt-5').doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              openai: {
+                accessPrograms: null,
+              } as unknown as OpenAILanguageModelResponsesOptions,
+            },
+          }),
+        ).rejects.toThrow();
+
+        expect(server.calls).toHaveLength(0);
+      });
+
+      it('should pass access program names and categories through unchanged', async () => {
+        await createModel('gpt-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              accessPrograms: {
+                cyber: 'daybreak_purple',
+                bio: 'future_program',
+              },
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).access_programs,
+        ).toStrictEqual({ cyber: 'daybreak_purple', bio: 'future_program' });
+      });
+
+      it('should reject a non-string access program name', async () => {
+        await expect(
+          createModel('gpt-5').doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              openai: {
+                accessPrograms: { cyber: null },
+              } as unknown as OpenAILanguageModelResponsesOptions,
+            },
+          }),
+        ).rejects.toThrow();
+
+        expect(server.calls).toHaveLength(0);
+      });
+
+      it('should expose the applied access programs in provider metadata', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_daybreak',
+            object: 'response',
+            created_at: 1741257730,
+            status: 'completed',
+            error: null,
+            incomplete_details: null,
+            model: 'gpt-6-sol',
+            output: [
+              {
+                id: 'msg_daybreak',
+                type: 'message',
+                status: 'completed',
+                role: 'assistant',
+                content: [
+                  { type: 'output_text', text: 'answer text', annotations: [] },
+                ],
+              },
+            ],
+            access_programs: { cyber: 'daybreak_blue', bio: 'future_program' },
+            usage: {
+              input_tokens: 10,
+              input_tokens_details: { cached_tokens: 0 },
+              output_tokens: 2,
+              output_tokens_details: { reasoning_tokens: 0 },
+              total_tokens: 12,
+            },
+          },
+        };
+
+        const result = await createModel('gpt-6-sol').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              accessPrograms: { cyber: 'daybreak_blue' },
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(result.providerMetadata).toStrictEqual({
+          openai: {
+            responseId: 'resp_daybreak',
+            accessPrograms: { cyber: 'daybreak_blue', bio: 'future_program' },
+          },
+        });
+      });
+
+      it('should omit access programs from provider metadata when the response reports null', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_standard',
+            object: 'response',
+            created_at: 1741257730,
+            status: 'completed',
+            error: null,
+            incomplete_details: null,
+            model: 'gpt-6-sol',
+            output: [
+              {
+                id: 'msg_standard',
+                type: 'message',
+                status: 'completed',
+                role: 'assistant',
+                content: [
+                  { type: 'output_text', text: 'answer text', annotations: [] },
+                ],
+              },
+            ],
+            access_programs: null,
+            usage: {
+              input_tokens: 10,
+              input_tokens_details: { cached_tokens: 0 },
+              output_tokens: 2,
+              output_tokens_details: { reasoning_tokens: 0 },
+              total_tokens: 12,
+            },
+          },
+        };
+
+        const result = await createModel('gpt-6-sol').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.providerMetadata).toStrictEqual({
+          openai: { responseId: 'resp_standard' },
+        });
+      });
+
       it('should send serviceTier fast provider option', async () => {
         const { warnings } = await createModel('gpt-5').doGenerate({
           prompt: TEST_PROMPT,
@@ -9511,6 +9683,101 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         },
       });
+    });
+
+    it('should expose the applied access programs when streaming', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:${JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_daybreak',
+              created_at: 1783620000,
+              model: 'gpt-6-sol',
+            },
+          })}\n\n`,
+          `data:${JSON.stringify({
+            type: 'response.completed',
+            response: {
+              incomplete_details: null,
+              access_programs: { cyber: 'daybreak_blue' },
+              usage: {
+                input_tokens: 10,
+                input_tokens_details: { cached_tokens: 0 },
+                output_tokens: 2,
+                output_tokens_details: { reasoning_tokens: 0 },
+              },
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('gpt-6-sol').doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          openai: {
+            accessPrograms: { cyber: 'daybreak_blue' },
+          } satisfies OpenAILanguageModelResponsesOptions,
+        },
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        access_programs: { cyber: 'daybreak_blue' },
+        stream: true,
+      });
+      expect(events.at(-1)).toMatchObject({
+        type: 'finish',
+        providerMetadata: {
+          openai: {
+            responseId: 'resp_daybreak',
+            accessPrograms: { cyber: 'daybreak_blue' },
+          },
+        },
+      });
+    });
+
+    it('should omit access programs when the streamed response reports null', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:${JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_standard',
+              created_at: 1783620000,
+              model: 'gpt-6-sol',
+            },
+          })}\n\n`,
+          `data:${JSON.stringify({
+            type: 'response.completed',
+            response: {
+              incomplete_details: null,
+              access_programs: null,
+              usage: {
+                input_tokens: 10,
+                input_tokens_details: { cached_tokens: 0 },
+                output_tokens: 2,
+                output_tokens_details: { reasoning_tokens: 0 },
+              },
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('gpt-6-sol').doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+      const finish = events.at(-1);
+
+      expect(finish?.type).toBe('finish');
+      expect(
+        (finish as Extract<typeof finish, { type: 'finish' }>).providerMetadata,
+      ).toStrictEqual({ openai: { responseId: 'resp_standard' } });
     });
 
     it('Should handle service tier', async () => {

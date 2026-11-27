@@ -969,6 +969,9 @@ async function convertOpenAIBatchResult(
       ...(response.input_transformations != null
         ? { inputTransformations: response.input_transformations }
         : {}),
+      ...(response.access_programs != null
+        ? { accessPrograms: response.access_programs }
+        : {}),
     },
   };
 

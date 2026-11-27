@@ -677,6 +677,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       }),
 
       // provider options:
+      ...(openaiOptions?.accessPrograms != null && {
+        access_programs: openaiOptions.accessPrograms,
+      }),
       conversation: openaiOptions?.conversation,
       max_tool_calls: openaiOptions?.maxToolCalls,
       metadata: openaiOptions?.metadata,
@@ -1612,6 +1615,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         ...(response.input_transformations != null
           ? { inputTransformations: response.input_transformations }
           : {}),
+        ...(response.access_programs != null
+          ? { accessPrograms: response.access_programs }
+          : {}),
       } satisfies ResponsesProviderMetadata,
     };
 
@@ -1785,6 +1791,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     let reasoningContext: ResponsesProviderMetadata['reasoningContext'];
     let promptCacheDiagnostics: ResponsesProviderMetadata['promptCacheDiagnostics'];
     let inputTransformations: ResponsesProviderMetadata['inputTransformations'];
+    let accessPrograms: ResponsesProviderMetadata['accessPrograms'];
     const hostedToolSearchCallIds: string[] = [];
     let encounteredStreamError = false;
 
@@ -2998,6 +3005,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 value.response.prompt_cache_diagnostics ?? undefined;
               inputTransformations =
                 value.response.input_transformations ?? undefined;
+              accessPrograms = value.response.access_programs ?? undefined;
               if (typeof value.response.service_tier === 'string') {
                 serviceTier = value.response.service_tier;
               }
@@ -3009,6 +3017,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 value.response.prompt_cache_diagnostics ?? undefined;
               inputTransformations =
                 value.response.input_transformations ?? undefined;
+              accessPrograms = value.response.access_programs ?? undefined;
               const incompleteReason =
                 value.response.incomplete_details?.reason;
               finishReason = {
@@ -3119,6 +3128,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 ...(inputTransformations !== undefined
                   ? { inputTransformations }
                   : {}),
+                ...(accessPrograms !== undefined ? { accessPrograms } : {}),
               } satisfies ResponsesProviderMetadata,
             };
 
