@@ -26,6 +26,11 @@ export const mcpServer = createProviderExecutedToolFactory<
     headers?: Record<string, string>;
     /** Names of the MCP tools the model may call. */
     allowedTools?: string[];
+    /**
+     * Hold back the schemas of every tool this server exposes until the model
+     * retrieves them. Requires `googleTools.toolSearch()`.
+     */
+    deferLoading?: boolean;
   }
 >({
   id: 'google.mcp_server',

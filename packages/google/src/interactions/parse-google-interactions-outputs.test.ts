@@ -399,4 +399,82 @@ describe('parseGoogleInteractionsOutputs', () => {
       expect(content).toEqual([]);
     });
   });
+
+  describe('tool search steps', () => {
+    it('emits a provider-executed call/result pair carrying the signatures needed for replay', () => {
+      const steps = [
+        {
+          type: 'tool_search_call',
+          id: 'search-1',
+          arguments: { function_names: ['convertCurrency'] },
+          signature: 'search-call-sig',
+        },
+        {
+          type: 'tool_search_result',
+          call_id: 'search-1',
+          result: [{ type: 'function', name: 'convertCurrency' }],
+          signature: 'search-result-sig',
+        },
+      ] as Array<GoogleInteractionsStep>;
+
+      const { content } = parseGoogleInteractionsOutputs({
+        steps,
+        generateId,
+        interactionId: 'v1_interaction',
+      });
+
+      expect(content).toMatchInlineSnapshot(`
+        [
+          {
+            "input": "{"function_names":["convertCurrency"]}",
+            "providerExecuted": true,
+            "providerMetadata": {
+              "google": {
+                "interactionId": "v1_interaction",
+                "signature": "search-call-sig",
+              },
+            },
+            "toolCallId": "search-1",
+            "toolName": "tool_search",
+            "type": "tool-call",
+          },
+          {
+            "providerMetadata": {
+              "google": {
+                "interactionId": "v1_interaction",
+                "signature": "search-result-sig",
+              },
+            },
+            "result": [
+              {
+                "name": "convertCurrency",
+                "type": "function",
+              },
+            ],
+            "toolCallId": "search-1",
+            "toolName": "tool_search",
+            "type": "tool-result",
+          },
+        ]
+      `);
+    });
+
+    it('leaves other built-in tool steps without signature metadata', () => {
+      const steps = [
+        {
+          type: 'google_search_call',
+          id: 'gs-1',
+          arguments: { query: 'weather' },
+          signature: 'google-search-sig',
+        },
+      ] as Array<GoogleInteractionsStep>;
+
+      const { content } = parseGoogleInteractionsOutputs({
+        steps,
+        generateId,
+      });
+
+      expect(content[0]).not.toHaveProperty('providerMetadata');
+    });
+  });
 });

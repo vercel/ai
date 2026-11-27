@@ -137,11 +137,13 @@ export function synthesizeGoogleInteractionsAgentStream({
             break;
           }
           case 'tool-result': {
+            const providerMetadata = part.providerMetadata;
             controller.enqueue({
               type: 'tool-result',
               toolCallId: part.toolCallId,
               toolName: part.toolName,
               result: part.result,
+              ...(providerMetadata ? { providerMetadata } : {}),
             });
             break;
           }

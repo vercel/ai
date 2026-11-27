@@ -2199,6 +2199,7 @@ tools under `google.tools.*` map onto Interactions tool descriptors:
 | `google.tools.fileSearch`             | `file_search`          | Retrieval from File Search stores.        |
 | `google.tools.googleMaps`             | `google_maps`          | Maps grounding for nearby-places queries. |
 | `google.tools.mcpServer`              | `mcp_server`           | Remote MCP server passthrough.            |
+| `google.tools.toolSearch`             | `tool_search`          | Load deferred tool schemas on demand.     |
 | _provider tool_ `google.computer_use` | `computer_use`         | Computer use (browser environment).       |
 | _provider tool_ `google.retrieval`    | `retrieval`            | Vertex AI Search retrieval.               |
 
@@ -2268,6 +2269,68 @@ const { text } = await generateText({
   prompt: 'What is the weather in San Francisco right now?',
 });
 ```
+
+### Tool Retrieval
+
+With a large tool library, sending every parameter schema on every request
+costs input tokens and latency. `google.tools.toolSearch` lets the model load
+those schemas on demand: tools marked
+`providerOptions: { google: { deferLoading: true } }` are sent as a name plus an
+optional `shortDescription`, and the model retrieves the full schema when it
+needs it — within the same request.
+
+The tool must be registered under the name `tool_search`. Tool Retrieval
+requires Gemini 3.6 or later and is only available on the Interactions API.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText, isStepCount, tool } from 'ai';
+import { z } from 'zod';
+
+const { text } = await generateText({
+  model: google.interactions('gemini-4-argon'),
+  tools: {
+    tool_search: google.tools.toolSearch({}),
+    convertCurrency: tool({
+      description: 'Convert an amount between currencies at today’s rate.',
+      inputSchema: z.object({
+        amount: z.number(),
+        from: z.string(),
+        to: z.string(),
+      }),
+      providerOptions: {
+        google: { deferLoading: true, shortDescription: 'Convert currencies.' },
+      },
+      execute: async ({ amount, from, to }) => ({
+        amount,
+        from,
+        to,
+        rate: 11.2,
+      }),
+    }),
+  },
+  stopWhen: isStepCount(5),
+  prompt: 'How much is 100 EUR in SEK?',
+});
+```
+
+The retrieval round trip is surfaced as a provider-executed tool call and
+result under the `tool_search` tool name.
+
+`deferLoading` also works on `google.tools.mcpServer`, which defers every tool
+that server exposes:
+
+```ts
+google.tools.mcpServer({
+  name: 'local-mcp',
+  url: 'https://example.com/mcp',
+  deferLoading: true,
+});
+```
+
+A tool forced through `toolChoice` cannot wait for a retrieval round trip, so
+it is declared in full and a warning is emitted; with
+`toolChoice: 'required'` the tool search tool is dropped for that request.
 
 ### Image output via Interactions
 

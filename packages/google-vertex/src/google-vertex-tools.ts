@@ -9,4 +9,5 @@ export const googleVertexTools = {
   codeExecution: googleTools.codeExecution,
   vertexRagStore: googleTools.vertexRagStore,
   mcpServer: googleTools.mcpServer,
+  toolSearch: googleTools.toolSearch,
 };

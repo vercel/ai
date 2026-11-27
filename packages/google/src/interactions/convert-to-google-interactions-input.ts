@@ -27,6 +27,12 @@ import {
   type GoogleInteractionsFileOptions,
 } from './google-interactions-file-options';
 
+/**
+ * Name the Tool Retrieval tool must be registered under, matching the
+ * `tool_search_call` / `tool_search_result` steps the API sends back.
+ */
+const TOOL_SEARCH_TOOL_NAME = 'tool_search';
+
 export type GoogleInteractionsMediaResolution =
   | 'low'
   | 'medium'
@@ -214,12 +220,59 @@ export function convertToGoogleInteractionsInput({
               typeof part.input === 'string'
                 ? safeParseToolArgs(part.input)
                 : ((part.input ?? {}) as Record<string, unknown>);
+
+            if (
+              part.providerExecuted === true &&
+              part.toolName === TOOL_SEARCH_TOOL_NAME
+            ) {
+              if (signature == null) {
+                warnings.push({
+                  type: 'other',
+                  message: `google.interactions: tool search call "${part.toolCallId}" has no signature; step dropped.`,
+                });
+                continue;
+              }
+              steps.push({
+                type: 'tool_search_call',
+                id: part.toolCallId,
+                arguments: args,
+                signature,
+              });
+              continue;
+            }
+
             steps.push({
               type: 'function_call',
               id: part.toolCallId,
               name: part.toolName,
               arguments: args,
               ...(signature != null ? { signature } : {}),
+            });
+          } else if (
+            part.type === 'tool-result' &&
+            part.toolName === TOOL_SEARCH_TOOL_NAME
+          ) {
+            /*
+             * Provider-executed results ride along in the assistant turn.
+             * Other built-in tools are not replayed; tool search is, because
+             * the loaded declarations are what the following call depends on.
+             */
+            flushModelOutput();
+            const signature = part.providerOptions?.google?.signature as
+              | string
+              | undefined;
+            if (signature == null) {
+              warnings.push({
+                type: 'other',
+                message: `google.interactions: tool search result for "${part.toolCallId}" has no signature; step dropped.`,
+              });
+              continue;
+            }
+            steps.push({
+              type: 'tool_search_result',
+              call_id: part.toolCallId,
+              result: part.output.type === 'json' ? part.output.value : [],
+              signature,
             });
           } else {
             warnings.push({

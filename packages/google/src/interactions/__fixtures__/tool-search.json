@@ -1,0 +1,65 @@
+{
+  "id": "v1_toolSearchFixtureInteractionId",
+  "status": "completed",
+  "usage": {
+    "total_tokens": 842,
+    "total_input_tokens": 196,
+    "input_tokens_by_modality": [{ "modality": "text", "tokens": 196 }],
+    "total_cached_tokens": 0,
+    "total_output_tokens": 646,
+    "total_tool_use_tokens": 64,
+    "tool_use_tokens_by_modality": [{ "modality": "text", "tokens": 64 }],
+    "total_thought_tokens": 120
+  },
+  "created": "2026-11-20T10:14:02Z",
+  "updated": "2026-11-20T10:14:05Z",
+  "service_tier": "standard",
+  "steps": [
+    {
+      "type": "thought",
+      "signature": "tool-search-thought-signature",
+      "summary": [
+        {
+          "type": "text",
+          "text": "I need a currency conversion tool; let me load its schema."
+        }
+      ]
+    },
+    {
+      "type": "tool_search_call",
+      "id": "tool-search-call-1",
+      "arguments": { "function_names": ["convertCurrency"] },
+      "signature": "tool-search-call-signature"
+    },
+    {
+      "type": "tool_search_result",
+      "call_id": "tool-search-call-1",
+      "result": [
+        {
+          "type": "function",
+          "name": "convertCurrency",
+          "description": "Convert an amount between currencies.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "amount": { "type": "number" },
+              "from": { "type": "string" },
+              "to": { "type": "string" }
+            },
+            "required": ["amount", "from", "to"]
+          }
+        }
+      ],
+      "signature": "tool-search-result-signature"
+    },
+    {
+      "type": "function_call",
+      "id": "function-call-1",
+      "name": "convertCurrency",
+      "arguments": { "amount": 100, "from": "EUR", "to": "SEK" },
+      "signature": "function-call-signature"
+    }
+  ],
+  "object": "interaction",
+  "model": "gemini-2.5-flash"
+}

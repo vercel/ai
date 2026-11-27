@@ -4,6 +4,7 @@ import { fileSearch } from './tool/file-search';
 import { googleMaps } from './tool/google-maps';
 import { googleSearch } from './tool/google-search';
 import { mcpServer } from './tool/mcp-server';
+import { toolSearch } from './tool/tool-search';
 import { urlContext } from './tool/url-context';
 import { vertexRagStore } from './tool/vertex-rag-store';
 
@@ -79,4 +80,19 @@ export const googleTools = {
    * Headers carry connector credentials and are redacted from telemetry.
    */
   mcpServer,
+
+  /**
+   * Lets the model load the parameter schemas of deferred tools on demand
+   * instead of carrying the whole tool library in its context.
+   * Must have name "tool_search".
+   *
+   * Mark the tools to hold back with
+   * `providerOptions: { google: { deferLoading: true } }`.
+   *
+   * @note Only available with `google.interactions(...)`, on Gemini 3.6 and
+   * later models.
+   *
+   * @see https://aistudio.google.com/docs/tool-retrieval
+   */
+  toolSearch,
 };
