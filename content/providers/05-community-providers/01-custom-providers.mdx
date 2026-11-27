@@ -278,11 +278,17 @@ The optional `content` field enables rich tool results including images, providi
 
 #### Stream Parts
 
+Providers can include a provisional usage snapshot on `response-metadata` when
+usage is already known. The experimental `streamLanguageModelCall` API forwards
+it on `model-call-response-metadata`; `streamText().fullStream` does not expose
+response metadata events. Provisional counts can be partial or zero-filled and
+must never be added to the final usage reported by `finish` / `model-call-end`.
+
 The streaming system uses typed events for different stages:
 
 1. **Stream Lifecycle Events**:
    - `stream-start`: Initial event with any warnings about unsupported features
-   - `response-metadata`: Model information and response headers
+   - `response-metadata`: Model information and response headers, plus optional provisional `usage` known at response start (the `finish` usage remains authoritative)
    - `finish`: Final event with usage statistics and finish reason
    - `error`: Error events that can occur at any point
    - `ping`: Optional transient heartbeat with no generated content or usage; SDK consumers must support this stream part before a provider enables it
