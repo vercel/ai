@@ -1,4 +1,5 @@
 import {
+  InvalidPromptError,
   UnsupportedFunctionalityError,
   type JSONObject,
   type JSONValue,
@@ -21,7 +22,7 @@ import {
   resolveProviderReference,
   safeValidateTypes,
   secureJsonParse,
-  validateTypes,
+  type FlexibleSchema,
   type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import {
@@ -82,6 +83,35 @@ function extractErrorValue(value: unknown): { errorCode?: string } {
     };
   }
   return {};
+}
+
+/**
+ * Validates the output of a provider-executed tool result in the prompt.
+ * The value comes from the caller's message history, so a mismatch is an
+ * invalid prompt rather than an invalid provider response.
+ */
+async function validateToolOutput<OUTPUT>({
+  value,
+  schema,
+  toolName,
+  prompt,
+}: {
+  value: unknown;
+  schema: FlexibleSchema<OUTPUT>;
+  toolName: string;
+  prompt: LanguageModelV4Prompt;
+}): Promise<OUTPUT> {
+  const result = await safeValidateTypes({ value, schema });
+
+  if (!result.success) {
+    throw new InvalidPromptError({
+      prompt,
+      message: `the provider-executed tool result for tool '${toolName}' does not match the expected output format.`,
+      cause: result.error,
+    });
+  }
+
+  return result.value;
 }
 
 /** Return undefined to use the default file conversion. */
@@ -1303,9 +1333,11 @@ export async function convertToAnthropicPrompt({
                   // we check the type property in output.value
                   if (output.value.type === 'code_execution_result') {
                     // code execution 20250522
-                    const codeExecutionOutput = await validateTypes({
+                    const codeExecutionOutput = await validateToolOutput({
                       value: output.value,
                       schema: codeExecution_20250522OutputSchema,
+                      toolName: part.toolName,
+                      prompt,
                     });
 
                     anthropicContent.push({
@@ -1324,9 +1356,11 @@ export async function convertToAnthropicPrompt({
                     output.value.type === 'encrypted_code_execution_result'
                   ) {
                     // code execution 20260120 encrypted result
-                    const codeExecutionOutput = await validateTypes({
+                    const codeExecutionOutput = await validateToolOutput({
                       value: output.value,
                       schema: codeExecution_20260120OutputSchema,
+                      toolName: part.toolName,
+                      prompt,
                     });
 
                     if (
@@ -1349,9 +1383,11 @@ export async function convertToAnthropicPrompt({
                     }
                   } else {
                     // code execution 20250825
-                    const codeExecutionOutput = await validateTypes({
+                    const codeExecutionOutput = await validateToolOutput({
                       value: output.value,
                       schema: codeExecution_20250825OutputSchema,
+                      toolName: part.toolName,
+                      prompt,
                     });
 
                     if (codeExecutionOutput.type === 'code_execution_result') {
@@ -1435,9 +1471,11 @@ export async function convertToAnthropicPrompt({
                   // ideally we'd switch schema based on the tool version, but
                   // all supported versions share an identical output schema,
                   // so we use one here.
-                  const webFetchOutput = await validateTypes({
+                  const webFetchOutput = await validateToolOutput({
                     value: output.value,
                     schema: webFetch_20250910OutputSchema,
+                    toolName: part.toolName,
+                    prompt,
                   });
 
                   anthropicContent.push({
@@ -1500,9 +1538,11 @@ export async function convertToAnthropicPrompt({
                   // ideally we'd switch schema based on the tool version, but
                   // all supported versions share an identical output schema,
                   // so we use one here.
-                  const webSearchOutput = await validateTypes({
+                  const webSearchOutput = await validateToolOutput({
                     value: output.value,
                     schema: webSearch_20250305OutputSchema,
+                    toolName: part.toolName,
+                    prompt,
                   });
 
                   anthropicContent.push({
@@ -1561,9 +1601,11 @@ export async function convertToAnthropicPrompt({
                     break;
                   }
 
-                  const toolSearchOutput = await validateTypes({
+                  const toolSearchOutput = await validateToolOutput({
                     value: output.value,
                     schema: toolSearchOutputSchema,
+                    toolName: part.toolName,
+                    prompt,
                   });
 
                   // Convert tool references back to API format
@@ -1597,9 +1639,11 @@ export async function convertToAnthropicPrompt({
                     break;
                   }
 
-                  const advisorOutput = await validateTypes({
+                  const advisorOutput = await validateToolOutput({
                     value: output.value,
                     schema: advisor_20260301OutputSchema,
+                    toolName: part.toolName,
+                    prompt,
                   });
 
                   if (advisorOutput.type === 'advisor_result') {
