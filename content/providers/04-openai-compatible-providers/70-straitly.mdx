@@ -1,0 +1,105 @@
+---
+title: Straitly
+description: Use the Straitly OpenAI compatible API with the AI SDK.
+---
+
+# Straitly Provider
+
+[Straitly](https://straitly.ai) is an AI gateway that provides access to more than 150 models from multiple labs through a single OpenAI-compatible API. You can use its Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Create a Straitly API key and set it as a server-side environment variable:
+
+```bash
+export STRAITLY_API_KEY=your-api-key
+```
+
+See the [Straitly quickstart](https://straitly.ai/docs/quickstart) for instructions on creating an API key.
+
+## Provider Instance
+
+Create a Straitly provider instance with `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const straitly = createOpenAICompatible({
+  name: 'straitly',
+  apiKey: process.env.STRAITLY_API_KEY,
+  baseURL: 'https://api.straitly.ai/v1',
+});
+```
+
+The `apiKey` setting sends your key as a Bearer token in the `Authorization` header.
+
+## Language Models
+
+Create a language model by passing a Straitly model ID from the [model catalog](https://straitly.ai/models) to the provider instance, for example `claude-sonnet-5-5` or `deepseek/deepseek-v4-1-flash-1017`:
+
+```ts
+const model = straitly('claude-sonnet-5-5');
+```
+
+### Generate Text
+
+Use `generateText` to generate text with the model:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const straitly = createOpenAICompatible({
+  name: 'straitly',
+  apiKey: process.env.STRAITLY_API_KEY,
+  baseURL: 'https://api.straitly.ai/v1',
+});
+
+const { text } = await generateText({
+  model: straitly('claude-sonnet-5-5'),
+  prompt: 'Explain what an AI gateway does in one sentence.',
+});
+
+console.log(text);
+```
+
+### Stream Text
+
+Use `streamText` to stream text as it is generated:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const straitly = createOpenAICompatible({
+  name: 'straitly',
+  apiKey: process.env.STRAITLY_API_KEY,
+  baseURL: 'https://api.straitly.ai/v1',
+});
+
+const result = streamText({
+  model: straitly('claude-sonnet-5-5'),
+  prompt: 'Count from 1 to 5, separated by spaces.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+## Supported Models and Capabilities
+
+This integration uses Straitly's OpenAI-compatible Chat Completions endpoint (`https://api.straitly.ai/v1`) for text generation and streaming. Support for tools, vision, structured outputs, and other model-specific features depends on the selected model.
+
+Use the [`GET /api/catalog`](https://straitly.ai/api/catalog) endpoint or the [model catalog](https://straitly.ai/models) to browse current model IDs.
+
+## Resources
+
+- [Straitly Vercel AI SDK integration guide](https://straitly.ai/integrations/vercel-ai-sdk)
+- [Straitly API documentation](https://straitly.ai/docs/quickstart)
+- [Straitly model catalog](https://straitly.ai/models)
+- [AI SDK OpenAI Compatible provider](/providers/openai-compatible-providers)
