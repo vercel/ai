@@ -3,9 +3,14 @@ import {
   type LanguageModelV4CallOptions,
   type LanguageModelV4FunctionTool,
 } from '@ai-sdk/provider';
+import {
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
+} from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
+import { SubquadraticChatLanguageModel } from './subquadratic-chat-language-model';
 import { createSubquadratic } from './subquadratic-provider';
 
 const chatFixture = JSON.parse(
@@ -236,6 +241,42 @@ describe('response', () => {
         outputTokens: { total: 10, text: 3, reasoning: 7 },
       },
     });
+  });
+
+  it('restores the endpoint, authentication, and request transforms across workflow serialization', async () => {
+    const { model, fetch } = createModel();
+    const serialized = SubquadraticChatLanguageModel[WORKFLOW_SERIALIZE](
+      model as SubquadraticChatLanguageModel,
+    );
+    expect(serialized.config.fetch).toBeUndefined();
+    vi.stubGlobal('fetch', fetch);
+    const restored = SubquadraticChatLanguageModel[WORKFLOW_DESERIALIZE]({
+      modelId: serialized.modelId,
+      config: serialized.config as unknown as Parameters<
+        (typeof SubquadraticChatLanguageModel)[typeof WORKFLOW_DESERIALIZE]
+      >[0]['config'],
+    });
+
+    const result = await restored.doGenerate({
+      prompt,
+      temperature: 0.2,
+      reasoning: 'medium',
+    });
+
+    expect(restored).toMatchObject({
+      provider: 'subquadratic.chat',
+      modelId: 'subq-savant-1.4',
+    });
+    const [url, init] = fetch.mock.calls[0];
+    expect(url).toBe('https://api.subq.ai/v1/chat/completions');
+    expect(new Headers(init?.headers).get('authorization')).toBe(
+      'Bearer test-key',
+    );
+    const body = JSON.parse(init?.body as string);
+    expect(body).not.toHaveProperty('temperature');
+    expect(body.reasoning_effort).toBe('high');
+    expect(result.usage.inputTokens.total).toBe(114);
+    vi.unstubAllGlobals();
   });
 
   it('surfaces OpenAI-style error messages', async () => {
