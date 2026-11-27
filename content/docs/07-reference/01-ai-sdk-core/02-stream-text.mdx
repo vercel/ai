@@ -584,8 +584,9 @@ retain the content their contracts require.
                   parameters: [
                     {
                       name: 'stopStream',
-                      type: '() => void',
-                      description: 'A function that stops the stream.',
+                      type: '(options?: { finishReason?: FinishReason }) => void',
+                      description:
+                        'A function that stops the stream. Parts that the transformation has not received yet are dropped, running tool executions are aborted, and no further steps are started. The stream is ended with closing parts for open text, reasoning, and tool input parts, followed by finish-step and finish parts with the given finish reason (default: other). After calling stopStream, the transformation only receives these parts and should pass them on.',
                     },
                     {
                       name: 'tools',

@@ -602,88 +602,31 @@ const upperCaseTransform =
 You can also stop the stream using the `stopStream` function.
 This is e.g. useful if you want to stop the stream when model guardrails are violated, e.g. by generating inappropriate content.
 
-When you invoke `stopStream`, it is important to simulate the `finish-step` and `finish` events to guarantee that a well-formed stream is returned
-and all callbacks are invoked.
+When you invoke `stopStream`:
+
+- Parts that your transformation has not received yet are dropped, including text that earlier transformations such as `smoothStream` still buffer.
+  Running tool executions are aborted, and no further steps are started.
+- The stream is ended with closing parts for open text, reasoning, and tool input parts, followed by `finish-step` and `finish` parts.
+  The step contains the content that your transformations passed on, and the `onStepEnd` and `onEnd` callbacks are invoked.
+- The finish reason is `other`, unless you pass a different one, e.g. `stopStream({ finishReason: 'content-filter' })`.
+
+After calling `stopStream`, your transformation only receives the parts that end the stream.
+Pass them on, so that the stream ends with well-formed parts.
 
 ```ts
-import { streamText, type TextStreamPart, type ToolSet } from 'ai';
+import { streamText, type StreamTextTransform, type ToolSet } from 'ai';
 
 const stopWordTransform =
-  <TOOLS extends ToolSet>() =>
-  ({ stopStream }: { stopStream: () => void }) =>
-    new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
-      // note: this is a simplified transformation for testing;
-      // in a real-world version more there would need to be
+  <TOOLS extends ToolSet>(): StreamTextTransform<TOOLS> =>
+  ({ stopStream }) =>
+    new TransformStream({
+      // note: this is a simplified transformation;
+      // in a real-world version there would need to be
       // stream buffering and scanning to correctly emit prior text
       // and to detect all STOP occurrences.
       transform(chunk, controller) {
-        if (chunk.type !== 'text-delta') {
-          controller.enqueue(chunk);
-          return;
-        }
-
-        if (chunk.text.includes('STOP')) {
-          // stop the stream
-          stopStream();
-
-          // simulate the finish-step event
-          controller.enqueue({
-            type: 'finish-step',
-            finishReason: 'stop',
-            rawFinishReason: 'stop',
-            usage: {
-              inputTokens: undefined,
-              inputTokenDetails: {
-                cacheReadTokens: undefined,
-                cacheWriteTokens: undefined,
-                noCacheTokens: undefined,
-              },
-              outputTokens: undefined,
-              outputTokenDetails: {
-                reasoningTokens: undefined,
-                textTokens: undefined,
-              },
-              totalTokens: undefined,
-            },
-            performance: {
-              effectiveOutputTokensPerSecond: 0,
-              outputTokensPerSecond: undefined,
-              inputTokensPerSecond: undefined,
-              effectiveTotalTokensPerSecond: 0,
-              stepTimeMs: 0,
-              responseTimeMs: 0,
-              toolExecutionMs: {},
-              timeToFirstOutputMs: undefined,
-            },
-            response: {
-              id: 'response-id',
-              modelId: 'mock-model-id',
-              timestamp: new Date(0),
-            },
-            providerMetadata: undefined,
-          });
-
-          // simulate the finish event
-          controller.enqueue({
-            type: 'finish',
-            finishReason: 'stop',
-            rawFinishReason: 'stop',
-            totalUsage: {
-              inputTokens: undefined,
-              inputTokenDetails: {
-                cacheReadTokens: undefined,
-                cacheWriteTokens: undefined,
-                noCacheTokens: undefined,
-              },
-              outputTokens: undefined,
-              outputTokenDetails: {
-                reasoningTokens: undefined,
-                textTokens: undefined,
-              },
-              totalTokens: undefined,
-            },
-          });
-
+        if (chunk.type === 'text-delta' && chunk.text.includes('STOP')) {
+          stopStream({ finishReason: 'content-filter' });
           return;
         }
 
