@@ -1032,4 +1032,35 @@ console.log(text);`,
     websiteUrl: 'https://upstash.com',
     npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
   },
+  {
+    slug: 'onebrain',
+    name: 'One Brain',
+    description:
+      "Give agents your team's knowledge base. Tools to search, read and list knowledge files, skills and memories, remember new facts, and propose file edits a person approves. withOneBrain adds recall before each answer and stores each finished turn as a session One Brain learns from.",
+    packageName: '@useonebrain/ai-sdk',
+    tags: ['memory', 'knowledge-base', 'skills', 'search'],
+    apiKeyEnvName: 'ONEBRAIN_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @useonebrain/ai-sdk',
+      npm: 'npm install @useonebrain/ai-sdk',
+      yarn: 'yarn add @useonebrain/ai-sdk',
+      bun: 'bun add @useonebrain/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { onebrainTools, withOneBrain } from '@useonebrain/ai-sdk';
+
+const { text } = await generateText({
+  model: withOneBrain('anthropic/claude-sonnet-5.5'),
+  prompt: 'When does Northwind renew, and who is their champion?',
+  tools: onebrainTools(),
+  stopWhen: isStepCount(5),
+  providerOptions: { onebrain: { sessionId: 'demo' } },
+});
+
+console.log(text);`,
+    docsUrl: 'https://useonebrain.com/integrations/ai-sdk',
+    apiKeyUrl: 'https://app.useonebrain.com',
+    websiteUrl: 'https://useonebrain.com',
+    npmUrl: 'https://www.npmjs.com/package/@useonebrain/ai-sdk',
+  },
 ];
