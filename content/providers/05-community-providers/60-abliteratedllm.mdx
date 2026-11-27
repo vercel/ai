@@ -1,0 +1,146 @@
+---
+title: AbliteratedLLM
+description: Learn how to use the AbliteratedLLM provider for the AI SDK.
+---
+
+# AbliteratedLLM
+
+[AbliteratedLLM](https://abliteratedllm.dev) provides an OpenAI-compatible inference API for abliterated and stock open-weights language models, including GLM, DeepSeek, Kimi, Ember, Muse Spark, Qwen, and MiniMax models.
+
+The AbliteratedLLM provider for the AI SDK supports:
+
+- **Text generation**: chat and legacy completions with streaming and usage reporting
+- **Tool calling**: function tools, `tool_choice`, and tool streaming across all models
+- **Structured output**: strict `json_schema` object generation
+- **Multimodal input**: image input on vision-capable models
+
+Learn more in the [AbliteratedLLM documentation](https://abliteratedllm.dev/docs).
+
+## Setup
+
+The AbliteratedLLM provider is available in the `@abliteratedllm/ai-sdk-provider` module. You can install it with:
+
+<InstallPackages packages="@abliteratedllm/ai-sdk-provider" />
+
+Set your AbliteratedLLM API key as an environment variable:
+
+```bash
+ABLITERATEDLLM_API_KEY=your-api-key
+```
+
+## Provider Instance
+
+You can import the default provider instance `abliteratedllm` from `@abliteratedllm/ai-sdk-provider`:
+
+```ts
+import { abliteratedllm } from '@abliteratedllm/ai-sdk-provider';
+```
+
+If you need a customized setup, you can use `createAbliteratedLLM` and create a provider instance with your settings:
+
+```ts
+import { createAbliteratedLLM } from '@abliteratedllm/ai-sdk-provider';
+
+const abliteratedllm = createAbliteratedLLM({
+  apiKey: process.env.ABLITERATEDLLM_API_KEY ?? '',
+});
+```
+
+You can use the following optional settings to customize the AbliteratedLLM provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `https://api.abliteratedllm.dev/v1`.
+
+- **apiKey** _string | (() =&gt; string | PromiseLike&lt;string&gt;)_
+
+  API key sent in the `Authorization` header as a Bearer token.
+  It defaults to the `ABLITERATEDLLM_API_KEY` environment variable.
+
+- **headers** _Record&lt;string, string&gt;_
+
+  Custom headers to include in requests.
+
+- **queryParams** _Record&lt;string, string&gt;_
+
+  Optional custom URL query parameters to include in request URLs.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) =&gt; Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
+- **includeUsage** _boolean_
+
+  Include usage information in streaming responses. Defaults to `true`.
+
+- **supportsStructuredOutputs** _boolean_
+
+  Use strict `json_schema` response formatting for structured outputs. Defaults to `true`.
+
+## Language Models
+
+You can create language models using a provider instance.
+The first argument is the model ID, for example:
+
+```ts
+const model = abliteratedllm('glm-5.3-flash-abliterated');
+```
+
+You can also use `abliteratedllm.chatModel(modelId)` or `abliteratedllm.languageModel(modelId)` for chat completions (`/v1/chat/completions`), and `abliteratedllm.completionModel(modelId)` for legacy completions (`/v1/completions`).
+
+### Example
+
+You can use AbliteratedLLM language models to generate text with the `generateText` function:
+
+```ts
+import { abliteratedllm } from '@abliteratedllm/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: abliteratedllm('glm-5.3-flash-abliterated'),
+  prompt: 'Explain how TLS 1.3 key exchange works.',
+});
+```
+
+AbliteratedLLM language models can also be used in the `streamText` function
+(see [AI SDK Core](/docs/ai-sdk-core)).
+
+### Model Capabilities
+
+| Model                                | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ------------------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
+| `glm-5.3-flash-abliterated`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `glm-5.3-cyber-abliterated`          | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `deepseek-v4.1-flash-1017`           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `deepseek-v4.1-flash-1017-ultrafast` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `deepseek-v4.1-flash-original`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `glm-5.3-flash`                      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `glm-5.3`                            | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `glm-5.3-fast`                       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `kimi-k3`                            | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `kimi-k3.1-pro`                      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `kimi-k3-fast`                       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `ember-1`                            | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `muse-spark-open`                    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `qwen3.8-max`                        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `qwen3.8-2.4t-a95b`                  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `minimax-m3`                         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+
+<Note>
+  Please see the [AbliteratedLLM model
+  documentation](https://abliteratedllm.dev/docs/models) or query
+  `https://api.abliteratedllm.dev/v1/models` for the full list of available
+  models, context lengths, and pricing. You can also pass any available model ID
+  as a string if needed.
+</Note>
+
+## Additional Resources
+
+- [AbliteratedLLM Provider Repository](https://github.com/abliteratedllm/ai-sdk-provider)
+- [NPM Package](https://www.npmjs.com/package/@abliteratedllm/ai-sdk-provider)
+- [AbliteratedLLM Documentation](https://abliteratedllm.dev/docs)
+- [AbliteratedLLM Models](https://abliteratedllm.dev/docs/models)
+- [AbliteratedLLM Pricing](https://abliteratedllm.dev/pricing)
