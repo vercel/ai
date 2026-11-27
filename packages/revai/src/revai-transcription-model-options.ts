@@ -5,10 +5,26 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
+/**
+ * Polling settings are consumed by the SDK and are not sent to the Rev.ai API.
+ * The shape is shared with the provider-level settings validation.
+ */
+export function revaiPollingOptionsShape() {
+  return {
+    /**
+     * Maximum time in milliseconds to wait for the transcription job to finish
+     * before throwing a `TranscriptionJobPollingTimedOut` error.
+     * Overrides the provider-level `pollTimeoutMs` setting for this call.
+     */
+    pollTimeoutMs: z.number().int().positive().nullish(),
+  };
+}
+
 // https://docs.rev.ai/api/asynchronous/reference/#operation/SubmitTranscriptionJob
 export const revaiTranscriptionModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      ...revaiPollingOptionsShape(),
       /**
        * Optional metadata string to associate with the transcription job.
        */
