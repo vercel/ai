@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import type { ModelCallStreamPart } from './do-stream-step.js';
 import { WorkflowAgent } from './workflow-agent.js';
+import { withoutDeliveryFields } from './test/stream-delivery-fields.js';
 
 const prompt = 'What is the weather in London?';
 
@@ -612,7 +613,7 @@ describe('WorkflowAgent stream completion contract', () => {
           let closed = false;
           const writable = new WritableStream<ModelCallStreamPart>({
             write(part) {
-              parts.push(part);
+              parts.push(withoutDeliveryFields(part));
             },
             close() {
               closed = true;

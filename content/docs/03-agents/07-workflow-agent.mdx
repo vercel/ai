@@ -190,7 +190,8 @@ return createUIMessageStreamResponse({
 A model-call step can run more than once. The workflow runtime runs it again when an execution did not report its outcome, for example because the function instance was terminated during the model call, and two executions can overlap.
 Every execution writes a `reset-step` event before its output and tags its stream parts with an `attemptId`.
 The transform forwards `reset-step`, so clients remove the partial parts of the earlier execution, and it forwards the parts of one execution only: the latest one, or the one named by the `commitAttemptId` that `WorkflowAgent` writes on its next stream part once the model step has returned.
-If you read the raw `ModelCallStreamPart` stream without the transform, apply the same rule.
+Tool results, step boundaries and the `finish` chunk are written by the next step that runs, usually the following model step, and carry a `writeId`. A step that writes them can run more than once, and the transform forwards each `writeId` once.
+If you read the raw `ModelCallStreamPart` stream without the transform, apply the same rules.
 
 ## Resumable Streaming with WorkflowChatTransport
 

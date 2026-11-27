@@ -9,6 +9,7 @@
 import { waitForSleep } from '@workflow/vitest';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { start } from 'workflow/api';
+import { getWorld } from 'workflow/runtime';
 
 import {
   agentBasicE2e,
@@ -176,6 +177,45 @@ describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
       const rv = await run.returnValue;
       expect(rv).toMatchObject({ stepCount: 2 });
       expect(rv.lastStepText).toBe('The sum is 10');
+    });
+
+    it('writes to the stream from the steps that run anyway', async () => {
+      const run = await start(agentToolCallE2e, [3, 7]);
+      const partsPromise = collectStream<{ type: string }>(run.readable);
+      await run.returnValue;
+      const parts = await partsPromise;
+
+      const stepNames = (
+        await (await getWorld()).steps.list({ runId: run.runId })
+      ).data
+        .map(step => step.stepName.split('//').at(-1) ?? '')
+        .filter(name => !name.endsWith('WorkflowAgentTelemetry'));
+
+      // Two model calls and one tool call. The tool call that the first model
+      // step left to the workflow is written while the tool runs, the tool
+      // result by the second model step, and one step ends the stream.
+      expect([...stepNames].sort()).toEqual(
+        [
+          'doStreamStep',
+          'writeStreamParts',
+          'addNumbers',
+          'doStreamStep',
+          'writeStreamParts',
+        ].sort(),
+      );
+
+      // The order on the stream is the order the UI needs.
+      const types = parts.map(part => part.type);
+      const order = [
+        'tool-call',
+        'tool-result',
+        'finish-step',
+        'start-step',
+        'reset-step',
+        'finish',
+      ].map(type => types.lastIndexOf(type));
+      expect(order).toEqual([...order].sort((a, b) => a - b));
+      expect(order.every(index => index >= 0)).toBe(true);
     });
 
     it('multiple sequential tool calls', async () => {
