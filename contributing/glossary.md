@@ -16,7 +16,9 @@
 - **Tool**: A capability the model can call with structured input to act on the outside world or get information. A tool call produces a tool result that goes back to the model.
   - **Built-in tool**: A tool that ships with and is implemented by a harness, such as running shell commands or editing files. The concept only applies to harnesses: a model on its own (e.g. a raw model API call) has no built-in tools, and to the model, a harness's built-in tools are regular tools like any host tool.
   - **Host tool**: A tool the application defines itself, as opposed to a harness's built-in tools; sometimes also referred to as "custom tool". The harness calls it, and it runs outside the harness, usually in the application's process.
-  - **Client tool**: A host tool that runs on the agent's client, e.g. in the browser session that sends requests to the agent, instead of in the application's process. The client provides the tool result later.
+  - **Client tool**: A host tool that runs on the agent's client, e.g. in the browser session that sends requests to the agent, instead of in the host application's process. The client provides the tool result later.
+  - **Provider-defined tool**: A tool whose input schema and description are specified by the provider. Execution may happen in the host application or in the provider's own API backend.
+  - **Provider-executed tool**: A provider-defined tool that the provider executes on its servers rather than in the host application.
 - **Tool approval**: The decision to allow or deny a tool call before it runs, made by a policy or by a person.
 - **Reasoning**: Text the model produces while thinking through a problem, separate from the response shown as the answer.
 - **Sandbox**: An isolated environment, such as a virtual machine or container, where the agent runs commands and changes files without affecting the host.
