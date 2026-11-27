@@ -421,6 +421,7 @@ export const gatewayModelIds = {
     'recraft/recraft-v4-pro',
     'recraft/recraft-v4.1',
     'recraft/recraft-v4.1-flash',
+    'recraft/recraft-v4.1-flash-v2',
     'recraft/recraft-v4.1-pro',
     'recraft/recraft-v4.1-utility',
     'recraft/recraft-v4.1-utility-pro',
