@@ -3,6 +3,7 @@
 import { GeistdocsProvider } from '@vercel/geistdocs/layout';
 import { useSelectedLayoutSegment } from 'next/navigation';
 import type { ComponentProps } from 'react';
+import { DocsWebMCP } from './webmcp';
 
 /** Mounted in [lang]/layout so the first segment identifies the docs version. */
 export const DocsProvider = (
@@ -16,6 +17,9 @@ export const DocsProvider = (
       {...props}
       // The tag becomes part of the search URL and the client's cache key.
       search={{ options: { tag: version } }}
-    />
+    >
+      <DocsWebMCP />
+      {props.children}
+    </GeistdocsProvider>
   );
 };
