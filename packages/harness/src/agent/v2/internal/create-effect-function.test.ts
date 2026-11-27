@@ -1721,6 +1721,14 @@ describe('createEffectFunction', () => {
           part: { type: 'start-turn', submissionIds: ['prompt-1'] },
           key: `turn-start:${turnId}`,
         },
+        {
+          part: {
+            type: 'prompt-message',
+            id: 'prompt-1',
+            message: { role: 'user', content: 'hello' },
+          },
+          key: 'prompt-message:prompt-1',
+        },
       ]);
     });
 
@@ -1817,6 +1825,22 @@ describe('createEffectFunction', () => {
             submissionIds: ['prompt-1', 'prompt-2'],
           },
           key: `turn-start:${turnId}`,
+        },
+        {
+          part: {
+            type: 'prompt-message',
+            id: 'prompt-1',
+            message: { role: 'user', content: 'hello' },
+          },
+          key: 'prompt-message:prompt-1',
+        },
+        {
+          part: {
+            type: 'prompt-message',
+            id: 'prompt-2',
+            message: { role: 'user', content: 'hello' },
+          },
+          key: 'prompt-message:prompt-2',
         },
       ]);
     });

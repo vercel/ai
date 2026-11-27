@@ -360,6 +360,20 @@ function repairTurnStream(options: {
       key: startKey,
     });
   }
+  for (const submission of turn.submissions) {
+    if (submission.data.type !== 'prompt') continue;
+    const promptKey = `prompt-message:${submission.id}`;
+    if (!keys.has(promptKey)) {
+      writer.emit({
+        part: {
+          type: 'prompt-message',
+          id: submission.id,
+          message: submission.data.message,
+        },
+        key: promptKey,
+      });
+    }
+  }
 
   const turnAttempts = log.getEffects({ turnId });
   const retracted = turnAttempts

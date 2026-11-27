@@ -1,13 +1,25 @@
-import type { UIMessage } from 'ai';
+import type { FileUIPart, TextUIPart, UIMessage } from 'ai';
+
+/**
+ * A prompt queued while a turn is running, waiting to appear in the stream as a
+ * delivered `steering-message` part.
+ */
+export type QueuedPrompt = {
+  id: string;
+  parts: Array<TextUIPart | FileUIPart>;
+  queuedAtSteeringCount: number;
+};
 
 /**
  * What the browser keeps of a chat, so that a reload (e.g. the one `next dev`
- * triggers after the server restarted) restores it: its messages, and
- * whether a turn was in progress, which the reloaded chat then reconnects to.
+ * triggers after the server restarted) restores it: its messages, whether a
+ * turn was in progress (which the reloaded chat then reconnects to), and any
+ * queued follow-up prompts not yet delivered.
  */
 export type StoredChatState<MESSAGE extends UIMessage> = {
   messages: MESSAGE[];
   turnInProgress: boolean;
+  queuedPrompts?: QueuedPrompt[];
 };
 
 function storageKeyFor({ chatId }: { chatId: string }): string {
@@ -32,7 +44,13 @@ export function readStoredChatState<MESSAGE extends UIMessage>({
     ) {
       return undefined;
     }
-    return { messages: value.messages, turnInProgress: value.turnInProgress };
+    return {
+      messages: value.messages,
+      turnInProgress: value.turnInProgress,
+      ...(Array.isArray(value.queuedPrompts) && {
+        queuedPrompts: value.queuedPrompts,
+      }),
+    };
   } catch {
     return undefined;
   }

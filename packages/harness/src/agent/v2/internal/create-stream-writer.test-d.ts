@@ -50,6 +50,8 @@ test('copies every adapter stream part into the agent stream parts', () => {
       {
         type:
           | 'start-turn'
+          | 'prompt-message'
+          | 'steering-message'
           | 'finish-step'
           | 'finish-turn'
           | 'retract'

@@ -4,10 +4,11 @@ import type { HarnessV2 } from '@ai-sdk/harness';
 import { createUIMessageStreamResponse, type ToolSet } from 'ai';
 
 /**
- * Reconnects a chat to its session's latest turn, e.g. after the process
- * that streamed it crashed: reads the turn from its start, following it
- * across drives until the session settles, i.e. the turn finished or waits
- * for tool approval responses. The chat replays it from the beginning
+ * Reconnects a chat to its session's latest API response, e.g. after the
+ * process that streamed it crashed: reads the response from the start of its
+ * first turn, following it across drives and any follow-up turns until the
+ * session settles (i.e. all queued turns finished or the current turn waits
+ * for tool approval responses). The chat replays it from the beginning
  * (`resumeStreamIsReplay`), replacing the response it has shown so far.
  *
  * The session's run ID comes as the `runId` query parameter. Responds with

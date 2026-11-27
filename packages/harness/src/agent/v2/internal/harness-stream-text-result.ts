@@ -237,6 +237,8 @@ export class HarnessStreamTextResult<
   private stepParts: Array<StepPart<TOOLS>> = [];
   private readonly seenKeys = new Set<string>();
   private readonly retractedStartIds = new Set<string>();
+  private readonly excludeInitialTurnPrompts: boolean;
+  private startTurnCount = 0;
   private stepStarted = false;
   private yielded = false;
   private firstError: unknown;
@@ -279,11 +281,18 @@ export class HarnessStreamTextResult<
      * Identifier of the call, used for step and response IDs.
      */
     callId: string;
+
+    /**
+     * Whether to suppress `prompt-message` parts belonging to the response's
+     * initial `start-turn` (because the caller already owns that prompt).
+     */
+    excludeInitialTurnPrompts?: boolean;
   }) {
     this.tools = options.tools;
     this.providerName = `harness:${options.harnessId}`;
     this.modelId = options.harnessId;
     this.callId = options.callId;
+    this.excludeInitialTurnPrompts = options.excludeInitialTurnPrompts ?? false;
 
     let controller!: ReadableStreamDefaultController<HarnessStreamEntry<TOOLS>>;
     this.baseStream = new ReadableStream<HarnessStreamEntry<TOOLS>>({
@@ -450,8 +459,34 @@ export class HarnessStreamTextResult<
         return;
 
       case 'start-turn':
+        this.startTurnCount++;
         this.turnFinish = undefined;
         this.enqueue({ part: { type: 'custom', kind: START_TURN_KIND } });
+        return;
+
+      case 'prompt-message':
+        if (this.excludeInitialTurnPrompts && this.startTurnCount <= 1) {
+          return;
+        }
+        this.enqueue({
+          part: {
+            type: 'steering-message',
+            id: part.id,
+            message: part.message,
+            stepNumber: this.steps_.length,
+          },
+        });
+        return;
+
+      case 'steering-message':
+        this.enqueue({
+          part: {
+            type: 'steering-message',
+            id: part.id,
+            message: part.message,
+            stepNumber: this.steps_.length,
+          },
+        });
         return;
 
       case 'finish-turn':

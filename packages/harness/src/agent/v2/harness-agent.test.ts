@@ -1147,11 +1147,43 @@ describe('HarnessAgent turns', () => {
       'echo: one',
       'echo: two',
     ]);
+    const observedSteeringParts: unknown[] = [];
+    for await (const part of observed.fullStream) {
+      if (part.type === 'steering-message') observedSteeringParts.push(part);
+    }
+    expect(observedSteeringParts).toEqual([
+      expect.objectContaining({
+        type: 'steering-message',
+        message: { role: 'user', content: 'two' },
+        stepNumber: 1,
+      }),
+    ]);
     expect((await observed.steps).map(step => step.text)).toEqual([
       'echo: one',
       'echo: two',
     ]);
     expect(await second.text).toBe('echo: two');
+
+    /*
+     * Calling `readStream()` after the multi-turn API response settled still
+     * replays the entire response (both turns and the follow-up steering part).
+     */
+    const replayedAfterSettle = await agent.readStream({ session });
+    const replayedSteeringParts: unknown[] = [];
+    for await (const part of replayedAfterSettle.fullStream) {
+      if (part.type === 'steering-message') replayedSteeringParts.push(part);
+    }
+    expect(replayedSteeringParts).toEqual([
+      expect.objectContaining({
+        type: 'steering-message',
+        message: { role: 'user', content: 'two' },
+        stepNumber: 1,
+      }),
+    ]);
+    expect((await replayedAfterSettle.steps).map(step => step.text)).toEqual([
+      'echo: one',
+      'echo: two',
+    ]);
   });
 
   test('runs a session in later calls', async () => {

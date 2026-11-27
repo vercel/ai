@@ -378,16 +378,18 @@ export function createEffectFunction(options: {
         .getTurns()
         .flatMap(turn => turn.submissions.map(submission => submission.id)),
     );
-    const waiting = log
+    const waitingSubmissions = log
       .getSubmissions()
       .filter(
         submission =>
           submission.data.type === 'prompt' &&
           requested.has(submission.id) &&
           !startedPrompts.has(submission.id),
-      )
-      .map(submission => submission.id);
-    if (waiting.length === 0) return;
+      );
+    if (waitingSubmissions.length === 0) return;
+    const waitingSubmissionIds = waitingSubmissions.map(
+      submission => submission.id,
+    );
     const currentTurn = log.getCurrentTurn();
     if (startingTurn || (currentTurn != null && currentTurn.finish == null)) {
       throw new HarnessAdapterContractError({
@@ -403,13 +405,24 @@ export function createEffectFunction(options: {
       const appended = await log.append({
         type: 'turn-start',
         id,
-        data: { turnId, submissionIds: waiting },
+        data: { turnId, submissionIds: waitingSubmissionIds },
       });
       if (appended && log.getCurrentTurn()?.start.data.turnId === turnId) {
         writer.emit({
-          part: { type: 'start-turn', submissionIds: waiting },
+          part: { type: 'start-turn', submissionIds: waitingSubmissionIds },
           key: id,
         });
+        for (const submission of waitingSubmissions) {
+          if (submission.data.type !== 'prompt') continue;
+          writer.emit({
+            part: {
+              type: 'prompt-message',
+              id: submission.id,
+              message: submission.data.message,
+            },
+            key: `prompt-message:${submission.id}`,
+          });
+        }
       }
     } finally {
       startingTurn = false;

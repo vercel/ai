@@ -43,7 +43,10 @@ import {
   createStreamWriter,
   type HarnessAgentStreamWriter,
 } from './internal/create-stream-writer';
-import { readResponseRecordStream } from './internal/read-response-record-stream';
+import {
+  findLatestResponseStartTurnId,
+  readResponseRecordStream,
+} from './internal/read-response-record-stream';
 import {
   attachSessionDrive,
   claimSessionDrive,
@@ -736,21 +739,23 @@ export class HarnessAgent<
   }
 
   /**
-   * Reads the session's latest turn from the session's stream and returns
-   * it as a stream result, in any process, without driving the session.
+   * Reads the session's latest API response from the session's stream and
+   * returns it as a stream result, in any process, without driving the session.
    *
-   * Reading starts at the turn's `start-turn` part and follows the session
-   * across drives until it settled: a finished turn is read from its stored
-   * output, a turn that waits for tool approval responses up to its approval
-   * requests (including any output of earlier approvals), and an unfinished
-   * one until a later drive finishes it or it waits for approval responses.
-   * Output that recovery withdrew after a crash is removed from the result's
-   * steps and from its UI message stream. `abortSignal` only ends the
-   * result (with an `abort` part). Rejects if the session has no turn.
+   * Reading starts at the `start-turn` part of the latest API response's first
+   * turn (the first `start-turn` after the previous response settled) and
+   * follows the session across drives and follow-up turns until it settles: a
+   * finished response is read from its stored output, a response waiting for
+   * tool approval responses up to its approval requests (including any output
+   * of earlier approvals), and an unfinished one until a later drive finishes
+   * it or it waits for approval responses. Output that recovery withdrew after
+   * a crash is removed from the result's steps and from its UI message stream.
+   * `abortSignal` only ends the result (with an `abort` part). Rejects if the
+   * session has no turn.
    */
   async readStream(options: {
     /**
-     * Session whose latest turn is read.
+     * Session whose latest API response is read.
      */
     session: HarnessAgentSession;
 
@@ -774,17 +779,23 @@ export class HarnessAgent<
       encryption,
     });
     await log.refresh();
-    const turnId = log.getCurrentTurn()?.start.data.turnId;
-    if (turnId == null) {
+    const latestTurnId = log.getCurrentTurn()?.start.data.turnId;
+    if (latestTurnId == null) {
       throw new Error('HarnessAgent.readStream: the session has no turn.');
     }
+    const startTurnId = await findLatestResponseStartTurnId({
+      encryption,
+      world: this.world,
+      session,
+      latestTurnId,
+    });
 
     return new HarnessStreamTextResult({
       records: readResponseRecordStream({
         encryption,
         world: this.world,
         session,
-        startTurnId: turnId,
+        startTurnId,
         startIndex: 0,
         abortSignal,
       }),
@@ -792,6 +803,7 @@ export class HarnessAgent<
       tools: this.tools,
       harnessId: this.harnessId,
       callId: generateId(),
+      excludeInitialTurnPrompts: true,
     });
   }
 
@@ -1136,6 +1148,7 @@ export class HarnessAgent<
       tools: this.tools,
       harnessId: this.harnessId,
       callId: generateId(),
+      excludeInitialTurnPrompts: startSubmissionId != null,
     });
   }
 

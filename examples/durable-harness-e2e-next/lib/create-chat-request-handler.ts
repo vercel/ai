@@ -33,18 +33,23 @@ export function createChatRequestHandler<
     const storedSession = body.session;
     const messages = await convertToModelMessages(body.messages);
 
+    let result: Awaited<ReturnType<typeof agent.stream>>;
+    try {
+      const session = await agent.createSession(storedSession);
+      /*
+       * `stream()` appends the prompt (or tool approval responses) to the
+       * session's log and starts or signals the drive before the HTTP response
+       * is returned, so a caller queueing a follow-up prompt knows the
+       * submission is committed as soon as the response headers arrive.
+       */
+      result = await agent.stream({ session, messages });
+    } catch (error) {
+      return new Response(getHarnessE2EErrorMessage(error), { status: 500 });
+    }
+
     return createUIMessageStreamResponse({
       stream: createUIMessageStream<MESSAGE>({
-        execute: async ({ writer }) => {
-          const session = await agent.createSession(storedSession);
-          /*
-           * `stream()` runs the turn's drive in this process. The agent sends
-           * a backstop before the drive starts, which continues the turn in a
-           * background drive if this process dies or the drive yields at its
-           * deadline.
-           */
-          const result = await agent.stream({ session, messages });
-
+        execute: ({ writer }) => {
           /*
            * The result's own `toUIMessageStream()` is used instead of the
            * standalone helper, since only it turns a retraction (the output of

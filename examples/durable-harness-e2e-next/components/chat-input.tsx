@@ -8,11 +8,15 @@ import { useRef, useState, type ChangeEvent } from 'react';
 export default function ChatInput({
   status,
   onSubmit,
+  onQueue,
+  onSteer,
   cancel,
   maxWidth = 'md',
 }: {
   status: string;
   onSubmit: (parts: Array<TextUIPart | FileUIPart>) => void;
+  onQueue?: (parts: Array<TextUIPart | FileUIPart>) => Promise<void> | void;
+  onSteer?: (parts: Array<TextUIPart | FileUIPart>) => void;
   cancel?: () => void;
   maxWidth?: string;
 }) {
@@ -20,8 +24,11 @@ export default function ChatInput({
   const [image, setImage] = useState<FileUIPart>();
   const [imageError, setImageError] = useState<string>();
   const [isReadingImage, setIsReadingImage] = useState(false);
+  const [isQueueing, setIsQueueing] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const isReady = status === 'ready' && !isReadingImage;
+  const isTurnRunning = status === 'streaming' || status === 'submitted';
+  const isInputEnabled =
+    (status === 'ready' || isTurnRunning) && !isReadingImage && !isQueueing;
 
   async function handleImageSelect(event: ChangeEvent<HTMLInputElement>) {
     const input = event.currentTarget;
@@ -58,16 +65,31 @@ export default function ChatInput({
     }
   }
 
+  function buildParts(): Array<TextUIPart | FileUIPart> | undefined {
+    if (!isInputEnabled || text.trim() === '') return undefined;
+    const parts: Array<TextUIPart | FileUIPart> = [{ type: 'text', text }];
+    if (image != null) parts.push(image);
+    return parts;
+  }
+
   return (
     <form
       className={`fixed bottom-0 z-10 w-full max-w-${maxWidth} p-2 mb-8 bg-white rounded border border-gray-300 shadow-xl`}
       onSubmit={event => {
         event.preventDefault();
-        if (!isReady || text.trim() === '') return;
+        const parts = buildParts();
+        if (parts == null) return;
 
-        const parts: Array<TextUIPart | FileUIPart> = [{ type: 'text', text }];
-        if (image != null) parts.push(image);
-
+        if (isTurnRunning) {
+          if (onQueue == null) return;
+          setText('');
+          clearImage();
+          setIsQueueing(true);
+          void Promise.resolve(onQueue(parts)).finally(() => {
+            setIsQueueing(false);
+          });
+          return;
+        }
         onSubmit(parts);
         setText('');
         clearImage();
@@ -79,7 +101,7 @@ export default function ChatInput({
         accept="image/*"
         className="hidden"
         aria-label="Choose an image"
-        disabled={!isReady}
+        disabled={!isInputEnabled}
         onChange={handleImageSelect}
       />
 
@@ -97,7 +119,7 @@ export default function ChatInput({
           <button
             type="button"
             className="px-2 py-1 text-sm underline"
-            disabled={!isReady}
+            disabled={!isInputEnabled}
             onClick={clearImage}
           >
             Remove image
@@ -115,7 +137,7 @@ export default function ChatInput({
         <button
           type="button"
           className="px-3 py-2 text-sm border border-gray-300 rounded"
-          disabled={!isReady}
+          disabled={!isInputEnabled}
           onClick={() => imageInputRef.current?.click()}
         >
           Upload image
@@ -123,13 +145,36 @@ export default function ChatInput({
         <input
           className="min-w-0 flex-1 p-2 border border-gray-300 rounded"
           placeholder="Say something..."
-          disabled={!isReady}
+          disabled={!isInputEnabled}
           value={text}
           onChange={event => setText(event.target.value)}
         />
-        {cancel && (status === 'streaming' || status === 'submitted') && (
+        {isTurnRunning && onQueue && (
           <button
-            className="px-3 py-2 border border-gray-300 rounded"
+            className="px-3 py-2 text-sm border border-gray-300 rounded disabled:opacity-50"
+            type="submit"
+            data-queueing={isQueueing ? 'true' : undefined}
+            disabled={!isInputEnabled || text.trim() === ''}
+          >
+            Queue
+          </button>
+        )}
+        {isTurnRunning && onSteer && (
+          <button
+            className="px-3 py-2 text-sm border border-gray-300 rounded disabled:opacity-50"
+            type="button"
+            disabled={!isInputEnabled}
+            onClick={() => {
+              const parts = buildParts() ?? [];
+              onSteer(parts);
+            }}
+          >
+            Steer
+          </button>
+        )}
+        {cancel && isTurnRunning && (
+          <button
+            className="px-3 py-2 text-sm border border-gray-300 rounded"
             type="button"
             onClick={cancel}
           >

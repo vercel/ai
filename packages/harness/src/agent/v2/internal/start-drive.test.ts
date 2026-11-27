@@ -519,6 +519,14 @@ describe('startDrive', () => {
           part: { type: 'start-turn', submissionIds: ['turn'] },
           key: 'turn-start:turn',
         },
+        {
+          part: {
+            type: 'prompt-message',
+            id: 'turn',
+            message: { role: 'user', content: 'hi' },
+          },
+          key: 'prompt-message:turn',
+        },
         { part: { type: 'retract', startIds: ['model', 'unstarted'] } },
         {
           part: {
@@ -591,6 +599,14 @@ describe('startDrive', () => {
         key: 'turn-start:turn',
       },
       {
+        part: {
+          type: 'prompt-message',
+          id: 'turn',
+          message: { role: 'user', content: 'hi' },
+        },
+        key: 'prompt-message:turn',
+      },
+      {
         part: { type: 'finish-step', finishReason, usage },
         key: 'finish-step:turn:0',
       },
@@ -638,6 +654,14 @@ describe('startDrive', () => {
     expect(await readRecords({ world })).toEqual([
       { part: { type: 'start-turn' }, key: 'turn-start:turn' },
       {
+        part: {
+          type: 'prompt-message',
+          id: 'turn',
+          message: { role: 'user', content: 'hi' },
+        },
+        key: 'prompt-message:turn',
+      },
+      {
         part: { type: 'finish-step', finishReason, usage },
         key: 'finish-step:turn:0',
       },
@@ -680,6 +704,14 @@ describe('startDrive', () => {
         part: { type: 'start-turn', submissionIds: ['turn'] },
         key: 'turn-start:turn',
       },
+      {
+        part: {
+          type: 'prompt-message',
+          id: 'turn',
+          message: { role: 'user', content: 'hi' },
+        },
+        key: 'prompt-message:turn',
+      },
     ]);
   });
 
@@ -719,6 +751,14 @@ describe('startDrive', () => {
         },
         {
           part: {
+            type: 'prompt-message',
+            id: 'turn',
+            message: { role: 'user', content: 'hi' },
+          },
+          key: 'prompt-message:turn',
+        },
+        {
+          part: {
             type: 'tool-approval-request',
             approvalId: 'approval-1',
             toolCall: {
@@ -743,7 +783,7 @@ describe('startDrive', () => {
         }),
       ).toBe(false);
       await writer.flush();
-      expect(await readRecords({ world })).toHaveLength(3);
+      expect(await readRecords({ world })).toHaveLength(4);
       expect(
         await readLogEvents({ world, types: ['drive-start'] }),
       ).toHaveLength(1);

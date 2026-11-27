@@ -16,6 +16,7 @@ import {
 import {
   readStoredChatState,
   writeStoredChatState,
+  type QueuedPrompt,
 } from '@/lib/stored-chat-state';
 import { useChat } from '@ai-sdk/react';
 import {
@@ -24,6 +25,8 @@ import {
   isStaticToolUIPart,
   lastAssistantMessageIsCompleteWithApprovalResponses,
   lastAssistantMessageIsCompleteWithToolCalls,
+  type FileUIPart,
+  type TextUIPart,
   type UIMessage,
 } from 'ai';
 import { useEffect, useState, type ComponentType } from 'react';
@@ -49,6 +52,19 @@ function isDisconnectError(error: Error | undefined): boolean {
 }
 
 /**
+ * Counts the `steering-message` parts in an assistant message.
+ */
+function countSteeringMessages(parts: UIMessage['parts']): number {
+  let count = 0;
+  for (const part of parts) {
+    if (part.type === 'steering-message') {
+      count++;
+    }
+  }
+  return count;
+}
+
+/**
  * Chat with the agent session of the current browser tab, on the harness
  * the session runs on. Each agent configuration has its own routes under
  * `/api/harness/<harness>/<configuration>`.
@@ -66,9 +82,9 @@ export default function HarnessChat<MESSAGE extends UIMessage>({
   const [alertMessage, setAlertMessage] = useState<string | undefined>();
   const [restored] = useState(() => readStoredChatState<MESSAGE>({ chatId }));
   /*
-   * A turn that was in progress before a reload is read again from its
-   * start, so its partial response is dropped here and replaced by the one
-   * the reconnected stream replays.
+   * An API response that was in progress before a reload is read again from
+   * its start via `readStream()`, so its partial assistant message is dropped
+   * here and replaced by the reconnected stream replay.
    */
   const [initialMessages] = useState(() => {
     if (restored == null) return [];
@@ -77,6 +93,9 @@ export default function HarnessChat<MESSAGE extends UIMessage>({
       ? messages.slice(0, -1)
       : messages;
   });
+  const [queuedPrompts, setQueuedPrompts] = useState<QueuedPrompt[]>(
+    () => restored?.queuedPrompts ?? [],
+  );
   const [resumePending, setResumePending] = useState(
     restored?.turnInProgress ?? false,
   );
@@ -173,9 +192,31 @@ export default function HarnessChat<MESSAGE extends UIMessage>({
     disconnected ||
     status === 'submitted' ||
     status === 'streaming';
+
   useEffect(() => {
-    writeStoredChatState({ chatId, state: { messages, turnInProgress } });
-  }, [chatId, messages, turnInProgress]);
+    if (queuedPrompts.length === 0) return;
+    const lastMessage = messages.at(-1);
+    if (lastMessage?.role !== 'assistant') return;
+
+    const steeringCount = countSteeringMessages(lastMessage.parts);
+    const hasDelivered = queuedPrompts.some(
+      item => steeringCount > item.queuedAtSteeringCount || !turnInProgress,
+    );
+    if (!hasDelivered) return;
+
+    setQueuedPrompts(current =>
+      current.filter(
+        item => steeringCount <= item.queuedAtSteeringCount && turnInProgress,
+      ),
+    );
+  }, [messages, queuedPrompts, turnInProgress]);
+
+  useEffect(() => {
+    writeStoredChatState({
+      chatId,
+      state: { messages, turnInProgress, queuedPrompts },
+    });
+  }, [chatId, messages, turnInProgress, queuedPrompts]);
 
   async function crash() {
     setAlertMessage(undefined);
@@ -233,6 +274,71 @@ export default function HarnessChat<MESSAGE extends UIMessage>({
     }
   }
 
+  /*
+   * Queues a follow-up prompt into the running session. The server commits the
+   * prompt submission before returning headers; the active chat stream
+   * continues past the current turn into the follow-up turn, so the secondary
+   * response body is cancelled once accepted.
+   */
+  async function queue(parts: Array<TextUIPart | FileUIPart>) {
+    setAlertMessage(undefined);
+    const stored = readStoredAgentSession({ chatId });
+    if (stored == null) {
+      setAlertMessage('No active session to queue into');
+      return;
+    }
+    const lastMessage = messages.at(-1);
+    const currentSteeringCount =
+      lastMessage?.role === 'assistant'
+        ? countSteeringMessages(lastMessage.parts)
+        : 0;
+    const queuedPrompt: QueuedPrompt = {
+      id: crypto.randomUUID(),
+      parts,
+      queuedAtSteeringCount: currentSteeringCount,
+    };
+    setQueuedPrompts(current => [...current, queuedPrompt]);
+    try {
+      const { sessionId, sandboxId, runId } = stored;
+      const response = await fetch(`${apiBase}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: chatId,
+          session: { sessionId, sandboxId, runId },
+          messages: [
+            {
+              id: queuedPrompt.id,
+              role: 'user',
+              parts,
+            },
+          ],
+        }),
+      });
+      if (!response.ok) {
+        setQueuedPrompts(current =>
+          current.filter(item => item.id !== queuedPrompt.id),
+        );
+        setAlertMessage(
+          (await response.text()) || `Queue failed: ${response.status}`,
+        );
+        return;
+      }
+      void response.body?.cancel();
+    } catch (queueError) {
+      setQueuedPrompts(current =>
+        current.filter(item => item.id !== queuedPrompt.id),
+      );
+      setAlertMessage(
+        queueError instanceof Error ? queueError.message : String(queueError),
+      );
+    }
+  }
+
+  function steer() {
+    setAlertMessage('Steer is not implemented yet.');
+  }
+
   return (
     <div className="flex flex-col pt-12 pb-24 mx-auto w-full max-w-5xl stretch">
       <h1 className="mb-2 text-xl font-bold">
@@ -281,6 +387,26 @@ export default function HarnessChat<MESSAGE extends UIMessage>({
         </div>
       ))}
 
+      {queuedPrompts.map(queued => (
+        <div
+          key={queued.id}
+          data-queued-prompt="true"
+          className="mb-3 rounded border border-dashed border-gray-300 bg-gray-50 px-3 py-2 text-gray-600"
+        >
+          <div className="mb-1 flex items-center gap-2">
+            <strong>You: </strong>
+            <span className="rounded bg-gray-200 px-1.5 py-0.5 text-xs font-medium text-gray-700">
+              Queued
+            </span>
+          </div>
+          {queued.parts.map((part, index) => (
+            <div key={index}>
+              <PartView part={part as MESSAGE['parts'][number]} />
+            </div>
+          ))}
+        </div>
+      ))}
+
       {status === 'submitted' && (
         <div
           aria-label="Loading"
@@ -318,6 +444,8 @@ export default function HarnessChat<MESSAGE extends UIMessage>({
         status={status}
         maxWidth="5xl"
         cancel={() => void cancel()}
+        onQueue={parts => queue(parts)}
+        onSteer={() => steer()}
         onSubmit={parts =>
           /*
            * Text and file parts belong to every message type, which
@@ -363,6 +491,21 @@ export function CommonPartView({ part }: { part: UIMessage['parts'][number] }) {
     }
     case 'dynamic-tool': {
       return <DynamicToolView invocation={part} />;
+    }
+    case 'steering-message': {
+      return (
+        <div
+          data-delivered-prompt="true"
+          className="p-2 my-3 bg-gray-50 rounded border border-gray-200"
+        >
+          <strong>You: </strong>
+          {part.parts.map((content, index) => (
+            <div key={index}>
+              <CommonPartView part={content} />
+            </div>
+          ))}
+        </div>
+      );
     }
     default: {
       if (isStaticToolUIPart(part)) {

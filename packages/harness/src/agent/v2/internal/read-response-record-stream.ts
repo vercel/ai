@@ -278,3 +278,98 @@ export function readResponseRecordStream(options: {
     },
   });
 }
+
+/**
+ * Finds the `turnId` of the first turn in the session's latest API response by
+ * scanning the session's World stream.
+ *
+ * A `start-turn` record begins a new API response when it is the first turn in
+ * the stream or follows a `settle` record with no intervening output (meaning
+ * the previous response settled before this turn started). A `start-turn` with
+ * no preceding `settle` continues the same multi-turn API response, so the
+ * response's starting turn stays unchanged. A tool-approval continuation writes
+ * non-`start-turn` records after the approval pause's `settle`, which clears
+ * the settled state and keeps the response anchored at the turn that requested
+ * approval.
+ *
+ * Falls back to `latestTurnId` when the stream has not recorded `latestTurnId`
+ * yet (for example after a crash between `turn-start` in the log and its stream
+ * write) and either no response exists in the stream or the latest recorded
+ * response already settled.
+ */
+export async function findLatestResponseStartTurnId(options: {
+  /**
+   * Storage encryption for the session's stream.
+   */
+  encryption: HarnessAgentStorageEncryption;
+
+  /**
+   * World that stores the session's stream.
+   */
+  world: World;
+
+  /**
+   * Session whose stream is scanned.
+   */
+  session: HarnessAgentSession;
+
+  /**
+   * Turn ID of the session's latest turn from the log, used as fallback if its
+   * `start-turn` record has not been written to the stream yet.
+   */
+  latestTurnId: string;
+}): Promise<string> {
+  const { encryption, world, session, latestTurnId } = options;
+  const { runId } = session;
+  const streamName = session.getStreamName();
+  const decoder = new TextDecoder();
+
+  let responseStartTurnId: string | undefined;
+  let settled = false;
+  const seenTurnIds = new Set<string>();
+  let cursor: string | undefined;
+
+  for (;;) {
+    const page = await world.streams.getChunks(runId, streamName, {
+      limit: 1000,
+      cursor,
+    });
+    for (const chunk of page.data) {
+      for (const record of await decodeStreamRecords({
+        encryption,
+        text: decoder.decode(chunk.data),
+      })) {
+        if (record.part.type === 'settle') {
+          settled = true;
+          continue;
+        }
+        if (record.part.type === 'yield') {
+          continue;
+        }
+        if (
+          record.part.type === 'start-turn' &&
+          record.key?.startsWith('turn-start:')
+        ) {
+          const turnId = record.key.slice('turn-start:'.length);
+          seenTurnIds.add(turnId);
+          if (responseStartTurnId == null || settled) {
+            responseStartTurnId = turnId;
+          }
+          settled = false;
+          continue;
+        }
+        settled = false;
+      }
+    }
+    if (!page.hasMore || page.cursor == null) break;
+    cursor = page.cursor;
+  }
+
+  if (
+    responseStartTurnId == null ||
+    (settled && !seenTurnIds.has(latestTurnId))
+  ) {
+    return latestTurnId;
+  }
+  return responseStartTurnId;
+}

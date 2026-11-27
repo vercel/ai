@@ -6,6 +6,7 @@ import {
   jsonEncodeSerializableValue,
   parseJSON,
   type ToolSet,
+  type UserModelMessage,
 } from '@ai-sdk/provider-utils';
 import type {
   StaticToolOutputDenied,
@@ -108,6 +109,40 @@ export type HarnessAgentStreamPart =
        * log order.
        */
       readonly submissionIds?: readonly string[];
+    }
+  | {
+      /**
+       * A `prompt` submission delivered to start a turn. Emitted by the engine
+       * only, keyed `prompt-message:${id}`.
+       */
+      type: 'prompt-message';
+
+      /**
+       * Submission ID of the prompt.
+       */
+      id: string;
+
+      /**
+       * User message of the prompt submission.
+       */
+      message: UserModelMessage;
+    }
+  | {
+      /**
+       * A `steer` submission delivered mid-turn. Emitted by the engine only,
+       * keyed `steering-message:${id}`.
+       */
+      type: 'steering-message';
+
+      /**
+       * Submission ID of the steering message.
+       */
+      id: string;
+
+      /**
+       * User message of the steering submission.
+       */
+      message: UserModelMessage;
     }
   | {
       /**

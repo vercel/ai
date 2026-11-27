@@ -37,6 +37,7 @@ function createResult(options: {
   records?: HarnessAgentStreamPartRecord[];
   readError?: Error;
   aborted?: boolean;
+  excludeInitialTurnPrompts?: boolean;
 }) {
   const abortController = new AbortController();
   if (options.aborted) abortController.abort();
@@ -53,6 +54,7 @@ function createResult(options: {
       },
     }),
     abortSignal: abortController.signal,
+    excludeInitialTurnPrompts: options.excludeInitialTurnPrompts,
     tools: {},
     harnessId: 'fake',
     callId: 'call',
@@ -784,6 +786,132 @@ describe('HarnessStreamTextResult', () => {
 
       expect(await result.finishReason).toBe('tool-calls');
       expect(await result.rawFinishReason).toBe('tool_use');
+    });
+
+    test('converts follow-up prompt-message and mid-turn steering-message to AI SDK steering-message while suppressing the initial turn prompt', async () => {
+      const result = createResult({
+        excludeInitialTurnPrompts: true,
+        records: [
+          {
+            part: { type: 'start-turn', submissionIds: ['p1'] },
+            key: 'turn-start:t1',
+          },
+          {
+            part: {
+              type: 'prompt-message',
+              id: 'p1',
+              message: { role: 'user', content: 'first prompt' },
+            },
+            key: 'prompt-message:p1',
+          },
+          {
+            part: {
+              type: 'steering-message',
+              id: 's1',
+              message: { role: 'user', content: 'mid-turn steer' },
+            },
+            key: 'steering-message:s1',
+          },
+          { part: { type: 'text-start', id: 't1' }, startId: 'a1' },
+          {
+            part: { type: 'text-delta', id: 't1', delta: 'first' },
+            startId: 'a1',
+          },
+          { part: { type: 'text-end', id: 't1' }, startId: 'a1' },
+          {
+            part: {
+              type: 'finish-step',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: stepUsage,
+            },
+            key: 'finish-step:t1:0',
+          },
+          {
+            part: {
+              type: 'finish-turn',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              totalUsage: stepUsage,
+            },
+            key: 'finish-turn:t1',
+          },
+          {
+            part: { type: 'start-turn', submissionIds: ['p2'] },
+            key: 'turn-start:t2',
+          },
+          {
+            part: {
+              type: 'prompt-message',
+              id: 'p2',
+              message: { role: 'user', content: 'follow-up prompt' },
+            },
+            key: 'prompt-message:p2',
+          },
+          { part: { type: 'text-start', id: 't2' }, startId: 'a2' },
+          {
+            part: { type: 'text-delta', id: 't2', delta: 'second' },
+            startId: 'a2',
+          },
+          { part: { type: 'text-end', id: 't2' }, startId: 'a2' },
+          {
+            part: {
+              type: 'finish-step',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: stepUsage,
+            },
+            key: 'finish-step:t2:0',
+          },
+          {
+            part: {
+              type: 'finish-turn',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              totalUsage: stepUsage,
+            },
+            key: 'finish-turn:t2',
+          },
+          { part: { type: 'settle' } },
+        ],
+      });
+
+      const fullSteeringParts: unknown[] = [];
+      const fullPromise = (async () => {
+        for await (const part of result.fullStream) {
+          if (part.type === 'steering-message') fullSteeringParts.push(part);
+        }
+      })();
+      const uiSteeringChunks: unknown[] = [];
+      const uiPromise = (async () => {
+        for await (const chunk of result.toUIMessageStream()) {
+          if (chunk.type === 'steering-message') uiSteeringChunks.push(chunk);
+        }
+      })();
+      await Promise.all([fullPromise, uiPromise]);
+
+      expect(fullSteeringParts).toEqual([
+        {
+          type: 'steering-message',
+          id: 's1',
+          message: { role: 'user', content: 'mid-turn steer' },
+          stepNumber: 0,
+        },
+        {
+          type: 'steering-message',
+          id: 'p2',
+          message: { role: 'user', content: 'follow-up prompt' },
+          stepNumber: 1,
+        },
+      ]);
+      expect(uiSteeringChunks).toEqual([
+        {
+          type: 'steering-message',
+          id: 's1',
+          parts: [{ type: 'text', text: 'mid-turn steer' }],
+        },
+        {
+          type: 'steering-message',
+          id: 'p2',
+          parts: [{ type: 'text', text: 'follow-up prompt' }],
+        },
+      ]);
     });
   });
 });

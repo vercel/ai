@@ -177,6 +177,8 @@ export async function translateStreamPart<TOOLS extends ToolSet>(options: {
     case 'reset-step':
     case 'finish-step':
     case 'start-turn':
+    case 'prompt-message':
+    case 'steering-message':
     case 'finish-turn':
     case 'retract':
     case 'yield':

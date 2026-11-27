@@ -12,7 +12,10 @@ import {
   type HarnessAgentStreamPart,
   type HarnessAgentStreamPartRecord,
 } from './create-stream-writer';
-import { readResponseRecordStream } from './read-response-record-stream';
+import {
+  findLatestResponseStartTurnId,
+  readResponseRecordStream,
+} from './read-response-record-stream';
 
 const encryption = {
   encrypt: async ({ data }: { data: Uint8Array }) => data,
@@ -454,5 +457,124 @@ describe('readResponseRecordStream', () => {
       { part: { type: 'text-delta', id: 'b', delta: 'later' }, startId: 'b' },
       { part: { type: 'settle' } },
     ]);
+  });
+});
+
+describe('findLatestResponseStartTurnId', () => {
+  test('anchors a multi-turn API response at its first turn when no settle separated the turns', async () => {
+    const world = new InMemoryWorld();
+    await writeRecords({
+      world,
+      records: [
+        {
+          part: { type: 'start-turn', submissionIds: ['p1'] },
+          key: 'turn-start:t1',
+        },
+        { part: finishPart, key: 'finish-turn:t1' },
+        {
+          part: { type: 'start-turn', submissionIds: ['p2'] },
+          key: 'turn-start:t2',
+        },
+        { part: finishPart, key: 'finish-turn:t2' },
+        { part: { type: 'settle' } },
+      ],
+    });
+
+    expect(
+      await findLatestResponseStartTurnId({
+        encryption,
+        world,
+        session,
+        latestTurnId: 't2',
+      }),
+    ).toBe('t1');
+  });
+
+  test('starts a new API response after a settle record', async () => {
+    const world = new InMemoryWorld();
+    await writeRecords({
+      world,
+      records: [
+        {
+          part: { type: 'start-turn', submissionIds: ['p1'] },
+          key: 'turn-start:t1',
+        },
+        { part: finishPart, key: 'finish-turn:t1' },
+        { part: { type: 'settle' } },
+        {
+          part: { type: 'start-turn', submissionIds: ['p2'] },
+          key: 'turn-start:t2',
+        },
+        { part: finishPart, key: 'finish-turn:t2' },
+        { part: { type: 'settle' } },
+      ],
+    });
+
+    expect(
+      await findLatestResponseStartTurnId({
+        encryption,
+        world,
+        session,
+        latestTurnId: 't2',
+      }),
+    ).toBe('t2');
+  });
+
+  test('keeps a tool-approval continuation and any follow-up turn anchored at the original turn', async () => {
+    const world = new InMemoryWorld();
+    await writeRecords({
+      world,
+      records: [
+        {
+          part: { type: 'start-turn', submissionIds: ['p1'] },
+          key: 'turn-start:t1',
+        },
+        { part: { type: 'settle' } },
+        {
+          part: { type: 'text-delta', id: 'a', delta: 'resumed' },
+          startId: 'a',
+        },
+        { part: finishPart, key: 'finish-turn:t1' },
+        {
+          part: { type: 'start-turn', submissionIds: ['p2'] },
+          key: 'turn-start:t2',
+        },
+        { part: finishPart, key: 'finish-turn:t2' },
+        { part: { type: 'settle' } },
+      ],
+    });
+
+    expect(
+      await findLatestResponseStartTurnId({
+        encryption,
+        world,
+        session,
+        latestTurnId: 't2',
+      }),
+    ).toBe('t1');
+  });
+
+  test('falls back to latestTurnId when its start-turn has not been written after a settled response', async () => {
+    const world = new InMemoryWorld();
+    await writeRecords({
+      world,
+      records: [
+        {
+          part: { type: 'start-turn', submissionIds: ['p1'] },
+          key: 'turn-start:t1',
+        },
+        { part: finishPart, key: 'finish-turn:t1' },
+        { part: { type: 'settle' } },
+      ],
+    });
+
+    expect(
+      await findLatestResponseStartTurnId({
+        encryption,
+        world,
+        session,
+        latestTurnId: 't2',
+      }),
+    ).toBe('t2');
   });
 });
