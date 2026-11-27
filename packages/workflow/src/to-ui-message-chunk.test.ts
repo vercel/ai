@@ -229,6 +229,22 @@ describe('workflow UI stream reset-step', () => {
   });
 });
 
+describe('workflow UI stream custom parts', () => {
+  it('converts custom model-call parts to UI message chunks', () => {
+    expect(
+      toUIMessageChunk({
+        type: 'custom',
+        kind: 'openai.compaction',
+        providerMetadata: { openai: { itemId: 'item-1' } },
+      }),
+    ).toEqual({
+      type: 'custom',
+      kind: 'openai.compaction',
+      providerMetadata: { openai: { itemId: 'item-1' } },
+    });
+  });
+});
+
 describe('workflow signed tool approvals', () => {
   it('preserves the approval signature in the UI message chunk', () => {
     expect(
