@@ -21,6 +21,9 @@ export const webSearch_20260318ArgsSchema = lazySchema(() =>
         })
         .optional(),
       responseInclusion: z.enum(['full', 'excluded']).optional(),
+      allowedCallers: z
+        .array(z.enum(['direct', 'code_execution_20260120']))
+        .optional(),
     }),
   ),
 );
@@ -128,6 +131,15 @@ const factory = createProviderExecutedToolFactory<
      * execution calls are included in the response. Defaults to `full`.
      */
     responseInclusion?: 'full' | 'excluded';
+
+    /**
+     * Controls how Claude can call the tool. Defaults to
+     * `['code_execution_20260120']`, which enables dynamic filtering. Set to
+     * `['direct']` to call the tool directly without dynamic filtering, which
+     * is required for Zero Data Retention and for models that do not support
+     * programmatic tool calling.
+     */
+    allowedCallers?: Array<'direct' | 'code_execution_20260120'>;
   }
 >({
   id: 'anthropic.web_search_20260318',
