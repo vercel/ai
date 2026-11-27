@@ -55,4 +55,42 @@ describe('convertOpenAICompatibleChatUsage', () => {
       raw: usage,
     });
   });
+
+  it('maps cache_write_tokens and adjusts noCache accordingly', () => {
+    const usage = {
+      prompt_tokens: 3680,
+      completion_tokens: 5,
+      prompt_tokens_details: { cached_tokens: 0, cache_write_tokens: 3678 },
+    };
+
+    expect(convertOpenAICompatibleChatUsage(usage)).toEqual({
+      inputTokens: {
+        total: 3680,
+        noCache: 2,
+        cacheRead: 0,
+        cacheWrite: 3678,
+      },
+      outputTokens: { total: 5, text: 5, reasoning: 0 },
+      raw: usage,
+    });
+  });
+
+  it('maps both cached_tokens and cache_write_tokens when both are present', () => {
+    const usage = {
+      prompt_tokens: 1000,
+      completion_tokens: 100,
+      prompt_tokens_details: { cached_tokens: 400, cache_write_tokens: 500 },
+    };
+
+    expect(convertOpenAICompatibleChatUsage(usage)).toEqual({
+      inputTokens: {
+        total: 1000,
+        noCache: 100,
+        cacheRead: 400,
+        cacheWrite: 500,
+      },
+      outputTokens: { total: 100, text: 100, reasoning: 0 },
+      raw: usage,
+    });
+  });
 });
