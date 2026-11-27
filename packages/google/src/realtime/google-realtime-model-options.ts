@@ -47,6 +47,12 @@ export type GoogleRealtimeModelOptions = {
      * Whether thought summaries should be included in the response.
      */
     includeThoughts?: boolean;
+
+    /**
+     * Controls behavior when input thought signatures do not match the
+     * conversation prefix.
+     */
+    prefixMismatchBehavior?: 'DROP' | 'ERROR';
   };
 
   /**
