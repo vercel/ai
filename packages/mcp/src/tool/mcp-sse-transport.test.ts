@@ -75,6 +75,51 @@ describe('SseMCPTransport', () => {
     });
   });
 
+  it('should fire onclose when the server ends the stream unexpectedly', async () => {
+    const controller = new TestResponseController();
+
+    server.urls['http://localhost:3000/sse'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    const onclose = vi.fn();
+    const onerror = vi.fn();
+    transport.onclose = onclose;
+    transport.onerror = onerror;
+
+    const connectPromise = transport.start();
+
+    controller.write(
+      'event: endpoint\ndata: http://localhost:3000/messages\n\n',
+    );
+
+    await connectPromise;
+
+    // The server drops the long-lived stream — a restart, a deploy, an idle
+    // timeout — without the client having asked to close.
+    await controller.close();
+
+    // onclose is the only signal the client uses to reject the requests that
+    // are still in flight, so it has to fire on this path too.
+    await vi.waitFor(() => {
+      expect(onclose).toHaveBeenCalledTimes(1);
+    });
+
+    expect(onerror).toHaveBeenCalledTimes(1);
+    expect(onerror).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'MCP SSE Transport Error: Connection closed unexpectedly',
+      }),
+    );
+
+    // The transport is no longer usable, so sends fail fast instead of being
+    // posted to an endpoint that will never answer.
+    await expect(
+      transport.send({ jsonrpc: '2.0', id: 1, method: 'ping', params: {} }),
+    ).rejects.toThrow(MCPClientError);
+  });
+
   it('should throw if server returns non-200 status', async () => {
     server.urls['http://localhost:3000/sse'].response = {
       type: 'error',
