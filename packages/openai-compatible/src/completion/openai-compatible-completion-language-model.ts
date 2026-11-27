@@ -33,6 +33,7 @@ import {
   warnIfDeprecatedProviderOptionsKey,
 } from '../utils/to-camel-case';
 import {
+  createOpenAICompatibleStreamError,
   defaultOpenAICompatibleErrorStructure,
   type ProviderErrorStructure,
 } from '../openai-compatible-error';
@@ -330,7 +331,10 @@ export class OpenAICompatibleCompletionLanguageModel implements LanguageModelV4 
             // handle error chunks:
             if ('error' in value) {
               finishReason = { unified: 'error', raw: undefined };
-              controller.enqueue({ type: 'error', error: value.error });
+              controller.enqueue({
+                type: 'error',
+                error: createOpenAICompatibleStreamError(value.error),
+              });
               return;
             }
 

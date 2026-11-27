@@ -608,9 +608,16 @@ describe('doStream', () => {
         },
         {
           "error": {
-            "code": null,
+            "code": undefined,
+            "data": {
+              "code": null,
+              "message": "The server had an error processing your request. Sorry about that! You can retry your request, or contact us through our help center at help.openai.com if you keep seeing this error.",
+              "param": null,
+              "type": "server_error",
+            },
+            "isRetryable": true,
             "message": "The server had an error processing your request. Sorry about that! You can retry your request, or contact us through our help center at help.openai.com if you keep seeing this error.",
-            "param": null,
+            "statusCode": 500,
             "type": "server_error",
           },
           "type": "error",
