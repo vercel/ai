@@ -699,6 +699,31 @@ describe('GoogleJSONAccumulator', () => {
       return { currentJSON, text: deltas.join(''), finalJSON };
     }
 
+    it('should treat a trailing {} path as an object terminator', () => {
+      const result = accumulate([
+        [{ jsonPath: '$.destination.to', stringValue: 'board', willContinue: true }],
+        [{ jsonPath: '$.destination.to', stringValue: '' }],
+        [{ jsonPath: '$.destination{}' }],
+        [{ jsonPath: '$.items[0].name', stringValue: 'a', willContinue: true }],
+        [{ jsonPath: '$.items[0].name', stringValue: '' }],
+        [{ jsonPath: '$.items[0]{}' }],
+        [{ jsonPath: '$.options{}' }],
+        [{ jsonPath: '$.prompt', stringValue: 'a fox', willContinue: true }],
+        [{ jsonPath: '$.prompt', stringValue: '' }],
+      ]);
+
+      expect(result.currentJSON).toEqual({
+        destination: { to: 'board' },
+        items: [{ name: 'a' }],
+        options: {},
+        prompt: 'a fox',
+      });
+      expect(result.finalJSON).toBe(
+        '{"destination":{"to":"board"},"items":[{"name":"a"}],"options":{},"prompt":"a fox"}',
+      );
+      expect(result.text).toBe(result.finalJSON);
+    });
+
     it('should keep empty arrays, empty objects, and nested empty arrays', () => {
       const result = accumulate([
         [{ jsonPath: '$.id', stringValue: 'x' }],

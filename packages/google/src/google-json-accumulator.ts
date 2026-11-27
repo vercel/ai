@@ -54,7 +54,8 @@ export class GoogleJSONAccumulator {
       // Vertex terminates an array with a value-less `$.path[]` entry. For an
       // empty array, that terminator is the only entry sent for the path.
       const isArrayTerminator = arg.jsonPath.endsWith('[]');
-      const jsonPath = isArrayTerminator
+      const isObjectTerminator = arg.jsonPath.endsWith('{}');
+      const jsonPath = isArrayTerminator || isObjectTerminator
         ? arg.jsonPath.slice(0, -2)
         : arg.jsonPath;
       const rawPath = jsonPath.replace(/^\$\./, '');
