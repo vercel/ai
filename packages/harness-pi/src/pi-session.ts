@@ -866,6 +866,7 @@ export async function createPiSession(
    */
   let suspending = false;
   const pendingToolResults = new Map<string, PendingToolResult>();
+  const earlyToolResults = new Map<string, HostToolSubmission>();
   const pendingToolApprovals = new Map<string, PendingToolApproval>();
   let pendingToolBatchToReplay = input.resumePendingToolBatch;
   let replayBarrier: ToolBatchReplayBarrier | undefined;
@@ -921,6 +922,7 @@ export async function createPiSession(
       pending.resolve({ toolCallId, output: { error: reason }, isError: true });
     }
     pendingToolResults.clear();
+    earlyToolResults.clear();
   }
 
   function settlePendingToolApprovals(reason: string): void {
@@ -1055,12 +1057,13 @@ export async function createPiSession(
     return data as HarnessV1LifecycleState['data'];
   }
 
-  function acceptReplayToolResult(args: HostToolSubmission): void {
+  function acceptReplayToolResult(args: HostToolSubmission): boolean {
     const barrier = replayBarrier;
-    if (barrier == null || !barrier.awaiting.has(args.toolCallId)) return;
+    if (barrier == null || !barrier.awaiting.has(args.toolCallId)) return false;
     barrier.awaiting.delete(args.toolCallId);
     barrier.deliveredHostResults.set(args.toolCallId, args);
     if (barrier.awaiting.size === 0) barrier.start();
+    return true;
   }
 
   function acceptReplayToolApproval(args: {
@@ -1240,7 +1243,19 @@ export async function createPiSession(
       async submitToolResult(args) {
         const pending = pendingToolResults.get(args.toolCallId);
         if (!pending) {
-          acceptReplayToolResult(args);
+          if (acceptReplayToolResult(args)) {
+            return;
+          }
+          if (
+            replayBarrier == null &&
+            activeTurn != null &&
+            !stopped &&
+            !earlyToolResults.has(args.toolCallId) &&
+            !translatorState?.hostToolResults.has(args.toolCallId)
+          ) {
+            earlyToolResults.set(args.toolCallId, args);
+            translatorState?.hostToolResults.set(args.toolCallId, args.output);
+          }
           return;
         }
         pendingToolResults.delete(args.toolCallId);
@@ -1358,6 +1373,7 @@ export async function createPiSession(
         buildUserToolDefinition({
           spec,
           pending: pendingToolResults,
+          earlyResults: earlyToolResults,
           onPending: emitEarlyFinishStepIfReady,
         }),
       ),
@@ -1699,6 +1715,7 @@ export async function createPiSession(
       if (activeTurn?.token === activeTurnToken) {
         activeTurn = undefined;
         currentEmit = undefined;
+        earlyToolResults.clear();
       }
     });
     activeTurn = {
@@ -2347,10 +2364,12 @@ function toPiHostToolResult(submission: HostToolSubmission): {
 function buildUserToolDefinition({
   spec,
   pending,
+  earlyResults,
   onPending,
 }: {
   spec: HarnessV1ToolSpec;
   pending: Map<string, PendingToolResult>;
+  earlyResults: Map<string, HostToolSubmission>;
   onPending: () => void;
 }): ToolDefinition {
   const schema = spec.inputSchema ?? {
@@ -2364,21 +2383,26 @@ function buildUserToolDefinition({
     description: spec.description ?? `User-registered tool ${spec.name}`,
     parameters: toolSpecToTypeBoxParameters(schema),
     async execute(toolCallId) {
-      return new Promise<HostToolSubmission>(resolve => {
-        pending.set(toolCallId, { resolve });
-        onPending();
-      }).then(submission => {
-        const converted = toPiHostToolResult(submission);
-        if (submission.toolResult != null && converted.isError) {
-          throw new Error(
-            converted.result.content
-              .filter(part => part.type === 'text')
-              .map(part => part.text)
-              .join('\n'),
-          );
-        }
-        return converted.result;
-      });
+      const early = earlyResults.get(toolCallId);
+      if (early !== undefined) {
+        earlyResults.delete(toolCallId);
+      }
+      const submission =
+        early ??
+        (await new Promise<HostToolSubmission>(resolve => {
+          pending.set(toolCallId, { resolve });
+          onPending();
+        }));
+      const converted = toPiHostToolResult(submission);
+      if (submission.toolResult != null && converted.isError) {
+        throw new Error(
+          converted.result.content
+            .filter(part => part.type === 'text')
+            .map(part => part.text)
+            .join('\n'),
+        );
+      }
+      return converted.result;
     },
   });
 }
