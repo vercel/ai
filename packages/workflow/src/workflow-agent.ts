@@ -3266,11 +3266,9 @@ export class WorkflowAgent<
               output: undefined as TOutput,
             };
             if (step != null) {
-              if (mode === 'generate') {
-                await mergedOnStepEnd?.(
-                  step as StepResult<TTools, TRuntimeContext>,
-                );
-              }
+              await mergedOnStepEnd?.(
+                step as StepResult<TTools, TRuntimeContext>,
+              );
               await telemetryDispatcher.onStepEnd?.(
                 normalizeStepForTelemetry(step),
               );
