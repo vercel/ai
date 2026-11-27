@@ -47,6 +47,8 @@ pnpm add ai zod dotenv
 pnpm add -D @types/node tsx typescript
 ```
 
+If pnpm reports `ERR_PNPM_IGNORED_BUILDS` for `esbuild`, the dev dependencies have been added, but pnpm skipped esbuild's install script. To allow the script in this project, run `pnpm approve-builds`, select `esbuild` with Space, press Enter, and confirm.
+
 The `ai` package contains the AI SDK. You will use `zod` to define type-safe schemas that you will pass to the large language model (LLM). You will use `dotenv` to access environment variables (your Vercel AI Gateway key) within your application. There are also three development dependencies, installed with the `-D` flag, that are necessary to run your TypeScript code.
 
 ### Configure Vercel AI Gateway API key
