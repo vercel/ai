@@ -105,6 +105,15 @@ export function toUIMessageChunk(
       return undefined;
     }
 
+    case 'custom':
+      return {
+        type: 'custom',
+        kind: part.kind,
+        ...(part.providerMetadata != null
+          ? { providerMetadata: part.providerMetadata }
+          : {}),
+      };
+
     case 'tool-input-start':
       return {
         type: 'tool-input-start',
