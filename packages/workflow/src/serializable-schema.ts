@@ -230,6 +230,36 @@ function formatAjvError(error: ErrorObject): string {
   }
 }
 
+const ajvOptions = {
+  allErrors: true,
+  strict: false,
+  validateFormats: false,
+} as const;
+
+/**
+ * Resolved tool sets, keyed by the serialized tool definitions.
+ *
+ * A workflow step rebuilds the tool set every time it runs, so unchanged
+ * definitions arrive as new objects on every model step. Rebuilding them costs
+ * Ajv a full schema traversal per tool per step, which dominates the time
+ * between the step starting and the model call for agents with many
+ * JSON-Schema tools.
+ *
+ * The whole tool set is cached rather than each compiled schema, because the
+ * compiler instance is part of the result: tools in one call share it, so a
+ * `$ref` in one tool resolves to another tool's `$id`, while a schema whose
+ * `$id` stayed the same but whose body changed still needs a compiler that has
+ * not seen it. A whole-set hit returns the tools built by the call that first
+ * saw these definitions, which keeps both behaviours and touches Ajv not at
+ * all.
+ */
+const resolvedToolSets = new Map<string, ToolSet>();
+
+// A workflow that builds tool definitions dynamically would otherwise grow this
+// map without bound. The cap is well above any realistic fixed tool set, so a
+// steady-state run never evicts; going over it only costs a rebuild.
+const RESOLVED_TOOL_SET_LIMIT = 1000;
+
 /**
  * Reconstructs tool objects from serializable tool definitions inside a step.
  *
@@ -240,11 +270,26 @@ function formatAjvError(error: ErrorObject): string {
 export function resolveSerializableTools(
   tools: Record<string, SerializableToolDef>,
 ): ToolSet {
-  const ajvOptions = {
-    allErrors: true,
-    strict: false,
-    validateFormats: false,
-  } as const;
+  const key = JSON.stringify(tools);
+  const cached = resolvedToolSets.get(key);
+  if (cached != null) {
+    return cached;
+  }
+
+  const resolved = buildSerializableTools(tools);
+  if (resolvedToolSets.size >= RESOLVED_TOOL_SET_LIMIT) {
+    resolvedToolSets.clear();
+  }
+  resolvedToolSets.set(key, resolved);
+  return resolved;
+}
+
+function buildSerializableTools(
+  tools: Record<string, SerializableToolDef>,
+): ToolSet {
+  // One compiler pair per call: Ajv registers what it compiles by `$id`, so
+  // tools in the same set can reference each other, while a later call starts
+  // from an empty registry and can compile a changed schema that kept its `$id`.
   const ajv = new Ajv(ajvOptions);
   const ajv2020 = new Ajv2020(ajvOptions);
 
