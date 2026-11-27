@@ -179,3 +179,24 @@ export async function agentGenerateWithGlobalTelemetry(
   });
   return { text: result.text };
 }
+
+/** A run that is aborted before its first model step. */
+export async function agentAbortedBeforeModelStep(mode: 'generate' | 'stream') {
+  'use workflow';
+  const agent = new WorkflowAgent({
+    model: mockTextModel('unused'),
+    telemetry: { functionId: 'telemetry-test' },
+  });
+  try {
+    const result = await (mode === 'generate'
+      ? agent.generate({ prompt: 'hello', abortSignal: AbortSignal.abort() })
+      : agent.stream({
+          prompt: 'hello',
+          writable: getWritable(),
+          abortSignal: AbortSignal.abort(),
+        }));
+    return { stepCount: result.steps.length };
+  } catch (error) {
+    return { errorName: (error as Error).name };
+  }
+}

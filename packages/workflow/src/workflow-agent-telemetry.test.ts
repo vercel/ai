@@ -151,4 +151,74 @@ describe('WorkflowAgent run telemetry', () => {
     expect(onStart).toHaveBeenCalledOnce();
     expect(onAbort).toHaveBeenCalledOnce();
   });
+
+  describe('contexts of a run that ended before its first model step', () => {
+    const context = {
+      traceId: '1'.repeat(32),
+      rootSpanId: '2'.repeat(16),
+      traceFlags: 1,
+      samplingDecision: 2 as const,
+    };
+
+    function setup() {
+      const recorder = createWorkflowAgentTelemetryRecorder();
+      recorder.integration.onStart!({
+        operationId: 'ai.workflowAgent.stream',
+        messages: [],
+      } as never);
+      const captureContext = vi.fn((_event: any) => context);
+      const onStart = vi.fn((_event: any) => {});
+      const onAbort = vi.fn();
+      vi.stubGlobal('AI_SDK_TELEMETRY_INTEGRATIONS', [
+        { experimental_durable: { captureContext }, onStart, onAbort },
+      ]);
+      return { recorder, captureContext, onStart, onAbort };
+    }
+
+    it('captures them in the report', async () => {
+      const { recorder, captureContext, onStart, onAbort } = setup();
+      await reportWorkflowAgentTelemetry({
+        telemetry: {},
+        events: structuredClone(recorder.events),
+        callId: recorder.callId,
+        captureContexts: true,
+      });
+      expect(captureContext).toHaveBeenCalledOnce();
+      expect(captureContext.mock.calls[0][0]).toEqual({
+        operationId: 'ai.workflowAgent.stream',
+        messages: [],
+        callId: recorder.callId,
+      });
+      expect(onStart.mock.calls[0][0].durableContext).toEqual({
+        run: context,
+        phase: 'replay',
+      });
+      expect(onAbort).toHaveBeenCalledOnce();
+    });
+
+    it('uses the contexts of a model step instead of capturing again', async () => {
+      const { recorder, captureContext, onStart } = setup();
+      const captured = { ...context, traceId: '3'.repeat(32) };
+      await reportWorkflowAgentTelemetry({
+        telemetry: {},
+        events: structuredClone(recorder.events),
+        callId: recorder.callId,
+        contexts: [captured],
+        captureContexts: true,
+      });
+      expect(captureContext).not.toHaveBeenCalled();
+      expect(onStart.mock.calls[0][0].durableContext.run).toEqual(captured);
+    });
+
+    it('does not capture for a run whose model steps ran without contexts', async () => {
+      const { recorder, captureContext, onStart } = setup();
+      await reportWorkflowAgentTelemetry({
+        telemetry: {},
+        events: structuredClone(recorder.events),
+        callId: recorder.callId,
+      });
+      expect(captureContext).not.toHaveBeenCalled();
+      expect(onStart).not.toHaveBeenCalled();
+    });
+  });
 });

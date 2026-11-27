@@ -23,7 +23,6 @@ import {
   type ModelMessage,
   type StepResult,
   type Telemetry,
-  type DurableTelemetryContext,
   type ToolCallRepairFunction,
   type ToolInputRefinement,
   type ToolChoice,
@@ -62,6 +61,10 @@ import {
   type SerializableToolDef,
 } from './serializable-schema.js';
 import { withServerToolFields } from './with-server-tool-fields.js';
+import {
+  getRecordedStartEvent,
+  type createWorkflowAgentTelemetryRecorder,
+} from './workflow-agent-telemetry.js';
 import type {
   GenerationSettings,
   PrepareStepCallback,
@@ -222,8 +225,7 @@ export async function* modelCallIterator({
   toolsContext,
   telemetry,
   telemetryRecorder,
-  telemetryCallId,
-  telemetryContexts,
+  telemetryRun,
   includeRawChunks = false,
   timeoutAt,
   stepTimeoutMs,
@@ -262,9 +264,15 @@ export async function* modelCallIterator({
    * measured inside the model step.
    */
   telemetryRecorder?: Telemetry;
-  /** Telemetry call ID of the recorded run, passed to model steps. */
-  telemetryCallId?: string;
-  telemetryContexts?: Array<DurableTelemetryContext | undefined>;
+  /**
+   * The recorded run. Model steps receive its call ID and the integrations'
+   * durable contexts. The first model step captures the contexts from the
+   * run's start event; they are stored here when it returns.
+   */
+  telemetryRun?: Pick<
+    ReturnType<typeof createWorkflowAgentTelemetryRecorder>,
+    'callId' | 'events' | 'contexts' | 'hasModelStepStarted'
+  >;
   includeRawChunks?: boolean;
   timeoutAt?: number;
   stepTimeoutMs?: number;
@@ -504,11 +512,23 @@ export async function* modelCallIterator({
         download,
         responseFormat,
         include,
-        telemetry: dispatchTelemetryInStep
+      };
+      // Evaluated for every dispatch: the contexts are stored on the run when
+      // the first model step returns them.
+      const getModelStepTelemetry = () =>
+        dispatchTelemetryInStep
           ? {
-              ...(telemetryCallId != null
-                ? { callId: telemetryCallId, contexts: telemetryContexts }
-                : {}),
+              ...(telemetryRun == null
+                ? {}
+                : telemetryRun.contexts == null
+                  ? {
+                      callId: telemetryRun.callId,
+                      startEvent: getRecordedStartEvent(telemetryRun.events),
+                    }
+                  : {
+                      callId: telemetryRun.callId,
+                      contexts: telemetryRun.contexts,
+                    }),
               functionId: telemetry?.functionId,
               recordInputs: telemetry?.recordInputs,
               recordOutputs: telemetry?.recordOutputs,
@@ -520,29 +540,39 @@ export async function* modelCallIterator({
                 includeContext: telemetry?.includeRuntimeContext,
               }),
             }
-          : undefined,
-      };
-      const runModelStep = () =>
-        mode === 'generate'
+          : undefined;
+      const runModelStep = () => {
+        const options = { ...callOptions, telemetry: getModelStepTelemetry() };
+        return mode === 'generate'
           ? doGenerateStep(
               conversationPrompt,
               currentModel,
               serializedTools,
-              callOptions,
+              options,
             )
           : doStreamStep(
               conversationPrompt,
               currentModel,
               writable,
               serializedTools,
-              callOptions,
+              options,
             );
+      };
       // Fallback start time for a model step that fails without returning its
       // timing. In a workflow, this is the time of the last delivered event.
-      const modelStepStartedAt = Date.now();
+      let modelStepStartedAt = Date.now();
       let modelCallResult: Awaited<ReturnType<typeof runModelStep>>;
       try {
+        if (telemetryRun != null) telemetryRun.hasModelStepStarted = true;
         modelCallResult = await runModelStep();
+        if (telemetryRun != null) {
+          telemetryRun.contexts ??= modelCallResult.telemetryContexts;
+        }
+        if (modelCallResult.aborted && modelCallResult.deferred) {
+          // The step captured a durable context and did not call the model.
+          modelStepStartedAt = Date.now();
+          modelCallResult = await runModelStep();
+        }
       } catch (error) {
         // The provider call failed inside the step, for example when the
         // stream could not be started after all retries. Report the call so

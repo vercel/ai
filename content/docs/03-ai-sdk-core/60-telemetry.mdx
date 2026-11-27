@@ -312,9 +312,9 @@ example on a tool approval), using the original event timestamps. The root
 includes the run's prompt and final output, subject to `recordInputs` and
 `recordOutputs`.
 
-A preparation step captures the active parent trace and makes the run's sampling
-decision once. That context is carried to subsequent steps, preserving the trace
-ID, sampling decision, and trace state. By default, the bridge uses parent-based
+The run's first model step captures the active parent trace and makes the run's
+sampling decision once. That context is carried to subsequent steps, preserving
+the trace ID, sampling decision, and trace state. By default, the bridge uses parent-based
 sampling with roots enabled. To use another sampler, pass it through
 `new OpenTelemetryIdGenerator({ sampler: yourSampler })` and keep the bridge as
 the provider's sampler. Unrelated spans use random IDs and the configured sampler.
@@ -470,8 +470,10 @@ For durable workflows, integrations normally receive recorded events after the
 run ends. Events can include `timestamp` (Unix milliseconds); use it for span
 start and end times instead of the current time. Integrations that can reconstruct
 traces across processes can implement the experimental
-`experimental_durable.captureContext(event)` hook. It runs in a preparation step
-and returns a serializable `DurableTelemetryContext`. Live model-start events
+`experimental_durable.captureContext(event)` hook. It runs in the
+run's first model step, before any model call (or in the reporting step when the
+run ends before its first model step), and returns a serializable
+`DurableTelemetryContext`. Live model-start events
 then carry that context in `event.durableContext` with `phase: 'live'`; the
 recorded operation-start event carries it with `phase: 'replay'`. Such integrations
 should skip replayed model events to avoid duplicate spans. Returning `undefined`

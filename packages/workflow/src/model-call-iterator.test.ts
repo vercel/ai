@@ -811,6 +811,171 @@ describe('modelCallIterator', () => {
       ]);
       vi.useRealTimers();
     });
+
+    describe('durable contexts', () => {
+      const context = {
+        traceId: '1'.repeat(32),
+        rootSpanId: '2'.repeat(16),
+        traceFlags: 1,
+        samplingDecision: 2 as const,
+      };
+      const toolCall: ParsedToolCall = {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'testTool',
+        input: {},
+      };
+      const tools = {
+        testTool: { description: 'A test tool', inputSchema: z.object({}) },
+      } as unknown as ToolSet;
+
+      function createRun() {
+        const recorder = createWorkflowAgentTelemetryRecorder();
+        recorder.integration.onStart!({
+          operationId: 'ai.workflowAgent.stream',
+          messages: [{ role: 'user', content: 'test' }],
+        } as never);
+        return recorder;
+      }
+
+      function modelStepTelemetry(call: number) {
+        return vi.mocked(doStreamStep).mock.calls[call][4]?.telemetry;
+      }
+
+      const toolResult = {
+        type: 'tool-result' as const,
+        toolCallId: 'call-1',
+        toolName: 'testTool',
+        output: { type: 'text' as const, value: 'done' },
+      };
+
+      function createIterator(
+        recorder: ReturnType<typeof createRun>,
+        iteratorTools: ToolSet = tools,
+      ) {
+        return modelCallIterator({
+          prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+          tools: iteratorTools,
+          model: vi.fn() as any,
+          telemetryRecorder: recorder.integration,
+          telemetryRun: recorder,
+        });
+      }
+
+      it('runs the model step again with a durable context that the first step returned', async () => {
+        vi.stubGlobal('AI_SDK_TELEMETRY_INTEGRATIONS', undefined);
+        vi.mocked(doStreamStep)
+          .mockResolvedValueOnce({
+            aborted: true,
+            deferred: true,
+            telemetryContexts: [context],
+          })
+          .mockResolvedValueOnce(
+            createMockDoStreamStepResult({
+              toolCalls: [toolCall],
+              finishReason: 'tool-calls',
+            }),
+          )
+          .mockResolvedValueOnce(createMockDoStreamStepResult());
+        const recorder = createRun();
+        const iterator = createIterator(recorder);
+
+        const first = await iterator.next();
+        // The deferred step is not a step of the run.
+        expect(first.done).toBe(false);
+        expect(
+          recorder.events.filter(({ type }) => type === 'onStepStart'),
+        ).toHaveLength(1);
+        expect(modelStepTelemetry(0)).toMatchObject({
+          callId: recorder.callId,
+          startEvent: recorder.events[0].event,
+          stepNumber: 0,
+        });
+        expect(modelStepTelemetry(0)).not.toHaveProperty('contexts');
+        expect(modelStepTelemetry(1)).toMatchObject({
+          callId: recorder.callId,
+          contexts: [context],
+          stepNumber: 0,
+        });
+        expect(modelStepTelemetry(1)).not.toHaveProperty('startEvent');
+        // Apart from the telemetry settings, both dispatches are the same.
+        const [firstCall, secondCall] = vi.mocked(doStreamStep).mock.calls;
+        expect({ ...secondCall[4], telemetry: undefined }).toEqual({
+          ...firstCall[4],
+          telemetry: undefined,
+        });
+        expect(secondCall.slice(0, 4)).toEqual(firstCall.slice(0, 4));
+        expect(recorder.contexts).toEqual([context]);
+
+        await iterator.next([toolResult]);
+        expect(vi.mocked(doStreamStep)).toHaveBeenCalledTimes(3);
+        expect(modelStepTelemetry(2)).toMatchObject({
+          callId: recorder.callId,
+          contexts: [context],
+          stepNumber: 1,
+        });
+        expect(modelStepTelemetry(2)).not.toHaveProperty('startEvent');
+      });
+
+      it.each([
+        ['no integration is registered', []],
+        ['no integration has a durable context', [undefined]],
+      ])(
+        'sends the start event to the first model step only when %s',
+        async (_name, contexts) => {
+          vi.stubGlobal('AI_SDK_TELEMETRY_INTEGRATIONS', undefined);
+          vi.mocked(doStreamStep)
+            .mockResolvedValueOnce({
+              ...createMockDoStreamStepResult({
+                toolCalls: [toolCall],
+                finishReason: 'tool-calls',
+              }),
+              telemetryContexts: contexts,
+            })
+            .mockResolvedValueOnce(createMockDoStreamStepResult());
+          const recorder = createRun();
+          const iterator = createIterator(recorder);
+
+          await iterator.next();
+          expect(modelStepTelemetry(0)).toMatchObject({
+            startEvent: recorder.events[0].event,
+          });
+          await iterator.next([toolResult]);
+          expect(vi.mocked(doStreamStep)).toHaveBeenCalledTimes(2);
+          expect(modelStepTelemetry(1)).toMatchObject({ contexts });
+          expect(modelStepTelemetry(1)).not.toHaveProperty('startEvent');
+          expect(recorder.contexts).toEqual(contexts);
+        },
+      );
+
+      it('marks the run when its first model step fails', async () => {
+        vi.stubGlobal('AI_SDK_TELEMETRY_INTEGRATIONS', undefined);
+        vi.mocked(doStreamStep).mockRejectedValue(new Error('rejected'));
+        const recorder = createRun();
+        expect(recorder.hasModelStepStarted).toBeUndefined();
+        const iterator = createIterator(recorder, {});
+
+        await expect(iterator.next()).rejects.toThrow('rejected');
+        // The failed step called the model without a durable context, so the
+        // report must not capture one.
+        expect(recorder.contexts).toBeUndefined();
+        expect(recorder.hasModelStepStarted).toBe(true);
+      });
+
+      it('accepts a model step result without contexts', async () => {
+        vi.stubGlobal('AI_SDK_TELEMETRY_INTEGRATIONS', undefined);
+        // A result persisted by a version that did not capture in the step.
+        vi.mocked(doStreamStep).mockResolvedValue(
+          createMockDoStreamStepResult(),
+        );
+        const recorder = createRun();
+        const iterator = createIterator(recorder, {});
+
+        await iterator.next();
+        expect(recorder.contexts).toBeUndefined();
+        expect(recorder.hasModelStepStarted).toBe(true);
+      });
+    });
   });
 
   describe('conversation prompt', () => {
