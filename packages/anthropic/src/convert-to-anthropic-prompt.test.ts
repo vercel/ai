@@ -6462,6 +6462,64 @@ describe('toolsets', () => {
     ]);
   });
 
+  it.each(['constructor', 'toString'])(
+    'should detect toolset tool calls through provider metadata for tool name %s',
+    async toolName => {
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'toolu_screenshot',
+                toolName,
+                input: { action: 'screenshot' },
+                providerOptions: { anthropic: { toolsetName: 'computer' } },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'toolu_screenshot',
+                toolName,
+                output: { type: 'text', value: 'OK' },
+                providerOptions: { anthropic: { toolsetName: 'computer' } },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result.prompt.messages[0].content).toEqual([
+        {
+          type: 'tool_use',
+          id: 'toolu_screenshot',
+          name: 'screenshot',
+          toolset_name: 'computer',
+          input: { action: 'screenshot' },
+          cache_control: undefined,
+        },
+      ]);
+      expect(result.prompt.messages[1].content).toEqual([
+        {
+          type: 'tool_result',
+          tool_use_id: 'toolu_screenshot',
+          toolset_name: 'computer',
+          content: 'OK',
+          is_error: undefined,
+          cache_control: undefined,
+        },
+      ]);
+    },
+  );
+
   it.each([
     { input: { coordinate: [1, 2] }, toolName: 'computer' },
     { input: { action: null, coordinate: [1, 2] }, toolName: 'computer' },
