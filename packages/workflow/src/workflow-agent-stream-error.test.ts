@@ -84,10 +84,9 @@ describe('WorkflowAgent.stream error parts', () => {
       finishReason: 'error',
       error: terminal,
     });
-    expect(result.streamedParts).toContainEqual({
-      type: 'error',
-      error: terminal,
-    });
+    expect(result.streamedParts).toContainEqual(
+      expect.objectContaining({ type: 'error', error: terminal }),
+    );
     const assistantMessage = {
       role: 'assistant',
       content: [

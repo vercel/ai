@@ -225,6 +225,15 @@ export function toUIMessageChunk(
  * chunks that the client has already received. Raw model stream parts and UI
  * message chunks do not have a one-to-one relationship, so a UI chunk index
  * must not be used as the source stream's start index.
+ *
+ * A model step can run more than once, and two executions can write to the
+ * stream at the same time. Each execution tags its parts with an `attemptId`
+ * and announces itself with a `reset-step` part. The transform forwards the
+ * parts of the latest announced execution and withholds those of the others.
+ * When the workflow names another execution as the one it continued with
+ * (`commitAttemptId`), the transform resets the step and forwards that
+ * execution's parts instead. Parts without an `attemptId` are always
+ * forwarded.
  */
 export function createModelCallToUIChunkTransform({
   uiStartIndex = 0,
@@ -250,6 +259,26 @@ export function createModelCallToUIChunkTransform({
     }
   };
 
+  const forward = (
+    controller: TransformStreamDefaultController<UIMessageChunk>,
+    part: ModelCallStreamPart<ToolSet>,
+  ) => {
+    const uiChunk = toUIMessageChunk(part);
+    if (uiChunk) {
+      enqueue(controller, uiChunk);
+    }
+  };
+
+  // Parts of the executions of the model call in progress, by attempt id, in
+  // announcement order. Kept until the workflow names the execution it
+  // continued with, because that can be one that was withheld.
+  const attempts = new Map<string, Array<ModelCallStreamPart<ToolSet>>>();
+  // The execution whose parts are being forwarded.
+  let forwardedAttemptId: string | undefined;
+  // False until the stream shows where an execution starts or ends. A reader
+  // that joins in the middle of an execution adopts it.
+  let hasSeenAttemptBoundary = false;
+
   return new TransformStream<ModelCallStreamPart<ToolSet>, UIMessageChunk>({
     start: controller => {
       enqueue(controller, { type: 'start' });
@@ -260,10 +289,74 @@ export function createModelCallToUIChunkTransform({
       enqueue(controller, { type: 'finish' });
     },
     transform: (part, controller) => {
-      const uiChunk = toUIMessageChunk(part);
-      if (uiChunk) {
-        enqueue(controller, uiChunk);
+      if (part.commitAttemptId != null) {
+        hasSeenAttemptBoundary = true;
+        // A commit for an execution that is not retained was applied before,
+        // or names a model call this reader did not see. A step that writes a
+        // commit can run again, so a repeated commit must not end the model
+        // call that is in progress by then.
+        const committed = attempts.get(part.commitAttemptId);
+        if (committed != null) {
+          if (part.commitAttemptId !== forwardedAttemptId) {
+            // The reader was shown another execution. Replace it.
+            enqueue(controller, { type: 'reset-step' });
+            for (const committedPart of committed) {
+              forward(controller, committedPart);
+            }
+          }
+          attempts.clear();
+          forwardedAttemptId = undefined;
+        }
+      }
+
+      if (part.type === 'commit-step') {
+        return;
+      }
+
+      const attemptId = part.attemptId;
+
+      if (part.type === 'reset-step') {
+        hasSeenAttemptBoundary = true;
+        if (attemptId == null) {
+          // Written by a version that does not identify executions.
+          attempts.clear();
+          forwardedAttemptId = undefined;
+        } else {
+          attempts.set(attemptId, []);
+          forwardedAttemptId = attemptId;
+          // Without a commit, executions of earlier model calls stay here.
+          // Keep the few that can still be named.
+          while (attempts.size > MAX_RETAINED_ATTEMPTS) {
+            attempts.delete(attempts.keys().next().value as string);
+          }
+        }
+        forward(controller, part);
+        return;
+      }
+
+      if (attemptId == null) {
+        forward(controller, part);
+        return;
+      }
+
+      if (!hasSeenAttemptBoundary) {
+        hasSeenAttemptBoundary = true;
+        attempts.set(attemptId, []);
+        forwardedAttemptId = attemptId;
+      }
+
+      // Parts of an execution that was never announced here, or that belongs
+      // to a model call the workflow has moved past, are dropped.
+      attempts.get(attemptId)?.push(part);
+      if (attemptId === forwardedAttemptId) {
+        forward(controller, part);
       }
     },
   });
 }
+
+/**
+ * How many executions of a model call the transform retains at once. More
+ * than two executions of one model call are not expected.
+ */
+const MAX_RETAINED_ATTEMPTS = 3;

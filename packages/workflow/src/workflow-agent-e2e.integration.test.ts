@@ -16,6 +16,7 @@ import {
   agentGenerateUndefinedFailureE2e,
   agentErrorToolE2e,
   agentInstructionsStringE2e,
+  agentModelCallFailureE2e,
   agentModelRetriesE2e,
   agentMultiStepE2e,
   agentOnFinishE2e,
@@ -100,12 +101,51 @@ describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
       });
     });
 
+    it('tags the stream parts of a model step and names the execution it continued with', async () => {
+      const run = await start(agentBasicE2e, ['hello world']);
+      const partsPromise = collectStream<{
+        type: string;
+        attemptId?: string;
+        commitAttemptId?: string;
+      }>(run.readable);
+      await run.returnValue;
+      const parts = await partsPromise;
+
+      const reset = parts.find(part => part.type === 'reset-step');
+      const commit = parts.find(part => part.commitAttemptId != null);
+      expect(reset?.attemptId).toEqual(expect.any(String));
+      expect(commit?.commitAttemptId).toBe(reset?.attemptId);
+      expect(parts.indexOf(reset!)).toBe(0);
+
+      const modelParts = parts.slice(0, parts.indexOf(commit!));
+      expect(modelParts.length).toBeGreaterThan(1);
+      expect(
+        modelParts.every(part => part.attemptId === reset?.attemptId),
+      ).toBe(true);
+    });
+
     it('retries model calls within one durable step attempt', async () => {
       const run = await start(agentModelRetriesE2e, []);
 
       await expect(run.returnValue).resolves.toBe(
         'model-attempts=3;step-attempt=1',
       );
+    });
+
+    it('calls the model once and rejects with its error when the model call fails', async () => {
+      const state = globalThis as { __failingModelCalls?: number };
+      state.__failingModelCalls = 0;
+
+      const run = await start(agentModelCallFailureE2e, []);
+
+      // The workflow runtime may run the model step again, but a failed
+      // model call is not a reason to: only SDK retries apply to it.
+      await expect(run.returnValue).resolves.toEqual({
+        rejected: true,
+        name: 'AI_APICallError',
+        message: 'model call rejected (call 1, step attempt 1)',
+      });
+      expect(state.__failingModelCalls).toBe(1);
     });
 
     it('surfaces stream error data without retrying the model step', async () => {
@@ -127,7 +167,7 @@ describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
         callbackErrors: [terminal],
       });
       expect(chunks.filter(chunk => chunk.type === 'error')).toEqual([
-        { type: 'error', error: terminal },
+        { type: 'error', error: terminal, attemptId: expect.any(String) },
       ]);
     });
 

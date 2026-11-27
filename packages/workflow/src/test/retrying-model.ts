@@ -77,3 +77,35 @@ class SerializableRetryingModel extends MockLanguageModelV4 {
 export function retryingModel(): MockLanguageModelV4 {
   return new SerializableRetryingModel(2);
 }
+
+class SerializableFailingModel extends MockLanguageModelV4 {
+  static [WORKFLOW_SERIALIZE](_model: SerializableFailingModel) {
+    return {};
+  }
+
+  static [WORKFLOW_DESERIALIZE](_options: {}) {
+    return new SerializableFailingModel();
+  }
+
+  constructor() {
+    super({
+      provider: 'workflow-retry-test',
+      modelId: 'workflow-failing-test-model',
+      doStream: async () => {
+        const state = globalThis as { __failingModelCalls?: number };
+        state.__failingModelCalls = (state.__failingModelCalls ?? 0) + 1;
+        throw new APICallError({
+          message: `model call rejected (call ${state.__failingModelCalls}, step attempt ${getStepMetadata().attempt})`,
+          url: 'https://example.com/model',
+          requestBodyValues: {},
+          statusCode: 400,
+        });
+      },
+    });
+  }
+}
+
+/** A model whose every call fails with an error the SDK does not retry. */
+export function failingModel(): MockLanguageModelV4 {
+  return new SerializableFailingModel();
+}

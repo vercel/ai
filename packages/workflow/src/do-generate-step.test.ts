@@ -7,6 +7,7 @@ import { MockLanguageModelV4 } from 'ai/test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { doGenerateStep } from './do-generate-step.js';
+import { MODEL_STEP_MAX_RETRIES } from './model-step-retries.js';
 import { serializeToolSet } from './serializable-schema.js';
 
 const prompt = [
@@ -84,7 +85,7 @@ describe('doGenerateStep', () => {
     vi.useRealTimers();
   });
 
-  it('rejects an expired deadline without dispatching the model and disables Workflow retries', async () => {
+  it('rejects an expired deadline without dispatching the model', async () => {
     const model = new MockLanguageModelV4({ doGenerate: success });
     await expect(
       doGenerateStep(prompt, model, {}, { timeoutAt: Date.now() - 1 }),
@@ -92,7 +93,10 @@ describe('doGenerateStep', () => {
       terminalError: expect.objectContaining({ name: 'TimeoutError' }),
     });
     expect(model.doGenerateCalls).toHaveLength(0);
-    expect(doGenerateStep.maxRetries).toBe(0);
+  });
+
+  it('lets the workflow runtime run the step again after a lost execution', () => {
+    expect(doGenerateStep.maxRetries).toBe(MODEL_STEP_MAX_RETRIES);
   });
 
   it('uses SDK retries for retryable failures', async () => {

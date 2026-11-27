@@ -1,7 +1,9 @@
 import { APICallError, type LanguageModelV4StreamPart } from '@ai-sdk/provider';
 import { MockLanguageModelV4, convertArrayToReadableStream } from 'ai/test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { FatalError } from 'workflow';
 import { doStreamStep } from './do-stream-step.js';
+import { MODEL_STEP_MAX_RETRIES } from './model-step-retries.js';
 
 const prompt = [
   { role: 'user' as const, content: [{ type: 'text' as const, text: 'test' }] },
@@ -98,12 +100,17 @@ describe('doStreamStep', () => {
       }),
     );
 
-    expect(writtenParts[0]).toEqual({ type: 'reset-step' });
-    expect(writtenParts).toContainEqual({
-      type: 'text-delta',
-      id: 'text-1',
-      text: 'Retried output',
+    expect(writtenParts[0]).toEqual({
+      type: 'reset-step',
+      attemptId: expect.any(String),
     });
+    expect(writtenParts).toContainEqual(
+      expect.objectContaining({
+        type: 'text-delta',
+        id: 'text-1',
+        text: 'Retried output',
+      }),
+    );
   });
 
   it('uses model URL support when invoking a custom downloader', async () => {
@@ -421,8 +428,138 @@ describe('doStreamStep', () => {
     expect(model.doStreamCalls).toHaveLength(2);
   });
 
-  it('disables workflow step retries to avoid stacking retry layers', () => {
-    expect(doStreamStep.maxRetries).toBe(0);
+  it('lets the workflow runtime run the step again after a lost execution', () => {
+    expect(doStreamStep.maxRetries).toBe(MODEL_STEP_MAX_RETRIES);
+    // A step with no retries is at-most-once: the runtime records its start
+    // before running it, and fails it instead of running it again.
+    expect(MODEL_STEP_MAX_RETRIES).toBeGreaterThan(0);
+  });
+
+  it('reports a failed model call as fatal so the workflow runtime does not retry it', async () => {
+    const failure = new APICallError({
+      message: 'bad request',
+      url: 'https://example.com',
+      requestBodyValues: {},
+      statusCode: 400,
+    });
+    const model = new MockLanguageModelV4({
+      doStream: async () => {
+        throw failure;
+      },
+    });
+
+    const error = await doStreamStep(prompt, model).catch(e => e);
+
+    // The original error, not a wrapper.
+    expect(error).toBe(failure);
+    expect(FatalError.is(error)).toBe(true);
+    // The marker is not part of the error's own data.
+    expect(Object.keys(error)).not.toContain('fatal');
+    expect(model.doStreamCalls).toHaveLength(1);
+  });
+
+  it('wraps a thrown value that is not an error object in a fatal error', async () => {
+    const model = new MockLanguageModelV4({
+      doStream: async () => {
+        throw 'plain failure';
+      },
+    });
+
+    const error = await doStreamStep(prompt, model, undefined, undefined, {
+      maxRetries: 0,
+    }).catch(e => e);
+
+    expect(FatalError.is(error)).toBe(true);
+    expect(error.message).toBe('plain failure');
+    expect(error.cause).toBe('plain failure');
+  });
+
+  it('tags every written part with the id of the execution and returns it', async () => {
+    const model = new MockLanguageModelV4({
+      doStream: async () => successfulStream(),
+    });
+    const writtenParts: Array<{ type: string; attemptId?: string }> = [];
+
+    const result = await doStreamStep(
+      prompt,
+      model,
+      new WritableStream({
+        write(part) {
+          writtenParts.push(part);
+        },
+      }),
+    );
+
+    expect(result.aborted).not.toBe(true);
+    if (result.aborted) return;
+    expect(result.attemptId).toEqual(expect.any(String));
+    expect(writtenParts.length).toBeGreaterThan(1);
+    expect(
+      writtenParts.every(part => part.attemptId === result.attemptId),
+    ).toBe(true);
+  });
+
+  it('uses a different id for every execution', async () => {
+    const model = new MockLanguageModelV4({
+      doStream: async () => successfulStream(),
+    });
+    const run = async () => {
+      const result = await doStreamStep(prompt, model, new WritableStream());
+      return result.aborted ? undefined : result.attemptId;
+    };
+
+    expect(await run()).not.toBe(await run());
+  });
+
+  it('announces the execution before the model responds', async () => {
+    const writtenParts: Array<{ type: string }> = [];
+    let partsWrittenAtDispatch: number | undefined;
+    const model = new MockLanguageModelV4({
+      doStream: async () => {
+        // Let the queued write reach the sink.
+        await new Promise(resolve => setTimeout(resolve, 0));
+        partsWrittenAtDispatch = writtenParts.length;
+        return successfulStream();
+      },
+    });
+
+    await doStreamStep(
+      prompt,
+      model,
+      new WritableStream({
+        write(part) {
+          writtenParts.push(part);
+        },
+      }),
+    );
+
+    expect(partsWrittenAtDispatch).toBe(1);
+    expect(writtenParts[0].type).toBe('reset-step');
+  });
+
+  it('releases the writable when the model call fails', async () => {
+    const model = new MockLanguageModelV4({
+      doStream: async () => {
+        throw new Error('dispatch failed');
+      },
+    });
+    const writable = new WritableStream();
+
+    await expect(
+      doStreamStep(prompt, model, writable, undefined, { maxRetries: 0 }),
+    ).rejects.toThrow('dispatch failed');
+
+    expect(writable.locked).toBe(false);
+  });
+
+  it('does not return an execution id without a writable', async () => {
+    const model = new MockLanguageModelV4({
+      doStream: async () => successfulStream(),
+    });
+
+    const result = await doStreamStep(prompt, model);
+
+    expect(result).not.toHaveProperty('attemptId');
   });
 
   it('does not call the model after the absolute deadline has elapsed', async () => {
@@ -506,7 +643,9 @@ describe('doStreamStep', () => {
       terminalError: terminal,
       finish: { finishReason: 'error' },
     });
-    expect(streamedParts).toContainEqual({ type: 'error', error: terminal });
+    expect(streamedParts).toContainEqual(
+      expect.objectContaining({ type: 'error', error: terminal }),
+    );
   });
 
   it.each([

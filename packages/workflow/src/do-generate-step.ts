@@ -20,6 +20,10 @@ import {
 } from 'ai/internal';
 import { languageModelPromptToModelMessages } from './language-model-prompt-to-model-messages.js';
 import { createModelCallTimeouts } from './model-call-timeouts.js';
+import {
+  asFatalModelStepError,
+  MODEL_STEP_MAX_RETRIES,
+} from './model-step-retries.js';
 import type {
   ModelCallOptions,
   ModelCallRawContentPart,
@@ -45,6 +49,25 @@ export async function doGenerateStep(
 ): Promise<ModelCallResult> {
   'use step';
 
+  try {
+    return await runGenerateModelCall(
+      prompt,
+      modelInit,
+      serializedTools,
+      options,
+    );
+  } catch (error) {
+    // A fatal failure keeps the workflow runtime from running the step again.
+    throw asFatalModelStepError(error);
+  }
+}
+
+function runGenerateModelCall(
+  prompt: LanguageModelV4Prompt,
+  modelInit: LanguageModel,
+  serializedTools: Record<string, SerializableToolDef>,
+  options: ModelCallOptions,
+): Promise<ModelCallResult> {
   return runModelCallWithTelemetry({
     telemetry: options.telemetry,
     serializedTools,
@@ -333,4 +356,4 @@ async function generateModelCall(
   };
 }
 
-doGenerateStep.maxRetries = 0;
+doGenerateStep.maxRetries = MODEL_STEP_MAX_RETRIES;
