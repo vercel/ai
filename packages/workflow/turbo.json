@@ -1,0 +1,8 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "test": {
+      "tags": ["$TURBO_EXTENDS$", "ci:cpus:8"]
+    }
+  }
+}
