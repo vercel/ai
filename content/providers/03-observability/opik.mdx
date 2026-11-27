@@ -1,0 +1,157 @@
+---
+title: Opik
+description: Monitor, debug, and optimize your AI SDK applications with Opik observability
+---
+
+# Opik Observability
+
+[Opik](https://www.comet.com/opik/) is Comet's observability, evaluation, and optimization platform for LLM and agent workloads. Its OpenTelemetry exporter collects AI SDK spans so you can inspect model inputs and outputs, token usage, and tool calls.
+
+## Setup
+
+In an AI SDK v7 application, install the telemetry integration and Opik exporter:
+
+```bash
+npm install @ai-sdk/otel opik@^1.8.75 opik-vercel@2.2.143 \
+  @opentelemetry/api@1.9.1 @opentelemetry/core@2.7.1 \
+  @opentelemetry/sdk-node@0.218.0
+```
+
+The exporter currently requires an Opik 1.x client and OpenTelemetry 2.x core. These versions satisfy its peer dependencies.
+
+Set your Opik configuration and model provider credentials:
+
+```bash filename=".env" wordWrap
+OPIK_API_KEY="<opik-api-key>"
+OPIK_URL_OVERRIDE="https://www.comet.com/opik/api"
+OPIK_PROJECT_NAME="<project-name>"
+OPIK_WORKSPACE="<workspace>"
+OPENAI_API_KEY="<openai-api-key>"
+```
+
+For self-hosted Opik, set `OPIK_URL_OVERRIDE` to your deployment's API URL.
+
+Register the exporter and the AI SDK telemetry integration once at application startup. Supported calls emit telemetry by default after registration. You can disable individual calls with `telemetry: { isEnabled: false }`, or control content recording with `recordInputs` and `recordOutputs`. See the [telemetry documentation](/docs/ai-sdk-core/telemetry).
+
+<Tabs items={["Next.js", "Node.js"]}>
+<Tab>
+
+Next.js supports OpenTelemetry instrumentation at the framework level. Install its instrumentation dependencies:
+
+```bash
+npm install @vercel/otel@2.3.0 @opentelemetry/api-logs@0.218.0 \
+  @opentelemetry/instrumentation@0.218.0 @opentelemetry/sdk-logs@0.218.0
+```
+
+Load the exporter only in the Node.js runtime:
+
+```ts filename="instrumentation.ts"
+export async function register() {
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    const { registerOTel } = await import('@vercel/otel');
+    const { registerTelemetry } = await import('ai');
+    const { OpenTelemetry } = await import('@ai-sdk/otel');
+    const { OpikExporter } = await import('opik-vercel');
+
+    registerOTel({
+      serviceName: 'opik-vercel-ai-nextjs-example',
+      traceExporter: new OpikExporter(),
+    });
+    registerTelemetry(new OpenTelemetry());
+  }
+}
+```
+
+Learn more in the [Next.js OpenTelemetry guide](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry).
+
+</Tab>
+<Tab>
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { OpenTelemetry } from '@ai-sdk/otel';
+import { NodeSDK } from '@opentelemetry/sdk-node';
+import { generateText, registerTelemetry } from 'ai';
+import { OpikExporter } from 'opik-vercel';
+
+const sdk = new NodeSDK({
+  traceExporter: new OpikExporter(),
+});
+
+sdk.start();
+registerTelemetry(new OpenTelemetry());
+
+async function main() {
+  try {
+    const result = await generateText({
+      model: openai('gpt-4o'),
+      maxOutputTokens: 64,
+      prompt: 'Draft a short release note for telemetry support.',
+    });
+
+    console.log(result.text);
+  } finally {
+    await sdk.shutdown();
+  }
+}
+
+main().catch(error => {
+  console.error(error);
+  process.exitCode = 1;
+});
+```
+
+</Tab>
+</Tabs>
+
+## Configuration
+
+### Custom tags and metadata
+
+Pass tags or metadata to the exporter you register with OpenTelemetry. They apply to every trace from that exporter:
+
+```ts
+const exporter = new OpikExporter({
+  tags: ['production', 'checkout'],
+  metadata: {
+    environment: 'production',
+    version: '1.2.0',
+  },
+});
+```
+
+### Custom trace names
+
+By default, the OpenTelemetry integration names root spans using the model ID. To use a per-call name, replace the initial `registerTelemetry(new OpenTelemetry())` registration with:
+
+```ts
+registerTelemetry(
+  new OpenTelemetry({
+    agentSpanName: ({ functionId }) => functionId,
+  }),
+);
+```
+
+Then supply the name through `telemetry.functionId`. Opik uses the resulting root span name for the trace:
+
+```ts
+await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'Summarize the latest telemetry improvements.',
+  telemetry: {
+    functionId: 'custom-trace-name',
+  },
+});
+```
+
+### Debugging
+
+Set the log level to `DEBUG` to print exporter diagnostics while developing:
+
+```bash filename=".env"
+OPIK_LOG_LEVEL=DEBUG
+```
+
+## Example application
+
+Explore the [Opik + AI SDK example](https://github.com/comet-ml/opik/tree/main/examples/vercel-ai-sdk) for additional integration examples. Its setup may target a different AI SDK version; use the registration and package versions above for AI SDK v7.
