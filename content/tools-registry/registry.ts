@@ -1032,4 +1032,39 @@ console.log(text);`,
     websiteUrl: 'https://upstash.com',
     npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
   },
+  {
+    slug: 'cleanedweb',
+    name: 'CleanedWeb',
+    description:
+      'Structured records from public websites through maintained APIs. Agents search the CleanedWeb catalog (listings, products, jobs, repositories, property and more), read the inputs, output fields and sample records of a matching API, then run it and get JSON records back. Searching is free; runs are charged per record delivered (5,000 free once, then from $1 per 1,000).',
+    packageName: 'cleanedweb',
+    tags: ['web-data', 'scraping', 'extraction', 'structured-data', 'api'],
+    apiKeyEnvName: 'CLEANEDWEB_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add cleanedweb ai @ai-sdk/openai',
+      npm: 'npm install cleanedweb ai @ai-sdk/openai',
+      yarn: 'yarn add cleanedweb ai @ai-sdk/openai',
+      bun: 'bun add cleanedweb ai @ai-sdk/openai',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { cleanedwebTools } from 'cleanedweb/ai-sdk';
+
+const { text } = await generateText({
+  model: openai('gpt-5-mini'),
+  prompt:
+    'Find five GitHub repositories under the "web-scraping" topic and list their names and URLs.',
+  tools: cleanedwebTools(),
+  stopWhen: isStepCount(8),
+});
+
+console.log(text);`,
+    docsUrl:
+      'https://cleanedweb.com/docs/ai-sdk/?utm_source=ai-sdk&utm_medium=tools-registry',
+    apiKeyUrl:
+      'https://app.cleanedweb.com/?utm_source=ai-sdk&utm_medium=tools-registry',
+    websiteUrl:
+      'https://cleanedweb.com/?utm_source=ai-sdk&utm_medium=tools-registry',
+    npmUrl: 'https://www.npmjs.com/package/cleanedweb',
+  },
 ];
