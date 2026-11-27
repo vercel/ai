@@ -1762,6 +1762,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       string,
       {
         encryptedContent?: string | null;
+        source?: 'summary' | 'text';
         // summary index as string to reasoning part state:
         summaryParts: Record<string, 'active' | 'can-conclude' | 'concluded'>;
       }
@@ -2897,7 +2898,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               if (value.summary_index > 0) {
                 const activeReasoningPart = activeReasoning[itemId];
 
-                if (activeReasoningPart != null) {
+                if (
+                  activeReasoningPart != null &&
+                  activeReasoningPart.source !== 'text'
+                ) {
                   activeReasoningPart.summaryParts[value.summary_index] =
                     'active';
 
@@ -2936,14 +2940,42 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   });
                 }
               }
-            } else if (value.type === 'response.reasoning_summary_text.delta') {
+            } else if (
+              value.type === 'response.reasoning_summary_text.delta' ||
+              value.type === 'response.reasoning_text.delta'
+            ) {
               const itemId = resolveOutputItemId({
                 itemId: value.item_id,
                 outputIndex: value.output_index,
               });
+              const activeReasoningPart = activeReasoning[itemId];
+              const isSummary =
+                value.type === 'response.reasoning_summary_text.delta';
+              const source = isSummary ? 'summary' : 'text';
+
+              if (
+                !isSummary &&
+                activeReasoningPart?.summaryParts[0] !== 'active'
+              ) {
+                return;
+              }
+
+              // Stream the first source with text for each item to avoid duplicate reasoning.
+              if (activeReasoningPart != null) {
+                if (
+                  activeReasoningPart.source != null &&
+                  activeReasoningPart.source !== source
+                ) {
+                  return;
+                }
+                if (value.delta.length > 0) {
+                  activeReasoningPart.source = source;
+                }
+              }
+
               controller.enqueue({
                 type: 'reasoning-delta',
-                id: `${itemId}:${value.summary_index}`,
+                id: `${itemId}:${isSummary ? value.summary_index : 0}`,
                 delta: value.delta,
                 providerMetadata: {
                   [providerOptionsName]: {
@@ -2958,7 +2990,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               });
               const activeReasoningPart = activeReasoning[itemId];
 
-              if (activeReasoningPart != null) {
+              if (
+                activeReasoningPart != null &&
+                activeReasoningPart.source !== 'text' &&
+                (activeReasoningPart.source === 'summary' ||
+                  value.summary_index > 0)
+              ) {
                 // when OpenAI stores the message data, we can immediately conclude the reasoning part
                 // since we do not need to send the encrypted content.
                 if (store) {
