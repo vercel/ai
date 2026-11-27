@@ -68,6 +68,55 @@ describe('Claude Code question translation', () => {
     });
   });
 
+  test('maps canonical selected option ids and free-form note to Claude answer and annotations', () => {
+    expect(
+      toClaudeCodeQuestionResult({
+        nativeInput,
+        output: {
+          action: 'answered',
+          answers: {
+            'question-1': {
+              optionIds: ['option-1'],
+              freeform: 'only for the admin page',
+            },
+          },
+        },
+      }),
+    ).toEqual({
+      behavior: 'allow',
+      updatedInput: {
+        ...nativeInput,
+        answers: { 'Which features?': 'Auth' },
+        annotations: {
+          'Which features?': { notes: 'only for the admin page' },
+        },
+      },
+    });
+  });
+
+  test('maps free-form answer without selected options to Claude answer string', () => {
+    expect(
+      toClaudeCodeQuestionResult({
+        nativeInput,
+        output: {
+          action: 'answered',
+          answers: {
+            'question-1': {
+              optionIds: [],
+              freeform: 'custom feature',
+            },
+          },
+        },
+      }),
+    ).toEqual({
+      behavior: 'allow',
+      updatedInput: {
+        ...nativeInput,
+        answers: { 'Which features?': 'custom feature' },
+      },
+    });
+  });
+
   test('maps canonical decline to native permission denial', () => {
     expect(
       toClaudeCodeQuestionResult({
