@@ -23,6 +23,9 @@
     "copy-bridge-assets": "node -e \"import('node:fs/promises').then(async fs => { for (const dir of ['dist/bridge', 'dist/v1/bridge']) { await fs.mkdir(dir, { recursive: true }); await fs.copyFile('src/v1/bridge/package.json', dir + '/package.json'); await fs.copyFile('src/v1/bridge/pnpm-lock.yaml', dir + '/pnpm-lockfile.yaml'); } for (const file of ['index.mjs', 'index.mjs.map', 'host-tool-mcp.mjs', 'host-tool-mcp.mjs.map']) { try { await fs.copyFile('dist/bridge/' + file, 'dist/v1/bridge/' + file); } catch {} } })\"",
     "type-check": "tsc --noEmit",
     "test": "pnpm test:node",
+    "test:node22": "node ../../tools/with-node.mjs 22 pnpm test",
+    "test:node24": "node ../../tools/with-node.mjs 24 pnpm test",
+    "test:node26": "node ../../tools/with-node.mjs 26 pnpm test",
     "test:watch": "vitest --config vitest.node.config.js",
     "test:node": "vitest --config vitest.node.config.js --run"
   },

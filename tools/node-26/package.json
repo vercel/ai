@@ -1,0 +1,14 @@
+{
+  "name": "node-26",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Installs Node.js 26 for the test:node26 tasks. See tools/with-node.mjs.",
+  "license": "Apache-2.0",
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "26.13.1",
+      "onFail": "download"
+    }
+  }
+}

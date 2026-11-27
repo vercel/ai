@@ -10,6 +10,42 @@
         "$TURBO_ROOT$/tools/discover-guidelines.mts",
         "$TURBO_ROOT$/tools/run-verifiers.mts"
       ]
+    },
+    "test:node22": {
+      "dependsOn": [],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/tools/with-node.mjs",
+        "$TURBO_ROOT$/tools/node-22/package.json",
+        "$TURBO_ROOT$/.agents/guidelines/**",
+        "$TURBO_ROOT$/.agents/verifiers/**",
+        "$TURBO_ROOT$/tools/discover-guidelines.mts",
+        "$TURBO_ROOT$/tools/run-verifiers.mts"
+      ]
+    },
+    "test:node24": {
+      "dependsOn": [],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/tools/with-node.mjs",
+        "$TURBO_ROOT$/tools/node-24/package.json",
+        "$TURBO_ROOT$/.agents/guidelines/**",
+        "$TURBO_ROOT$/.agents/verifiers/**",
+        "$TURBO_ROOT$/tools/discover-guidelines.mts",
+        "$TURBO_ROOT$/tools/run-verifiers.mts"
+      ]
+    },
+    "test:node26": {
+      "dependsOn": [],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/tools/with-node.mjs",
+        "$TURBO_ROOT$/tools/node-26/package.json",
+        "$TURBO_ROOT$/.agents/guidelines/**",
+        "$TURBO_ROOT$/.agents/verifiers/**",
+        "$TURBO_ROOT$/tools/discover-guidelines.mts",
+        "$TURBO_ROOT$/tools/run-verifiers.mts"
+      ]
     }
   }
 }

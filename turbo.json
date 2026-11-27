@@ -95,10 +95,37 @@
       "dependsOn": ["^build"],
       "tags": ["ci"]
     },
+    // Runs on whatever Node.js you have. CI runs the `test:node*` tasks instead.
     "test": {
+      "dependsOn": ["^build", "build"]
+    },
+    // `test` on each supported Node.js version, pinned in tools/node-<major>.
+    // Package overrides of `test` must be mirrored on these tasks.
+    "test:node22": {
       "dependsOn": ["^build", "build"],
-      "env": ["TEST_NODE_VERSION"],
-      "passThroughEnv": ["VITEST_MAX_WORKERS"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/tools/with-node.mjs",
+        "$TURBO_ROOT$/tools/node-22/package.json"
+      ],
+      "tags": ["ci"]
+    },
+    "test:node24": {
+      "dependsOn": ["^build", "build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/tools/with-node.mjs",
+        "$TURBO_ROOT$/tools/node-24/package.json"
+      ],
+      "tags": ["ci"]
+    },
+    "test:node26": {
+      "dependsOn": ["^build", "build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/tools/with-node.mjs",
+        "$TURBO_ROOT$/tools/node-26/package.json"
+      ],
       "tags": ["ci"]
     },
     "test:browser": {

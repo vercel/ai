@@ -1,5 +1,6 @@
-# Vercel CI runs every task tagged `ci` in turbo.json on Node.js 24 (Linux).
-# This workflow covers what Vercel CI can't: other Node.js versions and Windows.
+# Vercel CI runs every task tagged `ci` in turbo.json on Linux, including
+# `test:node22`, `test:node24` and `test:node26`.
+# This workflow covers what Vercel CI can't: Windows.
 name: CI
 
 on:
@@ -14,40 +15,6 @@ permissions:
   id-token: write
 
 jobs:
-  node:
-    name: 'Node ${{ matrix.node }}'
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        node: [22, 26]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Setup pnpm and Node.js
-        uses: pnpm/setup@731dfb6463bbd11c11fd0ee11fe00ed0e36d48a1 # v3
-        with:
-          runtime: node@${{ matrix.node }}
-          cache: true
-          save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-          require-lockfile: true
-
-      # GitHub doesn't issue OIDC tokens to fork PRs; they use the local cache only.
-      - name: Set up Turborepo Remote Cache
-        if: github.repository == 'vercel/ai' && !github.event.pull_request.head.repo.fork
-        uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
-        with:
-          team: ${{ vars.TURBO_TEAM }}
-
-      - name: Run tests
-        env:
-          # Keeps test results for different Node.js versions in separate cache entries.
-          TEST_NODE_VERSION: ${{ matrix.node }}
-          # Turbo runs packages in parallel; keep each Vitest worker pool small.
-          VITEST_MAX_WORKERS: '2'
-        run: pnpm exec turbo run test --concurrency=100% --continue=dependencies-successful
-
   windows:
     name: 'Windows'
     runs-on: windows-latest
