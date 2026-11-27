@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import vm from 'node:vm';
 import {
   formatInputMessages,
   formatModelMessages,
@@ -304,6 +305,66 @@ describe('formatInputMessages', () => {
         },
       ]
     `);
+  });
+
+  it('should base64-encode binary file data in content tool result outputs', () => {
+    const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0xff, 0xff]);
+    const prompt: LanguageModelV4Prompt = [
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call_file',
+            toolName: 'viewImage',
+            output: {
+              type: 'content',
+              value: [
+                { type: 'text', text: 'Captured image:' },
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  filename: 'capture.png',
+                  data: { type: 'data', data: bytes },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ];
+
+    expect(formatInputMessages(prompt)).toEqual([
+      {
+        role: 'tool',
+        parts: [
+          {
+            type: 'tool_call_response',
+            id: 'call_file',
+            response: {
+              type: 'content',
+              value: [
+                { type: 'text', text: 'Captured image:' },
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  filename: 'capture.png',
+                  data: { type: 'data', data: 'iVBOR///' },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+    expect(
+      (
+        (prompt[0] as Extract<LanguageModelV4Prompt[number], { role: 'tool' }>)
+          .content[0] as {
+          output: { value: Array<{ data?: { data?: unknown } }> };
+        }
+      ).output.value[1].data?.data,
+    ).toBe(bytes);
   });
 
   it('should convert file parts to blob parts', () => {
@@ -765,6 +826,160 @@ describe('formatModelMessages', () => {
         },
       ]
     `);
+  });
+
+  it('should base64-encode binary data in model tool-result content outputs', () => {
+    const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0xff, 0xff]);
+    const buffer = bytes.buffer;
+    const nodeBuffer = Buffer.from(bytes);
+    const crossRealmBytes = vm.runInNewContext(
+      'new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0xff, 0xff])',
+    ) as Uint8Array;
+
+    expect(
+      formatModelMessages({
+        prompt: undefined,
+        messages: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'tc_bytes',
+                toolName: 'viewImage',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file',
+                      mediaType: 'image/png',
+                      data: { type: 'data', data: bytes },
+                    },
+                    {
+                      type: 'file',
+                      mediaType: 'image/png',
+                      data: { type: 'data', data: buffer },
+                    },
+                    {
+                      type: 'file',
+                      mediaType: 'image/png',
+                      data: { type: 'data', data: nodeBuffer },
+                    },
+                    {
+                      type: 'file',
+                      mediaType: 'image/png',
+                      data: { type: 'data', data: crossRealmBytes },
+                    },
+                    {
+                      type: 'file',
+                      mediaType: 'application/pdf',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/doc.pdf'),
+                      },
+                    },
+                    {
+                      type: 'image-data',
+                      mediaType: 'image/png',
+                      data: bytes as unknown as string,
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'tc_assistant',
+                toolName: 'viewFile',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file-data',
+                      mediaType: 'application/pdf',
+                      filename: 'report.pdf',
+                      data: bytes as unknown as string,
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    ).toEqual([
+      {
+        role: 'tool',
+        parts: [
+          {
+            type: 'tool_call_response',
+            id: 'tc_bytes',
+            response: {
+              type: 'content',
+              value: [
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  data: { type: 'data', data: 'iVBOR///' },
+                },
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  data: { type: 'data', data: 'iVBOR///' },
+                },
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  data: { type: 'data', data: 'iVBOR///' },
+                },
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  data: { type: 'data', data: 'iVBOR///' },
+                },
+                {
+                  type: 'file',
+                  mediaType: 'application/pdf',
+                  data: {
+                    type: 'url',
+                    url: new URL('https://example.com/doc.pdf'),
+                  },
+                },
+                {
+                  type: 'image-data',
+                  mediaType: 'image/png',
+                  data: 'iVBOR///',
+                },
+              ],
+            },
+          },
+        ],
+      },
+      {
+        role: 'assistant',
+        parts: [
+          {
+            type: 'tool_call_response',
+            id: 'tc_assistant',
+            response: {
+              type: 'content',
+              value: [
+                {
+                  type: 'file-data',
+                  mediaType: 'application/pdf',
+                  filename: 'report.pdf',
+                  data: 'iVBOR///',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
   });
 
   it('should combine prompt and messages', () => {

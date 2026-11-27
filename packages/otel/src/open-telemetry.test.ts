@@ -2948,6 +2948,105 @@ describe('OpenTelemetry', () => {
         }
       `);
     });
+
+    it('serializes Uint8Array file data in content tool results as base64 in gen_ai.input.messages', async () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+      const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0xff, 0xff]);
+      const base64 = Buffer.from(bytes).toString('base64');
+
+      const usage = {
+        inputTokens: {
+          total: 2,
+          noCache: 2,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 1,
+          text: 1,
+          reasoning: undefined,
+        },
+      };
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          provider: 'openai.chat',
+          modelId: 'gpt-4',
+          doGenerate: [
+            {
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-img',
+                  toolName: 'viewImage',
+                  input: '{}',
+                },
+              ],
+              finishReason: { raw: undefined, unified: 'tool-calls' },
+              usage,
+              warnings: [],
+            },
+            {
+              content: [{ type: 'text', text: 'Done.' }],
+              finishReason: { raw: undefined, unified: 'stop' },
+              usage,
+              warnings: [],
+            },
+          ],
+        }),
+        prompt: 'Inspect the image.',
+        tools: {
+          viewImage: tool({
+            inputSchema: z.object({}),
+            execute: async () => ({ ok: true }),
+            toModelOutput: () => ({
+              type: 'content',
+              value: [
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  data: { type: 'data', data: bytes },
+                },
+              ],
+            }),
+          }),
+        },
+        stopWhen: isStepCount(2),
+        telemetry: {
+          integrations: integration,
+        },
+      });
+
+      const [, secondChatSpan] = sdkTrace.exporter
+        .getFinishedSpans()
+        .filter(span => span.name === 'chat gpt-4');
+
+      const rawInputMessages = secondChatSpan.attributes[
+        'gen_ai.input.messages'
+      ] as string;
+      expect(rawInputMessages).toContain(base64);
+      expect(rawInputMessages).not.toContain('"0":137');
+
+      const parsed = parseJsonAttributes(
+        secondChatSpan.attributes,
+        'gen_ai.input.messages',
+      )['gen_ai.input.messages'] as Array<{
+        role: string;
+        parts: Array<{ response?: unknown }>;
+      }>;
+      const toolMessage = parsed.find(message => message.role === 'tool');
+      expect(toolMessage?.parts[0]?.response).toEqual({
+        type: 'content',
+        value: [
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: { type: 'data', data: base64 },
+          },
+        ],
+      });
+    });
   });
 
   describe('embed integration', () => {

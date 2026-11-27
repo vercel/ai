@@ -130,6 +130,59 @@ describe('stringifyForTelemetry', () => {
       `"[{"role":"system","content":"You are a helpful assistant."},{"role":"user","content":[{"type":"file","data":"iVBOR///","mediaType":"image/png"},{"type":"file","data":"https://example.com/image.jpg","mediaType":"image/jpeg"}]},{"role":"assistant","content":[{"type":"text","text":"I see the images!"}]}]"`,
     );
   });
+
+  it('should convert Uint8Array files inside tool-result content outputs to base64 strings', () => {
+    const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0xff, 0xff]);
+    const result = stringifyForTelemetry([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call_1',
+            toolName: 'viewImage',
+            output: {
+              type: 'content',
+              value: [
+                { type: 'text', text: 'See file' },
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  data: { type: 'data', data: bytes },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toBe(
+      JSON.stringify([
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call_1',
+              toolName: 'viewImage',
+              output: {
+                type: 'content',
+                value: [
+                  { type: 'text', text: 'See file' },
+                  {
+                    type: 'file',
+                    mediaType: 'image/png',
+                    data: 'iVBOR///',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ]),
+    );
+  });
 });
 
 describe('stringifyDecisionStateForTelemetry', () => {
