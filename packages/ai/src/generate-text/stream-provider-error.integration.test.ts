@@ -12,7 +12,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createXai } from '@ai-sdk/xai';
 import { EventStreamCodec } from '@smithy/eventstream-codec';
 import { fromUtf8, toUtf8 } from '@smithy/util-utf8';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { StreamProviderError } from '../error';
 import { streamText } from './stream-text';
 
@@ -73,6 +73,7 @@ describe('stream provider error integration', () => {
     const result = streamText({
       model,
       prompt: 'Test prompt',
+      maxRetries: 0,
       onError: ({ error }) => {
         onErrorValue = error;
       },
@@ -493,5 +494,259 @@ describe('stream provider error integration', () => {
         data,
       },
     });
+  });
+
+  it('retries an OpenAI Responses server_is_overloaded event arriving after the accepted grace window under maxRetries', async () => {
+    const responseMeta = {
+      id: 'resp_overload',
+      object: 'response',
+      created_at: 1_741_269_019,
+      model: 'gpt-5.1',
+      status: 'in_progress',
+      output: [],
+    };
+    const sse = (steps: Array<[number, unknown]>) => {
+      const encoder = new TextEncoder();
+      return new ReadableStream({
+        async start(controller) {
+          for (const [delayMs, frame] of steps) {
+            if (delayMs > 0) {
+              await new Promise(resolve => setTimeout(resolve, delayMs));
+            }
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify(frame)}\n\n`),
+            );
+          }
+          controller.close();
+        },
+      });
+    };
+
+    const attempts: Array<Array<[number, unknown]>> = [
+      [
+        [
+          0,
+          {
+            type: 'response.created',
+            sequence_number: 0,
+            response: responseMeta,
+          },
+        ],
+        [
+          0,
+          {
+            type: 'response.in_progress',
+            sequence_number: 1,
+            response: responseMeta,
+          },
+        ],
+        [
+          120,
+          {
+            type: 'error',
+            sequence_number: 2,
+            code: 'server_is_overloaded',
+            message:
+              'Our servers are currently overloaded. Please try again later.',
+            param: null,
+          },
+        ],
+      ],
+      [
+        [
+          0,
+          {
+            type: 'response.created',
+            sequence_number: 0,
+            response: responseMeta,
+          },
+        ],
+        [
+          0,
+          {
+            type: 'response.in_progress',
+            sequence_number: 1,
+            response: responseMeta,
+          },
+        ],
+        [
+          0,
+          {
+            type: 'response.output_item.added',
+            sequence_number: 2,
+            output_index: 0,
+            item: {
+              type: 'message',
+              id: 'msg_1',
+              role: 'assistant',
+              status: 'in_progress',
+              content: [],
+            },
+          },
+        ],
+        [
+          0,
+          {
+            type: 'response.output_text.delta',
+            sequence_number: 3,
+            item_id: 'msg_1',
+            output_index: 0,
+            content_index: 0,
+            delta: 'Hello!',
+            logprobs: [],
+          },
+        ],
+        [
+          0,
+          {
+            type: 'response.output_item.done',
+            sequence_number: 4,
+            output_index: 0,
+            item: {
+              type: 'message',
+              id: 'msg_1',
+              role: 'assistant',
+              status: 'completed',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Hello!',
+                  annotations: [],
+                  logprobs: [],
+                },
+              ],
+            },
+          },
+        ],
+        [
+          0,
+          {
+            type: 'response.completed',
+            sequence_number: 5,
+            response: {
+              ...responseMeta,
+              status: 'completed',
+              usage: { input_tokens: 1, output_tokens: 1, total_tokens: 2 },
+            },
+          },
+        ],
+      ],
+    ];
+
+    let calls = 0;
+    const onError = vi.fn();
+    const openai = createOpenAI({
+      apiKey: 'test-api-key',
+      fetch: async () => {
+        const steps = attempts[Math.min(calls, attempts.length - 1)];
+        calls++;
+        return new Response(sse(steps), {
+          status: 200,
+          headers: {
+            'content-type': 'text/event-stream',
+            'retry-after-ms': '0',
+          },
+        });
+      },
+    });
+
+    const result = streamText({
+      model: openai.responses('gpt-5.1'),
+      prompt: 'Say hello',
+      maxRetries: 2,
+      onError,
+    });
+
+    const parts = await convertAsyncIterableToArray(result.fullStream);
+
+    expect(calls).toBe(2);
+    expect(await result.text).toBe('Hello!');
+    expect(onError).not.toHaveBeenCalled();
+    expect(parts.some(part => part.type === 'error')).toBe(false);
+  });
+
+  it('does not retry a non-retryable OpenAI Responses error arriving after the accepted grace window', async () => {
+    const responseMeta = {
+      id: 'resp_quota_late',
+      object: 'response',
+      created_at: 1_741_269_019,
+      model: 'gpt-5.1',
+      status: 'in_progress',
+      output: [],
+    };
+    const encoder = new TextEncoder();
+
+    let calls = 0;
+    const onError = vi.fn();
+    const openai = createOpenAI({
+      apiKey: 'test-api-key',
+      fetch: async () => {
+        calls++;
+        return new Response(
+          new ReadableStream({
+            async start(controller) {
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({
+                    type: 'response.created',
+                    sequence_number: 0,
+                    response: responseMeta,
+                  })}\n\n`,
+                ),
+              );
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({
+                    type: 'response.in_progress',
+                    sequence_number: 1,
+                    response: responseMeta,
+                  })}\n\n`,
+                ),
+              );
+              await new Promise(resolve => setTimeout(resolve, 120));
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({
+                    type: 'error',
+                    sequence_number: 2,
+                    code: 'insufficient_quota',
+                    message: 'You exceeded your current quota.',
+                    param: null,
+                  })}\n\n`,
+                ),
+              );
+              controller.close();
+            },
+          }),
+          {
+            status: 200,
+            headers: {
+              'content-type': 'text/event-stream',
+              'retry-after-ms': '0',
+            },
+          },
+        );
+      },
+    });
+
+    const result = streamText({
+      model: openai.responses('gpt-5.1'),
+      prompt: 'Say hello',
+      maxRetries: 2,
+      onError,
+    });
+
+    const parts = await convertAsyncIterableToArray(result.fullStream);
+
+    expect(calls).toBe(1);
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(StreamProviderError.isInstance(onError.mock.calls[0][0].error)).toBe(
+      true,
+    );
+    expect(onError.mock.calls[0][0].error).toMatchObject({
+      code: 'insufficient_quota',
+      isRetryable: false,
+    });
+    expect(parts.some(part => part.type === 'error')).toBe(true);
   });
 });
