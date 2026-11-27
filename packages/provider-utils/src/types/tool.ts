@@ -358,7 +358,7 @@ export type Tool<
 // `execute` fall through to the overloads below.
 export function tool<INPUT, OUTPUT, CONTEXT extends Context>(
   tool: Tool<INPUT, OUTPUT, CONTEXT> & {
-    execute: ToolExecuteFunction<INPUT, OUTPUT, CONTEXT>;
+    execute: ToolExecuteFunction<INPUT, OUTPUT, NoInfer<CONTEXT>>;
   },
 ): ExecutableTool<Tool<INPUT, OUTPUT, CONTEXT>>;
 export function tool<INPUT, OUTPUT, CONTEXT extends Context>(
