@@ -759,6 +759,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       toolNameMapping,
       toolsetNames,
       convertMediaPart: config.convertMediaPart,
+      keepMidConversationSystemMessages:
+        anthropicOptions?.midConversationSystemMessages ?? false,
       convertInlineTool: async tool => {
         const {
           tools: definitions,

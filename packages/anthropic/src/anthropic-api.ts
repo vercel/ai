@@ -43,7 +43,7 @@ export type AnthropicToolChangeContent =
   | {
       type: 'tool_addition' | 'tool_removal';
       tool: { type: 'tool_reference'; name: string };
-      cache_control?: never;
+      cache_control?: AnthropicCacheControl;
     }
   | {
       type: 'tool_addition';
@@ -53,7 +53,7 @@ export type AnthropicToolChangeContent =
        * from this point on.
        */
       tool: { type: 'tool_definition'; definition: AnthropicTool };
-      cache_control?: never;
+      cache_control?: AnthropicCacheControl;
     };
 
 export interface AnthropicUserMessage {

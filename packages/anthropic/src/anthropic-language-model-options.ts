@@ -180,6 +180,16 @@ export const anthropicLanguageModelOptions = lazySchema(() =>
       includePings: z.boolean().optional(),
 
       /**
+       * Keep a system message that follows user or assistant messages in the
+       * `messages` array, even when no system message comes before it. By
+       * default the first system message becomes the top-level `system`
+       * prompt wherever it appears, which models without mid-conversation
+       * system message support require. Enable this only for models that
+       * support mid-conversation system messages.
+       */
+      midConversationSystemMessages: z.boolean().optional(),
+
+      /**
        * Configuration for enabling Claude's extended thinking.
        *
        * When enabled, responses include thinking content blocks showing Claude's thinking process before the final answer.
