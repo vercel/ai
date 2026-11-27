@@ -95,6 +95,9 @@ export class StreamingToolCallTracker<
   private toolCallsById = new Map<string, Set<TrackedToolCall>>();
   private toolCallsByIndex = new Map<number, Set<TrackedToolCall>>();
   private usedToolCallIds = new Set<string>();
+  private ignoredBlankNameIndices = new Set<number>();
+  private ignoredBlankNameIds = new Set<string>();
+  private hasIgnoredUnlabeledBlankName = false;
   private nextGeneratedIdSuffixes = new Map<string, number>();
   private readonly controller: StreamingToolCallTrackerController;
   private readonly _generateId: () => string;
@@ -148,9 +151,14 @@ export class StreamingToolCallTracker<
     let toolCall: TrackedToolCall;
     if (resolution.kind === 'new') {
       // Blank names cannot start a usable call, but some providers repeat a
-      // blank name on continuations. Correlate those continuations first, then
-      // ignore only the unmatched blank-name delta.
-      if (hasBlankName) {
+      // blank name on continuations or send follow-up argument deltas with
+      // function.name omitted. Correlate continuations for active calls first,
+      // then ignore unmatched blank-name deltas and their follow-up chunks.
+      if (
+        hasBlankName ||
+        (name == null && this.isIgnoredBlankNameContinuation(wireId, index))
+      ) {
+        this.recordIgnoredBlankName(wireId, index);
         return;
       }
 
@@ -303,7 +311,8 @@ export class StreamingToolCallTracker<
     }
 
     const unfinishedToolCalls = this.toolCalls.filter(
-      toolCall => !toolCall.hasFinished,
+      toolCall =>
+        !toolCall.hasFinished && (index == null || toolCall.index == null),
     );
     return this.resolveMatchingToolCall(unfinishedToolCalls, false);
   }
@@ -413,6 +422,7 @@ export class StreamingToolCallTracker<
       metadata,
     };
     this.toolCalls.push(toolCall);
+    this.hasIgnoredUnlabeledBlankName = false;
     if (wireId != null) {
       this.associateWireId(toolCall, wireId);
     }
@@ -433,7 +443,34 @@ export class StreamingToolCallTracker<
     return toolCall;
   }
 
+  private isIgnoredBlankNameContinuation(
+    wireId: string | undefined,
+    index: number | null | undefined,
+  ): boolean {
+    return (
+      (wireId != null && this.ignoredBlankNameIds.has(wireId)) ||
+      (index != null && this.ignoredBlankNameIndices.has(index)) ||
+      (wireId == null && index == null && this.hasIgnoredUnlabeledBlankName)
+    );
+  }
+
+  private recordIgnoredBlankName(
+    wireId: string | undefined,
+    index: number | null | undefined,
+  ): void {
+    if (wireId != null) {
+      this.ignoredBlankNameIds.add(wireId);
+    }
+    if (index != null) {
+      this.ignoredBlankNameIndices.add(index);
+    }
+    if (wireId == null && index == null) {
+      this.hasIgnoredUnlabeledBlankName = true;
+    }
+  }
+
   private associateWireId(toolCall: TrackedToolCall, wireId: string): void {
+    this.ignoredBlankNameIds.delete(wireId);
     let toolCallsWithId = this.toolCallsById.get(wireId);
     if (toolCallsWithId == null) {
       toolCallsWithId = new Set();
@@ -443,6 +480,7 @@ export class StreamingToolCallTracker<
   }
 
   private associateIndex(toolCall: TrackedToolCall, index: number): void {
+    this.ignoredBlankNameIndices.delete(index);
     let toolCallsWithIndex = this.toolCallsByIndex.get(index);
     if (toolCallsWithIndex == null) {
       toolCallsWithIndex = new Set();
