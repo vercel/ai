@@ -1032,4 +1032,36 @@ console.log(text);`,
     websiteUrl: 'https://upstash.com',
     npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
   },
+  {
+    slug: 'maqpna',
+    name: 'MAQPNA',
+    description:
+      'Governed MCP tools for agents running under MAQPNA, a self-hosted runtime for agent security and governance. Each tool call goes through the MAQPNA gateway, which applies per-tool and per-argument policy, holds calls for human approval and writes every decision to an audit ledger. Denials and pending approvals come back as tool output the model can act on; with `approvals: "interrupt"` a held call becomes an AI SDK tool-approval request. MAQPNA is commercial software; the Community edition is free for one cluster.',
+    packageName: '@kosa8/maqpna',
+    tags: ['security', 'governance', 'approval', 'mcp', 'audit'],
+    installCommand: {
+      pnpm: 'pnpm add @kosa8/maqpna',
+      npm: 'npm install @kosa8/maqpna',
+      yarn: 'yarn add @kosa8/maqpna',
+      bun: 'bun add @kosa8/maqpna',
+    },
+    codeExample: `import { generateText, isStepCount, jsonSchema } from 'ai';
+import { MaqpnaClient, aiSdkTools } from '@kosa8/maqpna';
+
+// Reads MAQPNA_GATEWAY_URL, the session token and MAQPNA_TOOL_<NAME>_URL,
+// which MAQPNA sets in the agent's sandbox.
+const client = MaqpnaClient.fromEnv();
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Summarize issue 4821 in acme/api',
+  tools: await aiSdkTools(client.tools('github'), { jsonSchema }),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.maqpna.com/sdk/framework-adapters/#vercel-ai-sdk',
+    websiteUrl: 'https://maqpna.com',
+    npmUrl: 'https://www.npmjs.com/package/@kosa8/maqpna',
+  },
 ];
