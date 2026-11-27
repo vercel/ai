@@ -1,0 +1,203 @@
+---
+title: Nace
+description: Use Drex decision models through AI Gateway or the Nace-maintained AI SDK provider.
+---
+
+# Nace
+
+[Nace](https://www.nace.ai/) provides Drex decision models for boolean, choice,
+and score questions about shared text, JSON, and images. Each request can answer
+multiple questions and return probabilities for the available answers.
+
+Use Drex through [AI Gateway](https://vercel.com/ai-gateway/models/providers/nace-ai)
+(recommended), or connect directly with the Nace-maintained
+[`@nace-ai/ai-sdk-provider`](https://www.npmjs.com/package/@nace-ai/ai-sdk-provider) package.
+Its [source code and examples](https://github.com/nace-ai/vercel-ai-sdk-provider)
+are public.
+
+<Note>
+  These examples use AI SDK 7's `experimental_decide` API. The decision API and
+  model specification are experimental and can change in patch releases. The
+  direct Nace provider requires Node.js 22 or newer and `ai >=7.0.157 <8`.
+</Note>
+
+## Using AI Gateway (recommended)
+
+AI Gateway gives you one credential for Drex and other providers, along with
+usage and cost tracking.
+
+<InstallPackages packages="ai@^7" />
+
+Configure [Gateway authentication](/providers/ai-sdk-providers/ai-gateway),
+using `AI_GATEWAY_API_KEY` or Vercel OIDC. String model IDs resolve through
+Gateway unless you have configured a different default provider.
+
+```ts
+import { experimental_decide as decide } from 'ai';
+
+const { answers } = await decide({
+  model: 'nace-ai/drex-max-v1.1',
+  state: 'I was charged twice. Please refund the duplicate payment.',
+  questions: {
+    requestsRefund: {
+      type: 'boolean',
+      instructions: 'Is the customer requesting a refund?',
+    },
+  },
+});
+
+console.log(answers.requestsRefund.probability);
+```
+
+Use model IDs from the [Gateway catalog](https://vercel.com/ai-gateway/models/providers/nace-ai).
+The direct provider package and a Nace API key are not required for this path.
+
+## Using the direct Nace provider
+
+Use the direct provider when you need Nace authentication or a custom
+Nace-compatible endpoint. The sections below describe the direct provider;
+model availability and provider-specific options can differ from Gateway.
+
+<InstallPackages packages="ai@^7 @nace-ai/ai-sdk-provider zod" />
+
+Create an API key in the [Nace console](https://console.nace.ai) and set it in
+your server environment:
+
+```sh
+export NACE_API_KEY=your_nace_api_key
+```
+
+Import `nace` and select a decision model. The `drex-latest` alias tracks Nace's
+current default model; use an active versioned ID when you need to control
+model upgrades. The [Nace model catalog](https://console.nace.ai/docs/drex/reference/models)
+documents available models and image support.
+
+```ts
+import { nace } from '@nace-ai/ai-sdk-provider';
+import { experimental_decide as decide } from 'ai';
+
+const { answers, usage, providerMetadata } = await decide({
+  model: nace.decisionModel('drex-latest'),
+  state: {
+    message: 'I was charged twice. Please refund the duplicate payment.',
+    accountStatus: 'active',
+  },
+  questions: {
+    requestsRefund: {
+      type: 'boolean',
+      instructions: 'Is the customer requesting a refund?',
+    },
+    department: {
+      type: 'choice',
+      instructions: 'Which team should handle this request?',
+      criteria: {
+        billing: 'Payments, refunds, and invoices',
+        technical: 'Software bugs and outages',
+        other: null,
+      },
+    },
+    urgency: {
+      type: 'score',
+      instructions: 'How urgent is the request?',
+      criteria: ['Routine', 'Time-sensitive', 'Service is blocked'],
+    },
+  },
+});
+
+console.log(answers.requestsRefund.probability); // Probability of true.
+console.log(answers.department.choice); // 'billing' | 'technical' | 'other'
+console.log(answers.department.probabilities);
+console.log(answers.urgency.score); // Weighted score between 0 and 2.
+console.log(usage.inputTokens);
+console.log(providerMetadata?.nace?.requestId);
+```
+
+### Images
+
+Image-capable Drex models accept PNG, JPEG, and WebP files. Put the files in the
+state in the order you refer to them: Image 1, Image 2, and so on.
+The following example reads two local product photos:
+
+```ts
+import { readFile } from 'node:fs/promises';
+import { nace } from '@nace-ai/ai-sdk-provider';
+import { experimental_decide as decide } from 'ai';
+
+const { answers } = await decide({
+  model: nace.decisionModel('drex-latest'),
+  state: [
+    { type: 'text', text: 'Image 1 and Image 2 are product photos.' },
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: await readFile('first.png'),
+    },
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: await readFile('second.png'),
+    },
+  ],
+  questions: {
+    firstIsDamaged: {
+      type: 'boolean',
+      instructions: 'Is the product in Image 1 visibly damaged?',
+    },
+    secondIsDamaged: {
+      type: 'boolean',
+      instructions: 'Is the product in Image 2 visibly damaged?',
+    },
+  },
+});
+
+console.log(answers.firstIsDamaged.probability);
+console.log(answers.secondIsDamaged.probability);
+```
+
+### Provider configuration
+
+Use `createNace` to configure a provider instance:
+
+```ts
+import { createNace } from '@nace-ai/ai-sdk-provider';
+
+const nace = createNace({
+  apiKey: process.env.NACE_API_KEY,
+  headers: { 'X-Nace-Client': 'my-app/1.0.0' },
+});
+```
+
+| Setting   | Description                                                               |
+| --------- | ------------------------------------------------------------------------- |
+| `apiKey`  | Nace API key; defaults to `NACE_API_KEY` for Nace-hosted endpoints.       |
+| `baseURL` | API root; defaults to `NACE_BASE_URL`, then `https://console.nace.ai/v1`. |
+| `headers` | Additional request headers.                                               |
+| `fetch`   | Custom fetch implementation.                                              |
+
+A custom host requires an explicit `apiKey`. The provider does not forward an
+ambient Nace key to a custom host or follow redirects. Keep credentials on the
+server.
+
+### Supported capabilities
+
+| Question  | Answer                                                       |
+| --------- | ------------------------------------------------------------ |
+| `boolean` | Probability of true.                                         |
+| `choice`  | Selected option and its full probability distribution.       |
+| `score`   | Probability-weighted score and the distribution over levels. |
+
+`providerMetadata.nace` includes the request ID and per-answer confidence.
+Use the boolean answer's `probability` as P(true); it is not a separate
+confidence measure. The AI SDK handles retries and cancellation, and upstream
+request errors surface as `APICallError`.
+
+The direct provider implements decision models. It does not implement chat
+generation, embeddings, image generation, or `box` questions. Drex Router's
+downstream model selection through `/v1/route` is a separate API.
+
+## Resources
+
+- [Provider source and examples](https://github.com/nace-ai/vercel-ai-sdk-provider)
+- [Nace models on AI Gateway](https://vercel.com/ai-gateway/models/providers/nace-ai)
+- [Drex documentation](https://console.nace.ai/docs/drex)
+- [AI SDK decisions](/docs/ai-sdk-core/decisions)
