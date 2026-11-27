@@ -6,10 +6,11 @@
   "scripts": {
     "sync-content": "node scripts/sync-content.mjs",
     "build-search-index": "node scripts/build-search-index.mjs",
-    "dev:site": "pnpm sync-content --dev && fumadocs-mdx && next dev",
-    "build:site": "pnpm sync-content && fumadocs-mdx && pnpm build-search-index && next build",
+    "build:dependencies": "pnpm exec turbo run build --filter=\"ai-sdk-docs^...\"",
+    "dev:site": "pnpm build:dependencies && pnpm sync-content --dev && fumadocs-mdx && next dev",
+    "build:site": "pnpm build:dependencies && pnpm sync-content && fumadocs-mdx && pnpm build-search-index && next build",
     "start:site": "next start",
-    "type-check:site": "pnpm sync-content && fumadocs-mdx && tsc --noEmit",
+    "type-check:site": "pnpm build:dependencies && pnpm sync-content && fumadocs-mdx && tsc --noEmit",
     "test:site": "node --test scripts/*.test.mjs",
     "validate:site": "pnpm test:site && pnpm build:site"
   },
