@@ -20,7 +20,8 @@ import { createTelemetryDispatcher, DefaultStepResult } from 'ai/internal';
  * The run's call ID is generated in the workflow body and shared with its
  * model steps. The first model step captures each integration's tracing and
  * sampling context and returns it, so the workflow passes it to later model
- * steps and to the report. Bound integrations report model calls live and
+ * steps and to the report. A run without a durable context needs no step of
+ * its own for this. Bound integrations report model calls live and
  * reconstruct the enclosing spans at completion. Integrations without a
  * durable bridge retain live per-model tracing; ordinary event integrations
  * receive the run.
@@ -84,11 +85,11 @@ export function createWorkflowAgentTelemetryRecorder(): {
    */
   contexts?: Array<DurableTelemetryContext | undefined>;
   /**
-   * Set once a model step has returned. A returned step without contexts
-   * reported its model call without a durable context, so the report must
-   * not capture one afterwards.
+   * Set once a model step has been started. A model step that calls the model
+   * while the contexts are unset reports the call without a durable context,
+   * so the report must not capture one afterwards.
    */
-  hasModelStepResult?: boolean;
+  hasModelStepStarted?: boolean;
 } {
   const events: RecordedTelemetryEvent[] = [];
   // Generated in the workflow body, where random values are replayed
@@ -171,8 +172,8 @@ export async function reportWorkflowAgentTelemetry({
   callId?: string;
   contexts?: Array<DurableTelemetryContext | undefined>;
   /**
-   * Capture the contexts here when no model step returned them, for a run
-   * that ended before its first model step or whose first model step failed.
+   * Capture the contexts here, for a run that ended before its first model
+   * step.
    */
   captureContexts?: boolean;
 }): Promise<void> {

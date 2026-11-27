@@ -1,12 +1,13 @@
 /**
  * Integration tests for where a durable WorkflowAgent run captures the
- * telemetry integrations' durable contexts: in its first model step, without
- * a telemetry step of its own.
+ * telemetry integrations' durable contexts: in its first model step. A run
+ * without a durable context has no step for telemetry before its first model
+ * call.
  *
  * Run with: pnpm test:integration
  */
 import type { DurableTelemetryContext, Telemetry } from 'ai';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { start } from 'workflow/api';
 import {
   hydrateResourceIO,
@@ -95,7 +96,26 @@ describe('WorkflowAgent durable telemetry contexts', () => {
     expect(modelStepTelemetry(modelSteps[1])).not.toHaveProperty('startEvent');
   });
 
-  it('uses the contexts captured in the first model step for every model step and the report', async () => {
+  it('calls the model in the capturing step when no integration has a durable context', async () => {
+    const onEnd = vi.fn();
+    globalThis.AI_SDK_TELEMETRY_INTEGRATIONS = [{ onEnd }];
+
+    const run = await start(agentToolLoopWithGlobalTelemetry, [2, 3]);
+    await run.returnValue;
+
+    expect(onEnd).toHaveBeenCalledOnce();
+    const all = await steps(run.runId);
+    const modelSteps = all.filter(isModelStep);
+    expect(modelSteps).toHaveLength(2);
+    expect(modelStepTelemetry(modelSteps[1])).toMatchObject({
+      contexts: [undefined],
+    });
+    expect(all.filter(isTelemetryStep).map(({ name }) => name)).toEqual([
+      'reportWorkflowAgentTelemetry',
+    ]);
+  });
+
+  it('uses the durable context captured in the first model step for every model call and the report', async () => {
     const received: Received[] = [];
     globalThis.AI_SDK_TELEMETRY_INTEGRATIONS = [
       createBoundIntegration(received),
@@ -140,12 +160,21 @@ describe('WorkflowAgent durable telemetry contexts', () => {
     expect(all.filter(isTelemetryStep).map(({ name }) => name)).toEqual([
       'reportWorkflowAgentTelemetry',
     ]);
+    // The capturing step returns the context before any model call. The two
+    // model calls then run with it.
     const modelSteps = all.filter(isModelStep);
+    expect(modelSteps).toHaveLength(3);
     expect(modelStepTelemetry(modelSteps[0])).not.toHaveProperty('contexts');
-    expect(modelStepTelemetry(modelSteps[1])).toMatchObject({
-      contexts: [context],
-    });
-    expect(modelStepTelemetry(modelSteps[1])).not.toHaveProperty('startEvent');
+    expect(modelStepTelemetry(modelSteps[0])).toHaveProperty('startEvent');
+    expect(
+      modelSteps.slice(1).map(step => {
+        const { contexts, stepNumber, startEvent } = modelStepTelemetry(step);
+        return { contexts, stepNumber, startEvent };
+      }),
+    ).toEqual([
+      { contexts: [context], stepNumber: 0, startEvent: undefined },
+      { contexts: [context], stepNumber: 1, startEvent: undefined },
+    ]);
   });
 
   it.each(['generate', 'stream'] as const)(

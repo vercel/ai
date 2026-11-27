@@ -152,7 +152,7 @@ describe('WorkflowAgent run telemetry', () => {
     expect(onAbort).toHaveBeenCalledOnce();
   });
 
-  describe('contexts of a run without a model step result', () => {
+  describe('contexts of a run that ended before its first model step', () => {
     const context = {
       traceId: '1'.repeat(32),
       rootSpanId: '2'.repeat(16),
@@ -210,7 +210,7 @@ describe('WorkflowAgent run telemetry', () => {
       expect(onStart.mock.calls[0][0].durableContext.run).toEqual(captured);
     });
 
-    it('does not replay to a bound integration whose model steps ran without contexts', async () => {
+    it('does not capture for a run whose model steps ran without contexts', async () => {
       const { recorder, captureContext, onStart } = setup();
       await reportWorkflowAgentTelemetry({
         telemetry: {},

@@ -105,7 +105,9 @@ export interface ModelCallTelemetry {
   /**
    * The recorded start event of the run. Set while no model step has returned
    * the integrations' durable contexts: the model step then captures them
-   * before its model call and returns them as `telemetryContexts`.
+   * and returns them as `telemetryContexts`. When an integration returns a
+   * durable context, the step returns without calling the model (`deferred`)
+   * so the context is persisted before a model call is reported with it.
    */
   startEvent?: Record<string, unknown>;
   functionId?: string;
@@ -267,9 +269,15 @@ export type ModelCallTelemetryContexts = Array<
 
 export type ModelCallResult =
   | {
+      /** The model was not called, or the call was aborted. */
       aborted: true;
       timing?: ModelCallTiming;
       telemetryContexts?: ModelCallTelemetryContexts;
+      /**
+       * The step captured a durable telemetry context and returned before
+       * calling the model. Run the model step again with `telemetryContexts`.
+       */
+      deferred?: true;
     }
   | {
       aborted?: false;

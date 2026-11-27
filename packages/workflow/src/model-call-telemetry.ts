@@ -50,8 +50,12 @@ export function shouldDispatchModelCallTelemetryInStep(telemetry?: {
  * existing per-model operation. Other integrations receive the recorded run.
  *
  * The first model step of a run receives the run's start event instead of
- * the contexts. It captures them before the model call, uses them for this
- * call, and returns them so the workflow can pass them to later steps.
+ * the contexts and captures them. Without a durable context (no integration,
+ * or none with a bridge) it calls the model and returns the contexts with its
+ * result. With a durable context it returns before calling the model, so the
+ * workflow has the context before any model call is reported with it: a model
+ * call that failed after starting would otherwise lose the context its span
+ * was reported with.
  */
 export async function runModelCallWithTelemetry<
   RESULT extends ModelCallResult,
@@ -73,6 +77,13 @@ export async function runModelCallWithTelemetry<
           startEvent: telemetry.startEvent,
         })
       : undefined;
+  if (capturedContexts?.some(context => context != null)) {
+    return {
+      aborted: true,
+      deferred: true,
+      telemetryContexts: capturedContexts,
+    } as RESULT;
+  }
   const contexts = telemetry.contexts ?? capturedContexts;
   const dispatcher = createTelemetryDispatcher({ telemetry });
   const bindings = (globalThis.AI_SDK_TELEMETRY_INTEGRATIONS ?? []).flatMap(

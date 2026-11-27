@@ -471,8 +471,8 @@ run ends. Events can include `timestamp` (Unix milliseconds); use it for span
 start and end times instead of the current time. Integrations that can reconstruct
 traces across processes can implement the experimental
 `experimental_durable.captureContext(event)` hook. It runs in the
-step of the first model call before that call starts (or in the reporting step
-when the run ends before a model step has returned), and returns a serializable
+run's first model step, before any model call (or in the reporting step when the
+run ends before its first model step), and returns a serializable
 `DurableTelemetryContext`. Live model-start events
 then carry that context in `event.durableContext` with `phase: 'live'`; the
 recorded operation-start event carries it with `phase: 'replay'`. Such integrations

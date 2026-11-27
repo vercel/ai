@@ -110,45 +110,44 @@ describe('live model-step tracing', () => {
       });
       record.onStepStart({ stepNumber: 0, steps: [], messages: [] });
       let activeModelContext: ReturnType<typeof trace.getSpanContext>;
-      const result = await doGenerateStep(
-        [{ role: 'user', content: [{ type: 'text', text: 'hello' }] }],
-        new MockLanguageModelV4({
-          doGenerate: async () => {
-            activeModelContext = trace.getSpanContext(context.active());
-            tracer.startSpan('provider request').end();
-            return {
-              content: [
-                { type: 'text', text: 'world' },
-                {
-                  type: 'file',
-                  mediaType: 'image/png',
-                  data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
-                },
-              ],
-              finishReason: { unified: 'stop', raw: 'stop' },
-              usage: {
-                inputTokens: {
-                  total: 1,
-                  noCache: 1,
-                  cacheRead: 0,
-                  cacheWrite: 0,
-                },
-                outputTokens: { total: 1, text: 1, reasoning: 0 },
+      const runFirstModelStep = (
+        telemetry: NonNullable<
+          Parameters<typeof doGenerateStep>[3]
+        >['telemetry'],
+      ) => doGenerateStep(prompt, firstStepModel, {}, { telemetry });
+      const firstStepModel = new MockLanguageModelV4({
+        doGenerate: async () => {
+          activeModelContext = trace.getSpanContext(context.active());
+          tracer.startSpan('provider request').end();
+          return {
+            content: [
+              { type: 'text', text: 'world' },
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
               },
-              warnings: [],
-            };
-          },
-        }),
-        {},
-        {
-          // The first model step captures the contexts from the start event.
-          telemetry: {
-            callId: recorder.callId,
-            stepNumber: 0,
-            startEvent: structuredClone(getRecordedStartEvent(recorder.events)),
-          },
+            ],
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: 1,
+                cacheRead: 0,
+                cacheWrite: 0,
+              },
+              outputTokens: { total: 1, text: 1, reasoning: 0 },
+            },
+            warnings: [],
+          };
         },
-      );
+      });
+      // The first model step captures the contexts from the start event.
+      let result = await runFirstModelStep({
+        callId: recorder.callId,
+        stepNumber: 0,
+        startEvent: structuredClone(getRecordedStartEvent(recorder.events)),
+      });
       expect(captureContext).toHaveBeenCalledOnce();
       expect(captureContext).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -166,6 +165,24 @@ describe('live model-step tracing', () => {
             }),
         undefined,
       ]);
+      if (mode !== 'legacy') {
+        // A durable context is returned before the model is called, so it is
+        // persisted before a model call is reported with it.
+        expect(result).toEqual({
+          aborted: true,
+          deferred: true,
+          telemetryContexts: recorder.contexts,
+        });
+        expect(activeModelContext).toBeUndefined();
+        expect(exporter.getFinishedSpans()).toEqual([]);
+        result = await runFirstModelStep({
+          callId: recorder.callId,
+          stepNumber: 0,
+          contexts: recorder.contexts,
+        });
+        expect(result).not.toHaveProperty('telemetryContexts');
+      }
+      expect(captureContext).toHaveBeenCalledOnce();
       expect(activeModelContext!).toBeDefined();
       expect(activeModelContext!.traceFlags).toBe(
         mode === 'disabled sampling' ? 0 : 1,
@@ -315,34 +332,75 @@ describe('durable context capture in the first model step', () => {
     expect(result.telemetryContexts).toEqual([]);
   });
 
-  it('captures before the model call and returns the contexts of an aborted step', async () => {
-    const order: string[] = [];
+  it('returns a durable context without calling the model', async () => {
     const context = {
       traceId: '1'.repeat(32),
       rootSpanId: '2'.repeat(16),
       traceFlags: 1,
       samplingDecision: 2 as const,
     };
-    const onLanguageModelCallStart = vi.fn((_event: any) => {
-      order.push('onLanguageModelCallStart');
-    });
+    const captureContext = vi.fn((_event: unknown) => context);
+    const onLanguageModelCallStart = vi.fn((_event: any) => {});
     vi.stubGlobal('AI_SDK_TELEMETRY_INTEGRATIONS', [
-      {
-        experimental_durable: {
-          captureContext: (event: unknown) => {
-            order.push('captureContext');
-            expect(event).toEqual({ operationId: 'test', callId: 'call-1' });
-            return context;
-          },
-        },
-        onLanguageModelCallStart,
-      },
+      { experimental_durable: { captureContext }, onLanguageModelCallStart },
     ]);
+    const model = createTextModel();
     const telemetry = {
       callId: 'call-1',
       stepNumber: 0,
       startEvent: { operationId: 'test' },
     };
+
+    for (const deferred of [
+      await doGenerateStep(prompt, model, {}, { telemetry }),
+      await doStreamStep(prompt, model, undefined, {}, { telemetry }),
+    ]) {
+      expect(deferred).toEqual({
+        aborted: true,
+        deferred: true,
+        telemetryContexts: [context],
+      });
+    }
+    expect(captureContext).toHaveBeenCalledWith({
+      operationId: 'test',
+      callId: 'call-1',
+    });
+    expect(model.doGenerateCalls).toHaveLength(0);
+    expect(model.doStreamCalls).toHaveLength(0);
+    expect(onLanguageModelCallStart).not.toHaveBeenCalled();
+
+    // The workflow runs the model step again with the returned contexts.
+    const completed = await doGenerateStep(
+      prompt,
+      model,
+      {},
+      {
+        telemetry: { callId: 'call-1', stepNumber: 0, contexts: [context] },
+      },
+    );
+    expect(completed).not.toHaveProperty('telemetryContexts');
+    expect(model.doGenerateCalls).toHaveLength(1);
+    // Only the two deferred steps above captured.
+    expect(captureContext).toHaveBeenCalledTimes(2);
+    expect(onLanguageModelCallStart.mock.calls[0][0].durableContext).toEqual(
+      expect.objectContaining({ run: context, stepNumber: 0, phase: 'live' }),
+    );
+  });
+
+  it('calls the model in the capturing step when no context is durable', async () => {
+    const order: string[] = [];
+    vi.stubGlobal('AI_SDK_TELEMETRY_INTEGRATIONS', [
+      // An integration with a bridge that cannot capture a context.
+      {
+        experimental_durable: {
+          captureContext: () => void order.push('captureContext'),
+        },
+        onLanguageModelCallStart: () =>
+          void order.push('onLanguageModelCallStart'),
+      },
+      { onEnd: () => {} },
+    ]);
+    const telemetry = { callId: 'call-1', stepNumber: 0, startEvent: {} };
 
     const completed = await doGenerateStep(
       prompt,
@@ -353,12 +411,10 @@ describe('durable context capture in the first model step', () => {
       },
     );
     expect(order).toEqual(['captureContext', 'onLanguageModelCallStart']);
-    expect(completed.telemetryContexts).toEqual([context]);
-    // The step's own model call is reported with the captured context.
-    expect(onLanguageModelCallStart.mock.calls[0][0].durableContext).toEqual(
-      expect.objectContaining({ run: context, stepNumber: 0, phase: 'live' }),
-    );
+    expect(completed.aborted).not.toBe(true);
+    expect(completed.telemetryContexts).toEqual([undefined, undefined]);
 
+    // A step that does not call the model still returns what it captured.
     const aborted = await doStreamStep(
       prompt,
       createTextModel(),
@@ -369,7 +425,7 @@ describe('durable context capture in the first model step', () => {
     expect(aborted).toEqual({
       aborted: true,
       timing: expect.anything(),
-      telemetryContexts: [context],
+      telemetryContexts: [undefined, undefined],
     });
   });
 

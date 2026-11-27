@@ -3665,10 +3665,9 @@ async function reportRecordedTelemetry({
       events: recorder.events,
       callId: recorder.callId,
       contexts: recorder.contexts,
-      // No model step returned the contexts: the run ended before its first
-      // model step, or that step failed after capturing them.
+      // A run that ended before its first model step has no contexts yet.
       captureContexts:
-        recorder.contexts == null && recorder.hasModelStepResult !== true,
+        recorder.contexts == null && recorder.hasModelStepStarted !== true,
     });
   } catch {
     // Telemetry must never change the outcome of the run.
