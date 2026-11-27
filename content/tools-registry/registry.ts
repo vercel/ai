@@ -1032,4 +1032,41 @@ console.log(text);`,
     websiteUrl: 'https://upstash.com',
     npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
   },
+  {
+    slug: 'nuluvium',
+    name: 'Nuluvium',
+    description:
+      'Private stock-token trades for agents on Robinhood Chain. The agent shields USDG, then buys or sells stock tokens in pieces of random size at random times, each from a fresh address through a relayer, so trades do not trace back to its wallet (private from other chain readers, not from Robinhood). Keys and notes stay on the machine running the agent. Runs the Nuluvium MCP server locally over stdio; Node.js only. Testnet only, not audited.',
+    packageName: '@nuluvium/ai-sdk',
+    tags: ['defi', 'web3', 'privacy'],
+    apiKeyEnvName: 'NULUVIUM_MNEMONIC',
+    installCommand: {
+      pnpm: 'pnpm add @nuluvium/ai-sdk',
+      npm: 'npm install @nuluvium/ai-sdk',
+      yarn: 'yarn add @nuluvium/ai-sdk',
+      bun: 'bun add @nuluvium/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createNuluviumTools } from '@nuluvium/ai-sdk';
+
+// Reads NULUVIUM_MNEMONIC (a new testnet mnemonic, never a real wallet).
+const nuluvium = await createNuluviumTools();
+
+try {
+  const { text } = await generateText({
+    model: 'anthropic/claude-sonnet-5-5',
+    prompt:
+      'Show my shielded balance, then buy 10 USDG of MSTK in 3 pieces over 10 minutes.',
+    tools: nuluvium.tools,
+    stopWhen: isStepCount(5),
+  });
+
+  console.log(text);
+} finally {
+  await nuluvium.close();
+}`,
+    docsUrl: 'https://nuluvium.com/docs/agents/ai-sdk',
+    websiteUrl: 'https://nuluvium.com',
+    npmUrl: 'https://www.npmjs.com/package/@nuluvium/ai-sdk',
+  },
 ];
