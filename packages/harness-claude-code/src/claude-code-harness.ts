@@ -49,6 +49,7 @@ import {
   waitForBridgeReady,
   writeSkills,
   type BridgeHello,
+  type BridgeAuthKeyPair,
   type SandboxChannelDebugEvent,
   type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
@@ -89,6 +90,10 @@ type ClaudeCodeRespawnStrategy = 'replay' | 'rerun';
  * Value to use in User-Agent and `x-client-app` headers.
  */
 const CLAUDE_CODE_CLIENT_APP = `ai-sdk-harness-claude-code/${VERSION}`;
+
+export type ClaudeCodeMintBridgeAuthKeyPairCallback = (
+  sandboxId: string | undefined,
+) => BridgeAuthKeyPair;
 
 export type ClaudeCodeHarnessSettings = {
   readonly auth?: ClaudeCodeAuthenticationMode;
@@ -232,6 +237,17 @@ export type ClaudeCodeHarnessSettings = {
    * contain connection details, so avoid logging it as is.
    */
   readonly onDebug?: (event: SandboxChannelDebugEvent) => void;
+  /**
+   * Derives or supplies the Ed25519 bridge authentication key pair.
+   *
+   * By default, the adapter generates a fresh key pair per start using
+   * `createBridgeAuthKeyPair()`. Hosts running in serverless environments
+   * or across multiple processes can pass this callback to deterministically
+   * derive the key pair (e.g. from a server secret and sandbox ID), allowing
+   * subsequent invocations or separate processes to attach, stop, or resume
+   * the bridge without relying on in-memory resume state from the starting process.
+   */
+  readonly mintBridgeAuthKeyPair?: ClaudeCodeMintBridgeAuthKeyPairCallback;
   // TODO: Remove in the next major version.
   /**
    * @deprecated Sandbox bridge authentication now uses adapter-generated
@@ -1216,7 +1232,9 @@ export function createClaudeCode(
         sandboxSession,
         portOverride: settings.port,
       });
-      const bridgeAuth = createBridgeAuthKeyPair();
+      const bridgeAuth =
+        settings.mintBridgeAuthKeyPair?.(sandboxId) ??
+        createBridgeAuthKeyPair();
       const env = {
         [BRIDGE_AUTH_PUBLIC_KEY_ENV]: bridgeAuth.publicKey,
         BRIDGE_WS_PORT: String(port),
