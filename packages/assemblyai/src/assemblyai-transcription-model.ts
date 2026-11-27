@@ -1,8 +1,10 @@
 import { getAssemblyAITranscriptionModelEntry } from './assemblyai-model-catalog';
-import type {
-  TranscriptionModelV4,
-  SharedV4Warning,
-  SharedV4ProviderMetadata,
+import {
+  UnsupportedFunctionalityError,
+  type Experimental_TranscriptionModelV4StreamOptions as TranscriptionModelV4StreamOptions,
+  type TranscriptionModelV4,
+  type SharedV4Warning,
+  type SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   resolve,
@@ -23,8 +25,18 @@ import { z } from 'zod/v4';
 import type { AssemblyAIConfig } from './assemblyai-config';
 import { assemblyaiFailedResponseHandler } from './assemblyai-error';
 import { assemblyaiTranscriptionModelOptionsSchema } from './assemblyai-transcription-model-options';
+import {
+  buildAssemblyAIStreamingUrl,
+  createAssemblyAIStreamingTranscriptionStream,
+  getAssemblyAIStreamingAudioFormat,
+} from './assemblyai-transcription-stream';
 import type { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
 import type { AssemblyAITranscriptionAPITypes } from './assemblyai-api-types';
+
+function isStreamingTranscriptionModelId(modelId: string): boolean {
+  return getAssemblyAITranscriptionModelEntry(modelId).capabilities
+    .transcription.streaming;
+}
 
 interface AssemblyAITranscriptionModelConfig extends AssemblyAIConfig {
   _internal?: {
@@ -97,6 +109,15 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
       warnings.push({
         type: 'other',
         message: `${requestConfig.transcription.replacementWarning} See https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model`,
+      });
+    }
+
+    if (assemblyaiOptions?.streaming != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.assemblyai.streaming',
+        details:
+          'AssemblyAI pre-recorded transcription does not support streaming options.',
       });
     }
 
@@ -330,6 +351,12 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
   async doGenerate(
     options: Parameters<TranscriptionModelV4['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
+    if (isStreamingTranscriptionModelId(this.modelId)) {
+      throw new UnsupportedFunctionalityError({
+        functionality: `non-streaming transcription with ${this.modelId}`,
+      });
+    }
+
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     // The upload endpoint takes the raw file, so a base64 string is decoded.
     const audio =
@@ -446,6 +473,79 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
         headers: responseHeaders, // Headers from final GET request
         body: rawTranscript, // Full raw response from final GET request
       },
+    };
+  }
+
+  async doStream(
+    options: TranscriptionModelV4StreamOptions,
+  ): Promise<
+    Awaited<ReturnType<NonNullable<TranscriptionModelV4['doStream']>>>
+  > {
+    if (!isStreamingTranscriptionModelId(this.modelId)) {
+      throw new UnsupportedFunctionalityError({
+        functionality: `streaming transcription with ${this.modelId}`,
+      });
+    }
+
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const assemblyaiOptions = await parseProviderOptions({
+      provider: 'assemblyai',
+      providerOptions: options.providerOptions,
+      schema: assemblyaiTranscriptionModelOptionsSchema,
+    });
+    const warnings: SharedV4Warning[] = [];
+
+    for (const [option, value] of Object.entries(
+      options.providerOptions?.assemblyai ?? {},
+    )) {
+      if (option !== 'streaming' && value != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: `providerOptions.assemblyai.${option}`,
+          details: `AssemblyAI streaming transcription does not support ${option}; use providerOptions.assemblyai.streaming.`,
+        });
+      }
+    }
+
+    const { requestConfig } = getAssemblyAITranscriptionModelEntry(
+      this.modelId,
+    );
+    if (requestConfig.transcription.replacementWarning != null) {
+      warnings.push({
+        type: 'other',
+        message: `${requestConfig.transcription.replacementWarning} See https://www.assemblyai.com/docs/streaming/select-the-speech-model`,
+      });
+    }
+
+    const audioFormat = getAssemblyAIStreamingAudioFormat(
+      options.inputAudioFormat,
+    );
+    const url = buildAssemblyAIStreamingUrl({
+      baseUrl: this.config.url({ path: '/v3/ws', modelId: this.modelId }),
+      modelId: this.modelId,
+      audioFormat,
+      streamingOptions: assemblyaiOptions?.streaming ?? undefined,
+    });
+
+    return {
+      request: { body: url.toString() },
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+      },
+      stream: createAssemblyAIStreamingTranscriptionStream({
+        abortSignal: options.abortSignal,
+        audio: options.audio,
+        audioFormat,
+        headers: combineHeaders(
+          await resolve(this.config.headers),
+          options.headers,
+        ),
+        includeRawChunks: options.includeRawChunks,
+        url,
+        warnings,
+        webSocket: this.config.webSocket,
+      }),
     };
   }
 }

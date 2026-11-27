@@ -96,6 +96,13 @@ You can use the following optional settings to customize the AssemblyAI provider
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
+- **webSocket** _WebSocketConstructor_
+
+  Custom WebSocket implementation for streaming transcription, such as the
+  `ws` package. AssemblyAI authenticates the streaming WebSocket with an
+  `Authorization` header, which the native WebSocket in browsers, Node.js,
+  Deno, and Bun cannot send.
+
 ## Transcription Models
 
 You can create models that call the [AssemblyAI transcription API](https://www.assemblyai.com/docs/getting-started/transcribe-an-audio-file/typescript)
@@ -438,13 +445,100 @@ AssemblyAI's documentation for per-language availability.
 
 {/* model-capabilities:assemblyai-transcription:start */}
 
-| Model                | Transcription | Streaming | Duration  | Segments  | Language  |
-| -------------------- | ------------- | --------- | --------- | --------- | --------- |
-| `assemblyai-stt-3-7` | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
-| `universal-2`        | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
-| `universal-3-5-pro`  | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
+| Model                               | Transcription | Streaming | Duration  | Segments  | Language  |
+| ----------------------------------- | ------------- | --------- | --------- | --------- | --------- |
+| `assemblyai-stt-3-7`                | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
+| `assemblyai-stt-3-7-realtime`       | <Cross />     | <Check /> | <Check /> | <Check /> | <Check /> |
+| `assemblyai-stt-3-7-realtime-agent` | <Cross />     | <Check /> | <Check /> | <Check /> | <Check /> |
+| `universal-2`                       | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
+| `universal-3-5-pro`                 | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
+| `universal-3-6-pro`                 | <Cross />     | <Check /> | <Check /> | <Check /> | <Check /> |
 
 {/* model-capabilities:assemblyai-transcription:end */}
+
+## Streaming Transcription Models
+
+<Note type="warning">Streaming transcription is an experimental feature.</Note>
+
+`assemblyai-stt-3-7-realtime`, `assemblyai-stt-3-7-realtime-agent`, and
+`universal-3-6-pro` support live transcription through
+`experimental_streamTranscribe`. They accept 16-bit PCM (`audio/pcm`, default
+16 kHz) or mu-law (`audio/pcmu`, default 8 kHz) audio at integer sample rates
+from 8000 to 96000 Hz.
+
+```ts
+import {
+  createAssemblyAI,
+  type AssemblyAIProviderSettings,
+} from '@ai-sdk/assemblyai';
+import { experimental_streamTranscribe as streamTranscribe } from 'ai';
+import { WebSocket } from 'ws';
+
+const assemblyai = createAssemblyAI({
+  webSocket: WebSocket as unknown as AssemblyAIProviderSettings['webSocket'],
+});
+
+const result = streamTranscribe({
+  model: assemblyai.transcription('assemblyai-stt-3-7-realtime'),
+  audio,
+  inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+  providerOptions: {
+    assemblyai: {
+      streaming: {
+        keytermsPrompt: ['AI SDK'],
+        languageDetection: true,
+      },
+    },
+  },
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'transcript-partial') {
+    console.log('partial:', part.text);
+  }
+
+  if (part.type === 'transcript-final') {
+    console.log('final:', part.text);
+  }
+}
+```
+
+The AssemblyAI streaming endpoint authenticates with a WebSocket header. Use a
+header-capable WebSocket implementation, such as `ws`, in runtimes whose native
+WebSocket constructor cannot send headers.
+
+AssemblyAI requires each audio message to carry 20 to 1000 ms of audio and
+recommends 50 to 100 ms, so the provider regroups incoming chunks into messages
+of 20 to 100 ms and pads a final chunk shorter than 20 ms with silence. When the
+audio stream ends, the provider ends the session with a `Terminate` message,
+and the finish event reports the exact duration of the audio sent as
+`durationInSeconds`, and AssemblyAI's `audio_duration_seconds` and
+`session_duration_seconds` (whole seconds) as `usage`. Cancelling the stream or
+aborting the request also sends `Terminate` before closing the socket.
+
+Live audio is paced by the microphone. When streaming a file, pace it close to
+real time: AssemblyAI accepts audio faster than real time but processes it at
+about 1.25 times real time, and closes the session with error `3007` once more
+than five minutes of audio is buffered ahead of processing.
+
+With `inactivityTimeout` set, AssemblyAI ends the session when no audio arrives
+for that many seconds. The stream then finishes normally with the turns
+finalized so far; a turn still in progress has no final transcript and is not
+included, and `usage` is omitted because AssemblyAI does not report it.
+
+The `streaming` provider options mirror AssemblyAI's streaming connection
+parameters: `agentContext`, `domain`, `filterProfanity`, `inactivityTimeout`,
+`includePartialTurns`, `interruptionDelay`, `keytermsPrompt`, `languageCodes`,
+`languageDetection`, `maxSpeakers`, `maxTurnSilence`, `minTurnSilence`, `mode`,
+`previousContextNTurns`, `prompt`, `redactPii`, `redactPiiPolicies`,
+`redactPiiSub`, `speakerLabels`, `vadThreshold`, `voiceFocus`, and
+`voiceFocusThreshold`. The other `assemblyai` provider options apply to
+pre-recorded transcription only. When `speakerLabels` is enabled, each final
+transcript part carries the turn's speaker in
+`providerMetadata.assemblyai.speakerLabel`.
+
+See [Transcription](/docs/ai-sdk-core/transcription) for more information about
+streaming transcription.
 
 ## Speech Models
 
@@ -591,6 +685,7 @@ telemetry integrations). `providerMetadata.assemblyai` also includes the
 | transcription | `speakerOptions`              | Options for speaker diarization, e.g. a range of possible speakers.                                                                                                                                                                         |
 | transcription | `speakersExpected`            | Number of speakers expected in the audio.                                                                                                                                                                                                   |
 | transcription | `speechThreshold`             | Threshold for speech detection (0-1).                                                                                                                                                                                                       |
+| transcription | `streaming`                   | Streaming session settings for realtime models (turn detection, keyterms, languages, diarization, redaction).                                                                                                                               |
 | transcription | `summarization`               | Whether to generate a summary of the transcription.                                                                                                                                                                                         |
 | transcription | `summaryModel`                | Model to use for summarization.                                                                                                                                                                                                             |
 | transcription | `summaryType`                 | Type of summary to generate.                                                                                                                                                                                                                |

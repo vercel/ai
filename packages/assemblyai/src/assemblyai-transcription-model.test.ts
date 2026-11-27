@@ -1,9 +1,14 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import {
+  convertArrayToReadableStream,
+  convertReadableStreamToArray,
+} from '@ai-sdk/provider-utils/test';
+import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
 import { AssemblyAITranscriptionModel } from './assemblyai-transcription-model';
 import { createAssemblyAI } from './assemblyai-provider';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -748,5 +753,448 @@ describe('doGenerate', () => {
 
     expect(result.response.timestamp.getTime()).toEqual(testDate.getTime());
     expect(result.response.modelId).toBe('assemblyai-stt-3-7');
+  });
+});
+
+class MockWebSocket {
+  static instances: MockWebSocket[] = [];
+
+  readyState = 0;
+  bufferedAmount = 0;
+  send = vi.fn();
+  close = vi.fn(() => {
+    this.readyState = 3;
+  });
+  onopen: ((event: unknown) => void) | null = null;
+  onmessage: ((event: { data: unknown }) => void) | null = null;
+  onerror: ((event: unknown) => void) | null = null;
+  onclose: ((event: unknown) => void) | null = null;
+
+  constructor(
+    public url: string | URL,
+    public protocols?: string | string[],
+    public options?: { headers?: Record<string, string | undefined> },
+  ) {
+    MockWebSocket.instances.push(this);
+  }
+
+  open() {
+    this.readyState = 1;
+    this.onopen?.({});
+  }
+
+  message(value: unknown) {
+    this.onmessage?.({ data: JSON.stringify(value) });
+  }
+
+  remoteClose(code?: number, reason?: string) {
+    this.readyState = 3;
+    this.onclose?.({ code, reason });
+  }
+
+  error() {
+    this.onerror?.({});
+  }
+
+  binaryFrames() {
+    return this.send.mock.calls
+      .map(([data]) => data)
+      .filter((data): data is Uint8Array => data instanceof Uint8Array);
+  }
+}
+
+const flush = () => new Promise(resolve => setTimeout(resolve, 0));
+
+function createStreamingModel(modelId = 'assemblyai-stt-3-7-realtime') {
+  return createAssemblyAI({
+    apiKey: 'test-api-key',
+    webSocket: MockWebSocket,
+  }).transcription(modelId);
+}
+
+describe('doStream', () => {
+  beforeEach(() => {
+    MockWebSocket.instances = [];
+  });
+
+  it('streams turns and finishes with the session usage', async () => {
+    const model = createStreamingModel();
+    const result = await model.doStream!({
+      audio: convertArrayToReadableStream([
+        new Uint8Array(640).fill(1),
+        // base64 for 640 bytes of 0x02
+        Buffer.from(new Uint8Array(640).fill(2)).toString('base64'),
+      ]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      headers: { 'Custom-Request-Header': 'request-value' },
+      providerOptions: {
+        assemblyai: {
+          streaming: {
+            keytermsPrompt: ['Vercel', 'AI SDK'],
+            languageCodes: ['en', 'es'],
+            languageDetection: true,
+            maxTurnSilence: 1280,
+            mode: 'balanced',
+            speakerLabels: true,
+          },
+        },
+      },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    const url = new URL(ws.url);
+    expect(url.origin + url.pathname).toBe(
+      'wss://streaming.assemblyai.com/v3/ws',
+    );
+    expect(Object.fromEntries(url.searchParams)).toStrictEqual({
+      encoding: 'pcm_s16le',
+      keyterms_prompt: '["Vercel","AI SDK"]',
+      language_codes: '["en","es"]',
+      language_detection: 'true',
+      max_turn_silence: '1280',
+      mode: 'balanced',
+      sample_rate: '16000',
+      speaker_labels: 'true',
+      speech_model: 'assemblyai-stt-3-7-realtime',
+    });
+    expect(result.request?.body).toBe(url.toString());
+    expect(ws.options?.headers).toMatchObject({
+      authorization: 'test-api-key',
+      'Custom-Request-Header': 'request-value',
+    });
+
+    ws.open();
+    ws.message({ type: 'Begin', id: 'session-1', expires_at: 1 });
+    await flush();
+    ws.message({
+      type: 'Turn',
+      turn_order: 0,
+      end_of_turn: false,
+      transcript: 'Hello wor',
+      words: [{ text: 'Hello', start: 160, end: 400, word_is_final: false }],
+    });
+    ws.message({
+      type: 'Turn',
+      turn_order: 0,
+      end_of_turn: true,
+      transcript: 'Hello world.',
+      language_code: 'en',
+      speaker_label: 'A',
+      words: [
+        { text: 'Hello', start: 160, end: 400, word_is_final: true },
+        { text: 'world.', start: 420, end: 900, word_is_final: true },
+      ],
+    });
+    ws.message({
+      type: 'Termination',
+      audio_duration_seconds: 2,
+      session_duration_seconds: 3,
+    });
+
+    expect(await partsPromise).toStrictEqual([
+      { type: 'stream-start', warnings: [] },
+      { type: 'transcript-partial', id: 'session-1:0', text: 'Hello wor' },
+      {
+        type: 'transcript-final',
+        id: 'session-1:0',
+        text: 'Hello world.',
+        startSecond: 0.16,
+        endSecond: 0.9,
+        providerMetadata: { assemblyai: { speakerLabel: 'A' } },
+      },
+      {
+        type: 'finish',
+        text: 'Hello world.',
+        segments: [
+          { text: 'Hello', startSecond: 0.16, endSecond: 0.4 },
+          { text: 'world.', startSecond: 0.42, endSecond: 0.9 },
+        ],
+        language: 'en',
+        // 1280 bytes of 16 kHz 16-bit PCM sent.
+        durationInSeconds: 0.04,
+        usage: { audio_duration_seconds: 2, session_duration_seconds: 3 },
+      },
+    ]);
+    expect(ws.binaryFrames()).toStrictEqual([
+      new Uint8Array(640).fill(1),
+      new Uint8Array(640).fill(2),
+    ]);
+    expect(ws.send).toHaveBeenLastCalledWith(
+      JSON.stringify({ type: 'Terminate' }),
+    );
+  });
+
+  it('regroups audio into 20-100 ms frames and pads the final frame with silence', async () => {
+    const model = createStreamingModel();
+    const result = await model.doStream!({
+      // 16 kHz 16-bit PCM: 20 ms = 640 bytes, 100 ms = 3200 bytes.
+      audio: convertArrayToReadableStream([
+        new Uint8Array(320).fill(1),
+        new Uint8Array(320).fill(1),
+        new Uint8Array(48000).fill(2),
+        new Uint8Array(161).fill(3),
+      ]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ type: 'Begin', id: 'session-1' });
+    await flush();
+    ws.message({ type: 'Termination' });
+    await partsPromise;
+
+    const padded = new Uint8Array(640);
+    padded.set(new Uint8Array(161).fill(3));
+    expect(ws.binaryFrames()).toStrictEqual([
+      new Uint8Array(640).fill(1),
+      ...Array.from({ length: 15 }, () => new Uint8Array(3200).fill(2)),
+      padded,
+    ]);
+  });
+
+  it('defaults mu-law input to 8 kHz and pads with mu-law silence', async () => {
+    const model = createStreamingModel();
+    const result = await model.doStream!({
+      audio: convertArrayToReadableStream([new Uint8Array(10).fill(7)]),
+      inputAudioFormat: { type: 'audio/pcmu' },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    const url = new URL(ws.url);
+    expect(url.searchParams.get('encoding')).toBe('pcm_mulaw');
+    expect(url.searchParams.get('sample_rate')).toBe('8000');
+
+    ws.open();
+    ws.message({ type: 'Begin', id: 'session-1' });
+    await flush();
+    ws.message({ type: 'Termination' });
+    await partsPromise;
+
+    const padded = new Uint8Array(160).fill(0xff);
+    padded.set(new Uint8Array(10).fill(7));
+    expect(ws.binaryFrames()).toStrictEqual([padded]);
+  });
+
+  it('finishes with the finalized turns when the inactivity timeout ends the session', async () => {
+    const model = createStreamingModel();
+    const audioCancel = vi.fn();
+    const result = await model.doStream!({
+      audio: new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new Uint8Array(3200).fill(1));
+        },
+        cancel: audioCancel,
+      }),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      providerOptions: { assemblyai: { streaming: { inactivityTimeout: 5 } } },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    expect(new URL(ws.url).searchParams.get('inactivity_timeout')).toBe('5');
+    ws.open();
+    ws.message({ type: 'Begin', id: 'session-1' });
+    await flush();
+    ws.message({
+      type: 'Turn',
+      turn_order: 0,
+      end_of_turn: true,
+      transcript: 'Hello world.',
+      words: [{ text: 'Hello', start: 0, end: 100, word_is_final: true }],
+    });
+    ws.message({
+      type: 'Error',
+      error_code: 3006,
+      error:
+        'User Input Validation Error: Session terminated due to inactivity: No messages received for 5 seconds',
+    });
+
+    expect((await partsPromise).at(-1)).toStrictEqual({
+      type: 'finish',
+      text: 'Hello world.',
+      segments: [{ text: 'Hello', startSecond: 0, endSecond: 0.1 }],
+      language: undefined,
+      durationInSeconds: 0.1,
+    });
+    expect(audioCancel).toHaveBeenCalled();
+    // The server already ended the session, so no `Terminate` follows.
+    expect(ws.send).not.toHaveBeenCalledWith(
+      JSON.stringify({ type: 'Terminate' }),
+    );
+    expect(ws.close).toHaveBeenCalled();
+  });
+
+  it('terminates the session, closes the socket, and cancels the audio when the consumer cancels', async () => {
+    const model = createStreamingModel();
+    const audioCancel = vi.fn();
+    const result = await model.doStream!({
+      audio: new ReadableStream<Uint8Array>({ cancel: audioCancel }),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+    });
+
+    const reader = result.stream.getReader();
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ type: 'Begin', id: 'session-1' });
+    expect(await reader.read()).toStrictEqual({
+      done: false,
+      value: { type: 'stream-start', warnings: [] },
+    });
+
+    await reader.cancel();
+
+    expect(audioCancel).toHaveBeenCalled();
+    expect(ws.send).toHaveBeenCalledWith(JSON.stringify({ type: 'Terminate' }));
+    expect(ws.send.mock.invocationCallOrder.at(-1)).toBeLessThan(
+      ws.close.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('terminates the session, closes the socket, and errors the stream on abort', async () => {
+    const model = createStreamingModel();
+    const abortController = new AbortController();
+    const audioCancel = vi.fn();
+    const result = await model.doStream!({
+      audio: new ReadableStream<Uint8Array>({ cancel: audioCancel }),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      abortSignal: abortController.signal,
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ type: 'Begin', id: 'session-1' });
+    await flush();
+    abortController.abort(new Error('caller aborted'));
+
+    await expect(partsPromise).rejects.toThrow('caller aborted');
+    expect(audioCancel).toHaveBeenCalled();
+    expect(ws.send).toHaveBeenCalledWith(JSON.stringify({ type: 'Terminate' }));
+    expect(ws.close).toHaveBeenCalled();
+  });
+
+  it('errors the stream with the AssemblyAI error message and code', async () => {
+    const model = createStreamingModel();
+    const result = await model.doStream!({
+      audio: convertArrayToReadableStream([]),
+      inputAudioFormat: { type: 'audio/pcm' },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({
+      type: 'Error',
+      error_code: 1008,
+      error: 'Unauthorized Connection: Invalid API key',
+    });
+
+    await expect(partsPromise).rejects.toThrow(
+      'AssemblyAI streaming transcription error (code 1008): Unauthorized Connection: Invalid API key',
+    );
+  });
+
+  it('errors when the socket closes before the session terminates', async () => {
+    const model = createStreamingModel();
+    const result = await model.doStream!({
+      audio: convertArrayToReadableStream([]),
+      inputAudioFormat: { type: 'audio/pcm' },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ type: 'Begin', id: 'session-1' });
+    ws.remoteClose(3005, 'Session Cancelled');
+
+    await expect(partsPromise).rejects.toThrow(
+      'AssemblyAI streaming transcription closed before the session terminated (code 3005: Session Cancelled)',
+    );
+  });
+
+  it('explains the native WebSocket header requirement on socket errors', async () => {
+    vi.stubGlobal('WebSocket', MockWebSocket);
+    try {
+      const model = createAssemblyAI({ apiKey: 'test-api-key' }).transcription(
+        'assemblyai-stt-3-7-realtime',
+      );
+      const result = await model.doStream!({
+        audio: convertArrayToReadableStream([]),
+        inputAudioFormat: { type: 'audio/pcm' },
+      });
+      const partsPromise = convertReadableStreamToArray(result.stream);
+      MockWebSocket.instances[0].error();
+
+      await expect(partsPromise).rejects.toThrow(
+        'createAssemblyAI({ webSocket })',
+      );
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('warns about pre-recorded options and previous-generation models', async () => {
+    const model = createStreamingModel('universal-3-6-pro');
+    const result = await model.doStream!({
+      audio: convertArrayToReadableStream([]),
+      inputAudioFormat: { type: 'audio/pcm' },
+      providerOptions: { assemblyai: { speakerLabels: true } },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ type: 'Begin', id: 'session-1' });
+    await flush();
+    ws.message({ type: 'Termination' });
+
+    expect((await partsPromise)[0]).toStrictEqual({
+      type: 'stream-start',
+      warnings: [
+        {
+          type: 'unsupported',
+          feature: 'providerOptions.assemblyai.speakerLabels',
+          details:
+            'AssemblyAI streaming transcription does not support speakerLabels; use providerOptions.assemblyai.streaming.',
+        },
+        {
+          type: 'other',
+          message:
+            "'universal-3-6-pro' is AssemblyAI's previous flagship streaming model and is still supported; use 'assemblyai-stt-3-7-realtime' for notetakers and captions or 'assemblyai-stt-3-7-realtime-agent' for voice agents. See https://www.assemblyai.com/docs/streaming/select-the-speech-model",
+        },
+      ],
+    });
+  });
+
+  it('rejects pre-recorded models, streaming models on doGenerate, and unsupported formats', async () => {
+    await expect(
+      createStreamingModel('assemblyai-stt-3-7').doStream!({
+        audio: convertArrayToReadableStream([]),
+        inputAudioFormat: { type: 'audio/pcm' },
+      }),
+    ).rejects.toThrow(UnsupportedFunctionalityError);
+
+    await expect(
+      createStreamingModel().doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      }),
+    ).rejects.toThrow(UnsupportedFunctionalityError);
+
+    for (const inputAudioFormat of [
+      { type: 'audio/pcma' },
+      { type: 'audio/pcm', rate: 4000 },
+    ]) {
+      await expect(
+        createStreamingModel().doStream!({
+          audio: convertArrayToReadableStream([]),
+          inputAudioFormat,
+        }),
+      ).rejects.toThrow('AssemblyAI streaming transcription supports');
+    }
   });
 });

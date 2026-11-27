@@ -127,6 +127,10 @@ export const assemblyaiProviderOptions = {
       description: 'Number of speakers expected in the audio.',
     },
     speechThreshold: { description: 'Threshold for speech detection (0-1).' },
+    streaming: {
+      description:
+        'Streaming session settings for realtime models (turn detection, keyterms, languages, diarization, redaction).',
+    },
     summarization: {
       description: 'Whether to generate a summary of the transcription.',
     },
@@ -152,8 +156,11 @@ export const assemblyaiProviderOptions = {
 
 export const assemblyaiTranscriptionModelIds = [
   'assemblyai-stt-3-7',
+  'assemblyai-stt-3-7-realtime',
+  'assemblyai-stt-3-7-realtime-agent',
   'universal-2',
   'universal-3-5-pro',
+  'universal-3-6-pro',
 ] as const;
 
 const modelPolicies: Record<
@@ -162,24 +169,33 @@ const modelPolicies: Record<
     deprecated?: boolean;
     replacementWarning?: string;
     prompted?: boolean;
+    streaming?: boolean;
   }
 > = {
   'assemblyai-stt-3-7': { prompted: true },
+  'assemblyai-stt-3-7-realtime': { streaming: true },
+  'assemblyai-stt-3-7-realtime-agent': { streaming: true },
   'universal-2': {
     replacementWarning:
       "'assemblyai-stt-3-7' is AssemblyAI's latest flagship model; 'universal-2' remains available for languages it does not support.",
   },
   'universal-3-5-pro': { prompted: true, deprecated: true },
+  'universal-3-6-pro': {
+    streaming: true,
+    replacementWarning:
+      "'universal-3-6-pro' is AssemblyAI's previous flagship streaming model and is still supported; use 'assemblyai-stt-3-7-realtime' for notetakers and captions or 'assemblyai-stt-3-7-realtime-agent' for voice agents.",
+  },
 };
 export function getAssemblyAITranscriptionModelEntry(modelId: string) {
   const policy = modelPolicies[modelId];
   const known = policy != null;
   const prompted = policy?.prompted ?? false;
+  const streaming = policy?.streaming ?? false;
   return {
     capabilities: {
       transcription: {
-        transcription: true,
-        streaming: false,
+        transcription: !streaming,
+        streaming,
         duration: true,
         segments: true,
         language: true,
@@ -189,26 +205,32 @@ export function getAssemblyAITranscriptionModelEntry(modelId: string) {
       transcription: {
         ...Object.fromEntries(
           Object.keys(assemblyaiProviderOptions.transcription).map(
-            key => [key, known ? true : 'unknown'] as const,
+            key => [key, known ? !streaming : 'unknown'] as const,
           ),
         ),
-        prompt: known ? prompted : 'unknown',
-        temperature: known ? prompted : 'unknown',
-        removeAudioTags: known ? prompted : 'unknown',
-        wordBoost: known ? !prompted : 'unknown',
-        boostParam: known ? !prompted : 'unknown',
-        keytermsPrompt: prompted
-          ? true
-          : {
-              condition:
-                'Supported by Universal-2 when enabled for the account; use AssemblyAI-STT-3.7 otherwise.',
-            },
-        domain: {
-          condition: 'Requires a model and account with Medical Mode enabled.',
-        },
-        redactPiiReturnUnredacted: { condition: 'Requires redactPii.' },
-        redactStaticEntities: { condition: 'Requires redactPii.' },
-        redactPiiAudioOptions: { condition: 'Requires redactPiiAudio.' },
+        streaming: known ? streaming : 'unknown',
+        // Streaming models accept only `streaming`; the pre-recorded options
+        // keep their model-specific support below.
+        ...(!streaming && {
+          prompt: known ? prompted : 'unknown',
+          temperature: known ? prompted : 'unknown',
+          removeAudioTags: known ? prompted : 'unknown',
+          wordBoost: known ? !prompted : 'unknown',
+          boostParam: known ? !prompted : 'unknown',
+          keytermsPrompt: prompted
+            ? true
+            : {
+                condition:
+                  'Supported by Universal-2 when enabled for the account; use AssemblyAI-STT-3.7 otherwise.',
+              },
+          domain: {
+            condition:
+              'Requires a model and account with Medical Mode enabled.',
+          },
+          redactPiiReturnUnredacted: { condition: 'Requires redactPii.' },
+          redactStaticEntities: { condition: 'Requires redactPii.' },
+          redactPiiAudioOptions: { condition: 'Requires redactPiiAudio.' },
+        }),
       },
     },
     requestConfig: {

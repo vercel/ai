@@ -237,6 +237,116 @@ export const assemblyaiTranscriptionModelOptionsSchema = lazySchema(() =>
        * Use `keytermsPrompt` instead.
        */
       wordBoost: z.array(z.string()).nullish(),
+      /**
+       * Streaming (realtime) session settings. Only used by streaming models
+       * such as `assemblyai-stt-3-7-realtime`; the other options above apply
+       * to pre-recorded transcription only.
+       *
+       * @see https://www.assemblyai.com/docs/streaming/api-spec/streaming-websocket
+       */
+      streaming: z
+        .object({
+          /**
+           * The voice agent's spoken reply, used as context for the next user
+           * turn. Maximum 1750 characters.
+           */
+          agentContext: z.string().max(1750).nullish(),
+          /**
+           * Domain-specific model: `'medical-v1'` (Medical Mode) or
+           * `'veterinary-v1'` (Veterinary Mode).
+           */
+          domain: z.enum(['medical-v1', 'veterinary-v1']).nullish(),
+          /**
+           * Whether to filter profanity from the transcript.
+           */
+          filterProfanity: z.boolean().nullish(),
+          /**
+           * Seconds without audio or messages before AssemblyAI ends the
+           * session (5-3600).
+           */
+          inactivityTimeout: z.number().int().min(5).max(3600).nullish(),
+          /**
+           * Whether to emit partial transcripts while a turn is in progress.
+           */
+          includePartialTurns: z.boolean().nullish(),
+          /**
+           * Milliseconds (0-1000) before the first partial is emitted.
+           */
+          interruptionDelay: z.number().int().min(0).max(1000).nullish(),
+          /**
+           * Words and phrases to improve recognition for. Maximum 100 terms.
+           */
+          keytermsPrompt: z.array(z.string()).max(100).nullish(),
+          /**
+           * Language codes to steer transcription toward, e.g. `['en', 'es']`.
+           */
+          languageCodes: z.array(z.string()).nullish(),
+          /**
+           * Whether to report the detected language on each turn.
+           */
+          languageDetection: z.boolean().nullish(),
+          /**
+           * Maximum number of speaker labels (1-10). Requires `speakerLabels`.
+           */
+          maxSpeakers: z.number().int().min(1).max(10).nullish(),
+          /**
+           * Maximum silence in milliseconds before a turn is forced to end.
+           */
+          maxTurnSilence: z.number().int().min(0).nullish(),
+          /**
+           * Silence in milliseconds before a speculative end-of-turn check.
+           */
+          minTurnSilence: z.number().int().min(0).nullish(),
+          /**
+           * Latency and accuracy preset. `'manual'` is supported only by
+           * `assemblyai-stt-3-7-realtime-agent`.
+           */
+          mode: z
+            .enum(['balanced', 'manual', 'max_accuracy', 'min_latency'])
+            .nullish(),
+          /**
+           * Maximum number of prior turns carried forward as context (0-100).
+           */
+          previousContextNTurns: z.number().int().min(0).max(100).nullish(),
+          /**
+           * Context describing what the audio is about. Maximum 1750
+           * characters.
+           */
+          prompt: z.string().max(1750).nullish(),
+          /**
+           * Whether to redact PII from final turns.
+           */
+          redactPii: z.boolean().nullish(),
+          /**
+           * PII policies to redact. Requires `redactPii`.
+           */
+          redactPiiPolicies: z.array(z.string()).nullish(),
+          /**
+           * Replacement for redacted PII. Requires `redactPii`.
+           */
+          redactPiiSub: z.enum(['entity_name', 'hash']).nullish(),
+          /**
+           * Whether to label speakers on each turn.
+           */
+          speakerLabels: z.boolean().nullish(),
+          /**
+           * Confidence threshold (0-1) for classifying audio frames as
+           * silence.
+           */
+          vadThreshold: z.number().min(0).max(1).nullish(),
+          /**
+           * Isolate the primary voice: `'near-field'` for close microphones,
+           * `'far-field'` for distant ones. Not available on
+           * `assemblyai-stt-3-7-realtime`.
+           */
+          voiceFocus: z.enum(['far-field', 'near-field']).nullish(),
+          /**
+           * How aggressively Voice Focus suppresses background audio (0-1).
+           * Requires `voiceFocus`.
+           */
+          voiceFocusThreshold: z.number().min(0).max(1).nullish(),
+        })
+        .nullish(),
     }),
   ),
 );
