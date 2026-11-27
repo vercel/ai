@@ -1282,6 +1282,15 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     this.setStatus({ status: 'submitted', error: undefined });
 
     const lastMessage = this.lastMessage;
+    // a request that leaves the last message unchanged must not trigger an
+    // automatic send: sendAutomaticallyWhen would see the same messages again
+    // and send the same request again, without end (#25183). a resumed stream
+    // is exempt: the disconnected request it completes never reached
+    // sendAutomaticallyWhen, so its automatic send is still owed:
+    const lastMessageBeforeRequest =
+      this.sendAutomaticallyWhen != null && trigger !== 'resume-stream'
+        ? JSON.stringify(lastMessage)
+        : undefined;
     const responseMessageIndex =
       trigger === 'submit-message' && messageId != null
         ? this.state.messages.findIndex(message => message.id === messageId)
@@ -1535,14 +1544,18 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       activeResponse?.state.finishReason !== 'interrupted'
     ) {
       const stopGeneration = this.stopGeneration;
-      const sentAutomatically = await this.runAutomaticRequest(() =>
-        this.makeRequest({
-          trigger: 'submit-message',
-          messageId: this.lastMessage?.id,
-          metadata,
-          headers,
-          body,
-        }),
+      const lastMessageChanged =
+        lastMessageBeforeRequest !== JSON.stringify(this.lastMessage);
+      const sentAutomatically = await this.runAutomaticRequest(
+        () =>
+          this.makeRequest({
+            trigger: 'submit-message',
+            messageId: this.lastMessage?.id,
+            metadata,
+            headers,
+            body,
+          }),
+        lastMessageChanged ? undefined : false,
       );
 
       // the automatic request settles the queue when it finishes. a stop while
