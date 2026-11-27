@@ -455,7 +455,11 @@ export function array<ELEMENT>({
         EnrichedStreamPart<any, Array<ELEMENT>>,
         ELEMENT
       >({
-        transform({ partialOutput }, controller) {
+        transform({ part, partialOutput, resetPartialOutput }, controller) {
+          if (resetPartialOutput || part.type === 'start-step') {
+            publishedElements = 0;
+          }
+
           if (partialOutput != null) {
             // Only enqueue new elements that haven't been published yet
             for (

@@ -1047,6 +1047,7 @@ function streamTextInternal<
 export type EnrichedStreamPart<TOOLS extends ToolSet, PARTIAL_OUTPUT> = {
   part: TextStreamPart<TOOLS>;
   partialOutput: PARTIAL_OUTPUT | undefined;
+  resetPartialOutput?: boolean;
 };
 
 type StreamRetryBoundaryMetadata = {
@@ -1098,6 +1099,7 @@ function createOutputTransformStream<
   let lastArrayPartial: InferPartialOutput<OUTPUT> | undefined;
   let lastPublishedValue: string | undefined = undefined;
   let hasPublishedValue = false;
+  let pendingOutputReset = false;
 
   function resetOutputState() {
     arrayStreamParser = createArrayStreamParser(output);
@@ -1108,6 +1110,7 @@ function createOutputTransformStream<
     textProviderMetadata = undefined;
     lastPublishedValue = undefined;
     hasPublishedValue = false;
+    pendingOutputReset = true;
   }
 
   function enqueueChunk({
@@ -1119,7 +1122,12 @@ function createOutputTransformStream<
     >;
     chunk: EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>;
   }) {
-    controller.enqueue(chunk);
+    if (pendingOutputReset) {
+      pendingOutputReset = false;
+      controller.enqueue({ ...chunk, resetPartialOutput: true });
+    } else {
+      controller.enqueue(chunk);
+    }
   }
 
   function publishTextChunk({

@@ -1,6 +1,10 @@
 import { fail } from 'assert';
 import { TypeValidationError, type JSONSchema7 } from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/provider-utils';
+import {
+  convertArrayToReadableStream,
+  convertAsyncIterableToArray,
+} from '@ai-sdk/provider-utils/test';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
@@ -601,6 +605,67 @@ describe('Output.array', () => {
         text: `{ "elements": [] }`,
       });
       expect(partial).toEqual({ partial: [] });
+    });
+  });
+
+  describe('array.createElementStreamTransform', () => {
+    it('should reset published elements on resetPartialOutput including the reset chunk itself', async () => {
+      const transform = array({
+        element: z.string(),
+      }).createElementStreamTransform()!;
+      const stream = convertArrayToReadableStream([
+        {
+          part: { type: 'text-delta' as const, id: '1', text: '' },
+          partialOutput: ['stale-1', 'stale-2'],
+        },
+        {
+          part: { type: 'text-delta' as const, id: '2', text: '' },
+          partialOutput: ['a'],
+          resetPartialOutput: true,
+        },
+        {
+          part: { type: 'text-delta' as const, id: '2', text: '' },
+          partialOutput: ['a', 'b'],
+        },
+      ]).pipeThrough(transform);
+
+      expect(await convertAsyncIterableToArray(stream)).toStrictEqual([
+        'stale-1',
+        'stale-2',
+        'a',
+        'b',
+      ]);
+    });
+
+    it('should reset published elements on start-step even without resetPartialOutput', async () => {
+      const transform = array({
+        element: z.string(),
+      }).createElementStreamTransform()!;
+      const stream = convertArrayToReadableStream([
+        {
+          part: { type: 'text-delta' as const, id: '1', text: '' },
+          partialOutput: ['p1', 'p2'],
+        },
+        {
+          part: {
+            type: 'start-step' as const,
+            request: {},
+            warnings: [],
+          },
+          partialOutput: undefined,
+        },
+        {
+          part: { type: 'text-delta' as const, id: '2', text: '' },
+          partialOutput: ['a', 'b'],
+        },
+      ]).pipeThrough(transform);
+
+      expect(await convertAsyncIterableToArray(stream)).toStrictEqual([
+        'p1',
+        'p2',
+        'a',
+        'b',
+      ]);
     });
   });
 });
