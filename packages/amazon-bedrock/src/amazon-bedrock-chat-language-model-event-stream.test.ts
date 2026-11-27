@@ -438,4 +438,176 @@ describe('AmazonBedrockChatLanguageModel doStream', () => {
       },
     ]);
   });
+
+  it('splits consecutive signed thinking blocks sharing one contentBlockIndex', async () => {
+    const model = new AmazonBedrockChatLanguageModel(
+      'us.anthropic.claude-sonnet-4-5-20250929-v1:0',
+      {
+        baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+        headers: {},
+        fetch: async () =>
+          new Response(
+            createStream([
+              createEvent(
+                'contentBlockDelta',
+                JSON.stringify({
+                  contentBlockIndex: 0,
+                  delta: { reasoningContent: { text: 'first thought' } },
+                }),
+              ),
+              createEvent(
+                'contentBlockDelta',
+                JSON.stringify({
+                  contentBlockIndex: 0,
+                  delta: { reasoningContent: { signature: 'SIG_A' } },
+                }),
+              ),
+              createEvent(
+                'contentBlockDelta',
+                JSON.stringify({
+                  contentBlockIndex: 0,
+                  delta: { reasoningContent: { text: 'second thought' } },
+                }),
+              ),
+              createEvent(
+                'contentBlockDelta',
+                JSON.stringify({
+                  contentBlockIndex: 0,
+                  delta: { reasoningContent: { signature: 'SIG_B' } },
+                }),
+              ),
+              createEvent(
+                'contentBlockStop',
+                JSON.stringify({ contentBlockIndex: 0 }),
+              ),
+              createEvent(
+                'messageStop',
+                JSON.stringify({ stopReason: 'tool_use' }),
+              ),
+            ]),
+            {
+              status: 200,
+              headers: {
+                'content-type': 'application/vnd.amazon.eventstream',
+              },
+            },
+          ),
+        generateId: () => 'test-id',
+      },
+    );
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(
+      parts.filter(part => part.type.startsWith('reasoning-')),
+    ).toStrictEqual([
+      { type: 'reasoning-start', id: '0' },
+      { type: 'reasoning-delta', id: '0', delta: 'first thought' },
+      {
+        type: 'reasoning-delta',
+        id: '0',
+        delta: '',
+        providerMetadata: {
+          amazonBedrock: { signature: 'SIG_A' },
+          bedrock: { signature: 'SIG_A' },
+        },
+      },
+      { type: 'reasoning-end', id: '0' },
+      { type: 'reasoning-start', id: '0-1' },
+      { type: 'reasoning-delta', id: '0-1', delta: 'second thought' },
+      {
+        type: 'reasoning-delta',
+        id: '0-1',
+        delta: '',
+        providerMetadata: {
+          amazonBedrock: { signature: 'SIG_B' },
+          bedrock: { signature: 'SIG_B' },
+        },
+      },
+      { type: 'reasoning-end', id: '0-1' },
+    ]);
+  });
+
+  it('splits consecutive omitted-thinking signatures sharing one contentBlockIndex', async () => {
+    const model = new AmazonBedrockChatLanguageModel(
+      'us.anthropic.claude-sonnet-4-5-20250929-v1:0',
+      {
+        baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+        headers: {},
+        fetch: async () =>
+          new Response(
+            createStream([
+              createEvent(
+                'contentBlockDelta',
+                JSON.stringify({
+                  contentBlockIndex: 0,
+                  delta: { reasoningContent: { signature: 'SIG_A' } },
+                }),
+              ),
+              createEvent(
+                'contentBlockDelta',
+                JSON.stringify({
+                  contentBlockIndex: 0,
+                  delta: { reasoningContent: { signature: 'SIG_B' } },
+                }),
+              ),
+              createEvent(
+                'contentBlockStop',
+                JSON.stringify({ contentBlockIndex: 0 }),
+              ),
+              createEvent(
+                'messageStop',
+                JSON.stringify({ stopReason: 'end_turn' }),
+              ),
+            ]),
+            {
+              status: 200,
+              headers: {
+                'content-type': 'application/vnd.amazon.eventstream',
+              },
+            },
+          ),
+        generateId: () => 'test-id',
+      },
+    );
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(
+      parts.filter(part => part.type.startsWith('reasoning-')),
+    ).toStrictEqual([
+      { type: 'reasoning-start', id: '0' },
+      {
+        type: 'reasoning-delta',
+        id: '0',
+        delta: '',
+        providerMetadata: {
+          amazonBedrock: { signature: 'SIG_A' },
+          bedrock: { signature: 'SIG_A' },
+        },
+      },
+      { type: 'reasoning-end', id: '0' },
+      { type: 'reasoning-start', id: '0-1' },
+      {
+        type: 'reasoning-delta',
+        id: '0-1',
+        delta: '',
+        providerMetadata: {
+          amazonBedrock: { signature: 'SIG_B' },
+          bedrock: { signature: 'SIG_B' },
+        },
+      },
+      { type: 'reasoning-end', id: '0-1' },
+    ]);
+  });
 });
