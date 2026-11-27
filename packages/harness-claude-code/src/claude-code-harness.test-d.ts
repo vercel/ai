@@ -10,6 +10,7 @@ import { assertType, describe, expectTypeOf, test } from 'vitest';
 import {
   claudeCode,
   createClaudeCode,
+  type ClaudeCodeAgentDefinition,
   type ClaudeCodeHarnessSettings,
 } from './index';
 
@@ -159,5 +160,43 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
     expectTypeOf(settings.reconnect).toEqualTypeOf<
       SandboxChannelReconnectOptions | undefined
     >();
+  });
+
+  test('createClaudeCode accepts subagent definitions', () => {
+    const reviewer: ClaudeCodeAgentDefinition = {
+      description: 'Reviews changes. Delegate any review to it.',
+      prompt: 'You review the uncommitted changes.',
+      tools: ['Read', 'Grep', 'Glob'],
+      disallowedTools: ['Bash'],
+      model: 'haiku',
+      mcpServers: [
+        'docs',
+        { custom: { type: 'http', url: 'https://example.com' } },
+      ],
+      skills: ['review-checklist'],
+      maxTurns: 4,
+      memory: 'project',
+      effort: 'medium',
+      permissionMode: 'plan',
+    };
+    const harness = createClaudeCode({
+      agents: { reviewer },
+    });
+
+    expectTypeOf(harness).toExtend<HarnessAgentAdapter<any>>();
+    assertType<HarnessAgentSettings['harness']>(harness);
+    expectTypeOf<ClaudeCodeHarnessSettings['agents']>().toEqualTypeOf<
+      Readonly<Record<string, ClaudeCodeAgentDefinition>> | undefined
+    >();
+
+    // @ts-expect-error - agent definition requires prompt
+    createClaudeCode({ agents: { broken: { description: 'missing prompt' } } });
+    const invalidMemoryAgent = {
+      description: 'd',
+      prompt: 'p',
+      memory: 'invalid',
+    } as const;
+    // @ts-expect-error - memory must be a valid scope
+    createClaudeCode({ agents: { broken: invalidMemoryAgent } });
   });
 });

@@ -262,6 +262,68 @@ describe('inboundMessageSchema', () => {
     ).toThrow();
   });
 
+  it('accepts custom subagent definitions on a start message', () => {
+    const agents = {
+      reviewer: {
+        description: 'Reviews changes.',
+        prompt: 'You review uncommitted changes.',
+        tools: ['Read', 'Grep', 'Glob'],
+        disallowedTools: ['Bash'],
+        model: 'haiku',
+        mcpServers: [
+          'docs',
+          { custom: { type: 'http', url: 'https://example.com' } },
+        ],
+        skills: ['review-checklist'],
+        maxTurns: 3,
+        background: false,
+        omitClaudeMd: true,
+        memory: 'project' as const,
+        effort: 'medium' as const,
+        permissionMode: 'plan' as const,
+      },
+      planner: {
+        description: 'Plans work.',
+        prompt: 'Write a concise plan.',
+        effort: 2,
+      },
+    };
+    const parsed = inboundMessageSchema.parse({
+      type: 'start',
+      prompt: 'hi',
+      thinking: { type: 'disabled' },
+      agents,
+    });
+
+    expect(parsed).toMatchObject({ agents });
+  });
+
+  it('rejects malformed subagent definitions', () => {
+    for (const invalidAgents of [
+      { reviewer: { description: 'Missing prompt' } },
+      {
+        reviewer: { description: 'Bad memory', prompt: 'p', memory: 'global' },
+      },
+      {
+        reviewer: {
+          description: 'Bad permissionMode',
+          prompt: 'p',
+          permissionMode: 'root',
+        },
+      },
+      { reviewer: { description: 'Bad tools', prompt: 'p', tools: [123] } },
+    ]) {
+      expect(() =>
+        inboundMessageSchema.parse({
+          type: 'start',
+          prompt: 'hi',
+          thinking: { type: 'disabled' },
+          agents: invalidAgents,
+        }),
+      ).toThrow();
+    }
+  });
+
   it('rejects legacy string thinking values', () => {
     expect(() =>
       inboundMessageSchema.parse({

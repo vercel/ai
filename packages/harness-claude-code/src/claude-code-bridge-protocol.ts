@@ -39,6 +39,40 @@ const skillOverridesSchema = z.record(
   z.enum(['on', 'name-only', 'user-invocable-only', 'off']),
 );
 
+const agentDefinitionSchema = z.object({
+  description: z.string(),
+  prompt: z.string(),
+  tools: z.array(z.string()).optional(),
+  disallowedTools: z.array(z.string()).optional(),
+  model: z.string().optional(),
+  mcpServers: z
+    .array(z.union([z.string(), z.record(z.string(), z.unknown())]))
+    .optional(),
+  criticalSystemReminder_EXPERIMENTAL: z.string().optional(),
+  skills: z.array(z.string()).optional(),
+  initialPrompt: z.string().optional(),
+  maxTurns: z.number().optional(),
+  autoCompactWindow: z.number().optional(),
+  background: z.boolean().optional(),
+  omitClaudeMd: z.boolean().optional(),
+  memory: z.enum(['user', 'project', 'local']).optional(),
+  effort: z
+    .union([z.enum(['low', 'medium', 'high', 'xhigh', 'max']), z.number()])
+    .optional(),
+  permissionMode: z
+    .enum([
+      'default',
+      'acceptEdits',
+      'bypassPermissions',
+      'plan',
+      'dontAsk',
+      'auto',
+    ])
+    .optional(),
+  observer: z.string().optional(),
+  observerMessage: z.string().optional(),
+});
+
 export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   prompt: harnessPromptContentSchema,
   readableSkillRoots: z.array(z.string()).optional(),
@@ -55,6 +89,7 @@ export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   excludeDynamicSections: z.boolean().optional(),
   agentProgressSummaries: z.boolean().optional(),
   forwardSubagentText: z.boolean().optional(),
+  agents: z.record(z.string(), agentDefinitionSchema).optional(),
   env: z.record(z.string(), z.string()).optional(),
   skills: z.array(z.string()).optional(),
   mcpServers: z.record(z.string(), z.unknown()).optional(),

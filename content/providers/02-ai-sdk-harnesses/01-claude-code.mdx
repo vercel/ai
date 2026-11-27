@@ -131,6 +131,8 @@ Settings:
   sub-agents. Summaries are available on raw `task_progress` stream parts.
 - `forwardSubagentText`: forwards sub-agent text and thinking messages as raw
   stream parts, in addition to the tool activity forwarded by default.
+- `agents`: custom subagent definitions keyed by subagent name, passed through
+  to the Claude Agent SDK `agents` option.
 - `env`: environment variables for the Claude Code process. Values are merged
   over the sandbox bridge process environment and take precedence.
 - `thinking`: extended-thinking configuration. `type` can be `enabled`,

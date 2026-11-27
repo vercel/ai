@@ -78,7 +78,9 @@ import {
   outboundMessageSchema,
   type InboundMessage,
   type OutboundMessage,
+  type StartMessage,
 } from './claude-code-bridge-protocol';
+import type { ClaudeCodeAgentDefinition } from './claude-code-agents';
 import type { ClaudeCodeThinkingConfig } from './claude-code-thinking';
 import { VERSION } from './version';
 
@@ -175,6 +177,11 @@ export type ClaudeCodeHarnessSettings = {
    * Subagent messages are exposed as raw stream parts.
    */
   readonly forwardSubagentText?: boolean;
+  /**
+   * Custom subagent definitions passed through to the Claude Agent SDK
+   * `agents` option, keyed by subagent name.
+   */
+  readonly agents?: Readonly<Record<string, ClaudeCodeAgentDefinition>>;
   /**
    * Environment variables for the Claude Code process. These values are
    * merged over the sandbox bridge process environment.
@@ -1150,6 +1157,7 @@ export function createClaudeCode(
             excludeDynamicSections: settings.excludeDynamicSections,
             agentProgressSummaries: settings.agentProgressSummaries,
             forwardSubagentText: settings.forwardSubagentText,
+            agents: settings.agents,
             env: sandboxClaudeEnvironment,
             thinking,
             effort: settings.effort,
@@ -1341,6 +1349,7 @@ export function createClaudeCode(
         excludeDynamicSections: settings.excludeDynamicSections,
         agentProgressSummaries: settings.agentProgressSummaries,
         forwardSubagentText: settings.forwardSubagentText,
+        agents: settings.agents,
         env: sandboxClaudeEnvironment,
         thinking,
         effort: settings.effort,
@@ -1376,6 +1385,31 @@ export function createClaudeCode(
   };
 }
 
+function cloneAgentsForWire(
+  agents: Readonly<Record<string, ClaudeCodeAgentDefinition>>,
+): StartMessage['agents'] {
+  const serialized: NonNullable<StartMessage['agents']> = {};
+  for (const [name, definition] of Object.entries(agents)) {
+    const { tools, disallowedTools, skills, mcpServers, ...rest } = definition;
+    serialized[name] = {
+      ...rest,
+      ...(tools !== undefined ? { tools: [...tools] } : {}),
+      ...(disallowedTools !== undefined
+        ? { disallowedTools: [...disallowedTools] }
+        : {}),
+      ...(skills !== undefined ? { skills: [...skills] } : {}),
+      ...(mcpServers !== undefined
+        ? {
+            mcpServers: mcpServers.map(entry =>
+              typeof entry === 'string' ? entry : { ...entry },
+            ),
+          }
+        : {}),
+    };
+  }
+  return serialized;
+}
+
 /**
  * Materialise skill files into
  * `$HOME/.claude/skills/<name>/SKILL.md`. The `claude` CLI
@@ -1399,6 +1433,7 @@ function createSession({
   excludeDynamicSections,
   agentProgressSummaries,
   forwardSubagentText,
+  agents,
   env,
   thinking,
   effort,
@@ -1438,6 +1473,7 @@ function createSession({
   excludeDynamicSections: boolean | undefined;
   agentProgressSummaries: boolean | undefined;
   forwardSubagentText: boolean | undefined;
+  agents: ClaudeCodeHarnessSettings['agents'];
   env: Readonly<Record<string, string>> | undefined;
   thinking: ClaudeCodeThinkingConfig;
   effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
@@ -1878,6 +1914,7 @@ function createSession({
           ? { agentProgressSummaries }
           : {}),
         ...(forwardSubagentText !== undefined ? { forwardSubagentText } : {}),
+        ...(agents !== undefined ? { agents: cloneAgentsForWire(agents) } : {}),
         ...(env !== undefined ? { env } : {}),
         thinking,
         ...(effort !== undefined ? { effort } : {}),
@@ -1969,6 +2006,9 @@ function createSession({
             ? { agentProgressSummaries }
             : {}),
           ...(forwardSubagentText !== undefined ? { forwardSubagentText } : {}),
+          ...(agents !== undefined
+            ? { agents: cloneAgentsForWire(agents) }
+            : {}),
           ...(env !== undefined ? { env } : {}),
           thinking,
           ...(effort !== undefined ? { effort } : {}),

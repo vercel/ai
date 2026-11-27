@@ -627,6 +627,30 @@ describe('Claude Code bridge configuration', () => {
     });
   });
 
+  test('passes custom subagent definitions through to the Agent SDK and omits when unset', async () => {
+    await import('./index');
+    expect(state.queryArgs[0]?.options).not.toHaveProperty('agents');
+  });
+
+  test('passes configured agents option to the Agent SDK', async () => {
+    const agents = {
+      reviewer: {
+        description: 'Reviews changes. Delegate any review to it.',
+        prompt: 'You review the uncommitted changes.',
+        tools: ['Read', 'Grep', 'Glob'],
+        model: 'haiku',
+      },
+    };
+    state.start = {
+      ...state.start,
+      agents,
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({ agents });
+  });
+
   test('resumes the exact conversation when the start names one', async () => {
     state.start = { ...state.start, resumeSessionId: 'claude-session-1' };
     state.firstTurn = false;
