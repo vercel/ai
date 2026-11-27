@@ -65,7 +65,7 @@ const TEMPLATES: TTemplate[] = [
     description: 'Uses OpenAI GPT-4, AI SDK, and Next.js.',
     logos: [NextIcon, OpenAIIcon],
     type: 'frameworks',
-    link: 'https://github.com/vercel/ai/tree/main/examples/next-openai',
+    link: 'https://github.com/vercel/ai/tree/main/examples/ai-e2e-next',
   },
   {
     title: 'Nuxt OpenAI Starter',
@@ -83,10 +83,10 @@ const TEMPLATES: TTemplate[] = [
   },
   {
     title: 'Solid OpenAI Starter',
-    description: 'Uses OpenAI GPT-4, AI SDK, and Solid.',
+    description: 'Community SolidJS integration for the AI SDK.',
     logos: [SolidIcon, OpenAIIcon],
     type: 'frameworks',
-    link: 'https://github.com/vercel/ai/tree/main/examples/solidstart-openai',
+    link: 'https://github.com/kodehort/ai-sdk-solid',
   },
   {
     title: 'Chatbot Starter Template',
