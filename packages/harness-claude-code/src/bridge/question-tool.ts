@@ -51,19 +51,26 @@ export function toClaudeCodeQuestionResult(input: {
   }
 
   const canonicalInput = toHarnessQuestionsInput(input.nativeInput);
+  const annotations = new Map<string, { notes: string }>();
   const answers = Object.fromEntries(
     canonicalInput.questions.flatMap((question, questionIndex) => {
       const answer = output.answers[question.id];
       if (answer == null) return [];
       const nativeQuestion = input.nativeInput.questions[questionIndex];
+      const selectedAnswer = toClaudeCodeAnswer({
+        nativeQuestion,
+        optionIds: answer.optionIds,
+      });
+      if (selectedAnswer !== '' && answer.freeform !== undefined) {
+        annotations.set(nativeQuestion.question, {
+          ...input.nativeInput.annotations?.[nativeQuestion.question],
+          notes: answer.freeform,
+        });
+      }
       return [
         [
           nativeQuestion.question,
-          toClaudeCodeAnswer({
-            nativeQuestion,
-            optionIds: answer.optionIds,
-            freeform: answer.freeform,
-          }),
+          selectedAnswer === '' ? (answer.freeform ?? '') : selectedAnswer,
         ],
       ];
     }),
@@ -71,16 +78,25 @@ export function toClaudeCodeQuestionResult(input: {
 
   return {
     behavior: 'allow',
-    updatedInput: { ...input.nativeInput, answers },
+    updatedInput: {
+      ...input.nativeInput,
+      answers,
+      ...(annotations.size > 0
+        ? {
+            annotations: {
+              ...input.nativeInput.annotations,
+              ...Object.fromEntries(annotations),
+            },
+          }
+        : {}),
+    },
   };
 }
 
 function toClaudeCodeAnswer(input: {
   nativeQuestion: ClaudeCodeQuestion;
   optionIds: string[];
-  freeform: string | undefined;
 }): string {
-  if (input.freeform !== undefined) return input.freeform;
   const labels = input.optionIds.flatMap(optionId => {
     const index = positionalIdIndex({ id: optionId, prefix: 'option-' });
     const option =

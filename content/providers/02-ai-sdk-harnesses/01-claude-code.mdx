@@ -342,6 +342,11 @@ The adapter exposes these common Claude Code built-ins through `agent.tools`:
 Additional Claude Code built-ins may also appear in `agent.tools` when they do
 not fit a common tool shape.
 
+`AskUserQuestion` is exposed as `askUserQuestions`. When an answer includes both
+selected options and free-form text, the adapter sends the selected labels as
+the answer and the text as `annotations[question].notes` to Claude Code. If no
+option is selected, the free-form text is the answer instead.
+
 Claude Code supports built-in tool approval requests when `permissionMode` is
 `allow-reads` or `allow-edits`. With the default `autoMode: false`, a call
 waiting for approval is kept in the Claude Code session, so an approval answered
