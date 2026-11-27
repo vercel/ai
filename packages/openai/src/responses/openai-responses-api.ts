@@ -844,13 +844,14 @@ export type OpenAIResponsesReasoning = {
   }>;
 };
 
-// Captured from the Responses API when OpenAI returned an early
-// insufficient_quota stream error after HTTP 200. This shape differs from the
-// currently documented ResponseErrorEvent below.
+// Captured from the Responses API when OpenAI returned an early stream error
+// after HTTP 200 (insufficient_quota, failed input image downloads). This shape
+// differs from the currently documented ResponseErrorEvent below, and some of
+// these events omit sequence_number.
 const openaiResponsesNestedErrorChunkSchema = () =>
   z.object({
     type: z.literal('error'),
-    sequence_number: z.number(),
+    sequence_number: z.number().nullish(),
     error: z.object({
       type: z.string(),
       code: z.string().nullish(),
@@ -865,7 +866,7 @@ const openaiResponsesNestedErrorChunkSchema = () =>
 const openaiResponsesErrorChunkSchema = () =>
   z.object({
     type: z.literal('error'),
-    sequence_number: z.number(),
+    sequence_number: z.number().nullish(),
     code: z.string().nullish(),
     message: z.string(),
     param: z.string().nullish(),
@@ -1010,7 +1011,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
       }),
       z.object({
         type: z.literal('response.failed'),
-        sequence_number: z.number(),
+        sequence_number: z.number().nullish(),
         response: z.object({
           prompt_cache_diagnostics:
             openaiResponsesPromptCacheDiagnosticsSchema().nullish(),
