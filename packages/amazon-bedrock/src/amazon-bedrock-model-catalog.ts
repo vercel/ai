@@ -24,6 +24,7 @@ export const amazonBedrockProviderOptions = {
       description: 'Thinking mode, budget, effort, and display.',
     },
     anthropicBeta: { description: 'Anthropic beta features to enable.' },
+    guardrailConfig: { description: 'Amazon Bedrock guardrail configuration.' },
     serviceTier: { description: 'Request service tier.' },
     requestMetadata: {
       description: 'Invocation logging and cost attribution metadata.',
