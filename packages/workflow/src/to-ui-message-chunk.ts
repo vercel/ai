@@ -203,17 +203,27 @@ export function toUIMessageChunk(
       // but are written by the WorkflowAgent between tool execution and the
       // next model step to ensure proper message splitting in
       // convertToModelMessages.
+      //
+      // Custom `data-*` parts are UI chunks that application code writes to
+      // the same workflow stream with `getWritable()` (from tools or from
+      // other steps). They are forwarded unchanged so they reach the client,
+      // matching `ToolLoopAgent` and `createUIMessageStream`.
       const passthroughPart = part as any;
       if (
         passthroughPart.type === 'finish-step' ||
         passthroughPart.type === 'start-step' ||
-        passthroughPart.type === 'tool-output-denied'
+        passthroughPart.type === 'tool-output-denied' ||
+        isDataUIMessageChunk(passthroughPart)
       ) {
         return passthroughPart as UIMessageChunk;
       }
       return undefined;
     }
   }
+}
+
+function isDataUIMessageChunk(part: { type?: unknown }): boolean {
+  return typeof part.type === 'string' && part.type.startsWith('data-');
 }
 
 /**

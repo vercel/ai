@@ -132,6 +132,21 @@ const resumeFixtures: Array<{
       },
     ] as ModelCallStreamPart[],
   },
+  {
+    name: 'custom data parts',
+    parts: [
+      { type: 'data-progress', id: 'progress-1', data: { percent: 10 } },
+      { type: 'text-start', id: 'text-1' },
+      { type: 'text-delta', id: 'text-1', text: 'Working' },
+      { type: 'text-end', id: 'text-1' },
+      {
+        type: 'data-progress',
+        id: 'progress-1',
+        data: { percent: 100 },
+        transient: true,
+      },
+    ] as unknown as ModelCallStreamPart[],
+  },
 ];
 
 describe('createModelCallToUIChunkTransform', () => {
@@ -148,6 +163,26 @@ describe('createModelCallToUIChunkTransform', () => {
       { type: 'text-start', id: 'text-1' },
       { type: 'text-delta', id: 'text-1', delta: 'Hello' },
       { type: 'text-end', id: 'text-1' },
+      { type: 'finish-step' },
+      { type: 'finish' },
+    ]);
+  });
+
+  it('forwards custom data parts written to the workflow stream', async () => {
+    await expect(
+      transform([
+        { type: 'data-weather', id: 'w-1', data: { city: 'London' } },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-end', id: 'text-1' },
+        { type: 'data-status', data: 'done', transient: true },
+      ] as unknown as ModelCallStreamPart[]),
+    ).resolves.toEqual([
+      { type: 'start' },
+      { type: 'start-step' },
+      { type: 'data-weather', id: 'w-1', data: { city: 'London' } },
+      { type: 'text-start', id: 'text-1' },
+      { type: 'text-end', id: 'text-1' },
+      { type: 'data-status', data: 'done', transient: true },
       { type: 'finish-step' },
       { type: 'finish' },
     ]);
