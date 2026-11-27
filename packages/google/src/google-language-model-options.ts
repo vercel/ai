@@ -56,6 +56,11 @@ export const googleLanguageModelOptions = lazySchema(() =>
               'HARM_CATEGORY_HARASSMENT',
               'HARM_CATEGORY_SEXUALLY_EXPLICIT',
               'HARM_CATEGORY_CIVIC_INTEGRITY',
+              'HARM_CATEGORY_JAILBREAK',
+              'HARM_CATEGORY_IMAGE_HATE',
+              'HARM_CATEGORY_IMAGE_DANGEROUS_CONTENT',
+              'HARM_CATEGORY_IMAGE_HARASSMENT',
+              'HARM_CATEGORY_IMAGE_SEXUALLY_EXPLICIT',
             ]),
             threshold: z.enum([
               'HARM_BLOCK_THRESHOLD_UNSPECIFIED',

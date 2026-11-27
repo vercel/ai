@@ -2684,6 +2684,31 @@ describe('doGenerate', () => {
     ]);
   });
 
+  it.each([
+    'HARM_CATEGORY_IMAGE_HATE',
+    'HARM_CATEGORY_IMAGE_DANGEROUS_CONTENT',
+    'HARM_CATEGORY_IMAGE_HARASSMENT',
+    'HARM_CATEGORY_IMAGE_SEXUALLY_EXPLICIT',
+    'HARM_CATEGORY_JAILBREAK',
+  ])('should pass the %s safety category', async category => {
+    prepareJsonFixtureResponse('google-text');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          safetySettings: [{ category, threshold: 'BLOCK_ONLY_HIGH' }],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.safetySettings).toEqual([
+      { category, threshold: 'BLOCK_ONLY_HIGH' },
+    ]);
+  });
+
   it('should pass tools and toolChoice', async () => {
     prepareJsonFixtureResponse('google-text');
 
