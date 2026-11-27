@@ -2056,7 +2056,7 @@ export const getUrlContextMetadataSchema = () =>
       .array(
         z.object({
           retrievedUrl: z.string(),
-          urlRetrievalStatus: z.string(),
+          urlRetrievalStatus: z.string().nullish(),
         }),
       )
       .nullish(),
