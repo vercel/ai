@@ -1,0 +1,196 @@
+---
+title: apimodels.app
+description: Learn how to use the apimodels.app provider for the AI SDK.
+---
+
+# apimodels.app Provider
+
+[apimodels.app](https://apimodels.app) is a multi-model API that serves 170+ chat, image, video and audio models from one API key, paid per use. Failed generations are not billed.
+
+The apimodels.app provider for the AI SDK supports:
+
+- **Language models**: Claude, GPT, Gemini, Qwen, DeepSeek, GLM and Grok, with streaming, tool calling and image input
+- **Embedding models**: `text-embedding-3-small` and `text-embedding-3-large`
+- **Image models**: GPT Image 2, Nano Banana 2.1, Gemini 3 Pro Image, Seedream, Qwen Image, FLUX.2 Klein, Grok Imagine and more, including edits from reference images
+- **Video models**: Veo 3.1, Kling 4.0, Seedance 2.5, Wan 3.0, MiniMax H3, Vidu Q4 and more, from text, a first frame, first and last frames, or reference images
+
+The full model list and prices are at [apimodels.app/models](https://apimodels.app/models), and the API reference at [apimodels.app/docs](https://apimodels.app/docs).
+
+## Setup
+
+The apimodels.app provider is available in the `apimodels-ai-sdk-provider` module. You can install it with:
+
+<InstallPackages packages="apimodels-ai-sdk-provider" />
+
+Create an API key in the [apimodels.app console](https://apimodels.app/console/api-keys) and set it as an environment variable:
+
+```bash
+APIMODELS_API_KEY=sk_...
+```
+
+## Provider Instance
+
+You can import the default provider instance `apimodels` from `apimodels-ai-sdk-provider`:
+
+```ts
+import { apimodels } from 'apimodels-ai-sdk-provider';
+```
+
+If you need a customized setup, you can use `createApimodels` and create a provider instance with your settings:
+
+```ts
+import { createApimodels } from 'apimodels-ai-sdk-provider';
+
+const apimodels = createApimodels({
+  apiKey: process.env.APIMODELS_API_KEY ?? '',
+});
+```
+
+You can use the following optional settings to customize the apimodels.app provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `https://api.apimodels.app/v1`.
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header.
+  It defaults to the `APIMODELS_API_KEY` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+
+## Language Models
+
+You can create language models using the provider instance. The first argument is the model id:
+
+```ts
+import { apimodels } from 'apimodels-ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: apimodels('claude-sonnet-5-5'),
+  prompt: 'Write a haiku about paper boats.',
+});
+```
+
+`apimodels(modelId)` is the same as `apimodels.languageModel(modelId)` and `apimodels.chatModel(modelId)`. Any chat model listed on [apimodels.app/models](https://apimodels.app/models) can be used, for example `claude-opus-5-5`, `gpt-6.1-sol`, `gemini-4-carbon`, `qwen4-max` or `grok-4.6`.
+
+### Model Capabilities
+
+| Model              | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-haiku-5-5` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5.6-luna`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `qwen3.8-flash`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+
+<Note>
+  The table above lists models we tested with this provider. Other chat models
+  on apimodels.app can also be used; check the model's page for its features.
+</Note>
+
+## Embedding Models
+
+You can create embedding models using the `.embeddingModel()` factory method:
+
+```ts
+import { apimodels } from 'apimodels-ai-sdk-provider';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: apimodels.embeddingModel('text-embedding-3-small'),
+  value: 'a paper boat on a pond',
+});
+```
+
+## Image Models
+
+You can create image models using the `.image()` factory method:
+
+```ts
+import { apimodels } from 'apimodels-ai-sdk-provider';
+import { generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: apimodels.image('nano-banana-2-1'),
+  prompt: 'A small orange paper boat on a calm pond at sunrise',
+  aspectRatio: '16:9',
+  providerOptions: {
+    apimodels: { resolution: '2K' },
+  },
+});
+```
+
+To edit or combine images, pass them in the prompt. URLs are passed through, and inline image data is uploaded to apimodels.app file storage first:
+
+```ts
+import { apimodels } from 'apimodels-ai-sdk-provider';
+import { generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: apimodels.image('gpt-image-2'),
+  prompt: {
+    images: ['https://example.com/product.png'],
+    text: 'Place this product on a marble counter in soft window light',
+  },
+});
+```
+
+Each image is generated as a task: the provider submits it, polls until it finishes, and downloads the result. The hosted result URL (kept for 30 days), the task id and the amount charged are returned in `providerMetadata.apimodels.images`.
+
+### Image Provider Options
+
+Keys under `providerOptions.apimodels` are sent to the API as-is, so model-specific parameters from the model's page can be used, for example `resolution` (`1K`, `2K` or `4K` on models that support it), `quality` or `output_format`. Two keys control polling:
+
+- **pollIntervalMs** _number_
+
+  How often to check the task, in milliseconds. Defaults to `2000`.
+
+- **pollTimeoutMs** _number_
+
+  How long to wait for the image, in milliseconds. Defaults to `600000`.
+
+## Video Models
+
+You can create video models using the `.video()` factory method and use them with `experimental_generateVideo`:
+
+```ts
+import { apimodels } from 'apimodels-ai-sdk-provider';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: apimodels.video('veo-3.1-fast-fhd'),
+  prompt: 'A paper boat drifts across a calm pond at sunrise, static camera',
+  aspectRatio: '16:9',
+});
+```
+
+Image-to-video and first-and-last-frame generation use the standard options:
+
+```ts
+import { apimodels } from 'apimodels-ai-sdk-provider';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: apimodels.video('seedance-2.5'),
+  prompt: 'The door opens and light floods the room',
+  frameImages: [
+    { image: 'https://example.com/start.png', frameType: 'first_frame' },
+    { image: 'https://example.com/end.png', frameType: 'last_frame' },
+  ],
+});
+```
+
+- `resolution` such as `'1280x720'` is sent as the API's tier (`720p`).
+- `aspectRatio: 'adaptive'`, or leaving it out on image-to-video, lets the output follow the input image.
+- `generateAudio` turns sound on or off on models that support it.
+- `inputReferences` are sent as reference images, videos or audio on models that accept them (for example Seedance 2.x).
+- A video takes about 2.5 minutes at the median. Use the `poll` option of `generateVideo` to wait longer than the default 10 minutes.
+
+Keys under `providerOptions.apimodels` are sent to the API as-is, for example `negative_prompt` or `resolution`.
