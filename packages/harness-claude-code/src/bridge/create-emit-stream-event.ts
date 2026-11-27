@@ -175,6 +175,16 @@ export function isExternalMcpTool(nativeName: string): boolean {
   );
 }
 
+export function toHostToolName(
+  nativeName: string,
+  hostToolAliases: ReadonlySet<string>,
+): string | undefined {
+  if (nativeName.startsWith(HOST_TOOL_PREFIX)) {
+    return nativeName.slice(HOST_TOOL_PREFIX.length);
+  }
+  return hostToolAliases.has(nativeName) ? nativeName : undefined;
+}
+
 export function createEmitStreamEvent({
   state,
   emit,
@@ -182,6 +192,7 @@ export function createEmitStreamEvent({
   emitTerminalError,
   onCompactionBoundary,
   toCommonName,
+  hostToolAliases = new Set(),
 }: {
   state: ClaudeStreamEventState;
   emit: Emit;
@@ -193,6 +204,7 @@ export function createEmitStreamEvent({
     tokensAfter?: number;
   }) => void;
   toCommonName: (nativeName: string) => string;
+  hostToolAliases?: ReadonlySet<string>;
 }): (event: ClaudeMessage) => void {
   let streamStarted = false;
 
@@ -342,6 +354,7 @@ export function createEmitStreamEvent({
         state,
         send: emit,
         toCommonName,
+        hostToolAliases,
       });
       return;
     }
@@ -362,8 +375,8 @@ export function createEmitStreamEvent({
             state.structuredOutputToolUseIds.add(block.id);
             continue;
           }
-          if (block.name.startsWith(HOST_TOOL_PREFIX)) {
-            const hostToolName = block.name.slice(HOST_TOOL_PREFIX.length);
+          const hostToolName = toHostToolName(block.name, hostToolAliases);
+          if (hostToolName !== undefined) {
             state.pendingStepToolUseIds.add(block.id);
             state.mcpToolCalls.set(block.id, {
               toolName: hostToolName,
@@ -731,12 +744,14 @@ function handleStreamEvent({
   state,
   send,
   toCommonName,
+  hostToolAliases,
 }: {
   event: ClaudeMessage['event'] | undefined;
   message: ClaudeMessage;
   state: ClaudeStreamEventState;
   send: Emit;
   toCommonName: (nativeName: string) => string;
+  hostToolAliases: ReadonlySet<string>;
 }): void {
   if (!event) return;
 
@@ -805,9 +820,7 @@ function handleStreamEvent({
       if (nativeName === 'AskUserQuestion') {
         return;
       }
-      const hostToolName = nativeName.startsWith(HOST_TOOL_PREFIX)
-        ? nativeName.slice(HOST_TOOL_PREFIX.length)
-        : undefined;
+      const hostToolName = toHostToolName(nativeName, hostToolAliases);
       const dynamic = isExternalMcpTool(nativeName);
       partialBlocks.set(index, { id, kind: 'tool-input' });
       send({

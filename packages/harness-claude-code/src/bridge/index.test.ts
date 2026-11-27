@@ -2588,6 +2588,156 @@ describe('Claude Code bridge configuration', () => {
     ]);
   });
 
+  test('aliases bare host tool names that do not shadow another tool', async () => {
+    const inputSchema = { type: 'object', properties: {} };
+    state.start = {
+      ...state.start,
+      permissionMode: 'allow-reads',
+      tools: [
+        { name: 'weather', inputSchema },
+        { name: 'Read', inputSchema },
+        { name: 'StructuredOutput', inputSchema },
+        { name: 'mcp__other__search', inputSchema },
+      ],
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.toolAliases).toEqual({
+      weather: 'mcp__harness-tools__weather',
+    });
+    const canUseTool = state.queryArgs[0]?.options.canUseTool as (
+      toolName: string,
+      toolInput: Record<string, unknown>,
+      options: { toolUseID: string },
+    ) => Promise<unknown>;
+    await expect(
+      canUseTool('weather', {}, { toolUseID: 'host-1' }),
+    ).resolves.toEqual({ behavior: 'allow', updatedInput: {} });
+    expect(
+      state.emitted.some(event => event.type === 'tool-approval-request'),
+    ).toBe(false);
+  });
+
+  test('omits tool aliases when there are no host tools', async () => {
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).not.toHaveProperty('toolAliases');
+  });
+
+  test('runs a host tool the model calls by its bare name', async () => {
+    state.start = {
+      ...state.start,
+      tools: [
+        {
+          name: 'weather',
+          inputSchema: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+            required: ['city'],
+          },
+        },
+      ],
+    };
+    state.messages = [
+      {
+        type: 'stream_event',
+        event: {
+          type: 'content_block_start',
+          index: 0,
+          content_block: {
+            type: 'tool_use',
+            id: 'host-tool-1',
+            name: 'weather',
+          },
+        },
+      },
+      {
+        type: 'stream_event',
+        event: {
+          type: 'content_block_delta',
+          index: 0,
+          delta: { type: 'input_json_delta', partial_json: '{"city":"Paris"}' },
+        },
+      },
+      {
+        type: 'stream_event',
+        event: { type: 'content_block_stop', index: 0 },
+      },
+      {
+        type: 'assistant',
+        message: {
+          content: [
+            {
+              type: 'tool_use',
+              id: 'host-tool-1',
+              name: 'weather',
+              input: { city: 'Paris' },
+            },
+          ],
+        },
+      },
+      {
+        type: 'invoke-host-tools',
+        calls: [
+          {
+            toolName: 'weather',
+            toolCallId: 'host-tool-1',
+            input: { city: 'Paris' },
+          },
+        ],
+      },
+      {
+        type: 'user',
+        message: {
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'host-tool-1',
+              content: '{}',
+            },
+          ],
+        },
+      },
+      {
+        type: 'result',
+        subtype: 'success',
+        result: 'done',
+      },
+    ];
+
+    await import('./index');
+
+    expect(
+      state.emitted.find(event => event.type === 'tool-input-start'),
+    ).toEqual({
+      type: 'tool-input-start',
+      id: 'host-tool-1',
+      toolName: 'weather',
+      providerExecuted: false,
+    });
+    expect(
+      state.emitted.filter(
+        event => event.type === 'tool-call' || event.type === 'tool-result',
+      ),
+    ).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'host-tool-1',
+        toolName: 'weather',
+        input: '{"city":"Paris"}',
+        providerExecuted: false,
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'host-tool-1',
+        toolName: 'weather',
+        result: {},
+        isError: false,
+      },
+    ]);
+  });
+
   test('sends a host tool call the main agent repeats after a subagent made the same call', async () => {
     state.start.tools = [
       { name: 'list_people', inputSchema: { type: 'object', properties: {} } },
