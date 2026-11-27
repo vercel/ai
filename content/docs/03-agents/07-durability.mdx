@@ -1,0 +1,111 @@
+---
+title: Durability
+description: Preserve agent progress across failures, long waits, and disconnected clients.
+---
+
+# Durability
+
+An agent loop alternates between model calls and tool executions. By default, a
+[`ToolLoopAgent`](/docs/agents/building-agents), or a loop built with
+[`generateText`](/docs/reference/ai-sdk-core/generate-text) or
+[`streamText`](/docs/reference/ai-sdk-core/stream-text), runs in the process that
+started it. If that process exits, the application must recover the interrupted
+work.
+
+**Durable execution** records progress outside that process. A durable runtime
+checkpoints model results and tool results, then uses those records to resume
+execution after a failure. It adds recovery to an agent loop without making the
+model's decisions deterministic.
+
+## What durability adds
+
+### Resume from completed steps
+
+Consider an agent that searches a catalog, reserves an item, and writes a summary.
+If the worker crashes before the summary finishes, a durable runtime can reuse the
+checkpointed search and reservation results instead of repeating the entire loop.
+
+Reusing committed model results avoids paying for the same completed model step
+again. Reusing committed tool results avoids repeating already-recorded side
+effects. Work interrupted **before its result was committed** may still run again;
+durability is not an exactly-once guarantee.
+
+### Survive process and request boundaries
+
+Execution history survives worker crashes, compatible redeployments, and lost HTTP
+connections. A replacement worker can continue the run from its saved progress.
+An HTTP request timing out need not cancel the agent.
+
+This does not remove model, tool, or run-level timeouts. The runtime applies its
+configured retry and failure policies to unfinished work. Changes to in-flight
+agent code may require versioning or migration.
+
+### Wait for human approval
+
+A tool approval gate can suspend a run for hours or days. The runtime persists the
+pending tool call and waits for an external decision, without holding an HTTP
+request or keeping a worker thread blocked for the duration of the wait.
+
+With a durable integration, `toolApproval` or a tool's `needsApproval` rule becomes
+a persisted gate. After an authorized reviewer approves or denies the call, the
+agent continues from that boundary. Configure approval timeouts and retention to
+match your application's review window.
+
+### Reconnect a chat interface
+
+[`useChat`](/docs/ai-sdk-ui/chatbot) manages the browser conversation; it is not a
+durable execution engine. A durable transport connects it to a run that exists
+independently of the page.
+
+After a refresh or a dropped connection, the browser can reconnect to the same run
+and consume retained stream events from a saved cursor. Persist the chat ID,
+message list, and transport cursor together. A partial assistant message must keep
+its identity so resumed chunks extend it rather than create a duplicate.
+
+Durable execution history and UI stream retention are separate concerns. If stream
+events have expired, recover from authoritative conversation state instead of
+assuming the stream can still be replayed.
+
+## Durability approaches
+
+The AI SDK ecosystem offers integrations with different execution runtimes:
+
+| Approach                                                                                                               | Agent integration                                                                                                                                                                             | Runtime and hosting                                                                                                                    |
+| ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| [WorkflowAgent](/docs/agents/workflow-agent) from `@ai-sdk/workflow`                                                   | A workflow-aware agent with durable model calls, tool steps, approvals, and streaming. Use `WorkflowChatTransport` for `useChat` reconnection.                                                | Workflow DevKit (`workflow`), with workflow functions and durable step functions. Choose a supported deployment backend.               |
+| [Azure Durable Task extension](https://github.com/microsoft/durabletask-vercel-ai), `@microsoft/durabletask-vercel-ai` | Wrap `ToolLoopAgent` with `attachDurability`, or define a `DurableTaskAgent`. Executes AI SDK `generateText` and `streamText` on a worker; connects `useChat` through `DurableChatTransport`. | Azure Durable Task Scheduler or its local emulator, plus a separate long-lived Node.js worker. Node.js web routes act as clients only. |
+| [eve](/docs/agents/eve)                                                                                                | An AI SDK-based agent framework with durable runs, checkpoints, approvals, and chat channels.                                                                                                 | A production agent framework for durable, long-running work. See its deployment documentation.                                         |
+
+With Workflow DevKit, mark tool execution functions with `'use step'` to give them
+durable step semantics. Ordinary in-memory tool functions do not acquire those
+guarantees just because the agent runs inside a workflow.
+
+With the Azure Durable Task extension, native tools execute as durable activities
+by default. The extension supplies separate checkpointing, retry policies,
+persistent decision stores, and stream adapters. Wrapping an agent returns a new
+durable agent; it does not make calls on the original instance durable.
+
+These integrations are not drop-in replacements for every native agent option or
+result shape. Compare supported settings, deployment requirements, state storage,
+and streaming behavior before choosing.
+
+## Design for recovery
+
+- **Make external mutations idempotent.** An interrupted activity may execute
+  again after retry or worker recovery. Use the downstream service's idempotency
+  mechanism. The Durable Task extension supplies
+  `options.durable.idempotencyKey` for durable tools.
+- **Keep replay code deterministic.** Put model calls and external I/O inside the
+  runtime's durable steps or activities, not uncheckpointed orchestration code.
+- **Persist application state.** Conversation history, pending decisions, and UI
+  events need storage appropriate to your deployment and retention requirements.
+- **Authorize every boundary.** A run ID or approval token does not replace user
+  authentication, ownership checks, or reviewer permissions.
+- **Test interruption.** Restart a worker, disconnect a stream, and approve a
+  parked tool call after a restart before relying on recovery in production.
+
+## Next steps
+
+- [Build a durable agent with Azure Durable Task Scheduler](/cookbook/guides/durable-agent-dts)
+- [Build an agent with WorkflowAgent](/docs/agents/workflow-agent)
+- [Learn about agent loop control](/docs/agents/loop-control)

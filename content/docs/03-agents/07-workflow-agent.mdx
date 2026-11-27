@@ -9,6 +9,9 @@ The `WorkflowAgent` from `@ai-sdk/workflow` is designed for building **durable, 
 
 ## Why Durable Agents?
 
+See [Durability](/docs/agents/durability) for an overview of durable execution,
+recovery guarantees, and available agent integrations.
+
 A standard `ToolLoopAgent` runs entirely in memory — if the process crashes, all progress is lost. For production agents that make multiple tool calls, this creates problems:
 
 - **Statefulness** — Long-running agent loops need to persist state across process boundaries
