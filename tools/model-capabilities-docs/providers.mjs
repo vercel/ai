@@ -14,6 +14,7 @@ import { assemblyaiDocs } from './providers/assemblyai.mjs';
 import { prodiaDocs } from './providers/prodia.mjs';
 import { heygenDocs } from './providers/heygen.mjs';
 import { liquidDocs } from './providers/liquid.mjs';
+import { subquadraticDocs } from './providers/subquadratic.mjs';
 import { gmicloudDocs } from './providers/gmicloud.mjs';
 import { bytedanceDocs } from './providers/bytedance.mjs';
 import { klingaiDocs } from './providers/klingai.mjs';
@@ -59,6 +60,7 @@ export const providers = [
   prodiaDocs,
   heygenDocs,
   liquidDocs,
+  subquadraticDocs,
   gmicloudDocs,
   bytedanceDocs,
   klingaiDocs,
