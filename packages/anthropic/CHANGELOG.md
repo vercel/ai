@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.146
+
+### Patch Changes
+
+- dcfd6e6: fix(anthropic): keep the cache control of mid-conversation system messages that carry only tool changes, and add the `midConversationSystemMessages` option to keep a later system message in place when no system message comes before it
+
 ## 3.0.145
 
 ### Patch Changes
