@@ -240,7 +240,9 @@ function getAnthropicCallerMetadata(
 function getAnthropicToolsetNames(
   tools: LanguageModelV4CallOptions['tools'],
 ): Record<string, string> {
-  const toolsetNames: Record<string, string> = {};
+  // No prototype, so that tool names such as `__proto__` are stored as plain
+  // keys and lookups never resolve inherited `Object.prototype` members.
+  const toolsetNames: Record<string, string> = Object.create(null);
 
   for (const tool of tools ?? []) {
     if (
