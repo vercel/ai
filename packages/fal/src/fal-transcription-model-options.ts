@@ -5,10 +5,18 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
+export function falPollingOptionsShape() {
+  return {
+    pollTimeoutMs: z.number().int().positive().nullish(),
+  };
+}
+
 // https://fal.ai/models/fal-ai/whisper/api?platform=http
 export const falTranscriptionModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      ...falPollingOptionsShape(),
+
       /**
        * Language of the audio file. If set to null, the language will be automatically detected. Defaults to null.
        *

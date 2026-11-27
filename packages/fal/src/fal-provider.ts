@@ -1,4 +1,5 @@
 import {
+  InvalidArgumentError,
   NoSuchModelError,
   type Experimental_VideoModelV4,
   type ImageModelV4,
@@ -17,6 +18,7 @@ import { FalImageModel } from './fal-image-model';
 import type { FalImageModelId } from './fal-image-settings';
 import type { FalTranscriptionModelId } from './fal-transcription-options';
 import { FalTranscriptionModel } from './fal-transcription-model';
+import { falPollingOptionsShape } from './fal-transcription-model-options';
 import type { FalSpeechModelId } from './fal-speech-settings';
 import { FalSpeechModel } from './fal-speech-model';
 import { FalVideoModel } from './fal-video-model';
@@ -46,6 +48,21 @@ export interface FalProviderSettings {
    * requests, or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
+
+  pollTimeoutMs?: number;
+}
+
+function validatePollingSettings(settings: FalProviderSettings) {
+  const shape = falPollingOptionsShape();
+  const value = settings.pollTimeoutMs;
+
+  if (value != null && !shape.pollTimeoutMs.safeParse(value).success) {
+    throw new InvalidArgumentError({
+      argument: 'pollTimeoutMs',
+      message:
+        'pollTimeoutMs must be a positive integer number of milliseconds',
+    });
+  }
 }
 
 export interface FalProvider extends ProviderV4 {
@@ -132,6 +149,8 @@ function loadFalApiKey({
  * Create a fal.ai provider instance.
  */
 export function createFal(options: FalProviderSettings = {}): FalProvider {
+  validatePollingSettings(options);
+
   const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
   const getHeaders = () =>
     resolveWith(options.apiKey, apiKey =>
@@ -168,6 +187,7 @@ export function createFal(options: FalProviderSettings = {}): FalProvider {
       url: ({ path }) => path,
       headers: getHeaders,
       fetch: options.fetch,
+      pollTimeoutMs: options.pollTimeoutMs,
     });
 
   const createVideoModel = (modelId: FalVideoModelId) =>

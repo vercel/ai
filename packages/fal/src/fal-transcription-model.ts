@@ -14,6 +14,7 @@ import {
   delay,
   encodePathSegment,
   getFromApi,
+  isAbortError,
   parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
@@ -28,6 +29,7 @@ import type { FalTranscriptionModelId } from './fal-transcription-options';
 import type { FalTranscriptionAPITypes } from './fal-api-types';
 
 interface FalTranscriptionModelConfig extends FalConfig {
+  pollTimeoutMs?: number;
   _internal?: {
     currentDate?: () => Date;
   };
@@ -97,6 +99,7 @@ export class FalTranscriptionModel implements TranscriptionModelV4 {
     return {
       body,
       warnings,
+      pollTimeoutMs: falOptions?.pollTimeoutMs ?? undefined,
     };
   }
 
@@ -104,7 +107,7 @@ export class FalTranscriptionModel implements TranscriptionModelV4 {
     options: Parameters<TranscriptionModelV4['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { body, warnings } = await this.getArgs(options);
+    const { body, warnings, pollTimeoutMs } = await this.getArgs(options);
 
     const base64Audio =
       typeof options.audio === 'string'
@@ -133,89 +136,103 @@ export class FalTranscriptionModel implements TranscriptionModelV4 {
       fetch: this.config.fetch,
     });
 
-    // Poll for completion with timeout
-    const startTime = Date.now();
-    const timeoutMs = 60000; // 60 seconds timeout
-    const pollIntervalMs = 1000; // 1 second interval
+    const timeoutMs =
+      pollTimeoutMs ?? this.config.pollTimeoutMs ?? DEFAULT_POLL_TIMEOUT_MS;
+    const pollIntervalMs = 1000;
+    const timeoutController = new AbortController();
+    const timeoutId = setTimeout(
+      () => timeoutController.abort(),
+      Math.min(timeoutMs, MAX_TIMER_DELAY_MS),
+    );
+    const pollingAbortSignal =
+      options.abortSignal == null
+        ? timeoutController.signal
+        : AbortSignal.any([options.abortSignal, timeoutController.signal]);
 
     let response;
     let responseHeaders;
     let rawResponse;
 
-    while (true) {
-      try {
-        const {
-          value: statusResponse,
-          responseHeaders: statusHeaders,
-          rawValue: statusRawResponse,
-        } = await getFromApi({
-          url: this.config.url({
-            path: `https://queue.fal.run/fal-ai/${this.modelId}/requests/${encodePathSegment(queueResponse.request_id ?? '')}`,
-            modelId: this.modelId,
-          }),
-          validateUrl: false,
-          headers: combineHeaders(
-            await resolve(this.config.headers),
-            options.headers,
-          ),
-          failedResponseHandler: async ({
-            requestBodyValues,
-            response,
-            url,
-          }) => {
-            const clone = response.clone();
-            const body = (await clone.json()) as { detail: string };
+    try {
+      while (true) {
+        try {
+          const {
+            value: statusResponse,
+            responseHeaders: statusHeaders,
+            rawValue: statusRawResponse,
+          } = await getFromApi({
+            url: this.config.url({
+              path: `https://queue.fal.run/fal-ai/${this.modelId}/requests/${encodePathSegment(queueResponse.request_id ?? '')}`,
+              modelId: this.modelId,
+            }),
+            validateUrl: false,
+            headers: combineHeaders(
+              await resolve(this.config.headers),
+              options.headers,
+            ),
+            failedResponseHandler: async ({
+              requestBodyValues,
+              response,
+              url,
+            }) => {
+              const clone = response.clone();
+              const body = (await clone.json()) as { detail: string };
 
-            if (body.detail === 'Request is still in progress') {
-              // This is not an error, just a status update that the request is still processing
-              // Continue polling by returning a special error that signals to continue
-              return {
-                value: new Error('Request is still in progress'),
-                rawValue: body,
-                responseHeaders: {},
-              };
-            }
+              if (body.detail === 'Request is still in progress') {
+                // This is not an error, just a status update that the request is still processing
+                // Continue polling by returning a special error that signals to continue
+                return {
+                  value: new Error('Request is still in progress'),
+                  rawValue: body,
+                  responseHeaders: {},
+                };
+              }
 
-            return createJsonErrorResponseHandler({
-              errorSchema: falErrorDataSchema,
-              errorToMessage: data => data.error.message,
-            })({ requestBodyValues, response, url });
-          },
-          successfulResponseHandler: createJsonResponseHandler(
-            falTranscriptionResponseSchema,
-          ),
-          abortSignal: options.abortSignal,
-          fetch: this.config.fetch,
-        });
+              return createJsonErrorResponseHandler({
+                errorSchema: falErrorDataSchema,
+                errorToMessage: data => data.error.message,
+              })({ requestBodyValues, response, url });
+            },
+            successfulResponseHandler: createJsonResponseHandler(
+              falTranscriptionResponseSchema,
+            ),
+            abortSignal: pollingAbortSignal,
+            fetch: this.config.fetch,
+          });
 
-        response = statusResponse;
-        responseHeaders = statusHeaders;
-        rawResponse = statusRawResponse;
-        break;
-      } catch (error) {
-        // If the error message indicates the request is still in progress, ignore it and continue polling
-        if (
-          error instanceof Error &&
-          error.message === 'Request is still in progress'
-        ) {
-          // Continue with the polling loop
-        } else {
-          // Re-throw any other errors
-          throw error;
+          response = statusResponse;
+          responseHeaders = statusHeaders;
+          rawResponse = statusRawResponse;
+          break;
+        } catch (error) {
+          // If the error message indicates the request is still in progress, ignore it and continue polling
+          if (
+            error instanceof Error &&
+            error.message === 'Request is still in progress'
+          ) {
+            // Continue with the polling loop
+          } else {
+            // Re-throw any other errors
+            throw error;
+          }
         }
-      }
 
-      // Check if we've exceeded the timeout
-      if (Date.now() - startTime > timeoutMs) {
+        await delay(pollIntervalMs, { abortSignal: pollingAbortSignal });
+      }
+    } catch (error) {
+      options.abortSignal?.throwIfAborted();
+
+      if (timeoutController.signal.aborted && isAbortError(error)) {
         throw new AISDKError({
-          message: 'Transcription request timed out after 60 seconds',
+          message: `Transcription request timed out after ${timeoutMs} ms`,
           name: 'TranscriptionRequestTimedOut',
-          cause: response,
+          cause: error,
         });
       }
 
-      // Wait before polling again
-      await delay(pollIntervalMs);
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
     }
 
     return {
@@ -238,6 +255,9 @@ export class FalTranscriptionModel implements TranscriptionModelV4 {
     };
   }
 }
+
+const DEFAULT_POLL_TIMEOUT_MS = 60000;
+const MAX_TIMER_DELAY_MS = 2 ** 31 - 1;
 
 const falJobResponseSchema = lazySchema(() =>
   zodSchema(

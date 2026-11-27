@@ -105,6 +105,13 @@ You can use the following optional settings to customize the Fal provider instan
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
+- **pollTimeoutMs** _number_
+
+  Maximum time in milliseconds to wait for a transcription request to
+  finish before throwing a `TranscriptionRequestTimedOut` error. Defaults to
+  `60000` (1 minute). Raise it when you transcribe long audio files. Can be
+  overridden per call with `providerOptions.fal.pollTimeoutMs`.
+
 ## Image Models
 
 You can create Fal image models using the `.image()` factory method.
@@ -288,6 +295,12 @@ const result = await transcribe({
 
 The following provider options are available:
 
+- **pollTimeoutMs** _number_
+  Maximum time in milliseconds to wait for the transcription request to finish for this call.
+  Overrides the `pollTimeoutMs` provider setting. Defaults to `60000` (1 minute).
+  Not sent to the fal.ai API.
+  Optional.
+
 - **language** _string | null_
   Language of the audio file. Defaults to 'en'. If set to null, the language will be automatically detected.
   Accepts ISO language codes like 'en', 'fr', 'zh', etc.
@@ -435,6 +448,7 @@ The following option definitions are generated from the provider catalog.
 | transcription | `version`               | Version of the model to use. All of the models are the Whisper large variant. Default value: "3"                                                                                                                               |
 | transcription | `batchSize`             | Default value: 64                                                                                                                                                                                                              |
 | transcription | `numSpeakers`           | Number of speakers in the audio file. Defaults to null. If not provided, the number of speakers will be automatically detected.                                                                                                |
+| transcription | `pollTimeoutMs`         | Maximum polling time in milliseconds; overrides the provider setting.                                                                                                                                                          |
 | video         | `loop`                  | loop                                                                                                                                                                                                                           |
 | video         | `motionStrength`        | motionStrength                                                                                                                                                                                                                 |
 | video         | `resolution`            | resolution                                                                                                                                                                                                                     |
