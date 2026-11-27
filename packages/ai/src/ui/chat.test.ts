@@ -569,6 +569,7 @@ describe('Chat', () => {
         .catch(error => error);
 
       expect(InvalidArgumentError.isInstance(error)).toBe(true);
+      expect(chat.status).toBe('ready');
       expect(error).toMatchObject({
         name: 'AI_InvalidArgumentError',
         parameter: 'messageId',
@@ -642,6 +643,73 @@ describe('Chat', () => {
         },
       ]);
     });
+
+    it('sets status to submitted synchronously and prevents duplicate requests from status guards', async () => {
+      let requests = 0;
+      const chat = new TestChat({
+        id: 'chat',
+        messages: [
+          {
+            id: 'u1',
+            role: 'user',
+            parts: [{ type: 'text', text: 'hi' }],
+          },
+        ],
+        transport: {
+          sendMessages: async () => {
+            requests++;
+            return new ReadableStream<UIMessageChunk>({
+              start: controller => controller.close(),
+            });
+          },
+          reconnectToStream: async () => null,
+        },
+      });
+
+      const answerIfReady = () => {
+        if (chat.status === 'ready' && chat.lastMessage?.role === 'user') {
+          void chat.regenerate({ messageId: 'u1' });
+        }
+      };
+
+      answerIfReady();
+      expect(chat.status).toBe('submitted');
+      answerIfReady();
+
+      await vi.waitFor(() => expect(chat.status).toBe('ready'));
+      expect(requests).toBe(1);
+    });
+
+    it('sets status to submitted synchronously when experimental_queue is enabled and idle', async () => {
+      let requests = 0;
+      const chat = new TestChat({
+        id: 'chat-queued',
+        experimental_queue: true,
+        messages: [
+          {
+            id: 'u1',
+            role: 'user',
+            parts: [{ type: 'text', text: 'hi' }],
+          },
+        ],
+        transport: {
+          sendMessages: async () => {
+            requests++;
+            return new ReadableStream<UIMessageChunk>({
+              start: controller => controller.close(),
+            });
+          },
+          reconnectToStream: async () => null,
+        },
+      });
+
+      const regenerated = chat.regenerate({ messageId: 'u1' });
+      expect(chat.status).toBe('submitted');
+
+      await regenerated;
+      expect(chat.status).toBe('ready');
+      expect(requests).toBe(1);
+    });
   });
 
   describe('replace message', () => {
@@ -662,6 +730,7 @@ describe('Chat', () => {
         .catch(error => error);
 
       expect(InvalidArgumentError.isInstance(error)).toBe(true);
+      expect(chat.status).toBe('ready');
       expect(error).toMatchObject({
         name: 'AI_InvalidArgumentError',
         parameter: 'message.messageId',
@@ -694,6 +763,7 @@ describe('Chat', () => {
         .catch(error => error);
 
       expect(InvalidArgumentError.isInstance(error)).toBe(true);
+      expect(chat.status).toBe('ready');
       expect(error).toMatchObject({
         name: 'AI_InvalidArgumentError',
         parameter: 'message.messageId',

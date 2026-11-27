@@ -474,9 +474,9 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   // editing a message or regenerating rewrites the history that the queued
   // messages were sent after, so they are dropped together with the response
   // in progress:
-  private async clearQueueForHistoryChange(): Promise<void> {
+  private clearQueueForHistoryChange(): Promise<void> | undefined {
     if (!this.queueEnabled) {
-      return;
+      return undefined;
     }
 
     this.queuedMessageOptions.clear();
@@ -484,8 +484,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     this.deferredApprovalSend = undefined;
 
     if (this.isRequestInProgress()) {
-      await this.stop();
+      return this.stop();
     }
+
+    return undefined;
   }
 
   // a pending sendAutomaticallyWhen decision can still start a request, so the
@@ -714,7 +716,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
 
     if (message.messageId != null) {
-      await this.clearQueueForHistoryChange();
+      const stopPromise = this.clearQueueForHistoryChange();
+      if (stopPromise != null) {
+        await stopPromise;
+      }
 
       const messageIndex = this.state.messages.findIndex(
         m => m.id === message.messageId,
@@ -775,7 +780,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   }: {
     messageId?: string;
   } & ChatRequestOptions = {}): Promise<void> => {
-    await this.clearQueueForHistoryChange();
+    const stopPromise = this.clearQueueForHistoryChange();
+    if (stopPromise != null) {
+      await stopPromise;
+    }
 
     const messageIndex =
       messageId == null
