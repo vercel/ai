@@ -217,6 +217,12 @@ To propose or create a new ADR, use the ADR skill.
 
 For an overview of the project's key philosophies that guide decision making, see `contributing/project-philosophies.md`.
 
+## Glossary
+
+Developing and documenting AI SDK requires familiarity with several terms, some of which do not yet have industry-wide agreement on and are frequently used without clear meaning.
+
+AI SDK relies on terminology documented in `contributing/glossary.md`. When explaining concepts or considering naming new symbols, stick to the terminology established there.
+
 ## Architecture
 
 ### Provider Pattern

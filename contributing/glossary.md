@@ -1,0 +1,34 @@
+# Glossary
+
+- **Model**: A specific AI model that generates output, such as text, reasoning or tool calls, from the input it receives. Models are identified by an ID and accessed through a provider.
+- **Provider:** A service that offers model access through an API.
+- **Agent**: A model-driven component that interprets input and chooses responses or actions toward a goal. Its behavior is non-deterministic because it depends on AI model outputs, and it may work across multiple steps or request tool calls.
+- **Harness**: The application or software runtime that powers an agent and coordinates its execution. It handles deterministic logic such as constructing and passing prompts, running the agent loop, and executing tool calls; the agent's choices are driven by the model.
+- **Session**: A long-lived conversation between an application and an agent, which keeps history and state across many turns. A session is tied to one sandbox. At any point, a session is in one of three states:
+  - **Running**: The agent is actively executing work for the session.
+  - **Pending**: Nothing is actively running, but unfinished work remains (such as an interrupted turn or a queued prompt waiting to start a turn), so resuming execution will continue without new user input.
+  - **Idle**: No further progress can be made until external user input arrives (no unfinished turn and no queued prompt, or the current turn is waiting for tool approval responses).
+- **Turn**: The agent's work on one prompt, from receiving it until it finishes with the final agent response and no more tool calls, which can span many steps. Only one turn of a session runs at a time.
+- **Step**: One model call within a turn, together with the tool calls it requested and their results. A turn ends once a step requests no more tool calls or the agent stops.
+- **Prompt**: The action of sending a user message that starts a new turn. The message is referred to as "prompt message" or just "prompt".
+- **Steer**: The action of sending a user message sent while a turn is running, which the agent picks up at its next safe point instead of starting a new turn. The message is referred to as "steering message", or just "steer".
+- **Queue**: The action of sending a user message that will start a new turn, while a previous turn is running. Unlike steering, this will wait for the turn to be done, and effectively it is just the same as a regular prompt, with the difference that it is being queued ahead of actually sending it to the agent.
+- **Cancel**: A submission with which the user stops a running turn. Prompts queued for a later turn are not affected.
+- **Instructions**: Standing guidance that shapes how the agent behaves across all turns, also called the system prompt.
+- **Skill**: A packaged set of instructions and optional resources that the agent loads when a task needs them.
+- **Tool**: A capability the model can call with structured input to act on the outside world or get information. A tool call produces a tool result that goes back to the model.
+  - **Built-in tool**: A tool that ships with and is implemented by a harness, such as running shell commands or editing files. The concept only applies to harnesses: a model on its own (e.g. a raw model API call) has no built-in tools, and to the model, a harness's built-in tools are regular tools like any host tool.
+  - **Host tool**: A tool the application defines itself, as opposed to a harness's built-in tools; sometimes also referred to as "custom tool". The harness calls it, and it runs outside the harness, usually in the application's process.
+  - **Client tool**: A host tool that runs on the agent's client, e.g. in the browser session that sends requests to the agent, instead of in the host application's process. The client provides the tool result later.
+  - **Provider-defined tool**: A tool whose input schema and description are specified by the provider. Execution may happen in the host application or in the provider's own API backend.
+  - **Provider-executed tool**: A provider-defined tool that the provider executes on its servers rather than in the host application.
+- **Tool approval**: The decision to allow or deny a tool call before it runs, made by a policy or by a person.
+- **Reasoning**: Text the model produces while thinking through a problem, separate from the response shown as the answer.
+- **Sandbox**: An isolated environment, such as a virtual machine or container, where the agent runs commands and changes files without affecting the host.
+  - **Sandbox session**: An open connection to a specific sandbox that can run commands and access files in it.
+  - **Default working directory**: The directory that commands in a sandbox run in when no other directory is given, as set up by the sandbox itself.
+  - **Work directory**: The directory inside the sandbox where the agent works on a session's files. It may be the same directory as the sandbox's default working directory, but conceptually it's separate and may be another directory, e.g. a subdirectory of the sandbox's default working directory.
+- **Stream**: The append-only sequence of a session's output, which readers follow live or read back later.
+- **API response**: The output returned by one API invocation, rather than a unit of agent execution. It normally includes the steps performed until the turn finishes or external input, such as tool approval responses, is needed to continue. If queued prompts start further turns before the session becomes idle, one API response can span multiple turns. It can also end early because of a runtime deadline, abort or failure. A streaming API response is bounded by `start` and `finish` parts on normal completion, independently of turn boundaries.
+- **Stream part**: One unit of the output an agent streams while it works, such as a piece of text, reasoning, a tool call or a tool result.
+- **Finish reason**: Why a step or turn ended, such as a normal stop, a tool call, hitting a length limit, an error, or a cancel.
