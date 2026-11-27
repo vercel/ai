@@ -62,8 +62,31 @@ export function createACPPermissionController({
     ...(writeProtectedPaths ?? []),
   ];
 
+  const cancelAll = (): void => {
+    cancellationGeneration += 1;
+    for (const pending of pendingPermissions.values()) {
+      pending.cancel();
+    }
+    pendingPermissions.clear();
+  };
+  /*
+   * An aborted turn cancels its pending approvals whichever code path observes
+   * the abort first, so a request that is waiting for the host cannot still be
+   * answered with an approval after the abort.
+   */
+  if (turn.abortSignal.aborted) {
+    cancelAll();
+  } else {
+    turn.abortSignal.addEventListener('abort', cancelAll, { once: true });
+  }
+
   return {
     async requestPermission(request) {
+      /*
+       * Once the host aborts the turn, no answer may grant the agent access:
+       * the turn is over and every request is reported as cancelled.
+       */
+      if (turn.abortSignal.aborted) return cancelled();
       if (request.sessionId !== sessionId) {
         turn.emitWarning({
           message:
@@ -91,10 +114,12 @@ export function createACPPermissionController({
         return cancelled();
       }
       const generation = cancellationGeneration;
+      const isCancelled = () =>
+        generation !== cancellationGeneration || turn.abortSignal.aborted;
       const call = await claimHostToolPermission({
         toolCall: request.toolCall,
       });
-      if (generation !== cancellationGeneration) return cancelled();
+      if (isCancelled()) return cancelled();
       if (call != null) {
         onHostToolPermissionAllowed?.({
           toolCallId: request.toolCall.toolCallId,
@@ -126,7 +151,7 @@ export function createACPPermissionController({
                 writeProtectedPaths: effectiveWriteProtectedPaths,
               }))
             )));
-      if (generation !== cancellationGeneration) return cancelled();
+      if (isCancelled()) return cancelled();
       if (autoApprove) {
         return {
           outcome: {
@@ -173,13 +198,7 @@ export function createACPPermissionController({
         pendingPermissions.delete(approvalId);
       }
     },
-    cancelAll() {
-      cancellationGeneration += 1;
-      for (const pending of pendingPermissions.values()) {
-        pending.cancel();
-      }
-      pendingPermissions.clear();
-    },
+    cancelAll,
   };
 }
 

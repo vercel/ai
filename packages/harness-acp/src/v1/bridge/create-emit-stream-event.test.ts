@@ -125,6 +125,7 @@ describe('host weather approval stream', () => {
           emit: (event: HarnessV1StreamPart) => events.push(event),
           requestToolApproval: nativeApproval,
           emitWarning: vi.fn(),
+          abortSignal: new AbortController().signal,
         } as unknown as BridgeTurn,
         sessionId: permission.value.sessionId,
         workDir: '/workspace',

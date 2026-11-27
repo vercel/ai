@@ -41,10 +41,9 @@ import {
 } from './host-tool-relay';
 import { createHostToolRelayAuthorization } from './host-tool-relay-authorization';
 import { createHostToolMcpServerDefinition } from './host-tool-mcp-definition';
-import {
-  promptAndRefreshInitialHostToolCatalog,
-  refreshHostToolCatalog,
-} from './refresh-host-tool-catalog';
+import { dispatchTurnPrompt } from './dispatch-turn-prompt';
+import { drainCancelledPrompt } from './drain-cancelled-prompt';
+import { refreshHostToolCatalog } from './refresh-host-tool-catalog';
 import { createACPPermissionController } from './permission-controller';
 import { configureACPPermissionMode } from './permission-mode';
 import { configureACPModel } from './model-mapping';
@@ -62,6 +61,9 @@ import {
 
 const HOST_TOOL_MCP_SERVER_NAME = 'ai-sdk-harness-tools';
 const CATALOG_REFRESH_TIMEOUT_MS = 10_000;
+/* Bounded below the bridge's 10 s turn teardown grace, so a stuck drain fails
+ * the session before a replacement turn can start. */
+const CANCELLED_PROMPT_DRAIN_TIMEOUT_MS = 5_000;
 
 const args = parseArgs({ args: argv.slice(2) });
 const workDir = requireArg({ value: args.workDir, name: '--workdir' });
@@ -335,7 +337,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   activeHostToolRelay.bindTurn({ turn: relayTurn });
   try {
     const promptMeta = createOutputSchemaPromptMeta({ start });
+    let promptStarted = false;
     const startPrompt = () => {
+      promptStarted = true;
       sessionPrompted = true;
       return promptActiveSession({
         session: activeSession,
@@ -344,32 +348,72 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         meta: promptMeta,
       });
     };
-    if (initialHostToolCatalogRefreshRequired) {
-      try {
-        await promptAndRefreshInitialHostToolCatalog({
-          startPrompt,
-          relay: activeHostToolRelay,
-          tools: start.tools ?? [],
-          harnessId: bridgeType,
-          timeoutMs: CATALOG_REFRESH_TIMEOUT_MS,
-        });
-      } catch (error) {
+    let promptDispatched: boolean;
+    try {
+      ({ promptDispatched } = await dispatchTurnPrompt({
+        startPrompt,
+        abortSignal: turn.abortSignal,
+        cancel,
+        initialCatalogRefresh: initialHostToolCatalogRefreshRequired
+          ? {
+              relay: activeHostToolRelay,
+              tools: start.tools ?? [],
+              harnessId: bridgeType,
+              timeoutMs: CATALOG_REFRESH_TIMEOUT_MS,
+            }
+          : undefined,
+        onAbortedBeforePrompt: () => {
+          /*
+           * Nothing is running in the ACP agent for a turn that was aborted
+           * before its prompt was dispatched, so the turn only needs to wind
+           * down and let the host settle its own abort.
+           */
+          turn.emit({
+            type: 'finish',
+            finishReason: { unified: 'other', raw: 'cancelled' },
+            totalUsage: unknownUsage(),
+          });
+        },
+      }));
+    } catch (error) {
+      if (turn.abortSignal.aborted) {
+        /*
+         * The host aborted a turn whose prompt is still in flight. The ACP
+         * session keeps queueing that prompt's updates and its final stop, so
+         * discard them before the next turn can read them as its own. A host
+         * abort is not a session configuration failure: the session stays
+         * usable once the agent acknowledges the cancellation.
+         */
+        if (promptStarted) {
+          try {
+            await drainCancelledPrompt({
+              nextUpdate: () => activeSession.nextUpdate(),
+              timeoutMs: CANCELLED_PROMPT_DRAIN_TIMEOUT_MS,
+            });
+            /* Captured frames of the discarded updates belong to this turn. */
+            streamCapture?.drainRawValues();
+          } catch (drainError) {
+            sessionConfigurationFailure = { error: drainError };
+            throw drainError;
+          }
+          /*
+           * The cancel may have stopped the agent before it loaded the
+           * session MCP servers, and a lazy agent only discovers them after
+           * receiving a prompt. Route the next turn back through the
+           * prompt-then-catalog path instead of waiting for a catalog without
+           * prompting.
+           */
+          sessionPrompted = false;
+        }
+      } else {
         if (HarnessBridgeCapabilityUnsupportedError.isInstance(error)) {
           catalogRefreshError = error;
         }
         sessionConfigurationFailure = { error };
-        throw error;
       }
-    } else {
-      void startPrompt();
+      throw error;
     }
-    if (turn.abortSignal.aborted) {
-      await cancel();
-    } else {
-      turn.abortSignal.addEventListener('abort', () => void cancel(), {
-        once: true,
-      });
-    }
+    if (!promptDispatched) return;
     let pendingHostToolResolutions: Promise<void> = Promise.resolve();
     for (;;) {
       let message: acp.ActiveSessionMessage;
@@ -497,8 +541,15 @@ async function ensureSession({
         tools: start.tools ?? [],
         harnessId: bridgeType,
         timeoutMs: CATALOG_REFRESH_TIMEOUT_MS,
+        abortSignal: turn.abortSignal,
       });
     } catch (error) {
+      /*
+       * An aborted turn never dispatched its prompt, so there is no catalog
+       * failure to remember: the next turn must still refresh before
+       * prompting.
+       */
+      if (turn.abortSignal.aborted) throw error;
       if (HarnessBridgeCapabilityUnsupportedError.isInstance(error)) {
         catalogRefreshError = error;
       }
