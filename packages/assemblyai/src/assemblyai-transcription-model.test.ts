@@ -17,6 +17,8 @@ const server = createTestServer({
   'https://api.assemblyai.com/v2/transcript': {},
   'https://api.assemblyai.com/v2/transcript/9ea68fd3-f953-42c1-9742-976c447fb463':
     {},
+  'https://api.assemblyai.com/v2/transcript/%252E': {},
+  'https://api.assemblyai.com/v2/transcript/%252E%252E': {},
   'https://api.assemblyai.com/v2/upload': {
     response: {
       type: 'json-value',
@@ -633,6 +635,45 @@ describe('doGenerate', () => {
 
     expect(uploadBody).toStrictEqual(new Uint8Array(audioData));
   });
+
+  it.each([
+    { transcriptId: '.', encodedTranscriptId: '%252E' },
+    { transcriptId: '..', encodedTranscriptId: '%252E%252E' },
+  ] as const)(
+    'should preserve the $transcriptId transcript ID as a URL path segment',
+    async ({ transcriptId, encodedTranscriptId }) => {
+      server.urls['https://api.assemblyai.com/v2/transcript'].response = {
+        type: 'json-value',
+        body: {
+          id: transcriptId,
+          status: 'queued',
+        },
+      };
+
+      server.urls[
+        `https://api.assemblyai.com/v2/transcript/${encodedTranscriptId}`
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: transcriptId,
+          status: 'completed',
+          text: 'Hello world',
+          audio_duration: 1,
+          words: [],
+        },
+      };
+
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/mp3',
+      });
+
+      expect(result.text).toBe('Hello world');
+      expect(server.calls.at(-1)?.requestUrl).toBe(
+        `https://api.assemblyai.com/v2/transcript/${encodedTranscriptId}`,
+      );
+    },
+  );
 
   it('should pass headers', async () => {
     prepareJsonResponse();

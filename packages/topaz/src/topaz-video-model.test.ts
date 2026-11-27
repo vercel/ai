@@ -116,6 +116,24 @@ describe('TopazVideoModel', () => {
         },
       },
     },
+    [`${TEST_BASE_URL}/video/%252E/status`]: {
+      response: {
+        type: 'json-value',
+        body: {
+          status: 'complete',
+          download: { url: DOWNLOAD_URL },
+        },
+      },
+    },
+    [`${TEST_BASE_URL}/video/%252E%252E/status`]: {
+      response: {
+        type: 'json-value',
+        body: {
+          status: 'complete',
+          download: { url: DOWNLOAD_URL },
+        },
+      },
+    },
   });
 
   describe('constructor', () => {
@@ -1009,5 +1027,32 @@ describe('TopazVideoModel', () => {
 
       expect(result.status).toBe('pending');
     });
+
+    it.each([
+      { requestId: '.', encodedRequestId: '%252E' },
+      { requestId: '..', encodedRequestId: '%252E%252E' },
+    ] as const)(
+      'should preserve the $requestId request ID as a URL path segment',
+      async ({ requestId, encodedRequestId }) => {
+        server.urls[
+          `${TEST_BASE_URL}/video/${encodedRequestId}/status`
+        ].response = {
+          type: 'json-value',
+          body: {
+            status: 'complete',
+            download: { url: DOWNLOAD_URL },
+          },
+        };
+
+        const result = await createModel().doStatus({
+          operation: { requestId, outputContainer: 'mp4' },
+        });
+
+        expect(result.status).toBe('completed');
+        expect(server.calls.at(-1)?.requestUrl).toBe(
+          `${TEST_BASE_URL}/video/${encodedRequestId}/status`,
+        );
+      },
+    );
   });
 });

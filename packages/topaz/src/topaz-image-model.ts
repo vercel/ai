@@ -21,6 +21,7 @@ import {
   createBinaryResponseHandler,
   createJsonResponseHandler,
   delay,
+  encodePathSegment,
   getFromApi,
   mediaTypeToExtension,
   parseProviderOptions,
@@ -322,7 +323,7 @@ export class TopazImageModel implements ImageModelV4 {
 
     while (true) {
       const { value: status } = await getFromApi({
-        url: `${this.config.baseURL}/image/v1/status/${processId}`,
+        url: `${this.config.baseURL}/image/v1/status/${encodePathSegment(processId)}`,
         // Built from the configured baseURL, not from response data.
         validateUrl: false,
         headers: await resolve(headers),
@@ -369,7 +370,9 @@ export class TopazImageModel implements ImageModelV4 {
     try {
       // Deliberately not tied to the caller's abort signal, which may be the
       // reason polling stopped.
-      await fetchImpl(`${this.config.baseURL}/image/v1/cancel/${processId}`, {
+      await fetchImpl(
+        `${this.config.baseURL}/image/v1/cancel/${encodePathSegment(processId)}`,
+        {
         method: 'DELETE',
         headers: removeUndefinedEntries((await resolve(headers)) ?? {}),
       });
@@ -391,7 +394,7 @@ export class TopazImageModel implements ImageModelV4 {
     responseHeaders: Record<string, string> | undefined;
   }> {
     const { value: downloadResponse } = await getFromApi({
-      url: `${this.config.baseURL}/image/v1/download/${processId}`,
+      url: `${this.config.baseURL}/image/v1/download/${encodePathSegment(processId)}`,
       // Built from the configured baseURL, not from response data.
       validateUrl: false,
       headers: await resolve(headers),
