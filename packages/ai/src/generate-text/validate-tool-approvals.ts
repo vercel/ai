@@ -35,6 +35,7 @@ export async function validateApprovedToolApprovals<
   runtimeContext,
   toolApprovalSecret,
   refineToolInput,
+  abortSignal,
 }: {
   approvedToolApprovals: Array<CollectedToolApprovals<TOOLS>>;
   tools: TOOLS | undefined;
@@ -44,6 +45,7 @@ export async function validateApprovedToolApprovals<
   runtimeContext: RUNTIME_CONTEXT;
   toolApprovalSecret?: string | Uint8Array;
   refineToolInput?: ToolInputRefinement<TOOLS>;
+  abortSignal?: AbortSignal;
 }): Promise<{
   approvedToolApprovals: Array<CollectedToolApprovals<TOOLS>>;
   deniedToolApprovals: Array<CollectedToolApprovals<TOOLS>>;
@@ -58,6 +60,9 @@ export async function validateApprovedToolApprovals<
   > = [];
 
   for (const collectedApproval of approvedToolApprovals) {
+    if (abortSignal?.aborted) {
+      break;
+    }
     // Look up the tool by own property only: `toolName` comes from
     // client-supplied history, so a name matching an inherited object property
     // (e.g. `constructor`, `toString`) must resolve to "no such tool" rather
@@ -110,6 +115,10 @@ export async function validateApprovedToolApprovals<
       }
     }
 
+    if (abortSignal?.aborted) {
+      break;
+    }
+
     if (isExecutableTool(tool) && tool.inputSchema != null) {
       let validationError: unknown;
       try {
@@ -128,6 +137,10 @@ export async function validateApprovedToolApprovals<
           ),
           schema: asSchema(tool.inputSchema),
         });
+
+        if (abortSignal?.aborted) {
+          break;
+        }
 
         if (!validation.success) {
           validationError = validation.error;
@@ -168,6 +181,10 @@ export async function validateApprovedToolApprovals<
       }
     }
 
+    if (abortSignal?.aborted) {
+      break;
+    }
+
     const approvalStatus = await resolveToolApproval({
       tools,
       toolApproval,
@@ -176,6 +193,10 @@ export async function validateApprovedToolApprovals<
       toolsContext,
       runtimeContext,
     });
+
+    if (abortSignal?.aborted) {
+      break;
+    }
 
     if (approvalStatus.type === 'denied') {
       denied.push({
