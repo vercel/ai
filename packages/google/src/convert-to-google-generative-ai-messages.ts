@@ -456,7 +456,7 @@ export function convertToGoogleGenerativeAIMessages(
 
               switch (part.type) {
                 case 'text': {
-                  return part.text.length === 0
+                  return part.text.length === 0 && thoughtSignature == null
                     ? undefined
                     : {
                         text: part.text,
@@ -465,7 +465,7 @@ export function convertToGoogleGenerativeAIMessages(
                 }
 
                 case 'reasoning': {
-                  return part.text.length === 0
+                  return part.text.length === 0 && thoughtSignature == null
                     ? undefined
                     : {
                         text: part.text,
