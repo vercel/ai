@@ -16327,6 +16327,54 @@ describe('computer toolset', () => {
     ]);
   });
 
+  it('should send toolset_name for a toolset named __proto__', async () => {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      body: {
+        id: 'msg_toolset',
+        type: 'message',
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Done.' }],
+        model: 'claude-opus-5-5',
+        stop_reason: 'end_turn',
+        stop_sequence: null,
+        usage: { input_tokens: 4, output_tokens: 30 },
+      },
+    };
+
+    await provider('claude-opus-5-5').doGenerate({
+      tools: [{ ...computerToolset, name: '__proto__' }],
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Take a screenshot.' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_screenshot',
+              toolName: '__proto__',
+              input: { action: 'screenshot' },
+            },
+          ],
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.messages[1].content).toEqual([
+      {
+        type: 'tool_use',
+        id: 'toolu_screenshot',
+        name: 'screenshot',
+        toolset_name: 'computer',
+        input: { action: 'screenshot' },
+      },
+    ]);
+  });
+
   it('should send member configs', async () => {
     server.urls['https://api.anthropic.com/v1/messages'].response = {
       type: 'json-value',

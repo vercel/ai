@@ -240,7 +240,7 @@ function getAnthropicCallerMetadata(
 function getAnthropicToolsetNames(
   tools: LanguageModelV4CallOptions['tools'],
 ): Record<string, string> {
-  const toolsetNames: Record<string, string> = {};
+  const toolsetNames: Record<string, string> = Object.create(null);
 
   for (const tool of tools ?? []) {
     if (
