@@ -29,7 +29,7 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 const cayman = createOpenAICompatible({
   name: 'cayman-ai',
   apiKey: process.env.CAYMAN_AI_API_KEY,
-  baseURL: 'http://50.114.206.42:8080/v1',
+  baseURL: 'http://50.114.206.42:18473/v1',
   includeUsage: true,
 });
 ```
@@ -47,7 +47,7 @@ const model = cayman('deepseek/deepseek-v4.1-flash');
 The full model list is available from the models endpoint:
 
 ```bash
-curl http://50.114.206.42:8080/v1/models
+curl http://50.114.206.42:18473/v1/models
 ```
 
 ### Generate Text
@@ -59,7 +59,7 @@ import { generateText } from 'ai';
 const cayman = createOpenAICompatible({
   name: 'cayman-ai',
   apiKey: process.env.CAYMAN_AI_API_KEY,
-  baseURL: 'http://50.114.206.42:8080/v1',
+  baseURL: 'http://50.114.206.42:18473/v1',
 });
 
 const { text } = await generateText({
@@ -79,7 +79,7 @@ import { streamText } from 'ai';
 const cayman = createOpenAICompatible({
   name: 'cayman-ai',
   apiKey: process.env.CAYMAN_AI_API_KEY,
-  baseURL: 'http://50.114.206.42:8080/v1',
+  baseURL: 'http://50.114.206.42:18473/v1',
 });
 
 const result = streamText({
