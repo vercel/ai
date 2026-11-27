@@ -1563,4 +1563,49 @@ describe('executeToolsFromStream', () => {
       `);
     });
   });
+
+  it('should execute tool calls only once when the model call ends twice', async () => {
+    const execute = vi.fn(
+      async ({ value }: { value: string }) => `${value}-result`,
+    );
+    const tools = {
+      testTool: tool({
+        inputSchema: z.object({ value: z.string() }),
+        execute,
+      }),
+    };
+
+    const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
+      convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+        },
+        finishChunk,
+        // a non-conforming model stream can emit a second finish,
+        // which produces a second model-call-end part:
+        finishChunk,
+      ]);
+
+    const parts = await convertReadableStreamToArray(
+      executeToolsFromStream({
+        stream: inputStream,
+        generateId: mockId({ prefix: 'id' }),
+        tools,
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        timeout: undefined,
+        toolsContext: {},
+        runtimeContext: {},
+      }),
+    );
+
+    expect(execute).toHaveBeenCalledTimes(1);
+    expect(
+      parts.filter(part => 'type' in part && part.type === 'tool-result'),
+    ).toHaveLength(1);
+  });
 });
