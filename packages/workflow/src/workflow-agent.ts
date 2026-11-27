@@ -555,6 +555,23 @@ export type WorkflowAgentOptions<
     toolCallConcurrency?: number;
 
     /**
+     * Whether tools receive the conversation as `messages` in their execution
+     * options. The messages are all messages sent to the model for the step
+     * that called the tool, without the system prompt.
+     *
+     * When a tool's `execute` function is a workflow step (`'use step'`), its
+     * arguments are stored as the step input, so the conversation is stored
+     * again for every tool call. Set this to `false` when your tools do not
+     * read `messages`: they then receive an empty array.
+     *
+     * Per-call `includeMessagesInToolExecution` values passed to `stream()` or
+     * `generate()` override this default.
+     *
+     * @default true
+     */
+    includeMessagesInToolExecution?: boolean;
+
+    /**
      * Optional telemetry configuration.
      */
     telemetry?: TelemetryOptions<TRuntimeContext, TTools>;
@@ -1116,6 +1133,23 @@ export type WorkflowAgentCallOptions<
     toolOrder?: ToolOrder<NoInfer<TTools>>;
 
     /**
+     * Whether tools receive the conversation as `messages` in their execution
+     * options. The messages are all messages sent to the model for the step
+     * that called the tool, without the system prompt.
+     *
+     * When a tool's `execute` function is a workflow step (`'use step'`), its
+     * arguments are stored as the step input, so the conversation is stored
+     * again for every tool call. Set this to `false` when your tools do not
+     * read `messages`: they then receive an empty array.
+     *
+     * Overrides the constructor-level `includeMessagesInToolExecution` if
+     * provided.
+     *
+     * @default true
+     */
+    includeMessagesInToolExecution?: boolean;
+
+    /**
      * Optional telemetry configuration.
      */
     telemetry?: TelemetryOptions<TRuntimeContext, TTools>;
@@ -1669,6 +1703,7 @@ export class WorkflowAgent<
   private generationSettings: GenerationSettings;
   private toolChoice?: ToolChoice<TBaseTools>;
   private toolCallConcurrency?: number;
+  private includeMessagesInToolExecution?: boolean;
   private telemetry?: TelemetryOptions<TRuntimeContext, TBaseTools>;
   private runtimeContext?: TRuntimeContext;
   private toolsContext?: InferToolSetContext<TBaseTools>;
@@ -1723,6 +1758,8 @@ export class WorkflowAgent<
     this.instructions = options.instructions ?? options.system;
     this.toolChoice = options.toolChoice;
     this.toolCallConcurrency = options.toolCallConcurrency;
+    this.includeMessagesInToolExecution =
+      options.includeMessagesInToolExecution;
     this.telemetry = options.telemetry;
     this.runtimeContext = options.runtimeContext;
     this.toolsContext = options.toolsContext;
@@ -2145,6 +2182,10 @@ export class WorkflowAgent<
     } = await this.prepareInvocation(options, mode);
     telemetryReport.recorder = telemetryRecorder;
     telemetryReport.telemetry = effectiveTelemetry;
+    const includeMessagesInToolExecution =
+      options.includeMessagesInToolExecution ??
+      this.includeMessagesInToolExecution ??
+      true;
     const initialResponseMessages: WorkflowAgentGenerateResult<TTools>['responseMessages'] =
       [];
     const abortReason = () =>
@@ -2670,7 +2711,9 @@ export class WorkflowAgent<
           executeTool(
             toolCall,
             tools,
-            modelMessages,
+            // The arguments of a tool that is a workflow step are stored as
+            // the step input, so the conversation is only passed when wanted.
+            includeMessagesInToolExecution ? modelMessages : [],
             resolvedContext,
             effectiveAbortSignal,
             workflowDownload,

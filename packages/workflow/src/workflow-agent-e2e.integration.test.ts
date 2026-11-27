@@ -35,6 +35,7 @@ import {
   agentToolApprovalE2e,
   agentToolCallE2e,
   agentToolInputSchemaE2e,
+  agentToolMessagesE2e,
 } from './test/agent-e2e-workflows.js';
 
 afterEach(() => {
@@ -146,6 +147,29 @@ describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
         lastStepText: 'All done!',
       });
     });
+
+    it.each([
+      // The first tool call sees the user message, the second also the
+      // first assistant message and its tool result.
+      { mode: 'stream', expected: [1, 3] },
+      { mode: 'generate', expected: [1, 3] },
+      { mode: 'stream', agentSetting: false, expected: [0, 0] },
+      { mode: 'generate', agentSetting: false, expected: [0, 0] },
+      { mode: 'stream', callSetting: false, expected: [0, 0] },
+      {
+        mode: 'stream',
+        agentSetting: false,
+        callSetting: true,
+        expected: [1, 3],
+      },
+    ] as const)(
+      'tool steps receive the conversation unless it is excluded ($mode, agent=$agentSetting, call=$callSetting)',
+      async ({ expected, ...input }) => {
+        const run = await start(agentToolMessagesE2e, [input]);
+        const rv = await run.returnValue;
+        expect(rv).toEqual({ text: 'All done!', messageCounts: expected });
+      },
+    );
 
     it('tool error recovery', async () => {
       const run = await start(agentErrorToolE2e, []);

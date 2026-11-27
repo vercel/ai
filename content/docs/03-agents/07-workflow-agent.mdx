@@ -320,6 +320,22 @@ async function bookFlightStep(input: {
 
 Tools without `'use step'` still work but run as regular in-memory functions without durability guarantees.
 
+### Conversation Messages in Tool Steps
+
+Every tool receives the conversation as `messages` in the second argument of its `execute` function. When `execute` is a workflow step, its arguments are stored as the step input, so the whole conversation is stored again for every tool call. With long conversations or large attachments, this is most of what a run stores.
+
+If your tools do not read `messages`, set `includeMessagesInToolExecution` to `false`. Tools then receive an empty `messages` array:
+
+```ts
+const agent = new WorkflowAgent({
+  model,
+  tools,
+  includeMessagesInToolExecution: false,
+});
+```
+
+You can also pass the setting to `generate()` or `stream()`, where it overrides the constructor value. The default is `true`. Callbacks such as `onToolExecutionStart` run in the workflow and always receive the conversation.
+
 ## Tool Approval
 
 Human approval is configured on the tool definition with `needsApproval` or on

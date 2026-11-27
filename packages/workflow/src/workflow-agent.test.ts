@@ -16,6 +16,7 @@ import {
   tool,
   type Experimental_SandboxSession as SandboxSession,
   type StepResult,
+  type ToolExecutionOptions,
   type ToolSet,
 } from 'ai';
 import { signToolApproval } from 'ai/internal';
@@ -2422,6 +2423,119 @@ describe('WorkflowAgent', () => {
       expect((messagesPerRound[1] as unknown[]).length).toBeGreaterThan(
         (messagesPerRound[0] as unknown[]).length,
       );
+    });
+
+    describe('includeMessagesInToolExecution', () => {
+      const conversationMessages: LanguageModelV4Prompt = [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'What is the weather?' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'test-call-id',
+              toolName: 'testTool',
+              input: { query: 'weather' },
+            },
+          ],
+        },
+      ];
+
+      async function runToolCall({
+        agentSetting,
+        callSetting,
+      }: {
+        agentSetting?: boolean;
+        callSetting?: boolean;
+      }) {
+        const received: { options?: ToolExecutionOptions<any> } = {};
+        const onToolExecutionStart = vi.fn();
+        const agent = new WorkflowAgent({
+          model: createMockModel(),
+          tools: {
+            testTool: {
+              description: 'A test tool',
+              inputSchema: z.object({ query: z.string() }),
+              execute: async (_input, options) => {
+                received.options = options;
+                return { result: 'success' };
+              },
+            },
+          } satisfies ToolSet,
+          ...(agentSetting === undefined
+            ? {}
+            : { includeMessagesInToolExecution: agentSetting }),
+        });
+
+        const { modelCallIterator } = await import('./model-call-iterator.js');
+        vi.mocked(modelCallIterator).mockReturnValue({
+          next: vi
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: {
+                toolCalls: [
+                  {
+                    toolCallId: 'test-call-id',
+                    toolName: 'testTool',
+                    input: '{"query":"weather"}',
+                  } as LanguageModelV4ToolCall,
+                ],
+                messages: conversationMessages,
+              },
+            })
+            .mockResolvedValueOnce({ done: true, value: [] }),
+        } as unknown as MockIterator);
+
+        await agent.stream({
+          messages: [{ role: 'user', content: 'What is the weather?' }],
+          onToolExecutionStart,
+          ...(callSetting === undefined
+            ? {}
+            : { includeMessagesInToolExecution: callSetting }),
+        });
+
+        return { options: received.options, onToolExecutionStart };
+      }
+
+      it('passes the conversation by default', async () => {
+        const { options } = await runToolCall({});
+
+        expect(options?.messages).toEqual(conversationMessages.slice(0, -1));
+      });
+
+      it('passes no messages to tools when disabled on the agent', async () => {
+        const { options, onToolExecutionStart } = await runToolCall({
+          agentSetting: false,
+        });
+
+        expect(options?.messages).toEqual([]);
+        expect(options?.toolCallId).toBe('test-call-id');
+        // Callbacks run in the workflow and still receive the conversation.
+        expect(onToolExecutionStart).toHaveBeenCalledWith(
+          expect.objectContaining({
+            messages: conversationMessages.slice(0, -1),
+          }),
+        );
+      });
+
+      it('passes no messages to tools when disabled for a call', async () => {
+        const { options } = await runToolCall({ callSetting: false });
+
+        expect(options?.messages).toEqual([]);
+      });
+
+      it('lets a call override the agent setting', async () => {
+        const { options } = await runToolCall({
+          agentSetting: false,
+          callSetting: true,
+        });
+
+        expect(options?.messages).toEqual(conversationMessages.slice(0, -1));
+      });
     });
   });
 
