@@ -71,6 +71,24 @@ describe('doGenerate', () => {
       );
     });
 
+    it('should send base64 audio as binary data', async () => {
+      let requestBody: unknown;
+      const provider = createDeepgram({
+        apiKey: 'test-api-key',
+        fetch: async (input, init) => {
+          requestBody = init?.body;
+          return fetch(input, init);
+        },
+      });
+
+      await provider.transcription('nova-3').doGenerate({
+        audio: audioData.toString('base64'),
+        mediaType: 'audio/mpeg',
+      });
+
+      expect(requestBody).toStrictEqual(new Uint8Array(audioData));
+    });
+
     it('should extract the transcription text', async () => {
       const result = await model.doGenerate({
         audio: audioData,
