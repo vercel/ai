@@ -433,6 +433,42 @@ test('both CLIs discover non-ignored untracked files using modified selection', 
   );
 });
 
+test('run-verifiers includes non-ignored dotfiles and files in dot-directories by default', async context => {
+  const { root, runCli } = await createFixture({ context });
+  childProcess.execFileSync('git', ['init', '--quiet', root]);
+  writeFileSync(
+    join(root, '.gitignore'),
+    '.config/ignored.json\n.ignored.json\n',
+  );
+  mkdirSync(join(root, '.config'));
+  for (const file of [
+    '.config.json',
+    '.ignored.json',
+    '.config/ignored.json',
+    '.config/project.json',
+  ]) {
+    writeFileSync(join(root, file), '{}');
+  }
+  writeFileSync(
+    join(root, '.agents/guidelines/agent-config.md'),
+    "---\nfileMatcher: ['.config/*.json', '.config.json', '.ignored.json']\n---\n# Agent Configuration\n",
+  );
+  for (const name of ['agent-config', 'readme']) {
+    writeFileSync(
+      join(root, `.agents/verifiers/${name}.ts`),
+      '#!/usr/bin/env node\nconsole.log(process.argv.slice(2).join(" "));\n',
+      { mode: 0o755 },
+    );
+  }
+
+  const result = runCli({ script: 'run-verifiers' });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /--file \.config\.json/);
+  assert.match(result.stdout, /--file \.config\/project\.json/);
+  assert.match(result.stdout, /--file packages\/example\/README\.md/);
+  assert.doesNotMatch(result.stdout, /ignored\.json/);
+});
+
 test('both CLIs report no applicable results for an empty modified selection', async context => {
   const { root, runCli } = await createFixture({ context });
   childProcess.execFileSync('git', ['init', '--quiet', root]);
