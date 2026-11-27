@@ -8,6 +8,7 @@ import { z } from 'zod/v4';
 // https://www.alibabacloud.com/help/en/model-studio/models
 export type AlibabaChatModelId =
   // commercial edition - hybrid-thinking mode (disabled by default)
+  | 'qwen4-max'
   | 'qwen3.7-max'
   | 'qwen3-max'
   | 'qwen3-max-preview'
@@ -49,6 +50,32 @@ export const alibabaLanguageModelOptions = lazySchema(() =>
        * Maximum number of reasoning tokens to generate.
        */
       thinkingBudget: z.number().positive().optional(),
+
+      /**
+       * Reasoning effort level, sent as `reasoning_effort`. Alibaba maps the
+       * value to the levels a model supports (for example, `qwen4-max` treats
+       * `medium` as `high` and `max` as `xhigh`), and `none` disables
+       * thinking. Some models reject `reasoning_effort` together with
+       * `thinkingBudget`.
+       */
+      reasoningEffort: z
+        .enum(['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'])
+        .optional(),
+
+      /**
+       * Request-level prompt cache settings, sent as `prompt_cache_options`.
+       *
+       * `mode: 'implicit'` places an automatic cache breakpoint at the end of
+       * the input; `mode: 'explicit'` caches only at `cacheControl`
+       * breakpoints. `ttl` sets the cache lifetime for every breakpoint in the
+       * request (`5m` by default).
+       */
+      promptCacheOptions: z
+        .object({
+          mode: z.enum(['implicit', 'explicit']).optional(),
+          ttl: z.enum(['5m', '1h']).optional(),
+        })
+        .optional(),
 
       /**
        * Whether to preserve reasoning from previous assistant messages.

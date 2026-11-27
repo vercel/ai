@@ -8,6 +8,15 @@ export type AlibabaUsage = {
   prompt_tokens_details?: {
     cached_tokens?: number | null;
     cache_creation_input_tokens?: number | null;
+    /**
+     * Cache writes split by TTL. The two counts sum to
+     * `cache_creation_input_tokens`; the 1-hour tier is priced differently
+     * from the 5-minute tier.
+     */
+    cache_creation?: {
+      ephemeral_5m_input_tokens?: number | null;
+      ephemeral_1h_input_tokens?: number | null;
+    } | null;
   } | null;
   completion_tokens_details?: {
     reasoning_tokens?: number | null;

@@ -23,6 +23,7 @@ const preservedThinkingModelIds = new Set([
   'qwen3.8-flash',
   'qwen3.8-max',
   'qwen3.8-max-0902',
+  'qwen4-max',
 ]);
 
 export function supportsPreservedThinking(modelId: string): boolean {
