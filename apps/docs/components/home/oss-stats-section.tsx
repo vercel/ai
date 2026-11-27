@@ -8,7 +8,7 @@ export async function OssStatsSection() {
   return (
     <dl
       aria-label="AI SDK community"
-      className="grid grid-cols-2 gap-x-6 gap-y-10 py-12 md:grid-cols-4 md:py-20"
+      className="grid grid-cols-2 gap-x-6 gap-y-10 py-12 md:grid-cols-4 md:py-20 md:place-items-center"
     >
       {[
         [stats.downloads, 'Weekly downloads'],
