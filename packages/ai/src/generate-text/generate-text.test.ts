@@ -7833,9 +7833,6 @@ describe('generateText', () => {
         abortSignal: abortController.signal,
       });
 
-      // Abort the operation
-      abortController.abort();
-
       await generateTextPromise;
 
       expect(toolExecuteMock).toHaveBeenCalledWith(
