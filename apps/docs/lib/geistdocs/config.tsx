@@ -37,7 +37,7 @@ export const config = defineConfig({
     },
   },
   ai: {
-    enabled: true,
+    enabled: false,
     suggestions: [
       'How do I stream text with streamText?',
       'How do I define tools and handle tool calls?',

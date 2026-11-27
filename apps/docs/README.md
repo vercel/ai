@@ -11,6 +11,10 @@ pnpm install
 pnpm --filter ai-sdk-docs dev:site
 ```
 
+`dev:site`, `build:site`, and `type-check:site` build the local SDK workspace
+dependencies with Turborepo first. Their package exports point to generated
+`dist/` files, so no separate repository-wide build is needed on a fresh checkout.
+
 The content sync generates `apps/docs/content/` from three reviewed sources:
 
 - v7 documentation from this checkout's `content/docs/` directory.
@@ -63,7 +67,8 @@ The Vercel project must use:
 - Node.js: a version supported by the repository
 
 The outside-root setting is required because the content sync reads the
-repository's `content/docs/` directory and Git metadata.
+repository's `content/docs/` directory and Git metadata, and the app imports
+local SDK workspace packages.
 
 Edit-source links remain disabled until the `NN-` filename codemod lands on
 `main` (page paths don't match source paths yet). Playground links use hard

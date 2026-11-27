@@ -5,6 +5,7 @@ import { Footer } from '@vercel/geistdocs/footer';
 import { Navbar } from '@vercel/geistdocs/navbar';
 import type { Metadata, Viewport } from 'next';
 import { DocsProvider } from '@/components/docs/provider';
+import { DocsWebMCPChat } from '@/components/docs/webmcp-chat';
 import { config } from '@/lib/geistdocs/config';
 import { mono, sans } from '@/lib/geistdocs/fonts';
 import { getRootLang } from '@/lib/geistdocs/root-params';
@@ -53,7 +54,10 @@ const RootLayout = async ({ children }: LayoutProps<'/[lang]'>) => {
       </head>
       <body>
         <DocsProvider config={config} lang={lang}>
-          <Navbar config={config} />
+          <div className="sticky top-0 z-40 flex items-center bg-background-200 [&>header]:min-w-0 [&>header]:flex-1">
+            <Navbar config={config} />
+            <DocsWebMCPChat />
+          </div>
           {children}
           <Footer />
           <Analytics />
