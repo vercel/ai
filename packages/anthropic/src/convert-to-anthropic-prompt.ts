@@ -344,8 +344,15 @@ export async function convertToAnthropicPrompt({
 
           // Without a text block, the message's cache control marks its last
           // tool change, so the cached prefix ends where this message ends.
+          // A definition with its own cache control already ends the prefix
+          // there, and Anthropic rejects a marker in both places.
           const lastToolChange = content.at(-1);
-          if (!emitsText && lastToolChange != null) {
+          const definesOwnCacheControl =
+            lastToolChange?.type === 'tool_addition' &&
+            lastToolChange.tool.type === 'tool_definition' &&
+            'cache_control' in lastToolChange.tool.definition &&
+            lastToolChange.tool.definition.cache_control != null;
+          if (!emitsText && lastToolChange != null && !definesOwnCacheControl) {
             const cacheControl = validator.getCacheControl(providerOptions, {
               type: 'system message',
               canCache: true,
