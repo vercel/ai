@@ -132,6 +132,9 @@ export async function convertLanguageModelContent<TOOLS extends ToolSet>({
               output: part.result,
               providerExecuted: true,
               dynamic: part.dynamic,
+              ...(part.preliminary != null
+                ? { preliminary: part.preliminary }
+                : {}),
               ...(part.providerMetadata != null
                 ? { providerMetadata: part.providerMetadata }
                 : {}),
@@ -168,6 +171,9 @@ export async function convertLanguageModelContent<TOOLS extends ToolSet>({
             output: part.result,
             providerExecuted: true,
             dynamic: toolCall.dynamic,
+            ...(part.preliminary != null
+              ? { preliminary: part.preliminary }
+              : {}),
             ...(part.providerMetadata != null
               ? { providerMetadata: part.providerMetadata }
               : {}),
