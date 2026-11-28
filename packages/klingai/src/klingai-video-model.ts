@@ -548,7 +548,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
       });
     }
 
-    if (options.seed) {
+    if (options.seed != null) {
       warnings.push({
         type: 'unsupported',
         feature: 'seed',
@@ -1124,3 +1124,4 @@ const klingaiTaskStatusSchema = lazySchema(() =>
 );
 
 type KlingAITaskResponse = InferSchema<typeof klingaiTaskStatusSchema>;
+
