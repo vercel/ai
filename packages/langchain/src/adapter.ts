@@ -469,6 +469,7 @@ export function toUIMessageStream<TState = unknown>(
     unfinishedToolCallsByNamespace: new Map(),
     emittedImages: new Set<string>(),
     emittedReasoningIds: new Set<string>(),
+    streamedReasoningMessageIds: new Set<string>(),
     messageReasoningIds: new Map(),
     toolCallInfoByIndex: new Map(),
     currentStepsByNamespace: new Map(),
