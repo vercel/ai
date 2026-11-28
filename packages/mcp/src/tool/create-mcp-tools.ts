@@ -113,6 +113,35 @@ function mcpToModelOutput({
   input: unknown;
   output: unknown;
 }): ToolResultOutput {
+  if (
+    output != null &&
+    typeof output === 'object' &&
+    'isError' in output &&
+    output.isError === true
+  ) {
+    if ('content' in output && Array.isArray(output.content)) {
+      const textParts: string[] = [];
+      let allText = output.content.length > 0;
+      for (const part of output.content) {
+        if (
+          part != null &&
+          typeof part === 'object' &&
+          part.type === 'text' &&
+          typeof part.text === 'string'
+        ) {
+          textParts.push(part.text);
+        } else {
+          allText = false;
+          break;
+        }
+      }
+      if (allText) {
+        return { type: 'error-text', value: textParts.join('\n') };
+      }
+    }
+    return { type: 'error-json', value: output as JSONValue };
+  }
+
   if (typeof output === 'string') {
     return { type: 'text', value: output };
   }
