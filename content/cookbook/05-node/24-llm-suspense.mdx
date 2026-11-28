@@ -1,0 +1,103 @@
+---
+title: LLM Suspense
+description: Rewrite streamed text so users never see a broken intermediate import or URL.
+tags: ['node', 'streaming', 'agents']
+---
+
+# LLM Suspense
+
+v0’s [streaming rewrite layer](https://vercel.com/blog/how-we-made-v0-an-effective-coding-agent)
+(“LLM Suspense”) cleans tokens before they reach the user. In the AI SDK that
+is `experimental_transform` on `streamText`.
+
+This example:
+
+1. Expands a short `blob:` id the model was allowed to emit.
+2. Rewrites a fake `lucide-react` icon to a real export.
+
+```ts file="index.ts"
+import { streamText, type TextStreamPart, type ToolSet } from 'ai';
+
+const BLOB_SHORT = 'blob:hero';
+const BLOB_FULL =
+  'https://blob.vercel-storage.com/hero-9f3c2a1b0e7d4c6f8a2b.png';
+
+const lucideAliases: Record<string, string> = {
+  VercelLogo: 'Triangle',
+};
+
+function llmSuspense<TOOLS extends ToolSet>() {
+  return () => {
+    let buffer = '';
+
+    return new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
+      transform(chunk, controller) {
+        if (chunk.type !== 'text-delta') {
+          emit(controller, buffer);
+          buffer = '';
+          controller.enqueue(chunk);
+          return;
+        }
+        buffer += chunk.text;
+        const nl = buffer.lastIndexOf('\n');
+        if (nl === -1) return;
+        emit(controller, buffer.slice(0, nl + 1), chunk);
+        buffer = buffer.slice(nl + 1);
+      },
+      flush(controller) {
+        emit(controller, buffer);
+      },
+    });
+
+    function emit(
+      controller: TransformStreamDefaultController<TextStreamPart<TOOLS>>,
+      text: string,
+      template?: TextStreamPart<TOOLS>,
+    ) {
+      if (!text) return;
+      const cleaned = rewrite(text);
+      controller.enqueue(
+        template && template.type === 'text-delta'
+          ? { ...template, text: cleaned }
+          : ({ type: 'text-delta', id: 'suspense', text: cleaned } as TextStreamPart<TOOLS>),
+      );
+    }
+  };
+}
+
+function rewrite(text: string): string {
+  return text
+    .replaceAll(BLOB_SHORT, BLOB_FULL)
+    .replace(
+      /import\s+\{([^}]+)\}\s+from\s+['"]lucide-react['"]/g,
+      (_m, names: string) => {
+        const inner = names
+          .split(',')
+          .map((n: string) => n.trim())
+          .filter(Boolean)
+          .map((n: string) =>
+            lucideAliases[n] ? `${lucideAliases[n]} as ${n}` : n,
+          )
+          .join(', ');
+        return `import { ${inner} } from 'lucide-react'`;
+      },
+    );
+}
+
+const result = streamText({
+  model: 'openai/gpt-4.1-mini',
+  prompt:
+    `Write a React hero that imports { VercelLogo } from 'lucide-react' ` +
+    `and uses <img src="${BLOB_SHORT}" />.`,
+  experimental_transform: llmSuspense(),
+});
+
+for await (const delta of result.textStream) {
+  process.stdout.write(delta);
+}
+```
+
+The printed stream should contain `Triangle as VercelLogo` and the full blob
+URL — not the placeholders the model was steered toward.
+
+Docs: [LLM Suspense](/docs/advanced/llm-suspense).
