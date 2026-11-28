@@ -1032,4 +1032,50 @@ console.log(text);`,
     websiteUrl: 'https://upstash.com',
     npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
   },
+  {
+    slug: 'vericto',
+    name: 'Vericto',
+    description:
+      'Database guardrails for AI agents. Vericto checks every SQL statement the model writes before your code runs it (destructive statements, a missing WHERE or LIMIT, risky DDL, sensitive columns) and answers with a refusal carrying the rule and a suggested fix, or with the masked rewrite to run instead. PostgreSQL, MySQL, SQL Server, Oracle, Snowflake and SQLite.',
+    packageName: '@vericto/sdk',
+    tags: ['security', 'guardrails', 'sql', 'database'],
+    apiKeyEnvName: 'VERICTO_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @vericto/sdk',
+      npm: 'npm install @vericto/sdk',
+      yarn: 'yarn add @vericto/sdk',
+      bun: 'bun add @vericto/sdk',
+    },
+    codeExample: `import Database from 'better-sqlite3';
+import { generateText, isStepCount } from 'ai';
+import { sqlTool } from '@vericto/sdk/ai';
+
+const db = new Database('app.db');
+
+// sqlTool reads VERICTO_API_KEY and VERICTO_DATABASE_ID from the environment
+// and checks the statement before this execute runs it. A blocked statement
+// never reaches the database: the model reads the rule code and the suggested
+// fix as the tool result, so it can rewrite the query and try again.
+const runSql = sqlTool({
+  dialect: 'sqlite',
+  execute: sql => {
+    const statement = db.prepare(sql);
+    return statement.reader ? statement.all() : statement.run();
+  },
+});
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Delete every cancelled order, then list what is left.',
+  tools: { runSql },
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl:
+      'https://github.com/vericto/vericto-node/blob/main/docs/frameworks/vercel-ai-sdk.md',
+    apiKeyUrl: 'https://console.vericto.com',
+    websiteUrl: 'https://vericto.com',
+    npmUrl: 'https://www.npmjs.com/package/@vericto/sdk',
+  },
 ];
