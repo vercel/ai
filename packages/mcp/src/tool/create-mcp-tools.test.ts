@@ -158,4 +158,45 @@ describe('createMCPTools', () => {
       expect(tools[name].type).toBe('dynamic');
     }
   });
+
+  it('converts isError text results to error-text model output', async () => {
+    const tools = createMCPTools([
+      { name: 'fail', inputSchema: { type: 'object' } },
+    ]);
+
+    const modelOutput = await tools.fail.toModelOutput!({
+      toolCallId: 'call-1',
+      input: {},
+      output: {
+        content: [{ type: 'text', text: 'tool reported failure' }],
+        isError: true,
+      },
+    });
+
+    expect(modelOutput).toEqual({
+      type: 'error-text',
+      value: 'tool reported failure',
+    });
+  });
+
+  it('converts non-text or empty isError results to error-json model output', async () => {
+    const tools = createMCPTools([
+      { name: 'fail', inputSchema: { type: 'object' } },
+    ]);
+    const output = {
+      content: [],
+      isError: true,
+    };
+
+    const modelOutput = await tools.fail.toModelOutput!({
+      toolCallId: 'call-2',
+      input: {},
+      output,
+    });
+
+    expect(modelOutput).toEqual({
+      type: 'error-json',
+      value: output,
+    });
+  });
 });
