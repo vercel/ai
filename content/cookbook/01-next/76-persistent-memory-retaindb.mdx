@@ -1,0 +1,179 @@
+---
+title: Persistent Memory for AI Chatbots
+description: Add persistent, cross-session memory to a Next.js AI chatbot using RetainDB and the AI SDK.
+tags: ['next', 'memory', 'agents']
+---
+
+# Persistent Memory for AI Chatbots
+
+By default, every chat session starts with a blank slate — the AI has no memory of previous conversations. For most real-world applications (personal assistants, customer support bots, coding agents), this is a serious limitation.
+
+This recipe shows how to add persistent, cross-session memory to a Next.js chatbot using [RetainDB](https://retaindb.com) and the AI SDK's `withRetainDB` adapter. The adapter wraps any AI SDK model to automatically:
+
+1. **Retrieve** — before each turn, relevant memories are fetched and injected as context
+2. **Store** — after each turn, the user's messages are saved so future turns can recall them
+
+## Prerequisites
+
+Get a free API key at [retaindb.com](https://retaindb.com), then add both keys to your environment:
+
+```bash filename=".env.local"
+RETAINDB_API_KEY=your_retaindb_api_key
+OPENAI_API_KEY=your_openai_api_key
+```
+
+Install the RetainDB SDK alongside the AI SDK:
+
+```bash
+npm install @retaindb/sdk
+```
+
+## Server
+
+Create a route handler for `/api/chat`. The only change from a standard streaming chatbot is wrapping the model with `withRetainDB` and passing a `userId`:
+
+```ts filename="app/api/chat/route.ts"
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
+import { withRetainDB } from '@retaindb/sdk/ai-sdk';
+
+export const runtime = 'nodejs';
+
+export async function POST(req: Request) {
+  const { messages, userId } = await req.json();
+
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'userId is required' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // withRetainDB wraps the model to:
+  //  - fetch relevant memories and inject them as context before each turn
+  //  - store the user's messages in the background after each turn
+  // RETAINDB_API_KEY is read from the environment automatically.
+  const model = withRetainDB(openai('gpt-4o-mini'), { userId });
+
+  const result = streamText({
+    model,
+    system: 'You are a helpful assistant with persistent memory across conversations.',
+    messages,
+  });
+
+  return result.toDataStreamResponse();
+}
+```
+
+The `userId` scopes all memory to a specific user. Memories retrieved for `user_A` are never shown to `user_B`.
+
+## Client
+
+Use the `useChat` hook and pass `userId` in the request body on every call:
+
+```tsx filename="app/page.tsx"
+'use client';
+
+import { useChat } from 'ai/react';
+
+// In production, get userId from your auth session (e.g. NextAuth, Clerk).
+// For demo purposes, we generate a stable anonymous ID per browser.
+function getUserId(): string {
+  const key = 'chat_user_id';
+  let id = localStorage.getItem(key);
+  if (!id) {
+    id = `user_${Math.random().toString(36).slice(2, 11)}`;
+    localStorage.setItem(key, id);
+  }
+  return id;
+}
+
+export default function Chat() {
+  const userId = getUserId();
+
+  const { messages, input, handleInputChange, handleSubmit, isLoading } =
+    useChat({
+      api: '/api/chat',
+      body: { userId }, // sent with every request
+    });
+
+  return (
+    <div>
+      <ul>
+        {messages.map(m => (
+          <li key={m.id}>
+            <strong>{m.role === 'user' ? 'You' : 'AI'}:</strong> {m.content}
+          </li>
+        ))}
+      </ul>
+
+      <form onSubmit={handleSubmit}>
+        <input
+          value={input}
+          onChange={handleInputChange}
+          placeholder="Say something..."
+          disabled={isLoading}
+        />
+        <button type="submit" disabled={isLoading}>
+          Send
+        </button>
+      </form>
+    </div>
+  );
+}
+```
+
+## How it works
+
+When the user sends a message, the route handler creates a `withRetainDB`-wrapped model scoped to that user. The adapter intercepts `doStream` on the model object:
+
+- **Before** streaming: it queries RetainDB for the user's most relevant memories, then injects them as an additional system message. The model sees something like:
+
+  ```
+  What you know about this user:
+  - Prefers TypeScript over JavaScript
+  - Working on a Next.js e-commerce project
+  - Last asked about Stripe webhook setup
+  ```
+
+- **After** streaming begins: the user's latest message is stored in the background (fire-and-forget) so it's available in future sessions.
+
+On the next visit — a different browser tab, a different day — the AI automatically recalls what it knows about that user without any additional setup.
+
+## Options
+
+**Scope to a session** — pass `sessionId` alongside `userId` to keep memories grouped by conversation thread:
+
+```ts
+const model = withRetainDB(openai('gpt-4o-mini'), { userId, sessionId });
+```
+
+**Retrieve only, no storage** — set `remember: false` to query memories without writing new ones:
+
+```ts
+const model = withRetainDB(openai('gpt-4o-mini'), { userId, remember: false });
+```
+
+**Use with any provider** — `withRetainDB` wraps any AI SDK-compatible model:
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+const model = withRetainDB(anthropic('claude-sonnet-4-6'), { userId });
+```
+
+**Use with real auth** — swap the `localStorage` stub for your actual session:
+
+```ts
+// NextAuth example
+import { auth } from '@/auth';
+const session = await auth();
+const userId = session.user.id;
+```
+
+## Starter template
+
+A complete working implementation of this recipe — including the full chat UI — is available as an open source starter:
+
+[github.com/Alinxus/retaindb-nextjs-starter](https://github.com/Alinxus/retaindb-nextjs-starter)
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FAlinxus%2Fretaindb-nextjs-starter&env=RETAINDB_API_KEY,OPENAI_API_KEY)
