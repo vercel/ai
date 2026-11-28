@@ -721,6 +721,39 @@ console.log(text);`,
     npmUrl: 'https://www.npmjs.com/package/pexafy-ai-sdk',
   },
   {
+    slug: 'x402check',
+    name: 'x402check',
+    description:
+      'Preflight an x402 seller URL before your agent pays. Returns ok, caution, or avoid plus live payTo, price, and history so you can skip bad endpoints and catch wallet or price drift. $0.01 USDC Exact per check on Base.',
+    packageName: 'x402check-ai-sdk',
+    tags: ['payments', 'x402', 'security', 'preflight', 'trust'],
+    installCommand: {
+      pnpm: 'pnpm add x402check-ai-sdk ai zod',
+      npm: 'npm install x402check-ai-sdk ai zod',
+      yarn: 'yarn add x402check-ai-sdk ai zod',
+      bun: 'bun add x402check-ai-sdk ai zod',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createX402CheckTools } from 'x402check-ai-sdk';
+
+process.env.X402CHECK_URL = 'https://x402check.dev';
+
+const tools = createX402CheckTools();
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt:
+    'Is https://seller.example/x402 safe to pay? Run a preflight check first.',
+  tools,
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/nwilliams005/x402check/tree/main/packages/x402check-ai-sdk',
+    websiteUrl: 'https://x402check.dev',
+    npmUrl: 'https://www.npmjs.com/package/x402check-ai-sdk',
+  },
+  {
     slug: 'agentmail',
     name: 'AgentMail',
     description:
