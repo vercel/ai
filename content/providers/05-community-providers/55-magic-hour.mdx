@@ -1,0 +1,185 @@
+---
+title: Magic Hour
+description: Magic Hour Provider for the AI SDK
+---
+
+# Magic Hour
+
+[Magic Hour](https://magichour.ai) is a hosted video generation API. The Magic Hour provider brings Sora 2, Veo 3.1, Kling 3.0, Seedance, MiniMax H3, WAN 2.2 and LTX 2.3 to `experimental_generateVideo` behind a single API key, and covers Magic Hour's hosted image models through `generateImage`.
+
+The provider implements the asynchronous `doStart` / `doStatus` flow, so the AI SDK owns the polling loop rather than the provider blocking inside a single call.
+
+Learn more in the [Magic Hour documentation](https://docs.magichour.ai).
+
+## Setup
+
+The Magic Hour provider is available in the `magic-hour-ai-provider` module. You can install it with:
+
+<InstallPackages packages="magic-hour-ai-provider" />
+
+## Provider Instance
+
+Import the default `magicHour` instance, or build one with `createMagicHour`:
+
+```ts
+import { createMagicHour, magicHour } from "magic-hour-ai-provider";
+
+const model = magicHour.video("veo3.1"); // reads MAGIC_HOUR_API_KEY
+
+const custom = createMagicHour({ apiKey: "mhk_live_..." });
+```
+
+You can obtain an API key from the [Magic Hour developer dashboard](https://magichour.ai/developer). The free tier requires no credit card.
+
+## Video Models
+
+Create a video model with `magicHour.video()` and pass it to `experimental_generateVideo`:
+
+```ts
+import { experimental_generateVideo as generateVideo } from "ai";
+import { magicHour } from "magic-hour-ai-provider";
+
+const { video } = await generateVideo({
+  model: magicHour.video("veo3.1"),
+  prompt: "a lighthouse in a storm, slow drone push-in",
+  duration: 8,
+  resolution: "1280x720",
+});
+```
+
+### Image to Video
+
+Pass an image as the prompt and the provider routes the request to Magic Hour's image-to-video endpoint, animating from that frame:
+
+```ts
+const { video } = await generateVideo({
+  model: magicHour.video("wan-2.2"),
+  prompt: {
+    image: await readFile("frame.png"),
+    text: "pan slowly to the left",
+  },
+  duration: 5,
+});
+```
+
+A public HTTPS URL is forwarded as-is. Raw bytes are uploaded to Magic Hour first, which adds one round-trip.
+
+### Audio
+
+`minimax-h3`, `veo3.1-audio` and `sora-2` generate a soundtrack alongside the picture:
+
+```ts
+const { video } = await generateVideo({
+  model: magicHour.video("veo3.1-audio"),
+  prompt: "a market at dawn, vendors calling out",
+  generateAudio: true,
+});
+```
+
+### Model Capabilities
+
+Each model accepts a different set of clip lengths, and several cap out below the resolution your plan allows. When a request falls outside a model's range, the provider snaps it to the nearest accepted value and returns a warning rather than letting the API reject it.
+
+| Model               | Durations                 | Max Resolution | Audio     |
+| ------------------- | ------------------------- | -------------- | --------- |
+| `wan-2.2`           | 3–15s                     | Plan limit     | <Cross /> |
+| `ltx-2.3`           | 1–30s                     | Plan limit     | <Cross /> |
+| `minimax-h3`        | 1–30s                     | 1080p          | <Check /> |
+| `seedance-1.5`      | 4–12s                     | Plan limit     | <Cross /> |
+| `kling-2.6`         | 5s, 10s                   | Plan limit     | <Cross /> |
+| `kling-3.0`         | 3–15s                     | Plan limit     | <Cross /> |
+| `veo3.1-lite`       | 4–56s                     | Plan limit     | <Cross /> |
+| `seedance-2.0-mini` | 4–15s                     | 720p           | <Cross /> |
+| `veo3.1`            | 4–56s                     | Plan limit     | <Cross /> |
+| `veo3.1-audio`      | 4–56s                     | Plan limit     | <Check /> |
+| `sora-2`            | 4, 8, 12, 24, 36, 48, 60s | 720p           | <Check /> |
+| `seedance-2.0`      | 4–15s                     | 720p           | <Cross /> |
+| `seedance-2.5`      | 4–30s                     | 720p           | <Cross /> |
+
+<Note>
+  Model IDs are not an allowlist. An unrecognised ID is passed through unchanged
+  with a warning, so newly released Magic Hour models work without waiting for a
+  provider update.
+</Note>
+
+### Resolution
+
+The AI SDK expresses resolution as `{width}x{height}`; Magic Hour uses named tiers. The provider maps by height — `854x480` to `480p`, `1280x720` to `720p`, `1920x1080` to `1080p`, and anything taller to `4k`. To name a tier directly, use provider options:
+
+```ts
+const { video } = await generateVideo({
+  model: magicHour.video("kling-3.0"),
+  prompt: "a paper boat crossing a puddle at night",
+  providerOptions: {
+    magicHour: { resolution: "1080p" },
+  },
+});
+```
+
+## Image Models
+
+Create an image model with `magicHour.image()` and pass it to `generateImage`:
+
+```ts
+import { generateImage } from "ai";
+import { magicHour } from "magic-hour-ai-provider";
+
+const { images } = await generateImage({
+  model: magicHour.image("nano-banana-pro"),
+  prompt: "a red bicycle against a whitewashed wall",
+  n: 4,
+});
+```
+
+Available models: `default`, `gpt-image-2`, `nano-banana-pro`, `seedream-5-pro`, `flux-2-klein`, `z-image-turbo`, `qwen-edit`.
+
+Magic Hour takes an aspect ratio and a resolution tier rather than exact pixel dimensions, so `size` is interpreted as an aspect ratio and the tier is selected through provider options:
+
+```ts
+providerOptions: {
+  magicHour: { resolution: '2k' }, // auto | 640px | 1k | 2k | 4k
+}
+```
+
+## Provider Options
+
+Options passed under `providerOptions.magicHour` that are not listed below are forwarded to the Magic Hour API unchanged.
+
+| Option       | Applies to   | Description                                                                |
+| ------------ | ------------ | -------------------------------------------------------------------------- |
+| `resolution` | video, image | Names the Magic Hour tier directly, overriding `resolution` / `size`.      |
+| `name`       | video, image | Label shown in the Magic Hour dashboard.                                   |
+| `strict`     | video        | Skips duration and resolution correction and sends the request as written. |
+
+## Provider Metadata
+
+Completed generations return Magic Hour's project ID and render details on `providerMetadata.magicHour`:
+
+```ts
+const { video, providerMetadata } = await generateVideo({
+  model: magicHour.video("kling-3.0"),
+  prompt: "a paper boat crossing a puddle at night",
+});
+
+console.log(providerMetadata.magicHour);
+// { projectId: 'cuid...', status: 'complete', width: 1280, height: 720, fps: 24 }
+```
+
+## Polling
+
+Because the provider implements `doStart` and `doStatus`, the polling interval is controlled by the AI SDK:
+
+```ts
+const { video } = await generateVideo({
+  model: magicHour.video("sora-2"),
+  prompt: "a cat conducting an orchestra",
+  poll: { intervalMs: 5000 },
+});
+```
+
+Magic Hour has no webhook mechanism, so the provider does not implement `handleWebhookOption` and the SDK falls back to polling without creating a webhook endpoint.
+
+<Note>
+  Magic Hour refunds credits for failed renders automatically, so an error costs
+  nothing.
+</Note>
