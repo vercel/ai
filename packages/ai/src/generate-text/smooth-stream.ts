@@ -33,7 +33,7 @@ export type ChunkDetector = (buffer: string) => string | undefined | null;
  * Smooths text and reasoning streaming output.
  *
  * @param delayInMs - The delay in milliseconds between each chunk. Defaults to 10ms. Can be set to `null` to skip the delay. The delay is skipped while the document is hidden (e.g. browser background tabs), where timer throttling would otherwise stall the stream.
- * @param chunking - Controls how the text is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, provide a custom RegExp pattern for custom chunking, provide an Intl.Segmenter for locale-aware word segmentation (recommended for CJK languages), or provide a custom ChunkDetector function.
+ * @param chunking - Controls how the text is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, provide a custom RegExp pattern that does not match the empty string for custom chunking, provide an Intl.Segmenter for locale-aware word segmentation (recommended for CJK languages), or provide a custom ChunkDetector function.
  *
  * @returns A transform stream that smooths text streaming output.
  */
@@ -105,13 +105,25 @@ export function smoothStream<TOOLS extends ToolSet>({
     }
 
     detectChunk = buffer => {
-      const match = chunkingRegex.exec(buffer);
+      const lastIndex = chunkingRegex.lastIndex;
+      chunkingRegex.lastIndex = 0;
+
+      let match: RegExpExecArray | null;
+      try {
+        match = chunkingRegex.exec(buffer);
+      } finally {
+        chunkingRegex.lastIndex = lastIndex;
+      }
 
       if (!match) {
         return null;
       }
 
-      return buffer.slice(0, match.index) + match?.[0];
+      if (!match[0].length) {
+        throw new Error(`Chunking RegExp must not match an empty string.`);
+      }
+
+      return buffer.slice(0, match.index) + match[0];
     };
   }
 
