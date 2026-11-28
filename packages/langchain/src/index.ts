@@ -6,6 +6,11 @@ export {
 } from './adapter';
 
 export {
+  baseMessagesToUIMessages,
+  stateSnapshotToUIMessages,
+} from './base-messages-to-ui-messages';
+
+export {
   LangSmithDeploymentTransport,
   type LangSmithDeploymentTransportOptions,
 } from './transport';
