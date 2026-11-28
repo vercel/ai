@@ -91,6 +91,21 @@ describe('doGenerate', () => {
 
       expect(result).toMatchSnapshot();
     });
+
+    it('should serialize object tool call arguments', async () => {
+      prepareJsonFixtureResponse('mistral-object-tool-call');
+
+      const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+      expect(result.content).toStrictEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'gSIMJiOkT',
+          toolName: 'weather',
+          input: '{"location":"San Francisco"}',
+        },
+      ]);
+    });
   });
 
   describe('reasoning', () => {
@@ -1343,6 +1358,33 @@ describe('doStream', () => {
       expect(
         await convertReadableStreamToArray(result.stream),
       ).toMatchSnapshot();
+    });
+
+    it('should stream object tool call arguments', async () => {
+      prepareChunksFixtureResponse('mistral-object-tool-call');
+
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(
+        parts.filter(
+          part => part.type === 'error' || part.type.startsWith('tool-'),
+        ),
+      ).toStrictEqual([
+        { type: 'tool-input-start', id: 'gSIMJiOkT', toolName: 'weather' },
+        {
+          type: 'tool-input-delta',
+          id: 'gSIMJiOkT',
+          delta: '{"location":"San Francisco"}',
+        },
+        { type: 'tool-input-end', id: 'gSIMJiOkT' },
+        {
+          type: 'tool-call',
+          toolCallId: 'gSIMJiOkT',
+          toolName: 'weather',
+          input: '{"location":"San Francisco"}',
+        },
+      ]);
     });
 
     it('should accumulate incremental tool call arguments', async () => {
