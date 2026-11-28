@@ -233,7 +233,13 @@ const agent = new ToolLoopAgent({ ... });
 
 const stream = await createAgentUIStream({
   agent,
-  messages: [{ role: "user", content: "What is the weather in NYC?" }]
+  uiMessages: [
+    {
+      id: "1",
+      role: "user",
+      parts: [{ type: "text", text: "What is the weather in NYC?" }],
+    },
+  ],
 });
 
 for await (const chunk of stream) {

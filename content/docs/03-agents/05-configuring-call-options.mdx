@@ -273,7 +273,7 @@ export async function POST(request: Request) {
 
   return createAgentUIStreamResponse({
     agent: myAgent,
-    messages,
+    uiMessages: messages,
     options: {
       userId,
       accountType,
