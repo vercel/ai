@@ -1032,4 +1032,43 @@ console.log(text);`,
     websiteUrl: 'https://upstash.com',
     npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
   },
+  {
+    slug: 'inferrail',
+    name: 'Inferrail',
+    description:
+      "Read public web pages as clean Markdown with each page's metadata (title, authors, published date, language, canonical URL) and a content hash, one page or up to 10 per call. $0.002 per delivered page, paid from prepaid credits with an API key: a page that can't be read is never charged, and a retry with the same request id never pays twice. Teams that prefer a wallet can pay per call over x402 instead.",
+    packageName: '@inferrail/ai-sdk-tools',
+    tags: ['web-scraping', 'markdown', 'web-reading', 'citations'],
+    apiKeyEnvName: 'INFERRAIL_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @inferrail/ai-sdk-tools',
+      npm: 'npm install @inferrail/ai-sdk-tools',
+      yarn: 'yarn add @inferrail/ai-sdk-tools',
+      bun: 'bun add @inferrail/ai-sdk-tools',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { inferrailCreditTools } from '@inferrail/ai-sdk-tools';
+
+// An Inferrail workspace key with prepaid credits: $0.002 per delivered page,
+// and a page that can't be read costs nothing.
+const { readPages } = inferrailCreditTools({
+  apiKey: process.env.INFERRAIL_API_KEY!,
+});
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: { readPages },
+  stopWhen: isStepCount(3),
+  prompt:
+    'What changed in Node.js 22.11.0? Read https://nodejs.org/en/blog/release/v22.11.0 and cite it.',
+});
+
+console.log(text);`,
+    docsUrl:
+      'https://github.com/domondi1/inferrail/tree/main/packages/ai-sdk-tools#pay-with-an-api-key-prepaid-credits-no-wallet',
+    apiKeyUrl:
+      'https://github.com/domondi1/inferrail/tree/main/packages/ai-sdk-tools#pay-with-an-api-key-prepaid-credits-no-wallet',
+    websiteUrl: 'https://github.com/domondi1/inferrail',
+    npmUrl: 'https://www.npmjs.com/package/@inferrail/ai-sdk-tools',
+  },
 ];
