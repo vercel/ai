@@ -1,0 +1,93 @@
+---
+title: Shopping Agent
+description: Learn how to build an agent that searches products and compares retailer offers with the AI SDK and Node
+tags: ['node', 'tool use', 'agent', 'shopping']
+---
+
+# Shopping Agent
+
+A shopping agent needs structured product data: titles, brands, images and each retailer's current price and stock. Web search returns pages about products, but not data like this. Product search tools return it directly, so the agent can compare offers and your app can render the results as product cards.
+
+This example uses [Channel3](https://channel3.ai), which searches 100M+ products across thousands of retailers.
+
+<Note>
+  Get a free API key from [Channel3](https://channel3.ai/sign-up/developer) and
+  set it as `CHANNEL3_API_KEY`.
+</Note>
+
+First, install the Channel3 agent toolkit:
+
+```bash
+pnpm install @channel3/agent-toolkit
+```
+
+It provides two tools:
+
+- `searchProductsTool` searches for one product type by text query or image URL, and returns in-stock products with every retailer's offer.
+- `getProductsTool` gets full product details by product ID or retailer URL.
+
+## Compare offers with `generateText`
+
+```ts
+import { generateText, isStepCount } from 'ai';
+__PROVIDER_IMPORT__;
+import {
+  searchProductsTool,
+  getProductsTool,
+} from '@channel3/agent-toolkit/ai-sdk';
+
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt:
+    'Find me a leather golf glove under $40 and tell me which retailer has it cheapest.',
+  tools: {
+    search_products: searchProductsTool,
+    get_products: getProductsTool,
+  },
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);
+```
+
+The model searches, picks a product, fetches its details and compares the offers across retailers.
+
+## Use the product data in your app
+
+The model sees a compact summary of each search: one line per product with its title, brand, best price and ID. The full structured result stays in the tool output. Read it from the tool results to render product cards:
+
+```ts
+import { ToolLoopAgent, isStepCount } from 'ai';
+__PROVIDER_IMPORT__;
+import { channel3Tools } from '@channel3/agent-toolkit/ai-sdk';
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  instructions:
+    'You are a shopping assistant. Search for each product type separately and recommend in-stock options.',
+  tools: channel3Tools(),
+  stopWhen: isStepCount(5),
+});
+
+const { text, steps } = await agent.generate({
+  prompt: 'I need a carry-on suitcase and a packing cube set for a trip.',
+});
+
+for (const toolResult of steps.flatMap(step => step.toolResults)) {
+  if (!toolResult.dynamic && toolResult.toolName === 'search_products') {
+    for (const product of toolResult.output.products) {
+      const offer = product.offers[0];
+      console.log(
+        product.title,
+        product.images[0]?.url,
+        offer &&
+          `${offer.price.price} ${offer.price.currency} at ${offer.domain}`,
+      );
+    }
+  }
+}
+
+console.log(text);
+```
+
+Offer URLs are buy links, so purchases earn commission for the account that owns the API key.
