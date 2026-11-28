@@ -76,7 +76,7 @@ export async function callCompletionApi({
 
     if (!response.ok) {
       throw new Error(
-        (await response.text()) ?? 'Failed to fetch the chat response.',
+        (await response.text()) || 'Failed to fetch the chat response.',
       );
     }
 
