@@ -1,0 +1,177 @@
+---
+title: SaladCloud AI Gateway
+description: Learn how to use the SaladCloud AI Gateway provider for the AI SDK.
+---
+
+# SaladCloud AI Gateway
+
+[SaladCloud AI Gateway](https://docs.salad.com/ai-gateway/explanation/overview) is a hosted, OpenAI-compatible API for open-weight models running on SaladCloud's distributed GPU network. The [`@saladtechnologies-oss/ai-sdk-provider`](https://www.npmjs.com/package/@saladtechnologies-oss/ai-sdk-provider) package connects the gateway to AI SDK functions such as `generateText` and `streamText`.
+
+The provider supports text generation, streaming, tool calling, structured output, reasoning, and image input.
+
+<Note>
+  SaladCloud AI Gateway is currently in closed beta. You can request access from
+  the [AI Gateway page](https://salad.com/ai-gateway).
+</Note>
+
+## Setup
+
+Install the SaladCloud provider alongside AI SDK 7 and Zod:
+
+<InstallPackages packages="ai@beta zod @saladtechnologies-oss/ai-sdk-provider" />
+
+Set your SaladCloud API key:
+
+```bash
+export SALAD_CLOUD_API_KEY="your-api-key"
+```
+
+You can get an API key from the [SaladCloud portal](https://portal.salad.com).
+
+## Provider Instance
+
+The package exports a default `saladCloud` provider. It reads `SALAD_CLOUD_API_KEY` from the environment and uses `https://ai.salad.cloud/v1` as its base URL:
+
+```ts
+import { saladCloud } from '@saladtechnologies-oss/ai-sdk-provider';
+```
+
+Use `createSaladCloud` to pass configuration explicitly:
+
+```ts
+import { createSaladCloud } from '@saladtechnologies-oss/ai-sdk-provider';
+
+const saladCloud = createSaladCloud({
+  apiKey: process.env.SALAD_CLOUD_API_KEY,
+  baseURL: 'https://ai.salad.cloud/v1',
+});
+```
+
+You can also override the default base URL with the `SALAD_CLOUD_BASE_URL` environment variable or the `baseURL` option.
+
+## Language Models
+
+Call the provider with a SaladCloud model ID to create a language model:
+
+```ts
+const model = saladCloud('qwen3.6-35b-a3b');
+```
+
+This integration lists the following model:
+
+| Model ID          | Context window | Input price | Output price |
+| ----------------- | -------------- | ----------- | ------------ |
+| `qwen3.6-35b-a3b` | 262,144 tokens | $0.09 / 1M  | $0.60 / 1M   |
+
+The model accepts text and image input and produces text output. SaladCloud bills it per token at the per-million rates shown above. Input prices apply to prompts, image inputs, tool definitions, and conversation history. See the [SaladCloud model reference](https://docs.salad.com/ai-gateway/reference/models) and [pricing reference](https://docs.salad.com/ai-gateway/reference/pricing) for details.
+
+## Examples
+
+### `generateText`
+
+```ts
+import { saladCloud } from '@saladtechnologies-oss/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: saladCloud('qwen3.6-35b-a3b'),
+  prompt: 'Explain distributed GPU computing in one sentence.',
+});
+
+console.log(text);
+```
+
+### `streamText`
+
+```ts
+import { saladCloud } from '@saladtechnologies-oss/ai-sdk-provider';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: saladCloud('qwen3.6-35b-a3b'),
+  prompt: 'Write a haiku about distributed computing.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+## Reasoning
+
+Use the standard AI SDK `reasoning` option to control Qwen thinking behavior. Omitting it leaves the provider default enabled. Passing `'none'` disables thinking, while `'low'`, `'medium'`, and `'high'` set the reasoning effort:
+
+```ts
+import { saladCloud } from '@saladtechnologies-oss/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: saladCloud('qwen3.6-35b-a3b'),
+  prompt: 'What is 12 * 37?',
+  reasoning: 'medium',
+});
+
+console.log(result.finalStep.reasoningText);
+console.log(result.text);
+```
+
+## Provider Options
+
+Use `providerOptions['salad-cloud']` for SaladCloud-specific options:
+
+```ts
+import { saladCloud } from '@saladtechnologies-oss/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: saladCloud('qwen3.6-35b-a3b'),
+  prompt: 'Solve step by step: what is 15 * 17?',
+  providerOptions: {
+    'salad-cloud': {
+      reasoningEffort: 'high',
+      topK: 40,
+    },
+  },
+});
+```
+
+| Option            | Type                          | Description                     |
+| ----------------- | ----------------------------- | ------------------------------- |
+| `reasoningEffort` | `'low' \| 'medium' \| 'high'` | Controls reasoning effort depth |
+| `topK`            | `number`                      | Sets the Top-K sampling cutoff  |
+
+## Vision
+
+Pass image URLs or inline image data as file parts:
+
+```ts
+import { saladCloud } from '@saladtechnologies-oss/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: saladCloud('qwen3.6-35b-a3b'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Describe this image.' },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: new URL('https://example.com/image.png'),
+        },
+      ],
+    },
+  ],
+});
+
+console.log(text);
+```
+
+## Additional Resources
+
+- [SaladCloud AI Gateway documentation](https://docs.salad.com/ai-gateway/explanation/overview)
+- [SaladCloud AI Gateway model reference](https://docs.salad.com/ai-gateway/reference/models)
+- [SaladCloud AI Gateway pricing](https://docs.salad.com/ai-gateway/reference/pricing)
+- [SaladCloud provider package](https://www.npmjs.com/package/@saladtechnologies-oss/ai-sdk-provider)
+- [SaladCloud provider repository](https://github.com/SaladTechnologies/ai-sdk-provider)
