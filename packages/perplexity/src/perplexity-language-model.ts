@@ -499,6 +499,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
     let hasFunctionCall = false;
     let hasResponseMetadata = false;
     let activeReasoningId: string | undefined;
+    let activeReasoningText = '';
     const textStates = new Map<string, { text: string; ended: boolean }>();
     const emittedSourceUrls = new Set<string>();
     const pendingSourcesByUrl = new Map<string, PerplexityUrlSource>();
@@ -540,12 +541,24 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
                 : `${id}:${contentIndex}`;
             };
 
+            const endReasoning = () => {
+              if (activeReasoningId != null) {
+                controller.enqueue({
+                  type: 'reasoning-end',
+                  id: activeReasoningId,
+                });
+                activeReasoningId = undefined;
+                activeReasoningText = '';
+              }
+            };
+
             const emitTextDelta = (id: string, delta: string) => {
               let state = textStates.get(id);
               if (state?.ended) {
                 return;
               }
               if (state == null) {
+                endReasoning();
                 state = { text: '', ended: false };
                 textStates.set(id, state);
                 controller.enqueue({ type: 'text-start', id });
@@ -613,16 +626,41 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
               }
             };
 
+            const startReasoning = (
+              sequenceNumber: number | null | undefined,
+            ): string => {
+              endReasoning();
+              const id = `reasoning-${sequenceNumber ?? generateId()}`;
+              activeReasoningId = id;
+              activeReasoningText = '';
+              controller.enqueue({ type: 'reasoning-start', id });
+              return id;
+            };
+
             const emitReasoningThought = (
               thought: string | null | undefined,
+              sequenceNumber: number | null | undefined,
             ) => {
-              if (activeReasoningId != null && thought != null) {
-                controller.enqueue({
-                  type: 'reasoning-delta',
-                  id: activeReasoningId,
-                  delta: thought,
-                });
+              if (thought == null || thought.length === 0) {
+                return;
               }
+              // Presets stream status thoughts on search and fetch events
+              // without a preceding response.reasoning.started event.
+              const id = activeReasoningId ?? startReasoning(sequenceNumber);
+              // Status thoughts such as "Searching the web..." and
+              // "Found 10 results" arrive without separators.
+              const delta =
+                activeReasoningText.length > 0 &&
+                !/\s$/.test(activeReasoningText) &&
+                !/^\s/.test(thought)
+                  ? `\n${thought}`
+                  : thought;
+              activeReasoningText += delta;
+              controller.enqueue({
+                type: 'reasoning-delta',
+                id,
+                delta,
+              });
             };
 
             const emitFunctionCall = (item: PerplexityOutputItem) => {
@@ -637,6 +675,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
               }
               seenFunctionCalls.add(item.call_id);
               hasFunctionCall = true;
+              endReasoning();
               controller.enqueue({
                 type: 'tool-input-start',
                 id: item.call_id,
@@ -740,20 +779,8 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
               }
 
               case 'response.reasoning.started': {
-                if (activeReasoningId != null) {
-                  controller.enqueue({
-                    type: 'reasoning-end',
-                    id: activeReasoningId,
-                  });
-                }
-                activeReasoningId = `reasoning-${
-                  value.sequence_number ?? generateId()
-                }`;
-                controller.enqueue({
-                  type: 'reasoning-start',
-                  id: activeReasoningId,
-                });
-                emitReasoningThought(value.thought);
+                startReasoning(value.sequence_number);
+                emitReasoningThought(value.thought, value.sequence_number);
                 break;
               }
 
@@ -764,12 +791,12 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
               }
 
               case 'response.reasoning.fetch_url_queries': {
-                emitReasoningThought(value.thought);
+                emitReasoningThought(value.thought, value.sequence_number);
                 break;
               }
 
               case 'response.reasoning.search_results': {
-                emitReasoningThought(value.thought);
+                emitReasoningThought(value.thought, value.sequence_number);
                 for (const result of value.results ?? []) {
                   emitSource(createSource(result, generateId));
                 }
@@ -777,7 +804,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
               }
 
               case 'response.reasoning.fetch_url_results': {
-                emitReasoningThought(value.thought);
+                emitReasoningThought(value.thought, value.sequence_number);
                 for (const result of value.contents ?? []) {
                   emitSource({
                     type: 'source',
@@ -794,14 +821,8 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
               }
 
               case 'response.reasoning.stopped': {
-                emitReasoningThought(value.thought);
-                if (activeReasoningId != null) {
-                  controller.enqueue({
-                    type: 'reasoning-end',
-                    id: activeReasoningId,
-                  });
-                  activeReasoningId = undefined;
-                }
+                emitReasoningThought(value.thought, value.sequence_number);
+                endReasoning();
                 break;
               }
 
