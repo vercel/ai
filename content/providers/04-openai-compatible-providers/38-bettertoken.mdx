@@ -1,0 +1,76 @@
+---
+title: BetterToken
+description: Use the BetterToken OpenAI compatible API with the AI SDK.
+---
+
+# BetterToken Provider
+
+[BetterToken](https://bettertoken.ai) is a pay-as-you-go API gateway for Claude,
+GPT, DeepSeek, Kimi, GLM, MiniMax and Qwen models behind one API key. You can use
+its Chat Completions endpoint with the AI SDK through the
+`@ai-sdk/openai-compatible` module.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+[Create a BetterToken account](https://bettertoken.ai/register), add balance,
+create an API key, and set it as a server-side environment variable:
+
+```bash
+export BETTERTOKEN_API_KEY=your-api-key
+```
+
+## Provider Instance
+
+Create a BetterToken provider instance with `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const bettertoken = createOpenAICompatible({
+  name: 'bettertoken',
+  apiKey: process.env.BETTERTOKEN_API_KEY,
+  baseURL: 'https://bettertoken.ai/v1',
+  includeUsage: true,
+});
+```
+
+`includeUsage: true` requests usage information in streaming responses.
+
+## Language Models
+
+Create a language model by passing a BetterToken model ID to the provider
+instance. Current model IDs and per-token prices are listed on the
+[BetterToken pricing page](https://bettertoken.ai/pricing).
+
+```ts
+const model = bettertoken('claude-sonnet-5-5');
+```
+
+### Example
+
+Use `generateText` to generate text with the model:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const bettertoken = createOpenAICompatible({
+  name: 'bettertoken',
+  apiKey: process.env.BETTERTOKEN_API_KEY,
+  baseURL: 'https://bettertoken.ai/v1',
+  includeUsage: true,
+});
+
+const { text } = await generateText({
+  model: bettertoken('claude-sonnet-5-5'),
+  prompt: 'Write a haiku about API gateways.',
+});
+```
+
+For streaming, structured outputs and tool calls, see the
+[OpenAI Compatible Providers](/providers/openai-compatible-providers)
+documentation.
