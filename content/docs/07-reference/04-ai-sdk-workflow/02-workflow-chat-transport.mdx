@@ -62,6 +62,13 @@ export default function Chat() {
         'Maximum number of consecutive errors allowed during reconnection attempts before giving up. Streams that end without receiving any UI message chunks count as errors. Default: 3.',
     },
     {
+      name: 'stopWhen',
+      type: '() => boolean | PromiseLike<boolean>',
+      isOptional: true,
+      description:
+        'Predicate that terminally stops automatic reconnection when it returns true. The returned stream closes normally without a finish chunk, onChatEnd is not invoked, and stopping takes precedence over maxConsecutiveErrors. It does not abort an active request or cancel the server-side workflow.',
+    },
+    {
       name: 'initialStartIndex',
       type: 'number',
       isOptional: true,
@@ -201,6 +208,43 @@ The transport follows this flow:
 4. **Reconnect** via GET to `{api}/{runId}/stream?startIndex={chunkIndex}` to resume from the last received chunk.
 5. **Retry**: If the reconnection stream also interrupts, resume from the updated chunk index. Streams that end without receiving any UI message chunks count toward `maxConsecutiveErrors`, as do stream parsing errors. A successfully parsed stream that receives chunks resets the consecutive error count.
 6. **Complete**: Once a `finish` event is received, call `onChatEnd` and close the stream.
+
+### Terminally Stopping Reconnection
+
+Use `stopWhen` when an application-level stop should end the current automatic
+reconnection lifecycle without fabricating a `finish` event:
+
+```ts
+let stopRequested = false;
+
+const transport = new WorkflowChatTransport({
+  api: '/api/chat',
+  stopWhen: () => stopRequested,
+});
+
+async function stopWorkflow() {
+  stopRequested = true;
+
+  // Also cancel the server-side producer through an authenticated endpoint.
+  await fetch('/api/chat/stop', { method: 'POST' });
+}
+```
+
+The predicate is evaluated after an interrupted POST, before every reconnect
+request, when a pending reconnect request settles, and after an interrupted
+reconnect stream. Once it returns `true`, the transport closes its output stream
+normally and makes no later reconnect requests. A terminal stop takes
+precedence over another retry and over `maxConsecutiveErrors`; it does not
+increment the error count or throw the retry-limit error. `onChatEnd` remains
+finish-only and is not called for a terminal stop.
+
+`stopWhen` controls reconnection rather than cancellation. It does not abort
+the active fetch or stream and does not cancel the workflow running on the
+server. Use the per-call `abortSignal` when the active transport request itself
+must be cancelled, and call an authenticated server endpoint to stop the
+workflow producer. If the transport instance is reused for a later chat
+lifecycle, reset the application state read by `stopWhen` before sending the
+next message.
 
 ### Negative Start Index
 
