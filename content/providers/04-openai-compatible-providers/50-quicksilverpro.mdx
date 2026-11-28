@@ -1,0 +1,109 @@
+---
+title: QuickSilver Pro
+description: Use the QuickSilver Pro OpenAI-compatible API with the AI SDK.
+---
+
+# QuickSilver Pro Provider
+
+[QuickSilver Pro](https://quicksilverpro.io) provides an OpenAI-compatible API for models including DeepSeek V4 Flash, DeepSeek V4 Pro, and Qwen3.6-35B-A3B.
+
+## Setup
+
+The QuickSilver Pro provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API. You can install it with:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+## Provider Instance
+
+To use QuickSilver Pro, create an `@ai-sdk/openai-compatible` provider instance pointing at the QSP endpoint:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const quicksilverpro = createOpenAICompatible({
+  name: 'quicksilverpro',
+  baseURL: 'https://api.quicksilverpro.io/v1',
+  apiKey: process.env.QSP_API_KEY,
+});
+```
+
+You can obtain an API key by signing up at [quicksilverpro.io](https://quicksilverpro.io) and then storing it as `QSP_API_KEY` in your environment.
+
+## Language Models
+
+Use a QSP provider instance to create language models. The first argument is the model id, e.g. `deepseek-v4-flash`.
+
+```ts
+const model = quicksilverpro('deepseek-v4-flash');
+```
+
+Examples of chat model IDs from the [public model catalog](https://quicksilverpro.io/pricing.json) include:
+
+- `deepseek-v4-flash` — DeepSeek V4 Flash
+- `deepseek-v4-pro` — DeepSeek V4 Pro
+- `qwen3.6-35b` — Qwen3.6-35B-A3B
+
+See the catalog for the current model list and capabilities.
+
+### Example — `generateText`
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const quicksilverpro = createOpenAICompatible({
+  name: 'quicksilverpro',
+  baseURL: 'https://api.quicksilverpro.io/v1',
+  apiKey: process.env.QSP_API_KEY,
+});
+
+const { text } = await generateText({
+  model: quicksilverpro('deepseek-v4-flash'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+
+console.log(text);
+```
+
+### Example — streaming with `streamText`
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const quicksilverpro = createOpenAICompatible({
+  name: 'quicksilverpro',
+  baseURL: 'https://api.quicksilverpro.io/v1',
+  apiKey: process.env.QSP_API_KEY,
+});
+
+const result = streamText({
+  model: quicksilverpro('deepseek-v4-flash'),
+  prompt: 'Explain the halting problem in three sentences.',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+### Including model ids for auto-completion
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+type QuickSilverProChatModelIds =
+  | 'deepseek-v4-flash'
+  | 'deepseek-v4-pro'
+  | 'qwen3.6-35b'
+  | (string & {});
+
+const quicksilverpro = createOpenAICompatible<QuickSilverProChatModelIds>({
+  name: 'quicksilverpro',
+  baseURL: 'https://api.quicksilverpro.io/v1',
+  apiKey: process.env.QSP_API_KEY,
+});
+
+// Subsequent calls auto-complete the known model ids while still allowing free-form strings.
+const model = quicksilverpro('deepseek-v4-flash');
+```
