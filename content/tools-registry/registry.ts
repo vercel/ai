@@ -1033,21 +1033,21 @@ console.log(text);`,
     npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
   },
   {
-    slug: 'pidgeon',
-    name: 'Pidgeon',
+    slug: 'zurchin',
+    name: 'Zurchin',
     description:
-      'Email inboxes for AI agents, on @pidgeon.email or your domain, and for every user of your platform. The model creates inboxes, sends, waits for the reply and answers in the thread. Actions that cannot be undone can wait for a person to approve them.',
-    packageName: '@pidgeon-ai/ai-sdk',
+      'Email inboxes for AI agents, on @zurchin.email or your domain, and for every user of your platform. The model creates inboxes, sends, waits for the reply and answers in the thread. Actions that cannot be undone can wait for a person to approve them.',
+    packageName: '@zurchin/ai-sdk',
     tags: ['email', 'inbox', 'agents', 'security'],
-    apiKeyEnvName: 'PIDGEON_API_KEY',
+    apiKeyEnvName: 'ZURCHIN_API_KEY',
     installCommand: {
-      pnpm: 'pnpm add @pidgeon-ai/ai-sdk',
-      npm: 'npm install @pidgeon-ai/ai-sdk',
-      yarn: 'yarn add @pidgeon-ai/ai-sdk',
-      bun: 'bun add @pidgeon-ai/ai-sdk',
+      pnpm: 'pnpm add @zurchin/ai-sdk',
+      npm: 'npm install @zurchin/ai-sdk',
+      yarn: 'yarn add @zurchin/ai-sdk',
+      bun: 'bun add @zurchin/ai-sdk',
     },
     codeExample: `import { generateText, isStepCount } from 'ai';
-import { pidgeonToolApproval, pidgeonTools } from '@pidgeon-ai/ai-sdk';
+import { pidgeonToolApproval, pidgeonTools } from '@zurchin/ai-sdk';
 
 const tools = pidgeonTools();
 
@@ -1061,9 +1061,9 @@ const { text } = await generateText({
 });
 
 console.log(text);`,
-    docsUrl: 'https://pidgeon.ai/docs/sdks#vercel-ai-sdk',
-    apiKeyUrl: 'https://pidgeon.ai/keys',
-    websiteUrl: 'https://pidgeon.ai',
-    npmUrl: 'https://www.npmjs.com/package/@pidgeon-ai/ai-sdk',
+    docsUrl: 'https://zurchin.com/docs/sdks#vercel-ai-sdk',
+    apiKeyUrl: 'https://zurchin.com/keys',
+    websiteUrl: 'https://zurchin.com',
+    npmUrl: 'https://www.npmjs.com/package/@zurchin/ai-sdk',
   },
 ];
