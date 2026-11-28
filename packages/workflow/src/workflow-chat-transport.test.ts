@@ -68,6 +68,31 @@ describe('WorkflowChatTransport', () => {
       });
       expect(transport).toBeDefined();
     });
+
+    it('should accept fixed and computed retry delays', () => {
+      expect(
+        new WorkflowChatTransport({
+          retryDelayMs: 100,
+        }),
+      ).toBeDefined();
+      expect(
+        new WorkflowChatTransport({
+          retryDelayMs: ({ consecutiveErrors }) => 100 * 2 ** consecutiveErrors,
+        }),
+      ).toBeDefined();
+    });
+
+    it.each([-1, Number.POSITIVE_INFINITY, 2_147_483_648])(
+      'should reject invalid fixed retry delay %s',
+      retryDelayMs => {
+        expect(
+          () =>
+            new WorkflowChatTransport({
+              retryDelayMs,
+            }),
+        ).toThrow('retryDelayMs must be between 0 and 2147483647.');
+      },
+    );
   });
 
   describe('prepareSendMessagesRequest', () => {
@@ -1072,6 +1097,192 @@ describe('WorkflowChatTransport', () => {
         chatId: 'test-chat',
         chunkIndex: 2,
       });
+    });
+  });
+
+  describe('reconnection retry delays', () => {
+    function response(...chunks: UIMessageChunk[]) {
+      return new Response(
+        chunks.map(chunk => `data: ${JSON.stringify(chunk)}\n\n`).join(''),
+      );
+    }
+
+    it('uses the configured backoff between reconnect attempts', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const retryDelayMs = vi.fn(
+        ({ consecutiveErrors }: { consecutiveErrors: number }) =>
+          consecutiveErrors * 100,
+      );
+      const transport = new WorkflowChatTransport({
+        fetch: mockFetch,
+        maxConsecutiveErrors: 3,
+        retryDelayMs,
+      });
+      mockFetch
+        .mockResolvedValueOnce(response())
+        .mockResolvedValueOnce(response())
+        .mockResolvedValueOnce(response({ type: 'finish' }));
+
+      const stream = await transport.reconnectToStream({ chatId: 'test-chat' });
+      const readPromise = stream!.getReader().read();
+
+      await vi.advanceTimersByTimeAsync(99);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(1);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+
+      await vi.advanceTimersByTimeAsync(199);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+
+      await vi.advanceTimersByTimeAsync(1);
+      await expect(readPromise).resolves.toMatchObject({
+        value: { type: 'finish' },
+      });
+      expect(mockFetch).toHaveBeenCalledTimes(3);
+      expect(retryDelayMs).toHaveBeenNthCalledWith(1, {
+        consecutiveErrors: 1,
+      });
+      expect(retryDelayMs).toHaveBeenNthCalledWith(2, {
+        consecutiveErrors: 2,
+      });
+      expect(retryDelayMs).toHaveBeenCalledTimes(2);
+    });
+
+    it('passes zero consecutive errors after a reconnect makes progress', async () => {
+      const retryDelayMs = vi.fn(() => 100);
+      const transport = new WorkflowChatTransport({
+        fetch: mockFetch,
+        retryDelayMs,
+      });
+      mockFetch
+        .mockResolvedValueOnce(response({ type: 'start-step' }))
+        .mockResolvedValueOnce(response({ type: 'finish' }));
+
+      const stream = await transport.reconnectToStream({ chatId: 'test-chat' });
+      const reader = stream!.getReader();
+
+      await expect(reader.read()).resolves.toMatchObject({
+        value: { type: 'start-step' },
+      });
+      const finishPromise = reader.read();
+      await vi.advanceTimersByTimeAsync(100);
+      await expect(finishPromise).resolves.toMatchObject({
+        value: { type: 'finish' },
+      });
+      expect(retryDelayMs).toHaveBeenCalledExactlyOnceWith({
+        consecutiveErrors: 0,
+      });
+    });
+
+    it('does not schedule a delay after reaching the error limit', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const retryDelayMs = vi.fn(() => 100);
+      const transport = new WorkflowChatTransport({
+        fetch: mockFetch,
+        maxConsecutiveErrors: 2,
+        retryDelayMs,
+      });
+      mockFetch.mockResolvedValue(response());
+
+      const stream = await transport.reconnectToStream({ chatId: 'test-chat' });
+      const readPromise = stream!.getReader().read();
+      const readExpectation = expect(readPromise).rejects.toThrow(
+        'Failed to reconnect after 2 consecutive errors',
+      );
+
+      await vi.advanceTimersByTimeAsync(100);
+      await readExpectation;
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(retryDelayMs).toHaveBeenCalledExactlyOnceWith({
+        consecutiveErrors: 1,
+      });
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it('keeps retries immediate when retryDelayMs is omitted', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const transport = new WorkflowChatTransport({
+        fetch: mockFetch,
+      });
+      mockFetch
+        .mockResolvedValueOnce(response())
+        .mockResolvedValueOnce(response({ type: 'finish' }));
+
+      const stream = await transport.reconnectToStream({ chatId: 'test-chat' });
+
+      await expect(stream!.getReader().read()).resolves.toMatchObject({
+        value: { type: 'finish' },
+      });
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it('cancels a pending delay when the abort signal is aborted', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const abortController = new AbortController();
+      const onChatEnd = vi.fn();
+      const transport = new WorkflowChatTransport({
+        fetch: mockFetch,
+        onChatEnd,
+        retryDelayMs: 10_000,
+      });
+      mockFetch.mockResolvedValue(response());
+
+      const stream = await transport.reconnectToStream({
+        chatId: 'test-chat',
+        abortSignal: abortController.signal,
+      });
+      const readPromise = stream!.getReader().read();
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(vi.getTimerCount()).toBe(1);
+
+      abortController.abort();
+
+      await expect(readPromise).rejects.toMatchObject({ name: 'AbortError' });
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(onChatEnd).not.toHaveBeenCalled();
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it('cancels a pending delay when the returned stream is cancelled', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const transport = new WorkflowChatTransport({
+        fetch: mockFetch,
+        retryDelayMs: 10_000,
+      });
+      mockFetch.mockResolvedValue(response());
+
+      const stream = await transport.reconnectToStream({ chatId: 'test-chat' });
+      const reader = stream!.getReader();
+      const readPromise = reader.read();
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(vi.getTimerCount()).toBe(1);
+
+      await expect(reader.cancel()).resolves.toBeUndefined();
+      await expect(readPromise).resolves.toMatchObject({ done: true });
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it('rejects invalid delays returned by the callback', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const transport = new WorkflowChatTransport({
+        fetch: mockFetch,
+        retryDelayMs: () => Number.NaN,
+      });
+      mockFetch.mockResolvedValue(response());
+
+      const stream = await transport.reconnectToStream({ chatId: 'test-chat' });
+
+      await expect(stream!.getReader().read()).rejects.toThrow(
+        'retryDelayMs must be between 0 and 2147483647.',
+      );
+      expect(mockFetch).toHaveBeenCalledTimes(1);
     });
   });
 
