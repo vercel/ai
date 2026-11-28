@@ -94,4 +94,27 @@ describe('signToolApproval + verifyToolApprovalSignature', () => {
     });
     expect(sig1).toBe(sig2);
   });
+
+  it('should produce different signatures for an empty array and an array containing undefined', async () => {
+    const emptySignature = await signToolApproval({
+      secret,
+      ...baseParams,
+      input: { values: [] },
+    });
+    const undefinedSignature = await signToolApproval({
+      secret,
+      ...baseParams,
+      input: { values: [undefined] },
+    });
+    expect(emptySignature).not.toBe(undefinedSignature);
+
+    expect(
+      await verifyToolApprovalSignature({
+        secret,
+        signature: emptySignature,
+        ...baseParams,
+        input: { values: [undefined] },
+      }),
+    ).toBe(false);
+  });
 });
