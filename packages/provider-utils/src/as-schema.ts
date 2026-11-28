@@ -22,6 +22,7 @@ export function asSchema<OBJECT>(
 ): Schema<OBJECT> {
   return schema == null
     ? jsonSchema({
+        type: 'object',
         properties: {},
         additionalProperties: false,
       })
