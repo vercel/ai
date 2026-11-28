@@ -1,0 +1,332 @@
+---
+title: Local Hybrid RAG with SQLite FTS5 & Stream Protocol
+description: Build a zero-cloud hybrid RAG chatbot using SQLite FTS5 BM25, Reciprocal Rank Fusion, and Next.js AI SDK streamText with citation streaming
+tags: ['next', 'rag', 'streaming', 'sqlite', 'hybrid-search']
+---
+
+# Local Hybrid RAG with SQLite FTS5 & Stream Protocol
+
+Standard dense vector search frequently suffers from **exact-match blindspots**—failing to reliably retrieve specific financial figures, policy codes, or alphanumeric identifiers. Furthermore, deploying standalone vector databases introduces external infrastructure overhead and network latency.
+
+This recipe demonstrates how to build an embedded **Zero-Cloud Hybrid RAG** engine in Next.js using:
+1. **SQLite FTS5 (BM25)** for exact lexical token matching.
+2. **Dense Vector Cosine Similarity** for semantic retrieval.
+3. **Reciprocal Rank Fusion (RRF, $k=60$)** to merge rankings into calibrated citation blocks.
+4. **AI SDK `streamText` & UI Stream Protocol** to stream grounded responses with interactive citation badges.
+
+---
+
+## 1. Embedded SQLite Hybrid Store
+
+Create a reusable TypeScript store that manages both the document vector store and the FTS5 virtual table:
+
+```typescript filename="lib/sqlite-hybrid-rag.ts"
+import Database from 'better-sqlite3';
+
+export interface RetrievedPassage {
+  citationIndex: number;
+  sourceFile: string;
+  content: string;
+  rrfScore: number;
+  matchType: 'dense' | 'bm25' | 'hybrid';
+}
+
+export class SQLiteHybridRAGStore {
+  private db: Database.Database;
+
+  constructor(dbPath: string = ':memory:') {
+    this.db = new Database(dbPath);
+    this.initSchema();
+  }
+
+  private initSchema(): void {
+    // 1. Regular table for raw content and dense embedding binary BLOBs
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS document_chunks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source_file TEXT NOT NULL,
+        content TEXT NOT NULL,
+        embedding BLOB NOT NULL
+      );
+    `);
+
+    // 2. FTS5 Virtual Table for full-text BM25 token matching
+    this.db.exec(`
+      CREATE VIRTUAL TABLE IF NOT EXISTS document_chunks_fts USING fts5(
+        content,
+        source_file UNINDEXED,
+        tokenize = 'unicode61'
+      );
+    `);
+  }
+
+  public insertChunk(sourceFile: string, content: string, embedding: number[]): void {
+    const float32Array = new Float32Array(embedding);
+    // Normalize vector for efficient dot-product cosine similarity
+    let norm = 0;
+    for (let i = 0; i < float32Array.length; i++) norm += float32Array[i] * float32Array[i];
+    norm = Math.sqrt(norm);
+    if (norm > 0) {
+      for (let i = 0; i < float32Array.length; i++) float32Array[i] /= norm;
+    }
+
+    const buffer = Buffer.from(float32Array.buffer);
+
+    const insertDoc = this.db.prepare(
+      'INSERT INTO document_chunks (source_file, content, embedding) VALUES (?, ?, ?)'
+    );
+    insertDoc.run(sourceFile, content, buffer);
+
+    const insertFts = this.db.prepare(
+      'INSERT INTO document_chunks_fts (content, source_file) VALUES (?, ?)'
+    );
+    insertFts.run(content, sourceFile);
+  }
+
+  public searchDense(queryEmbedding: number[], topK: number = 5): Array<{ id: number; sourceFile: string; content: string; score: number }> {
+    const qArray = new Float32Array(queryEmbedding);
+    let qNorm = 0;
+    for (let i = 0; i < qArray.length; i++) qNorm += qArray[i] * qArray[i];
+    qNorm = Math.sqrt(qNorm);
+    if (qNorm > 0) {
+      for (let i = 0; i < qArray.length; i++) qArray[i] /= qNorm;
+    }
+
+    const rows = this.db.prepare('SELECT id, source_file, content, embedding FROM document_chunks').all() as any[];
+    const scored = rows.map(row => {
+      const docBuffer = row.embedding as Buffer;
+      const docArray = new Float32Array(docBuffer.buffer, docBuffer.byteOffset, docBuffer.byteLength / 4);
+      let dot = 0;
+      for (let i = 0; i < qArray.length; i++) {
+        dot += qArray[i] * docArray[i];
+      }
+      return {
+        id: row.id,
+        sourceFile: row.source_file,
+        content: row.content,
+        score: dot,
+      };
+    });
+
+    return scored.sort((a, b) => b.score - a.score).slice(0, topK);
+  }
+
+  public searchSparseBM25(queryText: string, topK: number = 5): Array<{ id: number; sourceFile: string; content: string; score: number }> {
+    const sanitized = queryText.replace(/['"]/g, '').split(/\s+/).filter(Boolean).map(t => `"${t}"`).join(' OR ');
+    if (!sanitized) return [];
+
+    const rows = this.db.prepare(`
+      SELECT rowid as id, source_file, content, rank
+      FROM document_chunks_fts
+      WHERE document_chunks_fts MATCH ?
+      ORDER BY rank
+      LIMIT ?
+    `).all(sanitized, topK) as any[];
+
+    return rows.map(row => ({
+      id: row.id,
+      sourceFile: row.source_file,
+      content: row.content,
+      score: 1.0 / (1.0 + Math.abs(Number(row.rank))),
+    }));
+  }
+
+  public hybridSearch(queryText: string, queryEmbedding: number[], topK: number = 3, rrfK: number = 60): RetrievedPassage[] {
+    const denseHits = this.searchDense(queryEmbedding, topK * 2);
+    const sparseHits = this.searchSparseBM25(queryText, topK * 2);
+
+    const chunkMap = new Map<string, { sourceFile: string; content: string; matchType: 'dense' | 'bm25' | 'hybrid' }>();
+    const fusedScores = new Map<string, number>();
+
+    denseHits.forEach((hit, rank) => {
+      const key = `${hit.sourceFile}::${hit.content.substring(0, 60)}`;
+      chunkMap.set(key, { sourceFile: hit.sourceFile, content: hit.content, matchType: 'dense' });
+      fusedScores.set(key, (fusedScores.get(key) || 0) + (1.0 / (rrfK + (rank + 1))));
+    });
+
+    sparseHits.forEach((hit, rank) => {
+      const key = `${hit.sourceFile}::${hit.content.substring(0, 60)}`;
+      const existing = chunkMap.get(key);
+      if (!existing) {
+        chunkMap.set(key, { sourceFile: hit.sourceFile, content: hit.content, matchType: 'bm25' });
+      } else {
+        existing.matchType = 'hybrid';
+      }
+      fusedScores.set(key, (fusedScores.get(key) || 0) + (1.0 / (rrfK + (rank + 1))));
+    });
+
+    const sortedKeys = Array.from(fusedScores.keys())
+      .sort((a, b) => (fusedScores.get(b) || 0) - (fusedScores.get(a) || 0))
+      .slice(0, topK);
+
+    return sortedKeys.map((key, index) => {
+      const meta = chunkMap.get(key)!;
+      return {
+        citationIndex: index + 1,
+        sourceFile: meta.sourceFile,
+        content: meta.content,
+        rrfScore: Number((fusedScores.get(key) || 0).toFixed(4)),
+        matchType: meta.matchType,
+      };
+    });
+  }
+}
+```
+
+---
+
+## 2. Server Route Handler
+
+Create a Next.js App Router API route that retrieves passages and streams grounded tokens:
+
+```typescript filename="app/api/chat/route.ts"
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+  type UIMessage,
+} from 'ai';
+import { SQLiteHybridRAGStore } from '@/lib/sqlite-hybrid-rag';
+
+// Initialize singleton or in-memory store with enterprise corpus
+const store = new SQLiteHybridRAGStore();
+
+// Seed initial documents
+store.insertChunk(
+  'q3_financial_report.pdf',
+  'Engineering project total Q3 budget was allocated at 2,340,000 TL with 15 active developers.',
+  new Array(1536).fill(0.02) // Synthetic or provider embedding
+);
+store.insertChunk(
+  'hr_policy_2026.docx',
+  'Remote work equipment allowance is strictly capped at 15,000 TL per employee quarterly.',
+  new Array(1536).fill(0.03)
+);
+
+export async function POST(req: Request) {
+  const { messages }: { messages: UIMessage[] } = await req.json();
+  const latestMessage = messages[messages.length - 1]?.parts
+    ?.filter(p => p.type === 'text')
+    ?.map(p => (p as any).text)
+    ?.join(' ') || '';
+
+  // 1. Generate query vector and perform hybrid retrieval
+  const queryEmbedding = new Array(1536).fill(0.03); // e.g. await embed({ model: openai.embedding('text-embedding-3-small'), value: latestMessage })
+  const passages = store.hybridSearch(latestMessage, queryEmbedding, 2);
+
+  // 2. Build grounded context with strict citation anchors
+  const contextBlock = passages
+    .map(p => `[${p.citationIndex}] (Source: ${p.sourceFile}) ${p.content}`)
+    .join('\n\n');
+
+  const systemPrompt = `You are an enterprise technical assistant.
+Context information:
+---------------------
+${contextBlock}
+---------------------
+Answer the user's inquiry strictly based on the context above.
+Cite the exact source passage using [1], [2] for every factual claim.`;
+
+  // 3. Stream text with AI SDK
+  const result = streamText({
+    model: 'openai/gpt-4o-mini',
+    system: systemPrompt,
+    messages: await convertToModelMessages(messages),
+  });
+
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
+}
+```
+
+---
+
+## 3. Client Interface
+
+Render the streaming chat with clickable citation badges:
+
+```tsx filename="app/page.tsx"
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+import { useState } from 'react';
+
+export default function HybridRAGChat() {
+  const [input, setInput] = useState('');
+
+  const { messages, sendMessage, status } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+  });
+
+  const isBusy = status === 'submitted' || status === 'streaming';
+
+  return (
+    <div className="flex flex-col h-screen max-w-3xl mx-auto p-4">
+      <header className="py-4 border-b">
+        <h1 className="text-xl font-semibold">Local SQLite Hybrid RAG Assistant</h1>
+        <p className="text-sm text-neutral-500">
+          Dense Vectors + SQLite FTS5 BM25 with Reciprocal Rank Fusion ($k=60$)
+        </p>
+      </header>
+
+      <div className="flex-1 overflow-y-auto py-4 space-y-4">
+        {messages.map(m => (
+          <div
+            key={m.id}
+            className={`p-3 rounded-lg ${
+              m.role === 'user'
+                ? 'bg-neutral-100 dark:bg-neutral-800 ml-auto max-w-[80%]'
+                : 'bg-transparent border max-w-full'
+            }`}
+          >
+            <div className="font-semibold text-xs text-neutral-400 mb-1">
+              {m.role === 'user' ? 'User' : 'Assistant (Grounded)'}
+            </div>
+            <div className="text-sm whitespace-pre-wrap leading-relaxed">
+              {m.parts
+                ?.filter(p => p.type === 'text')
+                ?.map((p: any, i) => (
+                  <span key={i}>{p.text}</span>
+                ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <form
+        onSubmit={event => {
+          event.preventDefault();
+          if (!input.trim() || isBusy) return;
+
+          sendMessage({
+            role: 'user',
+            parts: [{ type: 'text', text: input }],
+          });
+          setInput('');
+        }}
+        className="flex gap-2 pt-4 border-t"
+      >
+        <input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          placeholder="Ask a question (e.g. What is the quarterly remote allowance?)..."
+          className="flex-1 px-4 py-2 border rounded-md text-sm outline-none focus:ring-1 focus:ring-black dark:focus:ring-white"
+          disabled={isBusy}
+        />
+        <button
+          type="submit"
+          disabled={isBusy || !input.trim()}
+          className="px-4 py-2 bg-black text-white dark:bg-white dark:text-black rounded-md text-sm font-medium disabled:opacity-50"
+        >
+          {isBusy ? 'Streaming...' : 'Send'}
+        </button>
+      </form>
+    </div>
+  );
+}
+```
