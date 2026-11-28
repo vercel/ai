@@ -36,6 +36,8 @@ export type BridgeDebugLevel = 'error' | 'warn' | 'info' | 'debug' | 'trace';
 export interface Experimental_BridgeUserMessage {
   readonly messageId: string;
   readonly text: string;
+  /** The host marked the text as not written by the user. */
+  readonly synthetic?: boolean;
   accept(): void;
   reject(error: unknown): void;
 }
@@ -46,7 +48,11 @@ export interface Experimental_BridgeUserMessageQueue extends AsyncIterable<Exper
 }
 
 type InternalBridgeUserMessageQueue = Experimental_BridgeUserMessageQueue & {
-  enqueue(input: { messageId: string; text: string }): void;
+  enqueue(input: {
+    messageId: string;
+    text: string;
+    synthetic?: boolean;
+  }): void;
 };
 
 type BridgeUserMessageResponse = {
@@ -123,7 +129,11 @@ function createBridgeUserMessageQueue(options: {
   let closed = false;
   let pendingCount = 0;
 
-  const enqueue = (input: { messageId: string; text: string }): void => {
+  const enqueue = (input: {
+    messageId: string;
+    text: string;
+    synthetic?: boolean;
+  }): void => {
     const existing = entries.get(input.messageId);
     if (existing != null) {
       if (existing.response != null) {
@@ -144,6 +154,7 @@ function createBridgeUserMessageQueue(options: {
     const message: Experimental_BridgeUserMessage = {
       messageId: input.messageId,
       text: input.text,
+      ...(input.synthetic === true ? { synthetic: true } : {}),
       accept: () => {
         settle({
           type: 'user-message-response',
@@ -383,7 +394,12 @@ type InboundControl =
       approved: boolean;
       reason?: string;
     }
-  | { type: 'user-message'; messageId?: string; text: string }
+  | {
+      type: 'user-message';
+      messageId?: string;
+      text: string;
+      synthetic?: boolean;
+    }
   | { type: 'abort' }
   | { type: 'stop' }
   | { type: 'destroy' }
@@ -954,6 +970,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
         currentUserMessages.enqueue({
           messageId,
           text: msg.text,
+          synthetic: msg.synthetic,
         });
         return;
       }

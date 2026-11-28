@@ -44,6 +44,7 @@ const state = vi.hoisted(() => ({
   originalArgv: [] as string[],
   originalEnv: {} as Record<string, string | undefined>,
   steering: false,
+  steeringSynthetic: false,
   steeringGate: undefined as Promise<void> | undefined,
   acceptedUserMessages: [] as string[],
   queryInputs: [] as unknown[],
@@ -178,6 +179,7 @@ vi.mock('@ai-sdk/harness/bridge', async importOriginal => ({
             yield {
               messageId: 'steering-message-1',
               text: 'Actually, Paris, Texas.',
+              ...(state.steeringSynthetic ? { synthetic: true } : {}),
               accept: () =>
                 state.acceptedUserMessages.push('steering-message-1'),
               reject: () => {},
@@ -221,6 +223,7 @@ describe('Claude Code bridge configuration', () => {
       thinking: { type: 'disabled' },
     };
     state.steering = false;
+    state.steeringSynthetic = false;
     state.steeringGate = undefined;
     state.acceptedUserMessages = [];
     state.queryInputs = [];
@@ -3010,6 +3013,25 @@ describe('Claude Code bridge configuration', () => {
       parent_tool_use_id: null,
       uuid: 'steering-message-1',
       priority: 'next',
+      message: {
+        role: 'user',
+        content: [{ type: 'text', text: 'Actually, Paris, Texas.' }],
+      },
+    });
+    expect(state.queryInputs[1]).not.toHaveProperty('isSynthetic');
+  });
+
+  test('marks a synthetic steering message as not written by the user', async () => {
+    state.steering = true;
+    state.steeringSynthetic = true;
+
+    await import('./index');
+
+    expect(state.queryInputs[1]).toMatchObject({
+      uuid: 'steering-message-1',
+      priority: 'next',
+      isSynthetic: true,
+      client_composed: true,
       message: {
         role: 'user',
         content: [{ type: 'text', text: 'Actually, Paris, Texas.' }],

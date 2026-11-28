@@ -79,4 +79,20 @@ describe('harnessV1BridgeUserMessageInboundSchema', () => {
       text: 'Change course.',
     });
   });
+
+  it('keeps the synthetic flag', () => {
+    expect(
+      experimental_harnessV1BridgeUserMessageInboundSchema.parse({
+        type: 'user-message',
+        messageId: 'message-1',
+        text: 'Relayed note.',
+        synthetic: true,
+      }),
+    ).toEqual({
+      type: 'user-message',
+      messageId: 'message-1',
+      text: 'Relayed note.',
+      synthetic: true,
+    });
+  });
 });

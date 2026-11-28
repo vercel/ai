@@ -1385,6 +1385,7 @@ function createQueryInput({
     content: StartMessage['prompt'];
     messageId: string;
     priority?: 'next';
+    synthetic?: boolean;
   }): unknown => ({
     type: 'user',
     message: {
@@ -1408,6 +1409,9 @@ function createQueryInput({
     parent_tool_use_id: null,
     uuid: options.messageId,
     ...(options.priority == null ? {} : { priority: options.priority }),
+    // From Claude Code 2.1.332, an unmarked mid-turn message counts as the
+    // user's own words. Its SDK docs mark text the user didn't write with both.
+    ...(options.synthetic ? { isSynthetic: true, client_composed: true } : {}),
   });
 
   const messageIterator = userMessages[Symbol.asyncIterator]();
@@ -1529,6 +1533,7 @@ function createQueryInput({
                 content: nextMessage.value.text,
                 messageId: nextMessage.value.messageId,
                 priority: 'next',
+                synthetic: nextMessage.value.synthetic,
               }),
               done: false,
             };

@@ -432,8 +432,17 @@ export class HarnessAgentSession {
    *
    * The runtime accepts the message for its next safe input boundary. Output
    * caused by the message remains part of the active turn's result stream.
+   *
+   * Set `synthetic` when the user did not write the text, such as another
+   * agent's output or a host notice, so Claude Code does not read it as the
+   * user's own words. Claude Code then delivers the text as written: a leading
+   * `/` does not run a command. Harnesses that cannot mark it send a regular
+   * user message.
    */
-  async experimental_steerTurn(text: string): Promise<void> {
+  async experimental_steerTurn(
+    text: string,
+    options?: { synthetic?: boolean },
+  ): Promise<void> {
     this.requireReusableSession();
     const activePromptControl = this.activePromptControl;
     if (
@@ -467,7 +476,7 @@ export class HarnessAgentSession {
       });
     }
 
-    await control.submitUserMessage(text);
+    await control.submitUserMessage(text, options);
   }
 
   /**

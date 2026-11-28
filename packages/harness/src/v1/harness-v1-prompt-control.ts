@@ -36,8 +36,15 @@ export type HarnessV1PromptControl = {
   /**
    * Inject a fresh user message into a turn that is still in flight.
    * Supported only by runtimes that accept interactive input.
+   *
+   * `synthetic` marks text the user did not write, such as another agent's
+   * output or a host notice. Runtimes that cannot mark it deliver the text as
+   * a regular user message.
    */
-  submitUserMessage?(text: string): PromiseLike<void>;
+  submitUserMessage?(
+    text: string,
+    options?: { synthetic?: boolean },
+  ): PromiseLike<void>;
 
   /**
    * Resolves when the adapter has finished the turn (success or failure).

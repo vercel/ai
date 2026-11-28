@@ -2,6 +2,7 @@ export type Experimental_BridgeUserMessageRequest = {
   type: 'user-message';
   messageId: string;
   text: string;
+  synthetic?: boolean;
 };
 
 export type Experimental_BridgeUserMessageResponse = {
@@ -12,7 +13,7 @@ export type Experimental_BridgeUserMessageResponse = {
 };
 
 export type Experimental_BridgeUserMessageSubmitter = {
-  submit(text: string): Promise<void>;
+  submit(text: string, options?: { synthetic?: boolean }): Promise<void>;
   close(error?: unknown): void;
 };
 
@@ -63,7 +64,7 @@ export function experimental_createBridgeUserMessageSubmitter(options: {
   });
 
   return {
-    submit: text => {
+    submit: (text, submitOptions) => {
       if (closed) {
         return Promise.reject(
           new Error('The bridge turn is no longer accepting user messages.'),
@@ -74,6 +75,7 @@ export function experimental_createBridgeUserMessageSubmitter(options: {
         type: 'user-message',
         messageId,
         text,
+        ...(submitOptions?.synthetic === true ? { synthetic: true } : {}),
       };
       const promise = new Promise<void>((resolve, reject) => {
         pending.set(messageId, { request, resolve, reject });

@@ -839,8 +839,12 @@ export class HarnessAgent<
   async experimental_steer(options: {
     session: HarnessAgentSession;
     text: string;
+    /** See `HarnessAgentSession.experimental_steerTurn`. */
+    synthetic?: boolean;
   }): Promise<void> {
-    await options.session.experimental_steerTurn(options.text);
+    await options.session.experimental_steerTurn(options.text, {
+      synthetic: options.synthetic,
+    });
   }
 
   // ─── Internals ──────────────────────────────────────────────────────
