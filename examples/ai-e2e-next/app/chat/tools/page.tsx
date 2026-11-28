@@ -61,7 +61,7 @@ export default function Chat() {
                         {part.input.message}
                         <div className="flex gap-2">
                           <button
-                            className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
+                            className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700 cursor-pointer"
                             onClick={async () => {
                               addToolOutput({
                                 tool: 'askForConfirmation',
@@ -73,7 +73,7 @@ export default function Chat() {
                             Yes
                           </button>
                           <button
-                            className="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
+                            className="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700 cursor-pointer"
                             onClick={async () => {
                               addToolOutput({
                                 tool: 'askForConfirmation',
