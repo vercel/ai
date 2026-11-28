@@ -1128,12 +1128,14 @@
     "quiverai": "QuiverAI",
     "togetherai": "TogetherAI",
     "scaledown": "ScaleDown",
+    "siliconflow": "SiliconFlow",
     "typesafe-ai": "TypeSafeAi"
   },
   "kebabToCamelMap": {
     "acp": "acp",
     "github-copilot": "githubCopilot",
     "heygen": "heygen",
-    "minimax": "minimax"
+    "minimax": "minimax",
+    "siliconflow": "siliconflow"
   }
 }
