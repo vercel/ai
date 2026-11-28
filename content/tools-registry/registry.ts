@@ -1032,4 +1032,35 @@ console.log(text);`,
     websiteUrl: 'https://upstash.com',
     npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
   },
+  {
+    slug: 'helmswap',
+    name: 'HelmSwap',
+    description:
+      "Swap quotes and unsigned swap transactions on Solana, Base, Ethereum, BNB Chain, Robinhood Chain, Ink, HyperEVM, Elysium and Arc. Non-custodial: the tools take no private keys and never sign or send; the user's wallet signs. The fee is shown in every quote. No API key for EVM chains; Solana builds use a free API key.",
+    packageName: 'helmswap-ai-sdk',
+    tags: ['defi', 'web3', 'swap'],
+    apiKeyEnvName: 'HELMSWAP_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add helmswap-ai-sdk',
+      npm: 'npm install helmswap-ai-sdk',
+      yarn: 'yarn add helmswap-ai-sdk',
+      bun: 'bun add helmswap-ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { helmswapTools } from 'helmswap-ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt:
+    'Quote 0.01 ETH to USDC on Base, then build the swap for wallet 0x000000000000000000000000000000000000dEaD.',
+  tools: helmswapTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/gambrelcolby63/helmswap-ai-sdk#readme',
+    apiKeyUrl: 'https://helmswap.com/developers',
+    websiteUrl: 'https://helmswap.com',
+    npmUrl: 'https://www.npmjs.com/package/helmswap-ai-sdk',
+  },
 ];
