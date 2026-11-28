@@ -15,6 +15,11 @@ import { webFetch_20260318ArgsSchema } from './tool/web-fetch-20260318';
 import { webFetch_20260209ArgsSchema } from './tool/web-fetch-20260209';
 import { webFetch_20250910ArgsSchema } from './tool/web-fetch-20250910';
 import { validateTypes } from '@ai-sdk/provider-utils';
+import {
+  needsToolInputWrapping,
+  wrapToolInput,
+  wrapToolInputSchema,
+} from './wrap-tool-input';
 
 export interface AnthropicToolOptions {
   deferLoading?: boolean;
@@ -74,16 +79,30 @@ export async function prepareTools({
   toolChoice: AnthropicToolChoice | undefined;
   toolWarnings: SharedV4Warning[];
   betas: Set<string>;
+
+  /**
+   * Names of the function tools whose input schema was sent wrapped in an
+   * `input` property (see `wrap-tool-input`). Their tool calls have to be
+   * unwrapped, and wrapped again when replayed.
+   */
+  wrappedToolNames: Set<string>;
 }> {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
   const toolWarnings: SharedV4Warning[] = [];
   const betas = new Set<string>();
+  const wrappedToolNames = new Set<string>();
   const validator = cacheControlValidator || new CacheControlValidator();
 
   if (tools == null && !hasInlineTools) {
-    return { tools: undefined, toolChoice: undefined, toolWarnings, betas };
+    return {
+      tools: undefined,
+      toolChoice: undefined,
+      toolWarnings,
+      betas,
+      wrappedToolNames,
+    };
   }
 
   const anthropicTools: AnthropicTool[] = [];
@@ -115,10 +134,19 @@ export async function prepareTools({
           });
         }
 
+        // Anthropic needs an object schema without top-level unions at the
+        // root, so other schemas are sent nested in an `input` property:
+        const wrapInput = needsToolInputWrapping(tool.inputSchema);
+        if (wrapInput) {
+          wrappedToolNames.add(tool.name);
+        }
+
         anthropicTools.push({
           name: tool.name,
           description: tool.description,
-          input_schema: tool.inputSchema,
+          input_schema: wrapInput
+            ? wrapToolInputSchema(tool.inputSchema)
+            : tool.inputSchema,
           cache_control: cacheControl,
           ...(eagerInputStreaming ? { eager_input_streaming: true } : {}),
           ...(supportsStrictTools === true && tool.strict != null
@@ -130,8 +158,8 @@ export async function prepareTools({
             : {}),
           ...(tool.inputExamples != null
             ? {
-                input_examples: tool.inputExamples.map(
-                  example => example.input,
+                input_examples: tool.inputExamples.map(example =>
+                  wrapInput ? wrapToolInput(example.input) : example.input,
                 ),
               }
             : {}),
@@ -484,6 +512,7 @@ export async function prepareTools({
         : undefined,
       toolWarnings,
       betas,
+      wrappedToolNames,
     };
   }
 
@@ -499,6 +528,7 @@ export async function prepareTools({
         },
         toolWarnings,
         betas,
+        wrappedToolNames,
       };
     case 'required':
       if (rejectsForcedToolUse) {
@@ -517,6 +547,7 @@ export async function prepareTools({
           },
           toolWarnings,
           betas,
+          wrappedToolNames,
         };
       }
       return {
@@ -527,6 +558,7 @@ export async function prepareTools({
         },
         toolWarnings,
         betas,
+        wrappedToolNames,
       };
     case 'none':
       return {
@@ -534,6 +566,7 @@ export async function prepareTools({
         toolChoice: { type: 'none' },
         toolWarnings,
         betas,
+        wrappedToolNames,
       };
     case 'tool':
       if (rejectsForcedToolUse) {
@@ -555,6 +588,7 @@ export async function prepareTools({
           },
           toolWarnings,
           betas,
+          wrappedToolNames,
         };
       }
       return {
@@ -566,6 +600,7 @@ export async function prepareTools({
         },
         toolWarnings,
         betas,
+        wrappedToolNames,
       };
     default: {
       const _exhaustiveCheck: never = type;

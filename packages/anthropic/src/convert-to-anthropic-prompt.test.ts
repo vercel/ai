@@ -526,6 +526,7 @@ describe('system messages', () => {
         system: [{ type: 'text', text: 'This is a system message' }],
       },
       betas: new Set(),
+      wrappedToolInputNames: new Set(),
     });
   });
 
@@ -549,6 +550,7 @@ describe('system messages', () => {
         ],
       },
       betas: new Set(),
+      wrappedToolInputNames: new Set(),
     });
   });
 
@@ -619,6 +621,7 @@ describe('system messages', () => {
             ],
           },
           betas: new Set(['mid-conversation-output-config-2026-07-01']),
+          wrappedToolInputNames: new Set(),
         });
         expect(warnings).toEqual([]);
       },
@@ -1062,6 +1065,7 @@ describe('system messages', () => {
         definition,
         warnings: [],
         betas: new Set(),
+        wrappedToolNames: new Set(),
       }),
     });
 
@@ -1191,6 +1195,7 @@ describe('user messages', () => {
         system: undefined,
       },
       betas: new Set(),
+      wrappedToolInputNames: new Set(),
     });
   });
 
@@ -1235,6 +1240,7 @@ describe('user messages', () => {
         system: undefined,
       },
       betas: new Set(),
+      wrappedToolInputNames: new Set(),
     });
   });
 
@@ -1443,6 +1449,7 @@ describe('user messages', () => {
         system: undefined,
       },
       betas: new Set(),
+      wrappedToolInputNames: new Set(),
     });
   });
 
@@ -1487,6 +1494,7 @@ describe('user messages', () => {
         system: undefined,
       },
       betas: new Set(['pdfs-2024-09-25']),
+      wrappedToolInputNames: new Set(),
     });
   });
 
@@ -1529,6 +1537,7 @@ describe('user messages', () => {
         system: undefined,
       },
       betas: new Set(['pdfs-2024-09-25']),
+      wrappedToolInputNames: new Set(),
     });
   });
 
@@ -1573,6 +1582,7 @@ describe('user messages', () => {
         system: undefined,
       },
       betas: new Set(['pdfs-2024-09-25']),
+      wrappedToolInputNames: new Set(),
     });
   });
 
@@ -1623,6 +1633,7 @@ describe('user messages', () => {
         system: undefined,
       },
       betas: new Set(),
+      wrappedToolInputNames: new Set(),
     });
   });
 
@@ -1668,6 +1679,7 @@ describe('user messages', () => {
         system: undefined,
       },
       betas: new Set(),
+      wrappedToolInputNames: new Set(),
     });
   });
 
@@ -1735,6 +1747,7 @@ describe('user messages', () => {
         system: undefined,
       },
       betas: new Set(['files-api-2025-04-14']),
+      wrappedToolInputNames: new Set(),
     });
   });
 
@@ -1780,6 +1793,7 @@ describe('user messages', () => {
         system: undefined,
       },
       betas: new Set(['files-api-2025-04-14']),
+      wrappedToolInputNames: new Set(),
     });
   });
 
@@ -1825,6 +1839,7 @@ describe('user messages', () => {
         system: undefined,
       },
       betas: new Set(['files-api-2025-04-14']),
+      wrappedToolInputNames: new Set(),
     });
   });
 
@@ -1880,6 +1895,7 @@ describe('user messages', () => {
         system: undefined,
       },
       betas: new Set(['files-api-2025-04-14']),
+      wrappedToolInputNames: new Set(),
     });
   });
 
@@ -1953,6 +1969,7 @@ describe('tool messages', () => {
         system: undefined,
       },
       betas: new Set(),
+      wrappedToolInputNames: new Set(),
     });
   });
 
@@ -2009,6 +2026,7 @@ describe('tool messages', () => {
         system: undefined,
       },
       betas: new Set(),
+      wrappedToolInputNames: new Set(),
     });
   });
 
@@ -2058,6 +2076,7 @@ describe('tool messages', () => {
         system: undefined,
       },
       betas: new Set(),
+      wrappedToolInputNames: new Set(),
     });
   });
 
@@ -2127,6 +2146,7 @@ describe('tool messages', () => {
           ],
           "system": undefined,
         },
+        "wrappedToolInputNames": Set {},
       }
     `);
   });
@@ -2202,6 +2222,7 @@ describe('tool messages', () => {
           ],
           "system": undefined,
         },
+        "wrappedToolInputNames": Set {},
       }
     `);
   });
@@ -2266,6 +2287,7 @@ describe('tool messages', () => {
         system: undefined,
       },
       betas: new Set(['files-api-2025-04-14']),
+      wrappedToolInputNames: new Set(),
     });
     expect(warnings).toEqual([]);
   });
@@ -2341,6 +2363,7 @@ describe('tool messages', () => {
           ],
           "system": undefined,
         },
+        "wrappedToolInputNames": Set {},
       }
     `);
   });
@@ -2405,6 +2428,7 @@ describe('tool messages', () => {
           ],
           "system": undefined,
         },
+        "wrappedToolInputNames": Set {},
       }
     `);
   });
@@ -2469,6 +2493,7 @@ describe('tool messages', () => {
           ],
           "system": undefined,
         },
+        "wrappedToolInputNames": Set {},
       }
     `);
   });
@@ -2819,6 +2844,7 @@ describe('assistant messages', () => {
         ],
       },
       betas: new Set(),
+      wrappedToolInputNames: new Set(),
     });
   });
 
@@ -2859,6 +2885,7 @@ describe('assistant messages', () => {
         ],
       },
       betas: new Set(),
+      wrappedToolInputNames: new Set(),
     });
   });
 
@@ -2901,6 +2928,7 @@ describe('assistant messages', () => {
         ],
       },
       betas: new Set(),
+      wrappedToolInputNames: new Set(),
     });
   });
 
@@ -2932,6 +2960,7 @@ describe('assistant messages', () => {
         ],
       },
       betas: new Set(),
+      wrappedToolInputNames: new Set(),
     });
   });
 
@@ -2984,6 +3013,7 @@ describe('assistant messages', () => {
         ],
       },
       betas: new Set(),
+      wrappedToolInputNames: new Set(),
     });
     expect(warnings).toEqual([]);
   });
@@ -3029,6 +3059,7 @@ describe('assistant messages', () => {
           ],
           "system": undefined,
         },
+        "wrappedToolInputNames": Set {},
       }
     `);
     expect(warnings).toMatchInlineSnapshot(`
@@ -3084,6 +3115,7 @@ describe('assistant messages', () => {
         ],
       },
       betas: new Set(),
+      wrappedToolInputNames: new Set(),
     });
     expect(warnings).toEqual([
       {
@@ -3131,6 +3163,7 @@ describe('assistant messages', () => {
         ],
       },
       betas: new Set(),
+      wrappedToolInputNames: new Set(),
     });
     expect(warnings).toEqual([
       {
@@ -3217,6 +3250,7 @@ describe('assistant messages', () => {
           ],
           "system": undefined,
         },
+        "wrappedToolInputNames": Set {},
       }
     `);
     expect(warnings).toMatchInlineSnapshot(`[]`);
@@ -3547,6 +3581,7 @@ describe('assistant messages', () => {
           ],
           "system": undefined,
         },
+        "wrappedToolInputNames": Set {},
       }
     `);
     expect(warnings).toMatchInlineSnapshot(`[]`);
@@ -3619,6 +3654,7 @@ describe('assistant messages', () => {
           ],
           "system": undefined,
         },
+        "wrappedToolInputNames": Set {},
       }
     `);
     expect(warnings).toMatchInlineSnapshot(`[]`);
@@ -3715,6 +3751,7 @@ describe('assistant messages', () => {
           ],
           "system": undefined,
         },
+        "wrappedToolInputNames": Set {},
       }
     `);
     expect(warnings).toMatchInlineSnapshot(`[]`);
@@ -3787,6 +3824,7 @@ describe('assistant messages', () => {
           ],
           "system": undefined,
         },
+        "wrappedToolInputNames": Set {},
       }
     `);
     expect(warnings).toMatchInlineSnapshot(`[]`);
@@ -3859,6 +3897,7 @@ describe('assistant messages', () => {
           ],
           "system": undefined,
         },
+        "wrappedToolInputNames": Set {},
       }
     `);
     expect(warnings).toMatchInlineSnapshot(`[]`);
@@ -3987,6 +4026,7 @@ describe('assistant messages', () => {
           ],
           "system": undefined,
         },
+        "wrappedToolInputNames": Set {},
       }
     `);
     expect(warnings).toMatchInlineSnapshot(`[]`);
@@ -4146,6 +4186,7 @@ describe('assistant messages', () => {
             ],
             "system": undefined,
           },
+          "wrappedToolInputNames": Set {},
         }
       `);
       expect(warnings).toMatchInlineSnapshot(`[]`);
@@ -4480,6 +4521,7 @@ describe('assistant messages', () => {
             ],
             "system": undefined,
           },
+          "wrappedToolInputNames": Set {},
         }
       `);
       expect(warnings).toMatchInlineSnapshot(`[]`);
@@ -4688,6 +4730,7 @@ describe('assistant messages', () => {
             ],
             "system": undefined,
           },
+          "wrappedToolInputNames": Set {},
         }
       `);
       expect(warnings).toMatchInlineSnapshot(`[]`);
@@ -5102,6 +5145,7 @@ describe('assistant messages', () => {
             ],
             "system": undefined,
           },
+          "wrappedToolInputNames": Set {},
         }
       `);
       expect(warnings).toMatchInlineSnapshot(`[]`);
@@ -5188,6 +5232,7 @@ describe('assistant messages', () => {
             ],
             "system": undefined,
           },
+          "wrappedToolInputNames": Set {},
         }
       `);
       expect(warnings).toMatchInlineSnapshot(`
@@ -5232,6 +5277,7 @@ describe('cache control', () => {
           ],
         },
         betas: new Set(),
+        wrappedToolInputNames: new Set(),
       });
     });
   });
@@ -5276,6 +5322,7 @@ describe('cache control', () => {
           ],
         },
         betas: new Set(),
+        wrappedToolInputNames: new Set(),
       });
     });
 
@@ -5321,6 +5368,7 @@ describe('cache control', () => {
           ],
         },
         betas: new Set(),
+        wrappedToolInputNames: new Set(),
       });
     });
   });
@@ -5367,6 +5415,7 @@ describe('cache control', () => {
           ],
         },
         betas: new Set(),
+        wrappedToolInputNames: new Set(),
       });
     });
 
@@ -5415,6 +5464,7 @@ describe('cache control', () => {
           ],
         },
         betas: new Set(),
+        wrappedToolInputNames: new Set(),
       });
     });
 
@@ -5457,6 +5507,7 @@ describe('cache control', () => {
           ],
         },
         betas: new Set(),
+        wrappedToolInputNames: new Set(),
       });
     });
 
@@ -5498,6 +5549,7 @@ describe('cache control', () => {
           ],
         },
         betas: new Set(),
+        wrappedToolInputNames: new Set(),
       });
     });
 
@@ -5629,6 +5681,7 @@ describe('cache control', () => {
           ],
         },
         betas: new Set(),
+        wrappedToolInputNames: new Set(),
       });
     });
   });
@@ -5677,6 +5730,7 @@ describe('cache control', () => {
           ],
         },
         betas: new Set(),
+        wrappedToolInputNames: new Set(),
       });
     });
 
@@ -5726,6 +5780,7 @@ describe('cache control', () => {
           ],
         },
         betas: new Set(),
+        wrappedToolInputNames: new Set(),
       });
     });
 
@@ -5780,6 +5835,7 @@ describe('cache control', () => {
           ],
         },
         betas: new Set(),
+        wrappedToolInputNames: new Set(),
       });
     });
 
@@ -5839,6 +5895,7 @@ describe('cache control', () => {
           ],
         },
         betas: new Set(),
+        wrappedToolInputNames: new Set(),
       });
     });
   });
@@ -5887,6 +5944,7 @@ describe('cache control', () => {
           ],
         },
         betas: new Set(),
+        wrappedToolInputNames: new Set(),
       });
 
       expect(cacheControlValidator.getWarnings()).toMatchInlineSnapshot(`
@@ -6080,6 +6138,7 @@ describe('citations', () => {
           ],
           "system": undefined,
         },
+        "wrappedToolInputNames": Set {},
       }
     `);
   });
@@ -6136,6 +6195,7 @@ describe('citations', () => {
           ],
           "system": undefined,
         },
+        "wrappedToolInputNames": Set {},
       }
     `);
   });
@@ -6196,6 +6256,7 @@ describe('citations', () => {
           ],
           "system": undefined,
         },
+        "wrappedToolInputNames": Set {},
       }
     `);
   });
@@ -6290,6 +6351,7 @@ describe('citations', () => {
           ],
           "system": undefined,
         },
+        "wrappedToolInputNames": Set {},
       }
     `);
   });

@@ -275,6 +275,17 @@ export class AnthropicBatch implements BatchV4<{
             `Use a model that supports native output_format structured outputs.`,
         });
       }
+      if (prepared.wrappedToolInputNames.size > 0) {
+        throw new UnsupportedFunctionalityError({
+          functionality: 'tools with wrapped input schemas in batches',
+          message:
+            `Anthropic Message Batches cannot unwrap the input of tools whose input schema ` +
+            `Anthropic does not accept at the root (${[...prepared.wrappedToolInputNames].join(', ')}) ` +
+            `when results are retrieved independently of the start call (request "${request.id}"). ` +
+            `Make the input schema an object without top-level anyOf, oneOf or allOf, ` +
+            `for example by nesting the union in an object property.`,
+        });
+      }
       const aliasedProviderTool = request.options.tools?.find(
         tool =>
           tool.type === 'provider' &&
