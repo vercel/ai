@@ -1032,4 +1032,34 @@ console.log(text);`,
     websiteUrl: 'https://upstash.com',
     npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
   },
+  {
+    slug: 'lobstr',
+    name: 'lobstr.io',
+    description:
+      'Structured data from websites for AI agents: Google Maps places and reviews, Google News, Airbnb, realtor.com, X and more. Tools to find an operation, read it and run it, or one tool per operation, one page of JSON records per call.',
+    packageName: 'lobstrio',
+    tags: ['scraping', 'search', 'extraction', 'web', 'data'],
+    apiKeyEnvName: 'LOBSTR_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add lobstrio',
+      npm: 'npm install lobstrio',
+      yarn: 'yarn add lobstrio',
+      bun: 'bun add lobstrio',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { lobstrTools } from 'lobstrio/ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5-5',
+  prompt: 'What does the news say about Tesla today?',
+  tools: await lobstrTools({ operations: ['google_news/articles/search'] }),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.lobstr.io/ai-sdk',
+    apiKeyUrl: 'https://app.lobstr.io/dashboard/api',
+    websiteUrl: 'https://www.lobstr.io',
+    npmUrl: 'https://www.npmjs.com/package/lobstrio',
+  },
 ];
