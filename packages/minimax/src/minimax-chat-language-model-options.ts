@@ -19,6 +19,8 @@ export const minimaxLanguageModelOptions = z.object({
    * reasoning tokens and increase latency. Defaults to the server's setting.
    */
   effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
+  /** Request admission tier. Priority admission is billed at 1.5x standard. */
+  serviceTier: z.enum(['standard', 'priority']).optional(),
   thinking: z
     .object({
       type: z.enum(['adaptive', 'disabled']),

@@ -7207,6 +7207,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   "container": null,
                   "contextManagement": null,
                   "iterations": null,
+                  "serviceTier": "standard",
                   "stopSequence": null,
                   "usage": {
                     "cache_creation": {
@@ -7363,6 +7364,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   "container": null,
                   "contextManagement": null,
                   "iterations": null,
+                  "serviceTier": "standard",
                   "stopSequence": null,
                   "usage": {
                     "cache_creation": {
@@ -7565,6 +7567,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                     "container": null,
                     "contextManagement": null,
                     "iterations": null,
+                    "serviceTier": "standard",
                     "stopSequence": null,
                     "usage": {
                       "cache_creation": {
@@ -10142,6 +10145,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                     "container": null,
                     "contextManagement": null,
                     "iterations": null,
+                    "serviceTier": "standard",
                     "stopSequence": null,
                     "usage": {
                       "cache_creation": {

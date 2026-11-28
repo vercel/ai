@@ -54,6 +54,9 @@ export interface AnthropicMessageMetadata {
   cacheCreationInputTokens: number | null;
   stopSequence: string | null;
 
+  /** The tier used by the provider, when returned in the response. */
+  serviceTier?: string | null;
+
   /**
    * Input blocks that Anthropic transformed before inference. This is
    * populated when thinking binding controls drop a mismatched thinking block.
