@@ -172,6 +172,41 @@ console.log(text);
 
 For more configuration options and customization, see the [Exa AI SDK documentation](https://docs.exa.ai/reference/vercel).
 
+#### Firecrawl
+
+<Note>
+  Get your API key from the [Firecrawl
+  dashboard](https://www.firecrawl.dev/app/api-keys).
+</Note>
+
+First, install the Firecrawl AI SDK tools:
+
+```bash
+pnpm install firecrawl-aisdk
+```
+
+Then, you can import and pass the tools into `generateText`, `streamText`, or your agent. Firecrawl provides two tools: `search` for web search, which can return the full page content of each result as Markdown in the same call, and `scrape` for getting a page as Markdown, including pages rendered with JavaScript:
+
+```ts
+import { generateText, isStepCount } from 'ai';
+__PROVIDER_IMPORT__;
+import { search, scrape } from 'firecrawl-aisdk';
+
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Find the latest AI SDK release and summarize what changed',
+  tools: {
+    search,
+    scrape,
+  },
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);
+```
+
+For the crawl, map, interact, and agent tools and their options, see the [Firecrawl AI SDK documentation](https://docs.firecrawl.dev/developer-guides/llm-sdks-and-frameworks/vercel-ai-sdk).
+
 #### Parallel Web
 
 <Note>Get your API key from the [Parallel Platform](https://parallel.ai).</Note>
@@ -372,32 +407,28 @@ pnpm install @mendable/firecrawl-js
 import { generateText, tool, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
 import { z } from 'zod';
-import FirecrawlApp from '@mendable/firecrawl-js';
+import Firecrawl from '@mendable/firecrawl-js';
 import 'dotenv/config';
 
-const app = new FirecrawlApp({ apiKey: process.env.FIRECRAWL_API_KEY });
+const firecrawl = new Firecrawl({
+  apiKey: process.env.FIRECRAWL_API_KEY,
+  origin: 'vercel-ai',
+});
 
-export const webSearch = tool({
-  description: 'Search the web for up-to-date information',
+export const scrapePage = tool({
+  description: 'Get the content of a web page as markdown',
   inputSchema: z.object({
-    urlToCrawl: z
+    url: z
       .string()
       .url()
-      .min(1)
-      .max(100)
-      .describe('The URL to crawl (including http:// or https://)'),
+      .describe('The URL to scrape (including http:// or https://)'),
   }),
-  execute: async ({ urlToCrawl }) => {
-    const crawlResponse = await app.crawlUrl(urlToCrawl, {
-      limit: 1,
-      scrapeOptions: {
-        formats: ['markdown', 'html'],
-      },
+  execute: async ({ url }) => {
+    const { markdown, metadata } = await firecrawl.scrape(url, {
+      formats: ['markdown'],
+      onlyMainContent: true,
     });
-    if (!crawlResponse.success) {
-      throw new Error(`Failed to crawl: ${crawlResponse.error}`);
-    }
-    return crawlResponse.data;
+    return { url, title: metadata?.title, markdown };
   },
 });
 
@@ -406,7 +437,7 @@ const main = async () => {
     model: __MODEL__, // can be any model that supports tools
     prompt: 'Get the latest blog post from vercel.com/blog',
     tools: {
-      webSearch,
+      scrapePage,
     },
     stopWhen: isStepCount(5),
   });
