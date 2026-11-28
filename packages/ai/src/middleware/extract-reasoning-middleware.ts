@@ -111,17 +111,15 @@ export function extractReasoningMiddleware({
                 return;
               }
 
-              if (chunk.type === 'text-end' && delayedTextStart) {
-                controller.enqueue(delayedTextStart);
-                delayedTextStart = undefined;
-              }
-
-              if (chunk.type !== 'text-delta') {
+              if (chunk.type !== 'text-delta' && chunk.type !== 'text-end') {
                 controller.enqueue(chunk);
                 return;
               }
 
-              if (reasoningExtractions[chunk.id] == null) {
+              if (
+                chunk.type === 'text-delta' &&
+                reasoningExtractions[chunk.id] == null
+              ) {
                 reasoningExtractions[chunk.id] = {
                   isFirstReasoning: true,
                   isFirstText: true,
@@ -135,7 +133,14 @@ export function extractReasoningMiddleware({
 
               const activeExtraction = reasoningExtractions[chunk.id];
 
-              activeExtraction.buffer += chunk.delta;
+              if (activeExtraction == null) {
+                if (delayedTextStart) {
+                  controller.enqueue(delayedTextStart);
+                  delayedTextStart = undefined;
+                }
+                controller.enqueue(chunk);
+                return;
+              }
 
               function publish(text: string) {
                 if (text.length > 0) {
@@ -184,6 +189,20 @@ export function extractReasoningMiddleware({
                   }
                 }
               }
+
+              if (chunk.type === 'text-end') {
+                publish(activeExtraction.buffer);
+                activeExtraction.buffer = '';
+
+                if (delayedTextStart) {
+                  controller.enqueue(delayedTextStart);
+                  delayedTextStart = undefined;
+                }
+                controller.enqueue(chunk);
+                return;
+              }
+
+              activeExtraction.buffer += chunk.delta;
 
               do {
                 const nextTag = activeExtraction.isReasoning
