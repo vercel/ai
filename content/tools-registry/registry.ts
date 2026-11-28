@@ -1036,30 +1036,24 @@ console.log(text);`,
     slug: 'inferrail',
     name: 'Inferrail',
     description:
-      "Read public web pages as clean Markdown with each page's metadata (authors, dates, language) and a content hash, one page or up to 10 per call. Also check package versions for known vulnerabilities (OSV.dev) and look up a domain's DNS, SPF/DMARC and registration. $0.002 USDC per delivered result, paid over x402 from a wallet you control: no API key or signup, a page that can't be read is never charged, and an optional guard refuses any offer above the listed price.",
+      "Read public web pages as clean Markdown with each page's metadata (title, authors, published date, language, canonical URL) and a content hash, one page or up to 10 per call. $0.002 per delivered page, paid from prepaid credits with an API key: a page that can't be read is never charged, and a retry with the same request id never pays twice. Teams that prefer a wallet can pay per call over x402 instead.",
     packageName: '@inferrail/ai-sdk-tools',
-    tags: ['web-scraping', 'markdown', 'x402', 'payments', 'security'],
+    tags: ['web-scraping', 'markdown', 'web-reading', 'citations'],
+    apiKeyEnvName: 'INFERRAIL_API_KEY',
     installCommand: {
-      pnpm: 'pnpm add @inferrail/ai-sdk-tools @x402/fetch @x402/evm viem',
-      npm: 'npm install @inferrail/ai-sdk-tools @x402/fetch @x402/evm viem',
-      yarn: 'yarn add @inferrail/ai-sdk-tools @x402/fetch @x402/evm viem',
-      bun: 'bun add @inferrail/ai-sdk-tools @x402/fetch @x402/evm viem',
+      pnpm: 'pnpm add @inferrail/ai-sdk-tools',
+      npm: 'npm install @inferrail/ai-sdk-tools',
+      yarn: 'yarn add @inferrail/ai-sdk-tools',
+      bun: 'bun add @inferrail/ai-sdk-tools',
     },
     codeExample: `import { generateText, isStepCount } from 'ai';
-import { x402Client, wrapFetchWithPayment } from '@x402/fetch';
-import { registerExactEvmScheme } from '@x402/evm/exact/client';
-import { privateKeyToAccount } from 'viem/accounts';
-import { guardInferrailPrices, inferrailTools } from '@inferrail/ai-sdk-tools';
+import { inferrailCreditTools } from '@inferrail/ai-sdk-tools';
 
-// Your own wallet with a few cents of USDC on Base. Each delivered result costs
-// $0.002; a page that can't be read costs nothing.
-const client = new x402Client();
-registerExactEvmScheme(client, {
-  signer: privateKeyToAccount(process.env.EVM_PRIVATE_KEY as \`0x\${string}\`),
+// An Inferrail workspace key with prepaid credits: $0.002 per delivered page,
+// and a page that can't be read costs nothing.
+const { readPages } = inferrailCreditTools({
+  apiKey: process.env.INFERRAIL_API_KEY!,
 });
-guardInferrailPrices(client); // refuse any Inferrail offer above its listed price
-
-const { readPages } = inferrailTools({ fetch: wrapFetchWithPayment(fetch, client) });
 
 const { text } = await generateText({
   model: 'openai/gpt-5-mini',
@@ -1071,7 +1065,9 @@ const { text } = await generateText({
 
 console.log(text);`,
     docsUrl:
-      'https://github.com/domondi1/inferrail/tree/main/packages/ai-sdk-tools#readme',
+      'https://github.com/domondi1/inferrail/tree/main/packages/ai-sdk-tools#pay-with-an-api-key-prepaid-credits-no-wallet',
+    apiKeyUrl:
+      'https://github.com/domondi1/inferrail/tree/main/packages/ai-sdk-tools#pay-with-an-api-key-prepaid-credits-no-wallet',
     websiteUrl: 'https://github.com/domondi1/inferrail',
     npmUrl: 'https://www.npmjs.com/package/@inferrail/ai-sdk-tools',
   },
