@@ -791,9 +791,9 @@ console.log(text);`,
     slug: 'specstream',
     name: 'SpecStream',
     description:
-      'SpecStream is the live web data engine for agents. Describe the data in plain words, such as "dental clinics in Lisbon with online booking" or "US startups that filed a $5M+ Form D this month", and get structured rows from the live web, every value linked to the page it came from. The price cap is set in your code before anything runs, the model cannot raise it, and you pay only for rows that match.',
+      'SpecStream is the live web data engine for agents. The Search API is the most accurate web search API in the world, at $5 per 1,000 searches. The Extract API reads web pages, PDF, Word and Excel, up to 20 URLs a call, at $0.80 per 1,000 pages, and a page with no text is free. Every value links to the page it came from. Deep Search returns structured rows priced per row, within a price cap you set in your code.',
     packageName: '@specstream/ai-sdk',
-    tags: ['search', 'web-data', 'lists'],
+    tags: ['search', 'extract', 'web-data'],
     apiKeyEnvName: 'SPECSTREAM_API_KEY',
     installCommand: {
       pnpm: 'pnpm add @specstream/ai-sdk',
@@ -809,7 +809,7 @@ const { text } = await generateText({
   tools: specstreamTools({ maxPriceUsd: 5 }),
   stopWhen: isStepCount(5),
   prompt:
-    'Find breweries in Portland, Oregon that host events, with their website.',
+    'Search the web for the latest Next.js release, then read its release notes page and summarize what changed.',
 });
 
 console.log(text);`,
