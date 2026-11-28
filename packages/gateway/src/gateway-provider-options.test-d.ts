@@ -5,6 +5,28 @@ import type {
   GatewayProviderOptions,
 } from './index';
 
+it('types regional hosting assertions', () => {
+  type RegionalHosting = NonNullable<GatewayProviderOptions['regionalHosting']>;
+
+  expectTypeOf<'au' | 'eu' | 'us'>().toMatchTypeOf<RegionalHosting>();
+  expectTypeOf<{ region: 'eu' }>().toMatchTypeOf<RegionalHosting>();
+  expectTypeOf<{
+    region: 'us';
+    pinInference: false;
+  }>().toMatchTypeOf<RegionalHosting>();
+  expectTypeOf<{
+    region: 'au';
+    pinInference: true;
+  }>().toMatchTypeOf<RegionalHosting>();
+  expectTypeOf<'ap'>().not.toMatchTypeOf<RegionalHosting>();
+  expectTypeOf<{ region: 'ap' }>().not.toMatchTypeOf<RegionalHosting>();
+  expectTypeOf<{ pinInference: false }>().not.toMatchTypeOf<RegionalHosting>();
+  expectTypeOf<{
+    region: 'eu';
+    pinInference: string;
+  }>().not.toMatchTypeOf<RegionalHosting>();
+});
+
 it('types conditional decision model fallbacks', () => {
   type QuestionId = 'department' | 'requestsRefund' | 'severity';
 
