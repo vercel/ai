@@ -31,6 +31,7 @@ import { prepareToolChoice } from '../prompt/prepare-tool-choice';
 import { prepareTools } from '../prompt/prepare-tools';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import type { Telemetry } from '../telemetry/telemetry';
+import type { Citation } from '../types/citation';
 import type {
   CallWarning,
   FinishReason,
@@ -572,6 +573,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
             id: chunk.id,
             type: 'text',
             providerMetadata: chunk.providerMetadata,
+            citations: chunk.citations,
           });
           textPartIndexes.delete(chunk.id);
           rawTextPartIndexes.delete(chunk.id);
@@ -983,6 +985,7 @@ function upsertTextContentPart<TOOLS extends ToolSet>({
   type,
   textDelta,
   providerMetadata,
+  citations,
 }: {
   enabled: boolean;
   content: Array<ContentPart<TOOLS>>;
@@ -993,6 +996,7 @@ function upsertTextContentPart<TOOLS extends ToolSet>({
   type: 'text' | 'reasoning';
   textDelta?: string;
   providerMetadata?: ProviderMetadata;
+  citations?: Array<Citation>;
 }) {
   if (!enabled) return;
   let partIndex = partIndexes.get(id);
@@ -1022,10 +1026,12 @@ function upsertTextContentPart<TOOLS extends ToolSet>({
   const part = content[partIndex] as {
     text: string;
     providerMetadata?: ProviderMetadata;
+    citations?: Array<Citation>;
   };
   const rawPart = rawContent[rawPartIndex] as {
     text: string;
     providerMetadata?: ProviderMetadata;
+    citations?: Array<Citation>;
   };
 
   if (textDelta != null) {
@@ -1036,5 +1042,10 @@ function upsertTextContentPart<TOOLS extends ToolSet>({
   if (providerMetadata != null) {
     part.providerMetadata = providerMetadata;
     rawPart.providerMetadata = providerMetadata;
+  }
+
+  if (citations != null) {
+    part.citations = citations;
+    rawPart.citations = citations;
   }
 }

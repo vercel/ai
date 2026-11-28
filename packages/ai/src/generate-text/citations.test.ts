@@ -12,6 +12,7 @@ import { readUIMessageStream } from '../ui-message-stream/read-ui-message-stream
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
 import { validateUIMessages } from '../ui/validate-ui-messages';
 import { generateText } from './generate-text';
+import type { LanguageModelCallEndEvent } from './language-model-events';
 import { streamText } from './stream-text';
 
 const citations: Array<Citation> = [
@@ -143,6 +144,35 @@ describe('citations', () => {
     // provider metadata, without injecting normalized references into the prompt.
     expect(await convertToModelMessages([finalMessage])).toMatchObject([
       { role: 'assistant', content: [{ type: 'text', text: 'Answer' }] },
+    ]);
+  });
+
+  it('preserves text-end citations in language model call end content', async () => {
+    let callEndEvent: LanguageModelCallEndEvent | undefined;
+    const result = streamText({
+      model: new MockLanguageModelV4({
+        doStream: {
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start', warnings: [] },
+            { type: 'text-start', id: 'text' },
+            { type: 'text-delta', id: 'text', delta: 'Answer' },
+            { type: 'text-end', id: 'text', citations },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage,
+            },
+          ]),
+        },
+      }),
+      prompt: 'Question',
+      onLanguageModelCallEnd: event => {
+        callEndEvent = event;
+      },
+    });
+    await result.consumeStream();
+    expect(callEndEvent?.content).toEqual([
+      { type: 'text', text: 'Answer', citations },
     ]);
   });
 
