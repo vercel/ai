@@ -1032,4 +1032,38 @@ console.log(text);`,
     websiteUrl: 'https://upstash.com',
     npmUrl: 'https://www.npmjs.com/package/@upstash/agentkit-ai-sdk',
   },
+  {
+    slug: 'zurchin',
+    name: 'Zurchin',
+    description:
+      'Email inboxes for AI agents, on @zurchin.email or your domain, and for every user of your platform. The model creates inboxes, sends, waits for the reply and answers in the thread. Actions that cannot be undone can wait for a person to approve them.',
+    packageName: '@zurchin/ai-sdk',
+    tags: ['email', 'inbox', 'agents', 'security'],
+    apiKeyEnvName: 'ZURCHIN_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @zurchin/ai-sdk',
+      npm: 'npm install @zurchin/ai-sdk',
+      yarn: 'yarn add @zurchin/ai-sdk',
+      bun: 'bun add @zurchin/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { pidgeonToolApproval, pidgeonTools } from '@zurchin/ai-sdk';
+
+const tools = pidgeonTools();
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools,
+  toolApproval: pidgeonToolApproval(tools),
+  stopWhen: isStepCount(10),
+  prompt:
+    'Make an inbox called bookings, email ops@example.com from it to ask for the staging access code, wait for the answer and tell me the code.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://zurchin.com/docs/sdks#vercel-ai-sdk',
+    apiKeyUrl: 'https://zurchin.com/keys',
+    websiteUrl: 'https://zurchin.com',
+    npmUrl: 'https://www.npmjs.com/package/@zurchin/ai-sdk',
+  },
 ];
