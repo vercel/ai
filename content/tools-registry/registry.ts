@@ -721,6 +721,121 @@ console.log(text);`,
     npmUrl: 'https://www.npmjs.com/package/pexafy-ai-sdk',
   },
   {
+    slug: 'suno-by-acedatacloud',
+    name: 'Suno by Ace Data Cloud',
+    description:
+      'Suno tools for AI SDK applications using Ace Data Cloud hosted MCP. Connect read-only task lookup by default; enable service generation with an application-controlled per-call authorization callback. Preserve original task IDs for asynchronous results.',
+    packageName: '@acedatacloud/ai-sdk-suno',
+    tags: ['suno', 'music', 'mcp'],
+    apiKeyEnvName: 'ACEDATACLOUD_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @acedatacloud/ai-sdk-suno ai zod',
+      npm: 'npm install @acedatacloud/ai-sdk-suno ai zod',
+      yarn: 'yarn add @acedatacloud/ai-sdk-suno ai zod',
+      bun: 'bun add @acedatacloud/ai-sdk-suno ai zod',
+    },
+    codeExample:
+      "import { generateText, gateway, isStepCount } from 'ai';\nimport { createSunoTools } from '@acedatacloud/ai-sdk-suno';\n\n// Set ACEDATACLOUD_API_KEY, AI_GATEWAY_API_KEY, and the ID of an existing task.\nconst taskId = process.env.ACE_TASK_ID;\nif (!taskId) throw new Error('Set ACE_TASK_ID to an existing task ID.');\n\nconst connection = await createSunoTools({ tools: ['suno_get_task'] });\ntry {\n  const { text } = await generateText({\n    model: gateway('openai/gpt-5-mini'),\n    prompt: `Check the status of the existing task ${taskId}.`,\n    tools: { suno_get_task: connection.tools.suno_get_task },\n    stopWhen: isStepCount(2),\n  });\n  console.log(text);\n} finally {\n  await connection.close();\n}",
+    docsUrl: 'https://acedatacloud.github.io/AISDK/suno.html',
+    apiKeyUrl:
+      'https://platform.acedata.cloud/console/applications?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=suno_registry_api_key',
+    websiteUrl:
+      'https://platform.acedata.cloud?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=suno_registry_overview',
+    npmUrl: 'https://www.npmjs.com/package/@acedatacloud/ai-sdk-suno',
+  },
+  {
+    slug: 'happyhorse-by-acedatacloud',
+    name: 'HappyHorse by Ace Data Cloud',
+    description:
+      'HappyHorse tools for AI SDK applications using Ace Data Cloud hosted MCP. Connect read-only task lookup by default; enable service generation with an application-controlled per-call authorization callback. Preserve original task IDs for asynchronous results.',
+    packageName: '@acedatacloud/ai-sdk-happyhorse',
+    tags: ['happyhorse', 'video', 'mcp'],
+    apiKeyEnvName: 'ACEDATACLOUD_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @acedatacloud/ai-sdk-happyhorse ai zod',
+      npm: 'npm install @acedatacloud/ai-sdk-happyhorse ai zod',
+      yarn: 'yarn add @acedatacloud/ai-sdk-happyhorse ai zod',
+      bun: 'bun add @acedatacloud/ai-sdk-happyhorse ai zod',
+    },
+    codeExample:
+      "import { generateText, gateway, isStepCount } from 'ai';\nimport { createHappyHorseTools } from '@acedatacloud/ai-sdk-happyhorse';\n\n// Set ACEDATACLOUD_API_KEY, AI_GATEWAY_API_KEY, and the ID of an existing task.\nconst taskId = process.env.ACE_TASK_ID;\nif (!taskId) throw new Error('Set ACE_TASK_ID to an existing task ID.');\n\nconst connection = await createHappyHorseTools({ tools: ['happyhorse_get_task'] });\ntry {\n  const { text } = await generateText({\n    model: gateway('openai/gpt-5-mini'),\n    prompt: `Check the status of the existing task ${taskId}.`,\n    tools: { happyhorse_get_task: connection.tools.happyhorse_get_task },\n    stopWhen: isStepCount(2),\n  });\n  console.log(text);\n} finally {\n  await connection.close();\n}",
+    docsUrl: 'https://acedatacloud.github.io/AISDK/happyhorse.html',
+    apiKeyUrl:
+      'https://platform.acedata.cloud/console/applications?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=happyhorse_registry_api_key',
+    websiteUrl:
+      'https://platform.acedata.cloud?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=happyhorse_registry_overview',
+    npmUrl: 'https://www.npmjs.com/package/@acedatacloud/ai-sdk-happyhorse',
+  },
+  {
+    slug: 'gpt-image-by-acedatacloud',
+    name: 'GPT Image by Ace Data Cloud',
+    description:
+      'GPT Image tools for AI SDK applications using Ace Data Cloud hosted MCP. Connect read-only task lookup by default; enable service generation with an application-controlled per-call authorization callback. Preserve original task IDs for asynchronous results.',
+    packageName: '@acedatacloud/ai-sdk-gpt-image',
+    tags: ['gpt-image', 'image', 'mcp'],
+    apiKeyEnvName: 'ACEDATACLOUD_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @acedatacloud/ai-sdk-gpt-image ai zod',
+      npm: 'npm install @acedatacloud/ai-sdk-gpt-image ai zod',
+      yarn: 'yarn add @acedatacloud/ai-sdk-gpt-image ai zod',
+      bun: 'bun add @acedatacloud/ai-sdk-gpt-image ai zod',
+    },
+    codeExample:
+      "import { generateText, gateway, isStepCount } from 'ai';\nimport { createGPTImageTools } from '@acedatacloud/ai-sdk-gpt-image';\n\n// Set ACEDATACLOUD_API_KEY, AI_GATEWAY_API_KEY, and the ID of an existing task.\nconst taskId = process.env.ACE_TASK_ID;\nif (!taskId) throw new Error('Set ACE_TASK_ID to an existing task ID.');\n\nconst connection = await createGPTImageTools({ tools: ['openai_get_task'] });\ntry {\n  const { text } = await generateText({\n    model: gateway('openai/gpt-5-mini'),\n    prompt: `Check the status of the existing task ${taskId}.`,\n    tools: { openai_get_task: connection.tools.openai_get_task },\n    stopWhen: isStepCount(2),\n  });\n  console.log(text);\n} finally {\n  await connection.close();\n}",
+    docsUrl: 'https://acedatacloud.github.io/AISDK/gpt-image.html',
+    apiKeyUrl:
+      'https://platform.acedata.cloud/console/applications?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=gpt-image_registry_api_key',
+    websiteUrl:
+      'https://platform.acedata.cloud?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=gpt-image_registry_overview',
+    npmUrl: 'https://www.npmjs.com/package/@acedatacloud/ai-sdk-gpt-image',
+  },
+  {
+    slug: 'nano-banana-by-acedatacloud',
+    name: 'Nano Banana by Ace Data Cloud',
+    description:
+      'Nano Banana tools for AI SDK applications using Ace Data Cloud hosted MCP. Connect read-only task lookup by default; enable service generation with an application-controlled per-call authorization callback. Preserve original task IDs for asynchronous results.',
+    packageName: '@acedatacloud/ai-sdk-nano-banana',
+    tags: ['nano-banana', 'image', 'mcp'],
+    apiKeyEnvName: 'ACEDATACLOUD_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @acedatacloud/ai-sdk-nano-banana ai zod',
+      npm: 'npm install @acedatacloud/ai-sdk-nano-banana ai zod',
+      yarn: 'yarn add @acedatacloud/ai-sdk-nano-banana ai zod',
+      bun: 'bun add @acedatacloud/ai-sdk-nano-banana ai zod',
+    },
+    codeExample:
+      "import { generateText, gateway, isStepCount } from 'ai';\nimport { createNanoBananaTools } from '@acedatacloud/ai-sdk-nano-banana';\n\n// Set ACEDATACLOUD_API_KEY, AI_GATEWAY_API_KEY, and the ID of an existing task.\nconst taskId = process.env.ACE_TASK_ID;\nif (!taskId) throw new Error('Set ACE_TASK_ID to an existing task ID.');\n\nconst connection = await createNanoBananaTools({ tools: ['nanobanana_get_task'] });\ntry {\n  const { text } = await generateText({\n    model: gateway('openai/gpt-5-mini'),\n    prompt: `Check the status of the existing task ${taskId}.`,\n    tools: { nanobanana_get_task: connection.tools.nanobanana_get_task },\n    stopWhen: isStepCount(2),\n  });\n  console.log(text);\n} finally {\n  await connection.close();\n}",
+    docsUrl: 'https://acedatacloud.github.io/AISDK/nano-banana.html',
+    apiKeyUrl:
+      'https://platform.acedata.cloud/console/applications?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=nano-banana_registry_api_key',
+    websiteUrl:
+      'https://platform.acedata.cloud?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=nano-banana_registry_overview',
+    npmUrl: 'https://www.npmjs.com/package/@acedatacloud/ai-sdk-nano-banana',
+  },
+  {
+    slug: 'seedance-by-acedatacloud',
+    name: 'Seedance by Ace Data Cloud',
+    description:
+      'Seedance tools for AI SDK applications using Ace Data Cloud hosted MCP. Connect read-only task lookup by default; enable service generation with an application-controlled per-call authorization callback. Preserve original task IDs for asynchronous results.',
+    packageName: '@acedatacloud/ai-sdk-seedance',
+    tags: ['seedance', 'video', 'mcp'],
+    apiKeyEnvName: 'ACEDATACLOUD_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @acedatacloud/ai-sdk-seedance ai zod',
+      npm: 'npm install @acedatacloud/ai-sdk-seedance ai zod',
+      yarn: 'yarn add @acedatacloud/ai-sdk-seedance ai zod',
+      bun: 'bun add @acedatacloud/ai-sdk-seedance ai zod',
+    },
+    codeExample:
+      "import { generateText, gateway, isStepCount } from 'ai';\nimport { createSeedanceTools } from '@acedatacloud/ai-sdk-seedance';\n\n// Set ACEDATACLOUD_API_KEY, AI_GATEWAY_API_KEY, and the ID of an existing task.\nconst taskId = process.env.ACE_TASK_ID;\nif (!taskId) throw new Error('Set ACE_TASK_ID to an existing task ID.');\n\nconst connection = await createSeedanceTools({ tools: ['seedance_get_task'] });\ntry {\n  const { text } = await generateText({\n    model: gateway('openai/gpt-5-mini'),\n    prompt: `Check the status of the existing task ${taskId}.`,\n    tools: { seedance_get_task: connection.tools.seedance_get_task },\n    stopWhen: isStepCount(2),\n  });\n  console.log(text);\n} finally {\n  await connection.close();\n}",
+    docsUrl: 'https://acedatacloud.github.io/AISDK/seedance.html',
+    apiKeyUrl:
+      'https://platform.acedata.cloud/console/applications?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=seedance_registry_api_key',
+    websiteUrl:
+      'https://platform.acedata.cloud?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=seedance_registry_overview',
+    npmUrl: 'https://www.npmjs.com/package/@acedatacloud/ai-sdk-seedance',
+  },
+  {
     slug: 'agentmail',
     name: 'AgentMail',
     description:
