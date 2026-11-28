@@ -2,7 +2,7 @@ import type { StartMessage } from '../claude-code-bridge-protocol';
 
 type BuiltinToolFiltering = StartMessage['builtinToolFiltering'];
 
-const PUBLIC_TO_NATIVE: Readonly<Record<string, string>> = {
+export const PUBLIC_TO_NATIVE: Readonly<Record<string, string>> = {
   read: 'Read',
   write: 'Write',
   edit: 'Edit',

@@ -53,11 +53,13 @@ import {
   resolveMcpHandlerToolUseId,
   isExternalMcpTool,
   mapUsage,
+  toHostToolName,
   type ClaudeMessage,
 } from './create-emit-stream-event';
 import { jsonSchemaToZodObject } from './json-schema-to-zod';
 import { areFileToolPathsTrusted } from './permission-paths';
 import {
+  PUBLIC_TO_NATIVE,
   resolveInactiveNativeTools,
   resolveNativeTools,
 } from './tool-filtering';
@@ -137,6 +139,27 @@ const NATIVE_TOOL_KINDS: Readonly<
 
 function toCommonName(nativeName: string): CommonBuiltinToolName | string {
   return NATIVE_TO_COMMON[nativeName] ?? nativeName;
+}
+
+/*
+ * Claude Code knows host tools only by their MCP name, but the model sometimes
+ * calls one by its bare name. Alias those bare names to the host tool, except
+ * names that would shadow a built-in tool or another MCP tool.
+ */
+function resolveHostToolAliases(
+  tools: StartMessage['tools'],
+): ReadonlySet<string> {
+  const reservedNames = new Set([
+    ...Object.keys(NATIVE_TOOL_KINDS),
+    ...Object.keys(NATIVE_TO_COMMON),
+    ...Object.values(PUBLIC_TO_NATIVE),
+    'StructuredOutput',
+  ]);
+  return new Set(
+    (tools ?? [])
+      .map(tool => tool.name)
+      .filter(name => !reservedNames.has(name) && !name.startsWith('mcp__')),
+  );
 }
 
 const args = parseArgs(argv.slice(2));
@@ -224,6 +247,7 @@ function createPermissionOptions(input: {
   emittedToolCallIds: Set<string>;
   approvalDecisions: Map<string, { approved: boolean; reason?: string }>;
   toolCwds: Map<string, string>;
+  hostToolAliases: ReadonlySet<string>;
 }): Record<string, unknown> {
   const permissionMode = input.start.permissionMode ?? 'allow-all';
   const autoMode =
@@ -272,13 +296,14 @@ function createPermissionOptions(input: {
       options: { toolUseID: string; blockedPath?: string },
     ) => {
       if (
-        toolName.startsWith('mcp__harness-tools__') ||
+        toHostToolName(toolName, input.hostToolAliases) !== undefined ||
         (!autoMode &&
           !(await needsHostApproval({
             toolName,
             toolInput,
             permissionMode,
             inactiveNativeTools,
+            hostToolAliases: input.hostToolAliases,
             cwd: input.toolCwds.get(options.toolUseID) ?? '',
             readableSkillRoots: input.start.readableSkillRoots ?? [],
             additionalDirectories: input.start.additionalDirectories ?? [],
@@ -491,8 +516,11 @@ async function needsHostApproval(input: {
   blockedPath?: string;
   permissionMode: 'allow-reads' | 'allow-edits' | 'allow-all';
   inactiveNativeTools: ReadonlySet<string>;
+  hostToolAliases: ReadonlySet<string>;
 }): Promise<boolean> {
-  if (input.toolName.startsWith('mcp__harness-tools__')) return false;
+  if (toHostToolName(input.toolName, input.hostToolAliases) !== undefined) {
+    return false;
+  }
   if (
     input.inactiveNativeTools.has(input.toolName) ||
     nativeToolRequiresApproval({
@@ -614,6 +642,7 @@ function createApprovalPreToolUseHook(input: {
   readableSkillRoots: readonly string[];
   additionalDirectories: readonly string[];
   toolCwds: Map<string, string>;
+  hostToolAliases: ReadonlySet<string>;
 }): HookCallback {
   return async (hookInput, toolUseID): Promise<HookJSONOutput> => {
     if (hookInput.hook_event_name !== 'PreToolUse') return {};
@@ -659,6 +688,7 @@ function createApprovalPreToolUseHook(input: {
             additionalDirectories: input.additionalDirectories,
             permissionMode: input.permissionMode,
             inactiveNativeTools: input.inactiveNativeTools,
+            hostToolAliases: input.hostToolAliases,
           }))
     ) {
       return {};
@@ -728,6 +758,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   }
 
   const streamEventState = createClaudeStreamEventState();
+  const hostToolAliases = resolveHostToolAliases(start.tools);
 
   const mcpServers: Record<string, unknown> = { ...start.mcpServers };
   if (start.tools && start.tools.length > 0) {
@@ -878,6 +909,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   >();
   const toolCwds = new Map<string, string>();
   const permissionOptions = createPermissionOptions({
+    hostToolAliases,
     toolCwds,
     approvalDecisions,
     start,
@@ -896,6 +928,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const modelOverrides = createGatewayModelOverrides(start.model, sdkEnv);
   const deferredToolUseIds = new Set<string>();
   const approvalPreToolUseHook = createApprovalPreToolUseHook({
+    hostToolAliases,
     toolCwds,
     readableSkillRoots: start.readableSkillRoots ?? [],
     additionalDirectories: start.additionalDirectories ?? [],
@@ -948,6 +981,16 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       ...(nativeTools !== undefined ? { tools: nativeTools } : {}),
       ...(inactiveNativeTools.length > 0
         ? { disallowedTools: inactiveNativeTools }
+        : {}),
+      ...(hostToolAliases.size > 0
+        ? {
+            toolAliases: Object.fromEntries(
+              [...hostToolAliases].map(name => [
+                name,
+                `mcp__harness-tools__${name}`,
+              ]),
+            ),
+          }
         : {}),
       systemPrompt: createClaudeCodeSystemPrompt(start.instructions, {
         excludeDynamicSections: start.excludeDynamicSections,
@@ -1130,6 +1173,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     emitTerminalError,
     onCompactionBoundary: boundary => compaction.onBoundary(boundary),
     toCommonName,
+    hostToolAliases,
   });
 
   /*
