@@ -1,0 +1,104 @@
+---
+title: CoralBricks
+description: Learn how to use the CoralBricks provider for the AI SDK.
+---
+
+# CoralBricks Provider
+
+[@coralbricks/ai-sdk-provider](https://www.npmjs.com/package/@coralbricks/ai-sdk-provider)
+provides access to [CoralBricks](https://www.coralbricks.ai) inference for the
+open-weight [DeepSeek V4.1 Flash](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash-1017)
+model, with a 1M-token context window, over an OpenAI-compatible API.
+
+API keys can be obtained from the [CoralBricks API keys page](https://www.coralbricks.ai/api-keys).
+
+## Setup
+
+The CoralBricks provider is available via the `@coralbricks/ai-sdk-provider` module. You can install it with:
+
+<InstallPackages packages="@coralbricks/ai-sdk-provider" />
+
+### Environment variables
+
+Create a `.env` file with a `CORALBRICKS_API_KEY` variable.
+
+## Provider Instance
+
+You can import the default provider instance `coralbricks` from `@coralbricks/ai-sdk-provider`:
+
+```ts
+import { coralbricks } from '@coralbricks/ai-sdk-provider';
+```
+
+If you need a customized setup, you can import `createCoralBricks` and create a provider instance with your settings:
+
+```ts
+import { createCoralBricks } from '@coralbricks/ai-sdk-provider';
+
+const coralbricks = createCoralBricks({
+  // Optional settings
+});
+```
+
+You can use the following optional settings to customize the CoralBricks provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls.
+  The default prefix is `https://inference.coralbricks.ai/v1`.
+
+- **apiKey** _string_
+
+  API key that is sent using the `Authorization` header.
+  It defaults to the `CORALBRICKS_API_KEY` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+## Language Models
+
+Create a model with the provider instance and a model id:
+
+```ts
+const model = coralbricks('deepseek-v4.1-flash');
+```
+
+DeepSeek V4.1 Flash is served in three tiers, each with its own model id:
+
+| Model                        | Model ID                    | Tier              | Input $/1M | Cached input $/1M | Output $/1M |
+| ---------------------------- | --------------------------- | ----------------- | ---------- | ----------------- | ----------- |
+| DeepSeek V4.1 Flash Standard | `deepseek-v4.1-flash`       | Default tier      | $0.19      | $0.008            | $0.60       |
+| DeepSeek V4.1 Flash Fast     | `deepseek-v4.1-flash-fast`  | Fastest tier      | $0.45      | $0.009            | $1.80       |
+| DeepSeek V4.1 Flash Value    | `deepseek-v4.1-flash-value` | Lowest-price tier | $0.005     | $0.003            | $0.57       |
+
+All three have a 1,048,576-token context window and up to 393,216 output
+tokens, accept text and image input, and support reasoning and prompt caching.
+Writing to the prompt cache is not billed. See
+[coralbricks.ai/pricing](https://www.coralbricks.ai/pricing) for current
+prices. The model id type is open, so a newly launched model works before the
+package updates.
+
+### Model Capabilities
+
+| Model                       | Image Input | Object Generation | Tool Usage | Tool Streaming |
+| --------------------------- | ----------- | ----------------- | ---------- | -------------- |
+| `deepseek-v4.1-flash`       | <Check />   | <Check />         | <Check />  | <Check />      |
+| `deepseek-v4.1-flash-fast`  | <Check />   | <Check />         | <Check />  | <Check />      |
+| `deepseek-v4.1-flash-value` | <Check />   | <Check />         | <Check />  | <Check />      |
+
+### Example
+
+```ts
+import { generateText } from 'ai';
+import { coralbricks } from '@coralbricks/ai-sdk-provider';
+
+const { text } = await generateText({
+  model: coralbricks('deepseek-v4.1-flash'),
+  prompt: 'Explain prompt caching in one sentence.',
+});
+```
+
+Streaming (`streamText`), tool calls, and structured output (`generateObject`)
+work through the standard AI SDK functions — CoralBricks speaks the OpenAI wire
+format, including streaming tool calls.
