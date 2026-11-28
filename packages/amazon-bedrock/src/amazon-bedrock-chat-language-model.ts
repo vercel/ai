@@ -182,6 +182,8 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
 
     const warnings: SharedV4Warning[] = [];
 
+    const modelRequestConfig = getAmazonBedrockLanguageModelEntry(this.modelId)
+      .requestConfig.language;
     const {
       supportsStructuredOutput: modelSupportsStructuredOutput,
       rejectsSamplingParameters,
@@ -190,7 +192,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       rejectsThinkingDisabledAboveHighEffort,
       supportsBetweenToolsThinking,
       isKnownModel,
-    } = getModelCapabilities(this.modelId);
+    } = getModelCapabilities(modelRequestConfig.anthropicModelId);
 
     if (frequencyPenalty != null) {
       warnings.push({
@@ -242,13 +244,11 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       }
     }
 
-    const modelEntry = getAmazonBedrockLanguageModelEntry(this.modelId);
-    const {
-      openai: isOpenAIModel,
-      openaiGptOss: isOpenAIGptOssModel,
-      nova2Reasoning: isNovaReasoningModel,
-    } = modelEntry.requestConfig.language;
-    const shouldNormalizeTemperature = !isOpenAIModel || isOpenAIGptOssModel;
+    const { reasoningEffort: reasoningEffortField, rejectedSettings } =
+      modelRequestConfig;
+    // A rejected temperature is removed below, so it is not clamped.
+    const shouldNormalizeTemperature =
+      !rejectedSettings.includes('temperature');
 
     if (shouldNormalizeTemperature && temperature != null && temperature > 1) {
       warnings.push({
@@ -298,7 +298,6 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       amazonBedrockOptions,
       warnings,
       isAnthropicModel,
-      isOpenAIModel,
       modelId: this.modelId,
     });
 
@@ -312,11 +311,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       amazonBedrockOptions.reasoningConfig?.maxReasoningEffort;
 
     if (isAnthropicModel && thinkingType === 'disabled') {
-      if (
-        /claude-(?:instant|v?2|3-(?:5-)?(?:haiku|sonnet|opus))(?=[-.:]|$)/.test(
-          this.modelId,
-        )
-      ) {
+      if (!modelRequestConfig.thinkingField) {
         // Claude 3.5 and earlier do not accept a thinking field, even disabled.
         thinkingType = undefined;
       } else if (rejectsThinkingDisabled) {
@@ -431,8 +426,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
       (rejectsForcedToolUse ||
-        (modelEntry.requestConfig.language.claude &&
-          (!isKnownModel || !modelSupportsStructuredOutput) &&
+        ((!isKnownModel || !modelSupportsStructuredOutput) &&
           !supportsNativeStructuredOutput(this.modelId) &&
           structuredOutputMode !== 'jsonTool') ||
         (structuredOutputMode !== 'jsonTool' &&
@@ -575,21 +569,19 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
             effort: maxReasoningEffort,
           },
         };
-      } else if (isOpenAIModel) {
-        // gpt-oss models expect `reasoning_effort` as a flat value, while
-        // GPT-5.x models expect a nested `reasoning.effort` object.
-        amazonBedrockOptions.additionalModelRequestFields = isOpenAIGptOssModel
-          ? {
-              ...amazonBedrockOptions.additionalModelRequestFields,
-              reasoning_effort: maxReasoningEffort,
-            }
-          : {
-              ...amazonBedrockOptions.additionalModelRequestFields,
-              reasoning: {
-                ...amazonBedrockOptions.additionalModelRequestFields?.reasoning,
-                effort: maxReasoningEffort,
-              },
-            };
+      } else if (reasoningEffortField === 'reasoning_effort') {
+        amazonBedrockOptions.additionalModelRequestFields = {
+          ...amazonBedrockOptions.additionalModelRequestFields,
+          reasoning_effort: maxReasoningEffort,
+        };
+      } else if (reasoningEffortField === 'reasoning.effort') {
+        amazonBedrockOptions.additionalModelRequestFields = {
+          ...amazonBedrockOptions.additionalModelRequestFields,
+          reasoning: {
+            ...amazonBedrockOptions.additionalModelRequestFields?.reasoning,
+            effort: maxReasoningEffort,
+          },
+        };
       } else {
         // other models (such as Nova 2) use reasoningConfig format
         amazonBedrockOptions.additionalModelRequestFields = {
@@ -605,7 +597,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
     }
 
     if (
-      isNovaReasoningModel &&
+      reasoningEffortField === 'reasoningConfig' &&
       thinkingType === 'enabled' &&
       (maxReasoningEffort === 'high' ||
         maxReasoningEffort === 'xhigh' ||
@@ -660,22 +652,14 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       });
     }
 
-    // OpenAI models reject stopSequences on the Converse API. Models other
-    // than gpt-oss also reject temperature and topP.
-    if (isOpenAIModel) {
-      const unsupportedFeatures = isOpenAIGptOssModel
-        ? (['stopSequences'] as const)
-        : (['temperature', 'topP', 'stopSequences'] as const);
-
-      for (const feature of unsupportedFeatures) {
-        if (inferenceConfig[feature] != null) {
-          delete inferenceConfig[feature];
-          warnings.push({
-            type: 'unsupported',
-            feature,
-            details: `${feature} is not supported by this OpenAI model on the Converse API`,
-          });
-        }
+    for (const feature of rejectedSettings) {
+      if (inferenceConfig[feature] != null) {
+        delete inferenceConfig[feature];
+        warnings.push({
+          type: 'unsupported',
+          feature,
+          details: `${feature} is not supported by this OpenAI model on the Converse API`,
+        });
       }
     }
 
@@ -1764,24 +1748,25 @@ const openAIReasoningEffortMap = {
   max: 'max',
 } as const;
 
-function isNova2ReasoningModel(modelId: string): boolean {
-  return getAmazonBedrockLanguageModelEntry(modelId).requestConfig.language
-    .nova2Reasoning;
-}
+/** The efforts accepted by each request field that carries the effort. */
+const reasoningEffortMaps = {
+  'reasoning.effort': openAIReasoningEffortMap,
+  reasoning_effort: openAIGptOssReasoningEffortMap,
+  reasoningConfig: amazonNovaReasoningEffortMap,
+  unknown: amazonBedrockReasoningEffortMap,
+} as const;
 
 function resolveAmazonBedrockReasoningConfig({
   reasoning,
   amazonBedrockOptions,
   warnings,
   isAnthropicModel,
-  isOpenAIModel,
   modelId,
 }: {
   reasoning: LanguageModelV4CallOptions['reasoning'];
   amazonBedrockOptions: AmazonBedrockLanguageModelChatOptions;
   warnings: SharedV4Warning[];
   isAnthropicModel: boolean;
-  isOpenAIModel: boolean;
   modelId: string;
 }): AmazonBedrockLanguageModelChatOptions {
   const reasoningConfig = amazonBedrockOptions.reasoningConfig;
@@ -1801,12 +1786,15 @@ function resolveAmazonBedrockReasoningConfig({
     return result;
   }
 
-  const isNovaReasoningModel = isNova2ReasoningModel(modelId);
-  const supportsPortableReasoning =
-    isOpenAIModel || isNovaReasoningModel || reasoningConfig != null;
+  const { anthropicModelId, reasoningEffort: reasoningEffortField } =
+    getAmazonBedrockLanguageModelEntry(modelId).requestConfig.language;
+  // Reasoning in the `reasoningConfig` field is off unless an effort is sent.
+  const isOffWithoutEffort = reasoningEffortField === 'reasoningConfig';
+  const sendsPortableReasoning =
+    reasoningEffortField !== 'unknown' || reasoningConfig != null;
 
   if (isAnthropicModel) {
-    const capabilities = getModelCapabilities(modelId);
+    const capabilities = getModelCapabilities(anthropicModelId);
 
     if (reasoning === 'none') {
       result.reasoningConfig = { type: 'disabled' };
@@ -1843,32 +1831,25 @@ function resolveAmazonBedrockReasoningConfig({
         budgetTokens,
       };
     }
-  } else if (reasoning === 'none' && isNovaReasoningModel) {
-    // Nova 2 reasoning is disabled unless a reasoning effort is sent, so
-    // there is nothing to add.
+  } else if (reasoning === 'none' && isOffWithoutEffort) {
+    // Reasoning is off unless a reasoning effort is sent, so there is
+    // nothing to add.
   } else {
-    if (supportsPortableReasoning) {
+    if (sendsPortableReasoning) {
       const effort =
         reasoningConfig?.maxReasoningEffort ??
         // OpenAI efforts such as 'none' are sent as `reasoning_effort` even
         // though they are not accepted in the reasoningConfig provider option.
         (mapReasoningToProviderEffort({
           reasoning,
-          effortMap: isNovaReasoningModel
-            ? amazonNovaReasoningEffortMap
-            : isOpenAIModel
-              ? getAmazonBedrockLanguageModelEntry(modelId).requestConfig
-                  .language.openaiGptOssReasoning
-                ? openAIGptOssReasoningEffortMap
-                : openAIReasoningEffortMap
-              : amazonBedrockReasoningEffortMap,
+          effortMap: reasoningEffortMaps[reasoningEffortField],
           warnings,
         }) as NonNullable<
           AmazonBedrockLanguageModelChatOptions['reasoningConfig']
         >['maxReasoningEffort']);
       result.reasoningConfig = {
         ...reasoningConfig,
-        ...(isNovaReasoningModel && {
+        ...(isOffWithoutEffort && {
           type: reasoningConfig?.type ?? 'enabled',
         }),
         maxReasoningEffort: effort,

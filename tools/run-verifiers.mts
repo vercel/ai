@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { basename, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -12,7 +12,8 @@ import { fileExists, logError, logMessage } from './verifiers/utils.ts';
 const repoRoot = fileURLToPath(new URL('../', import.meta.url));
 
 try {
-  if (process.argv.slice(2).includes('--help')) {
+  const args = process.argv.slice(2);
+  if (args.includes('--help')) {
     const help = `pnpm run-verifiers [(--paths <string> | --staged | --modified)]
 
 Options:
@@ -24,7 +25,7 @@ Options:
 Examples:
 
 \`\`\`
-# Runs the verifiers that apply to any files in the repository (all verifiers).
+# Runs verifiers for tracked and non-ignored untracked files.
 pnpm run-verifiers
 
 # Runs the verifiers that apply to the \`harness\` package.
@@ -42,9 +43,17 @@ pnpm run-verifiers --modified
 `;
     console.log(help);
   } else {
+    const selectedFiles =
+      args.length > 0
+        ? getInputFiles()
+        : execFileSync(
+            'git',
+            ['ls-files', '--cached', '--others', '--exclude-standard', '-z'],
+            { cwd: repoRoot, encoding: 'utf8' },
+          ).split('\0');
     const inputFiles: string[] = [];
-    for (const file of getInputFiles({ defaultPaths: ['.'] })) {
-      if (await fileExists(file)) inputFiles.push(file);
+    for (const file of new Set(selectedFiles)) {
+      if (file !== '' && (await fileExists(file))) inputFiles.push(file);
     }
     const verifiers: { verifierFile: string; files: string[] }[] = [];
     for (const { guidelineFile, files } of await getApplicableGuidelines(

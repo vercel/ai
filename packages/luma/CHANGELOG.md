@@ -1,5 +1,12 @@
 # @ai-sdk/luma
 
+## 3.0.88
+
+### Patch Changes
+
+- Updated dependencies [80d778a]
+  - @ai-sdk/provider-utils@5.0.85
+
 ## 3.0.87
 
 ### Patch Changes

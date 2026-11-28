@@ -5,8 +5,10 @@ import { getAmazonBedrockLanguageModelEntry } from './amazon-bedrock-model-catal
  * Mistral models on Bedrock are prefixed with 'mistral.' or region-prefixed like 'us.mistral.'.
  */
 export function isMistralModel(modelId: string): boolean {
-  return getAmazonBedrockLanguageModelEntry(modelId).requestConfig.language
-    .mistral;
+  return (
+    getAmazonBedrockLanguageModelEntry(modelId).requestConfig.language
+      .toolCallIdFormat === 'mistral'
+  );
 }
 
 /**
