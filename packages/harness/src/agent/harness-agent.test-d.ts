@@ -5,10 +5,14 @@ import type { HarnessAgent } from './harness-agent';
 describe('HarnessAgent steering types', () => {
   test('exposes the experimental agent and session methods', () => {
     expectTypeOf<HarnessAgent['experimental_steer']>().toEqualTypeOf<
-      (options: { session: HarnessAgentSession; text: string }) => Promise<void>
+      (options: {
+        session: HarnessAgentSession;
+        text: string;
+        synthetic?: boolean;
+      }) => Promise<void>
     >();
     expectTypeOf<HarnessAgentSession['experimental_steerTurn']>().toEqualTypeOf<
-      (text: string) => Promise<void>
+      (text: string, options?: { synthetic?: boolean }) => Promise<void>
     >();
   });
 });

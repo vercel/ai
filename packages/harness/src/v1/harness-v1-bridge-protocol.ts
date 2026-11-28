@@ -311,6 +311,8 @@ export const harnessV1BridgeUserMessageInboundSchema = z.object({
   type: z.literal('user-message'),
   messageId: z.string().optional(),
   text: z.string(),
+  /** The user did not write the text (e.g. another agent's output). */
+  synthetic: z.boolean().optional(),
 });
 
 export const experimental_harnessV1BridgeUserMessageInboundSchema =

@@ -1753,8 +1753,11 @@ function createSession({
       ...(userMessageSubmitter == null
         ? {}
         : {
-            submitUserMessage: async (text: string) => {
-              await userMessageSubmitter.submit(text);
+            submitUserMessage: async (
+              text: string,
+              options?: { synthetic?: boolean },
+            ) => {
+              await userMessageSubmitter.submit(text, options);
             },
           }),
       done,

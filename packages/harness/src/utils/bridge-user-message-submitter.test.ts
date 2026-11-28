@@ -73,6 +73,19 @@ describe('experimental_createBridgeUserMessageSubmitter', () => {
     await expect(steering).rejects.toThrow('Turn already finished.');
   });
 
+  it('marks a synthetic message on the request', () => {
+    const { submitter, sent } = setup();
+    void submitter.submit('Change course.');
+    void submitter.submit('Relayed note.', { synthetic: true });
+
+    expect(sent[0]).not.toHaveProperty('synthetic');
+    expect(sent[1]).toMatchObject({
+      type: 'user-message',
+      text: 'Relayed note.',
+      synthetic: true,
+    });
+  });
+
   it('retries pending messages with the same id after reconnect', () => {
     const { submitter, sent, reconnect } = setup();
     void submitter.submit('Change course.');

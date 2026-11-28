@@ -70,6 +70,7 @@ function mockHarness(options: {
     reason?: string;
   }[];
   userMessages: string[];
+  userMessageOptions: Array<{ synthetic?: boolean } | undefined>;
   doStart: ReturnType<typeof vi.fn>;
   doDetach: ReturnType<typeof vi.fn>;
   doContinueTurn: ReturnType<typeof vi.fn>;
@@ -86,6 +87,14 @@ function mockHarness(options: {
     reason?: string;
   }[] = [];
   const userMessages: string[] = [];
+  const userMessageOptions: Array<{ synthetic?: boolean } | undefined> = [];
+  const submitUserMessage = async (
+    text: string,
+    submitOptions?: { synthetic?: boolean },
+  ) => {
+    userMessages.push(text);
+    userMessageOptions.push(submitOptions);
+  };
   const resumeState = {
     type: 'resume-session' as const,
     harnessId: 'mock',
@@ -115,13 +124,7 @@ function mockHarness(options: {
       submitToolApproval: async input => {
         toolApprovals.push(input);
       },
-      ...(options.supportsSteering
-        ? {
-            submitUserMessage: async (text: string) => {
-              userMessages.push(text);
-            },
-          }
-        : {}),
+      ...(options.supportsSteering ? { submitUserMessage } : {}),
       done: Promise.resolve(),
     };
     const events =
@@ -153,13 +156,7 @@ function mockHarness(options: {
         submitToolApproval: async input => {
           toolApprovals.push(input);
         },
-        ...(options.supportsSteering
-          ? {
-              submitUserMessage: async (text: string) => {
-                userMessages.push(text);
-              },
-            }
-          : {}),
+        ...(options.supportsSteering ? { submitUserMessage } : {}),
         done: options.promptDone?.(opts) ?? Promise.resolve(),
       };
       const events = options.script(async input => {
@@ -201,6 +198,7 @@ function mockHarness(options: {
     toolResults,
     toolApprovals,
     userMessages,
+    userMessageOptions,
     doStart,
     doDetach,
     doContinueTurn,
@@ -1267,6 +1265,40 @@ describe('HarnessAgent', () => {
     await session.experimental_steerTurn('Change course.');
 
     expect(userMessages).toEqual(['Change course.']);
+    finishPrompt();
+    await result.consumeStream();
+    await session.destroy();
+  });
+
+  test('steering passes the synthetic flag to the harness', async () => {
+    let finishPrompt!: () => void;
+    const promptDone = new Promise<void>(resolve => {
+      finishPrompt = resolve;
+    });
+    const { harness, userMessageOptions } = mockHarness({
+      script: () => [],
+      supportsSteering: true,
+      promptDone: () => promptDone,
+    });
+    const agent = new HarnessAgent({
+      harness,
+    });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
+    const result = await agent.stream({ session, prompt: 'Start.' });
+
+    await session.experimental_steerTurn('Relayed note.', { synthetic: true });
+    await agent.experimental_steer({
+      session,
+      text: 'Another relayed note.',
+      synthetic: true,
+    });
+
+    expect(userMessageOptions).toEqual([
+      { synthetic: true },
+      { synthetic: true },
+    ]);
     finishPrompt();
     await result.consumeStream();
     await session.destroy();

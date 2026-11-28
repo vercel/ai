@@ -502,6 +502,34 @@ describe('runBridge', () => {
     releaseTurn();
   });
 
+  it('passes the synthetic flag of a user message to the adapter', async () => {
+    const handle = await startBridge({
+      onStart: async (_start, turn) => {
+        for await (const message of turn.experimental_userMessages) {
+          turn.emit({
+            type: 'user-message-observed',
+            synthetic: message.synthetic,
+          });
+          message.accept();
+          return;
+        }
+      },
+    });
+    const client = await connect(handle.port);
+    await client.waitFor(f => f.type === 'bridge-hello');
+    client.send({ type: 'start' });
+    client.send({
+      type: 'user-message',
+      messageId: 'message-1',
+      text: 'Relayed note.',
+      synthetic: true,
+    });
+
+    await expect(
+      client.waitFor(f => f.type === 'user-message-observed'),
+    ).resolves.toMatchObject({ synthetic: true });
+  });
+
   it('accepts the original user-message payload without a messageId', async () => {
     const handle = await startBridge({
       onStart: async (_start, turn) => {

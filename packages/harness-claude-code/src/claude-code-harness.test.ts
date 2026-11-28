@@ -2692,6 +2692,42 @@ describe('createClaudeCode adapter', () => {
       await session.doDestroy();
     });
 
+    it('marks a synthetic steering message on the bridge command', async () => {
+      wsMock.scripts.push(socket => {
+        queueMicrotask(() => {
+          socket.emit('open');
+          socket.emit(
+            'message',
+            JSON.stringify({
+              type: 'bridge-hello',
+              capabilities: { experimental_userMessageResponses: true },
+            }),
+          );
+        });
+      });
+
+      const session = await startWithFakeBridgeSocket();
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'Weather in Paris?',
+        emit: () => {},
+      });
+
+      const steering = control.submitUserMessage?.('Relayed note.', {
+        synthetic: true,
+      });
+      const sent = sentMessages.find(m => m.type === 'user-message');
+      expect(sent).toMatchObject({ text: 'Relayed note.', synthetic: true });
+      dispatchChannelEvent({
+        type: 'user-message-response',
+        messageId: sent?.messageId,
+        accepted: true,
+      });
+      await expect(steering).resolves.toBeUndefined();
+      await session.doDestroy();
+    });
+
     it('submits compaction without requiring an active acknowledged turn', async () => {
       wsMock.scripts.push(socket => {
         queueMicrotask(() => {
