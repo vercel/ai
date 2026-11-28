@@ -4,6 +4,7 @@ import type {
   LanguageModelV4CallOptions,
   LanguageModelV4GenerateResult,
   LanguageModelV4Prompt,
+  LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
 import { EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL } from '@ai-sdk/provider-utils';
 import {
@@ -1953,6 +1954,97 @@ describe('responses', () => {
       });
     });
 
+    describe('compaction', () => {
+      it('should parse compaction output item from real fixture', async () => {
+        prepareJsonFixtureResponse('azure-compaction.1');
+
+        const result = await createModel('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            azure: {
+              store: false,
+              contextManagement: [
+                { type: 'compaction', compactThreshold: 50000 },
+              ],
+            },
+          },
+        });
+
+        const compactionPart = result.content.find(
+          (
+            part,
+          ): part is Extract<
+            LanguageModelV4GenerateResult['content'][number],
+            { type: 'custom' }
+          > =>
+            part.type === 'custom' &&
+            part.providerMetadata?.azure?.type === 'compaction',
+        );
+
+        expect(compactionPart).toBeDefined();
+        expect(compactionPart).toMatchObject({
+          type: 'custom',
+          providerMetadata: {
+            azure: {
+              type: 'compaction',
+              itemId: expect.any(String),
+              encryptedContent: expect.any(String),
+            },
+          },
+        });
+        expect(String(compactionPart?.kind)).toMatch(/^openai[-.]compaction$/);
+      });
+
+      it('should send context_management in request body', async () => {
+        prepareJsonFixtureResponse('azure-compaction.1');
+
+        await createModel('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            azure: {
+              store: false,
+              contextManagement: [
+                { type: 'compaction', compactThreshold: 50000 },
+              ],
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          model: 'test-deployment',
+          store: false,
+          context_management: [
+            { type: 'compaction', compact_threshold: 50000 },
+          ],
+        });
+      });
+
+      it('should expose compaction metadata under providerMetadata.azure', async () => {
+        prepareJsonFixtureResponse('azure-compaction.1');
+
+        const result = await createModel('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            azure: {
+              store: false,
+              contextManagement: [
+                { type: 'compaction', compactThreshold: 50000 },
+              ],
+            },
+          },
+        });
+
+        const compactionPart = result.content.find(
+          part =>
+            part.type === 'custom' &&
+            part.providerMetadata?.azure?.type === 'compaction',
+        );
+
+        expect(compactionPart?.providerMetadata).toHaveProperty('azure');
+        expect(compactionPart?.providerMetadata).not.toHaveProperty('openai');
+      });
+    });
+
     describe('custom tool', () => {
       const sql = 'SELECT "name" FROM users WHERE age > 25';
       const customCall = {
@@ -2926,6 +3018,71 @@ describe('responses', () => {
       expect(
         await convertReadableStreamToArray(result.stream),
       ).toMatchSnapshot();
+    });
+
+    describe('compaction', () => {
+      it('should stream compaction output item from real fixture', async () => {
+        prepareChunksFixtureResponse('azure-compaction.1');
+
+        const result = await createModel('test-deployment').doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            azure: {
+              store: false,
+              contextManagement: [
+                { type: 'compaction', compactThreshold: 50000 },
+              ],
+            },
+          },
+        });
+
+        const parts = await convertReadableStreamToArray(result.stream);
+        const compactionPart = parts.find(
+          (
+            part,
+          ): part is Extract<LanguageModelV4StreamPart, { type: 'custom' }> =>
+            part.type === 'custom' &&
+            part.providerMetadata?.azure?.type === 'compaction',
+        );
+
+        expect(compactionPart).toBeDefined();
+        expect(compactionPart).toMatchObject({
+          type: 'custom',
+          providerMetadata: {
+            azure: {
+              type: 'compaction',
+              itemId: expect.any(String),
+              encryptedContent: expect.any(String),
+            },
+          },
+        });
+        expect(String(compactionPart?.kind)).toMatch(/^openai[-.]compaction$/);
+      });
+
+      it('should send context_management in streaming request body', async () => {
+        prepareChunksFixtureResponse('azure-compaction.1');
+
+        await createModel('test-deployment').doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            azure: {
+              store: false,
+              contextManagement: [
+                { type: 'compaction', compactThreshold: 50000 },
+              ],
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          model: 'test-deployment',
+          store: false,
+          stream: true,
+          context_management: [
+            { type: 'compaction', compact_threshold: 50000 },
+          ],
+        });
+      });
     });
 
     describe('file search tool', () => {
