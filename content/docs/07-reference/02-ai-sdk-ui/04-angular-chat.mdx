@@ -1,0 +1,67 @@
+---
+title: Angular Chat
+description: Use @ai-sdk/angular to build chat interfaces.
+---
+
+# Angular Chat
+
+The `@ai-sdk/angular` package provides a `Chat` class for Angular applications.
+It uses Angular signals internally and exposes the same transport-based chat API
+as AI SDK UI.
+
+## Installation
+
+```bash
+npm install @ai-sdk/angular ai
+```
+
+## Example
+
+```ts filename="chat.component.ts"
+import { Component } from '@angular/core';
+import { Chat } from '@ai-sdk/angular';
+
+@Component({
+  selector: 'app-chat',
+  template: `
+    @for (message of chat.messages; track message.id) {
+      <div>
+        <strong>{{ message.role }}:</strong>
+        @for (part of message.parts; track $index) {
+          @if (part.type === 'text') {
+            <span>{{ part.text }}</span>
+          }
+        }
+      </div>
+    }
+
+    <form (ngSubmit)="sendMessage()">
+      <input
+        name="input"
+        [value]="input"
+        (input)="input = $any($event.target).value"
+        [disabled]="chat.status === 'submitted' || chat.status === 'streaming'"
+      />
+      <button type="submit">Send</button>
+    </form>
+  `,
+})
+export class ChatComponent {
+  chat = new Chat({});
+  input = '';
+
+  sendMessage() {
+    const text = this.input.trim();
+    if (!text) {
+      return;
+    }
+
+    this.chat.sendMessage({ text });
+    this.input = '';
+  }
+}
+```
+
+The default chat transport sends messages to `/api/chat`. Implement that
+endpoint with `streamText` and `createUIMessageStreamResponse`, the same way as
+the [AI SDK UI chatbot guide](/docs/ai-sdk-ui/chatbot).
